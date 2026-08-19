@@ -2164,7 +2164,9 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 			// reduce status and see if it falls off
 			pInHand->bAttachStatus[ bAttachPos ] -= (INT8) Random( 2 );
 
-			if ( pInHand->bAttachStatus[ bAttachPos ] - Random( 35 ) - Random( 35 ) < USABLE )
+			// only risk falling off once the extender's condition has dropped below 50%
+			if ( pInHand->bAttachStatus[ bAttachPos ] < 50
+				&& pInHand->bAttachStatus[ bAttachPos ] - Random( 35 ) - Random( 35 ) < USABLE )
 			{
 				// barrel extender falls off!
 				OBJECTTYPE Temp;
