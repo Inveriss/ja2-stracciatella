@@ -2162,10 +2162,16 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 		if ( bAttachPos != ITEM_NOT_FOUND && fModify)
 		{
 			// reduce status and see if it falls off
-			pInHand->bAttachStatus[ bAttachPos ] -= (INT8) Random( 2 );
+			// only a 1-in-10 chance of wear per shot, so it degrades 10x slower
+			if ( Random( 10 ) == 0 )
+			{
+				pInHand->bAttachStatus[ bAttachPos ] -= (INT8) Random( 2 );
+			}
 
 			// only risk falling off once the extender's condition has dropped below 50%
+			// halved odds of falling off compared to the roll below
 			if ( pInHand->bAttachStatus[ bAttachPos ] < 50
+				&& Random( 2 ) == 0
 				&& pInHand->bAttachStatus[ bAttachPos ] - Random( 35 ) - Random( 35 ) < USABLE )
 			{
 				// barrel extender falls off!
