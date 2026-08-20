@@ -391,7 +391,7 @@ FireWeaponResult FireWeapon(SOLDIERTYPE * const pSoldier, GridNo const sTargetGr
 				pSoldier->fDoSpread = FALSE;
 			}
 
-			if ( pSoldier->fDoSpread > 6 )
+			if ( pSoldier->fDoSpread > 10 )
 			{
 				pSoldier->fDoSpread = FALSE;
 			}

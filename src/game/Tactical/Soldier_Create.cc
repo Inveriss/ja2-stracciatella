@@ -950,6 +950,7 @@ static void InitSoldierStruct(SOLDIERTYPE& s)
 	s.xrayed_by                 = 0;
 	s.uiXRayActivatedTime       = 0;
 	s.bBulletsLeft              = 0;
+	s.usBurstFireAniCodeAnchor  = 0xFFFF;
 	s.bVehicleUnderRepairID     = -1;
 }
 
