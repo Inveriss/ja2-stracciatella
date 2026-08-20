@@ -175,6 +175,7 @@ void DishoutQueenSwipeDamage( SOLDIERTYPE *pQueenSoldier );
 INT32 HTHImpact(const SOLDIERTYPE* pSoldier, const SOLDIERTYPE* pTarget, INT32 iHitBy, BOOLEAN fBladeAttack);
 
 UINT16 GunRange(OBJECTTYPE const&);
+UINT8  GunShotsPerBurst(OBJECTTYPE const&);
 
 extern BOOLEAN gfNextFireJam;
 extern BOOLEAN gfNextShotKills;

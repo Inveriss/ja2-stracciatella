@@ -2316,7 +2316,7 @@ void RenderItemDescriptionBox(void)
 		{
 			INT32       x = in_map ? MAP_BULLET_BURST_X : BULLET_BURST_X;
 			INT32 const y = in_map ? MAP_BULLET_BURST_Y : BULLET_BURST_Y;
-			for (INT32 i = w->ubShotsPerBurst; i != 0; --i)
+			for (INT32 i = GunShotsPerBurst(obj); i != 0; --i)
 			{
 				BltVideoObject(guiSAVEBUFFER, guiBullet, 0, x, y);
 				x += BULLET_WIDTH + 1;
@@ -2475,7 +2475,7 @@ void RenderItemDescriptionBox(void)
 
 		if (w->ubShotsPerBurst > 0)
 		{
-			HighlightIf(w->ubShotsPerBurst >= EXCEPTIONAL_BURST_SIZE || obj.usItem == G11);
+			HighlightIf(GunShotsPerBurst(obj) >= EXCEPTIONAL_BURST_SIZE || obj.usItem == G11);
 			pStr = ST::format("{2d}", ubAttackAPs + CalcAPsToBurst(DEFAULT_APS, obj));
 			FindFontRightCoordinates(dx + ids[5].sX + ids[5].sValDx, dy + ids[5].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);

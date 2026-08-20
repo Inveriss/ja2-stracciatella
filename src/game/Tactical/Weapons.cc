@@ -102,6 +102,27 @@ UINT16 GunRange(OBJECTTYPE const& o)
 }
 
 
+#define BURST_EXTENDER_BONUS_SHOTS			1
+
+UINT8 GunShotsPerBurst(OBJECTTYPE const& o)
+{
+	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
+
+	UINT8 shots = GCM->getWeapon(o.usItem)->ubShotsPerBurst;
+	// a weapon that can't burst at all doesn't gain burst capability from the attachment
+	if (shots == 0) return 0;
+
+	INT8 attach_pos = FindAttachment(&o, BURST_EXTENDER_ATTACHMENT);
+	if (attach_pos != ITEM_NOT_FOUND)
+	{
+		// same 85%-condition rule as every other attachment bonus (WEAPON_STATUS_MOD):
+		// integer division means this only rounds up to +1 once condition is >= 85
+		shots += BURST_EXTENDER_BONUS_SHOTS * WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]) / 100;
+	}
+	return shots;
+}
+
+
 INT8 EffectiveArmour(OBJECTTYPE const* const o)
 {
 	if (!o) return 0;

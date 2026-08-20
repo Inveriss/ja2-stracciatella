@@ -5,6 +5,7 @@
 #include "VObject.h"
 #include "Soldier_Control.h"
 #include "Soldier_Find.h"
+#include "Weapons.h"
 #include "Isometric_Utils.h"
 #include "RenderWorld.h"
 #include "Render_Dirty.h"
@@ -74,7 +75,7 @@ void PickBurstLocations( SOLDIERTYPE *pSoldier )
 	// OK, using the # of locations, spread them evenly between our current weapon shots per burst value
 
 	// Get shots per burst
-	ubShotsPerBurst = GCM->getWeapon( pSoldier->inv[ HANDPOS].usItem)->ubShotsPerBurst;
+	ubShotsPerBurst = GunShotsPerBurst( pSoldier->inv[ HANDPOS] );
 
 	// Use # gridnos accululated and # burst shots to determine accululator
 	dStep = gbNumBurstLocations / (FLOAT)ubShotsPerBurst;
@@ -106,7 +107,7 @@ void AIPickBurstLocations( SOLDIERTYPE *pSoldier, INT8 bTargets, SOLDIERTYPE *pT
 	// OK, using the # of locations, spread them evenly between our current weapon shots per burst value
 
 	// Get shots per burst
-	ubShotsPerBurst = GCM->getWeapon( pSoldier->inv[ HANDPOS].usItem)->ubShotsPerBurst;
+	ubShotsPerBurst = GunShotsPerBurst( pSoldier->inv[ HANDPOS] );
 
 	// Use # gridnos accululated and # burst shots to determine accululator
 	//dStep = gbNumBurstLocations / (FLOAT)ubShotsPerBurst;

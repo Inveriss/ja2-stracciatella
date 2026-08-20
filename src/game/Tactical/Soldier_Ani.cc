@@ -634,7 +634,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 					// FIRST CHECK IF WE'VE REACHED MAX FOR GUN
 					fStop = FALSE;
 
-					if ( pSoldier->bDoBurst > GCM->getWeapon( pSoldier->usAttackingWeapon )->ubShotsPerBurst )
+					if ( pSoldier->bDoBurst > GunShotsPerBurst( pSoldier->inv[ pSoldier->ubAttackingHand ] ) )
 					{
 						fStop = TRUE;
 					}

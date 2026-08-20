@@ -37,6 +37,7 @@ WeaponModel::WeaponModel(uint32_t itemClass, uint8_t weaponType, uint8_t cursor,
 	attachUnderGLauncher(false),
 	attachSpringAndBoltUpgrade(false),
 	attachGunBarrelExtender(false),
+	attachBurstExtenderAttachment(false),
 	m_rateOfFire(0)
 {
 	ubWeaponType         = weaponType;
@@ -103,6 +104,7 @@ void WeaponModel::serializeAttachments(JsonObject &obj) const
 	addOptionalBool(obj, "attachment_UnderGLauncher",           attachUnderGLauncher);
 	addOptionalBool(obj, "attachment_SpringAndBoltUpgrade",     attachSpringAndBoltUpgrade);
 	addOptionalBool(obj, "attachment_GunBarrelExtender",        attachGunBarrelExtender);
+	addOptionalBool(obj, "attachment_BurstExtenderAttachment",  attachBurstExtenderAttachment);
 }
 
 ST::string readOptionalString(JsonObject &obj, const char* key, const ST::string &default_value) {
@@ -633,6 +635,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	wep->attachUnderGLauncher         = obj.getOptionalBool("attachment_UnderGLauncher");
 	wep->attachSpringAndBoltUpgrade   = obj.getOptionalBool("attachment_SpringAndBoltUpgrade");
 	wep->attachGunBarrelExtender      = obj.getOptionalBool("attachment_GunBarrelExtender");
+	wep->attachBurstExtenderAttachment = obj.getOptionalBool("attachment_BurstExtenderAttachment");
 
 	wep->fFlags |= ItemModel::deserializeFlags(obj);
 
@@ -684,7 +687,8 @@ bool WeaponModel::canBeAttached(const GamePolicy* policy, const ItemModel* attac
 		|| (attachDuckbill && (attachmentID == DUCKBILL))
 		|| (attachUnderGLauncher && (attachmentID == UNDER_GLAUNCHER))
 		|| (attachSpringAndBoltUpgrade && (attachmentID == SPRING_AND_BOLT_UPGRADE))
-		|| (attachGunBarrelExtender && (attachmentID == GUN_BARREL_EXTENDER));
+		|| (attachGunBarrelExtender && (attachmentID == GUN_BARREL_EXTENDER))
+		|| (attachBurstExtenderAttachment && (attachmentID == BURST_EXTENDER_ATTACHMENT));
 }
 
 /** Get standard replacement gun name. */
