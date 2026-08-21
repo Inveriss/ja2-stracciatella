@@ -547,11 +547,11 @@ void ExtractSoldierType(const BYTE* const data, SOLDIERTYPE* const s, bool strac
 	EXTR_SKIP(d, 39)
 	if(stracLinuxFormat)
 	{
-		Assert(d.getConsumed() == 2352);
+		Assert(d.getConsumed() == 2428);
 	}
 	else
 	{
-		Assert(d.getConsumed() == 2328);
+		Assert(d.getConsumed() == 2404);
 	}
 
 	if (checksum != MercChecksum(*s))
@@ -1055,5 +1055,5 @@ void InjectSoldierType(BYTE* const data, const SOLDIERTYPE* const s)
 	INJ_I32(d, s->uiTimeSinceLastBleedGrunt)
 	INJ_SOLDIER(d, s->next_to_previous_attacker)
 	INJ_SKIP(d, 39)
-	Assert(d.getConsumed() == 2328);
+	Assert(d.getConsumed() == 2404);
 }

@@ -187,6 +187,10 @@ enum
 	M_10,
 	M_DONE,
 };
+// Number of buttons in the money withdrawal box (3 quick amounts + Done).
+// Deliberately independent from MAX_ATTACHMENTS - the two happened to match
+// by coincidence and must not be tied together.
+#define NUM_MONEY_BUTTONS (M_DONE + 1)
 
 BOOLEAN gfAddingMoneyToMercFromPlayersAccount;
 
@@ -229,10 +233,10 @@ static BUTTON_PICS *giItemDescAmmoButtonImages;
 static GUIButtonRef giItemDescAmmoButton;
 static SOLDIERTYPE *gpItemDescSoldier;
 static BOOLEAN fItemDescDelete = FALSE;
-MOUSE_REGION gItemDescAttachmentRegions[4];
+MOUSE_REGION gItemDescAttachmentRegions[MAX_ATTACHMENTS];
 static MOUSE_REGION gProsAndConsRegions[2];
 
-static GUIButtonRef guiMoneyButtonBtn[MAX_ATTACHMENTS];
+static GUIButtonRef guiMoneyButtonBtn[NUM_MONEY_BUTTONS];
 static BUTTON_PICS *guiMoneyButtonImage;
 static BUTTON_PICS *guiMoneyDoneButtonImage;
 
@@ -340,16 +344,18 @@ struct AttachmentGfxInfo
 {
 	SGPBox   item_box; // Bounding box of the item relative to a slot
 	SGPBox   bar_box;  // Bounding box of the status bar relative to a slot
-	SGPPoint slot[4];
+	SGPPoint slot[MAX_ATTACHMENTS];
 };
 
 static const AttachmentGfxInfo g_attachment_info =
 {
-	{ 7, 0, 28, 25 },
-	{ 2, 2,  2, 22 },
+	{ 7, 0, 28, 25 }, 
+	{ 2, 2,  2, 22 }, 
 	{
-		{ 128, 10 }, { 162, 10 },
-		{ 128, 36 }, { 162, 36 }
+		{ 128, 10 }, { 162, 10 }, 
+		{ 128, 36 }, { 162, 36 },
+		
+		{ 128, 62 } // Coordinates of the fifth attachment on the tactical map: INFOBOX.STI
 	}
 };
 
@@ -359,7 +365,9 @@ static const AttachmentGfxInfo g_map_attachment_info =
 	{ 1, 1,  2, 23 },
 	{
 		{ 170,  8 }, { 208,  8 },
-		{ 170, 34 }, { 208, 34 }
+		{ 170, 34 }, { 208, 34 },
+		
+		{ 170, 60 } // Coordinates of the fifth attachment on the strategic map: ITEMINFOC.STI
 	}
 };
 
@@ -1905,7 +1913,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		guiMoneyButtonImage = LoadButtonImage(INTERFACEDIR "/info_bil.sti", 1, 2);
 		const MoneyLoc* const loc = (in_map ? &gMapMoneyButtonLoc : &gMoneyButtonLoc);
 		INT32 i;
-		for (i = 0; i < MAX_ATTACHMENTS - 1; i++)
+		for (i = 0; i < NUM_MONEY_BUTTONS - 1; i++)
 		{
 			guiMoneyButtonBtn[i] = CreateIconAndTextButton(
 				guiMoneyButtonImage, gzMoneyAmounts[i], BLOCKFONT2,
@@ -2739,7 +2747,7 @@ void DeleteItemDescriptionBox( )
 	{
 		UnloadButtonImage( guiMoneyButtonImage );
 		UnloadButtonImage( guiMoneyDoneButtonImage );
-		for ( cnt = 0; cnt < MAX_ATTACHMENTS; cnt++ )
+		for ( cnt = 0; cnt < NUM_MONEY_BUTTONS; cnt++ )
 		{
 			RemoveButton( guiMoneyButtonBtn[cnt] );
 		}
@@ -5080,7 +5088,7 @@ static void BtnMoneyButtonCallbackSecondary(GUI_BUTTON* const btn, UINT32 const 
 	}
 
 	RenderItemDescriptionBox();
-	for (INT8 i = 0; i < MAX_ATTACHMENTS; ++i)
+	for (INT8 i = 0; i < NUM_MONEY_BUTTONS; ++i)
 	{
 		MarkAButtonDirty(guiMoneyButtonBtn[i]);
 	}
@@ -5263,7 +5271,9 @@ void CancelItemPointer( )
 
 void LoadItemCursorFromSavedGame(HWFILE const f)
 {
-	BYTE data[44];
+	// Sized for ExtractObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
+	// SoldierID + slot + active flag + 5 bytes of padding.
+	BYTE data[48];
 	f->read(data, sizeof(data));
 
 	BOOLEAN      active;
@@ -5291,7 +5301,9 @@ void LoadItemCursorFromSavedGame(HWFILE const f)
 
 void SaveItemCursorToSavedGame(HWFILE const f)
 {
-	BYTE  data[44];
+	// Sized for InjectObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
+	// SoldierID + slot + active flag + 5 bytes of padding.
+	BYTE  data[48];
 	DataWriter d{data};
 	InjectObject(d, &gItemPointer);
 	INJ_SOLDIER(d, gpItemPointerSoldier)

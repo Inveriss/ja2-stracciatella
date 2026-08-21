@@ -1,5 +1,7 @@
 #include "Items.h"
 #include "Handle_Items.h"
+#include "LoadSaveData.h"
+#include "LoadSaveObjectType.h"
 #include "Overhead.h"
 #include "Structure.h"
 #include "TileDef.h"
@@ -218,12 +220,53 @@ void TrashWorldItems()
 }
 
 
+void InjectLegacyWorldItem(DataWriter& d, const WORLDITEM* const wi)
+{
+	size_t const start = d.getConsumed();
+	INJ_BOOL(d, wi->fExists)
+	INJ_SKIP(d, 1)
+	INJ_I16(d, wi->sGridNo)
+	INJ_U8(d, wi->ubLevel)
+	INJ_SKIP(d, 3)
+	InjectLegacyObject(d, &wi->o);
+	INJ_U16(d, wi->usFlags)
+	INJ_I8(d, wi->bRenderZHeightAboveLevel)
+	INJ_I8(d, wi->bVisible)
+	INJ_U8(d, wi->ubNonExistChance)
+	INJ_SKIP(d, 3)
+	Assert(d.getConsumed() == start + LEGACY_WORLDITEM_SIZE);
+}
+
+void ExtractLegacyWorldItem(DataReader& d, WORLDITEM* const wi)
+{
+	size_t const start = d.getConsumed();
+	EXTR_BOOL(d, wi->fExists)
+	EXTR_SKIP(d, 1)
+	EXTR_I16(d, wi->sGridNo)
+	EXTR_U8(d, wi->ubLevel)
+	EXTR_SKIP(d, 3)
+	ExtractLegacyObject(d, &wi->o);
+	EXTR_U16(d, wi->usFlags)
+	EXTR_I8(d, wi->bRenderZHeightAboveLevel)
+	EXTR_I8(d, wi->bVisible)
+	EXTR_U8(d, wi->ubNonExistChance)
+	EXTR_SKIP(d, 3)
+	Assert(d.getConsumed() == start + LEGACY_WORLDITEM_SIZE);
+}
+
+
 void SaveWorldItemsToMap(HWFILE const f)
 {
 	UINT32 const n_actual_world_items = GetNumUsedWorldItems();
 	f->write(&n_actual_world_items, sizeof(n_actual_world_items));
 
-	CFOR_EACH_WORLD_ITEM(wi) f->write(&wi, sizeof(WORLDITEM));
+	CFOR_EACH_WORLD_ITEM(wi)
+	{
+		BYTE data[LEGACY_WORLDITEM_SIZE];
+		DataWriter d{data};
+		InjectLegacyWorldItem(d, &wi);
+		f->write(data, sizeof(data));
+	}
 }
 
 
@@ -246,7 +289,7 @@ void LoadWorldItemsFromMap(HWFILE const f)
 		// The sector has already been visited. The items are saved in a different
 		// format that will be loaded later on. So, all we need to do is skip the
 		// data entirely.
-		f->seek(sizeof(WORLDITEM) * n_world_items, FILE_SEEK_FROM_CURRENT);
+		f->seek(LEGACY_WORLDITEM_SIZE * n_world_items, FILE_SEEK_FROM_CURRENT);
 		return;
 	}
 
@@ -254,8 +297,11 @@ void LoadWorldItemsFromMap(HWFILE const f)
 	{
 		// Add all of the items to the world indirectly through AddItemToPool, but
 		// only if the chance associated with them succeed.
-		WORLDITEM wi;
-		f->read(&wi, sizeof(wi));
+		WORLDITEM wi{};
+		BYTE data[LEGACY_WORLDITEM_SIZE];
+		f->read(data, sizeof(data));
+		DataReader d{data};
+		ExtractLegacyWorldItem(d, &wi);
 		OBJECTTYPE& o = wi.o;
 
 		if (o.usItem == OWNERSHIP) wi.ubNonExistChance = 0;

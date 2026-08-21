@@ -3068,16 +3068,13 @@ static void WriteQuantityAndAttachments(OBJECTTYPE const* o, INT32 const y)
 	{
 		// Build attachment string
 		ST::string attachments;
-		if (o->usAttachItem[0] ||
-				o->usAttachItem[1] ||
-				o->usAttachItem[2] ||
-				o->usAttachItem[3])
+		if (ItemHasAttachments(*o))
 		{
 			attachments = "  (";
-			AppendAttachmentCode(o->usAttachItem[0], attachments);
-			AppendAttachmentCode(o->usAttachItem[1], attachments);
-			AppendAttachmentCode(o->usAttachItem[2], attachments);
-			AppendAttachmentCode(o->usAttachItem[3], attachments);
+			for (INT8 i = 0; i < MAX_ATTACHMENTS; ++i)
+			{
+				AppendAttachmentCode(o->usAttachItem[i], attachments);
+			}
 			attachments += " )";
 		}
 		else

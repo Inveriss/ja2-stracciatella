@@ -588,10 +588,11 @@ INT8 FindLaunchableAttachment(const OBJECTTYPE* const pObj, const UINT16 usWeapo
 
 bool ItemHasAttachments(OBJECTTYPE const& o)
 {
-	return o.usAttachItem[0] != NOTHING ||
-		o.usAttachItem[1] != NOTHING ||
-		o.usAttachItem[2] != NOTHING ||
-		o.usAttachItem[3] != NOTHING;
+	for (INT8 i = 0; i < MAX_ATTACHMENTS; ++i)
+	{
+		if (o.usAttachItem[i] != NOTHING) return true;
+	}
+	return false;
 }
 
 

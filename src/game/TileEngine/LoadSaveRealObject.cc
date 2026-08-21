@@ -8,7 +8,8 @@
 
 void ExtractRealObjectFromFile(HWFILE const file, REAL_OBJECT* const o)
 {
-	BYTE data[256];
+	// Grown by 4 bytes along with ExtractObject()'s OBJECTTYPE (current MAX_ATTACHMENTS).
+	BYTE data[260];
 	file->read(data, sizeof(data));
 
 	DataReader d{data};
@@ -75,7 +76,8 @@ void ExtractRealObjectFromFile(HWFILE const file, REAL_OBJECT* const o)
 
 void InjectRealObjectIntoFile(HWFILE const file, REAL_OBJECT const* const o)
 {
-	BYTE data[256];
+	// Grown by 4 bytes along with InjectObject()'s OBJECTTYPE (current MAX_ATTACHMENTS).
+	BYTE data[260];
 
 	DataWriter d{data};
 	INJ_BOOL(d, o->fAllocated)

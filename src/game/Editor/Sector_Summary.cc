@@ -27,6 +27,7 @@
 #include "Animated_ProgressBar.h"
 #include "WorldDat.h"
 #include "World_Items.h"
+#include "LoadSaveData.h"
 #include "Debug.h"
 #include "Soldier_Create.h"
 #include "Video.h"
@@ -2478,7 +2479,13 @@ static void SetupItemDetailsMode(BOOLEAN fAllowRecursion)
 	if (gpCurrentSectorSummary->usNumItems != 0)
 	{
 		gpWorldItemsSummaryArray.assign(uiNumItems, WORLDITEM{});
-		hfile->read(gpWorldItemsSummaryArray.data(), sizeof(WORLDITEM) * uiNumItems);
+		for (WORLDITEM& wi : gpWorldItemsSummaryArray)
+		{
+			BYTE data[LEGACY_WORLDITEM_SIZE];
+			hfile->read(data, sizeof(data));
+			DataReader d{data};
+			ExtractLegacyWorldItem(d, &wi);
+		}
 	}
 
 	//NOW, do the enemy's items!
@@ -2499,7 +2506,7 @@ static void SetupItemDetailsMode(BOOLEAN fAllowRecursion)
 
 			// Always use windows format because here we are loading a map
 			// file, not a user save
-			ExtractSoldierCreateFromFile(hfile, &priority, false);
+			ExtractLegacySoldierCreateFromFile(hfile, &priority, false);
 		}
 		else
 		{ //non detailed placements don't have items, so skip
@@ -2551,7 +2558,7 @@ static void SetupItemDetailsMode(BOOLEAN fAllowRecursion)
 
 			// Always use windows format because here we are loading a map
 			// file, not a user save
-			ExtractSoldierCreateFromFile(hfile, &priority, false);
+			ExtractLegacySoldierCreateFromFile(hfile, &priority, false);
 		}
 		else
 		{ //non detailed placements don't have items, so skip
