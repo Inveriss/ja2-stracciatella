@@ -243,6 +243,10 @@ static BUTTON_PICS *guiMoneyDoneButtonImage;
 static UINT16 gusOriginalAttachItem[MAX_ATTACHMENTS];
 static UINT8 gbOriginalAttachStatus[MAX_ATTACHMENTS];
 static SOLDIERTYPE *gpAttachSoldier;
+// Slot the player is attaching to, stashed across the "permanent attachment?"
+// confirmation dialog (PermanantAttachmentMessageBoxCallBack runs later, with
+// no way to pass it a parameter directly).
+static INT8 gbPendingAttachPos = NO_SLOT;
 
 #define gMoneyButtonLoc				(g_ui.m_moneyButtonLoc)
 #define gMapMoneyButtonLoc				(g_ui.m_MoneyButtonLocMap)
@@ -2032,9 +2036,9 @@ static void ItemDescAmmoCallback(GUI_BUTTON*  const btn, UINT32 const reason)
 }
 
 
-static void DoAttachment(void)
+static void DoAttachment(INT8 const bAttachPos)
 {
-	if (AttachObject(gpItemDescSoldier, gpItemDescObject, gpItemPointer, gubItemDescStatusIndex))
+	if (AttachObject(gpItemDescSoldier, gpItemDescObject, gpItemPointer, gubItemDescStatusIndex, bAttachPos))
 	{
 		if (gpItemPointer->usItem == NOTHING)
 		{
@@ -2089,7 +2093,7 @@ static void PermanantAttachmentMessageBoxCallBack(MessageBoxReturnValue const ub
 {
 	if ( ubExitValue == MSG_BOX_RETURN_YES )
 	{
-		DoAttachment();
+		DoAttachment(gbPendingAttachPos);
 	}
 	// else do nothing
 }
@@ -2120,11 +2124,12 @@ static void ItemDescAttachmentsCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRe
 		{
 			if ( (GCM->getItem(gpItemPointer->usItem)->getFlags() & ITEM_INSEPARABLE) && ValidAttachment( gpItemPointer->usItem, gpItemDescObject->usItem ) )
 			{
+				gbPendingAttachPos = (INT8)uiItemPos;
 				DoScreenIndependantMessageBox(g_langRes->Message[STR_PERMANENT_ATTACHMENT], MSG_BOX_FLAG_YESNO, PermanantAttachmentMessageBoxCallBack);
 				return;
 			}
 
-			DoAttachment();
+			DoAttachment((INT8)uiItemPos);
 		}
 	}
 	else

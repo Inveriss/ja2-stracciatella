@@ -35,7 +35,9 @@ extern void RemoveObjFrom( OBJECTTYPE * pObj, UINT8 ubRemoveIndex );
 extern BOOLEAN PlaceObjectAtObjectIndex( OBJECTTYPE * pSourceObj, OBJECTTYPE * pTargetObj, UINT8 ubIndex );
 extern void GetObjFrom( OBJECTTYPE * pObj, UINT8 ubGetIndex, OBJECTTYPE * pDest );
 
-bool AttachObject(SOLDIERTYPE* const s, OBJECTTYPE* const pTargetObj, OBJECTTYPE* const pAttachment, UINT8 const ubIndexInStack = 0);
+// bRequestedAttachPos: specific attachment slot to use (e.g. the one the player
+// dropped the item on), or -1 (NO_SLOT) to auto-pick a slot as before.
+bool AttachObject(SOLDIERTYPE* const s, OBJECTTYPE* const pTargetObj, OBJECTTYPE* const pAttachment, UINT8 const ubIndexInStack = 0, INT8 const bRequestedAttachPos = -1);
 extern BOOLEAN RemoveAttachment( OBJECTTYPE * pObj, INT8 bAttachPos, OBJECTTYPE * pNewObj );
 
 // Returns (in percent) how much of his carrying capacity this soldier uses.
