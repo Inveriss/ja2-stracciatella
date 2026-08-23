@@ -15,7 +15,8 @@
 #define SCREEN_HEIGHT                   (g_ui.m_screenHeight)
 #define SCREEN_WIDTH                    (g_ui.m_screenWidth)
 #define INV_INTERFACE_START_Y           (g_ui.get_INV_INTERFACE_START_Y())
-#define INV_INTERFACE_HEIGHT            (140)                                 // height of the bottom bar single-merc inventory panel
+// #define INV_INTERFACE_HEIGHT         (140)                                 // height of the bottom bar single-merc inventory panel
+#define INV_INTERFACE_HEIGHT            (302)                                 // NEW POSITION
 #define INTERFACE_START_X               (g_ui.m_teamPanelPosition.iX)
 #define INTERFACE_START_Y               (g_ui.m_teamPanelPosition.iY)
 #define gsVIEWPORT_START_X              (g_ui.m_VIEWPORT_START_X)

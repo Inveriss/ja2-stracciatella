@@ -501,7 +501,15 @@
         "Afst:",
         "Sch:",
         "AP:",
-        "="
+        "=",
+        "Klaar:",
+        "Betr:",
+        "SalvStr:",
+        "Repar:",
+        "AanvVol:",
+        "Dodelijk:",
+        "ImpVol:",
+        "Herlaad:"
     ],
     "gpGameClockString": "Dag",
     "gpStrategicString": [

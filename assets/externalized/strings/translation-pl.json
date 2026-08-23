@@ -501,7 +501,15 @@
         "Zas.:",
         "Siła:",
         "PA:",
-        "="
+        "=",
+        "Got.:",
+        "Niezaw.:",
+        "K.serii:",
+        "Napr.:",
+        "Gł.atk:",
+        "Zabój.:",
+        "Gł.traf:",
+        "Przeł.:"
     ],
     "gpGameClockString": "Dzień",
     "gpStrategicString": [

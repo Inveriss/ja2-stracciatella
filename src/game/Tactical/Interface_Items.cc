@@ -113,8 +113,10 @@
 
 #define ITEMDESC_START_X				(INTERFACE_START_X + 214)
 #define ITEMDESC_START_Y				(1 + INV_INTERFACE_START_Y)
-#define ITEMDESC_HEIGHT				133
-#define ITEMDESC_WIDTH					320
+// #define ITEMDESC_HEIGHT				133
+#define ITEMDESC_HEIGHT				    301 // NEW POSITION
+//#define ITEMDESC_WIDTH				320
+#define ITEMDESC_WIDTH					542 // NEW POSITION
 #define MAP_ITEMDESC_HEIGHT				268
 #define MAP_ITEMDESC_WIDTH				272
 #define ITEMDESC_ITEM_X				(8 + gsInvDescX)
@@ -123,7 +125,7 @@
 #define CAMO_REGION_HEIGHT				75
 #define CAMO_REGION_WIDTH				75
 
-#define BULLET_SING_X					(222 + gsInvDescX)
+#define BULLET_SING_X					(432 + gsInvDescX)
 #define BULLET_SING_Y					(49 + gsInvDescY)
 #define BULLET_BURST_X					(263 + gsInvDescX)
 #define BULLET_BURST_Y					(49 + gsInvDescY)
@@ -134,8 +136,8 @@
 #define MAP_BULLET_BURST_X				(117 + gsInvDescX)
 #define MAP_BULLET_BURST_Y				(135 + gsInvDescY)
 
-static const SGPBox g_itemdesc_desc_box            = { 11,  80, 301,  0 };
-static const SGPBox g_itemdesc_pros_cons_box       = { 11, 110, 301, 10 };
+static const SGPBox g_itemdesc_desc_box            = { 14,  226, 375,  0 };
+static const SGPBox g_itemdesc_pros_cons_box       = { 14, 270, 375, 10 };
 static const SGPBox g_itemdesc_item_status_box     = {  6,  60,   2, 51 };
 
 static const SGPBox g_map_itemdesc_desc_box        = { 23, 170, 220,  0 };
@@ -294,13 +296,16 @@ struct INV_DESC_STATS
 
 
 static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
-static const SGPBox gDescNameBox    = { 16, 67, 291, 8 };
+// static const SGPBox gDescNameBox    = { 11, 110, 301, 10 };
+static const SGPBox gDescNameBox    = { 14, 203, 375, 8 };  // NEW POSITION
 
 static const SGPBox g_desc_item_box_map = { 23, 10, 124, 48 };
-static const SGPBox g_desc_item_box     = {  9,  9, 117, 55 };
+// static const SGPBox g_desc_item_box     = { 23, 230, 220, 10 };
+static const SGPBox g_desc_item_box     = { 163,  46, 133, 69 }; // NEW POSITION
 
 static const INV_DESC_STATS gWeaponStats[] =
-{
+
+/*{
 	{ 202, 25, 83 },
 	{ 202, 15, 83 },
 	{ 265, 40, 20 },
@@ -309,6 +314,31 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 265, 50, 20 },
 	{ 234, 50,  0 },
 	{ 290, 50,  0 }
+};*/
+
+
+// NEW POSITION
+{
+	{ 202, 25, 83 },
+	{ 202, 15, 83 },
+	{ 410, 26, 38 },  // Range
+	{ 410, 14, 37 },  // Damage
+	{ 410, 50, 32 },  // AP
+	{ 265, 50, 20 },
+	{ 445, 50,  0 },  // = single
+	{ 290, 50,  0 },
+
+	// Previously-hidden stats, shown in the extra room made by the enlarged
+	// item description box. Only used when !in_map (gMapWeaponStats has no
+	// matching entries for these indices).
+	{  484, 50, 10 },  // [8]  Ready time
+	{ 280, 120, 90 },  // [9]  Reliability
+	{  14, 134, 90 },  // [10] Burst penalty
+	{ 280, 134, 90 },  // [11] Repair ease
+	{  14, 148, 90 },  // [12] Attack volume
+	{ 280, 148, 90 },  // [13] Deadliness
+	{  14, 162, 90 },  // [14] Hit volume
+	{ 280, 162, 90 }   // [15] Reload AP cost
 };
 
 
@@ -2492,6 +2522,89 @@ void RenderItemDescriptionBox(void)
 			pStr = ST::format("{2d}", ubAttackAPs + CalcAPsToBurst(DEFAULT_APS, obj));
 			FindFontRightCoordinates(dx + ids[5].sX + ids[5].sValDx, dy + ids[5].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);
+		}
+
+		if (!in_map)
+		{
+			// Previously-hidden stats (ubReadyTime, ubBurstPenalty, ubAttackVolume,
+			// ubHitVolume, ubDeadliness, bReliability, bRepairEase) plus the actual
+			// AP cost to reload, shown in the extra room made by the enlarged box.
+			bool const showReload = (item->getItemClass() & (IC_GUN | IC_LAUNCHER)) != 0;
+
+			SetFontForeground(6);
+			MPrint(dx + ids[8].sX,  dy + ids[8].sY,  gWeaponStatsDesc[7]);  // Ready time
+			MPrint(dx + ids[9].sX,  dy + ids[9].sY,  gWeaponStatsDesc[8]);  // Reliability
+			if (w->ubShotsPerBurst > 0)
+			{
+				MPrint(dx + ids[10].sX, dy + ids[10].sY, gWeaponStatsDesc[9]); // Burst penalty
+			}
+			MPrint(dx + ids[11].sX, dy + ids[11].sY, gWeaponStatsDesc[10]); // Repair ease
+			MPrint(dx + ids[12].sX, dy + ids[12].sY, gWeaponStatsDesc[11]); // Attack volume
+			MPrint(dx + ids[13].sX, dy + ids[13].sY, gWeaponStatsDesc[12]); // Deadliness
+			MPrint(dx + ids[14].sX, dy + ids[14].sY, gWeaponStatsDesc[13]); // Hit volume
+			if (showReload)
+			{
+				MPrint(dx + ids[15].sX, dy + ids[15].sY, gWeaponStatsDesc[14]); // Reload AP cost
+			}
+
+			SetFontForeground(5);
+
+			// Ready time: APs needed to ready/unready this weapon
+			pStr = ST::format("{2d}", w->ubReadyTime);
+			FindFontRightCoordinates(dx + ids[8].sX + ids[8].sValDx, dy + ids[8].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Reliability: comparative rating, higher = less prone to jamming
+			pStr = ST::format("{2d}", item->getReliability());
+			FindFontRightCoordinates(dx + ids[9].sX + ids[9].sValDx, dy + ids[9].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Burst penalty: % accuracy penalty per shot after the first, in a burst
+			if (w->ubShotsPerBurst > 0)
+			{
+				pStr = ST::format("{2d}%", w->ubBurstPenalty);
+				FindFontRightCoordinates(dx + ids[10].sX + ids[10].sValDx, dy + ids[10].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				MPrint(usX, usY, pStr);
+			}
+
+			// Repair ease: comparative rating, higher = cheaper/easier to repair
+			pStr = ST::format("{2d}", item->getRepairEase());
+			FindFontRightCoordinates(dx + ids[11].sX + ids[11].sValDx, dy + ids[11].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Attack volume: noise made when firing this weapon
+			pStr = ST::format("{3d}", w->ubAttackVolume);
+			FindFontRightCoordinates(dx + ids[12].sX + ids[12].sValDx, dy + ids[12].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Deadliness: comparative lethality rating used by the AI
+			pStr = ST::format("{3d}", w->ubDeadliness);
+			FindFontRightCoordinates(dx + ids[13].sX + ids[13].sValDx, dy + ids[13].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Hit volume: noise made when a shot from this weapon hits something
+			pStr = ST::format("{2d}", w->ubHitVolume);
+			FindFontRightCoordinates(dx + ids[14].sX + ids[14].sValDx, dy + ids[14].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Reload cost, in APs: base cost, doubled when the currently loaded
+			// ammo's capacity doesn't match the weapon's magazine size — mirrors
+			// GetAPsToReloadGunWithAmmo() in Points.cc.
+			if (showReload)
+			{
+				INT8 reloadAP = AP_RELOAD_GUN;
+				if (item->getItemClass() != IC_LAUNCHER && obj.usGunAmmoItem != NOTHING)
+				{
+					const ItemModel* const ammoItem = GCM->getItem(obj.usGunAmmoItem);
+					if (ammoItem->isAmmo() && !w->isSameMagCapacity(ammoItem->asAmmo()))
+					{
+						reloadAP = AP_RELOAD_GUN + AP_RELOAD_GUN;
+					}
+				}
+				pStr = ST::format("{2d}", reloadAP);
+				FindFontRightCoordinates(dx + ids[15].sX + ids[15].sValDx, dy + ids[15].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				MPrint(usX, usY, pStr);
+			}
 		}
 	}
 	else if (obj.usItem == MONEY)

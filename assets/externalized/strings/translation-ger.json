@@ -501,7 +501,15 @@
         "Reichw.:",
         "Schaden:",
         "AP:",
-        "="
+        "=",
+        "Bereit:",
+        "Zuverl:",
+        "SalvMal:",
+        "Reparat:",
+        "AngrLst:",
+        "Tödl:",
+        "TrfLst:",
+        "Nachl:"
     ],
     "gpGameClockString": "Tag",
     "gpStrategicString": [
