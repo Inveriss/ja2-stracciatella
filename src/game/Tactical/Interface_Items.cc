@@ -338,7 +338,12 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{  14, 148, 90 },  // [12] Attack volume
 	{ 280, 148, 90 },  // [13] Deadliness
 	{  14, 162, 90 },  // [14] Hit volume
-	{ 280, 162, 90 }   // [15] Reload AP cost
+	{ 280, 162, 90 },  // [15] Reload AP cost
+
+	// "=" signs for the two other AP-cost stats (Ready time, Reload), same
+	// convention as the existing single/burst-AP "=" signs above (ids[6]/[7]).
+	{ 498,  50,  0 },  // [16] = (Ready time)
+	{ 374, 162,  0 }   // [17] = (Reload AP cost)
 };
 
 
@@ -2533,6 +2538,7 @@ void RenderItemDescriptionBox(void)
 
 			SetFontForeground(6);
 			MPrint(dx + ids[8].sX,  dy + ids[8].sY,  gWeaponStatsDesc[7]);  // Ready time
+			MPrint(dx + ids[16].sX, dy + ids[16].sY, gWeaponStatsDesc[6]);  // = (Ready time)
 			MPrint(dx + ids[9].sX,  dy + ids[9].sY,  gWeaponStatsDesc[8]);  // Reliability
 			if (w->ubShotsPerBurst > 0)
 			{
@@ -2545,6 +2551,7 @@ void RenderItemDescriptionBox(void)
 			if (showReload)
 			{
 				MPrint(dx + ids[15].sX, dy + ids[15].sY, gWeaponStatsDesc[14]); // Reload AP cost
+				MPrint(dx + ids[17].sX, dy + ids[17].sY, gWeaponStatsDesc[6]);  // = (Reload AP cost)
 			}
 
 			SetFontForeground(5);
@@ -2572,8 +2579,9 @@ void RenderItemDescriptionBox(void)
 			FindFontRightCoordinates(dx + ids[11].sX + ids[11].sValDx, dy + ids[11].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);
 
-			// Attack volume: noise made when firing this weapon
-			pStr = ST::format("{3d}", w->ubAttackVolume);
+			// Attack volume: noise made when firing this weapon (reflects a
+			// silencer attachment, unlike the raw ubAttackVolume field)
+			pStr = ST::format("{3d}", GunAttackVolume(obj));
 			FindFontRightCoordinates(dx + ids[12].sX + ids[12].sValDx, dy + ids[12].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);
 
