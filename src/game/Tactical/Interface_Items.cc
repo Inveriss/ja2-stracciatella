@@ -113,10 +113,16 @@
 
 #define ITEMDESC_START_X				(INTERFACE_START_X + 214)
 #define ITEMDESC_START_Y				(1 + INV_INTERFACE_START_Y)
+
+
 // #define ITEMDESC_HEIGHT				133
-#define ITEMDESC_HEIGHT				    301 // NEW POSITION
-//#define ITEMDESC_WIDTH				320
-#define ITEMDESC_WIDTH					542 // NEW POSITION
+// #define ITEMDESC_WIDTH				320
+
+// NEW POSITION
+#define ITEMDESC_HEIGHT				    301 
+#define ITEMDESC_WIDTH					542 
+
+
 #define MAP_ITEMDESC_HEIGHT				268
 #define MAP_ITEMDESC_WIDTH				272
 #define ITEMDESC_ITEM_X				(8 + gsInvDescX)
@@ -125,11 +131,28 @@
 #define CAMO_REGION_HEIGHT				75
 #define CAMO_REGION_WIDTH				75
 
-#define BULLET_SING_X					(432 + gsInvDescX)
-#define BULLET_SING_Y					(49 + gsInvDescY)
-#define BULLET_BURST_X					(263 + gsInvDescX)
-#define BULLET_BURST_Y					(49 + gsInvDescY)
+/*
+#define BULLET_SING_X				(222 + gsInvDescX)
+#define BULLET_SING_Y				(49 + gsInvDescY)
+#define BULLET_BURST_X				(263 + gsInvDescX)
+#define BULLET_BURST_Y				(49 + gsInvDescY)
+*/
+
+
+
+// NEW POSITION
+#define BULLET_SING_X					(435 + gsInvDescX)
+#define BULLET_SING_Y					(42 + gsInvDescY)  
+#define BULLET_BURST_X					(455 + gsInvDescX) 
+#define BULLET_BURST_Y					(88 + gsInvDescY) 
 #define BULLET_WIDTH					3
+
+
+
+// Purely decorative row of 3 bullet icons — cosmetic only, not tied to any
+// weapon stat (unlike the single/burst bullet icons above).
+#define BULLET_DECOR_X					(431 + gsInvDescX)  // NEW POSITION
+#define BULLET_DECOR_Y					(71 + gsInvDescY) // NEW POSITION
 
 #define MAP_BULLET_SING_X				(77 + gsInvDescX)
 #define MAP_BULLET_SING_Y				(135 + gsInvDescY)
@@ -319,22 +342,22 @@ static const INV_DESC_STATS gWeaponStats[] =
 
 // NEW POSITION
 {
-	{ 202, 25, 83 },
-	{ 202, 15, 83 },
-	{ 410, 26, 38 },  // Range
-	{ 410, 14, 37 },  // Damage
-	{ 410, 50, 32 },  // AP
-	{ 265, 50, 20 },
-	{ 445, 50,  0 },  // = single
-	{ 290, 50,  0 },
+	{ 410, 234, 87 },  // Weight
+	{ 410, 217, 87 },  // Status
+	{ 488, 14, 14 },   // Range
+	{ 410, 14, 31 },   // Damage
+	{ 410, 43, 31 },   // AP single
+	{ 426, 72, 15 },   // AP burst
+	{ 446, 43,  0 },   // = single
+	{ 446, 72,  0 },   // = burst
 
 	// Previously-hidden stats, shown in the extra room made by the enlarged
 	// item description box. Only used when !in_map (gMapWeaponStats has no
 	// matching entries for these indices).
-	{  484, 50, 10 },  // [8]  Ready time
-	{ 280, 120, 90 },  // [9]  Reliability
-	{  14, 134, 90 },  // [10] Burst penalty
-	{ 280, 134, 90 },  // [11] Repair ease
+	{ 488,  43, 14 },  // [8]  Ready time
+	{ 410, 263, 87 },  // [9]  Reliability
+	{ 410, 106, 39 },  // [10] Burst penalty
+	{ 410, 280, 87 },  // [11] Repair ease
 	{  14, 148, 90 },  // [12] Attack volume
 	{ 280, 148, 90 },  // [13] Deadliness
 	{  14, 162, 90 },  // [14] Hit volume
@@ -342,8 +365,13 @@ static const INV_DESC_STATS gWeaponStats[] =
 
 	// "=" signs for the two other AP-cost stats (Ready time, Reload), same
 	// convention as the existing single/burst-AP "=" signs above (ids[6]/[7]).
-	{ 498,  50,  0 },  // [16] = (Ready time)
-	{ 374, 162,  0 }   // [17] = (Reload AP cost)
+	{ 512,  43,  0 },  // [16] = (Ready time)
+	{ 374, 162,  0 },  // [17] = (Reload AP cost)
+
+	// Purely decorative labels — cosmetic only, no associated value, not
+	// tied to any real stat. Kept translatable via gWeaponStatsDesc[15]/[16].
+	{ 410,  72,  0 },  // [18] "AP:" (decorative)
+	{ 410,  89,  0 }   // [19] "Rounds" (decorative)
 };
 
 
@@ -2370,6 +2398,19 @@ void RenderItemDescriptionBox(void)
 				x += BULLET_WIDTH + 1;
 			}
 		}
+
+		if (!in_map)
+		{
+			// Purely decorative: always exactly 3 bullet icons, regardless of
+			// the weapon's actual burst size — cosmetic only.
+			INT32 x = BULLET_DECOR_X;
+			INT32 const y = BULLET_DECOR_Y;
+			for (INT32 i = 0; i < 3; ++i)
+			{
+				BltVideoObject(guiSAVEBUFFER, guiBullet, 0, x, y);
+				x += BULLET_WIDTH + 1;
+			}
+		}
 	}
 
 	{
@@ -2553,6 +2594,11 @@ void RenderItemDescriptionBox(void)
 				MPrint(dx + ids[15].sX, dy + ids[15].sY, gWeaponStatsDesc[14]); // Reload AP cost
 				MPrint(dx + ids[17].sX, dy + ids[17].sY, gWeaponStatsDesc[6]);  // = (Reload AP cost)
 			}
+
+			// Purely decorative labels — cosmetic only, no associated value,
+			// not tied to any real stat (unlike every label above).
+			MPrint(dx + ids[18].sX, dy + ids[18].sY, gWeaponStatsDesc[15]); // "AP:" (decorative)
+			MPrint(dx + ids[19].sX, dy + ids[19].sY, gWeaponStatsDesc[16]); // "Rounds" (decorative)
 
 			SetFontForeground(5);
 

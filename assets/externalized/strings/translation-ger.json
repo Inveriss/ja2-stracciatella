@@ -509,7 +509,9 @@
         "AngrLst:",
         "Tödl:",
         "TrfLst:",
-        "Nachl:"
+        "Nachl:",
+        "AP:",
+        "Patronen"
     ],
     "gpGameClockString": "Tag",
     "gpStrategicString": [

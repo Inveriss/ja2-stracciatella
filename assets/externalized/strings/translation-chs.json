@@ -509,7 +509,9 @@
         "攻击音:",
         "致命度:",
         "命中音:",
-        "装填:"
+        "装填:",
+        "AP:",
+        "弹药"
     ],
     "gpGameClockString": "日",
     "gpStrategicString": [
