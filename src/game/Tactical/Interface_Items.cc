@@ -351,15 +351,26 @@ struct AttachmentGfxInfo
 	SGPPoint slot[MAX_ATTACHMENTS];
 };
 
+// Placeholder 4-column x 5-row grid (20 slots), top-left slot at (5,5), same
+// column/row spacing as the old 2-column layout (34px / 26px). This is only a
+// starting point for laying out the new INFOBOX.STI/ITEMINFOC.STI graphics -
+// every coordinate below is expected to be repositioned by hand to match the
+// final artwork.
 static const AttachmentGfxInfo g_attachment_info =
 {
-	{ 7, 0, 28, 25 }, 
-	{ 2, 2,  2, 22 }, 
+	
+//	{ 7, 0, 28, 25 },
+//	{ 2, 2,  2, 22 },
+	
+// NEW POSITION
+	{ 9, 2, 36, 31 },
+    { 2, 2,  2, 31 },
+	
 	{
-		{ 128, 10 }, { 162, 10 }, 
-		{ 128, 36 }, { 162, 36 },
-		
-		{ 128, 62 } // Coordinates of the fifth attachment on the tactical map: INFOBOX.STI
+		{   105,   7 }, {  154,   7 }, {  251,   7 }, { 349,   7 }, // First row
+		{   7,  68 }, {  56,  68 }, {  105,  68 }, { 300,  45 },	{   300,  83 }, {  349,  64 }, // Second row
+		{  105,  121 }, { 154,  121 },	{   203,  121 }, {  251,  121 }, {  349,  121 }, // Third row
+		{ 56,  159 }, {   105, 159 }, {  251, 159 }, {  300, 159 }, { 1, 1 }, // Fourth row
 	}
 };
 
@@ -368,10 +379,11 @@ static const AttachmentGfxInfo g_map_attachment_info =
 	{ 6, 0, 31, 25 },
 	{ 1, 1,  2, 23 },
 	{
-		{ 170,  8 }, { 208,  8 },
-		{ 170, 34 }, { 208, 34 },
-		
-		{ 170, 60 } // Coordinates of the fifth attachment on the strategic map: ITEMINFOC.STI
+		{   5,   5 }, {  39,   5 }, {  73,   5 }, { 107,   5 },
+		{   5,  31 }, {  39,  31 }, {  73,  31 }, { 107,  31 },
+		{   5,  57 }, {  39,  57 }, {  73,  57 }, { 107,  57 },
+		{   5,  83 }, {  39,  83 }, {  73,  83 }, { 107,  83 },
+		{   5, 109 }, {  39, 109 }, {  73, 109 }, { 107, 109 },
 	}
 };
 
@@ -5278,7 +5290,7 @@ void LoadItemCursorFromSavedGame(HWFILE const f)
 {
 	// Sized for ExtractObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
 	// SoldierID + slot + active flag + 5 bytes of padding.
-	BYTE data[48];
+	BYTE data[92];
 	f->read(data, sizeof(data));
 
 	BOOLEAN      active;
@@ -5308,7 +5320,7 @@ void SaveItemCursorToSavedGame(HWFILE const f)
 {
 	// Sized for InjectObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
 	// SoldierID + slot + active flag + 5 bytes of padding.
-	BYTE  data[48];
+	BYTE  data[92];
 	DataWriter d{data};
 	InjectObject(d, &gItemPointer);
 	INJ_SOLDIER(d, gpItemPointerSoldier)

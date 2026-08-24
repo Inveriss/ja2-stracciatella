@@ -675,7 +675,7 @@ BOOLEAN ValidItemAttachment(const OBJECTTYPE* const pObj, const UINT16 usAttachm
 	// special code for items which won't attach if X is present
 	switch( usAttachment )
 	{
-		case BIPOD:
+		/*case BIPOD:
 			if ( FindAttachment( pObj, UNDER_GLAUNCHER) != ITEM_NOT_FOUND )
 			{
 				fSimilarItems = TRUE;
@@ -688,7 +688,7 @@ BOOLEAN ValidItemAttachment(const OBJECTTYPE* const pObj, const UINT16 usAttachm
 				fSimilarItems = TRUE;
 				usSimilarItem = BIPOD;
 			}
-			break;
+			break;*/
 		case DETONATOR:
 			if( FindAttachment( pObj, REMDETONATOR ) != ITEM_NOT_FOUND )
 			{

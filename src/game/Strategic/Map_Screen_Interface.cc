@@ -4086,7 +4086,7 @@ void SaveLeaveItemList(HWFILE const f)
 			for (MERC_LEAVE_ITEM const* i = head; i; i = i->pNext)
 			{
 				// Sized for InjectObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) + 4 skip bytes.
-				BYTE  data[44];
+				BYTE  data[88];
 				DataWriter d{data};
 				InjectObject(d, &i->o);
 				INJ_SKIP(d, 4)
@@ -4133,7 +4133,7 @@ void LoadLeaveItemList(HWFILE const f)
 			MERC_LEAVE_ITEM* const li = new MERC_LEAVE_ITEM{};
 
 			// Sized for ExtractObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) + 4 skip bytes.
-			BYTE  data[44];
+			BYTE  data[88];
 			f->read(data, sizeof(data));
 
 			DataReader d{data};

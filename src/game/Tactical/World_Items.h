@@ -33,7 +33,7 @@ struct WORLDITEM
 	//This check is only performed the first time a map is loaded.  Later, it is entirely skipped.
 	UINT8      ubNonExistChance;
 };
-static_assert(sizeof(WORLDITEM) == 56);
+static_assert(sizeof(WORLDITEM) == 100);
 
 // The on-disk layout of WORLDITEM used by sector map files (the ones shipped
 // with the base game, and any authored with the in-game map editor). Frozen
