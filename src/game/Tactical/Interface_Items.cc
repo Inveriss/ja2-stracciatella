@@ -2450,11 +2450,16 @@ void RenderItemDescriptionBox(void)
 		MPrint(dx + xy.x, dy + xy.y, gzItemName);
 	}
 
-	SetFontShadow(ITEMDESC_FONTSHADOW2);
+	// Same shadow colour as the weapon name above (DEFAULT_SHADOW, set by the
+	// SetFontAttributes() call further up) - covers the description text
+	// below and, since nothing resets it in between, the weapon class + ammo
+	// type line too.
+	SetFontShadow(DEFAULT_SHADOW);
 
 	{
+		// Weapon description text: same font colour as the weapon name above.
 		SGPBox const& box = in_map ? g_map_itemdesc_desc_box : g_itemdesc_desc_box;
-		DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, ITEMDESC_FONT, FONT_BLACK, gzItemDesc, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+		DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
 	}
 
 	if (ITEM_PROS_AND_CONS(obj.usItem))
@@ -2473,6 +2478,11 @@ void RenderItemDescriptionBox(void)
 				// Add name noting imprint
 				pStr += ST::format(" ({})", imprint);
 			}
+
+			// Weapon class + ammo type: same font colour as the weapon name
+			// above (explicit, rather than relying on whatever foreground
+			// DisplayWrappedString() happened to leave set globally).
+			SetFontForeground(FONT_FCOLOR_WHITE);
 
 			SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
 			FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, ITEMDESC_FONT, &usX, &usY);
