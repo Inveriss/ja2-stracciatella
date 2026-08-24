@@ -143,7 +143,7 @@
 // NEW POSITION
 #define BULLET_SING_X					(435 + gsInvDescX)
 #define BULLET_SING_Y					(42 + gsInvDescY)  
-#define BULLET_BURST_X					(455 + gsInvDescX) 
+#define BULLET_BURST_X					(458 + gsInvDescX) 
 #define BULLET_BURST_Y					(88 + gsInvDescY) 
 #define BULLET_WIDTH					3
 
@@ -159,9 +159,16 @@
 #define MAP_BULLET_BURST_X				(117 + gsInvDescX)
 #define MAP_BULLET_BURST_Y				(135 + gsInvDescY)
 
-static const SGPBox g_itemdesc_desc_box            = { 14,  226, 375,  0 };
-static const SGPBox g_itemdesc_pros_cons_box       = { 14, 270, 375, 10 };
+/*
+static const SGPBox g_itemdesc_desc_box            = { 11,  80, 301,  0 };
+static const SGPBox g_itemdesc_pros_cons_box       = { 11, 110, 301, 10 };
 static const SGPBox g_itemdesc_item_status_box     = {  6,  60,   2, 51 };
+*/
+
+// NEW POSITION
+static const SGPBox g_itemdesc_desc_box            = { 14,  226, 375, 0 };
+static const SGPBox g_itemdesc_pros_cons_box       = { 14, 270, 375, 10 };
+static const SGPBox g_itemdesc_item_status_box     = { 156, 115,   2, 69 };
 
 static const SGPBox g_map_itemdesc_desc_box        = { 23, 170, 220,  0 };
 static const SGPBox g_map_itemdesc_pros_cons_box   = { 23, 230, 220, 10 };
@@ -319,10 +326,12 @@ struct INV_DESC_STATS
 
 
 static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
+
 // static const SGPBox gDescNameBox    = { 11, 110, 301, 10 };
 static const SGPBox gDescNameBox    = { 14, 203, 375, 8 };  // NEW POSITION
 
 static const SGPBox g_desc_item_box_map = { 23, 10, 124, 48 };
+
 // static const SGPBox g_desc_item_box     = { 23, 230, 220, 10 };
 static const SGPBox g_desc_item_box     = { 163,  46, 133, 69 }; // NEW POSITION
 
@@ -342,8 +351,8 @@ static const INV_DESC_STATS gWeaponStats[] =
 
 // NEW POSITION
 {
-	{ 410, 234, 87 },  // Weight
-	{ 410, 217, 87 },  // Status
+	{ 410, 220, 87 },  // Weight
+	{ 410, 204, 87 },  // Status
 	{ 488, 14, 14 },   // Range
 	{ 410, 14, 31 },   // Damage
 	{ 410, 43, 31 },   // AP single
@@ -355,18 +364,19 @@ static const INV_DESC_STATS gWeaponStats[] =
 	// item description box. Only used when !in_map (gMapWeaponStats has no
 	// matching entries for these indices).
 	{ 488,  43, 14 },  // [8]  Ready time
-	{ 410, 263, 87 },  // [9]  Reliability
+	{ 410, 264, 87 },  // [9]  Reliability
 	{ 410, 106, 39 },  // [10] Burst penalty
 	{ 410, 280, 87 },  // [11] Repair ease
-	{  14, 148, 90 },  // [12] Attack volume
-	{ 280, 148, 90 },  // [13] Deadliness
-	{  14, 162, 90 },  // [14] Hit volume
-	{ 280, 162, 90 },  // [15] Reload AP cost
+	{ 410, 164, 87 },  // [12] Attack volume
+	{ 410, 236, 87 },  // [13] Deadliness
+	{ 410, 176, 87 },  // [14] Hit volume
+	{ 410, 135, 87 },  // [15] Reload AP cost
 
 	// "=" signs for the two other AP-cost stats (Ready time, Reload), same
 	// convention as the existing single/burst-AP "=" signs above (ids[6]/[7]).
 	{ 512,  43,  0 },  // [16] = (Ready time)
-	{ 374, 162,  0 },  // [17] = (Reload AP cost)
+	{ 512,  43,  0 },  // [17] = (Reload AP cost)
+	//{ 488, 135,  0 },  // [17] = (Reload AP cost)
 
 	// Purely decorative labels — cosmetic only, no associated value, not
 	// tied to any real stat. Kept translatable via gWeaponStatsDesc[15]/[16].
