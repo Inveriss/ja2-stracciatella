@@ -100,11 +100,11 @@ static void ExtractSoldierCreate(const BYTE* const data, SOLDIERCREATE_STRUCT* c
 	EXTR_SKIP(d, 117)
 	if(stracLinuxFormat)
 	{
-		Assert(d.getConsumed() == 1136);
+		Assert(d.getConsumed() == 1972);
 	}
 	else
 	{
-		Assert(d.getConsumed() == 1116);
+		Assert(d.getConsumed() == 1952);
 	}
 }
 
@@ -113,13 +113,13 @@ void ExtractSoldierCreateFromFile(HWFILE const f, SOLDIERCREATE_STRUCT* const c,
 {
 	if(stracLinuxFormat)
 	{
-		BYTE data[1136];
+		BYTE data[1972];
 		f->read(data, sizeof(data));
 		ExtractSoldierCreate(data, c, stracLinuxFormat);
 	}
 	else
 	{
-		BYTE data[1116];
+		BYTE data[1952];
 		f->read(data, sizeof(data));
 		ExtractSoldierCreate(data, c, stracLinuxFormat);
 	}
@@ -205,13 +205,13 @@ static void InjectSoldierCreate(BYTE* const data, const SOLDIERCREATE_STRUCT* co
 	INJ_I8(d, c->bUseGivenVehicleID)
 	INJ_BOOL(d, c->fHasKeys)
 	INJ_SKIP(d, 117)
-	Assert(d.getConsumed() == 1116);
+	Assert(d.getConsumed() == 1952);
 }
 
 
 void InjectSoldierCreateIntoFile(HWFILE const f, SOLDIERCREATE_STRUCT const* const c)
 {
-	BYTE data[1116];
+	BYTE data[1952];
 	InjectSoldierCreate(data, c);
 	f->write(data, sizeof(data));
 }

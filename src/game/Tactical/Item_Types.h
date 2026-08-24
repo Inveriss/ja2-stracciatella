@@ -36,7 +36,7 @@ enum ItemCursor
 #define USABLE				10 // minimum work% of items to still be usable
 
 #define MAX_OBJECTS_PER_SLOT		8
-#define MAX_ATTACHMENTS		5
+#define MAX_ATTACHMENTS		20
 #define MAX_MONEY_PER_SLOT		20000
 
 enum DetonatorType
@@ -142,7 +142,7 @@ struct OBJECTTYPE
 // is the very first, never-before-visited load of a sector's map file - that is
 // handled separately via ExtractLegacyObject()/ExtractLegacyWorldItem(), which
 // parse the frozen legacy format field-by-field instead of relying on sizeof().
-static_assert(sizeof(OBJECTTYPE) == 40 && (offsetof(OBJECTTYPE, usAttachItem) - offsetof(OBJECTTYPE, ubNumberOfObjects) == 14)
+static_assert(sizeof(OBJECTTYPE) == 84 && (offsetof(OBJECTTYPE, usAttachItem) - offsetof(OBJECTTYPE, ubNumberOfObjects) == 14)
 	&& offsetof(OBJECTTYPE, uiMoneyAmount) == 8);
 
 

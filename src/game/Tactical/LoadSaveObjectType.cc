@@ -106,8 +106,8 @@ extract_status:
 	EXTR_U8(d, o->ubImprintID)
 	EXTR_U8(d, o->ubWeight)
 	EXTR_U8(d, o->fUsed)
-	EXTR_SKIP(d, 3)
-	Assert(d.getConsumed() == start + 40);
+	EXTR_SKIP(d, 2)
+	Assert(d.getConsumed() == start + 84);
 
 	// Check and remove invalid items in attachment slots
 	for (UINT16 & i : o->usAttachItem)
@@ -316,8 +316,8 @@ inject_status:
 	INJ_U8(d, o->ubImprintID)
 	d.writeU8(static_cast<UINT8>(std::clamp(Weight(*o), 1, 255)));
 	INJ_U8(d, o->fUsed)
-	INJ_SKIP(d, 3)
-	Assert(d.getConsumed() == start + 40);
+	INJ_SKIP(d, 2)
+	Assert(d.getConsumed() == start + 84);
 }
 
 
