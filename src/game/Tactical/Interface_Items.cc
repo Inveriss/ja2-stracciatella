@@ -179,9 +179,17 @@ static const SGPBox g_map_itemdesc_item_status_box = { 18,  54,   2, 42 };
 
 #define ITEM_PROS_AND_CONS( usItem )			( ( GCM->getItem(usItem)->isGun()) )
 
-#define ITEMDESC_AMMO_TEXT_X				3
+/*
+#define ITEMDESC_AMMO_TEXT_X				4
 #define ITEMDESC_AMMO_TEXT_Y				2
-#define ITEMDESC_AMMO_TEXT_WIDTH			31
+#define ITEMDESC_AMMO_TEXT_WIDTH			40
+*/
+
+// NEW POSITION
+#define ITEMDESC_AMMO_TEXT_X				4
+#define ITEMDESC_AMMO_TEXT_Y				2
+#define ITEMDESC_AMMO_TEXT_WIDTH			40
+
 
 #define ITEM_BAR_HEIGHT				20
 
@@ -1898,7 +1906,11 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 			case AMMO_HP:       img = 9; break;
 			default:            img = 1; break;
 		}
-		BUTTON_PICS* const ammo_img = LoadButtonImage(INTERFACEDIR "/infobox.sti", img + 3, img, -1, img + 2, -1);
+		// Ammo-type icons (indices 1-12) live in a separate .sti from the
+		// weapon-description graphic (infobox.sti index 0), but keep the same
+		// index numbering — infobox_bullets.sti also reserves index 0 unused,
+		// so img/img+2/img+3 still point at the same logical pictures.
+		BUTTON_PICS* const ammo_img = LoadButtonImage(INTERFACEDIR "/infobox_bullets.sti", img + 3, img, -1, img + 2, -1);
 		giItemDescAmmoButtonImages = ammo_img;
 
 		const INT16         h  = GetDimensionsOfButtonPic(ammo_img)->h;
