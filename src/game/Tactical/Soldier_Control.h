@@ -599,6 +599,12 @@ struct SOLDIERTYPE
 	INT16 sDamageX;
 	INT16 sDamageY;
 	INT8 bDoBurst;
+	// usAniCode value at the moment the "SHOOT GUN" (430) burst-fire frame last
+	// fired; used by the "HANDLE BURST" (448) frame to loop back for another
+	// shot instead of being limited by however many 430/448 repeats happen to
+	// be baked into the loaded animation instruction table (see GunShotsPerBurst()).
+	// 0xFFFF means "not set this burst".
+	UINT16 usBurstFireAniCodeAnchor;
 	INT16 usUIMovementMode;
 	BOOLEAN fUIMovementFast;
 
@@ -637,7 +643,7 @@ struct SOLDIERTYPE
 
 	UINT16* effect_shade; // Shading table for effects
 
-	INT16 sSpreadLocations[ 6 ];
+	INT16 sSpreadLocations[ 10 ];
 	BOOLEAN fDoSpread;
 	INT16 sStartGridNo;
 	INT16 sEndGridNo;

@@ -313,6 +313,12 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 				case 430:
 
 					// SHOOT GUN
+					// Remember where in the animation table this frame is, so a burst
+					// that outlasts however many 430/448 repeats are baked into the
+					// loaded animation data can loop back here for another shot
+					// (see case 448 below).
+					pSoldier->usBurstFireAniCodeAnchor = pSoldier->usAniCode;
+
 					// MAKE AN EVENT, BUT ONLY DO STUFF IF WE OWN THE GUY!
 					EV_S_FIREWEAPON SFireWeapon;
 					SFireWeapon.usSoldierID = pSoldier->ubID;
@@ -687,6 +693,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 					{
 						pSoldier->fDoSpread = FALSE;
 						pSoldier->bDoBurst = 1;
+						pSoldier->usBurstFireAniCodeAnchor = 0xFFFF;
 
 						// ATE; Reduce it due to animation being stopped...
 						SLOGD("Freeing up attacker - Burst animation ended");
@@ -728,6 +735,17 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 							EVENT_SetSoldierDesiredDirection( pSoldier, pSoldier->bDirection );
 						}
 					}
+
+					// We're continuing the burst (fStop was FALSE above). Don't just fall
+					// through to whatever the loaded animation table happens to have next --
+					// it may only contain as many 430 (SHOOT GUN) / 448 (HANDLE BURST) repeats
+					// as the original data was authored for (observed: 6), regardless of this
+					// weapon's actual GunShotsPerBurst(). Rewind back to the last "SHOOT GUN"
+					// frame so the shared usAniCode++ below lands back on it and fires again.
+					if ( pSoldier->usBurstFireAniCodeAnchor != 0xFFFF )
+					{
+						pSoldier->usAniCode = (UINT16)( pSoldier->usBurstFireAniCodeAnchor - 1 );
+					}
 					break;
 
 				case 449:
@@ -735,6 +753,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 					//CODE: FINISH BURST
 					pSoldier->fDoSpread = FALSE;
 					pSoldier->bDoBurst = 1;
+					pSoldier->usBurstFireAniCodeAnchor = 0xFFFF;
 					break;
 
 				case 450:
