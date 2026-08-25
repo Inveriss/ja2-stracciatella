@@ -501,7 +501,17 @@
         "Por. :",
         "Dég. :",
         "PA :",
-        "="
+        "=",
+        "Prêt :",
+        "Fiab :",
+        "Pén.raf :",
+        "Répar :",
+        "Vol.att :",
+        "Létal :",
+        "Vol.imp :",
+        "Rech :",
+        "PA :",
+        "Munitions"
     ],
     "gpGameClockString": "Jour",
     "gpStrategicString": [

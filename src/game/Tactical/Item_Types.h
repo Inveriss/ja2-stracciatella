@@ -36,7 +36,7 @@ enum ItemCursor
 #define USABLE				10 // minimum work% of items to still be usable
 
 #define MAX_OBJECTS_PER_SLOT		8
-#define MAX_ATTACHMENTS		4
+#define MAX_ATTACHMENTS		20
 #define MAX_MONEY_PER_SLOT		20000
 
 enum DetonatorType
@@ -136,8 +136,13 @@ struct OBJECTTYPE
 	UINT8  ubWeight;
 	UINT8  fUsed; // flags for whether the item is used or not
 };
-// An OBJECTTYPE is included in WORLDITEM and these are loaded with a single read(), so the layout must match vanilla's.
-static_assert(sizeof(OBJECTTYPE) == 36 && (offsetof(OBJECTTYPE, usAttachItem) - offsetof(OBJECTTYPE, ubNumberOfObjects) == 14)
+// An OBJECTTYPE is included in WORLDITEM, and both are read/written as raw structs
+// for our own save data (temp per-sector item files, merc inventories). The one
+// place that must still match the *original vanilla* 36-byte/4-attachment layout
+// is the very first, never-before-visited load of a sector's map file - that is
+// handled separately via ExtractLegacyObject()/ExtractLegacyWorldItem(), which
+// parse the frozen legacy format field-by-field instead of relying on sizeof().
+static_assert(sizeof(OBJECTTYPE) == 84 && (offsetof(OBJECTTYPE, usAttachItem) - offsetof(OBJECTTYPE, ubNumberOfObjects) == 14)
 	&& offsetof(OBJECTTYPE, uiMoneyAmount) == 8);
 
 

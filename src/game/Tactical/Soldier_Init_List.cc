@@ -176,7 +176,7 @@ BOOLEAN SaveSoldiersToMap( HWFILE fp )
 		{
 			if( !curr->pDetailedPlacement )
 				return FALSE;
-			InjectSoldierCreateIntoFile(fp, curr->pDetailedPlacement);
+			InjectLegacySoldierCreateIntoFile(fp, curr->pDetailedPlacement);
 		}
 		curr = curr->next;
 	}
@@ -218,7 +218,7 @@ void LoadSoldiersFromMap(HWFILE const f, bool stracLinuxFormat)
 			// Add the static detailed placement information in the same newly created
 			// node as the basic placement.
 			SOLDIERCREATE_STRUCT* const sc = new SOLDIERCREATE_STRUCT{};
-			ExtractSoldierCreateFromFile(f, sc, stracLinuxFormat);
+			ExtractLegacySoldierCreateFromFile(f, sc, stracLinuxFormat);
 
 			if (sc->ubProfile != NO_PROFILE)
 			{

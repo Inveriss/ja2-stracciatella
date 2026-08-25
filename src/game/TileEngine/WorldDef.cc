@@ -1877,7 +1877,7 @@ try
 		f->read(&n_items, sizeof(n_items));
 		pSummary->usNumItems = n_items;
 		//Skip the contents of the world items.
-		f->seek(sizeof(WORLDITEM) * n_items, FILE_SEEK_FROM_CURRENT);
+		f->seek(LEGACY_WORLDITEM_SIZE * n_items, FILE_SEEK_FROM_CURRENT);
 	}
 
 	if (uiFlags & MAP_AMBIENTLIGHTLEVEL_SAVED) f->seek(3, FILE_SEEK_FROM_CURRENT);
@@ -1964,7 +1964,7 @@ try
 
 				// Always use windows format because here we are loading a map
 				// file, not a user save
-				ExtractSoldierCreateFromFile(f, &priority, false);
+				ExtractLegacySoldierCreateFromFile(f, &priority, false);
 
 				if (priority.ubProfile != NO_PROFILE)
 					++pTeam->ubProfile;

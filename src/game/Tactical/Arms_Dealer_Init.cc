@@ -2498,8 +2498,10 @@ UINT32 CalculateMinutesClosedBetween(ArmsDealerID const ubArmsDealer, UINT32 uiS
 TEST(ArmsDealerInit, asserts)
 {
 	EXPECT_EQ(sizeof(ARMS_DEALER_STATUS), 20u);
-	EXPECT_EQ(sizeof(SPECIAL_ITEM_INFO), 16u);
-	EXPECT_EQ(sizeof(DEALER_SPECIAL_ITEM), 28u);
+	// Grew along with MAX_ATTACHMENTS (usAttachment[]/bAttachmentStatus[]);
+	// not persisted to disk, so no on-disk compatibility concern here.
+	EXPECT_EQ(sizeof(SPECIAL_ITEM_INFO), 64u);
+	EXPECT_EQ(sizeof(DEALER_SPECIAL_ITEM), 76u);
 }
 
 #endif

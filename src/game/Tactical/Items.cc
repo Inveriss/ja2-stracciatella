@@ -588,10 +588,11 @@ INT8 FindLaunchableAttachment(const OBJECTTYPE* const pObj, const UINT16 usWeapo
 
 bool ItemHasAttachments(OBJECTTYPE const& o)
 {
-	return o.usAttachItem[0] != NOTHING ||
-		o.usAttachItem[1] != NOTHING ||
-		o.usAttachItem[2] != NOTHING ||
-		o.usAttachItem[3] != NOTHING;
+	for (INT8 i = 0; i < MAX_ATTACHMENTS; ++i)
+	{
+		if (o.usAttachItem[i] != NOTHING) return true;
+	}
+	return false;
 }
 
 
@@ -674,7 +675,7 @@ BOOLEAN ValidItemAttachment(const OBJECTTYPE* const pObj, const UINT16 usAttachm
 	// special code for items which won't attach if X is present
 	switch( usAttachment )
 	{
-		case BIPOD:
+		/*case BIPOD:
 			if ( FindAttachment( pObj, UNDER_GLAUNCHER) != ITEM_NOT_FOUND )
 			{
 				fSimilarItems = TRUE;
@@ -687,7 +688,7 @@ BOOLEAN ValidItemAttachment(const OBJECTTYPE* const pObj, const UINT16 usAttachm
 				fSimilarItems = TRUE;
 				usSimilarItem = BIPOD;
 			}
-			break;
+			break;*/
 		case DETONATOR:
 			if( FindAttachment( pObj, REMDETONATOR ) != ITEM_NOT_FOUND )
 			{
@@ -1515,8 +1516,10 @@ static void PerformAttachmentComboMerge(OBJECTTYPE& o, ComboMergeInfoStruct cons
 }
 
 
-bool AttachObject(SOLDIERTYPE* const s, OBJECTTYPE* const pTargetObj, OBJECTTYPE* const pAttachment, UINT8 const ubIndexInStack)
+bool AttachObject(SOLDIERTYPE* const s, OBJECTTYPE* const pTargetObj, OBJECTTYPE* const pAttachment, UINT8 const ubIndexInStack, INT8 const bRequestedAttachPos)
 {
+	CHECKF(bRequestedAttachPos == NO_SLOT || (bRequestedAttachPos >= 0 && bRequestedAttachPos < MAX_ATTACHMENTS));
+
 	OBJECTTYPE& target     = *pTargetObj;
 	OBJECTTYPE& attachment = *pAttachment;
 	bool const validLaunchable = ValidLaunchable(attachment.usItem, target.usItem);
@@ -1544,7 +1547,10 @@ bool AttachObject(SOLDIERTYPE* const s, OBJECTTYPE* const pTargetObj, OBJECTTYPE
 
 		if (attach_pos == NO_SLOT)
 		{
-			attach_pos = FindAttachment(&target, NOTHING);
+			// Nothing to replace - if the caller (e.g. the UI) asked for a specific
+			// slot, put it there so it stays exactly where it was dropped, even if
+			// an earlier slot is free. Otherwise fall back to the first free slot.
+			attach_pos = (bRequestedAttachPos != NO_SLOT) ? bRequestedAttachPos : FindAttachment(&target, NOTHING);
 			if (attach_pos == NO_SLOT) return false;
 		}
 
@@ -2755,50 +2761,6 @@ BOOLEAN ArmBomb( OBJECTTYPE * pObj, INT8 bSetting )
 }
 
 
-static void RenumberAttachments(OBJECTTYPE* pObj)
-{
-	// loop through attachment positions and make sure we don't have any empty
-	// attachment slots before filled ones
-	INT8 bAttachPos;
-	INT8 bFirstSpace;
-	BOOLEAN fDone = FALSE;
-
-	while (!fDone)
-	{
-		bFirstSpace = -1;
-		for (bAttachPos = 0; bAttachPos < MAX_ATTACHMENTS; bAttachPos++)
-		{
-			if (pObj->usAttachItem[ bAttachPos ] == NOTHING)
-			{
-				if (bFirstSpace == -1)
-				{
-					bFirstSpace = bAttachPos;
-				}
-			}
-			else
-			{
-				if (bFirstSpace != -1)
-				{
-					// move the attachment!
-					pObj->usAttachItem[ bFirstSpace ] = pObj->usAttachItem[ bAttachPos ];
-					pObj->bAttachStatus[ bFirstSpace ] = pObj->bAttachStatus[ bAttachPos ];
-					pObj->usAttachItem[ bAttachPos ] = NOTHING;
-					pObj->bAttachStatus[ bAttachPos ] = 0;
-					// restart loop at beginning, or quit if we reached the end of the
-					// attachments
-					break;
-				}
-			}
-		}
-		if (bAttachPos == MAX_ATTACHMENTS)
-		{
-			// done!!
-			fDone = TRUE;
-		}
-	}
-
-}
-
 BOOLEAN RemoveAttachment( OBJECTTYPE * pObj, INT8 bAttachPos, OBJECTTYPE * pNewObj )
 {
 	INT8 bGrenade;
@@ -2841,8 +2803,6 @@ BOOLEAN RemoveAttachment( OBJECTTYPE * pObj, INT8 bAttachPos, OBJECTTYPE * pNewO
 			pObj->bAttachStatus[bGrenade] = 0;
 		}
 	}
-
-	RenumberAttachments( pObj );
 
 	return( TRUE );
 }

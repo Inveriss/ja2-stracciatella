@@ -33,7 +33,13 @@ struct WORLDITEM
 	//This check is only performed the first time a map is loaded.  Later, it is entirely skipped.
 	UINT8      ubNonExistChance;
 };
-static_assert(sizeof(WORLDITEM) == 52);
+static_assert(sizeof(WORLDITEM) == 100);
+
+// The on-disk layout of WORLDITEM used by sector map files (the ones shipped
+// with the base game, and any authored with the in-game map editor). Frozen
+// forever at the original (vanilla) size - see ExtractLegacyObject() in
+// LoadSaveObjectType.cc for why this can't just track sizeof(WORLDITEM).
+constexpr size_t LEGACY_WORLDITEM_SIZE = 52;
 
 
 // items in currently loaded sector
@@ -58,6 +64,16 @@ INT32 FindWorldItem( UINT16 usItem );
 void LoadWorldItemsFromMap(HWFILE);
 
 void SaveWorldItemsToMap( HWFILE fp );
+
+class DataReader;
+class DataWriter;
+
+// Reads/writes one WORLDITEM in the frozen, original (vanilla) on-disk layout
+// (LEGACY_WORLDITEM_SIZE bytes) - see the comment on that constant above.
+// Exposed beyond World_Items.cc because the map editor's sector summary code
+// (Sector_Summary.cc) also reads world items straight out of a map file.
+void ExtractLegacyWorldItem(DataReader& d, WORLDITEM* wi);
+void InjectLegacyWorldItem(DataWriter& d, const WORLDITEM* wi);
 
 void TrashWorldItems(void);
 

@@ -501,7 +501,17 @@
         "Rng:",
         "Dam:",
         "AP:",
-        "="
+        "=",
+        "Ready:",
+        "Reliab:",
+        "Brst Pen:",
+        "Repair:",
+        "Atk Vol:",
+        "Deadly:",
+        "Hit Vol:",
+        "Reload:",
+        "AP:",
+        "Rounds"
     ],
     "gpGameClockString": "Day",
     "gpStrategicString": [

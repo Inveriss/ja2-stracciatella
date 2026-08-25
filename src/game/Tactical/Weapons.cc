@@ -123,6 +123,25 @@ UINT8 GunShotsPerBurst(OBJECTTYPE const& o)
 }
 
 
+UINT8 GunAttackVolume(OBJECTTYPE const& o)
+{
+	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
+
+	UINT8 volume = GCM->getWeapon(o.usItem)->ubAttackVolume;
+
+	// A silencer only quiets the muzzle blast (this stat), not the sound of
+	// the bullet hitting its target (ubHitVolume, untouched by design).
+	INT8 const attach_pos = FindAttachment(&o, SILENCER);
+	if (attach_pos != ITEM_NOT_FOUND)
+	{
+		// reduce volume by a percentage equal to silencer's work %age (min 1)
+		// same formula previously inlined in UseGun()
+		volume = 1 + ((100 - WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos])) / (100 / (volume - 1)));
+	}
+	return volume;
+}
+
+
 INT8 EffectiveArmour(OBJECTTYPE const* const o)
 {
 	if (!o) return 0;
@@ -626,7 +645,6 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 	UINT16  usItemNum;
 	BOOLEAN fBuckshot;
 	UINT8   ubVolume;
-	INT8    bSilencerPos;
 	UINT8   ubDirection;
 	INT16   sNewGridNo;
 	UINT16  usExpGain = 0;
@@ -848,7 +866,8 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 	FireBulletGivenTarget(pSoldier, dTargetX, dTargetY, dTargetZ, pSoldier->usAttackingWeapon,
 				(INT16) (uiHitChance - uiDiceRoll), fBuckshot, FALSE);
 
-	ubVolume = GCM->getWeapon( pSoldier->usAttackingWeapon )->ubAttackVolume;
+	// GunAttackVolume() already accounts for a silencer attached in HANDPOS.
+	ubVolume = GunAttackVolume( pSoldier->inv[HANDPOS] );
 
 	if ( GCM->getItem(usItemNum)->getItemClass() == IC_THROWING_KNIFE )
 	{
@@ -887,16 +906,6 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 				SLOGD("Incrementing Attack: Exhaust from LAW ({})", gTacticalStatus.ubAttackBusyCount);
 				EVENT_SoldierGotHit(tgt, MINI_GRENADE, 10, 200, pSoldier->bDirection, 0, pSoldier, 0, ANIM_CROUCH, sNewGridNo);
 			}
-		}
-	}
-	else
-	{
-		// if the weapon has a silencer attached
-		bSilencerPos = FindAttachment( &(pSoldier->inv[HANDPOS]), SILENCER );
-		if (bSilencerPos != -1)
-		{
-			// reduce volume by a percentage equal to silencer's work %age (min 1)
-			ubVolume = 1 + ((100 - WEAPON_STATUS_MOD(pSoldier->inv[HANDPOS].bAttachStatus[bSilencerPos])) / (100 / (ubVolume - 1)));
 		}
 	}
 

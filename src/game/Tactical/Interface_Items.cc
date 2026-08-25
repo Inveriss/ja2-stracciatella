@@ -113,8 +113,16 @@
 
 #define ITEMDESC_START_X				(INTERFACE_START_X + 214)
 #define ITEMDESC_START_Y				(1 + INV_INTERFACE_START_Y)
-#define ITEMDESC_HEIGHT				133
-#define ITEMDESC_WIDTH					320
+
+
+// #define ITEMDESC_HEIGHT				133
+// #define ITEMDESC_WIDTH				320
+
+// NEW POSITION
+#define ITEMDESC_HEIGHT				    301 
+#define ITEMDESC_WIDTH					542 
+
+
 #define MAP_ITEMDESC_HEIGHT				268
 #define MAP_ITEMDESC_WIDTH				272
 #define ITEMDESC_ITEM_X				(8 + gsInvDescX)
@@ -123,20 +131,44 @@
 #define CAMO_REGION_HEIGHT				75
 #define CAMO_REGION_WIDTH				75
 
-#define BULLET_SING_X					(222 + gsInvDescX)
-#define BULLET_SING_Y					(49 + gsInvDescY)
-#define BULLET_BURST_X					(263 + gsInvDescX)
-#define BULLET_BURST_Y					(49 + gsInvDescY)
+/*
+#define BULLET_SING_X				(222 + gsInvDescX)
+#define BULLET_SING_Y				(49 + gsInvDescY)
+#define BULLET_BURST_X				(263 + gsInvDescX)
+#define BULLET_BURST_Y				(49 + gsInvDescY)
+*/
+
+
+
+// NEW POSITION
+#define BULLET_SING_X					(435 + gsInvDescX)
+#define BULLET_SING_Y					(42 + gsInvDescY)  
+#define BULLET_BURST_X					(458 + gsInvDescX) 
+#define BULLET_BURST_Y					(88 + gsInvDescY) 
 #define BULLET_WIDTH					3
+
+
+
+// Purely decorative row of 3 bullet icons — cosmetic only, not tied to any
+// weapon stat (unlike the single/burst bullet icons above).
+#define BULLET_DECOR_X					(431 + gsInvDescX)  // NEW POSITION
+#define BULLET_DECOR_Y					(71 + gsInvDescY) // NEW POSITION
 
 #define MAP_BULLET_SING_X				(77 + gsInvDescX)
 #define MAP_BULLET_SING_Y				(135 + gsInvDescY)
 #define MAP_BULLET_BURST_X				(117 + gsInvDescX)
 #define MAP_BULLET_BURST_Y				(135 + gsInvDescY)
 
+/*
 static const SGPBox g_itemdesc_desc_box            = { 11,  80, 301,  0 };
 static const SGPBox g_itemdesc_pros_cons_box       = { 11, 110, 301, 10 };
 static const SGPBox g_itemdesc_item_status_box     = {  6,  60,   2, 51 };
+*/
+
+// NEW POSITION
+static const SGPBox g_itemdesc_desc_box            = { 14,  226, 375, 0 };
+static const SGPBox g_itemdesc_pros_cons_box       = { 14, 270, 375, 10 };
+static const SGPBox g_itemdesc_item_status_box     = { 156, 115,   2, 69 };
 
 static const SGPBox g_map_itemdesc_desc_box        = { 23, 170, 220,  0 };
 static const SGPBox g_map_itemdesc_pros_cons_box   = { 23, 230, 220, 10 };
@@ -147,9 +179,17 @@ static const SGPBox g_map_itemdesc_item_status_box = { 18,  54,   2, 42 };
 
 #define ITEM_PROS_AND_CONS( usItem )			( ( GCM->getItem(usItem)->isGun()) )
 
-#define ITEMDESC_AMMO_TEXT_X				3
+/*
+#define ITEMDESC_AMMO_TEXT_X				4
 #define ITEMDESC_AMMO_TEXT_Y				2
-#define ITEMDESC_AMMO_TEXT_WIDTH			31
+#define ITEMDESC_AMMO_TEXT_WIDTH			40
+*/
+
+// NEW POSITION
+#define ITEMDESC_AMMO_TEXT_X				4
+#define ITEMDESC_AMMO_TEXT_Y				2
+#define ITEMDESC_AMMO_TEXT_WIDTH			40
+
 
 #define ITEM_BAR_HEIGHT				20
 
@@ -187,6 +227,10 @@ enum
 	M_10,
 	M_DONE,
 };
+// Number of buttons in the money withdrawal box (3 quick amounts + Done).
+// Deliberately independent from MAX_ATTACHMENTS - the two happened to match
+// by coincidence and must not be tied together.
+#define NUM_MONEY_BUTTONS (M_DONE + 1)
 
 BOOLEAN gfAddingMoneyToMercFromPlayersAccount;
 
@@ -229,16 +273,20 @@ static BUTTON_PICS *giItemDescAmmoButtonImages;
 static GUIButtonRef giItemDescAmmoButton;
 static SOLDIERTYPE *gpItemDescSoldier;
 static BOOLEAN fItemDescDelete = FALSE;
-MOUSE_REGION gItemDescAttachmentRegions[4];
+MOUSE_REGION gItemDescAttachmentRegions[MAX_ATTACHMENTS];
 static MOUSE_REGION gProsAndConsRegions[2];
 
-static GUIButtonRef guiMoneyButtonBtn[MAX_ATTACHMENTS];
+static GUIButtonRef guiMoneyButtonBtn[NUM_MONEY_BUTTONS];
 static BUTTON_PICS *guiMoneyButtonImage;
 static BUTTON_PICS *guiMoneyDoneButtonImage;
 
 static UINT16 gusOriginalAttachItem[MAX_ATTACHMENTS];
 static UINT8 gbOriginalAttachStatus[MAX_ATTACHMENTS];
 static SOLDIERTYPE *gpAttachSoldier;
+// Slot the player is attaching to, stashed across the "permanent attachment?"
+// confirmation dialog (PermanantAttachmentMessageBoxCallBack runs later, with
+// no way to pass it a parameter directly).
+static INT8 gbPendingAttachPos = NO_SLOT;
 
 #define gMoneyButtonLoc				(g_ui.m_moneyButtonLoc)
 #define gMapMoneyButtonLoc				(g_ui.m_MoneyButtonLocMap)
@@ -286,13 +334,18 @@ struct INV_DESC_STATS
 
 
 static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
-static const SGPBox gDescNameBox    = { 16, 67, 291, 8 };
+
+// static const SGPBox gDescNameBox    = { 11, 110, 301, 10 };
+static const SGPBox gDescNameBox    = { 14, 203, 375, 8 };  // NEW POSITION
 
 static const SGPBox g_desc_item_box_map = { 23, 10, 124, 48 };
-static const SGPBox g_desc_item_box     = {  9,  9, 117, 55 };
+
+// static const SGPBox g_desc_item_box     = { 23, 230, 220, 10 };
+static const SGPBox g_desc_item_box     = { 163,  46, 133, 69 }; // NEW POSITION
 
 static const INV_DESC_STATS gWeaponStats[] =
-{
+
+/*{
 	{ 202, 25, 83 },
 	{ 202, 15, 83 },
 	{ 265, 40, 20 },
@@ -301,6 +354,42 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 265, 50, 20 },
 	{ 234, 50,  0 },
 	{ 290, 50,  0 }
+};*/
+
+
+// NEW POSITION
+{
+	{ 410, 220, 87 },  // Weight
+	{ 410, 204, 87 },  // Status
+	{ 488, 14, 14 },   // Range
+	{ 410, 14, 31 },   // Damage
+	{ 410, 43, 31 },   // AP single
+	{ 426, 72, 15 },   // AP burst
+	{ 446, 43,  0 },   // = single
+	{ 446, 72,  0 },   // = burst
+
+	// Previously-hidden stats, shown in the extra room made by the enlarged
+	// item description box. Only used when !in_map (gMapWeaponStats has no
+	// matching entries for these indices).
+	{ 488,  43, 14 },  // [8]  Ready time
+	{ 410, 264, 87 },  // [9]  Reliability
+	{ 410, 106, 39 },  // [10] Burst penalty
+	{ 410, 280, 87 },  // [11] Repair ease
+	{ 410, 164, 87 },  // [12] Attack volume
+	{ 410, 236, 87 },  // [13] Deadliness
+	{ 410, 176, 87 },  // [14] Hit volume
+	{ 410, 135, 87 },  // [15] Reload AP cost
+
+	// "=" signs for the two other AP-cost stats (Ready time, Reload), same
+	// convention as the existing single/burst-AP "=" signs above (ids[6]/[7]).
+	{ 512,  43,  0 },  // [16] = (Ready time)
+	{ 512,  43,  0 },  // [17] = (Reload AP cost)
+	//{ 488, 135,  0 },  // [17] = (Reload AP cost)
+
+	// Purely decorative labels — cosmetic only, no associated value, not
+	// tied to any real stat. Kept translatable via gWeaponStatsDesc[15]/[16].
+	{ 410,  72,  0 },  // [18] "AP:" (decorative)
+	{ 410,  89,  0 }   // [19] "Rounds" (decorative)
 };
 
 
@@ -340,16 +429,29 @@ struct AttachmentGfxInfo
 {
 	SGPBox   item_box; // Bounding box of the item relative to a slot
 	SGPBox   bar_box;  // Bounding box of the status bar relative to a slot
-	SGPPoint slot[4];
+	SGPPoint slot[MAX_ATTACHMENTS];
 };
 
+// Placeholder 4-column x 5-row grid (20 slots), top-left slot at (5,5), same
+// column/row spacing as the old 2-column layout (34px / 26px). This is only a
+// starting point for laying out the new INFOBOX.STI/ITEMINFOC.STI graphics -
+// every coordinate below is expected to be repositioned by hand to match the
+// final artwork.
 static const AttachmentGfxInfo g_attachment_info =
 {
-	{ 7, 0, 28, 25 },
-	{ 2, 2,  2, 22 },
+	
+//	{ 7, 0, 28, 25 },
+//	{ 2, 2,  2, 22 },
+	
+// NEW POSITION
+	{ 9, 2, 36, 31 },
+    { 2, 2,  2, 31 },
+	
 	{
-		{ 128, 10 }, { 162, 10 },
-		{ 128, 36 }, { 162, 36 }
+		{   105,   7 }, {  154,   7 }, {  251,   7 }, { 349,   7 }, // First row
+		{   7,  68 }, {  56,  68 }, {  105,  68 }, { 300,  45 },	{   300,  83 }, {  349,  64 }, // Second row
+		{  105,  121 }, { 154,  121 },	{   203,  121 }, {  251,  121 }, {  349,  121 }, // Third row
+		{ 56,  159 }, {   105, 159 }, {  251, 159 }, {  300, 159 }, { 1, 1 }, // Fourth row
 	}
 };
 
@@ -358,8 +460,11 @@ static const AttachmentGfxInfo g_map_attachment_info =
 	{ 6, 0, 31, 25 },
 	{ 1, 1,  2, 23 },
 	{
-		{ 170,  8 }, { 208,  8 },
-		{ 170, 34 }, { 208, 34 }
+		{   5,   5 }, {  39,   5 }, {  73,   5 }, { 107,   5 },
+		{   5,  31 }, {  39,  31 }, {  73,  31 }, { 107,  31 },
+		{   5,  57 }, {  39,  57 }, {  73,  57 }, { 107,  57 },
+		{   5,  83 }, {  39,  83 }, {  73,  83 }, { 107,  83 },
+		{   5, 109 }, {  39, 109 }, {  73, 109 }, { 107, 109 },
 	}
 };
 
@@ -1813,7 +1918,11 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 			case AMMO_HP:       img = 9; break;
 			default:            img = 1; break;
 		}
-		BUTTON_PICS* const ammo_img = LoadButtonImage(INTERFACEDIR "/infobox.sti", img + 3, img, -1, img + 2, -1);
+		// Ammo-type icons (indices 1-12) live in a separate .sti from the
+		// weapon-description graphic (infobox.sti index 0), but keep the same
+		// index numbering — infobox_bullets.sti also reserves index 0 unused,
+		// so img/img+2/img+3 still point at the same logical pictures.
+		BUTTON_PICS* const ammo_img = LoadButtonImage(INTERFACEDIR "/infobox_bullets.sti", img + 3, img, -1, img + 2, -1);
 		giItemDescAmmoButtonImages = ammo_img;
 
 		const INT16         h  = GetDimensionsOfButtonPic(ammo_img)->h;
@@ -1905,7 +2014,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		guiMoneyButtonImage = LoadButtonImage(INTERFACEDIR "/info_bil.sti", 1, 2);
 		const MoneyLoc* const loc = (in_map ? &gMapMoneyButtonLoc : &gMoneyButtonLoc);
 		INT32 i;
-		for (i = 0; i < MAX_ATTACHMENTS - 1; i++)
+		for (i = 0; i < NUM_MONEY_BUTTONS - 1; i++)
 		{
 			guiMoneyButtonBtn[i] = CreateIconAndTextButton(
 				guiMoneyButtonImage, gzMoneyAmounts[i], BLOCKFONT2,
@@ -2024,9 +2133,9 @@ static void ItemDescAmmoCallback(GUI_BUTTON*  const btn, UINT32 const reason)
 }
 
 
-static void DoAttachment(void)
+static void DoAttachment(INT8 const bAttachPos)
 {
-	if (AttachObject(gpItemDescSoldier, gpItemDescObject, gpItemPointer, gubItemDescStatusIndex))
+	if (AttachObject(gpItemDescSoldier, gpItemDescObject, gpItemPointer, gubItemDescStatusIndex, bAttachPos))
 	{
 		if (gpItemPointer->usItem == NOTHING)
 		{
@@ -2081,7 +2190,7 @@ static void PermanantAttachmentMessageBoxCallBack(MessageBoxReturnValue const ub
 {
 	if ( ubExitValue == MSG_BOX_RETURN_YES )
 	{
-		DoAttachment();
+		DoAttachment(gbPendingAttachPos);
 	}
 	// else do nothing
 }
@@ -2112,11 +2221,12 @@ static void ItemDescAttachmentsCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRe
 		{
 			if ( (GCM->getItem(gpItemPointer->usItem)->getFlags() & ITEM_INSEPARABLE) && ValidAttachment( gpItemPointer->usItem, gpItemDescObject->usItem ) )
 			{
+				gbPendingAttachPos = (INT8)uiItemPos;
 				DoScreenIndependantMessageBox(g_langRes->Message[STR_PERMANENT_ATTACHMENT], MSG_BOX_FLAG_YESNO, PermanantAttachmentMessageBoxCallBack);
 				return;
 			}
 
-			DoAttachment();
+			DoAttachment((INT8)uiItemPos);
 		}
 	}
 	else
@@ -2322,6 +2432,19 @@ void RenderItemDescriptionBox(void)
 				x += BULLET_WIDTH + 1;
 			}
 		}
+
+		if (!in_map)
+		{
+			// Purely decorative: always exactly 3 bullet icons, regardless of
+			// the weapon's actual burst size — cosmetic only.
+			INT32 x = BULLET_DECOR_X;
+			INT32 const y = BULLET_DECOR_Y;
+			for (INT32 i = 0; i < 3; ++i)
+			{
+				BltVideoObject(guiSAVEBUFFER, guiBullet, 0, x, y);
+				x += BULLET_WIDTH + 1;
+			}
+		}
 	}
 
 	{
@@ -2339,11 +2462,16 @@ void RenderItemDescriptionBox(void)
 		MPrint(dx + xy.x, dy + xy.y, gzItemName);
 	}
 
-	SetFontShadow(ITEMDESC_FONTSHADOW2);
+	// Same shadow colour as the weapon name above (DEFAULT_SHADOW, set by the
+	// SetFontAttributes() call further up) - covers the description text
+	// below and, since nothing resets it in between, the weapon class + ammo
+	// type line too.
+	SetFontShadow(DEFAULT_SHADOW);
 
 	{
+		// Weapon description text: same font colour as the weapon name above.
 		SGPBox const& box = in_map ? g_map_itemdesc_desc_box : g_itemdesc_desc_box;
-		DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, ITEMDESC_FONT, FONT_BLACK, gzItemDesc, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+		DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
 	}
 
 	if (ITEM_PROS_AND_CONS(obj.usItem))
@@ -2362,6 +2490,11 @@ void RenderItemDescriptionBox(void)
 				// Add name noting imprint
 				pStr += ST::format(" ({})", imprint);
 			}
+
+			// Weapon class + ammo type: same font colour as the weapon name
+			// above (explicit, rather than relying on whatever foreground
+			// DisplayWrappedString() happened to leave set globally).
+			SetFontForeground(FONT_FCOLOR_WHITE);
 
 			SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
 			FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, ITEMDESC_FONT, &usX, &usY);
@@ -2479,6 +2612,97 @@ void RenderItemDescriptionBox(void)
 			pStr = ST::format("{2d}", ubAttackAPs + CalcAPsToBurst(DEFAULT_APS, obj));
 			FindFontRightCoordinates(dx + ids[5].sX + ids[5].sValDx, dy + ids[5].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);
+		}
+
+		if (!in_map)
+		{
+			// Previously-hidden stats (ubReadyTime, ubBurstPenalty, ubAttackVolume,
+			// ubHitVolume, ubDeadliness, bReliability, bRepairEase) plus the actual
+			// AP cost to reload, shown in the extra room made by the enlarged box.
+			bool const showReload = (item->getItemClass() & (IC_GUN | IC_LAUNCHER)) != 0;
+
+			SetFontForeground(6);
+			MPrint(dx + ids[8].sX,  dy + ids[8].sY,  gWeaponStatsDesc[7]);  // Ready time
+			MPrint(dx + ids[16].sX, dy + ids[16].sY, gWeaponStatsDesc[6]);  // = (Ready time)
+			MPrint(dx + ids[9].sX,  dy + ids[9].sY,  gWeaponStatsDesc[8]);  // Reliability
+			if (w->ubShotsPerBurst > 0)
+			{
+				MPrint(dx + ids[10].sX, dy + ids[10].sY, gWeaponStatsDesc[9]); // Burst penalty
+			}
+			MPrint(dx + ids[11].sX, dy + ids[11].sY, gWeaponStatsDesc[10]); // Repair ease
+			MPrint(dx + ids[12].sX, dy + ids[12].sY, gWeaponStatsDesc[11]); // Attack volume
+			MPrint(dx + ids[13].sX, dy + ids[13].sY, gWeaponStatsDesc[12]); // Deadliness
+			MPrint(dx + ids[14].sX, dy + ids[14].sY, gWeaponStatsDesc[13]); // Hit volume
+			if (showReload)
+			{
+				MPrint(dx + ids[15].sX, dy + ids[15].sY, gWeaponStatsDesc[14]); // Reload AP cost
+				MPrint(dx + ids[17].sX, dy + ids[17].sY, gWeaponStatsDesc[6]);  // = (Reload AP cost)
+			}
+
+			// Purely decorative labels — cosmetic only, no associated value,
+			// not tied to any real stat (unlike every label above).
+			MPrint(dx + ids[18].sX, dy + ids[18].sY, gWeaponStatsDesc[15]); // "AP:" (decorative)
+			MPrint(dx + ids[19].sX, dy + ids[19].sY, gWeaponStatsDesc[16]); // "Rounds" (decorative)
+
+			SetFontForeground(5);
+
+			// Ready time: APs needed to ready/unready this weapon
+			pStr = ST::format("{2d}", w->ubReadyTime);
+			FindFontRightCoordinates(dx + ids[8].sX + ids[8].sValDx, dy + ids[8].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Reliability: comparative rating, higher = less prone to jamming
+			pStr = ST::format("{2d}", item->getReliability());
+			FindFontRightCoordinates(dx + ids[9].sX + ids[9].sValDx, dy + ids[9].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Burst penalty: % accuracy penalty per shot after the first, in a burst
+			if (w->ubShotsPerBurst > 0)
+			{
+				pStr = ST::format("{2d}%", w->ubBurstPenalty);
+				FindFontRightCoordinates(dx + ids[10].sX + ids[10].sValDx, dy + ids[10].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				MPrint(usX, usY, pStr);
+			}
+
+			// Repair ease: comparative rating, higher = cheaper/easier to repair
+			pStr = ST::format("{2d}", item->getRepairEase());
+			FindFontRightCoordinates(dx + ids[11].sX + ids[11].sValDx, dy + ids[11].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Attack volume: noise made when firing this weapon (reflects a
+			// silencer attachment, unlike the raw ubAttackVolume field)
+			pStr = ST::format("{3d}", GunAttackVolume(obj));
+			FindFontRightCoordinates(dx + ids[12].sX + ids[12].sValDx, dy + ids[12].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Deadliness: comparative lethality rating used by the AI
+			pStr = ST::format("{3d}", w->ubDeadliness);
+			FindFontRightCoordinates(dx + ids[13].sX + ids[13].sValDx, dy + ids[13].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Hit volume: noise made when a shot from this weapon hits something
+			pStr = ST::format("{2d}", w->ubHitVolume);
+			FindFontRightCoordinates(dx + ids[14].sX + ids[14].sValDx, dy + ids[14].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			MPrint(usX, usY, pStr);
+
+			// Reload cost, in APs: base cost, doubled when the currently loaded
+			// ammo's capacity doesn't match the weapon's magazine size — mirrors
+			// GetAPsToReloadGunWithAmmo() in Points.cc.
+			if (showReload)
+			{
+				INT8 reloadAP = AP_RELOAD_GUN;
+				if (item->getItemClass() != IC_LAUNCHER && obj.usGunAmmoItem != NOTHING)
+				{
+					const ItemModel* const ammoItem = GCM->getItem(obj.usGunAmmoItem);
+					if (ammoItem->isAmmo() && !w->isSameMagCapacity(ammoItem->asAmmo()))
+					{
+						reloadAP = AP_RELOAD_GUN + AP_RELOAD_GUN;
+					}
+				}
+				pStr = ST::format("{2d}", reloadAP);
+				FindFontRightCoordinates(dx + ids[15].sX + ids[15].sValDx, dy + ids[15].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				MPrint(usX, usY, pStr);
+			}
 		}
 	}
 	else if (obj.usItem == MONEY)
@@ -2739,7 +2963,7 @@ void DeleteItemDescriptionBox( )
 	{
 		UnloadButtonImage( guiMoneyButtonImage );
 		UnloadButtonImage( guiMoneyDoneButtonImage );
-		for ( cnt = 0; cnt < MAX_ATTACHMENTS; cnt++ )
+		for ( cnt = 0; cnt < NUM_MONEY_BUTTONS; cnt++ )
 		{
 			RemoveButton( guiMoneyButtonBtn[cnt] );
 		}
@@ -5080,7 +5304,7 @@ static void BtnMoneyButtonCallbackSecondary(GUI_BUTTON* const btn, UINT32 const 
 	}
 
 	RenderItemDescriptionBox();
-	for (INT8 i = 0; i < MAX_ATTACHMENTS; ++i)
+	for (INT8 i = 0; i < NUM_MONEY_BUTTONS; ++i)
 	{
 		MarkAButtonDirty(guiMoneyButtonBtn[i]);
 	}
@@ -5263,7 +5487,9 @@ void CancelItemPointer( )
 
 void LoadItemCursorFromSavedGame(HWFILE const f)
 {
-	BYTE data[44];
+	// Sized for ExtractObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
+	// SoldierID + slot + active flag + 5 bytes of padding.
+	BYTE data[92];
 	f->read(data, sizeof(data));
 
 	BOOLEAN      active;
@@ -5291,7 +5517,9 @@ void LoadItemCursorFromSavedGame(HWFILE const f)
 
 void SaveItemCursorToSavedGame(HWFILE const f)
 {
-	BYTE  data[44];
+	// Sized for InjectObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
+	// SoldierID + slot + active flag + 5 bytes of padding.
+	BYTE  data[92];
 	DataWriter d{data};
 	InjectObject(d, &gItemPointer);
 	INJ_SOLDIER(d, gpItemPointerSoldier)
