@@ -66,6 +66,7 @@ struct WeaponModel : ItemModel
 	bool attachUnderGLauncher;
 	bool attachSpringAndBoltUpgrade;
 	bool attachGunBarrelExtender;
+	bool attachBurstExtenderAttachment;
 	int m_rateOfFire;
 
 	ST::string internalType;

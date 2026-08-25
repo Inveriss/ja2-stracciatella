@@ -2144,7 +2144,7 @@ void EVENT_FireSoldierWeapon( SOLDIERTYPE *pSoldier, INT16 sTargetGridNo )
 		{
 			// Set the TOTAL number of bullets to be fired
 			// Can't shoot more bullets than we have in our magazine!
-			pSoldier->bBulletsLeft = std::min(GCM->getWeapon(pSoldier->inv[ pSoldier->ubAttackingHand].usItem)->ubShotsPerBurst, pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunShotsLeft);
+			pSoldier->bBulletsLeft = std::min(GunShotsPerBurst(pSoldier->inv[ pSoldier->ubAttackingHand]), pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunShotsLeft);
 		}
 		else if ( IsValidSecondHandShot( pSoldier ) )
 		{
