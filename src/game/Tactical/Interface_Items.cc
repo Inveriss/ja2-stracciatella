@@ -2433,10 +2433,12 @@ void RenderItemDescriptionBox(void)
 			}
 		}
 
-		if (!in_map)
+		if (!in_map && w->ubShotsPerBurst > 0)
 		{
 			// Purely decorative: always exactly 3 bullet icons, regardless of
-			// the weapon's actual burst size — cosmetic only.
+			// the weapon's actual burst size — cosmetic only. Shown under the
+			// same condition as the real burst bullets/stats above: only for
+			// weapons that have a burst mode at all.
 			INT32 x = BULLET_DECOR_X;
 			INT32 const y = BULLET_DECOR_Y;
 			for (INT32 i = 0; i < 3; ++i)
@@ -2640,9 +2642,14 @@ void RenderItemDescriptionBox(void)
 			}
 
 			// Purely decorative labels — cosmetic only, no associated value,
-			// not tied to any real stat (unlike every label above).
-			MPrint(dx + ids[18].sX, dy + ids[18].sY, gWeaponStatsDesc[15]); // "AP:" (decorative)
-			MPrint(dx + ids[19].sX, dy + ids[19].sY, gWeaponStatsDesc[16]); // "Rounds" (decorative)
+			// not tied to any real stat (unlike every label above). Shown
+			// under the same condition as the real burst stats: only for
+			// weapons that have a burst mode at all.
+			if (w->ubShotsPerBurst > 0)
+			{
+				MPrint(dx + ids[18].sX, dy + ids[18].sY, gWeaponStatsDesc[15]); // "AP:" (decorative)
+				MPrint(dx + ids[19].sX, dy + ids[19].sY, gWeaponStatsDesc[16]); // "Rounds" (decorative)
+			}
 
 			SetFontForeground(5);
 
