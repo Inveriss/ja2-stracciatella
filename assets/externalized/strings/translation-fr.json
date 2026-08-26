@@ -511,7 +511,8 @@
         "Vol.imp :",
         "Rech :",
         "PA :",
-        "Munitions"
+        "Munitions",
+        "Base :"
     ],
     "gpGameClockString": "Jour",
     "gpStrategicString": [

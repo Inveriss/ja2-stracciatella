@@ -511,7 +511,8 @@
         "命中音:",
         "装填:",
         "AP:",
-        "弹药"
+        "弹药",
+        "基础:"
     ],
     "gpGameClockString": "日",
     "gpStrategicString": [

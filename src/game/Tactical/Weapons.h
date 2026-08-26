@@ -177,6 +177,8 @@ INT32 HTHImpact(const SOLDIERTYPE* pSoldier, const SOLDIERTYPE* pTarget, INT32 i
 UINT16 GunRange(OBJECTTYPE const&);
 UINT8  GunShotsPerBurst(OBJECTTYPE const&);
 UINT8  GunAttackVolume(OBJECTTYPE const&);
+bool   HasLaserScope(OBJECTTYPE const&);
+INT8   GunLaserScopeBonus(OBJECTTYPE const&);
 
 extern BOOLEAN gfNextFireJam;
 extern BOOLEAN gfNextShotKills;

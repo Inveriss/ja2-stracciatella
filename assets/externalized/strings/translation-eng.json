@@ -511,7 +511,8 @@
         "Hit Vol:",
         "Reload:",
         "AP:",
-        "Rounds"
+        "Rounds",
+        "Base:"
     ],
     "gpGameClockString": "Day",
     "gpStrategicString": [

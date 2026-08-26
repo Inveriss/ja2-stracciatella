@@ -511,7 +511,8 @@
         "TrfLst:",
         "Nachl:",
         "AP:",
-        "Patronen"
+        "Patronen",
+        "Basis:"
     ],
     "gpGameClockString": "Tag",
     "gpStrategicString": [
