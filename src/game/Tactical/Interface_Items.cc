@@ -251,6 +251,9 @@ namespace {
 // ITEM DESCRIPTION BOX STUFF
 cache_key_t const guiItemDescBox{ INTERFACEDIR "/infobox.sti" };
 cache_key_t const guiMapItemDescBox{ INTERFACEDIR "/iteminfoc.sti" };
+// Same-sized alternate background for the tactical item description box when
+// displaying money - doesn't need the room reserved for weapon stats/attachments.
+cache_key_t const guiMoneyItemDescBox{ INTERFACEDIR "/Infobox_money.sti" };
 
 cache_key_t const guiBullet{ INTERFACEDIR "/bullet.sti" };
 cache_key_t const guiMoneyGraphicsForDescBox{ INTERFACEDIR "/info_bil.sti" };
@@ -290,8 +293,15 @@ static INT8 gbPendingAttachPos = NO_SLOT;
 
 #define gMoneyButtonLoc				(g_ui.m_moneyButtonLoc)
 #define gMapMoneyButtonLoc				(g_ui.m_MoneyButtonLocMap)
-static const MoneyLoc gMoneyButtonOffsets[] = { { 0, 0 }, { 34, 0 }, { 0, 32 }, { 34, 32 }, { 8, 22 } };
 
+//static const MoneyLoc gMoneyButtonOffsets[] = { { 0, 0 }, { 34, 0 }, { 0, 32 }, { 34, 32 }, { 8, 22 } };
+
+// NEW POSITION
+static const MoneyLoc gMoneyButtonOffsets[] = { { 215, 49 }, // 1000
+												{ 177, 49 }, // 100
+												{ 177, 74 }, // 10
+												{ 215, 74 }, // Done
+												{ 187, 100 } }; // Separate
 
 // number of keys on keyring, temp for now
 #define NUMBER_KEYS_ON_KEYRING				28
@@ -411,10 +421,18 @@ static const INV_DESC_STATS gWeaponStats[] =
 // displayed AFTER the mass/weight/"Kg" line
 static const INV_DESC_STATS gMoneyStats[] =
 {
+	/*
 	{ 202, 14, 78 },
 	{ 212, 25, 78 },
 	{ 202, 40, 78 },
 	{ 212, 51, 78 }
+	*/
+	
+	// NEW POSITION
+	{ 393, 52, 78  }, // current
+	{ 393, 64, 78 },  // balance
+	{ 393, 92, 78  }, // amount to
+	{ 393, 104, 78 }   // withdraw
 };
 
 // displayed AFTER the mass/weight/"Kg" line
@@ -2347,7 +2365,10 @@ void RenderItemDescriptionBox(void)
 	INT16      const  dx     = gsInvDescX;
 	INT16      const  dy     = gsInvDescY;
 
-	auto * const box_gfx = in_map ? guiMapItemDescBox : guiItemDescBox;
+	auto * const box_gfx =
+		(obj.usItem == MONEY && !in_map) ? guiMoneyItemDescBox :
+		in_map                           ? guiMapItemDescBox   :
+		                                   guiItemDescBox;
 	BltVideoObject(guiSAVEBUFFER, box_gfx, 0, dx, dy);
 
 	// Display the money 'separating' border
@@ -3006,6 +3027,7 @@ void DeleteItemDescriptionBox( )
 
 	RemoveVObject(guiItemDescBox);
 	RemoveVObject(guiMapItemDescBox);
+	RemoveVObject(guiMoneyItemDescBox);
 	RemoveVObject(guiBullet);
 	DeleteVideoObject(guiItemGraphic);
 
