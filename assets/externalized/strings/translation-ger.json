@@ -512,7 +512,9 @@
         "Nachl:",
         "AP:",
         "Patronen",
-        "Basis:"
+        "Basis:",
+        "Liegend:",
+        "ProZiel:"
     ],
     "gpGameClockString": "Tag",
     "gpStrategicString": [

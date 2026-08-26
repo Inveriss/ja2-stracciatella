@@ -512,7 +512,9 @@
         "Reload:",
         "AP:",
         "Rounds",
-        "Base:"
+        "Base:",
+        "Prone:",
+        "Per Aim:"
     ],
     "gpGameClockString": "Day",
     "gpStrategicString": [

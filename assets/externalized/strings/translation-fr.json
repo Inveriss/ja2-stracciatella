@@ -512,7 +512,9 @@
         "Rech :",
         "PA :",
         "Munitions",
-        "Base :"
+        "Base :",
+        "Couché :",
+        "Par vis. :"
     ],
     "gpGameClockString": "Jour",
     "gpStrategicString": [

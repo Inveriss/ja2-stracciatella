@@ -179,6 +179,10 @@ UINT8  GunShotsPerBurst(OBJECTTYPE const&);
 UINT8  GunAttackVolume(OBJECTTYPE const&);
 bool   HasLaserScope(OBJECTTYPE const&);
 INT8   GunLaserScopeBonus(OBJECTTYPE const&);
+bool   HasBipod(OBJECTTYPE const&);
+INT8   GunBipodDisplayBonus(OBJECTTYPE const&);
+bool   HasSniperScope(OBJECTTYPE const&);
+INT8   GunSniperScopeDisplayBonus(OBJECTTYPE const&);
 
 extern BOOLEAN gfNextFireJam;
 extern BOOLEAN gfNextShotKills;
