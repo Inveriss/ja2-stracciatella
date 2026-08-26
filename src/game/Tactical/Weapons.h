@@ -183,6 +183,7 @@ bool   HasBipod(OBJECTTYPE const&);
 INT8   GunBipodDisplayBonus(OBJECTTYPE const&);
 bool   HasSniperScope(OBJECTTYPE const&);
 INT8   GunSniperScopeDisplayBonus(OBJECTTYPE const&);
+INT8   GunProneStanceBonus(SOLDIERTYPE const*);
 
 extern BOOLEAN gfNextFireJam;
 extern BOOLEAN gfNextShotKills;

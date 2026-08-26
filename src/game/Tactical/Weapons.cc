@@ -73,6 +73,12 @@
 // actual combat math.
 #define SNIPERSCOPE_DISPLAY_BONUS	20
 
+// Simplified, static stand-in for the real (range-dependent, capped at
+// AIM_BONUS_PRONE) stance bonus computed in CalcChanceToHitGun() when the
+// merc is prone — used only for the item description box's "Prone:"
+// readout, not for actual combat math.
+#define PRONE_STANCE_DISPLAY_BONUS	20
+
 #define CRITICAL_HIT_THRESHOLD	30
 
 #define HTH_MODE_PUNCH		1
@@ -228,6 +234,18 @@ INT8 GunSniperScopeDisplayBonus(OBJECTTYPE const& o)
 	return status > 50
 		? SNIPERSCOPE_DISPLAY_BONUS * (status - 50) / 50
 		: -SNIPERSCOPE_DISPLAY_BONUS * (50 - status) / 50;
+}
+
+
+INT8 GunProneStanceBonus(SOLDIERTYPE const* const s)
+{
+	if (!s) return 0;
+
+	// Simplified stand-in for the real (range-dependent, capped at
+	// AIM_BONUS_PRONE) prone stance bonus applied in CalcChanceToHitGun() —
+	// display purposes only. No item/condition involved, unlike the other
+	// display bonuses: this is a soldier-stance check, not a weapon stat.
+	return gAnimControl[s->usAnimState].ubEndHeight == ANIM_PRONE ? PRONE_STANCE_DISPLAY_BONUS : 0;
 }
 
 

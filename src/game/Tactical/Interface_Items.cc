@@ -2751,10 +2751,12 @@ void RenderItemDescriptionBox(void)
 			}
 
 			// Combined "prone" aim bonus: LASERSCOPE bonus (always active)
-			// plus BIPOD's simplified display bonus (see GunBipodDisplayBonus()).
-			// Always shown, even when neither attachment is present (then 0).
+			// plus BIPOD's simplified display bonus, plus the merc's own
+			// simplified prone-stance bonus (see GunBipodDisplayBonus()/
+			// GunProneStanceBonus()). Always shown, even when nothing
+			// applies (then 0).
 			{
-				INT8 const proneBonus = GunLaserScopeBonus(obj) + GunBipodDisplayBonus(obj);
+				INT8 const proneBonus = GunLaserScopeBonus(obj) + GunBipodDisplayBonus(obj) + GunProneStanceBonus(gpItemDescSoldier);
 				pStr = ST::format("{}{}%", proneBonus >= 0 ? "+" : "", proneBonus);
 				FindFontRightCoordinates(dx + ids[21].sX + ids[21].sValDx, dy + ids[21].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 				MPrint(usX, usY, pStr);
