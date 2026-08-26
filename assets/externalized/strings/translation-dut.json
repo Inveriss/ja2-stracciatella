@@ -511,7 +511,8 @@
         "ImpVol:",
         "Herlaad:",
         "AP:",
-        "Patronen"
+        "Patronen",
+        "Basis:"
     ],
     "gpGameClockString": "Dag",
     "gpStrategicString": [

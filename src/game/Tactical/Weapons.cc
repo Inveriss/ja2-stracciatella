@@ -142,6 +142,35 @@ UINT8 GunAttackVolume(OBJECTTYPE const& o)
 }
 
 
+bool HasLaserScope(OBJECTTYPE const& o)
+{
+	// rocket rifle has one built in
+	return o.usItem == ROCKET_RIFLE || o.usItem == AUTO_ROCKET_RIFLE
+		|| FindAttachment(&o, LASERSCOPE) != ITEM_NOT_FOUND;
+}
+
+
+INT8 GunLaserScopeBonus(OBJECTTYPE const& o)
+{
+	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
+	if (!HasLaserScope(o)) return 0;
+
+	INT8 const attach_pos = FindAttachment(&o, LASERSCOPE);
+
+	// rocket rifle's laser is built in and uses the weapon's own condition;
+	// an attached LASERSCOPE uses its own condition instead
+	INT8 const status = (o.usItem == ROCKET_RIFLE || o.usItem == AUTO_ROCKET_RIFLE)
+		? WEAPON_STATUS_MOD(o.bGunStatus)
+		: WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]);
+
+	// same formula previously inlined in CalcChanceToHitGun(): a laser scope
+	// in bad condition (<=50%) creates an aim PENALTY, not a bonus
+	return status > 50
+		? LASERSCOPE_BONUS * (status - 50) / 50
+		: -LASERSCOPE_BONUS * (50 - status) / 50;
+}
+
+
 INT8 EffectiveArmour(OBJECTTYPE const* const o)
 {
 	if (!o) return 0;
@@ -2261,34 +2290,9 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 			iSightRange = std::max(iSightRange - iScopeBonus, 1);
 		}
 
-		bAttachPos = FindAttachment( pInHand, LASERSCOPE );
-		if (usInHand == ROCKET_RIFLE || usInHand == AUTO_ROCKET_RIFLE ||
-			bAttachPos != NO_SLOT) // rocket rifle has one built in
+		if (HasLaserScope(*pInHand))
 		{
-			INT8 bLaserStatus;
-
-			if ( usInHand == ROCKET_RIFLE || usInHand == AUTO_ROCKET_RIFLE )
-			{
-				bLaserStatus = WEAPON_STATUS_MOD(pInHand->bGunStatus);
-			}
-			else
-			{
-				bLaserStatus = WEAPON_STATUS_MOD(pInHand->bAttachStatus[ bAttachPos ]);
-			}
-
-			// laser scope isn't of much use in high light levels; add something for that
-			if (bLaserStatus > 50)
-			{
-				iScopeBonus = LASERSCOPE_BONUS * (bLaserStatus - 50) / 50;
-			}
-			else
-			{
-				// laser scope in bad condition creates aim penalty!
-				iScopeBonus = - LASERSCOPE_BONUS * (50 - bLaserStatus) / 50;
-			}
-
-			iChance += iScopeBonus;
-
+			iChance += GunLaserScopeBonus(*pInHand);
 		}
 
 	}

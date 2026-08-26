@@ -361,6 +361,8 @@ static const INV_DESC_STATS gWeaponStats[] =
 {
 	{ 410, 220, 87 },  // Weight
 	{ 410, 204, 87 },  // Status
+	//{ 410, 204, 87 },  // Weight
+	//{ 410, 248, 87 },  // Status
 	{ 488, 14, 14 },   // Range
 	{ 410, 14, 31 },   // Damage
 	{ 410, 43, 31 },   // AP single
@@ -377,6 +379,7 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 410, 280, 87 },  // [11] Repair ease
 	{ 410, 164, 87 },  // [12] Attack volume
 	{ 410, 236, 87 },  // [13] Deadliness
+	//{ 410, 220, 87 },  // [13] Deadliness
 	{ 410, 176, 87 },  // [14] Hit volume
 	{ 410, 135, 87 },  // [15] Reload AP cost
 
@@ -389,7 +392,11 @@ static const INV_DESC_STATS gWeaponStats[] =
 	// Purely decorative labels — cosmetic only, no associated value, not
 	// tied to any real stat. Kept translatable via gWeaponStatsDesc[15]/[16].
 	{ 410,  72,  0 },  // [18] "AP:" (decorative)
-	{ 410,  89,  0 }   // [19] "Rounds" (decorative)
+	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
+
+	// Real, computed LASERSCOPE aim bonus (see GunLaserScopeBonus()). Only
+	// shown when the weapon actually has a laser (attached or built-in).
+	{ 14, 14, 36 }   // [20] "Base:" — LASERSCOPE aim bonus
 };
 
 
@@ -448,10 +455,10 @@ static const AttachmentGfxInfo g_attachment_info =
     { 2, 2,  2, 31 },
 	
 	{
-		{   105,   7 }, {  154,   7 }, {  251,   7 }, { 349,   7 }, // First row
-		{   7,  68 }, {  56,  68 }, {  105,  68 }, { 300,  45 },	{   300,  83 }, {  349,  64 }, // Second row
-		{  105,  121 }, { 154,  121 },	{   203,  121 }, {  251,  121 }, {  349,  121 }, // Third row
-		{ 56,  159 }, {   105, 159 }, {  251, 159 }, {  300, 159 }, { 1, 1 }, // Fourth row
+		{   154,   7 }, {  203,   7 }, {  252,   7 }, { 349,   7 }, // First row
+		{   7,  64 }, {  56,  64 }, {  105,  64 }, { 300,  45 },	{   300,  83 }, {  349,  64 }, // Second row
+		{  105,  121 }, { 154,  121 },	{   203,  121 }, {  252,  121 }, {  349,  121 }, // Third row
+		{ 56,  159 }, {   105, 159 }, {  251, 159 }, {  300, 159 }, { 6, 159 }, // Fourth row
 	}
 };
 
@@ -2622,6 +2629,7 @@ void RenderItemDescriptionBox(void)
 			// ubHitVolume, ubDeadliness, bReliability, bRepairEase) plus the actual
 			// AP cost to reload, shown in the extra room made by the enlarged box.
 			bool const showReload = (item->getItemClass() & (IC_GUN | IC_LAUNCHER)) != 0;
+			bool const hasLaserScope = HasLaserScope(obj);
 
 			SetFontForeground(6);
 			MPrint(dx + ids[8].sX,  dy + ids[8].sY,  gWeaponStatsDesc[7]);  // Ready time
@@ -2650,6 +2658,11 @@ void RenderItemDescriptionBox(void)
 				MPrint(dx + ids[18].sX, dy + ids[18].sY, gWeaponStatsDesc[15]); // "AP:" (decorative)
 				MPrint(dx + ids[19].sX, dy + ids[19].sY, gWeaponStatsDesc[16]); // "Rounds" (decorative)
 			}
+
+			// "Base:" label always shown; the value next to it (below) only
+			// appears once the weapon actually has a LASERSCOPE (attached or
+			// built into a rocket rifle).
+			MPrint(dx + ids[20].sX, dy + ids[20].sY, gWeaponStatsDesc[17]); // "Base:"
 
 			SetFontForeground(5);
 
@@ -2708,6 +2721,17 @@ void RenderItemDescriptionBox(void)
 				}
 				pStr = ST::format("{2d}", reloadAP);
 				FindFontRightCoordinates(dx + ids[15].sX + ids[15].sValDx, dy + ids[15].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				MPrint(usX, usY, pStr);
+			}
+
+			// LASERSCOPE aim bonus (see GunLaserScopeBonus()). Always signed:
+			// "+" when the scope is in good enough condition to help, "-"
+			// when a badly damaged one is actually hurting aim instead.
+			if (hasLaserScope)
+			{
+				INT8 const laserBonus = GunLaserScopeBonus(obj);
+				pStr = ST::format("{}{}%", laserBonus >= 0 ? "+" : "", laserBonus);
+				FindFontRightCoordinates(dx + ids[20].sX + ids[20].sValDx, dy + ids[20].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 				MPrint(usX, usY, pStr);
 			}
 		}
