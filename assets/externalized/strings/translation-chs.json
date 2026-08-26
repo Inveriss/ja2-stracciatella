@@ -512,7 +512,9 @@
         "装填:",
         "AP:",
         "弹药",
-        "基础:"
+        "基础:",
+        "俯卧:",
+        "每次瞄准:"
     ],
     "gpGameClockString": "日",
     "gpStrategicString": [

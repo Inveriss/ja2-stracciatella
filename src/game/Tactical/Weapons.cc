@@ -62,6 +62,17 @@
 // bonus to hit with working laser scope
 #define LASERSCOPE_BONUS	gamepolicy(aim_bonus_laserscope)
 
+// Simplified, static stand-in for the BIPOD's real (range-dependent) prone
+// aim bonus computed in CalcChanceToHitGun() — used only for the item
+// description box's "Prone:" readout, not for actual combat math.
+#define BIPOD_DISPLAY_BONUS	10
+
+// Simplified, static stand-in for the SNIPERSCOPE's real (range/aim-time-
+// dependent, sight-range-based) bonus computed in CalcChanceToHitGun() —
+// used only for the item description box's "Per Aim:" readout, not for
+// actual combat math.
+#define SNIPERSCOPE_DISPLAY_BONUS	20
+
 #define CRITICAL_HIT_THRESHOLD	30
 
 #define HTH_MODE_PUNCH		1
@@ -168,6 +179,55 @@ INT8 GunLaserScopeBonus(OBJECTTYPE const& o)
 	return status > 50
 		? LASERSCOPE_BONUS * (status - 50) / 50
 		: -LASERSCOPE_BONUS * (50 - status) / 50;
+}
+
+
+bool HasBipod(OBJECTTYPE const& o)
+{
+	return FindAttachment(&o, BIPOD) != ITEM_NOT_FOUND;
+}
+
+
+INT8 GunBipodDisplayBonus(OBJECTTYPE const& o)
+{
+	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
+
+	INT8 const attach_pos = FindAttachment(&o, BIPOD);
+	if (attach_pos == ITEM_NOT_FOUND) return 0;
+
+	// Simplified stand-in for the real (range/stance-dependent) bipod bonus
+	// applied in CalcChanceToHitGun() — display purposes only. Same
+	// condition-scaling formula as GunLaserScopeBonus(): a badly damaged
+	// bipod (<=50% status) is a PENALTY, not a bonus.
+	INT8 const status = WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]);
+	return status > 50
+		? BIPOD_DISPLAY_BONUS * (status - 50) / 50
+		: -BIPOD_DISPLAY_BONUS * (50 - status) / 50;
+}
+
+
+bool HasSniperScope(OBJECTTYPE const& o)
+{
+	return FindAttachment(&o, SNIPERSCOPE) != ITEM_NOT_FOUND;
+}
+
+
+INT8 GunSniperScopeDisplayBonus(OBJECTTYPE const& o)
+{
+	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
+
+	INT8 const attach_pos = FindAttachment(&o, SNIPERSCOPE);
+	if (attach_pos == ITEM_NOT_FOUND) return 0;
+
+	// Simplified stand-in for the real (range/aim-time-dependent) sniper
+	// scope bonus applied in CalcChanceToHitGun() — display purposes only.
+	// Same condition-scaling formula as GunLaserScopeBonus()/
+	// GunBipodDisplayBonus(): a badly damaged scope (<=50% status) is a
+	// PENALTY, not a bonus.
+	INT8 const status = WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]);
+	return status > 50
+		? SNIPERSCOPE_DISPLAY_BONUS * (status - 50) / 50
+		: -SNIPERSCOPE_DISPLAY_BONUS * (50 - status) / 50;
 }
 
 

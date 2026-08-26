@@ -396,7 +396,15 @@ static const INV_DESC_STATS gWeaponStats[] =
 
 	// Real, computed LASERSCOPE aim bonus (see GunLaserScopeBonus()). Only
 	// shown when the weapon actually has a laser (attached or built-in).
-	{ 14, 14, 36 }   // [20] "Base:" — LASERSCOPE aim bonus
+	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus
+
+	// Combined LASERSCOPE + BIPOD aim bonus (see GunLaserScopeBonus() +
+	// GunBipodDisplayBonus()). Label and value always shown.
+	{ 14, 26, 48 }, // [21] "Prone:" — Base: + BIPOD display bonus
+
+	// Standalone SNIPERSCOPE display bonus (see GunSniperScopeDisplayBonus()).
+	// Label and value always shown; never summed with Base:/Prone:.
+	{ 14, 38, 48 }  // [22] "Per Aim:"
 };
 
 
@@ -2629,7 +2637,6 @@ void RenderItemDescriptionBox(void)
 			// ubHitVolume, ubDeadliness, bReliability, bRepairEase) plus the actual
 			// AP cost to reload, shown in the extra room made by the enlarged box.
 			bool const showReload = (item->getItemClass() & (IC_GUN | IC_LAUNCHER)) != 0;
-			bool const hasLaserScope = HasLaserScope(obj);
 
 			SetFontForeground(6);
 			MPrint(dx + ids[8].sX,  dy + ids[8].sY,  gWeaponStatsDesc[7]);  // Ready time
@@ -2663,6 +2670,14 @@ void RenderItemDescriptionBox(void)
 			// appears once the weapon actually has a LASERSCOPE (attached or
 			// built into a rocket rifle).
 			MPrint(dx + ids[20].sX, dy + ids[20].sY, gWeaponStatsDesc[17]); // "Base:"
+
+			// "Prone:" label AND value are always shown - it's the combined
+			// LASERSCOPE + BIPOD bonus (0 when neither is attached).
+			MPrint(dx + ids[21].sX, dy + ids[21].sY, gWeaponStatsDesc[18]); // "Prone:"
+
+			// "Per Aim:" label AND value are always shown - standalone
+			// SNIPERSCOPE display bonus, never summed with Base:/Prone:.
+			MPrint(dx + ids[22].sX, dy + ids[22].sY, gWeaponStatsDesc[19]); // "Per Aim:"
 
 			SetFontForeground(5);
 
@@ -2724,14 +2739,34 @@ void RenderItemDescriptionBox(void)
 				MPrint(usX, usY, pStr);
 			}
 
-			// LASERSCOPE aim bonus (see GunLaserScopeBonus()). Always signed:
-			// "+" when the scope is in good enough condition to help, "-"
-			// when a badly damaged one is actually hurting aim instead.
-			if (hasLaserScope)
+			// LASERSCOPE aim bonus (see GunLaserScopeBonus()). Always shown
+			// (0 when no laser), always signed: "+" when the scope is in
+			// good enough condition to help, "-" when a badly damaged one is
+			// actually hurting aim instead.
 			{
 				INT8 const laserBonus = GunLaserScopeBonus(obj);
 				pStr = ST::format("{}{}%", laserBonus >= 0 ? "+" : "", laserBonus);
 				FindFontRightCoordinates(dx + ids[20].sX + ids[20].sValDx, dy + ids[20].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				MPrint(usX, usY, pStr);
+			}
+
+			// Combined "prone" aim bonus: LASERSCOPE bonus (always active)
+			// plus BIPOD's simplified display bonus (see GunBipodDisplayBonus()).
+			// Always shown, even when neither attachment is present (then 0).
+			{
+				INT8 const proneBonus = GunLaserScopeBonus(obj) + GunBipodDisplayBonus(obj);
+				pStr = ST::format("{}{}%", proneBonus >= 0 ? "+" : "", proneBonus);
+				FindFontRightCoordinates(dx + ids[21].sX + ids[21].sValDx, dy + ids[21].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				MPrint(usX, usY, pStr);
+			}
+
+			// Standalone SNIPERSCOPE display bonus (see
+			// GunSniperScopeDisplayBonus()) - always shown, on its own, never
+			// added into Base:/Prone:.
+			{
+				INT8 const sniperBonus = GunSniperScopeDisplayBonus(obj);
+				pStr = ST::format("{}{}%", sniperBonus >= 0 ? "+" : "", sniperBonus);
+				FindFontRightCoordinates(dx + ids[22].sX + ids[22].sValDx, dy + ids[22].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 				MPrint(usX, usY, pStr);
 			}
 		}
