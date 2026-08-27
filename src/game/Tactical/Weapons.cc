@@ -65,7 +65,7 @@
 // Simplified, static stand-in for the BIPOD's real (range-dependent) prone
 // aim bonus computed in CalcChanceToHitGun() — used only for the item
 // description box's "Prone:" readout, not for actual combat math.
-#define BIPOD_DISPLAY_BONUS	10
+#define BIPOD_DISPLAY_BONUS	20
 
 // Simplified, static stand-in for the SNIPERSCOPE's real (range/aim-time-
 // dependent, sight-range-based) bonus computed in CalcChanceToHitGun() —
@@ -77,7 +77,7 @@
 // AIM_BONUS_PRONE) stance bonus computed in CalcChanceToHitGun() when the
 // merc is prone — used only for the item description box's "Prone:"
 // readout, not for actual combat math.
-#define PRONE_STANCE_DISPLAY_BONUS	20
+#define PRONE_STANCE_DISPLAY_BONUS	10
 
 #define CRITICAL_HIT_THRESHOLD	30
 
@@ -2169,8 +2169,8 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 			bAttachPos = FindAttachment( pInHand, BIPOD );
 			if (bAttachPos != ITEM_NOT_FOUND)
 			{
-				// extra bonus to hit for a bipod, up to half the prone bonus itself
-				iBonus += (iBonus * WEAPON_STATUS_MOD(pInHand->bAttachStatus[bAttachPos]) / 100) / 2;
+				// extra bonus to hit for a bipod, up to double the prone bonus itself
+				iBonus += (iBonus * WEAPON_STATUS_MOD(pInHand->bAttachStatus[bAttachPos]) / 100) * 2;
 			}
 			iChance += iBonus;
 		}

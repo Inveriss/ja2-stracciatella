@@ -110,7 +110,7 @@ enum
 #define AIM_BONUS_SAME_TARGET			10 // chance-to-hit bonus (in %)
 #define AIM_BONUS_PER_AP			gamepolicy(aim_bonus_per_std_ap)
 #define AIM_BONUS_CROUCHING			10
-#define AIM_BONUS_PRONE				20
+#define AIM_BONUS_PRONE				10
 #define AIM_BONUS_TWO_HANDED_PISTOL		5
 #define AIM_BONUS_FIRING_DOWN			15
 #define AIM_PENALTY_ONE_HANDED_PISTOL		5
