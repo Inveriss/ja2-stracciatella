@@ -296,10 +296,18 @@ static INT8 gbPendingAttachPos = NO_SLOT;
 
 //static const MoneyLoc gMoneyButtonOffsets[] = { { 0, 0 }, { 34, 0 }, { 0, 32 }, { 34, 32 }, { 8, 22 } };
 
-// NEW POSITION
+/*
 static const MoneyLoc gMoneyButtonOffsets[] = { { 215, 49 }, // 1000
 												{ 177, 49 }, // 100
 												{ 177, 74 }, // 10
+												{ 215, 74 }, // Done
+												{ 187, 100 } }; // Separate
+*/
+
+// NEW POSITION
+static const MoneyLoc gMoneyButtonOffsets[] = { { 177, 74 }, // 1000
+												{ 215, 49 }, // 100
+												{ 177, 49 }, // 10
 												{ 215, 74 }, // Done
 												{ 187, 100 } }; // Separate
 
