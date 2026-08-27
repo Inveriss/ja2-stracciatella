@@ -412,15 +412,16 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 410,  72,  0 },  // [18] "AP:" (decorative)
 	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
 
-	// Combined LASERSCOPE aim bonus + merc's live CROUCH-stance bonus (see
-	// GunLaserScopeBonus() + GunCrouchStanceBonus()). Label and value
-	// always shown (0 when neither applies).
-	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus
+	// Combined LASERSCOPE aim bonus + merc's live CROUCH-stance bonus +
+	// merc's live roof/elevation bonus (see GunLaserScopeBonus() +
+	// GunCrouchStanceBonus() + GunRoofBonus()). Label and value always
+	// shown (0 when none apply).
+	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus
 
-	// Combined LASERSCOPE + BIPOD + PRONE stance aim bonus (see
-	// GunLaserScopeBonus() + GunBipodDisplayBonus() +
-	// GunProneStanceBonus()). Label and value always shown.
-	{ 14, 26, 48 }, // [21] "Prone:" — Base: + BIPOD display bonus + PRONE stance bonus
+	// Combined LASERSCOPE + BIPOD + PRONE stance + roof/elevation aim
+	// bonus (see GunLaserScopeBonus() + GunBipodDisplayBonus() +
+	// GunProneStanceBonus() + GunRoofBonus()). Label and value always shown.
+	{ 14, 26, 48 }, // [21] "Prone:" — Base: + BIPOD display bonus + PRONE stance bonus + roof bonus
 
 	// Standalone SNIPERSCOPE display bonus (see GunSniperScopeDisplayBonus()).
 	// Label and value always shown; never summed with Base:/Prone:.
@@ -2772,12 +2773,13 @@ void RenderItemDescriptionBox(void)
 
 			// Combined LASERSCOPE aim bonus (see GunLaserScopeBonus()) + the
 			// merc's own live crouch-stance bonus (see
-			// GunCrouchStanceBonus()). Always shown (0 when neither
-			// applies), always signed: "+" when the net effect helps, "-"
-			// when a badly damaged laser scope is hurting aim more than any
-			// crouch bonus offsets.
+			// GunCrouchStanceBonus()) + the merc's own live roof/elevation
+			// bonus (see GunRoofBonus()). Always shown (0 when none apply),
+			// always signed: "+" when the net effect helps, "-" when a
+			// badly damaged laser scope is hurting aim more than the other
+			// bonuses offset.
 			{
-				INT8 const baseBonus = GunLaserScopeBonus(obj) + GunCrouchStanceBonus(gpItemDescSoldier);
+				INT8 const baseBonus = GunLaserScopeBonus(obj) + GunCrouchStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier);
 				pStr = ST::format("{}{}%", baseBonus >= 0 ? "+" : "", baseBonus);
 				FindFontRightCoordinates(dx + ids[20].sX + ids[20].sValDx, dy + ids[20].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 				MPrint(usX, usY, pStr);
@@ -2785,11 +2787,12 @@ void RenderItemDescriptionBox(void)
 
 			// Combined "prone" aim bonus: LASERSCOPE bonus (always active)
 			// plus BIPOD's simplified display bonus, plus the merc's own
-			// simplified prone-stance bonus (see GunBipodDisplayBonus()/
-			// GunProneStanceBonus()). Always shown, even when nothing
-			// applies (then 0).
+			// simplified prone-stance bonus, plus the merc's own live
+			// roof/elevation bonus (see GunBipodDisplayBonus()/
+			// GunProneStanceBonus()/GunRoofBonus()). Always shown, even
+			// when nothing applies (then 0).
 			{
-				INT8 const proneBonus = GunLaserScopeBonus(obj) + GunBipodDisplayBonus(obj) + GunProneStanceBonus(gpItemDescSoldier);
+				INT8 const proneBonus = GunLaserScopeBonus(obj) + GunBipodDisplayBonus(obj) + GunProneStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier);
 				pStr = ST::format("{}{}%", proneBonus >= 0 ? "+" : "", proneBonus);
 				FindFontRightCoordinates(dx + ids[21].sX + ids[21].sValDx, dy + ids[21].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 				MPrint(usX, usY, pStr);

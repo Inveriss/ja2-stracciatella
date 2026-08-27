@@ -268,6 +268,22 @@ INT8 GunCrouchStanceBonus(SOLDIERTYPE const* const s)
 }
 
 
+INT8 GunRoofBonus(SOLDIERTYPE const* const s)
+{
+	if (!s) return 0;
+
+	// Simplified stand-in for the real AIM_BONUS_FIRING_DOWN bonus applied
+	// in CalcChanceToHitGun() — display purposes only. The real bonus only
+	// applies when the target is also at ground level (bTargetLevel == 0);
+	// the item description box has no target, so this always shows the
+	// bonus whenever the merc himself is elevated (bLevel > 0), same
+	// simplification already used for the other stance/attachment display
+	// bonuses. Deliberately excludes the separate, target-independent
+	// ONROOF skill trait bonus also applied there.
+	return s->bLevel > 0 ? AIM_BONUS_FIRING_DOWN : 0;
+}
+
+
 INT8 EffectiveArmour(OBJECTTYPE const* const o)
 {
 	if (!o) return 0;
