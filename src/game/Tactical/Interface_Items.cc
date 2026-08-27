@@ -412,13 +412,15 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 410,  72,  0 },  // [18] "AP:" (decorative)
 	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
 
-	// Real, computed LASERSCOPE aim bonus (see GunLaserScopeBonus()). Only
-	// shown when the weapon actually has a laser (attached or built-in).
-	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus
+	// Combined LASERSCOPE aim bonus + merc's live CROUCH-stance bonus (see
+	// GunLaserScopeBonus() + GunCrouchStanceBonus()). Label and value
+	// always shown (0 when neither applies).
+	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus
 
-	// Combined LASERSCOPE + BIPOD aim bonus (see GunLaserScopeBonus() +
-	// GunBipodDisplayBonus()). Label and value always shown.
-	{ 14, 26, 48 }, // [21] "Prone:" — Base: + BIPOD display bonus
+	// Combined LASERSCOPE + BIPOD + PRONE stance aim bonus (see
+	// GunLaserScopeBonus() + GunBipodDisplayBonus() +
+	// GunProneStanceBonus()). Label and value always shown.
+	{ 14, 26, 48 }, // [21] "Prone:" — Base: + BIPOD display bonus + PRONE stance bonus
 
 	// Standalone SNIPERSCOPE display bonus (see GunSniperScopeDisplayBonus()).
 	// Label and value always shown; never summed with Base:/Prone:.
@@ -2768,13 +2770,15 @@ void RenderItemDescriptionBox(void)
 				MPrint(usX, usY, pStr);
 			}
 
-			// LASERSCOPE aim bonus (see GunLaserScopeBonus()). Always shown
-			// (0 when no laser), always signed: "+" when the scope is in
-			// good enough condition to help, "-" when a badly damaged one is
-			// actually hurting aim instead.
+			// Combined LASERSCOPE aim bonus (see GunLaserScopeBonus()) + the
+			// merc's own live crouch-stance bonus (see
+			// GunCrouchStanceBonus()). Always shown (0 when neither
+			// applies), always signed: "+" when the net effect helps, "-"
+			// when a badly damaged laser scope is hurting aim more than any
+			// crouch bonus offsets.
 			{
-				INT8 const laserBonus = GunLaserScopeBonus(obj);
-				pStr = ST::format("{}{}%", laserBonus >= 0 ? "+" : "", laserBonus);
+				INT8 const baseBonus = GunLaserScopeBonus(obj) + GunCrouchStanceBonus(gpItemDescSoldier);
+				pStr = ST::format("{}{}%", baseBonus >= 0 ? "+" : "", baseBonus);
 				FindFontRightCoordinates(dx + ids[20].sX + ids[20].sValDx, dy + ids[20].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 				MPrint(usX, usY, pStr);
 			}

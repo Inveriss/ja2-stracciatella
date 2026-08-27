@@ -79,6 +79,12 @@
 // readout, not for actual combat math.
 #define PRONE_STANCE_DISPLAY_BONUS	10
 
+// Simplified, static stand-in for the real (range-dependent, capped at
+// AIM_BONUS_CROUCHING) stance bonus computed in CalcChanceToHitGun() when
+// the merc is crouched — used only for the item description box's "Base:"
+// readout, not for actual combat math.
+#define CROUCH_STANCE_DISPLAY_BONUS	5
+
 #define CRITICAL_HIT_THRESHOLD	30
 
 #define HTH_MODE_PUNCH		1
@@ -246,6 +252,19 @@ INT8 GunProneStanceBonus(SOLDIERTYPE const* const s)
 	// display purposes only. No item/condition involved, unlike the other
 	// display bonuses: this is a soldier-stance check, not a weapon stat.
 	return gAnimControl[s->usAnimState].ubEndHeight == ANIM_PRONE ? PRONE_STANCE_DISPLAY_BONUS : 0;
+}
+
+
+INT8 GunCrouchStanceBonus(SOLDIERTYPE const* const s)
+{
+	if (!s) return 0;
+
+	// Simplified stand-in for the real (range-dependent, capped at
+	// AIM_BONUS_CROUCHING) crouch stance bonus applied in
+	// CalcChanceToHitGun() — display purposes only. No item/condition
+	// involved, unlike the other display bonuses: this is a soldier-stance
+	// check, not a weapon stat.
+	return gAnimControl[s->usAnimState].ubEndHeight == ANIM_CROUCH ? CROUCH_STANCE_DISPLAY_BONUS : 0;
 }
 
 
@@ -2149,7 +2168,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	// if shooter is crouched, he aims slightly better (to max of AIM_BONUS_CROUCHING)
 	if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH )
 	{
-		iBonus = iRange / 10;
+		iBonus = iRange / 2;
 		if (iBonus > AIM_BONUS_CROUCHING)
 		{
 			iBonus = AIM_BONUS_CROUCHING;
@@ -2161,7 +2180,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	{
 		if (iRange > MIN_PRONE_RANGE)
 		{
-			iBonus = iRange / 10;
+			iBonus = iRange / 2;
 			if (iBonus > AIM_BONUS_PRONE)
 			{
 				iBonus = AIM_BONUS_PRONE;

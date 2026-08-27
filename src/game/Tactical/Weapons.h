@@ -109,7 +109,7 @@ enum
 
 #define AIM_BONUS_SAME_TARGET			10 // chance-to-hit bonus (in %)
 #define AIM_BONUS_PER_AP			gamepolicy(aim_bonus_per_std_ap)
-#define AIM_BONUS_CROUCHING			10
+#define AIM_BONUS_CROUCHING			5
 #define AIM_BONUS_PRONE				10
 #define AIM_BONUS_TWO_HANDED_PISTOL		5
 #define AIM_BONUS_FIRING_DOWN			15
@@ -184,6 +184,7 @@ INT8   GunBipodDisplayBonus(OBJECTTYPE const&);
 bool   HasSniperScope(OBJECTTYPE const&);
 INT8   GunSniperScopeDisplayBonus(OBJECTTYPE const&);
 INT8   GunProneStanceBonus(SOLDIERTYPE const*);
+INT8   GunCrouchStanceBonus(SOLDIERTYPE const*);
 
 extern BOOLEAN gfNextFireJam;
 extern BOOLEAN gfNextShotKills;
