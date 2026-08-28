@@ -3753,7 +3753,7 @@ void HandleTacticalEffectsOfEquipmentChange(SOLDIERTYPE* pSoldier, UINT32 uiInvP
 		}
 
 		// if this is head gear
-		if ( uiInvPos == HEAD1POS || uiInvPos == HEAD2POS )
+		if ( uiInvPos >= HEAD1POS && uiInvPos <= HEAD4POS )
 		{
 			// Could be because of GOGGLES change...  Re-create light...
 			DeleteSoldierLight( pSoldier );

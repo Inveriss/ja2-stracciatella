@@ -146,6 +146,7 @@ BOOLEAN ApplyCanteen( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGood
 BOOLEAN ApplyElixir( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGoodAPs );
 
 BOOLEAN CompatibleFaceItem( UINT16 usItem1, UINT16 usItem2 );
+UINT16  FirstIncompatibleHeadItem( const SOLDIERTYPE* pSoldier, INT8 bTargetSlot, UINT16 usNewItem );
 
 UINT32 MoneySlotLimit( INT8 bSlot );
 

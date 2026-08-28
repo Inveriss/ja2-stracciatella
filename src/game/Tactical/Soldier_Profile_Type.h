@@ -2,6 +2,7 @@
 #define __SOLDER_PROFILE_TYPE_H
 
 #include "Types.h"
+#include "Soldier_Control.h"
 #include <string_theory/string>
 
 
@@ -293,9 +294,9 @@ struct MERCPROFILESTRUCT
 
 	INT8 bMercOpinion[75];
 
-	UINT16 inv[19];
-	UINT8 bInvNumber[19];
-	UINT8 bInvStatus[19];
+	UINT16 inv[NUM_INV_SLOTS];
+	UINT8 bInvNumber[NUM_INV_SLOTS];
+	UINT8 bInvStatus[NUM_INV_SLOTS];
 	UINT8 ubInvUndroppable;
 	UINT32 uiMoney;
 	INT8 bArmourAttractiveness;

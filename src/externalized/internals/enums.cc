@@ -437,12 +437,20 @@ const char* Internals::getInventorySlotName(enum InvSlotPos slot)
 		case LEGPOS:							return "LEG";
 		case HEAD1POS:							return "HEAD1";
 		case HEAD2POS:							return "HEAD2";
+		case HEAD3POS:							return "HEAD3";
+		case HEAD4POS:							return "HEAD4";
 		case HANDPOS:							return "HAND";
 		case SECONDHANDPOS:						return "SECONDHAND";
 		case BIGPOCK1POS:						return "BIGPOCK1";
 		case BIGPOCK2POS:						return "BIGPOCK2";
 		case BIGPOCK3POS:						return "BIGPOCK3";
 		case BIGPOCK4POS:						return "BIGPOCK4";
+		case BIGPOCK5POS:						return "BIGPOCK5";
+		case BIGPOCK6POS:						return "BIGPOCK6";
+		case BIGPOCK7POS:						return "BIGPOCK7";
+		case BIGPOCK8POS:						return "BIGPOCK8";
+		case BIGPOCK9POS:						return "BIGPOCK9";
+		case BIGPOCK10POS:						return "BIGPOCK10";
 		case SMALLPOCK1POS:						return "SMALLPOCK1";
 		case SMALLPOCK2POS:						return "SMALLPOCK2";
 		case SMALLPOCK3POS:						return "SMALLPOCK3";
@@ -451,6 +459,18 @@ const char* Internals::getInventorySlotName(enum InvSlotPos slot)
 		case SMALLPOCK6POS:						return "SMALLPOCK6";
 		case SMALLPOCK7POS:						return "SMALLPOCK7";
 		case SMALLPOCK8POS:						return "SMALLPOCK8";
+		case SMALLPOCK9POS:						return "SMALLPOCK9";
+		case SMALLPOCK10POS:						return "SMALLPOCK10";
+		case SMALLPOCK11POS:						return "SMALLPOCK11";
+		case SMALLPOCK12POS:						return "SMALLPOCK12";
+		case SMALLPOCK13POS:						return "SMALLPOCK13";
+		case SMALLPOCK14POS:						return "SMALLPOCK14";
+		case SMALLPOCK15POS:						return "SMALLPOCK15";
+		case SMALLPOCK16POS:						return "SMALLPOCK16";
+		case SMALLPOCK17POS:						return "SMALLPOCK17";
+		case SMALLPOCK18POS:						return "SMALLPOCK18";
+		case SMALLPOCK19POS:						return "SMALLPOCK19";
+		case SMALLPOCK20POS:						return "SMALLPOCK20";
 		default:								return "???";
 	}
 }
@@ -462,12 +482,20 @@ InvSlotPos Internals::getInventorySlotEnumFromString(const ST::string& s)
 			else if (s == "LEG") return InvSlotPos::LEGPOS;
 			else if (s == "HEAD1") return InvSlotPos::HEAD1POS;
 			else if (s == "HEAD2") return InvSlotPos::HEAD2POS;
+			else if (s == "HEAD3") return InvSlotPos::HEAD3POS;
+			else if (s == "HEAD4") return InvSlotPos::HEAD4POS;
 			else if (s == "HAND") return InvSlotPos::HANDPOS;
 			else if (s == "SECONDHAND") return InvSlotPos::SECONDHANDPOS;
 			else if (s == "BIGPOCK1") return InvSlotPos::BIGPOCK1POS;
 			else if (s == "BIGPOCK2") return InvSlotPos::BIGPOCK2POS;
 			else if (s == "BIGPOCK3") return InvSlotPos::BIGPOCK3POS;
 			else if (s == "BIGPOCK4") return InvSlotPos::BIGPOCK4POS;
+			else if (s == "BIGPOCK5") return InvSlotPos::BIGPOCK5POS;
+			else if (s == "BIGPOCK6") return InvSlotPos::BIGPOCK6POS;
+			else if (s == "BIGPOCK7") return InvSlotPos::BIGPOCK7POS;
+			else if (s == "BIGPOCK8") return InvSlotPos::BIGPOCK8POS;
+			else if (s == "BIGPOCK9") return InvSlotPos::BIGPOCK9POS;
+			else if (s == "BIGPOCK10") return InvSlotPos::BIGPOCK10POS;
 			else if (s == "SMALLPOCK1") return InvSlotPos::SMALLPOCK1POS;
 			else if (s == "SMALLPOCK2") return InvSlotPos::SMALLPOCK2POS;
 			else if (s == "SMALLPOCK3") return InvSlotPos::SMALLPOCK3POS;
@@ -476,6 +504,18 @@ InvSlotPos Internals::getInventorySlotEnumFromString(const ST::string& s)
 			else if (s == "SMALLPOCK6") return InvSlotPos::SMALLPOCK6POS;
 			else if (s == "SMALLPOCK7") return InvSlotPos::SMALLPOCK7POS;
 			else if (s == "SMALLPOCK8") return InvSlotPos::SMALLPOCK8POS;
+			else if (s == "SMALLPOCK9") return InvSlotPos::SMALLPOCK9POS;
+			else if (s == "SMALLPOCK10") return InvSlotPos::SMALLPOCK10POS;
+			else if (s == "SMALLPOCK11") return InvSlotPos::SMALLPOCK11POS;
+			else if (s == "SMALLPOCK12") return InvSlotPos::SMALLPOCK12POS;
+			else if (s == "SMALLPOCK13") return InvSlotPos::SMALLPOCK13POS;
+			else if (s == "SMALLPOCK14") return InvSlotPos::SMALLPOCK14POS;
+			else if (s == "SMALLPOCK15") return InvSlotPos::SMALLPOCK15POS;
+			else if (s == "SMALLPOCK16") return InvSlotPos::SMALLPOCK16POS;
+			else if (s == "SMALLPOCK17") return InvSlotPos::SMALLPOCK17POS;
+			else if (s == "SMALLPOCK18") return InvSlotPos::SMALLPOCK18POS;
+			else if (s == "SMALLPOCK19") return InvSlotPos::SMALLPOCK19POS;
+			else if (s == "SMALLPOCK20") return InvSlotPos::SMALLPOCK20POS;
 			else throw DataError(ST::format("unknown inventory slot name value: {}", s));
 }
 

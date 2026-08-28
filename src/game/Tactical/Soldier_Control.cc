@@ -2067,11 +2067,21 @@ static void SetSoldierGridNo(SOLDIERTYPE& s, GridNo new_grid_no, BOOLEAN const f
 	}
 
 	// Are we now standing in tear gas without a decently working gas mask?
-	if (GetSmokeEffectOnTile(new_grid_no, s.bLevel) != SmokeEffectID::NOTHING &&
-		(s.inv[HEAD1POS].usItem != GASMASK || s.inv[HEAD1POS].bStatus[0] < GASMASK_MIN_STATUS) &&
-		(s.inv[HEAD2POS].usItem != GASMASK || s.inv[HEAD2POS].bStatus[0] < GASMASK_MIN_STATUS))
+	if (GetSmokeEffectOnTile(new_grid_no, s.bLevel) != SmokeEffectID::NOTHING)
 	{
-		s.uiStatusFlags |= SOLDIER_GASSED;
+		bool fHasWorkingGasMask = false;
+		for (INT8 headSlot = HEAD1POS; headSlot <= HEAD4POS; ++headSlot)
+		{
+			if (s.inv[headSlot].usItem == GASMASK && s.inv[headSlot].bStatus[0] >= GASMASK_MIN_STATUS)
+			{
+				fHasWorkingGasMask = true;
+				break;
+			}
+		}
+		if (!fHasWorkingGasMask)
+		{
+			s.uiStatusFlags |= SOLDIER_GASSED;
+		}
 	}
 
 	// Merc got to a new tile by "sneaking". Did we theoretically sneak past an enemy?

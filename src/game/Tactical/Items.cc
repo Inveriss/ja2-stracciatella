@@ -743,6 +743,24 @@ BOOLEAN CompatibleFaceItem(UINT16 const item1, UINT16 const item2)
 }
 
 
+// N-way generalization of CompatibleFaceItem() for the 4 HEAD slots (Wariant A):
+// a new/moved item must be compatible (per CompatibleFaceItem()'s category-exclusivity
+// rules -- no duplicates, no two items of the same "function") with everything already
+// worn in every OTHER head slot, not just one. Returns the first conflicting item found
+// (NOTHING if fully compatible), so callers can report which item is blocking the swap.
+UINT16 FirstIncompatibleHeadItem(SOLDIERTYPE const* const pSoldier, INT8 const bTargetSlot, UINT16 const usNewItem)
+{
+	for (INT8 slot = HEAD1POS; slot <= HEAD4POS; ++slot)
+	{
+		if (slot == bTargetSlot) continue;
+		UINT16 const usOther = pSoldier->inv[slot].usItem;
+		if (usOther == NOTHING) continue;
+		if (!CompatibleFaceItem(usNewItem, usOther)) return usOther;
+	}
+	return NOTHING;
+}
+
+
 BOOLEAN ValidLaunchable( UINT16 usLaunchable, UINT16 usItem )
 {
 	auto launchable = GCM->getItem(usLaunchable, ItemSystem::nothrow);
@@ -1758,11 +1776,11 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos,
 					// two items in hands; try moving the second one so we can swap
 					if (GCM->getItem(pSoldier->inv[SECONDHANDPOS].usItem)->getPerPocket() == 0)
 					{
-						bNewPos = FindEmptySlotWithin( pSoldier, BIGPOCK1POS, BIGPOCK4POS );
+						bNewPos = FindEmptySlotWithin( pSoldier, BIGPOCK1POS, BIGPOCK10POS );
 					}
 					else
 					{
-						bNewPos = FindEmptySlotWithin( pSoldier, BIGPOCK1POS, SMALLPOCK8POS );
+						bNewPos = FindEmptySlotWithin( pSoldier, BIGPOCK1POS, SMALLPOCK20POS );
 					}
 					if (bNewPos == NO_SLOT)
 					{
@@ -1812,6 +1830,8 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos,
 			break;
 		case HEAD1POS:
 		case HEAD2POS:
+		case HEAD3POS:
+		case HEAD4POS:
 			if (item->getItemClass() != IC_FACE)
 			{
 				return( FALSE );
@@ -1877,23 +1897,16 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 		return( FALSE );
 	}
 
-	// If the position is either head slot, then the item must be IC_FACE (checked in
-	// CanItemFitInPosition).
-	if ( bPos == HEAD1POS )
+	// If the position is any head slot, then the item must be IC_FACE (checked in
+	// CanItemFitInPosition). Must also be compatible with whatever is worn in every
+	// OTHER head slot (Wariant A -- no duplicates, no two items of the same "function").
+	if ( bPos >= HEAD1POS && bPos <= HEAD4POS )
 	{
-		if ( !CompatibleFaceItem( pObj->usItem, pSoldier->inv[ HEAD2POS ].usItem ) )
+		UINT16 const usConflict = FirstIncompatibleHeadItem( pSoldier, bPos, pObj->usItem );
+		if ( usConflict != NOTHING )
 		{
 			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, st_format_printf(g_langRes->Message[STR_CANT_USE_TWO_ITEMS],
-					GCM->getItem(pObj->usItem)->getName(), GCM->getItem(pSoldier->inv[HEAD2POS].usItem)->getName()));
-			return( FALSE );
-		}
-	}
-	else if ( bPos == HEAD2POS )
-	{
-		if ( !CompatibleFaceItem( pObj->usItem, pSoldier->inv[ HEAD1POS ].usItem ) )
-		{
-			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, st_format_printf(g_langRes->Message[STR_CANT_USE_TWO_ITEMS],
-					GCM->getItem(pObj->usItem)->getName(), GCM->getItem(pSoldier->inv[HEAD1POS].usItem)->getName()));
+					GCM->getItem(pObj->usItem)->getName(), GCM->getItem(usConflict)->getName()));
 			return( FALSE );
 		}
 	}
@@ -1974,7 +1987,7 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 					DeleteObj( pObj );
 				}
 			}
-			else if ( ubSlotLimit == 1 || (ubSlotLimit == 0 && bPos >= HANDPOS && bPos <= BIGPOCK4POS ) )
+			else if ( ubSlotLimit == 1 || (ubSlotLimit == 0 && bPos >= HANDPOS && bPos <= BIGPOCK10POS ) )
 			{
 				if (pObj->ubNumberOfObjects <= 1)
 				{
@@ -2159,22 +2172,18 @@ static BOOLEAN InternalAutoPlaceObject(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, 
 			// otherwise stuff it in a slot somewhere
 			break;
 		case IC_FACE:
-			if ( (pSoldier->inv[HEAD1POS].usItem == NOTHING) && CompatibleFaceItem( pObj->usItem, pSoldier->inv[HEAD2POS].usItem ) )
+			for (INT8 headSlot = HEAD1POS; headSlot <= HEAD4POS; ++headSlot)
 			{
-				PlaceObject( pSoldier, HEAD1POS, pObj );
-				SetNewItem( pSoldier, HEAD1POS, fNewItem );
-				if ( pObj->ubNumberOfObjects == 0 )
+				if ( pSoldier->inv[headSlot].usItem == NOTHING &&
+					FirstIncompatibleHeadItem( pSoldier, headSlot, pObj->usItem ) == NOTHING )
 				{
-					return( TRUE );
-				}
-			}
-			else if ( (pSoldier->inv[HEAD2POS].usItem == NOTHING) && CompatibleFaceItem( pObj->usItem, pSoldier->inv[HEAD1POS].usItem ) )
-			{
-				PlaceObject( pSoldier, HEAD2POS, pObj );
-				SetNewItem( pSoldier, HEAD2POS, fNewItem );
-				if ( pObj->ubNumberOfObjects == 0 )
-				{
-					return( TRUE );
+					PlaceObject( pSoldier, headSlot, pObj );
+					SetNewItem( pSoldier, headSlot, fNewItem );
+					if ( pObj->ubNumberOfObjects == 0 )
+					{
+						return( TRUE );
+					}
+					break;
 				}
 			}
 			break;
@@ -2189,7 +2198,7 @@ static BOOLEAN InternalAutoPlaceObject(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, 
 		bSlot = HANDPOS;
 		while (1)
 		{
-			bSlot = FindEmptySlotWithin( pSoldier, bSlot, BIGPOCK4POS );
+			bSlot = FindEmptySlotWithin( pSoldier, bSlot, BIGPOCK10POS );
 			if (bSlot == ITEM_NOT_FOUND)
 			{
 				return( FALSE );
@@ -2223,7 +2232,7 @@ static BOOLEAN InternalAutoPlaceObject(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, 
 			bSlot = HANDPOS;
 			while( 1 )
 			{
-				bSlot = FindObjWithin( pSoldier, pObj->usItem, bSlot, SMALLPOCK8POS );
+				bSlot = FindObjWithin( pSoldier, pObj->usItem, bSlot, SMALLPOCK20POS );
 				if (bSlot == ITEM_NOT_FOUND)
 				{
 					break;
@@ -2252,7 +2261,7 @@ static BOOLEAN InternalAutoPlaceObject(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, 
 		bSlot = SMALLPOCK1POS;
 		while( 1 )
 		{
-			bSlot = FindEmptySlotWithin( pSoldier, bSlot, SMALLPOCK8POS );
+			bSlot = FindEmptySlotWithin( pSoldier, bSlot, SMALLPOCK20POS );
 			if (bSlot == ITEM_NOT_FOUND)
 			{
 				break;
@@ -2269,7 +2278,7 @@ static BOOLEAN InternalAutoPlaceObject(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, 
 		bSlot = HANDPOS;
 		while (1)
 		{
-			bSlot = FindEmptySlotWithin( pSoldier, bSlot, BIGPOCK4POS );
+			bSlot = FindEmptySlotWithin( pSoldier, bSlot, BIGPOCK10POS );
 			if (bSlot == ITEM_NOT_FOUND)
 			{
 				break;
@@ -2837,7 +2846,7 @@ BOOLEAN PlaceObjectInSoldierProfile( UINT8 ubProfile, OBJECTTYPE *pObject )
 		return( TRUE );
 	}
 
-	for (bLoop = BIGPOCK1POS; bLoop < SMALLPOCK8POS; bLoop++)
+	for (bLoop = BIGPOCK1POS; bLoop < SMALLPOCK20POS; bLoop++)
 	{
 		if ( gMercProfiles[ ubProfile ].bInvNumber[ bLoop ] == 0 && (pSoldier == NULL || pSoldier->inv[ bLoop ].usItem == NOTHING ) )
 		{

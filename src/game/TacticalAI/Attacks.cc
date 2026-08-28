@@ -1449,7 +1449,7 @@ static INT32 EstimateThrowDamage(SOLDIERTYPE* pSoldier, UINT8 ubItemPos, SOLDIER
 			iBreathDamage /= 2;       // reduce effective breath damage by 1/2
 
 		bSlot = FindObj( pOpponent, GASMASK );
-		if (bSlot == HEAD1POS || bSlot == HEAD2POS)
+		if (bSlot >= HEAD1POS && bSlot <= HEAD4POS)
 		{
 			// take condition of the gas mask into account - it could be leaking
 			iBreathDamage = (iBreathDamage * (100 - pOpponent->inv[bSlot].bStatus[0])) / 100;
@@ -1581,7 +1581,7 @@ INT8 CanNPCAttack(SOLDIERTYPE *pSoldier)
 			if ( (GCM->getItem(pSoldier->inv[ HANDPOS ].usItem)->getItemClass() == IC_GUN) && !(GCM->getItem(pSoldier->inv[ HANDPOS ].usItem)->isTwoHanded() ) )
 			{
 				// look for another pistol/SMG if available
-				bWeaponIn = FindAIUsableObjClassWithin( pSoldier, IC_WEAPON, BIGPOCK1POS, SMALLPOCK8POS );
+				bWeaponIn = FindAIUsableObjClassWithin( pSoldier, IC_WEAPON, BIGPOCK1POS, SMALLPOCK20POS );
 				if (bWeaponIn != NO_SLOT && (GCM->getItem(pSoldier->inv[ bWeaponIn ].usItem)->getItemClass() == IC_GUN) && !(GCM->getItem(pSoldier->inv[ bWeaponIn ].usItem)->isTwoHanded() ) )
 				{
 					RearrangePocket( pSoldier, SECONDHANDPOS, bWeaponIn, FOREVER );

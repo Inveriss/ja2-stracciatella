@@ -7,7 +7,7 @@
 // defines
 /////////////////////////////////////////////////////////////
 
-#define NUM_INVENTORY_SLOTS     (19)
+#define NUM_INVENTORY_SLOTS     (39)
 
 /* Following defines allow us to not change the old code too much.
  * It will help to preserve original Stracciatella codebase. */
