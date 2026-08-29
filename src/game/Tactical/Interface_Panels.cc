@@ -138,18 +138,19 @@
 #define SM_LOOKB_Y				108
 #define SM_STEALTHMODE_X			187
 #define SM_STEALTHMODE_Y			73
-// Anchored to the right edge of the panel canvas (m_teamPanelWidth), not to
-// m_teamPanelSlotsTotalWidth -- for squads smaller than ~11 mercs,
-// m_teamPanelWidth is floored to INVENTORY_BOTTOM_PANEL_WIDTH (see
-// UILayout.cc), so the buttons/minimap segment of inventory_bottom_panel.sti
+// Anchored to the right edge of the single-merc panel's OWN canvas
+// (m_smPanelWidth), not m_teamPanelSlotsTotalWidth and NOT the shared,
+// purely squad-size-driven m_teamPanelWidth -- m_smPanelWidth is floored to
+// INVENTORY_BOTTOM_PANEL_WIDTH (see UILayout.cc) for squads smaller than
+// ~11 mercs, so the buttons/minimap segment of inventory_bottom_panel.sti
 // always renders at a fixed spot near the canvas's right edge regardless of
 // squad size; these offsets must track that same edge to stay aligned with
 // it. Equivalent to the old slots-relative formula for squads >= ~11 (where
-// m_teamPanelWidth == m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH
-// and neither formula is floored): 142 - 45 = 97, 142 - 91 = 51.
-#define SM_DONE_X				(g_ui.m_teamPanelWidth - 97)
+// m_smPanelWidth == m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH
+// and isn't floored): 142 - 45 = 97, 142 - 91 = 51.
+#define SM_DONE_X				(g_ui.m_smPanelWidth - 97)
 #define SM_DONE_Y				4
-#define SM_MAPSCREEN_X				(g_ui.m_teamPanelWidth - 51)
+#define SM_MAPSCREEN_X				(g_ui.m_smPanelWidth - 51)
 #define SM_MAPSCREEN_Y				4
 
 
@@ -881,20 +882,22 @@ void InitializeSMPanel()
 {
 	// Assemble the SMPanel from graphic objects.
 	// For visual consistency, the SMPanel should fill up the same width as the TEAMPanel, that the buttons and
-	// minimap are in the bottom-right corner.
+	// minimap are in the bottom-right corner. Uses m_smPanelWidth (not the shared, purely squad-size-driven
+	// m_teamPanelWidth), since inventory_bottom_panel.sti can be wider than what squad size alone would need --
+	// see the comment on m_smPanelWidth in UILayout.h.
 	SGPVObject* voSMPanel = AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
-	guiSMPanel = new SGPVSurface(g_ui.m_teamPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
-	if (g_ui.m_teamPanelWidth > INVENTORY_BOTTOM_PANEL_WIDTH)
+	guiSMPanel = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+	if (g_ui.m_smPanelWidth > INVENTORY_BOTTOM_PANEL_WIDTH)
 	{
 		// The team panel is longer than default
 		// need a second blit, and we will start from the right
-		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_teamPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH, 0);
+		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH, 0);
 	}
 	// draw the basic Single-Merc panel
 	BltVideoObject(guiSMPanel, voSMPanel, 0, 0, 0);
 	DeleteVideoObject(voSMPanel);
 
-	INT16 sFillerWidth = g_ui.m_teamPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH;
+	INT16 sFillerWidth = g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH;
 	if (sFillerWidth > 0)
 	{
 		// draw a space filler if needed
@@ -3193,10 +3196,13 @@ void RenderTownIDString(void)
 	SetFontAttributes(COMPFONT, 183);
 	ST::string zTownIDString = GetSectorIDString(gWorldSector, TRUE);
 	zTownIDString = ReduceStringLength(zTownIDString, 80, COMPFONT);
-	// Anchored to the right edge of the panel canvas (m_teamPanelWidth), not
-	// m_teamPanelSlotsTotalWidth -- see the comment above SM_DONE_X for why.
-	// Equivalent to the old formula for squads >= ~11: 142 - 50 = 92.
-	MPrint(INTERFACE_START_X + g_ui.m_teamPanelWidth - 92,
+	// Anchored to the right edge of whichever of the two bottom-bar panels is
+	// actually on screen right now -- see the comment above get_CLOCK_X() in
+	// UILayout.cc. This is a single, shared widget drawn regardless of which
+	// panel is active, so its position must follow whichever panel is
+	// currently rendered.
+	UINT16 const panelWidth = (gsCurInterfacePanel == SM_PANEL) ? g_ui.m_smPanelWidth : g_ui.m_teamPanelWidth;
+	MPrint(INTERFACE_START_X + panelWidth - 92,
 		SCREEN_HEIGHT - 55, zTownIDString, HCenterVCenterAlign(80, 16));
 }
 

@@ -32,13 +32,13 @@
 
 #define SM_BODYINV_X                    (INTERFACE_START_X + 244)
 #define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
-#define SM_INVINTERFACE_WIDTH           (900)    // width of the single-merc inventory panel excluding the right-side buttons and minimap
+#define SM_INVINTERFACE_WIDTH           (918)    // width of the single-merc inventory panel excluding the right-side buttons and minimap
 
 // Total width of inventory_bottom_panel.sti (SM_INVINTERFACE_WIDTH + the
 // 108px right-side buttons/minimap segment). Used wherever code needs to
 // know the actual pixel width of the loaded graphic asset itself, as
 // opposed to just the usable inventory portion.
-#define INVENTORY_BOTTOM_PANEL_WIDTH    (1008)
+#define INVENTORY_BOTTOM_PANEL_WIDTH    (1026)
 
 #define EDITOR_TASKBAR_HEIGHT           (120)
 #define EDITOR_TASKBAR_POS_Y            (UINT16)(SCREEN_HEIGHT - EDITOR_TASKBAR_HEIGHT)
@@ -125,11 +125,13 @@ public:
 	SGPPoint              m_squadPosition ;
 
 	// Tactical screen bottom bar
-	// It can be in the "team" (TEAM) or the "single merc inventory" (SM or INV_) mode. Both modes have the same
-	// width, but the single-merc mode is slightly taller.
+	// It can be in the "team" (TEAM) or the "single merc inventory" (SM or INV_) mode. Both modes share the same
+	// on-screen position, but the single-merc mode is slightly taller and (since inventory_bottom_panel.sti grew
+	// past bottom_bar.sti's own scaling) can be wider too -- see m_smPanelWidth.
 	SGPPoint              m_teamPanelPosition;              // offset position of the bottom bar
 	UINT16                m_teamPanelSlotsTotalWidth;       // total width of all team slots in the bottom team panel
-	UINT16                m_teamPanelWidth;                 // width of the entire team panel including slots and buttons
+	UINT16                m_teamPanelWidth;                 // width of the entire team panel (bottom_bar.sti) including slots and buttons -- purely squad-size-driven, NOT floored to fit inventory_bottom_panel.sti. Also used to position squad-size-driven widgets shared by both panel modes (minimap, clock, sector name).
+	UINT16                m_smPanelWidth;                   // width of the single-merc inventory panel (inventory_bottom_panel.sti) canvas -- max(m_teamPanelWidth, INVENTORY_BOTTOM_PANEL_WIDTH), since that graphic can be wider than what squad size alone would need. Use this (not m_teamPanelWidth) for anything specific to the single-merc panel's own canvas/buttons (SM_DONE_X, SM_MAPSCREEN_X).
 
 	UINT16                m_stdScreenOffsetX;             /** Offset of the standard (640x480) window */
 	UINT16                m_stdScreenOffsetY;             /** Offset of the standard (640x480) window */

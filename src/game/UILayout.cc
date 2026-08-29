@@ -3,6 +3,7 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "GamePolicy.h"
+#include "Interface.h"
 #include "JAScreens.h"
 #include "MapScreen.h"
 #include "ScreenIDs.h"
@@ -48,13 +49,29 @@ bool UILayout::isBigScreen() const
 
 
 UINT16 UILayout::currentHeight() const             { return fInMapMode ? (STD_SCREEN_Y + m_mapScreenHeight) : m_screenHeight; }
-// Tactical (non-map) branch anchored to the right edge of the panel canvas
-// (m_teamPanelWidth), not m_teamPanelSlotsTotalWidth -- see the comment above
-// SM_DONE_X in Interface_Panels.cc for why. Equivalent to the old formula for
-// squads >= ~11: 142 - 56 = 86, 142 - 45 = 97.
-UINT16 UILayout::get_CLOCK_X() const               { return fInMapMode ? (STD_SCREEN_X + 554) : m_teamPanelPosition.iX + m_teamPanelWidth - 86; }
+// Tactical (non-map) branch anchored to the right edge of whichever of the
+// two bottom-bar panels is actually on screen right now: m_smPanelWidth
+// (floored to fit inventory_bottom_panel.sti) while the single-merc panel is
+// shown, m_teamPanelWidth (purely squad-size-driven, matching
+// bottom_bar.sti's own tiling) while the team panel is shown. The clock and
+// minimap are shared, single widgets drawn regardless of which panel is
+// active, so their position must follow whichever panel is currently
+// rendered -- see the comment above SM_DONE_X in Interface_Panels.cc.
+// Equivalent to the old formula for squads >= ~11 (where m_smPanelWidth ==
+// m_teamPanelWidth, since neither is floored there): 142 - 56 = 86, 142 - 45 = 97.
+UINT16 UILayout::get_CLOCK_X() const
+{
+	if (fInMapMode) return STD_SCREEN_X + 554;
+	UINT16 const panelWidth = (gsCurInterfacePanel == SM_PANEL) ? m_smPanelWidth : m_teamPanelWidth;
+	return m_teamPanelPosition.iX + panelWidth - 86;
+}
 UINT16 UILayout::get_CLOCK_Y() const               { return currentHeight() - 23;                                  }
-UINT16 UILayout::get_RADAR_WINDOW_X() const        { return fInMapMode ? (STD_SCREEN_X + 543) : m_teamPanelPosition.iX + m_teamPanelWidth - 97; }
+UINT16 UILayout::get_RADAR_WINDOW_X() const
+{
+	if (fInMapMode) return STD_SCREEN_X + 543;
+	UINT16 const panelWidth = (gsCurInterfacePanel == SM_PANEL) ? m_smPanelWidth : m_teamPanelWidth;
+	return m_teamPanelPosition.iX + panelWidth - 97;
+}
 UINT16 UILayout::get_RADAR_WINDOW_TM_Y() const     { return currentHeight() - 107;                                 }
 UINT16 UILayout::get_INV_INTERFACE_START_Y() const { return m_screenHeight - INV_INTERFACE_HEIGHT;                                  }
 
@@ -65,13 +82,21 @@ void UILayout::recalculatePositions()
 	UINT16 tpXOffset = (m_screenWidth - m_teamPanelSlotsTotalWidth - TEAMPANEL_BUTTONSBOX_WIDTH) / 2;
 	UINT16 tpYOffset = m_screenHeight - TEAMPANEL_HEIGHT;
 	m_teamPanelPosition.set(tpXOffset, tpYOffset);
+	// Purely squad-size-driven -- do NOT floor this to fit
+	// inventory_bottom_panel.sti (see m_smPanelWidth below for that). This
+	// field also drives bottom_bar.sti's own tiling (which already scales
+	// correctly with squad size on its own) and the shared, squad-size-driven
+	// widgets (minimap, clock, sector name) that must keep tracking real
+	// squad size regardless of which of the two panels is currently shown.
 	m_teamPanelWidth = m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH;
-	// Must never be narrower than inventory_bottom_panel.sti itself
-	// (INVENTORY_BOTTOM_PANEL_WIDTH) -- otherwise, for squads smaller than
-	// ~11 mercs, guiSMPanel's canvas (sized from this field) would be too
-	// narrow to show the new inventory slots at the right edge of the
-	// graphic, clipping them off-canvas.
-	m_teamPanelWidth = std::max<UINT16>(m_teamPanelWidth, INVENTORY_BOTTOM_PANEL_WIDTH);
+	// Single-merc panel canvas width: must never be narrower than
+	// inventory_bottom_panel.sti itself (INVENTORY_BOTTOM_PANEL_WIDTH) --
+	// otherwise, for squads smaller than ~11 mercs, guiSMPanel's canvas
+	// would be too narrow to show the new inventory slots at the right edge
+	// of the graphic, clipping them off-canvas. Use this (not
+	// m_teamPanelWidth) for anything specific to the single-merc panel's own
+	// canvas/buttons.
+	m_smPanelWidth = std::max<UINT16>(m_teamPanelWidth, INVENTORY_BOTTOM_PANEL_WIDTH);
 
 	UINT16 startInvY = get_INV_INTERFACE_START_Y();
 	UINT16 startX    = INTERFACE_START_X;
