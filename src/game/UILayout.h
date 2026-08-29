@@ -32,7 +32,13 @@
 
 #define SM_BODYINV_X                    (INTERFACE_START_X + 244)
 #define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
-#define SM_INVINTERFACE_WIDTH           (532)    // width of the single-merc inventory panel excluding the right-side buttons and minimap
+#define SM_INVINTERFACE_WIDTH           (900)    // width of the single-merc inventory panel excluding the right-side buttons and minimap
+
+// Total width of inventory_bottom_panel.sti (SM_INVINTERFACE_WIDTH + the
+// 108px right-side buttons/minimap segment). Used wherever code needs to
+// know the actual pixel width of the loaded graphic asset itself, as
+// opposed to just the usable inventory portion.
+#define INVENTORY_BOTTOM_PANEL_WIDTH    (1008)
 
 #define EDITOR_TASKBAR_HEIGHT           (120)
 #define EDITOR_TASKBAR_POS_Y            (UINT16)(SCREEN_HEIGHT - EDITOR_TASKBAR_HEIGHT)

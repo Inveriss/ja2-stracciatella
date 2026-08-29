@@ -7,6 +7,7 @@
 #include "MapScreen.h"
 #include "ScreenIDs.h"
 #include "Soldier_Control.h"
+#include <algorithm>
 #include <stdexcept>
 #include <string_theory/string>
 
@@ -61,6 +62,12 @@ void UILayout::recalculatePositions()
 	UINT16 tpYOffset = m_screenHeight - TEAMPANEL_HEIGHT;
 	m_teamPanelPosition.set(tpXOffset, tpYOffset);
 	m_teamPanelWidth = m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH;
+	// Must never be narrower than inventory_bottom_panel.sti itself
+	// (INVENTORY_BOTTOM_PANEL_WIDTH) -- otherwise, for squads smaller than
+	// ~11 mercs, guiSMPanel's canvas (sized from this field) would be too
+	// narrow to show the new inventory slots at the right edge of the
+	// graphic, clipping them off-canvas.
+	m_teamPanelWidth = std::max<UINT16>(m_teamPanelWidth, INVENTORY_BOTTOM_PANEL_WIDTH);
 
 	UINT16 startInvY = get_INV_INTERFACE_START_Y();
 	UINT16 startX    = INTERFACE_START_X;

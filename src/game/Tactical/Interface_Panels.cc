@@ -875,17 +875,17 @@ void InitializeSMPanel()
 	// minimap are in the bottom-right corner.
 	SGPVObject* voSMPanel = AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
 	guiSMPanel = new SGPVSurface(g_ui.m_teamPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
-	if (g_ui.m_teamPanelWidth > 640)
+	if (g_ui.m_teamPanelWidth > INVENTORY_BOTTOM_PANEL_WIDTH)
 	{
 		// The team panel is longer than default
 		// need a second blit, and we will start from the right
-		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_teamPanelWidth - 640, 0);
+		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_teamPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH, 0);
 	}
 	// draw the basic Single-Merc panel
 	BltVideoObject(guiSMPanel, voSMPanel, 0, 0, 0);
 	DeleteVideoObject(voSMPanel);
 
-	INT16 sFillerWidth = g_ui.m_teamPanelWidth - 640;
+	INT16 sFillerWidth = g_ui.m_teamPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH;
 	if (sFillerWidth > 0)
 	{
 		// draw a space filler if needed
