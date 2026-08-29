@@ -138,9 +138,18 @@
 #define SM_LOOKB_Y				108
 #define SM_STEALTHMODE_X			187
 #define SM_STEALTHMODE_Y			73
-#define SM_DONE_X				(g_ui.m_teamPanelSlotsTotalWidth + 45)
+// Anchored to the right edge of the panel canvas (m_teamPanelWidth), not to
+// m_teamPanelSlotsTotalWidth -- for squads smaller than ~11 mercs,
+// m_teamPanelWidth is floored to INVENTORY_BOTTOM_PANEL_WIDTH (see
+// UILayout.cc), so the buttons/minimap segment of inventory_bottom_panel.sti
+// always renders at a fixed spot near the canvas's right edge regardless of
+// squad size; these offsets must track that same edge to stay aligned with
+// it. Equivalent to the old slots-relative formula for squads >= ~11 (where
+// m_teamPanelWidth == m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH
+// and neither formula is floored): 142 - 45 = 97, 142 - 91 = 51.
+#define SM_DONE_X				(g_ui.m_teamPanelWidth - 97)
 #define SM_DONE_Y				4
-#define SM_MAPSCREEN_X				(g_ui.m_teamPanelSlotsTotalWidth + 91)
+#define SM_MAPSCREEN_X				(g_ui.m_teamPanelWidth - 51)
 #define SM_MAPSCREEN_Y				4
 
 
@@ -3184,7 +3193,10 @@ void RenderTownIDString(void)
 	SetFontAttributes(COMPFONT, 183);
 	ST::string zTownIDString = GetSectorIDString(gWorldSector, TRUE);
 	zTownIDString = ReduceStringLength(zTownIDString, 80, COMPFONT);
-	MPrint(INTERFACE_START_X + g_ui.m_teamPanelSlotsTotalWidth + 50,
+	// Anchored to the right edge of the panel canvas (m_teamPanelWidth), not
+	// m_teamPanelSlotsTotalWidth -- see the comment above SM_DONE_X for why.
+	// Equivalent to the old formula for squads >= ~11: 142 - 50 = 92.
+	MPrint(INTERFACE_START_X + g_ui.m_teamPanelWidth - 92,
 		SCREEN_HEIGHT - 55, zTownIDString, HCenterVCenterAlign(80, 16));
 }
 

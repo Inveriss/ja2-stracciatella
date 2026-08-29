@@ -48,9 +48,13 @@ bool UILayout::isBigScreen() const
 
 
 UINT16 UILayout::currentHeight() const             { return fInMapMode ? (STD_SCREEN_Y + m_mapScreenHeight) : m_screenHeight; }
-UINT16 UILayout::get_CLOCK_X() const               { return fInMapMode ? (STD_SCREEN_X + 554) : m_teamPanelPosition.iX + m_teamPanelSlotsTotalWidth + 56; }
+// Tactical (non-map) branch anchored to the right edge of the panel canvas
+// (m_teamPanelWidth), not m_teamPanelSlotsTotalWidth -- see the comment above
+// SM_DONE_X in Interface_Panels.cc for why. Equivalent to the old formula for
+// squads >= ~11: 142 - 56 = 86, 142 - 45 = 97.
+UINT16 UILayout::get_CLOCK_X() const               { return fInMapMode ? (STD_SCREEN_X + 554) : m_teamPanelPosition.iX + m_teamPanelWidth - 86; }
 UINT16 UILayout::get_CLOCK_Y() const               { return currentHeight() - 23;                                  }
-UINT16 UILayout::get_RADAR_WINDOW_X() const        { return fInMapMode ? (STD_SCREEN_X + 543) : m_teamPanelPosition.iX + m_teamPanelSlotsTotalWidth + 45; }
+UINT16 UILayout::get_RADAR_WINDOW_X() const        { return fInMapMode ? (STD_SCREEN_X + 543) : m_teamPanelPosition.iX + m_teamPanelWidth - 97; }
 UINT16 UILayout::get_RADAR_WINDOW_TM_Y() const     { return currentHeight() - 107;                                 }
 UINT16 UILayout::get_INV_INTERFACE_START_Y() const { return m_screenHeight - INV_INTERFACE_HEIGHT;                                  }
 
