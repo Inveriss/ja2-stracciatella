@@ -16,7 +16,17 @@
 #define SCREEN_WIDTH                    (g_ui.m_screenWidth)
 #define INV_INTERFACE_START_Y           (g_ui.get_INV_INTERFACE_START_Y())
 // #define INV_INTERFACE_HEIGHT         (140)                                 // height of the bottom bar single-merc inventory panel
-#define INV_INTERFACE_HEIGHT            (302)                                 // NEW POSITION
+#define INV_INTERFACE_HEIGHT            (155)                                 // NEW POSITION
+
+// Infobox.sti (the weapon/item description popup) is blitted straight to the
+// screen buffer, independently of guiSMPanel/inventory_bottom_panel.sti --
+// see ITEMDESC_START_Y in Interface_Items.cc. This is its OWN vertical
+// anchor, deliberately NOT reusing INV_INTERFACE_HEIGHT, so resizing the
+// inventory panel doesn't silently move the description box (and vice
+// versa). Currently set to the same value (302) purely to preserve today's
+// on-screen position -- tune independently as needed.
+#define ITEMDESC_PANEL_START_Y          (g_ui.get_ITEMDESC_PANEL_START_Y())
+#define ITEMDESC_PANEL_HEIGHT           (302)
 #define INTERFACE_START_X               (g_ui.m_teamPanelPosition.iX)
 #define INTERFACE_START_Y               (g_ui.m_teamPanelPosition.iY)
 #define gsVIEWPORT_START_X              (g_ui.m_VIEWPORT_START_X)
@@ -151,6 +161,7 @@ public:
 	UINT16 get_CLOCK_X() const;
 	UINT16 get_CLOCK_Y() const;
 	UINT16 get_INV_INTERFACE_START_Y() const;
+	UINT16 get_ITEMDESC_PANEL_START_Y() const;
 	UINT16 get_RADAR_WINDOW_X() const;
 	UINT16 get_RADAR_WINDOW_TM_Y() const;
 

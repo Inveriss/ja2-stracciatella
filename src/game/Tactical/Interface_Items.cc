@@ -112,7 +112,7 @@
 #define MAX_STACK_POPUP_WIDTH				6
 
 #define ITEMDESC_START_X				(INTERFACE_START_X + 214)
-#define ITEMDESC_START_Y				(1 + INV_INTERFACE_START_Y)
+#define ITEMDESC_START_Y				(1 + ITEMDESC_PANEL_START_Y)
 
 
 // #define ITEMDESC_HEIGHT				133
@@ -1896,7 +1896,7 @@ void CycleItemDescriptionItem( )
 
 	CreateItem(newItemIndex, 100, &gpItemDescSoldier->inv[HANDPOS]);
 
-	InternalInitItemDescriptionBox( &( gpItemDescSoldier->inv[ HANDPOS ] ), INTERFACE_START_X + 214, (INT16)(INV_INTERFACE_START_Y + 1 ), gubItemDescStatusIndex, gpItemDescSoldier );
+	InternalInitItemDescriptionBox( &( gpItemDescSoldier->inv[ HANDPOS ] ), INTERFACE_START_X + 214, (INT16)(ITEMDESC_PANEL_START_Y + 1 ), gubItemDescStatusIndex, gpItemDescSoldier );
 }
 
 
@@ -3067,6 +3067,21 @@ void DeleteItemDescriptionBox( )
 	DeleteVideoObject(guiItemGraphic);
 
 	gfInItemDescBox = FALSE;
+
+	if (guiCurrentItemDescriptionScreen != MAP_SCREEN && gsCurInterfacePanel == SM_PANEL)
+	{
+		// Infobox.sti can be taller than the SM panel's own protected footer
+		// (ITEMDESC_PANEL_HEIGHT vs INV_INTERFACE_HEIGHT -- see UILayout.h),
+		// so part of it is drawn above the area DIRTYLEVEL2 normally
+		// repaints on close. Force a full world redraw (bounded by the
+		// fixed gsVIEWPORT_END_Y, which already reaches higher than
+		// ITEMDESC_PANEL_START_Y) so no remnants of the box are left behind.
+		// Deliberately NOT touching gsVIEWPORT_WINDOW_END_Y here (unlike a
+		// prior version of this fix) -- that's also used by the smooth-
+		// scroll shift-blit, and raising it made the whole protected strip
+		// visibly pan with the map while the box was open.
+		SetRenderFlags(RENDER_FLAG_FULL);
+	}
 
 	if( guiCurrentItemDescriptionScreen == MAP_SCREEN )
 	{
