@@ -40,8 +40,8 @@
 #define MAP_SCREEN_WIDTH                (g_ui.m_mapScreenWidth)
 #define MAP_SCREEN_HEIGHT               (g_ui.m_mapScreenHeight)
 
-#define SM_BODYINV_X                    (INTERFACE_START_X + 244)
-#define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
+#define SM_BODYINV_X                    (INTERFACE_START_X + 324)
+#define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 5)
 #define SM_INVINTERFACE_WIDTH           (918)    // width of the single-merc inventory panel excluding the right-side buttons and minimap
 
 // Total width of inventory_bottom_panel.sti (SM_INVINTERFACE_WIDTH + the

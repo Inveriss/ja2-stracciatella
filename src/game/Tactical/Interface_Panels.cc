@@ -153,7 +153,7 @@
 #define SM_MAPSCREEN_X				(g_ui.m_smPanelWidth - 51)
 #define SM_MAPSCREEN_Y				4
 
-
+/*
 #define SM_PERCENT_WIDTH			20
 #define SM_PERCENT_HEIGHT			10
 #define SM_ARMOR_X				347
@@ -162,20 +162,30 @@
 #define SM_ARMOR_LABEL_Y			69
 #define SM_ARMOR_PERCENT_X			368
 #define SM_ARMOR_PERCENT_Y			79
+*/
 
-#define SM_WEIGHT_LABEL_X			430
-#define SM_WEIGHT_LABEL_Y			107
-#define SM_WEIGHT_PERCENT_X			449
-#define SM_WEIGHT_PERCENT_Y			106
-#define SM_WEIGHT_X				428
-#define SM_WEIGHT_Y				106
+#define SM_PERCENT_WIDTH			20
+#define SM_PERCENT_HEIGHT			10
+#define SM_ARMOR_X				    429
+#define SM_ARMOR_Y				    97
+#define SM_ARMOR_LABEL_X			445
+#define SM_ARMOR_LABEL_Y			87
+#define SM_ARMOR_PERCENT_X			450
+#define SM_ARMOR_PERCENT_Y			97
 
-#define SM_CAMO_LABEL_X			430
-#define SM_CAMO_LABEL_Y			122
-#define SM_CAMO_PERCENT_X			449
-#define SM_CAMO_PERCENT_Y			121
-#define SM_CAMO_X				428
-#define SM_CAMO_Y				121
+#define SM_WEIGHT_LABEL_X			260
+#define SM_WEIGHT_LABEL_Y			84
+#define SM_WEIGHT_PERCENT_X			279
+#define SM_WEIGHT_PERCENT_Y			83
+#define SM_WEIGHT_X				258
+#define SM_WEIGHT_Y				83
+
+#define SM_CAMO_LABEL_X			253
+#define SM_CAMO_LABEL_Y			103
+#define SM_CAMO_PERCENT_X			279
+#define SM_CAMO_PERCENT_Y			102
+#define SM_CAMO_X				258
+#define SM_CAMO_Y				102
 
 
 #define SM_STATS_WIDTH				30
@@ -201,10 +211,10 @@
 #define SM_MED_X				148
 #define SM_MED_Y				47
 
-#define MONEY_X				460
-#define MONEY_Y				105
-#define MONEY_WIDTH				30
-#define MONEY_HEIGHT				22
+#define MONEY_X				220
+#define MONEY_Y				123
+#define MONEY_WIDTH				31
+#define MONEY_HEIGHT				25
 
 #define TM_FACE_X				14
 #define TM_FACE_Y				6
