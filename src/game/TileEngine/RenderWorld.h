@@ -39,6 +39,13 @@ ENUM_BITSET(RenderFlags)
 /* number of pixels to show the exit sector cursor at the edge of the map */
 #define NO_PX_SHOW_EXIT_CURS			15
 
+// Deliberately smaller than NO_PX_SHOW_EXIT_CURS (which is also used for the
+// other 3 scroll directions and for the unrelated "scrolled to sector edge"
+// exit-cursor hysteresis in Handle_UI.cc) -- scrolling down should only kick
+// in once the cursor's own top edge, not its much lower bottom edge, reaches
+// the screen's bottom edge. See the SCROLL_DOWN check in RenderWorld.cc.
+#define NO_PX_SCROLL_DOWN_TRIGGER		1
+
 enum RenderLayerFlags
 {
 	// Highest bit value is rendered first
