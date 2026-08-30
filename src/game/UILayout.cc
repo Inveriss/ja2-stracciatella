@@ -198,7 +198,14 @@ void UILayout::recalculatePositions()
 	m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);
 
 	m_progress_bar_box.set(STD_SCREEN_X + 5, 2, MIN_INTERFACE_WIDTH - 10, 12);
-	m_moneyButtonLoc.set(startX + 343, startInvY + 11);
+	// Uses ITEMDESC_PANEL_START_Y (not startInvY/INV_INTERFACE_START_Y): the
+	// money buttons are an overlay drawn inside the Infobox.sti popup (see
+	// gMoneyButtonLoc in Interface_Items.cc), which is itself anchored to
+	// ITEMDESC_PANEL_START_Y since the Infobox.sti/inventory_bottom_panel.sti
+	// decoupling. Anchoring this to the wrong one left the buttons ~147px
+	// (ITEMDESC_PANEL_HEIGHT - INV_INTERFACE_HEIGHT) below where the popup
+	// actually is.
+	m_moneyButtonLoc.set(startX + 343, get_ITEMDESC_PANEL_START_Y() + 11);
 	m_MoneyButtonLocMap.set(m_stdScreenOffsetX + 174, m_stdScreenOffsetY + 115);
 
 	m_VIEWPORT_START_X            = 0;
