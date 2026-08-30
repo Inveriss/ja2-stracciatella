@@ -1967,7 +1967,17 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	}
 	else
 	{
-		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + ITEMDESC_WIDTH, gsInvDescY + ITEMDESC_HEIGHT, MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, itemDescCallback);
+		// CURSOR_NORMAL (not MSYS_NO_CURSOR): this single region spans both
+		// gSMPanelRegion's and gViewportRegion's territory (ITEMDESC_PANEL_HEIGHT
+		// > INV_INTERFACE_HEIGHT -- see UILayout.h), which have different
+		// fallback cursors (CURSOR_NORMAL vs VIDEO_NO_CURSOR). Since
+		// MSYS_UpdateMouseRegion() only re-resolves MSYS_NO_CURSOR's fallback on
+		// region entry (not every frame), which one "wins" depended on where the
+		// mouse first entered the box, and entering from above the panel's own
+		// top edge left no cursor at all until the box was exited. Giving the
+		// region its own real cursor sidesteps the fallback entirely. The
+		// MAP_SCREEN branch above already does this.
+		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + ITEMDESC_WIDTH, gsInvDescY + ITEMDESC_HEIGHT, MSYS_PRIORITY_HIGHEST, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
 	}
 
 	if (GCM->getItem(o->usItem)->isGun()&& o->usItem != ROCKET_LAUNCHER)
