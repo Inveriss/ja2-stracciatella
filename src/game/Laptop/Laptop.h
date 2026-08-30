@@ -85,6 +85,12 @@ enum LaptopMode
 	LAPTOP_MODE_END
 };
 
+// Requests which program/page the laptop should open to on its very next
+// entry (see EnterLaptop() in Laptop.cc). One-shot -- consumed and reset to
+// LAPTOP_MODE_NONE (the normal desktop) as soon as that entry happens, so
+// it doesn't affect subsequent laptop visits.
+void SetLaptopEntryMode(LaptopMode uiEntryMode);
+
 extern LaptopMode  guiCurrentLaptopMode;
 extern LaptopMode  guiPreviousLaptopMode;
 extern INT32       giCurrentSubPage;

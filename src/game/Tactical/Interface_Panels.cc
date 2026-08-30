@@ -1,4 +1,5 @@
 #include "Interface_Panels.h"
+#include "AIMSort.h"
 #include "Animation_Control.h"
 #include "Assignments.h"
 #include "Boxing.h"
@@ -31,6 +32,7 @@
 #include "JAScreens.h"
 #include "Keys.h"
 #include "LOS.h"
+#include "Laptop.h"
 #include "LaptopSave.h"
 #include "Line.h"
 #include "Local.h"
@@ -139,6 +141,19 @@
 #define SM_LOOKB_Y				108
 #define SM_STEALTHMODE_X			187
 #define SM_STEALTHMODE_Y			73
+
+// Laptop shortcut buttons (see inventory_bottom_panel_bookmarks.sti, 32x32
+// each). Placeholder coordinates -- reposition to match the final graphic.
+#define SM_EMAILB_X				9
+#define SM_EMAILB_Y				140
+#define SM_AIM_MEMBERSB_X			45
+#define SM_AIM_MEMBERSB_Y			140
+#define SM_MERCB_X				81
+#define SM_MERCB_Y				140
+#define SM_BOBBYRB_X				117
+#define SM_BOBBYRB_Y				140
+#define SM_PERSONNELB_X			153
+#define SM_PERSONNELB_Y			140
 // Anchored to the right edge of the single-merc panel's OWN canvas
 // (m_smPanelWidth), not m_teamPanelSlotsTotalWidth and NOT the shared,
 // purely squad-size-driven m_teamPanelWidth -- m_smPanelWidth is floored to
@@ -289,6 +304,11 @@ enum
 	STANCE_IMAGES,
 	DONE_IMAGES,
 	MAPSCREEN_IMAGES,
+	SM_EMAIL_IMAGES,
+	SM_AIM_MEMBERS_IMAGES,
+	SM_MERC_IMAGES,
+	SM_BOBBYR_IMAGES,
+	SM_PERSONNEL_IMAGES,
 	NUM_SM_BUTTON_IMAGES
 };
 
@@ -826,6 +846,11 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 				EnableButton(iSMPanelButtons[OPTIONS_BUTTON],       enable);
 				EnableButton(iSMPanelButtons[SM_DONE_BUTTON],       enable);
 				EnableButton(iSMPanelButtons[SM_MAP_SCREEN_BUTTON], enable);
+				EnableButton(iSMPanelButtons[SM_EMAIL_BUTTON],       enable);
+				EnableButton(iSMPanelButtons[SM_AIM_MEMBERS_BUTTON], enable);
+				EnableButton(iSMPanelButtons[SM_MERC_BUTTON],        enable);
+				EnableButton(iSMPanelButtons[SM_BOBBYR_BUTTON],      enable);
+				EnableButton(iSMPanelButtons[SM_PERSONNEL_BUTTON],   enable);
 
 				//enable the radar map region
 				gRadarRegion.Enable();
@@ -861,6 +886,11 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 			DisableButton( iSMPanelButtons[ OPTIONS_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_DONE_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_MAP_SCREEN_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_EMAIL_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_AIM_MEMBERS_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_MERC_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_BOBBYR_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_PERSONNEL_BUTTON ] );
 
 			gRadarRegion.Disable();
 		}
@@ -1045,6 +1075,11 @@ catch (...)
 static void BtnBurstModeCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnClimbCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnHandCursorCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopAIMMembersCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopBobbyRCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopEmailCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopMercCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopPersonnelCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnLookCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnMapScreenCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnMuteCallback(GUI_BUTTON* btn, UINT32 reason);
@@ -1089,6 +1124,15 @@ void CreateSMPanelButtons(void)
 	iSMPanelImages[DONE_IMAGES]       = LoadButtonImage(INTERFACEDIR "/inventory_buttons_2.sti",  1,  3);
 	iSMPanelImages[MAPSCREEN_IMAGES]  = UseLoadedButtonImage(iSMPanelImages[DONE_IMAGES],         0,  2);
 
+	// Laptop shortcut buttons -- inventory_bottom_panel_bookmarks.sti holds
+	// 5 (ready, pressed) pairs in this order: e-mail, AIM Members, M.E.R.C.,
+	// Bobby Ray's, Personnel.
+	iSMPanelImages[SM_EMAIL_IMAGES]       = LoadButtonImage(INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti", 0, 1);
+	iSMPanelImages[SM_AIM_MEMBERS_IMAGES] = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 2, 3);
+	iSMPanelImages[SM_MERC_IMAGES]        = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 4, 5);
+	iSMPanelImages[SM_BOBBYR_IMAGES]      = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 6, 7);
+	iSMPanelImages[SM_PERSONNEL_IMAGES]   = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 8, 9);
+
 
 	// Create buttons
 
@@ -1110,6 +1154,11 @@ void CreateSMPanelButtons(void)
 	MakeButtonT(PREVMERC_BUTTON,      iSMPanelImages[PREVMERC_IMAGES],   dx + SM_PREVMERCB_X,   dy + SM_PREVMERCB_Y,   BtnPrevMercCallback,   TacticalStr[PREV_MERC_POPUPTEXT]);
 	MakeButtonT(NEXTMERC_BUTTON,      iSMPanelImages[NEXTMERC_IMAGES],   dx + SM_NEXTMERCB_X,   dy + SM_NEXTMERCB_Y,   BtnNextMercCallback,   TacticalStr[NEXT_MERC_POPUPTEXT]);
 	MakeButtonT(OPTIONS_BUTTON,       iSMPanelImages[OPTIONS_IMAGES],    dx + SM_OPTIONSB_X,    dy + SM_OPTIONSB_Y,    BtnOptionsCallback,    TacticalStr[CHANGE_OPTIONS_POPUPTEXT]);
+	MakeButtonT(SM_EMAIL_BUTTON,       iSMPanelImages[SM_EMAIL_IMAGES],       dx + SM_EMAILB_X,       dy + SM_EMAILB_Y,       BtnLaptopEmailCallback,      "E-mail");
+	MakeButtonT(SM_AIM_MEMBERS_BUTTON, iSMPanelImages[SM_AIM_MEMBERS_IMAGES], dx + SM_AIM_MEMBERSB_X, dy + SM_AIM_MEMBERSB_Y, BtnLaptopAIMMembersCallback, "AIM Members");
+	MakeButtonT(SM_MERC_BUTTON,        iSMPanelImages[SM_MERC_IMAGES],        dx + SM_MERCB_X,        dy + SM_MERCB_Y,        BtnLaptopMercCallback,       "M.E.R.C.");
+	MakeButtonT(SM_BOBBYR_BUTTON,      iSMPanelImages[SM_BOBBYR_IMAGES],      dx + SM_BOBBYRB_X,      dy + SM_BOBBYRB_Y,      BtnLaptopBobbyRCallback,     "Bobby Ray's");
+	MakeButtonT(SM_PERSONNEL_BUTTON,   iSMPanelImages[SM_PERSONNEL_IMAGES],   dx + SM_PERSONNELB_X,   dy + SM_PERSONNELB_Y,   BtnLaptopPersonnelCallback,  "Personnel");
 #if 0
 	MakeButtonN(BURSTMODE_BUTTON,     iSMPanelImages[BURSTMODE_IMAGES],  SM_BURSTMODEB_X,  dy + SM_BURSTMODEB_Y,  BtnBurstModeCallback,  TacticalStr[TOGGLE_BURSTMODE_POPUPTEXT]);
 #endif
@@ -2238,6 +2287,82 @@ static void BtnOptionsCallback(GUI_BUTTON* btn, UINT32 reason)
 	{
 		guiPreviousOptionScreen = guiCurrentScreen;
 		LeaveTacticalScreen(OPTIONS_SCREEN);
+	}
+}
+
+
+// Laptop shortcut buttons -- jump straight into the laptop on a given
+// program/page (see SetLaptopEntryMode() in Laptop.cc). Wariant A: closing
+// the laptop always returns to MAP_SCREEN (LeaveLapTopScreen()'s existing,
+// unconditional behaviour), ending the current tactical session, same as
+// leaving the sector normally.
+static void BtnLaptopEmailCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_EMAIL);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopAIMMembersCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		// LAPTOP_MODE_AIM_MEMBERS is the single-merc video-conference detail
+		// page (EnterAIMMembers() in AIMMembers.cc); the mugshot list/index
+		// (sortable, descending-by-default) is
+		// LAPTOP_MODE_AIM_MEMBERS_SORTED_FILES (EnterAimSort() in
+		// AimSort.cc) -- that's the one this button should open.
+		SetLaptopEntryMode(LAPTOP_MODE_AIM_MEMBERS_SORTED_FILES);
+		// gubCurrentSortMode/gubCurrentListMode persist across the whole
+		// laptop session (they remember whatever the player last sorted by
+		// on any earlier visit), so force the canonical "price, descending"
+		// view this shortcut promises, regardless of prior state.
+		gubCurrentSortMode = 0; // Price -- see QsortCompare() in AimSort.cc
+		gubCurrentListMode = AIM_DESCEND;
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopMercCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_MERC);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopBobbyRCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_BOBBY_R);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopPersonnelCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_PERSONNEL);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
 	}
 }
 
