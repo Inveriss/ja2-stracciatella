@@ -32,6 +32,7 @@
 #include "Keys.h"
 #include "LOS.h"
 #include "LaptopSave.h"
+#include "Line.h"
 #include "Local.h"
 #include "Logger.h"
 #include "MapScreen.h"
@@ -216,6 +217,16 @@
 #define MONEY_WIDTH				31
 #define MONEY_HEIGHT				25
 
+// Trash can drop target for inventory_bottom_panel.sti, mirroring the one
+// baked into mapinv.sti on the strategic map (see TRASH_CAN_* in
+// MapScreen.h). The icon itself is painted directly into the panel art
+// (~10px left of the LEGPOS slot); these are placeholder coordinates/size --
+// tune to match the final graphic.
+#define SM_TRASHCAN_X				378
+#define SM_TRASHCAN_Y				123
+#define SM_TRASHCAN_WIDTH			32
+#define SM_TRASHCAN_HEIGHT			26
+
 #define TM_FACE_X				14
 #define TM_FACE_Y				6
 #define TM_FACE_WIDTH				48
@@ -340,6 +351,12 @@ static MOUSE_REGION gSM_SELMERCBarsRegion;
 MOUSE_REGION        gSM_SELMERCMoneyRegion;
 static MOUSE_REGION gSM_SELMERCEnemyIndicatorRegion;
 static MOUSE_REGION gTEAM_PanelRegion;
+
+// Trash can drop target (see SM_TRASHCAN_* above). Separate from the
+// strategic map's gTrashCanRegion/fShowTrashCanHighLight -- own lifecycle,
+// tied to InitializeSMPanel()/ShutdownSMPanel().
+static MOUSE_REGION gSMTrashCanRegion;
+static BOOLEAN      fShowSMTrashCanHighlight = FALSE;
 
 static std::unique_ptr<SGPVSurface> CreateVideoSurfaceFromObjectFile(const ST::string& filename, UINT16 usRegionIndex);
 
@@ -864,6 +881,9 @@ static void SelectedMercButtonCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRea
 static void SelectedMercButtonCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectedMercButtonMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectedMercEnemyIndicatorCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+static void SMTrashCanBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+static void SMTrashCanMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+static void RenderSMTrashCanHighlight();
 
 
 /** Fill empty space at the bottom of the screen. */
@@ -968,6 +988,15 @@ void InitializeSMPanel()
 	MOUSE_CALLBACK smInvClickCallback = MouseCallbackPrimarySecondary(SMInvClickCallbackPrimary, SMInvClickCallbackSecondary, MSYS_NO_CALLBACK, true);
 	InitInvSlotInterface(g_ui.m_invSlotPositionTac, &g_ui.m_invCamoRegion, SMInvMoveCallback, smInvClickCallback, SMInvMoveCamoCallback, SMInvClickCamoCallback);
 	InitKeyRingInterface(KeyRingItemPanelButtonCallback);
+
+	// Trash can drop target -- see SM_TRASHCAN_* above.
+	x = dx + SM_TRASHCAN_X;
+	y = dy + SM_TRASHCAN_Y;
+	MSYS_DefineRegion(&gSMTrashCanRegion, x, y, x + SM_TRASHCAN_WIDTH, y + SM_TRASHCAN_HEIGHT,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, SMTrashCanMoveCallback, SMTrashCanBtnCallback);
+	// Reusing the map screen's trash-can tooltip text (same widget, different
+	// screen) rather than adding a new localized string.
+	gSMTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
 
 	// this is important! It will disable buttons like SM_MAP_SCREEN_BUTTON when they're supposed to be
 	// disabled - the previous disabled state is lost everytime panel is reinitialized, because all the
@@ -1137,6 +1166,8 @@ void ShutdownSMPanel()
 	MSYS_RemoveRegion(&gSM_SELMERCBarsRegion);
 	MSYS_RemoveRegion(&gSM_SELMERCMoneyRegion);
 	MSYS_RemoveRegion(&gSM_SELMERCEnemyIndicatorRegion);
+	MSYS_RemoveRegion(&gSMTrashCanRegion);
+	fShowSMTrashCanHighlight = FALSE;
 
 	HandleMouseOverSoldierFaceForContMove(gpSMCurrentMerc, FALSE);
 
@@ -1261,7 +1292,14 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 
 	HandleNewlyAddedItems(s, dirty_level);
 
-	if (InItemDescriptionBox()) HandleItemDescriptionBox(dirty_level);
+	if (InItemDescriptionBox())
+	{
+		HandleItemDescriptionBox(dirty_level);
+	}
+	else
+	{
+		RenderSMTrashCanHighlight();
+	}
 
 	INT32 const dx = INTERFACE_START_X;
 	INT32 const dy = INV_INTERFACE_START_Y;
@@ -3706,6 +3744,71 @@ static void ConfirmationToDepositMoneyToPlayersAccount(MessageBoxReturnValue con
 
 
 	}
+}
+
+
+static void SMTrashCanItemMessageBoxCallback(MessageBoxReturnValue const bExitValue)
+{
+	if (bExitValue == MSG_BOX_RETURN_YES)
+	{
+		// Just discard whatever is on the cursor -- same as the strategic
+		// map's trash can (MAPEndItemPointer()), tactical equivalent.
+		EndItemPointer();
+	}
+}
+
+
+static void SMTrashCanBtnCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		if (OBJECTTYPE* const o = gpItemPointer)
+		{
+			ST::string msg = o->ubMission ? pTrashItemText[1] : pTrashItemText[0];
+			DoMessageBox(MSG_BOX_BASIC_STYLE, msg, GAME_SCREEN, MSG_BOX_FLAG_YESNO, SMTrashCanItemMessageBoxCallback, NULL);
+		}
+	}
+}
+
+
+static void SMTrashCanMoveCallback(MOUSE_REGION*, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_GAIN_MOUSE)
+	{
+		if (gpItemPointer != NULL) fShowSMTrashCanHighlight = TRUE;
+	}
+	else if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		fShowSMTrashCanHighlight = FALSE;
+	}
+}
+
+
+// Static (non-pulsing) highlight outline drawn while an item is held over
+// the trash can -- simpler than the strategic map's GlowTrashCan(), which
+// depends on statics private to MapScreen.cc (GlowColor()/gfGlowTimerExpired)
+// not available here. Self-gating, safe to call unconditionally every frame.
+static void RenderSMTrashCanHighlight()
+{
+	static BOOLEAN fOldHighlight = FALSE;
+
+	INT32 const x = INTERFACE_START_X + SM_TRASHCAN_X;
+	INT32 const y = INV_INTERFACE_START_Y + SM_TRASHCAN_Y;
+
+	if (!fShowSMTrashCanHighlight)
+	{
+		if (fOldHighlight)
+		{
+			RestoreExternBackgroundRect(x, y, SM_TRASHCAN_WIDTH + 2, SM_TRASHCAN_HEIGHT + 2);
+		}
+		fOldHighlight = FALSE;
+		return;
+	}
+	fOldHighlight = TRUE;
+
+	SGPVSurface::Lock l(guiSAVEBUFFER);
+	SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	RectangleDraw(TRUE, x, y, x + SM_TRASHCAN_WIDTH, y + SM_TRASHCAN_HEIGHT, Get16BPPColor(FROMRGB(255, 255, 255)), l.Buffer<UINT16>());
 }
 
 
