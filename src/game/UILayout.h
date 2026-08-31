@@ -16,7 +16,7 @@
 #define SCREEN_WIDTH                    (g_ui.m_screenWidth)
 #define INV_INTERFACE_START_Y           (g_ui.get_INV_INTERFACE_START_Y())
 // #define INV_INTERFACE_HEIGHT         (140)                                 // height of the bottom bar single-merc inventory panel
-#define INV_INTERFACE_HEIGHT            (155)                                 // NEW POSITION
+#define INV_INTERFACE_HEIGHT            (197)                                 // NEW POSITION
 
 // Infobox.sti (the weapon/item description popup) is blitted straight to the
 // screen buffer, independently of guiSMPanel/inventory_bottom_panel.sti --
@@ -41,7 +41,7 @@
 #define MAP_SCREEN_HEIGHT               (g_ui.m_mapScreenHeight)
 
 #define SM_BODYINV_X                    (INTERFACE_START_X + 324)
-#define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 5)
+#define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
 #define SM_INVINTERFACE_WIDTH           (918)    // width of the single-merc inventory panel excluding the right-side buttons and minimap
 
 // Total width of inventory_bottom_panel.sti (SM_INVINTERFACE_WIDTH + the

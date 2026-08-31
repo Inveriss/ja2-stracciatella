@@ -212,12 +212,12 @@ constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 #define BAD_RELIABILITY				-2
 #define BAD_REPAIR_EASE				-2
 
-#define KEYRING_X      (INTERFACE_START_X + 258)
-#define KEYRING_Y      (INV_INTERFACE_START_Y + 123)
+#define KEYRING_X      (INTERFACE_START_X + 314)
+#define KEYRING_Y      (INV_INTERFACE_START_Y + 161)
 #define MAP_KEYRING_X (STD_SCREEN_X + 217)
 #define MAP_KEYRING_Y (STD_SCREEN_Y + 271)
-#define KEYRING_WIDTH   31
-#define KEYRING_HEIGHT  25
+#define KEYRING_WIDTH   32
+#define KEYRING_HEIGHT  32
 #define TACTICAL_INVENTORY_KEYRING_GRAPHIC_OFFSET_X 215
 //enum used for the money buttons
 enum
@@ -988,7 +988,7 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 			else
 			{
 				INT32 const x = INTERFACE_START_X + 294;
-				INT32 const y = INV_INTERFACE_START_Y + 115;
+				INT32 const y = INV_INTERFACE_START_Y + 116;
 				BltVideoObject(guiSAVEBUFFER, guiSecItemHiddenVO, 0, x, y);
 				RestoreExternBackgroundRect(x, y, 75, 35);
 			}

@@ -144,16 +144,16 @@
 
 // Laptop shortcut buttons (see inventory_bottom_panel_bookmarks.sti, 32x32
 // each). Placeholder coordinates -- reposition to match the final graphic.
-#define SM_EMAILB_X				9
-#define SM_EMAILB_Y				140
-#define SM_AIM_MEMBERSB_X			45
-#define SM_AIM_MEMBERSB_Y			140
-#define SM_MERCB_X				81
-#define SM_MERCB_Y				140
-#define SM_BOBBYRB_X				117
-#define SM_BOBBYRB_Y				140
-#define SM_PERSONNELB_X			153
-#define SM_PERSONNELB_Y			140
+#define SM_EMAILB_X				4
+#define SM_EMAILB_Y				143
+#define SM_AIM_MEMBERSB_X			39
+#define SM_AIM_MEMBERSB_Y			143
+#define SM_MERCB_X				74
+#define SM_MERCB_Y				143
+#define SM_BOBBYRB_X				110
+#define SM_BOBBYRB_Y				143
+#define SM_PERSONNELB_X			180
+#define SM_PERSONNELB_Y			143
 // Anchored to the right edge of the single-merc panel's OWN canvas
 // (m_smPanelWidth), not m_teamPanelSlotsTotalWidth and NOT the shared,
 // purely squad-size-driven m_teamPanelWidth -- m_smPanelWidth is floored to
@@ -189,19 +189,19 @@
 #define SM_ARMOR_PERCENT_X			450
 #define SM_ARMOR_PERCENT_Y			97
 
-#define SM_WEIGHT_LABEL_X			260
-#define SM_WEIGHT_LABEL_Y			84
-#define SM_WEIGHT_PERCENT_X			279
-#define SM_WEIGHT_PERCENT_Y			83
-#define SM_WEIGHT_X				258
-#define SM_WEIGHT_Y				83
+#define SM_WEIGHT_LABEL_X			263
+#define SM_WEIGHT_LABEL_Y			88
+#define SM_WEIGHT_PERCENT_X			250
+#define SM_WEIGHT_PERCENT_Y			99
+#define SM_WEIGHT_X				229
+#define SM_WEIGHT_Y				99
 
-#define SM_CAMO_LABEL_X			253
-#define SM_CAMO_LABEL_Y			103
-#define SM_CAMO_PERCENT_X			279
-#define SM_CAMO_PERCENT_Y			102
-#define SM_CAMO_X				258
-#define SM_CAMO_Y				102
+#define SM_CAMO_LABEL_X			259
+#define SM_CAMO_LABEL_Y			127
+#define SM_CAMO_PERCENT_X			251
+#define SM_CAMO_PERCENT_Y			138
+#define SM_CAMO_X				231
+#define SM_CAMO_Y				138
 
 
 #define SM_STATS_WIDTH				30
@@ -227,10 +227,10 @@
 #define SM_MED_X				148
 #define SM_MED_Y				47
 
-#define MONEY_X				220
-#define MONEY_Y				123
-#define MONEY_WIDTH				31
-#define MONEY_HEIGHT				25
+#define MONEY_X				279
+#define MONEY_Y				161
+#define MONEY_WIDTH				32
+#define MONEY_HEIGHT				32
 
 // Trash can drop target for inventory_bottom_panel.sti, mirroring the one
 // baked into mapinv.sti on the strategic map (see TRASH_CAN_* in
