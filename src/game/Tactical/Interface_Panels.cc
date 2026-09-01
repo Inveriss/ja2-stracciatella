@@ -249,8 +249,8 @@
 // tune to match the final graphic.
 #define SM_TRASHCAN_X				349
 #define SM_TRASHCAN_Y				160
-#define SM_TRASHCAN_WIDTH			30
-#define SM_TRASHCAN_HEIGHT			30
+#define SM_TRASHCAN_WIDTH			32
+#define SM_TRASHCAN_HEIGHT			32
 
 #define TM_FACE_X				14
 #define TM_FACE_Y				6
@@ -962,7 +962,6 @@ static void SelectedMercButtonMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason
 static void SelectedMercEnemyIndicatorCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMTrashCanBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMTrashCanMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
-static void RenderSMTrashCanHighlight();
 static void RenderSMMoneyAndTrashIcons();
 
 
@@ -1579,7 +1578,6 @@ no_plate:
 	// over an item/stat, causing a visible blink.
 	if (!InItemDescriptionBox())
 	{
-		RenderSMTrashCanHighlight();
 		RenderSMMoneyAndTrashIcons();
 	}
 }
@@ -4054,39 +4052,11 @@ static void SMTrashCanMoveCallback(MOUSE_REGION*, UINT32 iReason)
 }
 
 
-// Static (non-pulsing) highlight outline drawn while an item is held over
-// the trash can -- simpler than the strategic map's GlowTrashCan(), which
-// depends on statics private to MapScreen.cc (GlowColor()/gfGlowTimerExpired)
-// not available here. Self-gating, safe to call unconditionally every frame.
-static void RenderSMTrashCanHighlight()
-{
-	static BOOLEAN fOldHighlight = FALSE;
-
-	INT32 const x = INTERFACE_START_X + SM_TRASHCAN_X;
-	INT32 const y = INV_INTERFACE_START_Y + SM_TRASHCAN_Y;
-
-	if (!fShowSMTrashCanHighlight)
-	{
-		if (fOldHighlight)
-		{
-			RestoreExternBackgroundRect(x, y, SM_TRASHCAN_WIDTH + 2, SM_TRASHCAN_HEIGHT + 2);
-		}
-		fOldHighlight = FALSE;
-		return;
-	}
-	fOldHighlight = TRUE;
-
-	SGPVSurface::Lock l(guiSAVEBUFFER);
-	SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	RectangleDraw(TRUE, x, y, x + SM_TRASHCAN_WIDTH, y + SM_TRASHCAN_HEIGHT, Get16BPPColor(FROMRGB(255, 255, 255)), l.Buffer<UINT16>());
-}
-
-
 // Money/trash-can icons -- see guiSMBookmarksVO above. Called every frame
-// (like RenderSMTrashCanHighlight() above) rather than gated to
-// DIRTYLEVEL2, so the pressed-state swap shows up promptly; also keeps them
+// rather than gated to DIRTYLEVEL2, so the pressed-state swap shows up
+// promptly; also keeps them
 // out of guiSAVEBUFFER while InItemDescriptionBox() is drawing there (same
-// "else" branch as the trash highlight).
+// "else" branch as the item description box).
 static void RenderSMMoneyAndTrashIcons()
 {
 	INT32 const moneyX = INTERFACE_START_X + MONEY_X;
@@ -4098,10 +4068,11 @@ static void RenderSMMoneyAndTrashIcons()
 	INT32 const trashY = INV_INTERFACE_START_Y + SM_TRASHCAN_Y;
 	// The trash can is a drag-and-drop target, not a click button: the
 	// meaningful "about to act" moment is hovering over it with an item on
-	// the cursor (fShowSMTrashCanHighlight, already tracked by
-	// SMTrashCanMoveCallback for the white outline), before the drop even
-	// happens -- not a literal mouse-button-down (fSMTrashIconPressed),
-	// which barely factors into this interaction at all.
+	// the cursor (fShowSMTrashCanHighlight, tracked by SMTrashCanMoveCallback
+	// -- previously drove a separate white outline, now removed in favour of
+	// just swapping to the pressed icon), before the drop even happens --
+	// not a literal mouse-button-down (fSMTrashIconPressed), which barely
+	// factors into this interaction at all.
 	BOOLEAN const fTrashPressed = fSMTrashIconPressed || fShowSMTrashCanHighlight;
 	BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fTrashPressed ? SM_TRASHCAN_ICON_PRESSED : SM_TRASHCAN_ICON_READY, trashX, trashY);
 	RestoreExternBackgroundRect(trashX, trashY, SM_TRASHCAN_WIDTH, SM_TRASHCAN_HEIGHT);
