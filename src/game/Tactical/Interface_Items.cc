@@ -213,7 +213,7 @@ constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 #define BAD_REPAIR_EASE				-2
 
 #define KEYRING_X      (INTERFACE_START_X + 314)
-#define KEYRING_Y      (INV_INTERFACE_START_Y + 161)
+#define KEYRING_Y      (INV_INTERFACE_START_Y + 160)
 #define MAP_KEYRING_X (STD_SCREEN_X + 217)
 #define MAP_KEYRING_Y (STD_SCREEN_Y + 271)
 #define KEYRING_WIDTH   32
@@ -868,11 +868,25 @@ void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 }
 
 
+// Resets fSMKeyringIconPressed (Interface_Panels.h) if the mouse is dragged
+// off the region while still held down -- POINTER_UP never reaches
+// KeyRingItemPanelButtonCallback in that case (see
+// MSYS_UpdateMouseRegion()'s g_clicked_region gating). Tactical only -- the
+// map screen's keyring icon doesn't use this pressed-state system.
+static void KeyRingMoveCallback(MOUSE_REGION*, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		fSMKeyringIconPressed = FALSE;
+	}
+}
+
+
 void InitKeyRingInterface(MOUSE_CALLBACK KeyRingClickCallback)
 {
 	MSYS_DefineRegion(&gKeyRingPanel, KEYRING_X, KEYRING_Y,
 		KEYRING_X + KEYRING_WIDTH, KEYRING_Y + KEYRING_HEIGHT,
-		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, KeyRingMoveCallback,
 		std::move(KeyRingClickCallback));
 	gKeyRingPanel.SetFastHelpText(TacticalStr[KEYRING_HELP_TEXT]);
 }
@@ -1067,13 +1081,14 @@ void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 	else
 	{
 		// Tactical panel: the keyring icon is now a persistent
-		// inventory_bottom_panel_bookmarks.sti button (sub-image 17,
-		// 0-based 16 -- see guiSMBookmarksVO in Interface_Panels.cc, source
-		// of the shared cache entry), always shown regardless of whether the
-		// keyring actually holds a key. This deactivates the old
-		// gold_key_button.sti "only when you have a key" highlight for this
-		// screen.
-		BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, 16, KEYRING_X, KEYRING_Y);
+		// inventory_bottom_panel_bookmarks.sti button (sub-images 17/18,
+		// 0-based 16/17 -- see guiSMBookmarksVO/SM_KEYRING_ICON_READY in
+		// Interface_Panels.cc, source of the shared cache entry), always
+		// shown regardless of whether the keyring actually holds a key.
+		// This deactivates the old gold_key_button.sti "only when you have
+		// a key" highlight for this screen. fSMKeyringIconPressed is set
+		// from KeyRingItemPanelButtonCallback (Interface_Panels.cc).
+		BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fSMKeyringIconPressed ? 17 : 16, KEYRING_X, KEYRING_Y);
 		RestoreExternBackgroundRect(KEYRING_X, KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
 	}
 }
@@ -1986,6 +2001,16 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		// region its own real cursor sidesteps the fallback entirely. The
 		// MAP_SCREEN branch above already does this.
 		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + ITEMDESC_WIDTH, gsInvDescY + ITEMDESC_HEIGHT, MSYS_PRIORITY_HIGHEST, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
+
+		if (gsCurInterfacePanel == SM_PANEL)
+		{
+			// GUI_BUTTONs render through their own pass (RenderButtons()),
+			// independent of guiSAVEBUFFER/InItemDescriptionBox() -- any
+			// bookmark button whose rectangle overlaps Infobox.sti/
+			// Infobox_money.sti would otherwise draw on top of it. Shown
+			// again in DeleteItemDescriptionBox().
+			HideSMBookmarkButtons();
+		}
 	}
 
 	if (GCM->getItem(o->usItem)->isGun()&& o->usItem != ROCKET_LAUNCHER)
@@ -3099,6 +3124,10 @@ void DeleteItemDescriptionBox( )
 		// scroll shift-blit, and raising it made the whole protected strip
 		// visibly pan with the map while the box was open.
 		SetRenderFlags(RENDER_FLAG_FULL);
+
+		// Undo the HideSMBookmarkButtons() call from
+		// InternalInitItemDescriptionBox().
+		ShowSMBookmarkButtons();
 	}
 
 	if( guiCurrentItemDescriptionScreen == MAP_SCREEN )

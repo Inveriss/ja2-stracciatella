@@ -158,12 +158,12 @@
 #define SM_PERSONNELB_Y			143
 // 61x32 placeholder.
 #define SM_STRATSCREENB_X			215
-#define SM_STRATSCREENB_Y			161
+#define SM_STRATSCREENB_Y			160
 // 58x32 placeholder. Window/functionality not implemented yet -- points at
 // the Options screen (BtnOptionsCallback) as a stand-in until a dedicated
 // keyboard-shortcuts screen exists.
 #define SM_SHORTCUTSB_X			384
-#define SM_SHORTCUTSB_Y			161
+#define SM_SHORTCUTSB_Y			160
 // Anchored to the right edge of the single-merc panel's OWN canvas
 // (m_smPanelWidth), not m_teamPanelSlotsTotalWidth and NOT the shared,
 // purely squad-size-driven m_teamPanelWidth -- m_smPanelWidth is floored to
@@ -238,7 +238,7 @@
 #define SM_MED_Y				47
 
 #define MONEY_X				279
-#define MONEY_Y				161
+#define MONEY_Y				160
 #define MONEY_WIDTH				32
 #define MONEY_HEIGHT				32
 
@@ -248,9 +248,9 @@
 // (~10px left of the LEGPOS slot); these are placeholder coordinates/size --
 // tune to match the final graphic.
 #define SM_TRASHCAN_X				349
-#define SM_TRASHCAN_Y				161
-#define SM_TRASHCAN_WIDTH			32
-#define SM_TRASHCAN_HEIGHT			32
+#define SM_TRASHCAN_Y				160
+#define SM_TRASHCAN_WIDTH			30
+#define SM_TRASHCAN_HEIGHT			30
 
 #define TM_FACE_X				14
 #define TM_FACE_Y				6
@@ -383,12 +383,29 @@ static cache_key_t const guiCLOSE{ INTERFACEDIR "/p_close.sti" };
 // being baked into inventory_bottom_panel.sti's own art (the trash can's
 // "ready" icon, sub-image 19/0-based 18, is drawn from the same source --
 // see SM_TRASHCAN_ICON_READY below). Sub-image 16 (0-based 15) is the
-// matching "pressed" state, loaded here for completeness but not yet wired
-// up to a press animation -- neither region currently tracks POINTER_DWN/UP
-// for rendering purposes, only for their existing click handlers.
+// matching "pressed" state (15/19), shown while the region is held down --
+// see fSMMoneyIconPressed/fSMTrashIconPressed below and
+// fSMKeyringIconPressed (Interface_Panels.h) for the keyring, rendered from
+// Interface_Items.cc.
 static cache_key_t const guiSMBookmarksVO{ INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti" };
 #define SM_MONEY_ICON_READY		14
+#define SM_MONEY_ICON_PRESSED		15
+#define SM_KEYRING_ICON_READY		16
+#define SM_KEYRING_ICON_PRESSED	17
 #define SM_TRASHCAN_ICON_READY		18
+#define SM_TRASHCAN_ICON_PRESSED	19
+
+// Pressed-state flags for the money/keyring/trash-can icons -- set on
+// MSYS_CALLBACK_REASON_POINTER_DWN in their respective button callbacks,
+// cleared on POINTER_UP or MSYS_CALLBACK_REASON_LOST_MOUSE (a drag off the
+// region while still held down never delivers POINTER_UP to it -- see
+// MSYS_UpdateMouseRegion()'s g_clicked_region gating). fSMKeyringIconPressed
+// is set from KeyRingItemPanelButtonCallback here but rendered from
+// HandleRenderInvSlots() in Interface_Items.cc, hence extern (see
+// Interface_Panels.h).
+static BOOLEAN fSMMoneyIconPressed = FALSE;
+static BOOLEAN fSMTrashIconPressed = FALSE;
+BOOLEAN        fSMKeyringIconPressed = FALSE;
 
 // Globals for various mouse regions
 static MOUSE_REGION gSM_SELMERCPanelRegion;
@@ -936,6 +953,7 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvClickCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvClickCamoCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvMoneyButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+static void SMInvMoneyMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvMoveCamoCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectedMercButtonCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
@@ -945,6 +963,7 @@ static void SelectedMercEnemyIndicatorCallback(MOUSE_REGION* pRegion, UINT32 iRe
 static void SMTrashCanBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMTrashCanMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void RenderSMTrashCanHighlight();
+static void RenderSMMoneyAndTrashIcons();
 
 
 /** Fill empty space at the bottom of the screen. */
@@ -1034,7 +1053,7 @@ void InitializeSMPanel()
 	//DEfine region for money button
 	x = dx + MONEY_X;
 	y = dy + MONEY_Y;
-	MSYS_DefineRegion(&gSM_SELMERCMoneyRegion, x, y, x + MONEY_WIDTH, y + MONEY_HEIGHT, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, SMInvMoneyButtonCallback);
+	MSYS_DefineRegion(&gSM_SELMERCMoneyRegion, x, y, x + MONEY_WIDTH, y + MONEY_HEIGHT, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, SMInvMoneyMoveCallback, SMInvMoneyButtonCallback);
 	gSM_SELMERCMoneyRegion.SetFastHelpText(TacticalStr[MONEY_BUTTON_HELP_TEXT]);
 
 	// Check if mouse is in region and if so, adjust...
@@ -1232,6 +1251,31 @@ void RemoveSMPanelButtons(void)
 }
 
 
+static UINT32 const g_smBookmarkButtons[] =
+{
+	SM_EMAIL_BUTTON, SM_AIM_MEMBERS_BUTTON, SM_MERC_BUTTON, SM_BOBBYR_BUTTON,
+	SM_HISTORY_BUTTON, SM_PERSONNEL_BUTTON, SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON
+};
+
+
+void HideSMBookmarkButtons(void)
+{
+	for (UINT32 const idx : g_smBookmarkButtons)
+	{
+		if (iSMPanelButtons[idx]) HideButton(iSMPanelButtons[idx]);
+	}
+}
+
+
+void ShowSMBookmarkButtons(void)
+{
+	for (UINT32 const idx : g_smBookmarkButtons)
+	{
+		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
+	}
+}
+
+
 void ShutdownSMPanel()
 {
 	// All buttons and regions and video objects and video surfaces will be deleted at shutddown of SGM
@@ -1389,10 +1433,6 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 	{
 		HandleItemDescriptionBox(dirty_level);
 	}
-	else
-	{
-		RenderSMTrashCanHighlight();
-	}
 
 	INT32 const dx = INTERFACE_START_X;
 	INT32 const dy = INV_INTERFACE_START_Y;
@@ -1423,14 +1463,6 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 			RestoreExternBackgroundRect(x, y, SM_SELMERC_PLATE_WIDTH, SM_SELMERC_PLATE_HEIGHT);
 		}
 no_plate:
-
-		// Money and trash-can icons -- see guiSMBookmarksVO above. Persistent,
-		// redrawn whenever the rest of the panel is (DIRTYLEVEL2), same as
-		// the plate/face just above.
-		BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, SM_MONEY_ICON_READY, dx + MONEY_X, dy + MONEY_Y);
-		RestoreExternBackgroundRect(dx + MONEY_X, dy + MONEY_Y, MONEY_WIDTH, MONEY_HEIGHT);
-		BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, SM_TRASHCAN_ICON_READY, dx + SM_TRASHCAN_X, dy + SM_TRASHCAN_Y);
-		RestoreExternBackgroundRect(dx + SM_TRASHCAN_X, dy + SM_TRASHCAN_Y, SM_TRASHCAN_WIDTH, SM_TRASHCAN_HEIGHT);
 
 		RenderSoldierFace(s, dx + SM_SELMERC_FACE_X, dy + SM_SELMERC_FACE_Y);
 
@@ -1537,6 +1569,18 @@ no_plate:
 		ClipRect.iBottom = SCREEN_HEIGHT;
 		SGPVSurface::Lock l(FRAME_BUFFER);
 		Blt16BPPBufferHatchRect(l.Buffer<UINT16>(), l.Pitch(), &ClipRect);
+	}
+
+	// Money/trash-can icons -- drawn LAST, after everything above (including
+	// the DIRTYLEVEL2 branch's guiSMPanel re-blit and its own bulk
+	// RestoreExternBackgroundRect over the whole panel area), which would
+	// otherwise erase them from guiSAVEBUFFER/FRAME_BUFFER again within the
+	// same frame -- e.g. every DIRTYLEVEL2 refresh triggered by hovering
+	// over an item/stat, causing a visible blink.
+	if (!InItemDescriptionBox())
+	{
+		RenderSMTrashCanHighlight();
+		RenderSMMoneyAndTrashIcons();
 	}
 }
 
@@ -3547,6 +3591,12 @@ void BeginKeyPanelFromKeyShortcut(void)
 
 void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 {
+	// Pressed-icon state (Interface_Items.cc renders it) -- tracked
+	// unconditionally, ahead of the early-returns below, so the icon
+	// visually presses even when the click itself turns out to be a no-op.
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN) fSMKeyringIconPressed = TRUE;
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)  fSMKeyringIconPressed = FALSE;
+
 	SOLDIERTYPE *pSoldier = NULL;
 	INT16 sStartYPosition = 0;
 	INT16 sWidth = 0, sHeight = 0;
@@ -3859,10 +3909,33 @@ static bool IsMouseInRegion(MOUSE_REGION const& r)
 static void ConfirmationToDepositMoneyToPlayersAccount(MessageBoxReturnValue);
 
 
+static void SMInvMoneyMoveCallback(MOUSE_REGION*, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		fSMMoneyIconPressed = FALSE;
+	}
+}
+
+
 static void SMInvMoneyButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 {
-	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN )
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN)
 	{
+		fSMMoneyIconPressed = TRUE;
+	}
+
+	// Runs on release, not press -- same timing as
+	// KeyRingItemPanelButtonCallback. Doing this on POINTER_DWN used to open
+	// Infobox_money.sti (via InternalInitItemDescriptionBox()) in the very
+	// same event that set fSMMoneyIconPressed, and since the money/trash
+	// icons stop rendering while InItemDescriptionBox() is true, the
+	// pressed frame never actually got drawn. Triggering on POINTER_UP
+	// instead gives the same natural "held down" window Keyring already had.
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP )
+	{
+		fSMMoneyIconPressed = FALSE;
+
 		//If the current merc is to far away, dont allow anything to be done
 		if( gfSMDisableForItems )
 			return;
@@ -3949,8 +4022,15 @@ static void SMTrashCanItemMessageBoxCallback(MessageBoxReturnValue const bExitVa
 
 static void SMTrashCanBtnCallback(MOUSE_REGION*, UINT32 const reason)
 {
+	if (reason & MSYS_CALLBACK_REASON_POINTER_DWN)
+	{
+		fSMTrashIconPressed = TRUE;
+	}
+
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		fSMTrashIconPressed = FALSE;
+
 		if (OBJECTTYPE* const o = gpItemPointer)
 		{
 			ST::string msg = o->ubMission ? pTrashItemText[1] : pTrashItemText[0];
@@ -3969,6 +4049,7 @@ static void SMTrashCanMoveCallback(MOUSE_REGION*, UINT32 iReason)
 	else if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
 	{
 		fShowSMTrashCanHighlight = FALSE;
+		fSMTrashIconPressed = FALSE;
 	}
 }
 
@@ -3998,6 +4079,32 @@ static void RenderSMTrashCanHighlight()
 	SGPVSurface::Lock l(guiSAVEBUFFER);
 	SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	RectangleDraw(TRUE, x, y, x + SM_TRASHCAN_WIDTH, y + SM_TRASHCAN_HEIGHT, Get16BPPColor(FROMRGB(255, 255, 255)), l.Buffer<UINT16>());
+}
+
+
+// Money/trash-can icons -- see guiSMBookmarksVO above. Called every frame
+// (like RenderSMTrashCanHighlight() above) rather than gated to
+// DIRTYLEVEL2, so the pressed-state swap shows up promptly; also keeps them
+// out of guiSAVEBUFFER while InItemDescriptionBox() is drawing there (same
+// "else" branch as the trash highlight).
+static void RenderSMMoneyAndTrashIcons()
+{
+	INT32 const moneyX = INTERFACE_START_X + MONEY_X;
+	INT32 const moneyY = INV_INTERFACE_START_Y + MONEY_Y;
+	BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fSMMoneyIconPressed ? SM_MONEY_ICON_PRESSED : SM_MONEY_ICON_READY, moneyX, moneyY);
+	RestoreExternBackgroundRect(moneyX, moneyY, MONEY_WIDTH, MONEY_HEIGHT);
+
+	INT32 const trashX = INTERFACE_START_X + SM_TRASHCAN_X;
+	INT32 const trashY = INV_INTERFACE_START_Y + SM_TRASHCAN_Y;
+	// The trash can is a drag-and-drop target, not a click button: the
+	// meaningful "about to act" moment is hovering over it with an item on
+	// the cursor (fShowSMTrashCanHighlight, already tracked by
+	// SMTrashCanMoveCallback for the white outline), before the drop even
+	// happens -- not a literal mouse-button-down (fSMTrashIconPressed),
+	// which barely factors into this interaction at all.
+	BOOLEAN const fTrashPressed = fSMTrashIconPressed || fShowSMTrashCanHighlight;
+	BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fTrashPressed ? SM_TRASHCAN_ICON_PRESSED : SM_TRASHCAN_ICON_READY, trashX, trashY);
+	RestoreExternBackgroundRect(trashX, trashY, SM_TRASHCAN_WIDTH, SM_TRASHCAN_HEIGHT);
 }
 
 

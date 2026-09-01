@@ -62,6 +62,15 @@ void ShutdownSMPanel();
 void RenderSMPanel(DirtyLevel*);
 void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup);
 
+// GUI_BUTTONs render through their own, independent pass (RenderButtons())
+// that isn't gated by InItemDescriptionBox() the way the rest of the SM
+// panel is -- so any bookmark button whose rectangle overlaps Infobox.sti/
+// Infobox_money.sti would otherwise draw on top of it. Called from
+// InternalInitItemDescriptionBox()/DeleteItemDescriptionBox() in
+// Interface_Items.cc.
+void HideSMBookmarkButtons(void);
+void ShowSMBookmarkButtons(void);
+
 
 void CreateTEAMPanelButtons(void);
 void RemoveTEAMPanelButtons(void);
@@ -128,6 +137,7 @@ extern GUIButtonRef iTEAMPanelButtons[NUM_TEAM_BUTTONS];
 extern GUIButtonRef giSMStealthButton;
 extern SOLDIERTYPE* gSelectSMPanelToMerc;
 extern MOUSE_REGION gSM_SELMERCMoneyRegion;
+extern BOOLEAN      fSMKeyringIconPressed;
 extern UINT8        gubHandPos;
 extern UINT16       gusOldItemIndex;
 extern UINT16       gusNewItemIndex;
