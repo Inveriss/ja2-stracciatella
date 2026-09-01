@@ -258,6 +258,10 @@ cache_key_t const guiMoneyItemDescBox{ INTERFACEDIR "/Infobox_money.sti" };
 cache_key_t const guiBullet{ INTERFACEDIR "/bullet.sti" };
 cache_key_t const guiMoneyGraphicsForDescBox{ INTERFACEDIR "/info_bil.sti" };
 cache_key_t const guiGoldKeyVO{ INTERFACEDIR "/gold_key_button.sti" };
+// Same cache entry as guiSMBookmarksVO in Interface_Panels.cc (cache_key_t
+// is just the path string -- GetVObject()/BltVideoObject() share one
+// loaded copy across translation units).
+cache_key_t const guiSMBookmarksVO{ INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti" };
 }
 static SGPVObject *guiItemGraphic;
 static UINT8 guiItemGraphicIndex;
@@ -1050,23 +1054,27 @@ void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 		INVRenderINVPanelItem(s, i, dirty_level);
 	}
 
-	if (KeyExistsInKeyRing(s, ANYKEY))
+	if (guiCurrentItemDescriptionScreen == MAP_SCREEN)
 	{
-		// blit gold key here?
-		INT32 x;
-		INT32 y;
-		if (guiCurrentItemDescriptionScreen == MAP_SCREEN)
+		// Map screen keyring is unchanged: gold_key_button.sti only lights up
+		// when the keyring actually holds a key.
+		if (KeyExistsInKeyRing(s, ANYKEY))
 		{
-			x = MAP_KEYRING_X;
-			y = MAP_KEYRING_Y;
+			BltVideoObject(guiSAVEBUFFER, guiGoldKeyVO, 0, MAP_KEYRING_X, MAP_KEYRING_Y);
+			RestoreExternBackgroundRect(MAP_KEYRING_X, MAP_KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
 		}
-		else
-		{
-			x = KEYRING_X;
-			y = KEYRING_Y;
-		}
-		BltVideoObject(guiSAVEBUFFER, guiGoldKeyVO, 0, x, y);
-		RestoreExternBackgroundRect(x, y, KEYRING_WIDTH, KEYRING_HEIGHT);
+	}
+	else
+	{
+		// Tactical panel: the keyring icon is now a persistent
+		// inventory_bottom_panel_bookmarks.sti button (sub-image 17,
+		// 0-based 16 -- see guiSMBookmarksVO in Interface_Panels.cc, source
+		// of the shared cache entry), always shown regardless of whether the
+		// keyring actually holds a key. This deactivates the old
+		// gold_key_button.sti "only when you have a key" highlight for this
+		// screen.
+		BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, 16, KEYRING_X, KEYRING_Y);
+		RestoreExternBackgroundRect(KEYRING_X, KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
 	}
 }
 

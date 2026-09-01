@@ -152,8 +152,18 @@
 #define SM_MERCB_Y				143
 #define SM_BOBBYRB_X				110
 #define SM_BOBBYRB_Y				143
+#define SM_HISTORYB_X				145
+#define SM_HISTORYB_Y				143
 #define SM_PERSONNELB_X			180
 #define SM_PERSONNELB_Y			143
+// 61x32 placeholder.
+#define SM_STRATSCREENB_X			215
+#define SM_STRATSCREENB_Y			161
+// 58x32 placeholder. Window/functionality not implemented yet -- points at
+// the Options screen (BtnOptionsCallback) as a stand-in until a dedicated
+// keyboard-shortcuts screen exists.
+#define SM_SHORTCUTSB_X			384
+#define SM_SHORTCUTSB_Y			161
 // Anchored to the right edge of the single-merc panel's OWN canvas
 // (m_smPanelWidth), not m_teamPanelSlotsTotalWidth and NOT the shared,
 // purely squad-size-driven m_teamPanelWidth -- m_smPanelWidth is floored to
@@ -237,10 +247,10 @@
 // MapScreen.h). The icon itself is painted directly into the panel art
 // (~10px left of the LEGPOS slot); these are placeholder coordinates/size --
 // tune to match the final graphic.
-#define SM_TRASHCAN_X				378
-#define SM_TRASHCAN_Y				123
+#define SM_TRASHCAN_X				349
+#define SM_TRASHCAN_Y				161
 #define SM_TRASHCAN_WIDTH			32
-#define SM_TRASHCAN_HEIGHT			26
+#define SM_TRASHCAN_HEIGHT			32
 
 #define TM_FACE_X				14
 #define TM_FACE_Y				6
@@ -308,7 +318,10 @@ enum
 	SM_AIM_MEMBERS_IMAGES,
 	SM_MERC_IMAGES,
 	SM_BOBBYR_IMAGES,
+	SM_HISTORY_IMAGES,
 	SM_PERSONNEL_IMAGES,
+	SM_STRATSCREEN_IMAGES,
+	SM_SHORTCUTS_IMAGES,
 	NUM_SM_BUTTON_IMAGES
 };
 
@@ -364,6 +377,18 @@ static SGPVObject* guiTEAMObjects;
 static SGPVObject* guiVEHINV;
 
 static cache_key_t const guiCLOSE{ INTERFACEDIR "/p_close.sti" };
+
+// Sub-image 15 (0-based 14) of inventory_bottom_panel_bookmarks.sti is the
+// "ready" state icon for the money region on this panel, moved here from
+// being baked into inventory_bottom_panel.sti's own art (the trash can's
+// "ready" icon, sub-image 19/0-based 18, is drawn from the same source --
+// see SM_TRASHCAN_ICON_READY below). Sub-image 16 (0-based 15) is the
+// matching "pressed" state, loaded here for completeness but not yet wired
+// up to a press animation -- neither region currently tracks POINTER_DWN/UP
+// for rendering purposes, only for their existing click handlers.
+static cache_key_t const guiSMBookmarksVO{ INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti" };
+#define SM_MONEY_ICON_READY		14
+#define SM_TRASHCAN_ICON_READY		18
 
 // Globals for various mouse regions
 static MOUSE_REGION gSM_SELMERCPanelRegion;
@@ -850,7 +875,10 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 				EnableButton(iSMPanelButtons[SM_AIM_MEMBERS_BUTTON], enable);
 				EnableButton(iSMPanelButtons[SM_MERC_BUTTON],        enable);
 				EnableButton(iSMPanelButtons[SM_BOBBYR_BUTTON],      enable);
+				EnableButton(iSMPanelButtons[SM_HISTORY_BUTTON],     enable);
 				EnableButton(iSMPanelButtons[SM_PERSONNEL_BUTTON],   enable);
+				EnableButton(iSMPanelButtons[SM_STRATSCREEN_BUTTON], enable);
+				EnableButton(iSMPanelButtons[SM_SHORTCUTS_BUTTON],   enable);
 
 				//enable the radar map region
 				gRadarRegion.Enable();
@@ -890,7 +918,10 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 			DisableButton( iSMPanelButtons[ SM_AIM_MEMBERS_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_MERC_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_BOBBYR_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_HISTORY_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_PERSONNEL_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_STRATSCREEN_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_SHORTCUTS_BUTTON ] );
 
 			gRadarRegion.Disable();
 		}
@@ -1078,6 +1109,7 @@ static void BtnHandCursorCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnLaptopAIMMembersCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnLaptopBobbyRCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnLaptopEmailCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopHistoryCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnLaptopMercCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnLaptopPersonnelCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnLookCallback(GUI_BUTTON* btn, UINT32 reason);
@@ -1124,14 +1156,19 @@ void CreateSMPanelButtons(void)
 	iSMPanelImages[DONE_IMAGES]       = LoadButtonImage(INTERFACEDIR "/inventory_buttons_2.sti",  1,  3);
 	iSMPanelImages[MAPSCREEN_IMAGES]  = UseLoadedButtonImage(iSMPanelImages[DONE_IMAGES],         0,  2);
 
-	// Laptop shortcut buttons -- inventory_bottom_panel_bookmarks.sti holds
-	// 5 (ready, pressed) pairs in this order: e-mail, AIM Members, M.E.R.C.,
-	// Bobby Ray's, Personnel.
+	// Laptop/navigation shortcut buttons -- inventory_bottom_panel_bookmarks.sti
+	// holds (ready, pressed) pairs in this order: e-mail, AIM Members,
+	// M.E.R.C., Bobby Ray's, History, Personnel, Strategic Map, [6 reserved/
+	// empty sub-images], Keyboard Shortcuts.
 	iSMPanelImages[SM_EMAIL_IMAGES]       = LoadButtonImage(INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti", 0, 1);
 	iSMPanelImages[SM_AIM_MEMBERS_IMAGES] = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 2, 3);
 	iSMPanelImages[SM_MERC_IMAGES]        = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 4, 5);
 	iSMPanelImages[SM_BOBBYR_IMAGES]      = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 6, 7);
-	iSMPanelImages[SM_PERSONNEL_IMAGES]   = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 8, 9);
+	iSMPanelImages[SM_HISTORY_IMAGES]     = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 8, 9);
+	iSMPanelImages[SM_PERSONNEL_IMAGES]   = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 10, 11);
+	iSMPanelImages[SM_STRATSCREEN_IMAGES] = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 12, 13);
+	// sub-images 14-19 reserved/empty
+	iSMPanelImages[SM_SHORTCUTS_IMAGES]   = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 20, 21);
 
 
 	// Create buttons
@@ -1158,7 +1195,14 @@ void CreateSMPanelButtons(void)
 	MakeButtonT(SM_AIM_MEMBERS_BUTTON, iSMPanelImages[SM_AIM_MEMBERS_IMAGES], dx + SM_AIM_MEMBERSB_X, dy + SM_AIM_MEMBERSB_Y, BtnLaptopAIMMembersCallback, "AIM Members");
 	MakeButtonT(SM_MERC_BUTTON,        iSMPanelImages[SM_MERC_IMAGES],        dx + SM_MERCB_X,        dy + SM_MERCB_Y,        BtnLaptopMercCallback,       "M.E.R.C.");
 	MakeButtonT(SM_BOBBYR_BUTTON,      iSMPanelImages[SM_BOBBYR_IMAGES],      dx + SM_BOBBYRB_X,      dy + SM_BOBBYRB_Y,      BtnLaptopBobbyRCallback,     "Bobby Ray's");
+	MakeButtonT(SM_HISTORY_BUTTON,     iSMPanelImages[SM_HISTORY_IMAGES],     dx + SM_HISTORYB_X,     dy + SM_HISTORYB_Y,     BtnLaptopHistoryCallback,    "History");
 	MakeButtonT(SM_PERSONNEL_BUTTON,   iSMPanelImages[SM_PERSONNEL_IMAGES],   dx + SM_PERSONNELB_X,   dy + SM_PERSONNELB_Y,   BtnLaptopPersonnelCallback,  "Personnel");
+	// Reuses the existing Map Screen / Options callbacks -- same
+	// destinations as the panel's own SM_MAP_SCREEN_BUTTON/OPTIONS_BUTTON,
+	// just added to the new bookmark row too. SM_SHORTCUTS_BUTTON is a
+	// placeholder standing in for a not-yet-built keyboard-shortcuts screen.
+	MakeButtonT(SM_STRATSCREEN_BUTTON, iSMPanelImages[SM_STRATSCREEN_IMAGES], dx + SM_STRATSCREENB_X, dy + SM_STRATSCREENB_Y, BtnMapScreenCallback,        "Strategic Map");
+	MakeButtonT(SM_SHORTCUTS_BUTTON,   iSMPanelImages[SM_SHORTCUTS_IMAGES],   dx + SM_SHORTCUTSB_X,   dy + SM_SHORTCUTSB_Y,   BtnOptionsCallback,          "Keyboard Shortcuts (placeholder)");
 #if 0
 	MakeButtonN(BURSTMODE_BUTTON,     iSMPanelImages[BURSTMODE_IMAGES],  SM_BURSTMODEB_X,  dy + SM_BURSTMODEB_Y,  BtnBurstModeCallback,  TacticalStr[TOGGLE_BURSTMODE_POPUPTEXT]);
 #endif
@@ -1379,6 +1423,14 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 			RestoreExternBackgroundRect(x, y, SM_SELMERC_PLATE_WIDTH, SM_SELMERC_PLATE_HEIGHT);
 		}
 no_plate:
+
+		// Money and trash-can icons -- see guiSMBookmarksVO above. Persistent,
+		// redrawn whenever the rest of the panel is (DIRTYLEVEL2), same as
+		// the plate/face just above.
+		BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, SM_MONEY_ICON_READY, dx + MONEY_X, dy + MONEY_Y);
+		RestoreExternBackgroundRect(dx + MONEY_X, dy + MONEY_Y, MONEY_WIDTH, MONEY_HEIGHT);
+		BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, SM_TRASHCAN_ICON_READY, dx + SM_TRASHCAN_X, dy + SM_TRASHCAN_Y);
+		RestoreExternBackgroundRect(dx + SM_TRASHCAN_X, dy + SM_TRASHCAN_Y, SM_TRASHCAN_WIDTH, SM_TRASHCAN_HEIGHT);
 
 		RenderSoldierFace(s, dx + SM_SELMERC_FACE_X, dy + SM_SELMERC_FACE_Y);
 
@@ -2360,6 +2412,18 @@ static void BtnLaptopPersonnelCallback(GUI_BUTTON* btn, UINT32 reason)
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
 		SetLaptopEntryMode(LAPTOP_MODE_PERSONNEL);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopHistoryCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_HISTORY);
 		SetLaptopExitScreen(GAME_SCREEN);
 		guiPreviousOptionScreen = guiCurrentScreen;
 		LeaveTacticalScreen(LAPTOP_SCREEN);
