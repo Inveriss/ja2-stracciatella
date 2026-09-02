@@ -366,8 +366,19 @@ static void CreateDestroyMouseRegionsForSquadList(void)
 
 	if (!fRenderRadarScreen && !fCreated)
 	{
-		BltVideoObjectOnce(guiSAVEBUFFER, INTERFACEDIR "/squadpanel.sti", 0, INTERFACE_START_X + 538, gsVIEWPORT_END_Y);
-		RestoreExternBackgroundRect(INTERFACE_START_X + 538, gsVIEWPORT_END_Y, 102, 120);
+		// Anchored to the team panel's actual right edge (m_teamPanelWidth),
+		// not a fixed offset -- squadpanel.sti is 102px wide, and the old
+		// literal "538" (= 640 - 102) only matched the vanilla 6-slot/640px
+		// team panel. m_teamPanelWidth grows past that with more visible
+		// team slots (wider resolutions / larger squad_size), which left
+		// this stuck at the old fixed offset -- landing in the middle of a
+		// wider panel instead of at its right edge. Only the TEAM panel
+		// shows the Change Squad button that opens this, so no SM_PANEL
+		// branch is needed here (unlike get_CLOCK_X()/get_RADAR_WINDOW_X()
+		// in UILayout.cc, which are shared between both panels).
+		INT16 const squadPanelX = INTERFACE_START_X + g_ui.m_teamPanelWidth - 102;
+		BltVideoObjectOnce(guiSAVEBUFFER, INTERFACEDIR "/squadpanel.sti", 0, squadPanelX, gsVIEWPORT_END_Y);
+		RestoreExternBackgroundRect(squadPanelX, gsVIEWPORT_END_Y, 102, 120);
 
 		// create regions
 		INT16 const w = RADAR_WINDOW_WIDTH / 2 - 1;

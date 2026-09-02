@@ -278,6 +278,10 @@ cache_key_t const guiMapItemDescBox{ INTERFACEDIR "/iteminfoc.sti" };
 // Same-sized alternate background for the tactical item description box when
 // displaying money - doesn't need the room reserved for weapon stats/attachments.
 cache_key_t const guiMoneyItemDescBox{ INTERFACEDIR "/Infobox_money.sti" };
+// Tactical item description box background for every non-weapon,
+// non-money item class (armour, ammo, medkits, keys, misc, ...) -- see
+// g_generic_item_attachment_info below for its (4-slot) attachment layout.
+cache_key_t const guiGenericItemDescBox{ INTERFACEDIR "/Infobox_items.sti" };
 
 cache_key_t const guiBullet{ INTERFACEDIR "/bullet.sti" };
 cache_key_t const guiMoneyGraphicsForDescBox{ INTERFACEDIR "/info_bil.sti" };
@@ -542,6 +546,21 @@ static const AttachmentGfxInfo g_map_attachment_info =
 		{   5,  57 }, {  39,  57 }, {  73,  57 }, { 107,  57 },
 		{   5,  83 }, {  39,  83 }, {  73,  83 }, { 107,  83 },
 		{   5, 109 }, {  39, 109 }, {  73, 109 }, { 107, 109 },
+	}
+};
+
+// Placeholder 2x2 grid, 4 attachment slots for every non-weapon, non-money
+// item class on the tactical screen (Infobox_items.sti) -- independent of
+// g_attachment_info (weapons). Reposition by hand to match the final
+// artwork, same as the other layouts above.
+static const AttachmentGfxInfo g_generic_item_attachment_info =
+{
+	{ 8, 1, 36, 31 },   // item_box: x, y, w, h
+	{ 1, 1, 2, 31 },   // bar_box
+	{
+		{ 306, 46 }, { 306, 84 },
+		{ 355, 46 }, { 355, 84 },
+		// remaining 16 unused -- the loop is capped to 4 for this class
 	}
 };
 
@@ -2470,10 +2489,20 @@ void RenderItemDescriptionBox(void)
 	INT16      const  dx     = gsInvDescX;
 	INT16      const  dy     = gsInvDescY;
 
+	// Money keeps its own, already-established path (guiMoneyItemDescBox,
+	// weapon-layout attachment math below left inert/unused as before);
+	// everything that isn't a weapon (guns/blades/thrown/launchers --
+	// isWeapon()) and isn't money now gets Infobox_items.sti with its own
+	// 4-slot layout. Scoped to the tactical screen -- map screen
+	// (iteminfoc.sti) is unaffected.
+	bool const fIsMoney  = obj.usItem == MONEY;
+	bool const fIsWeapon = GCM->getItem(obj.usItem)->isWeapon();
+
 	auto * const box_gfx =
-		(obj.usItem == MONEY && !in_map) ? guiMoneyItemDescBox :
-		in_map                           ? guiMapItemDescBox   :
-		                                   guiItemDescBox;
+		in_map    ? guiMapItemDescBox :
+		fIsMoney  ? guiMoneyItemDescBox :
+		fIsWeapon ? guiItemDescBox :
+		            guiGenericItemDescBox;
 	BltVideoObject(guiSAVEBUFFER, box_gfx, 0, dx, dy);
 
 	// Display the money 'separating' border
@@ -2522,8 +2551,16 @@ void RenderItemDescriptionBox(void)
 
 	{
 		// Display attachments
-		AttachmentGfxInfo const& agi = in_map ? g_map_attachment_info : g_attachment_info;
-		for (INT32 i = 0; i < MAX_ATTACHMENTS; ++i)
+		AttachmentGfxInfo const& agi =
+			in_map                 ? g_map_attachment_info :
+			fIsWeapon || fIsMoney  ? g_attachment_info :
+			                         g_generic_item_attachment_info;
+		// Non-weapon, non-money items only have 4 slots laid out in
+		// g_generic_item_attachment_info -- the rest of its slot[] array is
+		// unused placeholder data.
+		INT32 const numAttachmentSlots =
+			(!in_map && !fIsWeapon && !fIsMoney) ? 4 : MAX_ATTACHMENTS;
+		for (INT32 i = 0; i < numAttachmentSlots; ++i)
 		{
 			INT16 const x = dx + agi.slot[i].iX;
 			INT16 const y = dy + agi.slot[i].iY;

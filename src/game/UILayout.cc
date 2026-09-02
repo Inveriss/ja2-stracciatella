@@ -110,49 +110,49 @@ void UILayout::recalculatePositions()
 	m_stdScreenOffsetY            = (m_screenHeight - MIN_INTERFACE_HEIGHT) / 2;
 
 	// tactical screen inventory position
-	m_invSlotPositionTac[HELMETPOS           ].set(startX + 430, startInvY +   8);
-	m_invSlotPositionTac[VESTPOS             ].set(startX + 430, startInvY +  47);
-	m_invSlotPositionTac[LEGPOS              ].set(startX + 430, startInvY +  116);
+	m_invSlotPositionTac[HELMETPOS           ].set(startX + 431, startInvY +   8);
+	m_invSlotPositionTac[VESTPOS             ].set(startX + 431, startInvY +  47);
+	m_invSlotPositionTac[LEGPOS              ].set(startX + 431, startInvY +  116);
 	m_invSlotPositionTac[HEAD1POS            ].set(startX + 230, startInvY +   8);
 	m_invSlotPositionTac[HEAD2POS            ].set(startX + 230, startInvY +  43);
 	m_invSlotPositionTac[HANDPOS             ].set(startX + 303, startInvY +  83);
 	m_invSlotPositionTac[SECONDHANDPOS       ].set(startX + 303, startInvY + 118);
-	m_invSlotPositionTac[BIGPOCK1POS         ].set(startX + 678, startInvY +   80);
-	m_invSlotPositionTac[BIGPOCK2POS         ].set(startX + 678, startInvY +  116);
-	m_invSlotPositionTac[BIGPOCK3POS         ].set(startX + 771, startInvY +  8);
-	m_invSlotPositionTac[BIGPOCK4POS         ].set(startX + 771, startInvY +  44);
-	m_invSlotPositionTac[SMALLPOCK1POS       ].set(startX + 490, startInvY +   8);
-	m_invSlotPositionTac[SMALLPOCK2POS       ].set(startX + 490, startInvY +  44);
-	m_invSlotPositionTac[SMALLPOCK3POS       ].set(startX + 490, startInvY +  80);
-	m_invSlotPositionTac[SMALLPOCK4POS       ].set(startX + 490, startInvY +  116);
-	m_invSlotPositionTac[SMALLPOCK5POS       ].set(startX + 537, startInvY +   8);
-	m_invSlotPositionTac[SMALLPOCK6POS       ].set(startX + 537, startInvY +  44);
-	m_invSlotPositionTac[SMALLPOCK7POS       ].set(startX + 537, startInvY +  80);
-	m_invSlotPositionTac[SMALLPOCK8POS       ].set(startX + 537, startInvY +  116);
+	m_invSlotPositionTac[BIGPOCK1POS         ].set(startX + 679, startInvY +   80);
+	m_invSlotPositionTac[BIGPOCK2POS         ].set(startX + 679, startInvY +  116);
+	m_invSlotPositionTac[BIGPOCK3POS         ].set(startX + 772, startInvY +  8);
+	m_invSlotPositionTac[BIGPOCK4POS         ].set(startX + 772, startInvY +  44);
+	m_invSlotPositionTac[SMALLPOCK1POS       ].set(startX + 491, startInvY +   8);
+	m_invSlotPositionTac[SMALLPOCK2POS       ].set(startX + 491, startInvY +  44);
+	m_invSlotPositionTac[SMALLPOCK3POS       ].set(startX + 491, startInvY +  80);
+	m_invSlotPositionTac[SMALLPOCK4POS       ].set(startX + 491, startInvY +  116);
+	m_invSlotPositionTac[SMALLPOCK5POS       ].set(startX + 538, startInvY +   8);
+	m_invSlotPositionTac[SMALLPOCK6POS       ].set(startX + 538, startInvY +  44);
+	m_invSlotPositionTac[SMALLPOCK7POS       ].set(startX + 538, startInvY +  80);
+	m_invSlotPositionTac[SMALLPOCK8POS       ].set(startX + 538, startInvY +  116);
 
 	// TODO: placeholder positions for the 20 new slots (HEAD3/4, BIGPOCK5-10,
 	// SMALLPOCK9-20) added for the inventory expansion -- replace with real
 	// coordinates once the redesigned inventory_bottom_panel.sti layout is final.
-	m_invSlotPositionTac[HEAD3POS            ].set(startX + 278, startInvY + 8);
-	m_invSlotPositionTac[HEAD4POS            ].set(startX + 278, startInvY + 43);
-	m_invSlotPositionTac[BIGPOCK5POS         ].set(startX + 771, startInvY + 80);
-	m_invSlotPositionTac[BIGPOCK6POS         ].set(startX + 771, startInvY + 116);
-	m_invSlotPositionTac[BIGPOCK7POS         ].set(startX + 847, startInvY + 8);
-	m_invSlotPositionTac[BIGPOCK8POS         ].set(startX + 847, startInvY + 44);
-	m_invSlotPositionTac[BIGPOCK9POS         ].set(startX + 847, startInvY + 80);
-	m_invSlotPositionTac[BIGPOCK10POS        ].set(startX + 847, startInvY + 116);
-	m_invSlotPositionTac[SMALLPOCK9POS       ].set(startX + 584, startInvY +   8);
-	m_invSlotPositionTac[SMALLPOCK10POS      ].set(startX + 584, startInvY +  44);
-	m_invSlotPositionTac[SMALLPOCK11POS      ].set(startX + 584, startInvY +  80);
-	m_invSlotPositionTac[SMALLPOCK12POS      ].set(startX + 584, startInvY +  116);
-	m_invSlotPositionTac[SMALLPOCK13POS      ].set(startX + 631, startInvY +   8);
-	m_invSlotPositionTac[SMALLPOCK14POS      ].set(startX + 631, startInvY +  44);
-	m_invSlotPositionTac[SMALLPOCK15POS      ].set(startX + 631, startInvY +  80);
-	m_invSlotPositionTac[SMALLPOCK16POS      ].set(startX + 631, startInvY +  116);
-	m_invSlotPositionTac[SMALLPOCK17POS      ].set(startX + 678, startInvY +   8);
-	m_invSlotPositionTac[SMALLPOCK18POS      ].set(startX + 678, startInvY +  44);
-	m_invSlotPositionTac[SMALLPOCK19POS      ].set(startX + 725, startInvY +  8);
-	m_invSlotPositionTac[SMALLPOCK20POS      ].set(startX + 725, startInvY +  44);
+	m_invSlotPositionTac[HEAD3POS            ].set(startX + 277, startInvY + 8);
+	m_invSlotPositionTac[HEAD4POS            ].set(startX + 277, startInvY + 43);
+	m_invSlotPositionTac[BIGPOCK5POS         ].set(startX + 772, startInvY + 80);
+	m_invSlotPositionTac[BIGPOCK6POS         ].set(startX + 772, startInvY + 116);
+	m_invSlotPositionTac[BIGPOCK7POS         ].set(startX + 848, startInvY + 8);
+	m_invSlotPositionTac[BIGPOCK8POS         ].set(startX + 848, startInvY + 44);
+	m_invSlotPositionTac[BIGPOCK9POS         ].set(startX + 848, startInvY + 80);
+	m_invSlotPositionTac[BIGPOCK10POS        ].set(startX + 848, startInvY + 116);
+	m_invSlotPositionTac[SMALLPOCK9POS       ].set(startX + 585, startInvY +   8);
+	m_invSlotPositionTac[SMALLPOCK10POS      ].set(startX + 585, startInvY +  44);
+	m_invSlotPositionTac[SMALLPOCK11POS      ].set(startX + 585, startInvY +  80);
+	m_invSlotPositionTac[SMALLPOCK12POS      ].set(startX + 585, startInvY +  116);
+	m_invSlotPositionTac[SMALLPOCK13POS      ].set(startX + 632, startInvY +   8);
+	m_invSlotPositionTac[SMALLPOCK14POS      ].set(startX + 632, startInvY +  44);
+	m_invSlotPositionTac[SMALLPOCK15POS      ].set(startX + 632, startInvY +  80);
+	m_invSlotPositionTac[SMALLPOCK16POS      ].set(startX + 632, startInvY +  116);
+	m_invSlotPositionTac[SMALLPOCK17POS      ].set(startX + 679, startInvY +   8);
+	m_invSlotPositionTac[SMALLPOCK18POS      ].set(startX + 679, startInvY +  44);
+	m_invSlotPositionTac[SMALLPOCK19POS      ].set(startX + 726, startInvY +  8);
+	m_invSlotPositionTac[SMALLPOCK20POS      ].set(startX + 726, startInvY +  44);
 
 	// map screen inventory position
 	m_invSlotPositionMap[HELMETPOS           ].set(m_stdScreenOffsetX + 204, m_stdScreenOffsetY + 116);
