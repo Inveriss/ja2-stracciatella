@@ -174,9 +174,9 @@
 // it. Equivalent to the old slots-relative formula for squads >= ~11 (where
 // m_smPanelWidth == m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH
 // and isn't floored): 142 - 45 = 97, 142 - 91 = 51.
-#define SM_DONE_X				(g_ui.m_smPanelWidth - 97)
+#define SM_DONE_X				(g_ui.m_smPanelWidth - 94)
 #define SM_DONE_Y				4
-#define SM_MAPSCREEN_X				(g_ui.m_smPanelWidth - 51)
+#define SM_MAPSCREEN_X				(g_ui.m_smPanelWidth - 48)
 #define SM_MAPSCREEN_Y				4
 
 /*
@@ -3480,8 +3480,11 @@ void RenderTownIDString(void)
 	// UILayout.cc. This is a single, shared widget drawn regardless of which
 	// panel is active, so its position must follow whichever panel is
 	// currently rendered.
-	UINT16 const panelWidth = (gsCurInterfacePanel == SM_PANEL) ? g_ui.m_smPanelWidth : g_ui.m_teamPanelWidth;
-	MPrint(INTERFACE_START_X + panelWidth - 92,
+	// SM_PANEL offset shifted 3px right (92 -> 89) -- see get_CLOCK_X() in
+	// UILayout.cc.
+	UINT16 const panelWidth  = (gsCurInterfacePanel == SM_PANEL) ? g_ui.m_smPanelWidth : g_ui.m_teamPanelWidth;
+	UINT16 const panelOffset = (gsCurInterfacePanel == SM_PANEL) ? 89 : 92;
+	MPrint(INTERFACE_START_X + panelWidth - panelOffset,
 		SCREEN_HEIGHT - 55, zTownIDString, HCenterVCenterAlign(80, 16));
 }
 
