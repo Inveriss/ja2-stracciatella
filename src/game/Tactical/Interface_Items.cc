@@ -123,10 +123,10 @@
 // (Infobox.sti) when an item can't be attached/merged/launched onto the
 // examined item -- see InternalInitItemDescriptionBox() below. Independent
 // of the inventory-slot constants above; tune separately.
-#define ATTACHMENT_HATCH_OFFSET_X			8
-#define ATTACHMENT_HATCH_OFFSET_Y			2
-#define ATTACHMENT_HATCH_WIDTH_DELTA			-9
-#define ATTACHMENT_HATCH_HEIGHT_DELTA			-2
+#define ATTACHMENT_HATCH_OFFSET_X			7
+#define ATTACHMENT_HATCH_OFFSET_Y			1
+#define ATTACHMENT_HATCH_WIDTH_DELTA			-8
+#define ATTACHMENT_HATCH_HEIGHT_DELTA			-1
 
 #define RENDER_ITEM_NOSTATUS				20
 #define RENDER_ITEM_ATTACHMENT1			200
@@ -286,10 +286,15 @@ cache_key_t const guiGoldKeyVO{ INTERFACEDIR "/gold_key_button.sti" };
 // is just the path string -- GetVObject()/BltVideoObject() share one
 // loaded copy across translation units).
 cache_key_t const guiSMBookmarksVO{ INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti" };
+// Attachment slot frame, drawn per-slot in RenderItemDescriptionBox() on the
+// tactical screen -- Infobox.sti/Infobox_money.sti no longer have it baked
+// into their own art, so fHideEmptyAttachmentSlots can hide it per-slot.
+cache_key_t const guiAttachmentSlotFrameVO{ INTERFACEDIR "/attachment_slot_frame.sti" };
 }
 static SGPVObject *guiItemGraphic;
 static UINT8 guiItemGraphicIndex;
 BOOLEAN gfInItemDescBox = FALSE;
+BOOLEAN fHideEmptyAttachmentSlots = FALSE;
 static UINT32 guiCurrentItemDescriptionScreen=0;
 OBJECTTYPE *gpItemDescObject = NULL;
 static BOOLEAN gfItemDescObjectIsAttachment = FALSE;
@@ -516,14 +521,14 @@ static const AttachmentGfxInfo g_attachment_info =
 //	{ 2, 2,  2, 22 },
 	
 // NEW POSITION
-	{ 9, 2, 36, 31 },
-    { 2, 2,  2, 31 },
+	{ 8, 1, 36, 31 },
+    { 1, 1,  2, 31 },
 	
 	{
-		{   154,   7 }, {  203,   7 }, {  252,   7 }, { 349,   7 }, // First row
-		{   7,  64 }, {  56,  64 }, {  105,  64 }, { 300,  45 },	{   300,  83 }, {  349,  64 }, // Second row
-		{  105,  121 }, { 154,  121 },	{   203,  121 }, {  252,  121 }, {  349,  121 }, // Third row
-		{ 56,  159 }, {   105, 159 }, {  251, 159 }, {  300, 159 }, { 6, 159 }, // Fourth row
+		{   155,   8 }, {  204,   8 }, {  252,   8 }, { 350,   8 }, // First row
+		{   8,  65 }, {  57,  65 }, {  106,  65 }, { 301,  46 },	{   301,  84 }, {  350,  65 }, // Second row
+		{  105,  122 }, { 154,  122 },	{   203,  122 }, {  252,  122 }, {  349,  122 }, // Third row
+		{ 57,  160 }, {   106, 160 }, { 154, 160 }, {  252, 160 }, {  301, 160 },  // Fourth row
 	}
 };
 
@@ -2522,8 +2527,20 @@ void RenderItemDescriptionBox(void)
 		{
 			INT16 const x = dx + agi.slot[i].iX;
 			INT16 const y = dy + agi.slot[i].iY;
+			bool  const fSlotOccupied = obj.usAttachItem[i] != NOTHING;
 
-			if (obj.usAttachItem[i] != NOTHING)
+			// Attachment slot frame: baked into iteminfoc.sti on the map
+			// screen (unchanged, left alone below), but a separate per-slot
+			// graphic on the tactical Infobox.sti. Excluded for
+			// Infobox_money.sti (obj.usItem == MONEY) -- that graphic stays
+			// exactly as it was before this feature, with no per-slot frame
+			// drawn over it at all.
+			if (!in_map && obj.usItem != MONEY && (!fHideEmptyAttachmentSlots || fSlotOccupied))
+			{
+				BltVideoObject(guiSAVEBUFFER, guiAttachmentSlotFrameVO, 0, x, y);
+			}
+
+			if (fSlotOccupied)
 			{
 				INT16 const item_x = agi.item_box.x + x;
 				INT16 const item_y = agi.item_box.y + y;

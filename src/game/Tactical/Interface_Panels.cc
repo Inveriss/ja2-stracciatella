@@ -164,6 +164,10 @@
 // keyboard-shortcuts screen exists.
 #define SM_SHORTCUTSB_X			384
 #define SM_SHORTCUTSB_Y			160
+
+// Checkbox toggling fHideEmptyAttachmentSlots -- placeholder position.
+#define SM_HIDE_EMPTY_SLOTS_X			274
+#define SM_HIDE_EMPTY_SLOTS_Y			136
 // Anchored to the right edge of the single-merc panel's OWN canvas
 // (m_smPanelWidth), not m_teamPanelSlotsTotalWidth and NOT the shared,
 // purely squad-size-driven m_teamPanelWidth -- m_smPanelWidth is floored to
@@ -342,6 +346,12 @@ static BUTTON_PICS* iTEAMPanelImages[NUM_TEAM_BUTTON_IMAGES];
 
 static BUTTON_PICS* giSMStealthImages;
 GUIButtonRef giSMStealthButton;
+
+// Toggles fHideEmptyAttachmentSlots (Interface_Items.h). Hidden/shown
+// alongside the bookmark row by HideSMBookmarkButtons()/
+// ShowSMBookmarkButtons() -- like any GUI_BUTTON it would otherwise draw on
+// top of Infobox.sti while the item description box is open.
+GUIButtonRef giSMHideEmptySlotsCheckbox;
 
 BOOLEAN gfUIStanceDifferent = FALSE;
 static BOOLEAN gfAllDisabled = FALSE;
@@ -896,6 +906,7 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 				EnableButton(iSMPanelButtons[SM_PERSONNEL_BUTTON],   enable);
 				EnableButton(iSMPanelButtons[SM_STRATSCREEN_BUTTON], enable);
 				EnableButton(iSMPanelButtons[SM_SHORTCUTS_BUTTON],   enable);
+				if (giSMHideEmptySlotsCheckbox) EnableButton(giSMHideEmptySlotsCheckbox, enable);
 
 				//enable the radar map region
 				gRadarRegion.Enable();
@@ -939,6 +950,7 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 			DisableButton( iSMPanelButtons[ SM_PERSONNEL_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_STRATSCREEN_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_SHORTCUTS_BUTTON ] );
+			if (giSMHideEmptySlotsCheckbox) DisableButton(giSMHideEmptySlotsCheckbox);
 
 			gRadarRegion.Disable();
 		}
@@ -1141,6 +1153,7 @@ static void BtnStanceDownCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnStanceUpCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnTalkCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnUpdownCallback(GUI_BUTTON* btn, UINT32 reason);
+static void ToggleHideEmptyAttachmentSlotsCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
 void CreateSMPanelButtons(void)
@@ -1221,6 +1234,12 @@ void CreateSMPanelButtons(void)
 	// placeholder standing in for a not-yet-built keyboard-shortcuts screen.
 	MakeButtonT(SM_STRATSCREEN_BUTTON, iSMPanelImages[SM_STRATSCREEN_IMAGES], dx + SM_STRATSCREENB_X, dy + SM_STRATSCREENB_Y, BtnMapScreenCallback,        "Strategic Map");
 	MakeButtonT(SM_SHORTCUTS_BUTTON,   iSMPanelImages[SM_SHORTCUTS_IMAGES],   dx + SM_SHORTCUTSB_X,   dy + SM_SHORTCUTSB_Y,   BtnOptionsCallback,          "Keyboard Shortcuts (placeholder)");
+
+	giSMHideEmptySlotsCheckbox = CreateCheckBoxButton(
+		dx + SM_HIDE_EMPTY_SLOTS_X, dy + SM_HIDE_EMPTY_SLOTS_Y,
+		INTERFACEDIR "/popupcheck.sti", MSYS_PRIORITY_HIGHEST,
+		ToggleHideEmptyAttachmentSlotsCallback);
+	giSMHideEmptySlotsCheckbox->SetFastHelpText("Hide empty attachment slots");
 #if 0
 	MakeButtonN(BURSTMODE_BUTTON,     iSMPanelImages[BURSTMODE_IMAGES],  SM_BURSTMODEB_X,  dy + SM_BURSTMODEB_Y,  BtnBurstModeCallback,  TacticalStr[TOGGLE_BURSTMODE_POPUPTEXT]);
 #endif
@@ -1244,6 +1263,10 @@ void RemoveSMPanelButtons(void)
 	if (giSMStealthButton) RemoveButton(giSMStealthButton);
 	if (giSMStealthImages) UnloadButtonImage(giSMStealthImages);
 
+	// BUTTON_SELFDELETE_IMAGE (set by CreateCheckBoxButton()) means
+	// RemoveButton() also frees its image -- no separate UnloadButtonImage().
+	if (giSMHideEmptySlotsCheckbox) RemoveButton(giSMHideEmptySlotsCheckbox);
+
 	UnloadButtonImage(iBurstButtonImages[WM_NORMAL]);
 	UnloadButtonImage(iBurstButtonImages[WM_BURST]);
 	UnloadButtonImage(iBurstButtonImages[WM_ATTACHED]);
@@ -1263,6 +1286,12 @@ void HideSMBookmarkButtons(void)
 	{
 		if (iSMPanelButtons[idx]) HideButton(iSMPanelButtons[idx]);
 	}
+
+	// Not part of iSMPanelButtons[] (standalone GUIButtonRef, like
+	// giSMStealthButton) -- hidden here too, for the same reason as the
+	// bookmark row: GUI_BUTTONs draw on top of Infobox.sti regardless of
+	// what's underneath.
+	if (giSMHideEmptySlotsCheckbox) HideButton(giSMHideEmptySlotsCheckbox);
 }
 
 
@@ -1272,6 +1301,8 @@ void ShowSMBookmarkButtons(void)
 	{
 		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
 	}
+
+	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
 }
 
 
@@ -2469,6 +2500,15 @@ static void BtnLaptopHistoryCallback(GUI_BUTTON* btn, UINT32 reason)
 		SetLaptopExitScreen(GAME_SCREEN);
 		guiPreviousOptionScreen = guiCurrentScreen;
 		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void ToggleHideEmptyAttachmentSlotsCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		fHideEmptyAttachmentSlots = !fHideEmptyAttachmentSlots;
 	}
 }
 

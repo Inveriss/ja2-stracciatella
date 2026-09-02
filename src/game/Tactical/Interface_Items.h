@@ -64,6 +64,11 @@ void INVRenderItem(SGPVSurface* uiBuffer, SOLDIERTYPE const* pSoldier, OBJECTTYP
 
 
 extern BOOLEAN gfInItemDescBox;
+// Toggled by giSMHideEmptySlotsCheckbox (Interface_Panels.cc). When set,
+// RenderItemDescriptionBox() skips drawing attachment_slot_frame.sti for
+// unoccupied attachment slots on the tactical screen (map screen is
+// unaffected -- its slot frames stay baked into iteminfoc.sti).
+extern BOOLEAN fHideEmptyAttachmentSlots;
 
 BOOLEAN InItemDescriptionBox(void);
 void InitItemDescriptionBox(SOLDIERTYPE* pSoldier, UINT8 ubPosition, INT16 sX, INT16 sY, UINT8 ubStatusIndex);
