@@ -104,6 +104,30 @@
 #define INV_BAR_DX					7
 #define INV_BAR_DY					30
 
+// Adjustable offset (from the slot's own top-left corner) and size delta
+// (relative to the slot's own width/height) for the "item doesn't fit
+// here" hatch drawn over inventory slots in INVRenderINVPanelItem() --
+// see DrawHatchOnInventory() below. All zero preserves the original
+// behaviour (hatch pixel-for-pixel matches the slot rect). Positive
+// OFFSET_X/Y moves it right/down, negative left/up; positive WIDTH_DELTA/
+// HEIGHT_DELTA grows it past the slot's own edges, negative shrinks it.
+// Scoped to this one call site only -- see ATTACHMENT_HATCH_* below for the
+// separate attachment-slot hatch in the item description box.
+#define HATCH_OFFSET_X					-1
+#define HATCH_OFFSET_Y					0
+#define HATCH_WIDTH_DELTA				0
+#define HATCH_HEIGHT_DELTA				0
+
+// Same idea as HATCH_OFFSET_X/Y/HATCH_WIDTH_DELTA/HATCH_HEIGHT_DELTA above,
+// but for the attachment-slot hatch drawn in the item description box
+// (Infobox.sti) when an item can't be attached/merged/launched onto the
+// examined item -- see InternalInitItemDescriptionBox() below. Independent
+// of the inventory-slot constants above; tune separately.
+#define ATTACHMENT_HATCH_OFFSET_X			8
+#define ATTACHMENT_HATCH_OFFSET_Y			2
+#define ATTACHMENT_HATCH_WIDTH_DELTA			-9
+#define ATTACHMENT_HATCH_HEIGHT_DELTA			-2
+
 #define RENDER_ITEM_NOSTATUS				20
 #define RENDER_ITEM_ATTACHMENT1			200
 
@@ -1047,7 +1071,9 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 	if (hatch_out)
 	{
 		SGPVSurface* const dst = in_map ? guiSAVEBUFFER : FRAME_BUFFER;
-		DrawHatchOnInventory(dst, x, y, r.W(), r.H());
+		DrawHatchOnInventory(dst,
+			x + HATCH_OFFSET_X, y + HATCH_OFFSET_Y,
+			r.W() + HATCH_WIDTH_DELTA, r.H() + HATCH_HEIGHT_DELTA);
 	}
 
 	if (o.usItem != NOTHING)
@@ -2515,7 +2541,9 @@ void RenderItemDescriptionBox(void)
 			{
 				UINT16 const hatch_w = agi.item_box.x + agi.item_box.w;
 				UINT16 const hatch_h = agi.item_box.y + agi.item_box.h;
-				DrawHatchOnInventory(guiSAVEBUFFER, x, y, hatch_w, hatch_h);
+				DrawHatchOnInventory(guiSAVEBUFFER,
+					x + ATTACHMENT_HATCH_OFFSET_X, y + ATTACHMENT_HATCH_OFFSET_Y,
+					hatch_w + ATTACHMENT_HATCH_WIDTH_DELTA, hatch_h + ATTACHMENT_HATCH_HEIGHT_DELTA);
 			}
 		}
 	}
