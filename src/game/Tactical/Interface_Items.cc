@@ -522,7 +522,7 @@ static const INV_DESC_STATS gGenericItemStats[] =
 	{ 273, 117, 87 },  // [0] Weight
 	{ 273, 100, 87 },  // [1] Status / ammo amount
 	{ 0,   0,   0  },  // [2] unused in this branch -- kept only so [3] lines up
-	{ 273,  14, 31 },  // [3] Key description box (sector found / date found)
+	{ 273,  19, 31 },  // [3] Key description box (sector found / date found)
 };
 
 
@@ -3219,11 +3219,11 @@ void RenderItemDescriptionBox(void)
 
 			SetFontForeground(5);
 			ST::string sTempString = SGPSector(key.usSectorFound).AsShortString();
-			FindFontRightCoordinates(x, y0, 110, ITEM_STATS_HEIGHT, sTempString, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(x, y0, 113, ITEM_STATS_HEIGHT, sTempString, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, sTempString);
 
 			pStr = ST::format("{}", key.usDateFound);
-			FindFontRightCoordinates(x, y1, 110, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(x, y1, 113, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
 	}
