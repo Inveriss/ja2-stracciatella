@@ -146,13 +146,21 @@
 // Size of the tactical item description box's mouse region -- one
 // independent copy per box background (Infobox.sti/Infobox_money.sti/
 // Infobox_items.sti), selected in InternalInitItemDescriptionBox()/
-// RenderItemDescriptionBox() via fIsWeapon/fIsMoney. All three currently
-// equal, preserving today's shared size; tune independently as needed.
-#define ITEMDESC_HEIGHT				    301  // Infobox.sti (weapon)
+// RenderItemDescriptionBox() via fIsWeapon/fIsMoney. Also used to size the
+// RestoreExternBackgroundRect() call in RenderItemDescriptionBox() that
+// restores the background under the whole popup -- that call Asserts the
+// rect stays on-screen, so each _HEIGHT here MUST stay a few px under its
+// matching ITEMDESC_PANEL_HEIGHT (UILayout.h), since the box is anchored
+// ITEMDESC_PANEL_HEIGHT[_MONEY/_ITEMS] px up from the bottom of the screen.
+// Derived from the panel height (with the same 3px margin ITEMDESC_HEIGHT/
+// ITEMDESC_PANEL_HEIGHT already used) instead of a separate hardcoded
+// number, so retuning the panel height can't silently push the box off the
+// bottom of the screen again.
+#define ITEMDESC_HEIGHT				    (ITEMDESC_PANEL_HEIGHT - 3)        // Infobox.sti (weapon)
 #define ITEMDESC_WIDTH					542
-#define ITEMDESC_HEIGHT_MONEY			    301  // Infobox_money.sti
+#define ITEMDESC_HEIGHT_MONEY			    (ITEMDESC_PANEL_HEIGHT_MONEY - 3)  // Infobox_money.sti
 #define ITEMDESC_WIDTH_MONEY			542
-#define ITEMDESC_HEIGHT_ITEMS			    301  // Infobox_items.sti
+#define ITEMDESC_HEIGHT_ITEMS			    (ITEMDESC_PANEL_HEIGHT_ITEMS - 3)  // Infobox_items.sti
 #define ITEMDESC_WIDTH_ITEMS			542
 
 
