@@ -143,8 +143,17 @@
 // #define ITEMDESC_WIDTH				320
 
 // NEW POSITION
-#define ITEMDESC_HEIGHT				    301 
-#define ITEMDESC_WIDTH					542 
+// Size of the tactical item description box's mouse region -- one
+// independent copy per box background (Infobox.sti/Infobox_money.sti/
+// Infobox_items.sti), selected in InternalInitItemDescriptionBox()/
+// RenderItemDescriptionBox() via fIsWeapon/fIsMoney. All three currently
+// equal, preserving today's shared size; tune independently as needed.
+#define ITEMDESC_HEIGHT				    301  // Infobox.sti (weapon)
+#define ITEMDESC_WIDTH					542
+#define ITEMDESC_HEIGHT_MONEY			    301  // Infobox_money.sti
+#define ITEMDESC_WIDTH_MONEY			542
+#define ITEMDESC_HEIGHT_ITEMS			    301  // Infobox_items.sti
+#define ITEMDESC_WIDTH_ITEMS			542
 
 
 #define MAP_ITEMDESC_HEIGHT				268
@@ -190,9 +199,24 @@ static const SGPBox g_itemdesc_item_status_box     = {  6,  60,   2, 51 };
 */
 
 // NEW POSITION
-static const SGPBox g_itemdesc_desc_box            = { 14,  226, 375, 0 };
+// Item description text box. One independent copy per tactical item
+// description box background (Infobox.sti/Infobox_money.sti/
+// Infobox_items.sti) -- see fIsWeapon/fIsMoney in RenderItemDescriptionBox().
+// All three currently equal (preserving today's shared position); tune
+// independently as needed.
+static const SGPBox g_itemdesc_desc_box            = { 14,  226, 375, 0 }; // Infobox.sti (weapon) / description
+static const SGPBox g_itemdesc_desc_box_money      = { 19,  122, 334, 0 }; // Infobox_money.sti / description
+static const SGPBox g_itemdesc_desc_box_items      = { 19,  122, 232, 0 }; // Infobox_items.sti / description
 static const SGPBox g_itemdesc_pros_cons_box       = { 14, 270, 375, 10 };
-static const SGPBox g_itemdesc_item_status_box     = { 156, 115,   2, 69 };
+// x position status bar in infobox.sti ### y position ### width of status
+// bar ### length of status bar. One independent copy per tactical item
+// description box background (Infobox.sti/Infobox_money.sti/
+// Infobox_items.sti) -- see fIsWeapon/fIsMoney in RenderItemDescriptionBox().
+// All three currently equal (preserving today's on-screen position); tune
+// independently as needed.
+static const SGPBox g_itemdesc_item_status_box     = { 156, 115,   2, 69 }; // Infobox.sti (weapon) / status bar
+static const SGPBox g_itemdesc_item_status_box_money = { 14, 82,   2, 69 }; // Infobox_money.sti / status bar
+static const SGPBox g_itemdesc_item_status_box_items = { 14, 82,   2, 69 }; // Infobox_items.sti / status bar
 
 static const SGPBox g_map_itemdesc_desc_box        = { 23, 170, 220,  0 };
 static const SGPBox g_map_itemdesc_pros_cons_box   = { 23, 230, 220, 10 };
@@ -342,11 +366,11 @@ static const MoneyLoc gMoneyButtonOffsets[] = { { 215, 49 }, // 1000
 */
 
 // NEW POSITION
-static const MoneyLoc gMoneyButtonOffsets[] = { { 177, 74 }, // 1000
-												{ 215, 49 }, // 100
-												{ 177, 49 }, // 10
-												{ 215, 74 }, // Done
-												{ 187, 100 } }; // Separate
+static const MoneyLoc gMoneyButtonOffsets[] = { { 35, 38 }, // 1000
+												{ 73, 16 }, // 100
+												{ 35, 16 }, // 10
+												{ 73, 38 }, // Done
+												{ 45, 67 } }; // Separate
 
 // number of keys on keyring, temp for now
 #define NUMBER_KEYS_ON_KEYRING				28
@@ -391,12 +415,26 @@ struct INV_DESC_STATS
 static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
 
 // static const SGPBox gDescNameBox    = { 11, 110, 301, 10 };
-static const SGPBox gDescNameBox    = { 14, 203, 375, 8 };  // NEW POSITION
+// Item name (and, in the branches that reuse the same box, weapon class/
+// ammo type text and the money amount). One independent copy per tactical
+// item description box background -- see fIsWeapon/fIsMoney in
+// RenderItemDescriptionBox(). All three currently equal (preserving today's
+// shared position); tune independently as needed.
+static const SGPBox gDescNameBox       = { 14, 203, 375, 8 };  // Infobox.sti (weapon) / item name, ammo name, item class name
+static const SGPBox gDescNameBox_Money = { 19, 99, 334, 8 };  // Infobox_money.sti / item name, ammo name, item class name
+static const SGPBox gDescNameBox_Items = { 19, 99, 334, 8 };  // Infobox_items.sti / item name, ammo name, item class name
 
 static const SGPBox g_desc_item_box_map = { 23, 10, 124, 48 };
 
 // static const SGPBox g_desc_item_box     = { 23, 230, 220, 10 };
-static const SGPBox g_desc_item_box     = { 163,  46, 133, 69 }; // NEW POSITION
+// Main item picture: size and position within the box background. One
+// independent copy per tactical item description box background --
+// see fIsWeapon/fIsMoney in RenderItemDescriptionBox(). All three
+// currently equal (preserving today's on-screen position); tune
+// independently as needed.
+static const SGPBox g_desc_item_box     = { 163,  46, 133, 69 }; // Infobox.sti (weapon) / main picture
+static const SGPBox g_desc_item_box_money = { 21,  13, 133, 69 }; // Infobox_money.sti / main picture
+static const SGPBox g_desc_item_box_items = { 21,  13, 133, 69 }; // Infobox_items.sti / main picture
 
 static const INV_DESC_STATS gWeaponStats[] =
 
@@ -465,6 +503,20 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 14, 38, 48 }  // [22] "Per Aim:"
 };
 
+// Weight/Status (and, for keys, the sector-found/date-found box) label+value
+// positions for Infobox_items.sti (every non-weapon, non-money item class --
+// the "else" branch in RenderItemDescriptionBox() that used to reuse
+// gWeaponStats[0]/[1]/[3] directly). Independent of gWeaponStats
+// (Infobox.sti) and gMapWeaponStats (map screen, still shared/untouched) --
+// tune independently as needed.
+static const INV_DESC_STATS gGenericItemStats[] =
+{
+	{ 273, 117, 87 },  // [0] Weight
+	{ 273, 100, 87 },  // [1] Status / ammo amount
+	{ 0,   0,   0  },  // [2] unused in this branch -- kept only so [3] lines up
+	{ 273,  14, 31 },  // [3] Key description box (sector found / date found)
+};
+
 
 // displayed AFTER the mass/weight/"Kg" line
 static const INV_DESC_STATS gMoneyStats[] =
@@ -477,10 +529,10 @@ static const INV_DESC_STATS gMoneyStats[] =
 	*/
 	
 	// NEW POSITION
-	{ 393, 52, 78  }, // current
-	{ 393, 64, 78 },  // balance
-	{ 393, 92, 78  }, // amount to
-	{ 393, 104, 78 }   // withdraw
+	{ 251, 19, 78  }, // current
+	{ 251, 31, 79 },  // balance
+	{ 251, 59, 78  }, // amount to
+	{ 251, 71, 79 }   // withdraw
 };
 
 // displayed AFTER the mass/weight/"Kg" line
@@ -558,8 +610,8 @@ static const AttachmentGfxInfo g_generic_item_attachment_info =
 	{ 8, 1, 36, 31 },   // item_box: x, y, w, h
 	{ 1, 1, 2, 31 },   // bar_box
 	{
-		{ 306, 46 }, { 306, 84 },
-		{ 355, 46 }, { 355, 84 },
+		{ 164, 13 }, { 164, 51 },
+		{ 213, 13 }, { 213, 51 },
 		// remaining 16 unused -- the loop is capped to 4 for this class
 	}
 };
@@ -2040,6 +2092,30 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	}
 	else
 	{
+		// Which of the three tactical box backgrounds (Infobox.sti/
+		// Infobox_money.sti/Infobox_items.sti) is about to be shown for this
+		// item -- see the matching fIsMoney/fIsWeapon logic in
+		// RenderItemDescriptionBox(). Each has its own independent vertical
+		// anchor and size (UILayout.h/above), so gsInvDescY is recomputed
+		// here rather than trusting the caller's sY -- every current caller
+		// just passes the same shared macro anyway (ITEMDESC_START_Y/
+		// SM_ITEMDESC_START_Y), calculated before the item's class is known.
+		bool const fIsMoney  = o->usItem == MONEY;
+		bool const fIsWeapon = GCM->getItem(o->usItem)->isWeapon();
+
+		INT16 const width =
+			fIsMoney  ? ITEMDESC_WIDTH_MONEY :
+			fIsWeapon ? ITEMDESC_WIDTH :
+			            ITEMDESC_WIDTH_ITEMS;
+		INT16 const height =
+			fIsMoney  ? ITEMDESC_HEIGHT_MONEY :
+			fIsWeapon ? ITEMDESC_HEIGHT :
+			            ITEMDESC_HEIGHT_ITEMS;
+		gsInvDescY =
+			fIsMoney  ? (INT16)(1 + ITEMDESC_PANEL_START_Y_MONEY) :
+			fIsWeapon ? (INT16)(1 + ITEMDESC_PANEL_START_Y) :
+			            (INT16)(1 + ITEMDESC_PANEL_START_Y_ITEMS);
+
 		// CURSOR_NORMAL (not MSYS_NO_CURSOR): this single region spans both
 		// gSMPanelRegion's and gViewportRegion's territory (ITEMDESC_PANEL_HEIGHT
 		// > INV_INTERFACE_HEIGHT -- see UILayout.h), which have different
@@ -2050,7 +2126,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		// top edge left no cursor at all until the box was exited. Giving the
 		// region its own real cursor sidesteps the fallback entirely. The
 		// MAP_SCREEN branch above already does this.
-		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + ITEMDESC_WIDTH, gsInvDescY + ITEMDESC_HEIGHT, MSYS_PRIORITY_HIGHEST, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
+		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + width, gsInvDescY + height, MSYS_PRIORITY_HIGHEST, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
 
 		if (gsCurInterfacePanel == SM_PANEL)
 		{
@@ -2498,6 +2574,14 @@ void RenderItemDescriptionBox(void)
 	bool const fIsMoney  = obj.usItem == MONEY;
 	bool const fIsWeapon = GCM->getItem(obj.usItem)->isWeapon();
 
+	// gDescNameBox variant for this render pass -- reused by every "item
+	// name" style text below (name, weapon class/ammo line, money amount).
+	SGPBox const& descNameBox =
+		in_map    ? gMapDescNameBox :
+		fIsMoney  ? gDescNameBox_Money :
+		fIsWeapon ? gDescNameBox :
+		            gDescNameBox_Items;
+
 	auto * const box_gfx =
 		in_map    ? guiMapItemDescBox :
 		fIsMoney  ? guiMoneyItemDescBox :
@@ -2519,7 +2603,11 @@ void RenderItemDescriptionBox(void)
 		// Display item
 		// center in slot, remove offsets
 		ETRLEObject const& e  = guiItemGraphic->SubregionProperties(guiItemGraphicIndex);
-		SGPBox      const& xy = in_map ? g_desc_item_box_map: g_desc_item_box;
+		SGPBox      const& xy =
+			in_map    ? g_desc_item_box_map :
+			fIsMoney  ? g_desc_item_box_money :
+			fIsWeapon ? g_desc_item_box :
+			            g_desc_item_box_items;
 		INT32       const  x  = dx + xy.x + (xy.w - e.usWidth)  / 2 - e.sOffsetX;
 		INT32       const  y  = dy + xy.y + (xy.h - e.usHeight) / 2 - e.sOffsetY;
 		if (gamepolicy(f_draw_item_shadow))
@@ -2530,7 +2618,11 @@ void RenderItemDescriptionBox(void)
 	}
 
 	{ // Display status
-		SGPBox const& box = in_map ? g_map_itemdesc_item_status_box : g_itemdesc_item_status_box;
+		SGPBox const& box =
+			in_map    ? g_map_itemdesc_item_status_box :
+			fIsMoney  ? g_itemdesc_item_status_box_money :
+			fIsWeapon ? g_itemdesc_item_status_box :
+			            g_itemdesc_item_status_box_items;
 		INT16  const  x   = box.x + dx;
 		INT16  const  y   = box.y + dy;
 		INT16  const  h   = box.h;
@@ -2568,11 +2660,12 @@ void RenderItemDescriptionBox(void)
 
 			// Attachment slot frame: baked into iteminfoc.sti on the map
 			// screen (unchanged, left alone below), but a separate per-slot
-			// graphic on the tactical Infobox.sti. Excluded for
-			// Infobox_money.sti (obj.usItem == MONEY) -- that graphic stays
-			// exactly as it was before this feature, with no per-slot frame
-			// drawn over it at all.
-			if (!in_map && obj.usItem != MONEY && (!fHideEmptyAttachmentSlots || fSlotOccupied))
+			// graphic on the tactical Infobox.sti. Excluded for both
+			// Infobox_money.sti and Infobox_items.sti (fIsWeapon == false) --
+			// those two graphics stay exactly as they were before this
+			// feature, with no per-slot frame drawn over them at all; only
+			// Infobox.sti (weapons) shows it.
+			if (!in_map && fIsWeapon && (!fHideEmptyAttachmentSlots || fSlotOccupied))
 			{
 				BltVideoObject(guiSAVEBUFFER, guiAttachmentSlotFrameVO, 0, x, y);
 			}
@@ -2642,8 +2735,16 @@ void RenderItemDescriptionBox(void)
 	}
 
 	{
-		INT16 const w = in_map ? MAP_ITEMDESC_WIDTH  : ITEMDESC_WIDTH;
-		INT16 const h = in_map ? MAP_ITEMDESC_HEIGHT : ITEMDESC_HEIGHT;
+		INT16 const w =
+			in_map    ? MAP_ITEMDESC_WIDTH :
+			fIsMoney  ? ITEMDESC_WIDTH_MONEY :
+			fIsWeapon ? ITEMDESC_WIDTH :
+			            ITEMDESC_WIDTH_ITEMS;
+		INT16 const h =
+			in_map    ? MAP_ITEMDESC_HEIGHT :
+			fIsMoney  ? ITEMDESC_HEIGHT_MONEY :
+			fIsWeapon ? ITEMDESC_HEIGHT :
+			            ITEMDESC_HEIGHT_ITEMS;
 		RestoreExternBackgroundRect(dx, dy, w, h);
 	}
 
@@ -2652,7 +2753,7 @@ void RenderItemDescriptionBox(void)
 
 	{
 		// Render name
-		SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
+		SGPBox const& xy = descNameBox;
 		MPrint(dx + xy.x, dy + xy.y, gzItemName);
 	}
 
@@ -2664,7 +2765,11 @@ void RenderItemDescriptionBox(void)
 
 	{
 		// Weapon description text: same font colour as the weapon name above.
-		SGPBox const& box = in_map ? g_map_itemdesc_desc_box : g_itemdesc_desc_box;
+		SGPBox const& box =
+			in_map    ? g_map_itemdesc_desc_box :
+			fIsMoney  ? g_itemdesc_desc_box_money :
+			fIsWeapon ? g_itemdesc_desc_box :
+			            g_itemdesc_desc_box_items;
 		DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
 	}
 
@@ -2690,7 +2795,7 @@ void RenderItemDescriptionBox(void)
 			// DisplayWrappedString() happened to leave set globally).
 			SetFontForeground(FONT_FCOLOR_WHITE);
 
-			SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
+			SGPBox const& xy = descNameBox;
 			FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, ITEMDESC_FONT, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
@@ -2961,7 +3066,7 @@ void RenderItemDescriptionBox(void)
 		{
 			// Display the total amount of money
 			pStr = SPrintMoney(in_map && gfAddingMoneyToMercFromPlayersAccount ? LaptopSaveInfo.iCurrentBalance : gRemoveMoney.uiTotalAmount);
-			SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
+			SGPBox const& xy = descNameBox;
 			FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
@@ -3030,7 +3135,7 @@ void RenderItemDescriptionBox(void)
 	{
 		SetFontForeground(FONT_FCOLOR_WHITE);
 		pStr = SPrintMoney(obj.uiMoneyAmount);
-		SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
+		SGPBox const& xy = descNameBox;
 		FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, BLOCKFONT2, &usX, &usY);
 		MPrint(usX, usY, pStr);
 	}
@@ -3039,7 +3144,11 @@ void RenderItemDescriptionBox(void)
 		//Labels
 		SetFontForeground(6);
 
-		INV_DESC_STATS const* const ids = in_map ? gMapWeaponStats : gWeaponStats;
+		// Infobox_items.sti gets its own Weight/Status positions
+		// (gGenericItemStats) instead of reusing the weapon box's
+		// (gWeaponStats). Map screen (iteminfoc.sti) is unaffected --
+		// still shares gMapWeaponStats with every other item class there.
+		INV_DESC_STATS const* const ids = in_map ? gMapWeaponStats : gGenericItemStats;
 
 		// amount for ammunition, status otherwise
 		ST::string label = GCM->getItem(gpItemDescObject->usItem)->isAmmo() ? gWeaponStatsDesc[2] : gWeaponStatsDesc[1];

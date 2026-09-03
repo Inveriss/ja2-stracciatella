@@ -25,8 +25,17 @@
 // inventory panel doesn't silently move the description box (and vice
 // versa). Currently set to the same value (302) purely to preserve today's
 // on-screen position -- tune independently as needed.
+//
+// Infobox_money.sti/Infobox_items.sti (see fIsMoney/fIsWeapon in
+// InternalInitItemDescriptionBox()/RenderItemDescriptionBox(),
+// Interface_Items.cc) get their own, equally independent copies below --
+// all three currently equal, preserving today's shared on-screen position.
 #define ITEMDESC_PANEL_START_Y          (g_ui.get_ITEMDESC_PANEL_START_Y())
-#define ITEMDESC_PANEL_HEIGHT           (302)
+#define ITEMDESC_PANEL_HEIGHT           (304)                                 // Infobox.sti (weapon)
+#define ITEMDESC_PANEL_START_Y_MONEY    (g_ui.get_ITEMDESC_PANEL_START_Y_MONEY())
+#define ITEMDESC_PANEL_HEIGHT_MONEY     (197)                                 // Infobox_money.sti
+#define ITEMDESC_PANEL_START_Y_ITEMS    (g_ui.get_ITEMDESC_PANEL_START_Y_ITEMS())
+#define ITEMDESC_PANEL_HEIGHT_ITEMS     (197)                                 // Infobox_items.sti
 #define INTERFACE_START_X               (g_ui.m_teamPanelPosition.iX)
 #define INTERFACE_START_Y               (g_ui.m_teamPanelPosition.iY)
 #define gsVIEWPORT_START_X              (g_ui.m_VIEWPORT_START_X)
@@ -162,6 +171,8 @@ public:
 	UINT16 get_CLOCK_Y() const;
 	UINT16 get_INV_INTERFACE_START_Y() const;
 	UINT16 get_ITEMDESC_PANEL_START_Y() const;
+	UINT16 get_ITEMDESC_PANEL_START_Y_MONEY() const;
+	UINT16 get_ITEMDESC_PANEL_START_Y_ITEMS() const;
 	UINT16 get_RADAR_WINDOW_X() const;
 	UINT16 get_RADAR_WINDOW_TM_Y() const;
 
