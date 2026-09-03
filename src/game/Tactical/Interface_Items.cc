@@ -4472,7 +4472,12 @@ void RenderItemStackPopup( BOOLEAN fFullRender )
 		// Shadow Area
 		if ( fFullRender )
 		{
-			FRAME_BUFFER->ShadowRect(gsItemPopupInvX, gsItemPopupInvY, gsItemPopupInvX + gsItemPopupInvWidth, gsItemPopupInvY + gsItemPopupInvHeight);
+			// Left bound hardcoded to 0 (not gsItemPopupInvX), matching
+			// RenderKeyRingPopup()'s own ShadowRect -- with gsItemPopupInvWidth
+			// now SCREEN_WIDTH (InitItemStackPopup() caller, Interface_Panels.cc)
+			// this extends the shading to both the left and right edges of the
+			// panel, same as the keyring popup's.
+			FRAME_BUFFER->ShadowRect(0, gsItemPopupInvY, gsItemPopupInvX + gsItemPopupInvWidth, gsItemPopupInvY + gsItemPopupInvHeight);
 		}
 
 	}
@@ -4490,14 +4495,14 @@ void RenderItemStackPopup( BOOLEAN fFullRender )
 
 		if ( cnt < gpItemPopupObject->ubNumberOfObjects )
 		{
-			INT16 sX = gsItemPopupX + col * usWidth + 11;
-			INT16 sY = gsItemPopupY + row * usHeight + 3;
+			INT16 sX = gsItemPopupX + col * usWidth + 13;
+			INT16 sY = gsItemPopupY + row * usHeight + 0;
 
-			INVRenderItem(FRAME_BUFFER, NULL, *gpItemPopupObject, sX, sY, 29, 23, DIRTYLEVEL2, RENDER_ITEM_NOSTATUS, SGP_TRANSPARENT);
+			INVRenderItem(FRAME_BUFFER, NULL, *gpItemPopupObject, sX, sY, 36, 31, DIRTYLEVEL2, RENDER_ITEM_NOSTATUS, SGP_TRANSPARENT);
 
 			// Do status bar here...
-			INT16 sNewX = gsItemPopupX + col * usWidth + 7;
-			INT16 sNewY = gsItemPopupY + row * usHeight + INV_BAR_DY + 3;
+			INT16 sNewX = gsItemPopupX + col * usWidth + 6;
+			INT16 sNewY = gsItemPopupY + row * usHeight + INV_BAR_DY + 1;
 			DrawItemUIBarEx(*gpItemPopupObject, cnt, sNewX, sNewY, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR), Get16BPPColor(STATUS_BAR_SHADOW), FRAME_BUFFER);
 		}
 	}
@@ -4674,8 +4679,8 @@ void RenderKeyRingPopup(const BOOLEAN fFullRender)
 		}
 		o.usItem            = item->getItemIndex();
 
-		DrawItemUIBarEx(o, 0, x + 7, y + 24, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR), Get16BPPColor(STATUS_BAR_SHADOW), FRAME_BUFFER);
-		INVRenderItem(FRAME_BUFFER, NULL, o, x + 8, y, box_w - 8, box_h - 2, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
+		DrawItemUIBarEx(o, 0, x + 6, y + 31, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR), Get16BPPColor(STATUS_BAR_SHADOW), FRAME_BUFFER);
+		INVRenderItem(FRAME_BUFFER, NULL, o, x + 11, y -2, box_w - 8, box_h - 2, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
 	}
 
 	InvalidateRegion(dx, dy, dx + gsKeyRingPopupInvWidth, dy + gsKeyRingPopupInvHeight);

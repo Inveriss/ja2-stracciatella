@@ -2050,8 +2050,13 @@ static void SMInvClickCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
 	{
 		if ( !InItemStackPopup( )  )
 		{
+			// Width matches the keyring popup's own call (SCREEN_WIDTH, not the
+			// narrower SM_ITEMDESC_WIDTH box) so the background shading
+			// (RenderItemStackPopup()'s ShadowRect, also widened to start at x=0
+			// to match) reaches the panel's right/left edges the same way the
+			// keyring's does.
 			InitItemStackPopup(gpSMCurrentMerc, (UINT8)uiHandPos, SM_ITEMDESC_START_X,
-						INV_INTERFACE_START_Y, SM_ITEMDESC_WIDTH,
+						INV_INTERFACE_START_Y, SCREEN_WIDTH,
 						SCREEN_HEIGHT - INV_INTERFACE_START_Y );
 		}
 	}
