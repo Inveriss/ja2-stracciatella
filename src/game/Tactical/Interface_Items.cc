@@ -4453,14 +4453,6 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 static void DeleteItemStackPopup(void);
 
 
-static void EndItemStackPopupWithItemInHand(void)
-{
-	if ( gpItemPointer != NULL )
-	{
-		DeleteItemStackPopup( );
-	}
-}
-
 void RenderItemStackPopup( BOOLEAN fFullRender )
 {
 	if ( gfInItemStackPopup )
@@ -4916,8 +4908,13 @@ static void ItemPopupFullRegionCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRe
 {
 	if ( InItemStackPopup( ) )
 	{
-		// End stack popup and retain pointer
-		EndItemStackPopupWithItemInHand( );
+		// Unconditional close, same as the keyring branch below (and the
+		// stack popup's own right-click, ItemPopupFullRegionCallbackSecondary)
+		// -- previously only closed via EndItemStackPopupWithItemInHand() if
+		// an item was already on the cursor, so left-click on the background
+		// silently did nothing otherwise, unlike the keyring's.
+		DeleteItemStackPopup( );
+		fTeamPanelDirty = TRUE;
 	}
 	else if( InKeyRingPopup() )
 	{
