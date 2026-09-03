@@ -1601,15 +1601,20 @@ no_plate:
 		Blt16BPPBufferHatchRect(l.Buffer<UINT16>(), l.Pitch(), &ClipRect);
 	}
 
-	// Money/trash-can icons -- drawn LAST, after everything above (including
-	// the DIRTYLEVEL2 branch's guiSMPanel re-blit and its own bulk
+	// Money/trash-can/keyring icons -- drawn LAST, after everything above
+	// (including the DIRTYLEVEL2 branch's guiSMPanel re-blit and its own bulk
 	// RestoreExternBackgroundRect over the whole panel area), which would
 	// otherwise erase them from guiSAVEBUFFER/FRAME_BUFFER again within the
 	// same frame -- e.g. every DIRTYLEVEL2 refresh triggered by hovering
-	// over an item/stat, causing a visible blink.
+	// over an item/stat, causing a visible blink. Same guard as before
+	// (hidden only while the Infobox item-description popup is open) --
+	// unlike HandleRenderInvSlots()'s early return, this does NOT hide the
+	// keyring icon while InKeyRingPopup()/InItemStackPopup() is true, so it
+	// stays visible the same way Money/Trash/Map/Shortcuts already do.
 	if (!InItemDescriptionBox())
 	{
 		RenderSMMoneyAndTrashIcons();
+		RenderSMKeyringIcon();
 	}
 }
 

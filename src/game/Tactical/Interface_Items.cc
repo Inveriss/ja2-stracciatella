@@ -1190,17 +1190,32 @@ void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 	}
 	else
 	{
-		// Tactical panel: the keyring icon is now a persistent
-		// inventory_bottom_panel_bookmarks.sti button (sub-images 17/18,
-		// 0-based 16/17 -- see guiSMBookmarksVO/SM_KEYRING_ICON_READY in
-		// Interface_Panels.cc, source of the shared cache entry), always
-		// shown regardless of whether the keyring actually holds a key.
-		// This deactivates the old gold_key_button.sti "only when you have
-		// a key" highlight for this screen. fSMKeyringIconPressed is set
-		// from KeyRingItemPanelButtonCallback (Interface_Panels.cc).
-		BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fSMKeyringIconPressed ? 17 : 16, KEYRING_X, KEYRING_Y);
-		RestoreExternBackgroundRect(KEYRING_X, KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
+		// Tactical panel keyring icon draw moved out to RenderSMKeyringIcon()
+		// below -- it used to live here, but that meant it shared this
+		// function's early-return above, which skips it while
+		// InKeyRingPopup() is true, i.e. exactly while the keyring's own
+		// popup is open. RenderSMKeyringIcon() is instead called
+		// unconditionally from RenderSMPanel(), the same way
+		// RenderSMMoneyAndTrashIcons() already is, so the button icon stays
+		// visible the same way Money/Trash/Map/Shortcuts already do.
 	}
+}
+
+
+// Tactical panel's persistent "Key Ring Panel" bookmark icon
+// (inventory_bottom_panel_bookmarks.sti, sub-images 17/18, 0-based 16/17 --
+// see guiSMBookmarksVO/SM_KEYRING_ICON_READY in Interface_Panels.cc, source
+// of the shared cache entry). Always shown regardless of whether the
+// keyring actually holds a key (unlike the map screen's gold_key_button.sti
+// highlight, HandleRenderInvSlots() above, left untouched). Called
+// unconditionally from RenderSMPanel() -- like RenderSMMoneyAndTrashIcons()
+// -- rather than from HandleRenderInvSlots(), so it doesn't disappear while
+// InKeyRingPopup()/InItemStackPopup() is true. fSMKeyringIconPressed is set
+// from KeyRingItemPanelButtonCallback (Interface_Panels.cc).
+void RenderSMKeyringIcon()
+{
+	BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fSMKeyringIconPressed ? 17 : 16, KEYRING_X, KEYRING_Y);
+	RestoreExternBackgroundRect(KEYRING_X, KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
 }
 
 
