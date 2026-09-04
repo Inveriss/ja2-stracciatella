@@ -460,6 +460,12 @@ static const SGPBox g_desc_item_box_items = { 21,  13, 133, 69 }; // Infobox_ite
 // DetermineSoldierAnimationSurface() (Animation_Control.cc) for the same
 // gun-class/isTwoHanded() branching this reuses. Position is a placeholder
 // -- tune independently once visible in-game.
+//
+// Deactivated (kept in source, per request) -- gates loading in
+// InternalInitItemDescriptionBox() and drawing in
+// RenderItemDescriptionBox() below. Flip to true to re-enable.
+static const bool ENABLE_MERC_PREVIEW_PICTURE = false;
+
 #define MERC_PREVIEW_X    (13 + gsInvDescX)
 #define MERC_PREVIEW_Y    (139 + gsInvDescY)
 
@@ -2240,7 +2246,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		// cache_key_t/VObject used by this box; unloaded in
 		// DeleteItemDescriptionBox().
 		MercPreviewFrame previewFrame;
-		if (fIsWeapon && s && GetMercPreviewFrame(*s, &previewFrame))
+		if (ENABLE_MERC_PREVIEW_PICTURE && fIsWeapon && s && GetMercPreviewFrame(*s, &previewFrame))
 		{
 			LoadAnimationSurface(SOLDIER2ID(s), previewFrame.usAnimSurface, s->usAnimState);
 			gusMercPreviewAnimSurface = previewFrame.usAnimSurface;
@@ -2733,7 +2739,7 @@ void RenderItemDescriptionBox(void)
 	// pShadeTable = s.pShades[ubShadeLevel] there). Drawn at native (x1)
 	// size, directly onto guiSAVEBUFFER, same as every other element in this
 	// function.
-	if (!in_map && fIsWeapon && gusMercPreviewAnimSurface != INVALID_ANIMATION_SURFACE)
+	if (ENABLE_MERC_PREVIEW_PICTURE && !in_map && fIsWeapon && gusMercPreviewAnimSurface != INVALID_ANIMATION_SURFACE)
 	{
 		HVOBJECT const hMercVObject = gAnimSurfaceDatabase[gusMercPreviewAnimSurface].hVideoObject;
 		if (hMercVObject && gpItemDescSoldier)
