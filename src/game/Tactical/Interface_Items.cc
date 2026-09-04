@@ -460,8 +460,8 @@ static const SGPBox g_desc_item_box_items = { 21,  13, 133, 69 }; // Infobox_ite
 // DetermineSoldierAnimationSurface() (Animation_Control.cc) for the same
 // gun-class/isTwoHanded() branching this reuses. Position is a placeholder
 // -- tune independently once visible in-game.
-#define MERC_PREVIEW_X    (38 + gsInvDescX)
-#define MERC_PREVIEW_Y    (170 + gsInvDescY)
+#define MERC_PREVIEW_X    (13 + gsInvDescX)
+#define MERC_PREVIEW_Y    (139 + gsInvDescY)
 
 enum MercPreviewWeaponCategory
 {
@@ -487,7 +487,7 @@ static const MercPreviewFrame gMercPreviewFrames[TOTALBODYTYPES][NUM_MERC_PREVIE
 	/* REGMALE    */ { { RGMBREATHKNIFE,     35 }, { RGMPISTOLBREATH, 8 }, { RGM_LOOK,  42 } },
 	/* BIGMALE    */ { { BGMBREATHKNIFE,     35 }, { BGMPISTOLBREATH, 8 }, { BGMTHREATENSTAND, 42 } },
 	/* STOCKYMALE */ { { RGMBREATHKNIFE,     35 }, { RGMPISTOLBREATH, 8 }, { RGM_LOOK,  42 } }, // fallback = REGMALE
-	/* REGFEMALE  */ { { RGFBREATHKNIFE,     35 }, { RGFPISTOLBREATH, 8 }, { RGFALOOK,  42 } },
+	/* REGFEMALE  */ { { RGFBREATHKNIFE,     23 }, { RGFHANDGUN_1H,  38 }, { RGFSTANDAIM, 38 } },
 };
 
 // Which of the 3 preview categories the merc's currently held item
