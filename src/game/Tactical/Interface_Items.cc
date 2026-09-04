@@ -3,6 +3,7 @@
 #include "Font.h"
 #include "Handle_Items.h"
 #include "Isometric_Utils.h"
+#include "Local.h"
 #include "Item_Types.h"
 #include "LoadSaveData.h"
 #include "LoadSaveObjectType.h"
@@ -27,6 +28,8 @@
 #include "Render_Dirty.h"
 #include "Interface_Panels.h"
 #include "Animation_Control.h"
+#include "Animation_Data.h"
+#include "Shading.h"
 #include "Soldier_Control.h"
 #include "PathAI.h"
 #include "Weapons.h"
@@ -345,6 +348,12 @@ static BUTTON_PICS *giItemDescAmmoButtonImages;
 static GUIButtonRef giItemDescAmmoButton;
 static SOLDIERTYPE *gpItemDescSoldier;
 static BOOLEAN fItemDescDelete = FALSE;
+
+// Animation surface currently loaded for the merc-preview picture on
+// Infobox.sti (weapon only) -- see gMercPreviewFrames/GetMercPreviewFrame()
+// below. INVALID_ANIMATION_SURFACE when nothing is loaded (money/generic
+// items, map screen, or a non-merc body type never load one).
+static UINT16 gusMercPreviewAnimSurface = INVALID_ANIMATION_SURFACE;
 MOUSE_REGION gItemDescAttachmentRegions[MAX_ATTACHMENTS];
 static MOUSE_REGION gProsAndConsRegions[2];
 
@@ -443,6 +452,69 @@ static const SGPBox g_desc_item_box_map = { 23, 10, 124, 48 };
 static const SGPBox g_desc_item_box     = { 163,  46, 133, 69 }; // Infobox.sti (weapon) / main picture
 static const SGPBox g_desc_item_box_money = { 21,  13, 133, 69 }; // Infobox_money.sti / main picture
 static const SGPBox g_desc_item_box_items = { 21,  13, 133, 69 }; // Infobox_items.sti / main picture
+
+// Merc preview picture on Infobox.sti (weapon only): a single static frame
+// of the selected merc's OWN body animation, picked by body type + category
+// of weapon currently held in HANDPOS (knife / short (one-handed gun) /
+// long (two-handed gun)) -- see GunLaserScopeBonus-style precedent in
+// DetermineSoldierAnimationSurface() (Animation_Control.cc) for the same
+// gun-class/isTwoHanded() branching this reuses. Position is a placeholder
+// -- tune independently once visible in-game.
+#define MERC_PREVIEW_X    (38 + gsInvDescX)
+#define MERC_PREVIEW_Y    (170 + gsInvDescY)
+
+enum MercPreviewWeaponCategory
+{
+	MERC_PREVIEW_KNIFE = 0,
+	MERC_PREVIEW_SHORT_GUN,
+	MERC_PREVIEW_LONG_GUN,
+	NUM_MERC_PREVIEW_CATEGORIES
+};
+
+struct MercPreviewFrame
+{
+	UINT16 usAnimSurface;
+	UINT16 usImageIndex;
+};
+
+// [ubBodyType][MercPreviewWeaponCategory] -- ubBodyType only ever indexes
+// REGMALE/BIGMALE/STOCKYMALE/REGFEMALE here (IS_MERC_BODY_TYPE() below
+// guards every other value, e.g. creatures/robots). STOCKYMALE has no
+// animation files of its own, same as everywhere else in
+// gAnimSurfaceDatabase -- it reuses REGMALE's, per user confirmation.
+static const MercPreviewFrame gMercPreviewFrames[TOTALBODYTYPES][NUM_MERC_PREVIEW_CATEGORIES] =
+{
+	/* REGMALE    */ { { RGMBREATHKNIFE,     35 }, { RGMPISTOLBREATH, 8 }, { RGM_LOOK,  42 } },
+	/* BIGMALE    */ { { BGMBREATHKNIFE,     35 }, { BGMPISTOLBREATH, 8 }, { BGMTHREATENSTAND, 42 } },
+	/* STOCKYMALE */ { { RGMBREATHKNIFE,     35 }, { RGMPISTOLBREATH, 8 }, { RGM_LOOK,  42 } }, // fallback = REGMALE
+	/* REGFEMALE  */ { { RGFBREATHKNIFE,     35 }, { RGFPISTOLBREATH, 8 }, { RGFALOOK,  42 } },
+};
+
+// Which of the 3 preview categories the merc's currently held item
+// (HANDPOS -- NOT the item whose description is being shown, which may be
+// a different item in the same merc's inventory) falls into. Mirrors the
+// gun-class / isTwoHanded() branching DetermineSoldierAnimationSurface()
+// (Animation_Control.cc) already uses to pick a weapon-appropriate
+// animation surface for real gameplay animations.
+static MercPreviewWeaponCategory GetMercPreviewWeaponCategory(SOLDIERTYPE const& s)
+{
+	UINT16      const  usHeldItem = s.inv[HANDPOS].usItem;
+	ItemModel const* const item       = GCM->getItem(usHeldItem);
+	bool        const  isGun       = item->getItemClass() == IC_GUN || item->getItemClass() == IC_LAUNCHER;
+
+	if (!isGun || usHeldItem == ROCKET_LAUNCHER) return MERC_PREVIEW_KNIFE;
+	return item->isTwoHanded() ? MERC_PREVIEW_LONG_GUN : MERC_PREVIEW_SHORT_GUN;
+}
+
+// Resolves the merc-preview frame for the given soldier, or returns false
+// (out left untouched) for non-merc body types (creatures/robots), which
+// gMercPreviewFrames has no data for.
+static bool GetMercPreviewFrame(SOLDIERTYPE const& s, MercPreviewFrame* const out)
+{
+	if (!IS_MERC_BODY_TYPE(&s)) return false;
+	*out = gMercPreviewFrames[s.ubBodyType][GetMercPreviewWeaponCategory(s)];
+	return true;
+}
 
 static const INV_DESC_STATS gWeaponStats[] =
 
@@ -2160,6 +2232,19 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 			// again in DeleteItemDescriptionBox().
 			HideSMBookmarkButtons();
 		}
+
+		// Merc preview picture, Infobox.sti (weapon) only -- see
+		// gMercPreviewFrames/GetMercPreviewFrame() above and the matching
+		// draw call in RenderItemDescriptionBox(). Loaded here (once, up
+		// front) rather than every render pass, same as every other
+		// cache_key_t/VObject used by this box; unloaded in
+		// DeleteItemDescriptionBox().
+		MercPreviewFrame previewFrame;
+		if (fIsWeapon && s && GetMercPreviewFrame(*s, &previewFrame))
+		{
+			LoadAnimationSurface(SOLDIER2ID(s), previewFrame.usAnimSurface, s->usAnimState);
+			gusMercPreviewAnimSurface = previewFrame.usAnimSurface;
+		}
 	}
 
 	if (GCM->getItem(o->usItem)->isGun()&& o->usItem != ROCKET_LAUNCHER)
@@ -2638,6 +2723,30 @@ void RenderItemDescriptionBox(void)
 			BltVideoObjectOutlineShadow(guiSAVEBUFFER, guiItemGraphic, guiItemGraphicIndex, x - 2, y + 2);
 		}
 		BltVideoObject(guiSAVEBUFFER, guiItemGraphic, guiItemGraphicIndex, x, y);
+	}
+
+	// Merc preview picture, Infobox.sti (weapon) only -- a single static
+	// frame of the selected merc's own body animation (see
+	// gMercPreviewFrames/GetMercPreviewFrame() above), coloured with the
+	// merc's own clothing/hair/skin palette via pShades[] -- the same
+	// mechanism RenderWorld.cc uses to draw mercs on the tactical map (see
+	// pShadeTable = s.pShades[ubShadeLevel] there). Drawn at native (x1)
+	// size, directly onto guiSAVEBUFFER, same as every other element in this
+	// function.
+	if (!in_map && fIsWeapon && gusMercPreviewAnimSurface != INVALID_ANIMATION_SURFACE)
+	{
+		HVOBJECT const hMercVObject = gAnimSurfaceDatabase[gusMercPreviewAnimSurface].hVideoObject;
+		if (hMercVObject && gpItemDescSoldier)
+		{
+			MercPreviewFrame previewFrame;
+			if (GetMercPreviewFrame(*gpItemDescSoldier, &previewFrame))
+			{
+				SGPVSurface::Lock l(guiSAVEBUFFER);
+				Blt8BPPDataTo16BPPBufferTransShadow(l.Buffer<UINT16>(), l.Pitch(), hMercVObject,
+					MERC_PREVIEW_X, MERC_PREVIEW_Y, previewFrame.usImageIndex,
+					gpItemDescSoldier->pShades[DEFAULT_SHADE_LEVEL]);
+			}
+		}
 	}
 
 	{ // Display status
@@ -3322,6 +3431,14 @@ void DeleteItemDescriptionBox( )
 	RemoveVObject(guiMoneyItemDescBox);
 	RemoveVObject(guiBullet);
 	DeleteVideoObject(guiItemGraphic);
+
+	// Merc preview picture (see InternalInitItemDescriptionBox()) -- only
+	// ever loaded for the weapon box, so only ever needs unloading here.
+	if (gusMercPreviewAnimSurface != INVALID_ANIMATION_SURFACE && gpItemDescSoldier)
+	{
+		UnLoadAnimationSurface(SOLDIER2ID(gpItemDescSoldier), gusMercPreviewAnimSurface);
+		gusMercPreviewAnimSurface = INVALID_ANIMATION_SURFACE;
+	}
 
 	gfInItemDescBox = FALSE;
 
