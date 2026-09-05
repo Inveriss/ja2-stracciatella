@@ -75,6 +75,7 @@
 #include "Text.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
+#include "UILayout.h"
 #include "Video.h"
 #include "VObject.h"
 #include "VObject_Blitters.h"
@@ -336,10 +337,20 @@ UINT32 guiPotCharPathBaseTime = 0;
 namespace {
 cache_key_t const guiSleepIcon { INTERFACEDIR "/sleepicon.sti" };
 cache_key_t const guiCHARINFO { INTERFACEDIR "/charinfo.sti" };
-cache_key_t const guiCHARLIST { INTERFACEDIR "/newgoldpiece3.sti" };
 cache_key_t const guiMAPINV { INTERFACEDIR "/mapinv.sti" };
 cache_key_t const guiULICONS { INTERFACEDIR "/top_left_corner_icons.sti" };
 cache_key_t const guiNewMailIcons{ INTERFACEDIR "/newemail.sti" };
+
+// Not a plain cache_key_t constant like the others above: which file this is
+// depends on the active resolution (see UILayout::isCompactStrategicScreen()),
+// which isn't known yet at static-initialization time, so the choice has to
+// be resolved at runtime, on every call.
+cache_key_t GetCharListGraphicsFilename()
+{
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/newgoldpiece3_720.sti"
+		: INTERFACEDIR "/newgoldpiece3.sti";
+}
 }
 
 // misc mouse regions
@@ -4968,7 +4979,7 @@ static void RenderTeamRegionBackground()
 	// Show inventory or the team list?
 	if (!fShowInventoryFlag)
 	{
-		BltVideoObject(guiSAVEBUFFER, guiCHARLIST, 0, PLAYER_INFO_X, PLAYER_INFO_Y);
+		BltVideoObject(guiSAVEBUFFER, GetCharListGraphicsFilename(), 0, PLAYER_INFO_X, PLAYER_INFO_Y);
 		HandleHighLightingOfLinesInTeamPanel();
 		DisplayCharacterList();
 		DisplayIconsForMercsAsleep();
@@ -6085,7 +6096,7 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	DeleteMapBottomGraphics();
 	RemoveVObject(guiSleepIcon);
 
-	RemoveVObject(guiCHARLIST);
+	RemoveVObject(GetCharListGraphicsFilename());
 	RemoveVObject(guiCHARINFO);
 
 	RemoveVObject(guiMAPINV);

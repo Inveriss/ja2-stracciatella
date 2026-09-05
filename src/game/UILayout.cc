@@ -12,8 +12,9 @@
 #include <stdexcept>
 #include <string_theory/string>
 
-#define MIN_INTERFACE_WIDTH       1024
-#define MIN_INTERFACE_HEIGHT      768
+#define MIN_INTERFACE_WIDTH             1024  // absolute minimum width, both strategic-screen asset variants
+#define MIN_INTERFACE_HEIGHT            720   // absolute minimum height == height of the compact strategic-screen asset variant
+#define LARGE_STRATEGIC_SCREEN_HEIGHT   768   // screens at/above this height use the large strategic-screen asset variant instead of the compact one
 
 /**
  * Default screen layout.
@@ -41,10 +42,17 @@ void UILayout::setScreenSize(UINT16 width, UINT16 height)
 }
 
 
-/** Check if the screen is bigger than the standard interface size (MIN_INTERFACE_WIDTH x MIN_INTERFACE_HEIGHT). */
+/** Check if the screen is bigger than the currently active strategic-screen canvas size (m_mapScreenWidth x m_mapScreenHeight). */
 bool UILayout::isBigScreen() const
 {
-	return (m_screenWidth > MIN_INTERFACE_WIDTH) || (m_screenHeight > MIN_INTERFACE_HEIGHT);
+	return (m_screenWidth > m_mapScreenWidth) || (m_screenHeight > m_mapScreenHeight);
+}
+
+
+/** True when the active resolution uses the compact (720px-tall) strategic screen asset set instead of the large (768px-tall) one. */
+bool UILayout::isCompactStrategicScreen() const
+{
+	return m_mapScreenHeight < LARGE_STRATEGIC_SCREEN_HEIGHT;
 }
 
 
@@ -108,8 +116,15 @@ void UILayout::recalculatePositions()
 	UINT16 startInvY = get_INV_INTERFACE_START_Y();
 	UINT16 startX    = INTERFACE_START_X;
 
-	m_stdScreenOffsetX            = (m_screenWidth - MIN_INTERFACE_WIDTH) / 2;
-	m_stdScreenOffsetY            = (m_screenHeight - MIN_INTERFACE_HEIGHT) / 2;
+	// Resolve which strategic-screen asset variant is active for the current
+	// resolution -- see isCompactStrategicScreen() / LARGE_STRATEGIC_SCREEN_HEIGHT.
+	m_mapScreenWidth              = MIN_INTERFACE_WIDTH;
+	m_mapScreenHeight             = (m_screenHeight >= LARGE_STRATEGIC_SCREEN_HEIGHT)
+	                                     ? LARGE_STRATEGIC_SCREEN_HEIGHT
+	                                     : MIN_INTERFACE_HEIGHT;
+
+	m_stdScreenOffsetX            = (m_screenWidth - m_mapScreenWidth) / 2;
+	m_stdScreenOffsetY            = (m_screenHeight - m_mapScreenHeight) / 2;
 
 	// tactical screen inventory position
 	m_invSlotPositionTac[HELMETPOS           ].set(startX + 431, startInvY +   8);

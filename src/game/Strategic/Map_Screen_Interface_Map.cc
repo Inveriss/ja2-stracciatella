@@ -47,6 +47,7 @@
 #include "Timer_Control.h"
 #include "Town_Militia.h"
 #include "TownModel.h"
+#include "UILayout.h"
 #include "Vehicles.h"
 #include "Video.h"
 #include "VObject.h"
@@ -2695,7 +2696,9 @@ static void DropAPersonInASector(UINT8 const type, UINT8 const sector)
 
 void LoadMapScreenInterfaceMapGraphics()
 {
-	guiBIGMAP                      = AddVideoSurfaceFromFile(INTERFACEDIR "/b_map.pcx");
+	guiBIGMAP                      = AddVideoSurfaceFromFile(g_ui.isCompactStrategicScreen()
+	                                      ? INTERFACEDIR "/b_map_720.pcx"
+	                                      : INTERFACEDIR "/b_map.pcx");
 
 	for (auto s : GCM->getMapSecrets())
 	{

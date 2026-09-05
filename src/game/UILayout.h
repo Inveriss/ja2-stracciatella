@@ -163,8 +163,11 @@ public:
 	/** Set new screen size. Element positions should be recalculated after setting this. @see UILayout::recalculatePositions */
 	void setScreenSize(UINT16 width, UINT16 height);
 
-	/** Check if the screen is bigger than original 640x480. */
+	/** Check if the screen is bigger than the currently active strategic-screen canvas size. */
 	bool isBigScreen() const;
+
+	/** True when the active resolution uses the compact (720px-tall) strategic screen asset set instead of the large (768px-tall) one. */
+	bool isCompactStrategicScreen() const;
 
 	UINT16 currentHeight() const;
 	UINT16 get_CLOCK_X() const;
