@@ -32,6 +32,7 @@ enum
 	SM_STRATSCREEN_BUTTON,
 	SM_SHORTCUTS_BUTTON,
 	SM_STATS_BUTTON,
+	SM_SKILLS_BUTTON,
 	NUM_SM_BUTTONS
 };
 
@@ -102,6 +103,14 @@ void InitStatsPopup(SOLDIERTYPE* pSoldier, INT16 sInvX, INT16 sInvY, INT16 sInvW
 void RenderStatsPopup(BOOLEAN fFullRender);
 void DeleteStatsPopup(void);
 BOOLEAN InStatsPopup(void);
+
+// Tactical-screen merc-skills popup (Infobox_skills.sti) -- opened from the
+// SM panel's Skills bookmark button (SM_SKILLS_BUTTON). Split out of the
+// merc-statistics popup above.
+void InitSkillsPopup(SOLDIERTYPE* pSoldier, INT16 sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight);
+void RenderSkillsPopup(BOOLEAN fFullRender);
+void DeleteSkillsPopup(void);
+BOOLEAN InSkillsPopup(void);
 
 
 void ShowRadioLocator(SOLDIERTYPE* s, UINT8 ubLocatorSpeed);

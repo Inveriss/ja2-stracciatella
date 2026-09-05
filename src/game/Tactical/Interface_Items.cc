@@ -1249,7 +1249,7 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 
 void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 {
-	if (InItemDescriptionBox() || InItemStackPopup() || InKeyRingPopup() || InStatsPopup()) return;
+	if (InItemDescriptionBox() || InItemStackPopup() || InKeyRingPopup() || InStatsPopup() || InSkillsPopup()) return;
 
 	for (INT32 i = 0; i != NUM_INV_SLOTS; ++i)
 	{

@@ -170,6 +170,11 @@
 // Infobox_stats.sti merc-statistics popup. Tune once visible in-game.
 #define SM_STATSB_X				446
 #define SM_STATSB_Y				160
+// Placeholder position, next to SM_STATS_BUTTON -- opens the
+// Infobox_skills.sti merc-skills popup (split out of Infobox_stats.sti).
+// Tune once visible in-game.
+#define SM_SKILLSB_X				481
+#define SM_SKILLSB_Y				160
 
 // Checkbox toggling fHideEmptyAttachmentSlots -- placeholder position.
 #define SM_HIDE_EMPTY_SLOTS_X			274
@@ -333,6 +338,7 @@ enum
 	SM_STRATSCREEN_IMAGES,
 	SM_SHORTCUTS_IMAGES,
 	SM_STATS_IMAGES,
+	SM_SKILLS_IMAGES,
 	NUM_SM_BUTTON_IMAGES
 };
 
@@ -398,6 +404,12 @@ static cache_key_t const guiCLOSE{ INTERFACEDIR "/p_close.sti" };
 // Background for the tactical-screen merc-statistics popup, opened by
 // SM_STATS_BUTTON -- see InitStatsPopup()/RenderStatsPopup() below.
 static cache_key_t const guiStatsInfoBox{ INTERFACEDIR "/Infobox_stats.sti" };
+
+// Background for the tactical-screen merc-skills popup, opened by
+// SM_SKILLS_BUTTON -- see InitSkillsPopup()/RenderSkillsPopup() below.
+// Split out of Infobox_stats.sti/guiStatsInfoBox above into its own
+// independent button/file/coordinates.
+static cache_key_t const guiSkillsInfoBox{ INTERFACEDIR "/Infobox_skills.sti" };
 
 // Sub-image 15 (0-based 14) of inventory_bottom_panel_bookmarks.sti is the
 // "ready" state icon for the money region on this panel, moved here from
@@ -918,6 +930,7 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 				EnableButton(iSMPanelButtons[SM_STRATSCREEN_BUTTON], enable);
 				EnableButton(iSMPanelButtons[SM_SHORTCUTS_BUTTON],   enable);
 				EnableButton(iSMPanelButtons[SM_STATS_BUTTON],       enable);
+				EnableButton(iSMPanelButtons[SM_SKILLS_BUTTON],      enable);
 				if (giSMHideEmptySlotsCheckbox) EnableButton(giSMHideEmptySlotsCheckbox, enable);
 
 				//enable the radar map region
@@ -963,6 +976,7 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 			DisableButton( iSMPanelButtons[ SM_STRATSCREEN_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_SHORTCUTS_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_STATS_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_SKILLS_BUTTON ] );
 			if (giSMHideEmptySlotsCheckbox) DisableButton(giSMHideEmptySlotsCheckbox);
 
 			gRadarRegion.Disable();
@@ -1162,6 +1176,7 @@ static void BtnNextMercCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnOptionsCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnPrevMercCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnSMDoneCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnSkillsCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnStatsCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnStanceDownCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnStanceUpCallback(GUI_BUTTON* btn, UINT32 reason);
@@ -1205,7 +1220,8 @@ void CreateSMPanelButtons(void)
 	// holds (ready, pressed) pairs in this order: e-mail, AIM Members,
 	// M.E.R.C., Bobby Ray's, History, Personnel, Strategic Map, [6 reserved/
 	// empty sub-images], Keyboard Shortcuts, Statistics (22/23 -- opens the
-	// Infobox_stats.sti merc-statistics popup).
+	// Infobox_stats.sti merc-statistics popup), Skills (24/25 -- opens the
+	// Infobox_skills.sti merc-skills popup).
 	iSMPanelImages[SM_EMAIL_IMAGES]       = LoadButtonImage(INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti", 0, 1);
 	iSMPanelImages[SM_AIM_MEMBERS_IMAGES] = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 2, 3);
 	iSMPanelImages[SM_MERC_IMAGES]        = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 4, 5);
@@ -1216,6 +1232,7 @@ void CreateSMPanelButtons(void)
 	// sub-images 14-19 reserved/empty
 	iSMPanelImages[SM_SHORTCUTS_IMAGES]   = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 20, 21);
 	iSMPanelImages[SM_STATS_IMAGES]       = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 22, 23);
+	iSMPanelImages[SM_SKILLS_IMAGES]      = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 24, 25);
 
 
 	// Create buttons
@@ -1251,6 +1268,7 @@ void CreateSMPanelButtons(void)
 	MakeButtonT(SM_STRATSCREEN_BUTTON, iSMPanelImages[SM_STRATSCREEN_IMAGES], dx + SM_STRATSCREENB_X, dy + SM_STRATSCREENB_Y, BtnMapScreenCallback,        "Strategic Map");
 	MakeButtonT(SM_SHORTCUTS_BUTTON,   iSMPanelImages[SM_SHORTCUTS_IMAGES],   dx + SM_SHORTCUTSB_X,   dy + SM_SHORTCUTSB_Y,   BtnOptionsCallback,          "Keyboard Shortcuts (placeholder)");
 	MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
+	MakeButtonT(SM_SKILLS_BUTTON,      iSMPanelImages[SM_SKILLS_IMAGES],      dx + SM_SKILLSB_X,      dy + SM_SKILLSB_Y,      BtnSkillsCallback,           "Skills");
 
 	giSMHideEmptySlotsCheckbox = CreateCheckBoxButton(
 		dx + SM_HIDE_EMPTY_SLOTS_X, dy + SM_HIDE_EMPTY_SLOTS_Y,
@@ -1294,7 +1312,7 @@ static UINT32 const g_smBookmarkButtons[] =
 {
 	SM_EMAIL_BUTTON, SM_AIM_MEMBERS_BUTTON, SM_MERC_BUTTON, SM_BOBBYR_BUTTON,
 	SM_HISTORY_BUTTON, SM_PERSONNEL_BUTTON, SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON,
-	SM_STATS_BUTTON
+	SM_STATS_BUTTON, SM_SKILLS_BUTTON
 };
 
 
@@ -1458,7 +1476,7 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 	if (gSelectSMPanelToMerc) SetSMPanelCurrentMerc(gSelectSMPanelToMerc);
 
 	// ATE: Don't do anything if we are in stack popup and are refreshing stuff
-	if ((InItemStackPopup() || InKeyRingPopup() || InStatsPopup()) && *dirty_level == DIRTYLEVEL1)
+	if ((InItemStackPopup() || InKeyRingPopup() || InStatsPopup() || InSkillsPopup()) && *dirty_level == DIRTYLEVEL1)
 		return;
 
 	if (!gpSMCurrentMerc) return;
@@ -3627,19 +3645,20 @@ void DisableTacticalTeamPanelButtons(BOOLEAN fDisable)
 // ---------------------------------------------------------------------------
 // Tactical-screen merc-statistics popup (Infobox_stats.sti), opened from the
 // SM panel's Statistics bookmark button (SM_STATS_BUTTON). Shows the same
-// battle-statistics/skills/contract information as the laptop's Personnel
-// screen (Personnel.cc), read from the same underlying data
+// battle-statistics/contract information as the laptop's Personnel screen
+// (Personnel.cc), read from the same underlying data
 // (SOLDIERTYPE/MERCPROFILESTRUCT -- neither is laptop-specific), without
 // leaving the tactical screen. Architecturally closest to the keyring popup
 // (InitKeyRingPopup() etc., Interface_Items.cc) -- a standalone info panel
 // tied to a merc, not to an OBJECTTYPE item -- rather than the Infobox.sti
-// item-description family.
+// item-description family. The "Skills" section originally shown here was
+// split out into its own independent popup -- see Infobox_skills.sti below.
 // ---------------------------------------------------------------------------
 
-// Indexes both gzInfoboxStatsStrings (labels/headers, NUM_STATS_TXT entries)
-// and gStatsPopupCoords (which has 2 extra slots on top for the skill-name
-// lines below the "Skills" header -- those have no fixed label, just
-// whatever skill(s) the merc has, so they aren't in gzInfoboxStatsStrings).
+// Indexes both gzInfoboxStatsStrings and gStatsPopupCoords (labels/headers,
+// NUM_STATS_TXT entries each). The "Skills" section (header + up to 2 skill-
+// name lines) was split out into its own independent popup/button/file --
+// see gzInfoboxSkillsStrings/gSkillsPopupCoords/Infobox_skills.sti below.
 enum
 {
 	STATS_TXT_BATTLE_HEADER = 0,
@@ -3650,24 +3669,19 @@ enum
 	STATS_TXT_HIT_PERCENTAGE,
 	STATS_TXT_BATTLES,
 	STATS_TXT_TIMES_WOUNDED,
-	STATS_TXT_SKILLS_HEADER,
 	STATS_TXT_CONTRACT_HEADER,
 	STATS_TXT_REMAINING_CONTRACT,
 	STATS_TXT_TOTAL_SERVICE,
 	STATS_TXT_TOTAL_COST,
 	STATS_TXT_MEDICAL_DEPOSIT,
 	STATS_TXT_DAILY_COST,
-	NUM_STATS_TXT,
-
-	STATS_COORD_SKILL_LINE1 = NUM_STATS_TXT,
-	STATS_COORD_SKILL_LINE2,
-	NUM_STATS_COORDS
+	NUM_STATS_TXT
 };
 
 // Label position (sX, sY) + horizontal margin to the value (sValDx) --
 // every row independent, per row. All placeholders; tune once visible
-// in-game. sValDx is unused for the 3 section headers and the 2 skill-name
-// lines (no separate value to right-align).
+// in-game. sValDx is unused for the 2 section headers (no separate value to
+// right-align).
 struct StatsPopupCoord
 {
 	INT16 sX;
@@ -3675,9 +3689,9 @@ struct StatsPopupCoord
 	INT16 sValDx;
 };
 
-static const StatsPopupCoord gStatsPopupCoords[NUM_STATS_COORDS] =
+static const StatsPopupCoord gStatsPopupCoords[NUM_STATS_TXT] =
 {
-	/* STATS_TXT_BATTLE_HEADER     */ {  22,  19,   0 },
+	/* STATS_TXT_BATTLE_HEADER     */ {  30,  19,   0 },
 	/* STATS_TXT_KILLS             */ {  19,  48,  38 },
 	/* STATS_TXT_ASSISTS           */ {  19,  65,  38 },
 	/* STATS_TXT_SHOTS_FIRED       */ {  19,  94,  38 },
@@ -3685,15 +3699,12 @@ static const StatsPopupCoord gStatsPopupCoords[NUM_STATS_COORDS] =
 	/* STATS_TXT_HIT_PERCENTAGE    */ {  19,  128,  38 },
 	/* STATS_TXT_BATTLES           */ {  19,  157,  38 },
 	/* STATS_TXT_TIMES_WOUNDED     */ {  19, 174,  38 },
-	/* STATS_TXT_SKILLS_HEADER     */ {  428, 10,   0 },
 	/* STATS_TXT_CONTRACT_HEADER   */ {  259, 19,   0 },
 	/* STATS_TXT_REMAINING_CONTRACT*/ {  199, 65, 97 },
 	/* STATS_TXT_TOTAL_SERVICE     */ {  199, 94, 97 },
 	/* STATS_TXT_TOTAL_COST        */ {  199, 111, 97 },
 	/* STATS_TXT_MEDICAL_DEPOSIT   */ {  199, 128, 97 },
 	/* STATS_TXT_DAILY_COST        */ {  199, 48, 97 },
-	/* STATS_COORD_SKILL_LINE1     */ {  428, 25,   0 },
-	/* STATS_COORD_SKILL_LINE2     */ {  428, 38,   0 },
 };
 
 // Placeholder position/size for the Infobox_stats.sti graphic itself (as
@@ -3819,7 +3830,6 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	// -- Section headers --
 	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
 	STATS_LABEL(STATS_TXT_BATTLE_HEADER);
-	STATS_LABEL(STATS_TXT_SKILLS_HEADER);
 	STATS_LABEL(STATS_TXT_CONTRACT_HEADER);
 
 	// -- Battle statistics --
@@ -3843,28 +3853,6 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 
 	sVal = ST::format("{}", p.usBattlesFought);STATS_VALUE(STATS_TXT_BATTLES, sVal);
 	sVal = ST::format("{}", p.usTimesWounded); STATS_VALUE(STATS_TXT_TIMES_WOUNDED, sVal);
-
-	// -- Skills (names only -- no bonus/description text) --
-	SetFontForeground(5);
-	if (p.bSkillTrait != NO_SKILLTRAIT)
-	{
-		StatsPopupCoord const& c1 = gStatsPopupCoords[STATS_COORD_SKILL_LINE1];
-		if (p.bSkillTrait == p.bSkillTrait2)
-		{
-			// Same skill in both slots -- append "(expert)".
-			sVal = ST::format("{} {}", gzMercSkillText[p.bSkillTrait], gzMercSkillText[NUM_SKILLTRAITS]);
-			MPrint(dx + c1.sX, dy + c1.sY, sVal);
-		}
-		else
-		{
-			MPrint(dx + c1.sX, dy + c1.sY, gzMercSkillText[p.bSkillTrait]);
-			if (p.bSkillTrait2 != NO_SKILLTRAIT)
-			{
-				StatsPopupCoord const& c2 = gStatsPopupCoords[STATS_COORD_SKILL_LINE2];
-				MPrint(dx + c2.sX, dy + c2.sY, gzMercSkillText[p.bSkillTrait2]);
-			}
-		}
-	}
 
 	// -- Contract --
 	// Simplified relative to the laptop's DisplayEmploymentinformation()
@@ -3934,6 +3922,188 @@ static void BtnStatsCallback(GUI_BUTTON* btn, UINT32 reason)
 		else if (gpSMCurrentMerc)
 		{
 			InitStatsPopup(gpSMCurrentMerc, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
+		}
+	}
+}
+
+
+// ---------------------------------------------------------------------------
+// Tactical-screen merc-skills popup (Infobox_skills.sti), opened from the SM
+// panel's Skills bookmark button (SM_SKILLS_BUTTON). Split out of the
+// merc-statistics popup above (Infobox_stats.sti) into its own independent
+// button/file/coordinates. Architecture identical to that popup (and, in
+// turn, to the keyring popup) -- a standalone info panel tied to a merc.
+// ---------------------------------------------------------------------------
+
+enum
+{
+	SKILLS_TXT_HEADER = 0,
+	NUM_SKILLS_TXT,
+
+	SKILLS_COORD_LINE1 = NUM_SKILLS_TXT,
+	SKILLS_COORD_LINE2,
+	NUM_SKILLS_COORDS
+};
+
+// Same {x, y, value-margin} convention as StatsPopupCoord -- sValDx is
+// unused here (the header has no value, and the 2 skill-name lines are
+// printed as-is, not label+value pairs). All placeholders; tune once
+// visible in-game.
+static const StatsPopupCoord gSkillsPopupCoords[NUM_SKILLS_COORDS] =
+{
+	/* SKILLS_TXT_HEADER  */ {  183,  19,   0 },
+	/* SKILLS_COORD_LINE1 */ {  19,  48,   0 },
+	/* SKILLS_COORD_LINE2 */ {  258,  48,   0 },
+};
+
+// Placeholder position/size for the Infobox_skills.sti graphic itself (as
+// opposed to the screen-wide dismiss region set up in InitSkillsPopup(),
+// which matches the keyring/stats popups' own footprint) -- tune once the
+// real graphic is visible in-game.
+#define SKILLS_POPUP_BOX_X		369
+#define SKILLS_POPUP_BOX_Y		0
+#define SKILLS_POPUP_BOX_WIDTH		395
+#define SKILLS_POPUP_BOX_HEIGHT	197
+
+static BOOLEAN      gfInSkillsPopup = FALSE;
+static SOLDIERTYPE* gpSkillsPopupSoldier = NULL;
+static INT16         gsSkillsPopupInvX;
+static INT16         gsSkillsPopupInvY;
+static INT16         gsSkillsPopupInvWidth;
+static INT16         gsSkillsPopupInvHeight;
+static MOUSE_REGION  gSkillsPopupRegion;
+
+
+BOOLEAN InSkillsPopup(void)
+{
+	return gfInSkillsPopup;
+}
+
+
+void DeleteSkillsPopup(void)
+{
+	if (!gfInSkillsPopup) return;
+
+	MSYS_RemoveRegion(&gSkillsPopupRegion);
+
+	gfInSkillsPopup = FALSE;
+	gpSkillsPopupSoldier = NULL;
+
+	fInterfacePanelDirty = DIRTYLEVEL2;
+
+	EnableSMPanelButtons(TRUE, FALSE);
+
+	FreeMouseCursor();
+}
+
+
+// Left AND right click on the background both close it unconditionally --
+// same convention as the stats/keyring popups.
+static void SkillsPopupFullRegionCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	DeleteSkillsPopup();
+	fTeamPanelDirty = TRUE;
+}
+
+
+static void SkillsPopupFullRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	DeleteSkillsPopup();
+	fTeamPanelDirty = TRUE;
+}
+
+
+void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+{
+	gsSkillsPopupInvX      = sInvX;
+	gsSkillsPopupInvY      = sInvY;
+	gsSkillsPopupInvWidth  = sInvWidth;
+	gsSkillsPopupInvHeight = sInvHeight;
+
+	gpSkillsPopupSoldier = pSoldier;
+
+	MSYS_DefineRegion(&gSkillsPopupRegion, sInvX, sInvY, sInvX + sInvWidth, sInvY + sInvHeight,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+		MouseCallbackPrimarySecondary(SkillsPopupFullRegionCallbackPrimary, SkillsPopupFullRegionCallbackSecondary));
+
+	SetAllAutoFacesInactive();
+
+	fInterfacePanelDirty = DIRTYLEVEL2;
+
+	EnableSMPanelButtons(FALSE, FALSE);
+
+	gfInSkillsPopup = TRUE;
+
+	SGPRect aRect;
+	aRect.iTop    = sInvY;
+	aRect.iLeft   = sInvX;
+	aRect.iBottom = sInvY + sInvHeight;
+	aRect.iRight  = sInvX + sInvWidth;
+	RestrictMouseCursor(&aRect);
+}
+
+
+void RenderSkillsPopup(BOOLEAN const fFullRender)
+{
+	if (!gfInSkillsPopup || !gpSkillsPopupSoldier) return;
+
+	SetAllAutoFacesInactive();
+
+	if (fFullRender)
+	{
+		FRAME_BUFFER->ShadowRect(gsSkillsPopupInvX, gsSkillsPopupInvY,
+			gsSkillsPopupInvX + gsSkillsPopupInvWidth, gsSkillsPopupInvY + gsSkillsPopupInvHeight);
+	}
+
+	INT16 const dx = SKILLS_POPUP_BOX_X + gsSkillsPopupInvX;
+	INT16 const dy = SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY;
+
+	BltVideoObject(FRAME_BUFFER, guiSkillsInfoBox, 0, dx, dy);
+
+	MERCPROFILESTRUCT const& p = GetProfile(gpSkillsPopupSoldier->ubProfile);
+
+	// -- Header --
+	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
+	MPrint(dx + gSkillsPopupCoords[SKILLS_TXT_HEADER].sX, dy + gSkillsPopupCoords[SKILLS_TXT_HEADER].sY, gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
+
+	// -- Skill name(s) only -- no bonus/description text --
+	SetFontForeground(5);
+	if (p.bSkillTrait != NO_SKILLTRAIT)
+	{
+		StatsPopupCoord const& c1 = gSkillsPopupCoords[SKILLS_COORD_LINE1];
+		if (p.bSkillTrait == p.bSkillTrait2)
+		{
+			// Same skill in both slots -- append "(expert)".
+			ST::string const sVal = ST::format("{} {}", gzMercSkillText[p.bSkillTrait], gzMercSkillText[NUM_SKILLTRAITS]);
+			MPrint(dx + c1.sX, dy + c1.sY, sVal);
+		}
+		else
+		{
+			MPrint(dx + c1.sX, dy + c1.sY, gzMercSkillText[p.bSkillTrait]);
+			if (p.bSkillTrait2 != NO_SKILLTRAIT)
+			{
+				StatsPopupCoord const& c2 = gSkillsPopupCoords[SKILLS_COORD_LINE2];
+				MPrint(dx + c2.sX, dy + c2.sY, gzMercSkillText[p.bSkillTrait2]);
+			}
+		}
+	}
+
+	InvalidateRegion(gsSkillsPopupInvX, gsSkillsPopupInvY,
+		gsSkillsPopupInvX + gsSkillsPopupInvWidth, gsSkillsPopupInvY + gsSkillsPopupInvHeight);
+}
+
+
+static void BtnSkillsCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		if (InSkillsPopup())
+		{
+			DeleteSkillsPopup();
+		}
+		else if (gpSMCurrentMerc)
+		{
+			InitSkillsPopup(gpSMCurrentMerc, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
 		}
 	}
 }

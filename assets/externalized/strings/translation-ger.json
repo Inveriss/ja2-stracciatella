@@ -711,13 +711,15 @@
         "Hit Percentage",
         "Battles",
         "Times Wounded",
-        "Skills",
         "Contract",
         "Remaining Contract",
         "Total Service to Date",
         "Total Cost to Date",
         "Medical Deposit",
         "Daily Cost"
+    ],
+    "gzInfoboxSkillsStrings": [
+        "Skills"
     ],
     "gzIntroScreen": "Kann Introvideo nicht finden",
     "gzLaptopHelpText": [

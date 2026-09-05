@@ -244,6 +244,8 @@ extern FLOAT GetWeightBasedOnMetricOption( UINT32 uiObjectWeight );
 
 // Tactical-screen "Infobox_stats.sti" merc-statistics popup (Interface_Panels.cc).
 #define gzInfoboxStatsStrings                               (g_langRes->gzInfoboxStatsStrings)
+// Tactical-screen "Infobox_skills.sti" merc-skills popup (Interface_Panels.cc).
+#define gzInfoboxSkillsStrings                              (g_langRes->gzInfoboxSkillsStrings)
 
 /* -------------------------------------------------------------------------------------------- */
 
