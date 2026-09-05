@@ -152,8 +152,8 @@ public:
 	UINT16                m_teamPanelWidth;                 // width of the entire team panel (bottom_bar.sti) including slots and buttons -- purely squad-size-driven, NOT floored to fit inventory_bottom_panel.sti. Also used to position squad-size-driven widgets shared by both panel modes (minimap, clock, sector name).
 	UINT16                m_smPanelWidth;                   // width of the single-merc inventory panel (inventory_bottom_panel.sti) canvas -- max(m_teamPanelWidth, INVENTORY_BOTTOM_PANEL_WIDTH), since that graphic can be wider than what squad size alone would need. Use this (not m_teamPanelWidth) for anything specific to the single-merc panel's own canvas/buttons (SM_DONE_X, SM_MAPSCREEN_X).
 
-	UINT16                m_stdScreenOffsetX;             /** Offset of the standard (640x480) window */
-	UINT16                m_stdScreenOffsetY;             /** Offset of the standard (640x480) window */
+	UINT16                m_stdScreenOffsetX;             /** Offset of the standard (MIN_INTERFACE_WIDTH x MIN_INTERFACE_HEIGHT) window */
+	UINT16                m_stdScreenOffsetY;             /** Offset of the standard (MIN_INTERFACE_WIDTH x MIN_INTERFACE_HEIGHT) window */
 
 	/** Constructor.
 	 * @param screenWidth Screen width

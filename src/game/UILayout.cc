@@ -12,8 +12,8 @@
 #include <stdexcept>
 #include <string_theory/string>
 
-#define MIN_INTERFACE_WIDTH       640
-#define MIN_INTERFACE_HEIGHT      480
+#define MIN_INTERFACE_WIDTH       1024
+#define MIN_INTERFACE_HEIGHT      768
 
 /**
  * Default screen layout.
@@ -41,10 +41,10 @@ void UILayout::setScreenSize(UINT16 width, UINT16 height)
 }
 
 
-/** Check if the screen is bigger than original 640x480. */
+/** Check if the screen is bigger than the standard interface size (MIN_INTERFACE_WIDTH x MIN_INTERFACE_HEIGHT). */
 bool UILayout::isBigScreen() const
 {
-	return (m_screenWidth > 640) || (m_screenHeight > 480);
+	return (m_screenWidth > MIN_INTERFACE_WIDTH) || (m_screenHeight > MIN_INTERFACE_HEIGHT);
 }
 
 
