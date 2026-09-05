@@ -30,7 +30,7 @@ struct CalibreModel;
 #define MIN_DAMAGE_FOR_AUTO_FALL_OVER			20
 
 // short range at which being prone provides to hit penalty when shooting standing people
-#define MIN_PRONE_RANGE				50
+#define MIN_PRONE_RANGE				20
 
 // can't miss at this range?
 #define POINT_BLANK_RANGE				16
@@ -109,8 +109,8 @@ enum
 
 #define AIM_BONUS_SAME_TARGET			10 // chance-to-hit bonus (in %)
 #define AIM_BONUS_PER_AP			gamepolicy(aim_bonus_per_std_ap)
-#define AIM_BONUS_CROUCHING			10
-#define AIM_BONUS_PRONE				20
+#define AIM_BONUS_CROUCHING			5
+#define AIM_BONUS_PRONE				10
 #define AIM_BONUS_TWO_HANDED_PISTOL		5
 #define AIM_BONUS_FIRING_DOWN			15
 #define AIM_PENALTY_ONE_HANDED_PISTOL		5
@@ -184,6 +184,8 @@ INT8   GunBipodDisplayBonus(OBJECTTYPE const&);
 bool   HasSniperScope(OBJECTTYPE const&);
 INT8   GunSniperScopeDisplayBonus(OBJECTTYPE const&);
 INT8   GunProneStanceBonus(SOLDIERTYPE const*);
+INT8   GunCrouchStanceBonus(SOLDIERTYPE const*);
+INT8   GunRoofBonus(SOLDIERTYPE const*);
 
 extern BOOLEAN gfNextFireJam;
 extern BOOLEAN gfNextShotKills;

@@ -6,6 +6,7 @@
 #include "SGPFile.h"
 #include "Soldier_Control.h"
 
+#include <algorithm>
 #include <string_theory/string>
 
 
@@ -100,11 +101,11 @@ static void ExtractSoldierCreate(const BYTE* const data, SOLDIERCREATE_STRUCT* c
 	EXTR_SKIP(d, 117)
 	if(stracLinuxFormat)
 	{
-		Assert(d.getConsumed() == 1972);
+		Assert(d.getConsumed() == 3652);
 	}
 	else
 	{
-		Assert(d.getConsumed() == 1952);
+		Assert(d.getConsumed() == 3632);
 	}
 }
 
@@ -113,13 +114,13 @@ void ExtractSoldierCreateFromFile(HWFILE const f, SOLDIERCREATE_STRUCT* const c,
 {
 	if(stracLinuxFormat)
 	{
-		BYTE data[1972];
+		BYTE data[3652];
 		f->read(data, sizeof(data));
 		ExtractSoldierCreate(data, c, stracLinuxFormat);
 	}
 	else
 	{
-		BYTE data[1952];
+		BYTE data[3632];
 		f->read(data, sizeof(data));
 		ExtractSoldierCreate(data, c, stracLinuxFormat);
 	}
@@ -205,13 +206,13 @@ static void InjectSoldierCreate(BYTE* const data, const SOLDIERCREATE_STRUCT* co
 	INJ_I8(d, c->bUseGivenVehicleID)
 	INJ_BOOL(d, c->fHasKeys)
 	INJ_SKIP(d, 117)
-	Assert(d.getConsumed() == 1952);
+	Assert(d.getConsumed() == 3632);
 }
 
 
 void InjectSoldierCreateIntoFile(HWFILE const f, SOLDIERCREATE_STRUCT const* const c)
 {
-	BYTE data[1952];
+	BYTE data[3632];
 	InjectSoldierCreate(data, c);
 	f->write(data, sizeof(data));
 }
@@ -223,7 +224,15 @@ void InjectSoldierCreateIntoFile(HWFILE const f, SOLDIERCREATE_STRUCT const* con
 // and any authored with the in-game map editor) - see ExtractLegacyObject().
 // Byte-for-byte identical to what this file used to do before MAX_ATTACHMENTS
 // was raised, just renamed.
+// Also frozen at LEGACY_INV_SLOTS (19) inventory slots, independent of the
+// current, larger NUM_INV_SLOTS -- see LEGACY_INV_SLOTS below.
 // ---------------------------------------------------------------------------
+
+// Number of inventory slots in the original (vanilla) SOLDIERCREATE_STRUCT
+// layout. Deliberately NOT NUM_INV_SLOTS -- this must stay fixed at 19
+// forever, since it describes a byte layout baked into the sector map files
+// shipped with the base game (and any authored with the in-game map editor).
+static constexpr size_t LEGACY_INV_SLOTS = 19;
 
 static void ExtractLegacySoldierCreate(const BYTE* const data, SOLDIERCREATE_STRUCT* const c, bool stracLinuxFormat)
 {
@@ -256,7 +265,11 @@ static void ExtractLegacySoldierCreate(const BYTE* const data, SOLDIERCREATE_STR
 	EXTR_I8(d, c->bWisdom)
 	EXTR_I8(d, c->bMorale)
 	EXTR_I8(d, c->bAIMorale)
-	for (size_t i = 0; i < lengthof(c->Inv); i++)
+	// Sector map files only ever encode LEGACY_INV_SLOTS slots; zero the tail
+	// explicitly (rather than relying on the caller's SOLDIERCREATE_STRUCT
+	// having been freshly zero-constructed) before reading only that many.
+	std::fill(std::begin(c->Inv) + LEGACY_INV_SLOTS, std::end(c->Inv), OBJECTTYPE{});
+	for (size_t i = 0; i < LEGACY_INV_SLOTS; i++)
 	{
 		ExtractLegacyObject(d, &c->Inv[i]);
 	}
@@ -338,7 +351,11 @@ static void InjectLegacySoldierCreate(BYTE* const data, const SOLDIERCREATE_STRU
 	INJ_I8(d, c->bWisdom)
 	INJ_I8(d, c->bMorale)
 	INJ_I8(d, c->bAIMorale)
-	for (size_t i = 0; i < lengthof(c->Inv); i++)
+	// Sector map files can only ever hold LEGACY_INV_SLOTS slots -- anything
+	// placed in a slot beyond that (only reachable via the current, larger
+	// NUM_INV_SLOTS) is silently not representable in this format and is
+	// dropped rather than written out of bounds.
+	for (size_t i = 0; i < LEGACY_INV_SLOTS; i++)
 	{
 		InjectLegacyObject(d, &c->Inv[i]);
 	}

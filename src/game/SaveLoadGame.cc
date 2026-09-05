@@ -1201,7 +1201,7 @@ static void SaveMercProfiles(HWFILE const f)
 	// Loop through all the profiles to save
 	FOR_EACH(MERCPROFILESTRUCT, i, gMercProfiles)
 	{
-		BYTE data[716];
+		BYTE data[MERC_PROFILE_SIZE];
 		InjectMercProfile(data, *i);
 		NewJA2EncryptedFileWrite(f, data, sizeof(data));
 	}
@@ -1297,7 +1297,7 @@ static void LoadSavedMercProfiles(HWFILE const f, UINT32 const savegame_version,
 		std::array<BYTE, std::max(MERC_PROFILE_SIZE_STRAC_LINUX, MERC_PROFILE_SIZE)> data;
 		UINT32 dataSize = stracLinuxFormat ? MERC_PROFILE_SIZE_STRAC_LINUX : MERC_PROFILE_SIZE;
 		reader(f, data.data(), dataSize);
-		ExtractMercProfile(data.data(), profile, stracLinuxFormat, &checksum, true);
+		ExtractMercProfile(data.data(), profile, stracLinuxFormat, &checksum, true, /*fVanillaProfileFormat=*/false);
 		if (checksum != SoldierProfileChecksum(profile))
 		{
 			throw std::runtime_error("Merc profile checksum mismatch");
@@ -1318,10 +1318,14 @@ static void SaveSoldierStructure(HWFILE const f)
 		if (!s.bActive) continue;
 
 		// Save the soldier structure
-		// Grown by NUM_INV_SLOTS * 4 bytes along with InjectObject()'s OBJECTTYPE
-		// (current MAX_ATTACHMENTS), which is written once per inventory slot.
-		BYTE data[3240];
-		std::fill_n(data, 3240, 0);
+		// Grown from 3240 to 4968 for the 19->39 slot inventory expansion --
+		// see the matching, more detailed comment on the Assert at the end of
+		// InjectSoldierType() for how this value was actually derived
+		// (empirically, via temporary checkpoint diagnostics, not purely by
+		// hand-counting fields). Savegames from before this change are not,
+		// and are not intended to be, compatible.
+		BYTE data[4968];
+		std::fill_n(data, 4968, 0);
 		InjectSoldierType(data, &s);
 		NewJA2EncryptedFileWrite(f, data, sizeof(data));
 
@@ -1360,13 +1364,13 @@ static void LoadSoldierStructure(HWFILE const f, UINT32 savegame_version, bool s
 		SOLDIERTYPE SavedSoldierInfo;
 		if(stracLinuxFormat)
 		{
-			BYTE Data[3264];
+			BYTE Data[4992]; // see InjectSoldierType()'s Assert comment for how this was derived
 			reader(f, Data, sizeof(Data));
 			ExtractSoldierType(Data, &SavedSoldierInfo, stracLinuxFormat, savegame_version);
 		}
 		else
 		{
-			BYTE Data[3240];
+			BYTE Data[4968]; // see InjectSoldierType()'s Assert comment for how this was derived
 			reader(f, Data, sizeof(Data));
 			ExtractSoldierType(Data, &SavedSoldierInfo, stracLinuxFormat, savegame_version);
 		}

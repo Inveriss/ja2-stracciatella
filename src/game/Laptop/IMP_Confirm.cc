@@ -403,7 +403,7 @@ static INT32 FirstFreeBigEnoughPocket(MERCPROFILESTRUCT const& p, UINT16 const u
 	if (GCM->getItem(usItem)->getPerPocket() != 0)
 	{
 		// check small pockets first
-		for (uiPos = SMALLPOCK1POS; uiPos <= SMALLPOCK8POS; uiPos++)
+		for (uiPos = SMALLPOCK1POS; uiPos <= SMALLPOCK20POS; uiPos++)
 		{
 			if (p.inv[uiPos] == NONE)
 			{
@@ -413,7 +413,7 @@ static INT32 FirstFreeBigEnoughPocket(MERCPROFILESTRUCT const& p, UINT16 const u
 	}
 
 	// check large pockets
-	for (uiPos = BIGPOCK1POS; uiPos <= BIGPOCK4POS; uiPos++)
+	for (uiPos = BIGPOCK1POS; uiPos <= BIGPOCK10POS; uiPos++)
 	{
 		if (p.inv[uiPos] == NONE)
 		{

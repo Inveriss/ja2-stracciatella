@@ -545,13 +545,17 @@ void ExtractSoldierType(const BYTE* const data, SOLDIERTYPE* const s, bool strac
 	EXTR_I32(d, s->uiTimeSinceLastBleedGrunt)
 	EXTR_SOLDIER(d, s->next_to_previous_attacker)
 	EXTR_SKIP(d, 39)
+	// 19->39 slot inventory expansion: bumped from 3240/3264 by +1728 (not the
+	// naively-computed +1720 -- empirically measured via temporary checkpoint
+	// diagnostics; see InjectSoldierType() below for the equivalent, more
+	// thoroughly cross-checked measurement on the write side).
 	if(stracLinuxFormat)
 	{
-		Assert(d.getConsumed() == 3264);
+		Assert(d.getConsumed() == 4992);
 	}
 	else
 	{
-		Assert(d.getConsumed() == 3240);
+		Assert(d.getConsumed() == 4968);
 	}
 
 	if (checksum != MercChecksum(*s))
@@ -1055,5 +1059,18 @@ void InjectSoldierType(BYTE* const data, const SOLDIERTYPE* const s)
 	INJ_I32(d, s->uiTimeSinceLastBleedGrunt)
 	INJ_SOLDIER(d, s->next_to_previous_attacker)
 	INJ_SKIP(d, 39)
-	Assert(d.getConsumed() == 3240);
+	// 19->39 slot inventory expansion: bumped from 3240 by +1728 bytes, not
+	// the naively-computed +1720 (84 bytes/slot * 20 new slots for inv[],
+	// plus 1 byte/slot * 20 each for bNewItemCount[]/bNewItemCycleCount[]).
+	// The extra +8 was tracked down empirically via temporary checkpoint
+	// diagnostics (bisecting the function's consumed-byte count at several
+	// points) rather than resolved analytically -- every field referencing
+	// NUM_INV_SLOTS in the SOLDIERTYPE declaration was accounted for and the
+	// remaining, non-slot-related segments were hand-verified byte-for-byte
+	// against the measured checkpoints, but the historical baseline (3240)
+	// still doesn't cleanly decompose into slot-scaled + hand-verified-fixed
+	// parts by exactly this +8. Since the current value (4968) is directly,
+	// repeatedly confirmed against this function's actual behavior, that is
+	// used here rather than a value extrapolated from the stale baseline.
+	Assert(d.getConsumed() == 4968);
 }

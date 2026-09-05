@@ -23,6 +23,16 @@ enum
 	MUTE_BUTTON,
 	SM_DONE_BUTTON,
 	SM_MAP_SCREEN_BUTTON,
+	SM_EMAIL_BUTTON,
+	SM_AIM_MEMBERS_BUTTON,
+	SM_MERC_BUTTON,
+	SM_BOBBYR_BUTTON,
+	SM_HISTORY_BUTTON,
+	SM_PERSONNEL_BUTTON,
+	SM_STRATSCREEN_BUTTON,
+	SM_SHORTCUTS_BUTTON,
+	SM_STATS_BUTTON,
+	SM_SKILLS_BUTTON,
 	NUM_SM_BUTTONS
 };
 
@@ -54,6 +64,32 @@ void ShutdownSMPanel();
 void RenderSMPanel(DirtyLevel*);
 void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup);
 
+// GUI_BUTTONs render through their own, independent pass (RenderButtons())
+// that isn't gated by InItemDescriptionBox() the way the rest of the SM
+// panel is -- so any bookmark button whose rectangle overlaps Infobox.sti/
+// Infobox_money.sti would otherwise draw on top of it. Called from
+// InternalInitItemDescriptionBox()/DeleteItemDescriptionBox() in
+// Interface_Items.cc.
+void HideSMBookmarkButtons(void);
+void ShowSMBookmarkButtons(void);
+
+// Narrower version of the pair above, for the tactical-screen Stats/Skills/
+// KeyRing popups (Infobox_stats.sti, Infobox_skills.sti, the key ring),
+// which -- unlike Infobox.sti -- are narrow enough to only ever cover the
+// right end of the bookmark row (Strategic Map/Keyboard shortcuts/
+// Statistics/Skills) and the "hide empty attachment slots" checkbox, never
+// the left end (Mail/AIM/MERC/BR/History/Personnel). Called from
+// InitStatsPopup()/DeleteStatsPopup(), InitSkillsPopup()/DeleteSkillsPopup()
+// (this file) and InitKeyRingPopup()/DeleteKeyRingPopup() (Interface_Items.cc).
+void HideSMBookmarkButtonsUnderInfoPopups(void);
+void ShowSMBookmarkButtonsUnderInfoPopups(void);
+
+// The key ring popup only ever covers the checkbox, none of the bookmark
+// row buttons -- called from InitKeyRingPopup()/DeleteKeyRingPopup()
+// (Interface_Items.cc).
+void HideSMHideEmptySlotsCheckbox(void);
+void ShowSMHideEmptySlotsCheckbox(void);
+
 
 void CreateTEAMPanelButtons(void);
 void RemoveTEAMPanelButtons(void);
@@ -76,6 +112,22 @@ void RenderTownIDString(void);
 
 void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 extern MOUSE_CALLBACK KeyRingSlotInvClickCallback;
+
+
+// Tactical-screen merc-statistics popup (Infobox_stats.sti) -- opened from
+// the SM panel's Statistics bookmark button (SM_STATS_BUTTON).
+void InitStatsPopup(SOLDIERTYPE* pSoldier, INT16 sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight);
+void RenderStatsPopup(BOOLEAN fFullRender);
+void DeleteStatsPopup(void);
+BOOLEAN InStatsPopup(void);
+
+// Tactical-screen merc-skills popup (Infobox_skills.sti) -- opened from the
+// SM panel's Skills bookmark button (SM_SKILLS_BUTTON). Split out of the
+// merc-statistics popup above.
+void InitSkillsPopup(SOLDIERTYPE* pSoldier, INT16 sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight);
+void RenderSkillsPopup(BOOLEAN fFullRender);
+void DeleteSkillsPopup(void);
+BOOLEAN InSkillsPopup(void);
 
 
 void ShowRadioLocator(SOLDIERTYPE* s, UINT8 ubLocatorSpeed);
@@ -120,6 +172,7 @@ extern GUIButtonRef iTEAMPanelButtons[NUM_TEAM_BUTTONS];
 extern GUIButtonRef giSMStealthButton;
 extern SOLDIERTYPE* gSelectSMPanelToMerc;
 extern MOUSE_REGION gSM_SELMERCMoneyRegion;
+extern BOOLEAN      fSMKeyringIconPressed;
 extern UINT8        gubHandPos;
 extern UINT16       gusOldItemIndex;
 extern UINT16       gusNewItemIndex;

@@ -16,16 +16,16 @@ struct ItemModel;
 
 
 // DEFINES FOR ITEM SLOT SIZES IN PIXELS
-#define BIG_INV_SLOT_WIDTH	61
-#define BIG_INV_SLOT_HEIGHT	22
-#define SM_INV_SLOT_WIDTH	30
-#define SM_INV_SLOT_HEIGHT	23
-#define VEST_INV_SLOT_WIDTH	43
-#define VEST_INV_SLOT_HEIGHT	24
-#define LEGS_INV_SLOT_WIDTH	43
-#define LEGS_INV_SLOT_HEIGHT	24
-#define HEAD_INV_SLOT_WIDTH	43
-#define HEAD_INV_SLOT_HEIGHT	24
+#define BIG_INV_SLOT_WIDTH	    65
+#define BIG_INV_SLOT_HEIGHT	    31
+#define SM_INV_SLOT_WIDTH	    36
+#define SM_INV_SLOT_HEIGHT	    31
+#define VEST_INV_SLOT_WIDTH	    40
+#define VEST_INV_SLOT_HEIGHT	31
+#define LEGS_INV_SLOT_WIDTH	    40
+#define LEGS_INV_SLOT_HEIGHT	31
+#define HEAD_INV_SLOT_WIDTH	    40
+#define HEAD_INV_SLOT_HEIGHT	31
 
 
 // Itempickup stuff
@@ -40,6 +40,7 @@ BOOLEAN HandleItemPickupMenu(void);
 void InitInvSlotInterface(INV_REGION_DESC const* pRegionDesc, INV_REGION_DESC const* pCamoRegion, MOUSE_CALLBACK INVMoveCallback, MOUSE_CALLBACK INVClickCallback, MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback);
 void ShutdownInvSlotInterface();
 void HandleRenderInvSlots(SOLDIERTYPE const&, DirtyLevel);
+void RenderSMKeyringIcon(void);
 void HandleNewlyAddedItems(SOLDIERTYPE&, DirtyLevel*);
 void RenderInvBodyPanel(const SOLDIERTYPE* pSoldier, INT16 sX, INT16 sY);
 void DisableInvRegions( BOOLEAN fDisable );
@@ -64,6 +65,11 @@ void INVRenderItem(SGPVSurface* uiBuffer, SOLDIERTYPE const* pSoldier, OBJECTTYP
 
 
 extern BOOLEAN gfInItemDescBox;
+// Toggled by giSMHideEmptySlotsCheckbox (Interface_Panels.cc). When set,
+// RenderItemDescriptionBox() skips drawing attachment_slot_frame.sti for
+// unoccupied attachment slots on the tactical screen (map screen is
+// unaffected -- its slot frames stay baked into iteminfoc.sti).
+extern BOOLEAN fHideEmptyAttachmentSlots;
 
 BOOLEAN InItemDescriptionBox(void);
 void InitItemDescriptionBox(SOLDIERTYPE* pSoldier, UINT8 ubPosition, INT16 sX, INT16 sY, UINT8 ubStatusIndex);
@@ -72,6 +78,7 @@ void InitKeyItemDescriptionBox(SOLDIERTYPE* pSoldier, UINT8 ubPosition, INT16 sX
 void RenderItemDescriptionBox(void);
 void HandleItemDescriptionBox(DirtyLevel*);
 void DeleteItemDescriptionBox(void);
+void TickItemDescCloseCleanup(void);
 
 
 BOOLEAN InItemStackPopup(void);

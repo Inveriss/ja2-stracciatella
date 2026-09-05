@@ -1561,12 +1561,17 @@ bool InGas(SOLDIERTYPE const* const s, GridNo const grid_no)
 bool WearGasMaskIfAvailable(SOLDIERTYPE* const s)
 {
 	INT8 const slot = FindObj(s, GASMASK);
-	if (slot == NO_SLOT || slot == HEAD1POS || slot == HEAD2POS) return false;
+	if (slot == NO_SLOT || (slot >= HEAD1POS && slot <= HEAD4POS)) return false;
 
-	INT8 const new_slot =
-		s->inv[HEAD1POS].usItem == NOTHING ? HEAD1POS :
-		s->inv[HEAD2POS].usItem == NOTHING ? HEAD2POS :
-		HEAD1POS; // Screw it, going in position 1 anyhow
+	INT8 new_slot = HEAD1POS; // Screw it, going in position 1 anyhow, if all are full
+	for (INT8 headSlot = HEAD1POS; headSlot <= HEAD4POS; ++headSlot)
+	{
+		if (s->inv[headSlot].usItem == NOTHING)
+		{
+			new_slot = headSlot;
+			break;
+		}
+	}
 
 	RearrangePocket(s, slot, new_slot, TRUE);
 	return true;
@@ -2025,13 +2030,13 @@ bool FindBetterSpotForItem(SOLDIERTYPE& s, INT8 const slot)
 	INT8 new_slot;
 	if (GCM->getItem(item)->getPerPocket() != 0)
 	{ // Try a small pocket first
-		new_slot = FindEmptySlotWithin(&s, SMALLPOCK1POS, SMALLPOCK8POS);
+		new_slot = FindEmptySlotWithin(&s, SMALLPOCK1POS, SMALLPOCK20POS);
 		if (new_slot == NO_SLOT) goto try_big_pocket;
 	}
 	else
 	{ // Look for a big pocket
 try_big_pocket:
-		new_slot = FindEmptySlotWithin(&s, BIGPOCK1POS, BIGPOCK4POS);
+		new_slot = FindEmptySlotWithin(&s, BIGPOCK1POS, BIGPOCK10POS);
 		if (new_slot == NO_SLOT) return false;
 	}
 

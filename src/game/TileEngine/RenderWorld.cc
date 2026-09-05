@@ -2072,8 +2072,8 @@ void ScrollWorld(void)
 			}
 
 			if (!gfIsUsingTouch && !fIsScrollingByOffset) {
-				if (gusMouseYPos <  NO_PX_SHOW_EXIT_CURS)                 ScrollFlags |= SCROLL_UP;
-				if (gusMouseYPos >= SCREEN_HEIGHT - NO_PX_SHOW_EXIT_CURS) ScrollFlags |= SCROLL_DOWN;
+				if (gusMouseYPos <  NO_PX_SHOW_EXIT_CURS)                       ScrollFlags |= SCROLL_UP;
+				if (gusMouseYPos >= SCREEN_HEIGHT - NO_PX_SCROLL_DOWN_TRIGGER)  ScrollFlags |= SCROLL_DOWN;
 				if (gusMouseXPos >= SCREEN_WIDTH  - NO_PX_SHOW_EXIT_CURS) ScrollFlags |= SCROLL_RIGHT;
 				if (gusMouseXPos <  NO_PX_SHOW_EXIT_CURS)                 ScrollFlags |= SCROLL_LEFT;
 			}

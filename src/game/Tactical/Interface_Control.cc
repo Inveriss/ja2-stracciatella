@@ -384,6 +384,16 @@ void RenderTopmostTacticalInterface()
 		RenderKeyRingPopup(fInterfacePanelDirty == DIRTYLEVEL2);
 	}
 
+	if (InStatsPopup() && !InItemDescriptionBox())
+	{
+		RenderStatsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
+	}
+
+	if (InSkillsPopup() && !InItemDescriptionBox())
+	{
+		RenderSkillsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
+	}
+
 	if (gfInMovementMenu)
 	{
 		RenderMovementMenu();
@@ -439,6 +449,40 @@ void RenderTopmostTacticalInterface()
 
 	EndViewportOverlays();
 	RenderRubberBanding();
+
+	if (InItemDescriptionBox())
+	{
+		// Rendered every frame here (like the sibling stack/keyring/stats/
+		// skills popups above), rather than only on DIRTYLEVEL2 refreshes
+		// from within RenderSMPanel() -- Infobox.sti (weapon) is taller than
+		// the SM panel's own protected footer (ITEMDESC_PANEL_HEIGHT vs
+		// INV_INTERFACE_HEIGHT, UILayout.h), so the extra height needs to be
+		// continuously refreshed to not get drawn over by the tactical
+		// world's own every-frame render between panel refreshes.
+		//
+		// Placed AFTER the FOR_EACH_MERC loop above (DrawSelectedUIAboveGuy()
+		// -- the selected merc's health/energy bars and name tag drawn over
+		// their head) rather than at the top of this function: that loop
+		// runs every frame regardless of the box, and was still drawing over
+		// the box's extra height when this call sat above it. Placed BEFORE
+		// RenderButtons() below so the ammo-eject button (a GUI_BUTTON, an
+		// independent rendering system from this box's own guiSAVEBUFFER-
+		// based redraw) still gets painted back on top of the box afterward
+		// -- see the matching MarkAButtonDirty() call inside
+		// RenderItemDescriptionBox() that keeps it redrawing every frame too.
+		RenderItemDescriptionBox();
+	}
+	else
+	{
+		// Keeps re-flipping the closed box's last on-screen rectangle for a
+		// few frames -- see gsItemDescCloseCleanupFrames/
+		// DeleteItemDescriptionBox()/TickItemDescCloseCleanup() (Interface_Items.cc)
+		// for why: RENDER_FLAG_FULL (set on close) isn't consumed by
+		// RenderWorld.cc's own full-redraw check until the FOLLOWING frame,
+		// so a single flip right at close time can happen one frame too
+		// early, before the terrain underneath is actually repainted.
+		TickItemDescCloseCleanup();
+	}
 
 	if (!gfInItemPickupMenu && !gpItemPointer)
 	{

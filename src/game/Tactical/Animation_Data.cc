@@ -460,6 +460,10 @@ AnimationSurfaceType gAnimSurfaceDatabase[NUMANIMATIONSURFACETYPES] =
 	M(JEEP_DIE,             ANIMSDIR "/vehicles/hm_wrek.sti",   NO_STRUCT, 0,                        2, -1),
 
 	M(BODYEXPLODE,          ANIMSDIR "/s_merc/bod_blow.sti",    NO_STRUCT, 0,                        1, -1),
+
+	// Added for the Infobox.sti merc preview picture -- see RGFHANDGUN_1H in
+	// Animation_Data.h.
+	M(RGFHANDGUN_1H,        ANIMSDIR "/f_merc/1_hnd_n.sti",     S_STRUCT,  0,                        8, -1),
 };
 
 #undef M

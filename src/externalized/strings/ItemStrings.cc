@@ -84,11 +84,14 @@ BinaryData BinaryData::deserialize(SGPFile* itemsFile, SGPFile* profilesFile) {
 	binData.profiles.resize(NUM_PROFILES);
 	bool const isCorrectlyEncoded = !(isRussianVersion() || isRussianGoldVersion());
 	for (ProfileID profileID = 0; profileID != NUM_PROFILES; ++profileID) {
-		BYTE data[MERC_PROFILE_SIZE];
+		// prof.dat is the immutable, third-party vanilla game asset -- always
+		// VANILLA_PROF_DAT_SIZE bytes / VANILLA_PROF_DAT_INV_SLOTS inventory
+		// slots, regardless of this engine's own (now larger) profile format.
+		BYTE data[VANILLA_PROF_DAT_SIZE];
 		JA2EncryptedFileRead(profilesFile, data, sizeof(data));
 		auto prof = std::make_unique<MERCPROFILESTRUCT>();
 		UINT32 checksum;
-		ExtractMercProfile(data, *prof, false, &checksum, isCorrectlyEncoded);
+		ExtractMercProfile(data, *prof, false, &checksum, isCorrectlyEncoded, /*fVanillaProfileFormat=*/true);
 		// not checking the checksum
 		binData.profiles[profileID] = std::move(prof);
 	}

@@ -788,13 +788,13 @@ BOOLEAN DishOutGasDamage(SOLDIERTYPE* const pSoldier, const SmokeEffectModel* sm
 		return fRecompileMovementCosts;
 	}
 
-	if ( pSoldier->inv[ HEAD1POS ].usItem == GASMASK && pSoldier->inv[ HEAD1POS ].bStatus[0] >= USABLE )
+	for (INT8 headSlot = HEAD1POS; headSlot <= HEAD4POS; ++headSlot)
 	{
-		bPosOfMask = HEAD1POS;
-	}
-	else if ( pSoldier->inv[ HEAD2POS ].usItem == GASMASK && pSoldier->inv[ HEAD2POS ].bStatus[0] >= USABLE )
-	{
-		bPosOfMask = HEAD2POS;
+		if ( pSoldier->inv[ headSlot ].usItem == GASMASK && pSoldier->inv[ headSlot ].bStatus[0] >= USABLE )
+		{
+			bPosOfMask = headSlot;
+			break;
+		}
 	}
 
 	if ( bPosOfMask != NO_SLOT && !smokeEffect->getIgnoresGasMask()  )

@@ -1200,7 +1200,7 @@ static void ChooseFaceGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp)
 
 	//Look for any face item in the big pocket positions (the only place they can be added in the editor)
 	//If any are found, then don't assign any
-	for( i = BIGPOCK1POS; i < BIGPOCK4POS; i++ )
+	for( i = BIGPOCK1POS; i < BIGPOCK10POS; i++ )
 	{
 		if( GCM->getItem(pp->Inv[ i ].usItem)->getItemClass() == IC_FACE )
 		{
@@ -1449,7 +1449,7 @@ static BOOLEAN PlaceObjectInSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, OBJECT
 	{
 		//ubPerPocket == 0 will only fit in large pockets.
 		pObject->ubNumberOfObjects = 1;
-		for( i = BIGPOCK1POS; i <= BIGPOCK4POS; i++ )
+		for( i = BIGPOCK1POS; i <= BIGPOCK10POS; i++ )
 		{
 			if( !(pp->Inv[ i ].usItem) && !(pp->Inv[ i ].fFlags & OBJECT_NO_OVERWRITE) )
 			{
@@ -1463,7 +1463,7 @@ static BOOLEAN PlaceObjectInSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, OBJECT
 	{
 		pObject->ubNumberOfObjects = (UINT8) std::min(GCM->getItem(pObject->usItem )->getPerPocket(), pObject->ubNumberOfObjects);
 		//try to get it into a small pocket first
-		for( i = SMALLPOCK1POS; i <= SMALLPOCK8POS; i++ )
+		for( i = SMALLPOCK1POS; i <= SMALLPOCK20POS; i++ )
 		{
 			if( !(pp->Inv[ i ].usItem) && !(pp->Inv[ i ].fFlags & OBJECT_NO_OVERWRITE) )
 			{
@@ -1471,7 +1471,7 @@ static BOOLEAN PlaceObjectInSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, OBJECT
 				return TRUE;
 			}
 		}
-		for( i = BIGPOCK1POS; i <= BIGPOCK4POS; i++ )
+		for( i = BIGPOCK1POS; i <= BIGPOCK10POS; i++ )
 		{
 			//no space free in small pockets, so put it into a large pocket.
 			if( !(pp->Inv[ i ].usItem) && !(pp->Inv[ i ].fFlags & OBJECT_NO_OVERWRITE) )

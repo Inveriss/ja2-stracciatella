@@ -214,31 +214,23 @@ bool Soldier::handlePendingAction(bool inCombat)
 
 int8_t Soldier::getFreeHeadSlot() const
 {
-	if(mSoldier->inv[HEAD1POS].usItem == NONE)
+	for (int8_t slot = HEAD1POS; slot <= HEAD4POS; ++slot)
 	{
-		return HEAD1POS;
-	}
-	if(mSoldier->inv[HEAD2POS].usItem == NONE)
-	{
-		return HEAD2POS;
+		if (mSoldier->inv[slot].usItem == NONE) return slot;
 	}
 	return NO_SLOT;
 }
 
 int8_t Soldier::getFreePocket() const
 {
-	if(mSoldier->inv[SMALLPOCK1POS].usItem == NONE)  return SMALLPOCK1POS;
-	if(mSoldier->inv[SMALLPOCK2POS].usItem == NONE)  return SMALLPOCK2POS;
-	if(mSoldier->inv[SMALLPOCK3POS].usItem == NONE)  return SMALLPOCK3POS;
-	if(mSoldier->inv[SMALLPOCK4POS].usItem == NONE)  return SMALLPOCK4POS;
-	if(mSoldier->inv[SMALLPOCK5POS].usItem == NONE)  return SMALLPOCK5POS;
-	if(mSoldier->inv[SMALLPOCK6POS].usItem == NONE)  return SMALLPOCK6POS;
-	if(mSoldier->inv[SMALLPOCK7POS].usItem == NONE)  return SMALLPOCK7POS;
-	if(mSoldier->inv[SMALLPOCK8POS].usItem == NONE)  return SMALLPOCK8POS;
-	if(mSoldier->inv[BIGPOCK1POS].usItem == NONE)    return BIGPOCK1POS;
-	if(mSoldier->inv[BIGPOCK2POS].usItem == NONE)    return BIGPOCK2POS;
-	if(mSoldier->inv[BIGPOCK3POS].usItem == NONE)    return BIGPOCK3POS;
-	if(mSoldier->inv[BIGPOCK4POS].usItem == NONE)    return BIGPOCK4POS;
+	for (int8_t slot = SMALLPOCK1POS; slot <= SMALLPOCK20POS; ++slot)
+	{
+		if (mSoldier->inv[slot].usItem == NONE) return slot;
+	}
+	for (int8_t slot = BIGPOCK1POS; slot <= BIGPOCK10POS; ++slot)
+	{
+		if (mSoldier->inv[slot].usItem == NONE) return slot;
+	}
 	return NO_SLOT;
 }
 
@@ -312,8 +304,10 @@ void Soldier::switchHeadGear(int switchDirection)
 	OBJECTTYPE* currentEyeGear = NULL;
 	for (ITEMDEFINE ic : toGears)
 	{
-		if (mSoldier->inv[HEAD1POS].usItem == ic) currentEyeGear = &mSoldier->inv[HEAD1POS];
-		if (mSoldier->inv[HEAD2POS].usItem == ic) currentEyeGear = &mSoldier->inv[HEAD2POS];
+		for (int8_t headSlot = HEAD1POS; headSlot <= HEAD4POS; ++headSlot)
+		{
+			if (mSoldier->inv[headSlot].usItem == ic) currentEyeGear = &mSoldier->inv[headSlot];
+		}
 	}
 
 	if (!currentEyeGear)

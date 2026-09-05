@@ -1507,18 +1507,14 @@ BOOLEAN HandleGotoNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving, BOOLEA
 			// since there isn't a way to retrieve the smoke effect structure
 			if (gpWorldLevelData[pSoldier->sGridNo].ubExtFlags[pSoldier->bLevel] & ANY_SMOKE_EFFECT && PreRandom(5) == 0)
 			{
-				INT8 bPosOfMask;
-				if (pSoldier->inv[HEAD1POS].usItem == GASMASK && pSoldier->inv[HEAD1POS].bStatus[0] >= GASMASK_MIN_STATUS)
+				INT8 bPosOfMask = NO_SLOT;
+				for (INT8 headSlot = HEAD1POS; headSlot <= HEAD4POS; ++headSlot)
 				{
-					bPosOfMask = HEAD1POS;
-				}
-				else if (pSoldier->inv[HEAD2POS].usItem == GASMASK && pSoldier->inv[HEAD2POS].bStatus[0] >= GASMASK_MIN_STATUS)
-				{
-					bPosOfMask = HEAD2POS;
-				}
-				else
-				{
-					bPosOfMask = NO_SLOT;
+					if (pSoldier->inv[headSlot].usItem == GASMASK && pSoldier->inv[headSlot].bStatus[0] >= GASMASK_MIN_STATUS)
+					{
+						bPosOfMask = headSlot;
+						break;
+					}
 				}
 
 				auto smokeEffectID = GetSmokeEffectOnTile(pSoldier->sGridNo, pSoldier->bLevel);

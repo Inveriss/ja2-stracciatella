@@ -9,6 +9,17 @@
 #include "TestUtils.h"
 
 
+// NOTE: vanillaProfile and stracLinuxProfile below are EXPECTED to fail as of
+// the 19->39 slot inventory expansion. Both read fixed, pre-recorded IMP.dat
+// fixture files (unittests/saves/vanilla-russian/IMP.dat,
+// unittests/saves/strac-macos/imp.dat) serialized under the old
+// MERC_PROFILE_SIZE/MERC_PROFILE_SIZE_STRAC_LINUX byte layout (716/796 bytes).
+// ExtractImpProfileFromFile() now expects the new sizes (796/876 bytes, see
+// LoadSaveMercProfile.h), so these old-format fixtures no longer parse --
+// exactly the same kind of backward-compatibility break as pre-expansion
+// savegames, which this project has deliberately chosen not to support (this
+// change always requires starting a new game). Left failing on purpose rather
+// than regenerated/disabled; do not "fix" by reverting the slot-count sizes.
 TEST(LoadSaveMercProfileTest, vanillaProfile)
 {
 	MERCPROFILESTRUCT p;
@@ -161,6 +172,7 @@ TEST(LoadSaveMercProfileTest, vanillaProfile)
 	// UINT32 uiTotalCostToDate;
 }
 
+// NOTE: expected to fail -- see comment above vanillaProfile.
 TEST(LoadSaveMercProfileTest, stracLinuxProfile)
 {
 	MERCPROFILESTRUCT p;

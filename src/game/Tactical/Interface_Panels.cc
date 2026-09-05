@@ -1,4 +1,5 @@
 #include "Interface_Panels.h"
+#include "AIMSort.h"
 #include "Animation_Control.h"
 #include "Assignments.h"
 #include "Boxing.h"
@@ -31,7 +32,9 @@
 #include "JAScreens.h"
 #include "Keys.h"
 #include "LOS.h"
+#include "Laptop.h"
 #include "LaptopSave.h"
+#include "Line.h"
 #include "Local.h"
 #include "Logger.h"
 #include "MapScreen.h"
@@ -52,7 +55,9 @@
 #include "ShopKeeper_Interface.h"
 #include "Soldier_Functions.h"
 #include "Soldier_Ani.h"
+#include "Soldier_Control.h"
 #include "Soldier_Macros.h"
+#include "Soldier_Profile.h"
 #include "Sound_Control.h"
 #include "Squads.h"
 #include "Strategic.h"
@@ -71,6 +76,7 @@
 #include "WordWrap.h"
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <memory>
 #include <string_theory/format>
@@ -78,7 +84,7 @@
 
 // DEFINES FOR VARIOUS PANELS
 #define SM_ITEMDESC_START_X			214 + INTERFACE_START_X
-#define SM_ITEMDESC_START_Y			1 + INV_INTERFACE_START_Y
+#define SM_ITEMDESC_START_Y			1 + ITEMDESC_PANEL_START_Y
 #define SM_ITEMDESC_HEIGHT			128
 #define SM_ITEMDESC_WIDTH			314
 
@@ -138,12 +144,58 @@
 #define SM_LOOKB_Y				108
 #define SM_STEALTHMODE_X			187
 #define SM_STEALTHMODE_Y			73
-#define SM_DONE_X				(g_ui.m_teamPanelSlotsTotalWidth + 45)
+
+// Laptop shortcut buttons (see inventory_bottom_panel_bookmarks.sti, 32x32
+// each). Placeholder coordinates -- reposition to match the final graphic.
+#define SM_EMAILB_X				4
+#define SM_EMAILB_Y				143
+#define SM_AIM_MEMBERSB_X			39
+#define SM_AIM_MEMBERSB_Y			143
+#define SM_MERCB_X				74
+#define SM_MERCB_Y				143
+#define SM_BOBBYRB_X				110
+#define SM_BOBBYRB_Y				143
+#define SM_HISTORYB_X				145
+#define SM_HISTORYB_Y				143
+#define SM_PERSONNELB_X			180
+#define SM_PERSONNELB_Y			143
+// 61x32 placeholder.
+#define SM_STRATSCREENB_X			215
+#define SM_STRATSCREENB_Y			160
+// 58x32 placeholder. Window/functionality not implemented yet -- points at
+// the Options screen (BtnOptionsCallback) as a stand-in until a dedicated
+// keyboard-shortcuts screen exists.
+#define SM_SHORTCUTSB_X			384
+#define SM_SHORTCUTSB_Y			160
+// Placeholder position, next to SM_SHORTCUTS_BUTTON -- opens the
+// Infobox_stats.sti merc-statistics popup. Tune once visible in-game.
+#define SM_STATSB_X				446
+#define SM_STATSB_Y				160
+// Placeholder position, next to SM_STATS_BUTTON -- opens the
+// Infobox_skills.sti merc-skills popup (split out of Infobox_stats.sti).
+// Tune once visible in-game.
+#define SM_SKILLSB_X				481
+#define SM_SKILLSB_Y				160
+
+// Checkbox toggling fHideEmptyAttachmentSlots -- placeholder position.
+#define SM_HIDE_EMPTY_SLOTS_X			274
+#define SM_HIDE_EMPTY_SLOTS_Y			136
+// Anchored to the right edge of the single-merc panel's OWN canvas
+// (m_smPanelWidth), not m_teamPanelSlotsTotalWidth and NOT the shared,
+// purely squad-size-driven m_teamPanelWidth -- m_smPanelWidth is floored to
+// INVENTORY_BOTTOM_PANEL_WIDTH (see UILayout.cc) for squads smaller than
+// ~11 mercs, so the buttons/minimap segment of inventory_bottom_panel.sti
+// always renders at a fixed spot near the canvas's right edge regardless of
+// squad size; these offsets must track that same edge to stay aligned with
+// it. Equivalent to the old slots-relative formula for squads >= ~11 (where
+// m_smPanelWidth == m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH
+// and isn't floored): 142 - 45 = 97, 142 - 91 = 51.
+#define SM_DONE_X				(g_ui.m_smPanelWidth - 94)
 #define SM_DONE_Y				4
-#define SM_MAPSCREEN_X				(g_ui.m_teamPanelSlotsTotalWidth + 91)
+#define SM_MAPSCREEN_X				(g_ui.m_smPanelWidth - 48)
 #define SM_MAPSCREEN_Y				4
 
-
+/*
 #define SM_PERCENT_WIDTH			20
 #define SM_PERCENT_HEIGHT			10
 #define SM_ARMOR_X				347
@@ -152,20 +204,30 @@
 #define SM_ARMOR_LABEL_Y			69
 #define SM_ARMOR_PERCENT_X			368
 #define SM_ARMOR_PERCENT_Y			79
+*/
 
-#define SM_WEIGHT_LABEL_X			430
-#define SM_WEIGHT_LABEL_Y			107
-#define SM_WEIGHT_PERCENT_X			449
-#define SM_WEIGHT_PERCENT_Y			106
-#define SM_WEIGHT_X				428
-#define SM_WEIGHT_Y				106
+#define SM_PERCENT_WIDTH			20
+#define SM_PERCENT_HEIGHT			10
+#define SM_ARMOR_X				    429
+#define SM_ARMOR_Y				    97
+#define SM_ARMOR_LABEL_X			445
+#define SM_ARMOR_LABEL_Y			87
+#define SM_ARMOR_PERCENT_X			450
+#define SM_ARMOR_PERCENT_Y			97
 
-#define SM_CAMO_LABEL_X			430
-#define SM_CAMO_LABEL_Y			122
-#define SM_CAMO_PERCENT_X			449
-#define SM_CAMO_PERCENT_Y			121
-#define SM_CAMO_X				428
-#define SM_CAMO_Y				121
+#define SM_WEIGHT_LABEL_X			263
+#define SM_WEIGHT_LABEL_Y			88
+#define SM_WEIGHT_PERCENT_X			250
+#define SM_WEIGHT_PERCENT_Y			99
+#define SM_WEIGHT_X				229
+#define SM_WEIGHT_Y				99
+
+#define SM_CAMO_LABEL_X			259
+#define SM_CAMO_LABEL_Y			127
+#define SM_CAMO_PERCENT_X			251
+#define SM_CAMO_PERCENT_Y			138
+#define SM_CAMO_X				231
+#define SM_CAMO_Y				138
 
 
 #define SM_STATS_WIDTH				30
@@ -191,10 +253,20 @@
 #define SM_MED_X				148
 #define SM_MED_Y				47
 
-#define MONEY_X				460
-#define MONEY_Y				105
-#define MONEY_WIDTH				30
-#define MONEY_HEIGHT				22
+#define MONEY_X				279
+#define MONEY_Y				160
+#define MONEY_WIDTH				32
+#define MONEY_HEIGHT				32
+
+// Trash can drop target for inventory_bottom_panel.sti, mirroring the one
+// baked into mapinv.sti on the strategic map (see TRASH_CAN_* in
+// MapScreen.h). The icon itself is painted directly into the panel art
+// (~10px left of the LEGPOS slot); these are placeholder coordinates/size --
+// tune to match the final graphic.
+#define SM_TRASHCAN_X				349
+#define SM_TRASHCAN_Y				160
+#define SM_TRASHCAN_WIDTH			32
+#define SM_TRASHCAN_HEIGHT			32
 
 #define TM_FACE_X				14
 #define TM_FACE_Y				6
@@ -258,6 +330,16 @@ enum
 	STANCE_IMAGES,
 	DONE_IMAGES,
 	MAPSCREEN_IMAGES,
+	SM_EMAIL_IMAGES,
+	SM_AIM_MEMBERS_IMAGES,
+	SM_MERC_IMAGES,
+	SM_BOBBYR_IMAGES,
+	SM_HISTORY_IMAGES,
+	SM_PERSONNEL_IMAGES,
+	SM_STRATSCREEN_IMAGES,
+	SM_SHORTCUTS_IMAGES,
+	SM_STATS_IMAGES,
+	SM_SKILLS_IMAGES,
 	NUM_SM_BUTTON_IMAGES
 };
 
@@ -278,6 +360,12 @@ static BUTTON_PICS* iTEAMPanelImages[NUM_TEAM_BUTTON_IMAGES];
 
 static BUTTON_PICS* giSMStealthImages;
 GUIButtonRef giSMStealthButton;
+
+// Toggles fHideEmptyAttachmentSlots (Interface_Items.h). Hidden/shown
+// alongside the bookmark row by HideSMBookmarkButtons()/
+// ShowSMBookmarkButtons() -- like any GUI_BUTTON it would otherwise draw on
+// top of Infobox.sti while the item description box is open.
+GUIButtonRef giSMHideEmptySlotsCheckbox;
 
 BOOLEAN gfUIStanceDifferent = FALSE;
 static BOOLEAN gfAllDisabled = FALSE;
@@ -314,12 +402,57 @@ static SGPVObject* guiVEHINV;
 
 static cache_key_t const guiCLOSE{ INTERFACEDIR "/p_close.sti" };
 
+// Background for the tactical-screen merc-statistics popup, opened by
+// SM_STATS_BUTTON -- see InitStatsPopup()/RenderStatsPopup() below.
+static cache_key_t const guiStatsInfoBox{ INTERFACEDIR "/Infobox_stats.sti" };
+
+// Background for the tactical-screen merc-skills popup, opened by
+// SM_SKILLS_BUTTON -- see InitSkillsPopup()/RenderSkillsPopup() below.
+// Split out of Infobox_stats.sti/guiStatsInfoBox above into its own
+// independent button/file/coordinates.
+static cache_key_t const guiSkillsInfoBox{ INTERFACEDIR "/Infobox_skills.sti" };
+
+// Sub-image 15 (0-based 14) of inventory_bottom_panel_bookmarks.sti is the
+// "ready" state icon for the money region on this panel, moved here from
+// being baked into inventory_bottom_panel.sti's own art (the trash can's
+// "ready" icon, sub-image 19/0-based 18, is drawn from the same source --
+// see SM_TRASHCAN_ICON_READY below). Sub-image 16 (0-based 15) is the
+// matching "pressed" state (15/19), shown while the region is held down --
+// see fSMMoneyIconPressed/fSMTrashIconPressed below and
+// fSMKeyringIconPressed (Interface_Panels.h) for the keyring, rendered from
+// Interface_Items.cc.
+static cache_key_t const guiSMBookmarksVO{ INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti" };
+#define SM_MONEY_ICON_READY		14
+#define SM_MONEY_ICON_PRESSED		15
+#define SM_KEYRING_ICON_READY		16
+#define SM_KEYRING_ICON_PRESSED	17
+#define SM_TRASHCAN_ICON_READY		18
+#define SM_TRASHCAN_ICON_PRESSED	19
+
+// Pressed-state flags for the money/keyring/trash-can icons -- set on
+// MSYS_CALLBACK_REASON_POINTER_DWN in their respective button callbacks,
+// cleared on POINTER_UP or MSYS_CALLBACK_REASON_LOST_MOUSE (a drag off the
+// region while still held down never delivers POINTER_UP to it -- see
+// MSYS_UpdateMouseRegion()'s g_clicked_region gating). fSMKeyringIconPressed
+// is set from KeyRingItemPanelButtonCallback here but rendered from
+// HandleRenderInvSlots() in Interface_Items.cc, hence extern (see
+// Interface_Panels.h).
+static BOOLEAN fSMMoneyIconPressed = FALSE;
+static BOOLEAN fSMTrashIconPressed = FALSE;
+BOOLEAN        fSMKeyringIconPressed = FALSE;
+
 // Globals for various mouse regions
 static MOUSE_REGION gSM_SELMERCPanelRegion;
 static MOUSE_REGION gSM_SELMERCBarsRegion;
 MOUSE_REGION        gSM_SELMERCMoneyRegion;
 static MOUSE_REGION gSM_SELMERCEnemyIndicatorRegion;
 static MOUSE_REGION gTEAM_PanelRegion;
+
+// Trash can drop target (see SM_TRASHCAN_* above). Separate from the
+// strategic map's gTrashCanRegion/fShowTrashCanHighLight -- own lifecycle,
+// tied to InitializeSMPanel()/ShutdownSMPanel().
+static MOUSE_REGION gSMTrashCanRegion;
+static BOOLEAN      fShowSMTrashCanHighlight = FALSE;
 
 static std::unique_ptr<SGPVSurface> CreateVideoSurfaceFromObjectFile(const ST::string& filename, UINT16 usRegionIndex);
 
@@ -789,6 +922,17 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 				EnableButton(iSMPanelButtons[OPTIONS_BUTTON],       enable);
 				EnableButton(iSMPanelButtons[SM_DONE_BUTTON],       enable);
 				EnableButton(iSMPanelButtons[SM_MAP_SCREEN_BUTTON], enable);
+				EnableButton(iSMPanelButtons[SM_EMAIL_BUTTON],       enable);
+				EnableButton(iSMPanelButtons[SM_AIM_MEMBERS_BUTTON], enable);
+				EnableButton(iSMPanelButtons[SM_MERC_BUTTON],        enable);
+				EnableButton(iSMPanelButtons[SM_BOBBYR_BUTTON],      enable);
+				EnableButton(iSMPanelButtons[SM_HISTORY_BUTTON],     enable);
+				EnableButton(iSMPanelButtons[SM_PERSONNEL_BUTTON],   enable);
+				EnableButton(iSMPanelButtons[SM_STRATSCREEN_BUTTON], enable);
+				EnableButton(iSMPanelButtons[SM_SHORTCUTS_BUTTON],   enable);
+				EnableButton(iSMPanelButtons[SM_STATS_BUTTON],       enable);
+				EnableButton(iSMPanelButtons[SM_SKILLS_BUTTON],      enable);
+				if (giSMHideEmptySlotsCheckbox) EnableButton(giSMHideEmptySlotsCheckbox, enable);
 
 				//enable the radar map region
 				gRadarRegion.Enable();
@@ -824,6 +968,17 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup)
 			DisableButton( iSMPanelButtons[ OPTIONS_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_DONE_BUTTON ] );
 			DisableButton( iSMPanelButtons[ SM_MAP_SCREEN_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_EMAIL_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_AIM_MEMBERS_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_MERC_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_BOBBYR_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_HISTORY_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_PERSONNEL_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_STRATSCREEN_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_SHORTCUTS_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_STATS_BUTTON ] );
+			DisableButton( iSMPanelButtons[ SM_SKILLS_BUTTON ] );
+			if (giSMHideEmptySlotsCheckbox) DisableButton(giSMHideEmptySlotsCheckbox);
 
 			gRadarRegion.Disable();
 		}
@@ -838,12 +993,16 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvClickCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvClickCamoCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvMoneyButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+static void SMInvMoneyMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SMInvMoveCamoCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectedMercButtonCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectedMercButtonCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectedMercButtonMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectedMercEnemyIndicatorCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+static void SMTrashCanBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+static void SMTrashCanMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+static void RenderSMMoneyAndTrashIcons();
 
 
 /** Fill empty space at the bottom of the screen. */
@@ -872,20 +1031,22 @@ void InitializeSMPanel()
 {
 	// Assemble the SMPanel from graphic objects.
 	// For visual consistency, the SMPanel should fill up the same width as the TEAMPanel, that the buttons and
-	// minimap are in the bottom-right corner.
+	// minimap are in the bottom-right corner. Uses m_smPanelWidth (not the shared, purely squad-size-driven
+	// m_teamPanelWidth), since inventory_bottom_panel.sti can be wider than what squad size alone would need --
+	// see the comment on m_smPanelWidth in UILayout.h.
 	SGPVObject* voSMPanel = AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
-	guiSMPanel = new SGPVSurface(g_ui.m_teamPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
-	if (g_ui.m_teamPanelWidth > 640)
+	guiSMPanel = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+	if (g_ui.m_smPanelWidth > INVENTORY_BOTTOM_PANEL_WIDTH)
 	{
 		// The team panel is longer than default
 		// need a second blit, and we will start from the right
-		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_teamPanelWidth - 640, 0);
+		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH, 0);
 	}
 	// draw the basic Single-Merc panel
 	BltVideoObject(guiSMPanel, voSMPanel, 0, 0, 0);
 	DeleteVideoObject(voSMPanel);
 
-	INT16 sFillerWidth = g_ui.m_teamPanelWidth - 640;
+	INT16 sFillerWidth = g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH;
 	if (sFillerWidth > 0)
 	{
 		// draw a space filler if needed
@@ -931,7 +1092,7 @@ void InitializeSMPanel()
 	//DEfine region for money button
 	x = dx + MONEY_X;
 	y = dy + MONEY_Y;
-	MSYS_DefineRegion(&gSM_SELMERCMoneyRegion, x, y, x + MONEY_WIDTH, y + MONEY_HEIGHT, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, SMInvMoneyButtonCallback);
+	MSYS_DefineRegion(&gSM_SELMERCMoneyRegion, x, y, x + MONEY_WIDTH, y + MONEY_HEIGHT, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, SMInvMoneyMoveCallback, SMInvMoneyButtonCallback);
 	gSM_SELMERCMoneyRegion.SetFastHelpText(TacticalStr[MONEY_BUTTON_HELP_TEXT]);
 
 	// Check if mouse is in region and if so, adjust...
@@ -946,6 +1107,15 @@ void InitializeSMPanel()
 	MOUSE_CALLBACK smInvClickCallback = MouseCallbackPrimarySecondary(SMInvClickCallbackPrimary, SMInvClickCallbackSecondary, MSYS_NO_CALLBACK, true);
 	InitInvSlotInterface(g_ui.m_invSlotPositionTac, &g_ui.m_invCamoRegion, SMInvMoveCallback, smInvClickCallback, SMInvMoveCamoCallback, SMInvClickCamoCallback);
 	InitKeyRingInterface(KeyRingItemPanelButtonCallback);
+
+	// Trash can drop target -- see SM_TRASHCAN_* above.
+	x = dx + SM_TRASHCAN_X;
+	y = dy + SM_TRASHCAN_Y;
+	MSYS_DefineRegion(&gSMTrashCanRegion, x, y, x + SM_TRASHCAN_WIDTH, y + SM_TRASHCAN_HEIGHT,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, SMTrashCanMoveCallback, SMTrashCanBtnCallback);
+	// Reusing the map screen's trash-can tooltip text (same widget, different
+	// screen) rather than adding a new localized string.
+	gSMTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
 
 	// this is important! It will disable buttons like SM_MAP_SCREEN_BUTTON when they're supposed to be
 	// disabled - the previous disabled state is lost everytime panel is reinitialized, because all the
@@ -994,6 +1164,12 @@ catch (...)
 static void BtnBurstModeCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnClimbCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnHandCursorCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopAIMMembersCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopBobbyRCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopEmailCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopHistoryCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopMercCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnLaptopPersonnelCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnLookCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnMapScreenCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnMuteCallback(GUI_BUTTON* btn, UINT32 reason);
@@ -1001,10 +1177,13 @@ static void BtnNextMercCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnOptionsCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnPrevMercCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnSMDoneCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnSkillsCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnStatsCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnStanceDownCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnStanceUpCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnTalkCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnUpdownCallback(GUI_BUTTON* btn, UINT32 reason);
+static void ToggleHideEmptyAttachmentSlotsCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
 void CreateSMPanelButtons(void)
@@ -1038,6 +1217,24 @@ void CreateSMPanelButtons(void)
 	iSMPanelImages[DONE_IMAGES]       = LoadButtonImage(INTERFACEDIR "/inventory_buttons_2.sti",  1,  3);
 	iSMPanelImages[MAPSCREEN_IMAGES]  = UseLoadedButtonImage(iSMPanelImages[DONE_IMAGES],         0,  2);
 
+	// Laptop/navigation shortcut buttons -- inventory_bottom_panel_bookmarks.sti
+	// holds (ready, pressed) pairs in this order: e-mail, AIM Members,
+	// M.E.R.C., Bobby Ray's, History, Personnel, Strategic Map, [6 reserved/
+	// empty sub-images], Keyboard Shortcuts, Statistics (22/23 -- opens the
+	// Infobox_stats.sti merc-statistics popup), Skills (24/25 -- opens the
+	// Infobox_skills.sti merc-skills popup).
+	iSMPanelImages[SM_EMAIL_IMAGES]       = LoadButtonImage(INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti", 0, 1);
+	iSMPanelImages[SM_AIM_MEMBERS_IMAGES] = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 2, 3);
+	iSMPanelImages[SM_MERC_IMAGES]        = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 4, 5);
+	iSMPanelImages[SM_BOBBYR_IMAGES]      = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 6, 7);
+	iSMPanelImages[SM_HISTORY_IMAGES]     = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 8, 9);
+	iSMPanelImages[SM_PERSONNEL_IMAGES]   = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 10, 11);
+	iSMPanelImages[SM_STRATSCREEN_IMAGES] = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 12, 13);
+	// sub-images 14-19 reserved/empty
+	iSMPanelImages[SM_SHORTCUTS_IMAGES]   = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 20, 21);
+	iSMPanelImages[SM_STATS_IMAGES]       = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 22, 23);
+	iSMPanelImages[SM_SKILLS_IMAGES]      = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 24, 25);
+
 
 	// Create buttons
 
@@ -1059,6 +1256,26 @@ void CreateSMPanelButtons(void)
 	MakeButtonT(PREVMERC_BUTTON,      iSMPanelImages[PREVMERC_IMAGES],   dx + SM_PREVMERCB_X,   dy + SM_PREVMERCB_Y,   BtnPrevMercCallback,   TacticalStr[PREV_MERC_POPUPTEXT]);
 	MakeButtonT(NEXTMERC_BUTTON,      iSMPanelImages[NEXTMERC_IMAGES],   dx + SM_NEXTMERCB_X,   dy + SM_NEXTMERCB_Y,   BtnNextMercCallback,   TacticalStr[NEXT_MERC_POPUPTEXT]);
 	MakeButtonT(OPTIONS_BUTTON,       iSMPanelImages[OPTIONS_IMAGES],    dx + SM_OPTIONSB_X,    dy + SM_OPTIONSB_Y,    BtnOptionsCallback,    TacticalStr[CHANGE_OPTIONS_POPUPTEXT]);
+	MakeButtonT(SM_EMAIL_BUTTON,       iSMPanelImages[SM_EMAIL_IMAGES],       dx + SM_EMAILB_X,       dy + SM_EMAILB_Y,       BtnLaptopEmailCallback,      "E-mail");
+	MakeButtonT(SM_AIM_MEMBERS_BUTTON, iSMPanelImages[SM_AIM_MEMBERS_IMAGES], dx + SM_AIM_MEMBERSB_X, dy + SM_AIM_MEMBERSB_Y, BtnLaptopAIMMembersCallback, "AIM Members");
+	MakeButtonT(SM_MERC_BUTTON,        iSMPanelImages[SM_MERC_IMAGES],        dx + SM_MERCB_X,        dy + SM_MERCB_Y,        BtnLaptopMercCallback,       "M.E.R.C.");
+	MakeButtonT(SM_BOBBYR_BUTTON,      iSMPanelImages[SM_BOBBYR_IMAGES],      dx + SM_BOBBYRB_X,      dy + SM_BOBBYRB_Y,      BtnLaptopBobbyRCallback,     "Bobby Ray's");
+	MakeButtonT(SM_HISTORY_BUTTON,     iSMPanelImages[SM_HISTORY_IMAGES],     dx + SM_HISTORYB_X,     dy + SM_HISTORYB_Y,     BtnLaptopHistoryCallback,    "History");
+	MakeButtonT(SM_PERSONNEL_BUTTON,   iSMPanelImages[SM_PERSONNEL_IMAGES],   dx + SM_PERSONNELB_X,   dy + SM_PERSONNELB_Y,   BtnLaptopPersonnelCallback,  "Personnel");
+	// Reuses the existing Map Screen / Options callbacks -- same
+	// destinations as the panel's own SM_MAP_SCREEN_BUTTON/OPTIONS_BUTTON,
+	// just added to the new bookmark row too. SM_SHORTCUTS_BUTTON is a
+	// placeholder standing in for a not-yet-built keyboard-shortcuts screen.
+	MakeButtonT(SM_STRATSCREEN_BUTTON, iSMPanelImages[SM_STRATSCREEN_IMAGES], dx + SM_STRATSCREENB_X, dy + SM_STRATSCREENB_Y, BtnMapScreenCallback,        "Strategic Map");
+	MakeButtonT(SM_SHORTCUTS_BUTTON,   iSMPanelImages[SM_SHORTCUTS_IMAGES],   dx + SM_SHORTCUTSB_X,   dy + SM_SHORTCUTSB_Y,   BtnOptionsCallback,          "Keyboard Shortcuts (placeholder)");
+	MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
+	MakeButtonT(SM_SKILLS_BUTTON,      iSMPanelImages[SM_SKILLS_IMAGES],      dx + SM_SKILLSB_X,      dy + SM_SKILLSB_Y,      BtnSkillsCallback,           "Skills");
+
+	giSMHideEmptySlotsCheckbox = CreateCheckBoxButton(
+		dx + SM_HIDE_EMPTY_SLOTS_X, dy + SM_HIDE_EMPTY_SLOTS_Y,
+		INTERFACEDIR "/popupcheck.sti", MSYS_PRIORITY_HIGHEST,
+		ToggleHideEmptyAttachmentSlotsCallback);
+	giSMHideEmptySlotsCheckbox->SetFastHelpText("Hide empty attachment slots");
 #if 0
 	MakeButtonN(BURSTMODE_BUTTON,     iSMPanelImages[BURSTMODE_IMAGES],  SM_BURSTMODEB_X,  dy + SM_BURSTMODEB_Y,  BtnBurstModeCallback,  TacticalStr[TOGGLE_BURSTMODE_POPUPTEXT]);
 #endif
@@ -1082,9 +1299,93 @@ void RemoveSMPanelButtons(void)
 	if (giSMStealthButton) RemoveButton(giSMStealthButton);
 	if (giSMStealthImages) UnloadButtonImage(giSMStealthImages);
 
+	// BUTTON_SELFDELETE_IMAGE (set by CreateCheckBoxButton()) means
+	// RemoveButton() also frees its image -- no separate UnloadButtonImage().
+	if (giSMHideEmptySlotsCheckbox) RemoveButton(giSMHideEmptySlotsCheckbox);
+
 	UnloadButtonImage(iBurstButtonImages[WM_NORMAL]);
 	UnloadButtonImage(iBurstButtonImages[WM_BURST]);
 	UnloadButtonImage(iBurstButtonImages[WM_ATTACHED]);
+}
+
+
+static UINT32 const g_smBookmarkButtons[] =
+{
+	SM_EMAIL_BUTTON, SM_AIM_MEMBERS_BUTTON, SM_MERC_BUTTON, SM_BOBBYR_BUTTON,
+	SM_HISTORY_BUTTON, SM_PERSONNEL_BUTTON, SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON,
+	SM_STATS_BUTTON, SM_SKILLS_BUTTON
+};
+
+
+void HideSMBookmarkButtons(void)
+{
+	for (UINT32 const idx : g_smBookmarkButtons)
+	{
+		if (iSMPanelButtons[idx]) HideButton(iSMPanelButtons[idx]);
+	}
+
+	// Not part of iSMPanelButtons[] (standalone GUIButtonRef, like
+	// giSMStealthButton) -- hidden here too, for the same reason as the
+	// bookmark row: GUI_BUTTONs draw on top of Infobox.sti regardless of
+	// what's underneath.
+	if (giSMHideEmptySlotsCheckbox) HideButton(giSMHideEmptySlotsCheckbox);
+}
+
+
+void ShowSMBookmarkButtons(void)
+{
+	for (UINT32 const idx : g_smBookmarkButtons)
+	{
+		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
+	}
+
+	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
+}
+
+
+// Subset of g_smBookmarkButtons (+ giSMHideEmptySlotsCheckbox) that
+// Infobox_stats.sti/Infobox_skills.sti/the key ring popup actually cover --
+// see HideSMBookmarkButtonsUnderInfoPopups() in Interface_Panels.h for why
+// this is narrower than HideSMBookmarkButtons() above.
+static UINT32 const g_smBookmarkButtonsUnderInfoPopups[] =
+{
+	SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON, SM_STATS_BUTTON, SM_SKILLS_BUTTON
+};
+
+
+void HideSMBookmarkButtonsUnderInfoPopups(void)
+{
+	for (UINT32 const idx : g_smBookmarkButtonsUnderInfoPopups)
+	{
+		if (iSMPanelButtons[idx]) HideButton(iSMPanelButtons[idx]);
+	}
+
+	if (giSMHideEmptySlotsCheckbox) HideButton(giSMHideEmptySlotsCheckbox);
+}
+
+
+void ShowSMBookmarkButtonsUnderInfoPopups(void)
+{
+	for (UINT32 const idx : g_smBookmarkButtonsUnderInfoPopups)
+	{
+		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
+	}
+
+	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
+}
+
+
+// The key ring popup is narrower still -- it only ever covers the "hide
+// empty attachment slots" checkbox, none of the bookmark row buttons.
+void HideSMHideEmptySlotsCheckbox(void)
+{
+	if (giSMHideEmptySlotsCheckbox) HideButton(giSMHideEmptySlotsCheckbox);
+}
+
+
+void ShowSMHideEmptySlotsCheckbox(void)
+{
+	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
 }
 
 
@@ -1115,6 +1416,8 @@ void ShutdownSMPanel()
 	MSYS_RemoveRegion(&gSM_SELMERCBarsRegion);
 	MSYS_RemoveRegion(&gSM_SELMERCMoneyRegion);
 	MSYS_RemoveRegion(&gSM_SELMERCEnemyIndicatorRegion);
+	MSYS_RemoveRegion(&gSMTrashCanRegion);
+	fShowSMTrashCanHighlight = FALSE;
 
 	HandleMouseOverSoldierFaceForContMove(gpSMCurrentMerc, FALSE);
 
@@ -1220,7 +1523,7 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 	if (gSelectSMPanelToMerc) SetSMPanelCurrentMerc(gSelectSMPanelToMerc);
 
 	// ATE: Don't do anything if we are in stack popup and are refreshing stuff
-	if ((InItemStackPopup() || InKeyRingPopup()) && *dirty_level == DIRTYLEVEL1)
+	if ((InItemStackPopup() || InKeyRingPopup() || InStatsPopup() || InSkillsPopup()) && *dirty_level == DIRTYLEVEL1)
 		return;
 
 	if (!gpSMCurrentMerc) return;
@@ -1239,7 +1542,10 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 
 	HandleNewlyAddedItems(s, dirty_level);
 
-	if (InItemDescriptionBox()) HandleItemDescriptionBox(dirty_level);
+	if (InItemDescriptionBox())
+	{
+		HandleItemDescriptionBox(dirty_level);
+	}
 
 	INT32 const dx = INTERFACE_START_X;
 	INT32 const dy = INV_INTERFACE_START_Y;
@@ -1275,7 +1581,16 @@ no_plate:
 
 		if (InItemDescriptionBox())
 		{
-			RenderItemDescriptionBox();
+			// Rendered every frame from RenderTopmostTacticalInterface()
+			// (Interface_Control.cc) now, same as the sibling stack/keyring/
+			// stats/skills popups -- NOT here, since this whole block only
+			// runs on DIRTYLEVEL2 refreshes. Infobox.sti (weapon) is taller
+			// than the SM panel's own protected footer (ITEMDESC_PANEL_HEIGHT
+			// vs INV_INTERFACE_HEIGHT -- see UILayout.h), so the extra height
+			// was left unprotected from the continuously-redrawing tactical
+			// world in between DIRTYLEVEL2 refreshes, and from this block's
+			// own RestoreExternBackgroundRect() below (scoped to
+			// INV_INTERFACE_HEIGHT only) on close.
 		}
 		else
 		{
@@ -1376,6 +1691,22 @@ no_plate:
 		ClipRect.iBottom = SCREEN_HEIGHT;
 		SGPVSurface::Lock l(FRAME_BUFFER);
 		Blt16BPPBufferHatchRect(l.Buffer<UINT16>(), l.Pitch(), &ClipRect);
+	}
+
+	// Money/trash-can/keyring icons -- drawn LAST, after everything above
+	// (including the DIRTYLEVEL2 branch's guiSMPanel re-blit and its own bulk
+	// RestoreExternBackgroundRect over the whole panel area), which would
+	// otherwise erase them from guiSAVEBUFFER/FRAME_BUFFER again within the
+	// same frame -- e.g. every DIRTYLEVEL2 refresh triggered by hovering
+	// over an item/stat, causing a visible blink. Same guard as before
+	// (hidden only while the Infobox item-description popup is open) --
+	// unlike HandleRenderInvSlots()'s early return, this does NOT hide the
+	// keyring icon while InKeyRingPopup()/InItemStackPopup() is true, so it
+	// stays visible the same way Money/Trash/Map/Shortcuts already do.
+	if (!InItemDescriptionBox())
+	{
+		RenderSMMoneyAndTrashIcons();
+		RenderSMKeyringIcon();
 	}
 }
 
@@ -1816,8 +2147,13 @@ static void SMInvClickCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
 	{
 		if ( !InItemStackPopup( )  )
 		{
+			// Width matches the keyring popup's own call (SCREEN_WIDTH, not the
+			// narrower SM_ITEMDESC_WIDTH box) so the background shading
+			// (RenderItemStackPopup()'s ShadowRect, also widened to start at x=0
+			// to match) reaches the panel's right/left edges the same way the
+			// keyring's does.
 			InitItemStackPopup(gpSMCurrentMerc, (UINT8)uiHandPos, SM_ITEMDESC_START_X,
-						INV_INTERFACE_START_Y, SM_ITEMDESC_WIDTH,
+						INV_INTERFACE_START_Y, SCREEN_WIDTH,
 						SCREEN_HEIGHT - INV_INTERFACE_START_Y );
 		}
 	}
@@ -2146,8 +2482,20 @@ static void SelectMerc(SOLDIERTYPE* const s)
 		LocateSoldier(s, set_locator);
 	}
 
-	// If the user is in the shop keeper interface and is in the item desc
-	if (guiCurrentScreen == SHOPKEEPER_SCREEN && InItemDescriptionBox())
+	// Close the item description box synchronously, right here in the
+	// button-click handler -- not by relying on SetSMPanelCurrentMerc()'s
+	// own DeleteItemDescriptionBox() call, which only runs later, deferred,
+	// from inside RenderSMPanel() (via gSelectSMPanelToMerc above). That
+	// deferred close lands after RenderWorld.cc's own RENDER_FLAG_FULL
+	// check for the same frame (same class of one-frame-late timing issue
+	// fixed for ammo ejection elsewhere in this file), which left
+	// Infobox.sti's extra height above INV_INTERFACE_HEIGHT (see
+	// ITEMDESC_PANEL_HEIGHT, UILayout.h) visibly stuck on screen when
+	// switching mercs with Infobox.sti open. A direct call here runs before
+	// that frame's RENDER_FLAG_FULL check, same as clicking outside the box
+	// (ItemDescCallbackPrimary/Secondary) already reliably does. Previously
+	// scoped to SHOPKEEPER_SCREEN only; widened to every screen.
+	if (InItemDescriptionBox())
 	{
 		DeleteItemDescriptionBox();
 	}
@@ -2178,6 +2526,103 @@ static void BtnOptionsCallback(GUI_BUTTON* btn, UINT32 reason)
 	{
 		guiPreviousOptionScreen = guiCurrentScreen;
 		LeaveTacticalScreen(OPTIONS_SCREEN);
+	}
+}
+
+
+// Laptop shortcut buttons -- jump straight into the laptop on a given
+// program/page (see SetLaptopEntryMode() in Laptop.cc). Wariant A: closing
+// the laptop always returns to MAP_SCREEN (LeaveLapTopScreen()'s existing,
+// unconditional behaviour), ending the current tactical session, same as
+// leaving the sector normally.
+static void BtnLaptopEmailCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_EMAIL);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopAIMMembersCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		// LAPTOP_MODE_AIM_MEMBERS is the single-merc video-conference detail
+		// page (EnterAIMMembers() in AIMMembers.cc); the mugshot list/index
+		// (sortable, descending-by-default) is
+		// LAPTOP_MODE_AIM_MEMBERS_SORTED_FILES (EnterAimSort() in
+		// AimSort.cc) -- that's the one this button should open.
+		SetLaptopEntryMode(LAPTOP_MODE_AIM_MEMBERS_SORTED_FILES);
+		// gubCurrentSortMode/gubCurrentListMode persist across the whole
+		// laptop session (they remember whatever the player last sorted by
+		// on any earlier visit), so force the canonical "price, descending"
+		// view this shortcut promises, regardless of prior state.
+		gubCurrentSortMode = 0; // Price -- see QsortCompare() in AimSort.cc
+		gubCurrentListMode = AIM_DESCEND;
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopMercCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_MERC);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopBobbyRCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_BOBBY_R);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopPersonnelCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_PERSONNEL);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void BtnLaptopHistoryCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_HISTORY);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+}
+
+
+static void ToggleHideEmptyAttachmentSlotsCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		fHideEmptyAttachmentSlots = !fHideEmptyAttachmentSlots;
 	}
 }
 
@@ -3184,7 +3629,16 @@ void RenderTownIDString(void)
 	SetFontAttributes(COMPFONT, 183);
 	ST::string zTownIDString = GetSectorIDString(gWorldSector, TRUE);
 	zTownIDString = ReduceStringLength(zTownIDString, 80, COMPFONT);
-	MPrint(INTERFACE_START_X + g_ui.m_teamPanelSlotsTotalWidth + 50,
+	// Anchored to the right edge of whichever of the two bottom-bar panels is
+	// actually on screen right now -- see the comment above get_CLOCK_X() in
+	// UILayout.cc. This is a single, shared widget drawn regardless of which
+	// panel is active, so its position must follow whichever panel is
+	// currently rendered.
+	// SM_PANEL offset shifted 3px right (92 -> 89) -- see get_CLOCK_X() in
+	// UILayout.cc.
+	UINT16 const panelWidth  = (gsCurInterfacePanel == SM_PANEL) ? g_ui.m_smPanelWidth : g_ui.m_teamPanelWidth;
+	UINT16 const panelOffset = (gsCurInterfacePanel == SM_PANEL) ? 89 : 92;
+	MPrint(INTERFACE_START_X + panelWidth - panelOffset,
 		SCREEN_HEIGHT - 55, zTownIDString, HCenterVCenterAlign(80, 16));
 }
 
@@ -3256,6 +3710,594 @@ void DisableTacticalTeamPanelButtons(BOOLEAN fDisable)
 }
 
 
+// ---------------------------------------------------------------------------
+// Tactical-screen merc-statistics popup (Infobox_stats.sti), opened from the
+// SM panel's Statistics bookmark button (SM_STATS_BUTTON). Shows the same
+// battle-statistics/contract information as the laptop's Personnel screen
+// (Personnel.cc), read from the same underlying data
+// (SOLDIERTYPE/MERCPROFILESTRUCT -- neither is laptop-specific), without
+// leaving the tactical screen. Architecturally closest to the keyring popup
+// (InitKeyRingPopup() etc., Interface_Items.cc) -- a standalone info panel
+// tied to a merc, not to an OBJECTTYPE item -- rather than the Infobox.sti
+// item-description family. The "Skills" section originally shown here was
+// split out into its own independent popup -- see Infobox_skills.sti below.
+// ---------------------------------------------------------------------------
+
+// Indexes both gzInfoboxStatsStrings and gStatsPopupCoords (labels/headers,
+// NUM_STATS_TXT entries each). The "Skills" section (header + up to 2 skill-
+// name lines) was split out into its own independent popup/button/file --
+// see gzInfoboxSkillsStrings/gSkillsPopupCoords/Infobox_skills.sti below.
+enum
+{
+	STATS_TXT_BATTLE_HEADER = 0,
+	STATS_TXT_KILLS,
+	STATS_TXT_ASSISTS,
+	STATS_TXT_SHOTS_FIRED,
+	STATS_TXT_SHOTS_HIT,
+	STATS_TXT_HIT_PERCENTAGE,
+	STATS_TXT_BATTLES,
+	STATS_TXT_TIMES_WOUNDED,
+	STATS_TXT_CONTRACT_HEADER,
+	STATS_TXT_REMAINING_CONTRACT,
+	STATS_TXT_TOTAL_SERVICE,
+	STATS_TXT_TOTAL_COST,
+	STATS_TXT_MEDICAL_DEPOSIT,
+	STATS_TXT_DAILY_COST,
+	NUM_STATS_TXT
+};
+
+// Label position (sX, sY) + horizontal margin to the value (sValDx) --
+// every row independent, per row. All placeholders; tune once visible
+// in-game. sValDx is unused for the 2 section headers (no separate value to
+// right-align).
+struct StatsPopupCoord
+{
+	INT16 sX;
+	INT16 sY;
+	INT16 sValDx;
+};
+
+static const StatsPopupCoord gStatsPopupCoords[NUM_STATS_TXT] =
+{
+	/* STATS_TXT_BATTLE_HEADER     */ {  30,  19,   0 },
+	/* STATS_TXT_KILLS             */ {  19,  48,  38 },
+	/* STATS_TXT_ASSISTS           */ {  19,  65,  38 },
+	/* STATS_TXT_SHOTS_FIRED       */ {  19,  94,  38 },
+	/* STATS_TXT_SHOTS_HIT         */ {  19,  111,  38 },
+	/* STATS_TXT_HIT_PERCENTAGE    */ {  19,  128,  38 },
+	/* STATS_TXT_BATTLES           */ {  19,  157,  38 },
+	/* STATS_TXT_TIMES_WOUNDED     */ {  19, 174,  38 },
+	/* STATS_TXT_CONTRACT_HEADER   */ {  259, 19,   0 },
+	/* STATS_TXT_REMAINING_CONTRACT*/ {  199, 65, 97 },
+	/* STATS_TXT_TOTAL_SERVICE     */ {  199, 94, 97 },
+	/* STATS_TXT_TOTAL_COST        */ {  199, 111, 97 },
+	/* STATS_TXT_MEDICAL_DEPOSIT   */ {  199, 128, 97 },
+	/* STATS_TXT_DAILY_COST        */ {  199, 48, 97 },
+};
+
+// Placeholder position/size for the Infobox_stats.sti graphic itself (as
+// opposed to the screen-wide dismiss region set up in InitStatsPopup(),
+// which matches the keyring popup's own footprint) -- tune once the real
+// graphic is visible in-game.
+#define STATS_POPUP_BOX_X		369
+#define STATS_POPUP_BOX_Y		0
+#define STATS_POPUP_BOX_WIDTH		395
+#define STATS_POPUP_BOX_HEIGHT		197
+
+static BOOLEAN      gfInStatsPopup = FALSE;
+static SOLDIERTYPE*  gpStatsPopupSoldier = NULL;
+static INT16         gsStatsPopupInvX;
+static INT16         gsStatsPopupInvY;
+static INT16         gsStatsPopupInvWidth;
+static INT16         gsStatsPopupInvHeight;
+static MOUSE_REGION  gStatsPopupRegion;
+
+
+BOOLEAN InStatsPopup(void)
+{
+	return gfInStatsPopup;
+}
+
+
+void DeleteStatsPopup(void)
+{
+	if (!gfInStatsPopup) return;
+
+	MSYS_RemoveRegion(&gStatsPopupRegion);
+
+	gfInStatsPopup = FALSE;
+	gpStatsPopupSoldier = NULL;
+
+	fInterfacePanelDirty = DIRTYLEVEL2;
+
+	EnableSMPanelButtons(TRUE, FALSE);
+
+	// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
+	// InitStatsPopup() below.
+	ShowSMBookmarkButtonsUnderInfoPopups();
+
+	FreeMouseCursor();
+}
+
+
+// Left AND right click on the background both close it unconditionally --
+// same fix already applied to the stack popup (see
+// ItemPopupFullRegionCallbackPrimary, Interface_Items.cc) applied here from
+// the start, rather than repeating that bug.
+static void StatsPopupFullRegionCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	DeleteStatsPopup();
+	fTeamPanelDirty = TRUE;
+}
+
+
+static void StatsPopupFullRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	DeleteStatsPopup();
+	fTeamPanelDirty = TRUE;
+}
+
+
+void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+{
+	gsStatsPopupInvX      = sInvX;
+	gsStatsPopupInvY      = sInvY;
+	gsStatsPopupInvWidth  = sInvWidth;
+	gsStatsPopupInvHeight = sInvHeight;
+
+	gpStatsPopupSoldier = pSoldier;
+
+	MSYS_DefineRegion(&gStatsPopupRegion, sInvX, sInvY, sInvX + sInvWidth, sInvY + sInvHeight,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+		MouseCallbackPrimarySecondary(StatsPopupFullRegionCallbackPrimary, StatsPopupFullRegionCallbackSecondary));
+
+	SetAllAutoFacesInactive();
+
+	fInterfacePanelDirty = DIRTYLEVEL2;
+
+	EnableSMPanelButtons(FALSE, FALSE);
+
+	// GUI_BUTTONs (RenderButtons()) render after this popup's own background
+	// every frame (RenderTopmostTacticalInterface(), Interface_Control.cc),
+	// and EnableSMPanelButtons(FALSE, ...) above only disables them -- it
+	// doesn't stop them being drawn. Without hiding the ones this popup
+	// actually covers too, they'd paint on top of it whenever
+	// fInterfacePanelDirty == DIRTYLEVEL2 forces a button refresh (e.g.
+	// right when this popup opens, or a merc switch) -- same reason
+	// InternalInitItemDescriptionBox() (Infobox.sti) calls the wider
+	// HideSMBookmarkButtons(). This popup is narrower than Infobox.sti and
+	// never covers the left end of the bookmark row (Mail/AIM/MERC/BR/
+	// History/Personnel), so the full hide made those flicker out for no
+	// reason -- see HideSMBookmarkButtonsUnderInfoPopups().
+	HideSMBookmarkButtonsUnderInfoPopups();
+
+	gfInStatsPopup = TRUE;
+
+	SGPRect aRect;
+	aRect.iTop    = sInvY;
+	aRect.iLeft   = sInvX;
+	aRect.iBottom = sInvY + sInvHeight;
+	aRect.iRight  = sInvX + sInvWidth;
+	RestrictMouseCursor(&aRect);
+}
+
+
+void RenderStatsPopup(BOOLEAN const fFullRender)
+{
+	if (!gfInStatsPopup || !gpStatsPopupSoldier) return;
+
+	SetAllAutoFacesInactive();
+
+	if (fFullRender)
+	{
+		FRAME_BUFFER->ShadowRect(gsStatsPopupInvX, gsStatsPopupInvY,
+			gsStatsPopupInvX + gsStatsPopupInvWidth, gsStatsPopupInvY + gsStatsPopupInvHeight);
+	}
+
+	INT16 const dx = STATS_POPUP_BOX_X + gsStatsPopupInvX;
+	INT16 const dy = STATS_POPUP_BOX_Y + gsStatsPopupInvY;
+
+	BltVideoObject(FRAME_BUFFER, guiStatsInfoBox, 0, dx, dy);
+
+	SOLDIERTYPE const&       s = *gpStatsPopupSoldier;
+	MERCPROFILESTRUCT const& p = GetProfile(s.ubProfile);
+
+	INT16 usX, usY;
+	ST::string sVal;
+
+#define STATS_LABEL(idx) \
+	MPrint(dx + gStatsPopupCoords[idx].sX, dy + gStatsPopupCoords[idx].sY, gzInfoboxStatsStrings[idx])
+#define STATS_VALUE(idx, str) \
+	do { \
+		FindFontRightCoordinates(dx + gStatsPopupCoords[idx].sX + gStatsPopupCoords[idx].sValDx, dy + gStatsPopupCoords[idx].sY, 80, 8, (str), BLOCKFONT2, &usX, &usY); \
+		MPrint(usX, usY, (str)); \
+	} while (0)
+
+	// -- Section headers --
+	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
+	STATS_LABEL(STATS_TXT_BATTLE_HEADER);
+	STATS_LABEL(STATS_TXT_CONTRACT_HEADER);
+
+	// -- Battle statistics --
+	SetFontForeground(6);
+	STATS_LABEL(STATS_TXT_KILLS);
+	STATS_LABEL(STATS_TXT_ASSISTS);
+	STATS_LABEL(STATS_TXT_SHOTS_FIRED);
+	STATS_LABEL(STATS_TXT_SHOTS_HIT);
+	STATS_LABEL(STATS_TXT_HIT_PERCENTAGE);
+	STATS_LABEL(STATS_TXT_BATTLES);
+	STATS_LABEL(STATS_TXT_TIMES_WOUNDED);
+
+	SetFontForeground(5);
+	sVal = ST::format("{}", p.usKills);        STATS_VALUE(STATS_TXT_KILLS, sVal);
+	sVal = ST::format("{}", p.usAssists);      STATS_VALUE(STATS_TXT_ASSISTS, sVal);
+	sVal = ST::format("{}", p.usShotsFired);   STATS_VALUE(STATS_TXT_SHOTS_FIRED, sVal);
+	sVal = ST::format("{}", p.usShotsHit);     STATS_VALUE(STATS_TXT_SHOTS_HIT, sVal);
+
+	UINT32 const hitPct = p.usShotsFired > 0 ? 100 * p.usShotsHit / p.usShotsFired : 0;
+	sVal = ST::format("{} %", hitPct);         STATS_VALUE(STATS_TXT_HIT_PERCENTAGE, sVal);
+
+	sVal = ST::format("{}", p.usBattlesFought);STATS_VALUE(STATS_TXT_BATTLES, sVal);
+	sVal = ST::format("{}", p.usTimesWounded); STATS_VALUE(STATS_TXT_TIMES_WOUNDED, sVal);
+
+	// -- Contract --
+	// Simplified relative to the laptop's DisplayEmploymentinformation()
+	// (Personnel.cc): omits the SLAY/IN_TRANSIT contract-length clamping
+	// special case, and always uses p.sSalary for the daily rate (that
+	// function's own default case for everything except an active weekly/
+	// bi-weekly AIM contract extension).
+	SetFontForeground(6);
+	STATS_LABEL(STATS_TXT_REMAINING_CONTRACT);
+	STATS_LABEL(STATS_TXT_TOTAL_SERVICE);
+	STATS_LABEL(STATS_TXT_TOTAL_COST);
+	STATS_LABEL(STATS_TXT_MEDICAL_DEPOSIT);
+	STATS_LABEL(STATS_TXT_DAILY_COST);
+	SetFontForeground(5);
+
+	if (s.ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC || s.ubProfile == SLAY)
+	{
+		UINT32 const uiMinutesInDay = 24 * 60;
+		INT32        iTimeLeftOnContract = s.iEndofContractTime - GetWorldTotalMin();
+		if (iTimeLeftOnContract < 0) iTimeLeftOnContract = 0;
+
+		INT const days  = iTimeLeftOnContract / uiMinutesInDay;
+		INT const hours = iTimeLeftOnContract % uiMinutesInDay / 60;
+		if (days > 0)
+		{
+			sVal = ST::format("{}{} {}{} / {}{}", days, gpStrategicString[STR_PB_DAYS_ABBREVIATION], hours, gpStrategicString[STR_PB_HOURS_ABBREVIATION], s.iTotalContractLength, gpStrategicString[STR_PB_DAYS_ABBREVIATION]);
+		}
+		else
+		{
+			sVal = ST::format("{}{} / {}{}", hours, gpStrategicString[STR_PB_HOURS_ABBREVIATION], s.iTotalContractLength, gpStrategicString[STR_PB_DAYS_ABBREVIATION]);
+		}
+	}
+	else
+	{
+		sVal = gpStrategicString[STR_PB_NOTAPPLICABLE_ABBREVIATION];
+	}
+	STATS_VALUE(STATS_TXT_REMAINING_CONTRACT, sVal);
+
+	sVal = ST::format("{} {}", p.usTotalDaysServed, gpStrategicString[STR_PB_DAYS_ABBREVIATION]);
+	STATS_VALUE(STATS_TXT_TOTAL_SERVICE, sVal);
+
+	sVal = SPrintMoney(p.uiTotalCostToDate);
+	STATS_VALUE(STATS_TXT_TOTAL_COST, sVal);
+
+	sVal = SPrintMoney(p.sMedicalDepositAmount);
+	STATS_VALUE(STATS_TXT_MEDICAL_DEPOSIT, sVal);
+
+	sVal = SPrintMoney(p.sSalary);
+	STATS_VALUE(STATS_TXT_DAILY_COST, sVal);
+
+#undef STATS_LABEL
+#undef STATS_VALUE
+
+	InvalidateRegion(gsStatsPopupInvX, gsStatsPopupInvY,
+		gsStatsPopupInvX + gsStatsPopupInvWidth, gsStatsPopupInvY + gsStatsPopupInvHeight);
+}
+
+
+static void BtnStatsCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		if (InStatsPopup())
+		{
+			DeleteStatsPopup();
+		}
+		else if (gpSMCurrentMerc)
+		{
+			InitStatsPopup(gpSMCurrentMerc, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
+		}
+	}
+}
+
+
+// ---------------------------------------------------------------------------
+// Tactical-screen merc-skills popup (Infobox_skills.sti), opened from the SM
+// panel's Skills bookmark button (SM_SKILLS_BUTTON). Split out of the
+// merc-statistics popup above (Infobox_stats.sti) into its own independent
+// button/file/coordinates. Architecture identical to that popup (and, in
+// turn, to the keyring popup) -- a standalone info panel tied to a merc.
+// ---------------------------------------------------------------------------
+
+enum
+{
+	SKILLS_TXT_HEADER = 0,
+	NUM_SKILLS_TXT,
+
+	SKILLS_COORD_LINE1 = NUM_SKILLS_TXT,
+	SKILLS_COORD_LINE2,
+	NUM_SKILLS_COORDS
+};
+
+// Same {x, y, value-margin} convention as StatsPopupCoord -- sValDx is
+// unused here (the header has no value, and the 2 skill-name lines are
+// printed as-is, not label+value pairs). All placeholders; tune once
+// visible in-game.
+static const StatsPopupCoord gSkillsPopupCoords[NUM_SKILLS_COORDS] =
+{
+	/* SKILLS_TXT_HEADER  */ {  225,  19,   0 },
+	/* SKILLS_COORD_LINE1 */ {  19,  48,   0 },
+	/* SKILLS_COORD_LINE2 */ {  272,  48,   0 },
+};
+
+// Per-line position for the 10 reserved description lines (GetSkillDescription()
+// below) shown under each skill-name line above -- one independent {x, y} per
+// line, no value/margin (these are printed as plain text, not label+value
+// pairs). Always all 10 slots printed, even when a line's string is empty --
+// reserves fixed vertical space regardless of how much text a given skill
+// actually uses. Two full, independent sets: SKILL_TRAIT_1 for
+// p.bSkillTrait's block, SKILL_TRAIT_2 for p.bSkillTrait2's (unused when the
+// merc is an "expert" in one skill -- see RenderSkillsPopup()). All
+// placeholders; tune once visible in-game.
+struct SkillDescCoord
+{
+	INT16 sX;
+	INT16 sY;
+};
+
+static const SkillDescCoord gSkillTrait1DescCoords[10] =
+{
+	/* FIRST_DESC  */ {  19,  77 },
+	/* SECOND_DESC */ {  19,  91 },
+	/* THIRD_DESC  */ {  19,  104 },
+	/* FOURTH_DESC */ {  19, 117 },
+	/* FIFTH_DESC  */ {  19, 130 },
+	/* SIXTH_DESC  */ {  19, 143 },
+	/* SEVENTH_DESC*/ {  19, 156 },
+	/* EIGHTH_DESC */ {  19, 169 },
+	/* NINTH_DESC  */ {  19, 182 },
+	/* TENTH_DESC  */ {  19, 195 },
+};
+
+static const SkillDescCoord gSkillTrait2DescCoords[10] =
+{
+	/* FIRST_DESC  */ { 271,  77 },
+	/* SECOND_DESC */ { 271,  91 },
+	/* THIRD_DESC  */ { 271,  104 },
+	/* FOURTH_DESC */ { 271, 117 },
+	/* FIFTH_DESC  */ { 271, 130 },
+	/* SIXTH_DESC  */ { 271, 143 },
+	/* SEVENTH_DESC*/ { 271, 156 },
+	/* EIGHTH_DESC */ { 271, 169 },
+	/* NINTH_DESC  */ { 271, 182 },
+	/* TENTH_DESC  */ { 271, 195 },
+};
+
+// Maps a skill trait to its 10 description lines (Infobox_skills.sti). When
+// fExpert is true AND the trait has a dedicated expert-level array, that one
+// is used instead -- currently only wired up for NIGHTOPS
+// (gzNightOpsExpertDescription), as a template for the other 14 skills;
+// every other trait falls back to its normal (non-expert) array regardless
+// of fExpert until a dedicated one is added for it the same way.
+static std::array<ST::string, 10> const& GetSkillDescription(SkillTrait const trait, bool const fExpert)
+{
+	if (fExpert && trait == NIGHTOPS) return gzNightOpsExpertDescription;
+
+	switch (trait)
+	{
+		case LOCKPICKING: return gzLockPickingDescription;
+		case HANDTOHAND:  return gzHandToHandDescription;
+		case ELECTRONICS: return gzElectronicsDescription;
+		case NIGHTOPS:    return gzNightOpsDescription;
+		case THROWING:    return gzThrowingDescription;
+		case TEACHING:    return gzTeachingDescription;
+		case HEAVY_WEAPS: return gzHeavyWeaponsDescription;
+		case AUTO_WEAPS:  return gzAutoWeaponsDescription;
+		case STEALTHY:    return gzStealthyDescription;
+		case AMBIDEXT:    return gzAmbidextrousDescription;
+		case THIEF:       return gzThiefDescription;
+		case MARTIALARTS: return gzMartialArtsDescription;
+		case KNIFING:     return gzKnifingDescription;
+		case ONROOF:      return gzOnRoofDescription;
+		case CAMOUFLAGED: return gzCamouflagedDescription;
+		default:          return gzLockPickingDescription; // should never happen -- NO_SKILLTRAIT is checked by callers
+	}
+}
+
+
+// Prints all 10 reserved description lines for one skill slot at the given
+// coordinate set -- always all 10, even the empty ones, so the reserved
+// vertical space stays fixed regardless of how much text a skill actually
+// uses (see gSkillTrait1DescCoords/gSkillTrait2DescCoords above).
+static void PrintSkillDescription(INT16 const dx, INT16 const dy, SkillDescCoord const coords[10], SkillTrait const trait, bool const fExpert)
+{
+	std::array<ST::string, 10> const& desc = GetSkillDescription(trait, fExpert);
+	for (INT32 i = 0; i < 10; ++i)
+	{
+		MPrint(dx + coords[i].sX, dy + coords[i].sY, desc[i]);
+	}
+}
+
+// Placeholder position/size for the Infobox_skills.sti graphic itself (as
+// opposed to the screen-wide dismiss region set up in InitSkillsPopup(),
+// which matches the keyring/stats popups' own footprint) -- tune once the
+// real graphic is visible in-game.
+#define SKILLS_POPUP_BOX_X		369
+#define SKILLS_POPUP_BOX_Y		0
+#define SKILLS_POPUP_BOX_WIDTH		480
+#define SKILLS_POPUP_BOX_HEIGHT	194
+
+static BOOLEAN      gfInSkillsPopup = FALSE;
+static SOLDIERTYPE* gpSkillsPopupSoldier = NULL;
+static INT16         gsSkillsPopupInvX;
+static INT16         gsSkillsPopupInvY;
+static INT16         gsSkillsPopupInvWidth;
+static INT16         gsSkillsPopupInvHeight;
+static MOUSE_REGION  gSkillsPopupRegion;
+
+
+BOOLEAN InSkillsPopup(void)
+{
+	return gfInSkillsPopup;
+}
+
+
+void DeleteSkillsPopup(void)
+{
+	if (!gfInSkillsPopup) return;
+
+	MSYS_RemoveRegion(&gSkillsPopupRegion);
+
+	gfInSkillsPopup = FALSE;
+	gpSkillsPopupSoldier = NULL;
+
+	fInterfacePanelDirty = DIRTYLEVEL2;
+
+	EnableSMPanelButtons(TRUE, FALSE);
+
+	// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
+	// InitSkillsPopup() below.
+	ShowSMBookmarkButtonsUnderInfoPopups();
+
+	FreeMouseCursor();
+}
+
+
+// Left AND right click on the background both close it unconditionally --
+// same convention as the stats/keyring popups.
+static void SkillsPopupFullRegionCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	DeleteSkillsPopup();
+	fTeamPanelDirty = TRUE;
+}
+
+
+static void SkillsPopupFullRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	DeleteSkillsPopup();
+	fTeamPanelDirty = TRUE;
+}
+
+
+void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+{
+	gsSkillsPopupInvX      = sInvX;
+	gsSkillsPopupInvY      = sInvY;
+	gsSkillsPopupInvWidth  = sInvWidth;
+	gsSkillsPopupInvHeight = sInvHeight;
+
+	gpSkillsPopupSoldier = pSoldier;
+
+	MSYS_DefineRegion(&gSkillsPopupRegion, sInvX, sInvY, sInvX + sInvWidth, sInvY + sInvHeight,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+		MouseCallbackPrimarySecondary(SkillsPopupFullRegionCallbackPrimary, SkillsPopupFullRegionCallbackSecondary));
+
+	SetAllAutoFacesInactive();
+
+	fInterfacePanelDirty = DIRTYLEVEL2;
+
+	EnableSMPanelButtons(FALSE, FALSE);
+
+	// See the matching call in InitStatsPopup() above for why this is
+	// needed in addition to EnableSMPanelButtons(FALSE, ...).
+	HideSMBookmarkButtonsUnderInfoPopups();
+
+	gfInSkillsPopup = TRUE;
+
+	SGPRect aRect;
+	aRect.iTop    = sInvY;
+	aRect.iLeft   = sInvX;
+	aRect.iBottom = sInvY + sInvHeight;
+	aRect.iRight  = sInvX + sInvWidth;
+	RestrictMouseCursor(&aRect);
+}
+
+
+void RenderSkillsPopup(BOOLEAN const fFullRender)
+{
+	if (!gfInSkillsPopup || !gpSkillsPopupSoldier) return;
+
+	SetAllAutoFacesInactive();
+
+	if (fFullRender)
+	{
+		FRAME_BUFFER->ShadowRect(gsSkillsPopupInvX, gsSkillsPopupInvY,
+			gsSkillsPopupInvX + gsSkillsPopupInvWidth, gsSkillsPopupInvY + gsSkillsPopupInvHeight);
+	}
+
+	INT16 const dx = SKILLS_POPUP_BOX_X + gsSkillsPopupInvX;
+	INT16 const dy = SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY;
+
+	BltVideoObject(FRAME_BUFFER, guiSkillsInfoBox, 0, dx, dy);
+
+	MERCPROFILESTRUCT const& p = GetProfile(gpSkillsPopupSoldier->ubProfile);
+
+	// -- Header --
+	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
+	MPrint(dx + gSkillsPopupCoords[SKILLS_TXT_HEADER].sX, dy + gSkillsPopupCoords[SKILLS_TXT_HEADER].sY, gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
+
+	// -- Skill name(s), as a mini-header for each description block below --
+	SetFontForeground(5);
+	if (p.bSkillTrait != NO_SKILLTRAIT)
+	{
+		StatsPopupCoord const& c1 = gSkillsPopupCoords[SKILLS_COORD_LINE1];
+		if (p.bSkillTrait == p.bSkillTrait2)
+		{
+			// Same skill in both slots ("expert") -- append "(expert)", and
+			// print only the SKILL_TRAIT_1 description block (using the
+			// expert-level array, where one exists -- see
+			// GetSkillDescription()); SKILL_TRAIT_2 is unused in this case.
+			ST::string const sVal = ST::format("{} {}", gzMercSkillText[p.bSkillTrait], gzMercSkillText[NUM_SKILLTRAITS]);
+			MPrint(dx + c1.sX, dy + c1.sY, sVal);
+			PrintSkillDescription(dx, dy, gSkillTrait1DescCoords, (SkillTrait)p.bSkillTrait, true);
+		}
+		else
+		{
+			MPrint(dx + c1.sX, dy + c1.sY, gzMercSkillText[p.bSkillTrait]);
+			PrintSkillDescription(dx, dy, gSkillTrait1DescCoords, (SkillTrait)p.bSkillTrait, false);
+
+			if (p.bSkillTrait2 != NO_SKILLTRAIT)
+			{
+				StatsPopupCoord const& c2 = gSkillsPopupCoords[SKILLS_COORD_LINE2];
+				MPrint(dx + c2.sX, dy + c2.sY, gzMercSkillText[p.bSkillTrait2]);
+				PrintSkillDescription(dx, dy, gSkillTrait2DescCoords, (SkillTrait)p.bSkillTrait2, false);
+			}
+		}
+	}
+
+	InvalidateRegion(gsSkillsPopupInvX, gsSkillsPopupInvY,
+		gsSkillsPopupInvX + gsSkillsPopupInvWidth, gsSkillsPopupInvY + gsSkillsPopupInvHeight);
+}
+
+
+static void BtnSkillsCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		if (InSkillsPopup())
+		{
+			DeleteSkillsPopup();
+		}
+		else if (gpSMCurrentMerc)
+		{
+			InitSkillsPopup(gpSMCurrentMerc, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
+		}
+	}
+}
+
+
 void BeginKeyPanelFromKeyShortcut(void)
 {
 	SOLDIERTYPE *pSoldier = NULL;
@@ -3292,6 +4334,12 @@ void BeginKeyPanelFromKeyShortcut(void)
 
 void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 {
+	// Pressed-icon state (Interface_Items.cc renders it) -- tracked
+	// unconditionally, ahead of the early-returns below, so the icon
+	// visually presses even when the click itself turns out to be a no-op.
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN) fSMKeyringIconPressed = TRUE;
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)  fSMKeyringIconPressed = FALSE;
+
 	SOLDIERTYPE *pSoldier = NULL;
 	INT16 sStartYPosition = 0;
 	INT16 sWidth = 0, sHeight = 0;
@@ -3604,10 +4652,33 @@ static bool IsMouseInRegion(MOUSE_REGION const& r)
 static void ConfirmationToDepositMoneyToPlayersAccount(MessageBoxReturnValue);
 
 
+static void SMInvMoneyMoveCallback(MOUSE_REGION*, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		fSMMoneyIconPressed = FALSE;
+	}
+}
+
+
 static void SMInvMoneyButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 {
-	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN )
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN)
 	{
+		fSMMoneyIconPressed = TRUE;
+	}
+
+	// Runs on release, not press -- same timing as
+	// KeyRingItemPanelButtonCallback. Doing this on POINTER_DWN used to open
+	// Infobox_money.sti (via InternalInitItemDescriptionBox()) in the very
+	// same event that set fSMMoneyIconPressed, and since the money/trash
+	// icons stop rendering while InItemDescriptionBox() is true, the
+	// pressed frame never actually got drawn. Triggering on POINTER_UP
+	// instead gives the same natural "held down" window Keyring already had.
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP )
+	{
+		fSMMoneyIconPressed = FALSE;
+
 		//If the current merc is to far away, dont allow anything to be done
 		if( gfSMDisableForItems )
 			return;
@@ -3678,6 +4749,78 @@ static void ConfirmationToDepositMoneyToPlayersAccount(MessageBoxReturnValue con
 
 
 	}
+}
+
+
+static void SMTrashCanItemMessageBoxCallback(MessageBoxReturnValue const bExitValue)
+{
+	if (bExitValue == MSG_BOX_RETURN_YES)
+	{
+		// Just discard whatever is on the cursor -- same as the strategic
+		// map's trash can (MAPEndItemPointer()), tactical equivalent.
+		EndItemPointer();
+	}
+}
+
+
+static void SMTrashCanBtnCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_DWN)
+	{
+		fSMTrashIconPressed = TRUE;
+	}
+
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		fSMTrashIconPressed = FALSE;
+
+		if (OBJECTTYPE* const o = gpItemPointer)
+		{
+			ST::string msg = o->ubMission ? pTrashItemText[1] : pTrashItemText[0];
+			DoMessageBox(MSG_BOX_BASIC_STYLE, msg, GAME_SCREEN, MSG_BOX_FLAG_YESNO, SMTrashCanItemMessageBoxCallback, NULL);
+		}
+	}
+}
+
+
+static void SMTrashCanMoveCallback(MOUSE_REGION*, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_GAIN_MOUSE)
+	{
+		if (gpItemPointer != NULL) fShowSMTrashCanHighlight = TRUE;
+	}
+	else if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		fShowSMTrashCanHighlight = FALSE;
+		fSMTrashIconPressed = FALSE;
+	}
+}
+
+
+// Money/trash-can icons -- see guiSMBookmarksVO above. Called every frame
+// rather than gated to DIRTYLEVEL2, so the pressed-state swap shows up
+// promptly; also keeps them
+// out of guiSAVEBUFFER while InItemDescriptionBox() is drawing there (same
+// "else" branch as the item description box).
+static void RenderSMMoneyAndTrashIcons()
+{
+	INT32 const moneyX = INTERFACE_START_X + MONEY_X;
+	INT32 const moneyY = INV_INTERFACE_START_Y + MONEY_Y;
+	BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fSMMoneyIconPressed ? SM_MONEY_ICON_PRESSED : SM_MONEY_ICON_READY, moneyX, moneyY);
+	RestoreExternBackgroundRect(moneyX, moneyY, MONEY_WIDTH, MONEY_HEIGHT);
+
+	INT32 const trashX = INTERFACE_START_X + SM_TRASHCAN_X;
+	INT32 const trashY = INV_INTERFACE_START_Y + SM_TRASHCAN_Y;
+	// The trash can is a drag-and-drop target, not a click button: the
+	// meaningful "about to act" moment is hovering over it with an item on
+	// the cursor (fShowSMTrashCanHighlight, tracked by SMTrashCanMoveCallback
+	// -- previously drove a separate white outline, now removed in favour of
+	// just swapping to the pressed icon), before the drop even happens --
+	// not a literal mouse-button-down (fSMTrashIconPressed), which barely
+	// factors into this interaction at all.
+	BOOLEAN const fTrashPressed = fSMTrashIconPressed || fShowSMTrashCanHighlight;
+	BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fTrashPressed ? SM_TRASHCAN_ICON_PRESSED : SM_TRASHCAN_ICON_READY, trashX, trashY);
+	RestoreExternBackgroundRect(trashX, trashY, SM_TRASHCAN_WIDTH, SM_TRASHCAN_HEIGHT);
 }
 
 
@@ -3753,7 +4896,7 @@ void HandleTacticalEffectsOfEquipmentChange(SOLDIERTYPE* pSoldier, UINT32 uiInvP
 		}
 
 		// if this is head gear
-		if ( uiInvPos == HEAD1POS || uiInvPos == HEAD2POS )
+		if ( uiInvPos >= HEAD1POS && uiInvPos <= HEAD4POS )
 		{
 			// Could be because of GOGGLES change...  Re-create light...
 			DeleteSoldierLight( pSoldier );

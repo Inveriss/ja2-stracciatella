@@ -5,6 +5,7 @@
 #include "SGPFile.h"
 #include "Soldier_Profile_Type.h"
 
+#include <algorithm>
 #include <array>
 
 
@@ -33,7 +34,7 @@ UINT32 SoldierProfileChecksum(MERCPROFILESTRUCT const& p)
 
 /**
 * Extract merc profile from the binary data. */
-void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracLinuxFormat, UINT32 *checksum, bool const isCorrectlyEncoded)
+void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracLinuxFormat, UINT32 *checksum, bool const isCorrectlyEncoded, bool const fVanillaProfileFormat)
 {
 	DataReader S{Src};
 
@@ -123,8 +124,17 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_SKIP(S, 1)
 	EXTR_I8(S, p.bWisdom)
 	EXTR_SKIP(S, 2)
-	EXTR_U8A(S, p.bInvStatus, lengthof(p.bInvStatus))
-	EXTR_U8A(S, p.bInvNumber, lengthof(p.bInvNumber))
+	// prof.dat (the immutable vanilla game asset) only ever encodes
+	// VANILLA_PROF_DAT_INV_SLOTS slots; this engine's own profile format
+	// encodes the full, current NUM_INV_SLOTS. Zero the tail explicitly
+	// (rather than relying on the caller's MERCPROFILESTRUCT having been
+	// freshly zero-constructed) before reading only as many slots as the
+	// source actually has.
+	size_t const invSlotsToRead = fVanillaProfileFormat ? VANILLA_PROF_DAT_INV_SLOTS : lengthof(p.bInvStatus);
+	std::fill(std::begin(p.bInvStatus) + invSlotsToRead, std::end(p.bInvStatus), 0);
+	std::fill(std::begin(p.bInvNumber) + invSlotsToRead, std::end(p.bInvNumber), 0);
+	EXTR_U8A(S, p.bInvStatus, invSlotsToRead)
+	EXTR_U8A(S, p.bInvNumber, invSlotsToRead)
 	EXTR_U16A(S, p.usApproachFactor, lengthof(p.usApproachFactor))
 	EXTR_I8(S, p.bMainGunAttractiveness)
 	EXTR_I8(S, p.bAgility)
@@ -136,7 +146,8 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_U8(S, p.ubInvUndroppable)
 	EXTR_U8A(S, p.ubRoomRangeStart, lengthof(p.ubRoomRangeStart))
 	EXTR_SKIP(S, 1)
-	EXTR_U16A(S, p.inv, lengthof(p.inv))
+	std::fill(std::begin(p.inv) + invSlotsToRead, std::end(p.inv), NOTHING);
+	EXTR_U16A(S, p.inv, invSlotsToRead)
 	EXTR_SKIP(S, 20)
 	EXTR_U16A(S, p.usStatChangeChances, lengthof(p.usStatChangeChances))
 	EXTR_U16A(S, p.usStatChangeSuccesses, lengthof(p.usStatChangeSuccesses))
@@ -201,7 +212,11 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_I32(S, p.iMercMercContractLength)
 	EXTR_U32(S, p.uiTotalCostToDate)
 	EXTR_SKIP(S, 4)
-	if(stracLinuxFormat)
+	if (fVanillaProfileFormat)
+	{
+		Assert(S.getConsumed() == VANILLA_PROF_DAT_SIZE);
+	}
+	else if(stracLinuxFormat)
 	{
 		Assert(S.getConsumed() == MERC_PROFILE_SIZE_STRAC_LINUX);
 	}
@@ -231,7 +246,7 @@ void ExtractImpProfileFromFile(SGPFile *hFile, INT32 *iProfileId, INT32 *iPortra
 	bool const isOldUnixFormat{ fileSize >= MERC_PROFILE_SIZE_STRAC_LINUX };
 	hFile->read(data.data(),
 		isOldUnixFormat ? MERC_PROFILE_SIZE_STRAC_LINUX : MERC_PROFILE_SIZE);
-	ExtractMercProfile(data.data(), p, isOldUnixFormat, &checksum, true);
+	ExtractMercProfile(data.data(), p, isOldUnixFormat, &checksum, true, /*fVanillaProfileFormat=*/false);
 }
 
 
@@ -398,13 +413,13 @@ void InjectMercProfile(BYTE* const Dst, MERCPROFILESTRUCT const& p)
 	INJ_I32(D, p.iMercMercContractLength)
 	INJ_U32(D, p.uiTotalCostToDate)
 	INJ_SKIP(D, 4)
-	Assert(D.getConsumed() == 716);
+	Assert(D.getConsumed() == MERC_PROFILE_SIZE);
 }
 
 
 void InjectMercProfileIntoFile(HWFILE const f, MERCPROFILESTRUCT const& p)
 {
-	BYTE Data[716];
+	BYTE Data[MERC_PROFILE_SIZE];
 	InjectMercProfile(Data, p);
 	f->write(Data, sizeof(Data));
 }

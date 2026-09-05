@@ -1116,7 +1116,7 @@ static INT8 DecideHearing(const SOLDIERTYPE* pSoldier)
 	bHearing += 1 * NUM_SKILL_TRAITS(pSoldier, NIGHTOPS);
 
 	bSlot = FindObj( pSoldier, EXTENDEDEAR );
-	if ( bSlot == HEAD1POS || bSlot == HEAD2POS)
+	if ( bSlot >= HEAD1POS && bSlot <= HEAD4POS)
 	{
 		// at 81-100% adds +5, at 61-80% adds +4, at 41-60% adds +3, etc.
 		bHearing += pSoldier->inv[bSlot].bStatus[0] / 20 + 1;

@@ -3,6 +3,7 @@
 #include "Font.h"
 #include "Handle_Items.h"
 #include "Isometric_Utils.h"
+#include "Local.h"
 #include "Item_Types.h"
 #include "LoadSaveData.h"
 #include "LoadSaveObjectType.h"
@@ -27,6 +28,8 @@
 #include "Render_Dirty.h"
 #include "Interface_Panels.h"
 #include "Animation_Control.h"
+#include "Animation_Data.h"
+#include "Shading.h"
 #include "Soldier_Control.h"
 #include "PathAI.h"
 #include "Weapons.h"
@@ -101,8 +104,32 @@
 #define DESC_STATUS_BAR_SHADOW				STATUS_BAR_SHADOW
 #define DESC_STATUS_BAR				STATUS_BAR
 
-#define INV_BAR_DX					5
-#define INV_BAR_DY					21
+#define INV_BAR_DX					7
+#define INV_BAR_DY					30
+
+// Adjustable offset (from the slot's own top-left corner) and size delta
+// (relative to the slot's own width/height) for the "item doesn't fit
+// here" hatch drawn over inventory slots in INVRenderINVPanelItem() --
+// see DrawHatchOnInventory() below. All zero preserves the original
+// behaviour (hatch pixel-for-pixel matches the slot rect). Positive
+// OFFSET_X/Y moves it right/down, negative left/up; positive WIDTH_DELTA/
+// HEIGHT_DELTA grows it past the slot's own edges, negative shrinks it.
+// Scoped to this one call site only -- see ATTACHMENT_HATCH_* below for the
+// separate attachment-slot hatch in the item description box.
+#define HATCH_OFFSET_X					-1
+#define HATCH_OFFSET_Y					0
+#define HATCH_WIDTH_DELTA				0
+#define HATCH_HEIGHT_DELTA				0
+
+// Same idea as HATCH_OFFSET_X/Y/HATCH_WIDTH_DELTA/HATCH_HEIGHT_DELTA above,
+// but for the attachment-slot hatch drawn in the item description box
+// (Infobox.sti) when an item can't be attached/merged/launched onto the
+// examined item -- see InternalInitItemDescriptionBox() below. Independent
+// of the inventory-slot constants above; tune separately.
+#define ATTACHMENT_HATCH_OFFSET_X			7
+#define ATTACHMENT_HATCH_OFFSET_Y			1
+#define ATTACHMENT_HATCH_WIDTH_DELTA			-8
+#define ATTACHMENT_HATCH_HEIGHT_DELTA			-1
 
 #define RENDER_ITEM_NOSTATUS				20
 #define RENDER_ITEM_ATTACHMENT1			200
@@ -112,15 +139,32 @@
 #define MAX_STACK_POPUP_WIDTH				6
 
 #define ITEMDESC_START_X				(INTERFACE_START_X + 214)
-#define ITEMDESC_START_Y				(1 + INV_INTERFACE_START_Y)
+#define ITEMDESC_START_Y				(1 + ITEMDESC_PANEL_START_Y)
 
 
 // #define ITEMDESC_HEIGHT				133
 // #define ITEMDESC_WIDTH				320
 
 // NEW POSITION
-#define ITEMDESC_HEIGHT				    301 
-#define ITEMDESC_WIDTH					542 
+// Size of the tactical item description box's mouse region -- one
+// independent copy per box background (Infobox.sti/Infobox_money.sti/
+// Infobox_items.sti), selected in InternalInitItemDescriptionBox()/
+// RenderItemDescriptionBox() via fIsWeapon/fIsMoney. Also used to size the
+// RestoreExternBackgroundRect() call in RenderItemDescriptionBox() that
+// restores the background under the whole popup -- that call Asserts the
+// rect stays on-screen, so each _HEIGHT here MUST stay a few px under its
+// matching ITEMDESC_PANEL_HEIGHT (UILayout.h), since the box is anchored
+// ITEMDESC_PANEL_HEIGHT[_MONEY/_ITEMS] px up from the bottom of the screen.
+// Derived from the panel height (with the same 3px margin ITEMDESC_HEIGHT/
+// ITEMDESC_PANEL_HEIGHT already used) instead of a separate hardcoded
+// number, so retuning the panel height can't silently push the box off the
+// bottom of the screen again.
+#define ITEMDESC_HEIGHT				    (ITEMDESC_PANEL_HEIGHT - 3)        // Infobox.sti (weapon)
+#define ITEMDESC_WIDTH					542
+#define ITEMDESC_HEIGHT_MONEY			    (ITEMDESC_PANEL_HEIGHT_MONEY - 3)  // Infobox_money.sti
+#define ITEMDESC_WIDTH_MONEY			542
+#define ITEMDESC_HEIGHT_ITEMS			    (ITEMDESC_PANEL_HEIGHT_ITEMS - 3)  // Infobox_items.sti
+#define ITEMDESC_WIDTH_ITEMS			542
 
 
 #define MAP_ITEMDESC_HEIGHT				268
@@ -166,9 +210,24 @@ static const SGPBox g_itemdesc_item_status_box     = {  6,  60,   2, 51 };
 */
 
 // NEW POSITION
-static const SGPBox g_itemdesc_desc_box            = { 14,  226, 375, 0 };
+// Item description text box. One independent copy per tactical item
+// description box background (Infobox.sti/Infobox_money.sti/
+// Infobox_items.sti) -- see fIsWeapon/fIsMoney in RenderItemDescriptionBox().
+// All three currently equal (preserving today's shared position); tune
+// independently as needed.
+static const SGPBox g_itemdesc_desc_box            = { 14,  226, 375, 0 }; // Infobox.sti (weapon) / description
+static const SGPBox g_itemdesc_desc_box_money      = { 19,  122, 334, 0 }; // Infobox_money.sti / description
+static const SGPBox g_itemdesc_desc_box_items      = { 19,  122, 232, 0 }; // Infobox_items.sti / description
 static const SGPBox g_itemdesc_pros_cons_box       = { 14, 270, 375, 10 };
-static const SGPBox g_itemdesc_item_status_box     = { 156, 115,   2, 69 };
+// x position status bar in infobox.sti ### y position ### width of status
+// bar ### length of status bar. One independent copy per tactical item
+// description box background (Infobox.sti/Infobox_money.sti/
+// Infobox_items.sti) -- see fIsWeapon/fIsMoney in RenderItemDescriptionBox().
+// All three currently equal (preserving today's on-screen position); tune
+// independently as needed.
+static const SGPBox g_itemdesc_item_status_box     = { 156, 115,   2, 69 }; // Infobox.sti (weapon) / status bar
+static const SGPBox g_itemdesc_item_status_box_money = { 14, 82,   2, 69 }; // Infobox_money.sti / status bar
+static const SGPBox g_itemdesc_item_status_box_items = { 14, 82,   2, 69 }; // Infobox_items.sti / status bar
 
 static const SGPBox g_map_itemdesc_desc_box        = { 23, 170, 220,  0 };
 static const SGPBox g_map_itemdesc_pros_cons_box   = { 23, 230, 220, 10 };
@@ -191,7 +250,7 @@ static const SGPBox g_map_itemdesc_item_status_box = { 18,  54,   2, 42 };
 #define ITEMDESC_AMMO_TEXT_WIDTH			40
 
 
-#define ITEM_BAR_HEIGHT				20
+#define ITEM_BAR_HEIGHT				31
 
 #define ITEM_FONT					TINYFONT1
 
@@ -212,12 +271,12 @@ constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 #define BAD_RELIABILITY				-2
 #define BAD_REPAIR_EASE				-2
 
-#define KEYRING_X      (INTERFACE_START_X + 496)
-#define KEYRING_Y      (INV_INTERFACE_START_Y + 106)
+#define KEYRING_X      (INTERFACE_START_X + 314)
+#define KEYRING_Y      (INV_INTERFACE_START_Y + 160)
 #define MAP_KEYRING_X (STD_SCREEN_X + 217)
 #define MAP_KEYRING_Y (STD_SCREEN_Y + 271)
-#define KEYRING_WIDTH   29
-#define KEYRING_HEIGHT  23
+#define KEYRING_WIDTH   32
+#define KEYRING_HEIGHT  32
 #define TACTICAL_INVENTORY_KEYRING_GRAPHIC_OFFSET_X 215
 //enum used for the money buttons
 enum
@@ -254,14 +313,27 @@ cache_key_t const guiMapItemDescBox{ INTERFACEDIR "/iteminfoc.sti" };
 // Same-sized alternate background for the tactical item description box when
 // displaying money - doesn't need the room reserved for weapon stats/attachments.
 cache_key_t const guiMoneyItemDescBox{ INTERFACEDIR "/Infobox_money.sti" };
+// Tactical item description box background for every non-weapon,
+// non-money item class (armour, ammo, medkits, keys, misc, ...) -- see
+// g_generic_item_attachment_info below for its (4-slot) attachment layout.
+cache_key_t const guiGenericItemDescBox{ INTERFACEDIR "/Infobox_items.sti" };
 
 cache_key_t const guiBullet{ INTERFACEDIR "/bullet.sti" };
 cache_key_t const guiMoneyGraphicsForDescBox{ INTERFACEDIR "/info_bil.sti" };
 cache_key_t const guiGoldKeyVO{ INTERFACEDIR "/gold_key_button.sti" };
+// Same cache entry as guiSMBookmarksVO in Interface_Panels.cc (cache_key_t
+// is just the path string -- GetVObject()/BltVideoObject() share one
+// loaded copy across translation units).
+cache_key_t const guiSMBookmarksVO{ INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti" };
+// Attachment slot frame, drawn per-slot in RenderItemDescriptionBox() on the
+// tactical screen -- Infobox.sti/Infobox_money.sti no longer have it baked
+// into their own art, so fHideEmptyAttachmentSlots can hide it per-slot.
+cache_key_t const guiAttachmentSlotFrameVO{ INTERFACEDIR "/attachment_slot_frame.sti" };
 }
 static SGPVObject *guiItemGraphic;
 static UINT8 guiItemGraphicIndex;
 BOOLEAN gfInItemDescBox = FALSE;
+BOOLEAN fHideEmptyAttachmentSlots = FALSE;
 static UINT32 guiCurrentItemDescriptionScreen=0;
 OBJECTTYPE *gpItemDescObject = NULL;
 static BOOLEAN gfItemDescObjectIsAttachment = FALSE;
@@ -276,6 +348,22 @@ static BUTTON_PICS *giItemDescAmmoButtonImages;
 static GUIButtonRef giItemDescAmmoButton;
 static SOLDIERTYPE *gpItemDescSoldier;
 static BOOLEAN fItemDescDelete = FALSE;
+
+// Animation surface currently loaded for the merc-preview picture on
+// Infobox.sti (weapon only) -- see gMercPreviewFrames/GetMercPreviewFrame()
+// below. INVALID_ANIMATION_SURFACE when nothing is loaded (money/generic
+// items, map screen, or a non-merc body type never load one).
+static UINT16 gusMercPreviewAnimSurface = INVALID_ANIMATION_SURFACE;
+
+// Extra frames, after DeleteItemDescriptionBox() closes the weapon box, to
+// keep re-flipping the box's last on-screen rectangle to the screen -- see
+// TickItemDescCloseCleanup() below.
+static UINT32 gsItemDescCloseCleanupFrames = 0;
+static INT16  gsItemDescCloseCleanupX;
+static INT16  gsItemDescCloseCleanupY;
+static INT16  gsItemDescCloseCleanupW;
+static INT16  gsItemDescCloseCleanupH;
+
 MOUSE_REGION gItemDescAttachmentRegions[MAX_ATTACHMENTS];
 static MOUSE_REGION gProsAndConsRegions[2];
 
@@ -305,11 +393,11 @@ static const MoneyLoc gMoneyButtonOffsets[] = { { 215, 49 }, // 1000
 */
 
 // NEW POSITION
-static const MoneyLoc gMoneyButtonOffsets[] = { { 177, 74 }, // 1000
-												{ 215, 49 }, // 100
-												{ 177, 49 }, // 10
-												{ 215, 74 }, // Done
-												{ 187, 100 } }; // Separate
+static const MoneyLoc gMoneyButtonOffsets[] = { { 35, 38 }, // 1000
+												{ 73, 16 }, // 100
+												{ 35, 16 }, // 10
+												{ 73, 38 }, // Done
+												{ 45, 67 } }; // Separate
 
 // number of keys on keyring, temp for now
 #define NUMBER_KEYS_ON_KEYRING				28
@@ -354,12 +442,95 @@ struct INV_DESC_STATS
 static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
 
 // static const SGPBox gDescNameBox    = { 11, 110, 301, 10 };
-static const SGPBox gDescNameBox    = { 14, 203, 375, 8 };  // NEW POSITION
+// Item name (and, in the branches that reuse the same box, weapon class/
+// ammo type text and the money amount). One independent copy per tactical
+// item description box background -- see fIsWeapon/fIsMoney in
+// RenderItemDescriptionBox(). All three currently equal (preserving today's
+// shared position); tune independently as needed.
+static const SGPBox gDescNameBox       = { 14, 203, 375, 8 };  // Infobox.sti (weapon) / item name, ammo name, item class name
+static const SGPBox gDescNameBox_Money = { 19, 99, 334, 8 };  // Infobox_money.sti / item name, ammo name, item class name
+static const SGPBox gDescNameBox_Items = { 19, 99, 334, 8 };  // Infobox_items.sti / item name, ammo name, item class name
 
 static const SGPBox g_desc_item_box_map = { 23, 10, 124, 48 };
 
 // static const SGPBox g_desc_item_box     = { 23, 230, 220, 10 };
-static const SGPBox g_desc_item_box     = { 163,  46, 133, 69 }; // NEW POSITION
+// Main item picture: size and position within the box background. One
+// independent copy per tactical item description box background --
+// see fIsWeapon/fIsMoney in RenderItemDescriptionBox(). All three
+// currently equal (preserving today's on-screen position); tune
+// independently as needed.
+static const SGPBox g_desc_item_box     = { 163,  46, 133, 69 }; // Infobox.sti (weapon) / main picture
+static const SGPBox g_desc_item_box_money = { 21,  13, 133, 69 }; // Infobox_money.sti / main picture
+static const SGPBox g_desc_item_box_items = { 21,  13, 133, 69 }; // Infobox_items.sti / main picture
+
+// Merc preview picture on Infobox.sti (weapon only): a single static frame
+// of the selected merc's OWN body animation, picked by body type + category
+// of weapon currently held in HANDPOS (knife / short (one-handed gun) /
+// long (two-handed gun)) -- see GunLaserScopeBonus-style precedent in
+// DetermineSoldierAnimationSurface() (Animation_Control.cc) for the same
+// gun-class/isTwoHanded() branching this reuses. Position is a placeholder
+// -- tune independently once visible in-game.
+//
+// Deactivated (kept in source, per request) -- gates loading in
+// InternalInitItemDescriptionBox() and drawing in
+// RenderItemDescriptionBox() below. Flip to true to re-enable.
+static const bool ENABLE_MERC_PREVIEW_PICTURE = false;
+
+#define MERC_PREVIEW_X    (13 + gsInvDescX)
+#define MERC_PREVIEW_Y    (139 + gsInvDescY)
+
+enum MercPreviewWeaponCategory
+{
+	MERC_PREVIEW_KNIFE = 0,
+	MERC_PREVIEW_SHORT_GUN,
+	MERC_PREVIEW_LONG_GUN,
+	NUM_MERC_PREVIEW_CATEGORIES
+};
+
+struct MercPreviewFrame
+{
+	UINT16 usAnimSurface;
+	UINT16 usImageIndex;
+};
+
+// [ubBodyType][MercPreviewWeaponCategory] -- ubBodyType only ever indexes
+// REGMALE/BIGMALE/STOCKYMALE/REGFEMALE here (IS_MERC_BODY_TYPE() below
+// guards every other value, e.g. creatures/robots). STOCKYMALE has no
+// animation files of its own, same as everywhere else in
+// gAnimSurfaceDatabase -- it reuses REGMALE's, per user confirmation.
+static const MercPreviewFrame gMercPreviewFrames[TOTALBODYTYPES][NUM_MERC_PREVIEW_CATEGORIES] =
+{
+	/* REGMALE    */ { { RGMBREATHKNIFE,     35 }, { RGMPISTOLBREATH, 8 }, { RGM_LOOK,  42 } },
+	/* BIGMALE    */ { { BGMBREATHKNIFE,     35 }, { BGMPISTOLBREATH, 8 }, { BGMTHREATENSTAND, 42 } },
+	/* STOCKYMALE */ { { RGMBREATHKNIFE,     35 }, { RGMPISTOLBREATH, 8 }, { RGM_LOOK,  42 } }, // fallback = REGMALE
+	/* REGFEMALE  */ { { RGFBREATHKNIFE,     23 }, { RGFHANDGUN_1H,  38 }, { RGFSTANDAIM, 38 } },
+};
+
+// Which of the 3 preview categories the merc's currently held item
+// (HANDPOS -- NOT the item whose description is being shown, which may be
+// a different item in the same merc's inventory) falls into. Mirrors the
+// gun-class / isTwoHanded() branching DetermineSoldierAnimationSurface()
+// (Animation_Control.cc) already uses to pick a weapon-appropriate
+// animation surface for real gameplay animations.
+static MercPreviewWeaponCategory GetMercPreviewWeaponCategory(SOLDIERTYPE const& s)
+{
+	UINT16      const  usHeldItem = s.inv[HANDPOS].usItem;
+	ItemModel const* const item       = GCM->getItem(usHeldItem);
+	bool        const  isGun       = item->getItemClass() == IC_GUN || item->getItemClass() == IC_LAUNCHER;
+
+	if (!isGun || usHeldItem == ROCKET_LAUNCHER) return MERC_PREVIEW_KNIFE;
+	return item->isTwoHanded() ? MERC_PREVIEW_LONG_GUN : MERC_PREVIEW_SHORT_GUN;
+}
+
+// Resolves the merc-preview frame for the given soldier, or returns false
+// (out left untouched) for non-merc body types (creatures/robots), which
+// gMercPreviewFrames has no data for.
+static bool GetMercPreviewFrame(SOLDIERTYPE const& s, MercPreviewFrame* const out)
+{
+	if (!IS_MERC_BODY_TYPE(&s)) return false;
+	*out = gMercPreviewFrames[s.ubBodyType][GetMercPreviewWeaponCategory(s)];
+	return true;
+}
 
 static const INV_DESC_STATS gWeaponStats[] =
 
@@ -412,17 +583,34 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 410,  72,  0 },  // [18] "AP:" (decorative)
 	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
 
-	// Real, computed LASERSCOPE aim bonus (see GunLaserScopeBonus()). Only
-	// shown when the weapon actually has a laser (attached or built-in).
-	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus
+	// Combined LASERSCOPE aim bonus + merc's live CROUCH-stance bonus +
+	// merc's live roof/elevation bonus (see GunLaserScopeBonus() +
+	// GunCrouchStanceBonus() + GunRoofBonus()). Label and value always
+	// shown (0 when none apply).
+	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus
 
-	// Combined LASERSCOPE + BIPOD aim bonus (see GunLaserScopeBonus() +
-	// GunBipodDisplayBonus()). Label and value always shown.
-	{ 14, 26, 48 }, // [21] "Prone:" — Base: + BIPOD display bonus
+	// Combined LASERSCOPE + BIPOD + PRONE stance + roof/elevation aim
+	// bonus (see GunLaserScopeBonus() + GunBipodDisplayBonus() +
+	// GunProneStanceBonus() + GunRoofBonus()). Label and value always shown.
+	{ 14, 26, 48 }, // [21] "Prone:" — Base: + BIPOD display bonus + PRONE stance bonus + roof bonus
 
 	// Standalone SNIPERSCOPE display bonus (see GunSniperScopeDisplayBonus()).
 	// Label and value always shown; never summed with Base:/Prone:.
 	{ 14, 38, 48 }  // [22] "Per Aim:"
+};
+
+// Weight/Status (and, for keys, the sector-found/date-found box) label+value
+// positions for Infobox_items.sti (every non-weapon, non-money item class --
+// the "else" branch in RenderItemDescriptionBox() that used to reuse
+// gWeaponStats[0]/[1]/[3] directly). Independent of gWeaponStats
+// (Infobox.sti) and gMapWeaponStats (map screen, still shared/untouched) --
+// tune independently as needed.
+static const INV_DESC_STATS gGenericItemStats[] =
+{
+	{ 273, 117, 87 },  // [0] Weight
+	{ 273, 100, 87 },  // [1] Status / ammo amount
+	{ 0,   0,   0  },  // [2] unused in this branch -- kept only so [3] lines up
+	{ 273,  19, 31 },  // [3] Key description box (sector found / date found)
 };
 
 
@@ -437,10 +625,10 @@ static const INV_DESC_STATS gMoneyStats[] =
 	*/
 	
 	// NEW POSITION
-	{ 393, 52, 78  }, // current
-	{ 393, 64, 78 },  // balance
-	{ 393, 92, 78  }, // amount to
-	{ 393, 104, 78 }   // withdraw
+	{ 251, 19, 78  }, // current
+	{ 251, 31, 79 },  // balance
+	{ 251, 59, 78  }, // amount to
+	{ 251, 71, 79 }   // withdraw
 };
 
 // displayed AFTER the mass/weight/"Kg" line
@@ -485,14 +673,14 @@ static const AttachmentGfxInfo g_attachment_info =
 //	{ 2, 2,  2, 22 },
 	
 // NEW POSITION
-	{ 9, 2, 36, 31 },
-    { 2, 2,  2, 31 },
+	{ 8, 1, 36, 31 },
+    { 1, 1,  2, 31 },
 	
 	{
-		{   154,   7 }, {  203,   7 }, {  252,   7 }, { 349,   7 }, // First row
-		{   7,  64 }, {  56,  64 }, {  105,  64 }, { 300,  45 },	{   300,  83 }, {  349,  64 }, // Second row
-		{  105,  121 }, { 154,  121 },	{   203,  121 }, {  252,  121 }, {  349,  121 }, // Third row
-		{ 56,  159 }, {   105, 159 }, {  251, 159 }, {  300, 159 }, { 6, 159 }, // Fourth row
+		{   155,   8 }, {  204,   8 }, {  252,   8 }, { 350,   8 }, // First row
+		{   8,  65 }, {  57,  65 }, {  106,  65 }, { 301,  46 },	{   301,  84 }, {  350,  65 }, // Second row
+		{  105,  122 }, { 154,  122 },	{   203,  122 }, {  252,  122 }, {  349,  122 }, // Third row
+		{ 57,  160 }, {   106, 160 }, { 154, 160 }, {  252, 160 }, {  301, 160 },  // Fourth row
 	}
 };
 
@@ -506,6 +694,21 @@ static const AttachmentGfxInfo g_map_attachment_info =
 		{   5,  57 }, {  39,  57 }, {  73,  57 }, { 107,  57 },
 		{   5,  83 }, {  39,  83 }, {  73,  83 }, { 107,  83 },
 		{   5, 109 }, {  39, 109 }, {  73, 109 }, { 107, 109 },
+	}
+};
+
+// Placeholder 2x2 grid, 4 attachment slots for every non-weapon, non-money
+// item class on the tactical screen (Infobox_items.sti) -- independent of
+// g_attachment_info (weapons). Reposition by hand to match the final
+// artwork, same as the other layouts above.
+static const AttachmentGfxInfo g_generic_item_attachment_info =
+{
+	{ 8, 1, 36, 31 },   // item_box: x, y, w, h
+	{ 1, 1, 2, 31 },   // bar_box
+	{
+		{ 164, 13 }, { 164, 51 },
+		{ 213, 13 }, { 213, 51 },
+		// remaining 16 unused -- the loop is capped to 4 for this class
 	}
 };
 
@@ -529,12 +732,20 @@ static INV_REGIONS const gSMInvData[] =
 	M(LEGS_INV_SLOT_WIDTH, LEGS_INV_SLOT_HEIGHT), // LEGPOS,
 	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD1POS
 	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD2POS
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD3POS
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD4POS
 	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // HANDPOS,
 	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // SECONDHANDPOS
 	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK1
 	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK2
 	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK3
 	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK4
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK5
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK6
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK7
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK8
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK9
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK10
 	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK1
 	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK2
 	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK3
@@ -542,7 +753,19 @@ static INV_REGIONS const gSMInvData[] =
 	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK5
 	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK6
 	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK7
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  )  // SMALLPOCK8
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK8
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK9
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK10
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK11
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK12
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK13
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK14
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK15
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK16
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK17
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK18
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK19
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  )  // SMALLPOCK20
 #undef M
 };
 
@@ -841,11 +1064,25 @@ void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 }
 
 
+// Resets fSMKeyringIconPressed (Interface_Panels.h) if the mouse is dragged
+// off the region while still held down -- POINTER_UP never reaches
+// KeyRingItemPanelButtonCallback in that case (see
+// MSYS_UpdateMouseRegion()'s g_clicked_region gating). Tactical only -- the
+// map screen's keyring icon doesn't use this pressed-state system.
+static void KeyRingMoveCallback(MOUSE_REGION*, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		fSMKeyringIconPressed = FALSE;
+	}
+}
+
+
 void InitKeyRingInterface(MOUSE_CALLBACK KeyRingClickCallback)
 {
 	MSYS_DefineRegion(&gKeyRingPanel, KEYRING_X, KEYRING_Y,
 		KEYRING_X + KEYRING_WIDTH, KEYRING_Y + KEYRING_HEIGHT,
-		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, KeyRingMoveCallback,
 		std::move(KeyRingClickCallback));
 	gKeyRingPanel.SetFastHelpText(TacticalStr[KEYRING_HELP_TEXT]);
 }
@@ -964,10 +1201,10 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 			}
 			else
 			{
-				INT32 const x = INTERFACE_START_X + 217;
-				INT32 const y = INV_INTERFACE_START_Y + 108;
+				INT32 const x = INTERFACE_START_X + 294;
+				INT32 const y = INV_INTERFACE_START_Y + 116;
 				BltVideoObject(guiSAVEBUFFER, guiSecItemHiddenVO, 0, x, y);
-				RestoreExternBackgroundRect(x, y, 72, 28);
+				RestoreExternBackgroundRect(x, y, 75, 35);
 			}
 		}
 
@@ -1006,7 +1243,9 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 	if (hatch_out)
 	{
 		SGPVSurface* const dst = in_map ? guiSAVEBUFFER : FRAME_BUFFER;
-		DrawHatchOnInventory(dst, x, y, r.W(), r.H());
+		DrawHatchOnInventory(dst,
+			x + HATCH_OFFSET_X, y + HATCH_OFFSET_Y,
+			r.W() + HATCH_WIDTH_DELTA, r.H() + HATCH_HEIGHT_DELTA);
 	}
 
 	if (o.usItem != NOTHING)
@@ -1020,31 +1259,51 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 
 void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 {
-	if (InItemDescriptionBox() || InItemStackPopup() || InKeyRingPopup()) return;
+	if (InItemDescriptionBox() || InItemStackPopup() || InKeyRingPopup() || InStatsPopup() || InSkillsPopup()) return;
 
 	for (INT32 i = 0; i != NUM_INV_SLOTS; ++i)
 	{
 		INVRenderINVPanelItem(s, i, dirty_level);
 	}
 
-	if (KeyExistsInKeyRing(s, ANYKEY))
+	if (guiCurrentItemDescriptionScreen == MAP_SCREEN)
 	{
-		// blit gold key here?
-		INT32 x;
-		INT32 y;
-		if (guiCurrentItemDescriptionScreen == MAP_SCREEN)
+		// Map screen keyring is unchanged: gold_key_button.sti only lights up
+		// when the keyring actually holds a key.
+		if (KeyExistsInKeyRing(s, ANYKEY))
 		{
-			x = MAP_KEYRING_X;
-			y = MAP_KEYRING_Y;
+			BltVideoObject(guiSAVEBUFFER, guiGoldKeyVO, 0, MAP_KEYRING_X, MAP_KEYRING_Y);
+			RestoreExternBackgroundRect(MAP_KEYRING_X, MAP_KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
 		}
-		else
-		{
-			x = KEYRING_X;
-			y = KEYRING_Y;
-		}
-		BltVideoObject(guiSAVEBUFFER, guiGoldKeyVO, 0, x, y);
-		RestoreExternBackgroundRect(x, y, KEYRING_WIDTH, KEYRING_HEIGHT);
 	}
+	else
+	{
+		// Tactical panel keyring icon draw moved out to RenderSMKeyringIcon()
+		// below -- it used to live here, but that meant it shared this
+		// function's early-return above, which skips it while
+		// InKeyRingPopup() is true, i.e. exactly while the keyring's own
+		// popup is open. RenderSMKeyringIcon() is instead called
+		// unconditionally from RenderSMPanel(), the same way
+		// RenderSMMoneyAndTrashIcons() already is, so the button icon stays
+		// visible the same way Money/Trash/Map/Shortcuts already do.
+	}
+}
+
+
+// Tactical panel's persistent "Key Ring Panel" bookmark icon
+// (inventory_bottom_panel_bookmarks.sti, sub-images 17/18, 0-based 16/17 --
+// see guiSMBookmarksVO/SM_KEYRING_ICON_READY in Interface_Panels.cc, source
+// of the shared cache entry). Always shown regardless of whether the
+// keyring actually holds a key (unlike the map screen's gold_key_button.sti
+// highlight, HandleRenderInvSlots() above, left untouched). Called
+// unconditionally from RenderSMPanel() -- like RenderSMMoneyAndTrashIcons()
+// -- rather than from HandleRenderInvSlots(), so it doesn't disappear while
+// InKeyRingPopup()/InItemStackPopup() is true. fSMKeyringIconPressed is set
+// from KeyRingItemPanelButtonCallback (Interface_Panels.cc).
+void RenderSMKeyringIcon()
+{
+	BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fSMKeyringIconPressed ? 17 : 16, KEYRING_X, KEYRING_Y);
+	RestoreExternBackgroundRect(KEYRING_X, KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
 }
 
 
@@ -1873,7 +2132,7 @@ void CycleItemDescriptionItem( )
 
 	CreateItem(newItemIndex, 100, &gpItemDescSoldier->inv[HANDPOS]);
 
-	InternalInitItemDescriptionBox( &( gpItemDescSoldier->inv[ HANDPOS ] ), INTERFACE_START_X + 214, (INT16)(INV_INTERFACE_START_Y + 1 ), gubItemDescStatusIndex, gpItemDescSoldier );
+	InternalInitItemDescriptionBox( &( gpItemDescSoldier->inv[ HANDPOS ] ), INTERFACE_START_X + 214, (INT16)(ITEMDESC_PANEL_START_Y + 1 ), gubItemDescStatusIndex, gpItemDescSoldier );
 }
 
 
@@ -1909,6 +2168,9 @@ static void BtnMoneyButtonCallbackPrimary(GUI_BUTTON* btn, UINT32 reason);
 static void BtnMoneyButtonCallbackSecondary(GUI_BUTTON* btn, UINT32 reason);
 static void BtnMoneyButtonCallbackOther(GUI_BUTTON* btn, UINT32 reason);
 static void ItemDescAmmoCallback(GUI_BUTTON* btn, UINT32 reason);
+static void RefreshItemDescAmmoIcon(void);
+static BOOLEAN TryReloadItemDescGunFromCursor(void);
+static void DoAttachment(INT8 bAttachPos);
 static void ItemDescAttachmentsCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void ItemDescAttachmentsCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void ItemDescCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
@@ -1944,7 +2206,64 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	}
 	else
 	{
-		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + ITEMDESC_WIDTH, gsInvDescY + ITEMDESC_HEIGHT, MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, itemDescCallback);
+		// Which of the three tactical box backgrounds (Infobox.sti/
+		// Infobox_money.sti/Infobox_items.sti) is about to be shown for this
+		// item -- see the matching fIsMoney/fIsWeapon logic in
+		// RenderItemDescriptionBox(). Each has its own independent vertical
+		// anchor and size (UILayout.h/above), so gsInvDescY is recomputed
+		// here rather than trusting the caller's sY -- every current caller
+		// just passes the same shared macro anyway (ITEMDESC_START_Y/
+		// SM_ITEMDESC_START_Y), calculated before the item's class is known.
+		bool const fIsMoney  = o->usItem == MONEY;
+		bool const fIsWeapon = GCM->getItem(o->usItem)->isWeapon();
+
+		INT16 const width =
+			fIsMoney  ? ITEMDESC_WIDTH_MONEY :
+			fIsWeapon ? ITEMDESC_WIDTH :
+			            ITEMDESC_WIDTH_ITEMS;
+		INT16 const height =
+			fIsMoney  ? ITEMDESC_HEIGHT_MONEY :
+			fIsWeapon ? ITEMDESC_HEIGHT :
+			            ITEMDESC_HEIGHT_ITEMS;
+		gsInvDescY =
+			fIsMoney  ? (INT16)(1 + ITEMDESC_PANEL_START_Y_MONEY) :
+			fIsWeapon ? (INT16)(1 + ITEMDESC_PANEL_START_Y) :
+			            (INT16)(1 + ITEMDESC_PANEL_START_Y_ITEMS);
+
+		// CURSOR_NORMAL (not MSYS_NO_CURSOR): this single region spans both
+		// gSMPanelRegion's and gViewportRegion's territory (ITEMDESC_PANEL_HEIGHT
+		// > INV_INTERFACE_HEIGHT -- see UILayout.h), which have different
+		// fallback cursors (CURSOR_NORMAL vs VIDEO_NO_CURSOR). Since
+		// MSYS_UpdateMouseRegion() only re-resolves MSYS_NO_CURSOR's fallback on
+		// region entry (not every frame), which one "wins" depended on where the
+		// mouse first entered the box, and entering from above the panel's own
+		// top edge left no cursor at all until the box was exited. Giving the
+		// region its own real cursor sidesteps the fallback entirely. The
+		// MAP_SCREEN branch above already does this.
+		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + width, gsInvDescY + height, MSYS_PRIORITY_HIGHEST, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
+
+		if (gsCurInterfacePanel == SM_PANEL)
+		{
+			// GUI_BUTTONs render through their own pass (RenderButtons()),
+			// independent of guiSAVEBUFFER/InItemDescriptionBox() -- any
+			// bookmark button whose rectangle overlaps Infobox.sti/
+			// Infobox_money.sti would otherwise draw on top of it. Shown
+			// again in DeleteItemDescriptionBox().
+			HideSMBookmarkButtons();
+		}
+
+		// Merc preview picture, Infobox.sti (weapon) only -- see
+		// gMercPreviewFrames/GetMercPreviewFrame() above and the matching
+		// draw call in RenderItemDescriptionBox(). Loaded here (once, up
+		// front) rather than every render pass, same as every other
+		// cache_key_t/VObject used by this box; unloaded in
+		// DeleteItemDescriptionBox().
+		MercPreviewFrame previewFrame;
+		if (ENABLE_MERC_PREVIEW_PICTURE && fIsWeapon && s && GetMercPreviewFrame(*s, &previewFrame))
+		{
+			LoadAnimationSurface(SOLDIER2ID(s), previewFrame.usAnimSurface, s->usAnimState);
+			gusMercPreviewAnimSurface = previewFrame.usAnimSurface;
+		}
 	}
 
 	if (GCM->getItem(o->usItem)->isGun()&& o->usItem != ROCKET_LAUNCHER)
@@ -2147,13 +2466,30 @@ static void ItemDescAmmoCallback(GUI_BUTTON*  const btn, UINT32 const reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		if (gpItemPointer) return;
+		if (gpItemPointer)
+		{
+			// Dropping a compatible ammo/magazine item onto the Eject Ammo
+			// icon reloads the gun -- see TryReloadItemDescGunFromCursor()
+			// below (also used by ItemDescCallbackPrimary() for the same
+			// drop gesture onto the box's main picture) for how this
+			// mirrors PlaceObject()'s own IC_GUN + IC_AMMO + calibre-match
+			// dispatch to ReloadGun() (Items.cc) -- the mechanism actually
+			// used when ammo is dropped onto a gun slot in
+			// Inventory_bottom_panel.sti. ValidMerge()/AttachObject()
+			// (used below by DoAttachment() for scopes/silencers/bipods,
+			// and tried here previously) never apply to gun+ammo --
+			// ValidMerge() only matches two identical ammo stacks merging
+			// together, and a gun is never IC_AMMO.
+			TryReloadItemDescGunFromCursor();
+			return;
+		}
 		if (!EmptyWeaponMagazine(gpItemDescObject, &gItemPointer)) return;
 
 		SetItemPointer(&gItemPointer, gpItemDescSoldier);
 		fInterfacePanelDirty = DIRTYLEVEL2;
 
 		btn->SpecifyText("0");
+		RefreshItemDescAmmoIcon();
 
 		if (guiCurrentItemDescriptionScreen == MAP_SCREEN)
 		{
@@ -2168,9 +2504,102 @@ static void ItemDescAmmoCallback(GUI_BUTTON*  const btn, UINT32 const reason)
 				// pick up bullets from weapon into cursor (don't try to sell)
 				BeginSkiItemPointer(PLAYERS_INVENTORY, -1, FALSE);
 			}
-			fItemDescDelete = TRUE;
+
+			// Deliberately does NOT auto-close the box (used to:
+			// fItemDescDelete = TRUE, picked up on the next frame by
+			// HandleItemDescriptionBox()) -- same as removing an attachment
+			// (ItemDescAttachmentsCallbackPrimary() below never closes the
+			// box either). That deferred close went through
+			// DeleteItemDescriptionBox() one frame later than a direct
+			// click-outside-the-box close (ItemDescCallbackPrimary/Secondary,
+			// which call it synchronously from the mouse-click handler,
+			// before RenderWorld.cc's RENDER_FLAG_FULL check that same
+			// frame) -- landing one frame too late for that same-frame
+			// check, which left Infobox.sti's extra height (above
+			// INV_INTERFACE_HEIGHT -- see ITEMDESC_PANEL_HEIGHT,
+			// UILayout.h) visibly stuck on screen instead of being cleanly
+			// replaced by the freshly re-rendered tactical world. Ejecting
+			// ammo now just leaves the box open, same as ejecting an
+			// attachment -- the user closes it manually the same way either
+			// way, through the already-reliable direct-call path.
 		}
 	}
+}
+
+
+// Refreshes the Eject Ammo icon's ammo-type color from gpItemDescObject's
+// current ubGunAmmoType -- same img switch as InternalInitItemDescriptionBox()
+// uses to pick it at box-open time, which is the only other place it's
+// computed. Unlike the button's text (kept current via SpecifyText()
+// wherever the shots-left count changes), the icon image is otherwise never
+// touched again after creation, so callers that change gpItemDescObject's
+// ammo (ejecting, reloading) must call this afterward or the icon keeps
+// showing the pre-change ammo color until the box is closed and reopened.
+static void RefreshItemDescAmmoIcon(void)
+{
+	if (!giItemDescAmmoButton) return;
+
+	INT32 img;
+	switch (gpItemDescObject->ubGunAmmoType)
+	{
+		case AMMO_AP:
+		case AMMO_SUPER_AP: img = 5; break;
+		case AMMO_HP:       img = 9; break;
+		default:            img = 1; break;
+	}
+
+	BUTTON_PICS* const new_img = LoadButtonImage(INTERFACEDIR "/infobox_bullets.sti", img + 3, img, -1, img + 2, -1);
+	UnloadButtonImage(giItemDescAmmoButtonImages);
+	giItemDescAmmoButtonImages = new_img;
+	giItemDescAmmoButton->image = new_img;
+}
+
+
+// Attempts to reload gpItemDescObject (the gun shown in the box) with
+// whatever's held on the cursor (gpItemPointer), for the two places in
+// this box a magazine/ammo item can be dropped to do so: the Eject Ammo
+// icon (ItemDescAmmoCallback()) and the box's own main weapon picture
+// (ItemDescCallbackPrimary()). Same IC_GUN + IC_AMMO + calibre-match
+// precondition PlaceObject() uses before calling ReloadGun() (Items.cc)
+// when ammo is dropped onto a gun slot in Inventory_bottom_panel.sti.
+// Returns TRUE if a reload happened (cursor, button text and icon are
+// already refreshed); FALSE if there was nothing to do -- no item held,
+// gpItemDescObject isn't a gun, the held item isn't compatible ammo, or
+// ReloadGun() itself refused (e.g. not enough APs in combat).
+static BOOLEAN TryReloadItemDescGunFromCursor(void)
+{
+	if (!gpItemPointer) return FALSE;
+	if (!GCM->getItem(gpItemDescObject->usItem)->isGun()) return FALSE;
+
+	ItemModel const* const heldItem = GCM->getItem(gpItemPointer->usItem);
+	if (heldItem->getItemClass() != IC_AMMO) return FALSE;
+	if (!GCM->getWeapon(gpItemDescObject->usItem)->matches(heldItem->asAmmo()->calibre)) return FALSE;
+
+	if (!ReloadGun(gpItemDescSoldier, gpItemDescObject, gpItemPointer)) return FALSE;
+
+	// ReloadGun() mutates *gpItemPointer in place: it may empty it (ammo
+	// fully consumed), leave a partial stack behind, or -- when swapping
+	// two full magazines -- replace it with the ejected old magazine.
+	// Same cursor bookkeeping UIHandleItemPlacement() does after its own
+	// PlaceObject() call (Interface_Panels.cc).
+	if (gpItemPointer->ubNumberOfObjects == 0)
+	{
+		EndItemPointer();
+	}
+
+	fInterfacePanelDirty = DIRTYLEVEL2;
+
+	// Refresh the "shots left/mag size" text and the ammo-color icon on
+	// the Eject Ammo button -- ReloadGun() doesn't touch either, so
+	// without this they'd keep showing the pre-reload count/color until
+	// the box is closed and reopened.
+	if (giItemDescAmmoButton)
+	{
+		giItemDescAmmoButton->SpecifyText(ST::format("{}/{}", gpItemDescObject->ubGunShotsLeft, GCM->getWeapon(gpItemDescObject->usItem)->ubMagSize));
+	}
+	RefreshItemDescAmmoIcon();
+
+	return TRUE;
 }
 
 
@@ -2360,9 +2789,37 @@ static void HighlightIf(const BOOLEAN cond)
 }
 
 
+// Called every frame from RenderTopmostTacticalInterface() (Interface_Control.cc),
+// regardless of whether the box is currently open -- see the comment on
+// gsItemDescCloseCleanupFrames/DeleteItemDescriptionBox() above for why this
+// exists (bridging the 1-frame gap between RENDER_FLAG_FULL being set and it
+// actually being consumed by RenderWorld.cc's own full-redraw check).
+void TickItemDescCloseCleanup(void)
+{
+	if (gsItemDescCloseCleanupFrames == 0) return;
+
+	InvalidateRegionEx(gsItemDescCloseCleanupX, gsItemDescCloseCleanupY,
+		gsItemDescCloseCleanupX + gsItemDescCloseCleanupW, gsItemDescCloseCleanupY + gsItemDescCloseCleanupH);
+
+	--gsItemDescCloseCleanupFrames;
+}
+
+
 void RenderItemDescriptionBox(void)
 {
 	if (!gfInItemDescBox) return;
+
+	// This function now runs every frame (RenderTopmostTacticalInterface(),
+	// Interface_Control.cc), not just on DIRTYLEVEL2 refreshes -- but the
+	// ammo-eject button (giItemDescAmmoButton) is a GUI_BUTTON, rendered by
+	// its own independent pass (RenderButtons(), called after this in the
+	// same function) that only actually redraws a button when it's marked
+	// dirty. Without this, this function's own background restore below
+	// erases the button's pixels every frame (guiSAVEBUFFER, which it
+	// restores from, doesn't contain the button's graphic), and
+	// RenderButtons() wouldn't necessarily repaint it back the same frame --
+	// making it flicker away to nothing.
+	if (giItemDescAmmoButton) MarkAButtonDirty(giItemDescAmmoButton);
 
 	ST::string pStr;
 	INT16   usX;
@@ -2373,10 +2830,28 @@ void RenderItemDescriptionBox(void)
 	INT16      const  dx     = gsInvDescX;
 	INT16      const  dy     = gsInvDescY;
 
+	// Money keeps its own, already-established path (guiMoneyItemDescBox,
+	// weapon-layout attachment math below left inert/unused as before);
+	// everything that isn't a weapon (guns/blades/thrown/launchers --
+	// isWeapon()) and isn't money now gets Infobox_items.sti with its own
+	// 4-slot layout. Scoped to the tactical screen -- map screen
+	// (iteminfoc.sti) is unaffected.
+	bool const fIsMoney  = obj.usItem == MONEY;
+	bool const fIsWeapon = GCM->getItem(obj.usItem)->isWeapon();
+
+	// gDescNameBox variant for this render pass -- reused by every "item
+	// name" style text below (name, weapon class/ammo line, money amount).
+	SGPBox const& descNameBox =
+		in_map    ? gMapDescNameBox :
+		fIsMoney  ? gDescNameBox_Money :
+		fIsWeapon ? gDescNameBox :
+		            gDescNameBox_Items;
+
 	auto * const box_gfx =
-		(obj.usItem == MONEY && !in_map) ? guiMoneyItemDescBox :
-		in_map                           ? guiMapItemDescBox   :
-		                                   guiItemDescBox;
+		in_map    ? guiMapItemDescBox :
+		fIsMoney  ? guiMoneyItemDescBox :
+		fIsWeapon ? guiItemDescBox :
+		            guiGenericItemDescBox;
 	BltVideoObject(guiSAVEBUFFER, box_gfx, 0, dx, dy);
 
 	// Display the money 'separating' border
@@ -2393,7 +2868,11 @@ void RenderItemDescriptionBox(void)
 		// Display item
 		// center in slot, remove offsets
 		ETRLEObject const& e  = guiItemGraphic->SubregionProperties(guiItemGraphicIndex);
-		SGPBox      const& xy = in_map ? g_desc_item_box_map: g_desc_item_box;
+		SGPBox      const& xy =
+			in_map    ? g_desc_item_box_map :
+			fIsMoney  ? g_desc_item_box_money :
+			fIsWeapon ? g_desc_item_box :
+			            g_desc_item_box_items;
 		INT32       const  x  = dx + xy.x + (xy.w - e.usWidth)  / 2 - e.sOffsetX;
 		INT32       const  y  = dy + xy.y + (xy.h - e.usHeight) / 2 - e.sOffsetY;
 		if (gamepolicy(f_draw_item_shadow))
@@ -2403,8 +2882,36 @@ void RenderItemDescriptionBox(void)
 		BltVideoObject(guiSAVEBUFFER, guiItemGraphic, guiItemGraphicIndex, x, y);
 	}
 
+	// Merc preview picture, Infobox.sti (weapon) only -- a single static
+	// frame of the selected merc's own body animation (see
+	// gMercPreviewFrames/GetMercPreviewFrame() above), coloured with the
+	// merc's own clothing/hair/skin palette via pShades[] -- the same
+	// mechanism RenderWorld.cc uses to draw mercs on the tactical map (see
+	// pShadeTable = s.pShades[ubShadeLevel] there). Drawn at native (x1)
+	// size, directly onto guiSAVEBUFFER, same as every other element in this
+	// function.
+	if (ENABLE_MERC_PREVIEW_PICTURE && !in_map && fIsWeapon && gusMercPreviewAnimSurface != INVALID_ANIMATION_SURFACE)
+	{
+		HVOBJECT const hMercVObject = gAnimSurfaceDatabase[gusMercPreviewAnimSurface].hVideoObject;
+		if (hMercVObject && gpItemDescSoldier)
+		{
+			MercPreviewFrame previewFrame;
+			if (GetMercPreviewFrame(*gpItemDescSoldier, &previewFrame))
+			{
+				SGPVSurface::Lock l(guiSAVEBUFFER);
+				Blt8BPPDataTo16BPPBufferTransShadow(l.Buffer<UINT16>(), l.Pitch(), hMercVObject,
+					MERC_PREVIEW_X, MERC_PREVIEW_Y, previewFrame.usImageIndex,
+					gpItemDescSoldier->pShades[DEFAULT_SHADE_LEVEL]);
+			}
+		}
+	}
+
 	{ // Display status
-		SGPBox const& box = in_map ? g_map_itemdesc_item_status_box : g_itemdesc_item_status_box;
+		SGPBox const& box =
+			in_map    ? g_map_itemdesc_item_status_box :
+			fIsMoney  ? g_itemdesc_item_status_box_money :
+			fIsWeapon ? g_itemdesc_item_status_box :
+			            g_itemdesc_item_status_box_items;
 		INT16  const  x   = box.x + dx;
 		INT16  const  y   = box.y + dy;
 		INT16  const  h   = box.h;
@@ -2425,13 +2932,34 @@ void RenderItemDescriptionBox(void)
 
 	{
 		// Display attachments
-		AttachmentGfxInfo const& agi = in_map ? g_map_attachment_info : g_attachment_info;
-		for (INT32 i = 0; i < MAX_ATTACHMENTS; ++i)
+		AttachmentGfxInfo const& agi =
+			in_map                 ? g_map_attachment_info :
+			fIsWeapon || fIsMoney  ? g_attachment_info :
+			                         g_generic_item_attachment_info;
+		// Non-weapon, non-money items only have 4 slots laid out in
+		// g_generic_item_attachment_info -- the rest of its slot[] array is
+		// unused placeholder data.
+		INT32 const numAttachmentSlots =
+			(!in_map && !fIsWeapon && !fIsMoney) ? 4 : MAX_ATTACHMENTS;
+		for (INT32 i = 0; i < numAttachmentSlots; ++i)
 		{
 			INT16 const x = dx + agi.slot[i].iX;
 			INT16 const y = dy + agi.slot[i].iY;
+			bool  const fSlotOccupied = obj.usAttachItem[i] != NOTHING;
 
-			if (obj.usAttachItem[i] != NOTHING)
+			// Attachment slot frame: baked into iteminfoc.sti on the map
+			// screen (unchanged, left alone below), but a separate per-slot
+			// graphic on the tactical Infobox.sti. Excluded for both
+			// Infobox_money.sti and Infobox_items.sti (fIsWeapon == false) --
+			// those two graphics stay exactly as they were before this
+			// feature, with no per-slot frame drawn over them at all; only
+			// Infobox.sti (weapons) shows it.
+			if (!in_map && fIsWeapon && (!fHideEmptyAttachmentSlots || fSlotOccupied))
+			{
+				BltVideoObject(guiSAVEBUFFER, guiAttachmentSlotFrameVO, 0, x, y);
+			}
+
+			if (fSlotOccupied)
 			{
 				INT16 const item_x = agi.item_box.x + x;
 				INT16 const item_y = agi.item_box.y + y;
@@ -2449,7 +2977,9 @@ void RenderItemDescriptionBox(void)
 			{
 				UINT16 const hatch_w = agi.item_box.x + agi.item_box.w;
 				UINT16 const hatch_h = agi.item_box.y + agi.item_box.h;
-				DrawHatchOnInventory(guiSAVEBUFFER, x, y, hatch_w, hatch_h);
+				DrawHatchOnInventory(guiSAVEBUFFER,
+					x + ATTACHMENT_HATCH_OFFSET_X, y + ATTACHMENT_HATCH_OFFSET_Y,
+					hatch_w + ATTACHMENT_HATCH_WIDTH_DELTA, hatch_h + ATTACHMENT_HATCH_HEIGHT_DELTA);
 			}
 		}
 	}
@@ -2494,8 +3024,16 @@ void RenderItemDescriptionBox(void)
 	}
 
 	{
-		INT16 const w = in_map ? MAP_ITEMDESC_WIDTH  : ITEMDESC_WIDTH;
-		INT16 const h = in_map ? MAP_ITEMDESC_HEIGHT : ITEMDESC_HEIGHT;
+		INT16 const w =
+			in_map    ? MAP_ITEMDESC_WIDTH :
+			fIsMoney  ? ITEMDESC_WIDTH_MONEY :
+			fIsWeapon ? ITEMDESC_WIDTH :
+			            ITEMDESC_WIDTH_ITEMS;
+		INT16 const h =
+			in_map    ? MAP_ITEMDESC_HEIGHT :
+			fIsMoney  ? ITEMDESC_HEIGHT_MONEY :
+			fIsWeapon ? ITEMDESC_HEIGHT :
+			            ITEMDESC_HEIGHT_ITEMS;
 		RestoreExternBackgroundRect(dx, dy, w, h);
 	}
 
@@ -2504,7 +3042,7 @@ void RenderItemDescriptionBox(void)
 
 	{
 		// Render name
-		SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
+		SGPBox const& xy = descNameBox;
 		MPrint(dx + xy.x, dy + xy.y, gzItemName);
 	}
 
@@ -2516,7 +3054,11 @@ void RenderItemDescriptionBox(void)
 
 	{
 		// Weapon description text: same font colour as the weapon name above.
-		SGPBox const& box = in_map ? g_map_itemdesc_desc_box : g_itemdesc_desc_box;
+		SGPBox const& box =
+			in_map    ? g_map_itemdesc_desc_box :
+			fIsMoney  ? g_itemdesc_desc_box_money :
+			fIsWeapon ? g_itemdesc_desc_box :
+			            g_itemdesc_desc_box_items;
 		DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
 	}
 
@@ -2542,7 +3084,7 @@ void RenderItemDescriptionBox(void)
 			// DisplayWrappedString() happened to leave set globally).
 			SetFontForeground(FONT_FCOLOR_WHITE);
 
-			SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
+			SGPBox const& xy = descNameBox;
 			FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, ITEMDESC_FONT, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
@@ -2768,24 +3310,28 @@ void RenderItemDescriptionBox(void)
 				MPrint(usX, usY, pStr);
 			}
 
-			// LASERSCOPE aim bonus (see GunLaserScopeBonus()). Always shown
-			// (0 when no laser), always signed: "+" when the scope is in
-			// good enough condition to help, "-" when a badly damaged one is
-			// actually hurting aim instead.
+			// Combined LASERSCOPE aim bonus (see GunLaserScopeBonus()) + the
+			// merc's own live crouch-stance bonus (see
+			// GunCrouchStanceBonus()) + the merc's own live roof/elevation
+			// bonus (see GunRoofBonus()). Always shown (0 when none apply),
+			// always signed: "+" when the net effect helps, "-" when a
+			// badly damaged laser scope is hurting aim more than the other
+			// bonuses offset.
 			{
-				INT8 const laserBonus = GunLaserScopeBonus(obj);
-				pStr = ST::format("{}{}%", laserBonus >= 0 ? "+" : "", laserBonus);
+				INT8 const baseBonus = GunLaserScopeBonus(obj) + GunCrouchStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier);
+				pStr = ST::format("{}{}%", baseBonus >= 0 ? "+" : "", baseBonus);
 				FindFontRightCoordinates(dx + ids[20].sX + ids[20].sValDx, dy + ids[20].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 				MPrint(usX, usY, pStr);
 			}
 
 			// Combined "prone" aim bonus: LASERSCOPE bonus (always active)
 			// plus BIPOD's simplified display bonus, plus the merc's own
-			// simplified prone-stance bonus (see GunBipodDisplayBonus()/
-			// GunProneStanceBonus()). Always shown, even when nothing
-			// applies (then 0).
+			// simplified prone-stance bonus, plus the merc's own live
+			// roof/elevation bonus (see GunBipodDisplayBonus()/
+			// GunProneStanceBonus()/GunRoofBonus()). Always shown, even
+			// when nothing applies (then 0).
 			{
-				INT8 const proneBonus = GunLaserScopeBonus(obj) + GunBipodDisplayBonus(obj) + GunProneStanceBonus(gpItemDescSoldier);
+				INT8 const proneBonus = GunLaserScopeBonus(obj) + GunBipodDisplayBonus(obj) + GunProneStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier);
 				pStr = ST::format("{}{}%", proneBonus >= 0 ? "+" : "", proneBonus);
 				FindFontRightCoordinates(dx + ids[21].sX + ids[21].sValDx, dy + ids[21].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 				MPrint(usX, usY, pStr);
@@ -2809,7 +3355,7 @@ void RenderItemDescriptionBox(void)
 		{
 			// Display the total amount of money
 			pStr = SPrintMoney(in_map && gfAddingMoneyToMercFromPlayersAccount ? LaptopSaveInfo.iCurrentBalance : gRemoveMoney.uiTotalAmount);
-			SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
+			SGPBox const& xy = descNameBox;
 			FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
@@ -2878,7 +3424,7 @@ void RenderItemDescriptionBox(void)
 	{
 		SetFontForeground(FONT_FCOLOR_WHITE);
 		pStr = SPrintMoney(obj.uiMoneyAmount);
-		SGPBox const& xy = in_map ? gMapDescNameBox : gDescNameBox;
+		SGPBox const& xy = descNameBox;
 		FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, BLOCKFONT2, &usX, &usY);
 		MPrint(usX, usY, pStr);
 	}
@@ -2887,7 +3433,11 @@ void RenderItemDescriptionBox(void)
 		//Labels
 		SetFontForeground(6);
 
-		INV_DESC_STATS const* const ids = in_map ? gMapWeaponStats : gWeaponStats;
+		// Infobox_items.sti gets its own Weight/Status positions
+		// (gGenericItemStats) instead of reusing the weapon box's
+		// (gWeaponStats). Map screen (iteminfoc.sti) is unaffected --
+		// still shares gMapWeaponStats with every other item class there.
+		INV_DESC_STATS const* const ids = in_map ? gMapWeaponStats : gGenericItemStats;
 
 		// amount for ammunition, status otherwise
 		ST::string label = GCM->getItem(gpItemDescObject->usItem)->isAmmo() ? gWeaponStatsDesc[2] : gWeaponStatsDesc[1];
@@ -2935,11 +3485,11 @@ void RenderItemDescriptionBox(void)
 
 			SetFontForeground(5);
 			ST::string sTempString = SGPSector(key.usSectorFound).AsShortString();
-			FindFontRightCoordinates(x, y0, 110, ITEM_STATS_HEIGHT, sTempString, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(x, y0, 113, ITEM_STATS_HEIGHT, sTempString, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, sTempString);
 
 			pStr = ST::format("{}", key.usDateFound);
-			FindFontRightCoordinates(x, y1, 110, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(x, y1, 113, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
 	}
@@ -3039,7 +3589,64 @@ void DeleteItemDescriptionBox( )
 	RemoveVObject(guiBullet);
 	DeleteVideoObject(guiItemGraphic);
 
+	// Merc preview picture (see InternalInitItemDescriptionBox()) -- only
+	// ever loaded for the weapon box, so only ever needs unloading here.
+	if (gusMercPreviewAnimSurface != INVALID_ANIMATION_SURFACE && gpItemDescSoldier)
+	{
+		UnLoadAnimationSurface(SOLDIER2ID(gpItemDescSoldier), gusMercPreviewAnimSurface);
+		gusMercPreviewAnimSurface = INVALID_ANIMATION_SURFACE;
+	}
+
 	gfInItemDescBox = FALSE;
+
+	if (guiCurrentItemDescriptionScreen != MAP_SCREEN && gsCurInterfacePanel == SM_PANEL)
+	{
+		// Infobox.sti can be taller than the SM panel's own protected footer
+		// (ITEMDESC_PANEL_HEIGHT vs INV_INTERFACE_HEIGHT -- see UILayout.h),
+		// so part of it is drawn above the area DIRTYLEVEL2 normally
+		// repaints on close. Force a full world redraw (bounded by the
+		// fixed gsVIEWPORT_END_Y, which already reaches higher than
+		// ITEMDESC_PANEL_START_Y) so no remnants of the box are left behind.
+		// Deliberately NOT touching gsVIEWPORT_WINDOW_END_Y here (unlike a
+		// prior version of this fix) -- that's also used by the smooth-
+		// scroll shift-blit, and raising it made the whole protected strip
+		// visibly pan with the map while the box was open.
+		SetRenderFlags(RENDER_FLAG_FULL);
+
+		// RENDER_FLAG_FULL is consumed by RenderWorld.cc's own full-redraw
+		// check, which runs BEFORE RenderTacticalInterface()/RenderSMPanel()
+		// (and so before this DeleteItemDescriptionBox() call, which happens
+		// from inside HandleItemDescriptionBox()) in the very same frame --
+		// so setting the flag here doesn't actually force a full terrain repaint
+		// until the FOLLOWING frame. A single InvalidateRegionEx() call made
+		// right here (the frame the flag is merely SET) would flip a rect
+		// that can still hold stale box pixels, one frame too early; nothing
+		// would then re-flip it once the terrain genuinely gets fixed.
+		// TickItemDescCloseCleanup() (called every frame from
+		// RenderTopmostTacticalInterface(), Interface_Control.cc) instead
+		// keeps re-flipping this box's last on-screen rectangle for a few
+		// frames, so whichever frame the terrain actually gets repainted on,
+		// that repaint also reaches the screen.
+		{
+			bool const fIsMoney  = gpItemDescObject->usItem == MONEY;
+			bool const fIsWeapon = GCM->getItem(gpItemDescObject->usItem)->isWeapon();
+			gsItemDescCloseCleanupW =
+				fIsMoney  ? ITEMDESC_WIDTH_MONEY :
+				fIsWeapon ? ITEMDESC_WIDTH :
+				            ITEMDESC_WIDTH_ITEMS;
+			gsItemDescCloseCleanupH =
+				fIsMoney  ? ITEMDESC_HEIGHT_MONEY :
+				fIsWeapon ? ITEMDESC_HEIGHT :
+				            ITEMDESC_HEIGHT_ITEMS;
+			gsItemDescCloseCleanupX     = gsInvDescX;
+			gsItemDescCloseCleanupY     = gsInvDescY;
+			gsItemDescCloseCleanupFrames = 6;
+		}
+
+		// Undo the HideSMBookmarkButtons() call from
+		// InternalInitItemDescriptionBox().
+		ShowSMBookmarkButtons();
+	}
 
 	if( guiCurrentItemDescriptionScreen == MAP_SCREEN )
 	{
@@ -4165,14 +4772,6 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 static void DeleteItemStackPopup(void);
 
 
-static void EndItemStackPopupWithItemInHand(void)
-{
-	if ( gpItemPointer != NULL )
-	{
-		DeleteItemStackPopup( );
-	}
-}
-
 void RenderItemStackPopup( BOOLEAN fFullRender )
 {
 	if ( gfInItemStackPopup )
@@ -4184,7 +4783,12 @@ void RenderItemStackPopup( BOOLEAN fFullRender )
 		// Shadow Area
 		if ( fFullRender )
 		{
-			FRAME_BUFFER->ShadowRect(gsItemPopupInvX, gsItemPopupInvY, gsItemPopupInvX + gsItemPopupInvWidth, gsItemPopupInvY + gsItemPopupInvHeight);
+			// Left bound hardcoded to 0 (not gsItemPopupInvX), matching
+			// RenderKeyRingPopup()'s own ShadowRect -- with gsItemPopupInvWidth
+			// now SCREEN_WIDTH (InitItemStackPopup() caller, Interface_Panels.cc)
+			// this extends the shading to both the left and right edges of the
+			// panel, same as the keyring popup's.
+			FRAME_BUFFER->ShadowRect(0, gsItemPopupInvY, gsItemPopupInvX + gsItemPopupInvWidth, gsItemPopupInvY + gsItemPopupInvHeight);
 		}
 
 	}
@@ -4202,14 +4806,14 @@ void RenderItemStackPopup( BOOLEAN fFullRender )
 
 		if ( cnt < gpItemPopupObject->ubNumberOfObjects )
 		{
-			INT16 sX = gsItemPopupX + col * usWidth + 11;
-			INT16 sY = gsItemPopupY + row * usHeight + 3;
+			INT16 sX = gsItemPopupX + col * usWidth + 13;
+			INT16 sY = gsItemPopupY + row * usHeight + 0;
 
-			INVRenderItem(FRAME_BUFFER, NULL, *gpItemPopupObject, sX, sY, 29, 23, DIRTYLEVEL2, RENDER_ITEM_NOSTATUS, SGP_TRANSPARENT);
+			INVRenderItem(FRAME_BUFFER, NULL, *gpItemPopupObject, sX, sY, 36, 31, DIRTYLEVEL2, RENDER_ITEM_NOSTATUS, SGP_TRANSPARENT);
 
 			// Do status bar here...
-			INT16 sNewX = gsItemPopupX + col * usWidth + 7;
-			INT16 sNewY = gsItemPopupY + row * usHeight + INV_BAR_DY + 3;
+			INT16 sNewX = gsItemPopupX + col * usWidth + 6;
+			INT16 sNewY = gsItemPopupY + row * usHeight + INV_BAR_DY + 1;
 			DrawItemUIBarEx(*gpItemPopupObject, cnt, sNewX, sNewY, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR), Get16BPPColor(STATUS_BAR_SHADOW), FRAME_BUFFER);
 		}
 	}
@@ -4313,6 +4917,17 @@ void InitKeyRingPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 cons
 	if( guiCurrentItemDescriptionScreen != MAP_SCREEN )
 	{
 		EnableSMPanelButtons( FALSE , FALSE );
+
+		// GUI_BUTTONs render after this popup's own background every frame
+		// (RenderTopmostTacticalInterface(), Interface_Control.cc), and
+		// EnableSMPanelButtons(FALSE, ...) above only disables them -- it
+		// doesn't stop it being drawn. Without hiding it too, the "hide
+		// empty attachment slots" checkbox would paint on top of this
+		// popup whenever fInterfacePanelDirty == DIRTYLEVEL2 forces a
+		// button refresh. Unlike Infobox_stats.sti/Infobox_skills.sti (see
+		// HideSMBookmarkButtonsUnderInfoPopups()), this popup never covers
+		// any of the bookmark row buttons themselves, just the checkbox.
+		HideSMHideEmptySlotsCheckbox();
 	}
 
 	gfInKeyRingPopup = TRUE;
@@ -4386,8 +5001,8 @@ void RenderKeyRingPopup(const BOOLEAN fFullRender)
 		}
 		o.usItem            = item->getItemIndex();
 
-		DrawItemUIBarEx(o, 0, x + 7, y + 24, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR), Get16BPPColor(STATUS_BAR_SHADOW), FRAME_BUFFER);
-		INVRenderItem(FRAME_BUFFER, NULL, o, x + 8, y, box_w - 8, box_h - 2, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
+		DrawItemUIBarEx(o, 0, x + 6, y + 31, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR), Get16BPPColor(STATUS_BAR_SHADOW), FRAME_BUFFER);
+		INVRenderItem(FRAME_BUFFER, NULL, o, x + 11, y -2, box_w - 8, box_h - 2, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
 	}
 
 	InvalidateRegion(dx, dy, dx + gsKeyRingPopupInvWidth, dy + gsKeyRingPopupInvHeight);
@@ -4414,6 +5029,10 @@ void DeleteKeyRingPopup(void)
 	if (guiCurrentItemDescriptionScreen != MAP_SCREEN)
 	{
 		EnableSMPanelButtons(TRUE, FALSE);
+
+		// Undo the HideSMHideEmptySlotsCheckbox() call from
+		// InitKeyRingPopup() above.
+		ShowSMHideEmptySlotsCheckbox();
 	}
 
 	FreeMouseCursor();
@@ -4485,6 +5104,27 @@ std::pair<SGPVObject*, UINT8> GetBigInventoryGraphicForItem(const ItemModel * it
 
 static void ItemDescCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 {
+	// Dropping compatible ammo/magazine directly onto the box's main
+	// weapon picture reloads the gun, same as dropping it on the Eject
+	// Ammo icon (TryReloadItemDescGunFromCursor()) -- scoped to the
+	// picture's own rectangle (g_desc_item_box/g_desc_item_box_map, the
+	// same ones RenderItemDescriptionBox() draws the picture into) so the
+	// rest of the box's background keeps its plain click-to-close
+	// behaviour below.
+	if (gpItemPointer)
+	{
+		BOOLEAN const in_map = (guiCurrentItemDescriptionScreen == MAP_SCREEN);
+		SGPBox const& xy = in_map ? g_desc_item_box_map : g_desc_item_box;
+		BOOLEAN const fOverMainPicture =
+			gusMouseXPos >= gsInvDescX + xy.x && gusMouseXPos < gsInvDescX + xy.x + xy.w &&
+			gusMouseYPos >= gsInvDescY + xy.y && gusMouseYPos < gsInvDescY + xy.y + xy.h;
+
+		if (fOverMainPicture && TryReloadItemDescGunFromCursor())
+		{
+			return;
+		}
+	}
+
 	//Only exit the screen if we are NOT in the money interface.  Only the DONE button should exit the money interface.
 	if( gpItemDescObject->usItem != MONEY )
 	{
@@ -4623,8 +5263,13 @@ static void ItemPopupFullRegionCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRe
 {
 	if ( InItemStackPopup( ) )
 	{
-		// End stack popup and retain pointer
-		EndItemStackPopupWithItemInHand( );
+		// Unconditional close, same as the keyring branch below (and the
+		// stack popup's own right-click, ItemPopupFullRegionCallbackSecondary)
+		// -- previously only closed via EndItemStackPopupWithItemInHand() if
+		// an item was already on the cursor, so left-click on the background
+		// silently did nothing otherwise, unlike the keyring's.
+		DeleteItemStackPopup( );
+		fTeamPanelDirty = TRUE;
 	}
 	else if( InKeyRingPopup() )
 	{

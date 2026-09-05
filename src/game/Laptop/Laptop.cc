@@ -222,6 +222,11 @@ BOOLEAN fShowBookmarkInfo = FALSE;
 //GLOBAL FOR WHICH SCREEN TO EXIT TO FOR LAPTOP
 static ScreenID guiExitScreen = MAP_SCREEN;
 
+// One-shot request for which program/page EnterLaptop() should open to next
+// -- see SetLaptopEntryMode(). LAPTOP_MODE_NONE means "normal desktop", the
+// default/unmodified behaviour.
+static LaptopMode guiRequestedLaptopEntryMode = LAPTOP_MODE_NONE;
+
 static BOOLEAN fNewWWW = TRUE;
 
 //Used to store the site to go to after the 'rain delay' message
@@ -322,6 +327,12 @@ extern void ClearHistoryList(void);
 void SetLaptopExitScreen(ScreenID const uiExitScreen)
 {
 	guiExitScreen = uiExitScreen;
+}
+
+
+void SetLaptopEntryMode(LaptopMode const uiEntryMode)
+{
+	guiRequestedLaptopEntryMode = uiEntryMode;
 }
 
 
@@ -481,9 +492,17 @@ static void EnterLaptop(void)
 	// load background
 	LoadDesktopBackground();
 
-	guiCurrentLaptopMode  = LAPTOP_MODE_NONE;
+	// Honour a pending SetLaptopEntryMode() request (e.g. a tactical-screen
+	// shortcut button jumping straight to a program/page), consumed once.
+	// guiCurrentWWWMode also needs pre-seeding for WWW sub-pages (anything
+	// past LAPTOP_MODE_WWW, e.g. AIM Members/M.E.R.C./Bobby Ray's) -- see
+	// EnterNewLaptopMode()'s guiCurrentWWWMode == LAPTOP_MODE_NONE check,
+	// which would otherwise redirect those straight back to the plain WWW
+	// homepage.
+	guiCurrentLaptopMode  = guiRequestedLaptopEntryMode;
 	guiPreviousLaptopMode = LAPTOP_MODE_NONE;
-	guiCurrentWWWMode     = LAPTOP_MODE_NONE;
+	guiCurrentWWWMode     = (guiRequestedLaptopEntryMode > LAPTOP_MODE_WWW) ? guiRequestedLaptopEntryMode : LAPTOP_MODE_NONE;
+	guiRequestedLaptopEntryMode = LAPTOP_MODE_NONE;
 	CreateLapTopMouseRegions();
 	RenderLapTopImage();
 
@@ -1345,8 +1364,6 @@ static void LeaveLapTopScreen(void)
 {
 	if (ExitLaptopDone())
 	{
-		SetLaptopExitScreen(MAP_SCREEN);
-
 		if (gfAtLeastOneMercWasHired)
 		{
 			if (LaptopSaveInfo.gfNewGameLaptop)
@@ -1355,6 +1372,7 @@ static void LeaveLapTopScreen(void)
 				fExitingLaptopFlag = TRUE;
 				InitNewGame();
 				gfDontStartTransitionFromLaptop = TRUE;
+				SetLaptopExitScreen(MAP_SCREEN);
 				return;
 			}
 		}
@@ -1363,7 +1381,30 @@ static void LeaveLapTopScreen(void)
 			gfDontStartTransitionFromLaptop = TRUE;
 		}
 
-		SetPendingNewScreen(guiExitScreen);
+		// guiExitScreen is whatever the screen that opened the laptop set
+		// via SetLaptopExitScreen() (e.g. the tactical-screen shortcut
+		// buttons in Interface_Panels.cc set GAME_SCREEN, so "Done" returns
+		// to the interrupted battle instead of always jumping to the map).
+		// Entry points that don't call it (normal entry from the map) keep
+		// guiExitScreen's MAP_SCREEN default. Reset back to that default
+		// right after use so a one-off custom target never leaks into a
+		// later, unrelated laptop session.
+		ScreenID const uiTargetScreen = guiExitScreen;
+		SetPendingNewScreen(uiTargetScreen);
+		SetLaptopExitScreen(MAP_SCREEN);
+
+		if (uiTargetScreen != MAP_SCREEN)
+		{
+			// The closing animation assumes it's returning to the map screen
+			// -- it blits guiEXTRABUFFER as the backdrop behind the
+			// shrinking laptop, which only holds a valid map screenshot
+			// when entering the laptop FROM the map
+			// (gfStartMapScreenToLaptopTransition in
+			// Map_Screen_Interface_Bottom.cc). The tactical shortcut
+			// buttons don't take that screenshot, so skip the animation
+			// entirely here -- same as the Options screen already does.
+			gfDontStartTransitionFromLaptop = TRUE;
+		}
 
 		if (!gfDontStartTransitionFromLaptop)
 		{

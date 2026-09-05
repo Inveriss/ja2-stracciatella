@@ -73,25 +73,45 @@ UINT32 guiCurrentUniqueSoldierId = 1;
 
 UINT8 gubItemDroppableFlag[NUM_INV_SLOTS] =
 {
-	0x01,
-	0x02,
-	0x04,
-	0,
-	0,
-	0x08,
-	0,
-	0x10,
-	0x20,
-	0x40,
-	0x80,
-	0,
-	0,
-	0,
-	0,
-	0,
-	0,
-	0,
-	0
+	0x01, // HELMETPOS
+	0x02, // VESTPOS
+	0x04, // LEGPOS
+	0,    // HEAD1POS
+	0,    // HEAD2POS
+	0,    // HEAD3POS -- bitmask (UINT8) already fully saturated by the 8 flags
+	0,    // HEAD4POS -- below; new HEAD/BIGPOCK slots get no undroppable flag
+	0x08, // HANDPOS
+	0,    // SECONDHANDPOS
+	0x10, // BIGPOCK1POS
+	0x20, // BIGPOCK2POS
+	0x40, // BIGPOCK3POS
+	0x80, // BIGPOCK4POS
+	0,    // BIGPOCK5POS
+	0,    // BIGPOCK6POS
+	0,    // BIGPOCK7POS
+	0,    // BIGPOCK8POS
+	0,    // BIGPOCK9POS
+	0,    // BIGPOCK10POS
+	0,    // SMALLPOCK1POS
+	0,    // SMALLPOCK2POS
+	0,    // SMALLPOCK3POS
+	0,    // SMALLPOCK4POS
+	0,    // SMALLPOCK5POS
+	0,    // SMALLPOCK6POS
+	0,    // SMALLPOCK7POS
+	0,    // SMALLPOCK8POS
+	0,    // SMALLPOCK9POS
+	0,    // SMALLPOCK10POS
+	0,    // SMALLPOCK11POS
+	0,    // SMALLPOCK12POS
+	0,    // SMALLPOCK13POS
+	0,    // SMALLPOCK14POS
+	0,    // SMALLPOCK15POS
+	0,    // SMALLPOCK16POS
+	0,    // SMALLPOCK17POS
+	0,    // SMALLPOCK18POS
+	0,    // SMALLPOCK19POS
+	0     // SMALLPOCK20POS
 };
 
 
@@ -294,7 +314,7 @@ try
 	if (team_id != OUR_TEAM)
 	{
 		bool second_face_item = false;
-		for (INT32 i = BIGPOCK1POS; i <= BIGPOCK4POS; ++i)
+		for (INT32 i = BIGPOCK1POS; i <= BIGPOCK10POS; ++i)
 		{
 			OBJECTTYPE& o = s->inv[i];
 			if (!(GCM->getItem(o.usItem)->isFace())) continue;
@@ -2027,7 +2047,7 @@ static void CopyProfileItems(SOLDIERTYPE& s, SOLDIERCREATE_STRUCT const& c)
 
 		for (UINT32 money_left = p.uiMoney; money_left > 0;)
 		{
-			INT8 const slot_id = FindEmptySlotWithin(&s, BIGPOCK1POS, SMALLPOCK8POS);
+			INT8 const slot_id = FindEmptySlotWithin(&s, BIGPOCK1POS, SMALLPOCK20POS);
 			if (slot_id == NO_SLOT) break;
 			OBJECTTYPE* const slot = &s.inv[slot_id];
 

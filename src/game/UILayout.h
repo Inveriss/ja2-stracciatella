@@ -7,7 +7,7 @@
 // defines
 /////////////////////////////////////////////////////////////
 
-#define NUM_INVENTORY_SLOTS     (19)
+#define NUM_INVENTORY_SLOTS     (39)
 
 /* Following defines allow us to not change the old code too much.
  * It will help to preserve original Stracciatella codebase. */
@@ -16,7 +16,26 @@
 #define SCREEN_WIDTH                    (g_ui.m_screenWidth)
 #define INV_INTERFACE_START_Y           (g_ui.get_INV_INTERFACE_START_Y())
 // #define INV_INTERFACE_HEIGHT         (140)                                 // height of the bottom bar single-merc inventory panel
-#define INV_INTERFACE_HEIGHT            (302)                                 // NEW POSITION
+#define INV_INTERFACE_HEIGHT            (197)                                 // NEW POSITION
+
+// Infobox.sti (the weapon/item description popup) is blitted straight to the
+// screen buffer, independently of guiSMPanel/inventory_bottom_panel.sti --
+// see ITEMDESC_START_Y in Interface_Items.cc. This is its OWN vertical
+// anchor, deliberately NOT reusing INV_INTERFACE_HEIGHT, so resizing the
+// inventory panel doesn't silently move the description box (and vice
+// versa). Currently set to the same value (302) purely to preserve today's
+// on-screen position -- tune independently as needed.
+//
+// Infobox_money.sti/Infobox_items.sti (see fIsMoney/fIsWeapon in
+// InternalInitItemDescriptionBox()/RenderItemDescriptionBox(),
+// Interface_Items.cc) get their own, equally independent copies below --
+// all three currently equal, preserving today's shared on-screen position.
+#define ITEMDESC_PANEL_START_Y          (g_ui.get_ITEMDESC_PANEL_START_Y())
+#define ITEMDESC_PANEL_HEIGHT           (304)                                 // Infobox.sti (weapon)
+#define ITEMDESC_PANEL_START_Y_MONEY    (g_ui.get_ITEMDESC_PANEL_START_Y_MONEY())
+#define ITEMDESC_PANEL_HEIGHT_MONEY     (197)                                 // Infobox_money.sti
+#define ITEMDESC_PANEL_START_Y_ITEMS    (g_ui.get_ITEMDESC_PANEL_START_Y_ITEMS())
+#define ITEMDESC_PANEL_HEIGHT_ITEMS     (197)                                 // Infobox_items.sti
 #define INTERFACE_START_X               (g_ui.m_teamPanelPosition.iX)
 #define INTERFACE_START_Y               (g_ui.m_teamPanelPosition.iY)
 #define gsVIEWPORT_START_X              (g_ui.m_VIEWPORT_START_X)
@@ -30,9 +49,15 @@
 #define MAP_SCREEN_WIDTH                (g_ui.m_mapScreenWidth)
 #define MAP_SCREEN_HEIGHT               (g_ui.m_mapScreenHeight)
 
-#define SM_BODYINV_X                    (INTERFACE_START_X + 244)
+#define SM_BODYINV_X                    (INTERFACE_START_X + 324)
 #define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
-#define SM_INVINTERFACE_WIDTH           (532)    // width of the single-merc inventory panel excluding the right-side buttons and minimap
+#define SM_INVINTERFACE_WIDTH           (920)    // width of the single-merc inventory panel excluding the right-side buttons and minimap
+
+// Total width of inventory_bottom_panel.sti (SM_INVINTERFACE_WIDTH + the
+// 105px right-side buttons/minimap segment). Used wherever code needs to
+// know the actual pixel width of the loaded graphic asset itself, as
+// opposed to just the usable inventory portion.
+#define INVENTORY_BOTTOM_PANEL_WIDTH    (1025)
 
 #define EDITOR_TASKBAR_HEIGHT           (120)
 #define EDITOR_TASKBAR_POS_Y            (UINT16)(SCREEN_HEIGHT - EDITOR_TASKBAR_HEIGHT)
@@ -119,11 +144,13 @@ public:
 	SGPPoint              m_squadPosition ;
 
 	// Tactical screen bottom bar
-	// It can be in the "team" (TEAM) or the "single merc inventory" (SM or INV_) mode. Both modes have the same
-	// width, but the single-merc mode is slightly taller.
+	// It can be in the "team" (TEAM) or the "single merc inventory" (SM or INV_) mode. Both modes share the same
+	// on-screen position, but the single-merc mode is slightly taller and (since inventory_bottom_panel.sti grew
+	// past bottom_bar.sti's own scaling) can be wider too -- see m_smPanelWidth.
 	SGPPoint              m_teamPanelPosition;              // offset position of the bottom bar
 	UINT16                m_teamPanelSlotsTotalWidth;       // total width of all team slots in the bottom team panel
-	UINT16                m_teamPanelWidth;                 // width of the entire team panel including slots and buttons
+	UINT16                m_teamPanelWidth;                 // width of the entire team panel (bottom_bar.sti) including slots and buttons -- purely squad-size-driven, NOT floored to fit inventory_bottom_panel.sti. Also used to position squad-size-driven widgets shared by both panel modes (minimap, clock, sector name).
+	UINT16                m_smPanelWidth;                   // width of the single-merc inventory panel (inventory_bottom_panel.sti) canvas -- max(m_teamPanelWidth, INVENTORY_BOTTOM_PANEL_WIDTH), since that graphic can be wider than what squad size alone would need. Use this (not m_teamPanelWidth) for anything specific to the single-merc panel's own canvas/buttons (SM_DONE_X, SM_MAPSCREEN_X).
 
 	UINT16                m_stdScreenOffsetX;             /** Offset of the standard (640x480) window */
 	UINT16                m_stdScreenOffsetY;             /** Offset of the standard (640x480) window */
@@ -143,6 +170,9 @@ public:
 	UINT16 get_CLOCK_X() const;
 	UINT16 get_CLOCK_Y() const;
 	UINT16 get_INV_INTERFACE_START_Y() const;
+	UINT16 get_ITEMDESC_PANEL_START_Y() const;
+	UINT16 get_ITEMDESC_PANEL_START_Y_MONEY() const;
+	UINT16 get_ITEMDESC_PANEL_START_Y_ITEMS() const;
 	UINT16 get_RADAR_WINDOW_X() const;
 	UINT16 get_RADAR_WINDOW_TM_Y() const;
 

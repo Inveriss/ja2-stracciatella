@@ -65,7 +65,7 @@
 // Simplified, static stand-in for the BIPOD's real (range-dependent) prone
 // aim bonus computed in CalcChanceToHitGun() — used only for the item
 // description box's "Prone:" readout, not for actual combat math.
-#define BIPOD_DISPLAY_BONUS	10
+#define BIPOD_DISPLAY_BONUS	20
 
 // Simplified, static stand-in for the SNIPERSCOPE's real (range/aim-time-
 // dependent, sight-range-based) bonus computed in CalcChanceToHitGun() —
@@ -77,7 +77,13 @@
 // AIM_BONUS_PRONE) stance bonus computed in CalcChanceToHitGun() when the
 // merc is prone — used only for the item description box's "Prone:"
 // readout, not for actual combat math.
-#define PRONE_STANCE_DISPLAY_BONUS	20
+#define PRONE_STANCE_DISPLAY_BONUS	10
+
+// Simplified, static stand-in for the real (range-dependent, capped at
+// AIM_BONUS_CROUCHING) stance bonus computed in CalcChanceToHitGun() when
+// the merc is crouched — used only for the item description box's "Base:"
+// readout, not for actual combat math.
+#define CROUCH_STANCE_DISPLAY_BONUS	5
 
 #define CRITICAL_HIT_THRESHOLD	30
 
@@ -246,6 +252,35 @@ INT8 GunProneStanceBonus(SOLDIERTYPE const* const s)
 	// display purposes only. No item/condition involved, unlike the other
 	// display bonuses: this is a soldier-stance check, not a weapon stat.
 	return gAnimControl[s->usAnimState].ubEndHeight == ANIM_PRONE ? PRONE_STANCE_DISPLAY_BONUS : 0;
+}
+
+
+INT8 GunCrouchStanceBonus(SOLDIERTYPE const* const s)
+{
+	if (!s) return 0;
+
+	// Simplified stand-in for the real (range-dependent, capped at
+	// AIM_BONUS_CROUCHING) crouch stance bonus applied in
+	// CalcChanceToHitGun() — display purposes only. No item/condition
+	// involved, unlike the other display bonuses: this is a soldier-stance
+	// check, not a weapon stat.
+	return gAnimControl[s->usAnimState].ubEndHeight == ANIM_CROUCH ? CROUCH_STANCE_DISPLAY_BONUS : 0;
+}
+
+
+INT8 GunRoofBonus(SOLDIERTYPE const* const s)
+{
+	if (!s) return 0;
+
+	// Simplified stand-in for the real AIM_BONUS_FIRING_DOWN bonus applied
+	// in CalcChanceToHitGun() — display purposes only. The real bonus only
+	// applies when the target is also at ground level (bTargetLevel == 0);
+	// the item description box has no target, so this always shows the
+	// bonus whenever the merc himself is elevated (bLevel > 0), same
+	// simplification already used for the other stance/attachment display
+	// bonuses. Deliberately excludes the separate, target-independent
+	// ONROOF skill trait bonus also applied there.
+	return s->bLevel > 0 ? AIM_BONUS_FIRING_DOWN : 0;
 }
 
 
@@ -2149,7 +2184,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	// if shooter is crouched, he aims slightly better (to max of AIM_BONUS_CROUCHING)
 	if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH )
 	{
-		iBonus = iRange / 10;
+		iBonus = iRange / 2;
 		if (iBonus > AIM_BONUS_CROUCHING)
 		{
 			iBonus = AIM_BONUS_CROUCHING;
@@ -2161,7 +2196,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	{
 		if (iRange > MIN_PRONE_RANGE)
 		{
-			iBonus = iRange / 10;
+			iBonus = iRange / 2;
 			if (iBonus > AIM_BONUS_PRONE)
 			{
 				iBonus = AIM_BONUS_PRONE;
@@ -2169,8 +2204,8 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 			bAttachPos = FindAttachment( pInHand, BIPOD );
 			if (bAttachPos != ITEM_NOT_FOUND)
 			{
-				// extra bonus to hit for a bipod, up to half the prone bonus itself
-				iBonus += (iBonus * WEAPON_STATUS_MOD(pInHand->bAttachStatus[bAttachPos]) / 100) / 2;
+				// extra bonus to hit for a bipod, up to double the prone bonus itself
+				iBonus += (iBonus * WEAPON_STATUS_MOD(pInHand->bAttachStatus[bAttachPos]) / 100) * 2;
 			}
 			iChance += iBonus;
 		}

@@ -1806,7 +1806,7 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 		// Place knife on guy....
 
 		// See if they have room ( and make sure it's not in hand pos?
-		bSlot = FindEmptySlotWithin(&tgt, BIGPOCK1POS, SMALLPOCK8POS );
+		bSlot = FindEmptySlotWithin(&tgt, BIGPOCK1POS, SMALLPOCK20POS );
 		if (bSlot == NO_SLOT)
 		{
 			// Add item
@@ -1945,22 +1945,25 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 			{
 				// lucky bastard was facing away!
 			}
-			else if ((tgt.inv[HEAD1POS].usItem == NIGHTGOGGLES || tgt.inv[HEAD1POS].usItem == SUNGOGGLES ||
-				tgt.inv[HEAD1POS].usItem == GASMASK) && static_cast<INT8>(PreRandom(100)) < tgt.inv[HEAD1POS].bStatus[0])
-			{
-				// lucky bastard was wearing protective stuff
-				bHeadSlot = HEAD1POS;
-			}
-			else if ((tgt.inv[HEAD2POS].usItem == NIGHTGOGGLES || tgt.inv[HEAD2POS].usItem == SUNGOGGLES ||
-				tgt.inv[HEAD2POS].usItem == GASMASK) && static_cast<INT8>(PreRandom(100)) < tgt.inv[HEAD2POS].bStatus[0])
-			{
-				// lucky bastard was wearing protective stuff
-				bHeadSlot = HEAD2POS;
-			}
 			else
 			{
-				// splat!!
-				ubSpecial = FIRE_WEAPON_BLINDED_BY_SPIT_SPECIAL;
+				bHeadSlot = NO_SLOT;
+				for (INT8 headSlot = HEAD1POS; headSlot <= HEAD4POS; ++headSlot)
+				{
+					UINT16 const usHeadItem = tgt.inv[headSlot].usItem;
+					if ((usHeadItem == NIGHTGOGGLES || usHeadItem == SUNGOGGLES || usHeadItem == GASMASK) &&
+						static_cast<INT8>(PreRandom(100)) < tgt.inv[headSlot].bStatus[0])
+					{
+						// lucky bastard was wearing protective stuff
+						bHeadSlot = headSlot;
+						break;
+					}
+				}
+				if (bHeadSlot == NO_SLOT)
+				{
+					// splat!!
+					ubSpecial = FIRE_WEAPON_BLINDED_BY_SPIT_SPECIAL;
+				}
 			}
 
 		}
@@ -2048,7 +2051,7 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 	else if (ubHitLocation == AIM_SHOT_HEAD)
 	{
 		// bullet to the head may damage any head item
-		bHeadSlot = HEAD1POS + (INT8) Random( 2 );
+		bHeadSlot = HEAD1POS + (INT8) Random( 4 );
 		if (tgt.inv[bHeadSlot].usItem != NOTHING)
 		{
 			tgt.inv[bHeadSlot].bStatus[0] -= (INT8)(Random(iImpact / 2));

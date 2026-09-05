@@ -496,6 +496,13 @@ enum AnimationSurfaceTypes
 
 	BODYEXPLODE,
 
+	// Added for the Infobox.sti merc preview picture (Interface_Items.cc,
+	// gMercPreviewFrames) -- female "short weapon" pose, not previously
+	// registered under any name. Appended at the very end (rather than
+	// alongside the other RGF* entries) so no existing animation surface
+	// index shifts.
+	RGFHANDGUN_1H,
+
 	NUMANIMATIONSURFACETYPES
 };
 
