@@ -78,6 +78,7 @@ void InitKeyItemDescriptionBox(SOLDIERTYPE* pSoldier, UINT8 ubPosition, INT16 sX
 void RenderItemDescriptionBox(void);
 void HandleItemDescriptionBox(DirtyLevel*);
 void DeleteItemDescriptionBox(void);
+void TickItemDescCloseCleanup(void);
 
 
 BOOLEAN InItemStackPopup(void);

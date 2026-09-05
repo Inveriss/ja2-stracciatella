@@ -1535,7 +1535,16 @@ no_plate:
 
 		if (InItemDescriptionBox())
 		{
-			RenderItemDescriptionBox();
+			// Rendered every frame from RenderTopmostTacticalInterface()
+			// (Interface_Control.cc) now, same as the sibling stack/keyring/
+			// stats/skills popups -- NOT here, since this whole block only
+			// runs on DIRTYLEVEL2 refreshes. Infobox.sti (weapon) is taller
+			// than the SM panel's own protected footer (ITEMDESC_PANEL_HEIGHT
+			// vs INV_INTERFACE_HEIGHT -- see UILayout.h), so the extra height
+			// was left unprotected from the continuously-redrawing tactical
+			// world in between DIRTYLEVEL2 refreshes, and from this block's
+			// own RestoreExternBackgroundRect() below (scoped to
+			// INV_INTERFACE_HEIGHT only) on close.
 		}
 		else
 		{

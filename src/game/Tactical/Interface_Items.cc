@@ -354,6 +354,16 @@ static BOOLEAN fItemDescDelete = FALSE;
 // below. INVALID_ANIMATION_SURFACE when nothing is loaded (money/generic
 // items, map screen, or a non-merc body type never load one).
 static UINT16 gusMercPreviewAnimSurface = INVALID_ANIMATION_SURFACE;
+
+// Extra frames, after DeleteItemDescriptionBox() closes the weapon box, to
+// keep re-flipping the box's last on-screen rectangle to the screen -- see
+// TickItemDescCloseCleanup() below.
+static UINT32 gsItemDescCloseCleanupFrames = 0;
+static INT16  gsItemDescCloseCleanupX;
+static INT16  gsItemDescCloseCleanupY;
+static INT16  gsItemDescCloseCleanupW;
+static INT16  gsItemDescCloseCleanupH;
+
 MOUSE_REGION gItemDescAttachmentRegions[MAX_ATTACHMENTS];
 static MOUSE_REGION gProsAndConsRegions[2];
 
@@ -2474,7 +2484,24 @@ static void ItemDescAmmoCallback(GUI_BUTTON*  const btn, UINT32 const reason)
 				// pick up bullets from weapon into cursor (don't try to sell)
 				BeginSkiItemPointer(PLAYERS_INVENTORY, -1, FALSE);
 			}
-			fItemDescDelete = TRUE;
+
+			// Deliberately does NOT auto-close the box (used to:
+			// fItemDescDelete = TRUE, picked up on the next frame by
+			// HandleItemDescriptionBox()) -- same as removing an attachment
+			// (ItemDescAttachmentsCallbackPrimary() below never closes the
+			// box either). That deferred close went through
+			// DeleteItemDescriptionBox() one frame later than a direct
+			// click-outside-the-box close (ItemDescCallbackPrimary/Secondary,
+			// which call it synchronously from the mouse-click handler,
+			// before RenderWorld.cc's RENDER_FLAG_FULL check that same
+			// frame) -- landing one frame too late for that same-frame
+			// check, which left Infobox.sti's extra height (above
+			// INV_INTERFACE_HEIGHT -- see ITEMDESC_PANEL_HEIGHT,
+			// UILayout.h) visibly stuck on screen instead of being cleanly
+			// replaced by the freshly re-rendered tactical world. Ejecting
+			// ammo now just leaves the box open, same as ejecting an
+			// attachment -- the user closes it manually the same way either
+			// way, through the already-reliable direct-call path.
 		}
 	}
 }
@@ -2666,9 +2693,37 @@ static void HighlightIf(const BOOLEAN cond)
 }
 
 
+// Called every frame from RenderTopmostTacticalInterface() (Interface_Control.cc),
+// regardless of whether the box is currently open -- see the comment on
+// gsItemDescCloseCleanupFrames/DeleteItemDescriptionBox() above for why this
+// exists (bridging the 1-frame gap between RENDER_FLAG_FULL being set and it
+// actually being consumed by RenderWorld.cc's own full-redraw check).
+void TickItemDescCloseCleanup(void)
+{
+	if (gsItemDescCloseCleanupFrames == 0) return;
+
+	InvalidateRegionEx(gsItemDescCloseCleanupX, gsItemDescCloseCleanupY,
+		gsItemDescCloseCleanupX + gsItemDescCloseCleanupW, gsItemDescCloseCleanupY + gsItemDescCloseCleanupH);
+
+	--gsItemDescCloseCleanupFrames;
+}
+
+
 void RenderItemDescriptionBox(void)
 {
 	if (!gfInItemDescBox) return;
+
+	// This function now runs every frame (RenderTopmostTacticalInterface(),
+	// Interface_Control.cc), not just on DIRTYLEVEL2 refreshes -- but the
+	// ammo-eject button (giItemDescAmmoButton) is a GUI_BUTTON, rendered by
+	// its own independent pass (RenderButtons(), called after this in the
+	// same function) that only actually redraws a button when it's marked
+	// dirty. Without this, this function's own background restore below
+	// erases the button's pixels every frame (guiSAVEBUFFER, which it
+	// restores from, doesn't contain the button's graphic), and
+	// RenderButtons() wouldn't necessarily repaint it back the same frame --
+	// making it flicker away to nothing.
+	if (giItemDescAmmoButton) MarkAButtonDirty(giItemDescAmmoButton);
 
 	ST::string pStr;
 	INT16   usX;
@@ -3461,6 +3516,36 @@ void DeleteItemDescriptionBox( )
 		// scroll shift-blit, and raising it made the whole protected strip
 		// visibly pan with the map while the box was open.
 		SetRenderFlags(RENDER_FLAG_FULL);
+
+		// RENDER_FLAG_FULL is consumed by RenderWorld.cc's own full-redraw
+		// check, which runs BEFORE RenderTacticalInterface()/RenderSMPanel()
+		// (and so before this DeleteItemDescriptionBox() call, which happens
+		// from inside HandleItemDescriptionBox()) in the very same frame --
+		// so setting the flag here doesn't actually force a full terrain repaint
+		// until the FOLLOWING frame. A single InvalidateRegionEx() call made
+		// right here (the frame the flag is merely SET) would flip a rect
+		// that can still hold stale box pixels, one frame too early; nothing
+		// would then re-flip it once the terrain genuinely gets fixed.
+		// TickItemDescCloseCleanup() (called every frame from
+		// RenderTopmostTacticalInterface(), Interface_Control.cc) instead
+		// keeps re-flipping this box's last on-screen rectangle for a few
+		// frames, so whichever frame the terrain actually gets repainted on,
+		// that repaint also reaches the screen.
+		{
+			bool const fIsMoney  = gpItemDescObject->usItem == MONEY;
+			bool const fIsWeapon = GCM->getItem(gpItemDescObject->usItem)->isWeapon();
+			gsItemDescCloseCleanupW =
+				fIsMoney  ? ITEMDESC_WIDTH_MONEY :
+				fIsWeapon ? ITEMDESC_WIDTH :
+				            ITEMDESC_WIDTH_ITEMS;
+			gsItemDescCloseCleanupH =
+				fIsMoney  ? ITEMDESC_HEIGHT_MONEY :
+				fIsWeapon ? ITEMDESC_HEIGHT :
+				            ITEMDESC_HEIGHT_ITEMS;
+			gsItemDescCloseCleanupX     = gsInvDescX;
+			gsItemDescCloseCleanupY     = gsInvDescY;
+			gsItemDescCloseCleanupFrames = 6;
+		}
 
 		// Undo the HideSMBookmarkButtons() call from
 		// InternalInitItemDescriptionBox().
