@@ -2169,6 +2169,7 @@ static void BtnMoneyButtonCallbackSecondary(GUI_BUTTON* btn, UINT32 reason);
 static void BtnMoneyButtonCallbackOther(GUI_BUTTON* btn, UINT32 reason);
 static void ItemDescAmmoCallback(GUI_BUTTON* btn, UINT32 reason);
 static void RefreshItemDescAmmoIcon(void);
+static BOOLEAN TryReloadItemDescGunFromCursor(void);
 static void DoAttachment(INT8 bAttachPos);
 static void ItemDescAttachmentsCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void ItemDescAttachmentsCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
@@ -2468,44 +2469,18 @@ static void ItemDescAmmoCallback(GUI_BUTTON*  const btn, UINT32 const reason)
 		if (gpItemPointer)
 		{
 			// Dropping a compatible ammo/magazine item onto the Eject Ammo
-			// icon reloads the gun -- mirroring PlaceObject()'s own
-			// IC_GUN + IC_AMMO + calibre-match dispatch to ReloadGun()
-			// (Items.cc), which is what actually performs a reload when
-			// ammo is dropped onto a gun slot in
+			// icon reloads the gun -- see TryReloadItemDescGunFromCursor()
+			// below (also used by ItemDescCallbackPrimary() for the same
+			// drop gesture onto the box's main picture) for how this
+			// mirrors PlaceObject()'s own IC_GUN + IC_AMMO + calibre-match
+			// dispatch to ReloadGun() (Items.cc) -- the mechanism actually
+			// used when ammo is dropped onto a gun slot in
 			// Inventory_bottom_panel.sti. ValidMerge()/AttachObject()
 			// (used below by DoAttachment() for scopes/silencers/bipods,
 			// and tried here previously) never apply to gun+ammo --
 			// ValidMerge() only matches two identical ammo stacks merging
 			// together, and a gun is never IC_AMMO.
-			ItemModel const* const heldItem = GCM->getItem(gpItemPointer->usItem);
-			if (heldItem->getItemClass() == IC_AMMO &&
-				GCM->getWeapon(gpItemDescObject->usItem)->matches(heldItem->asAmmo()->calibre))
-			{
-				if (ReloadGun(gpItemDescSoldier, gpItemDescObject, gpItemPointer))
-				{
-					// ReloadGun() mutates *gpItemPointer in place: it may
-					// empty it (ammo fully consumed), leave a partial
-					// stack behind, or -- when swapping two full
-					// magazines -- replace it with the ejected old
-					// magazine. Same cursor bookkeeping
-					// UIHandleItemPlacement() does after its own
-					// PlaceObject() call (Interface_Panels.cc).
-					if (gpItemPointer->ubNumberOfObjects == 0)
-					{
-						EndItemPointer();
-					}
-
-					fInterfacePanelDirty = DIRTYLEVEL2;
-
-					// Refresh the "shots left/mag size" text and the
-					// ammo-color icon on this button -- ReloadGun()
-					// doesn't touch either, so without this they'd keep
-					// showing the pre-reload count/color until the box is
-					// closed and reopened.
-					btn->SpecifyText(ST::format("{}/{}", gpItemDescObject->ubGunShotsLeft, GCM->getWeapon(gpItemDescObject->usItem)->ubMagSize));
-					RefreshItemDescAmmoIcon();
-				}
-			}
+			TryReloadItemDescGunFromCursor();
 			return;
 		}
 		if (!EmptyWeaponMagazine(gpItemDescObject, &gItemPointer)) return;
@@ -2577,6 +2552,54 @@ static void RefreshItemDescAmmoIcon(void)
 	UnloadButtonImage(giItemDescAmmoButtonImages);
 	giItemDescAmmoButtonImages = new_img;
 	giItemDescAmmoButton->image = new_img;
+}
+
+
+// Attempts to reload gpItemDescObject (the gun shown in the box) with
+// whatever's held on the cursor (gpItemPointer), for the two places in
+// this box a magazine/ammo item can be dropped to do so: the Eject Ammo
+// icon (ItemDescAmmoCallback()) and the box's own main weapon picture
+// (ItemDescCallbackPrimary()). Same IC_GUN + IC_AMMO + calibre-match
+// precondition PlaceObject() uses before calling ReloadGun() (Items.cc)
+// when ammo is dropped onto a gun slot in Inventory_bottom_panel.sti.
+// Returns TRUE if a reload happened (cursor, button text and icon are
+// already refreshed); FALSE if there was nothing to do -- no item held,
+// gpItemDescObject isn't a gun, the held item isn't compatible ammo, or
+// ReloadGun() itself refused (e.g. not enough APs in combat).
+static BOOLEAN TryReloadItemDescGunFromCursor(void)
+{
+	if (!gpItemPointer) return FALSE;
+	if (!GCM->getItem(gpItemDescObject->usItem)->isGun()) return FALSE;
+
+	ItemModel const* const heldItem = GCM->getItem(gpItemPointer->usItem);
+	if (heldItem->getItemClass() != IC_AMMO) return FALSE;
+	if (!GCM->getWeapon(gpItemDescObject->usItem)->matches(heldItem->asAmmo()->calibre)) return FALSE;
+
+	if (!ReloadGun(gpItemDescSoldier, gpItemDescObject, gpItemPointer)) return FALSE;
+
+	// ReloadGun() mutates *gpItemPointer in place: it may empty it (ammo
+	// fully consumed), leave a partial stack behind, or -- when swapping
+	// two full magazines -- replace it with the ejected old magazine.
+	// Same cursor bookkeeping UIHandleItemPlacement() does after its own
+	// PlaceObject() call (Interface_Panels.cc).
+	if (gpItemPointer->ubNumberOfObjects == 0)
+	{
+		EndItemPointer();
+	}
+
+	fInterfacePanelDirty = DIRTYLEVEL2;
+
+	// Refresh the "shots left/mag size" text and the ammo-color icon on
+	// the Eject Ammo button -- ReloadGun() doesn't touch either, so
+	// without this they'd keep showing the pre-reload count/color until
+	// the box is closed and reopened.
+	if (giItemDescAmmoButton)
+	{
+		giItemDescAmmoButton->SpecifyText(ST::format("{}/{}", gpItemDescObject->ubGunShotsLeft, GCM->getWeapon(gpItemDescObject->usItem)->ubMagSize));
+	}
+	RefreshItemDescAmmoIcon();
+
+	return TRUE;
 }
 
 
@@ -5066,6 +5089,27 @@ std::pair<SGPVObject*, UINT8> GetBigInventoryGraphicForItem(const ItemModel * it
 
 static void ItemDescCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 {
+	// Dropping compatible ammo/magazine directly onto the box's main
+	// weapon picture reloads the gun, same as dropping it on the Eject
+	// Ammo icon (TryReloadItemDescGunFromCursor()) -- scoped to the
+	// picture's own rectangle (g_desc_item_box/g_desc_item_box_map, the
+	// same ones RenderItemDescriptionBox() draws the picture into) so the
+	// rest of the box's background keeps its plain click-to-close
+	// behaviour below.
+	if (gpItemPointer)
+	{
+		BOOLEAN const in_map = (guiCurrentItemDescriptionScreen == MAP_SCREEN);
+		SGPBox const& xy = in_map ? g_desc_item_box_map : g_desc_item_box;
+		BOOLEAN const fOverMainPicture =
+			gusMouseXPos >= gsInvDescX + xy.x && gusMouseXPos < gsInvDescX + xy.x + xy.w &&
+			gusMouseYPos >= gsInvDescY + xy.y && gusMouseYPos < gsInvDescY + xy.y + xy.h;
+
+		if (fOverMainPicture && TryReloadItemDescGunFromCursor())
+		{
+			return;
+		}
+	}
+
 	//Only exit the screen if we are NOT in the money interface.  Only the DONE button should exit the money interface.
 	if( gpItemDescObject->usItem != MONEY )
 	{
