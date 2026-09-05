@@ -3988,16 +3988,16 @@ static const SkillDescCoord gSkillTrait1DescCoords[10] =
 
 static const SkillDescCoord gSkillTrait2DescCoords[10] =
 {
-	/* FIRST_DESC  */ { 258,  77 },
-	/* SECOND_DESC */ { 258,  91 },
-	/* THIRD_DESC  */ { 258,  104 },
-	/* FOURTH_DESC */ { 258, 117 },
-	/* FIFTH_DESC  */ { 258, 130 },
-	/* SIXTH_DESC  */ { 258, 143 },
-	/* SEVENTH_DESC*/ { 258, 156 },
-	/* EIGHTH_DESC */ { 258, 169 },
-	/* NINTH_DESC  */ { 258, 182 },
-	/* TENTH_DESC  */ { 258, 195 },
+	/* FIRST_DESC  */ { 271,  77 },
+	/* SECOND_DESC */ { 271,  91 },
+	/* THIRD_DESC  */ { 271,  104 },
+	/* FOURTH_DESC */ { 271, 117 },
+	/* FIFTH_DESC  */ { 271, 130 },
+	/* SIXTH_DESC  */ { 271, 143 },
+	/* SEVENTH_DESC*/ { 271, 156 },
+	/* EIGHTH_DESC */ { 271, 169 },
+	/* NINTH_DESC  */ { 271, 182 },
+	/* TENTH_DESC  */ { 271, 195 },
 };
 
 // Maps a skill trait to its 10 description lines (Infobox_skills.sti). When
