@@ -76,6 +76,7 @@
 #include "WordWrap.h"
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <memory>
 #include <string_theory/format>
@@ -3951,10 +3952,98 @@ enum
 // visible in-game.
 static const StatsPopupCoord gSkillsPopupCoords[NUM_SKILLS_COORDS] =
 {
-	/* SKILLS_TXT_HEADER  */ {  183,  19,   0 },
+	/* SKILLS_TXT_HEADER  */ {  225,  19,   0 },
 	/* SKILLS_COORD_LINE1 */ {  19,  48,   0 },
-	/* SKILLS_COORD_LINE2 */ {  258,  48,   0 },
+	/* SKILLS_COORD_LINE2 */ {  272,  48,   0 },
 };
+
+// Per-line position for the 10 reserved description lines (GetSkillDescription()
+// below) shown under each skill-name line above -- one independent {x, y} per
+// line, no value/margin (these are printed as plain text, not label+value
+// pairs). Always all 10 slots printed, even when a line's string is empty --
+// reserves fixed vertical space regardless of how much text a given skill
+// actually uses. Two full, independent sets: SKILL_TRAIT_1 for
+// p.bSkillTrait's block, SKILL_TRAIT_2 for p.bSkillTrait2's (unused when the
+// merc is an "expert" in one skill -- see RenderSkillsPopup()). All
+// placeholders; tune once visible in-game.
+struct SkillDescCoord
+{
+	INT16 sX;
+	INT16 sY;
+};
+
+static const SkillDescCoord gSkillTrait1DescCoords[10] =
+{
+	/* FIRST_DESC  */ {  19,  77 },
+	/* SECOND_DESC */ {  19,  91 },
+	/* THIRD_DESC  */ {  19,  104 },
+	/* FOURTH_DESC */ {  19, 117 },
+	/* FIFTH_DESC  */ {  19, 130 },
+	/* SIXTH_DESC  */ {  19, 143 },
+	/* SEVENTH_DESC*/ {  19, 156 },
+	/* EIGHTH_DESC */ {  19, 169 },
+	/* NINTH_DESC  */ {  19, 182 },
+	/* TENTH_DESC  */ {  19, 195 },
+};
+
+static const SkillDescCoord gSkillTrait2DescCoords[10] =
+{
+	/* FIRST_DESC  */ { 258,  77 },
+	/* SECOND_DESC */ { 258,  91 },
+	/* THIRD_DESC  */ { 258,  104 },
+	/* FOURTH_DESC */ { 258, 117 },
+	/* FIFTH_DESC  */ { 258, 130 },
+	/* SIXTH_DESC  */ { 258, 143 },
+	/* SEVENTH_DESC*/ { 258, 156 },
+	/* EIGHTH_DESC */ { 258, 169 },
+	/* NINTH_DESC  */ { 258, 182 },
+	/* TENTH_DESC  */ { 258, 195 },
+};
+
+// Maps a skill trait to its 10 description lines (Infobox_skills.sti). When
+// fExpert is true AND the trait has a dedicated expert-level array, that one
+// is used instead -- currently only wired up for NIGHTOPS
+// (gzNightOpsExpertDescription), as a template for the other 14 skills;
+// every other trait falls back to its normal (non-expert) array regardless
+// of fExpert until a dedicated one is added for it the same way.
+static std::array<ST::string, 10> const& GetSkillDescription(SkillTrait const trait, bool const fExpert)
+{
+	if (fExpert && trait == NIGHTOPS) return gzNightOpsExpertDescription;
+
+	switch (trait)
+	{
+		case LOCKPICKING: return gzLockPickingDescription;
+		case HANDTOHAND:  return gzHandToHandDescription;
+		case ELECTRONICS: return gzElectronicsDescription;
+		case NIGHTOPS:    return gzNightOpsDescription;
+		case THROWING:    return gzThrowingDescription;
+		case TEACHING:    return gzTeachingDescription;
+		case HEAVY_WEAPS: return gzHeavyWeaponsDescription;
+		case AUTO_WEAPS:  return gzAutoWeaponsDescription;
+		case STEALTHY:    return gzStealthyDescription;
+		case AMBIDEXT:    return gzAmbidextrousDescription;
+		case THIEF:       return gzThiefDescription;
+		case MARTIALARTS: return gzMartialArtsDescription;
+		case KNIFING:     return gzKnifingDescription;
+		case ONROOF:      return gzOnRoofDescription;
+		case CAMOUFLAGED: return gzCamouflagedDescription;
+		default:          return gzLockPickingDescription; // should never happen -- NO_SKILLTRAIT is checked by callers
+	}
+}
+
+
+// Prints all 10 reserved description lines for one skill slot at the given
+// coordinate set -- always all 10, even the empty ones, so the reserved
+// vertical space stays fixed regardless of how much text a skill actually
+// uses (see gSkillTrait1DescCoords/gSkillTrait2DescCoords above).
+static void PrintSkillDescription(INT16 const dx, INT16 const dy, SkillDescCoord const coords[10], SkillTrait const trait, bool const fExpert)
+{
+	std::array<ST::string, 10> const& desc = GetSkillDescription(trait, fExpert);
+	for (INT32 i = 0; i < 10; ++i)
+	{
+		MPrint(dx + coords[i].sX, dy + coords[i].sY, desc[i]);
+	}
+}
 
 // Placeholder position/size for the Infobox_skills.sti graphic itself (as
 // opposed to the screen-wide dismiss region set up in InitSkillsPopup(),
@@ -3962,8 +4051,8 @@ static const StatsPopupCoord gSkillsPopupCoords[NUM_SKILLS_COORDS] =
 // real graphic is visible in-game.
 #define SKILLS_POPUP_BOX_X		369
 #define SKILLS_POPUP_BOX_Y		0
-#define SKILLS_POPUP_BOX_WIDTH		395
-#define SKILLS_POPUP_BOX_HEIGHT	197
+#define SKILLS_POPUP_BOX_WIDTH		480
+#define SKILLS_POPUP_BOX_HEIGHT	194
 
 static BOOLEAN      gfInSkillsPopup = FALSE;
 static SOLDIERTYPE* gpSkillsPopupSoldier = NULL;
@@ -4066,24 +4155,31 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
 	MPrint(dx + gSkillsPopupCoords[SKILLS_TXT_HEADER].sX, dy + gSkillsPopupCoords[SKILLS_TXT_HEADER].sY, gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
 
-	// -- Skill name(s) only -- no bonus/description text --
+	// -- Skill name(s), as a mini-header for each description block below --
 	SetFontForeground(5);
 	if (p.bSkillTrait != NO_SKILLTRAIT)
 	{
 		StatsPopupCoord const& c1 = gSkillsPopupCoords[SKILLS_COORD_LINE1];
 		if (p.bSkillTrait == p.bSkillTrait2)
 		{
-			// Same skill in both slots -- append "(expert)".
+			// Same skill in both slots ("expert") -- append "(expert)", and
+			// print only the SKILL_TRAIT_1 description block (using the
+			// expert-level array, where one exists -- see
+			// GetSkillDescription()); SKILL_TRAIT_2 is unused in this case.
 			ST::string const sVal = ST::format("{} {}", gzMercSkillText[p.bSkillTrait], gzMercSkillText[NUM_SKILLTRAITS]);
 			MPrint(dx + c1.sX, dy + c1.sY, sVal);
+			PrintSkillDescription(dx, dy, gSkillTrait1DescCoords, (SkillTrait)p.bSkillTrait, true);
 		}
 		else
 		{
 			MPrint(dx + c1.sX, dy + c1.sY, gzMercSkillText[p.bSkillTrait]);
+			PrintSkillDescription(dx, dy, gSkillTrait1DescCoords, (SkillTrait)p.bSkillTrait, false);
+
 			if (p.bSkillTrait2 != NO_SKILLTRAIT)
 			{
 				StatsPopupCoord const& c2 = gSkillsPopupCoords[SKILLS_COORD_LINE2];
 				MPrint(dx + c2.sX, dy + c2.sY, gzMercSkillText[p.bSkillTrait2]);
+				PrintSkillDescription(dx, dy, gSkillTrait2DescCoords, (SkillTrait)p.bSkillTrait2, false);
 			}
 		}
 	}

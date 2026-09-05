@@ -189,6 +189,30 @@ constexpr std::size_t gzInfoboxStatsStrings_SIZE = 14;
 // Skill names themselves are reused directly from gzMercSkillText.
 constexpr std::size_t gzInfoboxSkillsStrings_SIZE = 1;
 
+// Per-skill description lines shown on Infobox_skills.sti (Interface_Panels.cc,
+// GetSkillDescription()) -- one independently editable array of 10 lines per
+// SkillTrait (Soldier_Profile_Type.h), always fully reserved (10 slots
+// printed regardless of how many are actually filled in). gzNightOpsExpertDescription
+// is a second, independent set of 10 lines used only when a merc has
+// NIGHTOPS in both skill slots ("expert") -- a template for the other 14
+// skills, not yet duplicated for them.
+constexpr std::size_t gzLockPickingDescription_SIZE = 10;
+constexpr std::size_t gzHandToHandDescription_SIZE = 10;
+constexpr std::size_t gzElectronicsDescription_SIZE = 10;
+constexpr std::size_t gzNightOpsDescription_SIZE = 10;
+constexpr std::size_t gzThrowingDescription_SIZE = 10;
+constexpr std::size_t gzTeachingDescription_SIZE = 10;
+constexpr std::size_t gzHeavyWeaponsDescription_SIZE = 10;
+constexpr std::size_t gzAutoWeaponsDescription_SIZE = 10;
+constexpr std::size_t gzStealthyDescription_SIZE = 10;
+constexpr std::size_t gzAmbidextrousDescription_SIZE = 10;
+constexpr std::size_t gzThiefDescription_SIZE = 10;
+constexpr std::size_t gzMartialArtsDescription_SIZE = 10;
+constexpr std::size_t gzKnifingDescription_SIZE = 10;
+constexpr std::size_t gzOnRoofDescription_SIZE = 10;
+constexpr std::size_t gzCamouflagedDescription_SIZE = 10;
+constexpr std::size_t gzNightOpsExpertDescription_SIZE = 10;
+
 #define STRARRAY(arrayName) std::array<ST::string , arrayName##_SIZE> arrayName
 
 struct L10n_t
@@ -418,6 +442,22 @@ struct L10n_t
 	STRARRAY(gzIMPSkillTraitsText);
 	STRARRAY(gzInfoboxStatsStrings);
 	STRARRAY(gzInfoboxSkillsStrings);
+	STRARRAY(gzLockPickingDescription);
+	STRARRAY(gzHandToHandDescription);
+	STRARRAY(gzElectronicsDescription);
+	STRARRAY(gzNightOpsDescription);
+	STRARRAY(gzThrowingDescription);
+	STRARRAY(gzTeachingDescription);
+	STRARRAY(gzHeavyWeaponsDescription);
+	STRARRAY(gzAutoWeaponsDescription);
+	STRARRAY(gzStealthyDescription);
+	STRARRAY(gzAmbidextrousDescription);
+	STRARRAY(gzThiefDescription);
+	STRARRAY(gzMartialArtsDescription);
+	STRARRAY(gzKnifingDescription);
+	STRARRAY(gzOnRoofDescription);
+	STRARRAY(gzCamouflagedDescription);
+	STRARRAY(gzNightOpsExpertDescription);
 };
 #undef STRARRAY
 

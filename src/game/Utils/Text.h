@@ -246,6 +246,23 @@ extern FLOAT GetWeightBasedOnMetricOption( UINT32 uiObjectWeight );
 #define gzInfoboxStatsStrings                               (g_langRes->gzInfoboxStatsStrings)
 // Tactical-screen "Infobox_skills.sti" merc-skills popup (Interface_Panels.cc).
 #define gzInfoboxSkillsStrings                              (g_langRes->gzInfoboxSkillsStrings)
+// Per-skill description lines shown on Infobox_skills.sti (Interface_Panels.cc).
+#define gzLockPickingDescription                            (g_langRes->gzLockPickingDescription)
+#define gzHandToHandDescription                             (g_langRes->gzHandToHandDescription)
+#define gzElectronicsDescription                            (g_langRes->gzElectronicsDescription)
+#define gzNightOpsDescription                               (g_langRes->gzNightOpsDescription)
+#define gzThrowingDescription                               (g_langRes->gzThrowingDescription)
+#define gzTeachingDescription                               (g_langRes->gzTeachingDescription)
+#define gzHeavyWeaponsDescription                           (g_langRes->gzHeavyWeaponsDescription)
+#define gzAutoWeaponsDescription                            (g_langRes->gzAutoWeaponsDescription)
+#define gzStealthyDescription                               (g_langRes->gzStealthyDescription)
+#define gzAmbidextrousDescription                           (g_langRes->gzAmbidextrousDescription)
+#define gzThiefDescription                                  (g_langRes->gzThiefDescription)
+#define gzMartialArtsDescription                            (g_langRes->gzMartialArtsDescription)
+#define gzKnifingDescription                                (g_langRes->gzKnifingDescription)
+#define gzOnRoofDescription                                 (g_langRes->gzOnRoofDescription)
+#define gzCamouflagedDescription                            (g_langRes->gzCamouflagedDescription)
+#define gzNightOpsExpertDescription                         (g_langRes->gzNightOpsExpertDescription)
 
 /* -------------------------------------------------------------------------------------------- */
 
