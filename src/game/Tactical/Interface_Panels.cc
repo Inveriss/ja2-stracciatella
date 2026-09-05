@@ -2436,8 +2436,20 @@ static void SelectMerc(SOLDIERTYPE* const s)
 		LocateSoldier(s, set_locator);
 	}
 
-	// If the user is in the shop keeper interface and is in the item desc
-	if (guiCurrentScreen == SHOPKEEPER_SCREEN && InItemDescriptionBox())
+	// Close the item description box synchronously, right here in the
+	// button-click handler -- not by relying on SetSMPanelCurrentMerc()'s
+	// own DeleteItemDescriptionBox() call, which only runs later, deferred,
+	// from inside RenderSMPanel() (via gSelectSMPanelToMerc above). That
+	// deferred close lands after RenderWorld.cc's own RENDER_FLAG_FULL
+	// check for the same frame (same class of one-frame-late timing issue
+	// fixed for ammo ejection elsewhere in this file), which left
+	// Infobox.sti's extra height above INV_INTERFACE_HEIGHT (see
+	// ITEMDESC_PANEL_HEIGHT, UILayout.h) visibly stuck on screen when
+	// switching mercs with Infobox.sti open. A direct call here runs before
+	// that frame's RENDER_FLAG_FULL check, same as clicking outside the box
+	// (ItemDescCallbackPrimary/Secondary) already reliably does. Previously
+	// scoped to SHOPKEEPER_SCREEN only; widened to every screen.
+	if (InItemDescriptionBox())
 	{
 		DeleteItemDescriptionBox();
 	}
