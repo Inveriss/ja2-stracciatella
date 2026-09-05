@@ -2168,6 +2168,8 @@ static void BtnMoneyButtonCallbackPrimary(GUI_BUTTON* btn, UINT32 reason);
 static void BtnMoneyButtonCallbackSecondary(GUI_BUTTON* btn, UINT32 reason);
 static void BtnMoneyButtonCallbackOther(GUI_BUTTON* btn, UINT32 reason);
 static void ItemDescAmmoCallback(GUI_BUTTON* btn, UINT32 reason);
+static void RefreshItemDescAmmoIcon(void);
+static void DoAttachment(INT8 bAttachPos);
 static void ItemDescAttachmentsCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void ItemDescAttachmentsCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void ItemDescCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
@@ -2463,13 +2465,56 @@ static void ItemDescAmmoCallback(GUI_BUTTON*  const btn, UINT32 const reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		if (gpItemPointer) return;
+		if (gpItemPointer)
+		{
+			// Dropping a compatible ammo/magazine item onto the Eject Ammo
+			// icon reloads the gun -- mirroring PlaceObject()'s own
+			// IC_GUN + IC_AMMO + calibre-match dispatch to ReloadGun()
+			// (Items.cc), which is what actually performs a reload when
+			// ammo is dropped onto a gun slot in
+			// Inventory_bottom_panel.sti. ValidMerge()/AttachObject()
+			// (used below by DoAttachment() for scopes/silencers/bipods,
+			// and tried here previously) never apply to gun+ammo --
+			// ValidMerge() only matches two identical ammo stacks merging
+			// together, and a gun is never IC_AMMO.
+			ItemModel const* const heldItem = GCM->getItem(gpItemPointer->usItem);
+			if (heldItem->getItemClass() == IC_AMMO &&
+				GCM->getWeapon(gpItemDescObject->usItem)->matches(heldItem->asAmmo()->calibre))
+			{
+				if (ReloadGun(gpItemDescSoldier, gpItemDescObject, gpItemPointer))
+				{
+					// ReloadGun() mutates *gpItemPointer in place: it may
+					// empty it (ammo fully consumed), leave a partial
+					// stack behind, or -- when swapping two full
+					// magazines -- replace it with the ejected old
+					// magazine. Same cursor bookkeeping
+					// UIHandleItemPlacement() does after its own
+					// PlaceObject() call (Interface_Panels.cc).
+					if (gpItemPointer->ubNumberOfObjects == 0)
+					{
+						EndItemPointer();
+					}
+
+					fInterfacePanelDirty = DIRTYLEVEL2;
+
+					// Refresh the "shots left/mag size" text and the
+					// ammo-color icon on this button -- ReloadGun()
+					// doesn't touch either, so without this they'd keep
+					// showing the pre-reload count/color until the box is
+					// closed and reopened.
+					btn->SpecifyText(ST::format("{}/{}", gpItemDescObject->ubGunShotsLeft, GCM->getWeapon(gpItemDescObject->usItem)->ubMagSize));
+					RefreshItemDescAmmoIcon();
+				}
+			}
+			return;
+		}
 		if (!EmptyWeaponMagazine(gpItemDescObject, &gItemPointer)) return;
 
 		SetItemPointer(&gItemPointer, gpItemDescSoldier);
 		fInterfacePanelDirty = DIRTYLEVEL2;
 
 		btn->SpecifyText("0");
+		RefreshItemDescAmmoIcon();
 
 		if (guiCurrentItemDescriptionScreen == MAP_SCREEN)
 		{
@@ -2504,6 +2549,34 @@ static void ItemDescAmmoCallback(GUI_BUTTON*  const btn, UINT32 const reason)
 			// way, through the already-reliable direct-call path.
 		}
 	}
+}
+
+
+// Refreshes the Eject Ammo icon's ammo-type color from gpItemDescObject's
+// current ubGunAmmoType -- same img switch as InternalInitItemDescriptionBox()
+// uses to pick it at box-open time, which is the only other place it's
+// computed. Unlike the button's text (kept current via SpecifyText()
+// wherever the shots-left count changes), the icon image is otherwise never
+// touched again after creation, so callers that change gpItemDescObject's
+// ammo (ejecting, reloading) must call this afterward or the icon keeps
+// showing the pre-change ammo color until the box is closed and reopened.
+static void RefreshItemDescAmmoIcon(void)
+{
+	if (!giItemDescAmmoButton) return;
+
+	INT32 img;
+	switch (gpItemDescObject->ubGunAmmoType)
+	{
+		case AMMO_AP:
+		case AMMO_SUPER_AP: img = 5; break;
+		case AMMO_HP:       img = 9; break;
+		default:            img = 1; break;
+	}
+
+	BUTTON_PICS* const new_img = LoadButtonImage(INTERFACEDIR "/infobox_bullets.sti", img + 3, img, -1, img + 2, -1);
+	UnloadButtonImage(giItemDescAmmoButtonImages);
+	giItemDescAmmoButtonImages = new_img;
+	giItemDescAmmoButton->image = new_img;
 }
 
 
