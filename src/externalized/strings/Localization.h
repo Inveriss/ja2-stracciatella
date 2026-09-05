@@ -175,6 +175,13 @@ constexpr std::size_t str_aim_sort_list_SIZE = 8;
 constexpr std::size_t zNewTacticalMessages_SIZE = 7;
 constexpr std::size_t gs_dead_is_dead_mode_tab_name_SIZE = 2;
 
+// Section headers + labels for the tactical-screen "Infobox_stats.sti"
+// merc-statistics popup (Interface_Panels.cc) -- battle stats and contract
+// info, mirroring the laptop's Personnel screen (pPersonnelScreenStrings)
+// but as its own, independently editable set. Skill names themselves are
+// NOT duplicated here -- reused directly from gzMercSkillText.
+constexpr std::size_t gzInfoboxStatsStrings_SIZE = 15;
+
 #define STRARRAY(arrayName) std::array<ST::string , arrayName##_SIZE> arrayName
 
 struct L10n_t
@@ -402,6 +409,7 @@ struct L10n_t
 	STRARRAY(gs_dead_is_dead_mode_tab_name);
 
 	STRARRAY(gzIMPSkillTraitsText);
+	STRARRAY(gzInfoboxStatsStrings);
 };
 #undef STRARRAY
 

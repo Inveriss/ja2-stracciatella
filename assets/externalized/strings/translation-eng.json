@@ -702,6 +702,23 @@
         "None",
         "I.M.P. Specialties"
     ],
+    "gzInfoboxStatsStrings": [
+        "Battle Statistics",
+        "Kills",
+        "Assists",
+        "Shots Fired",
+        "Shots Hit",
+        "Hit Percentage",
+        "Battles",
+        "Times Wounded",
+        "Skills",
+        "Contract",
+        "Remaining Contract",
+        "Total Service to Date",
+        "Total Cost to Date",
+        "Medical Deposit",
+        "Daily Cost"
+    ],
     "gzIntroScreen": "Cannot find intro video",
     "gzLaptopHelpText": [
         "View email",

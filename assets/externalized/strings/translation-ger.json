@@ -702,6 +702,23 @@
         "Kein",
         "B.S.E. Spezialitäten"
     ],
+    "gzInfoboxStatsStrings": [
+        "Battle Statistics",
+        "Kills",
+        "Assists",
+        "Shots Fired",
+        "Shots Hit",
+        "Hit Percentage",
+        "Battles",
+        "Times Wounded",
+        "Skills",
+        "Contract",
+        "Remaining Contract",
+        "Total Service to Date",
+        "Total Cost to Date",
+        "Medical Deposit",
+        "Daily Cost"
+    ],
     "gzIntroScreen": "Kann Introvideo nicht finden",
     "gzLaptopHelpText": [
         "E-Mail einsehen",

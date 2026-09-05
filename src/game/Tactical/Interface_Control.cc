@@ -384,6 +384,11 @@ void RenderTopmostTacticalInterface()
 		RenderKeyRingPopup(fInterfacePanelDirty == DIRTYLEVEL2);
 	}
 
+	if (InStatsPopup() && !InItemDescriptionBox())
+	{
+		RenderStatsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
+	}
+
 	if (gfInMovementMenu)
 	{
 		RenderMovementMenu();

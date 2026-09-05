@@ -31,6 +31,7 @@ enum
 	SM_PERSONNEL_BUTTON,
 	SM_STRATSCREEN_BUTTON,
 	SM_SHORTCUTS_BUTTON,
+	SM_STATS_BUTTON,
 	NUM_SM_BUTTONS
 };
 
@@ -93,6 +94,14 @@ void RenderTownIDString(void);
 
 void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 extern MOUSE_CALLBACK KeyRingSlotInvClickCallback;
+
+
+// Tactical-screen merc-statistics popup (Infobox_stats.sti) -- opened from
+// the SM panel's Statistics bookmark button (SM_STATS_BUTTON).
+void InitStatsPopup(SOLDIERTYPE* pSoldier, INT16 sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight);
+void RenderStatsPopup(BOOLEAN fFullRender);
+void DeleteStatsPopup(void);
+BOOLEAN InStatsPopup(void);
 
 
 void ShowRadioLocator(SOLDIERTYPE* s, UINT8 ubLocatorSpeed);

@@ -277,6 +277,7 @@ L10n_t::L10n_t(SGPFile * const translationFile)
 	GetString(str_dead_is_dead_mode_enter_name);
 	GetArray(gs_dead_is_dead_mode_tab_name);
 	GetArray(gzIMPSkillTraitsText);
+	GetArray(gzInfoboxStatsStrings);
 
 #undef GetString
 #undef GetArray

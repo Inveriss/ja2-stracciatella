@@ -702,6 +702,23 @@
         "None",
         "I.M.P 专长"
     ],
+    "gzInfoboxStatsStrings": [
+        "Battle Statistics",
+        "Kills",
+        "Assists",
+        "Shots Fired",
+        "Shots Hit",
+        "Hit Percentage",
+        "Battles",
+        "Times Wounded",
+        "Skills",
+        "Contract",
+        "Remaining Contract",
+        "Total Service to Date",
+        "Total Cost to Date",
+        "Medical Deposit",
+        "Daily Cost"
+    ],
     "gzIntroScreen": "找不到介绍视频",
     "gzLaptopHelpText": [
         "查看邮件",
