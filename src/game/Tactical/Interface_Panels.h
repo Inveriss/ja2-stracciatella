@@ -73,6 +73,23 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup);
 void HideSMBookmarkButtons(void);
 void ShowSMBookmarkButtons(void);
 
+// Narrower version of the pair above, for the tactical-screen Stats/Skills/
+// KeyRing popups (Infobox_stats.sti, Infobox_skills.sti, the key ring),
+// which -- unlike Infobox.sti -- are narrow enough to only ever cover the
+// right end of the bookmark row (Strategic Map/Keyboard shortcuts/
+// Statistics/Skills) and the "hide empty attachment slots" checkbox, never
+// the left end (Mail/AIM/MERC/BR/History/Personnel). Called from
+// InitStatsPopup()/DeleteStatsPopup(), InitSkillsPopup()/DeleteSkillsPopup()
+// (this file) and InitKeyRingPopup()/DeleteKeyRingPopup() (Interface_Items.cc).
+void HideSMBookmarkButtonsUnderInfoPopups(void);
+void ShowSMBookmarkButtonsUnderInfoPopups(void);
+
+// The key ring popup only ever covers the checkbox, none of the bookmark
+// row buttons -- called from InitKeyRingPopup()/DeleteKeyRingPopup()
+// (Interface_Items.cc).
+void HideSMHideEmptySlotsCheckbox(void);
+void ShowSMHideEmptySlotsCheckbox(void);
+
 
 void CreateTEAMPanelButtons(void);
 void RemoveTEAMPanelButtons(void);

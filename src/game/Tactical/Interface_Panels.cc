@@ -1343,6 +1343,52 @@ void ShowSMBookmarkButtons(void)
 }
 
 
+// Subset of g_smBookmarkButtons (+ giSMHideEmptySlotsCheckbox) that
+// Infobox_stats.sti/Infobox_skills.sti/the key ring popup actually cover --
+// see HideSMBookmarkButtonsUnderInfoPopups() in Interface_Panels.h for why
+// this is narrower than HideSMBookmarkButtons() above.
+static UINT32 const g_smBookmarkButtonsUnderInfoPopups[] =
+{
+	SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON, SM_STATS_BUTTON, SM_SKILLS_BUTTON
+};
+
+
+void HideSMBookmarkButtonsUnderInfoPopups(void)
+{
+	for (UINT32 const idx : g_smBookmarkButtonsUnderInfoPopups)
+	{
+		if (iSMPanelButtons[idx]) HideButton(iSMPanelButtons[idx]);
+	}
+
+	if (giSMHideEmptySlotsCheckbox) HideButton(giSMHideEmptySlotsCheckbox);
+}
+
+
+void ShowSMBookmarkButtonsUnderInfoPopups(void)
+{
+	for (UINT32 const idx : g_smBookmarkButtonsUnderInfoPopups)
+	{
+		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
+	}
+
+	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
+}
+
+
+// The key ring popup is narrower still -- it only ever covers the "hide
+// empty attachment slots" checkbox, none of the bookmark row buttons.
+void HideSMHideEmptySlotsCheckbox(void)
+{
+	if (giSMHideEmptySlotsCheckbox) HideButton(giSMHideEmptySlotsCheckbox);
+}
+
+
+void ShowSMHideEmptySlotsCheckbox(void)
+{
+	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
+}
+
+
 void ShutdownSMPanel()
 {
 	// All buttons and regions and video objects and video surfaces will be deleted at shutddown of SGM
@@ -3766,6 +3812,10 @@ void DeleteStatsPopup(void)
 
 	EnableSMPanelButtons(TRUE, FALSE);
 
+	// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
+	// InitStatsPopup() below.
+	ShowSMBookmarkButtonsUnderInfoPopups();
+
 	FreeMouseCursor();
 }
 
@@ -3806,6 +3856,20 @@ void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const 
 	fInterfacePanelDirty = DIRTYLEVEL2;
 
 	EnableSMPanelButtons(FALSE, FALSE);
+
+	// GUI_BUTTONs (RenderButtons()) render after this popup's own background
+	// every frame (RenderTopmostTacticalInterface(), Interface_Control.cc),
+	// and EnableSMPanelButtons(FALSE, ...) above only disables them -- it
+	// doesn't stop them being drawn. Without hiding the ones this popup
+	// actually covers too, they'd paint on top of it whenever
+	// fInterfacePanelDirty == DIRTYLEVEL2 forces a button refresh (e.g.
+	// right when this popup opens, or a merc switch) -- same reason
+	// InternalInitItemDescriptionBox() (Infobox.sti) calls the wider
+	// HideSMBookmarkButtons(). This popup is narrower than Infobox.sti and
+	// never covers the left end of the bookmark row (Mail/AIM/MERC/BR/
+	// History/Personnel), so the full hide made those flicker out for no
+	// reason -- see HideSMBookmarkButtonsUnderInfoPopups().
+	HideSMBookmarkButtonsUnderInfoPopups();
 
 	gfInStatsPopup = TRUE;
 
@@ -4103,6 +4167,10 @@ void DeleteSkillsPopup(void)
 
 	EnableSMPanelButtons(TRUE, FALSE);
 
+	// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
+	// InitSkillsPopup() below.
+	ShowSMBookmarkButtonsUnderInfoPopups();
+
 	FreeMouseCursor();
 }
 
@@ -4141,6 +4209,10 @@ void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const
 	fInterfacePanelDirty = DIRTYLEVEL2;
 
 	EnableSMPanelButtons(FALSE, FALSE);
+
+	// See the matching call in InitStatsPopup() above for why this is
+	// needed in addition to EnableSMPanelButtons(FALSE, ...).
+	HideSMBookmarkButtonsUnderInfoPopups();
 
 	gfInSkillsPopup = TRUE;
 

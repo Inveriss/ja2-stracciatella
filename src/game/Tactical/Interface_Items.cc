@@ -4917,6 +4917,17 @@ void InitKeyRingPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 cons
 	if( guiCurrentItemDescriptionScreen != MAP_SCREEN )
 	{
 		EnableSMPanelButtons( FALSE , FALSE );
+
+		// GUI_BUTTONs render after this popup's own background every frame
+		// (RenderTopmostTacticalInterface(), Interface_Control.cc), and
+		// EnableSMPanelButtons(FALSE, ...) above only disables them -- it
+		// doesn't stop it being drawn. Without hiding it too, the "hide
+		// empty attachment slots" checkbox would paint on top of this
+		// popup whenever fInterfacePanelDirty == DIRTYLEVEL2 forces a
+		// button refresh. Unlike Infobox_stats.sti/Infobox_skills.sti (see
+		// HideSMBookmarkButtonsUnderInfoPopups()), this popup never covers
+		// any of the bookmark row buttons themselves, just the checkbox.
+		HideSMHideEmptySlotsCheckbox();
 	}
 
 	gfInKeyRingPopup = TRUE;
@@ -5018,6 +5029,10 @@ void DeleteKeyRingPopup(void)
 	if (guiCurrentItemDescriptionScreen != MAP_SCREEN)
 	{
 		EnableSMPanelButtons(TRUE, FALSE);
+
+		// Undo the HideSMHideEmptySlotsCheckbox() call from
+		// InitKeyRingPopup() above.
+		ShowSMHideEmptySlotsCheckbox();
 	}
 
 	FreeMouseCursor();
