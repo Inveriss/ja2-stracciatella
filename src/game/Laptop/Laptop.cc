@@ -107,6 +107,15 @@ enum
 	LAPTOP_PROGRAM_OPEN
 };
 
+// Toggle for the fix from commit 8eb43ce (out-of-bounds map<->laptop
+// transition rect -- see the two SGPBox rects below in
+// LaptopScreenHandle()/LeaveLapTopScreen()). Set to false to deactivate the
+// fix without removing it, restoring the original (buggy) STD_SCREEN_X/Y
+// wraps at MAP_SCREEN_WIDTH/HEIGHT, e.g. for regression testing against the
+// pre-8eb43ce state without switching branches/commits. Flip back to true
+// to re-enable the fix.
+constexpr bool ENABLE_LAPTOP_TRANSITION_RECT_FIX = true;
+
 #define BOOK_FONT     FONT10ARIAL
 #define DOWNLOAD_FONT FONT12ARIAL
 
@@ -1020,7 +1029,9 @@ ScreenID LaptopScreenHandle()
 
 		//Step 2:  The mapscreen image is in the EXTRABUFFER, and laptop is in the SAVEBUFFER
 		//         Start transitioning the screen.
-		SGPBox const DstRect = { STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT };
+		SGPBox const DstRect = ENABLE_LAPTOP_TRANSITION_RECT_FIX
+			? SGPBox{ STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT }
+			: SGPBox{ MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
 		const UINT32 uiTimeRange = 1000;
 		INT32 iPercentage     = 0;
 		INT32 iRealPercentage = 0;
@@ -1422,7 +1433,9 @@ static void LeaveLapTopScreen(void)
 
 			//Step 2:  The mapscreen image is in the EXTRABUFFER, and laptop is in the SAVEBUFFER
 			//         Start transitioning the screen.
-			SGPBox const SrcRect = { STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT };
+			SGPBox const SrcRect = ENABLE_LAPTOP_TRANSITION_RECT_FIX
+				? SGPBox{ STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT }
+				: SGPBox{ MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
 			const UINT32 uiTimeRange = 1000;
 			INT32 iPercentage     = 100;
 			INT32 iRealPercentage = 100;
