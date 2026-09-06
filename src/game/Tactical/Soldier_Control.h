@@ -29,6 +29,28 @@ constexpr ProfileID NO_PROFILE = 200;
 
 constexpr bool BATTLE_SND_LOWER_VOLUME = true;
 
+// Toggle for the extended burst-fire fix from commit 11261e83a (raises the
+// engine's max burst length from 6 to 10 shots), see
+// SOLDIERTYPE::usBurstFireAniCodeAnchor and its use in Soldier_Ani.cc/
+// Weapons.cc. Set to false to deactivate without removing the code,
+// restoring the original, animation-table-limited 6-shot behavior.
+//
+// HISTORY: the original version of this fix rewound back to the "SHOOT GUN"
+// frame directly from "HANDLE BURST" (case 448), which skipped the per-shot
+// visual frames that normally follow it in the loaded animation table --
+// those frames are what yields control back to the caller between shots
+// (see the do-while loop in AdjustToNextAnimationFrame()), which is what
+// lets the queued shot's game event actually get processed and bDoBurst
+// get incremented before the next check. Skipping them meant bDoBurst
+// never changed, so the burst-continue check could never stop the loop --
+// a livelock, reproduced by a regression test: with this flag false the
+// hang doesn't occur, with it true (rewinding from case 448) it did, on
+// literally the first shot of any burst, regardless of configured length.
+// Fixed by moving the rewind to case 449 ("FINISH BURST", reached only once
+// the table's own repeats are exhausted) so every pass keeps the table's
+// natural per-shot pacing; see the comments at cases 448/449 below.
+constexpr bool ENABLE_EXTENDED_BURST_FIRE = true;
+
 #define TAKE_DAMAGE_GUNFIRE				1
 #define TAKE_DAMAGE_BLADE				2
 #define TAKE_DAMAGE_HANDTOHAND				3
