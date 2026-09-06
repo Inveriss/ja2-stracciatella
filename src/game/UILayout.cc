@@ -16,14 +16,6 @@
 #define MIN_INTERFACE_HEIGHT            720   // absolute minimum height == height of the compact strategic-screen asset variant
 #define LARGE_STRATEGIC_SCREEN_HEIGHT   768   // screens at/above this height use the large strategic-screen asset variant instead of the compact one
 
-// Logical size of the legacy window (STD_SCREEN_X/Y) used by every screen
-// EXCEPT the strategic map -- splash, options, save/load, credits, initial
-// game settings, the laptop and all of its sub-screens. None of those
-// graphics grew with the strategic map's own assets, so they still need to
-// be centered against the original 640x480, not MIN_INTERFACE_WIDTH/HEIGHT.
-#define LEGACY_INTERFACE_WIDTH          640
-#define LEGACY_INTERFACE_HEIGHT         480
-
 /**
  * Default screen layout.
  * It might be changed later when the window size is known for sure. */
@@ -132,9 +124,9 @@ void UILayout::recalculatePositions()
 	                                     : MIN_INTERFACE_HEIGHT;
 
 	// STD_SCREEN_X/Y centers the legacy 640x480 window (everything except the
-	// strategic map -- see the LEGACY_INTERFACE_WIDTH/HEIGHT comment above).
-	m_stdScreenOffsetX            = (m_screenWidth - LEGACY_INTERFACE_WIDTH) / 2;
-	m_stdScreenOffsetY            = (m_screenHeight - LEGACY_INTERFACE_HEIGHT) / 2;
+	// strategic map -- see STD_SCREEN_X/Y / STD_SCREEN_WIDTH/HEIGHT in UILayout.h).
+	m_stdScreenOffsetX            = (m_screenWidth - STD_SCREEN_WIDTH) / 2;
+	m_stdScreenOffsetY            = (m_screenHeight - STD_SCREEN_HEIGHT) / 2;
 	// MAP_SCREEN_X/Y centers the strategic map's own, larger canvas.
 	m_mapScreenOffsetX            = (m_screenWidth - m_mapScreenWidth) / 2;
 	m_mapScreenOffsetY            = (m_screenHeight - m_mapScreenHeight) / 2;
@@ -231,7 +223,7 @@ void UILayout::recalculatePositions()
 
 	m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);
 
-	m_progress_bar_box.set(STD_SCREEN_X + 5, 2, LEGACY_INTERFACE_WIDTH - 10, 12);
+	m_progress_bar_box.set(STD_SCREEN_X + 5, 2, STD_SCREEN_WIDTH - 10, 12);
 	// Uses ITEMDESC_PANEL_START_Y_MONEY (not startInvY/INV_INTERFACE_START_Y,
 	// and not the weapon-only ITEMDESC_PANEL_START_Y): the money buttons are
 	// an overlay drawn inside the Infobox_money.sti popup specifically (see
