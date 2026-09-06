@@ -29,8 +29,14 @@ struct BUTTON_PICS;
 #define BTN_AIR_X       (MAP_SCREEN_X + 471)
 #define BTN_ITEM_X      (MAP_SCREEN_X + 514)
 
+// Shared by the six Show-* buttons above and MAP_LEVEL_MARKER_Y below (the
+// current-level highlight rides on the same row) -- bottom-anchored so both
+// stay flush with the bottom edge of the (now bigger) map canvas instead of
+// the fixed offset tuned for the old 640x480 canvas (480 - 323 = 157).
+#define BTN_ROW_Y             (MAP_SCREEN_BOTTOM - 157)
+
 #define MAP_LEVEL_MARKER_X    (MAP_SCREEN_X + 565)
-#define MAP_LEVEL_MARKER_Y     (MAP_SCREEN_Y + 323)
+#define MAP_LEVEL_MARKER_Y     BTN_ROW_Y
 #define MAP_LEVEL_MARKER_DELTA   8
 #define MAP_LEVEL_MARKER_WIDTH  55
 
@@ -123,7 +129,7 @@ static void MakeButton(UINT idx, UINT gfx, INT16 x, GUI_CALLBACK click, const ST
 {
 	BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/map_border_buttons.sti", gfx, gfx + 9);
 	giMapBorderButtonsImage[idx] = img;
-	GUIButtonRef const btn = QuickCreateButtonNoMove(img, x, (MAP_SCREEN_Y + 323), MSYS_PRIORITY_HIGH, click);
+	GUIButtonRef const btn = QuickCreateButtonNoMove(img, x, BTN_ROW_Y, MSYS_PRIORITY_HIGH, click);
 	giMapBorderButtons[idx] = btn;
 	btn->SetFastHelpText(help);
 	btn->SetCursor(MSYS_NO_CURSOR);

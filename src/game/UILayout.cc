@@ -69,7 +69,7 @@ UINT16 UILayout::currentHeight() const             { return fInMapMode ? (MAP_SC
 // m_teamPanelWidth, since neither is floored there): 142 - 56 = 86, 142 - 45 = 97.
 UINT16 UILayout::get_CLOCK_X() const
 {
-	if (fInMapMode) return MAP_SCREEN_X + 554;
+	if (fInMapMode) return MAP_SCREEN_RIGHT - 86;
 	// SM_PANEL offset shifted 3px right (86 -> 83) to match
 	// inventory_bottom_panel.sti's latest graphic; TEAM_PANEL (bottom_bar.sti)
 	// is untouched.
@@ -79,7 +79,7 @@ UINT16 UILayout::get_CLOCK_X() const
 UINT16 UILayout::get_CLOCK_Y() const               { return currentHeight() - 23;                                  }
 UINT16 UILayout::get_RADAR_WINDOW_X() const
 {
-	if (fInMapMode) return MAP_SCREEN_X + 543;
+	if (fInMapMode) return MAP_SCREEN_RIGHT - 97;
 	// SM_PANEL offset shifted 3px right (97 -> 94) -- see get_CLOCK_X().
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 94;
 	return m_teamPanelPosition.iX + m_teamPanelWidth - 97;

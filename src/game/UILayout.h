@@ -61,6 +61,12 @@
 #define MAP_SCREEN_Y                    (g_ui.m_mapScreenOffsetY)
 #define MAP_SCREEN_WIDTH                (g_ui.m_mapScreenWidth)
 #define MAP_SCREEN_HEIGHT               (g_ui.m_mapScreenHeight)
+// Right/bottom edge of the strategic map's own canvas -- use these (not a
+// fresh MAP_SCREEN_X/Y + hand-tuned pixel offset) for anything that should
+// hug the far edge of the map screen, so it tracks MAP_SCREEN_WIDTH/HEIGHT
+// automatically across both strategic-screen size tiers.
+#define MAP_SCREEN_RIGHT                (MAP_SCREEN_X + MAP_SCREEN_WIDTH)
+#define MAP_SCREEN_BOTTOM               (MAP_SCREEN_Y + MAP_SCREEN_HEIGHT)
 
 #define SM_BODYINV_X                    (INTERFACE_START_X + 324)
 #define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
