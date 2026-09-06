@@ -258,7 +258,13 @@ void InitNewGame()
 			AddFutureDayStrategicEvent(EVENT_DAY3_ADD_EMAIL_FROM_SPECK, 60 * 7, 0, days_time_merc_site_available);
 		}
 
-		SetLaptopExitScreen(INIT_SCREEN);
+		// Don't SetLaptopExitScreen(INIT_SCREEN) here -- INIT_SCREEN is not a
+		// real screen to return to, it's InitScreenHandle()'s one-shot boot
+		// sequence (JAScreens.cc), which no longer advances past its final
+		// stage once it's already run. LeaveLapTopScreen() used to overwrite
+		// guiExitScreen unconditionally, which made this harmless; it no
+		// longer always does, so honour its MAP_SCREEN default instead --
+		// the strategic layer is already initialized above.
 		SetPendingNewScreen(LAPTOP_SCREEN);
 		gubScreenCount = 1;
 

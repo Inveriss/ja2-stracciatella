@@ -552,7 +552,10 @@ FireWeaponResult FireWeapon(SOLDIERTYPE * const pSoldier, GridNo const sTargetGr
 				pSoldier->fDoSpread = FALSE;
 			}
 
-			if ( pSoldier->fDoSpread > 10 )
+			// See ENABLE_EXTENDED_BURST_FIRE (Soldier_Control.h): restores the
+			// original 6-shot spread cap when deactivated, without shrinking
+			// sSpreadLocations back down.
+			if ( pSoldier->fDoSpread > ( ENABLE_EXTENDED_BURST_FIRE ? 10 : 6 ) )
 			{
 				pSoldier->fDoSpread = FALSE;
 			}
