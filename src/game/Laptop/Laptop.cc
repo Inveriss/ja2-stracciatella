@@ -1389,7 +1389,16 @@ static void LeaveLapTopScreen(void)
 		// guiExitScreen's MAP_SCREEN default. Reset back to that default
 		// right after use so a one-off custom target never leaks into a
 		// later, unrelated laptop session.
-		ScreenID const uiTargetScreen = guiExitScreen;
+		//
+		// Only honour a value we actually recognize as a real "resume
+		// point": MAP_SCREEN (the default) or GAME_SCREEN (the tactical
+		// shortcuts). Anything else falls back to MAP_SCREEN -- some entry
+		// points stash unrelated sentinels in guiExitScreen expecting it to
+		// always be overwritten before use (e.g. Game_Init.cc's mandatory
+		// new-game laptop once left INIT_SCREEN there); honouring such a
+		// value here would send the game back to a boot-sequence screen
+		// that never runs twice, hanging it instead of returning anywhere.
+		ScreenID const uiTargetScreen = (guiExitScreen == GAME_SCREEN) ? GAME_SCREEN : MAP_SCREEN;
 		SetPendingNewScreen(uiTargetScreen);
 		SetLaptopExitScreen(MAP_SCREEN);
 
