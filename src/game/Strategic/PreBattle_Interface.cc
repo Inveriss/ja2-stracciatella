@@ -279,7 +279,11 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 
 	/* Define the blanket region to cover all of the other regions used underneath
 	 * the panel. */
-	MSYS_DefineRegion(&PBInterfaceBlanket, MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, MAP_SCREEN_X + 261, MAP_SCREEN_Y + 359, MSYS_PRIORITY_HIGHEST - 5, 0, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+	// Bottom edge was hardcoded to the old canvas boundary (MAP_SCREEN_Y + 359)
+	// -- same bug as the RestoreExternBackgroundRect calls above, just for
+	// click-blocking instead of rendering. Extend to the real (now bigger)
+	// canvas bottom so clicks can't leak through the gap below the old boundary.
+	MSYS_DefineRegion(&PBInterfaceBlanket, MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, MAP_SCREEN_X + 261, MAP_SCREEN_BOTTOM, MSYS_PRIORITY_HIGHEST - 5, 0, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 
 	// Create the panel
 	uiInterfaceImages = AddVideoObjectFromFile(MLG_PREBATTLEPANEL);
@@ -924,7 +928,12 @@ void RenderPreBattleInterface()
 		}
 
 		MarkAllBoxesAsAltered();
-		RestoreExternBackgroundRect(MAP_SCREEN_X, MAP_SCREEN_Y, 261, 359);
+		// Height was hardcoded to 359 (old 640x480 canvas boundary) -- same bug
+		// as RenderMapRegionBackground()/RenderTeamRegionBackground() in
+		// MapScreen.cc, clipping the restore before it reached the bottom of the
+		// now-taller left column (mbs.sti / newgoldpiece3.sti). Restore the full
+		// remaining canvas height instead.
+		RestoreExternBackgroundRect(MAP_SCREEN_X, MAP_SCREEN_Y, 261, MAP_SCREEN_HEIGHT);
 
 		// Restore font destinanation buffer to the frame buffer
 		SetFontDestBuffer(FRAME_BUFFER);

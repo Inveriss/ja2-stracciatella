@@ -125,7 +125,10 @@
 #define INV_BTN_X PLAYER_INFO_X + 217
 #define INV_BTN_Y PLAYER_INFO_Y + 210
 
-#define MAP_BG_WIDTH      (640 - 261)
+// Bottom+right-anchored, not a fixed 640x480-canvas literal, so the
+// background restore below actually reaches the new, bigger canvas' edges
+// -- see RenderMapRegionBackground()/RenderTeamRegionBackground().
+#define MAP_BG_WIDTH      (MAP_SCREEN_WIDTH - 261)
 
 #define MAP_ARMOR_LABEL_X (MAP_SCREEN_X + 208)
 #define MAP_ARMOR_LABEL_Y (MAP_SCREEN_Y + 179)
@@ -3553,7 +3556,10 @@ static void BltCharInvPanel(void)
 	if( InKeyRingPopup() || InItemStackPopup() )
 	{
 		// shade the background
-		guiSAVEBUFFER->ShadowRect(PLAYER_INFO_X, PLAYER_INFO_Y, PLAYER_INFO_X + 261,  PLAYER_INFO_Y + (359 - 107));
+		// Same old-canvas-boundary bug as the RestoreExternBackgroundRect calls
+		// in RenderMapRegionBackground()/RenderTeamRegionBackground() -- extend
+		// to the actual (now bigger) canvas bottom instead of the literal 359.
+		guiSAVEBUFFER->ShadowRect(PLAYER_INFO_X, PLAYER_INFO_Y, PLAYER_INFO_X + 261,  PLAYER_INFO_Y + (MAP_SCREEN_HEIGHT - 107));
 	}
 	else
 	{
@@ -4948,7 +4954,15 @@ void RenderMapRegionBackground( void )
 
 	MapscreenMarkButtonsDirty();
 
-	RestoreExternBackgroundRect(MAP_SCREEN_X + 261, MAP_SCREEN_Y + 0, MAP_BG_WIDTH, 359);
+	// Height was hardcoded to 359 (the old 640x480 canvas' border/bottom-bar
+	// boundary) -- with the map canvas now bigger, that left everything mbs.sti
+	// draws below Y=359 (e.g. up to its own, taller bottom edge) sitting
+	// correctly in guiSAVEBUFFER but never copied to the visible FRAME_BUFFER,
+	// showing as a black gap once the bottom-bar elements that used to visually
+	// mask it were moved down to the real bottom edge. Restore the full
+	// remaining canvas height instead -- safe, since RenderMapScreenInterfaceBottom()
+	// (BlitBackgroundToSaveBuffer()) draws its own area on top afterwards.
+	RestoreExternBackgroundRect(MAP_SCREEN_X + 261, MAP_SCREEN_Y + 0, MAP_BG_WIDTH, MAP_SCREEN_HEIGHT);
 
 	// don't bother if showing sector inventory instead of the map!!!
 	if( !fShowMapInventoryPool )
@@ -4994,7 +5008,10 @@ static void RenderTeamRegionBackground()
 	gfRenderPBInterface = TRUE;
 
 	MarkAllBoxesAsAltered();
-	RestoreExternBackgroundRect(MAP_SCREEN_X + 0, MAP_SCREEN_Y + 107, 261 - 0, 359 - 107);
+	// Same fix as RenderMapRegionBackground() above: height was hardcoded to
+	// 359-107 (old canvas boundary), clipping anything the (now potentially
+	// taller, e.g. newgoldpiece3_720.sti) team-list graphic draws further down.
+	RestoreExternBackgroundRect(MAP_SCREEN_X + 0, MAP_SCREEN_Y + 107, 261 - 0, MAP_SCREEN_HEIGHT - 107);
 	MapscreenMarkButtonsDirty();
 }
 
