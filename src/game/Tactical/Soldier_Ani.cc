@@ -736,21 +736,43 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 						}
 					}
 
-					// We're continuing the burst (fStop was FALSE above). Don't just fall
-					// through to whatever the loaded animation table happens to have next --
-					// it may only contain as many 430 (SHOOT GUN) / 448 (HANDLE BURST) repeats
-					// as the original data was authored for (observed: 6), regardless of this
-					// weapon's actual GunShotsPerBurst(). Rewind back to the last "SHOOT GUN"
-					// frame so the shared usAniCode++ below lands back on it and fires again.
-					if ( pSoldier->usBurstFireAniCodeAnchor != 0xFFFF )
-					{
-						pSoldier->usAniCode = (UINT16)( pSoldier->usBurstFireAniCodeAnchor - 1 );
-					}
+					// We're continuing the burst (fStop was FALSE above) -- fall through to
+					// whatever the loaded animation table has next (the per-shot visual
+					// frames for THIS shot, then either another natural 430/448 repeat or
+					// case 449 below). Do NOT rewind here: those visual frames are what
+					// breaks the do-while loop in this function and hands control back to
+					// the caller between shots, letting the queued EV_S_FIREWEAPON from
+					// case 430 actually get processed (see DequeAllGameEvents(), called once
+					// per tick from GameScreen.cc, well outside this function) and bDoBurst
+					// get incremented (UseGun(), Weapons.cc) before the next check here.
+					// Rewinding straight back to case 430 from here would skip those frames
+					// every time, so bDoBurst would never change and this loop would never
+					// exit -- see case 449 for where the actual extended-burst continuation
+					// belongs instead.
 					break;
 
 				case 449:
 
 					//CODE: FINISH BURST
+
+					// If this weapon's burst isn't done yet (GunShotsPerBurst() asks for
+					// more shots than the loaded animation table's own 430/448 repeats
+					// provide -- observed: 6) and there's still ammo, loop the whole
+					// natural sequence again instead of ending the burst here. Rewinding
+					// from this point (reached only once the table's own repeats are
+					// exhausted) preserves the per-shot visual frames/yielding on every
+					// pass, unlike rewinding directly from case 448 (see the comment
+					// there). See ENABLE_EXTENDED_BURST_FIRE (Soldier_Control.h) to
+					// deactivate.
+					if ( ENABLE_EXTENDED_BURST_FIRE &&
+					     pSoldier->usBurstFireAniCodeAnchor != 0xFFFF &&
+					     pSoldier->bDoBurst <= GunShotsPerBurst( pSoldier->inv[ pSoldier->ubAttackingHand ] ) &&
+					     EnoughAmmo( pSoldier, FALSE, pSoldier->ubAttackingHand ) )
+					{
+						pSoldier->usAniCode = (UINT16)( pSoldier->usBurstFireAniCodeAnchor - 1 );
+						break;
+					}
+
 					pSoldier->fDoSpread = FALSE;
 					pSoldier->bDoBurst = 1;
 					pSoldier->usBurstFireAniCodeAnchor = 0xFFFF;
