@@ -86,9 +86,9 @@ enum //GraphicIDs for the panel
 };
 
 //The start of the black space
-#define TOP_Y							(STD_SCREEN_Y + 113)
+#define TOP_Y							(MAP_SCREEN_Y + 113)
 //The end of the black space
-#define BOTTOM_Y					(STD_SCREEN_Y + 349)
+#define BOTTOM_Y					(MAP_SCREEN_Y + 349)
 //The internal height of the uninvolved panel
 #define INTERNAL_HEIGHT		27
 //The actual height of the uninvolved panel
@@ -147,7 +147,7 @@ BOOLEAN gfUsePersistantPBI;
 static void MakeButton(UINT idx, INT16 x, const ST::string& text, GUI_CALLBACK click)
 {
 	GUIButtonRef const btn = QuickCreateButton(iPBButtonImage[idx], x,
-		STD_SCREEN_Y + 54, MSYS_PRIORITY_HIGHEST - 2, std::move(click));
+		MAP_SCREEN_Y + 54, MSYS_PRIORITY_HIGHEST - 2, std::move(click));
 	iPBButton[idx] = btn;
 
 	btn->SpecifyGeneralTextAttributes(text, BLOCKFONT, FONT_BEIGE, 141);
@@ -279,7 +279,7 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 
 	/* Define the blanket region to cover all of the other regions used underneath
 	 * the panel. */
-	MSYS_DefineRegion(&PBInterfaceBlanket, STD_SCREEN_X + 0, STD_SCREEN_Y + 0, STD_SCREEN_X + 261, STD_SCREEN_Y + 359, MSYS_PRIORITY_HIGHEST - 5, 0, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+	MSYS_DefineRegion(&PBInterfaceBlanket, MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, MAP_SCREEN_X + 261, MAP_SCREEN_Y + 359, MSYS_PRIORITY_HIGHEST - 5, 0, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 
 	// Create the panel
 	uiInterfaceImages = AddVideoObjectFromFile(MLG_PREBATTLEPANEL);
@@ -288,9 +288,9 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 	iPBButtonImage[0] = LoadButtonImage(INTERFACEDIR "/prebattlebutton.sti", 0, 1);
 	iPBButtonImage[1] = UseLoadedButtonImage(iPBButtonImage[0], 0, 1);
 	iPBButtonImage[2] = UseLoadedButtonImage(iPBButtonImage[0], 0, 1);
-	MakeButton(0, STD_SCREEN_X +  27, gpStrategicString[STR_PB_AUTORESOLVE_BTN],  AutoResolveBattleCallback);
-	MakeButton(1, STD_SCREEN_X +  98, gpStrategicString[STR_PB_GOTOSECTOR_BTN],   GoToSectorCallback);
-	MakeButton(2, STD_SCREEN_X + 169, gpStrategicString[STR_PB_RETREATMERCS_BTN], RetreatMercsCallback);
+	MakeButton(0, MAP_SCREEN_X +  27, gpStrategicString[STR_PB_AUTORESOLVE_BTN],  AutoResolveBattleCallback);
+	MakeButton(1, MAP_SCREEN_X +  98, gpStrategicString[STR_PB_GOTOSECTOR_BTN],   GoToSectorCallback);
+	MakeButton(2, MAP_SCREEN_X + 169, gpStrategicString[STR_PB_RETREATMERCS_BTN], RetreatMercsCallback);
 
 	gfPBButtonsHidden = TRUE;
 
@@ -548,8 +548,8 @@ static void DoTransitionFromMapscreenToPreBattleInterface(void)
 	GetScreenXYFromMapXY(gubPBSector, &sStartLeft, &sStartTop);
 	sStartLeft += MAP_GRID_X / 2;
 	sStartTop += MAP_GRID_Y / 2;
-	sEndLeft = STD_SCREEN_X + 131;
-	sEndTop = STD_SCREEN_Y + 180;
+	sEndLeft = MAP_SCREEN_X + 131;
+	sEndTop = MAP_SCREEN_Y + 180;
 
 	//save the mapscreen buffer
 	BltVideoSurface(guiEXTRABUFFER, FRAME_BUFFER, 0, 0, NULL);
@@ -571,17 +571,17 @@ static void DoTransitionFromMapscreenToPreBattleInterface(void)
 		gfEnterAutoResolveMode = TRUE;
 	}
 
-	BlitBufferToBuffer( guiSAVEBUFFER, FRAME_BUFFER, STD_SCREEN_X + 27, STD_SCREEN_Y + 54, 209, 32 );
+	BlitBufferToBuffer( guiSAVEBUFFER, FRAME_BUFFER, MAP_SCREEN_X + 27, MAP_SCREEN_Y + 54, 209, 32 );
 	RenderButtons();
-	BlitBufferToBuffer( FRAME_BUFFER, guiSAVEBUFFER, STD_SCREEN_X + 27, STD_SCREEN_Y + 54, 209, 32 );
+	BlitBufferToBuffer( FRAME_BUFFER, guiSAVEBUFFER, MAP_SCREEN_X + 27, MAP_SCREEN_Y + 54, 209, 32 );
 	gfRenderPBInterface = TRUE;
 
 	//hide the prebattle interface
-	BlitBufferToBuffer( guiEXTRABUFFER, FRAME_BUFFER, STD_SCREEN_X, STD_SCREEN_Y, 261, 359 );
+	BlitBufferToBuffer( guiEXTRABUFFER, FRAME_BUFFER, MAP_SCREEN_X, MAP_SCREEN_Y, 261, 359 );
 	PlayJA2SampleFromFile(SOUNDSDIR "/laptop power up (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
 	InvalidateScreen();
 
-	SGPBox const PBIRect = { STD_SCREEN_X, STD_SCREEN_Y, 261, 359 };
+	SGPBox const PBIRect = { MAP_SCREEN_X, MAP_SCREEN_Y, 261, 359 };
 	while( iPercentage < 100  )
 	{
 		uiCurrTime = GetClock();
@@ -711,8 +711,8 @@ static void RenderPBHeader(INT32* piX, INT32* piWidth)
 	}
 	width = StringPixLength( str, FONT10ARIALBOLD );
 	x = 130 - width / 2;
-	MPrint(STD_SCREEN_X + x, STD_SCREEN_Y + 4, str);
-	InvalidateRegion( STD_SCREEN_X + 0, STD_SCREEN_Y + 0, STD_SCREEN_X + 231, STD_SCREEN_Y + 12 );
+	MPrint(MAP_SCREEN_X + x, MAP_SCREEN_Y + 4, str);
+	InvalidateRegion( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, MAP_SCREEN_X + 231, MAP_SCREEN_Y + 12 );
 	*piX = x;
 	*piWidth = width;
 }
@@ -728,14 +728,14 @@ static void PrintConfined(INT32 x, INT32 y, INT32 max_w, const ST::string& str)
 		w    = StringPixLength(str, font);
 	}
 	SetFont(font);
-	MPrint(STD_SCREEN_X + x - w, STD_SCREEN_Y + y, str);
+	MPrint(MAP_SCREEN_X + x - w, MAP_SCREEN_Y + y, str);
 }
 
 
 static void MPrintCentered(INT32 x, INT32 y, INT32 w, const ST::string& str)
 {
 	x += (w - StringPixLength(str, FontDefault)) / 2;
-	MPrint(STD_SCREEN_X + x, STD_SCREEN_Y + y, str);
+	MPrint(MAP_SCREEN_X + x, MAP_SCREEN_Y + y, str);
 }
 
 
@@ -787,21 +787,21 @@ void RenderPreBattleInterface()
 
 		SGPVObject const* const vo = uiInterfaceImages;
 		// Main panel
-		BltVideoObject(dst, vo, MAINPANEL, STD_SCREEN_X + 0, STD_SCREEN_Y + 0);
+		BltVideoObject(dst, vo, MAINPANEL, MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0);
 		// Main title
 		RenderPBHeader(&x, &width);
 		// Draw the title bars up to the text
 		for (INT32 i = x - 12; i > 20; i -= 10)
 		{
-			BltVideoObject(dst, vo, TITLE_BAR_PIECE, STD_SCREEN_X + i, STD_SCREEN_Y + 6);
+			BltVideoObject(dst, vo, TITLE_BAR_PIECE, MAP_SCREEN_X + i, MAP_SCREEN_Y + 6);
 		}
 		for (INT32 i = x + width + 2; i < 231; i += 10)
 		{
-			BltVideoObject(dst, vo, TITLE_BAR_PIECE, STD_SCREEN_X + i, STD_SCREEN_Y + 6);
+			BltVideoObject(dst, vo, TITLE_BAR_PIECE, MAP_SCREEN_X + i, MAP_SCREEN_Y + 6);
 		}
 
 		{ INT32 const y = BOTTOM_Y - ACTUAL_HEIGHT - ROW_HEIGHT * std::max(guiNumUninvolved, 1U);
-			BltVideoObject(dst, vo, UNINVOLVED_HEADER, STD_SCREEN_X + 8, y);
+			BltVideoObject(dst, vo, UNINVOLVED_HEADER, MAP_SCREEN_X + 8, y);
 		}
 
 		SetFontForeground(FONT_BEIGE);
@@ -820,19 +820,19 @@ void RenderPreBattleInterface()
 		for (INT32 i = 0; i < (INT32)std::max(guiNumUninvolved, 1U); ++i)
 		{
 			INT32 const y = BOTTOM_Y - ROW_HEIGHT * (i + 1) + 1;
-			BltVideoObject(dst, vo, BOTTOM_COLUMN, STD_SCREEN_X + 161, y);
+			BltVideoObject(dst, vo, BOTTOM_COLUMN, MAP_SCREEN_X + 161, y);
 		}
 
 		for (INT32 i = 0; i < (INT32)(21 - std::max(guiNumUninvolved, 1U)); ++i)
 		{
 			INT32 const y = TOP_Y + ROW_HEIGHT * i;
-			BltVideoObject(dst, vo, TOP_COLUMN, STD_SCREEN_X + 186, y);
+			BltVideoObject(dst, vo, TOP_COLUMN, MAP_SCREEN_X + 186, y);
 		}
 
 		// Location
 		SetFontAttributes(FONT10ARIAL, FONT_YELLOW);
 		ST::string sector_name = GetSectorIDString(gubPBSector, TRUE);
-		MPrint(STD_SCREEN_X + 70, STD_SCREEN_Y + 17, ST::format("{} {}", gpStrategicString[STR_PB_SECTOR], sector_name));
+		MPrint(MAP_SCREEN_X + 70, MAP_SCREEN_Y + 17, ST::format("{} {}", gpStrategicString[STR_PB_SECTOR], sector_name));
 
 		SetFont(FONT14ARIAL);
 		// Enemy
@@ -863,7 +863,7 @@ void RenderPreBattleInterface()
 
 		// Print the participants of the battle
 		// |  NAME  | ASSIGN |  COND  |   HP   |   BP   |
-		{ INT32 y = TOP_Y + 1 - STD_SCREEN_Y;
+		{ INT32 y = TOP_Y + 1 - MAP_SCREEN_Y;
 			CFOR_EACH_IN_TEAM(i, OUR_TEAM)
 			{
 				SOLDIERTYPE const& s = *i;
@@ -893,11 +893,11 @@ void RenderPreBattleInterface()
 		// |  NAME  | ASSIGN |  LOC   |  DEST  |  DEP   |
 		if (guiNumUninvolved == 0)
 		{
-			MPrintCentered(17, BOTTOM_Y - STD_SCREEN_Y - ROW_HEIGHT + 2, 52, gpStrategicString[STR_PB_NONE]);
+			MPrintCentered(17, BOTTOM_Y - MAP_SCREEN_Y - ROW_HEIGHT + 2, 52, gpStrategicString[STR_PB_NONE]);
 		}
 		else
 		{
-			INT32 y = BOTTOM_Y - STD_SCREEN_Y - ROW_HEIGHT * guiNumUninvolved + 2;
+			INT32 y = BOTTOM_Y - MAP_SCREEN_Y - ROW_HEIGHT * guiNumUninvolved + 2;
 			CFOR_EACH_IN_TEAM(i, OUR_TEAM)
 			{
 				SOLDIERTYPE const& s = *i;
@@ -924,7 +924,7 @@ void RenderPreBattleInterface()
 		}
 
 		MarkAllBoxesAsAltered();
-		RestoreExternBackgroundRect(STD_SCREEN_X, STD_SCREEN_Y, 261, 359);
+		RestoreExternBackgroundRect(MAP_SCREEN_X, MAP_SCREEN_Y, 261, 359);
 
 		// Restore font destinanation buffer to the frame buffer
 		SetFontDestBuffer(FRAME_BUFFER);

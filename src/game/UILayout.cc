@@ -16,6 +16,14 @@
 #define MIN_INTERFACE_HEIGHT            720   // absolute minimum height == height of the compact strategic-screen asset variant
 #define LARGE_STRATEGIC_SCREEN_HEIGHT   768   // screens at/above this height use the large strategic-screen asset variant instead of the compact one
 
+// Logical size of the legacy window (STD_SCREEN_X/Y) used by every screen
+// EXCEPT the strategic map -- splash, options, save/load, credits, initial
+// game settings, the laptop and all of its sub-screens. None of those
+// graphics grew with the strategic map's own assets, so they still need to
+// be centered against the original 640x480, not MIN_INTERFACE_WIDTH/HEIGHT.
+#define LEGACY_INTERFACE_WIDTH          640
+#define LEGACY_INTERFACE_HEIGHT         480
+
 /**
  * Default screen layout.
  * It might be changed later when the window size is known for sure. */
@@ -56,7 +64,7 @@ bool UILayout::isCompactStrategicScreen() const
 }
 
 
-UINT16 UILayout::currentHeight() const             { return fInMapMode ? (STD_SCREEN_Y + m_mapScreenHeight) : m_screenHeight; }
+UINT16 UILayout::currentHeight() const             { return fInMapMode ? (MAP_SCREEN_Y + m_mapScreenHeight) : m_screenHeight; }
 // Tactical (non-map) branch anchored to the right edge of whichever of the
 // two bottom-bar panels is actually on screen right now: m_smPanelWidth
 // (floored to fit inventory_bottom_panel.sti) while the single-merc panel is
@@ -69,7 +77,7 @@ UINT16 UILayout::currentHeight() const             { return fInMapMode ? (STD_SC
 // m_teamPanelWidth, since neither is floored there): 142 - 56 = 86, 142 - 45 = 97.
 UINT16 UILayout::get_CLOCK_X() const
 {
-	if (fInMapMode) return STD_SCREEN_X + 554;
+	if (fInMapMode) return MAP_SCREEN_X + 554;
 	// SM_PANEL offset shifted 3px right (86 -> 83) to match
 	// inventory_bottom_panel.sti's latest graphic; TEAM_PANEL (bottom_bar.sti)
 	// is untouched.
@@ -79,7 +87,7 @@ UINT16 UILayout::get_CLOCK_X() const
 UINT16 UILayout::get_CLOCK_Y() const               { return currentHeight() - 23;                                  }
 UINT16 UILayout::get_RADAR_WINDOW_X() const
 {
-	if (fInMapMode) return STD_SCREEN_X + 543;
+	if (fInMapMode) return MAP_SCREEN_X + 543;
 	// SM_PANEL offset shifted 3px right (97 -> 94) -- see get_CLOCK_X().
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 94;
 	return m_teamPanelPosition.iX + m_teamPanelWidth - 97;
@@ -123,8 +131,13 @@ void UILayout::recalculatePositions()
 	                                     ? LARGE_STRATEGIC_SCREEN_HEIGHT
 	                                     : MIN_INTERFACE_HEIGHT;
 
-	m_stdScreenOffsetX            = (m_screenWidth - m_mapScreenWidth) / 2;
-	m_stdScreenOffsetY            = (m_screenHeight - m_mapScreenHeight) / 2;
+	// STD_SCREEN_X/Y centers the legacy 640x480 window (everything except the
+	// strategic map -- see the LEGACY_INTERFACE_WIDTH/HEIGHT comment above).
+	m_stdScreenOffsetX            = (m_screenWidth - LEGACY_INTERFACE_WIDTH) / 2;
+	m_stdScreenOffsetY            = (m_screenHeight - LEGACY_INTERFACE_HEIGHT) / 2;
+	// MAP_SCREEN_X/Y centers the strategic map's own, larger canvas.
+	m_mapScreenOffsetX            = (m_screenWidth - m_mapScreenWidth) / 2;
+	m_mapScreenOffsetY            = (m_screenHeight - m_mapScreenHeight) / 2;
 
 	// tactical screen inventory position
 	m_invSlotPositionTac[HELMETPOS           ].set(startX + 431, startInvY +   8);
@@ -172,53 +185,53 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionTac[SMALLPOCK20POS      ].set(startX + 726, startInvY +  44);
 
 	// map screen inventory position
-	m_invSlotPositionMap[HELMETPOS           ].set(m_stdScreenOffsetX + 204, m_stdScreenOffsetY + 116);
-	m_invSlotPositionMap[VESTPOS             ].set(m_stdScreenOffsetX + 204, m_stdScreenOffsetY + 145);
-	m_invSlotPositionMap[LEGPOS              ].set(m_stdScreenOffsetX + 204, m_stdScreenOffsetY + 205);
-	m_invSlotPositionMap[HEAD1POS            ].set(m_stdScreenOffsetX +  21, m_stdScreenOffsetY + 116);
-	m_invSlotPositionMap[HEAD2POS            ].set(m_stdScreenOffsetX +  21, m_stdScreenOffsetY + 140);
-	m_invSlotPositionMap[HANDPOS             ].set(m_stdScreenOffsetX +  21, m_stdScreenOffsetY + 194);
-	m_invSlotPositionMap[SECONDHANDPOS       ].set(m_stdScreenOffsetX +  21, m_stdScreenOffsetY + 218);
-	m_invSlotPositionMap[BIGPOCK1POS         ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 251);
-	m_invSlotPositionMap[BIGPOCK2POS         ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 275);
-	m_invSlotPositionMap[BIGPOCK3POS         ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 299);
-	m_invSlotPositionMap[BIGPOCK4POS         ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 323);
-	m_invSlotPositionMap[SMALLPOCK1POS       ].set(m_stdScreenOffsetX +  22, m_stdScreenOffsetY + 251);
-	m_invSlotPositionMap[SMALLPOCK2POS       ].set(m_stdScreenOffsetX +  22, m_stdScreenOffsetY + 275);
-	m_invSlotPositionMap[SMALLPOCK3POS       ].set(m_stdScreenOffsetX +  22, m_stdScreenOffsetY + 299);
-	m_invSlotPositionMap[SMALLPOCK4POS       ].set(m_stdScreenOffsetX +  22, m_stdScreenOffsetY + 323);
-	m_invSlotPositionMap[SMALLPOCK5POS       ].set(m_stdScreenOffsetX +  60, m_stdScreenOffsetY + 251);
-	m_invSlotPositionMap[SMALLPOCK6POS       ].set(m_stdScreenOffsetX +  60, m_stdScreenOffsetY + 275);
-	m_invSlotPositionMap[SMALLPOCK7POS       ].set(m_stdScreenOffsetX +  60, m_stdScreenOffsetY + 299);
-	m_invSlotPositionMap[SMALLPOCK8POS       ].set(m_stdScreenOffsetX +  60, m_stdScreenOffsetY + 323);
+	m_invSlotPositionMap[HELMETPOS           ].set(m_mapScreenOffsetX + 204, m_mapScreenOffsetY + 116);
+	m_invSlotPositionMap[VESTPOS             ].set(m_mapScreenOffsetX + 204, m_mapScreenOffsetY + 145);
+	m_invSlotPositionMap[LEGPOS              ].set(m_mapScreenOffsetX + 204, m_mapScreenOffsetY + 205);
+	m_invSlotPositionMap[HEAD1POS            ].set(m_mapScreenOffsetX +  21, m_mapScreenOffsetY + 116);
+	m_invSlotPositionMap[HEAD2POS            ].set(m_mapScreenOffsetX +  21, m_mapScreenOffsetY + 140);
+	m_invSlotPositionMap[HANDPOS             ].set(m_mapScreenOffsetX +  21, m_mapScreenOffsetY + 194);
+	m_invSlotPositionMap[SECONDHANDPOS       ].set(m_mapScreenOffsetX +  21, m_mapScreenOffsetY + 218);
+	m_invSlotPositionMap[BIGPOCK1POS         ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 251);
+	m_invSlotPositionMap[BIGPOCK2POS         ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 275);
+	m_invSlotPositionMap[BIGPOCK3POS         ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 299);
+	m_invSlotPositionMap[BIGPOCK4POS         ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 323);
+	m_invSlotPositionMap[SMALLPOCK1POS       ].set(m_mapScreenOffsetX +  22, m_mapScreenOffsetY + 251);
+	m_invSlotPositionMap[SMALLPOCK2POS       ].set(m_mapScreenOffsetX +  22, m_mapScreenOffsetY + 275);
+	m_invSlotPositionMap[SMALLPOCK3POS       ].set(m_mapScreenOffsetX +  22, m_mapScreenOffsetY + 299);
+	m_invSlotPositionMap[SMALLPOCK4POS       ].set(m_mapScreenOffsetX +  22, m_mapScreenOffsetY + 323);
+	m_invSlotPositionMap[SMALLPOCK5POS       ].set(m_mapScreenOffsetX +  60, m_mapScreenOffsetY + 251);
+	m_invSlotPositionMap[SMALLPOCK6POS       ].set(m_mapScreenOffsetX +  60, m_mapScreenOffsetY + 275);
+	m_invSlotPositionMap[SMALLPOCK7POS       ].set(m_mapScreenOffsetX +  60, m_mapScreenOffsetY + 299);
+	m_invSlotPositionMap[SMALLPOCK8POS       ].set(m_mapScreenOffsetX +  60, m_mapScreenOffsetY + 323);
 
 	// TODO: placeholder positions for the 20 new slots (HEAD3/4, BIGPOCK5-10,
 	// SMALLPOCK9-20) added for the inventory expansion -- replace with real
 	// coordinates once the redesigned mapinv.sti layout is final.
-	m_invSlotPositionMap[HEAD3POS            ].set(m_stdScreenOffsetX +  21, m_stdScreenOffsetY + 164);
-	m_invSlotPositionMap[HEAD4POS            ].set(m_stdScreenOffsetX +  21, m_stdScreenOffsetY + 188);
-	m_invSlotPositionMap[BIGPOCK5POS         ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 347);
-	m_invSlotPositionMap[BIGPOCK6POS         ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 371);
-	m_invSlotPositionMap[BIGPOCK7POS         ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 395);
-	m_invSlotPositionMap[BIGPOCK8POS         ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 419);
-	m_invSlotPositionMap[BIGPOCK9POS         ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 443);
-	m_invSlotPositionMap[BIGPOCK10POS        ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 467);
-	m_invSlotPositionMap[SMALLPOCK9POS       ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 251);
-	m_invSlotPositionMap[SMALLPOCK10POS      ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 275);
-	m_invSlotPositionMap[SMALLPOCK11POS      ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 299);
-	m_invSlotPositionMap[SMALLPOCK12POS      ].set(m_stdScreenOffsetX +  98, m_stdScreenOffsetY + 323);
-	m_invSlotPositionMap[SMALLPOCK13POS      ].set(m_stdScreenOffsetX + 136, m_stdScreenOffsetY + 251);
-	m_invSlotPositionMap[SMALLPOCK14POS      ].set(m_stdScreenOffsetX + 136, m_stdScreenOffsetY + 275);
-	m_invSlotPositionMap[SMALLPOCK15POS      ].set(m_stdScreenOffsetX + 136, m_stdScreenOffsetY + 299);
-	m_invSlotPositionMap[SMALLPOCK16POS      ].set(m_stdScreenOffsetX + 136, m_stdScreenOffsetY + 323);
-	m_invSlotPositionMap[SMALLPOCK17POS      ].set(m_stdScreenOffsetX + 174, m_stdScreenOffsetY + 251);
-	m_invSlotPositionMap[SMALLPOCK18POS      ].set(m_stdScreenOffsetX + 174, m_stdScreenOffsetY + 275);
-	m_invSlotPositionMap[SMALLPOCK19POS      ].set(m_stdScreenOffsetX + 174, m_stdScreenOffsetY + 299);
-	m_invSlotPositionMap[SMALLPOCK20POS      ].set(m_stdScreenOffsetX + 174, m_stdScreenOffsetY + 323);
+	m_invSlotPositionMap[HEAD3POS            ].set(m_mapScreenOffsetX +  21, m_mapScreenOffsetY + 164);
+	m_invSlotPositionMap[HEAD4POS            ].set(m_mapScreenOffsetX +  21, m_mapScreenOffsetY + 188);
+	m_invSlotPositionMap[BIGPOCK5POS         ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 347);
+	m_invSlotPositionMap[BIGPOCK6POS         ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 371);
+	m_invSlotPositionMap[BIGPOCK7POS         ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 395);
+	m_invSlotPositionMap[BIGPOCK8POS         ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 419);
+	m_invSlotPositionMap[BIGPOCK9POS         ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 443);
+	m_invSlotPositionMap[BIGPOCK10POS        ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 467);
+	m_invSlotPositionMap[SMALLPOCK9POS       ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 251);
+	m_invSlotPositionMap[SMALLPOCK10POS      ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 275);
+	m_invSlotPositionMap[SMALLPOCK11POS      ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 299);
+	m_invSlotPositionMap[SMALLPOCK12POS      ].set(m_mapScreenOffsetX +  98, m_mapScreenOffsetY + 323);
+	m_invSlotPositionMap[SMALLPOCK13POS      ].set(m_mapScreenOffsetX + 136, m_mapScreenOffsetY + 251);
+	m_invSlotPositionMap[SMALLPOCK14POS      ].set(m_mapScreenOffsetX + 136, m_mapScreenOffsetY + 275);
+	m_invSlotPositionMap[SMALLPOCK15POS      ].set(m_mapScreenOffsetX + 136, m_mapScreenOffsetY + 299);
+	m_invSlotPositionMap[SMALLPOCK16POS      ].set(m_mapScreenOffsetX + 136, m_mapScreenOffsetY + 323);
+	m_invSlotPositionMap[SMALLPOCK17POS      ].set(m_mapScreenOffsetX + 174, m_mapScreenOffsetY + 251);
+	m_invSlotPositionMap[SMALLPOCK18POS      ].set(m_mapScreenOffsetX + 174, m_mapScreenOffsetY + 275);
+	m_invSlotPositionMap[SMALLPOCK19POS      ].set(m_mapScreenOffsetX + 174, m_mapScreenOffsetY + 299);
+	m_invSlotPositionMap[SMALLPOCK20POS      ].set(m_mapScreenOffsetX + 174, m_mapScreenOffsetY + 323);
 
 	m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);
 
-	m_progress_bar_box.set(STD_SCREEN_X + 5, 2, MIN_INTERFACE_WIDTH - 10, 12);
+	m_progress_bar_box.set(STD_SCREEN_X + 5, 2, LEGACY_INTERFACE_WIDTH - 10, 12);
 	// Uses ITEMDESC_PANEL_START_Y_MONEY (not startInvY/INV_INTERFACE_START_Y,
 	// and not the weapon-only ITEMDESC_PANEL_START_Y): the money buttons are
 	// an overlay drawn inside the Infobox_money.sti popup specifically (see
@@ -227,7 +240,7 @@ void UILayout::recalculatePositions()
 	// UILayout.h. Anchoring this to the wrong one (or the wrong panel's
 	// height) leaves the buttons offset from wherever the popup actually is.
 	m_moneyButtonLoc.set(startX + 343, get_ITEMDESC_PANEL_START_Y_MONEY() + 11);
-	m_MoneyButtonLocMap.set(m_stdScreenOffsetX + 174, m_stdScreenOffsetY + 115);
+	m_MoneyButtonLocMap.set(m_mapScreenOffsetX + 174, m_mapScreenOffsetY + 115);
 
 	m_VIEWPORT_START_X            = 0;
 	m_VIEWPORT_START_Y            = 0;
@@ -240,13 +253,13 @@ void UILayout::recalculatePositions()
 
 	m_worldClippingRect.set(0, 0, m_screenWidth, m_screenHeight - 120);
 
-	m_contractPosition.set(       m_stdScreenOffsetX + 120, m_stdScreenOffsetY +  50);
-	m_attributePosition.set(      m_stdScreenOffsetX + 220, m_stdScreenOffsetY + 150);
-	m_trainPosition.set(          m_stdScreenOffsetX + 160, m_stdScreenOffsetY + 150);
-	m_vehiclePosition.set(        m_stdScreenOffsetX + 160, m_stdScreenOffsetY + 150);
-	m_repairPosition.set(         m_stdScreenOffsetX + 160, m_stdScreenOffsetY + 150);
-	m_assignmentPosition.set(     m_stdScreenOffsetX + 120, m_stdScreenOffsetY + 150);
-	m_squadPosition.set(          m_stdScreenOffsetX + 160, m_stdScreenOffsetY + 150);
+	m_contractPosition.set(       m_mapScreenOffsetX + 120, m_mapScreenOffsetY +  50);
+	m_attributePosition.set(      m_mapScreenOffsetX + 220, m_mapScreenOffsetY + 150);
+	m_trainPosition.set(          m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
+	m_vehiclePosition.set(        m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
+	m_repairPosition.set(         m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
+	m_assignmentPosition.set(     m_mapScreenOffsetX + 120, m_mapScreenOffsetY + 150);
+	m_squadPosition.set(          m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
 	m_versionPosition.set(        10, m_screenHeight - 15);
 }
 
@@ -256,7 +269,7 @@ UINT16 UILayout::getTacticalTextBoxX() const
 
 	if ( guiCurrentScreen == MAP_SCREEN )
 	{
-		return STD_SCREEN_X + 110;
+		return MAP_SCREEN_X + 110;
 	}
 	else
 	{
@@ -269,7 +282,7 @@ UINT16 UILayout::getTacticalTextBoxY() const
 {
 	if ( guiCurrentScreen == MAP_SCREEN )
 	{
-		return DEFAULT_EXTERN_PANEL_Y_POS;
+		return DEFAULT_MAP_EXTERN_PANEL_Y_POS;
 	}
 	else
 	{

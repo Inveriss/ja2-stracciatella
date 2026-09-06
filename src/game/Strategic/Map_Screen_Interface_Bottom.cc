@@ -54,18 +54,18 @@
 #include <string_theory/string>
 
 
-#define MAP_BOTTOM_X (STD_SCREEN_X + 0)
-#define MAP_BOTTOM_Y (STD_SCREEN_Y + 359)
+#define MAP_BOTTOM_X (MAP_SCREEN_X + 0)
+#define MAP_BOTTOM_Y (MAP_SCREEN_Y + 359)
 
-#define MESSAGE_BOX_X (STD_SCREEN_X +  17)
-#define MESSAGE_BOX_Y (STD_SCREEN_Y + 377)
+#define MESSAGE_BOX_X (MAP_SCREEN_X +  17)
+#define MESSAGE_BOX_Y (MAP_SCREEN_Y + 377)
 #define MESSAGE_BOX_W 301
 #define MESSAGE_BOX_H  86
 
-#define MESSAGE_SCROLL_AREA_START_X (STD_SCREEN_X + 330)
+#define MESSAGE_SCROLL_AREA_START_X (MAP_SCREEN_X + 330)
 #define MESSAGE_SCROLL_AREA_WIDTH    15
 
-#define MESSAGE_SCROLL_AREA_START_Y (STD_SCREEN_Y + 390)
+#define MESSAGE_SCROLL_AREA_START_Y (MAP_SCREEN_Y + 390)
 #define MESSAGE_SCROLL_AREA_HEIGHT   59
 
 #define SLIDER_HEIGHT		11
@@ -274,17 +274,17 @@ static GUIButtonRef MakeArrowButton(INT32 grayed, INT32 off, INT32 on, INT16 x, 
 
 static void CreateButtonsForMapScreenInterfaceBottom(void)
 {
-	guiMapBottomExitButtons[MAP_EXIT_TO_LAPTOP]   = MakeExitButton( 6, 15, STD_SCREEN_X + 456, STD_SCREEN_Y + 410, BtnLaptopCallback,               pMapScreenBottomFastHelp[0]);
-	guiMapBottomExitButtons[MAP_EXIT_TO_TACTICAL] = MakeExitButton( 7, 16, STD_SCREEN_X + 496, STD_SCREEN_Y + 410, BtnTacticalCallback,             pMapScreenBottomFastHelp[1]);
-	guiMapBottomExitButtons[MAP_EXIT_TO_OPTIONS]  = MakeExitButton(18, 19, STD_SCREEN_X + 458, STD_SCREEN_Y + 372, BtnOptionsFromMapScreenCallback, pMapScreenBottomFastHelp[2]);
+	guiMapBottomExitButtons[MAP_EXIT_TO_LAPTOP]   = MakeExitButton( 6, 15, MAP_SCREEN_X + 456, MAP_SCREEN_Y + 410, BtnLaptopCallback,               pMapScreenBottomFastHelp[0]);
+	guiMapBottomExitButtons[MAP_EXIT_TO_TACTICAL] = MakeExitButton( 7, 16, MAP_SCREEN_X + 496, MAP_SCREEN_Y + 410, BtnTacticalCallback,             pMapScreenBottomFastHelp[1]);
+	guiMapBottomExitButtons[MAP_EXIT_TO_OPTIONS]  = MakeExitButton(18, 19, MAP_SCREEN_X + 458, MAP_SCREEN_Y + 372, BtnOptionsFromMapScreenCallback, pMapScreenBottomFastHelp[2]);
 
 	// time compression buttons
-	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE] = MakeArrowButton(10, 1, 3, STD_SCREEN_X + 528, STD_SCREEN_Y + 456, BtnTimeCompressMoreMapScreenCallback, pMapScreenBottomFastHelp[3]);
-	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS] = MakeArrowButton( 9, 0, 2, STD_SCREEN_X + 466, STD_SCREEN_Y + 456, BtnTimeCompressLessMapScreenCallback, pMapScreenBottomFastHelp[4]);
+	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE] = MakeArrowButton(10, 1, 3, MAP_SCREEN_X + 528, MAP_SCREEN_Y + 456, BtnTimeCompressMoreMapScreenCallback, pMapScreenBottomFastHelp[3]);
+	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS] = MakeArrowButton( 9, 0, 2, MAP_SCREEN_X + 466, MAP_SCREEN_Y + 456, BtnTimeCompressLessMapScreenCallback, pMapScreenBottomFastHelp[4]);
 
 	// scroll buttons
-	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]   = MakeArrowButton(11, 4, 6, STD_SCREEN_X + 331, STD_SCREEN_Y + 371, BtnMessageUpMapScreenCallback,   pMapScreenBottomFastHelp[5]);
-	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN] = MakeArrowButton(12, 5, 7, STD_SCREEN_X + 331, STD_SCREEN_Y + 452, BtnMessageDownMapScreenCallback, pMapScreenBottomFastHelp[6]);
+	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]   = MakeArrowButton(11, 4, 6, MAP_SCREEN_X + 331, MAP_SCREEN_Y + 371, BtnMessageUpMapScreenCallback,   pMapScreenBottomFastHelp[5]);
+	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN] = MakeArrowButton(12, 5, 7, MAP_SCREEN_X + 331, MAP_SCREEN_Y + 452, BtnMessageDownMapScreenCallback, pMapScreenBottomFastHelp[6]);
 }
 
 
@@ -333,7 +333,7 @@ static void DrawNameOfLoadedSector()
 	ST::string buf = GetSectorIDString(sSelMap, TRUE);
 	buf = ReduceStringLength(buf, 80, font);
 
-	MPrint(STD_SCREEN_X + 548, STD_SCREEN_Y + 426, buf, HCenterVCenterAlign(80, 16));
+	MPrint(MAP_SCREEN_X + 548, MAP_SCREEN_Y + 426, buf, HCenterVCenterAlign(80, 16));
 }
 
 
@@ -513,7 +513,7 @@ static void DisplayCompressMode(void)
 		Time = sTimeStrings[IsTimeBeingCompressed() ? giTimeCompressMode : 0];
 	}
 
-	RestoreExternBackgroundRect( STD_SCREEN_X + 489, STD_SCREEN_Y + 457, 522 - 489, 467 - 454 );
+	RestoreExternBackgroundRect( MAP_SCREEN_X + 489, MAP_SCREEN_Y + 457, 522 - 489, 467 - 454 );
 	SetFontDestBuffer(FRAME_BUFFER);
 
 	if( GetJA2Clock() - guiCompressionStringBaseTime >= PAUSE_GAME_TIMER )
@@ -536,14 +536,14 @@ static void DisplayCompressMode(void)
 	}
 
 	SetFontAttributes(COMPFONT, usColor);
-	MPrint(STD_SCREEN_X + 489, STD_SCREEN_Y + 457, Time,
+	MPrint(MAP_SCREEN_X + 489, MAP_SCREEN_Y + 457, Time,
 		HCenterVCenterAlign(522 - 489, 467 - 454));
 }
 
 
 static void CreateCompressModePause(void)
 {
-	MSYS_DefineRegion( &gMapPauseRegion, STD_SCREEN_X + 487, STD_SCREEN_Y + 456, STD_SCREEN_X + 522, STD_SCREEN_Y + 467, MSYS_PRIORITY_HIGH,
+	MSYS_DefineRegion( &gMapPauseRegion, MAP_SCREEN_X + 487, MAP_SCREEN_Y + 456, MAP_SCREEN_X + 522, MAP_SCREEN_Y + 467, MSYS_PRIORITY_HIGH,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressModeClickCallback );
 	gMapPauseRegion.SetFastHelpText(pMapScreenBottomFastHelp[7]);
 }
@@ -847,8 +847,8 @@ static void DisplayCurrentBalanceTitleForMapBottom(void)
 	SetFontAttributes(COMPFONT, MAP_BOTTOM_FONT_COLOR);
 	HCenterVCenterAlign const alignment{ 437 - 359, 10 };
 
-	MPrint(STD_SCREEN_X + 359, STD_SCREEN_Y + 387 - 14, pMapScreenBottomText, alignment);
-	MPrint(STD_SCREEN_X + 359, STD_SCREEN_Y + 433 - 14, zMarksMapScreenText[2], alignment);
+	MPrint(MAP_SCREEN_X + 359, MAP_SCREEN_Y + 387 - 14, pMapScreenBottomText, alignment);
+	MPrint(MAP_SCREEN_X + 359, MAP_SCREEN_Y + 433 - 14, zMarksMapScreenText[2], alignment);
 
 	SetFontDestBuffer(FRAME_BUFFER);
 }
@@ -859,7 +859,7 @@ static void DisplayCurrentBalanceForMapBottom(void)
 	// show the current balance for the player on the map panel bottom
 	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontAttributes(COMPFONT, 183);
-	MPrint(STD_SCREEN_X + 359, STD_SCREEN_Y + 387 + 2,
+	MPrint(MAP_SCREEN_X + 359, MAP_SCREEN_Y + 387 + 2,
 		SPrintMoney(LaptopSaveInfo.iCurrentBalance),
 		HCenterVCenterAlign(437 - 359, 10));
 }
@@ -877,9 +877,9 @@ void CreateDestroyMouseRegionMasksForTimeCompressionButtons()
 	if (disabled && !created)
 	{
 		// Mask over compress more, compress less and paus game buttons.
-		MSYS_DefineRegion(&gTimeCompressionMask[0], STD_SCREEN_X + 528, STD_SCREEN_Y + 457, 528 + 13, 457 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
-		MSYS_DefineRegion(&gTimeCompressionMask[1], STD_SCREEN_X + 466, STD_SCREEN_Y + 457, 466 + 13, 457 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
-		MSYS_DefineRegion(&gTimeCompressionMask[2], STD_SCREEN_X + 487, STD_SCREEN_Y + 457, 487 + 35, 457 + 11, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
+		MSYS_DefineRegion(&gTimeCompressionMask[0], MAP_SCREEN_X + 528, MAP_SCREEN_Y + 457, 528 + 13, 457 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
+		MSYS_DefineRegion(&gTimeCompressionMask[1], MAP_SCREEN_X + 466, MAP_SCREEN_Y + 457, 466 + 13, 457 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
+		MSYS_DefineRegion(&gTimeCompressionMask[2], MAP_SCREEN_X + 487, MAP_SCREEN_Y + 457, 487 + 35, 457 + 11, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
 		created = true;
 	}
 	else if (!disabled && created)
@@ -918,7 +918,7 @@ static void DisplayProjectedDailyMineIncome(void)
 
 	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontAttributes(COMPFONT, 183);
-	MPrint(STD_SCREEN_X + 359, STD_SCREEN_Y + 433 + 2,
+	MPrint(MAP_SCREEN_X + 359, MAP_SCREEN_Y + 433 + 2,
 		SPrintMoney(iRate), HCenterVCenterAlign(437 - 359, 10));
 }
 

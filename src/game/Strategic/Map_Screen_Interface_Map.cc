@@ -86,14 +86,14 @@
 // #define VERT_SCROLL 10
 
 // the pop up for helicopter stuff
-#define MAP_HELICOPTER_ETA_POPUP_X (STD_SCREEN_X + 400)
-#define MAP_HELICOPTER_ETA_POPUP_Y (STD_SCREEN_Y + 250)
-#define MAP_HELICOPTER_UPPER_ETA_POPUP_Y (STD_SCREEN_Y + 50)
+#define MAP_HELICOPTER_ETA_POPUP_X (MAP_SCREEN_X + 400)
+#define MAP_HELICOPTER_ETA_POPUP_Y (MAP_SCREEN_Y + 250)
+#define MAP_HELICOPTER_UPPER_ETA_POPUP_Y (MAP_SCREEN_Y + 50)
 #define MAP_HELICOPTER_ETA_POPUP_WIDTH 120
 #define MAP_HELICOPTER_ETA_POPUP_HEIGHT 68
 
-#define MAP_LEVEL_STRING_X (STD_SCREEN_X + 432)
-#define MAP_LEVEL_STRING_Y (STD_SCREEN_Y + 305)
+#define MAP_LEVEL_STRING_X (MAP_SCREEN_X + 432)
+#define MAP_LEVEL_STRING_Y (MAP_SCREEN_Y + 305)
 
 // font
 #define MAP_FONT BLOCKFONT2
@@ -108,19 +108,19 @@
 //Map Location index regions
 
 // x start of hort index
-#define MAP_HORT_INDEX_X (STD_SCREEN_X + 292)
+#define MAP_HORT_INDEX_X (MAP_SCREEN_X + 292)
 
 // y position of hort index
-#define MAP_HORT_INDEX_Y  (STD_SCREEN_Y + 10)
+#define MAP_HORT_INDEX_Y  (MAP_SCREEN_Y + 10)
 
 // height of hort index
 #define MAP_HORT_HEIGHT  GetFontHeight(MAP_FONT)
 
 // vert index start x
-#define MAP_VERT_INDEX_X (STD_SCREEN_X + 273)
+#define MAP_VERT_INDEX_X (MAP_SCREEN_X + 273)
 
 // vert index start y
-#define MAP_VERT_INDEX_Y  (STD_SCREEN_Y + 31)
+#define MAP_VERT_INDEX_Y  (MAP_SCREEN_Y + 31)
 
 // vert width
 #define MAP_VERT_WIDTH   GetFontHeight(MAP_FONT)
@@ -250,8 +250,8 @@ static SGPVSurface* guiBIGMAP;
 #define MILITIA_BOX_ROWS 3
 #define MILITIA_BOX_BOX_HEIGHT 36
 #define MILITIA_BOX_BOX_WIDTH 42
-#define MAP_MILITIA_BOX_POS_X (STD_SCREEN_X + 400)
-#define MAP_MILITIA_BOX_POS_Y (STD_SCREEN_Y + 125)
+#define MAP_MILITIA_BOX_POS_X (MAP_SCREEN_X + 400)
+#define MAP_MILITIA_BOX_POS_Y (MAP_SCREEN_Y + 125)
 
 #define POPUP_MILITIA_ICONS_PER_ROW 5 // max 6 rows gives the limit of 30 militia
 #define MEDIUM_MILITIA_ICON_SPACING 5

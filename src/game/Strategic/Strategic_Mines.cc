@@ -776,11 +776,11 @@ void IssueHeadMinerQuote(UINT8 const mine_idx, HeadMinerQuote const quote_type)
 
 	/* Decide where the miner's face and text box should be positioned in order to
 	 * not obscure the mine he's in as it flashes */
-	INT16 const x = DEFAULT_EXTERN_PANEL_X_POS;
-	INT16       y = DEFAULT_EXTERN_PANEL_Y_POS;
+	INT16 const x = DEFAULT_MAP_EXTERN_PANEL_X_POS;
+	INT16       y = DEFAULT_MAP_EXTERN_PANEL_Y_POS;
 	if (mineData->faceDisplayYOffset)
 	{
-		y = STD_SCREEN_Y + mineData->faceDisplayYOffset;
+		y = MAP_SCREEN_Y + mineData->faceDisplayYOffset;
 	}
 
 	SetExternMapscreenSpeechPanelXY(x, y);
