@@ -198,6 +198,10 @@ target_link_libraries(${JA2_BINARY} PRIVATE
 if (MINGW)
     target_link_libraries(${JA2_BINARY} PRIVATE ntdll)
 endif()
+if (WIN32)
+    # For CrashHandler.cc: SetUnhandledExceptionFilter + MiniDumpWriteDump.
+    target_link_libraries(${JA2_BINARY} PRIVATE dbghelp)
+endif()
 if (ANDROID)
     target_link_libraries(${JA2_BINARY} PRIVATE android log)
 endif()

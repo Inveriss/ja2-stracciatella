@@ -1,4 +1,5 @@
 #include "Button_System.h"
+#include "CrashHandler.h"
 #include "FPS.h"
 #include "GameLoop.h"
 #include "GameSettings.h"
@@ -285,6 +286,9 @@ int main(int argc, char* argv[])
 		{
 			std::vector<ST::string> problems = InitGlobalLocale();
 			Logger_initialize("ja2.log");
+			// As early as possible, so it can catch native crashes during
+			// startup too -- writes its reports next to ja2.log.
+			InstallCrashHandler();
 			for (const ST::string& msg : problems)
 			{
 				SLOGW("{}", msg);
@@ -429,6 +433,7 @@ int main(int argc, char* argv[])
 		delete cm;
 		GCM = NULL;
 
+		WriteCleanExitDiagnosticReport();
 		return EXIT_SUCCESS;
 	} catch (...) {
 		try {
@@ -469,6 +474,7 @@ void TerminationHandler()
 		}
 	}
 	SLOGE(errorMessage.c_str());
+	WriteExceptionDiagnosticReport(errorMessage.c_str());
 	#ifdef __ANDROID__
 	jniEnv->CallVoidMethod(exceptionContainerSingleton, setAndroidExceptionMethodId,
                                    jniEnv->NewStringUTF(errorMessage.c_str()));
