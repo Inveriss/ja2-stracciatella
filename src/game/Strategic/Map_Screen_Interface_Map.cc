@@ -101,7 +101,12 @@
 #define MAP_LEVEL_STRING_Y (MAP_VIEW_START_Y + MAP_VIEW_HEIGHT - 3)
 
 // font
-#define MAP_FONT BLOCKFONT2
+// Dedicated, user-authored font for the strategic map screen (town/mine/SAM
+// names, grid letters/numbers, town loyalty %, "Sublevel: N", helicopter
+// ETA, militia counts) -- was BLOCKFONT2, now its own font/asset so it can
+// be sized independently of blockfont2.sti's other (non-map) uses elsewhere
+// in the game.
+#define MAP_FONT FONTMAP
 
 // index color
 #define MAP_INDEX_COLOR 32*4-9

@@ -87,7 +87,10 @@
 
 // Fonts
 #define CHAR_FONT BLOCKFONT2 // COMPFONT
-#define ETA_FONT BLOCKFONT2
+// Ground-travel "ETA: <time>" text (DisplayGroundEta()) -- part of the
+// strategic-map font group, so it uses the same dedicated FONTMAP as
+// MAP_FONT (Map_Screen_Interface_Map.cc), not BLOCKFONT2.
+#define ETA_FONT FONTMAP
 
 // Colors
 #define FONT_MAP_DKYELLOW 170
