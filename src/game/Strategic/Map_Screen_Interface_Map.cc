@@ -302,10 +302,31 @@ cache_key_t const guiCHARICONS{ INTERFACEDIR "/boxes.sti" };
 // the merc arrival sector landing zone icon
 cache_key_t const guiBULLSEYE{ INTERFACEDIR "/bullseye.sti" };
 
-// sublevel graphics
-cache_key_t const guiSubLevel1{ INTERFACEDIR "/mine_1.sti" };
-cache_key_t const guiSubLevel2{ INTERFACEDIR "/mine_2.sti" };
-cache_key_t const guiSubLevel3{ INTERFACEDIR "/mine_3.sti" };
+// Sublevel (mine) graphics. Not plain cache_key_t constants: which file each
+// is depends on the active resolution (see
+// UILayout::isCompactStrategicScreen()), which isn't known yet at
+// static-initialization time, so the choice has to be resolved at runtime,
+// on every call -- see GetCharListGraphicsFilename() in MapScreen.cc for the
+// same pattern. Suffix convention: _1280 for the compact strategic-screen
+// tier (height 720-767), _1024 for the large tier (height 768+).
+//
+// Naming note: sectorZ (iCurrentMapSectorZ) is 0 at the surface and 1/2/3 for
+// the three mine sublevels, but this screen's own UI labels them "Map Level
+// 1" (surface, no mine graphic) through "Map Level 4" -- one higher. The
+// filenames follow that UI numbering (mine_2/3/4), not sectorZ, hence the
+// mine_1.sti -> mine_2_*.sti-looking offset below.
+cache_key_t GetMineLevelGraphicsFilename(int const sectorZ)
+{
+	bool const compact = g_ui.isCompactStrategicScreen();
+	switch (sectorZ)
+	{
+		case 1: return compact ? INTERFACEDIR "/mine_2_1280.sti" : INTERFACEDIR "/mine_2_1024.sti";
+		case 2: return compact ? INTERFACEDIR "/mine_3_1280.sti" : INTERFACEDIR "/mine_3_1024.sti";
+		case 3: return compact ? INTERFACEDIR "/mine_4_1280.sti" : INTERFACEDIR "/mine_4_1024.sti";
+
+		default: abort(); // HACK000E
+	}
+}
 
 // militia graphics
 cache_key_t const guiMilitia{ INTERFACEDIR "/militia.sti" };
@@ -2732,9 +2753,9 @@ void DeleteMapScreenInterfaceMapGraphics()
 	RemoveVObject(guiMilitiaMaps);
 	RemoveVObject(guiMilitiaSectorHighLight);
 	RemoveVObject(guiMilitiaSectorOutline);
-	RemoveVObject(guiSubLevel1);
-	RemoveVObject(guiSubLevel2);
-	RemoveVObject(guiSubLevel3);
+	RemoveVObject(GetMineLevelGraphicsFilename(1));
+	RemoveVObject(GetMineLevelGraphicsFilename(2));
+	RemoveVObject(GetMineLevelGraphicsFilename(3));
 
 	for (auto& pair : gSecretSiteIcons)
 	{
@@ -3486,18 +3507,17 @@ static void ShadeSubLevelsNotVisited(void)
 static void HandleLowerLevelMapBlit(void)
 {
 	// blits the sub level maps
-	const char * vo{};
-	switch( iCurrentMapSectorZ )
-	{
-		case 1: vo = guiSubLevel1; break;
-		case 2: vo = guiSubLevel2; break;
-		case 3: vo = guiSubLevel3; break;
+	cache_key_t const vo = GetMineLevelGraphicsFilename(iCurrentMapSectorZ);
 
-		default: abort(); // HACK000E
-	}
+	// Mine graphics (both tiers) are offset +22 X / +16 Y from
+	// MAP_VIEW_START_X/Y, per user request. MAP_VIEW_START_X/Y themselves must
+	// stay untouched -- they also anchor the terrain (B_MAP.PCX) blit and the
+	// sector grid math above.
+	INT16 const sBltX = MAP_VIEW_START_X + 21 + 22;
+	INT16 const sBltY = MAP_VIEW_START_Y + 17 + 16;
 
 	// handle the blt of the sublevel
-	BltVideoObject(guiSAVEBUFFER, vo, 0, MAP_VIEW_START_X + 21, MAP_VIEW_START_Y + 17);
+	BltVideoObject(guiSAVEBUFFER, vo, 0, sBltX, sBltY);
 
 	// handle shading of sublevels
 	ShadeSubLevelsNotVisited( );
