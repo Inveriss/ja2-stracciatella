@@ -129,10 +129,13 @@ void SetMapCursorItem();
 #define DEST_ETA_WIDTH        (MAP_SCREEN_X + 217 - DEST_ETA_X)
 #define TIME_REMAINING_X      (MAP_SCREEN_X + 222)
 #define TIME_REMAINING_WIDTH  (MAP_SCREEN_X + 250 - TIME_REMAINING_X)
-#define CLOCK_Y_START         (MAP_SCREEN_Y + 298)
-#define CLOCK_ETA_X           (MAP_SCREEN_X + 463 - 15 + 6 + 30)
-#define CLOCK_HOUR_X_START    (MAP_SCREEN_X + 463 + 25 + 30)
-#define CLOCK_MIN_X_START     (MAP_SCREEN_X + 463 + 45 + 30)
+// Bottom-anchored per user request: 480-298=182, same distance from the old
+// 640x480 canvas' bottom edge as before. Used only by DisplayGroundEta().
+#define CLOCK_Y_START         (MAP_SCREEN_BOTTOM - 182)
+// X shifted +136 per user request.
+#define CLOCK_ETA_X           (MAP_SCREEN_X + 463 - 15 + 6 + 30 + 136)
+#define CLOCK_HOUR_X_START    (MAP_SCREEN_X + 463 + 25 + 30 + 136)
+#define CLOCK_MIN_X_START     (MAP_SCREEN_X + 463 + 45 + 30 + 136)
 
 // contract
 #define CONTRACT_X            (MAP_SCREEN_X + 185)

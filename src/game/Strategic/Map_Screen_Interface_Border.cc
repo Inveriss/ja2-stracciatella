@@ -135,9 +135,12 @@ void RenderMapBorderEtaPopUp( void )
 		return;
 	}
 
-	BltVideoObject(FRAME_BUFFER, guiMapBorderEtaPopUp, 0, MAP_BORDER_X + 215, MAP_SCREEN_Y + 291);
+	// Bottom-anchored per user request: 480-291=189, same distance from the
+	// old 640x480 canvas' bottom edge as before. X shifted +136 per user
+	// request.
+	BltVideoObject(FRAME_BUFFER, guiMapBorderEtaPopUp, 0, MAP_BORDER_X + 215 + 136, MAP_SCREEN_BOTTOM - 189);
 
-	InvalidateRegion( MAP_BORDER_X + 215, (MAP_SCREEN_Y + 291), MAP_BORDER_X + 215 + 100 , (MAP_SCREEN_Y + 310));
+	InvalidateRegion( MAP_BORDER_X + 215 + 136, (MAP_SCREEN_BOTTOM - 189), MAP_BORDER_X + 215 + 136 + 100 , (MAP_SCREEN_BOTTOM - 189 + 19));
 }
 
 
