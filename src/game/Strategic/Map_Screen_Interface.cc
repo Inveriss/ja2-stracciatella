@@ -3296,12 +3296,20 @@ void DisplaySoldierUpdateBox( )
 	iUpdatePanelHeight = ( iNumberHigh + 1 ) * TACT_HEIGHT_OF_UPDATE_PANEL_BLOCKS;
 
 	// get the x,y offsets on the screen of the panel
-	iX = MAP_SCREEN_X + 290 + ( 336 - iUpdatePanelWidth ) / 2;
+	// Rewritten in terms of MAP_VIEW_START_X/MAP_VIEW_WIDTH (was
+	// MAP_SCREEN_X + 290 + (336 - width)/2, i.e. MAP_VIEW_START_X + 20 +
+	// (old MAP_VIEW_WIDTH - width)/2) so this keeps centering correctly now
+	// that the map viewport is bigger.
+	iX = MAP_VIEW_START_X + 20 + ( MAP_VIEW_WIDTH - iUpdatePanelWidth ) / 2;
 
 //	iY = 28 + ( 288 - iUpdatePanelHeight ) / 2;
 
 	// Have the bottom of the box ALWAYS a set distance from the bottom of the map ( so user doesnt have to move mouse far )
-	iY = MAP_SCREEN_Y + 280 - iUpdatePanelHeight;
+	// Rewritten in terms of MAP_VIEW_START_Y/MAP_VIEW_HEIGHT (was
+	// MAP_SCREEN_Y + 280, i.e. MAP_VIEW_START_Y + old MAP_VIEW_HEIGHT - 28) so
+	// the box's bottom keeps the same distance from the (now lower) bottom of
+	// the map viewport.
+	iY = MAP_VIEW_START_Y + MAP_VIEW_HEIGHT - 28 - iUpdatePanelHeight;
 
 	const SGPVObject* const hBackGroundHandle = guiUpdatePanelTactical;
 
