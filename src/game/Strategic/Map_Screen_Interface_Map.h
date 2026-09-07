@@ -118,15 +118,17 @@ enum {
 
 
 // size of squares on the map
-#define MAP_GRID_X		21
-#define MAP_GRID_Y		18
+#define MAP_GRID_X		43
+#define MAP_GRID_Y		35
 
 
 // map view region
 #define MAP_VIEW_START_X	(MAP_SCREEN_X + 270)
 #define MAP_VIEW_START_Y	(MAP_SCREEN_Y + 10)
-#define MAP_VIEW_WIDTH		336
-#define MAP_VIEW_HEIGHT		298
+// 16x16 visible sector grid (MAP_WORLD_X/Y is 18, with a 1-sector border on
+// each side excluded from view) x MAP_GRID_X/Y, per user request.
+#define MAP_VIEW_WIDTH		688
+#define MAP_VIEW_HEIGHT		560
 
 
 // number of units wide
