@@ -1536,7 +1536,15 @@ ScreenID MapScreenHandle(void)
 
 		MOUSE_CALLBACK mapViewRegionCallback = MouseCallbackPrimarySecondary(MapViewRegionPrimaryCallback, MapViewRegionSecondaryCallback);
 		// set up regions
-		MSYS_DefineRegion( &gMapViewRegion, MAP_VIEW_START_X + MAP_GRID_X, MAP_VIEW_START_Y + MAP_GRID_Y,MAP_VIEW_START_X + MAP_VIEW_WIDTH+MAP_GRID_X-1, MAP_VIEW_START_Y + MAP_VIEW_HEIGHT-1 + 8, MSYS_PRIORITY_HIGH - 3,
+		// Bottom edge was "MAP_VIEW_HEIGHT-1 + 8" -- an old, empirically-derived
+		// literal (17*old_MAP_GRID_Y - old_MAP_VIEW_HEIGHT = 17*18-298 = 8) that
+		// happened to equal MAP_GRID_Y only because the old MAP_VIEW_HEIGHT had a
+		// hidden +10px margin baked in (298 = 16*18 + 10). Now that
+		// MAP_VIEW_HEIGHT is exactly MAX_VIEW_SECTORS*MAP_GRID_Y with no hidden
+		// margin, the correct, self-scaling equivalent is "+MAP_GRID_Y" directly
+		// -- fixes the last (16th) row being ~MAP_GRID_Y-8 px short of clickable
+		// at the new, bigger grid size.
+		MSYS_DefineRegion( &gMapViewRegion, MAP_VIEW_START_X + MAP_GRID_X, MAP_VIEW_START_Y + MAP_GRID_Y,MAP_VIEW_START_X + MAP_VIEW_WIDTH+MAP_GRID_X-1, MAP_VIEW_START_Y + MAP_VIEW_HEIGHT-1 + MAP_GRID_Y, MSYS_PRIORITY_HIGH - 3,
 					MSYS_NO_CURSOR, MapViewRegionMovementCallback, mapViewRegionCallback );
 
 		MSYS_DefineRegion( &gCharInfoHandRegion,

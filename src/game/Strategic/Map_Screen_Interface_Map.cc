@@ -450,8 +450,19 @@ void InitMapScreenInterfaceMap()
 		pTownPoints.push_back(town->townPoint);
 	}
 
+	// Bottom edge was "MAP_VIEW_HEIGHT-10 + MAP_GRID_Y" -- the "-10" was
+	// canceling out the old MAP_VIEW_HEIGHT's hidden +10px margin (298 =
+	// 16*18 + 10), recovering the true 16-row grid height before adding one
+	// more row. Now that MAP_VIEW_HEIGHT is exactly
+	// MAX_VIEW_SECTORS*MAP_GRID_Y with no hidden margin, there's nothing left
+	// to cancel out -- "-1" (matching iTop's own inclusive-pixel adjustment)
+	// is the correct, self-scaling equivalent. This rect drives both
+	// RestrictMouseCursor() and the clip used when drawing the grey town
+	// border lines (ClipBlitsToMapViewRegionForRectangleAndABit) -- with the
+	// stale "-10", both were cut short in the last (16th) row at the new,
+	// bigger grid size.
 	MapScreenRect.set((MAP_VIEW_START_X+MAP_GRID_X - 2), ( MAP_VIEW_START_Y+MAP_GRID_Y - 1),
-				MAP_VIEW_START_X + MAP_VIEW_WIDTH - 1 + MAP_GRID_X , MAP_VIEW_START_Y+MAP_VIEW_HEIGHT-10+MAP_GRID_Y);
+				MAP_VIEW_START_X + MAP_VIEW_WIDTH - 1 + MAP_GRID_X , MAP_VIEW_START_Y+MAP_VIEW_HEIGHT-1+MAP_GRID_Y);
 }
 
 void DrawMapIndexBigMap(BOOLEAN fSelectedCursorIsYellow)
