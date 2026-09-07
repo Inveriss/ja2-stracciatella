@@ -126,8 +126,22 @@ UINT32 guiCompressionStringBaseTime = 0;
 
 // graphics
 namespace {
-cache_key_t const guiMAPBOTTOMPANEL{ INTERFACEDIR "/map_screen_bottom.sti" };
 cache_key_t const guiSliderBar{ INTERFACEDIR "/map_screen_bottom_arrows.sti" };
+
+// Not a plain cache_key_t constant like guiSliderBar above: which file this
+// is depends on the active resolution (see
+// UILayout::isCompactStrategicScreen()), which isn't known yet at
+// static-initialization time, so the choice has to be resolved at runtime,
+// on every call. Suffix convention: _1280 for the compact strategic-screen
+// tier (height 720-767), _1024 for the large tier (height 768+) -- see
+// GetCharListGraphicsFilename()/GetCharInfoGraphicsFilename() in
+// MapScreen.cc for the same pattern.
+cache_key_t GetMapScreenBottomGraphicsFilename()
+{
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/map_screen_bottom_1280.sti"
+		: INTERFACEDIR "/map_screen_bottom_1024.sti";
+}
 }
 
 // buttons
@@ -169,7 +183,7 @@ void LoadMapScreenInterfaceBottom(void)
 
 void DeleteMapBottomGraphics( void )
 {
-	RemoveVObject(guiMAPBOTTOMPANEL);
+	RemoveVObject(GetMapScreenBottomGraphicsFilename());
 	RemoveVObject(guiSliderBar);
 }
 
@@ -206,7 +220,7 @@ void RenderMapScreenInterfaceBottom( void )
 	// render whole panel
 	if (fMapScreenBottomDirty)
 	{
-		BltVideoObject(guiSAVEBUFFER, guiMAPBOTTOMPANEL, 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
+		BltVideoObject(guiSAVEBUFFER, GetMapScreenBottomGraphicsFilename(), 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
 		auto const& sMap{ sSelMap };
 
 		if (GetSectorFlagStatus(sMap, SF_ALREADY_VISITED))

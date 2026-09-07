@@ -2696,9 +2696,12 @@ static void DropAPersonInASector(UINT8 const type, UINT8 const sector)
 
 void LoadMapScreenInterfaceMapGraphics()
 {
+	// Suffix convention: _1280 for the compact strategic-screen tier (height
+	// 720-767), _1024 for the large tier (height 768+) -- see
+	// GetCharListGraphicsFilename() in MapScreen.cc for the same pattern.
 	guiBIGMAP                      = AddVideoSurfaceFromFile(g_ui.isCompactStrategicScreen()
-	                                      ? INTERFACEDIR "/b_map_720.pcx"
-	                                      : INTERFACEDIR "/b_map.pcx");
+	                                      ? INTERFACEDIR "/b_map_1280.pcx"
+	                                      : INTERFACEDIR "/b_map_1024.pcx");
 
 	for (auto s : GCM->getMapSecrets())
 	{

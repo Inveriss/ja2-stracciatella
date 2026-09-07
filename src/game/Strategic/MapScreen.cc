@@ -339,20 +339,29 @@ UINT32 guiPotCharPathBaseTime = 0;
 
 namespace {
 cache_key_t const guiSleepIcon { INTERFACEDIR "/sleepicon.sti" };
-cache_key_t const guiCHARINFO { INTERFACEDIR "/charinfo.sti" };
 cache_key_t const guiMAPINV { INTERFACEDIR "/mapinv.sti" };
 cache_key_t const guiULICONS { INTERFACEDIR "/top_left_corner_icons.sti" };
 cache_key_t const guiNewMailIcons{ INTERFACEDIR "/newemail.sti" };
 
-// Not a plain cache_key_t constant like the others above: which file this is
+// Not plain cache_key_t constants like the others above: which file these are
 // depends on the active resolution (see UILayout::isCompactStrategicScreen()),
 // which isn't known yet at static-initialization time, so the choice has to
-// be resolved at runtime, on every call.
+// be resolved at runtime, on every call. Suffix convention: _1280 for the
+// compact strategic-screen tier (height 720-767), _1024 for the large tier
+// (height 768+) -- matching the resolution each tier's assets were authored
+// for, not the map canvas' own (always 1024-wide) MAP_SCREEN_WIDTH.
 cache_key_t GetCharListGraphicsFilename()
 {
 	return g_ui.isCompactStrategicScreen()
-		? INTERFACEDIR "/newgoldpiece3_720.sti"
-		: INTERFACEDIR "/newgoldpiece3.sti";
+		? INTERFACEDIR "/newgoldpiece3_1280.sti"
+		: INTERFACEDIR "/newgoldpiece3_1024.sti";
+}
+
+cache_key_t GetCharInfoGraphicsFilename()
+{
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/charinfo_1280.sti"
+		: INTERFACEDIR "/charinfo_1024.sti";
 }
 }
 
@@ -5010,7 +5019,7 @@ static void RenderTeamRegionBackground()
 	MarkAllBoxesAsAltered();
 	// Same fix as RenderMapRegionBackground() above: height was hardcoded to
 	// 359-107 (old canvas boundary), clipping anything the (now potentially
-	// taller, e.g. newgoldpiece3_720.sti) team-list graphic draws further down.
+	// taller, e.g. newgoldpiece3_1280.sti) team-list graphic draws further down.
 	RestoreExternBackgroundRect(MAP_SCREEN_X + 0, MAP_SCREEN_Y + 107, 261 - 0, MAP_SCREEN_HEIGHT - 107);
 	MapscreenMarkButtonsDirty();
 }
@@ -5027,7 +5036,7 @@ static void RenderCharacterInfoBackground(void)
 	}
 
 	// the upleft hand corner character info panel
-	BltVideoObject(guiSAVEBUFFER, guiCHARINFO, 0, TOWN_INFO_X, TOWN_INFO_Y);
+	BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
 
 	UpdateHelpTextForMapScreenMercIcons( );
 
@@ -6114,7 +6123,7 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(guiSleepIcon);
 
 	RemoveVObject(GetCharListGraphicsFilename());
-	RemoveVObject(guiCHARINFO);
+	RemoveVObject(GetCharInfoGraphicsFilename());
 
 	RemoveVObject(guiMAPINV);
 	RemoveVObject(guiULICONS);

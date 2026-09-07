@@ -21,7 +21,6 @@
 
 struct BUTTON_PICS;
 
-#define MAP_BORDER_FILE INTERFACEDIR "/mbs.sti"
 #define BTN_TOWN_X      (MAP_SCREEN_X + 299)
 #define BTN_MINE_X      (MAP_SCREEN_X + 342)
 #define BTN_TEAMS_X     (MAP_SCREEN_X + 385)
@@ -55,9 +54,22 @@ static MOUSE_REGION LevelMouseRegions[4];
 namespace {
 // the white rectangle highlighting the current level on the map border
 cache_key_t const guiLEVELMARKER{ INTERFACEDIR "/greenarr.sti" };
-cache_key_t const guiMapBorder{ MAP_BORDER_FILE };
  // the map border eta pop up
 cache_key_t const guiMapBorderEtaPopUp{ INTERFACEDIR "/eta_pop_up.sti" };
+
+// Not a plain cache_key_t constant like the others above: which file this is
+// depends on the active resolution (see UILayout::isCompactStrategicScreen()),
+// which isn't known yet at static-initialization time, so the choice has to
+// be resolved at runtime, on every call. Suffix convention: _1280 for the
+// compact strategic-screen tier (height 720-767), _1024 for the large tier
+// (height 768+) -- see GetCharListGraphicsFilename() in MapScreen.cc for the
+// same pattern.
+cache_key_t GetMapBorderGraphicsFilename()
+{
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/mbs_1280.sti"
+		: INTERFACEDIR "/mbs_1024.sti";
+}
 }
 
 // scroll direction
@@ -83,7 +95,7 @@ void DeleteMapBorderGraphics( void )
 {
 	// procedure will delete graphics loaded for map border
 	RemoveVObject(guiLEVELMARKER);
-	RemoveVObject(guiMapBorder);
+	RemoveVObject(GetMapBorderGraphicsFilename());
 	RemoveVObject(guiMapBorderEtaPopUp);
 }
 
@@ -100,7 +112,7 @@ void RenderMapBorder( void )
 		return;
 	}
 
-	BltVideoObject(guiSAVEBUFFER, guiMapBorder, 0, MAP_BORDER_X, MAP_BORDER_Y);
+	BltVideoObject(guiSAVEBUFFER, GetMapBorderGraphicsFilename(), 0, MAP_BORDER_X, MAP_BORDER_Y);
 
 	// show the level marker
 	DisplayCurrentLevelMarker( );
