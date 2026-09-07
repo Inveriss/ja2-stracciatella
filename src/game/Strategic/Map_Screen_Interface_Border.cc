@@ -37,8 +37,8 @@ struct BUTTON_PICS;
 // Shifted +1 (down) per user request.
 #define BTN_ROW_Y             (MAP_SCREEN_BOTTOM - 156)
 
-// X shifted +192, then -1 (net +191) per user request.
-#define MAP_LEVEL_MARKER_X    (MAP_SCREEN_X + 565 + 191)
+// X shifted +192, then -1, then +1 (net +192) per user request.
+#define MAP_LEVEL_MARKER_X    (MAP_SCREEN_X + 565 + 192)
 #define MAP_LEVEL_MARKER_Y     BTN_ROW_Y
 #define MAP_LEVEL_MARKER_DELTA   8
 #define MAP_LEVEL_MARKER_WIDTH  55
