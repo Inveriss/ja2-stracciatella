@@ -6618,6 +6618,12 @@ static void DisplayIconsForMercsAsleep(void)
 
 //Kris:  Added this function to blink the email icon on top of the laptop button whenever we are in
 //       mapscreen and we have new email to read.
+//
+// Positioned relative to the Laptop exit button's own bottom+right-anchored
+// corner (MAP_SCREEN_RIGHT-184, MAP_SCREEN_BOTTOM-70 -- see MAP_EXIT_TO_LAPTOP
+// in Map_Screen_Interface_Bottom.cc), preserving this overlay's original
+// offset from that button on the old 640x480 canvas, instead of the fixed
+// MAP_SCREEN_X/Y offset it used to have when the button never moved.
 static void CheckForAndRenderNewMailOverlay(void)
 {
 	if( fNewMailFlag )
@@ -6626,20 +6632,20 @@ static void CheckForAndRenderNewMailOverlay(void)
 		{
 			if (guiMapBottomExitButtons[MAP_EXIT_TO_LAPTOP]->Clicked())
 			{ //button is down, so offset the icon
-				BltVideoObject(FRAME_BUFFER, guiNewMailIcons, 1, MAP_SCREEN_X + 465, MAP_SCREEN_Y + 418);
-				InvalidateRegion( MAP_SCREEN_X + 465, MAP_SCREEN_Y + 418, MAP_SCREEN_X + 480, MAP_SCREEN_Y + 428 );
+				BltVideoObject(FRAME_BUFFER, guiNewMailIcons, 1, MAP_SCREEN_RIGHT - 175, MAP_SCREEN_BOTTOM - 62);
+				InvalidateRegion( MAP_SCREEN_RIGHT - 175, MAP_SCREEN_BOTTOM - 62, MAP_SCREEN_RIGHT - 160, MAP_SCREEN_BOTTOM - 52 );
 			}
 			else
 			{ //button is up, so draw the icon normally
-				BltVideoObject(FRAME_BUFFER, guiNewMailIcons, 0, MAP_SCREEN_X + 464, MAP_SCREEN_Y + 417);
+				BltVideoObject(FRAME_BUFFER, guiNewMailIcons, 0, MAP_SCREEN_RIGHT - 176, MAP_SCREEN_BOTTOM - 63);
 				if (!guiMapBottomExitButtons[MAP_EXIT_TO_LAPTOP]->Enabled())
 				{
-					SGPRect area = { (UINT16)(MAP_SCREEN_X + 463), (UINT16)(MAP_SCREEN_Y + 417), (UINT16)(MAP_SCREEN_X + 477), (UINT16)(MAP_SCREEN_Y + 425) };
+					SGPRect area = { (UINT16)(MAP_SCREEN_RIGHT - 177), (UINT16)(MAP_SCREEN_BOTTOM - 63), (UINT16)(MAP_SCREEN_RIGHT - 163), (UINT16)(MAP_SCREEN_BOTTOM - 55) };
 
 					SGPVSurface::Lock l(FRAME_BUFFER);
 					Blt16BPPBufferHatchRect(l.Buffer<UINT16>(), l.Pitch(), &area);
 				}
-				InvalidateRegion( MAP_SCREEN_X + 463, MAP_SCREEN_Y + 417, MAP_SCREEN_X + 481, MAP_SCREEN_Y + 430 );
+				InvalidateRegion( MAP_SCREEN_RIGHT - 177, MAP_SCREEN_BOTTOM - 63, MAP_SCREEN_RIGHT - 159, MAP_SCREEN_BOTTOM - 50 );
 
 			}
 		}
