@@ -117,20 +117,21 @@
 
 //Map Location index regions
 
-// x start of hort index
-#define MAP_HORT_INDEX_X (MAP_SCREEN_X + 292)
+// x start of hort index (numbers 1-16). Shifted +23 X / +7 Y per user
+// request.
+#define MAP_HORT_INDEX_X (MAP_SCREEN_X + 292 + 23)
 
 // y position of hort index
-#define MAP_HORT_INDEX_Y  (MAP_SCREEN_Y + 10)
+#define MAP_HORT_INDEX_Y  (MAP_SCREEN_Y + 10 + 7)
 
 // height of hort index
 #define MAP_HORT_HEIGHT  GetFontHeight(MAP_FONT)
 
-// vert index start x
-#define MAP_VERT_INDEX_X (MAP_SCREEN_X + 273)
+// vert index start x (letters A-P). Shifted +10 X / +15 Y per user request.
+#define MAP_VERT_INDEX_X (MAP_SCREEN_X + 273 + +10)
 
 // vert index start y
-#define MAP_VERT_INDEX_Y  (MAP_SCREEN_Y + 31)
+#define MAP_VERT_INDEX_Y  (MAP_SCREEN_Y + 31 + 15)
 
 // vert width
 #define MAP_VERT_WIDTH   GetFontHeight(MAP_FONT)
