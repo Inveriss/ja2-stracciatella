@@ -21,20 +21,24 @@
 
 struct BUTTON_PICS;
 
-#define BTN_TOWN_X      (MAP_SCREEN_X + 299)
-#define BTN_MINE_X      (MAP_SCREEN_X + 342)
-#define BTN_TEAMS_X     (MAP_SCREEN_X + 385)
-#define BTN_MILITIA_X   (MAP_SCREEN_X + 428)
-#define BTN_AIR_X       (MAP_SCREEN_X + 471)
-#define BTN_ITEM_X      (MAP_SCREEN_X + 514)
+// X shifted +192, then -1 (net +191); Y (via BTN_ROW_Y below) shifted +1,
+// per user request.
+#define BTN_TOWN_X      (MAP_SCREEN_X + 299 + 191)
+#define BTN_MINE_X      (MAP_SCREEN_X + 342 + 191)
+#define BTN_TEAMS_X     (MAP_SCREEN_X + 385 + 191)
+#define BTN_MILITIA_X   (MAP_SCREEN_X + 428 + 191)
+#define BTN_AIR_X       (MAP_SCREEN_X + 471 + 191)
+#define BTN_ITEM_X      (MAP_SCREEN_X + 514 + 191)
 
 // Shared by the six Show-* buttons above and MAP_LEVEL_MARKER_Y below (the
 // current-level highlight rides on the same row) -- bottom-anchored so both
 // stay flush with the bottom edge of the (now bigger) map canvas instead of
 // the fixed offset tuned for the old 640x480 canvas (480 - 323 = 157).
-#define BTN_ROW_Y             (MAP_SCREEN_BOTTOM - 157)
+// Shifted +1 (down) per user request.
+#define BTN_ROW_Y             (MAP_SCREEN_BOTTOM - 156)
 
-#define MAP_LEVEL_MARKER_X    (MAP_SCREEN_X + 565)
+// X shifted +192, then -1 (net +191) per user request.
+#define MAP_LEVEL_MARKER_X    (MAP_SCREEN_X + 565 + 191)
 #define MAP_LEVEL_MARKER_Y     BTN_ROW_Y
 #define MAP_LEVEL_MARKER_DELTA   8
 #define MAP_LEVEL_MARKER_WIDTH  55
