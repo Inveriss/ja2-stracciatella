@@ -92,8 +92,13 @@
 #define MAP_HELICOPTER_ETA_POPUP_WIDTH 120
 #define MAP_HELICOPTER_ETA_POPUP_HEIGHT 68
 
-#define MAP_LEVEL_STRING_X (MAP_SCREEN_X + 432)
-#define MAP_LEVEL_STRING_Y (MAP_SCREEN_Y + 305)
+// X shifted +190 per user request.
+#define MAP_LEVEL_STRING_X (MAP_SCREEN_X + 432 + 190)
+// Bottom-anchored to the (now recalibrated) map viewport instead of a fixed
+// MAP_SCREEN_Y offset, per user request. Was 3px above the old viewport's
+// bottom edge (old MAP_VIEW_START_Y + MAP_VIEW_HEIGHT = 10+298 = 308;
+// 308-305=3); preserved here as the same 3px margin above the new bottom.
+#define MAP_LEVEL_STRING_Y (MAP_VIEW_START_Y + MAP_VIEW_HEIGHT - 3)
 
 // font
 #define MAP_FONT BLOCKFONT2
