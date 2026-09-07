@@ -3514,12 +3514,12 @@ static void HandleLowerLevelMapBlit(void)
 	// blits the sub level maps
 	cache_key_t const vo = GetMineLevelGraphicsFilename(iCurrentMapSectorZ);
 
-	// Mine graphics (both tiers) are offset +22 X / +16 Y from
+	// Mine graphics (both tiers) are offset +21 X / +17 Y from
 	// MAP_VIEW_START_X/Y, per user request. MAP_VIEW_START_X/Y themselves must
 	// stay untouched -- they also anchor the terrain (B_MAP.PCX) blit and the
 	// sector grid math above.
-	INT16 const sBltX = MAP_VIEW_START_X + 21 + 22;
-	INT16 const sBltY = MAP_VIEW_START_Y + 17 + 16;
+	INT16 const sBltX = MAP_VIEW_START_X + 21 + 22 - 1;
+	INT16 const sBltY = MAP_VIEW_START_Y + 17 + 16 + 1;
 
 	// handle the blt of the sublevel
 	BltVideoObject(guiSAVEBUFFER, vo, 0, sBltX, sBltY);
