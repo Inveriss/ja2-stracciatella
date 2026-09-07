@@ -132,10 +132,13 @@ void SetMapCursorItem();
 // Bottom-anchored per user request: 480-298=182, same distance from the old
 // 640x480 canvas' bottom edge as before. Used only by DisplayGroundEta().
 #define CLOCK_Y_START         (MAP_SCREEN_BOTTOM - 182)
-// X shifted +136 per user request.
+// X shifted +136 per user request. CLOCK_HOUR_X_START/CLOCK_MIN_X_START
+// (the value columns) additionally shifted +15 to add a margin between the
+// "ETA:" label and the values -- the new, wider FONTMAP made the label wide
+// enough to overlap them.
 #define CLOCK_ETA_X           (MAP_SCREEN_X + 463 - 15 + 6 + 30 + 136)
-#define CLOCK_HOUR_X_START    (MAP_SCREEN_X + 463 + 25 + 30 + 136)
-#define CLOCK_MIN_X_START     (MAP_SCREEN_X + 463 + 45 + 30 + 136)
+#define CLOCK_HOUR_X_START    (MAP_SCREEN_X + 463 + 25 + 30 + 136 + 15)
+#define CLOCK_MIN_X_START     (MAP_SCREEN_X + 463 + 45 + 30 + 136 + 15)
 
 // contract
 #define CONTRACT_X            (MAP_SCREEN_X + 185)
