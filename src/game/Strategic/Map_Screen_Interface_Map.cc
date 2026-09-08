@@ -2181,7 +2181,11 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 
 		INT16 usX;
 		INT16 usY;
-		FindFontCenterCoordinates(iX + sTextXOffset, 0, ICON_WIDTH, 0, buf, MAP_FONT, &usX, &usY);
+		// Centering width must be measured with the same font the text is
+		// actually drawn in (MAP_MVT_ICON_FONT/SMALLCOMPFONT) -- this
+		// previously used MAP_FONT (now the much wider, dedicated FONTMAP),
+		// mismatching the font set above and throwing off the centering.
+		FindFontCenterCoordinates(iX + sTextXOffset, 0, ICON_WIDTH, 0, buf, MAP_MVT_ICON_FONT, &usX, &usY);
 		MPrint(usX, iY + sTextYOffset, buf);
 
 		INT32 iWidth;
