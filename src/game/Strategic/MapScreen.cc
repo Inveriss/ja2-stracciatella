@@ -2021,6 +2021,13 @@ ScreenID MapScreenHandle(void)
 	//If we have new email, blink the email icon on top of the laptop button.
 	CheckForAndRenderNewMailOverlay();
 
+	// Re-draw the current-level marker here (in addition to
+	// RenderMapBorder()'s own guiSAVEBUFFER draw) so it always ends up on
+	// top of the frame, the same way the new-mail overlay above does --
+	// fixes it being invisible on the compact strategic-screen tier, where
+	// it now sits on map_screen_bottom.sti's own territory.
+	RenderMapLevelMarker();
+
 	// handle video overlays
 	ExecuteVideoOverlays( );
 

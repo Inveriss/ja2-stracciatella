@@ -56,6 +56,15 @@ extern INT32 giScrollButtonState;
 void DeleteMapBorderGraphics( void );
 void RenderMapBorder( void );
 
+// Draws the current-level highlight marker straight to FRAME_BUFFER, late in
+// the per-frame render sequence (alongside CheckForAndRenderNewMailOverlay()
+// in MapScreen.cc) so it's always visible on top -- needed in addition to
+// RenderMapBorder()'s own guiSAVEBUFFER draw, since on the compact
+// strategic-screen tier the marker's row now sits on map_screen_bottom.sti's
+// own territory (mbs.sti was shortened there) and gets painted over if left
+// to guiSAVEBUFFER ordering alone.
+void RenderMapLevelMarker( void );
+
 void ToggleShowTownsMode( void );
 void ToggleShowMinesMode( void );
 void ToggleShowMilitiaMode( void );

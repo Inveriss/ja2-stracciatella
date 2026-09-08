@@ -547,6 +547,27 @@ static void DisplayCurrentLevelMarker(void)
 }
 
 
+void RenderMapLevelMarker(void)
+{
+	if (fShowMapInventoryPool) return;
+
+	// Draws straight to FRAME_BUFFER (not guiSAVEBUFFER, unlike
+	// DisplayCurrentLevelMarker() above) so it always ends up on top,
+	// regardless of what else was blitted into guiSAVEBUFFER earlier in the
+	// frame -- same pattern as CheckForAndRenderNewMailOverlay() in
+	// MapScreen.cc, called at the same point in the per-frame render
+	// sequence (after RenderButtons()). On the compact strategic-screen
+	// tier, the marker's row now sits on map_screen_bottom.sti's own
+	// territory (mbs.sti was shortened there); re-drawing into guiSAVEBUFFER
+	// alone (tried first) wasn't enough to make it visible, since nothing
+	// re-invalidated that exact screen rect afterwards.
+	INT16 const x = MAP_LEVEL_MARKER_X;
+	INT16 const y = MAP_LEVEL_MARKER_Y + MAP_LEVEL_MARKER_DELTA * iCurrentMapSectorZ;
+	BltVideoObject(FRAME_BUFFER, guiLEVELMARKER, 0, x, y);
+	InvalidateRegion(x, y, x + MAP_LEVEL_MARKER_WIDTH, y + MAP_LEVEL_MARKER_DELTA);
+}
+
+
 static void LevelMarkerBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
