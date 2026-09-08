@@ -3857,8 +3857,12 @@ static void DrawMapBoxIcon(cache_key_t const vo, UINT16 const icon, const SGPSec
 	INT32 const col = icon_pos % MERC_ICONS_PER_LINE;
 	INT32 const row = icon_pos / MERC_ICONS_PER_LINE;
 
-	INT32 const x = MAP_VIEW_START_X + sMap.x * MAP_GRID_X + MAP_X_ICON_OFFSET + 3 * col;
-	INT32 const y = MAP_VIEW_START_Y + sMap.y * MAP_GRID_Y + MAP_Y_ICON_OFFSET + 3 * row;
+	// Spacing step was 3 (matching the old 3x3 icon size in boxes.sti/
+	// militia.sti); doubled to 6 to match the new 6x6 icon size, per user
+	// request -- otherwise consecutive icons would overlap by half their
+	// width/height.
+	INT32 const x = MAP_VIEW_START_X + sMap.x * MAP_GRID_X + MAP_X_ICON_OFFSET + 6 * col;
+	INT32 const y = MAP_VIEW_START_Y + sMap.y * MAP_GRID_Y + MAP_Y_ICON_OFFSET + 6 * row;
 	BltVideoObject(guiSAVEBUFFER, vo, icon, x, y);
 	InvalidateRegion(x, y, x + DMAP_GRID_X, y + DMAP_GRID_Y);
 }
