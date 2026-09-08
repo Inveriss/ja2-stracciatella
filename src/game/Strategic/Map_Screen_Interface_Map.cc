@@ -239,6 +239,12 @@
 // the font use on the mvt icons for mapscreen
 #define MAP_MVT_ICON_FONT SMALLCOMPFONT
 
+// Merc-count text on merc_between_sector_icons.sti/merc_mvt_green_arrows.sti
+// (ShowPeopleInMotion()) only -- kept separate from MAP_MVT_ICON_FONT so this
+// doesn't also change the helicopter icon's passenger-count text
+// (DisplayPositionOfHelicopter()), which still uses MAP_MVT_ICON_FONT.
+#define MAP_MVT_TRANSIT_FONT FONTGRID
+
 
 // map shading colors
 
@@ -2062,15 +2068,15 @@ void RestoreClipRegionToFullScreenForRectangle( UINT32 uiDestPitchBYTES )
 #define WEST_X_MVT_OFFSET -8
 #define EAST_WEST_CENTER_OFFSET +2
 
-#define NORTH_TEXT_X_OFFSET +1
-#define NORTH_TEXT_Y_OFFSET +4
-#define SOUTH_TEXT_X_OFFSET +1
-#define SOUTH_TEXT_Y_OFFSET +2
+#define NORTH_TEXT_X_OFFSET +1 +14
+#define NORTH_TEXT_Y_OFFSET +4 +5
+#define SOUTH_TEXT_X_OFFSET +1 +9
+#define SOUTH_TEXT_Y_OFFSET +2 +14
 
-#define EAST_TEXT_X_OFFSET + 2
-#define EAST_TEXT_Y_OFFSET 0
-#define WEST_TEXT_X_OFFSET + 4
-#define WEST_TEXT_Y_OFFSET 0
+#define EAST_TEXT_X_OFFSET + 2 +18
+#define EAST_TEXT_Y_OFFSET 0 +10
+#define WEST_TEXT_X_OFFSET + 4 +4
+#define WEST_TEXT_Y_OFFSET 0 +10
 
 
 #define ICON_WIDTH 8
@@ -2174,7 +2180,7 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 
 		// blit the text
 		UINT8 const foreground = fAboutToEnter ? FONT_BLACK : FONT_WHITE;
-		SetFontAttributes(MAP_MVT_ICON_FONT, foreground);
+		SetFontAttributes(MAP_MVT_TRANSIT_FONT, foreground);
 		SetFontDestBuffer(guiSAVEBUFFER);
 
 		ST::string buf = ST::format("{}", sExiting);
@@ -2182,10 +2188,10 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 		INT16 usX;
 		INT16 usY;
 		// Centering width must be measured with the same font the text is
-		// actually drawn in (MAP_MVT_ICON_FONT/SMALLCOMPFONT) -- this
-		// previously used MAP_FONT (now the much wider, dedicated FONTMAP),
-		// mismatching the font set above and throwing off the centering.
-		FindFontCenterCoordinates(iX + sTextXOffset, 0, ICON_WIDTH, 0, buf, MAP_MVT_ICON_FONT, &usX, &usY);
+		// actually drawn in (MAP_MVT_TRANSIT_FONT) -- see MAP_MVT_TRANSIT_FONT's
+		// own comment above for why this is a separate font from
+		// MAP_MVT_ICON_FONT.
+		FindFontCenterCoordinates(iX + sTextXOffset, 0, ICON_WIDTH, 0, buf, MAP_MVT_TRANSIT_FONT, &usX, &usY);
 		MPrint(usX, iY + sTextYOffset, buf);
 
 		INT32 iWidth;
