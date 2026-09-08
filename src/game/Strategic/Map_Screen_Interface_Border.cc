@@ -21,24 +21,52 @@
 
 struct BUTTON_PICS;
 
-// X shifted +192, then -1 (net +191); Y (via BTN_ROW_Y below) shifted +1,
-// per user request.
-#define BTN_TOWN_X      (MAP_SCREEN_X + 299 + 191)
-#define BTN_MINE_X      (MAP_SCREEN_X + 342 + 191)
-#define BTN_TEAMS_X     (MAP_SCREEN_X + 385 + 191)
-#define BTN_MILITIA_X   (MAP_SCREEN_X + 428 + 191)
-#define BTN_AIR_X       (MAP_SCREEN_X + 471 + 191)
-#define BTN_ITEM_X      (MAP_SCREEN_X + 514 + 191)
+// Large-tier (map canvas height 768+) coordinates for the six Show-* buttons,
+// their shared row Y, and the map-level marker/regions -- these are the
+// values already tuned via prior requests (X net +191/+192, Y net +1 from
+// the original bottom-anchored positions).
+#define BTN_TOWN_X_LARGE           (MAP_SCREEN_X + 490)
+#define BTN_MINE_X_LARGE           (MAP_SCREEN_X + 533)
+#define BTN_TEAMS_X_LARGE          (MAP_SCREEN_X + 576)
+#define BTN_MILITIA_X_LARGE        (MAP_SCREEN_X + 619)
+#define BTN_AIR_X_LARGE            (MAP_SCREEN_X + 662)
+#define BTN_ITEM_X_LARGE           (MAP_SCREEN_X + 705)
+#define BTN_ROW_Y_LARGE            (MAP_SCREEN_BOTTOM - 156)
+#define MAP_LEVEL_MARKER_X_LARGE   (MAP_SCREEN_X + 757)
+
+// Compact-tier (map canvas height 720-767) coordinates -- a second,
+// independent set from the large tier above, per user request. Initialized
+// as the large-tier values shifted -97 X / +55 Y (Y+55 down = 55 less
+// distance from the bottom edge, i.e. 156-55=101); tune freely from here
+// without affecting the large tier.
+#define BTN_TOWN_X_COMPACT         (MAP_SCREEN_X + 393)
+#define BTN_MINE_X_COMPACT         (MAP_SCREEN_X + 436)
+#define BTN_TEAMS_X_COMPACT        (MAP_SCREEN_X + 479)
+#define BTN_MILITIA_X_COMPACT      (MAP_SCREEN_X + 522)
+#define BTN_AIR_X_COMPACT          (MAP_SCREEN_X + 565)
+#define BTN_ITEM_X_COMPACT         (MAP_SCREEN_X + 608)
+#define BTN_ROW_Y_COMPACT          (MAP_SCREEN_BOTTOM - 101)
+// X shifted -9 per user request.
+#define MAP_LEVEL_MARKER_X_COMPACT (MAP_SCREEN_X + 660 - 9)
+
+// Resolved at runtime (not static-init time) via
+// UILayout::isCompactStrategicScreen(), same reasoning as
+// GetMapBorderGraphicsFilename() below: which set applies depends on the
+// active resolution.
+#define BTN_TOWN_X      (g_ui.isCompactStrategicScreen() ? BTN_TOWN_X_COMPACT    : BTN_TOWN_X_LARGE)
+#define BTN_MINE_X      (g_ui.isCompactStrategicScreen() ? BTN_MINE_X_COMPACT    : BTN_MINE_X_LARGE)
+#define BTN_TEAMS_X     (g_ui.isCompactStrategicScreen() ? BTN_TEAMS_X_COMPACT   : BTN_TEAMS_X_LARGE)
+#define BTN_MILITIA_X   (g_ui.isCompactStrategicScreen() ? BTN_MILITIA_X_COMPACT : BTN_MILITIA_X_LARGE)
+#define BTN_AIR_X       (g_ui.isCompactStrategicScreen() ? BTN_AIR_X_COMPACT     : BTN_AIR_X_LARGE)
+#define BTN_ITEM_X      (g_ui.isCompactStrategicScreen() ? BTN_ITEM_X_COMPACT    : BTN_ITEM_X_LARGE)
 
 // Shared by the six Show-* buttons above and MAP_LEVEL_MARKER_Y below (the
 // current-level highlight rides on the same row) -- bottom-anchored so both
-// stay flush with the bottom edge of the (now bigger) map canvas instead of
-// the fixed offset tuned for the old 640x480 canvas (480 - 323 = 157).
-// Shifted +1 (down) per user request.
-#define BTN_ROW_Y             (MAP_SCREEN_BOTTOM - 156)
+// stay flush with the bottom edge of the map canvas instead of a fixed
+// offset tuned for the old 640x480 canvas.
+#define BTN_ROW_Y             (g_ui.isCompactStrategicScreen() ? BTN_ROW_Y_COMPACT : BTN_ROW_Y_LARGE)
 
-// X shifted +192, then -1, then +1 (net +192) per user request.
-#define MAP_LEVEL_MARKER_X    (MAP_SCREEN_X + 565 + 192)
+#define MAP_LEVEL_MARKER_X    (g_ui.isCompactStrategicScreen() ? MAP_LEVEL_MARKER_X_COMPACT : MAP_LEVEL_MARKER_X_LARGE)
 #define MAP_LEVEL_MARKER_Y     BTN_ROW_Y
 #define MAP_LEVEL_MARKER_DELTA   8
 #define MAP_LEVEL_MARKER_WIDTH  55
