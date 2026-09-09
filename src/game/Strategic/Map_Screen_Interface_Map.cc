@@ -12,6 +12,7 @@
 #include "Game_Clock.h"
 #include "GameInstance.h"
 #include "HImage.h"
+#include "Input.h"
 #include "Interface.h"
 #include "Line.h"
 #include "Map_Information.h"
@@ -2254,11 +2255,44 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 
 /* calculate the distance travelled, the proposed distance, and total distance
  * one can go and display these on screen */
+// Old behavior: which of the two heli ETA popups (pos2_first.sti/
+// pos2_second.sti) is shown was decided by the row of the currently
+// highlighted map sector (>= row 13 -> show the "upper" one instead, so the
+// popup didn't run off the bottom of the screen). Deactivated (not removed)
+// per user request, replaced by the cursor-hover-based swap below. Flip
+// back to true to restore the old behavior.
+constexpr bool ENABLE_ROW_BASED_HELI_POPUP_SWITCH = false;
+
 void DisplayDistancesForHelicopter()
 {
 	static INT16 sOldXPosition = 0;
 	static INT16 sOldYPosition = 0;
-	bool const fUpper = gsHighlightSector.IsValid() && gsHighlightSector.y >= 13;
+	// Persists across frames: which popup is currently being shown (false =
+	// pos2_first.sti, true = pos2_second.sti). Only used by the new
+	// hover-based swap logic below.
+	static bool fShowSecondHeliPopup = false;
+
+	bool fUpper;
+	if (ENABLE_ROW_BASED_HELI_POPUP_SWITCH)
+	{
+		fUpper = gsHighlightSector.IsValid() && gsHighlightSector.y >= 13;
+	}
+	else
+	{
+		// New behavior, per user request: swap to the OTHER popup (and hide
+		// this one) whenever the mouse cursor (with the helicopter icon,
+		// while plotting a heli route) is hovering directly over the popup
+		// that's currently being shown.
+		INT16 const sCurX = fShowSecondHeliPopup ? MAP_HELICOPTER_UPPER_ETA_POPUP_X : MAP_HELICOPTER_ETA_POPUP_X;
+		INT16 const sCurY = fShowSecondHeliPopup ? MAP_HELICOPTER_UPPER_ETA_POPUP_Y : MAP_HELICOPTER_ETA_POPUP_Y;
+		if (gusMouseXPos >= (UINT16)sCurX && gusMouseXPos < (UINT16)(sCurX + MAP_HELICOPTER_ETA_POPUP_WIDTH) &&
+			gusMouseYPos >= (UINT16)sCurY && gusMouseYPos < (UINT16)(sCurY + MAP_HELICOPTER_ETA_POPUP_HEIGHT))
+		{
+			fShowSecondHeliPopup = !fShowSecondHeliPopup;
+		}
+		fUpper = fShowSecondHeliPopup;
+	}
+
 	INT16 const sXPosition = fUpper ? MAP_HELICOPTER_UPPER_ETA_POPUP_X : MAP_HELICOPTER_ETA_POPUP_X;
 	INT16 const sYPosition = fUpper ? MAP_HELICOPTER_UPPER_ETA_POPUP_Y : MAP_HELICOPTER_ETA_POPUP_Y;
 
