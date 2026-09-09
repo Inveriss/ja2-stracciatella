@@ -385,6 +385,13 @@ cache_key_t const guiMINEICON{ INTERFACEDIR "/mine.sti" };
 // helicopter icon
 cache_key_t const guiHelicopterIcon{ INTERFACEDIR "/helicop.sti" };
 
+// Ground-vehicle destination marker -- its own dedicated graphic
+// (vehiclecursor_destination.sti), frame 0, per user request. Shown at a
+// player ground vehicle's confirmed destination sector, the same way
+// HELI_SHADOW_ICON marks the helicopter's -- see ShowVehicleDestinations().
+cache_key_t const guiVehicleCursorIcon{ CURSORSDIR "/vehiclecursor_destination.sti" };
+#define VEHICLE_DESTINATION_ICON 0
+
 // the between sector icons
 cache_key_t const guiCHARBETWEENSECTORICONS{ INTERFACEDIR "/merc_between_sector_icons.sti" };
 cache_key_t const guiCHARBETWEENSECTORICONSCLOSE{ INTERFACEDIR "/merc_mvt_green_arrows.sti" };
@@ -805,6 +812,45 @@ static INT32 ShowVehicles(const SGPSector& sSector, INT32 icon_pos)
 }
 
 
+// Same idea as DisplayDestinationOfHelicopter() (which handles the one,
+// singleton helicopter) but for ground vehicles, of which there can be
+// several moving at once -- draws a persistent marker at each player ground
+// vehicle's confirmed destination sector, which naturally disappears once
+// the vehicle arrives (its path then has length <= 1). Called once (not
+// per-sector) from ShowTeamAndVehicles(), redrawn into guiSAVEBUFFER
+// whenever the map panel is dirty (same as the other per-sector icons in
+// this file), so unlike the helicopter's version this needs no manual
+// old-position bookkeeping even with multiple vehicles moving at once.
+static void ShowVehicleDestinations(void)
+{
+	if (iCurrentMapSectorZ != 0) return; // ground vehicles only travel on the surface
+
+	CFOR_EACH_VEHICLE(v)
+	{
+		if (IsHelicopter(v)) continue; // has its own destination marker, see DisplayDestinationOfHelicopter()
+
+		SOLDIERTYPE const& vs = GetSoldierStructureForVehicle(v);
+		if (vs.bTeam != OUR_TEAM) continue;
+
+		if (GetLengthOfPath(v.pMercPath) <= 1) continue; // not going anywhere
+
+		INT16 sLastSectorId = v.sSector.AsStrategicIndex();
+		for (PathSt const* pNode = v.pMercPath; pNode != NULL; pNode = pNode->pNext)
+		{
+			sLastSectorId = (INT16)pNode->uiSectorId;
+		}
+		SGPSector const sDest = SGPSector::FromStrategicIndex(sLastSectorId);
+
+		// same +1/+3 offset as DisplayDestinationOfHelicopter() uses for its
+		// own marker, for visual consistency
+		INT16 const x = MAP_VIEW_START_X + sDest.x * MAP_GRID_X + 1;
+		INT16 const y = MAP_VIEW_START_Y + sDest.y * MAP_GRID_Y + 3;
+		BltVideoObject(guiSAVEBUFFER, guiVehicleCursorIcon, VEHICLE_DESTINATION_ICON, x, y);
+		InvalidateRegion(x, y, x + DMAP_GRID_X, y + DMAP_GRID_Y);
+	}
+}
+
+
 static void ShowEnemiesInSector(const SGPSector& sMap, INT16 n_enemies, UINT8 icon_pos)
 {
 	while (n_enemies-- != 0)
@@ -849,6 +895,8 @@ static void ShowTeamAndVehicles()
 			ShowPeopleInMotion(sector);
 		}
 	}
+
+	ShowVehicleDestinations();
 }
 
 
@@ -2838,6 +2886,7 @@ void DeleteMapScreenInterfaceMapGraphics()
 	RemoveVObject(guiCHARBETWEENSECTORICONSCLOSE);
 	RemoveVObject(guiCHARICONS);
 	RemoveVObject(guiHelicopterIcon);
+	RemoveVObject(guiVehicleCursorIcon);
 	RemoveVObject(guiMAPCURSORS);
 	RemoveVObject(guiMINEICON);
 	RemoveVObject(guiMapBorderHeliSectorsFirst);
