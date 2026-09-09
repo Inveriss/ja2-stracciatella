@@ -86,11 +86,30 @@
 // #define VERT_SCROLL 10
 
 // the pop up for helicopter stuff
-#define MAP_HELICOPTER_ETA_POPUP_X (MAP_SCREEN_X + 400)
-#define MAP_HELICOPTER_ETA_POPUP_Y (MAP_SCREEN_Y + 250)
-#define MAP_HELICOPTER_UPPER_ETA_POPUP_Y (MAP_SCREEN_Y + 50)
-#define MAP_HELICOPTER_ETA_POPUP_WIDTH 120
-#define MAP_HELICOPTER_ETA_POPUP_HEIGHT 68
+#define MAP_HELICOPTER_ETA_POPUP_X (MAP_SCREEN_X + 873)
+#define MAP_HELICOPTER_ETA_POPUP_Y (MAP_SCREEN_Y + 185)
+// Independent X for the "upper" location, per user request (was previously
+// sharing MAP_HELICOPTER_ETA_POPUP_X with the normal location -- only Y
+// differed). Same initial value; tune freely from here.
+#define MAP_HELICOPTER_UPPER_ETA_POPUP_X (MAP_SCREEN_X + 873)
+#define MAP_HELICOPTER_UPPER_ETA_POPUP_Y (MAP_SCREEN_Y + 359)
+#define MAP_HELICOPTER_ETA_POPUP_WIDTH 136
+#define MAP_HELICOPTER_ETA_POPUP_HEIGHT 106
+
+// Text layout inside the pos2.sti popup (Total Distance/Safe/Unsafe/Total
+// Cost/ETA, and the passenger count below them) -- one shared (X, starting
+// Y, and a value column width used to right-align each numeric value)
+// applied to every line, independent of the popup's own X/Y/size above.
+// Separate set for the "upper" location (used when a low-on-the-map sector
+// is selected, so the popup doesn't run off the bottom of the screen) so
+// each location can be tuned on its own.
+#define MAP_HELICOPTER_ETA_TEXT_X       (MAP_HELICOPTER_ETA_POPUP_X + 14)
+#define MAP_HELICOPTER_ETA_TEXT_Y       (MAP_HELICOPTER_ETA_POPUP_Y + 13)
+#define MAP_HELICOPTER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -34
+
+#define MAP_HELICOPTER_UPPER_ETA_TEXT_X       (MAP_HELICOPTER_UPPER_ETA_POPUP_X + 14)
+#define MAP_HELICOPTER_UPPER_ETA_TEXT_Y       (MAP_HELICOPTER_UPPER_ETA_POPUP_Y + 13)
+#define MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -34
 
 // X shifted +190 per user request.
 #define MAP_LEVEL_STRING_X (MAP_SCREEN_X + 432 + 190)
@@ -2235,23 +2254,28 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
  * one can go and display these on screen */
 void DisplayDistancesForHelicopter()
 {
+	static INT16 sOldXPosition = 0;
 	static INT16 sOldYPosition = 0;
-	INT16 const sYPosition = gsHighlightSector.IsValid() && gsHighlightSector.y >= 13 ?
-			MAP_HELICOPTER_UPPER_ETA_POPUP_Y : MAP_HELICOPTER_ETA_POPUP_Y;
+	bool const fUpper = gsHighlightSector.IsValid() && gsHighlightSector.y >= 13;
+	INT16 const sXPosition = fUpper ? MAP_HELICOPTER_UPPER_ETA_POPUP_X : MAP_HELICOPTER_ETA_POPUP_X;
+	INT16 const sYPosition = fUpper ? MAP_HELICOPTER_UPPER_ETA_POPUP_Y : MAP_HELICOPTER_ETA_POPUP_Y;
 
-	if (sOldYPosition != 0 && sOldYPosition != sYPosition)
+	if (sOldYPosition != 0 && (sOldXPosition != sXPosition || sOldYPosition != sYPosition))
 	{
-		RestoreExternBackgroundRect(MAP_HELICOPTER_ETA_POPUP_X, sOldYPosition, MAP_HELICOPTER_ETA_POPUP_WIDTH + 20, MAP_HELICOPTER_ETA_POPUP_HEIGHT);
+		RestoreExternBackgroundRect(sOldXPosition, sOldYPosition, MAP_HELICOPTER_ETA_POPUP_WIDTH + 20, MAP_HELICOPTER_ETA_POPUP_HEIGHT);
 	}
+	sOldXPosition = sXPosition;
 	sOldYPosition = sYPosition;
 
-	BltVideoObject(FRAME_BUFFER, guiMapBorderHeliSectors, 0, MAP_HELICOPTER_ETA_POPUP_X, sYPosition);
+	BltVideoObject(FRAME_BUFFER, guiMapBorderHeliSectors, 0, sXPosition, sYPosition);
 
 	SetFontAttributes(MAP_FONT, FONT_LTGREEN);
 
-	INT32 const x = MAP_HELICOPTER_ETA_POPUP_X + 5;
-	INT32       y = sYPosition + 5;
-	INT32 const w = MAP_HELICOPTER_ETA_POPUP_WIDTH;
+	// Independent text-layout constants per location -- see their
+	// definitions above.
+	INT32 const x = fUpper ? MAP_HELICOPTER_UPPER_ETA_TEXT_X       : MAP_HELICOPTER_ETA_TEXT_X;
+	INT32       y = fUpper ? MAP_HELICOPTER_UPPER_ETA_TEXT_Y       : MAP_HELICOPTER_ETA_TEXT_Y;
+	INT32 const w = fUpper ? MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN : MAP_HELICOPTER_ETA_VALUE_MARGIN;
 	INT32 const h = GetFontHeight(MAP_FONT);
 	ST::string sString;
 	INT16       sX;
@@ -2302,7 +2326,7 @@ void DisplayDistancesForHelicopter()
 	FindFontRightCoordinates(x, y, w, 0, sString, MAP_FONT, &sX, &sY);
 	MPrint(sX, y, sString);
 
-	InvalidateRegion(MAP_HELICOPTER_ETA_POPUP_X, sOldYPosition, MAP_HELICOPTER_ETA_POPUP_X + MAP_HELICOPTER_ETA_POPUP_WIDTH + 20, sOldYPosition + MAP_HELICOPTER_ETA_POPUP_HEIGHT);
+	InvalidateRegion(sXPosition, sYPosition, sXPosition + MAP_HELICOPTER_ETA_POPUP_WIDTH + 20, sYPosition + MAP_HELICOPTER_ETA_POPUP_HEIGHT);
 }
 
 
