@@ -106,11 +106,11 @@
 // location can be tuned on its own.
 #define MAP_HELICOPTER_ETA_TEXT_X       (MAP_HELICOPTER_ETA_POPUP_X + 14)
 #define MAP_HELICOPTER_ETA_TEXT_Y       (MAP_HELICOPTER_ETA_POPUP_Y + 13)
-#define MAP_HELICOPTER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -41
+#define MAP_HELICOPTER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -27
 
 #define MAP_HELICOPTER_UPPER_ETA_TEXT_X       (MAP_HELICOPTER_UPPER_ETA_POPUP_X + 14)
 #define MAP_HELICOPTER_UPPER_ETA_TEXT_Y       (MAP_HELICOPTER_UPPER_ETA_POPUP_Y + 13)
-#define MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -41
+#define MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -27
 
 // X shifted +190 per user request.
 #define MAP_LEVEL_STRING_X (MAP_SCREEN_X + 432 + 190)
@@ -391,6 +391,12 @@ cache_key_t const guiHelicopterIcon{ INTERFACEDIR "/helicop.sti" };
 // HELI_SHADOW_ICON marks the helicopter's -- see ShowVehicleDestinations().
 cache_key_t const guiVehicleCursorIcon{ CURSORSDIR "/vehiclecursor_destination.sti" };
 #define VEHICLE_DESTINATION_ICON 0
+
+// On-foot merc destination marker -- same idea as guiVehicleCursorIcon
+// above, but for walking player groups, per user request. Shown at a
+// walking group's confirmed destination sector -- see ShowMercDestinations().
+cache_key_t const guiWalkingCursorIcon{ CURSORSDIR "/walkingcursor_destination.sti" };
+#define MERC_DESTINATION_ICON 0
 
 // the between sector icons
 cache_key_t const guiCHARBETWEENSECTORICONS{ INTERFACEDIR "/merc_between_sector_icons.sti" };
@@ -851,6 +857,42 @@ static void ShowVehicleDestinations(void)
 }
 
 
+// Same idea as ShowVehicleDestinations() above, but for player groups
+// travelling on foot -- draws a persistent marker at each walking group's
+// confirmed destination sector, which naturally disappears once the group
+// arrives (its path then has length <= 1). Iterates groups rather than
+// individual soldiers so a whole squad travelling together only gets one
+// marker, using GetGroupMercPathPtr() to get at the right merc's pMercPath
+// regardless of which soldier in the group actually holds it. Vehicle
+// groups are skipped -- they already have their own marker above.
+static void ShowMercDestinations(void)
+{
+	if (iCurrentMapSectorZ != 0) return; // mercs only travel on the surface
+
+	CFOR_EACH_PLAYER_GROUP(g)
+	{
+		if (g->fVehicle) continue; // has its own destination marker, see ShowVehicleDestinations()
+
+		PathSt* const pMercPath = GetGroupMercPathPtr(*g);
+		if (GetLengthOfPath(pMercPath) <= 1) continue; // not going anywhere
+
+		INT16 sLastSectorId = g->ubSector.AsStrategicIndex();
+		for (PathSt const* pNode = pMercPath; pNode != NULL; pNode = pNode->pNext)
+		{
+			sLastSectorId = (INT16)pNode->uiSectorId;
+		}
+		SGPSector const sDest = SGPSector::FromStrategicIndex(sLastSectorId);
+
+		// same +1/+3 offset as DisplayDestinationOfHelicopter()/
+		// ShowVehicleDestinations() use for their own markers, for visual consistency
+		INT16 const x = MAP_VIEW_START_X + sDest.x * MAP_GRID_X + 1;
+		INT16 const y = MAP_VIEW_START_Y + sDest.y * MAP_GRID_Y + 3;
+		BltVideoObject(guiSAVEBUFFER, guiWalkingCursorIcon, MERC_DESTINATION_ICON, x, y);
+		InvalidateRegion(x, y, x + DMAP_GRID_X, y + DMAP_GRID_Y);
+	}
+}
+
+
 static void ShowEnemiesInSector(const SGPSector& sMap, INT16 n_enemies, UINT8 icon_pos)
 {
 	while (n_enemies-- != 0)
@@ -897,6 +939,7 @@ static void ShowTeamAndVehicles()
 	}
 
 	ShowVehicleDestinations();
+	ShowMercDestinations();
 }
 
 
@@ -2138,15 +2181,15 @@ void RestoreClipRegionToFullScreenForRectangle( UINT32 uiDestPitchBYTES )
 #define WEST_X_MVT_OFFSET -8
 #define EAST_WEST_CENTER_OFFSET +2
 
-#define NORTH_TEXT_X_OFFSET +1 +14
-#define NORTH_TEXT_Y_OFFSET +4 +5
-#define SOUTH_TEXT_X_OFFSET +1 +9
-#define SOUTH_TEXT_Y_OFFSET +2 +14
+#define NORTH_TEXT_X_OFFSET +1 + 14
+#define NORTH_TEXT_Y_OFFSET +4 + 5 + 9
+#define SOUTH_TEXT_X_OFFSET +1 + 9
+#define SOUTH_TEXT_Y_OFFSET +2 + 14 - 9
 
-#define EAST_TEXT_X_OFFSET + 2 +18
-#define EAST_TEXT_Y_OFFSET 0 +10
-#define WEST_TEXT_X_OFFSET + 4 +4
-#define WEST_TEXT_Y_OFFSET 0 +10
+#define EAST_TEXT_X_OFFSET + 2 + 18 - 11
+#define EAST_TEXT_Y_OFFSET 0 + 10
+#define WEST_TEXT_X_OFFSET + 4 + 4 + 10
+#define WEST_TEXT_Y_OFFSET 0 + 10
 
 
 #define ICON_WIDTH 8
@@ -2911,6 +2954,7 @@ void DeleteMapScreenInterfaceMapGraphics()
 	RemoveVObject(guiCHARICONS);
 	RemoveVObject(guiHelicopterIcon);
 	RemoveVObject(guiVehicleCursorIcon);
+	RemoveVObject(guiWalkingCursorIcon);
 	RemoveVObject(guiMAPCURSORS);
 	RemoveVObject(guiMINEICON);
 	RemoveVObject(guiMapBorderHeliSectorsFirst);
