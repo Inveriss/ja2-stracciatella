@@ -231,7 +231,24 @@ static void BringupMeanwhileBox(void)
 		gCurrentMeanwhileDef.ubMeanwhileID != INTERROGATION
 		&& MeanwhileSceneSeen(gCurrentMeanwhileDef.ubMeanwhileID)
 		? MSG_BOX_FLAG_OKSKIP : MSG_BOX_FLAG_OK;
-	DoMessageBox(MSG_BOX_BASIC_STYLE, zStr, guiCurrentScreen, flags, BeginMeanwhileCallBack, NULL);
+	// Centered on the strategic map's own canvas (not the full screen
+	// resolution) when the meanwhile scene starts while on the map screen,
+	// per user request; meanwhile scenes can also start from other screens
+	// (guiCurrentScreen), where MAP_SCREEN_X/Y wouldn't be meaningful, so
+	// fall back to the default (full-screen) centering there.
+	if (guiCurrentScreen == MAP_SCREEN)
+	{
+		// Shifted +146 X / -36 then -24 Y (net -60) per user request
+		// (MBS_1024.sti's actual dimensions don't line up with
+		// B_MAP_1024.pcx's, so the automatic centering needs this manual
+		// correction).
+		SGPBox const centering_rect = { (UINT16)(MAP_SCREEN_X + 146), (UINT16)(MAP_SCREEN_Y - 60), MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+		DoMessageBox(MSG_BOX_BASIC_STYLE, zStr, guiCurrentScreen, flags, BeginMeanwhileCallBack, &centering_rect);
+	}
+	else
+	{
+		DoMessageBox(MSG_BOX_BASIC_STYLE, zStr, guiCurrentScreen, flags, BeginMeanwhileCallBack, NULL);
+	}
 }
 
 void CheckForMeanwhileOKStart( )

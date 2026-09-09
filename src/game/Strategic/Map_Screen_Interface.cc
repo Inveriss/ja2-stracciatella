@@ -3300,7 +3300,10 @@ void DisplaySoldierUpdateBox( )
 	// MAP_SCREEN_X + 290 + (336 - width)/2, i.e. MAP_VIEW_START_X + 20 +
 	// (old MAP_VIEW_WIDTH - width)/2) so this keeps centering correctly now
 	// that the map viewport is bigger.
-	iX = MAP_VIEW_START_X + 20 + ( MAP_VIEW_WIDTH - iUpdatePanelWidth ) / 2;
+	// Shifted +26 then -2 X (net +24) / -168 Y per user request (MBS_1024.sti's
+	// actual dimensions don't line up with B_MAP_1024.pcx's, so the automatic
+	// centering above needs this manual correction).
+	iX = MAP_VIEW_START_X + 20 + ( MAP_VIEW_WIDTH - iUpdatePanelWidth ) / 2 + 24;
 
 //	iY = 28 + ( 288 - iUpdatePanelHeight ) / 2;
 
@@ -3308,8 +3311,9 @@ void DisplaySoldierUpdateBox( )
 	// Rewritten in terms of MAP_VIEW_START_Y/MAP_VIEW_HEIGHT (was
 	// MAP_SCREEN_Y + 280, i.e. MAP_VIEW_START_Y + old MAP_VIEW_HEIGHT - 28) so
 	// the box's bottom keeps the same distance from the (now lower) bottom of
-	// the map viewport.
-	iY = MAP_VIEW_START_Y + MAP_VIEW_HEIGHT - 28 - iUpdatePanelHeight;
+	// the map viewport. Shifted -168 Y per user request (see comment on iX
+	// above).
+	iY = MAP_VIEW_START_Y + MAP_VIEW_HEIGHT - 28 - iUpdatePanelHeight - 168;
 
 	const SGPVObject* const hBackGroundHandle = guiUpdatePanelTactical;
 

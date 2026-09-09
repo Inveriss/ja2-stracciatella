@@ -524,7 +524,24 @@ static void HandleInterfaceMessageForContinuingTrainingMilitia(SOLDIERTYPE* cons
 	sString = st_format_printf(pMilitiaConfirmStrings[ 3 ], sStringB, pMilitiaConfirmStrings[ 4 ], giTotalCostOfTraining);
 
 	// ask player whether he'd like to continue training
-	DoMapMessageBox( MSG_BOX_BASIC_STYLE, sString, MAP_SCREEN, MSG_BOX_FLAG_YESNO, PayMilitiaTrainingYesNoBoxCallback );
+	// Centered on the strategic map's own canvas (not the full screen
+	// resolution) when actually on the map screen, per user request; this
+	// prompt can also fire while on another screen (e.g. via a scheduled
+	// dialogue event during tactical play), where MAP_SCREEN_X/Y wouldn't be
+	// meaningful, so fall back to DoMapMessageBox()'s own default there.
+	if (guiCurrentScreen == MAP_SCREEN)
+	{
+		// Shifted +146 X / -37 then -24 Y (net -61) per user request
+		// (MBS_1024.sti's actual dimensions don't line up with
+		// B_MAP_1024.pcx's, so the automatic centering needs this manual
+		// correction).
+		SGPBox const centering_rect = { (UINT16)(MAP_SCREEN_X + 146), (UINT16)(MAP_SCREEN_Y - 61), MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+		DoMapMessageBoxWithRect( MSG_BOX_BASIC_STYLE, sString, MAP_SCREEN, MSG_BOX_FLAG_YESNO, PayMilitiaTrainingYesNoBoxCallback, &centering_rect );
+	}
+	else
+	{
+		DoMapMessageBox( MSG_BOX_BASIC_STYLE, sString, MAP_SCREEN, MSG_BOX_FLAG_YESNO, PayMilitiaTrainingYesNoBoxCallback );
+	}
 }
 
 
