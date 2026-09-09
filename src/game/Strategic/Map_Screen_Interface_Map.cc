@@ -85,24 +85,24 @@
 // #define HORT_SCROLL 14
 // #define VERT_SCROLL 10
 
-// the pop up for helicopter stuff
+// the pop up for helicopter stuff -- two independent locations (normal and
+// "upper", used when a low-on-the-map sector is selected so the popup
+// doesn't run off the bottom of the screen), each with its own graphic
+// (pos2_first.sti / pos2_second.sti, see guiMapBorderHeliSectorsFirst/
+// Second below) and fully independent X/Y.
 #define MAP_HELICOPTER_ETA_POPUP_X (MAP_SCREEN_X + 873)
 #define MAP_HELICOPTER_ETA_POPUP_Y (MAP_SCREEN_Y + 185)
-// Independent X for the "upper" location, per user request (was previously
-// sharing MAP_HELICOPTER_ETA_POPUP_X with the normal location -- only Y
-// differed). Same initial value; tune freely from here.
 #define MAP_HELICOPTER_UPPER_ETA_POPUP_X (MAP_SCREEN_X + 873)
 #define MAP_HELICOPTER_UPPER_ETA_POPUP_Y (MAP_SCREEN_Y + 359)
-#define MAP_HELICOPTER_ETA_POPUP_WIDTH 136
-#define MAP_HELICOPTER_ETA_POPUP_HEIGHT 106
+#define MAP_HELICOPTER_ETA_POPUP_WIDTH 129
+#define MAP_HELICOPTER_ETA_POPUP_HEIGHT 103
 
-// Text layout inside the pos2.sti popup (Total Distance/Safe/Unsafe/Total
-// Cost/ETA, and the passenger count below them) -- one shared (X, starting
-// Y, and a value column width used to right-align each numeric value)
-// applied to every line, independent of the popup's own X/Y/size above.
-// Separate set for the "upper" location (used when a low-on-the-map sector
-// is selected, so the popup doesn't run off the bottom of the screen) so
-// each location can be tuned on its own.
+// Text layout inside the pos2_first.sti/pos2_second.sti popup (Total
+// Distance/Safe/Unsafe/Total Cost/ETA, and the passenger count below them)
+// -- one shared (X, starting Y, and a value column width used to
+// right-align each numeric value) applied to every line, independent of the
+// popup's own X/Y/size above. Separate set for the "upper" location so each
+// location can be tuned on its own.
 #define MAP_HELICOPTER_ETA_TEXT_X       (MAP_HELICOPTER_ETA_POPUP_X + 14)
 #define MAP_HELICOPTER_ETA_TEXT_Y       (MAP_HELICOPTER_ETA_POPUP_Y + 13)
 #define MAP_HELICOPTER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -34
@@ -370,8 +370,10 @@ cache_key_t const guiMilitiaMaps{ INTERFACEDIR "/militiamaps.sti" };
 cache_key_t const guiMilitiaSectorHighLight{ INTERFACEDIR "/militiamapsectoroutline2.sti" };
 cache_key_t const guiMilitiaSectorOutline{ INTERFACEDIR "/militiamapsectoroutline.sti" };
 
-// heli pop up
-cache_key_t const guiMapBorderHeliSectors{ INTERFACEDIR "/pos2.sti" };
+// heli pop up -- two independent graphics, one per popup location (normal
+// vs "upper"), per user request.
+cache_key_t const guiMapBorderHeliSectorsFirst{ INTERFACEDIR "/pos2_first.sti" };
+cache_key_t const guiMapBorderHeliSectorsSecond{ INTERFACEDIR "/pos2_second.sti" };
 
 // sam and mine icons
 cache_key_t const guiSAMICON{ INTERFACEDIR "/sam.sti" };
@@ -2267,7 +2269,7 @@ void DisplayDistancesForHelicopter()
 	sOldXPosition = sXPosition;
 	sOldYPosition = sYPosition;
 
-	BltVideoObject(FRAME_BUFFER, guiMapBorderHeliSectors, 0, sXPosition, sYPosition);
+	BltVideoObject(FRAME_BUFFER, fUpper ? guiMapBorderHeliSectorsSecond : guiMapBorderHeliSectorsFirst, 0, sXPosition, sYPosition);
 
 	SetFontAttributes(MAP_FONT, FONT_LTGREEN);
 
@@ -2804,7 +2806,8 @@ void DeleteMapScreenInterfaceMapGraphics()
 	RemoveVObject(guiHelicopterIcon);
 	RemoveVObject(guiMAPCURSORS);
 	RemoveVObject(guiMINEICON);
-	RemoveVObject(guiMapBorderHeliSectors);
+	RemoveVObject(guiMapBorderHeliSectorsFirst);
+	RemoveVObject(guiMapBorderHeliSectorsSecond);
 	RemoveVObject(guiMilitia);
 	RemoveVObject(guiMilitiaMaps);
 	RemoveVObject(guiMilitiaSectorHighLight);
