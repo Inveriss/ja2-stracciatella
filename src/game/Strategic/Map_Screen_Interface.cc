@@ -816,10 +816,31 @@ void DoMapMessageBoxWithRect(MessageBoxStyleID ubStyle, const ST::string& str, S
 }
 
 
+// Single source of truth for where the map screen's dynamically-sized
+// generic popup boxes (MSG_BOX_BASIC_STYLE, e.g. "A vehicle can't move while
+// empty!", "The SAM site in %s has been taken over.", "You cannot train the
+// militia in %s any further.", and dozens more pMapErrorString messages)
+// should be centered. Centered on the map's own canvas
+// (MAP_SCREEN_X/Y/WIDTH/HEIGHT) rather than the full screen resolution,
+// with a manual pixel correction per user measurement, since B_MAP_1024.pcx
+// (as embedded in MBS_1024.sti) doesn't line up 1:1 with those dimensions.
+// Every caller that wants a map-canvas-centered popup should go through
+// this function instead of hardcoding its own rect -- that way a single
+// correction here moves every one of them together, in both axes, instead
+// of each call site drifting out of sync with the others (as happened
+// before this was consolidated).
+// Shifted +62 then -99 Y (net -37) per user request -- the box was landing
+// against the bottom edge of the map canvas instead of vertically centered.
+SGPBox GetMapScreenPopupCenteringRect(void)
+{
+	return { (UINT16)(MAP_SCREEN_X + 146), (UINT16)(MAP_SCREEN_Y - 37), MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+}
+
+
 void DoMapMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiExitScreen, MessageBoxFlags usFlags, MSGBOX_CALLBACK ReturnCallback)
 {
 	// do message box and return
-	SGPBox const centering_rect = { 0, 0, SCREEN_WIDTH, INV_INTERFACE_START_Y };
+	SGPBox const centering_rect = GetMapScreenPopupCenteringRect();
 	DoMapMessageBoxWithRect(ubStyle, str, uiExitScreen, usFlags, ReturnCallback, &centering_rect);
 }
 

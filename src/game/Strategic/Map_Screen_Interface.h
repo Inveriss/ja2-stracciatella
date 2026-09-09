@@ -285,6 +285,11 @@ void EnableTeamInfoPanels( void );
 // do mapscreen message box
 void DoMapMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiExitScreen, MessageBoxFlags usFlags, MSGBOX_CALLBACK ReturnCallback);
 
+// Single source of truth for where the map screen's dynamically-sized
+// generic popup boxes (MSG_BOX_BASIC_STYLE) should be centered -- see its
+// definition in Map_Screen_Interface.cc for why.
+SGPBox GetMapScreenPopupCenteringRect(void);
+
 // hop up one leve,l int he map screen level interface
 void GoUpOneLevelInMap( void );
 
