@@ -2241,6 +2241,20 @@ BOOLEAN PlayerGroupInMotion(GROUP const* const pGroup)
 }
 
 
+// Is any player group (on foot or in a vehicle) currently travelling between
+// sectors? Used by MapScreen.cc to force a redraw every frame while true, so
+// ShowPeopleInMotion()'s transit-arrow/count animation advances smoothly
+// instead of only updating on the next unrelated redraw.
+BOOLEAN AnyPlayerGroupInMotion(void)
+{
+	CFOR_EACH_PLAYER_GROUP(i)
+	{
+		if (i->fBetweenSectors) return TRUE;
+	}
+	return FALSE;
+}
+
+
 /* Add this group to the current battle fray!
  * NOTE: For enemies, only MAX_STRATEGIC_TEAM_SIZE at a time can be in a battle,
  * so if it ever gets past that, god help the player, but we'll have to insert
@@ -2285,11 +2299,17 @@ void HandleArrivalOfReinforcements(GROUP const* const g)
 }
 
 
-BOOLEAN PlayersBetweenTheseSectors(INT16 const sec_src, INT16 const sec_dst, INT32* const n_enter, INT32* const n_exit, BOOLEAN* const about_to_arrive_enter)
+BOOLEAN PlayersBetweenTheseSectors(INT16 const sec_src, INT16 const sec_dst, INT32* const n_enter, INT32* const n_exit, BOOLEAN* const about_to_arrive_enter, float* const transit_fraction_enter)
 {
 	*n_enter               = 0;
 	*n_exit                = 0;
 	*about_to_arrive_enter = FALSE;
+
+	// Average per-leg progress (0.0 at departure, 1.0 at arrival) of whichever
+	// group(s) match the "entering" branch below -- used by ShowPeopleInMotion()
+	// to animate the transit arrow/count sliding smoothly towards sec_dst.
+	float transit_fraction_sum = 0.0f;
+	INT32 transit_fraction_n   = 0;
 
 	GROUP const* const bg         = gpBattleGroup;
 	INT16        const sec_battle = bg ? bg->ubSector.AsByte() : -1;
@@ -2344,6 +2364,16 @@ BOOLEAN PlayersBetweenTheseSectors(INT16 const sec_src, INT16 const sec_dst, INT
 			{
 				*about_to_arrive_enter = TRUE;
 			}
+
+			if (g.uiTraverseTime > 0)
+			{
+				UINT32 const departure = g.uiArrivalTime - g.uiTraverseTime;
+				float fraction = (float)(GetWorldTotalMin() - departure) / (float)g.uiTraverseTime;
+				if (fraction < 0.0f) fraction = 0.0f;
+				if (fraction > 1.0f) fraction = 1.0f;
+				transit_fraction_sum += fraction;
+				transit_fraction_n++;
+			}
 		}
 		else if (retreating_from_battle || (sec_cur == sec_dst && sec_next == sec_src))
 		{
@@ -2356,6 +2386,8 @@ BOOLEAN PlayersBetweenTheseSectors(INT16 const sec_src, INT16 const sec_dst, INT
 			*n_exit += n_mercs;
 		}
 	}
+
+	*transit_fraction_enter = transit_fraction_n > 0 ? transit_fraction_sum / transit_fraction_n : 0.0f;
 
 	// if there was actually anyone leaving this sector and entering next
 	return *n_enter > 0;

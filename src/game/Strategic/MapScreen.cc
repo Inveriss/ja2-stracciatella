@@ -66,6 +66,7 @@
 #include "Squads.h"
 #include "StrategicMap.h"
 #include "StrategicMap_Secrets.h"
+#include "Strategic_Movement.h"
 #include "Strategic_Movement_Costs.h"
 #include "Strategic_Pathing.h"
 #include "Strategic_Town_Loyalty.h"
@@ -1783,6 +1784,12 @@ ScreenID MapScreenHandle(void)
 	RestoreBackgroundRects( );
 
 	InterruptTimeForMenus( );
+
+	// Force a full map redraw every frame while anyone is travelling, so
+	// ShowPeopleInMotion()'s transit-arrow/count animation
+	// (Map_Screen_Interface_Map.cc) advances smoothly instead of only
+	// updating on the next unrelated redraw.
+	if (AnyPlayerGroupInMotion()) fMapPanelDirty = TRUE;
 
 	// place down background
 	BlitBackgroundToSaveBuffer( );

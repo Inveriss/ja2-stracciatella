@@ -218,8 +218,13 @@ BOOLEAN PlayerGroupInMotion(GROUP const*);
 // Is the player greoup with this id in motion
 bool PlayerIDGroupInMotion(UINT8 id);
 
+// Is any player group (on foot or in a vehicle) currently travelling between
+// sectors? Used by MapScreen.cc to force a redraw every frame while true, so
+// ShowPeopleInMotion()'s transit-arrow/count animation advances smoothly.
+BOOLEAN AnyPlayerGroupInMotion(void);
+
 // get number of mercs between sectors
-BOOLEAN PlayersBetweenTheseSectors( INT16 sSource, INT16 sDest, INT32 *iCountEnter, INT32 *iCountExit, BOOLEAN *fAboutToArriveEnter );
+BOOLEAN PlayersBetweenTheseSectors( INT16 sSource, INT16 sDest, INT32 *iCountEnter, INT32 *iCountExit, BOOLEAN *fAboutToArriveEnter, float *fTransitFractionEnter );
 
 void MoveAllGroupsInCurrentSectorToSector(const SGPSector& sector);
 

@@ -106,11 +106,11 @@
 // location can be tuned on its own.
 #define MAP_HELICOPTER_ETA_TEXT_X       (MAP_HELICOPTER_ETA_POPUP_X + 14)
 #define MAP_HELICOPTER_ETA_TEXT_Y       (MAP_HELICOPTER_ETA_POPUP_Y + 13)
-#define MAP_HELICOPTER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -34
+#define MAP_HELICOPTER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -41
 
 #define MAP_HELICOPTER_UPPER_ETA_TEXT_X       (MAP_HELICOPTER_UPPER_ETA_POPUP_X + 14)
 #define MAP_HELICOPTER_UPPER_ETA_TEXT_Y       (MAP_HELICOPTER_UPPER_ETA_POPUP_Y + 13)
-#define MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -34
+#define MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -41
 
 // X shifted +190 per user request.
 #define MAP_LEVEL_STRING_X (MAP_SCREEN_X + 432 + 190)
@@ -2151,6 +2151,13 @@ void RestoreClipRegionToFullScreenForRectangle( UINT32 uiDestPitchBYTES )
 
 #define ICON_WIDTH 8
 
+// Total pixel displacement the transit arrow (and its merc-count number)
+// slides in the direction of travel over the course of one leg (one sector
+// to the next), reaching this exactly at arrival regardless of how long the
+// leg actually takes -- see PlayersBetweenTheseSectors()'s
+// transit_fraction_enter output.
+#define MVT_ANIM_TOTAL_PIXELS 17
+
 
 // show the icons for people in motion
 static void ShowPeopleInMotion(const SGPSector& sSector)
@@ -2176,9 +2183,10 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 		INT32       sExiting;
 		INT32       sEntering;
 		BOOLEAN     fAboutToEnter;
+		float       flTransitFraction;
 		INT16 const sec_src = SGPSector::FromStrategicIndex(sSource).AsByte();
 		INT16 const sec_dst = SGPSector::FromStrategicIndex(sDest).AsByte();
-		if (!PlayersBetweenTheseSectors(sec_src, sec_dst, &sExiting, &sEntering, &fAboutToEnter)) continue;
+		if (!PlayersBetweenTheseSectors(sec_src, sec_dst, &sExiting, &sEntering, &fAboutToEnter, &flTransitFraction)) continue;
 		// someone is leaving
 
 		// now find position
@@ -2246,6 +2254,22 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 
 		INT16 iX = MAP_VIEW_START_X                     + sSector.x * MAP_GRID_X + sOffsetX;
 		INT16 iY = MAP_Y_ICON_OFFSET + MAP_VIEW_START_Y + sSector.y * MAP_GRID_Y + sOffsetY;
+
+		// Slide the arrow (and, since the text position below is derived from
+		// iX/iY, its merc-count number too) smoothly in the direction of
+		// travel over the course of this leg. Reaches exactly
+		// MVT_ANIM_TOTAL_PIXELS by the time the leg completes, regardless of
+		// how long it took -- kept in sync every frame by MapScreen.cc
+		// forcing a redraw while AnyPlayerGroupInMotion() is true.
+		INT16 const sAnimOffset = (INT16)(flTransitFraction * MVT_ANIM_TOTAL_PIXELS + 0.5f);
+		switch (dir)
+		{
+			case 0: iY -= sAnimOffset; break; // north: moving up
+			case 1: iX += sAnimOffset; break; // east: moving right
+			case 2: iY += sAnimOffset; break; // south: moving down
+			case 3: iX -= sAnimOffset; break; // west: moving left
+		}
+
 		BltVideoObject(guiSAVEBUFFER, hIconHandle, dir, iX, iY);
 
 		// blit the text
