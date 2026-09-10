@@ -52,8 +52,14 @@
 // delay for flash of item
 #define DELAY_FOR_HIGHLIGHT_ITEM_FLASH 200
 
-// inventory slot font
+// inventory slot font -- still used for the footer labels
+// (DrawTextOnMapInventoryBackground()), not the item name below
 #define MAP_IVEN_FONT						SMALLCOMPFONT
+
+// dedicated font for the item name printed inside each sector-inventory
+// slot (Data/Fonts/font_sector_inv.sti), kept separate from MAP_IVEN_FONT
+// so it doesn't affect the unrelated footer labels that still use it
+#define MAP_SECTOR_INV_ITEM_FONT			FONTSECTORINV
 
 // inventory pool slot positions and sizes
 #define MAP_INV_SLOT_ROWS 9
@@ -61,11 +67,11 @@
 
 static const SGPBox g_sector_inv_box        = { 261,   0, 379, 360 };
 static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
-static const SGPBox g_sector_inv_slot_box   = { 274,  37,  72,  32 };
-static const SGPBox g_sector_inv_region_box = {   0,   0,  67,  31 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_item_box   = {   6,   0,  61,  24 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_bar_box    = {   2,   2,   2,  20 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_name_box   = {   0,  24,  67,   7 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_slot_box   = { 274,  37,  78,  52 };
+static const SGPBox g_sector_inv_region_box = {   5,   23,  67,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_item_box   = {   5,   23,  67,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_bar_box    = {   0,   24,   2,  31 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_name_box   = {   0,  59,  69,   10 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_loc_box    = { 326, 337,  39,  10 };
 static const SGPBox g_sector_inv_count_box  = { 437, 337,  39,  10 };
 static const SGPBox g_sector_inv_page_box   = { 505, 337,  50,  10 };
@@ -218,9 +224,13 @@ static BOOLEAN RenderItemInPoolSlot(INT32 iCurrentSlot, INT32 iFirstSlotOnPage)
 
 	// the name
 	const SGPBox* const name_box = &g_sector_inv_name_box;
-	auto sString = ReduceStringLength(GCM->getItem(item.o.usItem)->getShortName(), name_box->w, MAP_IVEN_FONT);
+	auto sString = ReduceStringLength(GCM->getItem(item.o.usItem)->getShortName(), name_box->w, MAP_SECTOR_INV_ITEM_FONT);
 
-	SetFontAttributes(MAP_IVEN_FONT, FONT_WHITE);
+	// Same color+shadow as the merc stat values (0-100 Agility/Dexterity/
+	// Strength/etc.) on the single-merc panel (Inventory_bottom_panel.sti),
+	// per user request -- see STATS_TEXT_FONT_COLOR (5) + the inherited
+	// DEFAULT_SHADOW in PrintStat() (Interface_Panels.cc).
+	SetFontAttributes(MAP_SECTOR_INV_ITEM_FONT, 5, DEFAULT_SHADOW);
 	MPrintCenteredInBox(dx, dy, sString, *name_box);
 	SetFontDestBuffer(FRAME_BUFFER);
 

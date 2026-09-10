@@ -17,6 +17,7 @@ extern SGPFont gpBlockyFont;
 extern SGPFont gpBlockyFont2;
 extern SGPFont gpMapFont;
 extern SGPFont gpGridFont;
+extern SGPFont gpSectorInvFont;
 extern SGPFont gpLargeFontType1;
 extern SGPFont gpSmallFontType1;
 extern SGPFont gpTinyFontType1;
@@ -42,6 +43,7 @@ extern SGPFont gpHugeFont;
 #define BLOCKFONT2		gpBlockyFont2
 #define FONTMAP			gpMapFont
 #define FONTGRID		gpGridFont
+#define FONTSECTORINV		gpSectorInvFont
 #define FONT12ARIALFIXEDWIDTH	gp12PointArialFixedFont
 #define FONT16ARIAL		gp16PointArial
 #define BLOCKFONTNARROW	gpBlockFontNarrow
