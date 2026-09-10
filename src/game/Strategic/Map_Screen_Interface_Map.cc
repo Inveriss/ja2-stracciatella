@@ -2181,14 +2181,14 @@ void RestoreClipRegionToFullScreenForRectangle( UINT32 uiDestPitchBYTES )
 #define WEST_X_MVT_OFFSET -8
 #define EAST_WEST_CENTER_OFFSET +2
 
-#define NORTH_TEXT_X_OFFSET +1 + 14
-#define NORTH_TEXT_Y_OFFSET +4 + 5 + 9
+#define NORTH_TEXT_X_OFFSET +1 + 14 + 1 + 1
+#define NORTH_TEXT_Y_OFFSET +4 + 5 + 9 - 2
 #define SOUTH_TEXT_X_OFFSET +1 + 9
 #define SOUTH_TEXT_Y_OFFSET +2 + 14 - 9
 
-#define EAST_TEXT_X_OFFSET + 2 + 18 - 11
+#define EAST_TEXT_X_OFFSET + 2 + 18 - 11 + 1
 #define EAST_TEXT_Y_OFFSET 0 + 10
-#define WEST_TEXT_X_OFFSET + 4 + 4 + 10
+#define WEST_TEXT_X_OFFSET + 4 + 4 + 10 + 1
 #define WEST_TEXT_Y_OFFSET 0 + 10
 
 
@@ -2198,8 +2198,9 @@ void RestoreClipRegionToFullScreenForRectangle( UINT32 uiDestPitchBYTES )
 // slides in the direction of travel over the course of one leg (one sector
 // to the next), reaching this exactly at arrival regardless of how long the
 // leg actually takes -- see PlayersBetweenTheseSectors()'s
-// transit_fraction_enter output.
-#define MVT_ANIM_TOTAL_PIXELS 17
+// transit_fraction_enter output. Matches MERC_BETWEEN_SECTOR_ICONS.STI's
+// own width/height (18px, per user measurement).
+#define MVT_ANIM_TOTAL_PIXELS 18
 
 
 // show the icons for people in motion
