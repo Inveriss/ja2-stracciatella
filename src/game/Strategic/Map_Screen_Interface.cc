@@ -829,11 +829,16 @@ void DoMapMessageBoxWithRect(MessageBoxStyleID ubStyle, const ST::string& str, S
 // correction here moves every one of them together, in both axes, instead
 // of each call site drifting out of sync with the others (as happened
 // before this was consolidated).
-// Shifted +62 then -99 Y (net -37) per user request -- the box was landing
-// against the bottom edge of the map canvas instead of vertically centered.
+// Shifted +62 then -99 then -24 Y (net -61) per user request -- the box was
+// landing against the bottom edge of the map canvas instead of vertically
+// centered. On top of that, the compact strategic-screen tier (720-767px
+// tall, see UILayout::isCompactStrategicScreen()) needs its own further
+// +24 Y correction, since its asset doesn't scale down 1:1 from the large
+// tier's.
 SGPBox GetMapScreenPopupCenteringRect(void)
 {
-	return { (UINT16)(MAP_SCREEN_X + 146), (UINT16)(MAP_SCREEN_Y - 37), MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+	INT16 const y = MAP_SCREEN_Y - 61 + (g_ui.isCompactStrategicScreen() ? 24 : 0);
+	return { (UINT16)(MAP_SCREEN_X + 146), (UINT16)y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
 }
 
 
