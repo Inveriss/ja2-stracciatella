@@ -2317,8 +2317,12 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 		BltVideoObject(guiSAVEBUFFER, hIconHandle, dir, iX, iY);
 
 		// blit the text
-		UINT8 const foreground = fAboutToEnter ? FONT_BLACK : FONT_WHITE;
-		SetFontAttributes(MAP_MVT_TRANSIT_FONT, foreground);
+		// Always white text on a (default, dark) shadow, on both icons --
+		// per user request, matching how it already looks on
+		// guiCHARBETWEENSECTORICONS. The old fAboutToEnter-based switch to
+		// black text broke down because DEFAULT_SHADOW (a dark index in
+		// MAP_MVT_TRANSIT_FONT's own palette) disappears behind black text.
+		SetFontAttributes(MAP_MVT_TRANSIT_FONT, FONT_WHITE);
 		SetFontDestBuffer(guiSAVEBUFFER);
 
 		ST::string buf = ST::format("{}", sExiting);
