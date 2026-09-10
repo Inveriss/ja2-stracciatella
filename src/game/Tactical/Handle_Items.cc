@@ -36,6 +36,7 @@
 #include "Soldier_Functions.h"
 #include "FOV.h"
 #include "MessageBoxScreen.h"
+#include "Map_Screen_Interface.h"
 #include "Explosion_Control.h"
 #include "SkillCheck.h"
 #include "Campaign.h"
@@ -3370,7 +3371,13 @@ BOOLEAN ContinuePastBoobyTrapInMapScreen( OBJECTTYPE *pObject, SOLDIERTYPE *pSol
 				// have the computer ask us if we want to proceed
 				gpBoobyTrapSoldier = pSoldier;
 				gbTrapDifficulty = pObject->bTrap;
-				DoMessageBox(MSG_BOX_BASIC_STYLE, TacticalStr[DISARM_BOOBYTRAP_PROMPT], MAP_SCREEN, MSG_BOX_FLAG_YESNO, BoobyTrapInMapScreenMessageBoxCallBack, NULL);
+				// This prompt only ever fires while on the map screen (see
+				// this function's sole caller, MapScreen.cc), so -- same as
+				// GameLoop.cc's exit-game confirmation and Merc_Contract.cc's
+				// equipment-drop box -- go through DoMapMessageBox() to get
+				// GetMapScreenPopupCenteringRect()'s map-canvas centering
+				// instead of the full-screen default.
+				DoMapMessageBox(MSG_BOX_BASIC_STYLE, TacticalStr[DISARM_BOOBYTRAP_PROMPT], MAP_SCREEN, MSG_BOX_FLAG_YESNO, BoobyTrapInMapScreenMessageBoxCallBack);
 			}
 			else
 			{
