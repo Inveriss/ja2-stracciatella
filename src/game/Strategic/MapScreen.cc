@@ -5911,7 +5911,12 @@ static void UpdateStatusOfMapSortButtons(void)
 	static BOOLEAN fShownLastTime = FALSE;
 
 
-	if( ( gfPreBattleInterfaceActive ) || fShowInventoryFlag )
+	// fShowDescriptionFlag added per user report -- these buttons render
+	// through their own independent pass (RenderButtons()), same as
+	// iSMPanelButtons[] on the tactical screen (see HideSMBookmarkButtons()),
+	// so they were drawing on top of an open item description box
+	// (iteminfoc.sti) regardless of what's underneath.
+	if( ( gfPreBattleInterfaceActive ) || fShowInventoryFlag || fShowDescriptionFlag )
 	{
 		if ( fShownLastTime )
 		{

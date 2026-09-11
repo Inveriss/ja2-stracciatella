@@ -66,7 +66,7 @@
 #define MAP_INV_SLOT_ROWS 9
 
 
-static const SGPBox g_sector_inv_box        = { 261,   0, 379, 360 };
+static const SGPBox g_sector_inv_box        = { 261,   0, 762, 648 };
 static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
 static const SGPBox g_sector_inv_slot_box   = { 274,  37,  83,  52 };
 static const SGPBox g_sector_inv_region_box = {   5,   22,  72,  33 }; // relative to g_sector_inv_slot_box
@@ -467,7 +467,8 @@ static void InventoryPrevPage()
 // the screen mask bttn callaback...to disable the inventory and lock out the map itself
 static void MapInvenPoolScreenMaskCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
 {
-	fShowMapInventoryPool = FALSE;
+	// Right-click no longer closes the sector inventory, per user request --
+	// only the Done button does that now.
 }
 
 static void MapInvenPoolScreenMaskCallbackScroll(MOUSE_REGION* pRegion, UINT32 iReason)
@@ -646,7 +647,34 @@ static void MapInvenPoolSlotsPrimary(MOUSE_REGION* const pRegion, const UINT32 i
 
 static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32 iReason)
 {
-	if (gpItemPointer == NULL) fShowMapInventoryPool = FALSE;
+	// Right-click no longer closes the sector inventory, per user request --
+	// only the Done button does that now. Instead, right-clicking an item
+	// opens its description box (iteminfoc.sti), same as right-clicking an
+	// item in the merc's own map-screen inventory panel -- see
+	// MAPInternalInitItemDescriptionBox() (MapScreen.cc). No-op while
+	// holding an item on the cursor, same as the old close-on-right-click
+	// behavior was.
+	if (gpItemPointer != NULL) return;
+
+	// If a box is already open, close it first rather than refusing the
+	// click -- per user request, scoped to Sector Inventory only (every
+	// other item-description call site in the game still uses the
+	// refuse-if-already-open guard, e.g. ItemPopupRegionCallbackSecondary()
+	// in Interface_Items.cc). DeleteItemDescriptionBox() is a clean,
+	// self-contained teardown (removes gInvDesc/giMapInvDescButton/
+	// attachment regions etc., no side effects beyond that -- the money
+	// "cash out" step lives in the Done button's own callback, not here),
+	// so it's safe to call directly before opening the next box. Without
+	// this, MSYS_DefineRegion()/QuickCreateButtonImg() would redefine the
+	// still-active region/button from the previous box and crash.
+	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+	INT32      const slot_idx = MSYS_GetRegionUserData(pRegion, 0);
+	WORLDITEM& slot = pInventoryPoolList[iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT + slot_idx];
+
+	if (slot.o.usItem == NOTHING) return;
+
+	MAPInternalInitItemDescriptionBox(&slot.o, 0, GetSelectedInfoChar());
 }
 
 static void MapInvenPoolSlotsScroll(MOUSE_REGION* const pRegion, const UINT32 iReason)
