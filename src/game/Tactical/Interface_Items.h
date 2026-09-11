@@ -83,7 +83,20 @@ void TickItemDescCloseCleanup(void);
 
 BOOLEAN InItemStackPopup(void);
 void    InitItemStackPopup(SOLDIERTYPE* pSoldier, UINT8 ubPosition, INT16 sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight);
+// Same idea as InitItemStackPopup(), but for an item that isn't a
+// SOLDIERTYPE::inv[] slot (e.g. a sector-inventory stash slot) -- pObject
+// is the stack itself, sourceRegion is the on-screen region to center the
+// popup near (replaces gSMInvRegion[ubPosition]), and the popup uses its
+// own dedicated art (sector_inventory_second.sti) instead of
+// extra_inventory.sti.
+void    InitSectorInventoryStackPopup(OBJECTTYPE* pObject, SOLDIERTYPE* pSoldier, MOUSE_REGION const& sourceRegion, INT16 sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight);
 void RenderItemStackPopup( BOOLEAN fFullRender );
+// Was file-local (static) -- exported so a caller that's about to
+// invalidate gpItemPopupObject (e.g. the sector-inventory stash clearing
+// its own list on close) can force-close the popup first. No internal
+// gfInItemStackPopup guard, same as InitItemStackPopup() -- check
+// InItemStackPopup() before calling.
+void DeleteItemStackPopup(void);
 
 
 // keyring handlers

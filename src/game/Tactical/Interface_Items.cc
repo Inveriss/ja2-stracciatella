@@ -4643,10 +4643,17 @@ static void ItemPopupRegionCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason
 static void ItemPopupRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
-void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+// Shared body of InitItemStackPopup()/InitSectorInventoryStackPopup() --
+// factored out the same way InitItemDescriptionBox() was split into
+// InternalInitItemDescriptionBox(), so a caller whose item isn't a
+// SOLDIERTYPE::inv[] slot (the sector-inventory stash, a plain OBJECTTYPE*)
+// can still use it. sourceRegion replaces gSMInvRegion[ubPosition] (only
+// used to center the popup near where it was opened from) and gfxFilename
+// lets the sector-inventory caller use its own dedicated art instead of
+// extra_inventory.sti.
+static void InternalInitItemStackPopup(OBJECTTYPE* const pObject, SOLDIERTYPE* const pSoldier, MOUSE_REGION const& sourceRegion, const char* const gfxFilename, UINT8 const ubLimit, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
 {
 	SGPRect aRect;
-	UINT8 ubLimit;
 	UINT8 ubCols;
 	UINT8 ubRows;
 	INT32 cnt;
@@ -4662,11 +4669,16 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 
 
 	// Determine # of items
-	gpItemPopupObject = &(pSoldier->inv[ ubPosition ] );
-	ubLimit = ItemSlotLimit( gpItemPopupObject->usItem, ubPosition );
+	gpItemPopupObject = pObject;
 
 	// Return if #objects not >1
 	if (ubLimit < 1) return;
+
+	// Keep this in sync with whichever screen is actually asking for the
+	// popup -- ItemPopupRegionCallbackSecondary() below relies on it to
+	// pick MAPInternalInitItemDescriptionBox() vs InternalInitItemDescriptionBox()
+	// for the individual item it's opened on.
+	guiCurrentItemDescriptionScreen = guiCurrentScreen;
 
 	if( ubLimit > MAX_STACK_POPUP_WIDTH )
 	{
@@ -4678,7 +4690,7 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 	}
 
 	// Load graphics
-	guiItemPopupBoxes = AddVideoObjectFromFile(INTERFACEDIR "/extra_inventory.sti");
+	guiItemPopupBoxes = AddVideoObjectFromFile(gfxFilename);
 
 	// Get size
 	ETRLEObject const& pTrav        = guiItemPopupBoxes->SubregionProperties(0);
@@ -4691,7 +4703,7 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 	gubNumItemPopups = ubLimit;
 
 	// Calculate X,Y, first center
-	MOUSE_REGION const& r = gSMInvRegion[ubPosition];
+	MOUSE_REGION const& r = sourceRegion;
 	INT16 sCenX = r.X() - (gsItemPopupWidth / 2 + r.W() / 2);
 	INT16 sCenY	= r.Y()- (gsItemPopupHeight / 2 + r.H() / 2);
 
@@ -4738,7 +4750,7 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 		MSYS_SetRegionUserData( &gItemPopupRegions[cnt], 0, cnt );
 
 		//OK, for each item, set dirty text if applicable!
-		gItemPopupRegions[cnt].SetFastHelpText(GCM->getItem(pSoldier->inv[ubPosition].usItem)->getName());
+		gItemPopupRegions[cnt].SetFastHelpText(GCM->getItem(pObject->usItem)->getName());
 	}
 
 
@@ -4769,7 +4781,27 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 }
 
 
-static void DeleteItemStackPopup(void);
+void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+{
+	OBJECTTYPE* const pObject = &(pSoldier->inv[ ubPosition ] );
+	UINT8       const ubLimit = ItemSlotLimit( pObject->usItem, ubPosition );
+
+	InternalInitItemStackPopup(pObject, pSoldier, gSMInvRegion[ubPosition], INTERFACEDIR "/extra_inventory.sti", ubLimit, sInvX, sInvY, sInvWidth, sInvHeight);
+}
+
+
+void InitSectorInventoryStackPopup(OBJECTTYPE* const pObject, SOLDIERTYPE* const pSoldier, MOUSE_REGION const& sourceRegion, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+{
+	// The sector-inventory stash isn't a SOLDIERTYPE::inv[] slot, so
+	// ItemSlotLimit()'s hand/body-slot-vs-pocket distinction doesn't apply
+	// -- BIGPOCK1POS picks its "big pocket" branch (plain
+	// GCM->getItem()->getPerPocket(), not halved the way a small pocket
+	// would be), matching how GroupSectorInventoryItems() already computes
+	// this same stash slot capacity.
+	UINT8 const ubLimit = ItemSlotLimit( pObject->usItem, BIGPOCK1POS );
+
+	InternalInitItemStackPopup(pObject, pSoldier, sourceRegion, INTERFACEDIR "/sector_inventory_second.sti", ubLimit, sInvX, sInvY, sInvWidth, sInvHeight);
+}
 
 
 void RenderItemStackPopup( BOOLEAN fFullRender )
@@ -4824,7 +4856,7 @@ void RenderItemStackPopup( BOOLEAN fFullRender )
 }
 
 
-static void DeleteItemStackPopup(void)
+void DeleteItemStackPopup(void)
 {
 	INT32 cnt;
 

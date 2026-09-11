@@ -103,8 +103,8 @@ static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_in
 #define GROUP_BUTTON_READY   0
 #define GROUP_BUTTON_PRESSED 1
 // Placeholder position, per user request -- not yet the final layout.
-#define GROUP_BUTTON_X 20
-#define GROUP_BUTTON_Y 20
+#define GROUP_BUTTON_X 278
+#define GROUP_BUTTON_Y 16
 
 // inventory pool list
 std::vector<WORLDITEM> pInventoryPoolList;
@@ -346,6 +346,15 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 	}
 	else if (!fShowMapInventoryPool && fCreated)
 	{
+		// A stack popup or item-description box left open when the whole
+		// Sector Inventory panel closes would end up pointing into
+		// pInventoryPoolList after DestroyStash() clears it below --
+		// gpItemPopupObject/gpItemDescObject would dangle, and
+		// RenderItemStackPopup()/RenderItemDescriptionBox() read them every
+		// frame regardless of fShowMapInventoryPool. Close them first.
+		if (InItemStackPopup())   DeleteItemStackPopup();
+		if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
 
 		// check fi we are in fact leaving mapscreen
 		if (!fExitFromMapScreen)
@@ -658,6 +667,16 @@ static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32
 	// behavior was.
 	if (gpItemPointer != NULL) return;
 
+	// If a stack popup is already open (for this or a different stack),
+	// close it first rather than refusing the click -- same "switch
+	// directly" behavior as the item-description box below, per user
+	// report: RestrictMouseCursor() (InternalInitItemStackPopup()) does not
+	// in practice keep the click from reaching a different sector-inventory
+	// slot underneath, and a second InitSectorInventoryStackPopup() call
+	// without closing the first first would redefine the still-active
+	// per-item regions/gItemPopupRegion out from under it.
+	if (InItemStackPopup()) DeleteItemStackPopup();
+
 	// If a box is already open, close it first rather than refusing the
 	// click -- per user request, scoped to Sector Inventory only (every
 	// other item-description call site in the game still uses the
@@ -675,6 +694,19 @@ static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32
 	WORLDITEM& slot = pInventoryPoolList[iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT + slot_idx];
 
 	if (slot.o.usItem == NOTHING) return;
+
+	if (slot.o.ubNumberOfObjects > 1)
+	{
+		// Stack of >1 -- show each individual item in its own slot first
+		// (sector_inventory_second.sti), per user request, instead of going
+		// straight to the whole stack's description box. Right-clicking one
+		// of those items then opens its own description box automatically
+		// (ItemPopupRegionCallbackSecondary(), Interface_Items.cc) -- no
+		// extra wiring needed for that part.
+		InitSectorInventoryStackPopup(&slot.o, GetSelectedInfoChar(), MapInventoryPoolSlots[slot_idx],
+			MAP_SCREEN_X + g_sector_inv_box.x, MAP_SCREEN_Y + g_sector_inv_box.y, g_sector_inv_box.w, g_sector_inv_box.h);
+		return;
+	}
 
 	MAPInternalInitItemDescriptionBox(&slot.o, 0, GetSelectedInfoChar());
 }
