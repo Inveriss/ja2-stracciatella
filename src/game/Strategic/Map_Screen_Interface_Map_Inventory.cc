@@ -42,6 +42,7 @@
 #include <string_theory/format>
 #include <string_theory/string>
 
+#include <algorithm>
 #include <climits>
 #include <vector>
 
@@ -94,6 +95,15 @@ BOOLEAN fShowMapInventoryPool = FALSE;
 // the v-object index value for the background
 static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_inventory.sti" };
 
+// "Group Items" button -- see GroupSectorInventoryItems()/CreateMapInventoryGroupButton().
+// Like done_button.sti/map_screen_bottom_arrows.sti above, QuickCreateButtonImg()
+// manages this image's lifetime itself; no cache_key_t needed here.
+#define GROUP_BUTTON_READY   0
+#define GROUP_BUTTON_PRESSED 1
+// Placeholder position, per user request -- not yet the final layout.
+#define GROUP_BUTTON_X 20
+#define GROUP_BUTTON_Y 20
+
 // inventory pool list
 std::vector<WORLDITEM> pInventoryPoolList;
 
@@ -115,7 +125,8 @@ static std::vector<WORLDITEM> pUnSeenItems;
 UINT32 guiFlashHighlightedItemBaseTime = 0;
 UINT32 guiCompatibleItemBaseTime = 0;
 
-static GUIButtonRef guiMapInvenButton[3];
+// [0] = next page, [1] = previous page, [2] = done, [3] = group items
+static GUIButtonRef guiMapInvenButton[4];
 
 static BOOLEAN gfCheckForCursorOverMapSectorInventoryItem = FALSE;
 
@@ -279,10 +290,13 @@ static void BuildStashForSelectedSector(const SGPSector& sector);
 static void CreateMapInventoryButtons(void);
 static void CreateMapInventoryPoolDoneButton(void);
 static void CreateMapInventoryPoolSlots(void);
+static void CreateMapInventoryGroupButton(void);
 static void DestroyInventoryPoolDoneButton(void);
 static void DestroyMapInventoryButtons(void);
 static void DestroyMapInventoryPoolSlots();
+static void DestroyMapInventoryGroupButton(void);
 static void DestroyStash(void);
+static void GroupSectorInventoryItems(void);
 static void HandleMapSectorInventory(void);
 static void SaveSeenAndUnseenItems(void);
 
@@ -323,6 +337,8 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 
 		CreateMapInventoryPoolDoneButton( );
 
+		CreateMapInventoryGroupButton( );
+
 		fMapPanelDirty = TRUE;
 		fMapScreenBottomDirty = TRUE;
 	}
@@ -344,6 +360,8 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		DestroyMapInventoryButtons( );
 
 		DestroyInventoryPoolDoneButton( );
+
+		DestroyMapInventoryGroupButton( );
 
 		// now save results
 		SaveSeenAndUnseenItems( );
@@ -1056,6 +1074,175 @@ static void DestroyInventoryPoolDoneButton(void)
 {
 	// destroy ddone button
 	RemoveButton( guiMapInvenButton[ 2 ] );
+}
+
+
+static void MapInventoryPoolGroupBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		GroupSectorInventoryItems();
+	}
+}
+
+
+static void CreateMapInventoryGroupButton(void)
+{
+	// create "group items" button -- placeholder position, per user request
+	guiMapInvenButton[3] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", GROUP_BUTTON_READY, GROUP_BUTTON_PRESSED, MAP_SCREEN_X + GROUP_BUTTON_X, MAP_SCREEN_Y + GROUP_BUTTON_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolGroupBtn);
+}
+
+
+static void DestroyMapInventoryGroupButton(void)
+{
+	// destroy "group items" button
+	RemoveButton( guiMapInvenButton[ 3 ] );
+}
+
+
+// Groups every item of the same kind in the sector-inventory stash into as
+// few slots as possible, up to that item's own per-pocket capacity --
+// mirroring PlaceObjectInInventoryStash()'s own limit
+// (GCM->getItem(usItem)->getPerPocket(), capped defensively at
+// MAX_OBJECTS_PER_SLOT), NOT a flat 8 for everything: non-stackable items
+// (guns, armour, unique items -- getPerPocket() < 2) naturally never get
+// merged, since their single existing unit already fills that capacity, so
+// no separate check for them is needed below.
+//
+// Also, for every gun already in the stash: ejects its loaded ammo
+// (EmptyWeaponMagazine()) and strips its attachments (RemoveAttachment(),
+// which itself refuses to remove ITEM_INSEPARABLE ones -- respected, not
+// bypassed), so those get grouped together with any other loose
+// ammo/attachments of the same kind in the pass that follows. Per user
+// request.
+static void GroupSectorInventoryItems(void)
+{
+	// Step 1: eject ammo and strip attachments from every gun already in
+	// the stash. Collected into a separate list and appended only once
+	// this loop is done, rather than push_back()-ing into
+	// pInventoryPoolList directly -- a reallocation mid-loop would
+	// invalidate the WORLDITEM& reference this loop is still using.
+	size_t const original_count = pInventoryPoolList.size();
+	std::vector<WORLDITEM> extracted;
+
+	for (size_t i = 0; i < original_count; ++i)
+	{
+		WORLDITEM& slot = pInventoryPoolList[i];
+		// Occupancy is decided by ubNumberOfObjects alone here -- same as
+		// RenderItemInPoolSlot()/GetTotalNumberOfItems() -- NOT fExists.
+		// Items dropped into the stash by hand from a merc's own inventory
+		// (PlaceObjectInInventoryStash()) only ever touch the OBJECTTYPE
+		// half of the slot, never WORLDITEM::fExists, so a real,
+		// non-empty item can legitimately have fExists == FALSE here.
+		// Requiring fExists too silently dropped exactly those items
+		// during the step 3 compaction below.
+		if (slot.o.ubNumberOfObjects == 0) continue;
+
+		const ItemModel* const item = GCM->getItem(slot.o.usItem);
+
+		if (item->isGun())
+		{
+			OBJECTTYPE ammo{};
+			if (EmptyWeaponMagazine(&slot.o, &ammo))
+			{
+				WORLDITEM new_item = slot;
+				new_item.o = ammo;
+				extracted.push_back(new_item);
+			}
+		}
+
+		if (item->isWeapon())
+		{
+			for (INT8 pos = MAX_ATTACHMENTS - 1; pos >= 0; --pos)
+			{
+				OBJECTTYPE attachment{};
+				if (RemoveAttachment(&slot.o, pos, &attachment))
+				{
+					WORLDITEM new_item = slot;
+					new_item.o = attachment;
+					extracted.push_back(new_item);
+				}
+			}
+		}
+	}
+
+	pInventoryPoolList.insert(pInventoryPoolList.end(), extracted.begin(), extracted.end());
+
+	// Step 2: merge/compact every occupied slot, grouped by item type.
+	for (size_t i = 0; i < pInventoryPoolList.size(); ++i)
+	{
+		WORLDITEM& dest_wi = pInventoryPoolList[i];
+		if (dest_wi.o.ubNumberOfObjects == 0) continue;
+
+		UINT16 const usItem = dest_wi.o.usItem;
+
+		if (usItem == MONEY)
+		{
+			// Money doesn't use bStatus[]/ubNumberOfObjects the way every
+			// other stackable item does (it's a single uiMoneyAmount), so
+			// it can't go through CleanUpStack()/StackObjs() below --
+			// combine it the same way PlaceObjectInInventoryStash() already
+			// does for a single manual drop.
+			for (size_t j = i + 1; j < pInventoryPoolList.size(); ++j)
+			{
+				WORLDITEM& src_wi = pInventoryPoolList[j];
+				if (src_wi.o.usItem != MONEY || src_wi.o.ubNumberOfObjects == 0) continue;
+
+				dest_wi.o.bMoneyStatus = 100;
+				dest_wi.o.uiMoneyAmount += src_wi.o.uiMoneyAmount;
+				DeleteObj(&src_wi.o);
+			}
+			continue;
+		}
+
+		UINT8 const slot_limit = std::min<UINT8>(GCM->getItem(usItem)->getPerPocket(), MAX_OBJECTS_PER_SLOT);
+
+		for (size_t j = i + 1; j < pInventoryPoolList.size(); ++j)
+		{
+			WORLDITEM& src_wi = pInventoryPoolList[j];
+			if (src_wi.o.usItem != usItem || src_wi.o.ubNumberOfObjects == 0) continue;
+
+			// Merge partial charges first (ammo/kits/canteens/alcohol/etc.
+			// -- see Merge[] in Items.cc). Safe no-op for items it doesn't
+			// recognize as combinable.
+			CleanUpStack(&dest_wi.o, &src_wi.o);
+
+			// Physically move any whole units still left in src into dest,
+			// up to dest's own per-pocket capacity. For non-stackable items
+			// (slot_limit <= 1) dest already holds exactly 1, so this never
+			// triggers -- no separate guard needed.
+			if (src_wi.o.ubNumberOfObjects > 0 && dest_wi.o.ubNumberOfObjects < slot_limit)
+			{
+				UINT8 const room    = slot_limit - dest_wi.o.ubNumberOfObjects;
+				UINT8 const to_move = std::min<UINT8>(src_wi.o.ubNumberOfObjects, room);
+				StackObjs(&src_wi.o, &dest_wi.o, to_move);
+			}
+		}
+	}
+
+	// Step 3: drop now-empty slots, then re-pad to a whole number of pages
+	// -- same convention as BuildStashForSelectedSector().
+	std::vector<WORLDITEM> compacted;
+	compacted.reserve(pInventoryPoolList.size());
+	for (WORLDITEM const& wi : pInventoryPoolList)
+	{
+		// See the occupancy comment at the top of this function -- fExists
+		// is not reliable here, ubNumberOfObjects is.
+		if (wi.o.ubNumberOfObjects > 0) compacted.push_back(wi);
+	}
+
+	size_t const visible_slots = compacted.size();
+	size_t const empty_slots   = MAP_INVENTORY_POOL_SLOT_COUNT - visible_slots % MAP_INVENTORY_POOL_SLOT_COUNT;
+	compacted.resize(visible_slots + empty_slots, WORLDITEM{});
+
+	pInventoryPoolList        = std::move(compacted);
+	iLastInventoryPoolPage    = static_cast<INT32>((pInventoryPoolList.size() - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
+	iCurrentInventoryPoolPage = 0;
+
+	CheckGridNoOfItemsInMapScreenMapInventory();
+	SortSectorInventory(pInventoryPoolList.data(), visible_slots);
+
+	fMapPanelDirty = TRUE;
 }
 
 
