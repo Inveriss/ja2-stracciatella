@@ -6,8 +6,9 @@
 
 #include <vector>
 
-// number of inventory slots
-#define MAP_INVENTORY_POOL_SLOT_COUNT 45
+// number of inventory slots -- 9 columns (MAP_INV_SLOT_ROWS' column count,
+// Map_Screen_Interface_Map_Inventory.cc) x 11 rows, per user request
+#define MAP_INVENTORY_POOL_SLOT_COUNT 99
 
 // whether we are showing the inventory pool graphic
 extern BOOLEAN fShowMapInventoryPool;

@@ -62,8 +62,10 @@
 // so it doesn't affect the unrelated footer labels that still use it
 #define MAP_SECTOR_INV_ITEM_FONT			FONTSECTORINV
 
-// inventory pool slot positions and sizes
-#define MAP_INV_SLOT_ROWS 9
+// inventory pool slot positions and sizes -- ROW Y = 11 per user request;
+// column count (ROW X = 9) follows from MAP_INVENTORY_POOL_SLOT_COUNT / this
+// (Map_Screen_Interface_Map_Inventory.h)
+#define MAP_INV_SLOT_ROWS 11
 
 
 static const SGPBox g_sector_inv_box        = { 261,   0, 762, 648 };
