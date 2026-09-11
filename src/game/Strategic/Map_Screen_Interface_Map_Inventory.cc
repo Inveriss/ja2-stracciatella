@@ -67,11 +67,18 @@
 
 static const SGPBox g_sector_inv_box        = { 261,   0, 379, 360 };
 static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
-static const SGPBox g_sector_inv_slot_box   = { 274,  37,  78,  52 };
-static const SGPBox g_sector_inv_region_box = {   5,   23,  67,  33 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_item_box   = {   5,   23,  67,  33 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_bar_box    = {   0,   24,   2,  31 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_name_box   = {   0,  59,  69,   10 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_slot_box   = { 274,  37,  83,  52 };
+static const SGPBox g_sector_inv_region_box = {   6,   21,  72,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_item_box   = {   6,   21,  72,  33 }; // relative to g_sector_inv_slot_box
+// x is intentionally UINT16(-1) (== 65535, wrapping) to shift the bar 1px
+// left of the item box -- SGPBox's fields are unsigned so a plain -1
+// literal here would silently narrow (MSVC C4838). The explicit cast keeps
+// the exact same value (and thus the exact same on-screen position, since
+// it's added to dx and truncated back down to INT16 in
+// DrawItemUIBarEx()'s sXPos parameter, which cancels the wraparound out to
+// dx - 1) while making the intent clear and silencing the warning.
+static const SGPBox g_sector_inv_bar_box    = { (UINT16)-1,   23,   2,  31 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_name_box   = {   0,  58,  75,   10 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_loc_box    = { 326, 337,  39,  10 };
 static const SGPBox g_sector_inv_count_box  = { 437, 337,  39,  10 };
 static const SGPBox g_sector_inv_page_box   = { 505, 337,  50,  10 };
@@ -231,7 +238,15 @@ static BOOLEAN RenderItemInPoolSlot(INT32 iCurrentSlot, INT32 iFirstSlotOnPage)
 	// per user request -- see STATS_TEXT_FONT_COLOR (5) + the inherited
 	// DEFAULT_SHADOW in PrintStat() (Interface_Panels.cc).
 	SetFontAttributes(MAP_SECTOR_INV_ITEM_FONT, 5, DEFAULT_SHADOW);
-	MPrintCenteredInBox(dx, dy, sString, *name_box);
+	// -1 X per user request, applied here rather than baked into
+	// g_sector_inv_name_box.x (like the (UINT16)-1 trick above) --
+	// MPrintCenteredInBox()'s x ends up passed as a plain 32-bit int all
+	// the way down to the glyph blitter (no INT16 truncation to cancel the
+	// unsigned wraparound out, unlike DrawItemUIBarEx()'s sXPos), so a
+	// negative UINT16 box field would push the text off past
+	// FontDestRegion's clip and make it disappear instead of shifting it.
+	// dx itself is a plain signed int here, so dx - 1 just works.
+	MPrintCenteredInBox(dx - 1, dy, sString, *name_box);
 	SetFontDestBuffer(FRAME_BUFFER);
 
 	return TRUE;
