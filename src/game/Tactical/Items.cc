@@ -147,6 +147,27 @@ static MergeInfo const Merge[] =
 	{WINE,				WINE,				WINE,				COMBINE_POINTS},
 	{ALCOHOL,			ALCOHOL,			ALCOHOL,			COMBINE_POINTS},
 	{CANTEEN,			CANTEEN,			CANTEEN,			COMBINE_POINTS},
+	// Added per user request, for the sector-inventory grouping feature --
+	// self-merge only; COMPOUND18/JAR_QUEEN_CREATURE_BLOOD already have
+	// other, unrelated entries further below (armor treatment against a
+	// *different* item), which these don't conflict with since
+	// EvaluateValidMerge() matches on the exact (item1, item2) pair.
+	{COMPOUND18,			COMPOUND18,			COMPOUND18,			COMBINE_POINTS},
+	{JAR_QUEEN_CREATURE_BLOOD,	JAR_QUEEN_CREATURE_BLOOD,	JAR_QUEEN_CREATURE_BLOOD,	COMBINE_POINTS},
+	{JAR_ELIXIR,			JAR_ELIXIR,			JAR_ELIXIR,			COMBINE_POINTS},
+	{JAR_CREATURE_BLOOD,		JAR_CREATURE_BLOOD,		JAR_CREATURE_BLOOD,		COMBINE_POINTS},
+	{JAR_HUMAN_BLOOD,		JAR_HUMAN_BLOOD,		JAR_HUMAN_BLOOD,		COMBINE_POINTS},
+	{ADRENALINE_BOOSTER,		ADRENALINE_BOOSTER,		ADRENALINE_BOOSTER,		COMBINE_POINTS},
+	{REGEN_BOOSTER,			REGEN_BOOSTER,			REGEN_BOOSTER,			COMBINE_POINTS},
+	{SYRINGE_3,			SYRINGE_3,			SYRINGE_3,			COMBINE_POINTS},
+	{SYRINGE_4,			SYRINGE_4,			SYRINGE_4,			COMBINE_POINTS},
+	{SYRINGE_5,			SYRINGE_5,			SYRINGE_5,			COMBINE_POINTS},
+	{CIGARS,			CIGARS,				CIGARS,				COMBINE_POINTS},
+	{DUCT_TAPE,			DUCT_TAPE,			DUCT_TAPE,			COMBINE_POINTS},
+	{QUICK_GLUE,			QUICK_GLUE,			QUICK_GLUE,			COMBINE_POINTS},
+	{TIN_CAN,			TIN_CAN,			TIN_CAN,			COMBINE_POINTS},
+	{MARBLES,			MARBLES,			MARBLES,			COMBINE_POINTS},
+	{CHEWING_GUM,			CHEWING_GUM,			CHEWING_GUM,			COMBINE_POINTS},
 
 	{COMPOUND18,			FLAK_JACKET,			FLAK_JACKET_18,			TREAT_ARMOUR},
 	{COMPOUND18,			KEVLAR_VEST,			KEVLAR_VEST_18,			TREAT_ARMOUR},
@@ -1012,9 +1033,19 @@ void StackObjs(OBJECTTYPE* pSourceObj, OBJECTTYPE* pTargetObj, UINT8 ubNumberToC
 void CleanUpStack(OBJECTTYPE* const o, OBJECTTYPE* const cursor_o)
 {
 	const ItemModel * item = GCM->getItem(o->usItem);
-	if (!(item->isAmmo()) &&
-		!(item->isKit())  &&
-		!(item->isMedkit()))
+
+	// Whether o->usItem's points/charge can be combined with itself this way
+	// -- the same authoritative check AttachObject() uses (EvaluateValidMerge()
+	// of the item against itself), rather than a separate, narrower
+	// isAmmo()/isKit()/isMedkit() class check. That older check silently
+	// disagreed with the Merge[] table below for items explicitly listed
+	// there as COMBINE_POINTS but belonging to a different item class (e.g.
+	// BEER/WINE/ALCOHOL, which are IC_MISC) -- this keeps the two in sync,
+	// since Merge[] is the single source of truth for what can be combined.
+	UINT16 merge_result;
+	UINT8  merge_kind;
+	if (!EvaluateValidMerge(o->usItem, o->usItem, &merge_result, &merge_kind) ||
+		merge_kind != COMBINE_POINTS)
 	{
 		return;
 	}
