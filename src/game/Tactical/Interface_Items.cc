@@ -2017,7 +2017,7 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 			SetFontForeground(colour);
 
 			const INT16 sNewX = sX + 1;
-			const INT16 sNewY = sY + sHeight - 10;
+			const INT16 sNewY = sY + sHeight - 11;
 			if (buffer == guiSAVEBUFFER)
 			{
 				RestoreExternBackgroundRect(sNewX, sNewY, 20, 15);

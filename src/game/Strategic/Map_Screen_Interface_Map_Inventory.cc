@@ -68,8 +68,8 @@
 static const SGPBox g_sector_inv_box        = { 261,   0, 379, 360 };
 static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
 static const SGPBox g_sector_inv_slot_box   = { 274,  37,  83,  52 };
-static const SGPBox g_sector_inv_region_box = {   6,   21,  72,  33 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_item_box   = {   6,   21,  72,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_region_box = {   5,   22,  72,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_item_box   = {   5,   22,  72,  33 }; // relative to g_sector_inv_slot_box
 // x is intentionally UINT16(-1) (== 65535, wrapping) to shift the bar 1px
 // left of the item box -- SGPBox's fields are unsigned so a plain -1
 // literal here would silently narrow (MSVC C4838). The explicit cast keeps
@@ -78,10 +78,10 @@ static const SGPBox g_sector_inv_item_box   = {   6,   21,  72,  33 }; // relati
 // DrawItemUIBarEx()'s sXPos parameter, which cancels the wraparound out to
 // dx - 1) while making the intent clear and silencing the warning.
 static const SGPBox g_sector_inv_bar_box    = { (UINT16)-1,   23,   2,  31 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_name_box   = {   0,  58,  75,   10 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_loc_box    = { 326, 337,  39,  10 };
-static const SGPBox g_sector_inv_count_box  = { 437, 337,  39,  10 };
-static const SGPBox g_sector_inv_page_box   = { 505, 337,  50,  10 };
+static const SGPBox g_sector_inv_name_box   = {   1,  58,  75,   10 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_loc_box    = { 709, 630,  39,  10 };
+static const SGPBox g_sector_inv_count_box  = { 800, 630,  39,  10 };
+static const SGPBox g_sector_inv_page_box   = { 868, 630,  50,  10 };
 
 
 // the current highlighted item
@@ -650,8 +650,8 @@ static void MapInventoryPoolNextBtn(GUI_BUTTON* btn, UINT32 reason);
 
 static void CreateMapInventoryButtons(void)
 {
-	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 559, MAP_SCREEN_Y + 336, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
-	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 487, MAP_SCREEN_Y + 336, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
+	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 922, MAP_SCREEN_Y + 629, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
+	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 850, MAP_SCREEN_Y + 629, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
 
 	//reset the current inventory page to be the first page
 	iCurrentInventoryPoolPage = 0;
@@ -1048,7 +1048,7 @@ static void DrawNumberOfInventoryPoolItems()
 static void CreateMapInventoryPoolDoneButton(void)
 {
 	// create done button
-	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/done_button.sti", 0, 1, MAP_SCREEN_X + 587, MAP_SCREEN_Y + 333, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/done_button.sti", 0, 1, MAP_SCREEN_X + 950, MAP_SCREEN_Y + 626, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
 }
 
 
@@ -1099,14 +1099,14 @@ static void DrawTextOnMapInventoryBackground(void)
 
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	int xPos = MAP_SCREEN_X + 268;
-	int yPos = MAP_SCREEN_Y + 342;
+	int xPos = MAP_SCREEN_X + 651;
+	int yPos = MAP_SCREEN_Y + 635;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
 	DisplayWrappedString(xPos, yPos - (usStringHeight / 2), 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED);
 
-	xPos = MAP_SCREEN_X + 369;
+	xPos = MAP_SCREEN_X + 732;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
