@@ -40,8 +40,14 @@ UINT16 CalcSoldierCreateCheckSum(const SOLDIERCREATE_STRUCT* const s)
 
 
 // ---------------------------------------------------------------------------
-// Current format: OBJECTTYPE at the current MAX_ATTACHMENTS. Used only for our
-// own save data (see Enemy_Soldier_Save.cc) - never for sector map files.
+// Current format: OBJECTTYPE at the current MAX_ATTACHMENTS/
+// MAX_OBJECTS_PER_SLOT. Used only for our own save data (see
+// Enemy_Soldier_Save.cc) - never for sector map files.
+//
+// The byte totals below (3652/3632, now 7084/7064) include
+// lengthof(c->Inv) == NUM_INV_SLOTS == 39 calls to ExtractObject()/
+// InjectObject() -- when MAX_OBJECTS_PER_SLOT went from 8 to 100 those grew
+// by +88 bytes each, so the totals below grew by 39 * 88 = 3432.
 // ---------------------------------------------------------------------------
 
 static void ExtractSoldierCreate(const BYTE* const data, SOLDIERCREATE_STRUCT* const c, bool stracLinuxFormat)
@@ -101,11 +107,11 @@ static void ExtractSoldierCreate(const BYTE* const data, SOLDIERCREATE_STRUCT* c
 	EXTR_SKIP(d, 117)
 	if(stracLinuxFormat)
 	{
-		Assert(d.getConsumed() == 3652);
+		Assert(d.getConsumed() == 7084);
 	}
 	else
 	{
-		Assert(d.getConsumed() == 3632);
+		Assert(d.getConsumed() == 7064);
 	}
 }
 
@@ -114,13 +120,13 @@ void ExtractSoldierCreateFromFile(HWFILE const f, SOLDIERCREATE_STRUCT* const c,
 {
 	if(stracLinuxFormat)
 	{
-		BYTE data[3652];
+		BYTE data[7084];
 		f->read(data, sizeof(data));
 		ExtractSoldierCreate(data, c, stracLinuxFormat);
 	}
 	else
 	{
-		BYTE data[3632];
+		BYTE data[7064];
 		f->read(data, sizeof(data));
 		ExtractSoldierCreate(data, c, stracLinuxFormat);
 	}
@@ -206,13 +212,13 @@ static void InjectSoldierCreate(BYTE* const data, const SOLDIERCREATE_STRUCT* co
 	INJ_I8(d, c->bUseGivenVehicleID)
 	INJ_BOOL(d, c->fHasKeys)
 	INJ_SKIP(d, 117)
-	Assert(d.getConsumed() == 3632);
+	Assert(d.getConsumed() == 7064);
 }
 
 
 void InjectSoldierCreateIntoFile(HWFILE const f, SOLDIERCREATE_STRUCT const* const c)
 {
-	BYTE data[3632];
+	BYTE data[7064];
 	InjectSoldierCreate(data, c);
 	f->write(data, sizeof(data));
 }

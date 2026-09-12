@@ -1335,8 +1335,12 @@ static void SaveSoldierStructure(HWFILE const f)
 		// (empirically, via temporary checkpoint diagnostics, not purely by
 		// hand-counting fields). Savegames from before this change are not,
 		// and are not intended to be, compatible.
-		BYTE data[4968];
-		std::fill_n(data, 4968, 0);
+		// Further grown to 8400 (see InjectSoldierType()'s Assert comment)
+		// when MAX_OBJECTS_PER_SLOT went from 8 to 100 -- SAVE_GAME_VERSION
+		// was bumped for this too (GameVersion.h), so an old save is refused
+		// before it can reach this mismatched buffer size.
+		BYTE data[8400];
+		std::fill_n(data, 8400, 0);
 		InjectSoldierType(data, &s);
 		NewJA2EncryptedFileWrite(f, data, sizeof(data));
 
@@ -1375,13 +1379,13 @@ static void LoadSoldierStructure(HWFILE const f, UINT32 savegame_version, bool s
 		SOLDIERTYPE SavedSoldierInfo;
 		if(stracLinuxFormat)
 		{
-			BYTE Data[4992]; // see InjectSoldierType()'s Assert comment for how this was derived
+			BYTE Data[8424]; // see InjectSoldierType()'s Assert comment for how this was derived
 			reader(f, Data, sizeof(Data));
 			ExtractSoldierType(Data, &SavedSoldierInfo, stracLinuxFormat, savegame_version);
 		}
 		else
 		{
-			BYTE Data[4968]; // see InjectSoldierType()'s Assert comment for how this was derived
+			BYTE Data[8400]; // see InjectSoldierType()'s Assert comment for how this was derived
 			reader(f, Data, sizeof(Data));
 			ExtractSoldierType(Data, &SavedSoldierInfo, stracLinuxFormat, savegame_version);
 		}

@@ -549,13 +549,20 @@ void ExtractSoldierType(const BYTE* const data, SOLDIERTYPE* const s, bool strac
 	// naively-computed +1720 -- empirically measured via temporary checkpoint
 	// diagnostics; see InjectSoldierType() below for the equivalent, more
 	// thoroughly cross-checked measurement on the write side).
+	//
+	// Further bumped by +3432 (== NUM_INV_SLOTS * 88 == 39 * (172 - 84)) when
+	// MAX_OBJECTS_PER_SLOT went from 8 to 100 -- unlike the slot-count
+	// expansion above, this one IS a clean, exact multiple: it only changed
+	// how many bytes each of the 39 already-existing ExtractObject() calls
+	// (CFOR_EACH_SOLDIER_INV_SLOT loop above) reads, nothing about their
+	// count or any other field.
 	if(stracLinuxFormat)
 	{
-		Assert(d.getConsumed() == 4992);
+		Assert(d.getConsumed() == 8424); // 4992 + 3432
 	}
 	else
 	{
-		Assert(d.getConsumed() == 4968);
+		Assert(d.getConsumed() == 8400); // 4968 + 3432
 	}
 
 	if (checksum != MercChecksum(*s))
@@ -1072,5 +1079,12 @@ void InjectSoldierType(BYTE* const data, const SOLDIERTYPE* const s)
 	// parts by exactly this +8. Since the current value (4968) is directly,
 	// repeatedly confirmed against this function's actual behavior, that is
 	// used here rather than a value extrapolated from the stale baseline.
-	Assert(d.getConsumed() == 4968);
+	//
+	// Further bumped by +3432 (== NUM_INV_SLOTS * 88 == 39 * (172 - 84)) when
+	// MAX_OBJECTS_PER_SLOT went from 8 to 100 -- see the matching comment on
+	// ExtractSoldierType()'s own Assert above; unlike the +8 mystery this one
+	// is an exact, mechanically certain multiple; it only changed how many
+	// bytes each of the 39 already-existing InjectObject() calls
+	// (CFOR_EACH_SOLDIER_INV_SLOT loop above) writes.
+	Assert(d.getConsumed() == 8400); // 4968 + 3432
 }

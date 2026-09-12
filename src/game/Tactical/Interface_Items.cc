@@ -2065,7 +2065,19 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 				// own measured width (already computed above for sNewX)
 				// instead of leaving a ghost digit behind on the next
 				// redraw.
-				RestoreExternBackgroundRect(sNewX, sNewY, uiStringLength + 4, 15);
+				//
+				// Defensively clamped to stay on-screen -- RestoreExternBackgroundRect()
+				// asserts otherwise. sNewX/width are both derived from sX/sWidth
+				// (the slot's own on-screen box, always valid) plus this text's
+				// measured width, so this should already be in bounds, but the
+				// old flat 15px never exercised this edge (a single digit was
+				// never wide enough to matter) so clamp rather than assume.
+				INT16 const clampedX  = std::max<INT16>(sNewX, 0);
+				INT16 const rectWidth = std::max<INT16>(0, std::min<INT16>(uiStringLength + 4, SCREEN_WIDTH - clampedX));
+				if (rectWidth > 0)
+				{
+					RestoreExternBackgroundRect(clampedX, sNewY, rectWidth, 15);
+				}
 			}
 			GPrintInvalidate(sNewX, sNewY, pStr);
 		}
@@ -6265,9 +6277,11 @@ void CancelItemPointer( )
 
 void LoadItemCursorFromSavedGame(HWFILE const f)
 {
-	// Sized for ExtractObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
-	// SoldierID + slot + active flag + 5 bytes of padding.
-	BYTE data[92];
+	// Sized for ExtractObject() (OBJECTTYPE at the current MAX_OBJECTS_PER_SLOT/
+	// MAX_ATTACHMENTS) plus SoldierID + slot + active flag + 5 bytes of padding.
+	// 92 at OBJECTTYPE == 84; grown by the same +88 ExtractObject() itself grew
+	// by when MAX_OBJECTS_PER_SLOT went from 8 to 100.
+	BYTE data[180];
 	f->read(data, sizeof(data));
 
 	BOOLEAN      active;
@@ -6295,9 +6309,11 @@ void LoadItemCursorFromSavedGame(HWFILE const f)
 
 void SaveItemCursorToSavedGame(HWFILE const f)
 {
-	// Sized for InjectObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
-	// SoldierID + slot + active flag + 5 bytes of padding.
-	BYTE  data[92];
+	// Sized for InjectObject() (OBJECTTYPE at the current MAX_OBJECTS_PER_SLOT/
+	// MAX_ATTACHMENTS) plus SoldierID + slot + active flag + 5 bytes of padding.
+	// 92 at OBJECTTYPE == 84; grown by the same +88 InjectObject() itself grew
+	// by when MAX_OBJECTS_PER_SLOT went from 8 to 100.
+	BYTE  data[180];
 	DataWriter d{data};
 	InjectObject(d, &gItemPointer);
 	INJ_SOLDIER(d, gpItemPointerSoldier)

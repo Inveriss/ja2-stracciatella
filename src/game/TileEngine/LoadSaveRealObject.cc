@@ -8,8 +8,11 @@
 
 void ExtractRealObjectFromFile(HWFILE const file, REAL_OBJECT* const o)
 {
-	// Grown by 4 bytes along with ExtractObject()'s OBJECTTYPE (current MAX_ATTACHMENTS).
-	BYTE data[304];
+	// Grown along with ExtractObject()'s OBJECTTYPE (current
+	// MAX_OBJECTS_PER_SLOT/MAX_ATTACHMENTS). 304 at OBJECTTYPE == 84; grown
+	// by the same +88 ExtractObject() itself grew by when
+	// MAX_OBJECTS_PER_SLOT went from 8 to 100.
+	BYTE data[392];
 	file->read(data, sizeof(data));
 
 	DataReader d{data};
@@ -76,8 +79,11 @@ void ExtractRealObjectFromFile(HWFILE const file, REAL_OBJECT* const o)
 
 void InjectRealObjectIntoFile(HWFILE const file, REAL_OBJECT const* const o)
 {
-	// Grown by 4 bytes along with InjectObject()'s OBJECTTYPE (current MAX_ATTACHMENTS).
-	BYTE data[304];
+	// Grown along with InjectObject()'s OBJECTTYPE (current
+	// MAX_OBJECTS_PER_SLOT/MAX_ATTACHMENTS). 304 at OBJECTTYPE == 84; grown
+	// by the same +88 InjectObject() itself grew by when
+	// MAX_OBJECTS_PER_SLOT went from 8 to 100.
+	BYTE data[392];
 
 	DataWriter d{data};
 	INJ_BOOL(d, o->fAllocated)
