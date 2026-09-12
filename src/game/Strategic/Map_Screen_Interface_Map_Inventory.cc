@@ -1319,7 +1319,17 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 
 	// if there is something there, swap it, if they are of the same type and stackable then add to the count
 
-	ubSlotLimit = GCM->getItem(pItemPtr -> usItem)->getPerPocket();
+	// Clamped to MAX_OBJECTS_PER_SLOT -- an item's own ubPerPocket (game
+	// data) isn't itself bounded by it, but bStatus[]/ubShotsLeft[] below
+	// physically are. Missing this clamp let the "stacking" branch below
+	// push pInventorySlot->ubNumberOfObjects past MAX_OBJECTS_PER_SLOT for
+	// any item whose ubPerPocket exceeds it, and StackObjs() would then
+	// write bStatus[] past its own bounds, corrupting usAttachItem[]/
+	// bAttachStatus[] right after it in OBJECTTYPE -- surfacing later as a
+	// "invalid vector subscript" crash the next time something (e.g.
+	// GetHelpTextForItem()) reads that corrupted attachment data and looks
+	// it up as an item ID.
+	ubSlotLimit = std::min<UINT8>(GCM->getItem(pItemPtr -> usItem)->getPerPocket(), MAX_OBJECTS_PER_SLOT);
 
 	if (pInventorySlot->ubNumberOfObjects == 0)
 	{
@@ -1419,7 +1429,13 @@ void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 
 	// placement in an empty slot
 	UINT8       ubNumberToDrop = pItemPtr->ubNumberOfObjects;
-	UINT8 const ubSlotLimit    = ItemSlotLimit( pItemPtr->usItem, BIGPOCK1POS );
+	// Clamped to MAX_OBJECTS_PER_SLOT for consistency with the other
+	// ItemSlotLimit()/getPerPocket() call sites in this file -- this
+	// particular slot always starts empty (found via find_if above), and
+	// pItemPtr itself can never hold more than MAX_OBJECTS_PER_SLOT to
+	// begin with, so it's not reachable here in practice, but keeping this
+	// clamped avoids relying on that invariant holding forever.
+	UINT8 const ubSlotLimit    = std::min<UINT8>(ItemSlotLimit( pItemPtr->usItem, BIGPOCK1POS ), MAX_OBJECTS_PER_SLOT);
 
 	if (ubNumberToDrop > ubSlotLimit && ubSlotLimit != 0)
 	{

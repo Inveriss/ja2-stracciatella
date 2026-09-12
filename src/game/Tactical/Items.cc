@@ -1944,7 +1944,14 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 
 	if (GCM->getItem(pObj->usItem)->getItemClass() == IC_KEY) CollectKey(*pSoldier, *pObj);
 
-	int ubSlotLimit = ItemSlotLimit(pObj->usItem, bPos);
+	// Clamped to MAX_OBJECTS_PER_SLOT -- an item's own ubPerPocket (game
+	// data) isn't itself bounded by it, but bStatus[]/ubShotsLeft[] below
+	// physically are. Missing this clamp let the "stacking" branch below
+	// push pInSlot->ubNumberOfObjects past MAX_OBJECTS_PER_SLOT for any
+	// item whose ubPerPocket exceeds it, and StackObjs() would then write
+	// bStatus[] past its own bounds, corrupting usAttachItem[]/
+	// bAttachStatus[] right after it in OBJECTTYPE.
+	int ubSlotLimit = std::min(int(ItemSlotLimit(pObj->usItem, bPos)), int(MAX_OBJECTS_PER_SLOT));
 
 	pInSlot = &(pSoldier->inv[bPos]);
 
