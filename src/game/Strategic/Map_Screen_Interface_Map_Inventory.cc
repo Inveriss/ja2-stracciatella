@@ -1395,17 +1395,31 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 
 void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 {
-	UINT8 ubNumberToDrop, ubSlotLimit, ubLoop;
-	OBJECTTYPE *pInventorySlot;
+	// Find an actual free slot -- growing the stash by a page if none
+	// exists, same low-space handling CheckAndUnDateSlotAllocation() itself
+	// uses. FIXME (acknowledged, now fixed): this used to index
+	// pInventoryPoolList[pInventoryPoolList.size()], one past the end --
+	// undefined behaviour that silently wrote into unrelated memory instead
+	// of a real slot, so the item was effectively lost. That went
+	// unnoticed while this function had no caller that could actually be
+	// exercised in practice; CloseStackSplitView()'s "never drop it" safety
+	// net (Map_Screen_Interface_Map_Inventory.cc) made it a real,
+	// user-visible item-loss bug.
+	auto it = std::find_if(pInventoryPoolList.begin(), pInventoryPoolList.end(),
+		[](WORLDITEM const& wi) { return wi.o.ubNumberOfObjects == 0; });
+	if (it == pInventoryPoolList.end())
+	{
+		size_t const old_size = pInventoryPoolList.size();
+		pInventoryPoolList.insert(pInventoryPoolList.end(), MAP_INVENTORY_POOL_SLOT_COUNT, WORLDITEM{});
+		it = pInventoryPoolList.begin() + old_size;
+		iLastInventoryPoolPage = static_cast<INT32>((pInventoryPoolList.size() - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
+	}
 
-
-	// if there is something there, swap it, if they are of the same type and stackable then add to the count
-	pInventorySlot =  &( pInventoryPoolList[ pInventoryPoolList.size() ].o );// FIXME out of bounds access
+	WORLDITEM& slot = *it;
 
 	// placement in an empty slot
-	ubNumberToDrop = pItemPtr->ubNumberOfObjects;
-
-	ubSlotLimit = ItemSlotLimit( pItemPtr->usItem, BIGPOCK1POS );
+	UINT8       ubNumberToDrop = pItemPtr->ubNumberOfObjects;
+	UINT8 const ubSlotLimit    = ItemSlotLimit( pItemPtr->usItem, BIGPOCK1POS );
 
 	if (ubNumberToDrop > ubSlotLimit && ubSlotLimit != 0)
 	{
@@ -1415,17 +1429,29 @@ void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 
 	// could be wrong type of object for slot... need to check...
 	// but assuming it isn't
-	*pInventorySlot = *pItemPtr;
+	slot.o = *pItemPtr;
 
 	if (ubNumberToDrop != pItemPtr->ubNumberOfObjects)
 	{
 		// in the InSlot copy, zero out all the objects we didn't drop
-		for (ubLoop = ubNumberToDrop; ubLoop < pItemPtr->ubNumberOfObjects; ubLoop++)
+		for (UINT8 ubLoop = ubNumberToDrop; ubLoop < pItemPtr->ubNumberOfObjects; ubLoop++)
 		{
-			pInventorySlot->bStatus[ubLoop] = 0;
+			slot.o.bStatus[ubLoop] = 0;
 		}
 	}
-	pInventorySlot->ubNumberOfObjects = ubNumberToDrop;
+	slot.o.ubNumberOfObjects = ubNumberToDrop;
+
+	// Same WORLDITEM bookkeeping MapInvenPoolSlotsPrimary() does when
+	// placing into a previously-empty slot -- without this the item would
+	// render hatched (missing WORLD_ITEM_REACHABLE) or carry a stale
+	// sGridNo/usFlags left over from whatever this slot held before.
+	// There's no meaningful source position here (unlike a drag, which
+	// tracks sObjectSourceGridNo), so this always takes the same NOWHERE
+	// fallback that path uses.
+	slot.sGridNo                  = NOWHERE;
+	slot.ubLevel                  = 0;
+	slot.usFlags                  = WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT | WORLD_ITEM_REACHABLE;
+	slot.bRenderZHeightAboveLevel = 0;
 
 	// remove a like number of objects from pObj
 	RemoveObjs( pItemPtr, ubNumberToDrop );
