@@ -71,8 +71,8 @@
 static const SGPBox g_sector_inv_box        = { 261,   0, 762, 648 };
 static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
 static const SGPBox g_sector_inv_slot_box   = { 274,  37,  83,  52 };
-static const SGPBox g_sector_inv_region_box = {   5,   22,  72,  33 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_item_box   = {   5,   22,  72,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_region_box = {   11,   28,  72,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_item_box   = {   11,   28,  72,  33 }; // relative to g_sector_inv_slot_box
 // x is intentionally UINT16(-1) (== 65535, wrapping) to shift the bar 1px
 // left of the item box -- SGPBox's fields are unsigned so a plain -1
 // literal here would silently narrow (MSVC C4838). The explicit cast keeps
@@ -80,8 +80,8 @@ static const SGPBox g_sector_inv_item_box   = {   5,   22,  72,  33 }; // relati
 // it's added to dx and truncated back down to INT16 in
 // DrawItemUIBarEx()'s sXPos parameter, which cancels the wraparound out to
 // dx - 1) while making the intent clear and silencing the warning.
-static const SGPBox g_sector_inv_bar_box    = { (UINT16)-1,   23,   2,  31 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_name_box   = {   1,  58,  75,   10 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_bar_box    = { (UINT16)5,   30,   2,  31 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_name_box   = {   1,  65,  75,   10 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_loc_box    = { 709, 630,  39,  10 };
 static const SGPBox g_sector_inv_count_box  = { 800, 630,  39,  10 };
 static const SGPBox g_sector_inv_page_box   = { 868, 630,  50,  10 };
@@ -133,6 +133,58 @@ static GUIButtonRef guiMapInvenButton[4];
 static BOOLEAN gfCheckForCursorOverMapSectorInventoryItem = FALSE;
 
 
+// ---------------------------------------------------------------------
+// "Stack split view" (Wariant B) -- right-clicking a stack (ubNumberOfObjects
+// > 1) opens this small independent window instead of a second
+// sector_inventory.sti (the old InitSectorInventoryStackPopup(), now
+// removed). It shows each item of the stack in its own slot, using its own
+// background art (newgoldpiece3.sti) and reuses ItemInfoC.sti
+// (MAPInternalInitItemDescriptionBox()) for the per-item description, same
+// as the main sector-inventory grid does for a single item.
+//
+// The stack is PHYSICALLY split into up to MAX_OBJECTS_PER_SLOT separate
+// 1-count OBJECTTYPEs (gStackSplitItems) for as long as this view is open --
+// the source slot in pInventoryPoolList sits empty in the meantime -- and
+// CloseStackSplitView() re-merges them back into a single stack, so the
+// split is never permanent. Per user request: "przedmioty ze stosu mają
+// zostać fizycznie rozdzielone na osobne OBJECTTYPE w nowej, małej liście
+// (wymaga logiki ponownego scalenia przy zamknięciu, żeby nie rozbić stosu
+// na trwałe)".
+// ---------------------------------------------------------------------
+
+static cache_key_t const guiStackSplitBackground{ INTERFACEDIR "/sector_inventory_2.sti" };
+
+// Placeholder positions, per user request -- not yet the final layout.
+// g_stack_split_box is the whole window (background + slots); the slot box
+// is the pitch between slots, and the rest are relative to each individual
+// slot -- same layering as g_sector_inv_slot_box/_region_box/_item_box/etc.
+// above.
+static const SGPBox g_stack_split_box        = { 261, 0, 762, 468 };
+static const SGPBox g_stack_split_slot_box   = {  10,  30,  83,  52 };
+static const SGPBox g_stack_split_region_box = {  11,  34,  72,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_item_box   = {  11,  34,  72,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_bar_box    = { (UINT16)8, 37, 2, 31 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_name_box   = {   9,  72,  75,  10 }; // relative to g_stack_split_slot_box
+
+// Slots laid out in a small grid, wide enough for a whole stack (a stack
+// can never hold more than MAX_OBJECTS_PER_SLOT items to begin with).
+#define STACK_SPLIT_COLS 4
+
+// The physically-split-out items, one per slot -- empty (gStackSplitItems
+// cleared) when the view is closed.
+static std::vector<OBJECTTYPE> gStackSplitItems;
+// Index into pInventoryPoolList (absolute -- already includes the page
+// offset) of the stack currently split open here, or -1 when closed.
+static INT32 gStackSplitSourceIndex = -1;
+static MOUSE_REGION gStackSplitSlots[MAX_OBJECTS_PER_SLOT];
+// Clicking the window's background (anywhere outside the item slots)
+// closes (and merges back) the view -- there's no separate Done button,
+// mirroring ItemPopupFullRegionCallbackPrimary/Secondary's own
+// background-click behavior for the tactical/merc stack popup this
+// replaces for the sector inventory.
+static MOUSE_REGION gStackSplitBackgroundRegion;
+
+
 // remove background panel graphics for inventory
 void RemoveInventoryPoolGraphic( void )
 {
@@ -146,6 +198,7 @@ static void DisplayPagesForMapInventoryPool(void);
 static void DrawNumberOfInventoryPoolItems();
 static void DrawTextOnMapInventoryBackground(void);
 static void RenderItemsForCurrentPageOfInventoryPool(void);
+static void RenderStackSplitItems(void);
 static void UpdateHelpTextForInvnentoryStashSlots(void);
 
 namespace {
@@ -183,6 +236,9 @@ void BlitInventoryPoolGraphic( void )
 	DisplayCurrentSector( );
 
 	DrawTextOnMapInventoryBackground( );
+
+	// stack split view (Wariant B) -- renders on top of everything else
+	RenderStackSplitItems( );
 
 	// re render buttons
 	MarkButtonsDirty( );
@@ -293,13 +349,19 @@ static void CreateMapInventoryButtons(void);
 static void CreateMapInventoryPoolDoneButton(void);
 static void CreateMapInventoryPoolSlots(void);
 static void CreateMapInventoryGroupButton(void);
+static void CreateStackSplitSlots(void);
 static void DestroyInventoryPoolDoneButton(void);
 static void DestroyMapInventoryButtons(void);
 static void DestroyMapInventoryPoolSlots();
 static void DestroyMapInventoryGroupButton(void);
+static void DestroyStackSplitSlots(void);
 static void DestroyStash(void);
 static void GroupSectorInventoryItems(void);
 static void HandleMapSectorInventory(void);
+static void OpenStackSplitView(INT32 sourceIndex);
+static void CloseStackSplitView(void);
+static void StackSplitSlotSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
+static void StackSplitBackgroundCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SaveSeenAndUnseenItems(void);
 
 
@@ -346,15 +408,19 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 	}
 	else if (!fShowMapInventoryPool && fCreated)
 	{
-		// A stack popup or item-description box left open when the whole
-		// Sector Inventory panel closes would end up pointing into
-		// pInventoryPoolList after DestroyStash() clears it below --
-		// gpItemPopupObject/gpItemDescObject would dangle, and
-		// RenderItemStackPopup()/RenderItemDescriptionBox() read them every
-		// frame regardless of fShowMapInventoryPool. Close them first.
-		if (InItemStackPopup())   DeleteItemStackPopup();
+		// An item-description box left open when the whole Sector Inventory
+		// panel closes would end up pointing into pInventoryPoolList after
+		// DestroyStash() clears it below -- gpItemDescObject would dangle,
+		// and RenderItemDescriptionBox() reads it every frame regardless of
+		// fShowMapInventoryPool. Close it first.
 		if (InItemDescriptionBox()) DeleteItemDescriptionBox();
 
+		// Same risk, more severe, for the stack split view: it holds the
+		// stack's items OUTSIDE pInventoryPoolList entirely
+		// (gStackSplitItems) while open, so closing without merging back
+		// first would permanently lose them the moment DestroyStash() below
+		// clears the list they belong back into.
+		if (gStackSplitSourceIndex != -1) CloseStackSplitView();
 
 		// check fi we are in fact leaving mapscreen
 		if (!fExitFromMapScreen)
@@ -667,15 +733,11 @@ static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32
 	// behavior was.
 	if (gpItemPointer != NULL) return;
 
-	// If a stack popup is already open (for this or a different stack),
-	// close it first rather than refusing the click -- same "switch
-	// directly" behavior as the item-description box below, per user
-	// report: RestrictMouseCursor() (InternalInitItemStackPopup()) does not
-	// in practice keep the click from reaching a different sector-inventory
-	// slot underneath, and a second InitSectorInventoryStackPopup() call
-	// without closing the first first would redefine the still-active
-	// per-item regions/gItemPopupRegion out from under it.
-	if (InItemStackPopup()) DeleteItemStackPopup();
+	// If the stack split view is already open (for this or a different
+	// stack), close (and merge back) it first rather than refusing the
+	// click -- same "switch directly" behavior as the item-description box
+	// below.
+	if (gStackSplitSourceIndex != -1) CloseStackSplitView();
 
 	// If a box is already open, close it first rather than refusing the
 	// click -- per user request, scoped to Sector Inventory only (every
@@ -691,25 +753,221 @@ static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32
 	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
 
 	INT32      const slot_idx = MSYS_GetRegionUserData(pRegion, 0);
-	WORLDITEM& slot = pInventoryPoolList[iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT + slot_idx];
+	INT32      const abs_idx  = iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT + slot_idx;
+	WORLDITEM& slot = pInventoryPoolList[abs_idx];
 
 	if (slot.o.usItem == NOTHING) return;
 
 	if (slot.o.ubNumberOfObjects > 1)
 	{
 		// Stack of >1 -- show each individual item in its own slot first
-		// (sector_inventory_second.sti), per user request, instead of going
-		// straight to the whole stack's description box. Right-clicking one
-		// of those items then opens its own description box automatically
-		// (ItemPopupRegionCallbackSecondary(), Interface_Items.cc) -- no
-		// extra wiring needed for that part.
-		InitSectorInventoryStackPopup(&slot.o, GetSelectedInfoChar(), MapInventoryPoolSlots[slot_idx],
-			MAP_SCREEN_X + g_sector_inv_box.x, MAP_SCREEN_Y + g_sector_inv_box.y, g_sector_inv_box.w, g_sector_inv_box.h);
+		// (Wariant B stack split view, newgoldpiece3.sti), per user
+		// request, instead of going straight to the whole stack's
+		// description box. Right-clicking one of those items then opens
+		// its own description box (StackSplitSlotSecondary() below).
+		OpenStackSplitView(abs_idx);
 		return;
 	}
 
 	MAPInternalInitItemDescriptionBox(&slot.o, 0, GetSelectedInfoChar());
 }
+
+
+// ---------------------------------------------------------------------
+// Stack split view (Wariant B) -- see the big comment block with the other
+// g_stack_split_*/gStackSplit* declarations near the top of this file.
+// ---------------------------------------------------------------------
+
+static void CreateStackSplitSlots(void)
+{
+	UINT16 const bx = MAP_SCREEN_X + g_stack_split_box.x;
+	UINT16 const by = MAP_SCREEN_Y + g_stack_split_box.y;
+
+	MSYS_DefineRegion(&gStackSplitBackgroundRegion, bx, by, bx + g_stack_split_box.w - 1, by + g_stack_split_box.h - 1,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+		MouseCallbackPrimarySecondary(StackSplitBackgroundCallback, StackSplitBackgroundCallback, MSYS_NO_CALLBACK));
+
+	size_t const count = gStackSplitItems.size();
+	for (size_t i = 0; i < count; ++i)
+	{
+		UINT16        const col = static_cast<UINT16>(i % STACK_SPLIT_COLS);
+		UINT16        const row = static_cast<UINT16>(i / STACK_SPLIT_COLS);
+		UINT16        const dx  = bx + g_stack_split_slot_box.x + col * g_stack_split_slot_box.w;
+		UINT16        const dy  = by + g_stack_split_slot_box.y + row * g_stack_split_slot_box.h;
+		UINT16        const x   = dx + g_stack_split_region_box.x;
+		UINT16        const y   = dy + g_stack_split_region_box.y;
+		MOUSE_REGION* const r   = &gStackSplitSlots[i];
+		MSYS_DefineRegion(r, x, y, x + g_stack_split_region_box.w - 1, y + g_stack_split_region_box.h - 1,
+			MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+			MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, StackSplitSlotSecondary, MSYS_NO_CALLBACK));
+		MSYS_SetRegionUserData(r, 0, static_cast<UINT32>(i));
+	}
+}
+
+
+static void DestroyStackSplitSlots(void)
+{
+	size_t const count = gStackSplitItems.size();
+	for (size_t i = 0; i < count; ++i) MSYS_RemoveRegion(&gStackSplitSlots[i]);
+	MSYS_RemoveRegion(&gStackSplitBackgroundRegion);
+}
+
+
+static void RenderStackSplitItems(void)
+{
+	if (gStackSplitSourceIndex == -1) return;
+
+	UINT16 const bx = MAP_SCREEN_X + g_stack_split_box.x;
+	UINT16 const by = MAP_SCREEN_Y + g_stack_split_box.y;
+
+	BltVideoObject(guiSAVEBUFFER, guiStackSplitBackground, 0, bx, by);
+
+	SetFontDestBuffer(guiSAVEBUFFER);
+	for (size_t i = 0; i < gStackSplitItems.size(); ++i)
+	{
+		OBJECTTYPE const& o = gStackSplitItems[i];
+		if (o.usItem == NOTHING) continue;
+
+		INT32 const col = static_cast<INT32>(i % STACK_SPLIT_COLS);
+		INT32 const row = static_cast<INT32>(i / STACK_SPLIT_COLS);
+		INT32 const dx  = bx + g_stack_split_slot_box.x + col * g_stack_split_slot_box.w;
+		INT32 const dy  = by + g_stack_split_slot_box.y + row * g_stack_split_slot_box.h;
+
+		const SGPBox* const item_box = &g_stack_split_item_box;
+		INVRenderItem(guiSAVEBUFFER, NULL, o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
+
+		const UINT16        col0    = Get16BPPColor(DESC_STATUS_BAR);
+		const UINT16        col1    = Get16BPPColor(DESC_STATUS_BAR_SHADOW);
+		const SGPBox* const bar_box = &g_stack_split_bar_box;
+		DrawItemUIBarEx(o, 0, dx + bar_box->x, dy + bar_box->y + bar_box->h - 1, bar_box->h, col0, col1, guiSAVEBUFFER);
+
+		const SGPBox* const name_box = &g_stack_split_name_box;
+		auto sString = ReduceStringLength(GCM->getItem(o.usItem)->getShortName(), name_box->w, MAP_SECTOR_INV_ITEM_FONT);
+		SetFontAttributes(MAP_SECTOR_INV_ITEM_FONT, 5, DEFAULT_SHADOW);
+		MPrintCenteredInBox(dx - 1, dy, sString, *name_box);
+	}
+	SetFontDestBuffer(FRAME_BUFFER);
+}
+
+
+static void OpenStackSplitView(INT32 const sourceIndex)
+{
+	WORLDITEM& src = pInventoryPoolList[sourceIndex];
+
+	// Physically pull every unit of the stack out into its own 1-count
+	// OBJECTTYPE -- same primitive ItemPopupRegionCallbackPrimary()
+	// (Interface_Items.cc) already uses to split a single item off a stack
+	// onto the cursor. Repeating it at index 0 drains the whole stack, down
+	// to usItem == NOTHING/ubNumberOfObjects == 0.
+	gStackSplitItems.clear();
+	gStackSplitItems.reserve(src.o.ubNumberOfObjects);
+	while (src.o.ubNumberOfObjects > 0)
+	{
+		OBJECTTYPE single{};
+		GetObjFrom(&src.o, 0, &single);
+		gStackSplitItems.push_back(single);
+	}
+
+	gStackSplitSourceIndex = sourceIndex;
+
+	CreateStackSplitSlots();
+
+	fMapPanelDirty = TRUE;
+}
+
+
+static void CloseStackSplitView(void)
+{
+	if (gStackSplitSourceIndex == -1) return;
+
+	// A dangling gpItemDescObject risk identical to the one guarded against
+	// for the whole Sector Inventory panel in
+	// CreateDestroyMapInventoryPoolButtons() -- ItemInfoC.sti may still be
+	// open on one of gStackSplitItems (StackSplitSlotSecondary() leaves it
+	// open on top of this window, same as the main grid does). Close it
+	// before the merge below invalidates that pointer.
+	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+	// Re-merge every physically split-out item back into one stack -- same
+	// pairwise CleanUpStack()/StackObjs() consolidation
+	// GroupSectorInventoryItems() uses for the whole stash, just applied to
+	// this one stack's own items. There is no left-click editing in this
+	// window (Wariant B v1), so this always fully re-collapses back to
+	// gStackSplitItems[0]'s original count.
+	OBJECTTYPE merged = gStackSplitItems[0];
+	for (size_t i = 1; i < gStackSplitItems.size(); ++i)
+	{
+		OBJECTTYPE& src = gStackSplitItems[i];
+		if (src.usItem == NOTHING) continue;
+
+		// Merge partial charges first (ammo/kits/canteens/alcohol/etc.).
+		CleanUpStack(&merged, &src);
+
+		if (src.ubNumberOfObjects > 0)
+		{
+			UINT8 const slot_limit = std::min<UINT8>(ItemSlotLimit(merged.usItem, BIGPOCK1POS), MAX_OBJECTS_PER_SLOT);
+			if (merged.ubNumberOfObjects < slot_limit)
+			{
+				UINT8 const room    = slot_limit - merged.ubNumberOfObjects;
+				UINT8 const to_move = std::min<UINT8>(src.ubNumberOfObjects, room);
+				StackObjs(&src, &merged, to_move);
+			}
+		}
+
+		// Should never trigger -- nothing in this window can grow a stack
+		// past its own original size -- but if it somehow did, don't drop
+		// the remainder on the floor.
+		if (src.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&src);
+	}
+
+	// Write back into the source slot. PlaceObjectInInventoryStash() covers
+	// both the expected case (slot still empty, exactly as OpenStackSplitView()
+	// left it) and the edge case of something else having been placed there
+	// in the meantime (merges if compatible, otherwise swaps it into `merged`).
+	WORLDITEM& dest = pInventoryPoolList[gStackSplitSourceIndex];
+	PlaceObjectInInventoryStash(&dest.o, &merged);
+	if (merged.usItem != NOTHING && merged.ubNumberOfObjects > 0)
+	{
+		// Leftover from a swap above (a different item was sitting in this
+		// slot) -- never drop it, place it in the first free slot instead.
+		AutoPlaceObjectInInventoryStash(&merged);
+	}
+
+	DestroyStackSplitSlots();
+	gStackSplitItems.clear();
+	gStackSplitSourceIndex = -1;
+
+	fMapPanelDirty = TRUE;
+}
+
+
+static void StackSplitSlotSecondary(MOUSE_REGION* const pRegion, const UINT32 iReason)
+{
+	if (gpItemPointer != NULL) return;
+
+	INT32 const idx = MSYS_GetRegionUserData(pRegion, 0);
+	if (idx < 0 || static_cast<size_t>(idx) >= gStackSplitItems.size()) return;
+
+	OBJECTTYPE* const item = &gStackSplitItems[idx];
+	if (item->usItem == NOTHING) return;
+
+	// Same "switch directly" behavior as the main grid's own right-click
+	// handler above -- close any already-open description box before
+	// opening this one, but leave the stack split window itself open,
+	// mirroring how the main grid leaves the whole Sector Inventory panel
+	// open underneath its own description box.
+	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+	MAPInternalInitItemDescriptionBox(item, 0, GetSelectedInfoChar());
+}
+
+
+static void StackSplitBackgroundCallback(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	if (gpItemPointer != NULL) return;
+	CloseStackSplitView();
+}
+
 
 static void MapInvenPoolSlotsScroll(MOUSE_REGION* const pRegion, const UINT32 iReason)
 {
@@ -1372,12 +1630,21 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// are we even showing the amp inventory pool graphic?
 	if (!fShowMapInventoryPool) return;
 
+	// Stack split view (Wariant B) open -- changing page or re-grouping
+	// while a stack is physically split out into gStackSplitItems would
+	// strand it away from its (about to change) source slot;
+	// CloseStackSplitView() must run first (see MapInvenPoolSlotsSecondary()/
+	// CreateDestroyMapInventoryPoolButtons()).
+	BOOLEAN const fStackSplitOpen = (gStackSplitSourceIndex != -1);
+
 	// first page, can't go back any
-	EnableButton(guiMapInvenButton[1], iCurrentInventoryPoolPage != 0);
+	EnableButton(guiMapInvenButton[1], !fStackSplitOpen && iCurrentInventoryPoolPage != 0);
 	// last page, go no further
-	EnableButton(guiMapInvenButton[0], iCurrentInventoryPoolPage != iLastInventoryPoolPage);
+	EnableButton(guiMapInvenButton[0], !fStackSplitOpen && iCurrentInventoryPoolPage != iLastInventoryPoolPage);
 	// item picked up ..disable button
 	EnableButton(guiMapInvenButton[2], !fMapInventoryItem);
+	// "Group Items" -- disabled while the stack split view is open
+	EnableButton(guiMapInvenButton[3], !fStackSplitOpen);
 }
 
 

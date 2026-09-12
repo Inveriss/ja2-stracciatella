@@ -4790,20 +4790,6 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 }
 
 
-void InitSectorInventoryStackPopup(OBJECTTYPE* const pObject, SOLDIERTYPE* const pSoldier, MOUSE_REGION const& sourceRegion, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
-{
-	// The sector-inventory stash isn't a SOLDIERTYPE::inv[] slot, so
-	// ItemSlotLimit()'s hand/body-slot-vs-pocket distinction doesn't apply
-	// -- BIGPOCK1POS picks its "big pocket" branch (plain
-	// GCM->getItem()->getPerPocket(), not halved the way a small pocket
-	// would be), matching how GroupSectorInventoryItems() already computes
-	// this same stash slot capacity.
-	UINT8 const ubLimit = ItemSlotLimit( pObject->usItem, BIGPOCK1POS );
-
-	InternalInitItemStackPopup(pObject, pSoldier, sourceRegion, INTERFACEDIR "/sector_inventory_second.sti", ubLimit, sInvX, sInvY, sInvWidth, sInvHeight);
-}
-
-
 void RenderItemStackPopup( BOOLEAN fFullRender )
 {
 	if ( gfInItemStackPopup )
