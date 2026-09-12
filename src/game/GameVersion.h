@@ -17,6 +17,9 @@ extern const char g_version_number[16];
 //	you will invalidate the saved game file
 //
 
-constexpr UINT32 SAVE_GAME_VERSION = 102;
+// Bumped for the OBJECTTYPE/WORLDITEM layout change (MAX_OBJECTS_PER_SLOT
+// 8 -> 100, Item_Types.h) -- old saves have a different byte layout for
+// every stored item and must not be loaded against this build.
+constexpr UINT32 SAVE_GAME_VERSION = 103;
 
 #endif

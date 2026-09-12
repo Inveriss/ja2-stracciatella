@@ -410,7 +410,13 @@ static SGPVObject* guiItemPopupBoxes;
 static OBJECTTYPE* gpItemPopupObject;
 static INT16 gsItemPopupX;
 static INT16 gsItemPopupY;
-static MOUSE_REGION gItemPopupRegions[8];
+// Was a literal 8 -- MAX_OBJECTS_PER_SLOT itself, spelled out by hand
+// instead of using the macro. Harmless while every item's own ubPerPocket
+// (game data) stayed <= 8, but InitItemStackPopup() below builds one region
+// per unit up to ItemSlotLimit()'s result with no clamp of its own, so this
+// must track MAX_OBJECTS_PER_SLOT (now raised past 8) or a
+// higher-capacity pocket item overflows this array.
+static MOUSE_REGION gItemPopupRegions[MAX_OBJECTS_PER_SLOT];
 static MOUSE_REGION gKeyRingRegions[NUMBER_KEYS_ON_KEYRING];
 BOOLEAN gfInKeyRingPopup = FALSE;
 static UINT8 gubNumItemPopups = 0;
@@ -2053,7 +2059,13 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 
 			if (buffer == guiSAVEBUFFER)
 			{
-				RestoreExternBackgroundRect(sNewX, sNewY, 15, 15);
+				// Width used to be a flat 15px, wide enough for the single
+				// digit a count could be while MAX_OBJECTS_PER_SLOT was 8 --
+				// now that a count can run to 3 digits, tie it to the text's
+				// own measured width (already computed above for sNewX)
+				// instead of leaving a ghost digit behind on the next
+				// redraw.
+				RestoreExternBackgroundRect(sNewX, sNewY, uiStringLength + 4, 15);
 			}
 			GPrintInvalidate(sNewX, sNewY, pStr);
 		}
@@ -4784,7 +4796,12 @@ static void InternalInitItemStackPopup(OBJECTTYPE* const pObject, SOLDIERTYPE* c
 void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
 {
 	OBJECTTYPE* const pObject = &(pSoldier->inv[ ubPosition ] );
-	UINT8       const ubLimit = ItemSlotLimit( pObject->usItem, ubPosition );
+	// Clamped to MAX_OBJECTS_PER_SLOT -- ItemSlotLimit() (an item's own
+	// ubPerPocket from game data, possibly halved for a small pocket) isn't
+	// itself bounded by it, but gItemPopupRegions[] below is, and a single
+	// OBJECTTYPE can never actually hold more than MAX_OBJECTS_PER_SLOT
+	// units regardless of what ubPerPocket claims.
+	UINT8       const ubLimit = std::min<UINT8>(ItemSlotLimit( pObject->usItem, ubPosition ), MAX_OBJECTS_PER_SLOT);
 
 	InternalInitItemStackPopup(pObject, pSoldier, gSMInvRegion[ubPosition], INTERFACEDIR "/extra_inventory.sti", ubLimit, sInvX, sInvY, sInvWidth, sInvHeight);
 }

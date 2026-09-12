@@ -701,6 +701,17 @@ void LoadSavedGame(const ST::string &saveName)
 	 * DOESN'T have the cheats on. */
 	if (version < 65 && !CHEATER_CHEAT_LEVEL()) throw std::runtime_error("Savegame too old");
 
+	// Unlike the version checks elsewhere in this loader (feature-detection
+	// against an evolving-but-compatible format), version 103 changed every
+	// OBJECTTYPE's raw on-disk byte layout (MAX_OBJECTS_PER_SLOT 8 -> 100,
+	// Item_Types.h) -- the merc-inventory/temp-item-file reads below are
+	// straight sizeof(OBJECTTYPE)/sizeof(WORLDITEM) block reads with no
+	// per-field parsing, so a save from before this would silently
+	// misalign every item read from here on instead of failing cleanly.
+	// Not bypassable by CHEATER_CHEAT_LEVEL() -- that only ever excused
+	// missing content, never a binary layout mismatch.
+	if (version < 103) throw std::runtime_error("Savegame too old (pre-item-resize)");
+
 	//Store the loading screenID that was saved
 	gubLastLoadingScreenID = static_cast<LoadingScreenID>(SaveGameHeader.ubLoadScreenID);
 

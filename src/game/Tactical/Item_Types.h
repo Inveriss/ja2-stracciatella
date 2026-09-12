@@ -35,7 +35,14 @@ enum ItemCursor
 
 #define USABLE				10 // minimum work% of items to still be usable
 
-#define MAX_OBJECTS_PER_SLOT		8
+// Raised from the original 8 per user request -- see the analysis in
+// git history for the full implementation plan (struct/save-format impact,
+// LEGACY_MAX_STACK in LoadSaveObjectType.cc, gItemPopupRegions[] in
+// Interface_Items.cc). Actual per-item stack sizes are still separately
+// capped by each item's own ubPerPocket (game data) via
+// ItemSlotLimit()/getPerPocket() -- raising this ceiling alone does not by
+// itself grow any real item's stack.
+#define MAX_OBJECTS_PER_SLOT		100
 #define MAX_ATTACHMENTS		20
 #define MAX_MONEY_PER_SLOT		20000
 
@@ -141,8 +148,18 @@ struct OBJECTTYPE
 // place that must still match the *original vanilla* 36-byte/4-attachment layout
 // is the very first, never-before-visited load of a sector's map file - that is
 // handled separately via ExtractLegacyObject()/ExtractLegacyWorldItem(), which
-// parse the frozen legacy format field-by-field instead of relying on sizeof().
-static_assert(sizeof(OBJECTTYPE) == 84 && (offsetof(OBJECTTYPE, usAttachItem) - offsetof(OBJECTTYPE, ubNumberOfObjects) == 14)
+// parse the frozen legacy format field-by-field instead of relying on sizeof()
+// (and, since MAX_OBJECTS_PER_SLOT was raised past 8, read/write a fixed
+// LEGACY_MAX_STACK count for bStatus/ubShotsLeft instead of lengthof() --
+// see LoadSaveObjectType.cc).
+//
+// Recomputed for MAX_OBJECTS_PER_SLOT == 100 (was 84/14 at 8): the union's
+// widest branch is now bStatus/ubShotsLeft[100] (100 bytes) instead of the
+// MONEY branch (12 bytes), so it alone dictates the union's size and thus
+// the offset of everything declared after it. offsetof(uiMoneyAmount) is
+// unaffected (MONEY's own internal layout, entirely within the first 12
+// bytes of the union, didn't change).
+static_assert(sizeof(OBJECTTYPE) == 172 && (offsetof(OBJECTTYPE, usAttachItem) - offsetof(OBJECTTYPE, ubNumberOfObjects) == 102)
 	&& offsetof(OBJECTTYPE, uiMoneyAmount) == 8);
 
 
