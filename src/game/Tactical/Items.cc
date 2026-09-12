@@ -649,6 +649,48 @@ bool ItemHasAttachments(OBJECTTYPE const& o)
 }
 
 
+bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b)
+{
+	// Only guns are restricted here -- every other item class stores its
+	// per-unit state in bStatus[]/ubShotsLeft[] (one real byte per unit),
+	// which StackObjs()/RemoveObjFrom()/GetObjFrom() already handle
+	// correctly regardless of how many units are involved.
+	//
+	// A gun is different: bGunStatus/ubGunAmmoType/ubGunShotsLeft/
+	// usGunAmmoItem/bGunAmmoStatus alias the very same bytes as
+	// bStatus[0..4], and usAttachItem[]/bAttachStatus[] are a single set
+	// for the whole OBJECTTYPE regardless of ubNumberOfObjects -- there is
+	// no per-unit storage for any of it. Two guns can only safely share one
+	// multi-unit OBJECTTYPE when that single shared block already
+	// correctly describes every unit at once -- i.e. when the two guns are
+	// physically IDENTICAL in everything the union/attachments can't
+	// represent per-unit: same ammo type, same shots left, same jam
+	// status, same attachments, same condition. This is equality, not
+	// "must be empty" -- CreateGun() loads every normal gun with its
+	// default magazine already, so requiring no ammo at all would make
+	// almost no freshly-spawned gun ever stackable. Anything not equal
+	// must stay as separate, single-unit OBJECTTYPEs (the callers of this
+	// function fall back to their existing swap/no-merge behavior, exactly
+	// as for any other item that doesn't match closely enough to combine).
+	if (a.usItem != b.usItem) return false;
+	if (!GCM->getItem(a.usItem)->isGun()) return true;
+
+	if (a.bGunStatus     != b.bGunStatus)     return false;
+	if (a.ubGunAmmoType  != b.ubGunAmmoType)  return false;
+	if (a.ubGunShotsLeft != b.ubGunShotsLeft) return false;
+	if (a.usGunAmmoItem  != b.usGunAmmoItem)  return false;
+	if (a.bGunAmmoStatus != b.bGunAmmoStatus) return false;
+
+	for (INT8 i = 0; i < MAX_ATTACHMENTS; ++i)
+	{
+		if (a.usAttachItem[i]  != b.usAttachItem[i])  return false;
+		if (a.bAttachStatus[i] != b.bAttachStatus[i]) return false;
+	}
+
+	return true;
+}
+
+
 // Determine if it is possible to add this attachment to the CLASS of this item
 // (i.e. to any item in the class)
 static BOOLEAN ValidAttachmentClass(UINT16 usAttachment, UINT16 usItem)
@@ -970,6 +1012,16 @@ void RemoveObjFrom( OBJECTTYPE * pObj, UINT8 ubRemoveIndex )
 		// delete!
 		DeleteObj( pObj );
 	}
+	else if (GCM->getItem(pObj->usItem)->isGun())
+	{
+		// See CanGunsStack() -- bStatus[0..4] here alias bGunStatus/
+		// ubGunAmmoType/ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a
+		// single shared value already guaranteed identical across every
+		// unit in this stack. The shift/clear below is meaningless (and
+		// actively corrupting) for a gun: it would overwrite bGunStatus
+		// with what's really ubGunAmmoType, etc. Only the count changes.
+		pObj->ubNumberOfObjects--;
+	}
 	else
 	{
 		// shift down all the values that should be down
@@ -1018,6 +1070,17 @@ void GetObjFrom( OBJECTTYPE * pObj, UINT8 ubGetIndex, OBJECTTYPE * pDest )
 		*pDest = *pObj;
 		DeleteObj( pObj );
 	}
+	else if (GCM->getItem(pObj->usItem)->isGun())
+	{
+		// See CanGunsStack() -- every unit in a gun "stack" already shares
+		// the exact same ammo/condition/attachment state, so pulling one
+		// out is a whole-struct copy (this also correctly carries over
+		// usAttachItem[]/bAttachStatus[], which live outside the union and
+		// the generic branch below never copies at all).
+		*pDest = *pObj;
+		pDest->ubNumberOfObjects = 1;
+		RemoveObjFrom( pObj, ubGetIndex );
+	}
 	else
 	{
 		pDest->usItem = pObj->usItem;
@@ -1044,6 +1107,19 @@ void DamageObj( OBJECTTYPE * pObj, INT8 bAmount )
 void StackObjs(OBJECTTYPE* pSourceObj, OBJECTTYPE* pTargetObj, UINT8 ubNumberToCopy)
 {
 	UINT8 ubLoop;
+
+	if (GCM->getItem(pTargetObj->usItem)->isGun())
+	{
+		// See CanGunsStack() -- callers only ever merge guns this way once
+		// they've verified both sides are physically identical (no ammo,
+		// no attachments, equal condition), so pTargetObj's existing
+		// shared gun state already correctly describes the merged total --
+		// there's no per-unit bStatus[] data to copy, only the count
+		// changes.
+		pTargetObj->ubNumberOfObjects += ubNumberToCopy;
+		RemoveObjs( pSourceObj, ubNumberToCopy );
+		return;
+	}
 
 	// copy over N status values
 	for (ubLoop = 0; ubLoop < ubNumberToCopy; ubLoop++)
@@ -1142,6 +1218,14 @@ BOOLEAN PlaceObjectAtObjectIndex( OBJECTTYPE * pSourceObj, OBJECTTYPE * pTargetO
 	{
 		return( TRUE );
 	}
+	if (!CanGunsStack(*pSourceObj, *pTargetObj))
+	{
+		// Physically distinguishable guns (different ammo/attachments/
+		// condition) can't be swapped by a single bStatus[] index or
+		// merged into pTargetObj's shared gun state -- see CanGunsStack().
+		// Treat this the same as a non-matching item: no-op.
+		return( TRUE );
+	}
 	if (ubIndex < pTargetObj->ubNumberOfObjects)
 	{
 		// swap
@@ -1176,6 +1260,17 @@ BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo
 	UINT16  usNewAmmoItem;
 
 	if (pGun->usItem == ROCKET_LAUNCHER) return( FALSE ); // IC_GUN but uses no ammo (LAW)
+
+	if (pGun->ubNumberOfObjects > 1)
+	{
+		// See CanGunsStack() -- reloading writes into the single shared
+		// ammo state every unit in this stack aliases, which would give
+		// every gun in it the same ammo rather than just this one,
+		// breaking the "always physically identical" invariant a
+		// multi-unit gun stack depends on. Split one out of the stack
+		// first (e.g. via the stack-split popup) and reload that instead.
+		return( FALSE );
+	}
 
 	INT8 bAPs = 0; // XXX HACK000E
 	if (gTacticalStatus.uiFlags & INCOMBAT)
@@ -1601,6 +1696,18 @@ bool AttachObject(SOLDIERTYPE* const s, OBJECTTYPE* const pTargetObj, OBJECTTYPE
 {
 	CHECKF(bRequestedAttachPos == NO_SLOT || (bRequestedAttachPos >= 0 && bRequestedAttachPos < MAX_ATTACHMENTS));
 
+	if (pTargetObj->ubNumberOfObjects > 1 && GCM->getItem(pTargetObj->usItem)->isGun())
+	{
+		// See CanGunsStack() -- usAttachItem[]/bAttachStatus[] are a single
+		// shared set for the whole OBJECTTYPE, not one per unit. Attaching
+		// something here would attach it to every gun in the stack at
+		// once, breaking the "always physically identical, unattached"
+		// invariant a multi-unit gun stack depends on. Split one out of
+		// the stack first (e.g. via the stack-split popup) and attach to
+		// that instead.
+		return false;
+	}
+
 	OBJECTTYPE& target     = *pTargetObj;
 	OBJECTTYPE& attachment = *pAttachment;
 	bool const validLaunchable = ValidLaunchable(attachment.usItem, target.usItem);
@@ -2008,7 +2115,12 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 		// but assuming it isn't
 		*pInSlot = *pObj;
 
-		if (ubNumberToDrop != pObj->ubNumberOfObjects)
+		// Guns skip this: bStatus[0..4] alias bGunStatus/ubGunAmmoType/
+		// ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a single value
+		// shared by the whole stack (see CanGunsStack()) -- there's
+		// nothing per-unit to zero, and doing so would corrupt that shared
+		// state instead of just leaving fewer units behind.
+		if (ubNumberToDrop != pObj->ubNumberOfObjects && !GCM->getItem(pObj->usItem)->isGun())
 		{
 			// in the InSlot copy, zero out all the objects we didn't drop
 			for (ubLoop = ubNumberToDrop; ubLoop < pObj->ubNumberOfObjects; ubLoop++)
@@ -2078,6 +2190,23 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 			else if (ubSlotLimit == 0) // trying to drop into a small pocket
 			{
 				return( DropObjIfThereIsRoom( pSoldier, bPos, pObj ) );
+			}
+			else if (!CanGunsStack(*pObj, *pInSlot))
+			{
+				// Physically distinguishable guns (different ammo/
+				// attachments/condition) can't share pInSlot's single
+				// shared gun state -- see CanGunsStack(). Fall back to the
+				// same swap-or-displace behavior as a non-stackable slot
+				// above, rather than silently corrupting pInSlot.
+				if (pObj->ubNumberOfObjects <= 1)
+				{
+					// swapping
+					SwapObjs( pObj, pInSlot );
+				}
+				else
+				{
+					return( DropObjIfThereIsRoom( pSoldier, bPos, pObj ) );
+				}
 			}
 			else
 			{

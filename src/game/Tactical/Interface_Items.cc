@@ -2046,7 +2046,13 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 				GPrintInvalidate(cx, cy, jammed);
 			}
 		}
-		else if (ubStatusIndex != RENDER_ITEM_NOSTATUS && o.ubNumberOfObjects > 1)
+
+		// Independent of the IC_GUN branch above (not "else if") -- a gun
+		// can now have ubNumberOfObjects > 1 too (see CanGunsStack(),
+		// Items.cc), and the two occupy different corners of the icon
+		// (ammo/jam bottom-left, count bottom-right), so there's nothing
+		// to lose by letting both render for the same slot.
+		if (ubStatusIndex != RENDER_ITEM_NOSTATUS && o.ubNumberOfObjects > 1)
 		{
 			// Display # of items
 			SetFontForeground(FONT_GRAY4);

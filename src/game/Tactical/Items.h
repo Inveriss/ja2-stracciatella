@@ -112,6 +112,18 @@ UINT8 AddKeysToSlot(SOLDIERTYPE&, INT8 key_ring_pos, OBJECTTYPE const& key);
 //Simple check to see if the item has any attachments
 bool ItemHasAttachments(OBJECTTYPE const&);
 
+// Whether two OBJECTTYPEs of the same usItem may share one multi-unit
+// "stack" (ubNumberOfObjects > 1). Always true for non-guns. For guns, the
+// union's ammo/condition fields and usAttachItem[]/bAttachStatus[] are a
+// single shared value for the whole OBJECTTYPE, not one per unit, so two
+// guns may only merge when physically IDENTICAL in all of it: same ammo
+// type, same shots left, same jam status, same attachments, same
+// condition -- equality, not "must be empty" (CreateGun() loads every
+// normal gun with its default magazine already). See CanGunsStack()'s own
+// comment (Items.cc) and StackObjs()/RemoveObjFrom()/GetObjFrom() for how a
+// compliant gun stack is merged/split without touching bStatus[].
+bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b);
+
 //Determine if this item can receive this attachment.  This is different, in that it may
 //be possible to have this attachment on this item, but may already have an attachment on
 //it which doesn't work simultaneously with the new attachment (like a silencer and duckbill).

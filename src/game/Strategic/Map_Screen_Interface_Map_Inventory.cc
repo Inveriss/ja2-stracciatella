@@ -960,7 +960,12 @@ static void CloseStackSplitView(void)
 		// Merge partial charges first (ammo/kits/canteens/alcohol/etc.).
 		CleanUpStack(&merged, &src);
 
-		if (src.ubNumberOfObjects > 0)
+		// CanGunsStack(): a gun pulled out of this window (e.g. reloaded or
+		// given an attachment while split out, both now possible for a
+		// single split-out unit) may no longer be physically identical to
+		// the rest of the stack -- if so, don't merge it back in, hand it
+		// to the stash separately below instead.
+		if (src.ubNumberOfObjects > 0 && CanGunsStack(merged, src))
 		{
 			UINT8 const slot_limit = std::min<UINT8>(ItemSlotLimit(merged.usItem, BIGPOCK1POS), MAX_OBJECTS_PER_SLOT);
 			if (merged.ubNumberOfObjects < slot_limit)
@@ -1277,22 +1282,16 @@ static BOOLEAN GetObjFromInventoryStashSlot(OBJECTTYPE* pInventorySlot, OBJECTTY
 		return( FALSE );
 	}
 
-	// if there are only one item in slot, just copy
-	if (pInventorySlot->ubNumberOfObjects == 1)
-	{
-		*pItemPtr = *pInventorySlot;
-		DeleteObj( pInventorySlot );
-	}
-	else
-	{
-		// take one item
-		pItemPtr->usItem = pInventorySlot->usItem;
-
-		// find first unempty slot
-		pItemPtr->bStatus[0] = pInventorySlot->bStatus[0];
-		pItemPtr->ubNumberOfObjects = 1;
-		RemoveObjFrom( pInventorySlot, 0 );
-	}
+	// Delegate to the shared primitive (Items.cc) instead of duplicating
+	// its logic -- this used to copy only usItem + bStatus[0] itself for
+	// a pick-up from a stack of more than one, silently dropping a gun's
+	// ammo/attachment state (everything but bGunStatus/condition). The
+	// picked-up gun then looked completely unloaded regardless of what it
+	// actually had loaded, so CanGunsStack() (Items.cc) correctly saw it
+	// as different from what was left behind and refused to merge it back
+	// onto its own stack -- forcing it into a different, empty slot
+	// instead. GetObjFrom() already does a full-struct copy for guns.
+	GetObjFrom( pInventorySlot, 0, pItemPtr );
 
 	return ( TRUE );
 }
@@ -1346,7 +1345,11 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 		// but assuming it isn't
 		*pInventorySlot = *pItemPtr;
 
-		if (ubNumberToDrop != pItemPtr->ubNumberOfObjects)
+		// Guns skip this: bStatus[0..4] alias bGunStatus/ubGunAmmoType/
+		// ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a single value
+		// shared by the whole stack (see CanGunsStack(), Items.cc) --
+		// there's nothing per-unit to zero here.
+		if (ubNumberToDrop != pItemPtr->ubNumberOfObjects && !GCM->getItem(pItemPtr->usItem)->isGun())
 		{
 			// in the InSlot copy, zero out all the objects we didn't drop
 			for (ubLoop = ubNumberToDrop; ubLoop < pItemPtr->ubNumberOfObjects; ubLoop++)
@@ -1377,9 +1380,12 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 
 				DeleteObj( pItemPtr );
 			}
-			else if (ubSlotLimit < 2)
+			else if (ubSlotLimit < 2 || !CanGunsStack(*pItemPtr, *pInventorySlot))
 			{
-				// swapping
+				// swapping -- either genuinely non-stackable here, or (see
+				// CanGunsStack(), Items.cc) two physically distinguishable
+				// guns that can't share pInventorySlot's single shared gun
+				// state (different ammo/attachments/condition).
 				SwapObjs( pItemPtr, pInventorySlot );
 			}
 			else
@@ -1447,7 +1453,11 @@ void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 	// but assuming it isn't
 	slot.o = *pItemPtr;
 
-	if (ubNumberToDrop != pItemPtr->ubNumberOfObjects)
+	// Guns skip this: bStatus[0..4] alias bGunStatus/ubGunAmmoType/
+	// ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a single value shared by
+	// the whole stack (see CanGunsStack(), Items.cc) -- there's nothing
+	// per-unit to zero here.
+	if (ubNumberToDrop != pItemPtr->ubNumberOfObjects && !GCM->getItem(pItemPtr->usItem)->isGun())
 	{
 		// in the InSlot copy, zero out all the objects we didn't drop
 		for (UINT8 ubLoop = ubNumberToDrop; ubLoop < pItemPtr->ubNumberOfObjects; ubLoop++)
@@ -1711,7 +1721,14 @@ static void GroupSectorInventoryItems(void)
 			// up to dest's own per-pocket capacity. For non-stackable items
 			// (slot_limit <= 1) dest already holds exactly 1, so this never
 			// triggers -- no separate guard needed.
-			if (src_wi.o.ubNumberOfObjects > 0 && dest_wi.o.ubNumberOfObjects < slot_limit)
+			//
+			// CanGunsStack() additionally requires two guns to be
+			// physically indistinguishable (no ammo, no attachments,
+			// identical condition) before they may share one OBJECTTYPE --
+			// see its own comment (Items.cc). Guns that don't qualify are
+			// simply left as separate slots (a no-op here, not an error).
+			if (src_wi.o.ubNumberOfObjects > 0 && dest_wi.o.ubNumberOfObjects < slot_limit &&
+				CanGunsStack(dest_wi.o, src_wi.o))
 			{
 				UINT8 const room    = slot_limit - dest_wi.o.ubNumberOfObjects;
 				UINT8 const to_move = std::min<UINT8>(src_wi.o.ubNumberOfObjects, room);
