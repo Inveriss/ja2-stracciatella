@@ -166,6 +166,10 @@ static const SGPBox g_stack_split_item_box   = {  11,  34,  72,  33 }; // relati
 static const SGPBox g_stack_split_bar_box    = { (UINT16)8, 37, 2, 31 }; // relative to g_stack_split_slot_box
 static const SGPBox g_stack_split_name_box   = {   9,  72,  75,  10 }; // relative to g_stack_split_slot_box
 
+// Placeholder position, per user request -- not yet the final layout.
+#define STACK_SPLIT_DONE_X 950
+#define STACK_SPLIT_DONE_Y 446
+
 // Slots laid out in a small grid, wide enough for a whole stack (a stack
 // can never hold more than MAX_OBJECTS_PER_SLOT items to begin with).
 #define STACK_SPLIT_COLS 4
@@ -177,12 +181,13 @@ static std::vector<OBJECTTYPE> gStackSplitItems;
 // offset) of the stack currently split open here, or -1 when closed.
 static INT32 gStackSplitSourceIndex = -1;
 static MOUSE_REGION gStackSplitSlots[MAX_OBJECTS_PER_SLOT];
-// Clicking the window's background (anywhere outside the item slots)
-// closes (and merges back) the view -- there's no separate Done button,
-// mirroring ItemPopupFullRegionCallbackPrimary/Secondary's own
-// background-click behavior for the tactical/merc stack popup this
-// replaces for the sector inventory.
+// Background region: purely a click-blocker so a stray click inside the
+// window's background doesn't fall through to the main sector-inventory
+// grid underneath it -- does NOT close the view. Per user request, this
+// window closes only via its own Done button (gStackSplitDoneButton)
+// below, not via left/right click.
 static MOUSE_REGION gStackSplitBackgroundRegion;
+static GUIButtonRef gStackSplitDoneButton;
 
 
 // remove background panel graphics for inventory
@@ -350,18 +355,19 @@ static void CreateMapInventoryPoolDoneButton(void);
 static void CreateMapInventoryPoolSlots(void);
 static void CreateMapInventoryGroupButton(void);
 static void CreateStackSplitSlots(void);
+static void CreateStackSplitDoneButton(void);
 static void DestroyInventoryPoolDoneButton(void);
 static void DestroyMapInventoryButtons(void);
 static void DestroyMapInventoryPoolSlots();
 static void DestroyMapInventoryGroupButton(void);
 static void DestroyStackSplitSlots(void);
+static void DestroyStackSplitDoneButton(void);
 static void DestroyStash(void);
 static void GroupSectorInventoryItems(void);
 static void HandleMapSectorInventory(void);
 static void OpenStackSplitView(INT32 sourceIndex);
 static void CloseStackSplitView(void);
 static void StackSplitSlotSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
-static void StackSplitBackgroundCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SaveSeenAndUnseenItems(void);
 
 
@@ -783,9 +789,11 @@ static void CreateStackSplitSlots(void)
 	UINT16 const bx = MAP_SCREEN_X + g_stack_split_box.x;
 	UINT16 const by = MAP_SCREEN_Y + g_stack_split_box.y;
 
+	// Click-blocker only -- per user request, this window no longer closes
+	// on a left/right click of its own background, only via
+	// gStackSplitDoneButton below.
 	MSYS_DefineRegion(&gStackSplitBackgroundRegion, bx, by, bx + g_stack_split_box.w - 1, by + g_stack_split_box.h - 1,
-		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
-		MouseCallbackPrimarySecondary(StackSplitBackgroundCallback, StackSplitBackgroundCallback, MSYS_NO_CALLBACK));
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 
 	size_t const count = gStackSplitItems.size();
 	for (size_t i = 0; i < count; ++i)
@@ -810,6 +818,31 @@ static void DestroyStackSplitSlots(void)
 	size_t const count = gStackSplitItems.size();
 	for (size_t i = 0; i < count; ++i) MSYS_RemoveRegion(&gStackSplitSlots[i]);
 	MSYS_RemoveRegion(&gStackSplitBackgroundRegion);
+}
+
+
+static void StackSplitDoneBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		CloseStackSplitView();
+	}
+}
+
+
+static void CreateStackSplitDoneButton(void)
+{
+	// The only way to close this window, per user request -- background
+	// and item-slot clicks no longer do it (see gStackSplitBackgroundRegion
+	// above and StackSplitSlotSecondary() below).
+	gStackSplitDoneButton = QuickCreateButtonImg(INTERFACEDIR "/done_button.sti", 0, 1,
+		MAP_SCREEN_X + STACK_SPLIT_DONE_X, MAP_SCREEN_Y + STACK_SPLIT_DONE_Y, MSYS_PRIORITY_HIGHEST, StackSplitDoneBtn);
+}
+
+
+static void DestroyStackSplitDoneButton(void)
+{
+	RemoveButton(gStackSplitDoneButton);
 }
 
 
@@ -871,6 +904,7 @@ static void OpenStackSplitView(INT32 const sourceIndex)
 	gStackSplitSourceIndex = sourceIndex;
 
 	CreateStackSplitSlots();
+	CreateStackSplitDoneButton();
 
 	fMapPanelDirty = TRUE;
 }
@@ -934,6 +968,7 @@ static void CloseStackSplitView(void)
 	}
 
 	DestroyStackSplitSlots();
+	DestroyStackSplitDoneButton();
 	gStackSplitItems.clear();
 	gStackSplitSourceIndex = -1;
 
@@ -959,13 +994,6 @@ static void StackSplitSlotSecondary(MOUSE_REGION* const pRegion, const UINT32 iR
 	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
 
 	MAPInternalInitItemDescriptionBox(item, 0, GetSelectedInfoChar());
-}
-
-
-static void StackSplitBackgroundCallback(MOUSE_REGION* pRegion, UINT32 iReason)
-{
-	if (gpItemPointer != NULL) return;
-	CloseStackSplitView();
 }
 
 
