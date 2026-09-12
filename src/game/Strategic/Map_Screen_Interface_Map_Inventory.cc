@@ -81,7 +81,7 @@ static const SGPBox g_sector_inv_item_box   = {   11,   28,  72,  33 }; // relat
 // DrawItemUIBarEx()'s sXPos parameter, which cancels the wraparound out to
 // dx - 1) while making the intent clear and silencing the warning.
 static const SGPBox g_sector_inv_bar_box    = { (UINT16)5,   30,   2,  31 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_name_box   = {   1,  65,  75,   10 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_name_box   = {   6,  65,  75,   10 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_loc_box    = { 709, 630,  39,  10 };
 static const SGPBox g_sector_inv_count_box  = { 800, 630,  39,  10 };
 static const SGPBox g_sector_inv_page_box   = { 868, 630,  50,  10 };
@@ -367,6 +367,7 @@ static void GroupSectorInventoryItems(void);
 static void HandleMapSectorInventory(void);
 static void OpenStackSplitView(INT32 sourceIndex);
 static void CloseStackSplitView(void);
+static void StackSplitSlotPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void StackSplitSlotSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SaveSeenAndUnseenItems(void);
 
@@ -807,7 +808,7 @@ static void CreateStackSplitSlots(void)
 		MOUSE_REGION* const r   = &gStackSplitSlots[i];
 		MSYS_DefineRegion(r, x, y, x + g_stack_split_region_box.w - 1, y + g_stack_split_region_box.h - 1,
 			MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
-			MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, StackSplitSlotSecondary, MSYS_NO_CALLBACK));
+			MouseCallbackPrimarySecondary(StackSplitSlotPrimary, StackSplitSlotSecondary, MSYS_NO_CALLBACK));
 		MSYS_SetRegionUserData(r, 0, static_cast<UINT32>(i));
 	}
 }
@@ -922,17 +923,39 @@ static void CloseStackSplitView(void)
 	// before the merge below invalidates that pointer.
 	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
 
-	// Re-merge every physically split-out item back into one stack -- same
-	// pairwise CleanUpStack()/StackObjs() consolidation
+	// Re-merge every physically split-out item still here back into one
+	// stack -- same pairwise CleanUpStack()/StackObjs() consolidation
 	// GroupSectorInventoryItems() uses for the whole stash, just applied to
-	// this one stack's own items. There is no left-click editing in this
-	// window (Wariant B v1), so this always fully re-collapses back to
-	// gStackSplitItems[0]'s original count.
-	OBJECTTYPE merged = gStackSplitItems[0];
-	for (size_t i = 1; i < gStackSplitItems.size(); ++i)
+	// this one stack's own items. "Still here" because StackSplitSlotPrimary()
+	// may have picked one or more up onto the cursor (typically dropped into
+	// a merc's own inventory) since the window opened, leaving those slots
+	// NOTHING -- the first slot that's still occupied becomes the merge
+	// base instead of always assuming index 0.
+	OBJECTTYPE merged{};
+	BOOLEAN    fHaveBase = FALSE;
+	for (size_t i = 0; i < gStackSplitItems.size(); ++i)
 	{
 		OBJECTTYPE& src = gStackSplitItems[i];
 		if (src.usItem == NOTHING) continue;
+
+		if (!fHaveBase)
+		{
+			merged    = src;
+			fHaveBase = TRUE;
+			continue;
+		}
+
+		if (src.usItem != merged.usItem)
+		{
+			// A different item type ended up here -- StackSplitSlotPrimary()
+			// now allows placing/swapping any item from the cursor into a
+			// slot, same as the main grid's own left-click, so this slot no
+			// longer necessarily matches the rest of the original stack.
+			// Can't merge it into `merged`; hand it back to the stash
+			// directly instead of losing it.
+			AutoPlaceObjectInInventoryStash(&src);
+			continue;
+		}
 
 		// Merge partial charges first (ammo/kits/canteens/alcohol/etc.).
 		CleanUpStack(&merged, &src);
@@ -954,23 +977,110 @@ static void CloseStackSplitView(void)
 		if (src.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&src);
 	}
 
-	// Write back into the source slot. PlaceObjectInInventoryStash() covers
-	// both the expected case (slot still empty, exactly as OpenStackSplitView()
-	// left it) and the edge case of something else having been placed there
-	// in the meantime (merges if compatible, otherwise swaps it into `merged`).
-	WORLDITEM& dest = pInventoryPoolList[gStackSplitSourceIndex];
-	PlaceObjectInInventoryStash(&dest.o, &merged);
-	if (merged.usItem != NOTHING && merged.ubNumberOfObjects > 0)
+	// Write back into the source slot -- unless every item was picked up
+	// out of this window already (fHaveBase == FALSE), in which case
+	// there's nothing left to put back; the whole stack was manually
+	// handed out one by one.
+	if (fHaveBase)
 	{
-		// Leftover from a swap above (a different item was sitting in this
-		// slot) -- never drop it, place it in the first free slot instead.
-		AutoPlaceObjectInInventoryStash(&merged);
+		// PlaceObjectInInventoryStash() covers both the expected case (slot
+		// still empty, exactly as OpenStackSplitView() left it) and the edge
+		// case of something else having been placed there in the meantime
+		// (merges if compatible, otherwise swaps it into `merged`).
+		WORLDITEM& dest = pInventoryPoolList[gStackSplitSourceIndex];
+		PlaceObjectInInventoryStash(&dest.o, &merged);
+		if (merged.usItem != NOTHING && merged.ubNumberOfObjects > 0)
+		{
+			// Leftover from a swap above (a different item was sitting in
+			// this slot) -- never drop it, place it in the first free slot
+			// instead.
+			AutoPlaceObjectInInventoryStash(&merged);
+		}
 	}
 
 	DestroyStackSplitSlots();
 	DestroyStackSplitDoneButton();
 	gStackSplitItems.clear();
 	gStackSplitSourceIndex = -1;
+
+	fMapPanelDirty = TRUE;
+}
+
+
+static void StackSplitSlotPrimary(MOUSE_REGION* const pRegion, const UINT32 iReason)
+{
+	INT32 const idx = MSYS_GetRegionUserData(pRegion, 0);
+	if (idx < 0 || static_cast<size_t>(idx) >= gStackSplitItems.size()) return;
+
+	OBJECTTYPE& slot = gStackSplitItems[idx];
+
+	// Nothing to pick up and nothing in hand to place here -- no-op.
+	if (gpItemPointer == NULL && slot.usItem == NOTHING) return;
+
+	// Same soldier/sector/battle gate as the main grid's own left-click
+	// (MapInvenPoolSlotsPrimary()) -- an item already sitting in the stash
+	// could still fail these mid-view (selected merc moved out of the
+	// sector, or a battle started, while this window was open).
+	const SOLDIERTYPE* const s = GetSelectedInfoChar();
+	if (s == NULL)
+	{
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, pMapInventoryErrorString[0], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+		return;
+	}
+	if (s->sSector.x != sSelMap.x || s->sSector.y != sSelMap.y || s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors)
+	{
+		ST::string const msg = (gpItemPointer == NULL ? pMapInventoryErrorString[1] : pMapInventoryErrorString[4]);
+		ST::string const buf = st_format_printf(msg, s->name);
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, buf, MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+		return;
+	}
+	if (!CanPlayerUseSectorInventory())
+	{
+		ST::string const msg = (gpItemPointer == NULL ? pMapInventoryErrorString[2] : pMapInventoryErrorString[3]);
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, msg, MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+		return;
+	}
+
+	if (gpItemPointer == NULL)
+	{
+		// Pick up onto the cursor -- typically to drop into a merc's own
+		// map-screen inventory panel (MAPINV.STI), whose click handlers
+		// already accept whatever's on gpItemPointer generically, so no
+		// changes are needed there.
+		//
+		// If the item's own description box is open
+		// (StackSplitSlotSecondary() leaves it open on top of this
+		// window), close it -- it would otherwise dangle once the slot
+		// below is cleared.
+		if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+		gItemPointer = slot;
+		slot         = OBJECTTYPE{};
+
+		SetItemPointer(&gItemPointer, 0);
+		SetMapCursorItem();
+	}
+	else
+	{
+		// Place (or merge/swap) whatever's on the cursor back into this
+		// slot -- same generic OBJECTTYPE-level primitive the main grid's
+		// own left-click already uses for its own slots
+		// (MapInvenPoolSlotsPrimary()). CloseStackSplitView() handles a
+		// slot that ends up with a different item type than the rest (a
+		// swap) safely -- it never tries to merge it, just hands it back
+		// to the stash directly.
+		if (PlaceObjectInInventoryStash(&slot, gpItemPointer))
+		{
+			if (gpItemPointer->ubNumberOfObjects == 0)
+			{
+				MAPEndItemPointer();
+			}
+			else
+			{
+				SetMapCursorItem();
+			}
+		}
+	}
 
 	fMapPanelDirty = TRUE;
 }
@@ -1673,6 +1783,12 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	EnableButton(guiMapInvenButton[2], !fMapInventoryItem);
 	// "Group Items" -- disabled while the stack split view is open
 	EnableButton(guiMapInvenButton[3], !fStackSplitOpen);
+
+	// Stack split view's own Done button -- disabled while holding an item
+	// on the cursor (picked up from here via StackSplitSlotPrimary(), or
+	// from anywhere else on the map screen), same convention as the main
+	// panel's own Done button above.
+	if (fStackSplitOpen) EnableButton(gStackSplitDoneButton, !fMapInventoryItem);
 }
 
 
