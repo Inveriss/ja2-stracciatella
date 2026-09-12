@@ -247,6 +247,7 @@ ExplosiveModel* ExplosiveModel::deserialize(
 		animation
 	);
 	explosive->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
+	explosive->ubBigPerPocket   = ItemModel::deserializeBigPerPocket(obj);
 	return explosive;
 }
 

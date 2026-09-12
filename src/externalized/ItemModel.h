@@ -68,6 +68,16 @@ struct ItemModel
 	// pocket at all", independent of ubPerPocket's own (big-pocket) value --
 	// see ubSmallPerPocket below.
 	virtual std::optional<uint8_t> getSmallPerPocket() const;
+	// Independent, opt-in override of how many fit in a BIG pocket
+	// specifically (BIGPOCK1-10) -- applied only to a soldier's own real
+	// inventory slots (PlaceObject()/InitItemStackPopup(), Items.cc/
+	// Interface_Items.cc), deliberately NOT inside ItemSlotLimit() itself:
+	// the sector-inventory stash (Map_Screen_Interface_Map_Inventory.cc)
+	// calls ItemSlotLimit() with BIGPOCK1POS as a dummy slot to get the
+	// (unhalved) big-pocket formula, and must keep ignoring this override
+	// per user request -- Sector_Inventory.sti/Sector_Inventory_2.sti
+	// always use the full getPerPocket() (up to MAX_OBJECTS_PER_SLOT).
+	virtual std::optional<uint8_t> getBigPerPocket() const;
 	virtual uint16_t        getPrice() const;
 	virtual uint8_t         getCoolness() const;
 	virtual int8_t          getReliability() const;
@@ -136,6 +146,9 @@ protected:
 	// a plain uint8_t: 0 is itself a meaningful value ("doesn't fit"), so a
 	// magic-number sentinel for "unset" would collide with it.
 	std::optional<uint8_t> ubSmallPerPocket;
+	// Unset (empty optional) unless the item's own JSON explicitly sets
+	// "ubBigPerPocket" -- see getBigPerPocket() above.
+	std::optional<uint8_t> ubBigPerPocket;
 	uint16_t   usPrice;
 	uint8_t    ubCoolness;
 	int8_t     bReliability;
@@ -147,4 +160,7 @@ protected:
 
 	void serializeSmallPerPocket(JsonObject &obj) const;
 	static std::optional<uint8_t> deserializeSmallPerPocket(const JsonObject &obj);
+
+	void serializeBigPerPocket(JsonObject &obj) const;
+	static std::optional<uint8_t> deserializeBigPerPocket(const JsonObject &obj);
 };

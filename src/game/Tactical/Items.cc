@@ -326,6 +326,20 @@ UINT8 ItemSlotLimit( UINT16 usItem, INT8 bSlot )
 	}
 }
 
+
+UINT8 ApplyBigPerPocketOverride( UINT16 usItem, INT8 bSlot, UINT8 ubSlotLimit )
+{
+	if (bSlot >= BIGPOCK1POS && bSlot < SMALLPOCK1POS)
+	{
+		if (auto const big = GCM->getItem(usItem)->getBigPerPocket())
+		{
+			ubSlotLimit = std::min<UINT8>(ubSlotLimit, *big);
+		}
+	}
+	return ubSlotLimit;
+}
+
+
 UINT32 MoneySlotLimit( INT8 bSlot )
 {
 	if ( bSlot >= SMALLPOCK1POS )
@@ -1969,7 +1983,13 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 	// item whose ubPerPocket exceeds it, and StackObjs() would then write
 	// bStatus[] past its own bounds, corrupting usAttachItem[]/
 	// bAttachStatus[] right after it in OBJECTTYPE.
-	int ubSlotLimit = std::min(int(ItemSlotLimit(pObj->usItem, bPos)), int(MAX_OBJECTS_PER_SLOT));
+	//
+	// ApplyBigPerPocketOverride() additionally applies the item's own
+	// ubBigPerPocket (per-item, opt-in) for this real BIGPOCK1-10POS slot,
+	// per user request -- a soldier's own inventory (Inventory_bottom_
+	// panel.sti/Mapinv.sti) can be capped lower than the sector-inventory
+	// stash, which never sees this override.
+	int ubSlotLimit = std::min(int(ApplyBigPerPocketOverride(pObj->usItem, bPos, ItemSlotLimit(pObj->usItem, bPos))), int(MAX_OBJECTS_PER_SLOT));
 
 	pInSlot = &(pSoldier->inv[bPos]);
 

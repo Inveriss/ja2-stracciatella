@@ -56,6 +56,17 @@ extern BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE 
 
 UINT8 ItemSlotLimit( UINT16 usItem, INT8 bSlot );
 
+// Applies an item's optional ubBigPerPocket override (if set) as a further
+// cap on an already-computed ItemSlotLimit() result, but ONLY for a
+// soldier's own real BIGPOCK1-10POS slot. Deliberately a separate step
+// rather than folded into ItemSlotLimit() itself -- the sector-inventory
+// stash (Map_Screen_Interface_Map_Inventory.cc) calls ItemSlotLimit() with
+// BIGPOCK1POS as a dummy slot to get the plain (unhalved) big-pocket
+// formula, and must keep ignoring this override per user request; only
+// call sites that place into/inspect a soldier's actual inventory slot
+// (PlaceObject(), InitItemStackPopup()) should use this.
+UINT8 ApplyBigPerPocketOverride( UINT16 usItem, INT8 bSlot, UINT8 ubSlotLimit );
+
 // Function to put an item in a soldier profile
 // It's very primitive, just finds an empty place!
 BOOLEAN PlaceObjectInSoldierProfile( UINT8 ubProfile, OBJECTTYPE *pObject );

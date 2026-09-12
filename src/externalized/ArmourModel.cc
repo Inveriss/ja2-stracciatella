@@ -113,6 +113,7 @@ ArmourModel* ArmourModel::deserialize(const JsonValue &json, const BinaryData& v
 		ignoreForMaxProtection
 	);
 	armour->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
+	armour->ubBigPerPocket   = ItemModel::deserializeBigPerPocket(obj);
 	return armour;
 }
 

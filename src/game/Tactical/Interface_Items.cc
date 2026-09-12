@@ -4808,12 +4808,18 @@ static void InternalInitItemStackPopup(OBJECTTYPE* const pObject, SOLDIERTYPE* c
 void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
 {
 	OBJECTTYPE* const pObject = &(pSoldier->inv[ ubPosition ] );
+	// ApplyBigPerPocketOverride() applies the item's own ubBigPerPocket (if
+	// set) for a real BIGPOCK1-10POS slot, so this popup's grid matches
+	// whatever PlaceObject() actually allowed to accumulate there -- see
+	// its own comment for why this is a real inventory slot, not the
+	// sector-inventory stash's BIGPOCK1POS dummy (which never sees it).
+	//
 	// Clamped to MAX_OBJECTS_PER_SLOT -- ItemSlotLimit() (an item's own
 	// ubPerPocket from game data, possibly halved for a small pocket) isn't
 	// itself bounded by it, but gItemPopupRegions[] below is, and a single
 	// OBJECTTYPE can never actually hold more than MAX_OBJECTS_PER_SLOT
 	// units regardless of what ubPerPocket claims.
-	UINT8       const ubLimit = std::min<UINT8>(ItemSlotLimit( pObject->usItem, ubPosition ), MAX_OBJECTS_PER_SLOT);
+	UINT8       const ubLimit = std::min<UINT8>(ApplyBigPerPocketOverride(pObject->usItem, (INT8)ubPosition, ItemSlotLimit( pObject->usItem, ubPosition )), MAX_OBJECTS_PER_SLOT);
 
 	InternalInitItemStackPopup(pObject, pSoldier, gSMInvRegion[ubPosition], INTERFACEDIR "/extra_inventory.sti", ubLimit, sInvX, sInvY, sInvWidth, sInvHeight);
 }

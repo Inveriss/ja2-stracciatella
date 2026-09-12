@@ -77,6 +77,7 @@ void WeaponModel::serializeTo(JsonObject &obj) const
 	obj.set("rateOfFire", m_rateOfFire);
 
 	serializeSmallPerPocket(obj);
+	serializeBigPerPocket(obj);
 
 	if(isInBigGunList())
 	{
@@ -624,6 +625,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	wep->ubWeight         = obj.GetInt("ubWeight");
 	wep->ubPerPocket      = obj.GetInt("ubPerPocket");
 	wep->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
+	wep->ubBigPerPocket   = ItemModel::deserializeBigPerPocket(obj);
 	wep->usPrice          = obj.GetInt("usPrice");
 	wep->ubCoolness       = obj.GetInt("ubCoolness");
 	wep->bReliability     = obj.GetInt("bReliability");

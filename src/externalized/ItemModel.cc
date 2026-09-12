@@ -87,6 +87,7 @@ ItemCursor      ItemModel::getCursor() const           { return ubCursor;       
 uint8_t         ItemModel::getWeight() const           { return ubWeight;              }
 uint8_t         ItemModel::getPerPocket() const        { return ubPerPocket;           }
 std::optional<uint8_t> ItemModel::getSmallPerPocket() const { return ubSmallPerPocket; }
+std::optional<uint8_t> ItemModel::getBigPerPocket() const   { return ubBigPerPocket;   }
 uint16_t        ItemModel::getPrice() const            { return usPrice;               }
 uint8_t         ItemModel::getCoolness() const         { return ubCoolness;            }
 int8_t          ItemModel::getReliability() const      { return bReliability;          }
@@ -177,6 +178,17 @@ std::optional<uint8_t> ItemModel::deserializeSmallPerPocket(const JsonObject &ob
 	return static_cast<uint8_t>(obj.GetUInt("ubSmallPerPocket"));
 }
 
+void ItemModel::serializeBigPerPocket(JsonObject &obj) const
+{
+	if (ubBigPerPocket) { obj.set("ubBigPerPocket", *ubBigPerPocket); }
+}
+
+std::optional<uint8_t> ItemModel::deserializeBigPerPocket(const JsonObject &obj)
+{
+	if (!obj.has("ubBigPerPocket")) return std::nullopt;
+	return static_cast<uint8_t>(obj.GetUInt("ubBigPerPocket"));
+}
+
 /** Check if the given attachment can be attached to the item. */
 bool ItemModel::canBeAttached(const GamePolicy* policy, const ItemModel* attachment) const
 {
@@ -202,6 +214,7 @@ JsonValue ItemModel::serialize() const
 
     serializeFlags(obj);
     serializeSmallPerPocket(obj);
+    serializeBigPerPocket(obj);
 
 	return obj.toValue();
 }
@@ -255,5 +268,6 @@ const ItemModel* ItemModel::deserialize(const JsonValue &json, const BinaryData&
 		flags
 	);
 	item->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
+	item->ubBigPerPocket   = ItemModel::deserializeBigPerPocket(obj);
 	return item;
 }
