@@ -8,6 +8,7 @@
 #include "TilesetTileIndexModel.h"
 
 #include <string_theory/string>
+#include <optional>
 
 class JsonObject;
 class JsonObject;
@@ -60,6 +61,13 @@ struct ItemModel
 	virtual const TilesetTileIndexModel& getTileGraphic() const;
 	virtual uint8_t         getWeight() const;
 	virtual uint8_t         getPerPocket() const;
+	// Independent, opt-in override of how many fit in a SMALL pocket
+	// specifically (SMALLPOCK1-20) -- ItemSlotLimit() (Items.cc) falls back
+	// to halving getPerPocket() when this is unset (empty optional), same
+	// as it always has. A value of 0 here means "does not fit in a small
+	// pocket at all", independent of ubPerPocket's own (big-pocket) value --
+	// see ubSmallPerPocket below.
+	virtual std::optional<uint8_t> getSmallPerPocket() const;
 	virtual uint16_t        getPrice() const;
 	virtual uint8_t         getCoolness() const;
 	virtual int8_t          getReliability() const;
@@ -123,6 +131,11 @@ protected:
 	TilesetTileIndexModel tileGraphic;
 	uint8_t    ubWeight; //2 units per kilogram; roughly 1 unit per pound
 	uint8_t    ubPerPocket;
+	// Unset (empty optional) unless the item's own JSON explicitly sets
+	// "ubSmallPerPocket" -- see getSmallPerPocket() above. Deliberately not
+	// a plain uint8_t: 0 is itself a meaningful value ("doesn't fit"), so a
+	// magic-number sentinel for "unset" would collide with it.
+	std::optional<uint8_t> ubSmallPerPocket;
 	uint16_t   usPrice;
 	uint8_t    ubCoolness;
 	int8_t     bReliability;
@@ -131,4 +144,7 @@ protected:
 
 	void serializeFlags(JsonObject &obj) const;
 	static uint16_t deserializeFlags(const JsonObject &obj);
+
+	void serializeSmallPerPocket(JsonObject &obj) const;
+	static std::optional<uint8_t> deserializeSmallPerPocket(const JsonObject &obj);
 };

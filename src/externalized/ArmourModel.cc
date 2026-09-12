@@ -91,7 +91,7 @@ ArmourModel* ArmourModel::deserialize(const JsonValue &json, const BinaryData& v
 	auto degradePercentage = obj.GetUInt("degradePercentage");
 	auto ignoreForMaxProtection = obj.getOptionalBool("ignoreForMaxProtection", false);
 
-	return new ArmourModel(
+	ArmourModel* const armour = new ArmourModel(
 		itemIndex,
 		std::move(internalName),
 		std::move(shortName),
@@ -112,6 +112,8 @@ ArmourModel* ArmourModel::deserialize(const JsonValue &json, const BinaryData& v
 		degradePercentage,
 		ignoreForMaxProtection
 	);
+	armour->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
+	return armour;
 }
 
 uint8_t ArmourModel::getArmourClass() const {

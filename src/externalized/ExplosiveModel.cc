@@ -219,7 +219,7 @@ ExplosiveModel* ExplosiveModel::deserialize(
 		lightEffect->duration = bObj.GetUInt("duration");
 	}
 
-	return new ExplosiveModel(
+	ExplosiveModel* const explosive = new ExplosiveModel(
 		itemIndex,
 		std::move(internalName),
 		std::move(shortName),
@@ -246,6 +246,8 @@ ExplosiveModel* ExplosiveModel::deserialize(
 		calibre,
 		animation
 	);
+	explosive->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
+	return explosive;
 }
 
 const ExplosiveBlastEffect* ExplosiveModel::getBlastEffect() const {

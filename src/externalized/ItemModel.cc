@@ -86,6 +86,7 @@ uint8_t         ItemModel::getClassIndex() const       { return ubClassIndex;   
 ItemCursor      ItemModel::getCursor() const           { return ubCursor;              }
 uint8_t         ItemModel::getWeight() const           { return ubWeight;              }
 uint8_t         ItemModel::getPerPocket() const        { return ubPerPocket;           }
+std::optional<uint8_t> ItemModel::getSmallPerPocket() const { return ubSmallPerPocket; }
 uint16_t        ItemModel::getPrice() const            { return usPrice;               }
 uint8_t         ItemModel::getCoolness() const         { return ubCoolness;            }
 int8_t          ItemModel::getReliability() const      { return bReliability;          }
@@ -160,6 +161,22 @@ uint16_t ItemModel::deserializeFlags(const JsonObject &obj)
 	return flags;
 }
 
+void ItemModel::serializeSmallPerPocket(JsonObject &obj) const
+{
+	// Only written when explicitly set -- omitting it (rather than always
+	// writing ubPerPocket/2 or similar) keeps every item that never opted
+	// into this free of a redundant field, and preserves the "unset ->
+	// derive from ubPerPocket" fallback in ItemSlotLimit() (Items.cc) on
+	// the next load.
+	if (ubSmallPerPocket) { obj.set("ubSmallPerPocket", *ubSmallPerPocket); }
+}
+
+std::optional<uint8_t> ItemModel::deserializeSmallPerPocket(const JsonObject &obj)
+{
+	if (!obj.has("ubSmallPerPocket")) return std::nullopt;
+	return static_cast<uint8_t>(obj.GetUInt("ubSmallPerPocket"));
+}
+
 /** Check if the given attachment can be attached to the item. */
 bool ItemModel::canBeAttached(const GamePolicy* policy, const ItemModel* attachment) const
 {
@@ -184,6 +201,7 @@ JsonValue ItemModel::serialize() const
     obj.set("bRepairEase", getRepairEase());
 
     serializeFlags(obj);
+    serializeSmallPerPocket(obj);
 
 	return obj.toValue();
 }
@@ -217,7 +235,7 @@ const ItemModel* ItemModel::deserialize(const JsonValue &json, const BinaryData&
 	auto description = ItemModel::deserializeDescription(initData);
 	auto flags = ItemModel::deserializeFlags(obj);
 
-	return new ItemModel(
+	ItemModel* const item = new ItemModel(
 		itemIndex,
 		std::move(internalName),
 		std::move(shortName),
@@ -236,4 +254,6 @@ const ItemModel* ItemModel::deserialize(const JsonValue &json, const BinaryData&
 		obj.GetInt("bRepairEase"),
 		flags
 	);
+	item->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
+	return item;
 }

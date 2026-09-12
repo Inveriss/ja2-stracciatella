@@ -299,7 +299,25 @@ UINT8 ItemSlotLimit( UINT16 usItem, INT8 bSlot )
 	}
 	else
 	{
-		ubSlotLimit = GCM->getItem(usItem)->getPerPocket();
+		const ItemModel* const item = GCM->getItem(usItem);
+
+		if (bSlot >= SMALLPOCK1POS)
+		{
+			// Independent, opt-in override of small-pocket fit/capacity --
+			// see ItemModel::getSmallPerPocket(). A value of 0 here means
+			// "does not fit in a small pocket at all", regardless of
+			// getPerPocket()'s own (big-pocket) value -- per user request,
+			// so raising getPerPocket() for stacking purposes doesn't also
+			// silently make an item fit a pocket it's graphically too big
+			// for. Falls back to the historical getPerPocket()/2 below when
+			// the item hasn't opted into this.
+			if (auto const small = item->getSmallPerPocket())
+			{
+				return *small;
+			}
+		}
+
+		ubSlotLimit = item->getPerPocket();
 		if (bSlot >= SMALLPOCK1POS && ubSlotLimit > 1)
 		{
 			ubSlotLimit /= 2;
