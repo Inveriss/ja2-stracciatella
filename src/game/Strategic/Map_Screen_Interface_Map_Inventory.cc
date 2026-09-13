@@ -107,14 +107,15 @@ static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_in
 #define GROUP_BUTTON_Y 32
 
 // Category-filter buttons -- "Wszystkie przedmioty" (clears every active
-// filter) plus one toggle per category. Same sector_inventory_bookmarks.sti
-// sheet as GROUP_BUTTON above, occupying the next sequential sub-image
-// pairs per user instruction -- placeholder order/positions (this file's
-// own precedent for GROUP_BUTTON_X/Y), not yet the final asset layout.
-// Each button is 55x50px, chained 3px apart starting right after "Grupuj
-// przedmioty", per user request.
-#define ALL_ITEMS_BUTTON_READY   2
-#define ALL_ITEMS_BUTTON_PRESSED 3
+// filter) plus one toggle per category, all 7 persistent-state toggles per
+// user request. Same sector_inventory_bookmarks.sti sheet as GROUP_BUTTON
+// above, occupying the next sequential sub-image pairs per user instruction
+// -- placeholder order/positions (this file's own precedent for
+// GROUP_BUTTON_X/Y), not yet the final asset layout. Each button is
+// 55x50px, chained 3px apart starting right after "Grupuj przedmioty", per
+// user request.
+#define ALL_ITEMS_BUTTON_OFF     2
+#define ALL_ITEMS_BUTTON_ON      3
 #define FILTER_WEAPONS_OFF       4
 #define FILTER_WEAPONS_ON        5
 #define FILTER_ATTACHMENTS_OFF   6
@@ -132,9 +133,9 @@ static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_in
 #define FILTER_BUTTON_GAP    3
 #define FILTER_BUTTON_STEP  (FILTER_BUTTON_WIDTH + FILTER_BUTTON_GAP)
 
-#define ALL_ITEMS_BUTTON_X    (GROUP_BUTTON_X + FILTER_BUTTON_STEP)
+#define ALL_ITEMS_BUTTON_X    (GROUP_BUTTON_X + FILTER_BUTTON_STEP + 1)
 #define FILTER_WEAPONS_X      (GROUP_BUTTON_X + 2 * FILTER_BUTTON_STEP)
-#define FILTER_ATTACHMENTS_X  (GROUP_BUTTON_X + 3 * FILTER_BUTTON_STEP)
+#define FILTER_ATTACHMENTS_X  (GROUP_BUTTON_X + 3 * FILTER_BUTTON_STEP - 1)
 #define FILTER_AMMO_X         (GROUP_BUTTON_X + 4 * FILTER_BUTTON_STEP)
 #define FILTER_ARMOUR_X       (GROUP_BUTTON_X + 5 * FILTER_BUTTON_STEP)
 #define FILTER_EXPLOSIVES_X   (GROUP_BUTTON_X + 6 * FILTER_BUTTON_STEP)
@@ -1694,7 +1695,15 @@ static void MapInventoryPoolAllItemsBtn(GUI_BUTTON* btn, UINT32 reason)
 		// Clears every active category filter and turns off their toggle
 		// buttons' visual state to match -- per user request, this button
 		// always means "show everything", regardless of what was active.
+		//
+		// Also a toggle (BUTTON_NEWTOGGLE, per user request), but not an
+		// independent one -- "on" here is a derived state (no category
+		// filter active), not something that can itself be toggled off
+		// while leaving nothing selected, so this always forces itself
+		// back ON, overriding whatever QuickCreateButtonToggle()'s own
+		// automatic per-click toggle just flipped it to.
 		gubSectorInventoryActiveFilters = 0;
+		btn->uiFlags |= BUTTON_CLICKED_ON;
 		// The 6 category buttons are always created together with this one
 		// (CreateMapInventoryFilterButtons()), so all of guiMapInvenButton[5..10]
 		// are valid by the time this callback can fire.
@@ -1714,6 +1723,17 @@ static void MapInventoryPoolAllItemsBtn(GUI_BUTTON* btn, UINT32 reason)
 static void ToggleSectorInventoryFilter(UINT8 category)
 {
 	gubSectorInventoryActiveFilters ^= category;
+	// Keep "Wszystkie przedmioty" visually in sync -- see its own comment:
+	// it's "on" exactly when no category filter is active, a state derived
+	// from gubSectorInventoryActiveFilters rather than toggled on its own.
+	if (gubSectorInventoryActiveFilters == 0)
+	{
+		guiMapInvenButton[4]->uiFlags |= BUTTON_CLICKED_ON;
+	}
+	else
+	{
+		guiMapInvenButton[4]->uiFlags &= ~BUTTON_CLICKED_ON;
+	}
 	ApplySectorInventoryFilter();
 }
 
@@ -1753,8 +1773,11 @@ static void CreateMapInventoryFilterButtons(void)
 	// Placeholder positions, per user request -- not yet the final layout.
 	// Every filter starts inactive: gubSectorInventoryActiveFilters is
 	// reset to 0 whenever the panel opens (CreateDestroyMapInventoryPoolButtons()),
-	// so a freshly created toggle button correctly starts in its "off" state.
-	guiMapInvenButton[4]  = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", ALL_ITEMS_BUTTON_READY, ALL_ITEMS_BUTTON_PRESSED, MAP_SCREEN_X + ALL_ITEMS_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolAllItemsBtn);
+	// so a freshly created toggle button correctly starts in its "off" state
+	// -- except "Wszystkie przedmioty" itself, forced ON right after
+	// creation below, since "no filter active" is exactly its "on" state.
+	guiMapInvenButton[4]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", ALL_ITEMS_BUTTON_OFF, ALL_ITEMS_BUTTON_ON, MAP_SCREEN_X + ALL_ITEMS_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolAllItemsBtn);
+	guiMapInvenButton[4]->uiFlags |= BUTTON_CLICKED_ON;
 	guiMapInvenButton[5]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_WEAPONS_OFF,     FILTER_WEAPONS_ON,     MAP_SCREEN_X + FILTER_WEAPONS_X,     MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterWeaponsBtn);
 	guiMapInvenButton[6]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ATTACHMENTS_OFF, FILTER_ATTACHMENTS_ON, MAP_SCREEN_X + FILTER_ATTACHMENTS_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAttachmentsBtn);
 	guiMapInvenButton[7]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_AMMO_OFF,        FILTER_AMMO_ON,        MAP_SCREEN_X + FILTER_AMMO_X,        MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAmmoBtn);
