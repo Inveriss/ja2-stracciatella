@@ -416,23 +416,22 @@ void BlitInventoryPoolGraphic( void )
 	// resize list
 	CheckAndUnDateSlotAllocation( );
 
-
-	// now the items
-	RenderItemsForCurrentPageOfInventoryPool( );
-
 	// now update help text
 	UpdateHelpTextForInvnentoryStashSlots( );
 
-	// Main grid's own page-number and Total Items VALUES -- both sit
-	// underneath the stack split popup's own footprint (unlike the
-	// "Location"/"Total Items" text labels below, which sit further left,
-	// outside it), so they must not draw while the popup is open, or they
-	// bleed through/over its own independent equivalents
+	// Main grid's own item icons and page-number/Total Items VALUES -- all
+	// three sit underneath the stack split popup's own footprint (unlike
+	// the "Location"/"Total Items" text labels below, which sit further
+	// left, outside it), so they must not draw while the popup is open, or
+	// they bleed through/over its own independent equivalents
 	// (RenderStackSplitItems() below). Same reasoning as the main grid's
 	// next/prev arrow buttons being Hidden while the popup is open
 	// (HandleButtonStatesWhileMapInventoryActive()).
 	if (gStackSplitSourceIndex == -1)
 	{
+		// now the items
+		RenderItemsForCurrentPageOfInventoryPool( );
+
 		// show which page and last page
 		DisplayPagesForMapInventoryPool( );
 
