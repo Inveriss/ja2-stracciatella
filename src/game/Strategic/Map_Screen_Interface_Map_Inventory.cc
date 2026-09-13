@@ -82,9 +82,9 @@ static const SGPBox g_sector_inv_item_box   = {   27,   64,  67,  33 }; // relat
 // dx - 1) while making the intent clear and silencing the warning.
 static const SGPBox g_sector_inv_bar_box    = { (UINT16)21,   66,   2,  31 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_name_box   = {   22,  101,  75,   10 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_loc_box    = { 509, 630,  39,  10 };
-static const SGPBox g_sector_inv_count_box  = { 600, 630,  39,  10 };
-static const SGPBox g_sector_inv_page_box   = { 668, 630,  50,  10 };
+static const SGPBox g_sector_inv_loc_box    = { 485, 629,  39,  10 };
+static const SGPBox g_sector_inv_count_box  = { 572, 629,  39,  10 };
+static const SGPBox g_sector_inv_page_box   = { 657, 629,  50,  10 };
 
 
 // the current highlighted item
@@ -98,8 +98,9 @@ BOOLEAN fShowMapInventoryPool = FALSE;
 static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_inventory.sti" };
 
 // "Group Items" button -- see GroupSectorInventoryItems()/CreateMapInventoryGroupButton().
-// Like done_button.sti/map_screen_bottom_arrows.sti above, QuickCreateButtonImg()
-// manages this image's lifetime itself; no cache_key_t needed here.
+// Like DONE_BUTTON_Inventory.STI/map_screen_bottom_arrows.sti above,
+// QuickCreateButtonImg() manages this image's lifetime itself; no
+// cache_key_t needed here.
 #define GROUP_BUTTON_READY   0
 #define GROUP_BUTTON_PRESSED 1
 // Placeholder position, per user request -- not yet the final layout.
@@ -250,8 +251,8 @@ static const SGPBox g_stack_split_bar_box    = { (UINT16)24, 72, 2, 31 }; // rel
 static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // relative to g_stack_split_slot_box
 
 // Placeholder position, per user request -- not yet the final layout.
-#define STACK_SPLIT_DONE_X 950
-#define STACK_SPLIT_DONE_Y 630
+#define STACK_SPLIT_DONE_X 762
+#define STACK_SPLIT_DONE_Y 632
 
 // Slots laid out in a small grid, wide enough for a whole stack (a stack
 // can never hold more than MAX_OBJECTS_PER_SLOT items to begin with).
@@ -272,10 +273,10 @@ static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // rela
 // (reusing the main grid's own map_screen_bottom_arrows.sti sub-images and
 // a page-count box the same shape as g_sector_inv_page_box), not yet the
 // final layout.
-#define STACK_SPLIT_PREV_X 650
-#define STACK_SPLIT_NEXT_X 722
-#define STACK_SPLIT_ARROWS_Y 629
-static const SGPBox g_stack_split_page_box = { 668, 630, 50, 10 };
+#define STACK_SPLIT_PREV_X 638
+#define STACK_SPLIT_NEXT_X 711
+#define STACK_SPLIT_ARROWS_Y 626
+static const SGPBox g_stack_split_page_box = { 657, 629, 50, 10 };
 
 // "Total Items" label + value, independent of the main grid's own
 // (pMapInventoryStrings[1]/g_sector_inv_count_box) -- reuses the same
@@ -283,9 +284,9 @@ static const SGPBox g_stack_split_page_box = { 668, 630, 50, 10 };
 // for it (DrawTextOnMapInventoryBackground()), since this window shares
 // the same overall box width (762) and doesn't otherwise use that space.
 // Placeholder positions, per user request -- not yet the final layout.
-#define STACK_SPLIT_TOTAL_TEXT_X 532
-#define STACK_SPLIT_TOTAL_TEXT_Y 635
-static const SGPBox g_stack_split_count_box = { 600, 630, 39, 10 };
+#define STACK_SPLIT_TOTAL_TEXT_X 506
+#define STACK_SPLIT_TOTAL_TEXT_Y 634
+static const SGPBox g_stack_split_count_box = { 572, 629, 39, 10 };
 
 // The physically-split-out items, one per slot -- empty (gStackSplitItems
 // cleared) when the view is closed.
@@ -987,7 +988,11 @@ static void CreateStackSplitDoneButton(void)
 	// The only way to close this window, per user request -- background
 	// and item-slot clicks no longer do it (see gStackSplitBackgroundRegion
 	// above and StackSplitSlotSecondary() below).
-	gStackSplitDoneButton = QuickCreateButtonImg(INTERFACEDIR "/done_button.sti", 0, 1,
+	//
+	// Same DONE_BUTTON_Inventory.STI sheet as the main grid's own Done
+	// button (CreateMapInventoryPoolDoneButton()), next sequential
+	// sub-image pair (2/3, vs. the main grid's own 0/1), per user request.
+	gStackSplitDoneButton = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 2, 3,
 		MAP_SCREEN_X + STACK_SPLIT_DONE_X, MAP_SCREEN_Y + STACK_SPLIT_DONE_Y, MSYS_PRIORITY_HIGHEST, StackSplitDoneBtn);
 }
 
@@ -1381,8 +1386,8 @@ static void MapInventoryPoolNextBtn(GUI_BUTTON* btn, UINT32 reason);
 
 static void CreateMapInventoryButtons(void)
 {
-	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 722, MAP_SCREEN_Y + 629, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
-	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 650, MAP_SCREEN_Y + 629, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
+	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 711, MAP_SCREEN_Y + 626, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
+	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 638, MAP_SCREEN_Y + 626, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
 
 	//reset the current inventory page to be the first page
 	iCurrentInventoryPoolPage = 0;
@@ -1854,7 +1859,7 @@ static void DrawNumberOfInventoryPoolItems()
 static void CreateMapInventoryPoolDoneButton(void)
 {
 	// create done button
-	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/done_button.sti", 0, 1, MAP_SCREEN_X + 750, MAP_SCREEN_Y + 626, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 0, 1, MAP_SCREEN_X + 808, MAP_SCREEN_Y + 621, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
 }
 
 
@@ -2473,14 +2478,14 @@ static void DrawTextOnMapInventoryBackground(void)
 
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	int xPos = MAP_SCREEN_X + 451;
-	int yPos = MAP_SCREEN_Y + 635;
+	int xPos = MAP_SCREEN_X + 427;
+	int yPos = MAP_SCREEN_Y + 634;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
 	DisplayWrappedString(xPos, yPos - (usStringHeight / 2), 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED);
 
-	xPos = MAP_SCREEN_X + 532;
+	xPos = MAP_SCREEN_X + 506;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
