@@ -63,10 +63,47 @@
 // so it doesn't affect the unrelated footer labels that still use it
 #define MAP_SECTOR_INV_ITEM_FONT			FONTSECTORINV
 
-// inventory pool slot positions and sizes -- ROW Y = 10 per user request;
-// column count (ROW X = 9) follows from MAP_INVENTORY_POOL_SLOT_COUNT / this
-// (Map_Screen_Interface_Map_Inventory.h)
-#define MAP_INV_SLOT_ROWS 10
+// inventory pool slot positions and sizes -- column count (ROW X) is always
+// 9. Row count (COL Y) is resolution-dependent per user request: 10 for the
+// large strategic-screen tier (height 768+), 9 for the compact tier (height
+// 720-767) -- not known yet at static-initialization time, so resolved at
+// runtime, on every call, same reasoning as GetMapInventoryPoolBackgroundFilename()
+// below. Shared by the stack split grid too (GetStackSplitPageSize()),
+// which uses the identical rule.
+static INT32 GetInventoryGridRows(void)
+{
+	return g_ui.isCompactStrategicScreen() ? 9 : 10;
+}
+#define MAP_INV_SLOT_ROWS GetInventoryGridRows()
+
+// The sector-inventory pool's actual per-page slot count, for the active
+// resolution (81 = 9x9 compact, 90 = 9x10 large -- see
+// GetInventoryGridRows() above). Declared in Map_Screen_Interface_Map_Inventory.h
+// and used by other files (MapScreen.cc, Interface_Items.cc, Radar_Screen.cc)
+// wherever they used to reference MAP_INVENTORY_POOL_SLOT_COUNT directly.
+// MAP_INVENTORY_POOL_SLOT_COUNT itself (Map_Screen_Interface_Map_Inventory.h)
+// stays a plain compile-time constant -- it's only the array-sizing maximum
+// (the large tier's own 90) now, not the per-page count actually in use.
+INT32 GetMapInventoryPoolPageSize(void)
+{
+	return 9 * GetInventoryGridRows();
+}
+
+// Extra Y offset applied to the sector-inventory footer's Done buttons,
+// arrow buttons, and text/value boxes (both windows) at the compact
+// strategic-screen tier (height 720-767), per user request -- 0 at the
+// large tier (height 768+), so the large-tier positions below are
+// unaffected. Same runtime-resolved reasoning as GetInventoryGridRows()/
+// GetMapInventoryPoolBackgroundFilename() above.
+static INT32 CompactFooterYOffset(INT32 const offset)
+{
+	return g_ui.isCompactStrategicScreen() ? offset : 0;
+}
+// Done buttons (both windows), per user request.
+#define COMPACT_DONE_BUTTON_Y_OFFSET CompactFooterYOffset(-44)
+// Everything else in the footer (both windows): text labels, values, arrow
+// buttons, per user request.
+#define COMPACT_FOOTER_TEXT_Y_OFFSET CompactFooterYOffset(-48)
 
 
 static const SGPBox g_sector_inv_box        = { 261,   0, 762, 648 };
@@ -273,7 +310,7 @@ static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // rela
 
 // Placeholder position, per user request -- not yet the final layout.
 #define STACK_SPLIT_DONE_X 762
-#define STACK_SPLIT_DONE_Y 632
+#define STACK_SPLIT_DONE_Y (632 + COMPACT_DONE_BUTTON_Y_OFFSET)
 
 // Slots laid out in a small grid, wide enough for a whole stack (a stack
 // can never hold more than MAX_OBJECTS_PER_SLOT items to begin with).
@@ -282,11 +319,21 @@ static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // rela
 #define STACK_SPLIT_COLS 9
 // ROW Y = 10, matching the main grid's own row count (MAP_INV_SLOT_ROWS) --
 // a page therefore holds 90, same as the main grid's own page size
-// (MAP_INVENTORY_POOL_SLOT_COUNT). A full MAX_OBJECTS_PER_SLOT (100) stack
+// (GetMapInventoryPoolPageSize()). A full MAX_OBJECTS_PER_SLOT (100) stack
 // no longer overflows the window (rows 11/12 past the visible area, per
 // user report) -- it spans 2 independent pages instead, per user request.
+// STACK_SPLIT_ROWS/STACK_SPLIT_PAGE_SIZE are the compile-time maximum (10
+// rows / 90), used only to size gStackSplitSlots[] below -- the actual
+// per-page slot count in use is resolution-dependent (81 for the compact
+// tier, same rule as the main grid's own GetInventoryGridRows() above), see
+// GetStackSplitPageSize().
 #define STACK_SPLIT_ROWS 10
 #define STACK_SPLIT_PAGE_SIZE (STACK_SPLIT_COLS * STACK_SPLIT_ROWS)
+
+static INT32 GetStackSplitPageSize(void)
+{
+	return STACK_SPLIT_COLS * GetInventoryGridRows();
+}
 
 // Independent pagination controls, per user request -- own page state and
 // own next/prev arrows, entirely separate from the main grid's own
@@ -296,7 +343,7 @@ static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // rela
 // final layout.
 #define STACK_SPLIT_PREV_X 638
 #define STACK_SPLIT_NEXT_X 711
-#define STACK_SPLIT_ARROWS_Y 626
+#define STACK_SPLIT_ARROWS_Y (626 + COMPACT_FOOTER_TEXT_Y_OFFSET)
 static const SGPBox g_stack_split_page_box = { 657, 628, 50, 10 };
 
 // "Total Items" label + value, independent of the main grid's own
@@ -306,7 +353,7 @@ static const SGPBox g_stack_split_page_box = { 657, 628, 50, 10 };
 // the same overall box width (762) and doesn't otherwise use that space.
 // Placeholder positions, per user request -- not yet the final layout.
 #define STACK_SPLIT_TOTAL_TEXT_X 506
-#define STACK_SPLIT_TOTAL_TEXT_Y 634
+#define STACK_SPLIT_TOTAL_TEXT_Y (634 + COMPACT_FOOTER_TEXT_Y_OFFSET)
 static const SGPBox g_stack_split_count_box = { 572, 628, 39, 10 };
 
 // The physically-split-out items, one per slot -- empty (gStackSplitItems
@@ -417,9 +464,9 @@ static void RenderItemsForCurrentPageOfInventoryPool(void)
 	INT32 iCounter = 0;
 
 	// go through list of items on this page and place graphics to screen
-	for( iCounter = 0; iCounter < MAP_INVENTORY_POOL_SLOT_COUNT ; iCounter++ )
+	for( iCounter = 0; iCounter < GetMapInventoryPoolPageSize() ; iCounter++ )
 	{
-		RenderItemInPoolSlot( iCounter, ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ) );
+		RenderItemInPoolSlot( iCounter, ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() ) );
 	}
 }
 
@@ -487,11 +534,11 @@ static void UpdateHelpTextForInvnentoryStashSlots(void)
 {
 	ST::string pStr;
 	INT32 iCounter = 0;
-	INT32 iFirstSlotOnPage = ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT );
+	INT32 iFirstSlotOnPage = ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() );
 
 
 	// run through list of items in slots and update help text for mouse regions
-	for( iCounter = 0; iCounter < MAP_INVENTORY_POOL_SLOT_COUNT; iCounter++ )
+	for( iCounter = 0; iCounter < GetMapInventoryPoolPageSize(); iCounter++ )
 	{
 		ST::string help;
 		OBJECTTYPE const& o    = pInventoryPoolList[iCounter + iFirstSlotOnPage].o;
@@ -761,7 +808,7 @@ static void CreateMapInventoryPoolSlots(void)
 
 	const SGPBox* const slot_box = &g_sector_inv_slot_box;
 	const SGPBox* const reg_box  = &g_sector_inv_region_box;
-	for (UINT i = 0; i < MAP_INVENTORY_POOL_SLOT_COUNT; ++i)
+	for (UINT i = 0; i < GetMapInventoryPoolPageSize(); ++i)
 	{
 		UINT16        const sx = i / MAP_INV_SLOT_ROWS;
 		UINT16        const sy = i % MAP_INV_SLOT_ROWS;
@@ -817,7 +864,7 @@ static void MapInvenPoolSlotsPrimary(MOUSE_REGION* const pRegion, const UINT32 i
 {
 	// check if item in cursor, if so, then swap, and no item in curor, pick up, if item in cursor but not box, put in box
 	INT32      const slot_idx = MSYS_GetRegionUserData(pRegion, 0);
-	WORLDITEM& slot = pInventoryPoolList[iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT + slot_idx];
+	WORLDITEM& slot = pInventoryPoolList[iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() + slot_idx];
 
 	// Return if empty
 	if (gpItemPointer == NULL && slot.o.usItem == NOTHING) return;
@@ -934,7 +981,7 @@ static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32
 	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
 
 	INT32      const slot_idx = MSYS_GetRegionUserData(pRegion, 0);
-	INT32      const abs_idx  = iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT + slot_idx;
+	INT32      const abs_idx  = iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() + slot_idx;
 	WORLDITEM& slot = pInventoryPoolList[abs_idx];
 
 	if (slot.o.usItem == NOTHING) return;
@@ -975,8 +1022,8 @@ static void CreateStackSplitSlots(void)
 	// absolute gStackSplitItems index (first + i) stored directly as each
 	// region's user data, so StackSplitSlotPrimary()/Secondary() need no
 	// changes at all to stay page-aware.
-	INT32 const first   = gCurrentStackSplitPage * STACK_SPLIT_PAGE_SIZE;
-	INT32 const visible = std::max<INT32>(0, std::min<INT32>(STACK_SPLIT_PAGE_SIZE, static_cast<INT32>(gStackSplitItems.size()) - first));
+	INT32 const first   = gCurrentStackSplitPage * GetStackSplitPageSize();
+	INT32 const visible = std::max<INT32>(0, std::min<INT32>(GetStackSplitPageSize(), static_cast<INT32>(gStackSplitItems.size()) - first));
 	for (INT32 i = 0; i < visible; ++i)
 	{
 		UINT16        const col = static_cast<UINT16>(i % STACK_SPLIT_COLS);
@@ -999,8 +1046,8 @@ static void DestroyStackSplitSlots(void)
 	// Mirrors CreateStackSplitSlots()'s own page-size computation --
 	// gStackSplitItems.size() and gCurrentStackSplitPage are both
 	// unchanged between the matching Create call and this one.
-	INT32 const first   = gCurrentStackSplitPage * STACK_SPLIT_PAGE_SIZE;
-	INT32 const visible = std::max<INT32>(0, std::min<INT32>(STACK_SPLIT_PAGE_SIZE, static_cast<INT32>(gStackSplitItems.size()) - first));
+	INT32 const first   = gCurrentStackSplitPage * GetStackSplitPageSize();
+	INT32 const visible = std::max<INT32>(0, std::min<INT32>(GetStackSplitPageSize(), static_cast<INT32>(gStackSplitItems.size()) - first));
 	for (INT32 i = 0; i < visible; ++i) MSYS_RemoveRegion(&gStackSplitSlots[i]);
 	MSYS_RemoveRegion(&gStackSplitBackgroundRegion);
 }
@@ -1109,8 +1156,8 @@ static void RenderStackSplitItems(void)
 
 	// Only the current page -- see CreateStackSplitSlots()'s own comment on
 	// why gStackSplitSlots[]/absolute indices work the same way.
-	INT32 const first = gCurrentStackSplitPage * STACK_SPLIT_PAGE_SIZE;
-	INT32 const last  = std::min<INT32>(first + STACK_SPLIT_PAGE_SIZE, static_cast<INT32>(gStackSplitItems.size()));
+	INT32 const first = gCurrentStackSplitPage * GetStackSplitPageSize();
+	INT32 const last  = std::min<INT32>(first + GetStackSplitPageSize(), static_cast<INT32>(gStackSplitItems.size()));
 	for (INT32 abs_idx = first; abs_idx < last; ++abs_idx)
 	{
 		OBJECTTYPE const& o = gStackSplitItems[abs_idx];
@@ -1138,7 +1185,7 @@ static void RenderStackSplitItems(void)
 
 	// This window's own, independent page indicator -- per user request.
 	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::format("{} / {}", gCurrentStackSplitPage + 1, gLastStackSplitPage + 1),
 		g_stack_split_page_box);
 
@@ -1156,7 +1203,7 @@ static void RenderStackSplitItems(void)
 		DisplayWrappedString(textX, textY - (textH / 2), 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
 
 		SetFontAttributes(FONT_VALUE_INVENTORY, 183);
-		MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
+		MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 			ST::string::from_uint(GetTotalNumberOfItemsInStackSplit()),
 			g_stack_split_count_box);
 	}
@@ -1188,7 +1235,7 @@ static void OpenStackSplitView(INT32 const sourceIndex)
 	// This window's own, independent pagination -- always starts at page 1,
 	// per user request.
 	gCurrentStackSplitPage = 0;
-	gLastStackSplitPage    = static_cast<INT32>(gStackSplitItems.empty() ? 0 : (gStackSplitItems.size() - 1) / STACK_SPLIT_PAGE_SIZE);
+	gLastStackSplitPage    = static_cast<INT32>(gStackSplitItems.empty() ? 0 : (gStackSplitItems.size() - 1) / GetStackSplitPageSize());
 
 	CreateStackSplitSlots();
 	CreateStackSplitDoneButton();
@@ -1419,8 +1466,8 @@ static void MapInventoryPoolNextBtn(GUI_BUTTON* btn, UINT32 reason);
 
 static void CreateMapInventoryButtons(void)
 {
-	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 711, MAP_SCREEN_Y + 626, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
-	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 638, MAP_SCREEN_Y + 626, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
+	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 711, MAP_SCREEN_Y + 626 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
+	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 638, MAP_SCREEN_Y + 626 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
 
 	//reset the current inventory page to be the first page
 	iCurrentInventoryPoolPage = 0;
@@ -1469,13 +1516,13 @@ static void BuildStashForSelectedSector(const SGPSector& sector)
 	}
 
 	size_t visible_slots = pInventoryPoolList.size();
-	size_t empty_slots = MAP_INVENTORY_POOL_SLOT_COUNT - visible_slots % MAP_INVENTORY_POOL_SLOT_COUNT;
+	size_t empty_slots = GetMapInventoryPoolPageSize() - visible_slots % GetMapInventoryPoolPageSize();
 	pInventoryPoolList.resize(visible_slots + empty_slots, WORLDITEM{});
 	// No filter is active yet at this point (reset right before this call
 	// -- CreateDestroyMapInventoryPoolButtons()), so the whole (now padded)
 	// list is the visible prefix.
 	gVisibleInventorySlotCount = pInventoryPoolList.size();
-	iLastInventoryPoolPage  = static_cast<INT32>((gVisibleInventorySlotCount - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
+	iLastInventoryPoolPage  = static_cast<INT32>((gVisibleInventorySlotCount - 1) / GetMapInventoryPoolPageSize());
 
 	CheckGridNoOfItemsInMapScreenMapInventory();
 	SortSectorInventory(pInventoryPoolList.data(), visible_slots);
@@ -1718,7 +1765,7 @@ void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 	if (it == pInventoryPoolList.end())
 	{
 		size_t const old_size = pInventoryPoolList.size();
-		pInventoryPoolList.insert(pInventoryPoolList.end(), MAP_INVENTORY_POOL_SLOT_COUNT, WORLDITEM{});
+		pInventoryPoolList.insert(pInventoryPoolList.end(), GetMapInventoryPoolPageSize(), WORLDITEM{});
 		it = pInventoryPoolList.begin() + old_size;
 		// Growing at the absolute end only extends the visible span when
 		// SECTOR_INV_FILTER_ALL guarantees no hidden tail exists (the whole
@@ -1726,7 +1773,7 @@ void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 		// comment. Otherwise this appends after the hidden tail instead, so
 		// the visible boundary/page count don't move.
 		if (gubSectorInventoryActiveFilters & SECTOR_INV_FILTER_ALL) gVisibleInventorySlotCount = pInventoryPoolList.size();
-		iLastInventoryPoolPage = static_cast<INT32>((gVisibleInventorySlotCount - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
+		iLastInventoryPoolPage = static_cast<INT32>((gVisibleInventorySlotCount - 1) / GetMapInventoryPoolPageSize());
 	}
 
 	WORLDITEM& slot = *it;
@@ -1815,7 +1862,7 @@ static void DisplayPagesForMapInventoryPool(void)
 	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::format("{} / {}", iCurrentInventoryPoolPage + 1, iLastInventoryPoolPage + 1),
 		g_sector_inv_page_box);
 
@@ -1881,7 +1928,7 @@ static void DrawNumberOfInventoryPoolItems()
 	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::string::from_uint(GetTotalNumberOfItemsInSectorStash()),
 		g_sector_inv_count_box);
 
@@ -1892,7 +1939,7 @@ static void DrawNumberOfInventoryPoolItems()
 static void CreateMapInventoryPoolDoneButton(void)
 {
 	// create done button
-	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 0, 1, MAP_SCREEN_X + 808, MAP_SCREEN_Y + 621, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 0, 1, MAP_SCREEN_X + 808, MAP_SCREEN_Y + 621 + COMPACT_DONE_BUTTON_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
 	guiMapInvenButton[2]->SetFastHelpText("Done (Sector Inventory)");
 }
 
@@ -2086,8 +2133,8 @@ static void MoveAllMercItemsToSectorStash(SOLDIERTYPE* const soldier)
 // still fit even after an earlier, bulkier one didn't.
 static void MoveSectorItemsToMerc(SOLDIERTYPE* const soldier)
 {
-	INT32 const first_slot = iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT;
-	for (INT32 i = 0; i < MAP_INVENTORY_POOL_SLOT_COUNT; ++i)
+	INT32 const first_slot = iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize();
+	for (INT32 i = 0; i < GetMapInventoryPoolPageSize(); ++i)
 	{
 		WORLDITEM& wi = pInventoryPoolList[first_slot + i];
 		while (wi.o.ubNumberOfObjects > 0)
@@ -2274,11 +2321,11 @@ static void RebuildFilteredInventoryPoolList(std::vector<WORLDITEM>&& matching, 
 	// nothing hidden (no filter active), it must stay a true empty vector,
 	// not gain a wasted blank page appended after the visible content every
 	// single time the unfiltered case runs.
-	size_t const matching_empty = MAP_INVENTORY_POOL_SLOT_COUNT - compacted_matching.size() % MAP_INVENTORY_POOL_SLOT_COUNT;
+	size_t const matching_empty = GetMapInventoryPoolPageSize() - compacted_matching.size() % GetMapInventoryPoolPageSize();
 	compacted_matching.resize(compacted_matching.size() + matching_empty, WORLDITEM{});
 	if (!rest.empty())
 	{
-		size_t const rest_empty = MAP_INVENTORY_POOL_SLOT_COUNT - rest.size() % MAP_INVENTORY_POOL_SLOT_COUNT;
+		size_t const rest_empty = GetMapInventoryPoolPageSize() - rest.size() % GetMapInventoryPoolPageSize();
 		rest.resize(rest.size() + rest_empty, WORLDITEM{});
 	}
 
@@ -2293,7 +2340,7 @@ static void RebuildFilteredInventoryPoolList(std::vector<WORLDITEM>&& matching, 
 	// pInventoryPoolList.size() there instead re-widens pagination to cover
 	// the hidden tail on the very next frame.
 	gVisibleInventorySlotCount = visible_slots;
-	iLastInventoryPoolPage = static_cast<INT32>(visible_slots == 0 ? 0 : (visible_slots - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
+	iLastInventoryPoolPage = static_cast<INT32>(visible_slots == 0 ? 0 : (visible_slots - 1) / GetMapInventoryPoolPageSize());
 	if (iCurrentInventoryPoolPage > iLastInventoryPoolPage) iCurrentInventoryPoolPage = iLastInventoryPoolPage;
 
 	// CheckGridNoOfItemsInMapScreenMapInventory() assumes occupied slots
@@ -2480,7 +2527,7 @@ static void DisplayCurrentSector(void)
 	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::format("{}{}{}", pMapVertIndex[ sSelMap.y ],
 			pMapHortIndex[ sSelMap.x ], pMapDepthIndex[ iCurrentMapSectorZ ]),
 		g_sector_inv_loc_box);
@@ -2498,7 +2545,7 @@ static void CheckAndUnDateSlotAllocation(void)
 	{
 		// not enough space
 		// need to make more space
-		pInventoryPoolList.insert(pInventoryPoolList.end(), MAP_INVENTORY_POOL_SLOT_COUNT, WORLDITEM{});
+		pInventoryPoolList.insert(pInventoryPoolList.end(), GetMapInventoryPoolPageSize(), WORLDITEM{});
 	}
 
 	// Derived from gVisibleInventorySlotCount, NOT pInventoryPoolList.size()
@@ -2509,7 +2556,7 @@ static void CheckAndUnDateSlotAllocation(void)
 	// change had capped it (gubSectorInventoryActiveFilters,
 	// RebuildFilteredInventoryPoolList()) -- the very next page turn would
 	// then reveal items from other categories.
-	iLastInventoryPoolPage = ( ( static_cast<INT32>(gVisibleInventorySlotCount) - 1 ) / MAP_INVENTORY_POOL_SLOT_COUNT );
+	iLastInventoryPoolPage = ( ( static_cast<INT32>(gVisibleInventorySlotCount) - 1 ) / GetMapInventoryPoolPageSize() );
 }
 
 
@@ -2523,7 +2570,7 @@ static void DrawTextOnMapInventoryBackground(void)
 	SetFontDestBuffer(guiSAVEBUFFER);
 
 	int xPos = MAP_SCREEN_X + 392;
-	int yPos = MAP_SCREEN_Y + 634;
+	int yPos = MAP_SCREEN_Y + 634 + COMPACT_FOOTER_TEXT_Y_OFFSET;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
@@ -2715,7 +2762,7 @@ static void HandleMouseInCompatableItemForMapSectorInventory(INT32 iCurrentSlot)
 			const SOLDIERTYPE* const pSoldier = GetSelectedInfoChar();
 			if( pSoldier )
 			{
-				if( HandleCompatibleAmmoUIForMapScreen( pSoldier, iCurrentSlot + ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ), TRUE, FALSE ) )
+				if( HandleCompatibleAmmoUIForMapScreen( pSoldier, iCurrentSlot + ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() ), TRUE, FALSE ) )
 				{
 					if( GetJA2Clock( ) - guiCompatibleItemBaseTime > 100 )
 					{
@@ -2741,7 +2788,7 @@ static void HandleMouseInCompatableItemForMapSectorInventory(INT32 iCurrentSlot)
 		// check if any compatable items in the soldier inventory matches with this item
 		if( gfCheckForCursorOverMapSectorInventoryItem )
 		{
-			if( HandleCompatibleAmmoUIForMapInventory( pSoldier, iCurrentSlot, ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ) , TRUE, FALSE ) )
+			if( HandleCompatibleAmmoUIForMapInventory( pSoldier, iCurrentSlot, ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() ) , TRUE, FALSE ) )
 			{
 				if( GetJA2Clock( ) - guiCompatibleItemBaseTime > 100 )
 				{

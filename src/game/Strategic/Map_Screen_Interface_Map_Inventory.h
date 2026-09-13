@@ -6,9 +6,15 @@
 
 #include <vector>
 
-// number of inventory slots -- 9 columns (MAP_INV_SLOT_ROWS' column count,
-// Map_Screen_Interface_Map_Inventory.cc) x 10 rows, per user request
+// Compile-time array-sizing maximum for the sector-inventory pool's slot
+// arrays -- 9 columns x 10 rows (the large strategic-screen tier's own page
+// size). The actual per-page slot count in use is resolution-dependent (81
+// for the compact tier, height 720-767) and resolved at runtime by
+// GetMapInventoryPoolPageSize() (Map_Screen_Interface_Map_Inventory.cc) --
+// use that, not this macro, everywhere except array declarations.
 #define MAP_INVENTORY_POOL_SLOT_COUNT 90
+
+INT32 GetMapInventoryPoolPageSize(void);
 
 // whether we are showing the inventory pool graphic
 extern BOOLEAN fShowMapInventoryPool;

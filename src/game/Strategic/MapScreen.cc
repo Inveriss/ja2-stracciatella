@@ -3551,7 +3551,7 @@ static void BltCharInvPanel(void)
 	{
 		if( iCurrentlyHighLightedItem != -1 )
 		{
-			HandleCompatibleAmmoUIForMapScreen( pSoldier, (INT32)( iCurrentlyHighLightedItem + ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ) ) , TRUE, FALSE );
+			HandleCompatibleAmmoUIForMapScreen( pSoldier, (INT32)( iCurrentlyHighLightedItem + ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() ) ) , TRUE, FALSE );
 		}
 	}
 
@@ -3633,7 +3633,7 @@ static void HandleCursorOverRifleAmmo(void)
 
 		// also highlight in sector inventory
 		if( fShowMapInventoryPool )	{
-			HandleCompatibleAmmoUIForMapInventory( GetSelectedInfoChar(), gbCheckForMouseOverItemPos, ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ), TRUE, TRUE );
+			HandleCompatibleAmmoUIForMapInventory( GetSelectedInfoChar(), gbCheckForMouseOverItemPos, ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() ), TRUE, TRUE );
 		}
 	}
 }

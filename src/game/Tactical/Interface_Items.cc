@@ -1573,7 +1573,7 @@ BOOLEAN HandleCompatibleAmmoUIForMapInventory( SOLDIERTYPE *pSoldier, INT32 bInv
 	}
 
 	// First test attachments, which almost any type of item can have....
-	for ( cnt = 0; cnt < MAP_INVENTORY_POOL_SLOT_COUNT; cnt++ )
+	for ( cnt = 0; cnt < GetMapInventoryPoolPageSize(); cnt++ )
 	{
 		pObject = &( pInventoryPoolList[ iStartSlotNumber + cnt ].o );
 
@@ -1602,7 +1602,7 @@ BOOLEAN HandleCompatibleAmmoUIForMapInventory( SOLDIERTYPE *pSoldier, INT32 bInv
 
 	if( ( GCM->getItem(pTestObject->usItem)->isGun()) )
 	{
-		for ( cnt = 0; cnt < MAP_INVENTORY_POOL_SLOT_COUNT; cnt++ )
+		for ( cnt = 0; cnt < GetMapInventoryPoolPageSize(); cnt++ )
 		{
 			pObject = &( pInventoryPoolList[ iStartSlotNumber + cnt ].o );
 
@@ -1621,7 +1621,7 @@ BOOLEAN HandleCompatibleAmmoUIForMapInventory( SOLDIERTYPE *pSoldier, INT32 bInv
 	}
 	else if( ( GCM->getItem(pTestObject->usItem)->isAmmo() ) )
 	{
-		for ( cnt = 0; cnt < MAP_INVENTORY_POOL_SLOT_COUNT; cnt++ )
+		for ( cnt = 0; cnt < GetMapInventoryPoolPageSize(); cnt++ )
 		{
 			pObject = &( pInventoryPoolList[ iStartSlotNumber + cnt ].o );
 

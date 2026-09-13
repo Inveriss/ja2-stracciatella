@@ -283,7 +283,7 @@ void RenderRadarScreen()
 		{
 			if (iCurrentlyHighLightedItem != -1)
 			{
-				INT32     const  item_idx = iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT + iCurrentlyHighLightedItem;
+				INT32     const  item_idx = iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() + iCurrentlyHighLightedItem;
 				WORLDITEM const& wi       = pInventoryPoolList[item_idx];
 				if (wi.o.ubNumberOfObjects != 0 && wi.sGridNo != 0)
 				{
