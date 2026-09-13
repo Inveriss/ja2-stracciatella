@@ -1117,6 +1117,21 @@ std::vector<ST::string> DefaultContentManager::getAllSmallInventoryGraphicPaths(
 	return v;
 }
 
+std::vector<ST::string> DefaultContentManager::getAllBigInventoryGraphicPaths() const
+{
+	std::vector<ST::string> v = {};
+
+	for (auto item : m_items) {
+		auto& path = item->getInventoryGraphicBig().getPath();
+		auto existing = std::find(v.begin(), v.end(), path);
+		if (existing == v.end()) {
+			v.push_back(path);
+		}
+	}
+
+	return v;
+}
+
 const std::map<uint16_t, uint16_t>& DefaultContentManager::getMapItemReplacements() const
 {
 	return m_mapItemReplacements;

@@ -61,7 +61,12 @@ BOOLEAN HandleCompatibleAmmoUI(const SOLDIERTYPE* pSoldier, INT8 bInvPos, BOOLEA
 //              if == DIRTYLEVEL1 will render bullets and status only
 //
 //  Last parameter used mainly for when mouse is over item
-void INVRenderItem(SGPVSurface* uiBuffer, SOLDIERTYPE const* pSoldier, OBJECTTYPE const&, INT16 sX, INT16 sY, INT16 sWidth, INT16 sHeight, DirtyLevel, UINT8 ubStatusIndex, INT16 sOutlineColor);
+//  fUseSectorInventoryBigGraphic -- per user request: draws the item's
+//  BIGITEMS graphic (GetSectorInventoryBigGraphicForItem() below) instead of
+//  the usual MDITEMS one, for the sector-inventory panel's own "big images"
+//  toggle only. Defaults to FALSE, so every other caller (merc's own
+//  inventory, shop panels, etc.) is unaffected.
+void INVRenderItem(SGPVSurface* uiBuffer, SOLDIERTYPE const* pSoldier, OBJECTTYPE const&, INT16 sX, INT16 sY, INT16 sWidth, INT16 sHeight, DirtyLevel, UINT8 ubStatusIndex, INT16 sOutlineColor, BOOLEAN fUseSectorInventoryBigGraphic = FALSE);
 
 
 extern BOOLEAN gfInItemDescBox;
@@ -125,6 +130,15 @@ BOOLEAN HandleItemPointerClick( UINT16 usMapPos );
 UINT8 GetAttachmentHintColor(const OBJECTTYPE* pObj);
 std::pair<const SGPVObject*, UINT8> GetSmallInventoryGraphicForItem(const ItemModel *item);
 std::pair<SGPVObject*, UINT8> GetBigInventoryGraphicForItem(const ItemModel *item);
+// Dedicated, pre-cached (LoadInterfaceItemsGraphics()) BIGITEMS lookup for
+// the sector-inventory panel's "big images" toggle -- deliberately separate
+// from GetBigInventoryGraphicForItem() above, which stays on-demand/uncached
+// for its own, unrelated, low-frequency caller (ReloadItemDesc(), one
+// picture at a time). Reusing that one for a whole grid of simultaneously
+// visible, every-frame-redrawn slots would reload from disk and leak a new
+// SGPVObject every frame -- see GetSmallInventoryGraphicForItem() above for
+// the same reasoning/pattern this mirrors instead.
+std::pair<const SGPVObject*, UINT8> GetSectorInventoryBigGraphicForItem(const ItemModel *item);
 UINT16            GetTileGraphicForItem(const ItemModel *item);
 
 ST::string GetHelpTextForItem(const OBJECTTYPE& obj);

@@ -800,6 +800,11 @@ static SGPVObject *guiSecItemHiddenVO;
 static SGPVObject *guiSmallInventoryGraphicMissingSmallPocket;
 static SGPVObject *guiSmallInventoryGraphicMissingBigPocket;
 static std::map<ST::string, SGPVObject*> allInventoryGraphics;
+// Sector-inventory "big images" toggle's own pre-cached BIGITEMS lookup --
+// see GetSectorInventoryBigGraphicForItem()'s own comment (Interface_Items.h)
+// for why this is separate from GetBigInventoryGraphicForItem()'s existing,
+// deliberately-uncached, one-at-a-time path.
+static std::map<ST::string, SGPVObject*> allSectorInventoryBigGraphics;
 const ST::string guiBigInventoryGraphicMissingPath = "sti/interface/inventory/inventory-graphic-not-found-big.sti";
 
 static BOOLEAN AttemptToAddSubstring(ST::string& zDest, const ST::string& zTemp, UINT32* puiStringLength, UINT32 uiPixLimit)
@@ -1966,7 +1971,7 @@ UINT8 GetAttachmentHintColor(const OBJECTTYPE* o) {
 }
 
 
-void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECTTYPE const& o, INT16 const sX, INT16 const sY, INT16 const sWidth, INT16 const sHeight, DirtyLevel const dirty_level, UINT8 const ubStatusIndex, INT16 const outline_colour)
+void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECTTYPE const& o, INT16 const sX, INT16 const sY, INT16 const sWidth, INT16 const sHeight, DirtyLevel const dirty_level, UINT8 const ubStatusIndex, INT16 const outline_colour, BOOLEAN const fUseSectorInventoryBigGraphic)
 {
 	if (o.usItem    == NOTHING)     return;
 	if (dirty_level == DIRTYLEVEL0) return;
@@ -1978,7 +1983,9 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 	if (dirty_level == DIRTYLEVEL2)
 	{
 		// Center the object in the slot
-		auto graphic = GetSmallInventoryGraphicForItem(item);
+		auto graphic = fUseSectorInventoryBigGraphic
+			? GetSectorInventoryBigGraphicForItem(item)
+			: GetSmallInventoryGraphicForItem(item);
 		auto item_vo = graphic.first;
 		auto gfx_idx = graphic.second;
 		ETRLEObject const& e       = item_vo->SubregionProperties(gfx_idx);
@@ -5172,6 +5179,34 @@ std::pair<SGPVObject*, UINT8> GetBigInventoryGraphicForItem(const ItemModel * it
 	return std::make_pair(vObject, subImageIndex);
 }
 
+// Sector-inventory "big images" toggle's own lookup -- mirrors
+// GetSmallInventoryGraphicForItem() above exactly (pre-cached in
+// allSectorInventoryBigGraphics by LoadInterfaceItemsGraphics(), freed by
+// DeleteInterfaceItemsGraphics()), just reading the item's BIG graphic
+// instead of its small one. See this function's own comment in
+// Interface_Items.h for why it doesn't just reuse GetBigInventoryGraphicForItem()
+// above.
+std::pair<const SGPVObject*, UINT8> GetSectorInventoryBigGraphicForItem(const ItemModel *item)
+{
+	auto path = item->getInventoryGraphicBig().getPath().to_lower();
+	auto subImageIndex = item->getInventoryGraphicBig().getSubImageIndex();
+	auto i = allSectorInventoryBigGraphics.find(path);
+	if (i == allSectorInventoryBigGraphics.end()) {
+		SLOGE("Could not find sector-inventory big graphic for item `{}`", item->getInternalName());
+		return GetFallbackBigInventoryGraphic();
+	}
+	if (subImageIndex >= i->second->SubregionCount()) {
+		SLOGE("subImageIndex out of range for sector-inventory big graphic `{}` for item `{}`: subregion count is `{}`, subImageIndex is `{}`",
+			path,
+			item->getInternalName(),
+			i->second->SubregionCount(),
+			subImageIndex
+		);
+		return GetFallbackBigInventoryGraphic();
+	}
+	return std::make_pair(i->second, subImageIndex);
+}
+
 
 static void ItemDescCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 {
@@ -6412,6 +6447,21 @@ void LoadInterfaceItemsGraphics()
 		}
 	}
 
+	// Sector-inventory "big images" toggle's own pre-cached set -- see
+	// GetSectorInventoryBigGraphicForItem()'s own comment for why this is a
+	// separate cache from allInventoryGraphics above.
+	for (auto const& item : GCM->getAllBigInventoryGraphicPaths()) {
+		auto path = item.to_lower();
+		if (allSectorInventoryBigGraphics.find(path) == allSectorInventoryBigGraphics.end()) {
+			try {
+				auto vObject = AddVideoObjectFromFile(item);
+				allSectorInventoryBigGraphics.insert_or_assign(path, vObject);
+			} catch (const std::runtime_error &ex) {
+				SLOGE("Error loading sector-inventory big graphic `{}`: {}", item, ex.what());
+			}
+		}
+	}
+
 	// Build a sawtooth black-white-black colour gradient
 	size_t const length = lengthof(us16BPPItemCyclePlacedItemColors);
 	for (INT32 i = 0; i != length / 2; ++i)
@@ -6434,4 +6484,8 @@ void DeleteInterfaceItemsGraphics()
 		DeleteVideoObject(v.second);
 	}
 	allInventoryGraphics.clear();
+	for (auto const& v : allSectorInventoryBigGraphics) {
+		DeleteVideoObject(v.second);
+	}
+	allSectorInventoryBigGraphics.clear();
 }

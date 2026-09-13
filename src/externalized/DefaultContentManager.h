@@ -114,6 +114,7 @@ public:
 	virtual const ItemModel* getItemByName(const ST::string &internalName) const override;
 	virtual const ItemModel* getKeyItemForKeyId(uint16_t usKeyItem) const override;
 	virtual std::vector<ST::string> getAllSmallInventoryGraphicPaths() const override;
+	virtual std::vector<ST::string> getAllBigInventoryGraphicPaths() const override;
 	virtual const std::map<uint16_t, uint16_t>& getMapItemReplacements() const override;
 
 	virtual const std::vector<std::vector<const WeaponModel*> > & getNormalGunChoice() const override;
