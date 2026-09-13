@@ -1845,6 +1845,12 @@ static UINT8 GetSectorInventoryFilterCategory(UINT16 usItem)
 	if (item->isWeapon())                   return SECTOR_INV_FILTER_WEAPONS;
 	if (item->isExplosive())                return SECTOR_INV_FILTER_EXPLOSIVES;
 	if (item->getFlags() & ITEM_ATTACHMENT) return SECTOR_INV_FILTER_ATTACHMENTS;
+	// GUN_BARREL_EXTENDER/SPRING_AND_BOLT_UPGRADE are crafted, permanently
+	// installed gun upgrades (bInseparable/bNotBuyable in their own JSON)
+	// that don't carry the generic ITEM_ATTACHMENT flag there, even though
+	// the engine elsewhere (Items.cc's AttachmentInfoStruct table) already
+	// treats them as real IC_GUN attachments. Per user request.
+	if (usItem == GUN_BARREL_EXTENDER || usItem == SPRING_AND_BOLT_UPGRADE) return SECTOR_INV_FILTER_ATTACHMENTS;
 	if (item->isAmmo())                     return SECTOR_INV_FILTER_AMMO;
 	return SECTOR_INV_FILTER_OTHER;
 }
