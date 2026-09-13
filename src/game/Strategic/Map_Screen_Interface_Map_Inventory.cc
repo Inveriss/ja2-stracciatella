@@ -11,6 +11,7 @@
 #include "MessageBoxScreen.h"
 #include "Object_Cache.h"
 #include "Timer_Control.h"
+#include "UILayout.h"
 #include "VObject.h"
 #include "SysUtil.h"
 #include "Map_Screen_Interface_Border.h"
@@ -94,8 +95,19 @@ BOOLEAN fFlashHighLightInventoryItemOnradarMap = FALSE;
 // whether we are showing the inventory pool graphic
 BOOLEAN fShowMapInventoryPool = FALSE;
 
-// the v-object index value for the background
-static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_inventory.sti" };
+// Not a plain cache_key_t constant: which file this is depends on the
+// active resolution (see UILayout::isCompactStrategicScreen()), which isn't
+// known yet at static-initialization time, so the choice has to be resolved
+// at runtime, on every call. Suffix convention: _1280 for the compact
+// strategic-screen tier (height 720-767), _1024 for the large tier (height
+// 768+) -- see GetMapBorderGraphicsFilename() in Map_Screen_Interface_Border.cc
+// for the same pattern.
+static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
+{
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/Sector_Inventory_1280.sti"
+		: INTERFACEDIR "/Sector_Inventory_1024.sti";
+}
 
 // "Group Items" button -- see GroupSectorInventoryItems()/CreateMapInventoryGroupButton().
 // Like DONE_BUTTON_Inventory.STI/map_screen_bottom_arrows.sti above,
@@ -236,7 +248,16 @@ static BOOLEAN gfCheckForCursorOverMapSectorInventoryItem = FALSE;
 // na trwałe)".
 // ---------------------------------------------------------------------
 
-static cache_key_t const guiStackSplitBackground{ INTERFACEDIR "/sector_inventory_2.sti" };
+// Not a plain cache_key_t constant: same resolution-dependent runtime choice
+// as GetMapInventoryPoolBackgroundFilename() above -- _1280 for the compact
+// strategic-screen tier (height 720-767), _1024 for the large tier (height
+// 768+).
+static cache_key_t GetStackSplitBackgroundFilename(void)
+{
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/Sector_Inventory_Second_1280.sti"
+		: INTERFACEDIR "/Sector_Inventory_Second_1024.sti";
+}
 
 // Placeholder positions, per user request -- not yet the final layout.
 // g_stack_split_box is the whole window (background + slots); the slot box
@@ -316,7 +337,7 @@ static GUIButtonRef gStackSplitNextBtn;
 // remove background panel graphics for inventory
 void RemoveInventoryPoolGraphic( void )
 {
-	RemoveVObject(guiMapInventoryPoolBackground);
+	RemoveVObject(GetMapInventoryPoolBackgroundFilename());
 }
 
 
@@ -343,7 +364,7 @@ void MPrintCenteredInBox(int x, int y, ST::string const& text, SGPBox const& box
 void BlitInventoryPoolGraphic( void )
 {
 	const SGPBox* const box = &g_sector_inv_box;
-	BltVideoObject(guiSAVEBUFFER, guiMapInventoryPoolBackground, 0, MAP_SCREEN_X + box->x, MAP_SCREEN_Y + box->y);
+	BltVideoObject(guiSAVEBUFFER, GetMapInventoryPoolBackgroundFilename(), 0, MAP_SCREEN_X + box->x, MAP_SCREEN_Y + box->y);
 
 	// resize list
 	CheckAndUnDateSlotAllocation( );
@@ -1071,7 +1092,7 @@ static void RenderStackSplitItems(void)
 	UINT16 const bx = MAP_SCREEN_X + g_stack_split_box.x;
 	UINT16 const by = MAP_SCREEN_Y + g_stack_split_box.y;
 
-	BltVideoObject(guiSAVEBUFFER, guiStackSplitBackground, 0, bx, by);
+	BltVideoObject(guiSAVEBUFFER, GetStackSplitBackgroundFilename(), 0, bx, by);
 
 	SetFontDestBuffer(guiSAVEBUFFER);
 
