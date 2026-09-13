@@ -994,6 +994,7 @@ static void CreateStackSplitDoneButton(void)
 	// sub-image pair (2/3, vs. the main grid's own 0/1), per user request.
 	gStackSplitDoneButton = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 2, 3,
 		MAP_SCREEN_X + STACK_SPLIT_DONE_X, MAP_SCREEN_Y + STACK_SPLIT_DONE_Y, MSYS_PRIORITY_HIGHEST, StackSplitDoneBtn);
+	gStackSplitDoneButton->SetFastHelpText("Done (Stack Inventory)");
 }
 
 
@@ -1860,6 +1861,7 @@ static void CreateMapInventoryPoolDoneButton(void)
 {
 	// create done button
 	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 0, 1, MAP_SCREEN_X + 808, MAP_SCREEN_Y + 621, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2]->SetFastHelpText("Done (Sector Inventory)");
 }
 
 
@@ -1883,6 +1885,7 @@ static void CreateMapInventoryGroupButton(void)
 {
 	// create "group items" button -- placeholder position, per user request
 	guiMapInvenButton[3] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", GROUP_BUTTON_READY, GROUP_BUTTON_PRESSED, MAP_SCREEN_X + GROUP_BUTTON_X, MAP_SCREEN_Y + GROUP_BUTTON_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolGroupBtn);
+	guiMapInvenButton[3]->SetFastHelpText("Stack, consolidate and unload items.");
 }
 
 
@@ -1968,12 +1971,19 @@ static void CreateMapInventoryFilterButtons(void)
 	// one-time initialization, not an ongoing sync.
 	guiMapInvenButton[4]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", ALL_ITEMS_BUTTON_OFF, ALL_ITEMS_BUTTON_ON, MAP_SCREEN_X + ALL_ITEMS_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolAllItemsBtn);
 	guiMapInvenButton[4]->uiFlags |= BUTTON_CLICKED_ON;
+	guiMapInvenButton[4]->SetFastHelpText("Show All");
 	guiMapInvenButton[5]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_WEAPONS_OFF,     FILTER_WEAPONS_ON,     MAP_SCREEN_X + FILTER_WEAPONS_X,     MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterWeaponsBtn);
+	guiMapInvenButton[5]->SetFastHelpText("Show Guns");
 	guiMapInvenButton[6]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ATTACHMENTS_OFF, FILTER_ATTACHMENTS_ON, MAP_SCREEN_X + FILTER_ATTACHMENTS_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAttachmentsBtn);
+	guiMapInvenButton[6]->SetFastHelpText("Show Attachments");
 	guiMapInvenButton[7]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_AMMO_OFF,        FILTER_AMMO_ON,        MAP_SCREEN_X + FILTER_AMMO_X,        MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAmmoBtn);
+	guiMapInvenButton[7]->SetFastHelpText("Show Ammo");
 	guiMapInvenButton[8]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ARMOUR_OFF,      FILTER_ARMOUR_ON,      MAP_SCREEN_X + FILTER_ARMOUR_X,      MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterArmourBtn);
+	guiMapInvenButton[8]->SetFastHelpText("Show Armour");
 	guiMapInvenButton[9]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_EXPLOSIVES_OFF,  FILTER_EXPLOSIVES_ON,  MAP_SCREEN_X + FILTER_EXPLOSIVES_X,  MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterExplosivesBtn);
+	guiMapInvenButton[9]->SetFastHelpText("Show Explosives");
 	guiMapInvenButton[10] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_OTHER_OFF,       FILTER_OTHER_ON,       MAP_SCREEN_X + FILTER_OTHER_X,       MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterOtherBtn);
+	guiMapInvenButton[10]->SetFastHelpText("Show Miscellaneous");
 }
 
 
@@ -2127,7 +2137,9 @@ static void CreateMapInventoryTransferButtons(void)
 {
 	// Placeholder positions, per user request -- not yet the final layout.
 	guiMapInvenButton[11] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_SECTOR_READY, MOVE_TO_SECTOR_PRESSED, MAP_SCREEN_X + MOVE_TO_SECTOR_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToSectorBtn);
+	guiMapInvenButton[11]->SetFastHelpText("Move all items from mercenary to sector inventory.");
 	guiMapInvenButton[12] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_MERC_READY,   MOVE_TO_MERC_PRESSED,   MAP_SCREEN_X + MOVE_TO_MERC_X,   MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToMercBtn);
+	guiMapInvenButton[12]->SetFastHelpText("Move all possible items from sector to mercenary inventory.");
 }
 
 
