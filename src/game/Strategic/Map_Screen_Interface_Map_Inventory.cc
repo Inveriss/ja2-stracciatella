@@ -376,11 +376,22 @@ void BlitInventoryPoolGraphic( void )
 	// now update help text
 	UpdateHelpTextForInvnentoryStashSlots( );
 
-	// show which page and last page
-	DisplayPagesForMapInventoryPool( );
+	// Main grid's own page-number and Total Items VALUES -- both sit
+	// underneath the stack split popup's own footprint (unlike the
+	// "Location"/"Total Items" text labels below, which sit further left,
+	// outside it), so they must not draw while the popup is open, or they
+	// bleed through/over its own independent equivalents
+	// (RenderStackSplitItems() below). Same reasoning as the main grid's
+	// next/prev arrow buttons being Hidden while the popup is open
+	// (HandleButtonStatesWhileMapInventoryActive()).
+	if (gStackSplitSourceIndex == -1)
+	{
+		// show which page and last page
+		DisplayPagesForMapInventoryPool( );
 
-	// draw number of items in current inventory
-	DrawNumberOfInventoryPoolItems();
+		// draw number of items in current inventory
+		DrawNumberOfInventoryPoolItems();
+	}
 
 	// display current sector inventory pool is at
 	DisplayCurrentSector( );
