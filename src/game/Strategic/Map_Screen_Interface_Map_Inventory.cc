@@ -62,17 +62,17 @@
 // so it doesn't affect the unrelated footer labels that still use it
 #define MAP_SECTOR_INV_ITEM_FONT			FONTSECTORINV
 
-// inventory pool slot positions and sizes -- ROW Y = 11 per user request;
+// inventory pool slot positions and sizes -- ROW Y = 10 per user request;
 // column count (ROW X = 9) follows from MAP_INVENTORY_POOL_SLOT_COUNT / this
 // (Map_Screen_Interface_Map_Inventory.h)
-#define MAP_INV_SLOT_ROWS 11
+#define MAP_INV_SLOT_ROWS 10
 
 
 static const SGPBox g_sector_inv_box        = { 261,   0, 762, 648 };
 static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
-static const SGPBox g_sector_inv_slot_box   = { 274,  37,  83,  52 };
-static const SGPBox g_sector_inv_region_box = {   11,   28,  72,  33 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_item_box   = {   11,   28,  72,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_slot_box   = { 274,  37,  78,  52 };
+static const SGPBox g_sector_inv_region_box = {   27,   64,  67,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_item_box   = {   27,   64,  67,  33 }; // relative to g_sector_inv_slot_box
 // x is intentionally UINT16(-1) (== 65535, wrapping) to shift the bar 1px
 // left of the item box -- SGPBox's fields are unsigned so a plain -1
 // literal here would silently narrow (MSVC C4838). The explicit cast keeps
@@ -80,8 +80,8 @@ static const SGPBox g_sector_inv_item_box   = {   11,   28,  72,  33 }; // relat
 // it's added to dx and truncated back down to INT16 in
 // DrawItemUIBarEx()'s sXPos parameter, which cancels the wraparound out to
 // dx - 1) while making the intent clear and silencing the warning.
-static const SGPBox g_sector_inv_bar_box    = { (UINT16)5,   30,   2,  31 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_name_box   = {   6,  65,  75,   10 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_bar_box    = { (UINT16)21,   66,   2,  31 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_name_box   = {   22,  101,  75,   10 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_loc_box    = { 709, 630,  39,  10 };
 static const SGPBox g_sector_inv_count_box  = { 800, 630,  39,  10 };
 static const SGPBox g_sector_inv_page_box   = { 868, 630,  50,  10 };
@@ -103,8 +103,55 @@ static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_in
 #define GROUP_BUTTON_READY   0
 #define GROUP_BUTTON_PRESSED 1
 // Placeholder position, per user request -- not yet the final layout.
-#define GROUP_BUTTON_X 278
-#define GROUP_BUTTON_Y 16
+#define GROUP_BUTTON_X 288
+#define GROUP_BUTTON_Y 32
+
+// Category-filter buttons -- "Wszystkie przedmioty" (clears every active
+// filter) plus one toggle per category. Same sector_inventory_bookmarks.sti
+// sheet as GROUP_BUTTON above, occupying the next sequential sub-image
+// pairs per user instruction -- placeholder order/positions (this file's
+// own precedent for GROUP_BUTTON_X/Y), not yet the final asset layout.
+// Each button is 55x50px, chained 3px apart starting right after "Grupuj
+// przedmioty", per user request.
+#define ALL_ITEMS_BUTTON_READY   2
+#define ALL_ITEMS_BUTTON_PRESSED 3
+#define FILTER_WEAPONS_OFF       4
+#define FILTER_WEAPONS_ON        5
+#define FILTER_ATTACHMENTS_OFF   6
+#define FILTER_ATTACHMENTS_ON    7
+#define FILTER_AMMO_OFF          8
+#define FILTER_AMMO_ON           9
+#define FILTER_ARMOUR_OFF        10
+#define FILTER_ARMOUR_ON         11
+#define FILTER_EXPLOSIVES_OFF    12
+#define FILTER_EXPLOSIVES_ON     13
+#define FILTER_OTHER_OFF         14
+#define FILTER_OTHER_ON          15
+
+#define FILTER_BUTTON_WIDTH 55
+#define FILTER_BUTTON_GAP    3
+#define FILTER_BUTTON_STEP  (FILTER_BUTTON_WIDTH + FILTER_BUTTON_GAP)
+
+#define ALL_ITEMS_BUTTON_X    (GROUP_BUTTON_X + FILTER_BUTTON_STEP)
+#define FILTER_WEAPONS_X      (GROUP_BUTTON_X + 2 * FILTER_BUTTON_STEP)
+#define FILTER_ATTACHMENTS_X  (GROUP_BUTTON_X + 3 * FILTER_BUTTON_STEP)
+#define FILTER_AMMO_X         (GROUP_BUTTON_X + 4 * FILTER_BUTTON_STEP)
+#define FILTER_ARMOUR_X       (GROUP_BUTTON_X + 5 * FILTER_BUTTON_STEP)
+#define FILTER_EXPLOSIVES_X   (GROUP_BUTTON_X + 6 * FILTER_BUTTON_STEP)
+#define FILTER_OTHER_X        (GROUP_BUTTON_X + 7 * FILTER_BUTTON_STEP)
+#define FILTER_BUTTONS_Y      GROUP_BUTTON_Y
+
+// Bitmask of active category filters -- 0 means no filter, i.e. show
+// everything (also what "Wszystkie przedmioty" resets it to). Several can
+// be active at once (a category shows if it matches ANY active filter --
+// per user request, a union, not an intersection).
+#define SECTOR_INV_FILTER_WEAPONS     0x01
+#define SECTOR_INV_FILTER_ATTACHMENTS 0x02
+#define SECTOR_INV_FILTER_AMMO        0x04
+#define SECTOR_INV_FILTER_ARMOUR      0x08
+#define SECTOR_INV_FILTER_EXPLOSIVES  0x10
+#define SECTOR_INV_FILTER_OTHER       0x20
+static UINT8 gubSectorInventoryActiveFilters = 0;
 
 // inventory pool list
 std::vector<WORLDITEM> pInventoryPoolList;
@@ -127,8 +174,10 @@ static std::vector<WORLDITEM> pUnSeenItems;
 UINT32 guiFlashHighlightedItemBaseTime = 0;
 UINT32 guiCompatibleItemBaseTime = 0;
 
-// [0] = next page, [1] = previous page, [2] = done, [3] = group items
-static GUIButtonRef guiMapInvenButton[4];
+// [0] = next page, [1] = previous page, [2] = done, [3] = group items,
+// [4] = all items (clears filters), [5] = weapons, [6] = attachments,
+// [7] = ammo, [8] = armour, [9] = explosives, [10] = other
+static GUIButtonRef guiMapInvenButton[11];
 
 static BOOLEAN gfCheckForCursorOverMapSectorInventoryItem = FALSE;
 
@@ -160,11 +209,11 @@ static cache_key_t const guiStackSplitBackground{ INTERFACEDIR "/sector_inventor
 // slot -- same layering as g_sector_inv_slot_box/_region_box/_item_box/etc.
 // above.
 static const SGPBox g_stack_split_box        = { 261, 0, 762, 468 };
-static const SGPBox g_stack_split_slot_box   = {  10,  30,  83,  52 };
-static const SGPBox g_stack_split_region_box = {  11,  34,  72,  33 }; // relative to g_stack_split_slot_box
-static const SGPBox g_stack_split_item_box   = {  11,  34,  72,  33 }; // relative to g_stack_split_slot_box
-static const SGPBox g_stack_split_bar_box    = { (UINT16)8, 37, 2, 31 }; // relative to g_stack_split_slot_box
-static const SGPBox g_stack_split_name_box   = {   9,  72,  75,  10 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_slot_box   = {  10,  30,  78,  52 };
+static const SGPBox g_stack_split_region_box = {  27,  70,  67,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_item_box   = {  27,  70,  67,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_bar_box    = { (UINT16)24, 72, 2, 31 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // relative to g_stack_split_slot_box
 
 // Placeholder position, per user request -- not yet the final layout.
 #define STACK_SPLIT_DONE_X 950
@@ -172,7 +221,9 @@ static const SGPBox g_stack_split_name_box   = {   9,  72,  75,  10 }; // relati
 
 // Slots laid out in a small grid, wide enough for a whole stack (a stack
 // can never hold more than MAX_OBJECTS_PER_SLOT items to begin with).
-#define STACK_SPLIT_COLS 4
+// ROW X = 9 per user request, matching the main sector-inventory grid's
+// own column count (MAP_INV_SLOT_ROWS' column count above).
+#define STACK_SPLIT_COLS 9
 
 // The physically-split-out items, one per slot -- empty (gStackSplitItems
 // cleared) when the view is closed.
@@ -354,16 +405,19 @@ static void CreateMapInventoryButtons(void);
 static void CreateMapInventoryPoolDoneButton(void);
 static void CreateMapInventoryPoolSlots(void);
 static void CreateMapInventoryGroupButton(void);
+static void CreateMapInventoryFilterButtons(void);
 static void CreateStackSplitSlots(void);
 static void CreateStackSplitDoneButton(void);
 static void DestroyInventoryPoolDoneButton(void);
 static void DestroyMapInventoryButtons(void);
 static void DestroyMapInventoryPoolSlots();
 static void DestroyMapInventoryGroupButton(void);
+static void DestroyMapInventoryFilterButtons(void);
 static void DestroyStackSplitSlots(void);
 static void DestroyStackSplitDoneButton(void);
 static void DestroyStash(void);
 static void GroupSectorInventoryItems(void);
+static void ApplySectorInventoryFilter(void);
 static void HandleMapSectorInventory(void);
 static void OpenStackSplitView(INT32 sourceIndex);
 static void CloseStackSplitView(void);
@@ -403,12 +457,19 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		// create buttons
 		CreateMapInventoryButtons( );
 
+		// Reset category filters every time the panel opens -- a fresh
+		// BuildStashForSelectedSector() below always builds an unfiltered
+		// pInventoryPoolList, and a freshly created toggle button below
+		// starts in its "off" visual state, so this keeps both in sync.
+		gubSectorInventoryActiveFilters = 0;
+
 		// build stash
 		BuildStashForSelectedSector(sector);
 
 		CreateMapInventoryPoolDoneButton( );
 
 		CreateMapInventoryGroupButton( );
+		CreateMapInventoryFilterButtons( );
 
 		fMapPanelDirty = TRUE;
 		fMapScreenBottomDirty = TRUE;
@@ -446,6 +507,7 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		DestroyInventoryPoolDoneButton( );
 
 		DestroyMapInventoryGroupButton( );
+		DestroyMapInventoryFilterButtons( );
 
 		// now save results
 		SaveSeenAndUnseenItems( );
@@ -1610,42 +1672,255 @@ static void DestroyMapInventoryGroupButton(void)
 }
 
 
-// Groups every item of the same kind in the sector-inventory stash into as
-// few slots as possible, up to that item's own per-pocket capacity --
-// mirroring PlaceObjectInInventoryStash()'s own limit
-// (GCM->getItem(usItem)->getPerPocket(), capped defensively at
-// MAX_OBJECTS_PER_SLOT), NOT a flat 8 for everything: non-stackable items
-// (guns, armour, unique items -- getPerPocket() < 2) naturally never get
-// merged, since their single existing unit already fills that capacity, so
-// no separate check for them is needed below.
+// Small helper mirroring QuickCreateButtonImg()'s own simple overload, but
+// creating a persistent-state TOGGLE button (BUTTON_NEWTOGGLE, via
+// QuickCreateButtonToggle()) instead of a momentary one -- needed for the
+// category filters below, which stay visually "on" while active, unlike
+// "Grupuj przedmioty"/"Wszystkie przedmioty" (one-shot actions, plain
+// QuickCreateButtonImg()).
+static GUIButtonRef QuickCreateFilterToggleButton(char const* const gfx, INT32 const off_normal, INT32 const on_normal, INT16 const x, INT16 const y, INT16 const priority, GUI_CALLBACK const click)
+{
+	BUTTON_PICS* const img = LoadButtonImage(gfx, off_normal, on_normal);
+	GUIButtonRef const btn = QuickCreateButtonToggle(img, x, y, priority, click);
+	btn->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+	return btn;
+}
+
+
+static void MapInventoryPoolAllItemsBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		// Clears every active category filter and turns off their toggle
+		// buttons' visual state to match -- per user request, this button
+		// always means "show everything", regardless of what was active.
+		gubSectorInventoryActiveFilters = 0;
+		// The 6 category buttons are always created together with this one
+		// (CreateMapInventoryFilterButtons()), so all of guiMapInvenButton[5..10]
+		// are valid by the time this callback can fire.
+		for (UINT32 i = 5; i <= 10; ++i)
+		{
+			guiMapInvenButton[i]->uiFlags &= ~BUTTON_CLICKED_ON;
+		}
+		ApplySectorInventoryFilter();
+	}
+}
+
+
+// Shared body of the six category-filter toggle buttons below -- flips
+// `category` in gubSectorInventoryActiveFilters and re-applies the filter.
+// Several categories can be active at once (a union, not an intersection),
+// per user request.
+static void ToggleSectorInventoryFilter(UINT8 category)
+{
+	gubSectorInventoryActiveFilters ^= category;
+	ApplySectorInventoryFilter();
+}
+
+static void MapInventoryPoolFilterWeaponsBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_WEAPONS);
+}
+
+static void MapInventoryPoolFilterAttachmentsBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_ATTACHMENTS);
+}
+
+static void MapInventoryPoolFilterAmmoBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_AMMO);
+}
+
+static void MapInventoryPoolFilterArmourBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_ARMOUR);
+}
+
+static void MapInventoryPoolFilterExplosivesBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_EXPLOSIVES);
+}
+
+static void MapInventoryPoolFilterOtherBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_OTHER);
+}
+
+
+static void CreateMapInventoryFilterButtons(void)
+{
+	// Placeholder positions, per user request -- not yet the final layout.
+	// Every filter starts inactive: gubSectorInventoryActiveFilters is
+	// reset to 0 whenever the panel opens (CreateDestroyMapInventoryPoolButtons()),
+	// so a freshly created toggle button correctly starts in its "off" state.
+	guiMapInvenButton[4]  = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", ALL_ITEMS_BUTTON_READY, ALL_ITEMS_BUTTON_PRESSED, MAP_SCREEN_X + ALL_ITEMS_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolAllItemsBtn);
+	guiMapInvenButton[5]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_WEAPONS_OFF,     FILTER_WEAPONS_ON,     MAP_SCREEN_X + FILTER_WEAPONS_X,     MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterWeaponsBtn);
+	guiMapInvenButton[6]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ATTACHMENTS_OFF, FILTER_ATTACHMENTS_ON, MAP_SCREEN_X + FILTER_ATTACHMENTS_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAttachmentsBtn);
+	guiMapInvenButton[7]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_AMMO_OFF,        FILTER_AMMO_ON,        MAP_SCREEN_X + FILTER_AMMO_X,        MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAmmoBtn);
+	guiMapInvenButton[8]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ARMOUR_OFF,      FILTER_ARMOUR_ON,      MAP_SCREEN_X + FILTER_ARMOUR_X,      MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterArmourBtn);
+	guiMapInvenButton[9]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_EXPLOSIVES_OFF,  FILTER_EXPLOSIVES_ON,  MAP_SCREEN_X + FILTER_EXPLOSIVES_X,  MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterExplosivesBtn);
+	guiMapInvenButton[10] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_OTHER_OFF,       FILTER_OTHER_ON,       MAP_SCREEN_X + FILTER_OTHER_X,       MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterOtherBtn);
+}
+
+
+static void DestroyMapInventoryFilterButtons(void)
+{
+	for (UINT32 i = 4; i <= 10; ++i) RemoveButton( guiMapInvenButton[ i ] );
+}
+
+
+// Which category-filter button (if any) an item belongs to -- see
+// gubSectorInventoryActiveFilters above. Order matters, since some items
+// would otherwise match more than one bucket:
+//  - IC_ARMOUR is checked before the generic ITEM_ATTACHMENT flag, so
+//    ceramic plates (themselves IC_ARMOUR -- see ArmourModel::canBeAttached())
+//    land in "Tylko umundurowanie" rather than "Tylko dodatki do broni",
+//    per user request.
+//  - isWeapon()/isExplosive() are checked before ITEM_ATTACHMENT too, so an
+//    under-barrel launcher (IC_LAUNCHER, itself attachable) or a 40mm
+//    grenade (loadable into one, but IC_GRENADE) land in "Tylko bronie"/
+//    "Tylko materiały wybuchowe" rather than "Tylko dodatki do broni".
+//  - What's left with ITEM_ATTACHMENT is therefore narrowed down to
+//    weapon-compatible attachments (scopes, silencers, bipods, ...), per
+//    user request ("zawężyć wyłącznie do dodatków kompatybilnych z bronią").
+//  - IC_AMMO only (not grenades) for "Tylko amunicja", per user request.
+//  - Everything else (medkits, kits, keys, money, misc, ...) is
+//    "Tylko pozostałe przedmioty".
+static UINT8 GetSectorInventoryFilterCategory(UINT16 usItem)
+{
+	if (usItem == NOTHING) return 0;
+	const ItemModel* const item = GCM->getItem(usItem);
+
+	if (item->isArmour())                   return SECTOR_INV_FILTER_ARMOUR;
+	if (item->isWeapon())                   return SECTOR_INV_FILTER_WEAPONS;
+	if (item->isExplosive())                return SECTOR_INV_FILTER_EXPLOSIVES;
+	if (item->getFlags() & ITEM_ATTACHMENT) return SECTOR_INV_FILTER_ATTACHMENTS;
+	if (item->isAmmo())                     return SECTOR_INV_FILTER_AMMO;
+	return SECTOR_INV_FILTER_OTHER;
+}
+
+
+// Splits every occupied slot in pInventoryPoolList into `matching` (shown
+// while gubSectorInventoryActiveFilters is active -- or every occupied slot
+// when it's 0, i.e. no filter) and `rest` (everything else, hidden but not
+// deleted). Shared by ApplySectorInventoryFilter() and
+// GroupSectorInventoryItems() so both agree on exactly what "visible" means.
+static void SplitPoolListByFilter(std::vector<WORLDITEM>& matching, std::vector<WORLDITEM>& rest)
+{
+	for (WORLDITEM const& wi : pInventoryPoolList)
+	{
+		// See the occupancy comment inside GroupWorlditemRange() -- fExists
+		// is not reliable here, ubNumberOfObjects is.
+		if (wi.o.ubNumberOfObjects == 0) continue;
+
+		bool const visible = gubSectorInventoryActiveFilters == 0 ||
+			(GetSectorInventoryFilterCategory(wi.o.usItem) & gubSectorInventoryActiveFilters) != 0;
+		(visible ? matching : rest).push_back(wi);
+	}
+}
+
+
+// Rebuilds pInventoryPoolList from `matching` (kept visible: sorted, padded
+// to a whole number of pages, and what pagination is based on) and `rest`
+// (the hidden tail while a filter is active -- items kept, just placed
+// after the last visible page so ordinary paging can never reach them;
+// empty when no filter is active). This is the one place that defines what
+// filtering means for the underlying list, shared by
+// ApplySectorInventoryFilter() and GroupSectorInventoryItems() so a
+// "Grupuj przedmioty" while filtered lands in the exact same shape a plain
+// filter change would.
+static void RebuildFilteredInventoryPoolList(std::vector<WORLDITEM>&& matching, std::vector<WORLDITEM>&& rest)
+{
+	// Grouping (if the caller ran it) can turn a previously-occupied slot
+	// in `matching` into an empty one -- drop those now, same as step 3
+	// used to. `rest` is never touched by grouping, so this is a no-op for
+	// it, but doesn't hurt to keep both paths identical.
+	std::vector<WORLDITEM> compacted_matching;
+	compacted_matching.reserve(matching.size());
+	for (WORLDITEM const& wi : matching) if (wi.o.ubNumberOfObjects > 0) compacted_matching.push_back(wi);
+
+	size_t const visible_slots = compacted_matching.size();
+
+	// Always pad the visible prefix to a whole page, even when empty -- same
+	// "at least one page" convention BuildStashForSelectedSector() already
+	// uses. `rest` (the hidden tail) has no such precedent: when there's
+	// nothing hidden (no filter active), it must stay a true empty vector,
+	// not gain a wasted blank page appended after the visible content every
+	// single time the unfiltered case runs.
+	size_t const matching_empty = MAP_INVENTORY_POOL_SLOT_COUNT - compacted_matching.size() % MAP_INVENTORY_POOL_SLOT_COUNT;
+	compacted_matching.resize(compacted_matching.size() + matching_empty, WORLDITEM{});
+	if (!rest.empty())
+	{
+		size_t const rest_empty = MAP_INVENTORY_POOL_SLOT_COUNT - rest.size() % MAP_INVENTORY_POOL_SLOT_COUNT;
+		rest.resize(rest.size() + rest_empty, WORLDITEM{});
+	}
+
+	pInventoryPoolList = std::move(compacted_matching);
+	pInventoryPoolList.insert(pInventoryPoolList.end(), rest.begin(), rest.end());
+
+	// Pagination is capped to the visible prefix alone -- paging forward
+	// can never reach the hidden tail, which is what makes this a real
+	// filter and not just a reordering.
+	iLastInventoryPoolPage = static_cast<INT32>(visible_slots == 0 ? 0 : (visible_slots - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
+	if (iCurrentInventoryPoolPage > iLastInventoryPoolPage) iCurrentInventoryPoolPage = iLastInventoryPoolPage;
+
+	// CheckGridNoOfItemsInMapScreenMapInventory() assumes occupied slots
+	// are continuous from the front (its own FIXME) -- true here only when
+	// there's no hidden tail, since GetTotalNumberOfItems() (which it uses)
+	// counts every occupied slot including the ones sitting in `rest`.
+	// Skipped while a filter is active; it reruns next time a filter
+	// change (or BuildStashForSelectedSector()) calls this with rest empty.
+	if (gubSectorInventoryActiveFilters == 0) CheckGridNoOfItemsInMapScreenMapInventory();
+	SortSectorInventory(pInventoryPoolList.data(), visible_slots);
+
+	fMapPanelDirty = TRUE;
+}
+
+
+// The eject-ammo/strip-attachments + pairwise-merge core of "Grupuj
+// przedmioty", extracted so it can run on either the whole stash (no filter
+// active) or just the currently-visible filtered subset (per user request:
+// grouping while filtered only affects the visible category) without
+// duplicating this logic. Leaves now-empty slots in `items` for the caller
+// to drop (RebuildFilteredInventoryPoolList() does this).
 //
-// Also, for every gun already in the stash: ejects its loaded ammo
+// Groups every item of the same kind into as few slots as possible, up to
+// that item's own per-pocket capacity -- mirroring
+// PlaceObjectInInventoryStash()'s own limit (GCM->getItem(usItem)->
+// getPerPocket(), capped defensively at MAX_OBJECTS_PER_SLOT), NOT a flat 8
+// for everything: non-stackable items (guns, armour, unique items --
+// getPerPocket() < 2) naturally never get merged, since their single
+// existing unit already fills that capacity, so no separate check for them
+// is needed below.
+//
+// Also, for every gun already present: ejects its loaded ammo
 // (EmptyWeaponMagazine()) and strips its attachments (RemoveAttachment(),
 // which itself refuses to remove ITEM_INSEPARABLE ones -- respected, not
 // bypassed), so those get grouped together with any other loose
 // ammo/attachments of the same kind in the pass that follows. Per user
 // request.
-static void GroupSectorInventoryItems(void)
+static void GroupWorlditemRange(std::vector<WORLDITEM>& items)
 {
-	// Step 1: eject ammo and strip attachments from every gun already in
-	// the stash. Collected into a separate list and appended only once
-	// this loop is done, rather than push_back()-ing into
-	// pInventoryPoolList directly -- a reallocation mid-loop would
-	// invalidate the WORLDITEM& reference this loop is still using.
-	size_t const original_count = pInventoryPoolList.size();
+	// Step 1: eject ammo and strip attachments from every gun already
+	// present. Collected into a separate list and appended only once this
+	// loop is done, rather than push_back()-ing into `items` directly -- a
+	// reallocation mid-loop would invalidate the WORLDITEM& reference this
+	// loop is still using.
+	size_t const original_count = items.size();
 	std::vector<WORLDITEM> extracted;
 
 	for (size_t i = 0; i < original_count; ++i)
 	{
-		WORLDITEM& slot = pInventoryPoolList[i];
+		WORLDITEM& slot = items[i];
 		// Occupancy is decided by ubNumberOfObjects alone here -- same as
 		// RenderItemInPoolSlot()/GetTotalNumberOfItems() -- NOT fExists.
 		// Items dropped into the stash by hand from a merc's own inventory
 		// (PlaceObjectInInventoryStash()) only ever touch the OBJECTTYPE
 		// half of the slot, never WORLDITEM::fExists, so a real,
 		// non-empty item can legitimately have fExists == FALSE here.
-		// Requiring fExists too silently dropped exactly those items
-		// during the step 3 compaction below.
+		// Requiring fExists too would silently drop exactly those items
+		// once the caller compacts the result.
 		if (slot.o.ubNumberOfObjects == 0) continue;
 
 		const ItemModel* const item = GCM->getItem(slot.o.usItem);
@@ -1676,12 +1951,12 @@ static void GroupSectorInventoryItems(void)
 		}
 	}
 
-	pInventoryPoolList.insert(pInventoryPoolList.end(), extracted.begin(), extracted.end());
+	items.insert(items.end(), extracted.begin(), extracted.end());
 
 	// Step 2: merge/compact every occupied slot, grouped by item type.
-	for (size_t i = 0; i < pInventoryPoolList.size(); ++i)
+	for (size_t i = 0; i < items.size(); ++i)
 	{
-		WORLDITEM& dest_wi = pInventoryPoolList[i];
+		WORLDITEM& dest_wi = items[i];
 		if (dest_wi.o.ubNumberOfObjects == 0) continue;
 
 		UINT16 const usItem = dest_wi.o.usItem;
@@ -1693,9 +1968,9 @@ static void GroupSectorInventoryItems(void)
 			// it can't go through CleanUpStack()/StackObjs() below --
 			// combine it the same way PlaceObjectInInventoryStash() already
 			// does for a single manual drop.
-			for (size_t j = i + 1; j < pInventoryPoolList.size(); ++j)
+			for (size_t j = i + 1; j < items.size(); ++j)
 			{
-				WORLDITEM& src_wi = pInventoryPoolList[j];
+				WORLDITEM& src_wi = items[j];
 				if (src_wi.o.usItem != MONEY || src_wi.o.ubNumberOfObjects == 0) continue;
 
 				dest_wi.o.bMoneyStatus = 100;
@@ -1707,9 +1982,9 @@ static void GroupSectorInventoryItems(void)
 
 		UINT8 const slot_limit = std::min<UINT8>(GCM->getItem(usItem)->getPerPocket(), MAX_OBJECTS_PER_SLOT);
 
-		for (size_t j = i + 1; j < pInventoryPoolList.size(); ++j)
+		for (size_t j = i + 1; j < items.size(); ++j)
 		{
-			WORLDITEM& src_wi = pInventoryPoolList[j];
+			WORLDITEM& src_wi = items[j];
 			if (src_wi.o.usItem != usItem || src_wi.o.ubNumberOfObjects == 0) continue;
 
 			// Merge partial charges first (ammo/kits/canteens/alcohol/etc.
@@ -1736,30 +2011,33 @@ static void GroupSectorInventoryItems(void)
 			}
 		}
 	}
+}
 
-	// Step 3: drop now-empty slots, then re-pad to a whole number of pages
-	// -- same convention as BuildStashForSelectedSector().
-	std::vector<WORLDITEM> compacted;
-	compacted.reserve(pInventoryPoolList.size());
-	for (WORLDITEM const& wi : pInventoryPoolList)
-	{
-		// See the occupancy comment at the top of this function -- fExists
-		// is not reliable here, ubNumberOfObjects is.
-		if (wi.o.ubNumberOfObjects > 0) compacted.push_back(wi);
-	}
 
-	size_t const visible_slots = compacted.size();
-	size_t const empty_slots   = MAP_INVENTORY_POOL_SLOT_COUNT - visible_slots % MAP_INVENTORY_POOL_SLOT_COUNT;
-	compacted.resize(visible_slots + empty_slots, WORLDITEM{});
+static void GroupSectorInventoryItems(void)
+{
+	// With no filter active, SplitPoolListByFilter() puts every occupied
+	// slot into `matching` and leaves `rest` empty -- identical to
+	// grouping the whole stash, as before. With a filter active, only the
+	// visible category is grouped; `rest` (the hidden tail) is never
+	// touched, per user request.
+	std::vector<WORLDITEM> matching, rest;
+	SplitPoolListByFilter(matching, rest);
+	GroupWorlditemRange(matching);
+	RebuildFilteredInventoryPoolList(std::move(matching), std::move(rest));
+}
 
-	pInventoryPoolList        = std::move(compacted);
-	iLastInventoryPoolPage    = static_cast<INT32>((pInventoryPoolList.size() - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
-	iCurrentInventoryPoolPage = 0;
 
-	CheckGridNoOfItemsInMapScreenMapInventory();
-	SortSectorInventory(pInventoryPoolList.data(), visible_slots);
-
-	fMapPanelDirty = TRUE;
+// "Wszystkie przedmioty"/category-filter buttons -- see
+// gubSectorInventoryActiveFilters above. Re-partitions the existing list by
+// the (now-changed) active filter set; nothing is grouped or otherwise
+// mutated, items just become visible/hidden.
+static void ApplySectorInventoryFilter(void)
+{
+	std::vector<WORLDITEM> matching, rest;
+	SplitPoolListByFilter(matching, rest);
+	iCurrentInventoryPoolPage = 0; // per user request: filter change resets to page 1
+	RebuildFilteredInventoryPoolList(std::move(matching), std::move(rest));
 }
 
 
@@ -1842,6 +2120,12 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	EnableButton(guiMapInvenButton[2], !fMapInventoryItem);
 	// "Group Items" -- disabled while the stack split view is open
 	EnableButton(guiMapInvenButton[3], !fStackSplitOpen);
+	// "Wszystkie przedmioty" + the 6 category filters -- same rule: they
+	// all mutate pInventoryPoolList, which the stack split view is
+	// borrowing items out of (gStackSplitItems) while open (A5: the split
+	// view itself is independent of filtering, but the main grid's own
+	// controls still can't safely run underneath it).
+	for (UINT32 i = 4; i <= 10; ++i) EnableButton(guiMapInvenButton[i], !fStackSplitOpen);
 
 	// Stack split view's own Done button -- disabled while holding an item
 	// on the cursor (picked up from here via StackSplitSlotPrimary(), or
