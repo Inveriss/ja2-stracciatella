@@ -142,17 +142,24 @@ static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_in
 #define FILTER_OTHER_X        (GROUP_BUTTON_X + 7 * FILTER_BUTTON_STEP)
 #define FILTER_BUTTONS_Y      GROUP_BUTTON_Y
 
-// Bitmask of active category filters -- 0 means no filter, i.e. show
-// everything (also what "Wszystkie przedmioty" resets it to). Several can
-// be active at once (a category shows if it matches ANY active filter --
-// per user request, a union, not an intersection).
+// Bitmask of active category filters. "Wszystkie przedmioty" is a plain
+// peer bit like the other 6, not a special reset button -- per user
+// request, every one of the 7 toggles independently, with no bit
+// special-cased to force itself back on or to clear the others. An item
+// shows if ANY active bit matches it (a union, not an intersection); when
+// SECTOR_INV_FILTER_ALL is one of the active bits, every item matches
+// regardless of its own category (see GetSectorInventoryFilterCategory()'s
+// caller, SplitPoolListByFilter()). With every bit off (0), nothing
+// matches at all -- an intentional, reachable "show nothing" state, per
+// user request -- rather than 0 being a sentinel for "show everything".
 #define SECTOR_INV_FILTER_WEAPONS     0x01
 #define SECTOR_INV_FILTER_ATTACHMENTS 0x02
 #define SECTOR_INV_FILTER_AMMO        0x04
 #define SECTOR_INV_FILTER_ARMOUR      0x08
 #define SECTOR_INV_FILTER_EXPLOSIVES  0x10
 #define SECTOR_INV_FILTER_OTHER       0x20
-static UINT8 gubSectorInventoryActiveFilters = 0;
+#define SECTOR_INV_FILTER_ALL         0x40
+static UINT8 gubSectorInventoryActiveFilters = SECTOR_INV_FILTER_ALL;
 
 // inventory pool list
 std::vector<WORLDITEM> pInventoryPoolList;
@@ -471,11 +478,12 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		// create buttons
 		CreateMapInventoryButtons( );
 
-		// Reset category filters every time the panel opens -- a fresh
-		// BuildStashForSelectedSector() below always builds an unfiltered
-		// pInventoryPoolList, and a freshly created toggle button below
-		// starts in its "off" visual state, so this keeps both in sync.
-		gubSectorInventoryActiveFilters = 0;
+		// Reset category filters to "Wszystkie przedmioty" every time the
+		// panel opens -- a fresh BuildStashForSelectedSector() below always
+		// builds an unfiltered pInventoryPoolList, and CreateMapInventoryFilterButtons()
+		// below starts guiMapInvenButton[4] ("Wszystkie przedmioty") ON to
+		// match, every other filter button OFF.
+		gubSectorInventoryActiveFilters = SECTOR_INV_FILTER_ALL;
 
 		// build stash
 		BuildStashForSelectedSector(sector);
@@ -1508,12 +1516,12 @@ void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 		size_t const old_size = pInventoryPoolList.size();
 		pInventoryPoolList.insert(pInventoryPoolList.end(), MAP_INVENTORY_POOL_SLOT_COUNT, WORLDITEM{});
 		it = pInventoryPoolList.begin() + old_size;
-		// Growing at the absolute end only extends the visible span when no
-		// filter is active (no hidden tail, so the whole list IS the
-		// visible span) -- see gVisibleInventorySlotCount's own comment.
-		// While filtered, this appends after the hidden tail instead, so
+		// Growing at the absolute end only extends the visible span when
+		// SECTOR_INV_FILTER_ALL guarantees no hidden tail exists (the whole
+		// list IS the visible span) -- see gVisibleInventorySlotCount's own
+		// comment. Otherwise this appends after the hidden tail instead, so
 		// the visible boundary/page count don't move.
-		if (gubSectorInventoryActiveFilters == 0) gVisibleInventorySlotCount = pInventoryPoolList.size();
+		if (gubSectorInventoryActiveFilters & SECTOR_INV_FILTER_ALL) gVisibleInventorySlotCount = pInventoryPoolList.size();
 		iLastInventoryPoolPage = static_cast<INT32>((gVisibleInventorySlotCount - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
 	}
 
@@ -1711,53 +1719,22 @@ static GUIButtonRef QuickCreateFilterToggleButton(char const* const gfx, INT32 c
 }
 
 
-static void MapInventoryPoolAllItemsBtn(GUI_BUTTON* btn, UINT32 reason)
-{
-	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
-	{
-		// Clears every active category filter and turns off their toggle
-		// buttons' visual state to match -- per user request, this button
-		// always means "show everything", regardless of what was active.
-		//
-		// Also a toggle (BUTTON_NEWTOGGLE, per user request), but not an
-		// independent one -- "on" here is a derived state (no category
-		// filter active), not something that can itself be toggled off
-		// while leaving nothing selected, so this always forces itself
-		// back ON, overriding whatever QuickCreateButtonToggle()'s own
-		// automatic per-click toggle just flipped it to.
-		gubSectorInventoryActiveFilters = 0;
-		btn->uiFlags |= BUTTON_CLICKED_ON;
-		// The 6 category buttons are always created together with this one
-		// (CreateMapInventoryFilterButtons()), so all of guiMapInvenButton[5..10]
-		// are valid by the time this callback can fire.
-		for (UINT32 i = 5; i <= 10; ++i)
-		{
-			guiMapInvenButton[i]->uiFlags &= ~BUTTON_CLICKED_ON;
-		}
-		ApplySectorInventoryFilter();
-	}
-}
-
-
-// Shared body of the six category-filter toggle buttons below -- flips
-// `category` in gubSectorInventoryActiveFilters and re-applies the filter.
-// Several categories can be active at once (a union, not an intersection),
-// per user request.
+// Shared body of all 7 filter toggle buttons (including "Wszystkie
+// przedmioty") -- flips `category` in gubSectorInventoryActiveFilters and
+// re-applies the filter. Several can be active at once (a union, not an
+// intersection); per user request, every one of them -- "Wszystkie
+// przedmioty" included -- toggles independently with no special-casing, so
+// turning every single one off (ALL included) is a valid, reachable state
+// that shows nothing.
 static void ToggleSectorInventoryFilter(UINT8 category)
 {
 	gubSectorInventoryActiveFilters ^= category;
-	// Keep "Wszystkie przedmioty" visually in sync -- see its own comment:
-	// it's "on" exactly when no category filter is active, a state derived
-	// from gubSectorInventoryActiveFilters rather than toggled on its own.
-	if (gubSectorInventoryActiveFilters == 0)
-	{
-		guiMapInvenButton[4]->uiFlags |= BUTTON_CLICKED_ON;
-	}
-	else
-	{
-		guiMapInvenButton[4]->uiFlags &= ~BUTTON_CLICKED_ON;
-	}
 	ApplySectorInventoryFilter();
+}
+
+static void MapInventoryPoolAllItemsBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_ALL);
 }
 
 static void MapInventoryPoolFilterWeaponsBtn(GUI_BUTTON* btn, UINT32 reason)
@@ -1794,11 +1771,12 @@ static void MapInventoryPoolFilterOtherBtn(GUI_BUTTON* btn, UINT32 reason)
 static void CreateMapInventoryFilterButtons(void)
 {
 	// Placeholder positions, per user request -- not yet the final layout.
-	// Every filter starts inactive: gubSectorInventoryActiveFilters is
-	// reset to 0 whenever the panel opens (CreateDestroyMapInventoryPoolButtons()),
-	// so a freshly created toggle button correctly starts in its "off" state
-	// -- except "Wszystkie przedmioty" itself, forced ON right after
-	// creation below, since "no filter active" is exactly its "on" state.
+	// gubSectorInventoryActiveFilters is reset to SECTOR_INV_FILTER_ALL
+	// whenever the panel opens (CreateDestroyMapInventoryPoolButtons()), so
+	// "Wszystkie przedmioty" starts ON to match and every other filter
+	// button starts OFF. All 7 are otherwise identical, independent
+	// toggles from here on (ToggleSectorInventoryFilter()) -- this is a
+	// one-time initialization, not an ongoing sync.
 	guiMapInvenButton[4]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", ALL_ITEMS_BUTTON_OFF, ALL_ITEMS_BUTTON_ON, MAP_SCREEN_X + ALL_ITEMS_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolAllItemsBtn);
 	guiMapInvenButton[4]->uiFlags |= BUTTON_CLICKED_ON;
 	guiMapInvenButton[5]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_WEAPONS_OFF,     FILTER_WEAPONS_ON,     MAP_SCREEN_X + FILTER_WEAPONS_X,     MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterWeaponsBtn);
@@ -1869,7 +1847,12 @@ static void SplitPoolListByFilter(std::vector<WORLDITEM>& matching, std::vector<
 		// is not reliable here, ubNumberOfObjects is.
 		if (wi.o.ubNumberOfObjects == 0) continue;
 
-		bool const visible = gubSectorInventoryActiveFilters == 0 ||
+		// SECTOR_INV_FILTER_ALL short-circuits to "everything visible"
+		// regardless of the item's own category (GetSectorInventoryFilterCategory()
+		// never returns that bit itself). With every bit off, including
+		// ALL, nothing matches -- see gubSectorInventoryActiveFilters'
+		// own comment.
+		bool const visible = (gubSectorInventoryActiveFilters & SECTOR_INV_FILTER_ALL) != 0 ||
 			(GetSectorInventoryFilterCategory(wi.o.usItem) & gubSectorInventoryActiveFilters) != 0;
 		(visible ? matching : rest).push_back(wi);
 	}
@@ -1929,9 +1912,11 @@ static void RebuildFilteredInventoryPoolList(std::vector<WORLDITEM>&& matching, 
 	// are continuous from the front (its own FIXME) -- true here only when
 	// there's no hidden tail, since GetTotalNumberOfItems() (which it uses)
 	// counts every occupied slot including the ones sitting in `rest`.
-	// Skipped while a filter is active; it reruns next time a filter
-	// change (or BuildStashForSelectedSector()) calls this with rest empty.
-	if (gubSectorInventoryActiveFilters == 0) CheckGridNoOfItemsInMapScreenMapInventory();
+	// SECTOR_INV_FILTER_ALL guarantees rest is empty (see
+	// SplitPoolListByFilter()); skipped otherwise, and reruns next time a
+	// filter change (or BuildStashForSelectedSector()) calls this with
+	// rest empty again.
+	if (gubSectorInventoryActiveFilters & SECTOR_INV_FILTER_ALL) CheckGridNoOfItemsInMapScreenMapInventory();
 	SortSectorInventory(pInventoryPoolList.data(), visible_slots);
 
 	fMapPanelDirty = TRUE;
