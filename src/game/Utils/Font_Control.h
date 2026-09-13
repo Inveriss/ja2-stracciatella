@@ -23,6 +23,8 @@ extern SGPFont gpSmallFontType1;
 extern SGPFont gpTinyFontType1;
 extern SGPFont gpCompFont;
 extern SGPFont gpSmallCompFont;
+extern SGPFont gpTextInventoryFont;
+extern SGPFont gpValueInventoryFont;
 
 extern SGPFont gpHugeFont;
 
@@ -34,6 +36,8 @@ extern SGPFont gpHugeFont;
 #define FONT12POINT1		gp12PointFont1
 #define COMPFONT		gpCompFont
 #define SMALLCOMPFONT		gpSmallCompFont
+#define FONT_TEXT_INVENTORY	gpTextInventoryFont
+#define FONT_VALUE_INVENTORY	gpValueInventoryFont
 #define MILITARYFONT1		BLOCKFONT
 #define FONT10ARIAL		gp10PointArial
 #define FONT14ARIAL		gp14PointArial

@@ -82,9 +82,9 @@ static const SGPBox g_sector_inv_item_box   = {   27,   64,  67,  33 }; // relat
 // dx - 1) while making the intent clear and silencing the warning.
 static const SGPBox g_sector_inv_bar_box    = { (UINT16)21,   66,   2,  31 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_name_box   = {   22,  101,  75,   10 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_loc_box    = { 485, 629,  39,  10 };
-static const SGPBox g_sector_inv_count_box  = { 572, 629,  39,  10 };
-static const SGPBox g_sector_inv_page_box   = { 657, 629,  50,  10 };
+static const SGPBox g_sector_inv_loc_box    = { 450, 628,  39,  10 };
+static const SGPBox g_sector_inv_count_box  = { 570, 628,  39,  10 };
+static const SGPBox g_sector_inv_page_box   = { 657, 628,  50,  10 };
 
 
 // the current highlighted item
@@ -276,7 +276,7 @@ static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // rela
 #define STACK_SPLIT_PREV_X 638
 #define STACK_SPLIT_NEXT_X 711
 #define STACK_SPLIT_ARROWS_Y 626
-static const SGPBox g_stack_split_page_box = { 657, 629, 50, 10 };
+static const SGPBox g_stack_split_page_box = { 657, 628, 50, 10 };
 
 // "Total Items" label + value, independent of the main grid's own
 // (pMapInventoryStrings[1]/g_sector_inv_count_box) -- reuses the same
@@ -286,7 +286,7 @@ static const SGPBox g_stack_split_page_box = { 657, 629, 50, 10 };
 // Placeholder positions, per user request -- not yet the final layout.
 #define STACK_SPLIT_TOTAL_TEXT_X 506
 #define STACK_SPLIT_TOTAL_TEXT_Y 634
-static const SGPBox g_stack_split_count_box = { 572, 629, 39, 10 };
+static const SGPBox g_stack_split_count_box = { 572, 628, 39, 10 };
 
 // The physically-split-out items, one per slot -- empty (gStackSplitItems
 // cleared) when the view is closed.
@@ -1104,7 +1104,7 @@ static void RenderStackSplitItems(void)
 	}
 
 	// This window's own, independent page indicator -- per user request.
-	SetFontAttributes(COMPFONT, 183);
+	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
 		ST::format("{} / {}", gCurrentStackSplitPage + 1, gLastStackSplitPage + 1),
 		g_stack_split_page_box);
@@ -1119,10 +1119,10 @@ static void RenderStackSplitItems(void)
 	{
 		int const textX = MAP_SCREEN_X + STACK_SPLIT_TOTAL_TEXT_X;
 		int const textY = MAP_SCREEN_Y + STACK_SPLIT_TOTAL_TEXT_Y;
-		UINT16 const textH = DisplayWrappedString(textX, textY, 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
-		DisplayWrappedString(textX, textY - (textH / 2), 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
+		UINT16 const textH = DisplayWrappedString(textX, textY, 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
+		DisplayWrappedString(textX, textY - (textH / 2), 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
 
-		SetFontAttributes(COMPFONT, 183);
+		SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 		MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
 			ST::string::from_uint(GetTotalNumberOfItemsInStackSplit()),
 			g_stack_split_count_box);
@@ -1779,7 +1779,7 @@ static void MapInventoryPoolDoneBtn(GUI_BUTTON* btn, UINT32 reason)
 static void DisplayPagesForMapInventoryPool(void)
 {
 	// get the current and last pages and display them
-	SetFontAttributes(COMPFONT, 183);
+	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
 	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
@@ -1845,7 +1845,7 @@ static size_t GetTotalNumberOfItems(void)
 
 static void DrawNumberOfInventoryPoolItems()
 {
-	SetFontAttributes(COMPFONT, 183);
+	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
 	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
@@ -2433,7 +2433,7 @@ static void ApplySectorInventoryFilter(void)
 static void DisplayCurrentSector(void)
 {
 	// grab current sector being displayed
-	SetFontAttributes(COMPFONT, 183);
+	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
 	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
@@ -2478,18 +2478,18 @@ static void DrawTextOnMapInventoryBackground(void)
 
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	int xPos = MAP_SCREEN_X + 427;
+	int xPos = MAP_SCREEN_X + 392;
 	int yPos = MAP_SCREEN_Y + 634;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
-	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
-	DisplayWrappedString(xPos, yPos - (usStringHeight / 2), 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED);
+	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
+	DisplayWrappedString(xPos, yPos - (usStringHeight / 2), 53, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED);
 
 	xPos = MAP_SCREEN_X + 506;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
-	usStringHeight = DisplayWrappedString(xPos, yPos, 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
-	DisplayWrappedString( xPos, yPos - (usStringHeight / 2), 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
+	usStringHeight = DisplayWrappedString(xPos, yPos, 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
+	DisplayWrappedString( xPos, yPos - (usStringHeight / 2), 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
 
 	DrawTextOnSectorInventory( );
 

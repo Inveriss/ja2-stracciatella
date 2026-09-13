@@ -25,6 +25,8 @@ SGPFont gpSectorInvFont;
 SGPFont gpCompFont;
 SGPFont gpLargeFontType1;
 SGPFont gpSmallCompFont;
+SGPFont gpTextInventoryFont;
+SGPFont gpValueInventoryFont;
 SGPFont gpSmallFontType1;
 SGPFont gpTinyFontType1;
 
@@ -54,6 +56,8 @@ void InitializeFonts(void)
 	M(gpCompFont,              FONTSDIR "/compfont.sti");
 	M(gpLargeFontType1,        FONTSDIR "/largefont1.sti");
 	M(gpSmallCompFont,         FONTSDIR "/smallcompfont.sti");
+	M(gpTextInventoryFont,     FONTSDIR "/FONT_TEXT_Inventory.STI");
+	M(gpValueInventoryFont,    FONTSDIR "/FONT_VALUE_Inventory.STI");
 	M(gpSmallFontType1,        FONTSDIR "/smallfont1.sti");
 	M(gpTinyFontType1,         FONTSDIR "/tinyfont1.sti");
 
