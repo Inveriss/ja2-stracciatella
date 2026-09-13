@@ -136,11 +136,23 @@ static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_in
 #define ALL_ITEMS_BUTTON_X    (GROUP_BUTTON_X + FILTER_BUTTON_STEP + 1)
 #define FILTER_WEAPONS_X      (GROUP_BUTTON_X + 2 * FILTER_BUTTON_STEP)
 #define FILTER_ATTACHMENTS_X  (GROUP_BUTTON_X + 3 * FILTER_BUTTON_STEP - 1)
-#define FILTER_AMMO_X         (GROUP_BUTTON_X + 4 * FILTER_BUTTON_STEP)
-#define FILTER_ARMOUR_X       (GROUP_BUTTON_X + 5 * FILTER_BUTTON_STEP)
-#define FILTER_EXPLOSIVES_X   (GROUP_BUTTON_X + 6 * FILTER_BUTTON_STEP)
-#define FILTER_OTHER_X        (GROUP_BUTTON_X + 7 * FILTER_BUTTON_STEP)
+#define FILTER_AMMO_X         (GROUP_BUTTON_X + 4 * FILTER_BUTTON_STEP - 2)
+#define FILTER_ARMOUR_X       (GROUP_BUTTON_X + 5 * FILTER_BUTTON_STEP - 1)
+#define FILTER_EXPLOSIVES_X   (GROUP_BUTTON_X + 6 * FILTER_BUTTON_STEP - 1)
+#define FILTER_OTHER_X        (GROUP_BUTTON_X + 7 * FILTER_BUTTON_STEP - 3)
 #define FILTER_BUTTONS_Y      GROUP_BUTTON_Y
+
+// Two more action buttons (momentary, like GROUP_BUTTON -- not toggles),
+// per user request: transfer items between the selected soldier's own
+// inventory (MapInv.sti/ItemInfoC.sti) and the sector-inventory stash.
+// Same sheet, next sequential sub-image pair each, continuing the
+// placeholder chain above -- not yet the final layout.
+#define MOVE_TO_SECTOR_READY   16
+#define MOVE_TO_SECTOR_PRESSED 17
+#define MOVE_TO_MERC_READY     18
+#define MOVE_TO_MERC_PRESSED   19
+#define MOVE_TO_SECTOR_X (GROUP_BUTTON_X + 8 * FILTER_BUTTON_STEP + 189)
+#define MOVE_TO_MERC_X   (GROUP_BUTTON_X + 9 * FILTER_BUTTON_STEP + 73)
 
 // Bitmask of active category filters. "Wszystkie przedmioty" is a plain
 // peer bit like the other 6, not a special reset button -- per user
@@ -197,8 +209,9 @@ UINT32 guiCompatibleItemBaseTime = 0;
 
 // [0] = next page, [1] = previous page, [2] = done, [3] = group items,
 // [4] = all items (clears filters), [5] = weapons, [6] = attachments,
-// [7] = ammo, [8] = armour, [9] = explosives, [10] = other
-static GUIButtonRef guiMapInvenButton[11];
+// [7] = ammo, [8] = armour, [9] = explosives, [10] = other,
+// [11] = move to sector, [12] = move to merc
+static GUIButtonRef guiMapInvenButton[13];
 
 static BOOLEAN gfCheckForCursorOverMapSectorInventoryItem = FALSE;
 
@@ -427,6 +440,7 @@ static void CreateMapInventoryPoolDoneButton(void);
 static void CreateMapInventoryPoolSlots(void);
 static void CreateMapInventoryGroupButton(void);
 static void CreateMapInventoryFilterButtons(void);
+static void CreateMapInventoryTransferButtons(void);
 static void CreateStackSplitSlots(void);
 static void CreateStackSplitDoneButton(void);
 static void DestroyInventoryPoolDoneButton(void);
@@ -434,6 +448,7 @@ static void DestroyMapInventoryButtons(void);
 static void DestroyMapInventoryPoolSlots();
 static void DestroyMapInventoryGroupButton(void);
 static void DestroyMapInventoryFilterButtons(void);
+static void DestroyMapInventoryTransferButtons(void);
 static void DestroyStackSplitSlots(void);
 static void DestroyStackSplitDoneButton(void);
 static void DestroyStash(void);
@@ -492,6 +507,7 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 
 		CreateMapInventoryGroupButton( );
 		CreateMapInventoryFilterButtons( );
+		CreateMapInventoryTransferButtons( );
 
 		fMapPanelDirty = TRUE;
 		fMapScreenBottomDirty = TRUE;
@@ -530,6 +546,7 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 
 		DestroyMapInventoryGroupButton( );
 		DestroyMapInventoryFilterButtons( );
+		DestroyMapInventoryTransferButtons( );
 
 		// now save results
 		SaveSeenAndUnseenItems( );
@@ -1794,6 +1811,158 @@ static void DestroyMapInventoryFilterButtons(void)
 }
 
 
+// ---------------------------------------------------------------------
+// Bulk transfer buttons -- move items between the selected soldier's own
+// inventory (Inventory_bottom_panel.sti/Mapinv.sti, and the gun currently
+// shown in ItemInfoC.sti) and the sector-inventory stash. Per user
+// request.
+// ---------------------------------------------------------------------
+
+// Ejects every attachment and all loaded ammo from `gun` -- wherever it
+// actually lives (a soldier's inv[] slot, or a WORLDITEM's .o already
+// sitting in the stash) -- straight into the sector-inventory stash.
+// Same primitives GroupWorlditemRange()'s own step 1 uses on every gun in
+// the stash, just applied here to one specific gun: whichever one is
+// currently shown in ItemInfoC.sti (gpItemDescObject).
+static void MoveGunContentsToSectorStash(OBJECTTYPE* const gun)
+{
+	OBJECTTYPE ammo{};
+	if (EmptyWeaponMagazine(gun, &ammo))
+	{
+		AutoPlaceObjectInInventoryStash(&ammo);
+	}
+
+	for (INT8 pos = MAX_ATTACHMENTS - 1; pos >= 0; --pos)
+	{
+		OBJECTTYPE attachment{};
+		if (RemoveAttachment(gun, pos, &attachment))
+		{
+			AutoPlaceObjectInInventoryStash(&attachment);
+		}
+	}
+}
+
+
+// Moves every item out of the soldier's own inventory -- every slot, worn
+// gear included (HANDPOS/SECONDHANDPOS/VESTPOS/HELMETPOS/LEGPOS/HEAD1-4POS,
+// not just the BIGPOCK/SMALLPOCK pockets) -- into the sector-inventory
+// stash. Per user request, no exceptions. The while loop only matters when
+// a single inv[] slot holds more than what one stash slot can take (the
+// stash ignores ubBigPerPocket/ubSmallPerPocket -- see
+// PlaceObjectInInventoryStash()'s own comment -- so in practice this is a
+// rare, defensive case, not the common one).
+static void MoveAllMercItemsToSectorStash(SOLDIERTYPE* const soldier)
+{
+	for (UINT8 i = 0; i < NUM_INV_SLOTS; ++i)
+	{
+		while (soldier->inv[i].ubNumberOfObjects > 0)
+		{
+			AutoPlaceObjectInInventoryStash(&soldier->inv[i]);
+		}
+	}
+}
+
+
+// Moves items from the sector-inventory stash into the soldier's own
+// inventory, in on-screen display order on the CURRENTLY VISIBLE page
+// only -- per user request, "the first items that safely fit". Stops
+// trying a given stash slot as soon as AutoPlaceObject() can't place any
+// more of it anywhere (soldier full, or the item doesn't fit at all), but
+// keeps going through the rest of the page -- a later, smaller item might
+// still fit even after an earlier, bulkier one didn't.
+static void MoveSectorItemsToMerc(SOLDIERTYPE* const soldier)
+{
+	INT32 const first_slot = iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT;
+	for (INT32 i = 0; i < MAP_INVENTORY_POOL_SLOT_COUNT; ++i)
+	{
+		WORLDITEM& wi = pInventoryPoolList[first_slot + i];
+		while (wi.o.ubNumberOfObjects > 0)
+		{
+			if (!AutoPlaceObject(soldier, &wi.o, FALSE)) break;
+		}
+	}
+}
+
+
+// Shared validation for both transfer buttons -- same checks
+// MapInvenPoolSlotsPrimary() already applies before touching the stash on
+// behalf of the selected soldier (valid selection, soldier physically in
+// this sector, not mid-battle), plus fShowInventoryFlag (Mapinv.sti open)
+// per user request: "Przyciski będą na inwentarzu sektora, więc [Sector_
+// Inventory.sti] i tak będzie musiał być otwarty" -- fShowMapInventoryPool
+// is therefore not re-checked here, only the soldier's own panel.
+// HandleButtonStatesWhileMapInventoryActive() already disables both
+// buttons under the same conditions; this is the defensive re-check right
+// before actually moving anything.
+static SOLDIERTYPE* GetSoldierForInventoryTransfer(void)
+{
+	if (!fShowInventoryFlag) return NULL;
+
+	SOLDIERTYPE* const s = GetSelectedInfoChar();
+	if (s == NULL) return NULL;
+
+	if (s->sSector.x != sSelMap.x || s->sSector.y != sSelMap.y ||
+		s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors)
+	{
+		return NULL;
+	}
+
+	if (!CanPlayerUseSectorInventory()) return NULL;
+
+	return s;
+}
+
+
+static void MapInventoryPoolMoveToSectorBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	SOLDIERTYPE* const s = GetSoldierForInventoryTransfer();
+	if (s == NULL) return;
+
+	// Combined button, per user request: if ItemInfoC.sti is currently
+	// showing a gun, this empties THAT gun's ammo/attachments into the
+	// stash; otherwise it empties the whole soldier's inventory instead.
+	if (InItemDescriptionBox() && gpItemDescObject != NULL && GCM->getItem(gpItemDescObject->usItem)->isGun())
+	{
+		MoveGunContentsToSectorStash(gpItemDescObject);
+	}
+	else
+	{
+		MoveAllMercItemsToSectorStash(s);
+	}
+
+	fMapPanelDirty = TRUE;
+}
+
+
+static void MapInventoryPoolMoveToMercBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	SOLDIERTYPE* const s = GetSoldierForInventoryTransfer();
+	if (s == NULL) return;
+
+	MoveSectorItemsToMerc(s);
+	fMapPanelDirty = TRUE;
+}
+
+
+static void CreateMapInventoryTransferButtons(void)
+{
+	// Placeholder positions, per user request -- not yet the final layout.
+	guiMapInvenButton[11] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_SECTOR_READY, MOVE_TO_SECTOR_PRESSED, MAP_SCREEN_X + MOVE_TO_SECTOR_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToSectorBtn);
+	guiMapInvenButton[12] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_MERC_READY,   MOVE_TO_MERC_PRESSED,   MAP_SCREEN_X + MOVE_TO_MERC_X,   MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToMercBtn);
+}
+
+
+static void DestroyMapInventoryTransferButtons(void)
+{
+	RemoveButton( guiMapInvenButton[11] );
+	RemoveButton( guiMapInvenButton[12] );
+}
+
+
 // Which category-filter button (if any) an item belongs to -- see
 // gubSectorInventoryActiveFilters above. Order matters, since some items
 // would otherwise match more than one bucket:
@@ -2179,6 +2348,15 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// view itself is independent of filtering, but the main grid's own
 	// controls still can't safely run underneath it).
 	for (UINT32 i = 4; i <= 10; ++i) EnableButton(guiMapInvenButton[i], !fStackSplitOpen);
+
+	// The two transfer buttons -- disabled under the same fStackSplitOpen
+	// rule as above, plus GetSoldierForInventoryTransfer()'s own checks
+	// (Mapinv.sti open, a valid soldier selected, physically in this
+	// sector, not mid-battle) -- see its own comment for why
+	// fShowMapInventoryPool itself isn't re-checked here.
+	BOOLEAN const fCanTransfer = !fStackSplitOpen && GetSoldierForInventoryTransfer() != NULL;
+	EnableButton(guiMapInvenButton[11], fCanTransfer);
+	EnableButton(guiMapInvenButton[12], fCanTransfer);
 
 	// Stack split view's own Done button -- disabled while holding an item
 	// on the cursor (picked up from here via StackSplitSlotPrimary(), or

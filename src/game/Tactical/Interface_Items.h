@@ -65,6 +65,11 @@ void INVRenderItem(SGPVSurface* uiBuffer, SOLDIERTYPE const* pSoldier, OBJECTTYP
 
 
 extern BOOLEAN gfInItemDescBox;
+// The item currently shown in the description box (ItemInfoC.sti/tactical
+// equivalent) -- a live pointer into wherever it actually lives (a
+// soldier's inv[] slot, or a WORLDITEM's .o in the sector stash), valid
+// whenever gfInItemDescBox/InItemDescriptionBox() is true.
+extern OBJECTTYPE* gpItemDescObject;
 // Toggled by giSMHideEmptySlotsCheckbox (Interface_Panels.cc). When set,
 // RenderItemDescriptionBox() skips drawing attachment_slot_frame.sti for
 // unoccupied attachment slots on the tactical screen (map screen is
