@@ -242,7 +242,7 @@ static cache_key_t const guiStackSplitBackground{ INTERFACEDIR "/sector_inventor
 // is the pitch between slots, and the rest are relative to each individual
 // slot -- same layering as g_sector_inv_slot_box/_region_box/_item_box/etc.
 // above.
-static const SGPBox g_stack_split_box        = { 261, 0, 762, 468 };
+static const SGPBox g_stack_split_box        = { 261, 0, 762, 648 };
 static const SGPBox g_stack_split_slot_box   = {  10,  30,  78,  52 };
 static const SGPBox g_stack_split_region_box = {  27,  70,  67,  33 }; // relative to g_stack_split_slot_box
 static const SGPBox g_stack_split_item_box   = {  27,  70,  67,  33 }; // relative to g_stack_split_slot_box
@@ -251,13 +251,31 @@ static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // rela
 
 // Placeholder position, per user request -- not yet the final layout.
 #define STACK_SPLIT_DONE_X 950
-#define STACK_SPLIT_DONE_Y 446
+#define STACK_SPLIT_DONE_Y 630
 
 // Slots laid out in a small grid, wide enough for a whole stack (a stack
 // can never hold more than MAX_OBJECTS_PER_SLOT items to begin with).
 // ROW X = 9 per user request, matching the main sector-inventory grid's
 // own column count (MAP_INV_SLOT_ROWS' column count above).
 #define STACK_SPLIT_COLS 9
+// ROW Y = 10, matching the main grid's own row count (MAP_INV_SLOT_ROWS) --
+// a page therefore holds 90, same as the main grid's own page size
+// (MAP_INVENTORY_POOL_SLOT_COUNT). A full MAX_OBJECTS_PER_SLOT (100) stack
+// no longer overflows the window (rows 11/12 past the visible area, per
+// user report) -- it spans 2 independent pages instead, per user request.
+#define STACK_SPLIT_ROWS 10
+#define STACK_SPLIT_PAGE_SIZE (STACK_SPLIT_COLS * STACK_SPLIT_ROWS)
+
+// Independent pagination controls, per user request -- own page state and
+// own next/prev arrows, entirely separate from the main grid's own
+// iCurrentInventoryPoolPage/iLastInventoryPoolPage. Placeholder positions
+// (reusing the main grid's own map_screen_bottom_arrows.sti sub-images and
+// a page-count box the same shape as g_sector_inv_page_box), not yet the
+// final layout.
+#define STACK_SPLIT_PREV_X 650
+#define STACK_SPLIT_NEXT_X 722
+#define STACK_SPLIT_ARROWS_Y 629
+static const SGPBox g_stack_split_page_box = { 668, 630, 50, 10 };
 
 // The physically-split-out items, one per slot -- empty (gStackSplitItems
 // cleared) when the view is closed.
@@ -265,7 +283,14 @@ static std::vector<OBJECTTYPE> gStackSplitItems;
 // Index into pInventoryPoolList (absolute -- already includes the page
 // offset) of the stack currently split open here, or -1 when closed.
 static INT32 gStackSplitSourceIndex = -1;
-static MOUSE_REGION gStackSplitSlots[MAX_OBJECTS_PER_SLOT];
+// This window's own, independent page state -- reset to 0 every time it
+// opens (OpenStackSplitView()). gLastStackSplitPage is recomputed there
+// too, from gStackSplitItems.size() (fixed for as long as the view stays
+// open -- items become NOTHING as they're picked up, but the vector itself
+// is never resized until CloseStackSplitView()).
+static INT32 gCurrentStackSplitPage = 0;
+static INT32 gLastStackSplitPage    = 0;
+static MOUSE_REGION gStackSplitSlots[STACK_SPLIT_PAGE_SIZE];
 // Background region: purely a click-blocker so a stray click inside the
 // window's background doesn't fall through to the main sector-inventory
 // grid underneath it -- does NOT close the view. Per user request, this
@@ -273,6 +298,8 @@ static MOUSE_REGION gStackSplitSlots[MAX_OBJECTS_PER_SLOT];
 // below, not via left/right click.
 static MOUSE_REGION gStackSplitBackgroundRegion;
 static GUIButtonRef gStackSplitDoneButton;
+static GUIButtonRef gStackSplitPrevBtn;
+static GUIButtonRef gStackSplitNextBtn;
 
 
 // remove background panel graphics for inventory
@@ -443,6 +470,7 @@ static void CreateMapInventoryFilterButtons(void);
 static void CreateMapInventoryTransferButtons(void);
 static void CreateStackSplitSlots(void);
 static void CreateStackSplitDoneButton(void);
+static void CreateStackSplitPageButtons(void);
 static void DestroyInventoryPoolDoneButton(void);
 static void DestroyMapInventoryButtons(void);
 static void DestroyMapInventoryPoolSlots();
@@ -451,6 +479,7 @@ static void DestroyMapInventoryFilterButtons(void);
 static void DestroyMapInventoryTransferButtons(void);
 static void DestroyStackSplitSlots(void);
 static void DestroyStackSplitDoneButton(void);
+static void DestroyStackSplitPageButtons(void);
 static void DestroyStash(void);
 static void GroupSectorInventoryItems(void);
 static void ApplySectorInventoryFilter(void);
@@ -897,8 +926,14 @@ static void CreateStackSplitSlots(void)
 	MSYS_DefineRegion(&gStackSplitBackgroundRegion, bx, by, bx + g_stack_split_box.w - 1, by + g_stack_split_box.h - 1,
 		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 
-	size_t const count = gStackSplitItems.size();
-	for (size_t i = 0; i < count; ++i)
+	// Only the CURRENT PAGE's items get a region -- gStackSplitSlots[] is
+	// reused across pages (same screen positions each time), with the
+	// absolute gStackSplitItems index (first + i) stored directly as each
+	// region's user data, so StackSplitSlotPrimary()/Secondary() need no
+	// changes at all to stay page-aware.
+	INT32 const first   = gCurrentStackSplitPage * STACK_SPLIT_PAGE_SIZE;
+	INT32 const visible = std::max<INT32>(0, std::min<INT32>(STACK_SPLIT_PAGE_SIZE, static_cast<INT32>(gStackSplitItems.size()) - first));
+	for (INT32 i = 0; i < visible; ++i)
 	{
 		UINT16        const col = static_cast<UINT16>(i % STACK_SPLIT_COLS);
 		UINT16        const row = static_cast<UINT16>(i / STACK_SPLIT_COLS);
@@ -910,15 +945,19 @@ static void CreateStackSplitSlots(void)
 		MSYS_DefineRegion(r, x, y, x + g_stack_split_region_box.w - 1, y + g_stack_split_region_box.h - 1,
 			MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
 			MouseCallbackPrimarySecondary(StackSplitSlotPrimary, StackSplitSlotSecondary, MSYS_NO_CALLBACK));
-		MSYS_SetRegionUserData(r, 0, static_cast<UINT32>(i));
+		MSYS_SetRegionUserData(r, 0, static_cast<UINT32>(first + i));
 	}
 }
 
 
 static void DestroyStackSplitSlots(void)
 {
-	size_t const count = gStackSplitItems.size();
-	for (size_t i = 0; i < count; ++i) MSYS_RemoveRegion(&gStackSplitSlots[i]);
+	// Mirrors CreateStackSplitSlots()'s own page-size computation --
+	// gStackSplitItems.size() and gCurrentStackSplitPage are both
+	// unchanged between the matching Create call and this one.
+	INT32 const first   = gCurrentStackSplitPage * STACK_SPLIT_PAGE_SIZE;
+	INT32 const visible = std::max<INT32>(0, std::min<INT32>(STACK_SPLIT_PAGE_SIZE, static_cast<INT32>(gStackSplitItems.size()) - first));
+	for (INT32 i = 0; i < visible; ++i) MSYS_RemoveRegion(&gStackSplitSlots[i]);
 	MSYS_RemoveRegion(&gStackSplitBackgroundRegion);
 }
 
@@ -948,6 +987,66 @@ static void DestroyStackSplitDoneButton(void)
 }
 
 
+// This window's own, independent page-turn logic -- mirrors
+// InventoryNextPage()/InventoryPrevPage() (the main grid's own), but reruns
+// CreateStackSplitSlots()/DestroyStackSplitSlots() around the page change
+// since gStackSplitSlots[] holds real mouse regions bound to absolute
+// gStackSplitItems indices (see CreateStackSplitSlots()'s own comment),
+// not just a rendering offset like the main grid's iCurrentInventoryPoolPage.
+static void InventoryStackSplitNextPage(void)
+{
+	if (gCurrentStackSplitPage < gLastStackSplitPage)
+	{
+		DestroyStackSplitSlots();
+		++gCurrentStackSplitPage;
+		CreateStackSplitSlots();
+		fMapPanelDirty = TRUE;
+	}
+}
+
+
+static void InventoryStackSplitPrevPage(void)
+{
+	if (gCurrentStackSplitPage > 0)
+	{
+		DestroyStackSplitSlots();
+		--gCurrentStackSplitPage;
+		CreateStackSplitSlots();
+		fMapPanelDirty = TRUE;
+	}
+}
+
+
+static void StackSplitNextBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) InventoryStackSplitNextPage();
+}
+
+
+static void StackSplitPrevBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) InventoryStackSplitPrevPage();
+}
+
+
+static void CreateStackSplitPageButtons(void)
+{
+	// Placeholder positions, per user request -- not yet the final layout.
+	// Same map_screen_bottom_arrows.sti sub-images as the main grid's own
+	// next/prev (CreateMapInventoryButtons()) -- a generic page-arrow
+	// graphic, reused here for this window's own, independent pagination.
+	gStackSplitNextBtn = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + STACK_SPLIT_NEXT_X, MAP_SCREEN_Y + STACK_SPLIT_ARROWS_Y, MSYS_PRIORITY_HIGHEST, StackSplitNextBtn);
+	gStackSplitPrevBtn = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + STACK_SPLIT_PREV_X, MAP_SCREEN_Y + STACK_SPLIT_ARROWS_Y, MSYS_PRIORITY_HIGHEST, StackSplitPrevBtn);
+}
+
+
+static void DestroyStackSplitPageButtons(void)
+{
+	RemoveButton(gStackSplitNextBtn);
+	RemoveButton(gStackSplitPrevBtn);
+}
+
+
 static void RenderStackSplitItems(void)
 {
 	if (gStackSplitSourceIndex == -1) return;
@@ -958,13 +1057,19 @@ static void RenderStackSplitItems(void)
 	BltVideoObject(guiSAVEBUFFER, guiStackSplitBackground, 0, bx, by);
 
 	SetFontDestBuffer(guiSAVEBUFFER);
-	for (size_t i = 0; i < gStackSplitItems.size(); ++i)
+
+	// Only the current page -- see CreateStackSplitSlots()'s own comment on
+	// why gStackSplitSlots[]/absolute indices work the same way.
+	INT32 const first = gCurrentStackSplitPage * STACK_SPLIT_PAGE_SIZE;
+	INT32 const last  = std::min<INT32>(first + STACK_SPLIT_PAGE_SIZE, static_cast<INT32>(gStackSplitItems.size()));
+	for (INT32 abs_idx = first; abs_idx < last; ++abs_idx)
 	{
-		OBJECTTYPE const& o = gStackSplitItems[i];
+		OBJECTTYPE const& o = gStackSplitItems[abs_idx];
 		if (o.usItem == NOTHING) continue;
 
-		INT32 const col = static_cast<INT32>(i % STACK_SPLIT_COLS);
-		INT32 const row = static_cast<INT32>(i / STACK_SPLIT_COLS);
+		INT32 const i   = abs_idx - first;
+		INT32 const col = i % STACK_SPLIT_COLS;
+		INT32 const row = i / STACK_SPLIT_COLS;
 		INT32 const dx  = bx + g_stack_split_slot_box.x + col * g_stack_split_slot_box.w;
 		INT32 const dy  = by + g_stack_split_slot_box.y + row * g_stack_split_slot_box.h;
 
@@ -981,6 +1086,13 @@ static void RenderStackSplitItems(void)
 		SetFontAttributes(MAP_SECTOR_INV_ITEM_FONT, 5, DEFAULT_SHADOW);
 		MPrintCenteredInBox(dx - 1, dy, sString, *name_box);
 	}
+
+	// This window's own, independent page indicator -- per user request.
+	SetFontAttributes(COMPFONT, 183);
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
+		ST::format("{} / {}", gCurrentStackSplitPage + 1, gLastStackSplitPage + 1),
+		g_stack_split_page_box);
+
 	SetFontDestBuffer(FRAME_BUFFER);
 }
 
@@ -1005,8 +1117,14 @@ static void OpenStackSplitView(INT32 const sourceIndex)
 
 	gStackSplitSourceIndex = sourceIndex;
 
+	// This window's own, independent pagination -- always starts at page 1,
+	// per user request.
+	gCurrentStackSplitPage = 0;
+	gLastStackSplitPage    = static_cast<INT32>(gStackSplitItems.empty() ? 0 : (gStackSplitItems.size() - 1) / STACK_SPLIT_PAGE_SIZE);
+
 	CreateStackSplitSlots();
 	CreateStackSplitDoneButton();
+	CreateStackSplitPageButtons();
 
 	fMapPanelDirty = TRUE;
 }
@@ -1106,6 +1224,7 @@ static void CloseStackSplitView(void)
 
 	DestroyStackSplitSlots();
 	DestroyStackSplitDoneButton();
+	DestroyStackSplitPageButtons();
 	gStackSplitItems.clear();
 	gStackSplitSourceIndex = -1;
 
@@ -2337,10 +2456,29 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// CreateDestroyMapInventoryPoolButtons()).
 	BOOLEAN const fStackSplitOpen = (gStackSplitSourceIndex != -1);
 
-	// first page, can't go back any
-	EnableButton(guiMapInvenButton[1], !fStackSplitOpen && iCurrentInventoryPoolPage != 0);
-	// last page, go no further
-	EnableButton(guiMapInvenButton[0], !fStackSplitOpen && iCurrentInventoryPoolPage != iLastInventoryPoolPage);
+	// The main grid's own next/prev arrows -- HIDDEN entirely (not just
+	// disabled) while the stack split view is open, per user report:
+	// EnableButton(FALSE) alone only blocks clicks (BUTTON_ENABLED), it
+	// doesn't stop GUI_BUTTON::Draw() (which checks the underlying mouse
+	// region's own enabled state instead) -- so these stayed visibly drawn
+	// on screen, at the exact same coordinates as this window's own,
+	// independent arrows (STACK_SPLIT_PREV_X/NEXT_X, STACK_SPLIT_ARROWS_Y),
+	// causing a visible animation/z-order conflict between the two
+	// overlapping button pairs when clicked.
+	if (fStackSplitOpen)
+	{
+		HideButton(guiMapInvenButton[0]);
+		HideButton(guiMapInvenButton[1]);
+	}
+	else
+	{
+		ShowButton(guiMapInvenButton[0]);
+		ShowButton(guiMapInvenButton[1]);
+		// first page, can't go back any
+		EnableButton(guiMapInvenButton[1], iCurrentInventoryPoolPage != 0);
+		// last page, go no further
+		EnableButton(guiMapInvenButton[0], iCurrentInventoryPoolPage != iLastInventoryPoolPage);
+	}
 	// item picked up ..disable button
 	EnableButton(guiMapInvenButton[2], !fMapInventoryItem);
 	// "Group Items" -- disabled while the stack split view is open
@@ -2366,6 +2504,14 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// from anywhere else on the map screen), same convention as the main
 	// panel's own Done button above.
 	if (fStackSplitOpen) EnableButton(gStackSplitDoneButton, !fMapInventoryItem);
+
+	// Stack split view's own, independent page arrows -- same first/last
+	// page rule as the main grid's own next/prev above.
+	if (fStackSplitOpen)
+	{
+		EnableButton(gStackSplitPrevBtn, gCurrentStackSplitPage != 0);
+		EnableButton(gStackSplitNextBtn, gCurrentStackSplitPage != gLastStackSplitPage);
+	}
 }
 
 
