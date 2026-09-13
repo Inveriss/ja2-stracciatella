@@ -277,6 +277,16 @@ static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // rela
 #define STACK_SPLIT_ARROWS_Y 629
 static const SGPBox g_stack_split_page_box = { 668, 630, 50, 10 };
 
+// "Total Items" label + value, independent of the main grid's own
+// (pMapInventoryStrings[1]/g_sector_inv_count_box) -- reuses the same
+// already-localized string and the same relative X/Y the main grid uses
+// for it (DrawTextOnMapInventoryBackground()), since this window shares
+// the same overall box width (762) and doesn't otherwise use that space.
+// Placeholder positions, per user request -- not yet the final layout.
+#define STACK_SPLIT_TOTAL_TEXT_X 532
+#define STACK_SPLIT_TOTAL_TEXT_Y 635
+static const SGPBox g_stack_split_count_box = { 600, 630, 39, 10 };
+
 // The physically-split-out items, one per slot -- empty (gStackSplitItems
 // cleared) when the view is closed.
 static std::vector<OBJECTTYPE> gStackSplitItems;
@@ -314,6 +324,7 @@ static void DisplayCurrentSector(void);
 static void DisplayPagesForMapInventoryPool(void);
 static void DrawNumberOfInventoryPoolItems();
 static void DrawTextOnMapInventoryBackground(void);
+static size_t GetTotalNumberOfItemsInStackSplit(void);
 static void RenderItemsForCurrentPageOfInventoryPool(void);
 static void RenderStackSplitItems(void);
 static void UpdateHelpTextForInvnentoryStashSlots(void);
@@ -1093,6 +1104,25 @@ static void RenderStackSplitItems(void)
 		ST::format("{} / {}", gCurrentStackSplitPage + 1, gLastStackSplitPage + 1),
 		g_stack_split_page_box);
 
+	// This window's own, independent "Total Items" label + value -- per
+	// user request. Reuses the main grid's own already-localized label
+	// (pMapInventoryStrings[1]) and its exact DisplayWrappedString() call
+	// shape (DrawTextOnMapInventoryBackground()), just at this window's own
+	// X/Y; the value mirrors DrawNumberOfInventoryPoolItems() but counts
+	// gStackSplitItems instead of pInventoryPoolList
+	// (GetTotalNumberOfItemsInStackSplit()).
+	{
+		int const textX = MAP_SCREEN_X + STACK_SPLIT_TOTAL_TEXT_X;
+		int const textY = MAP_SCREEN_Y + STACK_SPLIT_TOTAL_TEXT_Y;
+		UINT16 const textH = DisplayWrappedString(textX, textY, 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
+		DisplayWrappedString(textX, textY - (textH / 2), 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
+
+		SetFontAttributes(COMPFONT, 183);
+		MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
+			ST::string::from_uint(GetTotalNumberOfItemsInStackSplit()),
+			g_stack_split_count_box);
+	}
+
 	SetFontDestBuffer(FRAME_BUFFER);
 }
 
@@ -1766,6 +1796,24 @@ static size_t GetTotalNumberOfItemsInSectorStash(void)
 		{
 			numObjects += wi.o.ubNumberOfObjects;
 		}
+	}
+
+	return numObjects;
+}
+
+
+// Same idea as GetTotalNumberOfItemsInSectorStash() above, but for this
+// window's own gStackSplitItems -- each entry is a physically split-out,
+// 1-count OBJECTTYPE (see OpenStackSplitView()), so this naturally goes
+// down as items are picked up onto the cursor (StackSplitSlotPrimary())
+// while the window stays open.
+static size_t GetTotalNumberOfItemsInStackSplit(void)
+{
+	size_t numObjects = 0;
+
+	for (OBJECTTYPE const& o : gStackSplitItems)
+	{
+		numObjects += o.ubNumberOfObjects;
 	}
 
 	return numObjects;
