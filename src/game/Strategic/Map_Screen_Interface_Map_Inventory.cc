@@ -82,9 +82,9 @@ static const SGPBox g_sector_inv_item_box   = {   27,   64,  67,  33 }; // relat
 // dx - 1) while making the intent clear and silencing the warning.
 static const SGPBox g_sector_inv_bar_box    = { (UINT16)21,   66,   2,  31 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_name_box   = {   22,  101,  75,   10 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_loc_box    = { 709, 630,  39,  10 };
-static const SGPBox g_sector_inv_count_box  = { 800, 630,  39,  10 };
-static const SGPBox g_sector_inv_page_box   = { 868, 630,  50,  10 };
+static const SGPBox g_sector_inv_loc_box    = { 509, 630,  39,  10 };
+static const SGPBox g_sector_inv_count_box  = { 600, 630,  39,  10 };
+static const SGPBox g_sector_inv_page_box   = { 668, 630,  50,  10 };
 
 
 // the current highlighted item
@@ -160,6 +160,19 @@ std::vector<WORLDITEM> pInventoryPoolList;
 // current page of inventory
 INT32 iCurrentInventoryPoolPage = 0;
 static INT32 iLastInventoryPoolPage = 0;
+
+// Size of the visible (matching, already padded to a whole number of
+// pages) prefix of pInventoryPoolList -- kept in sync by
+// RebuildFilteredInventoryPoolList()/BuildStashForSelectedSector(), which
+// are what decide where the visible/hidden-tail boundary sits while a
+// category filter is active. Equals pInventoryPoolList.size() whenever no
+// filter is active (no hidden tail exists). Every place that (re)computes
+// iLastInventoryPoolPage must derive it from this, never from
+// pInventoryPoolList.size() directly -- doing the latter previously let
+// CheckAndUnDateSlotAllocation() (called every frame) silently re-widen
+// pagination to cover the hidden tail again right after a filter had
+// capped it, exactly undoing the filter on the very next page turn.
+static size_t gVisibleInventorySlotCount = 0;
 
 INT16 sObjectSourceGridNo = 0;
 
@@ -1246,7 +1259,11 @@ static void BuildStashForSelectedSector(const SGPSector& sector)
 	size_t visible_slots = pInventoryPoolList.size();
 	size_t empty_slots = MAP_INVENTORY_POOL_SLOT_COUNT - visible_slots % MAP_INVENTORY_POOL_SLOT_COUNT;
 	pInventoryPoolList.resize(visible_slots + empty_slots, WORLDITEM{});
-	iLastInventoryPoolPage  = static_cast<INT32>((pInventoryPoolList.size() - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
+	// No filter is active yet at this point (reset right before this call
+	// -- CreateDestroyMapInventoryPoolButtons()), so the whole (now padded)
+	// list is the visible prefix.
+	gVisibleInventorySlotCount = pInventoryPoolList.size();
+	iLastInventoryPoolPage  = static_cast<INT32>((gVisibleInventorySlotCount - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
 
 	CheckGridNoOfItemsInMapScreenMapInventory();
 	SortSectorInventory(pInventoryPoolList.data(), visible_slots);
@@ -1491,7 +1508,13 @@ void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 		size_t const old_size = pInventoryPoolList.size();
 		pInventoryPoolList.insert(pInventoryPoolList.end(), MAP_INVENTORY_POOL_SLOT_COUNT, WORLDITEM{});
 		it = pInventoryPoolList.begin() + old_size;
-		iLastInventoryPoolPage = static_cast<INT32>((pInventoryPoolList.size() - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
+		// Growing at the absolute end only extends the visible span when no
+		// filter is active (no hidden tail, so the whole list IS the
+		// visible span) -- see gVisibleInventorySlotCount's own comment.
+		// While filtered, this appends after the hidden tail instead, so
+		// the visible boundary/page count don't move.
+		if (gubSectorInventoryActiveFilters == 0) gVisibleInventorySlotCount = pInventoryPoolList.size();
+		iLastInventoryPoolPage = static_cast<INT32>((gVisibleInventorySlotCount - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
 	}
 
 	WORLDITEM& slot = *it;
@@ -1887,7 +1910,12 @@ static void RebuildFilteredInventoryPoolList(std::vector<WORLDITEM>&& matching, 
 
 	// Pagination is capped to the visible prefix alone -- paging forward
 	// can never reach the hidden tail, which is what makes this a real
-	// filter and not just a reordering.
+	// filter and not just a reordering. gVisibleInventorySlotCount must be
+	// kept in step: CheckAndUnDateSlotAllocation() (called every frame)
+	// re-derives iLastInventoryPoolPage from it too, and re-deriving from
+	// pInventoryPoolList.size() there instead re-widens pagination to cover
+	// the hidden tail on the very next frame.
+	gVisibleInventorySlotCount = visible_slots;
 	iLastInventoryPoolPage = static_cast<INT32>(visible_slots == 0 ? 0 : (visible_slots - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
 	if (iCurrentInventoryPoolPage > iLastInventoryPoolPage) iCurrentInventoryPoolPage = iLastInventoryPoolPage;
 
@@ -2094,7 +2122,15 @@ static void CheckAndUnDateSlotAllocation(void)
 		pInventoryPoolList.insert(pInventoryPoolList.end(), MAP_INVENTORY_POOL_SLOT_COUNT, WORLDITEM{});
 	}
 
-	iLastInventoryPoolPage = ( ( static_cast<INT32>(pInventoryPoolList.size()) - 1 ) / MAP_INVENTORY_POOL_SLOT_COUNT );
+	// Derived from gVisibleInventorySlotCount, NOT pInventoryPoolList.size()
+	// -- this runs every frame (BlitInventoryPoolGraphic()), and the list's
+	// full size includes the hidden tail while a category filter is
+	// active. Re-deriving from the full size here silently re-widened
+	// pagination to cover that hidden tail again right after a filter
+	// change had capped it (gubSectorInventoryActiveFilters,
+	// RebuildFilteredInventoryPoolList()) -- the very next page turn would
+	// then reveal items from other categories.
+	iLastInventoryPoolPage = ( ( static_cast<INT32>(gVisibleInventorySlotCount) - 1 ) / MAP_INVENTORY_POOL_SLOT_COUNT );
 }
 
 
