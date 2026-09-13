@@ -100,7 +100,7 @@ static INT32 CompactFooterYOffset(INT32 const offset)
 	return g_ui.isCompactStrategicScreen() ? offset : 0;
 }
 // Done buttons (both windows), per user request.
-#define COMPACT_DONE_BUTTON_Y_OFFSET CompactFooterYOffset(-44)
+#define COMPACT_DONE_BUTTON_Y_OFFSET CompactFooterYOffset(-52)
 // Everything else in the footer (both windows): text labels, values, arrow
 // buttons, per user request.
 #define COMPACT_FOOTER_TEXT_Y_OFFSET CompactFooterYOffset(-48)
@@ -119,7 +119,7 @@ static const SGPBox g_sector_inv_item_box   = {   27,   64,  67,  33 }; // relat
 // DrawItemUIBarEx()'s sXPos parameter, which cancels the wraparound out to
 // dx - 1) while making the intent clear and silencing the warning.
 static const SGPBox g_sector_inv_bar_box    = { (UINT16)21,   66,   2,  31 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_name_box   = {   22,  101,  75,   10 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_name_box   = {   22,  100,  75,   10 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_loc_box    = { 450, 628,  39,  10 };
 static const SGPBox g_sector_inv_count_box  = { 570, 628,  39,  10 };
 static const SGPBox g_sector_inv_page_box   = { 657, 628,  50,  10 };
@@ -303,8 +303,8 @@ static cache_key_t GetStackSplitBackgroundFilename(void)
 // above.
 static const SGPBox g_stack_split_box        = { 261, 0, 762, 648 };
 static const SGPBox g_stack_split_slot_box   = {  10,  30,  78,  52 };
-static const SGPBox g_stack_split_region_box = {  27,  70,  67,  33 }; // relative to g_stack_split_slot_box
-static const SGPBox g_stack_split_item_box   = {  27,  70,  67,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_region_box = {  27,  71,  67,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_item_box   = {  27,  71,  67,  33 }; // relative to g_stack_split_slot_box
 static const SGPBox g_stack_split_bar_box    = { (UINT16)24, 72, 2, 31 }; // relative to g_stack_split_slot_box
 static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // relative to g_stack_split_slot_box
 
