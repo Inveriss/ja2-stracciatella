@@ -1773,8 +1773,11 @@ static void DestroyMapInventoryFilterButtons(void)
 // Which category-filter button (if any) an item belongs to -- see
 // gubSectorInventoryActiveFilters above. Order matters, since some items
 // would otherwise match more than one bucket:
-//  - IC_ARMOUR is checked before the generic ITEM_ATTACHMENT flag, so
-//    ceramic plates (themselves IC_ARMOUR -- see ArmourModel::canBeAttached())
+//  - IC_ARMOUR and IC_FACE are checked before the generic ITEM_ATTACHMENT
+//    flag, so ceramic plates (themselves IC_ARMOUR -- see
+//    ArmourModel::canBeAttached()) and head-slot items (night vision/UV/sun
+//    goggles, gas mask, extended ear, robot remote control -- all IC_FACE,
+//    worn in HEAD1-4POS the same way armour is worn in VEST/HELMET/LEGPOS)
 //    land in "Tylko umundurowanie" rather than "Tylko dodatki do broni",
 //    per user request.
 //  - isWeapon()/isExplosive() are checked before ITEM_ATTACHMENT too, so an
@@ -1792,7 +1795,7 @@ static UINT8 GetSectorInventoryFilterCategory(UINT16 usItem)
 	if (usItem == NOTHING) return 0;
 	const ItemModel* const item = GCM->getItem(usItem);
 
-	if (item->isArmour())                   return SECTOR_INV_FILTER_ARMOUR;
+	if (item->isArmour() || item->isFace())  return SECTOR_INV_FILTER_ARMOUR;
 	if (item->isWeapon())                   return SECTOR_INV_FILTER_WEAPONS;
 	if (item->isExplosive())                return SECTOR_INV_FILTER_EXPLOSIVES;
 	if (item->getFlags() & ITEM_ATTACHMENT) return SECTOR_INV_FILTER_ATTACHMENTS;
