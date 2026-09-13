@@ -7954,6 +7954,17 @@ static void RequestToggleMercInventoryPanel(void)
 	{
 		// toggle inventory mode
 		fShowInventoryFlag = !fShowInventoryFlag;
+
+		// The sector-inventory panel's own transfer buttons
+		// (MapInventoryPoolMoveToSectorBtn()/-ToMercBtn(),
+		// Map_Screen_Interface_Map_Inventory.cc) depend on fShowInventoryFlag,
+		// re-evaluated inside HandleButtonStatesWhileMapInventoryActive() --
+		// which only runs from BlitInventoryPoolGraphic(), itself gated
+		// behind fMapPanelDirty (RenderMapRegionBackground(), below).
+		// Without this, toggling Mapinv.sti while the sector-inventory
+		// panel is open (but nothing else happens to mark it dirty first)
+		// left those buttons showing their last, now-stale enabled state.
+		fMapPanelDirty = TRUE;
 	}
 
 	fTeamPanelDirty = TRUE;

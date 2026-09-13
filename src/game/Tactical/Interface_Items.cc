@@ -3681,6 +3681,18 @@ void DeleteItemDescriptionBox( )
 	if( guiCurrentItemDescriptionScreen == MAP_SCREEN )
 	{
 		RemoveButton( giMapInvDescButton );
+
+		// The sector-inventory panel's own transfer buttons
+		// (MapInventoryPoolMoveToSectorBtn()/-ToMercBtn(), Map_Screen_
+		// Interface_Map_Inventory.cc) enable/disable based partly on
+		// InItemDescriptionBox(), re-evaluated inside
+		// HandleButtonStatesWhileMapInventoryActive() -- which only runs
+		// from BlitInventoryPoolGraphic(), itself gated behind
+		// fMapPanelDirty (RenderMapRegionBackground(), MapScreen.cc).
+		// Without this, closing ItemInfoC.sti while the sector-inventory
+		// panel is open (but nothing else happens to mark it dirty first)
+		// left those buttons showing their last, now-stale enabled state.
+		fMapPanelDirty = TRUE;
 	}
 
 	// Remove region

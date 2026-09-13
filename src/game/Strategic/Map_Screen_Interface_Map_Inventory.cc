@@ -1232,8 +1232,8 @@ static void MapInventoryPoolNextBtn(GUI_BUTTON* btn, UINT32 reason);
 
 static void CreateMapInventoryButtons(void)
 {
-	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 922, MAP_SCREEN_Y + 629, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
-	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 850, MAP_SCREEN_Y + 629, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
+	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 722, MAP_SCREEN_Y + 629, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
+	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 650, MAP_SCREEN_Y + 629, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
 
 	//reset the current inventory page to be the first page
 	iCurrentInventoryPoolPage = 0;
@@ -1687,7 +1687,7 @@ static void DrawNumberOfInventoryPoolItems()
 static void CreateMapInventoryPoolDoneButton(void)
 {
 	// create done button
-	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/done_button.sti", 0, 1, MAP_SCREEN_X + 950, MAP_SCREEN_Y + 626, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/done_button.sti", 0, 1, MAP_SCREEN_X + 750, MAP_SCREEN_Y + 626, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
 }
 
 
@@ -1887,16 +1887,19 @@ static void MoveSectorItemsToMerc(SOLDIERTYPE* const soldier)
 // Shared validation for both transfer buttons -- same checks
 // MapInvenPoolSlotsPrimary() already applies before touching the stash on
 // behalf of the selected soldier (valid selection, soldier physically in
-// this sector, not mid-battle), plus fShowInventoryFlag (Mapinv.sti open)
-// per user request: "Przyciski będą na inwentarzu sektora, więc [Sector_
-// Inventory.sti] i tak będzie musiał być otwarty" -- fShowMapInventoryPool
-// is therefore not re-checked here, only the soldier's own panel.
-// HandleButtonStatesWhileMapInventoryActive() already disables both
-// buttons under the same conditions; this is the defensive re-check right
-// before actually moving anything.
+// this sector, not mid-battle), plus Mapinv.sti or ItemInfoC.sti being
+// open, per user request. fShowInventoryFlag alone isn't enough:
+// ItemInfoC.sti can also be opened directly from the sector-inventory
+// stash itself (MAPInternalInitItemDescriptionBox(), this file), with
+// Mapinv.sti never having been open at all -- InItemDescriptionBox() is
+// the other half of "either one". fShowMapInventoryPool itself isn't
+// re-checked here: the buttons live on that very panel, so it's already
+// open by construction. HandleButtonStatesWhileMapInventoryActive() already
+// disables both buttons under the same conditions; this is the defensive
+// re-check right before actually moving anything.
 static SOLDIERTYPE* GetSoldierForInventoryTransfer(void)
 {
-	if (!fShowInventoryFlag) return NULL;
+	if (!fShowInventoryFlag && !InItemDescriptionBox()) return NULL;
 
 	SOLDIERTYPE* const s = GetSelectedInfoChar();
 	if (s == NULL) return NULL;
@@ -2303,14 +2306,14 @@ static void DrawTextOnMapInventoryBackground(void)
 
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	int xPos = MAP_SCREEN_X + 651;
+	int xPos = MAP_SCREEN_X + 451;
 	int yPos = MAP_SCREEN_Y + 635;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
 	DisplayWrappedString(xPos, yPos - (usStringHeight / 2), 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED);
 
-	xPos = MAP_SCREEN_X + 732;
+	xPos = MAP_SCREEN_X + 532;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
