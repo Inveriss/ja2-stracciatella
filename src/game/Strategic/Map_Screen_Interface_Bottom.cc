@@ -22,6 +22,7 @@
 #include "Render_Dirty.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Map.h"
+#include "Map_Screen_Interface_Map_Inventory.h"
 #include "Text.h"
 #include "Overhead.h"
 #include "PreBattle_Interface.h"
@@ -217,6 +218,47 @@ static void EnableDisableMessageScrollButtonsAndRegions(void);
 // will render the map screen bottom interface
 void RenderMapScreenInterfaceBottom( void )
 {
+	// The sector-inventory panel (Sector_Inventory_1024.sti/_Second_1024.sti)
+	// was resized tall enough to physically cover this same screen area, per
+	// user request -- this used to never overlap (this panel's own 121px-tall
+	// strip sat below the inventory panel's old, shorter box), so drawing
+	// order between the two never mattered before. Skip entirely (background
+	// blit, balance/clock/sector-name/messages, and the button
+	// enable/disable below) while the inventory panel is showing, same
+	// convention as RenderMapRegionBackground() already uses to skip
+	// DrawMap() under the same condition -- otherwise this always redraws on
+	// top of it, last, every frame, regardless of fShowMapInventoryPool.
+	if (fShowMapInventoryPool)
+	{
+		// Exit/Options/Laptop/Tactical, time-compress, and message-scroll
+		// are persistent GUI_BUTTON objects that draw themselves every
+		// frame via the generic button system, independent of this
+		// function's own early return above -- EnableButton()/DisableButton()
+		// (EnableDisableBottomButtonsAndRegions() below) only blocks clicks,
+		// it doesn't stop GUI_BUTTON::Draw() (same Enable-vs-Hide distinction
+		// as HandleButtonStatesWhileMapInventoryActive()'s own comment,
+		// Map_Screen_Interface_Map_Inventory.cc), so they kept drawing right
+		// on top of the now-taller sector-inventory panel. Hidden here
+		// (not destroyed) since this is purely a visibility fix -- per user
+		// report.
+		for (GUIButtonRef& btn : guiMapBottomExitButtons) HideButton(btn);
+		HideButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE]);
+		HideButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS]);
+		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
+		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+		return;
+	}
+
+	// Undo the above once the inventory panel closes -- ShowButton() on an
+	// already-shown button is a harmless no-op, same convention as
+	// HandleButtonStatesWhileMapInventoryActive()'s own unconditional
+	// per-frame Show/Hide calls.
+	for (GUIButtonRef& btn : guiMapBottomExitButtons) ShowButton(btn);
+	ShowButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE]);
+	ShowButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS]);
+	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
+	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+
 	// render whole panel
 	if (fMapScreenBottomDirty)
 	{

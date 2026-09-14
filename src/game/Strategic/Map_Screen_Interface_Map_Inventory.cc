@@ -124,7 +124,7 @@ static INT32 CompactFooterYOffset(INT32 const offset)
 #define COMPACT_FOOTER_TEXT_Y_OFFSET CompactFooterYOffset(-48)
 
 
-static const SGPBox g_sector_inv_box        = { 261,   0, 762, 648 };
+static const SGPBox g_sector_inv_box        = { 261,   0, 762, 768 };
 static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
 static const SGPBox g_sector_inv_slot_box   = { 274,  37,  78,  52 };
 static const SGPBox g_sector_inv_region_box = {   27,   64,  67,  33 }; // relative to g_sector_inv_slot_box
@@ -366,7 +366,7 @@ static cache_key_t GetStackSplitBackgroundFilename(void)
 // is the pitch between slots, and the rest are relative to each individual
 // slot -- same layering as g_sector_inv_slot_box/_region_box/_item_box/etc.
 // above.
-static const SGPBox g_stack_split_box        = { 261, 0, 762, 648 };
+static const SGPBox g_stack_split_box        = { 261, 0, 762, 768 };
 static const SGPBox g_stack_split_slot_box   = {  10,  30,  78,  52 };
 static const SGPBox g_stack_split_region_box = {  27,  71,  67,  33 }; // relative to g_stack_split_slot_box
 static const SGPBox g_stack_split_item_box   = {  27,  71,  67,  33 }; // relative to g_stack_split_slot_box
@@ -769,6 +769,12 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		fMapPanelDirty = TRUE;
 		fTeamPanelDirty = TRUE;
 		fCharacterInfoPanelDirty = TRUE;
+		// RenderMapScreenInterfaceBottom() skips itself entirely while this
+		// panel is showing (Map_Screen_Interface_Bottom.cc), so its own
+		// background never got re-blitted over whatever this (now taller)
+		// panel drew in that same screen area -- force it to on the very
+		// next frame after closing.
+		fMapScreenBottomDirty = TRUE;
 
 		//DEF: added to remove the 'item blip' from staying on the radar map
 		iCurrentlyHighLightedItem = -1;

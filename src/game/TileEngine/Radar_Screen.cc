@@ -189,6 +189,16 @@ static void RenderSquadList(void);
 
 void RenderRadarScreen()
 {
+	// Shared with the tactical/overhead screen and the shop keeper interface
+	// (Overhead_Map.cc, ShopKeeper_Interface.cc), where fShowMapInventoryPool
+	// is never TRUE, so this only ever skips on the strategic map screen --
+	// exactly where the sector-inventory panel now needs it to, per user
+	// report. This draws straight to FRAME_BUFFER (see below), bypassing the
+	// guiSAVEBUFFER/fMapPanelDirty pipeline entirely, so it kept redrawing
+	// live on top of the now-taller Sector_Inventory_1024.sti/_Second_1024.sti
+	// every frame regardless of that panel's own rendering.
+	if (fShowMapInventoryPool) return;
+
 	// create / destroy squad list regions as nessacary
 	CreateDestroyMouseRegionsForSquadList();
 
