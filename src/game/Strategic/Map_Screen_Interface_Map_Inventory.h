@@ -7,12 +7,13 @@
 #include <vector>
 
 // Compile-time array-sizing maximum for the sector-inventory pool's slot
-// arrays -- 9 columns x 10 rows (the large strategic-screen tier's own page
-// size). The actual per-page slot count in use is resolution-dependent (81
-// for the compact tier, height 720-767) and resolved at runtime by
-// GetMapInventoryPoolPageSize() (Map_Screen_Interface_Map_Inventory.cc) --
-// use that, not this macro, everywhere except array declarations.
-#define MAP_INVENTORY_POOL_SLOT_COUNT 90
+// arrays -- 9 columns x 12 rows (the large strategic-screen tier's own,
+// normal-mode page size, its own largest case). The actual per-page slot
+// count in use is resolution- and "big images"-state-dependent (as low as
+// 40, as high as 108) and resolved at runtime by GetMapInventoryPoolPageSize()
+// (Map_Screen_Interface_Map_Inventory.cc) -- use that, not this macro,
+// everywhere except array declarations.
+#define MAP_INVENTORY_POOL_SLOT_COUNT 108
 
 INT32 GetMapInventoryPoolPageSize(void);
 

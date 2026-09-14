@@ -74,34 +74,36 @@
 static BOOLEAN gfSectorInventoryBigImages = FALSE;
 
 // inventory pool slot positions and sizes. Column count (ROW X): 5 while
-// gfSectorInventoryBigImages is on, else always 9. Row count (COL Y): 7
-// while gfSectorInventoryBigImages is on (both resolution tiers alike, per
-// user request); otherwise resolution-dependent as before -- 10 for the
-// large strategic-screen tier (height 768+), 9 for the compact tier (height
-// 720-767). Neither is known at static-initialization time, so both are
-// resolved at runtime, on every call, same reasoning as
-// GetMapInventoryPoolBackgroundFilename() below. Shared by the stack split
-// grid too (GetStackSplitPageSize()), which uses the identical rule.
+// gfSectorInventoryBigImages is on, else always 9 -- tier-independent in
+// both cases. Row count (COL Y) is both resolution- and
+// gfSectorInventoryBigImages-dependent, per user request:
+//   normal mode: 11 compact (height 720-767), 12 large (height 768+)
+//   big images:   8 compact (height 720-767),  9 large (height 768+)
+// Neither is known at static-initialization time, so both are resolved at
+// runtime, on every call, same reasoning as GetMapInventoryPoolBackgroundFilename()
+// below. Shared by the stack split grid too (GetStackSplitPageSize()), which
+// uses the identical rule.
 static INT32 GetInventoryGridCols(void)
 {
 	return gfSectorInventoryBigImages ? 5 : 9;
 }
 static INT32 GetInventoryGridRows(void)
 {
-	if (gfSectorInventoryBigImages) return 7;
-	return g_ui.isCompactStrategicScreen() ? 9 : 10;
+	if (gfSectorInventoryBigImages) return g_ui.isCompactStrategicScreen() ? 8 : 9;
+	return g_ui.isCompactStrategicScreen() ? 11 : 12;
 }
 #define MAP_INV_SLOT_ROWS GetInventoryGridRows()
 
 // The sector-inventory pool's actual per-page slot count, for the active
-// resolution/big-images state (35 = 5x7 big images, 81 = 9x9 compact, 90 =
-// 9x10 large -- see GetInventoryGridCols()/GetInventoryGridRows() above).
-// Declared in Map_Screen_Interface_Map_Inventory.h and used by other files
-// (MapScreen.cc, Interface_Items.cc, Radar_Screen.cc) wherever they used to
-// reference MAP_INVENTORY_POOL_SLOT_COUNT directly. MAP_INVENTORY_POOL_SLOT_COUNT
+// resolution/big-images state (40 = 5x8 big images/compact, 45 = 5x9 big
+// images/large, 99 = 9x11 normal/compact, 108 = 9x12 normal/large -- see
+// GetInventoryGridCols()/GetInventoryGridRows() above). Declared in
+// Map_Screen_Interface_Map_Inventory.h and used by other files (MapScreen.cc,
+// Interface_Items.cc, Radar_Screen.cc) wherever they used to reference
+// MAP_INVENTORY_POOL_SLOT_COUNT directly. MAP_INVENTORY_POOL_SLOT_COUNT
 // itself (Map_Screen_Interface_Map_Inventory.h) stays a plain compile-time
-// constant -- it's only the array-sizing maximum (the large tier's own 90)
-// now, not the per-page count actually in use.
+// constant -- it's only the array-sizing maximum (the large tier/normal
+// mode's own 108) now, not the per-page count actually in use.
 INT32 GetMapInventoryPoolPageSize(void)
 {
 	return GetInventoryGridCols() * GetInventoryGridRows();
@@ -117,8 +119,9 @@ static INT32 CompactFooterYOffset(INT32 const offset)
 {
 	return g_ui.isCompactStrategicScreen() ? offset : 0;
 }
-// Done buttons (both windows), per user request.
-#define COMPACT_DONE_BUTTON_Y_OFFSET CompactFooterYOffset(-52)
+// Done buttons (both windows, both big-images and normal mode alike), per
+// user request.
+#define COMPACT_DONE_BUTTON_Y_OFFSET CompactFooterYOffset(-48)
 // Everything else in the footer (both windows): text labels, values, arrow
 // buttons, per user request.
 #define COMPACT_FOOTER_TEXT_Y_OFFSET CompactFooterYOffset(-48)
@@ -127,8 +130,8 @@ static INT32 CompactFooterYOffset(INT32 const offset)
 static const SGPBox g_sector_inv_box        = { 261,   0, 762, 768 };
 static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
 static const SGPBox g_sector_inv_slot_box   = { 274,  37,  78,  52 };
-static const SGPBox g_sector_inv_region_box = {   27,   64,  67,  33 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_item_box   = {   27,   64,  67,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_region_box = {   27,   65,  67,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_item_box   = {   27,   65,  67,  33 }; // relative to g_sector_inv_slot_box
 // x is intentionally UINT16(-1) (== 65535, wrapping) to shift the bar 1px
 // left of the item box -- SGPBox's fields are unsigned so a plain -1
 // literal here would silently narrow (MSVC C4838). The explicit cast keeps
@@ -137,23 +140,21 @@ static const SGPBox g_sector_inv_item_box   = {   27,   64,  67,  33 }; // relat
 // DrawItemUIBarEx()'s sXPos parameter, which cancels the wraparound out to
 // dx - 1) while making the intent clear and silencing the warning.
 static const SGPBox g_sector_inv_bar_box    = { (UINT16)21,   66,   2,  31 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_name_box   = {   22,  100,  75,   10 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_loc_box    = { 450, 628,  39,  10 };
-static const SGPBox g_sector_inv_count_box  = { 570, 628,  39,  10 };
-static const SGPBox g_sector_inv_page_box   = { 657, 628,  50,  10 };
+static const SGPBox g_sector_inv_name_box   = {   22,  101,  75,   10 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_loc_box    = { 450, 740,  39,  10 };
+static const SGPBox g_sector_inv_count_box  = { 570, 740,  39,  10 };
+static const SGPBox g_sector_inv_page_box   = { 657, 740,  50,  10 };
 
-// "Big images" toggle's own slot geometry (5x7 grid instead of 9 cols x
-// 9-or-10 rows) -- PLACEHOLDER, not yet the final layout: same top-left
-// origin as g_sector_inv_slot_box above, pitch recomputed for 5 columns x 7
-// rows over roughly the same overall grid footprint, and the sub-boxes
-// below scaled up from g_sector_inv_region_box/_item_box/_bar_box/_name_box
-// by the same factor. Needs visual tuning once SECTOR_INVENTORY_1024_BIG.sti/
-// SECTOR_INVENTORY_1280_BIG.sti actually exist.
+// "Big images" toggle's own slot geometry (5 columns, 8 rows compact / 9
+// rows large -- GetInventoryGridRows() above) -- user-specified pixel
+// values, shared by both resolution tiers alike (only the row count
+// itself differs by tier; the pitch/sub-box geometry below does not), per
+// user request.
 static const SGPBox g_sector_inv_slot_box_big   = { 274,  37, 133,  69 };
-static const SGPBox g_sector_inv_region_box_big = {  31,  67, 120,  47 }; // relative to g_sector_inv_slot_box_big
-static const SGPBox g_sector_inv_item_box_big   = {  31,  67, 120,  47 }; // relative to g_sector_inv_slot_box_big
-static const SGPBox g_sector_inv_bar_box_big    = {  21,  70,   4,  44 }; // relative to g_sector_inv_slot_box_big
-static const SGPBox g_sector_inv_name_box_big   = {  22, 118, 135,  14 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_region_box_big = {  45,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_item_box_big   = {  45,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_bar_box_big    = {  39,  67,   4,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_name_box_big   = {  43, 121, 120,  11 }; // relative to g_sector_inv_slot_box_big
 
 // Small helpers picking the right slot-geometry set for the current
 // gfSectorInventoryBigImages state -- keeps the branch in one place instead
@@ -163,6 +164,22 @@ static SGPBox const& GetSectorInvRegionBox(void) { return gfSectorInventoryBigIm
 static SGPBox const& GetSectorInvItemBox(void)   { return gfSectorInventoryBigImages ? g_sector_inv_item_box_big   : g_sector_inv_item_box; }
 static SGPBox const& GetSectorInvBarBox(void)    { return gfSectorInventoryBigImages ? g_sector_inv_bar_box_big    : g_sector_inv_bar_box; }
 static SGPBox const& GetSectorInvNameBox(void)   { return gfSectorInventoryBigImages ? g_sector_inv_name_box_big   : g_sector_inv_name_box; }
+
+// SECTOR_INVENTORY_1280.sti's own artwork places its bottom row's slot
+// frame 4px lower than the uniform per-row pitch (slot_box->h * row) above
+// would predict -- per user report, only that one row (the last one, row
+// index ROWS-1), only in normal ("big images" off) mode, only at the
+// compact strategic-screen tier. Applied to the shared per-row Y (dy) in
+// RenderItemInPoolSlot()/CreateMapInventoryPoolSlots(), so it nudges the
+// region/item/bar/name boxes (all positioned relative to dy) back down
+// together, without needing four separate special cases.
+static INT32 GetSectorInvLastRowYCorrection(INT32 const row)
+{
+	if (gfSectorInventoryBigImages) return 0;
+	if (!g_ui.isCompactStrategicScreen()) return 0;
+	if (row != GetInventoryGridRows() - 1) return 0;
+	return 4;
+}
 
 
 // the current highlighted item
@@ -245,7 +262,7 @@ static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
 // MapInventoryPoolBigImagesBtn().
 #define BIG_IMAGES_BUTTON_OFF 20
 #define BIG_IMAGES_BUTTON_ON  21
-#define BIG_IMAGES_BUTTON_X   (FILTER_OTHER_X + FILTER_BUTTON_STEP)
+#define BIG_IMAGES_BUTTON_X   (FILTER_OTHER_X + FILTER_BUTTON_STEP + 41)
 
 // Two more action buttons (momentary, like GROUP_BUTTON -- not toggles),
 // per user request: transfer items between the selected soldier's own
@@ -256,8 +273,8 @@ static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
 #define MOVE_TO_SECTOR_PRESSED 17
 #define MOVE_TO_MERC_READY     18
 #define MOVE_TO_MERC_PRESSED   19
-#define MOVE_TO_SECTOR_X (GROUP_BUTTON_X + 8 * FILTER_BUTTON_STEP + 189)
-#define MOVE_TO_MERC_X   (GROUP_BUTTON_X + 9 * FILTER_BUTTON_STEP + 73)
+#define MOVE_TO_SECTOR_X (GROUP_BUTTON_X + 8 * FILTER_BUTTON_STEP + 190)
+#define MOVE_TO_MERC_X   (GROUP_BUTTON_X + 9 * FILTER_BUTTON_STEP + 74)
 
 // Bitmask of active category filters. "Wszystkie przedmioty" is a plain
 // peer bit like the other 6, not a special reset button -- per user
@@ -368,20 +385,20 @@ static cache_key_t GetStackSplitBackgroundFilename(void)
 // above.
 static const SGPBox g_stack_split_box        = { 261, 0, 762, 768 };
 static const SGPBox g_stack_split_slot_box   = {  10,  30,  78,  52 };
-static const SGPBox g_stack_split_region_box = {  27,  71,  67,  33 }; // relative to g_stack_split_slot_box
-static const SGPBox g_stack_split_item_box   = {  27,  71,  67,  33 }; // relative to g_stack_split_slot_box
-static const SGPBox g_stack_split_bar_box    = { (UINT16)24, 72, 2, 31 }; // relative to g_stack_split_slot_box
-static const SGPBox g_stack_split_name_box   = {   25,  107,  70,  10 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_region_box = {  30,  72,  67,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_item_box   = {  30,  72,  67,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_bar_box    = { (UINT16)24, 73, 2, 31 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_name_box   = {   25,  108,  70,  10 }; // relative to g_stack_split_slot_box
 
-// "Big images" toggle's own slot geometry -- PLACEHOLDER, not yet the final
-// layout, same reasoning/scaling as g_sector_inv_slot_box_big above (5x7
-// grid, same pitch as the main grid's own big-mode slot box since both
-// share the identical column/row rule).
-static const SGPBox g_stack_split_slot_box_big   = {  10,  30, 140,  74 };
-static const SGPBox g_stack_split_region_box_big = {  48, 101, 120,  47 }; // relative to g_stack_split_slot_box_big
-static const SGPBox g_stack_split_item_box_big   = {  48, 101, 120,  47 }; // relative to g_stack_split_slot_box_big
-static const SGPBox g_stack_split_bar_box_big    = {  43, 102,   4,  44 }; // relative to g_stack_split_slot_box_big
-static const SGPBox g_stack_split_name_box_big   = {  45, 152, 126,  14 }; // relative to g_stack_split_slot_box_big
+// "Big images" toggle's own slot geometry -- user-specified pixel values,
+// same reasoning as g_sector_inv_slot_box_big above (shared by both
+// resolution tiers, only the row count itself differs -- 8 compact / 9
+// large, GetInventoryGridRows()).
+static const SGPBox g_stack_split_slot_box_big   = {  10,  30, 133,  74 };
+static const SGPBox g_stack_split_region_box_big = {  48, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_item_box_big   = {  48, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_bar_box_big    = {  42, 74,   4,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_name_box_big   = {  45, 126, 126,  14 }; // relative to g_stack_split_slot_box_big
 
 // Same idea as GetSectorInvSlotBox()/etc. above, for the stack split grid.
 static SGPBox const& GetStackSplitSlotBox(void)   { return gfSectorInventoryBigImages ? g_stack_split_slot_box_big   : g_stack_split_slot_box; }
@@ -391,25 +408,26 @@ static SGPBox const& GetStackSplitBarBox(void)    { return gfSectorInventoryBigI
 static SGPBox const& GetStackSplitNameBox(void)   { return gfSectorInventoryBigImages ? g_stack_split_name_box_big   : g_stack_split_name_box; }
 
 // Placeholder position, per user request -- not yet the final layout.
-#define STACK_SPLIT_DONE_X 762
-#define STACK_SPLIT_DONE_Y (632 + COMPACT_DONE_BUTTON_Y_OFFSET)
+#define STACK_SPLIT_DONE_X 758
+#define STACK_SPLIT_DONE_Y (737 + COMPACT_DONE_BUTTON_Y_OFFSET)
 
 // Slots laid out in a small grid, wide enough for a whole stack (a stack
 // can never hold more than MAX_OBJECTS_PER_SLOT items to begin with).
 // ROW X = 9 per user request, matching the main sector-inventory grid's
 // own column count (MAP_INV_SLOT_ROWS' column count above).
 #define STACK_SPLIT_COLS 9
-// ROW Y = 10, matching the main grid's own row count (MAP_INV_SLOT_ROWS) --
-// a page therefore holds 90, same as the main grid's own page size
+// ROW Y = 12, matching the main grid's own largest row count
+// (MAP_INV_SLOT_ROWS, large tier/normal mode) -- a page therefore holds up
+// to 108, same as the main grid's own largest page size
 // (GetMapInventoryPoolPageSize()). A full MAX_OBJECTS_PER_SLOT (100) stack
 // no longer overflows the window (rows 11/12 past the visible area, per
 // user report) -- it spans 2 independent pages instead, per user request.
-// STACK_SPLIT_ROWS/STACK_SPLIT_PAGE_SIZE are the compile-time maximum (10
-// rows / 90), used only to size gStackSplitSlots[] below -- the actual
-// per-page slot count in use is resolution-dependent (81 for the compact
-// tier, same rule as the main grid's own GetInventoryGridRows() above), see
+// STACK_SPLIT_ROWS/STACK_SPLIT_PAGE_SIZE are the compile-time maximum (12
+// rows / 108), used only to size gStackSplitSlots[] below -- the actual
+// per-page slot count in use is resolution- and "big images"-state-dependent
+// (same rule as the main grid's own GetInventoryGridRows() above), see
 // GetStackSplitPageSize().
-#define STACK_SPLIT_ROWS 10
+#define STACK_SPLIT_ROWS 12
 #define STACK_SPLIT_PAGE_SIZE (STACK_SPLIT_COLS * STACK_SPLIT_ROWS)
 
 static INT32 GetStackSplitPageSize(void)
@@ -424,9 +442,9 @@ static INT32 GetStackSplitPageSize(void)
 // a page-count box the same shape as g_sector_inv_page_box), not yet the
 // final layout.
 #define STACK_SPLIT_PREV_X 638
-#define STACK_SPLIT_NEXT_X 711
-#define STACK_SPLIT_ARROWS_Y (626 + COMPACT_FOOTER_TEXT_Y_OFFSET)
-static const SGPBox g_stack_split_page_box = { 657, 628, 50, 10 };
+#define STACK_SPLIT_NEXT_X 712
+#define STACK_SPLIT_ARROWS_Y (739 + COMPACT_FOOTER_TEXT_Y_OFFSET)
+static const SGPBox g_stack_split_page_box = { 657, 740, 50, 10 };
 
 // "Total Items" label + value, independent of the main grid's own
 // (pMapInventoryStrings[1]/g_sector_inv_count_box) -- reuses the same
@@ -435,8 +453,8 @@ static const SGPBox g_stack_split_page_box = { 657, 628, 50, 10 };
 // the same overall box width (762) and doesn't otherwise use that space.
 // Placeholder positions, per user request -- not yet the final layout.
 #define STACK_SPLIT_TOTAL_TEXT_X 506
-#define STACK_SPLIT_TOTAL_TEXT_Y (634 + COMPACT_FOOTER_TEXT_Y_OFFSET)
-static const SGPBox g_stack_split_count_box = { 572, 628, 39, 10 };
+#define STACK_SPLIT_TOTAL_TEXT_Y (746 + COMPACT_FOOTER_TEXT_Y_OFFSET)
+static const SGPBox g_stack_split_count_box = { 572, 740, 39, 10 };
 
 // The physically-split-out items, one per slot -- empty (gStackSplitItems
 // cleared) when the view is closed.
@@ -561,8 +579,9 @@ static BOOLEAN RenderItemInPoolSlot(INT32 iCurrentSlot, INT32 iFirstSlotOnPage)
 	if (item.o.ubNumberOfObjects == 0) return FALSE;
 
 	const SGPBox* const slot_box = &GetSectorInvSlotBox();
+	INT32       const  row       = iCurrentSlot % MAP_INV_SLOT_ROWS;
 	const INT32 dx = MAP_SCREEN_X + slot_box->x + slot_box->w * (iCurrentSlot / MAP_INV_SLOT_ROWS);
-	const INT32 dy = MAP_SCREEN_Y + slot_box->y + slot_box->h * (iCurrentSlot % MAP_INV_SLOT_ROWS);
+	const INT32 dy = MAP_SCREEN_Y + slot_box->y + slot_box->h * row + GetSectorInvLastRowYCorrection(row);
 
 	SetFontDestBuffer(guiSAVEBUFFER);
 	const SGPBox* const item_box = &GetSectorInvItemBox();
@@ -769,12 +788,6 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		fMapPanelDirty = TRUE;
 		fTeamPanelDirty = TRUE;
 		fCharacterInfoPanelDirty = TRUE;
-		// RenderMapScreenInterfaceBottom() skips itself entirely while this
-		// panel is showing (Map_Screen_Interface_Bottom.cc), so its own
-		// background never got re-blitted over whatever this (now taller)
-		// panel drew in that same screen area -- force it to on the very
-		// next frame after closing.
-		fMapScreenBottomDirty = TRUE;
 
 		//DEF: added to remove the 'item blip' from staying on the radar map
 		iCurrentlyHighLightedItem = -1;
@@ -907,17 +920,18 @@ static void CreateMapInventoryPoolSlots(void)
 	const SGPBox* const reg_box  = &GetSectorInvRegionBox();
 	// Tracked so DestroyMapInventoryPoolSlots() below only removes exactly
 	// the regions actually defined here -- GetMapInventoryPoolPageSize() can
-	// now be as low as 35 ("big images" toggle), well under
-	// MAP_INVENTORY_POOL_SLOT_COUNT's compile-time array size (90), so the
-	// remainder of MapInventoryPoolSlots[] stays undefined and must not be
-	// blindly iterated.
+	// be anywhere from 40 ("big images" toggle, compact) to 108 (normal
+	// mode, large tier), always at or under MAP_INVENTORY_POOL_SLOT_COUNT's
+	// compile-time array size (108), so the remainder of
+	// MapInventoryPoolSlots[] (when the current page size is smaller) stays
+	// undefined and must not be blindly iterated.
 	gMapInventoryPoolSlotsCreatedCount = GetMapInventoryPoolPageSize();
 	for (UINT i = 0; i < gMapInventoryPoolSlotsCreatedCount; ++i)
 	{
 		UINT16        const sx = i / MAP_INV_SLOT_ROWS;
 		UINT16        const sy = i % MAP_INV_SLOT_ROWS;
 		UINT16        const x  = reg_box->x + MAP_SCREEN_X + slot_box->x + sx * slot_box->w;
-		UINT16        const y  = reg_box->y + MAP_SCREEN_Y + slot_box->y + sy * slot_box->h;
+		UINT16        const y  = reg_box->y + MAP_SCREEN_Y + slot_box->y + sy * slot_box->h + GetSectorInvLastRowYCorrection(sy);
 		UINT16        const w  = reg_box->w;
 		UINT16        const h  = reg_box->h;
 		MOUSE_REGION* const r  = &MapInventoryPoolSlots[i];
@@ -1574,8 +1588,8 @@ static void MapInventoryPoolNextBtn(GUI_BUTTON* btn, UINT32 reason);
 
 static void CreateMapInventoryButtons(void)
 {
-	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 711, MAP_SCREEN_Y + 626 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
-	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 638, MAP_SCREEN_Y + 626 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
+	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 711, MAP_SCREEN_Y + 739 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
+	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 638, MAP_SCREEN_Y + 739 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
 
 	//reset the current inventory page to be the first page
 	iCurrentInventoryPoolPage = 0;
@@ -2047,7 +2061,7 @@ static void DrawNumberOfInventoryPoolItems()
 static void CreateMapInventoryPoolDoneButton(void)
 {
 	// create done button
-	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 0, 1, MAP_SCREEN_X + 808, MAP_SCREEN_Y + 621 + COMPACT_DONE_BUTTON_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 0, 1, MAP_SCREEN_X + 813, MAP_SCREEN_Y + 737 + COMPACT_DONE_BUTTON_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
 	guiMapInvenButton[2]->SetFastHelpText("Done (Sector Inventory)");
 }
 
@@ -2206,7 +2220,7 @@ static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
 static void CreateMapInventoryBigImagesButton(void)
 {
 	guiMapInvenButton[13] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", BIG_IMAGES_BUTTON_OFF, BIG_IMAGES_BUTTON_ON, MAP_SCREEN_X + BIG_IMAGES_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolBigImagesBtn);
-	guiMapInvenButton[13]->SetFastHelpText("Show big item icons.");
+	guiMapInvenButton[13]->SetFastHelpText("Show Large Images");
 }
 
 
@@ -2714,7 +2728,7 @@ static void DrawTextOnMapInventoryBackground(void)
 	SetFontDestBuffer(guiSAVEBUFFER);
 
 	int xPos = MAP_SCREEN_X + 392;
-	int yPos = MAP_SCREEN_Y + 634 + COMPACT_FOOTER_TEXT_Y_OFFSET;
+	int yPos = MAP_SCREEN_Y + 746 + COMPACT_FOOTER_TEXT_Y_OFFSET;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
