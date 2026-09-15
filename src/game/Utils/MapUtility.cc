@@ -57,8 +57,8 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 {
 	static auto p24BitValues{ std::make_unique<SGPPaletteEntry[]>(MINIMAP_X_SIZE * MINIMAP_Y_SIZE) };
 
-	static SGPVSurface* giMiniMap{ AddVideoSurface(88, 44, PIXEL_DEPTH) };
-	static SGPVSurface* gi8BitMiniMap{ AddVideoSurface(88, 44, 8) };
+	static SGPVSurface* giMiniMap{ AddVideoSurface(MINIMAP_X_SIZE, MINIMAP_Y_SIZE, PIXEL_DEPTH) };
+	static SGPVSurface* gi8BitMiniMap{ AddVideoSurface(MINIMAP_X_SIZE, MINIMAP_Y_SIZE, 8) };
 
 	// Get the names (full path) of all map files in the user's home directory.
 	// recursive=true (6th arg) -- per user report: map .dat files live in a
@@ -116,8 +116,8 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 	TrashOverheadMap( );
 
 	// OK, NOW PROCESS OVERHEAD MAP ( SHOUIDL BE ON THE FRAMEBUFFER )
-	gdXStep	= OVERHEAD_MAP_RENDER_WIDTH / 88.f;
-	gdYStep	= 320 / 44.f;
+	gdXStep	= OVERHEAD_MAP_RENDER_WIDTH / (float)MINIMAP_X_SIZE;
+	gdYStep	= 320 / (float)MINIMAP_Y_SIZE;
 	dStartX = dStartY = 0;
 
 	// Adjust if we are using a restricted map...
@@ -129,8 +129,8 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 		CalculateRestrictedMapCoords(WEST,  &sX1,    &sY1,     &sLeft, &sY2,  OVERHEAD_MAP_RENDER_WIDTH, 320);
 		CalculateRestrictedMapCoords(EAST,  &sRight, &sY1,     &sX2,   &sY2,  OVERHEAD_MAP_RENDER_WIDTH, 320);
 
-		gdXStep	= (float)( sRight - sLeft )/(float)88;
-		gdYStep	= (float)( sBottom - sTop )/(float)44;
+		gdXStep	= (float)( sRight - sLeft )/(float)MINIMAP_X_SIZE;
+		gdYStep	= (float)( sBottom - sTop )/(float)MINIMAP_Y_SIZE;
 
 		dStartX = sLeft;
 		dStartY = sTop;
@@ -149,11 +149,11 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 		UINT16* const pDestBuf         = ldst.Buffer<UINT16>();
 		UINT32  const uiDestPitchBYTES = ldst.Pitch();
 
-		for ( iX = 0; iX < 88; iX++ )
+		for ( iX = 0; iX < MINIMAP_X_SIZE; iX++ )
 		{
 			dY = dStartY;
 
-			for ( iY = 0; iY < 44; iY++ )
+			for ( iY = 0; iY < MINIMAP_Y_SIZE; iY++ )
 			{
 				// Reset per pixel -- per user report, when the sampling
 				// window below finds zero valid source pixels (iCount stays
