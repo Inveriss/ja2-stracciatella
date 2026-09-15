@@ -181,6 +181,31 @@ static INT32 GetSectorInvLastRowYCorrection(INT32 const row)
 	return 4;
 }
 
+// SECTOR_INVENTORY_1280_BIG.sti/SECTOR_INVENTORY_second_1280_BIG.sti's own
+// artwork places every row's slot frame 3px lower than the large tier's own
+// "big images" artwork -- per user report. Unlike GetSectorInvLastRowYCorrection()
+// above (normal mode, last row only), this applies to every row, in "big
+// images" mode only, at the compact tier only, on both windows alike (used
+// by the main grid and the stack split grid).
+static INT32 GetBigImagesCompactYCorrection(void)
+{
+	return (gfSectorInventoryBigImages && g_ui.isCompactStrategicScreen()) ? 3 : 0;
+}
+
+// SECTOR_INVENTORY_1280_BIG.sti/SECTOR_INVENTORY_second_1280_BIG.sti's own
+// artwork spaces its rows 2px further apart than the large tier's own "big
+// images" artwork -- per user report. Added to slot_box->h/slot_box.h
+// wherever it's used as the row-to-row pitch (not baked into
+// g_sector_inv_slot_box_big/g_stack_split_slot_box_big themselves, since
+// that field's value is shared with the large tier), "big images" mode +
+// compact tier only, both windows alike. Because it's added to the pitch
+// rather than to a single row's own position, its effect is cumulative --
+// each row below the first ends up progressively lower.
+static INT32 GetBigImagesCompactRowPitchCorrection(void)
+{
+	return (gfSectorInventoryBigImages && g_ui.isCompactStrategicScreen()) ? 2 : 0;
+}
+
 
 // the current highlighted item
 INT32 iCurrentlyHighLightedItem = -1;
@@ -394,7 +419,7 @@ static const SGPBox g_stack_split_name_box   = {   25,  108,  70,  10 }; // rela
 // same reasoning as g_sector_inv_slot_box_big above (shared by both
 // resolution tiers, only the row count itself differs -- 8 compact / 9
 // large, GetInventoryGridRows()).
-static const SGPBox g_stack_split_slot_box_big   = {  10,  30, 133,  74 };
+static const SGPBox g_stack_split_slot_box_big   = {  10,  30, 133,  69 };
 static const SGPBox g_stack_split_region_box_big = {  48, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
 static const SGPBox g_stack_split_item_box_big   = {  48, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
 static const SGPBox g_stack_split_bar_box_big    = {  42, 74,   4,  50 }; // relative to g_stack_split_slot_box_big
@@ -581,7 +606,7 @@ static BOOLEAN RenderItemInPoolSlot(INT32 iCurrentSlot, INT32 iFirstSlotOnPage)
 	const SGPBox* const slot_box = &GetSectorInvSlotBox();
 	INT32       const  row       = iCurrentSlot % MAP_INV_SLOT_ROWS;
 	const INT32 dx = MAP_SCREEN_X + slot_box->x + slot_box->w * (iCurrentSlot / MAP_INV_SLOT_ROWS);
-	const INT32 dy = MAP_SCREEN_Y + slot_box->y + slot_box->h * row + GetSectorInvLastRowYCorrection(row);
+	const INT32 dy = MAP_SCREEN_Y + slot_box->y + (slot_box->h + GetBigImagesCompactRowPitchCorrection()) * row + GetSectorInvLastRowYCorrection(row) + GetBigImagesCompactYCorrection();
 
 	SetFontDestBuffer(guiSAVEBUFFER);
 	const SGPBox* const item_box = &GetSectorInvItemBox();
@@ -931,7 +956,7 @@ static void CreateMapInventoryPoolSlots(void)
 		UINT16        const sx = i / MAP_INV_SLOT_ROWS;
 		UINT16        const sy = i % MAP_INV_SLOT_ROWS;
 		UINT16        const x  = reg_box->x + MAP_SCREEN_X + slot_box->x + sx * slot_box->w;
-		UINT16        const y  = reg_box->y + MAP_SCREEN_Y + slot_box->y + sy * slot_box->h + GetSectorInvLastRowYCorrection(sy);
+		UINT16        const y  = reg_box->y + MAP_SCREEN_Y + slot_box->y + sy * (slot_box->h + GetBigImagesCompactRowPitchCorrection()) + GetSectorInvLastRowYCorrection(sy) + GetBigImagesCompactYCorrection();
 		UINT16        const w  = reg_box->w;
 		UINT16        const h  = reg_box->h;
 		MOUSE_REGION* const r  = &MapInventoryPoolSlots[i];
@@ -1150,7 +1175,7 @@ static void CreateStackSplitSlots(void)
 		UINT16        const col = static_cast<UINT16>(i % GetInventoryGridCols());
 		UINT16        const row = static_cast<UINT16>(i / GetInventoryGridCols());
 		UINT16        const dx  = bx + slot_box.x + col * slot_box.w;
-		UINT16        const dy  = by + slot_box.y + row * slot_box.h;
+		UINT16        const dy  = by + slot_box.y + row * (slot_box.h + GetBigImagesCompactRowPitchCorrection()) + GetBigImagesCompactYCorrection();
 		UINT16        const x   = dx + reg_box.x;
 		UINT16        const y   = dy + reg_box.y;
 		MOUSE_REGION* const r   = &gStackSplitSlots[i];
@@ -1289,7 +1314,7 @@ static void RenderStackSplitItems(void)
 		INT32 const row = i / GetInventoryGridCols();
 		SGPBox const& slot_box = GetStackSplitSlotBox();
 		INT32 const dx  = bx + slot_box.x + col * slot_box.w;
-		INT32 const dy  = by + slot_box.y + row * slot_box.h;
+		INT32 const dy  = by + slot_box.y + row * (slot_box.h + GetBigImagesCompactRowPitchCorrection()) + GetBigImagesCompactYCorrection();
 
 		const SGPBox* const item_box = &GetStackSplitItemBox();
 		INVRenderItem(guiSAVEBUFFER, NULL, o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, SGP_TRANSPARENT, gfSectorInventoryBigImages);
