@@ -329,9 +329,29 @@ void SetInputFieldString(UINT8 ubField, const ST::string& str)
 
 	if (!str.empty())
 	{
-		curr->str = str;
-		curr->numCodepoints = str.to_utf32().size();
-		Assert(curr->numCodepoints <= curr->maxCodepoints);
+		ST::utf32_buffer codepoints = str.to_utf32();
+		if (codepoints.size() > curr->maxCodepoints)
+		{
+			// Programmatically-set text (unlike normal keystroke input,
+			// which AddChar() already caps at maxCodepoints) can be longer
+			// than the field's own configured capacity -- e.g. a full file
+			// path fed into a field sized for a short name, per user
+			// report (Map Editor's radar map utility, once its file search
+			// started returning full recursive paths instead of top-level
+			// ones). Truncate to fit instead of leaving the field's
+			// str/numCodepoints inconsistent with its own maxCodepoints
+			// invariant.
+			SLOGW("SetInputFieldString: string for field {} ({} codepoints) exceeds maxCodepoints ({}) -- truncating", curr->ubID, codepoints.size(), curr->maxCodepoints);
+			ST::string truncated;
+			for (size_t i = 0; i < curr->maxCodepoints; ++i) truncated += codepoints[i];
+			curr->str = truncated;
+			curr->numCodepoints = curr->maxCodepoints;
+		}
+		else
+		{
+			curr->str = str;
+			curr->numCodepoints = codepoints.size();
+		}
 	}
 	else if (!curr->fUserField)
 	{
