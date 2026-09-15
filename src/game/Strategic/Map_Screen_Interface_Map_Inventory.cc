@@ -2328,6 +2328,26 @@ static void MoveSectorItemsToMerc(SOLDIERTYPE* const soldier)
 }
 
 
+// Same idea as MoveSectorItemsToMerc() above, but pulling from the stack
+// split window's own gStackSplitItems instead -- per user request, "Sektor
+// -> najemnik" now works while a stack is split out too. Each entry here
+// is already a physically-split 1-count unit (see the "Stack split view"
+// comment further up), so a single AutoPlaceObject() call per entry is
+// enough, unlike the multi-count WORLDITEM loop above. Whatever doesn't
+// fit is simply left behind -- CloseStackSplitView() already re-merges
+// anything still here back into the source slot when the window closes,
+// the same way it already handles items picked up one at a time via
+// StackSplitSlotPrimary().
+static void MoveStackSplitItemsToMerc(SOLDIERTYPE* const soldier)
+{
+	for (OBJECTTYPE& o : gStackSplitItems)
+	{
+		if (o.usItem == NOTHING) continue;
+		AutoPlaceObject(soldier, &o, FALSE);
+	}
+}
+
+
 // Shared validation for both transfer buttons -- same checks
 // MapInvenPoolSlotsPrimary() already applies before touching the stash on
 // behalf of the selected soldier (valid selection, soldier physically in
@@ -2390,7 +2410,16 @@ static void MapInventoryPoolMoveToMercBtn(GUI_BUTTON* btn, UINT32 reason)
 	SOLDIERTYPE* const s = GetSoldierForInventoryTransfer();
 	if (s == NULL) return;
 
-	MoveSectorItemsToMerc(s);
+	// Pull from the stack split window's own items while it's open, per
+	// user request -- otherwise from the main grid's current page as before.
+	if (gStackSplitSourceIndex != -1)
+	{
+		MoveStackSplitItemsToMerc(s);
+	}
+	else
+	{
+		MoveSectorItemsToMerc(s);
+	}
 	fMapPanelDirty = TRUE;
 }
 
@@ -2822,14 +2851,26 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// which the stack split view's items are borrowed out of while open.
 	EnableButton(guiMapInvenButton[13], !fStackSplitOpen);
 
-	// The two transfer buttons -- disabled under the same fStackSplitOpen
-	// rule as above, plus GetSoldierForInventoryTransfer()'s own checks
-	// (Mapinv.sti open, a valid soldier selected, physically in this
-	// sector, not mid-battle) -- see its own comment for why
+	// The two transfer buttons -- gated on GetSoldierForInventoryTransfer()'s
+	// own checks (Mapinv.sti open, a valid soldier selected, physically in
+	// this sector, not mid-battle) -- see its own comment for why
 	// fShowMapInventoryPool itself isn't re-checked here.
-	BOOLEAN const fCanTransfer = !fStackSplitOpen && GetSoldierForInventoryTransfer() != NULL;
-	EnableButton(guiMapInvenButton[11], fCanTransfer);
-	EnableButton(guiMapInvenButton[12], fCanTransfer);
+	//
+	// "Sektor -> najemnik" (guiMapInvenButton[12]) stays enabled while the
+	// stack split view is open too, per user request -- MapInventoryPoolMoveToMercBtn()
+	// redirects it to pull from gStackSplitItems instead of the main grid's
+	// current page in that case, so it no longer needs pInventoryPoolList
+	// itself to be safe to touch.
+	//
+	// "Najemnik -> sektor" (guiMapInvenButton[11]) still needs the same
+	// fStackSplitOpen guard as before: MoveAllMercItemsToSectorStash() calls
+	// AutoPlaceObjectInInventoryStash(), which could place a new item into
+	// gStackSplitSourceIndex's now-empty slot while it's being borrowed out,
+	// creating a conflict CloseStackSplitView()'s own re-merge isn't meant
+	// to arbitrate.
+	BOOLEAN const fSoldierValid = GetSoldierForInventoryTransfer() != NULL;
+	EnableButton(guiMapInvenButton[11], fSoldierValid && !fStackSplitOpen);
+	EnableButton(guiMapInvenButton[12], fSoldierValid);
 
 	// Stack split view's own Done button -- disabled while holding an item
 	// on the cursor (picked up from here via StackSplitSlotPrimary(), or
