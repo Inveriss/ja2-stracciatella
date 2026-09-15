@@ -6665,6 +6665,15 @@ static void DisplayIconsForMercsAsleep(void)
 // MAP_SCREEN_X/Y offset it used to have when the button never moved.
 static void CheckForAndRenderNewMailOverlay(void)
 {
+	// Draws straight to FRAME_BUFFER (see below), bypassing the
+	// guiSAVEBUFFER/fMapPanelDirty pipeline entirely, and is called
+	// unconditionally every frame from MapScreenHandle() -- same class of
+	// bleed-through as RenderClock()/RenderRadarScreen() (Game_Clock.cc/
+	// Radar_Screen.cc), fixed the same way: skip entirely while the
+	// sector-inventory panel (now tall enough to cover the Laptop button's
+	// own area) is showing, per user report.
+	if (fShowMapInventoryPool) return;
+
 	if( fNewMailFlag )
 	{
 		if( GetJA2Clock() % 1000 < 667 )
