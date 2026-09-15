@@ -26,6 +26,10 @@
 #include <string_theory/format>
 
 
+// Factory default size -- must stay in sync with Radar_Screen.h's own
+// RADAR_WINDOW_WIDTH/HEIGHT (the in-game display size, blitted 1:1 with no
+// runtime scaling). Confirmed working at 250x125 in a live test, per user
+// request, then reverted back to this default.
 #define MINIMAP_X_SIZE		88
 #define MINIMAP_Y_SIZE		44
 
