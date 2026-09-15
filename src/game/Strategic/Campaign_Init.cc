@@ -5,6 +5,7 @@
 #include "GameInstance.h"
 #include "GamePolicy.h"
 #include "GameSettings.h"
+#include "Map_Screen_Interface_Map_Inventory.h"
 #include "Strategic_AI.h"
 #include "Strategic_Movement.h"
 #include "Strategic_Movement_Costs.h"
@@ -119,4 +120,8 @@ void InitNewCampaign()
 
 	InitStrategicStatus();
 
+	// Defaults to ON for a new game, per user request -- see
+	// gfSectorInventoryBigImages's own comment
+	// (Map_Screen_Interface_Map_Inventory.cc) for the full story.
+	InitSectorInventoryBigImagesForNewGame();
 }

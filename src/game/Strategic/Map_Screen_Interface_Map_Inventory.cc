@@ -10,6 +10,7 @@
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "MessageBoxScreen.h"
 #include "Object_Cache.h"
+#include "SaveLoadGameStates.h"
 #include "Timer_Control.h"
 #include "UILayout.h"
 #include "VObject.h"
@@ -68,10 +69,45 @@
 // popup, from its usual MDITEMS graphic to its BIGITEMS one, and shrinks the
 // grid from 9 columns to 5 (GetInventoryGridCols() below) and to 7 rows
 // (GetInventoryGridRows() below) on both, regardless of the active
-// resolution tier -- per user request. Reset to FALSE every time the panel
-// (re)opens (CreateDestroyMapInventoryPoolButtons()), same convention as
-// gubSectorInventoryActiveFilters.
+// resolution tier -- per user request.
+//
+// Persistent per user request -- NOT reset by opening/closing this panel,
+// the strategic screen, the laptop, or any other screen transition (this
+// is a plain file-scope static, so it simply isn't touched by any of
+// those). Three distinct lifecycles:
+//   - new game: defaults to ON -- InitSectorInventoryBigImagesForNewGame(),
+//     called once from InitNewCampaign() (Campaign_Init.cc).
+//   - live session: only ToggleSectorInventoryFilter()'s sibling,
+//     MapInventoryPoolBigImagesBtn() below, ever changes it.
+//   - save/load: persisted in the Stracciatella-only game-states blob
+//     (g_gameStates, SaveLoadGameStates.h) via SaveSectorInventoryBigImagesToSaveGameFile()/
+//     LoadSectorInventoryBigImagesFromSaveGameFile() below, called from the
+//     main save/load routines (SaveLoadGame.cc) -- same convention as
+//     Strategic_Status.cc's RestoreDroppedWeaponsFromGameState(), including
+//     falling back to the same ON default for saves made before this
+//     feature existed.
 static BOOLEAN gfSectorInventoryBigImages = FALSE;
+
+// See gfSectorInventoryBigImages's own comment above for the full story.
+static ST::string const gSectorInventoryBigImagesStateKey{ "SectorInventory::bigImages" };
+
+void InitSectorInventoryBigImagesForNewGame(void)
+{
+	gfSectorInventoryBigImages = TRUE;
+	g_gameStates.Set(gSectorInventoryBigImagesStateKey, static_cast<bool>(gfSectorInventoryBigImages));
+}
+
+void SaveSectorInventoryBigImagesToSaveGameFile(void)
+{
+	g_gameStates.Set(gSectorInventoryBigImagesStateKey, static_cast<bool>(gfSectorInventoryBigImages));
+}
+
+void LoadSectorInventoryBigImagesFromSaveGameFile(void)
+{
+	gfSectorInventoryBigImages = g_gameStates.HasKey(gSectorInventoryBigImagesStateKey)
+		? g_gameStates.Get<bool>(gSectorInventoryBigImagesStateKey)
+		: TRUE;
+}
 
 // inventory pool slot positions and sizes. Column count (ROW X): 5 while
 // gfSectorInventoryBigImages is on, else always 9 -- tier-independent in
@@ -734,11 +770,12 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 
 		fCreated = TRUE;
 
-		// Reset the "big images" toggle every time the panel opens, before
-		// CreateMapInventoryPoolSlots() below (which reads it to size/lay
-		// out the grid) -- same convention as gubSectorInventoryActiveFilters
-		// just below.
-		gfSectorInventoryBigImages = FALSE;
+		// gfSectorInventoryBigImages is intentionally NOT reset here -- per
+		// user request, it persists across panel opens/closes (and screen
+		// transitions generally); see its own comment further up for the
+		// full new-game/save-load story. CreateMapInventoryPoolSlots()
+		// below reads whatever it's currently set to, to size/lay out the
+		// grid accordingly.
 
 		// also create the inventory slot
 		CreateMapInventoryPoolSlots( );
@@ -2750,6 +2787,27 @@ static void DisplayCurrentSector(void)
 
 static void CheckAndUnDateSlotAllocation(void)
 {
+	// Ensures pInventoryPoolList always covers at least a full page up to
+	// and including the current one -- GetMapInventoryPoolPageSize() can
+	// change size abruptly at any time (the "big images" toggle switches
+	// between very different page sizes, e.g. 40 vs 108), and the "free
+	// slots" heuristic below only grows the list relative to how many
+	// items are actually placed in it, not relative to the page size
+	// itself. A nearly-empty stash could pass that check with room to
+	// spare while the list is still far too short for a newly-enlarged
+	// page, and RenderItemsForCurrentPageOfInventoryPool()/RenderItemInPoolSlot()
+	// indexing past the list's actual size then crashes ("invalid vector
+	// subscript") -- per user report, reproducing specifically when
+	// toggling from a smaller page size to a larger one (e.g. "big images"
+	// -> normal) right after opening the panel, before enough real items
+	// have accumulated to make the heuristic below grow the list on its
+	// own.
+	size_t const min_size_for_current_page = (static_cast<size_t>(iCurrentInventoryPoolPage) + 1) * static_cast<size_t>(GetMapInventoryPoolPageSize());
+	if (pInventoryPoolList.size() < min_size_for_current_page)
+	{
+		pInventoryPoolList.resize(min_size_for_current_page, WORLDITEM{});
+	}
+
 	// will check number of available slots, if less than half a page, allocate a new page
 	size_t numTakenSlots = GetTotalNumberOfItems();
 

@@ -57,6 +57,7 @@
 #include "Map_Screen_Interface_Border.h"
 #include "Map_Screen_Interface_Bottom.h"
 #include "Map_Screen_Interface_Map.h"
+#include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Information.h"
 #include "MapScreen.h"
 #include "Meanwhile.h"
@@ -452,6 +453,10 @@ BOOLEAN SaveGame(const ST::string& saveName, const ST::string& gameDesc)
 		SaveCreatureDirectives(f);
 
 		SaveStrategicStatusToSaveGameFile(f);
+
+		// Syncs gfSectorInventoryBigImages into g_gameStates, which
+		// SaveStatesToSaveGameFile() below serializes -- per user request.
+		SaveSectorInventoryBigImagesToSaveGameFile();
 
 		SaveStrategicAI(f);
 
@@ -1036,6 +1041,12 @@ void LoadSavedGame(const ST::string &saveName)
 		LoadStatesFromSaveFile(f, g_gameStates);
 		AddModInfoToGameStates(g_gameStates);
 	}
+
+	// Unconditional (not version-gated like the block above) -- falls back
+	// to the same ON default a new game gets when g_gameStates has no
+	// stored value at all, which also covers saves made before version 101
+	// (where the block above never even ran), per user request.
+	LoadSectorInventoryBigImagesFromSaveGameFile();
 
 	BAR(1, "Final Checks...");
 

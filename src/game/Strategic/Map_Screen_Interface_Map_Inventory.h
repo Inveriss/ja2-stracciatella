@@ -53,4 +53,11 @@ extern BOOLEAN fMapInventoryItemCompatable[ ];
 
 BOOLEAN IsMapScreenWorldItemVisibleInMapInventory(const WORLDITEM& wi);
 
+// Sector-inventory "big images" toggle's persistence across new game/
+// save/load -- see gfSectorInventoryBigImages's own comment
+// (Map_Screen_Interface_Map_Inventory.cc) for the full story.
+void InitSectorInventoryBigImagesForNewGame(void);
+void SaveSectorInventoryBigImagesToSaveGameFile(void);
+void LoadSectorInventoryBigImagesFromSaveGameFile(void);
+
 #endif
