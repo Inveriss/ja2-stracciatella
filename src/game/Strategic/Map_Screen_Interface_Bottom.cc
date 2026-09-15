@@ -218,9 +218,10 @@ static void EnableDisableMessageScrollButtonsAndRegions(void);
 // will render the map screen bottom interface
 void RenderMapScreenInterfaceBottom( void )
 {
-	// The sector-inventory panel (Sector_Inventory_1024.sti/_Second_1024.sti)
-	// was resized tall enough to physically cover this same screen area, per
-	// user request -- this used to never overlap (this panel's own 121px-tall
+	// The sector-inventory panel (SECTOR_INVENTORY_FIRST_1024.sti/
+	// SECTOR_INVENTORY_STACK_1024.sti) was resized tall enough to physically
+	// cover this same screen area, per user request -- this used to never
+	// overlap (this panel's own 121px-tall
 	// strip sat below the inventory panel's old, shorter box), so drawing
 	// order between the two never mattered before. Skip entirely (background
 	// blit, balance/clock/sector-name/messages, and the button

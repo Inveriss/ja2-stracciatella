@@ -195,8 +195,9 @@ void RenderRadarScreen()
 	// exactly where the sector-inventory panel now needs it to, per user
 	// report. This draws straight to FRAME_BUFFER (see below), bypassing the
 	// guiSAVEBUFFER/fMapPanelDirty pipeline entirely, so it kept redrawing
-	// live on top of the now-taller Sector_Inventory_1024.sti/_Second_1024.sti
-	// every frame regardless of that panel's own rendering.
+	// live on top of the now-taller SECTOR_INVENTORY_FIRST_1024.sti/
+	// SECTOR_INVENTORY_STACK_1024.sti every frame regardless of that panel's
+	// own rendering.
 	if (fShowMapInventoryPool) return;
 
 	// create / destroy squad list regions as nessacary

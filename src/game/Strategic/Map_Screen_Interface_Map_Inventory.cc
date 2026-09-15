@@ -150,11 +150,11 @@ static const SGPBox g_sector_inv_page_box   = { 657, 740,  50,  10 };
 // values, shared by both resolution tiers alike (only the row count
 // itself differs by tier; the pitch/sub-box geometry below does not), per
 // user request.
-static const SGPBox g_sector_inv_slot_box_big   = { 274,  37, 133,  69 };
-static const SGPBox g_sector_inv_region_box_big = {  45,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
-static const SGPBox g_sector_inv_item_box_big   = {  45,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
-static const SGPBox g_sector_inv_bar_box_big    = {  39,  67,   4,  50 }; // relative to g_sector_inv_slot_box_big
-static const SGPBox g_sector_inv_name_box_big   = {  43, 121, 120,  11 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_slot_box_big   = { 274,  37, 139,  69 };
+static const SGPBox g_sector_inv_region_box_big = {  30,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_item_box_big   = {  30,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_bar_box_big    = {  24,  67,   4,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_name_box_big   = {  31, 121, 120,  11 }; // relative to g_sector_inv_slot_box_big
 
 // Small helpers picking the right slot-geometry set for the current
 // gfSectorInventoryBigImages state -- keeps the branch in one place instead
@@ -165,7 +165,7 @@ static SGPBox const& GetSectorInvItemBox(void)   { return gfSectorInventoryBigIm
 static SGPBox const& GetSectorInvBarBox(void)    { return gfSectorInventoryBigImages ? g_sector_inv_bar_box_big    : g_sector_inv_bar_box; }
 static SGPBox const& GetSectorInvNameBox(void)   { return gfSectorInventoryBigImages ? g_sector_inv_name_box_big   : g_sector_inv_name_box; }
 
-// SECTOR_INVENTORY_1280.sti's own artwork places its bottom row's slot
+// SECTOR_INVENTORY_FIRST_1280.sti's own artwork places its bottom row's slot
 // frame 4px lower than the uniform per-row pitch (slot_box->h * row) above
 // would predict -- per user report, only that one row (the last one, row
 // index ROWS-1), only in normal ("big images" off) mode, only at the
@@ -181,7 +181,7 @@ static INT32 GetSectorInvLastRowYCorrection(INT32 const row)
 	return 4;
 }
 
-// SECTOR_INVENTORY_1280_BIG.sti/SECTOR_INVENTORY_second_1280_BIG.sti's own
+// SECTOR_INVENTORY_FIRST_1280_BIG.sti/SECTOR_INVENTORY_STACK_1280_BIG.sti's own
 // artwork places every row's slot frame 3px lower than the large tier's own
 // "big images" artwork -- per user report. Unlike GetSectorInvLastRowYCorrection()
 // above (normal mode, last row only), this applies to every row, in "big
@@ -192,7 +192,7 @@ static INT32 GetBigImagesCompactYCorrection(void)
 	return (gfSectorInventoryBigImages && g_ui.isCompactStrategicScreen()) ? 3 : 0;
 }
 
-// SECTOR_INVENTORY_1280_BIG.sti/SECTOR_INVENTORY_second_1280_BIG.sti's own
+// SECTOR_INVENTORY_FIRST_1280_BIG.sti/SECTOR_INVENTORY_STACK_1280_BIG.sti's own
 // artwork spaces its rows 2px further apart than the large tier's own "big
 // images" artwork -- per user report. Added to slot_box->h/slot_box.h
 // wherever it's used as the row-to-row pitch (not baked into
@@ -226,16 +226,16 @@ static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
 	if (gfSectorInventoryBigImages)
 	{
 		return g_ui.isCompactStrategicScreen()
-			? INTERFACEDIR "/SECTOR_INVENTORY_1280_BIG.sti"
-			: INTERFACEDIR "/SECTOR_INVENTORY_1024_BIG.sti";
+			? INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1280_BIG.sti"
+			: INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1024_BIG.sti";
 	}
 	return g_ui.isCompactStrategicScreen()
-		? INTERFACEDIR "/Sector_Inventory_1280.sti"
-		: INTERFACEDIR "/Sector_Inventory_1024.sti";
+		? INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1280.sti"
+		: INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1024.sti";
 }
 
 // "Group Items" button -- see GroupSectorInventoryItems()/CreateMapInventoryGroupButton().
-// Like DONE_BUTTON_Inventory.STI/map_screen_bottom_arrows.sti above,
+// Like SECTOR_INVENTORY_DONE_BUTTONS.sti/map_screen_bottom_arrows.sti above,
 // QuickCreateButtonImg() manages this image's lifetime itself; no
 // cache_key_t needed here.
 #define GROUP_BUTTON_READY   0
@@ -395,12 +395,12 @@ static cache_key_t GetStackSplitBackgroundFilename(void)
 	if (gfSectorInventoryBigImages)
 	{
 		return g_ui.isCompactStrategicScreen()
-			? INTERFACEDIR "/SECTOR_INVENTORY_Second_1280_BIG.sti"
-			: INTERFACEDIR "/SECTOR_INVENTORY_SECOND_1024_BIG.sti";
+			? INTERFACEDIR "/SECTOR_INVENTORY_STACK_1280_BIG.sti"
+			: INTERFACEDIR "/SECTOR_INVENTORY_STACK_1024_BIG.sti";
 	}
 	return g_ui.isCompactStrategicScreen()
-		? INTERFACEDIR "/Sector_Inventory_Second_1280.sti"
-		: INTERFACEDIR "/Sector_Inventory_Second_1024.sti";
+		? INTERFACEDIR "/SECTOR_INVENTORY_STACK_1280.sti"
+		: INTERFACEDIR "/SECTOR_INVENTORY_STACK_1024.sti";
 }
 
 // Placeholder positions, per user request -- not yet the final layout.
@@ -419,11 +419,11 @@ static const SGPBox g_stack_split_name_box   = {   25,  108,  70,  10 }; // rela
 // same reasoning as g_sector_inv_slot_box_big above (shared by both
 // resolution tiers, only the row count itself differs -- 8 compact / 9
 // large, GetInventoryGridRows()).
-static const SGPBox g_stack_split_slot_box_big   = {  10,  30, 133,  69 };
-static const SGPBox g_stack_split_region_box_big = {  48, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
-static const SGPBox g_stack_split_item_box_big   = {  48, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
-static const SGPBox g_stack_split_bar_box_big    = {  42, 74,   4,  50 }; // relative to g_stack_split_slot_box_big
-static const SGPBox g_stack_split_name_box_big   = {  45, 126, 126,  14 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_slot_box_big   = {  10,  30, 139,  69 };
+static const SGPBox g_stack_split_region_box_big = {  33, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_item_box_big   = {  33, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_bar_box_big    = {  27, 74,   4,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_name_box_big   = {  33, 126, 126,  14 }; // relative to g_stack_split_slot_box_big
 
 // Same idea as GetSectorInvSlotBox()/etc. above, for the stack split grid.
 static SGPBox const& GetStackSplitSlotBox(void)   { return gfSectorInventoryBigImages ? g_stack_split_slot_box_big   : g_stack_split_slot_box; }
@@ -1214,10 +1214,10 @@ static void CreateStackSplitDoneButton(void)
 	// and item-slot clicks no longer do it (see gStackSplitBackgroundRegion
 	// above and StackSplitSlotSecondary() below).
 	//
-	// Same DONE_BUTTON_Inventory.STI sheet as the main grid's own Done
+	// Same SECTOR_INVENTORY_DONE_BUTTONS.sti sheet as the main grid's own Done
 	// button (CreateMapInventoryPoolDoneButton()), next sequential
 	// sub-image pair (2/3, vs. the main grid's own 0/1), per user request.
-	gStackSplitDoneButton = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 2, 3,
+	gStackSplitDoneButton = QuickCreateButtonImg(INTERFACEDIR "/SECTOR_INVENTORY_DONE_BUTTONS.sti", 2, 3,
 		MAP_SCREEN_X + STACK_SPLIT_DONE_X, MAP_SCREEN_Y + STACK_SPLIT_DONE_Y, MSYS_PRIORITY_HIGHEST, StackSplitDoneBtn);
 	gStackSplitDoneButton->SetFastHelpText("Done (Stack Inventory)");
 }
@@ -2086,7 +2086,7 @@ static void DrawNumberOfInventoryPoolItems()
 static void CreateMapInventoryPoolDoneButton(void)
 {
 	// create done button
-	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/DONE_BUTTON_Inventory.STI", 0, 1, MAP_SCREEN_X + 813, MAP_SCREEN_Y + 737 + COMPACT_DONE_BUTTON_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/SECTOR_INVENTORY_DONE_BUTTONS.sti", 0, 1, MAP_SCREEN_X + 813, MAP_SCREEN_Y + 737 + COMPACT_DONE_BUTTON_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
 	guiMapInvenButton[2]->SetFastHelpText("Done (Sector Inventory)");
 }
 

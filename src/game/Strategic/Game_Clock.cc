@@ -245,9 +245,10 @@ void RenderClock(void)
 	// ShopKeeper_Interface.cc, Interface_Control.cc), where fShowMapInventoryPool
 	// is never TRUE, so this only ever skips on the strategic map screen --
 	// exactly where the sector-inventory panel now needs it to, per user
-	// report (it drew on top of the now-taller Sector_Inventory_1024.sti/
-	// _Second_1024.sti regardless of MapScreen.cc's own RenderClock() call
-	// being outside the fMapPanelDirty-gated pipeline entirely).
+	// report (it drew on top of the now-taller SECTOR_INVENTORY_FIRST_1024.sti/
+	// SECTOR_INVENTORY_STACK_1024.sti regardless of MapScreen.cc's own
+	// RenderClock() call being outside the fMapPanelDirty-gated pipeline
+	// entirely).
 	if (fShowMapInventoryPool) return;
 
 	// Are we in combat?
