@@ -164,7 +164,17 @@ static INT32 CompactFooterYOffset(INT32 const offset)
 
 
 static const SGPBox g_sector_inv_box        = { 261,   0, 762, 768 };
-static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
+// y is kept at a valid, in-range baseline (0) -- SGPBox's fields are UINT16
+// (Types.h), so a negative Y literal here would either fail to compile
+// (narrowing in aggregate initialization) or silently wrap to 65530 and
+// render far off-screen, unlike the intended "6px higher". The actual
+// (negative-capable) vertical position is SECTOR_INV_TITLE_Y_OFFSET below,
+// added at the DrawTextOnSectorInventory() call site instead, where the
+// parameter types are signed.
+static const SGPBox g_sector_inv_title_box  = { 458,   0, 370,  29 };
+// Per user request -- moves the "Sector Inventory" title up 6px from the
+// box's own y (0) above; negative because SGPBox itself can't hold it.
+#define SECTOR_INV_TITLE_Y_OFFSET (-6)
 static const SGPBox g_sector_inv_slot_box   = { 274,  37,  78,  52 };
 static const SGPBox g_sector_inv_region_box = {   27,   65,  67,  33 }; // relative to g_sector_inv_slot_box
 static const SGPBox g_sector_inv_item_box   = {   27,   65,  67,  33 }; // relative to g_sector_inv_slot_box
@@ -2953,7 +2963,7 @@ static void DrawTextOnSectorInventory(void)
 	SetFontDestBuffer(guiSAVEBUFFER);
 	SetFontAttributes(FONT14ARIAL, FONT_WHITE);
 
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y,
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + SECTOR_INV_TITLE_Y_OFFSET,
 		zMarksMapScreenText[11], g_sector_inv_title_box);
 
 	SetFontDestBuffer(FRAME_BUFFER);
