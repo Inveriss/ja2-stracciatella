@@ -58,27 +58,54 @@
 
 #define WINDOW_SIZE		2
 
-// QuantizeImage() (Quantize.cc) caps its palette at 255 real colors
-// (MAX_COLOURS) even though pPalette has 256 slots, so palette index 255 is
-// *always* left unused -- by both the palette itself (GetPaletteColors()
-// only ever writes indices [0, leaf_count-1], leaf_count <= 255) and every
-// pixel MapPalette() assigns (also restricted to [0, leaf_count)). Meanwhile
-// the compressed .sti format (STIConvert.cc's ETRLE writer, TCI == 0x00)
+// The compressed .sti format (STIConvert.cc's ETRLE writer, TCI == 0x00)
 // always treats palette index 0 as fully transparent, regardless of what
-// color actually sits there -- and the quantizer's octree traversal happens
-// to assign index 0 to whatever real color cluster it visits first, not a
-// reserved value (confirmed by user report: it's a different, non-black
-// color for every map). Swapping index 0's real content into the
-// guaranteed-free slot 255 means nothing in the actual minimap image points
-// at index 0 anymore, so it can never accidentally mask out real pixels
-// that happen to quantize to whatever color the quantizer put there.
+// color actually sits there -- and QuantizeImage()'s (Quantize.cc) octree
+// traversal happens to assign index 0 to whatever real color cluster it
+// visits first, not a reserved value (confirmed by user report: it's a
+// different, non-black color for every map). Moving index 0's real content
+// to another, genuinely unused index means nothing in the actual minimap
+// image points at index 0 anymore, so it can never accidentally mask out
+// real pixels that happen to quantize to whatever color the quantizer put
+// there.
+//
+// The target index must be one MapPalette() (Quantize.cc) never actually
+// assigned to any pixel -- found here by scanning for the highest index
+// actually in use and picking the next one up. The two QuantizeImage() call
+// sites below pass sMaxColors == 254 (not the default 255), which GUARANTEES
+// index 254 is always free regardless of how many distinct colors a given
+// map's minimap actually has -- confirmed necessary by user report: these
+// heavily-downscaled/averaged minimaps routinely use close to the full
+// 255-color budget, so relying on "probably some high index is unused"
+// left plenty of maps unfixed.
+//
+// Index 255 specifically must be avoided as the target: it's WI in
+// STIConvert.cc, an entirely separate convention from TCI meaning
+// "subimage/wall boundary", checked by DetermineSubImageSize() while
+// scanning row 0/column 0 for where the image's used area ends. An earlier
+// attempt swapped index 0's content there, which planted real 255-valued
+// pixels in the image; every map's background-colored top-right corner
+// (always outside the isometric diamond) then read as a "wall" 1 pixel
+// early, truncating every generated minimap's detected width by 1 -- per
+// user report. The sMaxColors == 254 cap keeps this function's own result
+// (maxUsed + 1) at 254 at most, safely below that.
 static void ReserveTransparentPaletteIndex(UINT8* const pData, SGPPaletteEntry* const pPalette, const INT32 pixelCount)
 {
-	pPalette[255] = pPalette[0];
-	pPalette[0]   = SGPPaletteEntry{};
+	UINT8 maxUsed = 0;
 	for (INT32 i = 0; i < pixelCount; ++i)
 	{
-		if (pData[i] == 0) pData[i] = 255;
+		if (pData[i] > maxUsed) maxUsed = pData[i];
+	}
+
+	// Defensive only -- unreachable as long as callers pass sMaxColors <= 254.
+	if (maxUsed >= 254) return;
+
+	UINT8 const freeIndex = maxUsed + 1;
+	pPalette[freeIndex] = pPalette[0];
+	pPalette[0]         = SGPPaletteEntry{};
+	for (INT32 i = 0; i < pixelCount; ++i)
+	{
+		if (pData[i] == 0) pData[i] = freeIndex;
 	}
 }
 
@@ -298,7 +325,15 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 		{ SGPVSurface::Lock ldst(FRAME_BUFFER);
 			UINT16* const pDestBuf         = ldst.Buffer<UINT16>();
 			UINT32  const uiDestPitchBYTES = ldst.Pitch();
-			QuantizeImage(pDataPtr, p24BitValues.get(), MINIMAP_X_SIZE, MINIMAP_Y_SIZE, pPalette);
+			// sMaxColors capped to 254 (not the default 255) -- guarantees
+			// index 254 is always free for ReserveTransparentPaletteIndex()
+			// below to use, regardless of how many distinct colors this
+			// particular map's minimap has. Confirmed necessary by user
+			// report: many of these heavily-downscaled/averaged minimaps
+			// actually do use close to the full 255-color budget, so relying
+			// on "probably some high index is unused" left the original
+			// index-0 masking bug unfixed for a large share of maps.
+			QuantizeImage(pDataPtr, p24BitValues.get(), MINIMAP_X_SIZE, MINIMAP_Y_SIZE, pPalette, 254);
 			ReserveTransparentPaletteIndex(pDataPtr, pPalette, MINIMAP_X_SIZE * MINIMAP_Y_SIZE);
 			gi8BitMiniMap->SetPalette(pPalette);
 			// Blit!
@@ -420,7 +455,8 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 		ST::string zFilenameBig;
 		{ SGPVSurface::Lock lsrc(gi8BitMiniMapBig);
 			UINT8* const pDataPtrBig = lsrc.Buffer<UINT8>();
-			QuantizeImage(pDataPtrBig, p24BitValuesBig.get(), RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, pPaletteBig);
+			// sMaxColors capped to 254 -- see the small pass's own comment above.
+			QuantizeImage(pDataPtrBig, p24BitValuesBig.get(), RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, pPaletteBig, 254);
 			ReserveTransparentPaletteIndex(pDataPtrBig, pPaletteBig, RADAR_BIG_X_SIZE * RADAR_BIG_Y_SIZE);
 			gi8BitMiniMapBig->SetPalette(pPaletteBig);
 
