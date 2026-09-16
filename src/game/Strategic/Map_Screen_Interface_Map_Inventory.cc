@@ -2481,7 +2481,7 @@ static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
 static void CreateMapInventoryBigImagesButton(void)
 {
 	guiMapInvenButton[13] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", BIG_IMAGES_BUTTON_OFF, BIG_IMAGES_BUTTON_ON, MAP_SCREEN_X + BIG_IMAGES_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolBigImagesBtn);
-	guiMapInvenButton[13]->SetFastHelpText("Show Large Images");
+	guiMapInvenButton[13]->SetFastHelpText("Show Large Icons");
 }
 
 
