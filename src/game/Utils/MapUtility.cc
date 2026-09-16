@@ -39,8 +39,8 @@
 // "<mapname>.big.sti" next to each map's own "<mapname>.sti", same
 // directory, same per-map loop, sampled from the same already-rendered
 // overhead-map framebuffer content (see the second pass below).
-#define RADAR_BIG_X_SIZE	250
-#define RADAR_BIG_Y_SIZE	125
+#define RADAR_BIG_X_SIZE	238
+#define RADAR_BIG_Y_SIZE	119
 
 // The overhead map's own natural render width -- a fixed, classic-engine
 // constant (see RenderOverheadMap()'s other caller, Overhead_Map.cc's own

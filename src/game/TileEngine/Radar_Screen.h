@@ -40,8 +40,8 @@ extern BOOLEAN   fRenderRadarScreen;
 // runtime scaling, same convention as RADAR_WINDOW_WIDTH/HEIGHT above.
 // Position/frame per user request -- one shared frame graphic for both
 // screen-height tiers (g_ui.isCompactStrategicScreen()), only Y differs.
-#define RADAR_WINDOW_BIG_WIDTH		250
-#define RADAR_WINDOW_BIG_HEIGHT		125
+#define RADAR_WINDOW_BIG_WIDTH		238
+#define RADAR_WINDOW_BIG_HEIGHT		119
 #define RADAR_WINDOW_BIG_FRAME_X	1
 #define RADAR_WINDOW_BIG_FRAME_Y	(g_ui.isCompactStrategicScreen() ? 583 : 631)
 #define RADAR_WINDOW_BIG_X			6
