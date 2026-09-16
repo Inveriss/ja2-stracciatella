@@ -371,7 +371,7 @@ static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
 
 #define FILTER_BUTTON_WIDTH 55
 #define FILTER_BUTTON_GAP    3
-#define FILTER_BUTTON_STEP  (FILTER_BUTTON_WIDTH + FILTER_BUTTON_GAP + 2)
+#define FILTER_BUTTON_STEP  (FILTER_BUTTON_WIDTH + FILTER_BUTTON_GAP)
 
 #define ALL_ITEMS_BUTTON_X    (GROUP_BUTTON_X + FILTER_BUTTON_STEP + 1)
 #define FILTER_WEAPONS_X      (GROUP_BUTTON_X + 2 * FILTER_BUTTON_STEP)
@@ -937,6 +937,15 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		fMapPanelDirty = TRUE;
 		fTeamPanelDirty = TRUE;
 		fCharacterInfoPanelDirty = TRUE;
+		// RenderMapScreenInterfaceBottom() (message history/clock/balance)
+		// returns early, untouched, every frame while fShowMapInventoryPool
+		// is TRUE -- unlike the open branch above, closing never re-set this,
+		// so it stayed on whatever was last drawn there (mostly hidden
+		// behind the sector-inventory panel and the big minimap) instead of
+		// redrawing once the panel actually closes. Per user report, this
+		// left the message history not shown again until something
+		// unrelated (a scroll arrow click) happened to set this flag itself.
+		fMapScreenBottomDirty = TRUE;
 
 		//DEF: added to remove the 'item blip' from staying on the radar map
 		iCurrentlyHighLightedItem = -1;
@@ -2493,7 +2502,7 @@ static void CreateMapInventoryFilterModeCheckbox(void)
 	// panel open this session), and CreateCheckBoxButton() itself always
 	// starts unchecked.
 	guiMapInvenButton[14] = CreateCheckBoxButton(
-		MAP_SCREEN_X + FILTER_MODE_CHECKBOX_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y,
+		MAP_SCREEN_X + FILTER_MODE_CHECKBOX_X + 2, MAP_SCREEN_Y + FILTER_BUTTONS_Y + 35,
 		INTERFACEDIR "/popupcheck.sti", MSYS_PRIORITY_HIGHEST,
 		ToggleSectorInventoryFilterModeCallback);
 	if (gfSectorInventoryCombinableFilters) guiMapInvenButton[14]->uiFlags |= BUTTON_CLICKED_ON;
