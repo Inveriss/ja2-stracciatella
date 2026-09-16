@@ -2197,13 +2197,22 @@ static void DisplayPagesForMapInventoryPool(void)
 }
 
 
-static size_t GetTotalNumberOfItemsInSectorStash(void)
+// Per user request: "Total Items" reflects only what's actually visible
+// under the active category filter(s), not the whole stash -- e.g. with
+// only "Show ammo" active, this counts just the ammo units, and with
+// "Show armours" + "Show misc" both active (combinable mode), just those
+// two categories combined. Restricted to [0, gVisibleInventorySlotCount) --
+// the hidden tail RebuildFilteredInventoryPoolList() places after that
+// boundary while a filter is active is deliberately excluded, same
+// convention CheckGridNoOfItemsInMapScreenMapInventory()/pagination
+// already use to define what's "visible".
+static size_t GetTotalNumberOfVisibleItemsInSectorStash(void)
 {
 	size_t numObjects = 0;
 
-	// run through list of items and find out how many are there
-	for (WORLDITEM& wi : pInventoryPoolList)
+	for (size_t i = 0; i < gVisibleInventorySlotCount; ++i)
 	{
+		WORLDITEM const& wi = pInventoryPoolList[i];
 		if (wi.o.ubNumberOfObjects > 0)
 		{
 			numObjects += wi.o.ubNumberOfObjects;
@@ -2214,11 +2223,15 @@ static size_t GetTotalNumberOfItemsInSectorStash(void)
 }
 
 
-// Same idea as GetTotalNumberOfItemsInSectorStash() above, but for this
-// window's own gStackSplitItems -- each entry is a physically split-out,
-// 1-count OBJECTTYPE (see OpenStackSplitView()), so this naturally goes
-// down as items are picked up onto the cursor (StackSplitSlotPrimary())
-// while the window stays open.
+// Same idea as GetTotalNumberOfVisibleItemsInSectorStash() above, but for
+// this window's own gStackSplitItems -- each entry is a physically
+// split-out, 1-count OBJECTTYPE (see OpenStackSplitView()), so this
+// naturally goes down as items are picked up onto the cursor
+// (StackSplitSlotPrimary()) while the window stays open. Already matches
+// the "only what's visible" principle per user request without any change
+// needed: every entry in gStackSplitItems came from splitting ONE already-
+// selected stack, so there's no hidden/filtered-out tail to exclude here,
+// unlike the main grid above.
 static size_t GetTotalNumberOfItemsInStackSplit(void)
 {
 	size_t numObjects = 0;
@@ -2256,7 +2269,7 @@ static void DrawNumberOfInventoryPoolItems()
 	SetFontDestBuffer(guiSAVEBUFFER);
 
 	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
-		ST::string::from_uint(GetTotalNumberOfItemsInSectorStash()),
+		ST::string::from_uint(GetTotalNumberOfVisibleItemsInSectorStash()),
 		g_sector_inv_count_box);
 
 	SetFontDestBuffer(FRAME_BUFFER);
