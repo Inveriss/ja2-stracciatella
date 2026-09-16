@@ -458,6 +458,9 @@ BOOLEAN SaveGame(const ST::string& saveName, const ST::string& gameDesc)
 		// SaveStatesToSaveGameFile() below serializes -- per user request.
 		SaveSectorInventoryBigImagesToSaveGameFile();
 
+		// Same convention, for the "combine filters" checkbox -- per user request.
+		SaveSectorInventoryFilterModeToSaveGameFile();
+
 		SaveStrategicAI(f);
 
 		SaveWatchedLocsToSavedGame(f);
@@ -1047,6 +1050,12 @@ void LoadSavedGame(const ST::string &saveName)
 	// stored value at all, which also covers saves made before version 101
 	// (where the block above never even ran), per user request.
 	LoadSectorInventoryBigImagesFromSaveGameFile();
+
+	// Same convention, for the "combine filters" checkbox -- per user
+	// request. Falls back to FALSE (exclusive, the new default) rather than
+	// TRUE for saves with no stored value -- there's no prior behavior to
+	// preserve for this one, unlike the big-images toggle above.
+	LoadSectorInventoryFilterModeFromSaveGameFile();
 
 	BAR(1, "Final Checks...");
 

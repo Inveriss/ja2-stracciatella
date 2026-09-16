@@ -110,6 +110,47 @@ void LoadSectorInventoryBigImagesFromSaveGameFile(void)
 		: TRUE;
 }
 
+// Sector-inventory category-filter mode -- FALSE (default) means each of
+// the 7 category-filter buttons (ToggleSectorInventoryFilter() below) is
+// independent/exclusive: selecting one clears every other, like a radio
+// button group. TRUE means they combine (a union, the original behavior --
+// several can be active at once). Toggled by the "combine filters" checkbox
+// (CreateMapInventoryFilterModeCheckbox()), per user request. Persistence
+// follows gfSectorInventoryBigImages's exact three-lifecycle convention
+// above:
+//   - new game: defaults to FALSE (InitSectorInventoryFilterModeForNewGame(),
+//     called once from InitNewCampaign(), Campaign_Init.cc).
+//   - live session: only the checkbox's own callback ever changes it --
+//     not reset by opening/closing this panel or any other screen
+//     transition (plain file-scope static).
+//   - save/load: persisted in g_gameStates via
+//     SaveSectorInventoryFilterModeToSaveGameFile()/
+//     LoadSectorInventoryFilterModeFromSaveGameFile() below, called from
+//     SaveLoadGame.cc. Unlike gfSectorInventoryBigImages, saves made before
+//     this feature existed fall back to FALSE (the new default), not TRUE --
+//     there's no prior behavior to preserve for them.
+static BOOLEAN gfSectorInventoryCombinableFilters = FALSE;
+
+static ST::string const gSectorInventoryCombinableFiltersStateKey{ "SectorInventory::combinableFilters" };
+
+void InitSectorInventoryFilterModeForNewGame(void)
+{
+	gfSectorInventoryCombinableFilters = FALSE;
+	g_gameStates.Set(gSectorInventoryCombinableFiltersStateKey, static_cast<bool>(gfSectorInventoryCombinableFilters));
+}
+
+void SaveSectorInventoryFilterModeToSaveGameFile(void)
+{
+	g_gameStates.Set(gSectorInventoryCombinableFiltersStateKey, static_cast<bool>(gfSectorInventoryCombinableFilters));
+}
+
+void LoadSectorInventoryFilterModeFromSaveGameFile(void)
+{
+	gfSectorInventoryCombinableFilters = g_gameStates.HasKey(gSectorInventoryCombinableFiltersStateKey)
+		? g_gameStates.Get<bool>(gSectorInventoryCombinableFiltersStateKey)
+		: FALSE;
+}
+
 // inventory pool slot positions and sizes. Column count (ROW X): 5 while
 // gfSectorInventoryBigImages is on, else always 9 -- tier-independent in
 // both cases. Row count (COL Y) is both resolution- and
@@ -330,7 +371,7 @@ static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
 
 #define FILTER_BUTTON_WIDTH 55
 #define FILTER_BUTTON_GAP    3
-#define FILTER_BUTTON_STEP  (FILTER_BUTTON_WIDTH + FILTER_BUTTON_GAP)
+#define FILTER_BUTTON_STEP  (FILTER_BUTTON_WIDTH + FILTER_BUTTON_GAP + 2)
 
 #define ALL_ITEMS_BUTTON_X    (GROUP_BUTTON_X + FILTER_BUTTON_STEP + 1)
 #define FILTER_WEAPONS_X      (GROUP_BUTTON_X + 2 * FILTER_BUTTON_STEP)
@@ -340,6 +381,13 @@ static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
 #define FILTER_EXPLOSIVES_X   (GROUP_BUTTON_X + 6 * FILTER_BUTTON_STEP - 1)
 #define FILTER_OTHER_X        (GROUP_BUTTON_X + 7 * FILTER_BUTTON_STEP - 3)
 #define FILTER_BUTTONS_Y      GROUP_BUTTON_Y
+
+// "Combine filters" checkbox -- per user request: 3px after "Pokaż różne/pozostałe"
+// (FILTER_OTHER_X's own right edge), same INTERFACEDIR/popupcheck.sti
+// checkbox graphic as the tactical screen's "Hide empty attachment slots"
+// (giSMHideEmptySlotsCheckbox, Interface_Panels.cc) -- same row Y as the
+// filter buttons, placeholder like everything else in this block.
+#define FILTER_MODE_CHECKBOX_X (FILTER_OTHER_X + FILTER_BUTTON_STEP)
 
 // "Big images" toggle -- per user request: 3px after "Pokaż różne/pozostałe"
 // (FILTER_OTHER_X), same sector_inventory_bookmarks.sti sheet, next
@@ -423,7 +471,7 @@ UINT32 guiCompatibleItemBaseTime = 0;
 // [4] = all items (clears filters), [5] = weapons, [6] = attachments,
 // [7] = ammo, [8] = armour, [9] = explosives, [10] = other,
 // [11] = move to sector, [12] = move to merc, [13] = big images toggle
-static GUIButtonRef guiMapInvenButton[14];
+static GUIButtonRef guiMapInvenButton[15]; // [14] is the "combine filters" checkbox, see CreateMapInventoryFilterModeCheckbox()
 
 static BOOLEAN gfCheckForCursorOverMapSectorInventoryItem = FALSE;
 
@@ -754,6 +802,7 @@ static void CreateMapInventoryPoolSlots(void);
 static void CreateMapInventoryGroupButton(void);
 static void CreateMapInventoryFilterButtons(void);
 static void CreateMapInventoryBigImagesButton(void);
+static void CreateMapInventoryFilterModeCheckbox(void);
 static void CreateMapInventoryTransferButtons(void);
 static void CreateStackSplitSlots(void);
 static void CreateStackSplitDoneButton(void);
@@ -764,6 +813,7 @@ static void DestroyMapInventoryPoolSlots();
 static void DestroyMapInventoryGroupButton(void);
 static void DestroyMapInventoryFilterButtons(void);
 static void DestroyMapInventoryBigImagesButton(void);
+static void DestroyMapInventoryFilterModeCheckbox(void);
 static void DestroyMapInventoryTransferButtons(void);
 static void DestroyStackSplitSlots(void);
 static void DestroyStackSplitDoneButton(void);
@@ -833,6 +883,7 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		CreateMapInventoryGroupButton( );
 		CreateMapInventoryFilterButtons( );
 		CreateMapInventoryBigImagesButton( );
+		CreateMapInventoryFilterModeCheckbox( );
 		CreateMapInventoryTransferButtons( );
 
 		fMapPanelDirty = TRUE;
@@ -873,6 +924,7 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		DestroyMapInventoryGroupButton( );
 		DestroyMapInventoryFilterButtons( );
 		DestroyMapInventoryBigImagesButton( );
+		DestroyMapInventoryFilterModeCheckbox( );
 		DestroyMapInventoryTransferButtons( );
 
 		// now save results
@@ -2256,17 +2308,60 @@ static GUIButtonRef QuickCreateFilterToggleButton(char const* const gfx, INT32 c
 }
 
 
+// guiMapInvenButton[4..10] <-> their SECTOR_INV_FILTER_* bit, in creation
+// order (CreateMapInventoryFilterButtons() below) -- used by
+// SyncSectorInventoryFilterButtonVisuals() to keep every button's own
+// BUTTON_CLICKED_ON in sync with gubSectorInventoryActiveFilters.
+static UINT8 const gSectorInvFilterButtonBits[7] =
+{
+	SECTOR_INV_FILTER_ALL, SECTOR_INV_FILTER_WEAPONS, SECTOR_INV_FILTER_ATTACHMENTS,
+	SECTOR_INV_FILTER_AMMO, SECTOR_INV_FILTER_ARMOUR, SECTOR_INV_FILTER_EXPLOSIVES,
+	SECTOR_INV_FILTER_OTHER
+};
+
+// Single source of truth for the 7 filter buttons' own visual (checked/
+// unchecked) state, driven entirely from gubSectorInventoryActiveFilters --
+// needed because BUTTON_NEWTOGGLE (Button_System.cc:769-783) only ever
+// auto-flips the ONE button actually clicked, which isn't enough once
+// !gfSectorInventoryCombinableFilters requires turning every OTHER button
+// off too. Called after every filter change, in both modes, so it's also
+// the one place that corrects that auto-flip when it disagrees with the
+// authoritative bitmask.
+static void SyncSectorInventoryFilterButtonVisuals(void)
+{
+	for (UINT32 i = 0; i < 7; ++i)
+	{
+		GUIButtonRef const btn = guiMapInvenButton[4 + i];
+		if (gubSectorInventoryActiveFilters & gSectorInvFilterButtonBits[i])
+		{
+			btn->uiFlags |= BUTTON_CLICKED_ON;
+		}
+		else
+		{
+			btn->uiFlags &= ~BUTTON_CLICKED_ON;
+		}
+	}
+	fMapPanelDirty = TRUE;
+}
+
 // Shared body of all 7 filter toggle buttons (including "Wszystkie
-// przedmioty") -- flips `category` in gubSectorInventoryActiveFilters and
-// re-applies the filter. Several can be active at once (a union, not an
-// intersection); per user request, every one of them -- "Wszystkie
-// przedmioty" included -- toggles independently with no special-casing, so
-// turning every single one off (ALL included) is a valid, reachable state
-// that shows nothing.
+// przedmioty"). Two modes, per user request (gfSectorInventoryCombinableFilters,
+// toggled by the "combine filters" checkbox):
+//   - combinable (TRUE): flips `category` in gubSectorInventoryActiveFilters
+//     -- several can be active at once (a union, not an intersection), and
+//     turning every single one off is a valid, reachable state that shows
+//     nothing.
+//   - exclusive (FALSE, default): replaces gubSectorInventoryActiveFilters
+//     with just `category` -- always exactly one active, like a radio
+//     button group. Clicking the already-sole-active button is a no-op
+//     (still just `category`).
 static void ToggleSectorInventoryFilter(UINT8 category)
 {
-	gubSectorInventoryActiveFilters ^= category;
+	gubSectorInventoryActiveFilters = gfSectorInventoryCombinableFilters
+		? gubSectorInventoryActiveFilters ^ category
+		: category;
 	ApplySectorInventoryFilter();
+	SyncSectorInventoryFilterButtonVisuals();
 }
 
 static void MapInventoryPoolAllItemsBtn(GUI_BUTTON* btn, UINT32 reason)
@@ -2371,6 +2466,44 @@ static void CreateMapInventoryBigImagesButton(void)
 static void DestroyMapInventoryBigImagesButton(void)
 {
 	RemoveButton( guiMapInvenButton[13] );
+}
+
+
+// "Combine filters" checkbox -- toggles gfSectorInventoryCombinableFilters.
+// Per user request, this alone doesn't touch gubSectorInventoryActiveFilters
+// or the buttons' own visuals -- it only changes how the NEXT filter click
+// behaves (ToggleSectorInventoryFilter()); whatever's currently
+// shown/checked stays exactly as it is until then.
+static void ToggleSectorInventoryFilterModeCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		gfSectorInventoryCombinableFilters = !gfSectorInventoryCombinableFilters;
+	}
+}
+
+
+static void CreateMapInventoryFilterModeCheckbox(void)
+{
+	// Same checkbox graphic/helper as the tactical screen's "Hide empty
+	// attachment slots" (giSMHideEmptySlotsCheckbox, Interface_Panels.cc),
+	// per user request. Unlike CreateMapInventoryBigImagesButton() above,
+	// this DOES sync its visual state at creation -- gfSectorInventoryCombinableFilters
+	// can be TRUE here (loaded from a save, or just left on from a prior
+	// panel open this session), and CreateCheckBoxButton() itself always
+	// starts unchecked.
+	guiMapInvenButton[14] = CreateCheckBoxButton(
+		MAP_SCREEN_X + FILTER_MODE_CHECKBOX_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y,
+		INTERFACEDIR "/popupcheck.sti", MSYS_PRIORITY_HIGHEST,
+		ToggleSectorInventoryFilterModeCallback);
+	if (gfSectorInventoryCombinableFilters) guiMapInvenButton[14]->uiFlags |= BUTTON_CLICKED_ON;
+	guiMapInvenButton[14]->SetFastHelpText("Combine item filters");
+}
+
+
+static void DestroyMapInventoryFilterModeCheckbox(void)
+{
+	RemoveButton( guiMapInvenButton[14] );
 }
 
 
@@ -2991,6 +3124,10 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// which the stack split view's items are borrowed out of while open.
 	EnableButton(guiMapInvenButton[13], !fStackSplitOpen);
 
+	// "Combine filters" checkbox -- same rule as the filter buttons it
+	// governs, above.
+	EnableButton(guiMapInvenButton[14], !fStackSplitOpen);
+
 	// The two transfer buttons -- gated on GetSoldierForInventoryTransfer()'s
 	// own checks (Mapinv.sti open, a valid soldier selected, physically in
 	// this sector, not mid-battle) -- see its own comment for why
@@ -3276,7 +3413,23 @@ static INT32 MapScreenSectorInventoryCompare(const void* pNum1, const void* pNum
 	ubItem1Quality = pFirst->o.bStatus[ 0 ];
 	ubItem2Quality = pSecond->o.bStatus[ 0 ];
 
-	return( CompareItemsForSorting( usItem1Index, usItem2Index, ubItem1Quality, ubItem2Quality ) );
+	INT32 const result = CompareItemsForSorting( usItem1Index, usItem2Index, ubItem1Quality, ubItem2Quality );
+	if (result != 0) return result;
+
+	// Same item type and quality here -- e.g. a stack of more than
+	// getPerPocket()/MAX_OBJECTS_PER_SLOT units, split by
+	// GroupWorlditemRange() into one full slot plus a remainder slot.
+	// CompareItemsForSorting() (shared with the arms dealer's own
+	// inventory, ArmsDealerInvInit.cc -- left untouched) treats these as
+	// equal, and qsort() is NOT a stable sort: with no tiebreaker, the
+	// relative order of two "equal" slots is unspecified and can flip
+	// between successive calls depending on the array's current state --
+	// per user report, alternating correct/reversed order every time this
+	// runs (every filter-button click and every "Stack, consolidate..."
+	// press call SortSectorInventory() again). Break the tie by quantity,
+	// largest first, so the full stack always deterministically precedes
+	// its own remainder.
+	return (INT32)pSecond->o.ubNumberOfObjects - (INT32)pFirst->o.ubNumberOfObjects;
 }
 
 

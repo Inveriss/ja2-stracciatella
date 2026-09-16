@@ -80,4 +80,12 @@ void InitSectorInventoryBigImagesForNewGame(void);
 void SaveSectorInventoryBigImagesToSaveGameFile(void);
 void LoadSectorInventoryBigImagesFromSaveGameFile(void);
 
+// Sector-inventory category-filter mode toggle ("combine filters" checkbox)
+// persistence across new game/save/load -- see
+// gfSectorInventoryCombinableFilters's own comment
+// (Map_Screen_Interface_Map_Inventory.cc) for the full story.
+void InitSectorInventoryFilterModeForNewGame(void);
+void SaveSectorInventoryFilterModeToSaveGameFile(void);
+void LoadSectorInventoryFilterModeFromSaveGameFile(void);
+
 #endif

@@ -124,4 +124,9 @@ void InitNewCampaign()
 	// gfSectorInventoryBigImages's own comment
 	// (Map_Screen_Interface_Map_Inventory.cc) for the full story.
 	InitSectorInventoryBigImagesForNewGame();
+
+	// Defaults to FALSE (exclusive filters) for a new game, per user
+	// request -- see gfSectorInventoryCombinableFilters's own comment
+	// (Map_Screen_Interface_Map_Inventory.cc) for the full story.
+	InitSectorInventoryFilterModeForNewGame();
 }
