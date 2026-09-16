@@ -78,6 +78,7 @@
 
 #define MAPSDIR        "maps"
 #define RADARMAPSDIR   "radarmaps"
+#define RADARMAPSBIGDIR "radarmaps_big"
 #define TILESETSDIR    "tilesets"
 
 #define DIALOGUESIZE 240
@@ -274,6 +275,16 @@ ST::string DefaultContentManager::getMapPath(const ST::string& mapName) const
 ST::string DefaultContentManager::getRadarMapResourceName(const ST::string &mapName) const
 {
 	ST::string result = RADARMAPSDIR "/" + mapName;
+
+	SLOGD("map file {}", result);
+
+	return result;
+}
+
+/** Get big (250x125) radar map resource name, for the sector-inventory big minimap. */
+ST::string DefaultContentManager::getRadarMapBigResourceName(const ST::string &mapName) const
+{
+	ST::string result = RADARMAPSBIGDIR "/" + mapName;
 
 	SLOGD("map file {}", result);
 

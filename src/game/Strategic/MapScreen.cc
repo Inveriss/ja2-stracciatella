@@ -4176,6 +4176,14 @@ static void BlitBackgroundToSaveBuffer(void)
 
 	// now render lower panel
 	RenderMapScreenInterfaceBottom( );
+
+	// Sector-inventory "big minimap" -- must draw after (i.e. on top of)
+	// both RenderTeamRegionBackground() and RenderMapScreenInterfaceBottom()
+	// above, every frame, regardless of either panel's own dirty-flag
+	// timing -- see RenderBigRadarScreenIfVisible()'s own comment
+	// (Radar_Screen.cc) for why it draws directly to FRAME_BUFFER to
+	// achieve that.
+	RenderBigRadarScreenIfVisible( );
 }
 
 

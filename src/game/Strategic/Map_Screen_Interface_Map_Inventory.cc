@@ -3,6 +3,7 @@
 #include "Font.h"
 #include "HImage.h"
 #include "Handle_Items.h"
+#include "Input.h"
 #include "Interface.h"
 #include "Isometric_Utils.h"
 #include "ItemModel.h"
@@ -190,6 +191,20 @@ static const SGPBox g_sector_inv_name_box   = {   22,  101,  75,   10 }; // rela
 static const SGPBox g_sector_inv_loc_box    = { 450, 740,  39,  10 };
 static const SGPBox g_sector_inv_count_box  = { 570, 740,  39,  10 };
 static const SGPBox g_sector_inv_page_box   = { 657, 740,  50,  10 };
+
+// Used by IsCursorOverSectorInventoryWindow() below -- g_sector_inv_box and
+// g_stack_split_box (further down this file) share the exact same
+// rectangle, {261, 0, 762, 768}, so testing against this one box alone
+// already covers both the main grid and the stack-split popup, and every
+// resolution/big-images .sti variant drawn at it.
+BOOLEAN IsCursorOverSectorInventoryWindow(void)
+{
+	SGPBox const& box = g_sector_inv_box;
+	UINT16 const x1 = MAP_SCREEN_X + box.x;
+	UINT16 const y1 = MAP_SCREEN_Y + box.y;
+	return gusMouseXPos >= x1 && gusMouseXPos < x1 + box.w &&
+	       gusMouseYPos >= y1 && gusMouseYPos < y1 + box.h;
+}
 
 // "Big images" toggle's own slot geometry (5 columns, 8 rows compact / 9
 // rows large -- GetInventoryGridRows() above) -- user-specified pixel
@@ -551,6 +566,15 @@ static GUIButtonRef gStackSplitDoneButton;
 static GUIButtonRef gStackSplitPrevBtn;
 static GUIButtonRef gStackSplitNextBtn;
 
+// Is the cursor currently over one of this window's own item slots? Every
+// slot here points at the same source item (gStackSplitSourceIndex), so
+// unlike the main grid's per-slot iCurrentlyHighLightedItem, one shared flag
+// is enough -- see StackSplitSlotMove() and GetHighlightedStackSplitSourceItem()
+// below, used by Radar_Screen.cc's RenderBigRadarScreenIfVisible() so the
+// big-minimap item-locator marker also works while this popup is open (it
+// didn't before -- these slots had no move callback at all).
+static BOOLEAN fCursorOverStackSplitItem = FALSE;
+
 
 // remove background panel graphics for inventory
 void RemoveInventoryPoolGraphic( void )
@@ -752,6 +776,7 @@ static void OpenStackSplitView(INT32 sourceIndex);
 static void CloseStackSplitView(void);
 static void StackSplitSlotPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void StackSplitSlotSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
+static void StackSplitSlotMove(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SaveSeenAndUnseenItems(void);
 
 
@@ -1227,7 +1252,7 @@ static void CreateStackSplitSlots(void)
 		UINT16        const y   = dy + reg_box.y;
 		MOUSE_REGION* const r   = &gStackSplitSlots[i];
 		MSYS_DefineRegion(r, x, y, x + reg_box.w - 1, y + reg_box.h - 1,
-			MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+			MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, StackSplitSlotMove,
 			MouseCallbackPrimarySecondary(StackSplitSlotPrimary, StackSplitSlotSecondary, MSYS_NO_CALLBACK));
 		MSYS_SetRegionUserData(r, 0, static_cast<UINT32>(first + i));
 	}
@@ -1243,6 +1268,14 @@ static void DestroyStackSplitSlots(void)
 	INT32 const visible = std::max<INT32>(0, std::min<INT32>(GetStackSplitPageSize(), static_cast<INT32>(gStackSplitItems.size()) - first));
 	for (INT32 i = 0; i < visible; ++i) MSYS_RemoveRegion(&gStackSplitSlots[i]);
 	MSYS_RemoveRegion(&gStackSplitBackgroundRegion);
+
+	// The region the cursor was over (if any) just vanished -- clear the
+	// big-minimap hover state so RenderBigRadarScreenIfVisible() doesn't
+	// keep showing a marker for a slot that's no longer there. Safe for the
+	// page-change call sites too: MSYS won't have delivered a GAIN_MOUSE for
+	// a region that doesn't exist yet, so this can only be clearing a stale
+	// TRUE, never a still-valid one.
+	fCursorOverStackSplitItem = FALSE;
 }
 
 
@@ -1638,6 +1671,45 @@ static void StackSplitSlotSecondary(MOUSE_REGION* const pRegion, const UINT32 iR
 	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
 
 	MAPInternalInitItemDescriptionBox(item, 0, GetSelectedInfoChar());
+}
+
+
+// Every slot here shares the same source item/location (gStackSplitSourceIndex),
+// so unlike MapInvenPoolSlotsMove() (main grid) this doesn't need the
+// region's own user data at all -- any slot gain/loss just flips the one
+// shared flag. See fCursorOverStackSplitItem's own comment above.
+static void StackSplitSlotMove(MOUSE_REGION* const pRegion, const UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_GAIN_MOUSE)
+	{
+		fCursorOverStackSplitItem = TRUE;
+	}
+	else if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		fCursorOverStackSplitItem = FALSE;
+	}
+}
+
+
+// Used by Radar_Screen.cc's RenderBigRadarScreenIfVisible() -- while this
+// popup is open, the big-minimap marker must come from here instead of the
+// main grid's iCurrentlyHighLightedItem (the main grid's own slots are
+// covered by this popup and no longer receive mouse events at all).
+BOOLEAN IsStackSplitViewOpen(void)
+{
+	return gStackSplitSourceIndex != -1;
+}
+
+
+// Returns the source WORLDITEM every slot in this popup was split out of,
+// but only while the cursor is actually over one of those slots right now
+// (fCursorOverStackSplitItem) -- mirrors the main grid's own hover-only
+// marker behavior. Returns nullptr otherwise (popup closed, or open but not
+// currently hovered).
+WORLDITEM const* GetHighlightedStackSplitSourceItem(void)
+{
+	if (gStackSplitSourceIndex == -1 || !fCursorOverStackSplitItem) return nullptr;
+	return &pInventoryPoolList[gStackSplitSourceIndex];
 }
 
 
@@ -2976,8 +3048,14 @@ void HandleFlashForHighLightedItem( void )
 	INT32 iDifference = 0;
 
 
-	// if there is an invalid item, reset
-	if( iCurrentlyHighLightedItem == -1 )
+	// if there is an invalid item, reset -- "invalid" now also covers the
+	// main grid's own -1 while the stack-split popup is open (its slots
+	// never touch iCurrentlyHighLightedItem, see fCursorOverStackSplitItem's
+	// own comment), so check its hover state too, or this would always look
+	// "invalid" while hovering a stack-split slot and the marker drawn from
+	// it (Radar_Screen.cc's RenderBigRadarScreenIfVisible()) would never
+	// flash.
+	if( iCurrentlyHighLightedItem == -1 && !GetHighlightedStackSplitSourceItem() )
 	{
 		fFlashHighLightInventoryItemOnradarMap = FALSE;
 		guiFlashHighlightedItemBaseTime = 0;

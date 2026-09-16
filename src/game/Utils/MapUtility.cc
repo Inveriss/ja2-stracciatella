@@ -33,6 +33,15 @@
 #define MINIMAP_X_SIZE		88
 #define MINIMAP_Y_SIZE		44
 
+// Second, larger minimap set generated alongside the factory-default one
+// above, for the strategic screen's sector-inventory "big minimap"
+// (Radar_Screen.h's RADAR_WINDOW_BIG_WIDTH/HEIGHT) -- written as
+// "<mapname>.big.sti" next to each map's own "<mapname>.sti", same
+// directory, same per-map loop, sampled from the same already-rendered
+// overhead-map framebuffer content (see the second pass below).
+#define RADAR_BIG_X_SIZE	250
+#define RADAR_BIG_Y_SIZE	125
+
 // The overhead map's own natural render width -- a fixed, classic-engine
 // constant (see RenderOverheadMap()'s other caller, Overhead_Map.cc's own
 // tactical-screen "overhead view" toggle: STD_SCREEN_X + 640, and its
@@ -49,6 +58,30 @@
 
 #define WINDOW_SIZE		2
 
+// QuantizeImage() (Quantize.cc) caps its palette at 255 real colors
+// (MAX_COLOURS) even though pPalette has 256 slots, so palette index 255 is
+// *always* left unused -- by both the palette itself (GetPaletteColors()
+// only ever writes indices [0, leaf_count-1], leaf_count <= 255) and every
+// pixel MapPalette() assigns (also restricted to [0, leaf_count)). Meanwhile
+// the compressed .sti format (STIConvert.cc's ETRLE writer, TCI == 0x00)
+// always treats palette index 0 as fully transparent, regardless of what
+// color actually sits there -- and the quantizer's octree traversal happens
+// to assign index 0 to whatever real color cluster it visits first, not a
+// reserved value (confirmed by user report: it's a different, non-black
+// color for every map). Swapping index 0's real content into the
+// guaranteed-free slot 255 means nothing in the actual minimap image points
+// at index 0 anymore, so it can never accidentally mask out real pixels
+// that happen to quantize to whatever color the quantizer put there.
+static void ReserveTransparentPaletteIndex(UINT8* const pData, SGPPaletteEntry* const pPalette, const INT32 pixelCount)
+{
+	pPalette[255] = pPalette[0];
+	pPalette[0]   = SGPPaletteEntry{};
+	for (INT32 i = 0; i < pixelCount; ++i)
+	{
+		if (pData[i] == 0) pData[i] = 255;
+	}
+}
+
 static float     gdXStep;
 static float     gdYStep;
 
@@ -63,6 +96,12 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 
 	static SGPVSurface* giMiniMap{ AddVideoSurface(MINIMAP_X_SIZE, MINIMAP_Y_SIZE, PIXEL_DEPTH) };
 	static SGPVSurface* gi8BitMiniMap{ AddVideoSurface(MINIMAP_X_SIZE, MINIMAP_Y_SIZE, 8) };
+
+	// Big minimap set -- see RADAR_BIG_X_SIZE/Y_SIZE's own comment above.
+	static auto p24BitValuesBig{ std::make_unique<SGPPaletteEntry[]>(RADAR_BIG_X_SIZE * RADAR_BIG_Y_SIZE) };
+
+	static SGPVSurface* giMiniMapBig{ AddVideoSurface(RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, PIXEL_DEPTH) };
+	static SGPVSurface* gi8BitMiniMapBig{ AddVideoSurface(RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, 8) };
 
 	// Get the names (full path) of all map files in the user's home directory.
 	// recursive=true (6th arg) -- per user report: map .dat files live in a
@@ -167,7 +206,15 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 				// pixel computed, smearing/repeating that stale color
 				// instead of falling back to a defined value. Black,
 				// matching RenderOverheadMap()'s own initial fill color for
-				// anything it didn't actually draw tiles over.
+				// anything it didn't actually draw tiles over. (Blue was
+				// tried here per an earlier user request, then reverted --
+				// see RenderOverheadMap()'s own "Black out" comment,
+				// Overhead_Map.cc, for why: this fallback color's exact RGB
+				// isn't actually what matters for the see-through-pixel bug
+				// that caused -- it's whatever color QuantizeImage's octree
+				// quantizer happens to assign to PALETTE INDEX 0, which the
+				// .sti format always treats as transparent regardless of its
+				// RGB value.)
 				sDest16BPPColor = Get16BPPColor(FROMRGB(0, 0, 0));
 				bAvR = bAvG = bAvB = 0;
 
@@ -252,6 +299,7 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 			UINT16* const pDestBuf         = ldst.Buffer<UINT16>();
 			UINT32  const uiDestPitchBYTES = ldst.Pitch();
 			QuantizeImage(pDataPtr, p24BitValues.get(), MINIMAP_X_SIZE, MINIMAP_Y_SIZE, pPalette);
+			ReserveTransparentPaletteIndex(pDataPtr, pPalette, MINIMAP_X_SIZE * MINIMAP_Y_SIZE);
 			gi8BitMiniMap->SetPalette(pPalette);
 			// Blit!
 			Blt8BPPDataTo16BPPBuffer(pDestBuf, uiDestPitchBYTES, gi8BitMiniMap, pDataPtr, 300, 360);
@@ -277,6 +325,111 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 
 		zFilename2 = FileMan::replaceExtension(*currentFile, "sti");
 		WriteSTIFile(pDataPtr, pPalette, MINIMAP_X_SIZE, MINIMAP_Y_SIZE, zFilename2, CONVERT_ETRLE_COMPRESS, 0);
+	}
+
+	// Second pass: same already-rendered overhead-map framebuffer content
+	// (RenderOverheadMap() above, still intact -- TrashOverheadMap() only
+	// frees the overhead-map's own working data, not the pixels it already
+	// blitted to FRAME_BUFFER), just resampled at RADAR_BIG_X_SIZE/Y_SIZE
+	// instead of MINIMAP_X_SIZE/Y_SIZE. Mirrors the first pass's sampling
+	// loop exactly (same averaging window, same per-pixel reset, same tight
+	// p24BitValuesBig packing) -- see that pass's own comments above for why
+	// each of those matters. dStartX/dStartY and, when restricted, sLeft/
+	// sRight/sTop/sBottom are resolution-independent source-space bounds,
+	// so they're reused as-is from the first pass above.
+	{
+		float const gdXStepBig = (gMapInformation.ubRestrictedScrollID != 0)
+			? (float)(sRight - sLeft) / (float)RADAR_BIG_X_SIZE
+			: OVERHEAD_MAP_RENDER_WIDTH / (float)RADAR_BIG_X_SIZE;
+		float const gdYStepBig = (gMapInformation.ubRestrictedScrollID != 0)
+			? (float)(sBottom - sTop) / (float)RADAR_BIG_Y_SIZE
+			: 320 / (float)RADAR_BIG_Y_SIZE;
+
+		FLOAT dXBig = dStartX;
+		FLOAT dYBig;
+
+		{ SGPVSurface::Lock lsrc(FRAME_BUFFER);
+			SGPVSurface::Lock ldst(giMiniMapBig);
+			UINT16* const pSrcBuf          = lsrc.Buffer<UINT16>();
+			UINT32  const uiSrcPitchBYTES  = lsrc.Pitch();
+			UINT16* const pDestBuf         = ldst.Buffer<UINT16>();
+			UINT32  const uiDestPitchBYTES = ldst.Pitch();
+
+			for (INT32 iXBig = 0; iXBig < RADAR_BIG_X_SIZE; iXBig++)
+			{
+				dYBig = dStartY;
+
+				for (INT32 iYBig = 0; iYBig < RADAR_BIG_Y_SIZE; iYBig++)
+				{
+					// Black fallback, matching the small pass above -- see its
+					// own comment for why (reverted from blue).
+					INT16 sDestBig = Get16BPPColor(FROMRGB(0, 0, 0));
+					UINT32 bAvRBig = 0, bAvGBig = 0, bAvBBig = 0;
+
+					INT32 const iSubX1 = (INT32)dXBig - WINDOW_SIZE;
+					INT32 const iSubX2 = (INT32)dXBig + WINDOW_SIZE;
+					INT32 const iSubY1 = (INT32)dYBig - WINDOW_SIZE;
+					INT32 const iSubY2 = (INT32)dYBig + WINDOW_SIZE;
+
+					INT32 iCountBig = 0;
+					UINT32 bRBig = 0, bGBig = 0, bBBig = 0;
+
+					for (INT32 iWindowX = iSubX1; iWindowX < iSubX2; iWindowX++)
+					{
+						for (INT32 iWindowY = iSubY1; iWindowY < iSubY2; iWindowY++)
+						{
+							if (0 <= iWindowX && iWindowX < OVERHEAD_MAP_RENDER_WIDTH &&
+									0 <= iWindowY && iWindowY < 320)
+							{
+								INT16 const s16BPPSrcBig = pSrcBuf[(iWindowY * (uiSrcPitchBYTES / 2)) + iWindowX];
+								UINT32 const uiRGBColorBig = GetRGBColor(s16BPPSrcBig);
+
+								bRBig += SGPGetRValue(uiRGBColorBig);
+								bGBig += SGPGetGValue(uiRGBColorBig);
+								bBBig += SGPGetBValue(uiRGBColorBig);
+
+								iCountBig++;
+							}
+						}
+					}
+
+					if (iCountBig > 0)
+					{
+						bAvRBig = bRBig / (UINT8)iCountBig;
+						bAvGBig = bGBig / (UINT8)iCountBig;
+						bAvBBig = bBBig / (UINT8)iCountBig;
+
+						sDestBig = Get16BPPColor(FROMRGB(bAvRBig, bAvGBig, bAvBBig));
+					}
+
+					pDestBuf[(iYBig * (uiDestPitchBYTES / 2)) + iXBig] = sDestBig;
+
+					SGPPaletteEntry* const dstBig = &p24BitValuesBig[iYBig * RADAR_BIG_X_SIZE + iXBig];
+					dstBig->r = bAvRBig;
+					dstBig->g = bAvGBig;
+					dstBig->b = bAvBBig;
+
+					dYBig += gdYStepBig;
+				}
+
+				dXBig += gdXStepBig;
+			}
+		}
+
+		SGPPaletteEntry pPaletteBig[256];
+		ST::string zFilenameBig;
+		{ SGPVSurface::Lock lsrc(gi8BitMiniMapBig);
+			UINT8* const pDataPtrBig = lsrc.Buffer<UINT8>();
+			QuantizeImage(pDataPtrBig, p24BitValuesBig.get(), RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, pPaletteBig);
+			ReserveTransparentPaletteIndex(pDataPtrBig, pPaletteBig, RADAR_BIG_X_SIZE * RADAR_BIG_Y_SIZE);
+			gi8BitMiniMapBig->SetPalette(pPaletteBig);
+
+			zFilenameBig = FileMan::replaceExtension(*currentFile, "big.sti");
+			WriteSTIFile(pDataPtrBig, pPaletteBig, RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, zFilenameBig, CONVERT_ETRLE_COMPRESS, 0);
+		}
+
+		SetFontAttributes(TINYFONT1, FONT_MCOLOR_DKGRAY);
+		MPrint(10, 330, ST::format("Writing big radar image {}", zFilenameBig));
 	}
 
 	SetFontAttributes(TINYFONT1, FONT_MCOLOR_DKGRAY);

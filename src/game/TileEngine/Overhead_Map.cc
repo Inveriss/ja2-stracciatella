@@ -472,7 +472,20 @@ void RenderOverheadMap(INT16 const sStartPointX_M, INT16 const sStartPointY_M, I
 {
 	if (!gfOverheadMapDirty) return;
 
-	// Black out
+	// Black out. NOTE: this fill color was briefly changed to blue for
+	// fFromMapUtility (the Map Editor's minimap generator, MapUtility.cc)
+	// per an earlier user request, then reverted -- see WriteSTIFile()'s
+	// ETRLE compression (STIConvert.cc, TCI == 0x00) and QuantizeImage()'s
+	// octree quantizer (Quantize.cc): whatever color the quantizer's
+	// traversal happens to assign to PALETTE INDEX 0 -- an arbitrary,
+	// per-image choice, not necessarily this fill color's own exact RGB --
+	// is treated as fully transparent by the compressed .sti's own RLE
+	// format, regardless of what color it actually is. Introducing a large,
+	// near-uniform blue area produced many competing similar blue shades in
+	// the 256-color palette, and whichever one landed on index 0 then
+	// coincidentally matched real terrain pixels far more often than the
+	// small, uniformly-black area ever did -- causing scattered masked-out
+	// (see-through) pixels across the generated minimaps, per user report.
 	ColorFillVideoSurfaceArea(FRAME_BUFFER, sStartPointX_S, sStartPointY_S, sEndXS,	sEndYS, 0);
 
 	InvalidateScreen();

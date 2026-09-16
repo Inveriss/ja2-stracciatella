@@ -269,10 +269,12 @@ void RenderMapScreenInterfaceBottom( void )
 		if (GetSectorFlagStatus(sMap, SF_ALREADY_VISITED))
 		{
 			LoadRadarScreenBitmap(GetMapFileName(sMap, TRUE));
+			LoadBigRadarScreenBitmap(GetMapFileName(sMap, TRUE));
 		}
 		else
 		{
 			ClearOutRadarMapImage();
+			ClearOutBigRadarMapImage();
 		}
 
 		fInterfacePanelDirty = DIRTYLEVEL2;

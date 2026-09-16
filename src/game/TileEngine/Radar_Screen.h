@@ -30,4 +30,25 @@ void ClearOutRadarMapImage( void );
 // do we render the radar screen?..or the squad list?
 extern BOOLEAN   fRenderRadarScreen;
 
+// BIG RADAR WINDOW -- the sector-inventory "big minimap" (bottom-left corner
+// of the strategic screen), shown only while the sector-inventory window is
+// open, hovered by the cursor, and no item is on the cursor -- see
+// RenderBigRadarScreenIfVisible() (Radar_Screen.cc) and
+// IsCursorOverSectorInventoryWindow() (Map_Screen_Interface_Map_Inventory.cc).
+// WIDTH/HEIGHT must stay in sync with MapUtility.cc's own
+// RADAR_BIG_X_SIZE/Y_SIZE (the generator), since this is blitted 1:1 with no
+// runtime scaling, same convention as RADAR_WINDOW_WIDTH/HEIGHT above.
+// Position/frame per user request -- one shared frame graphic for both
+// screen-height tiers (g_ui.isCompactStrategicScreen()), only Y differs.
+#define RADAR_WINDOW_BIG_WIDTH		250
+#define RADAR_WINDOW_BIG_HEIGHT		125
+#define RADAR_WINDOW_BIG_FRAME_X	1
+#define RADAR_WINDOW_BIG_FRAME_Y	(g_ui.isCompactStrategicScreen() ? 583 : 631)
+#define RADAR_WINDOW_BIG_X			6
+#define RADAR_WINDOW_BIG_Y			(g_ui.isCompactStrategicScreen() ? 589 : 637)
+
+void LoadBigRadarScreenBitmap(const ST::string&);
+void ClearOutBigRadarMapImage(void);
+void RenderBigRadarScreenIfVisible(void);
+
 #endif

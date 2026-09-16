@@ -19,6 +19,7 @@
 #include "Font_Control.h"
 #include "VObject.h"
 #include "Interface_Control.h"
+#include "Interface_Items.h"
 #include "Game_Clock.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
@@ -52,6 +53,12 @@
 static SGPVObject* gusRadarImage;
 BOOLEAN   fRenderRadarScreen = TRUE;
 static INT16       sSelectedSquadLine = -1;
+
+// Sector-inventory "big minimap" -- see Radar_Screen.h's RADAR_WINDOW_BIG_*
+// macros and RenderBigRadarScreenIfVisible() below.
+static SGPVObject* gusBigRadarImage;
+static SGPVObject* gusBigRadarFrameImage;
+static BOOLEAN     gfBigRadarWasVisible = FALSE;
 
 BOOLEAN		gfRadarCurrentGuyFlash = FALSE;
 
@@ -104,6 +111,28 @@ void ClearOutRadarMapImage( void )
 	{
 		DeleteVideoObject(gusRadarImage);
 		gusRadarImage = 0;
+	}
+}
+
+
+void LoadBigRadarScreenBitmap(const ST::string& filename)
+{
+	ClearOutBigRadarMapImage();
+
+	// Grab the big map image -- same convention as LoadRadarScreenBitmap()
+	// above, through the sibling Radarmaps_Big resource accessor.
+	ST::string image_filename(GCM->getRadarMapBigResourceName(FileMan::replaceExtension(FileMan::getFileName(filename), "sti")));
+
+	gusBigRadarImage = AddVideoObjectFromFile(image_filename);
+}
+
+
+void ClearOutBigRadarMapImage( void )
+{
+	if (gusBigRadarImage)
+	{
+		DeleteVideoObject(gusBigRadarImage);
+		gusBigRadarImage = 0;
 	}
 }
 
@@ -290,32 +319,117 @@ void RenderRadarScreen()
 				RectangleDraw(TRUE, x, y, x + 1, y + 1, Get16BPPColor(line_colour), pDestBuf);
 			}
 		}
-		else if (fShowMapInventoryPool)
-		{
-			if (iCurrentlyHighLightedItem != -1)
-			{
-				INT32     const  item_idx = iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() + iCurrentlyHighLightedItem;
-				WORLDITEM const& wi       = pInventoryPoolList[item_idx];
-				if (wi.o.ubNumberOfObjects != 0 && wi.sGridNo != 0)
-				{
-					INT16	sXSoldScreen;
-					INT16 sYSoldScreen;
-					GetAbsoluteScreenXYFromMapPos(wi.sGridNo, &sXSoldScreen, &sYSoldScreen);
-
-					// Get radar x and y postion and add starting relative to interface
-					INT16  const x = sXSoldScreen * gdScaleX + RADAR_WINDOW_X;
-					INT16  const y = sYSoldScreen * gdScaleY + RADAR_WINDOW_TM_Y;
-
-					UINT16 const line_colour = fFlashHighLightInventoryItemOnradarMap ?
-						Get16BPPColor(FROMRGB(  0, 255,   0)) :
-						Get16BPPColor(FROMRGB(255, 255, 255));
-
-					RectangleDraw(TRUE, x, y, x + 1, y + 1, line_colour, pDestBuf);
-				}
-			}
-			InvalidateRegion(RADAR_WINDOW_X, RADAR_WINDOW_TM_Y, RADAR_WINDOW_X + RADAR_WINDOW_WIDTH, RADAR_WINDOW_TM_Y + RADAR_WINDOW_HEIGHT);
-		}
+		// The item-locator marker used to live here (else if (fShowMapInventoryPool)),
+		// but this whole function returns early, above, whenever
+		// fShowMapInventoryPool is TRUE -- so that branch was unreachable
+		// dead code. Per user request, the marker has been moved entirely to
+		// the sector-inventory "big minimap" -- see
+		// RenderBigRadarScreenIfVisible() below. This (small) minimap is now
+		// a pure graphical sector preview.
 	}
+}
+
+
+// Sector-inventory "big minimap" -- shown only while fShowMapInventoryPool
+// is TRUE, the cursor is over the sector-inventory window
+// (IsCursorOverSectorInventoryWindow(), Map_Screen_Interface_Map_Inventory.cc),
+// and no item is on the cursor (gpItemPointer == NULL). Draws directly to
+// FRAME_BUFFER, same convention as RenderRadarScreen() above, so it always
+// ends up on top of NEWGOLDPIECE3_*.STI (RenderTeamRegionBackground()) and
+// Map_Screen_Bottom_*.STI (RenderMapScreenInterfaceBottom()) regardless of
+// those panels' own dirty-flag timing -- see its call site in
+// MapScreen.cc's BlitBackgroundToSaveBuffer(), called right after
+// RenderMapScreenInterfaceBottom() every frame.
+void RenderBigRadarScreenIfVisible(void)
+{
+	BOOLEAN const fVisible =
+		fShowMapInventoryPool &&
+		IsCursorOverSectorInventoryWindow() &&
+		gpItemPointer == NULL;
+
+	INT16 const frame_x = MAP_SCREEN_X + RADAR_WINDOW_BIG_FRAME_X;
+	INT16 const frame_y = MAP_SCREEN_Y + RADAR_WINDOW_BIG_FRAME_Y;
+	INT16 const map_x   = MAP_SCREEN_X + RADAR_WINDOW_BIG_X;
+	INT16 const map_y   = MAP_SCREEN_Y + RADAR_WINDOW_BIG_Y;
+	// The frame graphic starts RADAR_WINDOW_BIG_X/Y - RADAR_WINDOW_BIG_FRAME_X/Y
+	// pixels before the minimap bitmap itself and is always at least as big
+	// as the minimap plus that border on every side, so this rect
+	// (used for both restoring and erasing) covers both.
+	INT16 const rect_w  = (RADAR_WINDOW_BIG_X - RADAR_WINDOW_BIG_FRAME_X) * 2 + RADAR_WINDOW_BIG_WIDTH;
+	INT16 const rect_h  = (RADAR_WINDOW_BIG_Y - RADAR_WINDOW_BIG_FRAME_Y) * 2 + RADAR_WINDOW_BIG_HEIGHT;
+
+	if (!fVisible)
+	{
+		if (gfBigRadarWasVisible)
+		{
+			RestoreExternBackgroundRect(frame_x, frame_y, rect_w, rect_h);
+		}
+		gfBigRadarWasVisible = FALSE;
+		return;
+	}
+
+	if (!gusBigRadarFrameImage)
+	{
+		gusBigRadarFrameImage = AddVideoObjectFromFile(INTERFACEDIR "/SECTOR_INVENTORY_MINIMAP.sti");
+	}
+
+	// First delete what's there (same idiom as RenderRadarScreen() above).
+	RestoreExternBackgroundRect(frame_x, frame_y, rect_w, rect_h);
+
+	BltVideoObject(FRAME_BUFFER, gusBigRadarFrameImage, 0, frame_x, frame_y);
+	if (gusBigRadarImage)
+	{
+		BltVideoObject(FRAME_BUFFER, gusBigRadarImage, 0, map_x, map_y);
+	}
+
+	// The "stack split" popup (SECTOR_INVENTORY_STACK_*.sti) covers the main
+	// grid and takes mouse priority over it while open, so its own hover
+	// state -- every slot in it points at the same source item -- takes
+	// priority here too; falling through to iCurrentlyHighLightedItem while
+	// it's open would show a marker for a now-hidden, possibly stale main-
+	// grid slot.
+	//
+	// Its source WORLDITEM's own o.ubNumberOfObjects is NOT checked here,
+	// unlike the main-grid branch below -- OpenStackSplitView()
+	// (Map_Screen_Interface_Map_Inventory.cc) deliberately drains it to 0
+	// while the popup is open (every unit gets physically pulled out into
+	// gStackSplitItems), so that check would always fail here and the
+	// marker would never appear -- confirmed by user report. sGridNo alone
+	// (never touched by that draining) is enough to know the location is
+	// still valid.
+	WORLDITEM const* wi = nullptr;
+	BOOLEAN fCheckCount = FALSE;
+	if (IsStackSplitViewOpen())
+	{
+		wi = GetHighlightedStackSplitSourceItem();
+	}
+	else if (iCurrentlyHighLightedItem != -1)
+	{
+		wi = &pInventoryPoolList[iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() + iCurrentlyHighLightedItem];
+		fCheckCount = TRUE;
+	}
+
+	if (wi && wi->sGridNo != 0 && (!fCheckCount || wi->o.ubNumberOfObjects != 0))
+	{
+		INT16 sXSoldScreen;
+		INT16 sYSoldScreen;
+		GetAbsoluteScreenXYFromMapPos(wi->sGridNo, &sXSoldScreen, &sYSoldScreen);
+
+		INT16 const x = sXSoldScreen * gdBigScaleX + map_x;
+		INT16 const y = sYSoldScreen * gdBigScaleY + map_y;
+
+		UINT16 const line_colour = fFlashHighLightInventoryItemOnradarMap ?
+			Get16BPPColor(FROMRGB(  0, 255,   0)) :
+			Get16BPPColor(FROMRGB(255, 255, 255));
+
+		SGPVSurface::Lock l(FRAME_BUFFER);
+		SetClippingRegionAndImageWidth(l.Pitch(), map_x, map_y, RADAR_WINDOW_BIG_WIDTH, RADAR_WINDOW_BIG_HEIGHT);
+		RectangleDraw(TRUE, x, y, x + 1, y + 1, line_colour, l.Buffer<UINT16>());
+	}
+
+	InvalidateRegion(frame_x, frame_y, frame_x + rect_w, frame_y + rect_h);
+
+	gfBigRadarWasVisible = TRUE;
 }
 
 
