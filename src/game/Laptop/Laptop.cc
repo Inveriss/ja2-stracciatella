@@ -381,6 +381,17 @@ void LaptopScreenInit(void)
 
 	gfShowBookmarks = FALSE;
 	InitBookMarkList();
+
+	// All Web sub-tabs are available from the start of the game, instead of
+	// only appearing once their site is actually visited.
+	SetBookMark(AIM_BOOKMARK);
+	SetBookMark(MERC_BOOKMARK);
+	SetBookMark(IMP_BOOKMARK);
+	SetBookMark(BOBBYR_BOOKMARK);
+	SetBookMark(FLORIST_BOOKMARK);
+	SetBookMark(FUNERAL_BOOKMARK);
+	SetBookMark(INSURANCE_BOOKMARK);
+
 	GameInitAIM();
 	GameInitAimSort();
 	GameInitMercs();
