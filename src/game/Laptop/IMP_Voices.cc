@@ -16,6 +16,7 @@
 #include "Font_Control.h"
 #include "VObject.h"
 #include "VSurface.h"
+#include "WordWrap.h"
 
 
 #include <string_theory/format>
@@ -339,32 +340,45 @@ static void RenderVoiceSilhouette(INT16 const x, INT16 const y, UINT8 const ubSl
 	// Already used by a completed slot -- load a private copy so we can
 	// shade it without touching any other cached copy of this sti.
 	AutoSGPVObject vo{ AddVideoObjectFromFile(LAPTOPDIR "/IMP_Voices.sti") };
-	if (IsImpSlotDead(ubSlot))
+	BOOLEAN const fDead = IsImpSlotDead(ubSlot);
+	if (fDead)
 	{
 		vo->pShades[0] = Create16BPPPaletteShaded(vo->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
 		vo->CurrentShade(0);
 	}
 	BltVideoObject(FRAME_BUFFER, vo.get(), ubSlot, destX, destY);
-	if (!IsImpSlotDead(ubSlot))
+
+	ETRLEObject const& e = vo->SubregionProperties(ubSlot);
+	if (!fDead)
 	{
 		// used but still alive: darken instead of red-shading
-		ETRLEObject const& e = vo->SubregionProperties(ubSlot);
 		FRAME_BUFFER->ShadowRect(destX, destY, destX + e.usWidth, destY + e.usHeight);
+	}
+
+	// caption directly on the silhouette, same style as a dead AIM merc's mugshot
+	if (fDead)
+	{
+		DrawTextToScreen(pImpButtonText[27], destX, destY + e.usHeight - 15, e.usWidth,
+			FONT14ARIAL, FONT_YELLOW, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+	}
+	else
+	{
+		DrawTextToScreen(pImpButtonText[28], destX, destY + e.usHeight - 15, e.usWidth,
+			FONT10ARIAL, FONT_YELLOW, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
 	}
 }
 
 
 static void RenderVoiceIndex(void)
 {
-	INT8 const slot = GetSlotForCurrentVoice();
+	// only shown for a free (not yet used) slot -- a used slot's caption is
+	// drawn directly on the silhouette instead, see RenderVoiceSilhouette()
+	if (GetSlotForCurrentVoice() >= 0) return;
 
-	ST::string text = slot < 0
-		? ST::format("{} {}", pIMPVoicesStrings, iCurrentVoices + 1)
-		: (IsImpSlotDead(slot) ? pImpButtonText[27] : pImpButtonText[28]);
-
-	// render the voice index value (or its used/dead status) on the blank portrait
 	SetFontAttributes(FONT12ARIAL, FONT_WHITE);
-	MPrint(290 + LAPTOP_UL_X, 320, text, CenterAlign(100));
+	MPrint(290 + LAPTOP_UL_X, 320,
+		ST::format("{} {}", pIMPVoicesStrings, iCurrentVoices + 1),
+		CenterAlign(100));
 }
 
 
