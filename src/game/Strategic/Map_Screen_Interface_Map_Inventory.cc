@@ -2441,7 +2441,7 @@ static void CreateMapInventoryFilterButtons(void)
 	guiMapInvenButton[7]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_AMMO_OFF,        FILTER_AMMO_ON,        MAP_SCREEN_X + FILTER_AMMO_X,        MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAmmoBtn);
 	guiMapInvenButton[7]->SetFastHelpText("Show Ammo");
 	guiMapInvenButton[8]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ARMOUR_OFF,      FILTER_ARMOUR_ON,      MAP_SCREEN_X + FILTER_ARMOUR_X,      MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterArmourBtn);
-	guiMapInvenButton[8]->SetFastHelpText("Show Armour");
+	guiMapInvenButton[8]->SetFastHelpText("Show Armor and HeadGear");
 	guiMapInvenButton[9]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_EXPLOSIVES_OFF,  FILTER_EXPLOSIVES_ON,  MAP_SCREEN_X + FILTER_EXPLOSIVES_X,  MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterExplosivesBtn);
 	guiMapInvenButton[9]->SetFastHelpText("Show Explosives");
 	guiMapInvenButton[10] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_OTHER_OFF,       FILTER_OTHER_ON,       MAP_SCREEN_X + FILTER_OTHER_X,       MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterOtherBtn);
