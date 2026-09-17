@@ -148,7 +148,7 @@
 
   //  Scales the loading time of websites on the laptop. Lower value means faster loading. Setting this to 0.0 removes the loading entirely.
   //  vanilla setting: 1.0
-  "website_loading_time_scale": 1.0,
+  "website_loading_time_scale": 0.0,
 
   //  Open or close doors diagonally (unless AI-controlled). Makes room clearings much easier by reducing exposure when opening doors.
   //  Your character must already stand on the door-adjacent tile to effect diagonal interaction.
