@@ -1138,6 +1138,63 @@ void StackObjs(OBJECTTYPE* pSourceObj, OBJECTTYPE* pTargetObj, UINT8 ubNumberToC
 }
 
 
+// Sorts a stack's ubNumberOfObjects units so the best one is first, worst
+// last -- per user request, for items that sit stacked in one slot without
+// being mergeable into each other (e.g. several guns of the same model at
+// different % condition), which previously just stayed in whatever order
+// they happened to be picked up/stacked (StackObjs() above only ever
+// appends). Same "higher quality first" convention
+// CompareItemsForSorting() (ArmsDealerInvInit.cc) already uses to rank
+// whole slots against each other, applied here within a single slot's own
+// stack instead. Per-unit quality is read the same way DrawItemUIBarEx()
+// (Interface_Utils.cc) already does for that stack's own status bars --
+// ammo by remaining-charge percentage (ubShotsLeft[]/capacity), everything
+// else by bStatus[] -- so the two stay visually consistent (bar heights
+// already matched each index; now the index order matches the heights
+// too). Keys are skipped -- DrawItemUIBarEx() always shows 100 for them,
+// i.e. nothing meaningful to sort by. Mergeable items (ammo/points via
+// EvaluateValidMerge's COMBINE_POINTS) are unaffected by this -- merging
+// is a separate action; this only reorders what's already sitting,
+// unmerged, in the same slot. Called from both places a stack of more
+// than one unit can be viewed/split: InternalInitItemStackPopup()
+// (Interface_Items.cc, tactical screen + map's item popup) and
+// OpenStackSplitView() (Map_Screen_Interface_Map_Inventory.cc, sector
+// inventory).
+void SortItemStackByStatus(OBJECTTYPE* const o)
+{
+	ItemModel const* const item = GCM->getItem(o->usItem);
+	if (item->isKey() || o->ubNumberOfObjects < 2) return;
+
+	bool  const is_ammo  = item->isAmmo();
+	UINT8 const capacity = is_ammo ? (item->asAmmo()->capacity ? item->asAmmo()->capacity : 1) : 0;
+
+	auto quality = [&](UINT8 const idx) -> INT16
+	{
+		return is_ammo ? (INT16)(100 * o->ubShotsLeft[idx] / capacity) : (INT16)o->bStatus[idx];
+	};
+
+	// Simple insertion sort -- ubNumberOfObjects is at most
+	// MAX_OBJECTS_PER_SLOT (100), and this only runs once per stack-popup
+	// open, so an O(n^2) sort isn't worth reaching for anything fancier.
+	for (UINT8 i = 1; i < o->ubNumberOfObjects; ++i)
+	{
+		UINT8 j = i;
+		while (j > 0 && quality(j - 1) < quality(j))
+		{
+			if (is_ammo)
+			{
+				std::swap(o->ubShotsLeft[j - 1], o->ubShotsLeft[j]);
+			}
+			else
+			{
+				std::swap(o->bStatus[j - 1], o->bStatus[j]);
+			}
+			--j;
+		}
+	}
+}
+
+
 void CleanUpStack(OBJECTTYPE* const o, OBJECTTYPE* const cursor_o)
 {
 	const ItemModel * item = GCM->getItem(o->usItem);

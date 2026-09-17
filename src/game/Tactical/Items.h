@@ -189,6 +189,7 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* s, OBJECTTYPE* pObj, INT8 bPos, BOOLEA
 void SetNewItem(SOLDIERTYPE* pSoldier, UINT8 ubInvPos, BOOLEAN fNewItem);
 void CleanUpStack(OBJECTTYPE* pObj, OBJECTTYPE* pCursorObj);
 void StackObjs(OBJECTTYPE* pSourceObj, OBJECTTYPE* pTargetObj, UINT8 ubNumberToCopy);
+void SortItemStackByStatus(OBJECTTYPE* pObj);
 bool ItemIsCool(OBJECTTYPE const&);
 
 bool HasObjectImprint(OBJECTTYPE const&);

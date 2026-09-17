@@ -4723,6 +4723,8 @@ static void InternalInitItemStackPopup(OBJECTTYPE* const pObject, SOLDIERTYPE* c
 	// Return if #objects not >1
 	if (ubLimit < 1) return;
 
+	SortItemStackByStatus(pObject);
+
 	// Keep this in sync with whichever screen is actually asking for the
 	// popup -- ItemPopupRegionCallbackSecondary() below relies on it to
 	// pick MAPInternalInitItemDescriptionBox() vs InternalInitItemDescriptionBox()

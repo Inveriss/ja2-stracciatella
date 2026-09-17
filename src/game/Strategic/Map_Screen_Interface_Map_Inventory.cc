@@ -1504,6 +1504,12 @@ static void OpenStackSplitView(INT32 const sourceIndex)
 {
 	WORLDITEM& src = pInventoryPoolList[sourceIndex];
 
+	// Best unit first, worst last -- per user request. See
+	// SortItemStackByStatus() (Items.cc) for why; GetObjFrom() below always
+	// drains from index 0, so sorting the source stack first is what
+	// determines gStackSplitItems' resulting order.
+	SortItemStackByStatus(&src.o);
+
 	// Physically pull every unit of the stack out into its own 1-count
 	// OBJECTTYPE -- same primitive ItemPopupRegionCallbackPrimary()
 	// (Interface_Items.cc) already uses to split a single item off a stack
