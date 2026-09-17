@@ -1,7 +1,6 @@
 #include "Directories.h"
 #include "IMPVideoObjects.h"
 #include "VObject.h"
-#include "HImage.h"
 #include "Laptop.h"
 #include "GameRes.h"
 #include "IMP_Attribute_Selection.h"
@@ -226,32 +225,9 @@ void DeleteLargeSilhouette( void )
 }
 
 
-void RenderLargeSilhouette(INT16 const sX, INT16 const sY, INT8 const iOwningImpSlot)
+void RenderLargeSilhouette(INT16 sX, INT16 sY)
 {
-	INT32 const x = LAPTOP_SCREEN_UL_X + sX;
-	INT32 const y = LAPTOP_SCREEN_WEB_UL_Y + sY;
-
-	if (iOwningImpSlot < 0)
-	{
-		BltVideoObject(FRAME_BUFFER, guiLARGESILHOUETTE, 0, x, y);
-		return;
-	}
-
-	// A slot is already using this voice -- load a private copy of the
-	// silhouette so we can shade it without touching the shared cached one.
-	AutoSGPVObject vo{ AddVideoObjectFromFile(LAPTOPDIR "/largesilhouette.sti") };
-	if (IsImpSlotDead(iOwningImpSlot))
-	{
-		vo->pShades[0] = Create16BPPPaletteShaded(vo->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
-		vo->CurrentShade(0);
-	}
-	BltVideoObject(FRAME_BUFFER, vo.get(), 0, x, y);
-	if (!IsImpSlotDead(iOwningImpSlot))
-	{
-		// used but still alive: darken instead of red-shading
-		ETRLEObject const& e = vo->SubregionProperties(0);
-		FRAME_BUFFER->ShadowRect(x, y, x + e.usWidth, y + e.usHeight);
-	}
+	BltVideoObject(FRAME_BUFFER, guiLARGESILHOUETTE, 0, LAPTOP_SCREEN_UL_X + sX, LAPTOP_SCREEN_WEB_UL_Y + sY);
 }
 
 

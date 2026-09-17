@@ -1,6 +1,7 @@
 #include "CharProfile.h"
 #include "Directories.h"
 #include "Font.h"
+#include "HImage.h"
 #include "IMP_Voices.h"
 #include "IMP_MainPage.h"
 #include "IMPVideoObjects.h"
@@ -13,6 +14,8 @@
 #include "Button_System.h"
 #include "SoundMan.h"
 #include "Font_Control.h"
+#include "VObject.h"
+#include "VSurface.h"
 
 
 #include <string_theory/format>
@@ -62,12 +65,21 @@ void EnterIMPVoices( void )
 
 static void RenderVoiceIndex(void);
 static void UpdateVoiceDoneButton(void);
+static void RenderVoiceSilhouette(INT16 x, INT16 y, UINT8 ubSlot);
+
+
+// The IMP slot (0..MAX_IMP_MERCS-1) matching the currently browsed voice,
+// regardless of whether that slot has already been used.
+static UINT8 GetCurrentVoiceSlotIndex(void)
+{
+	return (UINT8)(iCurrentVoices + (fCharacterIsMale ? 0 : 3));
+}
 
 
 static INT8 GetSlotForCurrentVoice(void)
 {
-	INT8 const slot = (INT8)(iCurrentVoices + (fCharacterIsMale ? 0 : 3));
-	return IsImpSlotCompleted(slot) ? slot : -1;
+	UINT8 const slot = GetCurrentVoiceSlotIndex();
+	return IsImpSlotCompleted(slot) ? (INT8)slot : -1;
 }
 
 
@@ -79,8 +91,8 @@ void RenderIMPVoices( void )
 	// the Voices frame
 	RenderPortraitFrame( 191, 167 );
 
-	// the sillouette
-	RenderLargeSilhouette( 200, 176, GetSlotForCurrentVoice() );
+	// the sillouette (numbered per voice slot; shaded if that slot is used)
+	RenderVoiceSilhouette( 200, 176, GetCurrentVoiceSlotIndex() );
 
 	// indent for the text
 	RenderAttrib1IndentFrame( 128, 65);
@@ -309,6 +321,35 @@ static void IMPPortraitRegionButtonCallback(MOUSE_REGION* pRegion, UINT32 iReaso
 		{
 			PlayVoice();
 		}
+	}
+}
+
+
+static void RenderVoiceSilhouette(INT16 const x, INT16 const y, UINT8 const ubSlot)
+{
+	INT32 const destX = LAPTOP_SCREEN_UL_X + x;
+	INT32 const destY = LAPTOP_SCREEN_WEB_UL_Y + y;
+
+	if (!IsImpSlotCompleted(ubSlot))
+	{
+		BltVideoObjectOnce(FRAME_BUFFER, LAPTOPDIR "/IMP_Voices.sti", ubSlot, destX, destY);
+		return;
+	}
+
+	// Already used by a completed slot -- load a private copy so we can
+	// shade it without touching any other cached copy of this sti.
+	AutoSGPVObject vo{ AddVideoObjectFromFile(LAPTOPDIR "/IMP_Voices.sti") };
+	if (IsImpSlotDead(ubSlot))
+	{
+		vo->pShades[0] = Create16BPPPaletteShaded(vo->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
+		vo->CurrentShade(0);
+	}
+	BltVideoObject(FRAME_BUFFER, vo.get(), ubSlot, destX, destY);
+	if (!IsImpSlotDead(ubSlot))
+	{
+		// used but still alive: darken instead of red-shading
+		ETRLEObject const& e = vo->SubregionProperties(ubSlot);
+		FRAME_BUFFER->ShadowRect(destX, destY, destX + e.usWidth, destY + e.usHeight);
 	}
 }
 
