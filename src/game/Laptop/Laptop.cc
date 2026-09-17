@@ -120,6 +120,15 @@ enum
 #define DOWN_HEIGHT  19
 #define BOOK_WIDTH  100
 
+// Manual bookmark-reordering arrow (Bookmarks_Arrows.sti: 0 = up, 1 = pressed).
+// The pressed sub-image is 1px wider than the ready one (20x18 vs 19x18) --
+// BOOK_ARROW_PRESSED_WIDTH is used only for the save/restore + invalidate
+// rects, so that extra column always gets cleaned up too, regardless of
+// which of the two sub-images was actually drawn last.
+#define BOOK_ARROW_WIDTH         19
+#define BOOK_ARROW_HEIGHT        18
+#define BOOK_ARROW_PRESSED_WIDTH 20
+
 
 #define LONG_UNIT_TIME        120
 #define UNIT_TIME              40
@@ -185,6 +194,7 @@ INT32  giCurrentSubPage;
 
 
 static INT32 iHighLightBookLine = -1;
+static INT32 iPressedBookArrow  = -1; // index of the reorder arrow currently held down, or -1
 BOOLEAN fFastLoadFlag = FALSE;
 static BOOLEAN gfEnterLapTop=TRUE;
 BOOLEAN gfShowBookmarks=FALSE;
@@ -248,6 +258,7 @@ cache_key_t const guiDOWNLOADMID{ LAPTOPDIR "/downloadmid.sti" };
 cache_key_t const guiDOWNLOADBOT{ LAPTOPDIR "/downloadbot.sti" };
 cache_key_t const guiBOOKMARK{ LAPTOPDIR "/webpages.sti" };
 cache_key_t const guiBOOKHIGH{ LAPTOPDIR "/hilite.sti" };
+cache_key_t const guiBOOKARROWS{ LAPTOPDIR "/Bookmarks_Arrows.sti" };
 cache_key_t const guiGRAPHWINDOW{ LAPTOPDIR "/graphwindow.sti" };
 cache_key_t const guiGRAPHBAR{ LAPTOPDIR "/graphsegment.sti" };
 cache_key_t const guiLIGHTS{ LAPTOPDIR "/lights.sti" };
@@ -307,6 +318,7 @@ static bool gfWWWaitSubSitesVisitedFlags[LAPTOP_MODE_END - (LAPTOP_MODE_WWW + 1)
 // mouse regions
 static MOUSE_REGION gLapTopScreenRegion;
 static MOUSE_REGION gBookmarkMouseRegions[MAX_BOOKMARKS];
+static MOUSE_REGION gBookmarkArrowRegions[MAX_BOOKMARKS];
 static MOUSE_REGION gLapTopProgramMinIcon;
 static MOUSE_REGION gNewMailIconRegion;
 static MOUSE_REGION gNewFileIconRegion;
@@ -1641,6 +1653,17 @@ static void DisplayBookMarks(void)
 	INT32 const sy = BOOK_TOP_Y + 6 + h;
 	INT32       y  = sy;
 	HCenterVCenterAlign const alignment{ BOOK_WIDTH - 3, h };
+
+	// Restore whatever background the reorder arrow was drawn over last
+	// frame, before this frame decides whether (and where) to draw it again.
+	static SGPBox   LastArrowRect;
+	static BOOLEAN  fArrowShownLastFrame = FALSE;
+	if (fArrowShownLastFrame)
+	{
+		BlitBufferToBuffer(guiSAVEBUFFER, FRAME_BUFFER, LastArrowRect.x, LastArrowRect.y, LastArrowRect.w, LastArrowRect.h);
+		fArrowShownLastFrame = FALSE;
+	}
+
 	for (INT32 i = 0;; ++i)
 	{
 		bool              const highlighted = iHighLightBookLine == i;
@@ -1651,6 +1674,20 @@ static void DisplayBookMarks(void)
 		INT32          const idx = LaptopSaveInfo.iBookMarkList[i];
 		MPrint(BOOK_X + 3, y + 2,
 			pBookMarkStrings[idx != -1 ? idx : CANCEL_STRING], alignment);
+
+		// Manual-sort arrow: only for a real (non-Cancel) bookmark under the cursor
+		if (highlighted && idx != -1)
+		{
+			// Reserve/restore the wider (pressed) sub-image's footprint
+			// regardless of which one is actually drawn, so its extra
+			// column of pixels always gets cleaned up too.
+			SGPBox const ArrowRect = { (UINT16)(BOOK_X + BOOK_WIDTH), (UINT16)y, BOOK_ARROW_PRESSED_WIDTH, BOOK_ARROW_HEIGHT };
+			BlitBufferToBuffer(FRAME_BUFFER, guiSAVEBUFFER, ArrowRect.x, ArrowRect.y, ArrowRect.w, ArrowRect.h);
+			BltVideoObject(FRAME_BUFFER, guiBOOKARROWS, (iPressedBookArrow == i) ? 1 : 0, ArrowRect.x, ArrowRect.y);
+			LastArrowRect        = ArrowRect;
+			fArrowShownLastFrame = TRUE;
+		}
+
 		y += h;
 		if (idx == -1) break;
 	}
@@ -1658,7 +1695,7 @@ static void DisplayBookMarks(void)
 	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontShadow(DEFAULT_SHADOW);
 
-	InvalidateRegion(BOOK_X, sy, BOOK_X + BOOK_WIDTH, y);
+	InvalidateRegion(BOOK_X, sy, BOOK_X + BOOK_WIDTH + BOOK_ARROW_PRESSED_WIDTH, y);
 }
 
 
@@ -1666,6 +1703,7 @@ static void DeleteBookmark(void)
 {
 	RemoveVObject(guiBOOKHIGH);
 	RemoveVObject(guiBOOKMARK);
+	RemoveVObject(guiBOOKARROWS);
 	RemoveVObject(guiDOWNLOADTOP);
 	RemoveVObject(guiDOWNLOADMID);
 	RemoveVObject(guiDOWNLOADBOT);
@@ -1674,6 +1712,8 @@ static void DeleteBookmark(void)
 
 static void BookmarkCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 static void BookmarkMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
+static void BookmarkArrowCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
+static void BookmarkArrowMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
 static void CreateBookMarkMouseRegions(void)
@@ -1688,6 +1728,12 @@ static void CreateBookMarkMouseRegions(void)
 		INT32 const idx = LaptopSaveInfo.iBookMarkList[i];
 		if (idx == -1) break; // just added region for cancel
 		r->SetFastHelpText(gzLaptopHelpText[BOOKMARK_TEXT_ASSOCIATION_OF_INTERNATION_MERCENARIES + idx]);
+
+		// manual-sort arrow, immediately to the right of the row, no gap
+		MOUSE_REGION* const arrow = &gBookmarkArrowRegions[i];
+		MSYS_DefineRegion(arrow, BOOK_X + BOOK_WIDTH, y, BOOK_X + BOOK_WIDTH + BOOK_ARROW_WIDTH, y + BOOK_ARROW_HEIGHT, MSYS_PRIORITY_HIGHEST - 2, CURSOR_LAPTOP_SCREEN, BookmarkArrowMvtCallBack, BookmarkArrowCallBack);
+		MSYS_SetRegionUserData(arrow, 0, i);
+		arrow->SetFastHelpText(gzLaptopHelpText[BOOKMARK_TEXT_MOVE_UP_ONE_POSITION]);
 	}
 }
 
@@ -1699,6 +1745,7 @@ static void DeleteBookmarkRegions(void)
 	for (i = 0; LaptopSaveInfo.iBookMarkList[i] != -1; ++i)
 	{
 		MSYS_RemoveRegion(&gBookmarkMouseRegions[i]);
+		MSYS_RemoveRegion(&gBookmarkArrowRegions[i]);
 	}
 
 	// now one for the cancel
@@ -1836,6 +1883,69 @@ static void BookmarkMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
 	else if (iReason & MSYS_CALLBACK_REASON_MOVE)
 	{
 		iHighLightBookLine=MSYS_GetRegionUserData(pRegion, 0);
+	}
+}
+
+
+// Moves the bookmark at position i one row up. If it's already at the top,
+// it wraps around to the bottom instead, and every other bookmark shifts up
+// one row to fill the gap.
+static void MoveBookmarkUp(INT32 const i)
+{
+	if (i > 0)
+	{
+		std::swap(LaptopSaveInfo.iBookMarkList[i], LaptopSaveInfo.iBookMarkList[i - 1]);
+		return;
+	}
+
+	INT32 count = 0;
+	while (LaptopSaveInfo.iBookMarkList[count] != -1) ++count;
+	if (count <= 1) return;
+
+	INT32 const first = LaptopSaveInfo.iBookMarkList[0];
+	for (INT32 k = 0; k < count - 1; ++k)
+	{
+		LaptopSaveInfo.iBookMarkList[k] = LaptopSaveInfo.iBookMarkList[k + 1];
+	}
+	LaptopSaveInfo.iBookMarkList[count - 1] = first;
+}
+
+
+static void BookmarkArrowMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		iHighLightBookLine = -1;
+		iPressedBookArrow  = -1;
+	}
+	else if (iReason & MSYS_CALLBACK_REASON_MOVE)
+	{
+		// keep the row (and its arrow) visible while the cursor is over the
+		// arrow itself, exactly as if still hovering the row
+		iHighLightBookLine = MSYS_GetRegionUserData(pRegion, 0);
+	}
+}
+
+
+static void BookmarkArrowCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	if (fLoadPendingFlag) return;
+
+	INT32 const i = MSYS_GetRegionUserData(pRegion, 0);
+
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN)
+	{
+		iPressedBookArrow = i;
+	}
+
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		iPressedBookArrow = -1;
+		MoveBookmarkUp(i);
+
+		// row content shifted around: rebuild regions/help-text to match
+		DeleteBookmarkRegions();
+		CreateBookMarkMouseRegions();
 	}
 }
 
