@@ -2459,11 +2459,19 @@ static void DestroyMapInventoryFilterButtons(void)
 // then rebuilds the main grid's own slot regions from scratch at the new
 // grid size/geometry (DestroyMapInventoryPoolSlots()/CreateMapInventoryPoolSlots()
 // both already read GetMapInventoryPoolPageSize()/GetSectorInvSlotBox()/etc.
-// fresh every time, so they pick up the new state automatically). Resets to
-// page 1 -- the same absolute page number would otherwise show a
-// completely unrelated slice of pInventoryPoolList once the page size
-// changes (35 vs 81/90), same reasoning as OpenStackSplitView()'s own
-// "always starts at page 1".
+// fresh every time, so they pick up the new state automatically).
+//
+// ApplySectorInventoryFilter() re-partitions pInventoryPoolList (and resets
+// to page 1 -- the same absolute page number would otherwise show a
+// completely unrelated slice of it once the page size changes, e.g. 35 vs
+// 81/90, same reasoning as OpenStackSplitView()'s own "always starts at page
+// 1") for the page size GetMapInventoryPoolPageSize() now reports. Without
+// this, the visible/hidden split RebuildFilteredInventoryPoolList() made at
+// the OLD page size stays in effect: switching to a larger page size (big
+// -> small icons) while a category filter is active then reads past the
+// old, now too-narrow visible prefix into the hidden tail of
+// non-matching items appended right after it, showing a mix of the two --
+// per user report.
 static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
@@ -2471,7 +2479,7 @@ static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
 	DestroyMapInventoryPoolSlots();
 
 	gfSectorInventoryBigImages = !gfSectorInventoryBigImages;
-	iCurrentInventoryPoolPage  = 0;
+	ApplySectorInventoryFilter();
 
 	CreateMapInventoryPoolSlots();
 	fMapPanelDirty = TRUE;
