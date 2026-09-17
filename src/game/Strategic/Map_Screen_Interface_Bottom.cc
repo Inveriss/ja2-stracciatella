@@ -22,6 +22,7 @@
 #include "Render_Dirty.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Map.h"
+#include "Map_Screen_Interface_Map_Inventory.h"
 #include "Text.h"
 #include "Overhead.h"
 #include "PreBattle_Interface.h"
@@ -54,18 +55,23 @@
 #include <string_theory/string>
 
 
-#define MAP_BOTTOM_X (STD_SCREEN_X + 0)
-#define MAP_BOTTOM_Y (STD_SCREEN_Y + 359)
+// Bottom-anchored (not a fixed MAP_SCREEN_Y + offset) so the panel and its
+// message box/scrollbar stay flush with the bottom edge of the map canvas
+// across both strategic-screen size tiers, preserving their original
+// distance from the bottom of the old 640x480 canvas (480-359=121,
+// 480-377=103, 480-390=90).
+#define MAP_BOTTOM_X (MAP_SCREEN_X + 0)
+#define MAP_BOTTOM_Y (MAP_SCREEN_BOTTOM - 121)
 
-#define MESSAGE_BOX_X (STD_SCREEN_X +  17)
-#define MESSAGE_BOX_Y (STD_SCREEN_Y + 377)
+#define MESSAGE_BOX_X (MAP_SCREEN_X +  17)
+#define MESSAGE_BOX_Y (MAP_SCREEN_BOTTOM - 103)
 #define MESSAGE_BOX_W 301
 #define MESSAGE_BOX_H  86
 
-#define MESSAGE_SCROLL_AREA_START_X (STD_SCREEN_X + 330)
+#define MESSAGE_SCROLL_AREA_START_X (MAP_SCREEN_X + 330)
 #define MESSAGE_SCROLL_AREA_WIDTH    15
 
-#define MESSAGE_SCROLL_AREA_START_Y (STD_SCREEN_Y + 390)
+#define MESSAGE_SCROLL_AREA_START_Y (MAP_SCREEN_BOTTOM - 90)
 #define MESSAGE_SCROLL_AREA_HEIGHT   59
 
 #define SLIDER_HEIGHT		11
@@ -121,8 +127,22 @@ UINT32 guiCompressionStringBaseTime = 0;
 
 // graphics
 namespace {
-cache_key_t const guiMAPBOTTOMPANEL{ INTERFACEDIR "/map_screen_bottom.sti" };
 cache_key_t const guiSliderBar{ INTERFACEDIR "/map_screen_bottom_arrows.sti" };
+
+// Not a plain cache_key_t constant like guiSliderBar above: which file this
+// is depends on the active resolution (see
+// UILayout::isCompactStrategicScreen()), which isn't known yet at
+// static-initialization time, so the choice has to be resolved at runtime,
+// on every call. Suffix convention: _1280 for the compact strategic-screen
+// tier (height 720-767), _1024 for the large tier (height 768+) -- see
+// GetCharListGraphicsFilename()/GetCharInfoGraphicsFilename() in
+// MapScreen.cc for the same pattern.
+cache_key_t GetMapScreenBottomGraphicsFilename()
+{
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/map_screen_bottom_1280.sti"
+		: INTERFACEDIR "/map_screen_bottom_1024.sti";
+}
 }
 
 // buttons
@@ -164,7 +184,7 @@ void LoadMapScreenInterfaceBottom(void)
 
 void DeleteMapBottomGraphics( void )
 {
-	RemoveVObject(guiMAPBOTTOMPANEL);
+	RemoveVObject(GetMapScreenBottomGraphicsFilename());
 	RemoveVObject(guiSliderBar);
 }
 
@@ -198,19 +218,63 @@ static void EnableDisableMessageScrollButtonsAndRegions(void);
 // will render the map screen bottom interface
 void RenderMapScreenInterfaceBottom( void )
 {
+	// The sector-inventory panel (SECTOR_INVENTORY_FIRST_1024.sti/
+	// SECTOR_INVENTORY_STACK_1024.sti) was resized tall enough to physically
+	// cover this same screen area, per user request -- this used to never
+	// overlap (this panel's own 121px-tall
+	// strip sat below the inventory panel's old, shorter box), so drawing
+	// order between the two never mattered before. Skip entirely (background
+	// blit, balance/clock/sector-name/messages, and the button
+	// enable/disable below) while the inventory panel is showing, same
+	// convention as RenderMapRegionBackground() already uses to skip
+	// DrawMap() under the same condition -- otherwise this always redraws on
+	// top of it, last, every frame, regardless of fShowMapInventoryPool.
+	if (fShowMapInventoryPool)
+	{
+		// Exit/Options/Laptop/Tactical, time-compress, and message-scroll
+		// are persistent GUI_BUTTON objects that draw themselves every
+		// frame via the generic button system, independent of this
+		// function's own early return above -- EnableButton()/DisableButton()
+		// (EnableDisableBottomButtonsAndRegions() below) only blocks clicks,
+		// it doesn't stop GUI_BUTTON::Draw() (same Enable-vs-Hide distinction
+		// as HandleButtonStatesWhileMapInventoryActive()'s own comment,
+		// Map_Screen_Interface_Map_Inventory.cc), so they kept drawing right
+		// on top of the now-taller sector-inventory panel. Hidden here
+		// (not destroyed) since this is purely a visibility fix -- per user
+		// report.
+		for (GUIButtonRef& btn : guiMapBottomExitButtons) HideButton(btn);
+		HideButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE]);
+		HideButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS]);
+		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
+		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+		return;
+	}
+
+	// Undo the above once the inventory panel closes -- ShowButton() on an
+	// already-shown button is a harmless no-op, same convention as
+	// HandleButtonStatesWhileMapInventoryActive()'s own unconditional
+	// per-frame Show/Hide calls.
+	for (GUIButtonRef& btn : guiMapBottomExitButtons) ShowButton(btn);
+	ShowButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE]);
+	ShowButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS]);
+	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
+	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+
 	// render whole panel
 	if (fMapScreenBottomDirty)
 	{
-		BltVideoObject(guiSAVEBUFFER, guiMAPBOTTOMPANEL, 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
+		BltVideoObject(guiSAVEBUFFER, GetMapScreenBottomGraphicsFilename(), 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
 		auto const& sMap{ sSelMap };
 
 		if (GetSectorFlagStatus(sMap, SF_ALREADY_VISITED))
 		{
 			LoadRadarScreenBitmap(GetMapFileName(sMap, TRUE));
+			LoadBigRadarScreenBitmap(GetMapFileName(sMap, TRUE));
 		}
 		else
 		{
 			ClearOutRadarMapImage();
+			ClearOutBigRadarMapImage();
 		}
 
 		fInterfacePanelDirty = DIRTYLEVEL2;
@@ -274,17 +338,20 @@ static GUIButtonRef MakeArrowButton(INT32 grayed, INT32 off, INT32 on, INT16 x, 
 
 static void CreateButtonsForMapScreenInterfaceBottom(void)
 {
-	guiMapBottomExitButtons[MAP_EXIT_TO_LAPTOP]   = MakeExitButton( 6, 15, STD_SCREEN_X + 456, STD_SCREEN_Y + 410, BtnLaptopCallback,               pMapScreenBottomFastHelp[0]);
-	guiMapBottomExitButtons[MAP_EXIT_TO_TACTICAL] = MakeExitButton( 7, 16, STD_SCREEN_X + 496, STD_SCREEN_Y + 410, BtnTacticalCallback,             pMapScreenBottomFastHelp[1]);
-	guiMapBottomExitButtons[MAP_EXIT_TO_OPTIONS]  = MakeExitButton(18, 19, STD_SCREEN_X + 458, STD_SCREEN_Y + 372, BtnOptionsFromMapScreenCallback, pMapScreenBottomFastHelp[2]);
+	// Bottom+right-anchored (see MAP_SCREEN_RIGHT/MAP_SCREEN_BOTTOM), preserving
+	// each button's original distance from the old 640x480 canvas' right/bottom
+	// edge (e.g. Laptop: 640-456=184, 480-410=70).
+	guiMapBottomExitButtons[MAP_EXIT_TO_LAPTOP]   = MakeExitButton( 6, 15, MAP_SCREEN_RIGHT - 184, MAP_SCREEN_BOTTOM - 70,  BtnLaptopCallback,               pMapScreenBottomFastHelp[0]);
+	guiMapBottomExitButtons[MAP_EXIT_TO_TACTICAL] = MakeExitButton( 7, 16, MAP_SCREEN_RIGHT - 144, MAP_SCREEN_BOTTOM - 70,  BtnTacticalCallback,             pMapScreenBottomFastHelp[1]);
+	guiMapBottomExitButtons[MAP_EXIT_TO_OPTIONS]  = MakeExitButton(18, 19, MAP_SCREEN_RIGHT - 182, MAP_SCREEN_BOTTOM - 108, BtnOptionsFromMapScreenCallback, pMapScreenBottomFastHelp[2]);
 
 	// time compression buttons
-	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE] = MakeArrowButton(10, 1, 3, STD_SCREEN_X + 528, STD_SCREEN_Y + 456, BtnTimeCompressMoreMapScreenCallback, pMapScreenBottomFastHelp[3]);
-	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS] = MakeArrowButton( 9, 0, 2, STD_SCREEN_X + 466, STD_SCREEN_Y + 456, BtnTimeCompressLessMapScreenCallback, pMapScreenBottomFastHelp[4]);
+	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE] = MakeArrowButton(10, 1, 3, MAP_SCREEN_RIGHT - 112, MAP_SCREEN_BOTTOM - 24, BtnTimeCompressMoreMapScreenCallback, pMapScreenBottomFastHelp[3]);
+	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS] = MakeArrowButton( 9, 0, 2, MAP_SCREEN_RIGHT - 174, MAP_SCREEN_BOTTOM - 24, BtnTimeCompressLessMapScreenCallback, pMapScreenBottomFastHelp[4]);
 
-	// scroll buttons
-	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]   = MakeArrowButton(11, 4, 6, STD_SCREEN_X + 331, STD_SCREEN_Y + 371, BtnMessageUpMapScreenCallback,   pMapScreenBottomFastHelp[5]);
-	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN] = MakeArrowButton(12, 5, 7, STD_SCREEN_X + 331, STD_SCREEN_Y + 452, BtnMessageDownMapScreenCallback, pMapScreenBottomFastHelp[6]);
+	// scroll buttons -- part of the message box (bottom only, X unchanged)
+	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]   = MakeArrowButton(11, 4, 6, MAP_SCREEN_X + 331, MAP_SCREEN_BOTTOM - 109, BtnMessageUpMapScreenCallback,   pMapScreenBottomFastHelp[5]);
+	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN] = MakeArrowButton(12, 5, 7, MAP_SCREEN_X + 331, MAP_SCREEN_BOTTOM - 28,  BtnMessageDownMapScreenCallback, pMapScreenBottomFastHelp[6]);
 }
 
 
@@ -333,7 +400,8 @@ static void DrawNameOfLoadedSector()
 	ST::string buf = GetSectorIDString(sSelMap, TRUE);
 	buf = ReduceStringLength(buf, 80, font);
 
-	MPrint(STD_SCREEN_X + 548, STD_SCREEN_Y + 426, buf, HCenterVCenterAlign(80, 16));
+	// Bottom+right-anchored: 640-548=92, 480-426=54.
+	MPrint(MAP_SCREEN_RIGHT - 92, MAP_SCREEN_BOTTOM - 54, buf, HCenterVCenterAlign(80, 16));
 }
 
 
@@ -513,7 +581,10 @@ static void DisplayCompressMode(void)
 		Time = sTimeStrings[IsTimeBeingCompressed() ? giTimeCompressMode : 0];
 	}
 
-	RestoreExternBackgroundRect( STD_SCREEN_X + 489, STD_SCREEN_Y + 457, 522 - 489, 467 - 454 );
+	// Bottom+right-anchored: 640-489=151, 480-457=23 -- same distance from the
+	// old 640x480 canvas' edges as before. Rect size (33x13) is unrelated to
+	// position, kept as-is.
+	RestoreExternBackgroundRect( MAP_SCREEN_RIGHT - 151, MAP_SCREEN_BOTTOM - 23, 522 - 489, 467 - 454 );
 	SetFontDestBuffer(FRAME_BUFFER);
 
 	if( GetJA2Clock() - guiCompressionStringBaseTime >= PAUSE_GAME_TIMER )
@@ -536,14 +607,16 @@ static void DisplayCompressMode(void)
 	}
 
 	SetFontAttributes(COMPFONT, usColor);
-	MPrint(STD_SCREEN_X + 489, STD_SCREEN_Y + 457, Time,
+	MPrint(MAP_SCREEN_RIGHT - 151, MAP_SCREEN_BOTTOM - 23, Time,
 		HCenterVCenterAlign(522 - 489, 467 - 454));
 }
 
 
 static void CreateCompressModePause(void)
 {
-	MSYS_DefineRegion( &gMapPauseRegion, STD_SCREEN_X + 487, STD_SCREEN_Y + 456, STD_SCREEN_X + 522, STD_SCREEN_Y + 467, MSYS_PRIORITY_HIGH,
+	// Bottom+right-anchored: 640-487=153, 480-456=24; second corner keeps its
+	// original offset from the first (522-487=35, 467-456=11).
+	MSYS_DefineRegion( &gMapPauseRegion, MAP_SCREEN_RIGHT - 153, MAP_SCREEN_BOTTOM - 24, MAP_SCREEN_RIGHT - 153 + 35, MAP_SCREEN_BOTTOM - 24 + 11, MSYS_PRIORITY_HIGH,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressModeClickCallback );
 	gMapPauseRegion.SetFastHelpText(pMapScreenBottomFastHelp[7]);
 }
@@ -847,8 +920,11 @@ static void DisplayCurrentBalanceTitleForMapBottom(void)
 	SetFontAttributes(COMPFONT, MAP_BOTTOM_FONT_COLOR);
 	HCenterVCenterAlign const alignment{ 437 - 359, 10 };
 
-	MPrint(STD_SCREEN_X + 359, STD_SCREEN_Y + 387 - 14, pMapScreenBottomText, alignment);
-	MPrint(STD_SCREEN_X + 359, STD_SCREEN_Y + 433 - 14, zMarksMapScreenText[2], alignment);
+	// Bottom+right-anchored: X shared by balance/income (640-359=281); Y kept
+	// at each label's original distance from the old canvas' bottom edge
+	// (480-373=107, 480-419=61).
+	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 107, pMapScreenBottomText, alignment);
+	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 61,  zMarksMapScreenText[2], alignment);
 
 	SetFontDestBuffer(FRAME_BUFFER);
 }
@@ -859,7 +935,8 @@ static void DisplayCurrentBalanceForMapBottom(void)
 	// show the current balance for the player on the map panel bottom
 	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontAttributes(COMPFONT, 183);
-	MPrint(STD_SCREEN_X + 359, STD_SCREEN_Y + 387 + 2,
+	// Bottom+right-anchored: 640-359=281, 480-389=91.
+	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 91,
 		SPrintMoney(LaptopSaveInfo.iCurrentBalance),
 		HCenterVCenterAlign(437 - 359, 10));
 }
@@ -877,9 +954,15 @@ void CreateDestroyMouseRegionMasksForTimeCompressionButtons()
 	if (disabled && !created)
 	{
 		// Mask over compress more, compress less and paus game buttons.
-		MSYS_DefineRegion(&gTimeCompressionMask[0], STD_SCREEN_X + 528, STD_SCREEN_Y + 457, 528 + 13, 457 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
-		MSYS_DefineRegion(&gTimeCompressionMask[1], STD_SCREEN_X + 466, STD_SCREEN_Y + 457, 466 + 13, 457 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
-		MSYS_DefineRegion(&gTimeCompressionMask[2], STD_SCREEN_X + 487, STD_SCREEN_Y + 457, 487 + 35, 457 + 11, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
+		// Bottom+right-anchored (640-528=112, 640-466=174, 640-487=153,
+		// 480-457=23), preserving each mask's original distance from the old
+		// 640x480 canvas' edges. The second corner of each region was missing
+		// the MAP_SCREEN_X/Y prefix (worked only by coincidence when those
+		// offsets were 0, i.e. screen size == old map canvas size) -- fixed
+		// here to stay anchored the same way as the first corner.
+		MSYS_DefineRegion(&gTimeCompressionMask[0], MAP_SCREEN_RIGHT - 112, MAP_SCREEN_BOTTOM - 23, MAP_SCREEN_RIGHT - 112 + 13, MAP_SCREEN_BOTTOM - 23 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
+		MSYS_DefineRegion(&gTimeCompressionMask[1], MAP_SCREEN_RIGHT - 174, MAP_SCREEN_BOTTOM - 23, MAP_SCREEN_RIGHT - 174 + 13, MAP_SCREEN_BOTTOM - 23 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
+		MSYS_DefineRegion(&gTimeCompressionMask[2], MAP_SCREEN_RIGHT - 153, MAP_SCREEN_BOTTOM - 23, MAP_SCREEN_RIGHT - 153 + 35, MAP_SCREEN_BOTTOM - 23 + 11, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
 		created = true;
 	}
 	else if (!disabled && created)
@@ -918,7 +1001,8 @@ static void DisplayProjectedDailyMineIncome(void)
 
 	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontAttributes(COMPFONT, 183);
-	MPrint(STD_SCREEN_X + 359, STD_SCREEN_Y + 433 + 2,
+	// Bottom+right-anchored: 640-359=281, 480-435=45.
+	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 45,
 		SPrintMoney(iRate), HCenterVCenterAlign(437 - 359, 10));
 }
 

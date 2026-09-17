@@ -11,6 +11,7 @@
 #include "RenderWorld.h"
 #include "Lighting.h"
 #include "Map_Screen_Interface.h"
+#include "Map_Screen_Interface_Map_Inventory.h"
 #include "Event_Pump.h"
 #include "Text.h"
 #include "Map_Screen_Interface_Map.h"
@@ -240,6 +241,16 @@ BOOLEAN HasTimeCompressOccured( void )
 
 void RenderClock(void)
 {
+	// Shared with the tactical screen/shop keeper interface (Overhead_Map.cc,
+	// ShopKeeper_Interface.cc, Interface_Control.cc), where fShowMapInventoryPool
+	// is never TRUE, so this only ever skips on the strategic map screen --
+	// exactly where the sector-inventory panel now needs it to, per user
+	// report (it drew on top of the now-taller SECTOR_INVENTORY_FIRST_1024.sti/
+	// SECTOR_INVENTORY_STACK_1024.sti regardless of MapScreen.cc's own
+	// RenderClock() call being outside the fMapPanelDirty-gated pipeline
+	// entirely).
+	if (fShowMapInventoryPool) return;
+
 	// Are we in combat?
 	UINT8 const foreground = gTacticalStatus.uiFlags & INCOMBAT ?
 		FONT_FCOLOR_NICERED : FONT_LTGREEN;

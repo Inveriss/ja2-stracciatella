@@ -48,6 +48,8 @@ JsonValue MagazineModel::serialize() const
 	}
 
 	serializeFlags(obj);
+	serializeSmallPerPocket(obj);
+	serializeBigPerPocket(obj);
 
 	if(dontUseAsDefaultMagazine)
 	{
@@ -97,6 +99,8 @@ MagazineModel* MagazineModel::deserialize(
 	mag->tileGraphic = tileGraphic;
 	mag->ubWeight         = obj.GetInt("ubWeight");
 	mag->ubPerPocket      = obj.GetInt("ubPerPocket");
+	mag->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
+	mag->ubBigPerPocket   = ItemModel::deserializeBigPerPocket(obj);
 	mag->usPrice          = obj.GetInt("usPrice");
 	mag->ubCoolness       = obj.GetInt("ubCoolness");
 

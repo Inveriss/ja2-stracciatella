@@ -44,10 +44,29 @@
 #define gsVIEWPORT_END_X                (g_ui.m_VIEWPORT_END_X)
 #define gsVIEWPORT_END_Y                (g_ui.m_VIEWPORT_END_Y)
 #define gsVIEWPORT_WINDOW_END_Y         (g_ui.m_VIEWPORT_WINDOW_END_Y)
+// STD_SCREEN_X/Y centers the legacy (STD_SCREEN_WIDTH x STD_SCREEN_HEIGHT,
+// still 640x480) window used by every screen except the strategic map --
+// splash, options, save/load, credits, initial game settings, the laptop
+// and all of its sub-screens (including the laptop's own on-screen
+// footprint used by its map<->laptop transition animation).
 #define STD_SCREEN_X                    (g_ui.m_stdScreenOffsetX)
 #define STD_SCREEN_Y                    (g_ui.m_stdScreenOffsetY)
+#define STD_SCREEN_WIDTH                (640)
+#define STD_SCREEN_HEIGHT               (480)
+// MAP_SCREEN_X/Y centers the strategic map's own, larger canvas
+// (MAP_SCREEN_WIDTH x MAP_SCREEN_HEIGHT, 1024x768/720) -- use this (not
+// STD_SCREEN_X/Y) for anything drawn as part of the strategic map screen
+// itself.
+#define MAP_SCREEN_X                    (g_ui.m_mapScreenOffsetX)
+#define MAP_SCREEN_Y                    (g_ui.m_mapScreenOffsetY)
 #define MAP_SCREEN_WIDTH                (g_ui.m_mapScreenWidth)
 #define MAP_SCREEN_HEIGHT               (g_ui.m_mapScreenHeight)
+// Right/bottom edge of the strategic map's own canvas -- use these (not a
+// fresh MAP_SCREEN_X/Y + hand-tuned pixel offset) for anything that should
+// hug the far edge of the map screen, so it tracks MAP_SCREEN_WIDTH/HEIGHT
+// automatically across both strategic-screen size tiers.
+#define MAP_SCREEN_RIGHT                (MAP_SCREEN_X + MAP_SCREEN_WIDTH)
+#define MAP_SCREEN_BOTTOM               (MAP_SCREEN_Y + MAP_SCREEN_HEIGHT)
 
 #define SM_BODYINV_X                    (INTERFACE_START_X + 324)
 #define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
@@ -64,6 +83,11 @@
 
 #define DEFAULT_EXTERN_PANEL_X_POS      (STD_SCREEN_X + 320)
 #define DEFAULT_EXTERN_PANEL_Y_POS      (STD_SCREEN_Y + 40)
+// Same speech-bubble default, but for the strategic map screen (where the
+// panel must align with the map's own, larger canvas) -- see
+// Strategic_Mines.cc / Map_Screen_Helicopter.cc.
+#define DEFAULT_MAP_EXTERN_PANEL_X_POS  (MAP_SCREEN_X + 320)
+#define DEFAULT_MAP_EXTERN_PANEL_Y_POS  (MAP_SCREEN_Y + 40)
 
 #define TEAMPANEL_SLOT_WIDTH            (83)     // width of one slot in the bottom team panel
 #define TEAMPANEL_BUTTONSBOX_WIDTH      (142)    // width of the container of the buttons on the right of team panel
@@ -152,8 +176,10 @@ public:
 	UINT16                m_teamPanelWidth;                 // width of the entire team panel (bottom_bar.sti) including slots and buttons -- purely squad-size-driven, NOT floored to fit inventory_bottom_panel.sti. Also used to position squad-size-driven widgets shared by both panel modes (minimap, clock, sector name).
 	UINT16                m_smPanelWidth;                   // width of the single-merc inventory panel (inventory_bottom_panel.sti) canvas -- max(m_teamPanelWidth, INVENTORY_BOTTOM_PANEL_WIDTH), since that graphic can be wider than what squad size alone would need. Use this (not m_teamPanelWidth) for anything specific to the single-merc panel's own canvas/buttons (SM_DONE_X, SM_MAPSCREEN_X).
 
-	UINT16                m_stdScreenOffsetX;             /** Offset of the standard (640x480) window */
-	UINT16                m_stdScreenOffsetY;             /** Offset of the standard (640x480) window */
+	UINT16                m_stdScreenOffsetX;             /** Offset of the legacy (STD_SCREEN_WIDTH x STD_SCREEN_HEIGHT, 640x480) window used by every screen except the strategic map -- see STD_SCREEN_X/Y */
+	UINT16                m_stdScreenOffsetY;             /** Offset of the legacy (STD_SCREEN_WIDTH x STD_SCREEN_HEIGHT, 640x480) window used by every screen except the strategic map -- see STD_SCREEN_X/Y */
+	UINT16                m_mapScreenOffsetX;             /** Offset of the strategic map's own canvas (m_mapScreenWidth x m_mapScreenHeight) -- see MAP_SCREEN_X/Y */
+	UINT16                m_mapScreenOffsetY;             /** Offset of the strategic map's own canvas (m_mapScreenWidth x m_mapScreenHeight) -- see MAP_SCREEN_X/Y */
 
 	/** Constructor.
 	 * @param screenWidth Screen width
@@ -163,8 +189,11 @@ public:
 	/** Set new screen size. Element positions should be recalculated after setting this. @see UILayout::recalculatePositions */
 	void setScreenSize(UINT16 width, UINT16 height);
 
-	/** Check if the screen is bigger than original 640x480. */
+	/** Check if the screen is bigger than the currently active strategic-screen canvas size. */
 	bool isBigScreen() const;
+
+	/** True when the active resolution uses the compact (720px-tall) strategic screen asset set instead of the large (768px-tall) one. */
+	bool isCompactStrategicScreen() const;
 
 	UINT16 currentHeight() const;
 	UINT16 get_CLOCK_X() const;

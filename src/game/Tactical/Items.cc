@@ -147,6 +147,27 @@ static MergeInfo const Merge[] =
 	{WINE,				WINE,				WINE,				COMBINE_POINTS},
 	{ALCOHOL,			ALCOHOL,			ALCOHOL,			COMBINE_POINTS},
 	{CANTEEN,			CANTEEN,			CANTEEN,			COMBINE_POINTS},
+	// Added per user request, for the sector-inventory grouping feature --
+	// self-merge only; COMPOUND18/JAR_QUEEN_CREATURE_BLOOD already have
+	// other, unrelated entries further below (armor treatment against a
+	// *different* item), which these don't conflict with since
+	// EvaluateValidMerge() matches on the exact (item1, item2) pair.
+	{COMPOUND18,			COMPOUND18,			COMPOUND18,			COMBINE_POINTS},
+	{JAR_QUEEN_CREATURE_BLOOD,	JAR_QUEEN_CREATURE_BLOOD,	JAR_QUEEN_CREATURE_BLOOD,	COMBINE_POINTS},
+	{JAR_ELIXIR,			JAR_ELIXIR,			JAR_ELIXIR,			COMBINE_POINTS},
+	{JAR_CREATURE_BLOOD,		JAR_CREATURE_BLOOD,		JAR_CREATURE_BLOOD,		COMBINE_POINTS},
+	{JAR_HUMAN_BLOOD,		JAR_HUMAN_BLOOD,		JAR_HUMAN_BLOOD,		COMBINE_POINTS},
+	{ADRENALINE_BOOSTER,		ADRENALINE_BOOSTER,		ADRENALINE_BOOSTER,		COMBINE_POINTS},
+	{REGEN_BOOSTER,			REGEN_BOOSTER,			REGEN_BOOSTER,			COMBINE_POINTS},
+	{SYRINGE_3,			SYRINGE_3,			SYRINGE_3,			COMBINE_POINTS},
+	{SYRINGE_4,			SYRINGE_4,			SYRINGE_4,			COMBINE_POINTS},
+	{SYRINGE_5,			SYRINGE_5,			SYRINGE_5,			COMBINE_POINTS},
+	{CIGARS,			CIGARS,				CIGARS,				COMBINE_POINTS},
+	{DUCT_TAPE,			DUCT_TAPE,			DUCT_TAPE,			COMBINE_POINTS},
+	{QUICK_GLUE,			QUICK_GLUE,			QUICK_GLUE,			COMBINE_POINTS},
+	{TIN_CAN,			TIN_CAN,			TIN_CAN,			COMBINE_POINTS},
+	{MARBLES,			MARBLES,			MARBLES,			COMBINE_POINTS},
+	{CHEWING_GUM,			CHEWING_GUM,			CHEWING_GUM,			COMBINE_POINTS},
 
 	{COMPOUND18,			FLAK_JACKET,			FLAK_JACKET_18,			TREAT_ARMOUR},
 	{COMPOUND18,			KEVLAR_VEST,			KEVLAR_VEST_18,			TREAT_ARMOUR},
@@ -278,7 +299,25 @@ UINT8 ItemSlotLimit( UINT16 usItem, INT8 bSlot )
 	}
 	else
 	{
-		ubSlotLimit = GCM->getItem(usItem)->getPerPocket();
+		const ItemModel* const item = GCM->getItem(usItem);
+
+		if (bSlot >= SMALLPOCK1POS)
+		{
+			// Independent, opt-in override of small-pocket fit/capacity --
+			// see ItemModel::getSmallPerPocket(). A value of 0 here means
+			// "does not fit in a small pocket at all", regardless of
+			// getPerPocket()'s own (big-pocket) value -- per user request,
+			// so raising getPerPocket() for stacking purposes doesn't also
+			// silently make an item fit a pocket it's graphically too big
+			// for. Falls back to the historical getPerPocket()/2 below when
+			// the item hasn't opted into this.
+			if (auto const small = item->getSmallPerPocket())
+			{
+				return *small;
+			}
+		}
+
+		ubSlotLimit = item->getPerPocket();
 		if (bSlot >= SMALLPOCK1POS && ubSlotLimit > 1)
 		{
 			ubSlotLimit /= 2;
@@ -286,6 +325,20 @@ UINT8 ItemSlotLimit( UINT16 usItem, INT8 bSlot )
 		return( ubSlotLimit );
 	}
 }
+
+
+UINT8 ApplyBigPerPocketOverride( UINT16 usItem, INT8 bSlot, UINT8 ubSlotLimit )
+{
+	if (bSlot >= BIGPOCK1POS && bSlot < SMALLPOCK1POS)
+	{
+		if (auto const big = GCM->getItem(usItem)->getBigPerPocket())
+		{
+			ubSlotLimit = std::min<UINT8>(ubSlotLimit, *big);
+		}
+	}
+	return ubSlotLimit;
+}
+
 
 UINT32 MoneySlotLimit( INT8 bSlot )
 {
@@ -593,6 +646,48 @@ bool ItemHasAttachments(OBJECTTYPE const& o)
 		if (o.usAttachItem[i] != NOTHING) return true;
 	}
 	return false;
+}
+
+
+bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b)
+{
+	// Only guns are restricted here -- every other item class stores its
+	// per-unit state in bStatus[]/ubShotsLeft[] (one real byte per unit),
+	// which StackObjs()/RemoveObjFrom()/GetObjFrom() already handle
+	// correctly regardless of how many units are involved.
+	//
+	// A gun is different: bGunStatus/ubGunAmmoType/ubGunShotsLeft/
+	// usGunAmmoItem/bGunAmmoStatus alias the very same bytes as
+	// bStatus[0..4], and usAttachItem[]/bAttachStatus[] are a single set
+	// for the whole OBJECTTYPE regardless of ubNumberOfObjects -- there is
+	// no per-unit storage for any of it. Two guns can only safely share one
+	// multi-unit OBJECTTYPE when that single shared block already
+	// correctly describes every unit at once -- i.e. when the two guns are
+	// physically IDENTICAL in everything the union/attachments can't
+	// represent per-unit: same ammo type, same shots left, same jam
+	// status, same attachments, same condition. This is equality, not
+	// "must be empty" -- CreateGun() loads every normal gun with its
+	// default magazine already, so requiring no ammo at all would make
+	// almost no freshly-spawned gun ever stackable. Anything not equal
+	// must stay as separate, single-unit OBJECTTYPEs (the callers of this
+	// function fall back to their existing swap/no-merge behavior, exactly
+	// as for any other item that doesn't match closely enough to combine).
+	if (a.usItem != b.usItem) return false;
+	if (!GCM->getItem(a.usItem)->isGun()) return true;
+
+	if (a.bGunStatus     != b.bGunStatus)     return false;
+	if (a.ubGunAmmoType  != b.ubGunAmmoType)  return false;
+	if (a.ubGunShotsLeft != b.ubGunShotsLeft) return false;
+	if (a.usGunAmmoItem  != b.usGunAmmoItem)  return false;
+	if (a.bGunAmmoStatus != b.bGunAmmoStatus) return false;
+
+	for (INT8 i = 0; i < MAX_ATTACHMENTS; ++i)
+	{
+		if (a.usAttachItem[i]  != b.usAttachItem[i])  return false;
+		if (a.bAttachStatus[i] != b.bAttachStatus[i]) return false;
+	}
+
+	return true;
 }
 
 
@@ -917,6 +1012,16 @@ void RemoveObjFrom( OBJECTTYPE * pObj, UINT8 ubRemoveIndex )
 		// delete!
 		DeleteObj( pObj );
 	}
+	else if (GCM->getItem(pObj->usItem)->isGun())
+	{
+		// See CanGunsStack() -- bStatus[0..4] here alias bGunStatus/
+		// ubGunAmmoType/ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a
+		// single shared value already guaranteed identical across every
+		// unit in this stack. The shift/clear below is meaningless (and
+		// actively corrupting) for a gun: it would overwrite bGunStatus
+		// with what's really ubGunAmmoType, etc. Only the count changes.
+		pObj->ubNumberOfObjects--;
+	}
 	else
 	{
 		// shift down all the values that should be down
@@ -965,6 +1070,17 @@ void GetObjFrom( OBJECTTYPE * pObj, UINT8 ubGetIndex, OBJECTTYPE * pDest )
 		*pDest = *pObj;
 		DeleteObj( pObj );
 	}
+	else if (GCM->getItem(pObj->usItem)->isGun())
+	{
+		// See CanGunsStack() -- every unit in a gun "stack" already shares
+		// the exact same ammo/condition/attachment state, so pulling one
+		// out is a whole-struct copy (this also correctly carries over
+		// usAttachItem[]/bAttachStatus[], which live outside the union and
+		// the generic branch below never copies at all).
+		*pDest = *pObj;
+		pDest->ubNumberOfObjects = 1;
+		RemoveObjFrom( pObj, ubGetIndex );
+	}
 	else
 	{
 		pDest->usItem = pObj->usItem;
@@ -992,6 +1108,19 @@ void StackObjs(OBJECTTYPE* pSourceObj, OBJECTTYPE* pTargetObj, UINT8 ubNumberToC
 {
 	UINT8 ubLoop;
 
+	if (GCM->getItem(pTargetObj->usItem)->isGun())
+	{
+		// See CanGunsStack() -- callers only ever merge guns this way once
+		// they've verified both sides are physically identical (no ammo,
+		// no attachments, equal condition), so pTargetObj's existing
+		// shared gun state already correctly describes the merged total --
+		// there's no per-unit bStatus[] data to copy, only the count
+		// changes.
+		pTargetObj->ubNumberOfObjects += ubNumberToCopy;
+		RemoveObjs( pSourceObj, ubNumberToCopy );
+		return;
+	}
+
 	// copy over N status values
 	for (ubLoop = 0; ubLoop < ubNumberToCopy; ubLoop++)
 	{
@@ -1009,12 +1138,79 @@ void StackObjs(OBJECTTYPE* pSourceObj, OBJECTTYPE* pTargetObj, UINT8 ubNumberToC
 }
 
 
+// Sorts a stack's ubNumberOfObjects units so the best one is first, worst
+// last -- per user request, for items that sit stacked in one slot without
+// being mergeable into each other (e.g. several guns of the same model at
+// different % condition), which previously just stayed in whatever order
+// they happened to be picked up/stacked (StackObjs() above only ever
+// appends). Same "higher quality first" convention
+// CompareItemsForSorting() (ArmsDealerInvInit.cc) already uses to rank
+// whole slots against each other, applied here within a single slot's own
+// stack instead. Per-unit quality is read the same way DrawItemUIBarEx()
+// (Interface_Utils.cc) already does for that stack's own status bars --
+// ammo by remaining-charge percentage (ubShotsLeft[]/capacity), everything
+// else by bStatus[] -- so the two stay visually consistent (bar heights
+// already matched each index; now the index order matches the heights
+// too). Keys are skipped -- DrawItemUIBarEx() always shows 100 for them,
+// i.e. nothing meaningful to sort by. Mergeable items (ammo/points via
+// EvaluateValidMerge's COMBINE_POINTS) are unaffected by this -- merging
+// is a separate action; this only reorders what's already sitting,
+// unmerged, in the same slot. Called from both places a stack of more
+// than one unit can be viewed/split: InternalInitItemStackPopup()
+// (Interface_Items.cc, tactical screen + map's item popup) and
+// OpenStackSplitView() (Map_Screen_Interface_Map_Inventory.cc, sector
+// inventory).
+void SortItemStackByStatus(OBJECTTYPE* const o)
+{
+	ItemModel const* const item = GCM->getItem(o->usItem);
+	if (item->isKey() || o->ubNumberOfObjects < 2) return;
+
+	bool  const is_ammo  = item->isAmmo();
+	UINT8 const capacity = is_ammo ? (item->asAmmo()->capacity ? item->asAmmo()->capacity : 1) : 0;
+
+	auto quality = [&](UINT8 const idx) -> INT16
+	{
+		return is_ammo ? (INT16)(100 * o->ubShotsLeft[idx] / capacity) : (INT16)o->bStatus[idx];
+	};
+
+	// Simple insertion sort -- ubNumberOfObjects is at most
+	// MAX_OBJECTS_PER_SLOT (100), and this only runs once per stack-popup
+	// open, so an O(n^2) sort isn't worth reaching for anything fancier.
+	for (UINT8 i = 1; i < o->ubNumberOfObjects; ++i)
+	{
+		UINT8 j = i;
+		while (j > 0 && quality(j - 1) < quality(j))
+		{
+			if (is_ammo)
+			{
+				std::swap(o->ubShotsLeft[j - 1], o->ubShotsLeft[j]);
+			}
+			else
+			{
+				std::swap(o->bStatus[j - 1], o->bStatus[j]);
+			}
+			--j;
+		}
+	}
+}
+
+
 void CleanUpStack(OBJECTTYPE* const o, OBJECTTYPE* const cursor_o)
 {
 	const ItemModel * item = GCM->getItem(o->usItem);
-	if (!(item->isAmmo()) &&
-		!(item->isKit())  &&
-		!(item->isMedkit()))
+
+	// Whether o->usItem's points/charge can be combined with itself this way
+	// -- the same authoritative check AttachObject() uses (EvaluateValidMerge()
+	// of the item against itself), rather than a separate, narrower
+	// isAmmo()/isKit()/isMedkit() class check. That older check silently
+	// disagreed with the Merge[] table below for items explicitly listed
+	// there as COMBINE_POINTS but belonging to a different item class (e.g.
+	// BEER/WINE/ALCOHOL, which are IC_MISC) -- this keeps the two in sync,
+	// since Merge[] is the single source of truth for what can be combined.
+	UINT16 merge_result;
+	UINT8  merge_kind;
+	if (!EvaluateValidMerge(o->usItem, o->usItem, &merge_result, &merge_kind) ||
+		merge_kind != COMBINE_POINTS)
 	{
 		return;
 	}
@@ -1079,6 +1275,14 @@ BOOLEAN PlaceObjectAtObjectIndex( OBJECTTYPE * pSourceObj, OBJECTTYPE * pTargetO
 	{
 		return( TRUE );
 	}
+	if (!CanGunsStack(*pSourceObj, *pTargetObj))
+	{
+		// Physically distinguishable guns (different ammo/attachments/
+		// condition) can't be swapped by a single bStatus[] index or
+		// merged into pTargetObj's shared gun state -- see CanGunsStack().
+		// Treat this the same as a non-matching item: no-op.
+		return( TRUE );
+	}
 	if (ubIndex < pTargetObj->ubNumberOfObjects)
 	{
 		// swap
@@ -1113,6 +1317,17 @@ BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo
 	UINT16  usNewAmmoItem;
 
 	if (pGun->usItem == ROCKET_LAUNCHER) return( FALSE ); // IC_GUN but uses no ammo (LAW)
+
+	if (pGun->ubNumberOfObjects > 1)
+	{
+		// See CanGunsStack() -- reloading writes into the single shared
+		// ammo state every unit in this stack aliases, which would give
+		// every gun in it the same ammo rather than just this one,
+		// breaking the "always physically identical" invariant a
+		// multi-unit gun stack depends on. Split one out of the stack
+		// first (e.g. via the stack-split popup) and reload that instead.
+		return( FALSE );
+	}
 
 	INT8 bAPs = 0; // XXX HACK000E
 	if (gTacticalStatus.uiFlags & INCOMBAT)
@@ -1538,6 +1753,18 @@ bool AttachObject(SOLDIERTYPE* const s, OBJECTTYPE* const pTargetObj, OBJECTTYPE
 {
 	CHECKF(bRequestedAttachPos == NO_SLOT || (bRequestedAttachPos >= 0 && bRequestedAttachPos < MAX_ATTACHMENTS));
 
+	if (pTargetObj->ubNumberOfObjects > 1 && GCM->getItem(pTargetObj->usItem)->isGun())
+	{
+		// See CanGunsStack() -- usAttachItem[]/bAttachStatus[] are a single
+		// shared set for the whole OBJECTTYPE, not one per unit. Attaching
+		// something here would attach it to every gun in the stack at
+		// once, breaking the "always physically identical, unattached"
+		// invariant a multi-unit gun stack depends on. Split one out of
+		// the stack first (e.g. via the stack-split popup) and attach to
+		// that instead.
+		return false;
+	}
+
 	OBJECTTYPE& target     = *pTargetObj;
 	OBJECTTYPE& attachment = *pAttachment;
 	bool const validLaunchable = ValidLaunchable(attachment.usItem, target.usItem);
@@ -1913,7 +2140,20 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 
 	if (GCM->getItem(pObj->usItem)->getItemClass() == IC_KEY) CollectKey(*pSoldier, *pObj);
 
-	int ubSlotLimit = ItemSlotLimit(pObj->usItem, bPos);
+	// Clamped to MAX_OBJECTS_PER_SLOT -- an item's own ubPerPocket (game
+	// data) isn't itself bounded by it, but bStatus[]/ubShotsLeft[] below
+	// physically are. Missing this clamp let the "stacking" branch below
+	// push pInSlot->ubNumberOfObjects past MAX_OBJECTS_PER_SLOT for any
+	// item whose ubPerPocket exceeds it, and StackObjs() would then write
+	// bStatus[] past its own bounds, corrupting usAttachItem[]/
+	// bAttachStatus[] right after it in OBJECTTYPE.
+	//
+	// ApplyBigPerPocketOverride() additionally applies the item's own
+	// ubBigPerPocket (per-item, opt-in) for this real BIGPOCK1-10POS slot,
+	// per user request -- a soldier's own inventory (Inventory_bottom_
+	// panel.sti/Mapinv.sti) can be capped lower than the sector-inventory
+	// stash, which never sees this override.
+	int ubSlotLimit = std::min(int(ApplyBigPerPocketOverride(pObj->usItem, bPos, ItemSlotLimit(pObj->usItem, bPos))), int(MAX_OBJECTS_PER_SLOT));
 
 	pInSlot = &(pSoldier->inv[bPos]);
 
@@ -1932,7 +2172,12 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 		// but assuming it isn't
 		*pInSlot = *pObj;
 
-		if (ubNumberToDrop != pObj->ubNumberOfObjects)
+		// Guns skip this: bStatus[0..4] alias bGunStatus/ubGunAmmoType/
+		// ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a single value
+		// shared by the whole stack (see CanGunsStack()) -- there's
+		// nothing per-unit to zero, and doing so would corrupt that shared
+		// state instead of just leaving fewer units behind.
+		if (ubNumberToDrop != pObj->ubNumberOfObjects && !GCM->getItem(pObj->usItem)->isGun())
 		{
 			// in the InSlot copy, zero out all the objects we didn't drop
 			for (ubLoop = ubNumberToDrop; ubLoop < pObj->ubNumberOfObjects; ubLoop++)
@@ -2002,6 +2247,23 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 			else if (ubSlotLimit == 0) // trying to drop into a small pocket
 			{
 				return( DropObjIfThereIsRoom( pSoldier, bPos, pObj ) );
+			}
+			else if (!CanGunsStack(*pObj, *pInSlot))
+			{
+				// Physically distinguishable guns (different ammo/
+				// attachments/condition) can't share pInSlot's single
+				// shared gun state -- see CanGunsStack(). Fall back to the
+				// same swap-or-displace behavior as a non-stackable slot
+				// above, rather than silently corrupting pInSlot.
+				if (pObj->ubNumberOfObjects <= 1)
+				{
+					// swapping
+					SwapObjs( pObj, pInSlot );
+				}
+				else
+				{
+					return( DropObjIfThereIsRoom( pSoldier, bPos, pObj ) );
+				}
 			}
 			else
 			{

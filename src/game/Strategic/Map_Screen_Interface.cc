@@ -66,7 +66,7 @@
 // number of LINKED LISTS for sets of leave items (each slot holds an unlimited # of items)
 #define NUM_LEAVE_LIST_SLOTS 20
 
-#define SELECTED_CHAR_ARROW_X (STD_SCREEN_X + 8)
+#define SELECTED_CHAR_ARROW_X (MAP_SCREEN_X + 8)
 
 #define SIZE_OF_UPDATE_BOX 20
 
@@ -816,10 +816,36 @@ void DoMapMessageBoxWithRect(MessageBoxStyleID ubStyle, const ST::string& str, S
 }
 
 
+// Single source of truth for where the map screen's dynamically-sized
+// generic popup boxes (MSG_BOX_BASIC_STYLE, e.g. "A vehicle can't move while
+// empty!", "The SAM site in %s has been taken over.", "You cannot train the
+// militia in %s any further.", and dozens more pMapErrorString messages)
+// should be centered. Centered on the map's own canvas
+// (MAP_SCREEN_X/Y/WIDTH/HEIGHT) rather than the full screen resolution,
+// with a manual pixel correction per user measurement, since B_MAP_1024.pcx
+// (as embedded in MBS_1024.sti) doesn't line up 1:1 with those dimensions.
+// Every caller that wants a map-canvas-centered popup should go through
+// this function instead of hardcoding its own rect -- that way a single
+// correction here moves every one of them together, in both axes, instead
+// of each call site drifting out of sync with the others (as happened
+// before this was consolidated).
+// Shifted +62 then -99 then -24 Y (net -61) per user request -- the box was
+// landing against the bottom edge of the map canvas instead of vertically
+// centered. On top of that, the compact strategic-screen tier (720-767px
+// tall, see UILayout::isCompactStrategicScreen()) needs its own further
+// +24 Y correction, since its asset doesn't scale down 1:1 from the large
+// tier's.
+SGPBox GetMapScreenPopupCenteringRect(void)
+{
+	INT16 const y = MAP_SCREEN_Y - 61 + (g_ui.isCompactStrategicScreen() ? 24 : 0);
+	return { (UINT16)(MAP_SCREEN_X + 146), (UINT16)y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+}
+
+
 void DoMapMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiExitScreen, MessageBoxFlags usFlags, MSGBOX_CALLBACK ReturnCallback)
 {
 	// do message box and return
-	SGPBox const centering_rect = { 0, 0, SCREEN_WIDTH, INV_INTERFACE_START_Y };
+	SGPBox const centering_rect = GetMapScreenPopupCenteringRect();
 	DoMapMessageBoxWithRect(ubStyle, str, uiExitScreen, usFlags, ReturnCallback, &centering_rect);
 }
 
@@ -2265,7 +2291,7 @@ static void AddStringsToMoveBox(PopUpBox*);
 
 static void CreatePopUpBoxForMovementBox(void)
 {
-	SGPPoint const MovePosition = { (UINT16)(STD_SCREEN_X + 450), (UINT16)(STD_SCREEN_Y + 100) };
+	SGPPoint const MovePosition = { (UINT16)(MAP_SCREEN_X + 450), (UINT16)(MAP_SCREEN_Y + 100) };
 
 	// create the pop up box and mouse regions for movement list
 	PopUpBox* const box = CreatePopUpBox(MovePosition, POPUP_BOX_FLAG_RESIZE, FRAME_BUFFER, guiPOPUPBORDERS, guiPOPUPTEX, 6, 6, 4, 4, 2);
@@ -3296,12 +3322,24 @@ void DisplaySoldierUpdateBox( )
 	iUpdatePanelHeight = ( iNumberHigh + 1 ) * TACT_HEIGHT_OF_UPDATE_PANEL_BLOCKS;
 
 	// get the x,y offsets on the screen of the panel
-	iX = STD_SCREEN_X + 290 + ( 336 - iUpdatePanelWidth ) / 2;
+	// Rewritten in terms of MAP_VIEW_START_X/MAP_VIEW_WIDTH (was
+	// MAP_SCREEN_X + 290 + (336 - width)/2, i.e. MAP_VIEW_START_X + 20 +
+	// (old MAP_VIEW_WIDTH - width)/2) so this keeps centering correctly now
+	// that the map viewport is bigger.
+	// Shifted +26 then -2 X (net +24) / -168 Y per user request (MBS_1024.sti's
+	// actual dimensions don't line up with B_MAP_1024.pcx's, so the automatic
+	// centering above needs this manual correction).
+	iX = MAP_VIEW_START_X + 20 + ( MAP_VIEW_WIDTH - iUpdatePanelWidth ) / 2 + 24;
 
 //	iY = 28 + ( 288 - iUpdatePanelHeight ) / 2;
 
 	// Have the bottom of the box ALWAYS a set distance from the bottom of the map ( so user doesnt have to move mouse far )
-	iY = STD_SCREEN_Y + 280 - iUpdatePanelHeight;
+	// Rewritten in terms of MAP_VIEW_START_Y/MAP_VIEW_HEIGHT (was
+	// MAP_SCREEN_Y + 280, i.e. MAP_VIEW_START_Y + old MAP_VIEW_HEIGHT - 28) so
+	// the box's bottom keeps the same distance from the (now lower) bottom of
+	// the map viewport. Shifted -168 Y per user request (see comment on iX
+	// above).
+	iY = MAP_VIEW_START_Y + MAP_VIEW_HEIGHT - 28 - iUpdatePanelHeight - 168;
 
 	const SGPVObject* const hBackGroundHandle = guiUpdatePanelTactical;
 
@@ -4085,8 +4123,11 @@ void SaveLeaveItemList(HWFILE const f)
 
 			for (MERC_LEAVE_ITEM const* i = head; i; i = i->pNext)
 			{
-				// Sized for InjectObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) + 4 skip bytes.
-				BYTE  data[88];
+				// Sized for InjectObject() (OBJECTTYPE at the current
+				// MAX_OBJECTS_PER_SLOT/MAX_ATTACHMENTS) + 4 skip bytes. 88 at
+				// OBJECTTYPE == 84; grown by the same +88 InjectObject() itself
+				// grew by when MAX_OBJECTS_PER_SLOT went from 8 to 100.
+				BYTE  data[176];
 				DataWriter d{data};
 				InjectObject(d, &i->o);
 				INJ_SKIP(d, 4)
@@ -4132,8 +4173,11 @@ void LoadLeaveItemList(HWFILE const f)
 		{
 			MERC_LEAVE_ITEM* const li = new MERC_LEAVE_ITEM{};
 
-			// Sized for ExtractObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) + 4 skip bytes.
-			BYTE  data[88];
+			// Sized for ExtractObject() (OBJECTTYPE at the current
+			// MAX_OBJECTS_PER_SLOT/MAX_ATTACHMENTS) + 4 skip bytes. 88 at
+			// OBJECTTYPE == 84; grown by the same +88 ExtractObject() itself
+			// grew by when MAX_OBJECTS_PER_SLOT went from 8 to 100.
+			BYTE  data[176];
 			f->read(data, sizeof(data));
 
 			DataReader d{data};

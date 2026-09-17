@@ -4,7 +4,6 @@
 
 
 #define COLOUR_BITS   6
-#define MAX_COLOURS 255
 
 
 struct NODE
@@ -106,14 +105,14 @@ static void ReduceTree(void)
 }
 
 
-static NODE* ProcessImage(const SGPPaletteEntry* pData, const int iWidth, const int iHeight)
+static NODE* ProcessImage(const SGPPaletteEntry* pData, const int iWidth, const int iHeight, const UINT max_colours)
 {
 	NODE* tree = NULL;
 	for (size_t i = iWidth * iHeight; i != 0; --i)
 	{
 		SGPPaletteEntry const& c = *pData++;
 		AddColor(&tree, c.r, c.g, c.b, 0);
-		while (g_leaf_count > MAX_COLOURS) ReduceTree();
+		while (g_leaf_count > max_colours) ReduceTree();
 	}
 	return tree;
 }
@@ -181,12 +180,12 @@ static void MapPalette(UINT8* const pDest, const SGPPaletteEntry* const pSrc, co
 }
 
 
-void QuantizeImage(UINT8* const pDest, const SGPPaletteEntry* const pSrc, const INT16 sWidth, const INT16 sHeight, SGPPaletteEntry* const pPalette)
+void QuantizeImage(UINT8* const pDest, const SGPPaletteEntry* const pSrc, const INT16 sWidth, const INT16 sHeight, SGPPaletteEntry* const pPalette, const INT16 sMaxColors)
 {
 	// First create palette
 	g_leaf_count = 0;
 	FOR_EACH(NODE*, i, g_reducible_nodes) *i = 0;
-	NODE* const tree = ProcessImage(pSrc, sWidth, sHeight);
+	NODE* const tree = ProcessImage(pSrc, sWidth, sHeight, sMaxColors);
 
 	std::fill_n(pPalette, 256, SGPPaletteEntry{});
 	GetPaletteColors(tree, pPalette, 0);

@@ -147,6 +147,8 @@ INT16 gsRightX;     // Right edge of the current map in screen coordinates.
 INT16 gsBottomY;    // Bottom edge of the current map in screen coordinates.
 double gdScaleX;
 double gdScaleY;
+double gdBigScaleX;
+double gdBigScaleY;
 
 bool g_scroll_inertia = false;
 
@@ -2217,6 +2219,9 @@ void InitRenderParams(UINT8 ubRestrictionID)
 
 	gdScaleX = (double)RADAR_WINDOW_WIDTH  / dWorldX;
 	gdScaleY = (double)RADAR_WINDOW_HEIGHT / dWorldY;
+
+	gdBigScaleX = (double)RADAR_WINDOW_BIG_WIDTH  / dWorldX;
+	gdBigScaleY = (double)RADAR_WINDOW_BIG_HEIGHT / dWorldY;
 
 	const UINT32 n = NUM_ITEM_CYCLE_COLORS;
 	for (UINT32 i = 0; i < n; ++i)

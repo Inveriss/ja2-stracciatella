@@ -110,6 +110,11 @@ constexpr INT16 gsCX = 0;    // Center of the map in screen coordinates (was a v
 constexpr INT16 gsCY = 1625; // Center of the map in screen coordinates (was a variable in vanilla, always computed to 1625).
 extern double gdScaleX;
 extern double gdScaleY;
+// Scale factors for the sector-inventory "big minimap" (Radar_Screen.h's
+// RADAR_WINDOW_BIG_WIDTH/HEIGHT) -- computed alongside gdScaleX/gdScaleY
+// above, from the same world bounding box, in InitRenderParams().
+extern double gdBigScaleX;
+extern double gdBigScaleY;
 
 extern BOOLEAN gfIgnoreScrollDueToCenterAdjust;
 

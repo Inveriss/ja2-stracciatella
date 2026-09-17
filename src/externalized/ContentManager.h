@@ -72,6 +72,9 @@ public:
 	/** Get radar map resource name. */
 	virtual ST::string getRadarMapResourceName(const ST::string &mapName) const = 0;
 
+	/** Get big (250x125) radar map resource name, for the sector-inventory big minimap. */
+	virtual ST::string getRadarMapBigResourceName(const ST::string &mapName) const = 0;
+
 	/** Get tileset resource name. */
 	virtual ST::string getTilesetResourceName(int number, const ST::string& fileName) const = 0;
 

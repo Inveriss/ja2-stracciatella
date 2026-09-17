@@ -410,7 +410,13 @@ static SGPVObject* guiItemPopupBoxes;
 static OBJECTTYPE* gpItemPopupObject;
 static INT16 gsItemPopupX;
 static INT16 gsItemPopupY;
-static MOUSE_REGION gItemPopupRegions[8];
+// Was a literal 8 -- MAX_OBJECTS_PER_SLOT itself, spelled out by hand
+// instead of using the macro. Harmless while every item's own ubPerPocket
+// (game data) stayed <= 8, but InitItemStackPopup() below builds one region
+// per unit up to ItemSlotLimit()'s result with no clamp of its own, so this
+// must track MAX_OBJECTS_PER_SLOT (now raised past 8) or a
+// higher-capacity pocket item overflows this array.
+static MOUSE_REGION gItemPopupRegions[MAX_OBJECTS_PER_SLOT];
 static MOUSE_REGION gKeyRingRegions[NUMBER_KEYS_ON_KEYRING];
 BOOLEAN gfInKeyRingPopup = FALSE;
 static UINT8 gubNumItemPopups = 0;
@@ -794,6 +800,11 @@ static SGPVObject *guiSecItemHiddenVO;
 static SGPVObject *guiSmallInventoryGraphicMissingSmallPocket;
 static SGPVObject *guiSmallInventoryGraphicMissingBigPocket;
 static std::map<ST::string, SGPVObject*> allInventoryGraphics;
+// Sector-inventory "big images" toggle's own pre-cached BIGITEMS lookup --
+// see GetSectorInventoryBigGraphicForItem()'s own comment (Interface_Items.h)
+// for why this is separate from GetBigInventoryGraphicForItem()'s existing,
+// deliberately-uncached, one-at-a-time path.
+static std::map<ST::string, SGPVObject*> allSectorInventoryBigGraphics;
 const ST::string guiBigInventoryGraphicMissingPath = "sti/interface/inventory/inventory-graphic-not-found-big.sti";
 
 static BOOLEAN AttemptToAddSubstring(ST::string& zDest, const ST::string& zTemp, UINT32* puiStringLength, UINT32 uiPixLimit)
@@ -1567,7 +1578,7 @@ BOOLEAN HandleCompatibleAmmoUIForMapInventory( SOLDIERTYPE *pSoldier, INT32 bInv
 	}
 
 	// First test attachments, which almost any type of item can have....
-	for ( cnt = 0; cnt < MAP_INVENTORY_POOL_SLOT_COUNT; cnt++ )
+	for ( cnt = 0; cnt < GetMapInventoryPoolPageSize(); cnt++ )
 	{
 		pObject = &( pInventoryPoolList[ iStartSlotNumber + cnt ].o );
 
@@ -1596,7 +1607,7 @@ BOOLEAN HandleCompatibleAmmoUIForMapInventory( SOLDIERTYPE *pSoldier, INT32 bInv
 
 	if( ( GCM->getItem(pTestObject->usItem)->isGun()) )
 	{
-		for ( cnt = 0; cnt < MAP_INVENTORY_POOL_SLOT_COUNT; cnt++ )
+		for ( cnt = 0; cnt < GetMapInventoryPoolPageSize(); cnt++ )
 		{
 			pObject = &( pInventoryPoolList[ iStartSlotNumber + cnt ].o );
 
@@ -1615,7 +1626,7 @@ BOOLEAN HandleCompatibleAmmoUIForMapInventory( SOLDIERTYPE *pSoldier, INT32 bInv
 	}
 	else if( ( GCM->getItem(pTestObject->usItem)->isAmmo() ) )
 	{
-		for ( cnt = 0; cnt < MAP_INVENTORY_POOL_SLOT_COUNT; cnt++ )
+		for ( cnt = 0; cnt < GetMapInventoryPoolPageSize(); cnt++ )
 		{
 			pObject = &( pInventoryPoolList[ iStartSlotNumber + cnt ].o );
 
@@ -1960,7 +1971,7 @@ UINT8 GetAttachmentHintColor(const OBJECTTYPE* o) {
 }
 
 
-void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECTTYPE const& o, INT16 const sX, INT16 const sY, INT16 const sWidth, INT16 const sHeight, DirtyLevel const dirty_level, UINT8 const ubStatusIndex, INT16 const outline_colour)
+void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECTTYPE const& o, INT16 const sX, INT16 const sY, INT16 const sWidth, INT16 const sHeight, DirtyLevel const dirty_level, UINT8 const ubStatusIndex, INT16 const outline_colour, BOOLEAN const fUseSectorInventoryBigGraphic)
 {
 	if (o.usItem    == NOTHING)     return;
 	if (dirty_level == DIRTYLEVEL0) return;
@@ -1972,7 +1983,9 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 	if (dirty_level == DIRTYLEVEL2)
 	{
 		// Center the object in the slot
-		auto graphic = GetSmallInventoryGraphicForItem(item);
+		auto graphic = fUseSectorInventoryBigGraphic
+			? GetSectorInventoryBigGraphicForItem(item)
+			: GetSmallInventoryGraphicForItem(item);
 		auto item_vo = graphic.first;
 		auto gfx_idx = graphic.second;
 		ETRLEObject const& e       = item_vo->SubregionProperties(gfx_idx);
@@ -2017,7 +2030,7 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 			SetFontForeground(colour);
 
 			const INT16 sNewX = sX + 1;
-			const INT16 sNewY = sY + sHeight - 10;
+			const INT16 sNewY = sY + sHeight - 11;
 			if (buffer == guiSAVEBUFFER)
 			{
 				RestoreExternBackgroundRect(sNewX, sNewY, 20, 15);
@@ -2040,7 +2053,13 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 				GPrintInvalidate(cx, cy, jammed);
 			}
 		}
-		else if (ubStatusIndex != RENDER_ITEM_NOSTATUS && o.ubNumberOfObjects > 1)
+
+		// Independent of the IC_GUN branch above (not "else if") -- a gun
+		// can now have ubNumberOfObjects > 1 too (see CanGunsStack(),
+		// Items.cc), and the two occupy different corners of the icon
+		// (ammo/jam bottom-left, count bottom-right), so there's nothing
+		// to lose by letting both render for the same slot.
+		if (ubStatusIndex != RENDER_ITEM_NOSTATUS && o.ubNumberOfObjects > 1)
 		{
 			// Display # of items
 			SetFontForeground(FONT_GRAY4);
@@ -2053,7 +2072,25 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 
 			if (buffer == guiSAVEBUFFER)
 			{
-				RestoreExternBackgroundRect(sNewX, sNewY, 15, 15);
+				// Width used to be a flat 15px, wide enough for the single
+				// digit a count could be while MAX_OBJECTS_PER_SLOT was 8 --
+				// now that a count can run to 3 digits, tie it to the text's
+				// own measured width (already computed above for sNewX)
+				// instead of leaving a ghost digit behind on the next
+				// redraw.
+				//
+				// Defensively clamped to stay on-screen -- RestoreExternBackgroundRect()
+				// asserts otherwise. sNewX/width are both derived from sX/sWidth
+				// (the slot's own on-screen box, always valid) plus this text's
+				// measured width, so this should already be in bounds, but the
+				// old flat 15px never exercised this edge (a single digit was
+				// never wide enough to matter) so clamp rather than assume.
+				INT16 const clampedX  = std::max<INT16>(sNewX, 0);
+				INT16 const rectWidth = std::max<INT16>(0, std::min<INT16>(uiStringLength + 4, SCREEN_WIDTH - clampedX));
+				if (rectWidth > 0)
+				{
+					RestoreExternBackgroundRect(clampedX, sNewY, rectWidth, 15);
+				}
 			}
 			GPrintInvalidate(sNewX, sNewY, pStr);
 		}
@@ -3651,6 +3688,18 @@ void DeleteItemDescriptionBox( )
 	if( guiCurrentItemDescriptionScreen == MAP_SCREEN )
 	{
 		RemoveButton( giMapInvDescButton );
+
+		// The sector-inventory panel's own transfer buttons
+		// (MapInventoryPoolMoveToSectorBtn()/-ToMercBtn(), Map_Screen_
+		// Interface_Map_Inventory.cc) enable/disable based partly on
+		// InItemDescriptionBox(), re-evaluated inside
+		// HandleButtonStatesWhileMapInventoryActive() -- which only runs
+		// from BlitInventoryPoolGraphic(), itself gated behind
+		// fMapPanelDirty (RenderMapRegionBackground(), MapScreen.cc).
+		// Without this, closing ItemInfoC.sti while the sector-inventory
+		// panel is open (but nothing else happens to mark it dirty first)
+		// left those buttons showing their last, now-stale enabled state.
+		fMapPanelDirty = TRUE;
 	}
 
 	// Remove region
@@ -4643,10 +4692,17 @@ static void ItemPopupRegionCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason
 static void ItemPopupRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
-void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+// Shared body of InitItemStackPopup()/InitSectorInventoryStackPopup() --
+// factored out the same way InitItemDescriptionBox() was split into
+// InternalInitItemDescriptionBox(), so a caller whose item isn't a
+// SOLDIERTYPE::inv[] slot (the sector-inventory stash, a plain OBJECTTYPE*)
+// can still use it. sourceRegion replaces gSMInvRegion[ubPosition] (only
+// used to center the popup near where it was opened from) and gfxFilename
+// lets the sector-inventory caller use its own dedicated art instead of
+// extra_inventory.sti.
+static void InternalInitItemStackPopup(OBJECTTYPE* const pObject, SOLDIERTYPE* const pSoldier, MOUSE_REGION const& sourceRegion, const char* const gfxFilename, UINT8 const ubLimit, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
 {
 	SGPRect aRect;
-	UINT8 ubLimit;
 	UINT8 ubCols;
 	UINT8 ubRows;
 	INT32 cnt;
@@ -4662,11 +4718,18 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 
 
 	// Determine # of items
-	gpItemPopupObject = &(pSoldier->inv[ ubPosition ] );
-	ubLimit = ItemSlotLimit( gpItemPopupObject->usItem, ubPosition );
+	gpItemPopupObject = pObject;
 
 	// Return if #objects not >1
 	if (ubLimit < 1) return;
+
+	SortItemStackByStatus(pObject);
+
+	// Keep this in sync with whichever screen is actually asking for the
+	// popup -- ItemPopupRegionCallbackSecondary() below relies on it to
+	// pick MAPInternalInitItemDescriptionBox() vs InternalInitItemDescriptionBox()
+	// for the individual item it's opened on.
+	guiCurrentItemDescriptionScreen = guiCurrentScreen;
 
 	if( ubLimit > MAX_STACK_POPUP_WIDTH )
 	{
@@ -4678,7 +4741,7 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 	}
 
 	// Load graphics
-	guiItemPopupBoxes = AddVideoObjectFromFile(INTERFACEDIR "/extra_inventory.sti");
+	guiItemPopupBoxes = AddVideoObjectFromFile(gfxFilename);
 
 	// Get size
 	ETRLEObject const& pTrav        = guiItemPopupBoxes->SubregionProperties(0);
@@ -4691,7 +4754,7 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 	gubNumItemPopups = ubLimit;
 
 	// Calculate X,Y, first center
-	MOUSE_REGION const& r = gSMInvRegion[ubPosition];
+	MOUSE_REGION const& r = sourceRegion;
 	INT16 sCenX = r.X() - (gsItemPopupWidth / 2 + r.W() / 2);
 	INT16 sCenY	= r.Y()- (gsItemPopupHeight / 2 + r.H() / 2);
 
@@ -4738,7 +4801,7 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 		MSYS_SetRegionUserData( &gItemPopupRegions[cnt], 0, cnt );
 
 		//OK, for each item, set dirty text if applicable!
-		gItemPopupRegions[cnt].SetFastHelpText(GCM->getItem(pSoldier->inv[ubPosition].usItem)->getName());
+		gItemPopupRegions[cnt].SetFastHelpText(GCM->getItem(pObject->usItem)->getName());
 	}
 
 
@@ -4769,7 +4832,24 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 }
 
 
-static void DeleteItemStackPopup(void);
+void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+{
+	OBJECTTYPE* const pObject = &(pSoldier->inv[ ubPosition ] );
+	// ApplyBigPerPocketOverride() applies the item's own ubBigPerPocket (if
+	// set) for a real BIGPOCK1-10POS slot, so this popup's grid matches
+	// whatever PlaceObject() actually allowed to accumulate there -- see
+	// its own comment for why this is a real inventory slot, not the
+	// sector-inventory stash's BIGPOCK1POS dummy (which never sees it).
+	//
+	// Clamped to MAX_OBJECTS_PER_SLOT -- ItemSlotLimit() (an item's own
+	// ubPerPocket from game data, possibly halved for a small pocket) isn't
+	// itself bounded by it, but gItemPopupRegions[] below is, and a single
+	// OBJECTTYPE can never actually hold more than MAX_OBJECTS_PER_SLOT
+	// units regardless of what ubPerPocket claims.
+	UINT8       const ubLimit = std::min<UINT8>(ApplyBigPerPocketOverride(pObject->usItem, (INT8)ubPosition, ItemSlotLimit( pObject->usItem, ubPosition )), MAX_OBJECTS_PER_SLOT);
+
+	InternalInitItemStackPopup(pObject, pSoldier, gSMInvRegion[ubPosition], INTERFACEDIR "/extra_inventory.sti", ubLimit, sInvX, sInvY, sInvWidth, sInvHeight);
+}
 
 
 void RenderItemStackPopup( BOOLEAN fFullRender )
@@ -4824,7 +4904,7 @@ void RenderItemStackPopup( BOOLEAN fFullRender )
 }
 
 
-static void DeleteItemStackPopup(void)
+void DeleteItemStackPopup(void)
 {
 	INT32 cnt;
 
@@ -5099,6 +5179,34 @@ std::pair<SGPVObject*, UINT8> GetBigInventoryGraphicForItem(const ItemModel * it
 		return GetFallbackBigInventoryGraphic();
 	}
 	return std::make_pair(vObject, subImageIndex);
+}
+
+// Sector-inventory "big images" toggle's own lookup -- mirrors
+// GetSmallInventoryGraphicForItem() above exactly (pre-cached in
+// allSectorInventoryBigGraphics by LoadInterfaceItemsGraphics(), freed by
+// DeleteInterfaceItemsGraphics()), just reading the item's BIG graphic
+// instead of its small one. See this function's own comment in
+// Interface_Items.h for why it doesn't just reuse GetBigInventoryGraphicForItem()
+// above.
+std::pair<const SGPVObject*, UINT8> GetSectorInventoryBigGraphicForItem(const ItemModel *item)
+{
+	auto path = item->getInventoryGraphicBig().getPath().to_lower();
+	auto subImageIndex = item->getInventoryGraphicBig().getSubImageIndex();
+	auto i = allSectorInventoryBigGraphics.find(path);
+	if (i == allSectorInventoryBigGraphics.end()) {
+		SLOGE("Could not find sector-inventory big graphic for item `{}`", item->getInternalName());
+		return GetFallbackBigInventoryGraphic();
+	}
+	if (subImageIndex >= i->second->SubregionCount()) {
+		SLOGE("subImageIndex out of range for sector-inventory big graphic `{}` for item `{}`: subregion count is `{}`, subImageIndex is `{}`",
+			path,
+			item->getInternalName(),
+			i->second->SubregionCount(),
+			subImageIndex
+		);
+		return GetFallbackBigInventoryGraphic();
+	}
+	return std::make_pair(i->second, subImageIndex);
 }
 
 
@@ -6230,9 +6338,11 @@ void CancelItemPointer( )
 
 void LoadItemCursorFromSavedGame(HWFILE const f)
 {
-	// Sized for ExtractObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
-	// SoldierID + slot + active flag + 5 bytes of padding.
-	BYTE data[92];
+	// Sized for ExtractObject() (OBJECTTYPE at the current MAX_OBJECTS_PER_SLOT/
+	// MAX_ATTACHMENTS) plus SoldierID + slot + active flag + 5 bytes of padding.
+	// 92 at OBJECTTYPE == 84; grown by the same +88 ExtractObject() itself grew
+	// by when MAX_OBJECTS_PER_SLOT went from 8 to 100.
+	BYTE data[180];
 	f->read(data, sizeof(data));
 
 	BOOLEAN      active;
@@ -6260,9 +6370,11 @@ void LoadItemCursorFromSavedGame(HWFILE const f)
 
 void SaveItemCursorToSavedGame(HWFILE const f)
 {
-	// Sized for InjectObject() (OBJECTTYPE at the current MAX_ATTACHMENTS) plus
-	// SoldierID + slot + active flag + 5 bytes of padding.
-	BYTE  data[92];
+	// Sized for InjectObject() (OBJECTTYPE at the current MAX_OBJECTS_PER_SLOT/
+	// MAX_ATTACHMENTS) plus SoldierID + slot + active flag + 5 bytes of padding.
+	// 92 at OBJECTTYPE == 84; grown by the same +88 InjectObject() itself grew
+	// by when MAX_OBJECTS_PER_SLOT went from 8 to 100.
+	BYTE  data[180];
 	DataWriter d{data};
 	InjectObject(d, &gItemPointer);
 	INJ_SOLDIER(d, gpItemPointerSoldier)
@@ -6337,6 +6449,21 @@ void LoadInterfaceItemsGraphics()
 		}
 	}
 
+	// Sector-inventory "big images" toggle's own pre-cached set -- see
+	// GetSectorInventoryBigGraphicForItem()'s own comment for why this is a
+	// separate cache from allInventoryGraphics above.
+	for (auto const& item : GCM->getAllBigInventoryGraphicPaths()) {
+		auto path = item.to_lower();
+		if (allSectorInventoryBigGraphics.find(path) == allSectorInventoryBigGraphics.end()) {
+			try {
+				auto vObject = AddVideoObjectFromFile(item);
+				allSectorInventoryBigGraphics.insert_or_assign(path, vObject);
+			} catch (const std::runtime_error &ex) {
+				SLOGE("Error loading sector-inventory big graphic `{}`: {}", item, ex.what());
+			}
+		}
+	}
+
 	// Build a sawtooth black-white-black colour gradient
 	size_t const length = lengthof(us16BPPItemCyclePlacedItemColors);
 	for (INT32 i = 0; i != length / 2; ++i)
@@ -6359,4 +6486,8 @@ void DeleteInterfaceItemsGraphics()
 		DeleteVideoObject(v.second);
 	}
 	allInventoryGraphics.clear();
+	for (auto const& v : allSectorInventoryBigGraphics) {
+		DeleteVideoObject(v.second);
+	}
+	allSectorInventoryBigGraphics.clear();
 }

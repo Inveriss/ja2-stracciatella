@@ -21,25 +21,62 @@
 
 struct BUTTON_PICS;
 
-#define MAP_BORDER_FILE INTERFACEDIR "/mbs.sti"
-#define BTN_TOWN_X      (STD_SCREEN_X + 299)
-#define BTN_MINE_X      (STD_SCREEN_X + 342)
-#define BTN_TEAMS_X     (STD_SCREEN_X + 385)
-#define BTN_MILITIA_X   (STD_SCREEN_X + 428)
-#define BTN_AIR_X       (STD_SCREEN_X + 471)
-#define BTN_ITEM_X      (STD_SCREEN_X + 514)
+// Large-tier (map canvas height 768+) coordinates for the six Show-* buttons,
+// their shared row Y, and the map-level marker/regions -- these are the
+// values already tuned via prior requests (X net +191/+192, Y net +1 from
+// the original bottom-anchored positions).
+#define BTN_TOWN_X_LARGE           (MAP_SCREEN_X + 490)
+#define BTN_MINE_X_LARGE           (MAP_SCREEN_X + 533)
+#define BTN_TEAMS_X_LARGE          (MAP_SCREEN_X + 576)
+#define BTN_MILITIA_X_LARGE        (MAP_SCREEN_X + 619)
+#define BTN_AIR_X_LARGE            (MAP_SCREEN_X + 662)
+#define BTN_ITEM_X_LARGE           (MAP_SCREEN_X + 705)
+#define BTN_ROW_Y_LARGE            (MAP_SCREEN_BOTTOM - 156)
+#define MAP_LEVEL_MARKER_X_LARGE   (MAP_SCREEN_X + 757)
 
-#define MAP_LEVEL_MARKER_X    (STD_SCREEN_X + 565)
-#define MAP_LEVEL_MARKER_Y     (STD_SCREEN_Y + 323)
+// Compact-tier (map canvas height 720-767) coordinates -- a second,
+// independent set from the large tier above, per user request. Initialized
+// as the large-tier values shifted -97 X / +55 Y (Y+55 down = 55 less
+// distance from the bottom edge, i.e. 156-55=101); tune freely from here
+// without affecting the large tier.
+#define BTN_TOWN_X_COMPACT         (MAP_SCREEN_X + 393)
+#define BTN_MINE_X_COMPACT         (MAP_SCREEN_X + 436)
+#define BTN_TEAMS_X_COMPACT        (MAP_SCREEN_X + 479)
+#define BTN_MILITIA_X_COMPACT      (MAP_SCREEN_X + 522)
+#define BTN_AIR_X_COMPACT          (MAP_SCREEN_X + 565)
+#define BTN_ITEM_X_COMPACT         (MAP_SCREEN_X + 608)
+#define BTN_ROW_Y_COMPACT          (MAP_SCREEN_BOTTOM - 101)
+// X shifted -9 per user request.
+#define MAP_LEVEL_MARKER_X_COMPACT (MAP_SCREEN_X + 660 - 9)
+
+// Resolved at runtime (not static-init time) via
+// UILayout::isCompactStrategicScreen(), same reasoning as
+// GetMapBorderGraphicsFilename() below: which set applies depends on the
+// active resolution.
+#define BTN_TOWN_X      (g_ui.isCompactStrategicScreen() ? BTN_TOWN_X_COMPACT    : BTN_TOWN_X_LARGE)
+#define BTN_MINE_X      (g_ui.isCompactStrategicScreen() ? BTN_MINE_X_COMPACT    : BTN_MINE_X_LARGE)
+#define BTN_TEAMS_X     (g_ui.isCompactStrategicScreen() ? BTN_TEAMS_X_COMPACT   : BTN_TEAMS_X_LARGE)
+#define BTN_MILITIA_X   (g_ui.isCompactStrategicScreen() ? BTN_MILITIA_X_COMPACT : BTN_MILITIA_X_LARGE)
+#define BTN_AIR_X       (g_ui.isCompactStrategicScreen() ? BTN_AIR_X_COMPACT     : BTN_AIR_X_LARGE)
+#define BTN_ITEM_X      (g_ui.isCompactStrategicScreen() ? BTN_ITEM_X_COMPACT    : BTN_ITEM_X_LARGE)
+
+// Shared by the six Show-* buttons above and MAP_LEVEL_MARKER_Y below (the
+// current-level highlight rides on the same row) -- bottom-anchored so both
+// stay flush with the bottom edge of the map canvas instead of a fixed
+// offset tuned for the old 640x480 canvas.
+#define BTN_ROW_Y             (g_ui.isCompactStrategicScreen() ? BTN_ROW_Y_COMPACT : BTN_ROW_Y_LARGE)
+
+#define MAP_LEVEL_MARKER_X    (g_ui.isCompactStrategicScreen() ? MAP_LEVEL_MARKER_X_COMPACT : MAP_LEVEL_MARKER_X_LARGE)
+#define MAP_LEVEL_MARKER_Y     BTN_ROW_Y
 #define MAP_LEVEL_MARKER_DELTA   8
 #define MAP_LEVEL_MARKER_WIDTH  55
 
 
-#define MAP_BORDER_X (STD_SCREEN_X + 261)
-#define MAP_BORDER_Y (STD_SCREEN_Y + 0)
+#define MAP_BORDER_X (MAP_SCREEN_X + 261)
+#define MAP_BORDER_Y (MAP_SCREEN_Y + 0)
 
-#define MAP_BORDER_CORNER_X (STD_SCREEN_X + 584)
-#define MAP_BORDER_CORNER_Y (STD_SCREEN_Y + 279)
+#define MAP_BORDER_CORNER_X (MAP_SCREEN_X + 584)
+#define MAP_BORDER_CORNER_Y (MAP_SCREEN_Y + 279)
 
 
 // mouse levels
@@ -49,9 +86,22 @@ static MOUSE_REGION LevelMouseRegions[4];
 namespace {
 // the white rectangle highlighting the current level on the map border
 cache_key_t const guiLEVELMARKER{ INTERFACEDIR "/greenarr.sti" };
-cache_key_t const guiMapBorder{ MAP_BORDER_FILE };
  // the map border eta pop up
 cache_key_t const guiMapBorderEtaPopUp{ INTERFACEDIR "/eta_pop_up.sti" };
+
+// Not a plain cache_key_t constant like the others above: which file this is
+// depends on the active resolution (see UILayout::isCompactStrategicScreen()),
+// which isn't known yet at static-initialization time, so the choice has to
+// be resolved at runtime, on every call. Suffix convention: _1280 for the
+// compact strategic-screen tier (height 720-767), _1024 for the large tier
+// (height 768+) -- see GetCharListGraphicsFilename() in MapScreen.cc for the
+// same pattern.
+cache_key_t GetMapBorderGraphicsFilename()
+{
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/mbs_1280.sti"
+		: INTERFACEDIR "/mbs_1024.sti";
+}
 }
 
 // scroll direction
@@ -77,7 +127,7 @@ void DeleteMapBorderGraphics( void )
 {
 	// procedure will delete graphics loaded for map border
 	RemoveVObject(guiLEVELMARKER);
-	RemoveVObject(guiMapBorder);
+	RemoveVObject(GetMapBorderGraphicsFilename());
 	RemoveVObject(guiMapBorderEtaPopUp);
 }
 
@@ -94,7 +144,7 @@ void RenderMapBorder( void )
 		return;
 	}
 
-	BltVideoObject(guiSAVEBUFFER, guiMapBorder, 0, MAP_BORDER_X, MAP_BORDER_Y);
+	BltVideoObject(guiSAVEBUFFER, GetMapBorderGraphicsFilename(), 0, MAP_BORDER_X, MAP_BORDER_Y);
 
 	// show the level marker
 	DisplayCurrentLevelMarker( );
@@ -113,9 +163,12 @@ void RenderMapBorderEtaPopUp( void )
 		return;
 	}
 
-	BltVideoObject(FRAME_BUFFER, guiMapBorderEtaPopUp, 0, MAP_BORDER_X + 215, STD_SCREEN_Y + 291);
+	// Bottom-anchored per user request: 480-291=189, same distance from the
+	// old 640x480 canvas' bottom edge as before. X shifted +136 per user
+	// request.
+	BltVideoObject(FRAME_BUFFER, guiMapBorderEtaPopUp, 0, MAP_BORDER_X + 215 + 136, MAP_SCREEN_BOTTOM - 189);
 
-	InvalidateRegion( MAP_BORDER_X + 215, (STD_SCREEN_Y + 291), MAP_BORDER_X + 215 + 100 , (STD_SCREEN_Y + 310));
+	InvalidateRegion( MAP_BORDER_X + 215 + 136, (MAP_SCREEN_BOTTOM - 189), MAP_BORDER_X + 215 + 136 + 100 , (MAP_SCREEN_BOTTOM - 189 + 19));
 }
 
 
@@ -123,7 +176,7 @@ static void MakeButton(UINT idx, UINT gfx, INT16 x, GUI_CALLBACK click, const ST
 {
 	BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/map_border_buttons.sti", gfx, gfx + 9);
 	giMapBorderButtonsImage[idx] = img;
-	GUIButtonRef const btn = QuickCreateButtonNoMove(img, x, (STD_SCREEN_Y + 323), MSYS_PRIORITY_HIGH, click);
+	GUIButtonRef const btn = QuickCreateButtonNoMove(img, x, BTN_ROW_Y, MSYS_PRIORITY_HIGH, click);
 	giMapBorderButtons[idx] = btn;
 	btn->SetFastHelpText(help);
 	btn->SetCursor(MSYS_NO_CURSOR);
@@ -491,6 +544,27 @@ static void DisplayCurrentLevelMarker(void)
 
 	// it's actually a white rectangle, not a green arrow!
 	BltVideoObject(guiSAVEBUFFER, guiLEVELMARKER, 0, MAP_LEVEL_MARKER_X, MAP_LEVEL_MARKER_Y + MAP_LEVEL_MARKER_DELTA * iCurrentMapSectorZ);
+}
+
+
+void RenderMapLevelMarker(void)
+{
+	if (fShowMapInventoryPool) return;
+
+	// Draws straight to FRAME_BUFFER (not guiSAVEBUFFER, unlike
+	// DisplayCurrentLevelMarker() above) so it always ends up on top,
+	// regardless of what else was blitted into guiSAVEBUFFER earlier in the
+	// frame -- same pattern as CheckForAndRenderNewMailOverlay() in
+	// MapScreen.cc, called at the same point in the per-frame render
+	// sequence (after RenderButtons()). On the compact strategic-screen
+	// tier, the marker's row now sits on map_screen_bottom.sti's own
+	// territory (mbs.sti was shortened there); re-drawing into guiSAVEBUFFER
+	// alone (tried first) wasn't enough to make it visible, since nothing
+	// re-invalidated that exact screen rect afterwards.
+	INT16 const x = MAP_LEVEL_MARKER_X;
+	INT16 const y = MAP_LEVEL_MARKER_Y + MAP_LEVEL_MARKER_DELTA * iCurrentMapSectorZ;
+	BltVideoObject(FRAME_BUFFER, guiLEVELMARKER, 0, x, y);
+	InvalidateRegion(x, y, x + MAP_LEVEL_MARKER_WIDTH, y + MAP_LEVEL_MARKER_DELTA);
 }
 
 

@@ -11,12 +11,12 @@
 
 
 // char breath and life position
-#define BAR_INFO_X (STD_SCREEN_X + 66)
-#define BAR_INFO_Y (STD_SCREEN_Y + 61)
+#define BAR_INFO_X (MAP_SCREEN_X + 66)
+#define BAR_INFO_Y (MAP_SCREEN_Y + 61)
 
 // merc icon position
-#define CHAR_ICON_CONTRACT_Y (STD_SCREEN_Y + 64)
-#define CHAR_ICON_X (STD_SCREEN_X + 187)
+#define CHAR_ICON_CONTRACT_Y (MAP_SCREEN_Y + 64)
+#define CHAR_ICON_X (MAP_SCREEN_X + 187)
 #define CHAR_ICON_WIDTH 10
 #define CHAR_ICON_HEIGHT 10
 #define CHAR_ICON_SPACING 13
@@ -29,8 +29,8 @@
 #define MAP_SCREEN_FONT BLOCKFONT2
 
 // characterlist regions
-#define Y_START               (STD_SCREEN_Y + 146)
-#define MAP_START_KEYRING_Y   (STD_SCREEN_Y + 107)
+#define Y_START               (MAP_SCREEN_Y + 146)
+#define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107)
 #define Y_SIZE                GetFontHeight(MAP_SCREEN_FONT)
 
 
@@ -284,6 +284,11 @@ void EnableTeamInfoPanels( void );
 
 // do mapscreen message box
 void DoMapMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiExitScreen, MessageBoxFlags usFlags, MSGBOX_CALLBACK ReturnCallback);
+
+// Single source of truth for where the map screen's dynamically-sized
+// generic popup boxes (MSG_BOX_BASIC_STYLE) should be centered -- see its
+// definition in Map_Screen_Interface.cc for why.
+SGPBox GetMapScreenPopupCenteringRect(void);
 
 // hop up one leve,l int he map screen level interface
 void GoUpOneLevelInMap( void );

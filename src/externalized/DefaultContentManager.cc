@@ -78,6 +78,7 @@
 
 #define MAPSDIR        "maps"
 #define RADARMAPSDIR   "radarmaps"
+#define RADARMAPSBIGDIR "radarmaps_big"
 #define TILESETSDIR    "tilesets"
 
 #define DIALOGUESIZE 240
@@ -274,6 +275,16 @@ ST::string DefaultContentManager::getMapPath(const ST::string& mapName) const
 ST::string DefaultContentManager::getRadarMapResourceName(const ST::string &mapName) const
 {
 	ST::string result = RADARMAPSDIR "/" + mapName;
+
+	SLOGD("map file {}", result);
+
+	return result;
+}
+
+/** Get big (250x125) radar map resource name, for the sector-inventory big minimap. */
+ST::string DefaultContentManager::getRadarMapBigResourceName(const ST::string &mapName) const
+{
+	ST::string result = RADARMAPSBIGDIR "/" + mapName;
 
 	SLOGD("map file {}", result);
 
@@ -1108,6 +1119,21 @@ std::vector<ST::string> DefaultContentManager::getAllSmallInventoryGraphicPaths(
 
 	for (auto item : m_items) {
 		auto& path = item->getInventoryGraphicSmall().getPath();
+		auto existing = std::find(v.begin(), v.end(), path);
+		if (existing == v.end()) {
+			v.push_back(path);
+		}
+	}
+
+	return v;
+}
+
+std::vector<ST::string> DefaultContentManager::getAllBigInventoryGraphicPaths() const
+{
+	std::vector<ST::string> v = {};
+
+	for (auto item : m_items) {
+		auto& path = item->getInventoryGraphicBig().getPath();
 		auto existing = std::find(v.begin(), v.end(), path);
 		if (existing == v.end()) {
 			v.push_back(path);

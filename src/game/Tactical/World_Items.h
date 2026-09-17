@@ -33,7 +33,10 @@ struct WORLDITEM
 	//This check is only performed the first time a map is loaded.  Later, it is entirely skipped.
 	UINT8      ubNonExistChance;
 };
-static_assert(sizeof(WORLDITEM) == 100);
+// Recomputed for OBJECTTYPE's new size at MAX_OBJECTS_PER_SLOT == 100 (was
+// 100 at OBJECTTYPE == 84) -- see the static_assert on OBJECTTYPE itself
+// (Item_Types.h) for the byte-by-byte layout this follows from.
+static_assert(sizeof(WORLDITEM) == 188);
 
 // The on-disk layout of WORLDITEM used by sector map files (the ones shipped
 // with the base game, and any authored with the in-game map editor). Frozen

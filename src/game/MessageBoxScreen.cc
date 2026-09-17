@@ -525,7 +525,16 @@ void DoScreenIndependantMessageBox(const ST::string& msg, MessageBoxFlags flags,
 		case AUTORESOLVE_SCREEN:
 		case GAME_SCREEN:        DoMessageBox(                    MSG_BOX_BASIC_STYLE,    msg, screen, flags, callback, &centering_rect); break;
 		case LAPTOP_SCREEN:      DoLapTopSystemMessageBoxWithRect(MSG_BOX_LAPTOP_DEFAULT, msg, screen, flags, callback, &centering_rect); break;
-		case MAP_SCREEN:         DoMapMessageBoxWithRect(         MSG_BOX_BASIC_STYLE,    msg, screen, flags, callback, &centering_rect); break;
+		case MAP_SCREEN:
+		{
+			// Centered on the map's own canvas, not the full screen -- see
+			// GetMapScreenPopupCenteringRect()'s comment (Map_Screen_Interface.cc)
+			// for why, and so this stays in sync with DoMapMessageBox()'s own
+			// default centering.
+			SGPBox const map_centering_rect = GetMapScreenPopupCenteringRect();
+			DoMapMessageBoxWithRect(MSG_BOX_BASIC_STYLE, msg, screen, flags, callback, &map_centering_rect);
+			break;
+		}
 		case OPTIONS_SCREEN:     DoOptionsMessageBoxWithRect(                             msg, screen, flags, callback, &centering_rect); break;
 		case SAVE_LOAD_SCREEN:   DoSaveLoadMessageBoxWithRect(                            msg, screen, flags, callback, &centering_rect); break;
 		default:

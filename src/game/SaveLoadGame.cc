@@ -57,6 +57,7 @@
 #include "Map_Screen_Interface_Border.h"
 #include "Map_Screen_Interface_Bottom.h"
 #include "Map_Screen_Interface_Map.h"
+#include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Information.h"
 #include "MapScreen.h"
 #include "Meanwhile.h"
@@ -453,6 +454,13 @@ BOOLEAN SaveGame(const ST::string& saveName, const ST::string& gameDesc)
 
 		SaveStrategicStatusToSaveGameFile(f);
 
+		// Syncs gfSectorInventoryBigImages into g_gameStates, which
+		// SaveStatesToSaveGameFile() below serializes -- per user request.
+		SaveSectorInventoryBigImagesToSaveGameFile();
+
+		// Same convention, for the "combine filters" checkbox -- per user request.
+		SaveSectorInventoryFilterModeToSaveGameFile();
+
 		SaveStrategicAI(f);
 
 		SaveWatchedLocsToSavedGame(f);
@@ -700,6 +708,17 @@ void LoadSavedGame(const ST::string &saveName)
 	/* If the player is loading up an older version of the game and the person
 	 * DOESN'T have the cheats on. */
 	if (version < 65 && !CHEATER_CHEAT_LEVEL()) throw std::runtime_error("Savegame too old");
+
+	// Unlike the version checks elsewhere in this loader (feature-detection
+	// against an evolving-but-compatible format), version 103 changed every
+	// OBJECTTYPE's raw on-disk byte layout (MAX_OBJECTS_PER_SLOT 8 -> 100,
+	// Item_Types.h) -- the merc-inventory/temp-item-file reads below are
+	// straight sizeof(OBJECTTYPE)/sizeof(WORLDITEM) block reads with no
+	// per-field parsing, so a save from before this would silently
+	// misalign every item read from here on instead of failing cleanly.
+	// Not bypassable by CHEATER_CHEAT_LEVEL() -- that only ever excused
+	// missing content, never a binary layout mismatch.
+	if (version < 103) throw std::runtime_error("Savegame too old (pre-item-resize)");
 
 	//Store the loading screenID that was saved
 	gubLastLoadingScreenID = static_cast<LoadingScreenID>(SaveGameHeader.ubLoadScreenID);
@@ -1026,6 +1045,18 @@ void LoadSavedGame(const ST::string &saveName)
 		AddModInfoToGameStates(g_gameStates);
 	}
 
+	// Unconditional (not version-gated like the block above) -- falls back
+	// to the same ON default a new game gets when g_gameStates has no
+	// stored value at all, which also covers saves made before version 101
+	// (where the block above never even ran), per user request.
+	LoadSectorInventoryBigImagesFromSaveGameFile();
+
+	// Same convention, for the "combine filters" checkbox -- per user
+	// request. Falls back to FALSE (exclusive, the new default) rather than
+	// TRUE for saves with no stored value -- there's no prior behavior to
+	// preserve for this one, unlike the big-images toggle above.
+	LoadSectorInventoryFilterModeFromSaveGameFile();
+
 	BAR(1, "Final Checks...");
 
 	InitAI();
@@ -1324,8 +1355,12 @@ static void SaveSoldierStructure(HWFILE const f)
 		// (empirically, via temporary checkpoint diagnostics, not purely by
 		// hand-counting fields). Savegames from before this change are not,
 		// and are not intended to be, compatible.
-		BYTE data[4968];
-		std::fill_n(data, 4968, 0);
+		// Further grown to 8400 (see InjectSoldierType()'s Assert comment)
+		// when MAX_OBJECTS_PER_SLOT went from 8 to 100 -- SAVE_GAME_VERSION
+		// was bumped for this too (GameVersion.h), so an old save is refused
+		// before it can reach this mismatched buffer size.
+		BYTE data[8400];
+		std::fill_n(data, 8400, 0);
 		InjectSoldierType(data, &s);
 		NewJA2EncryptedFileWrite(f, data, sizeof(data));
 
@@ -1364,13 +1399,13 @@ static void LoadSoldierStructure(HWFILE const f, UINT32 savegame_version, bool s
 		SOLDIERTYPE SavedSoldierInfo;
 		if(stracLinuxFormat)
 		{
-			BYTE Data[4992]; // see InjectSoldierType()'s Assert comment for how this was derived
+			BYTE Data[8424]; // see InjectSoldierType()'s Assert comment for how this was derived
 			reader(f, Data, sizeof(Data));
 			ExtractSoldierType(Data, &SavedSoldierInfo, stracLinuxFormat, savegame_version);
 		}
 		else
 		{
-			BYTE Data[4968]; // see InjectSoldierType()'s Assert comment for how this was derived
+			BYTE Data[8400]; // see InjectSoldierType()'s Assert comment for how this was derived
 			reader(f, Data, sizeof(Data));
 			ExtractSoldierType(Data, &SavedSoldierInfo, stracLinuxFormat, savegame_version);
 		}

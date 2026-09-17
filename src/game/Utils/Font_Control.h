@@ -15,11 +15,16 @@ extern SGPFont gp16PointArial;
 extern SGPFont gpBlockFontNarrow;
 extern SGPFont gpBlockyFont;
 extern SGPFont gpBlockyFont2;
+extern SGPFont gpMapFont;
+extern SGPFont gpGridFont;
+extern SGPFont gpSectorInvFont;
 extern SGPFont gpLargeFontType1;
 extern SGPFont gpSmallFontType1;
 extern SGPFont gpTinyFontType1;
 extern SGPFont gpCompFont;
 extern SGPFont gpSmallCompFont;
+extern SGPFont gpTextInventoryFont;
+extern SGPFont gpValueInventoryFont;
 
 extern SGPFont gpHugeFont;
 
@@ -31,6 +36,8 @@ extern SGPFont gpHugeFont;
 #define FONT12POINT1		gp12PointFont1
 #define COMPFONT		gpCompFont
 #define SMALLCOMPFONT		gpSmallCompFont
+#define FONT_TEXT_INVENTORY	gpTextInventoryFont
+#define FONT_VALUE_INVENTORY	gpValueInventoryFont
 #define MILITARYFONT1		BLOCKFONT
 #define FONT10ARIAL		gp10PointArial
 #define FONT14ARIAL		gp14PointArial
@@ -38,6 +45,9 @@ extern SGPFont gpHugeFont;
 #define FONT10ARIALBOLD	gp10PointArialBold
 #define BLOCKFONT		gpBlockyFont
 #define BLOCKFONT2		gpBlockyFont2
+#define FONTMAP			gpMapFont
+#define FONTGRID		gpGridFont
+#define FONTSECTORINV		gpSectorInvFont
 #define FONT12ARIALFIXEDWIDTH	gp12PointArialFixedFont
 #define FONT16ARIAL		gp16PointArial
 #define BLOCKFONTNARROW	gpBlockFontNarrow

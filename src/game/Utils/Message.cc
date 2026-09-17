@@ -421,7 +421,16 @@ static void AddStringToMapScreenMessageList(const ST::string& pString, UINT16 us
 
 void DisplayStringsInMapScreenMessageList(void)
 {
-	SetFontDestBuffer(FRAME_BUFFER, STD_SCREEN_X + 17, STD_SCREEN_Y + 360 + 6, STD_SCREEN_X + 407, STD_SCREEN_Y + 360 + 101);
+	// This renders the text CONTENT of the strategic map's message log/history
+	// box (its background + scroll arrows are positioned in
+	// Map_Screen_Interface_Bottom.cc, via MESSAGE_BOX_X/Y). This function was
+	// missed by the earlier STD_SCREEN_X/Y -> MAP_SCREEN_X/Y split (it lives in
+	// Utils/, not Strategic/), so it kept using the legacy 640x480-centered
+	// STD_SCREEN_X/Y instead of the map canvas' own MAP_SCREEN_X/Y -- putting
+	// the text at a different on-screen spot than the box it's supposed to sit
+	// in. Y offsets are also now bottom-anchored (MAP_SCREEN_BOTTOM), matching
+	// MESSAGE_BOX_Y, instead of the old fixed offset from the canvas top.
+	SetFontDestBuffer(FRAME_BUFFER, MAP_SCREEN_X + 17, MAP_SCREEN_BOTTOM - 114, MAP_SCREEN_X + 407, MAP_SCREEN_BOTTOM - 19);
 
 	SetFont(MAP_SCREEN_MESSAGE_FONT);
 	SetFontBackground(FONT_BLACK);
@@ -429,7 +438,7 @@ void DisplayStringsInMapScreenMessageList(void)
 
 	UINT8 ubCurrentStringIndex = gubCurrentMapMessageString;
 
-	INT16 sY = STD_SCREEN_Y + 377;
+	INT16 sY = MAP_SCREEN_BOTTOM - 103;
 	UINT16 usSpacing = GetFontHeight(MAP_SCREEN_MESSAGE_FONT);
 
 	for (UINT8 ubLinesPrinted = 0; ubLinesPrinted < MAX_MESSAGES_ON_MAP_BOTTOM; ubLinesPrinted++)
@@ -444,7 +453,7 @@ void DisplayStringsInMapScreenMessageList(void)
 		if (s == NULL) break;
 
 		SetFontForeground(s->usColor);
-		MPrint(STD_SCREEN_X + 20, sY, s->pString);
+		MPrint(MAP_SCREEN_X + 20, sY, s->pString);
 
 		sY += usSpacing;
 

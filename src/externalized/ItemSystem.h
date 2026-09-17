@@ -34,6 +34,9 @@ public:
 	// Returns all paths to small inventory images
 	virtual std::vector<ST::string> getAllSmallInventoryGraphicPaths() const = 0;
 
+	// Returns all paths to big inventory images
+	virtual std::vector<ST::string> getAllBigInventoryGraphicPaths() const = 0;
+
 	// Returns item replacements for maps
 	virtual const std::map<uint16_t, uint16_t>& getMapItemReplacements() const = 0;
 

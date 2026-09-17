@@ -1273,8 +1273,8 @@ void CreateSMPanelButtons(void)
 
 	giSMHideEmptySlotsCheckbox = CreateCheckBoxButton(
 		dx + SM_HIDE_EMPTY_SLOTS_X, dy + SM_HIDE_EMPTY_SLOTS_Y,
-		INTERFACEDIR "/popupcheck.sti", MSYS_PRIORITY_HIGHEST,
-		ToggleHideEmptyAttachmentSlotsCallback);
+		INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", MSYS_PRIORITY_HIGHEST,
+		ToggleHideEmptyAttachmentSlotsCallback); // sub-images 0-3, per user request
 	giSMHideEmptySlotsCheckbox->SetFastHelpText("Hide empty attachment slots");
 #if 0
 	MakeButtonN(BURSTMODE_BUTTON,     iSMPanelImages[BURSTMODE_IMAGES],  SM_BURSTMODEB_X,  dy + SM_BURSTMODEB_Y,  BtnBurstModeCallback,  TacticalStr[TOGGLE_BURSTMODE_POPUPTEXT]);

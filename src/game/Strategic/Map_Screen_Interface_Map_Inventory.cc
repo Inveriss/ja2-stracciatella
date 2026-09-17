@@ -3,6 +3,7 @@
 #include "Font.h"
 #include "HImage.h"
 #include "Handle_Items.h"
+#include "Input.h"
 #include "Interface.h"
 #include "Isometric_Utils.h"
 #include "ItemModel.h"
@@ -10,7 +11,9 @@
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "MessageBoxScreen.h"
 #include "Object_Cache.h"
+#include "SaveLoadGameStates.h"
 #include "Timer_Control.h"
+#include "UILayout.h"
 #include "VObject.h"
 #include "SysUtil.h"
 #include "Map_Screen_Interface_Border.h"
@@ -42,6 +45,7 @@
 #include <string_theory/format>
 #include <string_theory/string>
 
+#include <algorithm>
 #include <climits>
 #include <vector>
 
@@ -52,23 +56,257 @@
 // delay for flash of item
 #define DELAY_FOR_HIGHLIGHT_ITEM_FLASH 200
 
-// inventory slot font
+// inventory slot font -- still used for the footer labels
+// (DrawTextOnMapInventoryBackground()), not the item name below
 #define MAP_IVEN_FONT						SMALLCOMPFONT
 
-// inventory pool slot positions and sizes
-#define MAP_INV_SLOT_ROWS 9
+// dedicated font for the item name printed inside each sector-inventory
+// slot (Data/Fonts/font_sector_inv.sti), kept separate from MAP_IVEN_FONT
+// so it doesn't affect the unrelated footer labels that still use it
+#define MAP_SECTOR_INV_ITEM_FONT			FONTSECTORINV
+
+// Sector-inventory "big images" toggle (MapInventoryPoolBigImagesBtn()) --
+// swaps every visible item icon, on BOTH this window and the stack split
+// popup, from its usual MDITEMS graphic to its BIGITEMS one, and shrinks the
+// grid from 9 columns to 5 (GetInventoryGridCols() below) and to 7 rows
+// (GetInventoryGridRows() below) on both, regardless of the active
+// resolution tier -- per user request.
+//
+// Persistent per user request -- NOT reset by opening/closing this panel,
+// the strategic screen, the laptop, or any other screen transition (this
+// is a plain file-scope static, so it simply isn't touched by any of
+// those). Three distinct lifecycles:
+//   - new game: defaults to ON -- InitSectorInventoryBigImagesForNewGame(),
+//     called once from InitNewCampaign() (Campaign_Init.cc).
+//   - live session: only ToggleSectorInventoryFilter()'s sibling,
+//     MapInventoryPoolBigImagesBtn() below, ever changes it.
+//   - save/load: persisted in the Stracciatella-only game-states blob
+//     (g_gameStates, SaveLoadGameStates.h) via SaveSectorInventoryBigImagesToSaveGameFile()/
+//     LoadSectorInventoryBigImagesFromSaveGameFile() below, called from the
+//     main save/load routines (SaveLoadGame.cc) -- same convention as
+//     Strategic_Status.cc's RestoreDroppedWeaponsFromGameState(), including
+//     falling back to the same ON default for saves made before this
+//     feature existed.
+static BOOLEAN gfSectorInventoryBigImages = FALSE;
+
+// See gfSectorInventoryBigImages's own comment above for the full story.
+static ST::string const gSectorInventoryBigImagesStateKey{ "SectorInventory::bigImages" };
+
+void InitSectorInventoryBigImagesForNewGame(void)
+{
+	gfSectorInventoryBigImages = TRUE;
+	g_gameStates.Set(gSectorInventoryBigImagesStateKey, static_cast<bool>(gfSectorInventoryBigImages));
+}
+
+void SaveSectorInventoryBigImagesToSaveGameFile(void)
+{
+	g_gameStates.Set(gSectorInventoryBigImagesStateKey, static_cast<bool>(gfSectorInventoryBigImages));
+}
+
+void LoadSectorInventoryBigImagesFromSaveGameFile(void)
+{
+	gfSectorInventoryBigImages = g_gameStates.HasKey(gSectorInventoryBigImagesStateKey)
+		? g_gameStates.Get<bool>(gSectorInventoryBigImagesStateKey)
+		: TRUE;
+}
+
+// Sector-inventory category-filter mode -- FALSE (default) means each of
+// the 7 category-filter buttons (ToggleSectorInventoryFilter() below) is
+// independent/exclusive: selecting one clears every other, like a radio
+// button group. TRUE means they combine (a union, the original behavior --
+// several can be active at once). Toggled by the "combine filters" checkbox
+// (CreateMapInventoryFilterModeCheckbox()), per user request. Persistence
+// follows gfSectorInventoryBigImages's exact three-lifecycle convention
+// above:
+//   - new game: defaults to FALSE (InitSectorInventoryFilterModeForNewGame(),
+//     called once from InitNewCampaign(), Campaign_Init.cc).
+//   - live session: only the checkbox's own callback ever changes it --
+//     not reset by opening/closing this panel or any other screen
+//     transition (plain file-scope static).
+//   - save/load: persisted in g_gameStates via
+//     SaveSectorInventoryFilterModeToSaveGameFile()/
+//     LoadSectorInventoryFilterModeFromSaveGameFile() below, called from
+//     SaveLoadGame.cc. Unlike gfSectorInventoryBigImages, saves made before
+//     this feature existed fall back to FALSE (the new default), not TRUE --
+//     there's no prior behavior to preserve for them.
+static BOOLEAN gfSectorInventoryCombinableFilters = FALSE;
+
+static ST::string const gSectorInventoryCombinableFiltersStateKey{ "SectorInventory::combinableFilters" };
+
+void InitSectorInventoryFilterModeForNewGame(void)
+{
+	gfSectorInventoryCombinableFilters = FALSE;
+	g_gameStates.Set(gSectorInventoryCombinableFiltersStateKey, static_cast<bool>(gfSectorInventoryCombinableFilters));
+}
+
+void SaveSectorInventoryFilterModeToSaveGameFile(void)
+{
+	g_gameStates.Set(gSectorInventoryCombinableFiltersStateKey, static_cast<bool>(gfSectorInventoryCombinableFilters));
+}
+
+void LoadSectorInventoryFilterModeFromSaveGameFile(void)
+{
+	gfSectorInventoryCombinableFilters = g_gameStates.HasKey(gSectorInventoryCombinableFiltersStateKey)
+		? g_gameStates.Get<bool>(gSectorInventoryCombinableFiltersStateKey)
+		: FALSE;
+}
+
+// inventory pool slot positions and sizes. Column count (ROW X): 5 while
+// gfSectorInventoryBigImages is on, else always 9 -- tier-independent in
+// both cases. Row count (COL Y) is both resolution- and
+// gfSectorInventoryBigImages-dependent, per user request:
+//   normal mode: 11 compact (height 720-767), 12 large (height 768+)
+//   big images:   8 compact (height 720-767),  9 large (height 768+)
+// Neither is known at static-initialization time, so both are resolved at
+// runtime, on every call, same reasoning as GetMapInventoryPoolBackgroundFilename()
+// below. Shared by the stack split grid too (GetStackSplitPageSize()), which
+// uses the identical rule.
+static INT32 GetInventoryGridCols(void)
+{
+	return gfSectorInventoryBigImages ? 5 : 9;
+}
+static INT32 GetInventoryGridRows(void)
+{
+	if (gfSectorInventoryBigImages) return g_ui.isCompactStrategicScreen() ? 8 : 9;
+	return g_ui.isCompactStrategicScreen() ? 11 : 12;
+}
+#define MAP_INV_SLOT_ROWS GetInventoryGridRows()
+
+// The sector-inventory pool's actual per-page slot count, for the active
+// resolution/big-images state (40 = 5x8 big images/compact, 45 = 5x9 big
+// images/large, 99 = 9x11 normal/compact, 108 = 9x12 normal/large -- see
+// GetInventoryGridCols()/GetInventoryGridRows() above). Declared in
+// Map_Screen_Interface_Map_Inventory.h and used by other files (MapScreen.cc,
+// Interface_Items.cc, Radar_Screen.cc) wherever they used to reference
+// MAP_INVENTORY_POOL_SLOT_COUNT directly. MAP_INVENTORY_POOL_SLOT_COUNT
+// itself (Map_Screen_Interface_Map_Inventory.h) stays a plain compile-time
+// constant -- it's only the array-sizing maximum (the large tier/normal
+// mode's own 108) now, not the per-page count actually in use.
+INT32 GetMapInventoryPoolPageSize(void)
+{
+	return GetInventoryGridCols() * GetInventoryGridRows();
+}
+
+// Extra Y offset applied to the sector-inventory footer's Done buttons,
+// arrow buttons, and text/value boxes (both windows) at the compact
+// strategic-screen tier (height 720-767), per user request -- 0 at the
+// large tier (height 768+), so the large-tier positions below are
+// unaffected. Same runtime-resolved reasoning as GetInventoryGridRows()/
+// GetMapInventoryPoolBackgroundFilename() above.
+static INT32 CompactFooterYOffset(INT32 const offset)
+{
+	return g_ui.isCompactStrategicScreen() ? offset : 0;
+}
+// Done buttons (both windows, both big-images and normal mode alike), per
+// user request.
+#define COMPACT_DONE_BUTTON_Y_OFFSET CompactFooterYOffset(-48)
+// Everything else in the footer (both windows): text labels, values, arrow
+// buttons, per user request.
+#define COMPACT_FOOTER_TEXT_Y_OFFSET CompactFooterYOffset(-48)
 
 
-static const SGPBox g_sector_inv_box        = { 261,   0, 379, 360 };
-static const SGPBox g_sector_inv_title_box  = { 266,   5, 370,  29 };
-static const SGPBox g_sector_inv_slot_box   = { 274,  37,  72,  32 };
-static const SGPBox g_sector_inv_region_box = {   0,   0,  67,  31 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_item_box   = {   6,   0,  61,  24 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_bar_box    = {   2,   2,   2,  20 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_name_box   = {   0,  24,  67,   7 }; // relative to g_sector_inv_slot_box
-static const SGPBox g_sector_inv_loc_box    = { 326, 337,  39,  10 };
-static const SGPBox g_sector_inv_count_box  = { 437, 337,  39,  10 };
-static const SGPBox g_sector_inv_page_box   = { 505, 337,  50,  10 };
+static const SGPBox g_sector_inv_box        = { 261,   0, 762, 768 };
+// y is kept at a valid, in-range baseline (0) -- SGPBox's fields are UINT16
+// (Types.h), so a negative Y literal here would either fail to compile
+// (narrowing in aggregate initialization) or silently wrap to 65530 and
+// render far off-screen, unlike the intended "6px higher". The actual
+// (negative-capable) vertical position is SECTOR_INV_TITLE_Y_OFFSET below,
+// added at the DrawTextOnSectorInventory() call site instead, where the
+// parameter types are signed.
+static const SGPBox g_sector_inv_title_box  = { 458,   0, 370,  29 };
+// Per user request -- moves the "Sector Inventory" title up 6px from the
+// box's own y (0) above; negative because SGPBox itself can't hold it.
+#define SECTOR_INV_TITLE_Y_OFFSET (-6)
+static const SGPBox g_sector_inv_slot_box   = { 274,  37,  78,  52 };
+static const SGPBox g_sector_inv_region_box = {   27,   65,  67,  33 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_item_box   = {   27,   65,  67,  33 }; // relative to g_sector_inv_slot_box
+// x is intentionally UINT16(-1) (== 65535, wrapping) to shift the bar 1px
+// left of the item box -- SGPBox's fields are unsigned so a plain -1
+// literal here would silently narrow (MSVC C4838). The explicit cast keeps
+// the exact same value (and thus the exact same on-screen position, since
+// it's added to dx and truncated back down to INT16 in
+// DrawItemUIBarEx()'s sXPos parameter, which cancels the wraparound out to
+// dx - 1) while making the intent clear and silencing the warning.
+static const SGPBox g_sector_inv_bar_box    = { (UINT16)21,   66,   2,  31 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_name_box   = {   22,  101,  75,   10 }; // relative to g_sector_inv_slot_box
+static const SGPBox g_sector_inv_loc_box    = { 450, 740,  39,  10 };
+static const SGPBox g_sector_inv_count_box  = { 570, 740,  39,  10 };
+static const SGPBox g_sector_inv_page_box   = { 657, 740,  50,  10 };
+
+// Used by IsCursorOverSectorInventoryWindow() below -- g_sector_inv_box and
+// g_stack_split_box (further down this file) share the exact same
+// rectangle, {261, 0, 762, 768}, so testing against this one box alone
+// already covers both the main grid and the stack-split popup, and every
+// resolution/big-images .sti variant drawn at it.
+BOOLEAN IsCursorOverSectorInventoryWindow(void)
+{
+	SGPBox const& box = g_sector_inv_box;
+	UINT16 const x1 = MAP_SCREEN_X + box.x;
+	UINT16 const y1 = MAP_SCREEN_Y + box.y;
+	return gusMouseXPos >= x1 && gusMouseXPos < x1 + box.w &&
+	       gusMouseYPos >= y1 && gusMouseYPos < y1 + box.h;
+}
+
+// "Big images" toggle's own slot geometry (5 columns, 8 rows compact / 9
+// rows large -- GetInventoryGridRows() above) -- user-specified pixel
+// values, shared by both resolution tiers alike (only the row count
+// itself differs by tier; the pitch/sub-box geometry below does not), per
+// user request.
+static const SGPBox g_sector_inv_slot_box_big   = { 274,  37, 139,  69 };
+static const SGPBox g_sector_inv_region_box_big = {  30,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_item_box_big   = {  30,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_bar_box_big    = {  24,  67,   4,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_name_box_big   = {  31, 121, 120,  11 }; // relative to g_sector_inv_slot_box_big
+
+// Small helpers picking the right slot-geometry set for the current
+// gfSectorInventoryBigImages state -- keeps the branch in one place instead
+// of scattering it across every render/slot-creation call site.
+static SGPBox const& GetSectorInvSlotBox(void)   { return gfSectorInventoryBigImages ? g_sector_inv_slot_box_big   : g_sector_inv_slot_box; }
+static SGPBox const& GetSectorInvRegionBox(void) { return gfSectorInventoryBigImages ? g_sector_inv_region_box_big : g_sector_inv_region_box; }
+static SGPBox const& GetSectorInvItemBox(void)   { return gfSectorInventoryBigImages ? g_sector_inv_item_box_big   : g_sector_inv_item_box; }
+static SGPBox const& GetSectorInvBarBox(void)    { return gfSectorInventoryBigImages ? g_sector_inv_bar_box_big    : g_sector_inv_bar_box; }
+static SGPBox const& GetSectorInvNameBox(void)   { return gfSectorInventoryBigImages ? g_sector_inv_name_box_big   : g_sector_inv_name_box; }
+
+// SECTOR_INVENTORY_FIRST_1280.sti's own artwork places its bottom row's slot
+// frame 4px lower than the uniform per-row pitch (slot_box->h * row) above
+// would predict -- per user report, only that one row (the last one, row
+// index ROWS-1), only in normal ("big images" off) mode, only at the
+// compact strategic-screen tier. Applied to the shared per-row Y (dy) in
+// RenderItemInPoolSlot()/CreateMapInventoryPoolSlots(), so it nudges the
+// region/item/bar/name boxes (all positioned relative to dy) back down
+// together, without needing four separate special cases.
+static INT32 GetSectorInvLastRowYCorrection(INT32 const row)
+{
+	if (gfSectorInventoryBigImages) return 0;
+	if (!g_ui.isCompactStrategicScreen()) return 0;
+	if (row != GetInventoryGridRows() - 1) return 0;
+	return 4;
+}
+
+// SECTOR_INVENTORY_FIRST_1280_BIG.sti/SECTOR_INVENTORY_STACK_1280_BIG.sti's own
+// artwork places every row's slot frame 3px lower than the large tier's own
+// "big images" artwork -- per user report. Unlike GetSectorInvLastRowYCorrection()
+// above (normal mode, last row only), this applies to every row, in "big
+// images" mode only, at the compact tier only, on both windows alike (used
+// by the main grid and the stack split grid).
+static INT32 GetBigImagesCompactYCorrection(void)
+{
+	return (gfSectorInventoryBigImages && g_ui.isCompactStrategicScreen()) ? 3 : 0;
+}
+
+// SECTOR_INVENTORY_FIRST_1280_BIG.sti/SECTOR_INVENTORY_STACK_1280_BIG.sti's own
+// artwork spaces its rows 2px further apart than the large tier's own "big
+// images" artwork -- per user report. Added to slot_box->h/slot_box.h
+// wherever it's used as the row-to-row pitch (not baked into
+// g_sector_inv_slot_box_big/g_stack_split_slot_box_big themselves, since
+// that field's value is shared with the large tier), "big images" mode +
+// compact tier only, both windows alike. Because it's added to the pitch
+// rather than to a single row's own position, its effect is cumulative --
+// each row below the first ends up progressively lower.
+static INT32 GetBigImagesCompactRowPitchCorrection(void)
+{
+	return (gfSectorInventoryBigImages && g_ui.isCompactStrategicScreen()) ? 2 : 0;
+}
 
 
 // the current highlighted item
@@ -78,8 +316,118 @@ BOOLEAN fFlashHighLightInventoryItemOnradarMap = FALSE;
 // whether we are showing the inventory pool graphic
 BOOLEAN fShowMapInventoryPool = FALSE;
 
-// the v-object index value for the background
-static cache_key_t const guiMapInventoryPoolBackground{ INTERFACEDIR "/sector_inventory.sti" };
+// Not a plain cache_key_t constant: which file this is depends on the
+// active resolution (see UILayout::isCompactStrategicScreen()), which isn't
+// known yet at static-initialization time, so the choice has to be resolved
+// at runtime, on every call. Suffix convention: _1280 for the compact
+// strategic-screen tier (height 720-767), _1024 for the large tier (height
+// 768+) -- see GetMapBorderGraphicsFilename() in Map_Screen_Interface_Border.cc
+// for the same pattern.
+static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
+{
+	if (gfSectorInventoryBigImages)
+	{
+		return g_ui.isCompactStrategicScreen()
+			? INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1280_BIG.sti"
+			: INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1024_BIG.sti";
+	}
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1280.sti"
+		: INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1024.sti";
+}
+
+// "Group Items" button -- see GroupSectorInventoryItems()/CreateMapInventoryGroupButton().
+// Like SECTOR_INVENTORY_DONE_BUTTONS.sti/map_screen_bottom_arrows.sti above,
+// QuickCreateButtonImg() manages this image's lifetime itself; no
+// cache_key_t needed here.
+#define GROUP_BUTTON_READY   0
+#define GROUP_BUTTON_PRESSED 1
+// Placeholder position, per user request -- not yet the final layout.
+#define GROUP_BUTTON_X 288
+#define GROUP_BUTTON_Y 32
+
+// Category-filter buttons -- "Wszystkie przedmioty" (clears every active
+// filter) plus one toggle per category, all 7 persistent-state toggles per
+// user request. Same sector_inventory_bookmarks.sti sheet as GROUP_BUTTON
+// above, occupying the next sequential sub-image pairs per user instruction
+// -- placeholder order/positions (this file's own precedent for
+// GROUP_BUTTON_X/Y), not yet the final asset layout. Each button is
+// 55x50px, chained 3px apart starting right after "Grupuj przedmioty", per
+// user request.
+#define ALL_ITEMS_BUTTON_OFF     2
+#define ALL_ITEMS_BUTTON_ON      3
+#define FILTER_WEAPONS_OFF       4
+#define FILTER_WEAPONS_ON        5
+#define FILTER_ATTACHMENTS_OFF   6
+#define FILTER_ATTACHMENTS_ON    7
+#define FILTER_AMMO_OFF          8
+#define FILTER_AMMO_ON           9
+#define FILTER_ARMOUR_OFF        10
+#define FILTER_ARMOUR_ON         11
+#define FILTER_EXPLOSIVES_OFF    12
+#define FILTER_EXPLOSIVES_ON     13
+#define FILTER_OTHER_OFF         14
+#define FILTER_OTHER_ON          15
+
+#define FILTER_BUTTON_WIDTH 55
+#define FILTER_BUTTON_GAP    3
+#define FILTER_BUTTON_STEP  (FILTER_BUTTON_WIDTH + FILTER_BUTTON_GAP)
+
+#define ALL_ITEMS_BUTTON_X    (GROUP_BUTTON_X + FILTER_BUTTON_STEP + 1)
+#define FILTER_WEAPONS_X      (GROUP_BUTTON_X + 2 * FILTER_BUTTON_STEP)
+#define FILTER_ATTACHMENTS_X  (GROUP_BUTTON_X + 3 * FILTER_BUTTON_STEP - 1)
+#define FILTER_AMMO_X         (GROUP_BUTTON_X + 4 * FILTER_BUTTON_STEP - 2)
+#define FILTER_ARMOUR_X       (GROUP_BUTTON_X + 5 * FILTER_BUTTON_STEP - 1)
+#define FILTER_EXPLOSIVES_X   (GROUP_BUTTON_X + 6 * FILTER_BUTTON_STEP - 1)
+#define FILTER_OTHER_X        (GROUP_BUTTON_X + 7 * FILTER_BUTTON_STEP - 3)
+#define FILTER_BUTTONS_Y      GROUP_BUTTON_Y
+
+// "Combine filters" checkbox -- per user request: 3px after "Pokaż różne/pozostałe"
+// (FILTER_OTHER_X's own right edge), same INTERFACEDIR/popupcheck.sti
+// checkbox graphic as the tactical screen's "Hide empty attachment slots"
+// (giSMHideEmptySlotsCheckbox, Interface_Panels.cc) -- same row Y as the
+// filter buttons, placeholder like everything else in this block.
+#define FILTER_MODE_CHECKBOX_X (FILTER_OTHER_X + FILTER_BUTTON_STEP)
+
+// "Big images" toggle -- per user request: 3px after "Pokaż różne/pozostałe"
+// (FILTER_OTHER_X), same sector_inventory_bookmarks.sti sheet, next
+// sequential sub-image pair (20/21). Persistent-state toggle, same as the 7
+// category filters above (QuickCreateFilterToggleButton()) -- see
+// MapInventoryPoolBigImagesBtn().
+#define BIG_IMAGES_BUTTON_OFF 20
+#define BIG_IMAGES_BUTTON_ON  21
+#define BIG_IMAGES_BUTTON_X   (FILTER_OTHER_X + FILTER_BUTTON_STEP + 41)
+
+// Two more action buttons (momentary, like GROUP_BUTTON -- not toggles),
+// per user request: transfer items between the selected soldier's own
+// inventory (MapInv.sti/ItemInfoC.sti) and the sector-inventory stash.
+// Same sheet, next sequential sub-image pair each, continuing the
+// placeholder chain above -- not yet the final layout.
+#define MOVE_TO_SECTOR_READY   16
+#define MOVE_TO_SECTOR_PRESSED 17
+#define MOVE_TO_MERC_READY     18
+#define MOVE_TO_MERC_PRESSED   19
+#define MOVE_TO_SECTOR_X (GROUP_BUTTON_X + 8 * FILTER_BUTTON_STEP + 190)
+#define MOVE_TO_MERC_X   (GROUP_BUTTON_X + 9 * FILTER_BUTTON_STEP + 74)
+
+// Bitmask of active category filters. "Wszystkie przedmioty" is a plain
+// peer bit like the other 6, not a special reset button -- per user
+// request, every one of the 7 toggles independently, with no bit
+// special-cased to force itself back on or to clear the others. An item
+// shows if ANY active bit matches it (a union, not an intersection); when
+// SECTOR_INV_FILTER_ALL is one of the active bits, every item matches
+// regardless of its own category (see GetSectorInventoryFilterCategory()'s
+// caller, SplitPoolListByFilter()). With every bit off (0), nothing
+// matches at all -- an intentional, reachable "show nothing" state, per
+// user request -- rather than 0 being a sentinel for "show everything".
+#define SECTOR_INV_FILTER_WEAPONS     0x01
+#define SECTOR_INV_FILTER_ATTACHMENTS 0x02
+#define SECTOR_INV_FILTER_AMMO        0x04
+#define SECTOR_INV_FILTER_ARMOUR      0x08
+#define SECTOR_INV_FILTER_EXPLOSIVES  0x10
+#define SECTOR_INV_FILTER_OTHER       0x20
+#define SECTOR_INV_FILTER_ALL         0x40
+static UINT8 gubSectorInventoryActiveFilters = SECTOR_INV_FILTER_ALL;
 
 // inventory pool list
 std::vector<WORLDITEM> pInventoryPoolList;
@@ -88,10 +436,27 @@ std::vector<WORLDITEM> pInventoryPoolList;
 INT32 iCurrentInventoryPoolPage = 0;
 static INT32 iLastInventoryPoolPage = 0;
 
+// Size of the visible (matching, already padded to a whole number of
+// pages) prefix of pInventoryPoolList -- kept in sync by
+// RebuildFilteredInventoryPoolList()/BuildStashForSelectedSector(), which
+// are what decide where the visible/hidden-tail boundary sits while a
+// category filter is active. Equals pInventoryPoolList.size() whenever no
+// filter is active (no hidden tail exists). Every place that (re)computes
+// iLastInventoryPoolPage must derive it from this, never from
+// pInventoryPoolList.size() directly -- doing the latter previously let
+// CheckAndUnDateSlotAllocation() (called every frame) silently re-widen
+// pagination to cover the hidden tail again right after a filter had
+// capped it, exactly undoing the filter on the very next page turn.
+static size_t gVisibleInventorySlotCount = 0;
+
 INT16 sObjectSourceGridNo = 0;
 
 // the inventory slots
 static MOUSE_REGION MapInventoryPoolSlots[MAP_INVENTORY_POOL_SLOT_COUNT];
+// How many of the above were actually MSYS_DefineRegion()'d by the last
+// CreateMapInventoryPoolSlots() call -- see its own and
+// DestroyMapInventoryPoolSlots()'s comments.
+static UINT gMapInventoryPoolSlotsCreatedCount = 0;
 static MOUSE_REGION MapInventoryPoolMask;
 BOOLEAN fMapInventoryItemCompatable[ MAP_INVENTORY_POOL_SLOT_COUNT ];
 static BOOLEAN      fChangedInventorySlots = FALSE;
@@ -102,15 +467,167 @@ static std::vector<WORLDITEM> pUnSeenItems;
 UINT32 guiFlashHighlightedItemBaseTime = 0;
 UINT32 guiCompatibleItemBaseTime = 0;
 
-static GUIButtonRef guiMapInvenButton[3];
+// [0] = next page, [1] = previous page, [2] = done, [3] = group items,
+// [4] = all items (clears filters), [5] = weapons, [6] = attachments,
+// [7] = ammo, [8] = armour, [9] = explosives, [10] = other,
+// [11] = move to sector, [12] = move to merc, [13] = big images toggle
+static GUIButtonRef guiMapInvenButton[15]; // [14] is the "combine filters" checkbox, see CreateMapInventoryFilterModeCheckbox()
 
 static BOOLEAN gfCheckForCursorOverMapSectorInventoryItem = FALSE;
+
+
+// ---------------------------------------------------------------------
+// "Stack split view" (Wariant B) -- right-clicking a stack (ubNumberOfObjects
+// > 1) opens this small independent window instead of a second
+// sector_inventory.sti (the old InitSectorInventoryStackPopup(), now
+// removed). It shows each item of the stack in its own slot, using its own
+// background art (newgoldpiece3.sti) and reuses ItemInfoC.sti
+// (MAPInternalInitItemDescriptionBox()) for the per-item description, same
+// as the main sector-inventory grid does for a single item.
+//
+// The stack is PHYSICALLY split into up to MAX_OBJECTS_PER_SLOT separate
+// 1-count OBJECTTYPEs (gStackSplitItems) for as long as this view is open --
+// the source slot in pInventoryPoolList sits empty in the meantime -- and
+// CloseStackSplitView() re-merges them back into a single stack, so the
+// split is never permanent. Per user request: "przedmioty ze stosu mają
+// zostać fizycznie rozdzielone na osobne OBJECTTYPE w nowej, małej liście
+// (wymaga logiki ponownego scalenia przy zamknięciu, żeby nie rozbić stosu
+// na trwałe)".
+// ---------------------------------------------------------------------
+
+// Not a plain cache_key_t constant: same resolution-dependent runtime choice
+// as GetMapInventoryPoolBackgroundFilename() above -- _1280 for the compact
+// strategic-screen tier (height 720-767), _1024 for the large tier (height
+// 768+).
+static cache_key_t GetStackSplitBackgroundFilename(void)
+{
+	if (gfSectorInventoryBigImages)
+	{
+		return g_ui.isCompactStrategicScreen()
+			? INTERFACEDIR "/SECTOR_INVENTORY_STACK_1280_BIG.sti"
+			: INTERFACEDIR "/SECTOR_INVENTORY_STACK_1024_BIG.sti";
+	}
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/SECTOR_INVENTORY_STACK_1280.sti"
+		: INTERFACEDIR "/SECTOR_INVENTORY_STACK_1024.sti";
+}
+
+// Placeholder positions, per user request -- not yet the final layout.
+// g_stack_split_box is the whole window (background + slots); the slot box
+// is the pitch between slots, and the rest are relative to each individual
+// slot -- same layering as g_sector_inv_slot_box/_region_box/_item_box/etc.
+// above.
+static const SGPBox g_stack_split_box        = { 261, 0, 762, 768 };
+static const SGPBox g_stack_split_slot_box   = {  10,  30,  78,  52 };
+static const SGPBox g_stack_split_region_box = {  30,  72,  67,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_item_box   = {  30,  72,  67,  33 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_bar_box    = { (UINT16)24, 73, 2, 31 }; // relative to g_stack_split_slot_box
+static const SGPBox g_stack_split_name_box   = {   25,  108,  70,  10 }; // relative to g_stack_split_slot_box
+
+// "Big images" toggle's own slot geometry -- user-specified pixel values,
+// same reasoning as g_sector_inv_slot_box_big above (shared by both
+// resolution tiers, only the row count itself differs -- 8 compact / 9
+// large, GetInventoryGridRows()).
+static const SGPBox g_stack_split_slot_box_big   = {  10,  30, 139,  69 };
+static const SGPBox g_stack_split_region_box_big = {  33, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_item_box_big   = {  33, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_bar_box_big    = {  27, 74,   4,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_name_box_big   = {  33, 126, 126,  14 }; // relative to g_stack_split_slot_box_big
+
+// Same idea as GetSectorInvSlotBox()/etc. above, for the stack split grid.
+static SGPBox const& GetStackSplitSlotBox(void)   { return gfSectorInventoryBigImages ? g_stack_split_slot_box_big   : g_stack_split_slot_box; }
+static SGPBox const& GetStackSplitRegionBox(void) { return gfSectorInventoryBigImages ? g_stack_split_region_box_big : g_stack_split_region_box; }
+static SGPBox const& GetStackSplitItemBox(void)   { return gfSectorInventoryBigImages ? g_stack_split_item_box_big   : g_stack_split_item_box; }
+static SGPBox const& GetStackSplitBarBox(void)    { return gfSectorInventoryBigImages ? g_stack_split_bar_box_big    : g_stack_split_bar_box; }
+static SGPBox const& GetStackSplitNameBox(void)   { return gfSectorInventoryBigImages ? g_stack_split_name_box_big   : g_stack_split_name_box; }
+
+// Placeholder position, per user request -- not yet the final layout.
+#define STACK_SPLIT_DONE_X 758
+#define STACK_SPLIT_DONE_Y (737 + COMPACT_DONE_BUTTON_Y_OFFSET)
+
+// Slots laid out in a small grid, wide enough for a whole stack (a stack
+// can never hold more than MAX_OBJECTS_PER_SLOT items to begin with).
+// ROW X = 9 per user request, matching the main sector-inventory grid's
+// own column count (MAP_INV_SLOT_ROWS' column count above).
+#define STACK_SPLIT_COLS 9
+// ROW Y = 12, matching the main grid's own largest row count
+// (MAP_INV_SLOT_ROWS, large tier/normal mode) -- a page therefore holds up
+// to 108, same as the main grid's own largest page size
+// (GetMapInventoryPoolPageSize()). A full MAX_OBJECTS_PER_SLOT (100) stack
+// no longer overflows the window (rows 11/12 past the visible area, per
+// user report) -- it spans 2 independent pages instead, per user request.
+// STACK_SPLIT_ROWS/STACK_SPLIT_PAGE_SIZE are the compile-time maximum (12
+// rows / 108), used only to size gStackSplitSlots[] below -- the actual
+// per-page slot count in use is resolution- and "big images"-state-dependent
+// (same rule as the main grid's own GetInventoryGridRows() above), see
+// GetStackSplitPageSize().
+#define STACK_SPLIT_ROWS 12
+#define STACK_SPLIT_PAGE_SIZE (STACK_SPLIT_COLS * STACK_SPLIT_ROWS)
+
+static INT32 GetStackSplitPageSize(void)
+{
+	return GetInventoryGridCols() * GetInventoryGridRows();
+}
+
+// Independent pagination controls, per user request -- own page state and
+// own next/prev arrows, entirely separate from the main grid's own
+// iCurrentInventoryPoolPage/iLastInventoryPoolPage. Placeholder positions
+// (reusing the main grid's own map_screen_bottom_arrows.sti sub-images and
+// a page-count box the same shape as g_sector_inv_page_box), not yet the
+// final layout.
+#define STACK_SPLIT_PREV_X 638
+#define STACK_SPLIT_NEXT_X 712
+#define STACK_SPLIT_ARROWS_Y (739 + COMPACT_FOOTER_TEXT_Y_OFFSET)
+static const SGPBox g_stack_split_page_box = { 657, 740, 50, 10 };
+
+// "Total Items" label + value, independent of the main grid's own
+// (pMapInventoryStrings[1]/g_sector_inv_count_box) -- reuses the same
+// already-localized string and the same relative X/Y the main grid uses
+// for it (DrawTextOnMapInventoryBackground()), since this window shares
+// the same overall box width (762) and doesn't otherwise use that space.
+// Placeholder positions, per user request -- not yet the final layout.
+#define STACK_SPLIT_TOTAL_TEXT_X 506
+#define STACK_SPLIT_TOTAL_TEXT_Y (746 + COMPACT_FOOTER_TEXT_Y_OFFSET)
+static const SGPBox g_stack_split_count_box = { 572, 740, 39, 10 };
+
+// The physically-split-out items, one per slot -- empty (gStackSplitItems
+// cleared) when the view is closed.
+static std::vector<OBJECTTYPE> gStackSplitItems;
+// Index into pInventoryPoolList (absolute -- already includes the page
+// offset) of the stack currently split open here, or -1 when closed.
+static INT32 gStackSplitSourceIndex = -1;
+// This window's own, independent page state -- reset to 0 every time it
+// opens (OpenStackSplitView()). gLastStackSplitPage is recomputed there
+// too, from gStackSplitItems.size() (fixed for as long as the view stays
+// open -- items become NOTHING as they're picked up, but the vector itself
+// is never resized until CloseStackSplitView()).
+static INT32 gCurrentStackSplitPage = 0;
+static INT32 gLastStackSplitPage    = 0;
+static MOUSE_REGION gStackSplitSlots[STACK_SPLIT_PAGE_SIZE];
+// Background region: purely a click-blocker so a stray click inside the
+// window's background doesn't fall through to the main sector-inventory
+// grid underneath it -- does NOT close the view. Per user request, this
+// window closes only via its own Done button (gStackSplitDoneButton)
+// below, not via left/right click.
+static MOUSE_REGION gStackSplitBackgroundRegion;
+static GUIButtonRef gStackSplitDoneButton;
+static GUIButtonRef gStackSplitPrevBtn;
+static GUIButtonRef gStackSplitNextBtn;
+
+// Is the cursor currently over one of this window's own item slots? Every
+// slot here points at the same source item (gStackSplitSourceIndex), so
+// unlike the main grid's per-slot iCurrentlyHighLightedItem, one shared flag
+// is enough -- see StackSplitSlotMove() and GetHighlightedStackSplitSourceItem()
+// below, used by Radar_Screen.cc's RenderBigRadarScreenIfVisible() so the
+// big-minimap item-locator marker also works while this popup is open (it
+// didn't before -- these slots had no move callback at all).
+static BOOLEAN fCursorOverStackSplitItem = FALSE;
 
 
 // remove background panel graphics for inventory
 void RemoveInventoryPoolGraphic( void )
 {
-	RemoveVObject(guiMapInventoryPoolBackground);
+	RemoveVObject(GetMapInventoryPoolBackgroundFilename());
 }
 
 
@@ -119,7 +636,9 @@ static void DisplayCurrentSector(void);
 static void DisplayPagesForMapInventoryPool(void);
 static void DrawNumberOfInventoryPoolItems();
 static void DrawTextOnMapInventoryBackground(void);
+static size_t GetTotalNumberOfItemsInStackSplit(void);
 static void RenderItemsForCurrentPageOfInventoryPool(void);
+static void RenderStackSplitItems(void);
 static void UpdateHelpTextForInvnentoryStashSlots(void);
 
 namespace {
@@ -135,28 +654,41 @@ void MPrintCenteredInBox(int x, int y, ST::string const& text, SGPBox const& box
 void BlitInventoryPoolGraphic( void )
 {
 	const SGPBox* const box = &g_sector_inv_box;
-	BltVideoObject(guiSAVEBUFFER, guiMapInventoryPoolBackground, 0, STD_SCREEN_X + box->x, STD_SCREEN_Y + box->y);
+	BltVideoObject(guiSAVEBUFFER, GetMapInventoryPoolBackgroundFilename(), 0, MAP_SCREEN_X + box->x, MAP_SCREEN_Y + box->y);
 
 	// resize list
 	CheckAndUnDateSlotAllocation( );
 
-
-	// now the items
-	RenderItemsForCurrentPageOfInventoryPool( );
-
 	// now update help text
 	UpdateHelpTextForInvnentoryStashSlots( );
 
-	// show which page and last page
-	DisplayPagesForMapInventoryPool( );
+	// Main grid's own item icons and page-number/Total Items VALUES -- all
+	// three sit underneath the stack split popup's own footprint (unlike
+	// the "Location"/"Total Items" text labels below, which sit further
+	// left, outside it), so they must not draw while the popup is open, or
+	// they bleed through/over its own independent equivalents
+	// (RenderStackSplitItems() below). Same reasoning as the main grid's
+	// next/prev arrow buttons being Hidden while the popup is open
+	// (HandleButtonStatesWhileMapInventoryActive()).
+	if (gStackSplitSourceIndex == -1)
+	{
+		// now the items
+		RenderItemsForCurrentPageOfInventoryPool( );
 
-	// draw number of items in current inventory
-	DrawNumberOfInventoryPoolItems();
+		// show which page and last page
+		DisplayPagesForMapInventoryPool( );
+
+		// draw number of items in current inventory
+		DrawNumberOfInventoryPoolItems();
+	}
 
 	// display current sector inventory pool is at
 	DisplayCurrentSector( );
 
 	DrawTextOnMapInventoryBackground( );
+
+	// stack split view (Wariant B) -- renders on top of everything else
+	RenderStackSplitItems( );
 
 	// re render buttons
 	MarkButtonsDirty( );
@@ -174,9 +706,9 @@ static void RenderItemsForCurrentPageOfInventoryPool(void)
 	INT32 iCounter = 0;
 
 	// go through list of items on this page and place graphics to screen
-	for( iCounter = 0; iCounter < MAP_INVENTORY_POOL_SLOT_COUNT ; iCounter++ )
+	for( iCounter = 0; iCounter < GetMapInventoryPoolPageSize() ; iCounter++ )
 	{
-		RenderItemInPoolSlot( iCounter, ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ) );
+		RenderItemInPoolSlot( iCounter, ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() ) );
 	}
 }
 
@@ -189,19 +721,20 @@ static BOOLEAN RenderItemInPoolSlot(INT32 iCurrentSlot, INT32 iFirstSlotOnPage)
 	// check if anything there
 	if (item.o.ubNumberOfObjects == 0) return FALSE;
 
-	const SGPBox* const slot_box = &g_sector_inv_slot_box;
-	const INT32 dx = STD_SCREEN_X + slot_box->x + slot_box->w * (iCurrentSlot / MAP_INV_SLOT_ROWS);
-	const INT32 dy = STD_SCREEN_Y + slot_box->y + slot_box->h * (iCurrentSlot % MAP_INV_SLOT_ROWS);
+	const SGPBox* const slot_box = &GetSectorInvSlotBox();
+	INT32       const  row       = iCurrentSlot % MAP_INV_SLOT_ROWS;
+	const INT32 dx = MAP_SCREEN_X + slot_box->x + slot_box->w * (iCurrentSlot / MAP_INV_SLOT_ROWS);
+	const INT32 dy = MAP_SCREEN_Y + slot_box->y + (slot_box->h + GetBigImagesCompactRowPitchCorrection()) * row + GetSectorInvLastRowYCorrection(row) + GetBigImagesCompactYCorrection();
 
 	SetFontDestBuffer(guiSAVEBUFFER);
-	const SGPBox* const item_box = &g_sector_inv_item_box;
+	const SGPBox* const item_box = &GetSectorInvItemBox();
 	const UINT16        outline  = fMapInventoryItemCompatable[iCurrentSlot] ? Get16BPPColor(FROMRGB(255, 255, 255)) : SGP_TRANSPARENT;
-	INVRenderItem(guiSAVEBUFFER, NULL, item.o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, outline);
+	INVRenderItem(guiSAVEBUFFER, NULL, item.o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, outline, gfSectorInventoryBigImages);
 
 	// draw bar for condition
 	const UINT16 col0 = Get16BPPColor(DESC_STATUS_BAR);
 	const UINT16 col1 = Get16BPPColor(DESC_STATUS_BAR_SHADOW);
-	const SGPBox* const bar_box = &g_sector_inv_bar_box;
+	const SGPBox* const bar_box = &GetSectorInvBarBox();
 	DrawItemUIBarEx(item.o, 0, dx + bar_box->x, dy + bar_box->y + bar_box->h - 1, bar_box->h, col0, col1, guiSAVEBUFFER);
 
 	// if the item is not reachable, or if the selected merc is not in the current sector
@@ -217,11 +750,23 @@ static BOOLEAN RenderItemInPoolSlot(INT32 iCurrentSlot, INT32 iFirstSlotOnPage)
 	}
 
 	// the name
-	const SGPBox* const name_box = &g_sector_inv_name_box;
-	auto sString = ReduceStringLength(GCM->getItem(item.o.usItem)->getShortName(), name_box->w, MAP_IVEN_FONT);
+	const SGPBox* const name_box = &GetSectorInvNameBox();
+	auto sString = ReduceStringLength(GCM->getItem(item.o.usItem)->getShortName(), name_box->w, MAP_SECTOR_INV_ITEM_FONT);
 
-	SetFontAttributes(MAP_IVEN_FONT, FONT_WHITE);
-	MPrintCenteredInBox(dx, dy, sString, *name_box);
+	// Same color+shadow as the merc stat values (0-100 Agility/Dexterity/
+	// Strength/etc.) on the single-merc panel (Inventory_bottom_panel.sti),
+	// per user request -- see STATS_TEXT_FONT_COLOR (5) + the inherited
+	// DEFAULT_SHADOW in PrintStat() (Interface_Panels.cc).
+	SetFontAttributes(MAP_SECTOR_INV_ITEM_FONT, 5, DEFAULT_SHADOW);
+	// -1 X per user request, applied here rather than baked into
+	// g_sector_inv_name_box.x (like the (UINT16)-1 trick above) --
+	// MPrintCenteredInBox()'s x ends up passed as a plain 32-bit int all
+	// the way down to the glyph blitter (no INT16 truncation to cancel the
+	// unsigned wraparound out, unlike DrawItemUIBarEx()'s sXPos), so a
+	// negative UINT16 box field would push the text off past
+	// FontDestRegion's clip and make it disappear instead of shifting it.
+	// dx itself is a plain signed int here, so dx - 1 just works.
+	MPrintCenteredInBox(dx - 1, dy, sString, *name_box);
 	SetFontDestBuffer(FRAME_BUFFER);
 
 	return TRUE;
@@ -232,11 +777,11 @@ static void UpdateHelpTextForInvnentoryStashSlots(void)
 {
 	ST::string pStr;
 	INT32 iCounter = 0;
-	INT32 iFirstSlotOnPage = ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT );
+	INT32 iFirstSlotOnPage = ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() );
 
 
 	// run through list of items in slots and update help text for mouse regions
-	for( iCounter = 0; iCounter < MAP_INVENTORY_POOL_SLOT_COUNT; iCounter++ )
+	for( iCounter = 0; iCounter < GetMapInventoryPoolPageSize(); iCounter++ )
 	{
 		ST::string help;
 		OBJECTTYPE const& o    = pInventoryPoolList[iCounter + iFirstSlotOnPage].o;
@@ -254,11 +799,35 @@ static void BuildStashForSelectedSector(const SGPSector& sector);
 static void CreateMapInventoryButtons(void);
 static void CreateMapInventoryPoolDoneButton(void);
 static void CreateMapInventoryPoolSlots(void);
+static void CreateMapInventoryGroupButton(void);
+static void CreateMapInventoryFilterButtons(void);
+static void CreateMapInventoryBigImagesButton(void);
+static void CreateMapInventoryFilterModeCheckbox(void);
+static void CreateMapInventoryTransferButtons(void);
+static void CreateStackSplitSlots(void);
+static void CreateStackSplitDoneButton(void);
+static void CreateStackSplitPageButtons(void);
 static void DestroyInventoryPoolDoneButton(void);
 static void DestroyMapInventoryButtons(void);
 static void DestroyMapInventoryPoolSlots();
+static void DestroyMapInventoryGroupButton(void);
+static void DestroyMapInventoryFilterButtons(void);
+static void DestroyMapInventoryBigImagesButton(void);
+static void DestroyMapInventoryFilterModeCheckbox(void);
+static void DestroyMapInventoryTransferButtons(void);
+static void DestroyStackSplitSlots(void);
+static void DestroyStackSplitDoneButton(void);
+static void DestroyStackSplitPageButtons(void);
 static void DestroyStash(void);
+static void GroupSectorInventoryItems(void);
+static void ApplySectorInventoryFilter(void);
 static void HandleMapSectorInventory(void);
+static void OpenStackSplitView(INT32 sourceIndex);
+static void CloseStackSplitView(void);
+static void StackSplitSlotPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
+static void StackSplitSlotSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
+static void StackSplitSlotMove(MOUSE_REGION* pRegion, UINT32 iReason);
+static void StackSplitSlotsScroll(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SaveSeenAndUnseenItems(void);
 
 
@@ -287,22 +856,55 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 
 		fCreated = TRUE;
 
+		// gfSectorInventoryBigImages is intentionally NOT reset here -- per
+		// user request, it persists across panel opens/closes (and screen
+		// transitions generally); see its own comment further up for the
+		// full new-game/save-load story. CreateMapInventoryPoolSlots()
+		// below reads whatever it's currently set to, to size/lay out the
+		// grid accordingly.
+
 		// also create the inventory slot
 		CreateMapInventoryPoolSlots( );
 
 		// create buttons
 		CreateMapInventoryButtons( );
 
+		// Reset category filters to "Wszystkie przedmioty" every time the
+		// panel opens -- a fresh BuildStashForSelectedSector() below always
+		// builds an unfiltered pInventoryPoolList, and CreateMapInventoryFilterButtons()
+		// below starts guiMapInvenButton[4] ("Wszystkie przedmioty") ON to
+		// match, every other filter button OFF.
+		gubSectorInventoryActiveFilters = SECTOR_INV_FILTER_ALL;
+
 		// build stash
 		BuildStashForSelectedSector(sector);
 
 		CreateMapInventoryPoolDoneButton( );
+
+		CreateMapInventoryGroupButton( );
+		CreateMapInventoryFilterButtons( );
+		CreateMapInventoryBigImagesButton( );
+		CreateMapInventoryFilterModeCheckbox( );
+		CreateMapInventoryTransferButtons( );
 
 		fMapPanelDirty = TRUE;
 		fMapScreenBottomDirty = TRUE;
 	}
 	else if (!fShowMapInventoryPool && fCreated)
 	{
+		// An item-description box left open when the whole Sector Inventory
+		// panel closes would end up pointing into pInventoryPoolList after
+		// DestroyStash() clears it below -- gpItemDescObject would dangle,
+		// and RenderItemDescriptionBox() reads it every frame regardless of
+		// fShowMapInventoryPool. Close it first.
+		if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+		// Same risk, more severe, for the stack split view: it holds the
+		// stack's items OUTSIDE pInventoryPoolList entirely
+		// (gStackSplitItems) while open, so closing without merging back
+		// first would permanently lose them the moment DestroyStash() below
+		// clears the list they belong back into.
+		if (gStackSplitSourceIndex != -1) CloseStackSplitView();
 
 		// check fi we are in fact leaving mapscreen
 		if (!fExitFromMapScreen)
@@ -320,6 +922,12 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 
 		DestroyInventoryPoolDoneButton( );
 
+		DestroyMapInventoryGroupButton( );
+		DestroyMapInventoryFilterButtons( );
+		DestroyMapInventoryBigImagesButton( );
+		DestroyMapInventoryFilterModeCheckbox( );
+		DestroyMapInventoryTransferButtons( );
+
 		// now save results
 		SaveSeenAndUnseenItems( );
 
@@ -330,6 +938,15 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		fMapPanelDirty = TRUE;
 		fTeamPanelDirty = TRUE;
 		fCharacterInfoPanelDirty = TRUE;
+		// RenderMapScreenInterfaceBottom() (message history/clock/balance)
+		// returns early, untouched, every frame while fShowMapInventoryPool
+		// is TRUE -- unlike the open branch above, closing never re-set this,
+		// so it stayed on whatever was last drawn there (mostly hidden
+		// behind the sector-inventory panel and the big minimap) instead of
+		// redrawing once the panel actually closes. Per user report, this
+		// left the message history not shown again until something
+		// unrelated (a scroll arrow click) happened to set this flag itself.
+		fMapScreenBottomDirty = TRUE;
 
 		//DEF: added to remove the 'item blip' from staying on the radar map
 		iCurrentlyHighLightedItem = -1;
@@ -424,7 +1041,8 @@ static void InventoryPrevPage()
 // the screen mask bttn callaback...to disable the inventory and lock out the map itself
 static void MapInvenPoolScreenMaskCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
 {
-	fShowMapInventoryPool = FALSE;
+	// Right-click no longer closes the sector inventory, per user request --
+	// only the Done button does that now.
 }
 
 static void MapInvenPoolScreenMaskCallbackScroll(MOUSE_REGION* pRegion, UINT32 iReason)
@@ -450,21 +1068,29 @@ static void CreateMapInventoryPoolSlots(void)
 {
 	{
 		const SGPBox* const inv_box = &g_sector_inv_box;
-		UINT16        const x       = STD_SCREEN_X + inv_box->x;
-		UINT16        const y       = STD_SCREEN_Y + inv_box->y;
+		UINT16        const x       = MAP_SCREEN_X + inv_box->x;
+		UINT16        const y       = MAP_SCREEN_Y + inv_box->y;
 		UINT16        const w       = inv_box->w;
 		UINT16        const h       = inv_box->h;
 		MSYS_DefineRegion(&MapInventoryPoolMask, x, y, x + w - 1, y + h - 1, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, MapInvenPoolScreenMaskCallbackSecondary, MapInvenPoolScreenMaskCallbackScroll));
 	}
 
-	const SGPBox* const slot_box = &g_sector_inv_slot_box;
-	const SGPBox* const reg_box  = &g_sector_inv_region_box;
-	for (UINT i = 0; i < MAP_INVENTORY_POOL_SLOT_COUNT; ++i)
+	const SGPBox* const slot_box = &GetSectorInvSlotBox();
+	const SGPBox* const reg_box  = &GetSectorInvRegionBox();
+	// Tracked so DestroyMapInventoryPoolSlots() below only removes exactly
+	// the regions actually defined here -- GetMapInventoryPoolPageSize() can
+	// be anywhere from 40 ("big images" toggle, compact) to 108 (normal
+	// mode, large tier), always at or under MAP_INVENTORY_POOL_SLOT_COUNT's
+	// compile-time array size (108), so the remainder of
+	// MapInventoryPoolSlots[] (when the current page size is smaller) stays
+	// undefined and must not be blindly iterated.
+	gMapInventoryPoolSlotsCreatedCount = GetMapInventoryPoolPageSize();
+	for (UINT i = 0; i < gMapInventoryPoolSlotsCreatedCount; ++i)
 	{
 		UINT16        const sx = i / MAP_INV_SLOT_ROWS;
 		UINT16        const sy = i % MAP_INV_SLOT_ROWS;
-		UINT16        const x  = reg_box->x + STD_SCREEN_X + slot_box->x + sx * slot_box->w;
-		UINT16        const y  = reg_box->y + STD_SCREEN_Y + slot_box->y + sy * slot_box->h;
+		UINT16        const x  = reg_box->x + MAP_SCREEN_X + slot_box->x + sx * slot_box->w;
+		UINT16        const y  = reg_box->y + MAP_SCREEN_Y + slot_box->y + sy * (slot_box->h + GetBigImagesCompactRowPitchCorrection()) + GetSectorInvLastRowYCorrection(sy) + GetBigImagesCompactYCorrection();
 		UINT16        const w  = reg_box->w;
 		UINT16        const h  = reg_box->h;
 		MOUSE_REGION* const r  = &MapInventoryPoolSlots[i];
@@ -476,7 +1102,8 @@ static void CreateMapInventoryPoolSlots(void)
 
 static void DestroyMapInventoryPoolSlots()
 {
-	FOR_EACH(MOUSE_REGION, i, MapInventoryPoolSlots) MSYS_RemoveRegion(&*i);
+	for (UINT i = 0; i < gMapInventoryPoolSlotsCreatedCount; ++i) MSYS_RemoveRegion(&MapInventoryPoolSlots[i]);
+	gMapInventoryPoolSlotsCreatedCount = 0;
 	MSYS_RemoveRegion(&MapInventoryPoolMask);
 }
 
@@ -515,7 +1142,7 @@ static void MapInvenPoolSlotsPrimary(MOUSE_REGION* const pRegion, const UINT32 i
 {
 	// check if item in cursor, if so, then swap, and no item in curor, pick up, if item in cursor but not box, put in box
 	INT32      const slot_idx = MSYS_GetRegionUserData(pRegion, 0);
-	WORLDITEM& slot = pInventoryPoolList[iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT + slot_idx];
+	WORLDITEM& slot = pInventoryPoolList[iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() + slot_idx];
 
 	// Return if empty
 	if (gpItemPointer == NULL && slot.o.usItem == NOTHING) return;
@@ -603,8 +1230,578 @@ static void MapInvenPoolSlotsPrimary(MOUSE_REGION* const pRegion, const UINT32 i
 
 static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32 iReason)
 {
-	if (gpItemPointer == NULL) fShowMapInventoryPool = FALSE;
+	// Right-click no longer closes the sector inventory, per user request --
+	// only the Done button does that now. Instead, right-clicking an item
+	// opens its description box (iteminfoc.sti), same as right-clicking an
+	// item in the merc's own map-screen inventory panel -- see
+	// MAPInternalInitItemDescriptionBox() (MapScreen.cc). No-op while
+	// holding an item on the cursor, same as the old close-on-right-click
+	// behavior was.
+	if (gpItemPointer != NULL) return;
+
+	// If the stack split view is already open (for this or a different
+	// stack), close (and merge back) it first rather than refusing the
+	// click -- same "switch directly" behavior as the item-description box
+	// below.
+	if (gStackSplitSourceIndex != -1) CloseStackSplitView();
+
+	// If a box is already open, close it first rather than refusing the
+	// click -- per user request, scoped to Sector Inventory only (every
+	// other item-description call site in the game still uses the
+	// refuse-if-already-open guard, e.g. ItemPopupRegionCallbackSecondary()
+	// in Interface_Items.cc). DeleteItemDescriptionBox() is a clean,
+	// self-contained teardown (removes gInvDesc/giMapInvDescButton/
+	// attachment regions etc., no side effects beyond that -- the money
+	// "cash out" step lives in the Done button's own callback, not here),
+	// so it's safe to call directly before opening the next box. Without
+	// this, MSYS_DefineRegion()/QuickCreateButtonImg() would redefine the
+	// still-active region/button from the previous box and crash.
+	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+	INT32      const slot_idx = MSYS_GetRegionUserData(pRegion, 0);
+	INT32      const abs_idx  = iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() + slot_idx;
+	WORLDITEM& slot = pInventoryPoolList[abs_idx];
+
+	if (slot.o.usItem == NOTHING) return;
+
+	if (slot.o.ubNumberOfObjects > 1)
+	{
+		// Stack of >1 -- show each individual item in its own slot first
+		// (Wariant B stack split view, newgoldpiece3.sti), per user
+		// request, instead of going straight to the whole stack's
+		// description box. Right-clicking one of those items then opens
+		// its own description box (StackSplitSlotSecondary() below).
+		OpenStackSplitView(abs_idx);
+		return;
+	}
+
+	MAPInternalInitItemDescriptionBox(&slot.o, 0, GetSelectedInfoChar());
 }
+
+
+// ---------------------------------------------------------------------
+// Stack split view (Wariant B) -- see the big comment block with the other
+// g_stack_split_*/gStackSplit* declarations near the top of this file.
+// ---------------------------------------------------------------------
+
+static void CreateStackSplitSlots(void)
+{
+	UINT16 const bx = MAP_SCREEN_X + g_stack_split_box.x;
+	UINT16 const by = MAP_SCREEN_Y + g_stack_split_box.y;
+
+	// Click-blocker only -- per user request, this window no longer closes
+	// on a left/right click of its own background, only via
+	// gStackSplitDoneButton below. Still wired for the mouse wheel
+	// (StackSplitSlotsScroll()), same as the main grid's own background
+	// mask -- per user request, this window pages with the wheel too, not
+	// just its Next/Prev buttons.
+	MSYS_DefineRegion(&gStackSplitBackgroundRegion, bx, by, bx + g_stack_split_box.w - 1, by + g_stack_split_box.h - 1,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, MSYS_NO_CALLBACK, StackSplitSlotsScroll));
+
+	// Only the CURRENT PAGE's items get a region -- gStackSplitSlots[] is
+	// reused across pages (same screen positions each time), with the
+	// absolute gStackSplitItems index (first + i) stored directly as each
+	// region's user data, so StackSplitSlotPrimary()/Secondary() need no
+	// changes at all to stay page-aware.
+	INT32 const first   = gCurrentStackSplitPage * GetStackSplitPageSize();
+	INT32 const visible = std::max<INT32>(0, std::min<INT32>(GetStackSplitPageSize(), static_cast<INT32>(gStackSplitItems.size()) - first));
+	SGPBox const& slot_box = GetStackSplitSlotBox();
+	SGPBox const& reg_box  = GetStackSplitRegionBox();
+	for (INT32 i = 0; i < visible; ++i)
+	{
+		UINT16        const col = static_cast<UINT16>(i % GetInventoryGridCols());
+		UINT16        const row = static_cast<UINT16>(i / GetInventoryGridCols());
+		UINT16        const dx  = bx + slot_box.x + col * slot_box.w;
+		UINT16        const dy  = by + slot_box.y + row * (slot_box.h + GetBigImagesCompactRowPitchCorrection()) + GetBigImagesCompactYCorrection();
+		UINT16        const x   = dx + reg_box.x;
+		UINT16        const y   = dy + reg_box.y;
+		MOUSE_REGION* const r   = &gStackSplitSlots[i];
+		MSYS_DefineRegion(r, x, y, x + reg_box.w - 1, y + reg_box.h - 1,
+			MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, StackSplitSlotMove,
+			MouseCallbackPrimarySecondary(StackSplitSlotPrimary, StackSplitSlotSecondary, StackSplitSlotsScroll));
+		MSYS_SetRegionUserData(r, 0, static_cast<UINT32>(first + i));
+	}
+}
+
+
+static void DestroyStackSplitSlots(void)
+{
+	// Mirrors CreateStackSplitSlots()'s own page-size computation --
+	// gStackSplitItems.size() and gCurrentStackSplitPage are both
+	// unchanged between the matching Create call and this one.
+	INT32 const first   = gCurrentStackSplitPage * GetStackSplitPageSize();
+	INT32 const visible = std::max<INT32>(0, std::min<INT32>(GetStackSplitPageSize(), static_cast<INT32>(gStackSplitItems.size()) - first));
+	for (INT32 i = 0; i < visible; ++i) MSYS_RemoveRegion(&gStackSplitSlots[i]);
+	MSYS_RemoveRegion(&gStackSplitBackgroundRegion);
+
+	// The region the cursor was over (if any) just vanished -- clear the
+	// big-minimap hover state so RenderBigRadarScreenIfVisible() doesn't
+	// keep showing a marker for a slot that's no longer there. Safe for the
+	// page-change call sites too: MSYS won't have delivered a GAIN_MOUSE for
+	// a region that doesn't exist yet, so this can only be clearing a stale
+	// TRUE, never a still-valid one.
+	fCursorOverStackSplitItem = FALSE;
+}
+
+
+static void StackSplitDoneBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		CloseStackSplitView();
+	}
+}
+
+
+static void CreateStackSplitDoneButton(void)
+{
+	// The only way to close this window, per user request -- background
+	// and item-slot clicks no longer do it (see gStackSplitBackgroundRegion
+	// above and StackSplitSlotSecondary() below).
+	//
+	// Same SECTOR_INVENTORY_DONE_BUTTONS.sti sheet as the main grid's own Done
+	// button (CreateMapInventoryPoolDoneButton()), next sequential
+	// sub-image pair (2/3, vs. the main grid's own 0/1), per user request.
+	gStackSplitDoneButton = QuickCreateButtonImg(INTERFACEDIR "/SECTOR_INVENTORY_DONE_BUTTONS.sti", 2, 3,
+		MAP_SCREEN_X + STACK_SPLIT_DONE_X, MAP_SCREEN_Y + STACK_SPLIT_DONE_Y, MSYS_PRIORITY_HIGHEST, StackSplitDoneBtn);
+	gStackSplitDoneButton->SetFastHelpText("Done (Stack Inventory)");
+}
+
+
+static void DestroyStackSplitDoneButton(void)
+{
+	RemoveButton(gStackSplitDoneButton);
+}
+
+
+// This window's own, independent page-turn logic -- mirrors
+// InventoryNextPage()/InventoryPrevPage() (the main grid's own), but reruns
+// CreateStackSplitSlots()/DestroyStackSplitSlots() around the page change
+// since gStackSplitSlots[] holds real mouse regions bound to absolute
+// gStackSplitItems indices (see CreateStackSplitSlots()'s own comment),
+// not just a rendering offset like the main grid's iCurrentInventoryPoolPage.
+static void InventoryStackSplitNextPage(void)
+{
+	if (gCurrentStackSplitPage < gLastStackSplitPage)
+	{
+		DestroyStackSplitSlots();
+		++gCurrentStackSplitPage;
+		CreateStackSplitSlots();
+		fMapPanelDirty = TRUE;
+	}
+}
+
+
+static void InventoryStackSplitPrevPage(void)
+{
+	if (gCurrentStackSplitPage > 0)
+	{
+		DestroyStackSplitSlots();
+		--gCurrentStackSplitPage;
+		CreateStackSplitSlots();
+		fMapPanelDirty = TRUE;
+	}
+}
+
+
+// Mouse-wheel paging for this window -- per user request, matching the main
+// grid's own MapInvenPoolScreenMaskCallbackScroll()/MapInvenPoolSlotsScroll()
+// (wired the same way: on the full-panel background region and on every
+// individual item slot, via MouseCallbackPrimarySecondary()'s third
+// "allEvents" callback, which -- unlike the primary/secondary slots -- fires
+// for every reason, wheel included, so it's checked here itself).
+static void StackSplitSlotsScroll(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_WHEEL_UP)
+	{
+		InventoryStackSplitPrevPage();
+	}
+	else if (iReason & MSYS_CALLBACK_REASON_WHEEL_DOWN)
+	{
+		InventoryStackSplitNextPage();
+	}
+}
+
+
+static void StackSplitNextBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) InventoryStackSplitNextPage();
+}
+
+
+static void StackSplitPrevBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) InventoryStackSplitPrevPage();
+}
+
+
+static void CreateStackSplitPageButtons(void)
+{
+	// Placeholder positions, per user request -- not yet the final layout.
+	// Same map_screen_bottom_arrows.sti sub-images as the main grid's own
+	// next/prev (CreateMapInventoryButtons()) -- a generic page-arrow
+	// graphic, reused here for this window's own, independent pagination.
+	gStackSplitNextBtn = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + STACK_SPLIT_NEXT_X, MAP_SCREEN_Y + STACK_SPLIT_ARROWS_Y, MSYS_PRIORITY_HIGHEST, StackSplitNextBtn);
+	gStackSplitPrevBtn = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + STACK_SPLIT_PREV_X, MAP_SCREEN_Y + STACK_SPLIT_ARROWS_Y, MSYS_PRIORITY_HIGHEST, StackSplitPrevBtn);
+}
+
+
+static void DestroyStackSplitPageButtons(void)
+{
+	RemoveButton(gStackSplitNextBtn);
+	RemoveButton(gStackSplitPrevBtn);
+}
+
+
+static void RenderStackSplitItems(void)
+{
+	if (gStackSplitSourceIndex == -1) return;
+
+	UINT16 const bx = MAP_SCREEN_X + g_stack_split_box.x;
+	UINT16 const by = MAP_SCREEN_Y + g_stack_split_box.y;
+
+	BltVideoObject(guiSAVEBUFFER, GetStackSplitBackgroundFilename(), 0, bx, by);
+
+	SetFontDestBuffer(guiSAVEBUFFER);
+
+	// Only the current page -- see CreateStackSplitSlots()'s own comment on
+	// why gStackSplitSlots[]/absolute indices work the same way.
+	INT32 const first = gCurrentStackSplitPage * GetStackSplitPageSize();
+	INT32 const last  = std::min<INT32>(first + GetStackSplitPageSize(), static_cast<INT32>(gStackSplitItems.size()));
+	for (INT32 abs_idx = first; abs_idx < last; ++abs_idx)
+	{
+		OBJECTTYPE const& o = gStackSplitItems[abs_idx];
+		if (o.usItem == NOTHING) continue;
+
+		INT32 const i   = abs_idx - first;
+		INT32 const col = i % GetInventoryGridCols();
+		INT32 const row = i / GetInventoryGridCols();
+		SGPBox const& slot_box = GetStackSplitSlotBox();
+		INT32 const dx  = bx + slot_box.x + col * slot_box.w;
+		INT32 const dy  = by + slot_box.y + row * (slot_box.h + GetBigImagesCompactRowPitchCorrection()) + GetBigImagesCompactYCorrection();
+
+		const SGPBox* const item_box = &GetStackSplitItemBox();
+		INVRenderItem(guiSAVEBUFFER, NULL, o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, SGP_TRANSPARENT, gfSectorInventoryBigImages);
+
+		const UINT16        col0    = Get16BPPColor(DESC_STATUS_BAR);
+		const UINT16        col1    = Get16BPPColor(DESC_STATUS_BAR_SHADOW);
+		const SGPBox* const bar_box = &GetStackSplitBarBox();
+		DrawItemUIBarEx(o, 0, dx + bar_box->x, dy + bar_box->y + bar_box->h - 1, bar_box->h, col0, col1, guiSAVEBUFFER);
+
+		const SGPBox* const name_box = &GetStackSplitNameBox();
+		auto sString = ReduceStringLength(GCM->getItem(o.usItem)->getShortName(), name_box->w, MAP_SECTOR_INV_ITEM_FONT);
+		SetFontAttributes(MAP_SECTOR_INV_ITEM_FONT, 5, DEFAULT_SHADOW);
+		MPrintCenteredInBox(dx - 1, dy, sString, *name_box);
+	}
+
+	// This window's own, independent page indicator -- per user request.
+	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
+		ST::format("{} / {}", gCurrentStackSplitPage + 1, gLastStackSplitPage + 1),
+		g_stack_split_page_box);
+
+	// This window's own, independent "Total Items" label + value -- per
+	// user request. Reuses the main grid's own already-localized label
+	// (pMapInventoryStrings[1]) and its exact DisplayWrappedString() call
+	// shape (DrawTextOnMapInventoryBackground()), just at this window's own
+	// X/Y; the value mirrors DrawNumberOfInventoryPoolItems() but counts
+	// gStackSplitItems instead of pInventoryPoolList
+	// (GetTotalNumberOfItemsInStackSplit()).
+	{
+		int const textX = MAP_SCREEN_X + STACK_SPLIT_TOTAL_TEXT_X;
+		int const textY = MAP_SCREEN_Y + STACK_SPLIT_TOTAL_TEXT_Y;
+		UINT16 const textH = DisplayWrappedString(textX, textY, 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
+		DisplayWrappedString(textX, textY - (textH / 2), 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
+
+		SetFontAttributes(FONT_VALUE_INVENTORY, 183);
+		MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
+			ST::string::from_uint(GetTotalNumberOfItemsInStackSplit()),
+			g_stack_split_count_box);
+	}
+
+	SetFontDestBuffer(FRAME_BUFFER);
+}
+
+
+static void OpenStackSplitView(INT32 const sourceIndex)
+{
+	WORLDITEM& src = pInventoryPoolList[sourceIndex];
+
+	// Best unit first, worst last -- per user request. See
+	// SortItemStackByStatus() (Items.cc) for why; GetObjFrom() below always
+	// drains from index 0, so sorting the source stack first is what
+	// determines gStackSplitItems' resulting order.
+	SortItemStackByStatus(&src.o);
+
+	// Physically pull every unit of the stack out into its own 1-count
+	// OBJECTTYPE -- same primitive ItemPopupRegionCallbackPrimary()
+	// (Interface_Items.cc) already uses to split a single item off a stack
+	// onto the cursor. Repeating it at index 0 drains the whole stack, down
+	// to usItem == NOTHING/ubNumberOfObjects == 0.
+	gStackSplitItems.clear();
+	gStackSplitItems.reserve(src.o.ubNumberOfObjects);
+	while (src.o.ubNumberOfObjects > 0)
+	{
+		OBJECTTYPE single{};
+		GetObjFrom(&src.o, 0, &single);
+		gStackSplitItems.push_back(single);
+	}
+
+	gStackSplitSourceIndex = sourceIndex;
+
+	// This window's own, independent pagination -- always starts at page 1,
+	// per user request.
+	gCurrentStackSplitPage = 0;
+	gLastStackSplitPage    = static_cast<INT32>(gStackSplitItems.empty() ? 0 : (gStackSplitItems.size() - 1) / GetStackSplitPageSize());
+
+	CreateStackSplitSlots();
+	CreateStackSplitDoneButton();
+	CreateStackSplitPageButtons();
+
+	fMapPanelDirty = TRUE;
+}
+
+
+static void CloseStackSplitView(void)
+{
+	if (gStackSplitSourceIndex == -1) return;
+
+	// A dangling gpItemDescObject risk identical to the one guarded against
+	// for the whole Sector Inventory panel in
+	// CreateDestroyMapInventoryPoolButtons() -- ItemInfoC.sti may still be
+	// open on one of gStackSplitItems (StackSplitSlotSecondary() leaves it
+	// open on top of this window, same as the main grid does). Close it
+	// before the merge below invalidates that pointer.
+	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+	// Re-merge every physically split-out item still here back into one
+	// stack -- same pairwise CleanUpStack()/StackObjs() consolidation
+	// GroupSectorInventoryItems() uses for the whole stash, just applied to
+	// this one stack's own items. "Still here" because StackSplitSlotPrimary()
+	// may have picked one or more up onto the cursor (typically dropped into
+	// a merc's own inventory) since the window opened, leaving those slots
+	// NOTHING -- the first slot that's still occupied becomes the merge
+	// base instead of always assuming index 0.
+	OBJECTTYPE merged{};
+	BOOLEAN    fHaveBase = FALSE;
+	for (size_t i = 0; i < gStackSplitItems.size(); ++i)
+	{
+		OBJECTTYPE& src = gStackSplitItems[i];
+		if (src.usItem == NOTHING) continue;
+
+		if (!fHaveBase)
+		{
+			merged    = src;
+			fHaveBase = TRUE;
+			continue;
+		}
+
+		if (src.usItem != merged.usItem)
+		{
+			// A different item type ended up here -- StackSplitSlotPrimary()
+			// now allows placing/swapping any item from the cursor into a
+			// slot, same as the main grid's own left-click, so this slot no
+			// longer necessarily matches the rest of the original stack.
+			// Can't merge it into `merged`; hand it back to the stash
+			// directly instead of losing it.
+			AutoPlaceObjectInInventoryStash(&src);
+			continue;
+		}
+
+		// Merge partial charges first (ammo/kits/canteens/alcohol/etc.).
+		CleanUpStack(&merged, &src);
+
+		// CanGunsStack(): a gun pulled out of this window (e.g. reloaded or
+		// given an attachment while split out, both now possible for a
+		// single split-out unit) may no longer be physically identical to
+		// the rest of the stack -- if so, don't merge it back in, hand it
+		// to the stash separately below instead.
+		if (src.ubNumberOfObjects > 0 && CanGunsStack(merged, src))
+		{
+			UINT8 const slot_limit = std::min<UINT8>(ItemSlotLimit(merged.usItem, BIGPOCK1POS), MAX_OBJECTS_PER_SLOT);
+			if (merged.ubNumberOfObjects < slot_limit)
+			{
+				UINT8 const room    = slot_limit - merged.ubNumberOfObjects;
+				UINT8 const to_move = std::min<UINT8>(src.ubNumberOfObjects, room);
+				StackObjs(&src, &merged, to_move);
+			}
+		}
+
+		// Should never trigger -- nothing in this window can grow a stack
+		// past its own original size -- but if it somehow did, don't drop
+		// the remainder on the floor.
+		if (src.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&src);
+	}
+
+	// Write back into the source slot -- unless every item was picked up
+	// out of this window already (fHaveBase == FALSE), in which case
+	// there's nothing left to put back; the whole stack was manually
+	// handed out one by one.
+	if (fHaveBase)
+	{
+		// PlaceObjectInInventoryStash() covers both the expected case (slot
+		// still empty, exactly as OpenStackSplitView() left it) and the edge
+		// case of something else having been placed there in the meantime
+		// (merges if compatible, otherwise swaps it into `merged`).
+		WORLDITEM& dest = pInventoryPoolList[gStackSplitSourceIndex];
+		PlaceObjectInInventoryStash(&dest.o, &merged);
+		if (merged.usItem != NOTHING && merged.ubNumberOfObjects > 0)
+		{
+			// Leftover from a swap above (a different item was sitting in
+			// this slot) -- never drop it, place it in the first free slot
+			// instead.
+			AutoPlaceObjectInInventoryStash(&merged);
+		}
+	}
+
+	DestroyStackSplitSlots();
+	DestroyStackSplitDoneButton();
+	DestroyStackSplitPageButtons();
+	gStackSplitItems.clear();
+	gStackSplitSourceIndex = -1;
+
+	fMapPanelDirty = TRUE;
+}
+
+
+static void StackSplitSlotPrimary(MOUSE_REGION* const pRegion, const UINT32 iReason)
+{
+	INT32 const idx = MSYS_GetRegionUserData(pRegion, 0);
+	if (idx < 0 || static_cast<size_t>(idx) >= gStackSplitItems.size()) return;
+
+	OBJECTTYPE& slot = gStackSplitItems[idx];
+
+	// Nothing to pick up and nothing in hand to place here -- no-op.
+	if (gpItemPointer == NULL && slot.usItem == NOTHING) return;
+
+	// Same soldier/sector/battle gate as the main grid's own left-click
+	// (MapInvenPoolSlotsPrimary()) -- an item already sitting in the stash
+	// could still fail these mid-view (selected merc moved out of the
+	// sector, or a battle started, while this window was open).
+	const SOLDIERTYPE* const s = GetSelectedInfoChar();
+	if (s == NULL)
+	{
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, pMapInventoryErrorString[0], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+		return;
+	}
+	if (s->sSector.x != sSelMap.x || s->sSector.y != sSelMap.y || s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors)
+	{
+		ST::string const msg = (gpItemPointer == NULL ? pMapInventoryErrorString[1] : pMapInventoryErrorString[4]);
+		ST::string const buf = st_format_printf(msg, s->name);
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, buf, MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+		return;
+	}
+	if (!CanPlayerUseSectorInventory())
+	{
+		ST::string const msg = (gpItemPointer == NULL ? pMapInventoryErrorString[2] : pMapInventoryErrorString[3]);
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, msg, MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+		return;
+	}
+
+	if (gpItemPointer == NULL)
+	{
+		// Pick up onto the cursor -- typically to drop into a merc's own
+		// map-screen inventory panel (MAPINV.STI), whose click handlers
+		// already accept whatever's on gpItemPointer generically, so no
+		// changes are needed there.
+		//
+		// If the item's own description box is open
+		// (StackSplitSlotSecondary() leaves it open on top of this
+		// window), close it -- it would otherwise dangle once the slot
+		// below is cleared.
+		if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+		gItemPointer = slot;
+		slot         = OBJECTTYPE{};
+
+		SetItemPointer(&gItemPointer, 0);
+		SetMapCursorItem();
+	}
+	else
+	{
+		// Place (or merge/swap) whatever's on the cursor back into this
+		// slot -- same generic OBJECTTYPE-level primitive the main grid's
+		// own left-click already uses for its own slots
+		// (MapInvenPoolSlotsPrimary()). CloseStackSplitView() handles a
+		// slot that ends up with a different item type than the rest (a
+		// swap) safely -- it never tries to merge it, just hands it back
+		// to the stash directly.
+		if (PlaceObjectInInventoryStash(&slot, gpItemPointer))
+		{
+			if (gpItemPointer->ubNumberOfObjects == 0)
+			{
+				MAPEndItemPointer();
+			}
+			else
+			{
+				SetMapCursorItem();
+			}
+		}
+	}
+
+	fMapPanelDirty = TRUE;
+}
+
+
+static void StackSplitSlotSecondary(MOUSE_REGION* const pRegion, const UINT32 iReason)
+{
+	if (gpItemPointer != NULL) return;
+
+	INT32 const idx = MSYS_GetRegionUserData(pRegion, 0);
+	if (idx < 0 || static_cast<size_t>(idx) >= gStackSplitItems.size()) return;
+
+	OBJECTTYPE* const item = &gStackSplitItems[idx];
+	if (item->usItem == NOTHING) return;
+
+	// Same "switch directly" behavior as the main grid's own right-click
+	// handler above -- close any already-open description box before
+	// opening this one, but leave the stack split window itself open,
+	// mirroring how the main grid leaves the whole Sector Inventory panel
+	// open underneath its own description box.
+	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+	MAPInternalInitItemDescriptionBox(item, 0, GetSelectedInfoChar());
+}
+
+
+// Every slot here shares the same source item/location (gStackSplitSourceIndex),
+// so unlike MapInvenPoolSlotsMove() (main grid) this doesn't need the
+// region's own user data at all -- any slot gain/loss just flips the one
+// shared flag. See fCursorOverStackSplitItem's own comment above.
+static void StackSplitSlotMove(MOUSE_REGION* const pRegion, const UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_GAIN_MOUSE)
+	{
+		fCursorOverStackSplitItem = TRUE;
+	}
+	else if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		fCursorOverStackSplitItem = FALSE;
+	}
+}
+
+
+// Used by Radar_Screen.cc's RenderBigRadarScreenIfVisible() -- while this
+// popup is open, the big-minimap marker must come from here instead of the
+// main grid's iCurrentlyHighLightedItem (the main grid's own slots are
+// covered by this popup and no longer receive mouse events at all).
+BOOLEAN IsStackSplitViewOpen(void)
+{
+	return gStackSplitSourceIndex != -1;
+}
+
+
+// Returns the source WORLDITEM every slot in this popup was split out of,
+// but only while the cursor is actually over one of those slots right now
+// (fCursorOverStackSplitItem) -- mirrors the main grid's own hover-only
+// marker behavior. Returns nullptr otherwise (popup closed, or open but not
+// currently hovered).
+WORLDITEM const* GetHighlightedStackSplitSourceItem(void)
+{
+	if (gStackSplitSourceIndex == -1 || !fCursorOverStackSplitItem) return nullptr;
+	return &pInventoryPoolList[gStackSplitSourceIndex];
+}
+
 
 static void MapInvenPoolSlotsScroll(MOUSE_REGION* const pRegion, const UINT32 iReason)
 {
@@ -625,8 +1822,8 @@ static void MapInventoryPoolNextBtn(GUI_BUTTON* btn, UINT32 reason);
 
 static void CreateMapInventoryButtons(void)
 {
-	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, STD_SCREEN_X + 559, STD_SCREEN_Y + 336, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
-	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, STD_SCREEN_X + 487, STD_SCREEN_Y + 336, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
+	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 711, MAP_SCREEN_Y + 739 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
+	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 638, MAP_SCREEN_Y + 739 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
 
 	//reset the current inventory page to be the first page
 	iCurrentInventoryPoolPage = 0;
@@ -675,9 +1872,13 @@ static void BuildStashForSelectedSector(const SGPSector& sector)
 	}
 
 	size_t visible_slots = pInventoryPoolList.size();
-	size_t empty_slots = MAP_INVENTORY_POOL_SLOT_COUNT - visible_slots % MAP_INVENTORY_POOL_SLOT_COUNT;
+	size_t empty_slots = GetMapInventoryPoolPageSize() - visible_slots % GetMapInventoryPoolPageSize();
 	pInventoryPoolList.resize(visible_slots + empty_slots, WORLDITEM{});
-	iLastInventoryPoolPage  = static_cast<INT32>((pInventoryPoolList.size() - 1) / MAP_INVENTORY_POOL_SLOT_COUNT);
+	// No filter is active yet at this point (reset right before this call
+	// -- CreateDestroyMapInventoryPoolButtons()), so the whole (now padded)
+	// list is the visible prefix.
+	gVisibleInventorySlotCount = pInventoryPoolList.size();
+	iLastInventoryPoolPage  = static_cast<INT32>((gVisibleInventorySlotCount - 1) / GetMapInventoryPoolPageSize());
 
 	CheckGridNoOfItemsInMapScreenMapInventory();
 	SortSectorInventory(pInventoryPoolList.data(), visible_slots);
@@ -776,22 +1977,16 @@ static BOOLEAN GetObjFromInventoryStashSlot(OBJECTTYPE* pInventorySlot, OBJECTTY
 		return( FALSE );
 	}
 
-	// if there are only one item in slot, just copy
-	if (pInventorySlot->ubNumberOfObjects == 1)
-	{
-		*pItemPtr = *pInventorySlot;
-		DeleteObj( pInventorySlot );
-	}
-	else
-	{
-		// take one item
-		pItemPtr->usItem = pInventorySlot->usItem;
-
-		// find first unempty slot
-		pItemPtr->bStatus[0] = pInventorySlot->bStatus[0];
-		pItemPtr->ubNumberOfObjects = 1;
-		RemoveObjFrom( pInventorySlot, 0 );
-	}
+	// Delegate to the shared primitive (Items.cc) instead of duplicating
+	// its logic -- this used to copy only usItem + bStatus[0] itself for
+	// a pick-up from a stack of more than one, silently dropping a gun's
+	// ammo/attachment state (everything but bGunStatus/condition). The
+	// picked-up gun then looked completely unloaded regardless of what it
+	// actually had loaded, so CanGunsStack() (Items.cc) correctly saw it
+	// as different from what was left behind and refused to merge it back
+	// onto its own stack -- forcing it into a different, empty slot
+	// instead. GetObjFrom() already does a full-struct copy for guns.
+	GetObjFrom( pInventorySlot, 0, pItemPtr );
 
 	return ( TRUE );
 }
@@ -818,7 +2013,17 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 
 	// if there is something there, swap it, if they are of the same type and stackable then add to the count
 
-	ubSlotLimit = GCM->getItem(pItemPtr -> usItem)->getPerPocket();
+	// Clamped to MAX_OBJECTS_PER_SLOT -- an item's own ubPerPocket (game
+	// data) isn't itself bounded by it, but bStatus[]/ubShotsLeft[] below
+	// physically are. Missing this clamp let the "stacking" branch below
+	// push pInventorySlot->ubNumberOfObjects past MAX_OBJECTS_PER_SLOT for
+	// any item whose ubPerPocket exceeds it, and StackObjs() would then
+	// write bStatus[] past its own bounds, corrupting usAttachItem[]/
+	// bAttachStatus[] right after it in OBJECTTYPE -- surfacing later as a
+	// "invalid vector subscript" crash the next time something (e.g.
+	// GetHelpTextForItem()) reads that corrupted attachment data and looks
+	// it up as an item ID.
+	ubSlotLimit = std::min<UINT8>(GCM->getItem(pItemPtr -> usItem)->getPerPocket(), MAX_OBJECTS_PER_SLOT);
 
 	if (pInventorySlot->ubNumberOfObjects == 0)
 	{
@@ -835,7 +2040,11 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 		// but assuming it isn't
 		*pInventorySlot = *pItemPtr;
 
-		if (ubNumberToDrop != pItemPtr->ubNumberOfObjects)
+		// Guns skip this: bStatus[0..4] alias bGunStatus/ubGunAmmoType/
+		// ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a single value
+		// shared by the whole stack (see CanGunsStack(), Items.cc) --
+		// there's nothing per-unit to zero here.
+		if (ubNumberToDrop != pItemPtr->ubNumberOfObjects && !GCM->getItem(pItemPtr->usItem)->isGun())
 		{
 			// in the InSlot copy, zero out all the objects we didn't drop
 			for (ubLoop = ubNumberToDrop; ubLoop < pItemPtr->ubNumberOfObjects; ubLoop++)
@@ -866,9 +2075,12 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 
 				DeleteObj( pItemPtr );
 			}
-			else if (ubSlotLimit < 2)
+			else if (ubSlotLimit < 2 || !CanGunsStack(*pItemPtr, *pInventorySlot))
 			{
-				// swapping
+				// swapping -- either genuinely non-stackable here, or (see
+				// CanGunsStack(), Items.cc) two physically distinguishable
+				// guns that can't share pInventorySlot's single shared gun
+				// state (different ammo/attachments/condition).
 				SwapObjs( pItemPtr, pInventorySlot );
 			}
 			else
@@ -894,17 +2106,43 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 
 void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 {
-	UINT8 ubNumberToDrop, ubSlotLimit, ubLoop;
-	OBJECTTYPE *pInventorySlot;
+	// Find an actual free slot -- growing the stash by a page if none
+	// exists, same low-space handling CheckAndUnDateSlotAllocation() itself
+	// uses. FIXME (acknowledged, now fixed): this used to index
+	// pInventoryPoolList[pInventoryPoolList.size()], one past the end --
+	// undefined behaviour that silently wrote into unrelated memory instead
+	// of a real slot, so the item was effectively lost. That went
+	// unnoticed while this function had no caller that could actually be
+	// exercised in practice; CloseStackSplitView()'s "never drop it" safety
+	// net (Map_Screen_Interface_Map_Inventory.cc) made it a real,
+	// user-visible item-loss bug.
+	auto it = std::find_if(pInventoryPoolList.begin(), pInventoryPoolList.end(),
+		[](WORLDITEM const& wi) { return wi.o.ubNumberOfObjects == 0; });
+	if (it == pInventoryPoolList.end())
+	{
+		size_t const old_size = pInventoryPoolList.size();
+		pInventoryPoolList.insert(pInventoryPoolList.end(), GetMapInventoryPoolPageSize(), WORLDITEM{});
+		it = pInventoryPoolList.begin() + old_size;
+		// Growing at the absolute end only extends the visible span when
+		// SECTOR_INV_FILTER_ALL guarantees no hidden tail exists (the whole
+		// list IS the visible span) -- see gVisibleInventorySlotCount's own
+		// comment. Otherwise this appends after the hidden tail instead, so
+		// the visible boundary/page count don't move.
+		if (gubSectorInventoryActiveFilters & SECTOR_INV_FILTER_ALL) gVisibleInventorySlotCount = pInventoryPoolList.size();
+		iLastInventoryPoolPage = static_cast<INT32>((gVisibleInventorySlotCount - 1) / GetMapInventoryPoolPageSize());
+	}
 
-
-	// if there is something there, swap it, if they are of the same type and stackable then add to the count
-	pInventorySlot =  &( pInventoryPoolList[ pInventoryPoolList.size() ].o );// FIXME out of bounds access
+	WORLDITEM& slot = *it;
 
 	// placement in an empty slot
-	ubNumberToDrop = pItemPtr->ubNumberOfObjects;
-
-	ubSlotLimit = ItemSlotLimit( pItemPtr->usItem, BIGPOCK1POS );
+	UINT8       ubNumberToDrop = pItemPtr->ubNumberOfObjects;
+	// Clamped to MAX_OBJECTS_PER_SLOT for consistency with the other
+	// ItemSlotLimit()/getPerPocket() call sites in this file -- this
+	// particular slot always starts empty (found via find_if above), and
+	// pItemPtr itself can never hold more than MAX_OBJECTS_PER_SLOT to
+	// begin with, so it's not reachable here in practice, but keeping this
+	// clamped avoids relying on that invariant holding forever.
+	UINT8 const ubSlotLimit    = std::min<UINT8>(ItemSlotLimit( pItemPtr->usItem, BIGPOCK1POS ), MAX_OBJECTS_PER_SLOT);
 
 	if (ubNumberToDrop > ubSlotLimit && ubSlotLimit != 0)
 	{
@@ -914,17 +2152,33 @@ void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 
 	// could be wrong type of object for slot... need to check...
 	// but assuming it isn't
-	*pInventorySlot = *pItemPtr;
+	slot.o = *pItemPtr;
 
-	if (ubNumberToDrop != pItemPtr->ubNumberOfObjects)
+	// Guns skip this: bStatus[0..4] alias bGunStatus/ubGunAmmoType/
+	// ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a single value shared by
+	// the whole stack (see CanGunsStack(), Items.cc) -- there's nothing
+	// per-unit to zero here.
+	if (ubNumberToDrop != pItemPtr->ubNumberOfObjects && !GCM->getItem(pItemPtr->usItem)->isGun())
 	{
 		// in the InSlot copy, zero out all the objects we didn't drop
-		for (ubLoop = ubNumberToDrop; ubLoop < pItemPtr->ubNumberOfObjects; ubLoop++)
+		for (UINT8 ubLoop = ubNumberToDrop; ubLoop < pItemPtr->ubNumberOfObjects; ubLoop++)
 		{
-			pInventorySlot->bStatus[ubLoop] = 0;
+			slot.o.bStatus[ubLoop] = 0;
 		}
 	}
-	pInventorySlot->ubNumberOfObjects = ubNumberToDrop;
+	slot.o.ubNumberOfObjects = ubNumberToDrop;
+
+	// Same WORLDITEM bookkeeping MapInvenPoolSlotsPrimary() does when
+	// placing into a previously-empty slot -- without this the item would
+	// render hatched (missing WORLD_ITEM_REACHABLE) or carry a stale
+	// sGridNo/usFlags left over from whatever this slot held before.
+	// There's no meaningful source position here (unlike a drag, which
+	// tracks sObjectSourceGridNo), so this always takes the same NOWHERE
+	// fallback that path uses.
+	slot.sGridNo                  = NOWHERE;
+	slot.ubLevel                  = 0;
+	slot.usFlags                  = WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT | WORLD_ITEM_REACHABLE;
+	slot.bRenderZHeightAboveLevel = 0;
 
 	// remove a like number of objects from pObj
 	RemoveObjs( pItemPtr, ubNumberToDrop );
@@ -961,10 +2215,10 @@ static void MapInventoryPoolDoneBtn(GUI_BUTTON* btn, UINT32 reason)
 static void DisplayPagesForMapInventoryPool(void)
 {
 	// get the current and last pages and display them
-	SetFontAttributes(COMPFONT, 183);
+	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	MPrintCenteredInBox(STD_SCREEN_X, STD_SCREEN_Y,
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::format("{} / {}", iCurrentInventoryPoolPage + 1, iLastInventoryPoolPage + 1),
 		g_sector_inv_page_box);
 
@@ -972,17 +2226,48 @@ static void DisplayPagesForMapInventoryPool(void)
 }
 
 
-static size_t GetTotalNumberOfItemsInSectorStash(void)
+// Per user request: "Total Items" reflects only what's actually visible
+// under the active category filter(s), not the whole stash -- e.g. with
+// only "Show ammo" active, this counts just the ammo units, and with
+// "Show armours" + "Show misc" both active (combinable mode), just those
+// two categories combined. Restricted to [0, gVisibleInventorySlotCount) --
+// the hidden tail RebuildFilteredInventoryPoolList() places after that
+// boundary while a filter is active is deliberately excluded, same
+// convention CheckGridNoOfItemsInMapScreenMapInventory()/pagination
+// already use to define what's "visible".
+static size_t GetTotalNumberOfVisibleItemsInSectorStash(void)
 {
 	size_t numObjects = 0;
 
-	// run through list of items and find out how many are there
-	for (WORLDITEM& wi : pInventoryPoolList)
+	for (size_t i = 0; i < gVisibleInventorySlotCount; ++i)
 	{
+		WORLDITEM const& wi = pInventoryPoolList[i];
 		if (wi.o.ubNumberOfObjects > 0)
 		{
 			numObjects += wi.o.ubNumberOfObjects;
 		}
+	}
+
+	return numObjects;
+}
+
+
+// Same idea as GetTotalNumberOfVisibleItemsInSectorStash() above, but for
+// this window's own gStackSplitItems -- each entry is a physically
+// split-out, 1-count OBJECTTYPE (see OpenStackSplitView()), so this
+// naturally goes down as items are picked up onto the cursor
+// (StackSplitSlotPrimary()) while the window stays open. Already matches
+// the "only what's visible" principle per user request without any change
+// needed: every entry in gStackSplitItems came from splitting ONE already-
+// selected stack, so there's no hidden/filtered-out tail to exclude here,
+// unlike the main grid above.
+static size_t GetTotalNumberOfItemsInStackSplit(void)
+{
+	size_t numObjects = 0;
+
+	for (OBJECTTYPE const& o : gStackSplitItems)
+	{
+		numObjects += o.ubNumberOfObjects;
 	}
 
 	return numObjects;
@@ -1009,11 +2294,11 @@ static size_t GetTotalNumberOfItems(void)
 
 static void DrawNumberOfInventoryPoolItems()
 {
-	SetFontAttributes(COMPFONT, 183);
+	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	MPrintCenteredInBox(STD_SCREEN_X, STD_SCREEN_Y,
-		ST::string::from_uint(GetTotalNumberOfItemsInSectorStash()),
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
+		ST::string::from_uint(GetTotalNumberOfVisibleItemsInSectorStash()),
 		g_sector_inv_count_box);
 
 	SetFontDestBuffer(FRAME_BUFFER);
@@ -1023,7 +2308,8 @@ static void DrawNumberOfInventoryPoolItems()
 static void CreateMapInventoryPoolDoneButton(void)
 {
 	// create done button
-	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/done_button.sti", 0, 1, STD_SCREEN_X + 587, STD_SCREEN_Y + 333, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/SECTOR_INVENTORY_DONE_BUTTONS.sti", 0, 1, MAP_SCREEN_X + 813, MAP_SCREEN_Y + 737 + COMPACT_DONE_BUTTON_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2]->SetFastHelpText("Done (Sector Inventory)");
 }
 
 
@@ -1034,13 +2320,739 @@ static void DestroyInventoryPoolDoneButton(void)
 }
 
 
+static void MapInventoryPoolGroupBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		GroupSectorInventoryItems();
+	}
+}
+
+
+static void CreateMapInventoryGroupButton(void)
+{
+	// create "group items" button -- placeholder position, per user request
+	guiMapInvenButton[3] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", GROUP_BUTTON_READY, GROUP_BUTTON_PRESSED, MAP_SCREEN_X + GROUP_BUTTON_X, MAP_SCREEN_Y + GROUP_BUTTON_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolGroupBtn);
+	guiMapInvenButton[3]->SetFastHelpText("Stack, consolidate and unload items.");
+}
+
+
+static void DestroyMapInventoryGroupButton(void)
+{
+	// destroy "group items" button
+	RemoveButton( guiMapInvenButton[ 3 ] );
+}
+
+
+// Small helper mirroring QuickCreateButtonImg()'s own simple overload, but
+// creating a persistent-state TOGGLE button (BUTTON_NEWTOGGLE, via
+// QuickCreateButtonToggle()) instead of a momentary one -- needed for the
+// category filters below, which stay visually "on" while active, unlike
+// "Grupuj przedmioty"/"Wszystkie przedmioty" (one-shot actions, plain
+// QuickCreateButtonImg()).
+static GUIButtonRef QuickCreateFilterToggleButton(char const* const gfx, INT32 const off_normal, INT32 const on_normal, INT16 const x, INT16 const y, INT16 const priority, GUI_CALLBACK const click)
+{
+	BUTTON_PICS* const img = LoadButtonImage(gfx, off_normal, on_normal);
+	GUIButtonRef const btn = QuickCreateButtonToggle(img, x, y, priority, click);
+	btn->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+	return btn;
+}
+
+
+// guiMapInvenButton[4..10] <-> their SECTOR_INV_FILTER_* bit, in creation
+// order (CreateMapInventoryFilterButtons() below) -- used by
+// SyncSectorInventoryFilterButtonVisuals() to keep every button's own
+// BUTTON_CLICKED_ON in sync with gubSectorInventoryActiveFilters.
+static UINT8 const gSectorInvFilterButtonBits[7] =
+{
+	SECTOR_INV_FILTER_ALL, SECTOR_INV_FILTER_WEAPONS, SECTOR_INV_FILTER_ATTACHMENTS,
+	SECTOR_INV_FILTER_AMMO, SECTOR_INV_FILTER_ARMOUR, SECTOR_INV_FILTER_EXPLOSIVES,
+	SECTOR_INV_FILTER_OTHER
+};
+
+// Single source of truth for the 7 filter buttons' own visual (checked/
+// unchecked) state, driven entirely from gubSectorInventoryActiveFilters --
+// needed because BUTTON_NEWTOGGLE (Button_System.cc:769-783) only ever
+// auto-flips the ONE button actually clicked, which isn't enough once
+// !gfSectorInventoryCombinableFilters requires turning every OTHER button
+// off too. Called after every filter change, in both modes, so it's also
+// the one place that corrects that auto-flip when it disagrees with the
+// authoritative bitmask.
+static void SyncSectorInventoryFilterButtonVisuals(void)
+{
+	for (UINT32 i = 0; i < 7; ++i)
+	{
+		GUIButtonRef const btn = guiMapInvenButton[4 + i];
+		if (gubSectorInventoryActiveFilters & gSectorInvFilterButtonBits[i])
+		{
+			btn->uiFlags |= BUTTON_CLICKED_ON;
+		}
+		else
+		{
+			btn->uiFlags &= ~BUTTON_CLICKED_ON;
+		}
+	}
+	fMapPanelDirty = TRUE;
+}
+
+// Shared body of all 7 filter toggle buttons (including "Wszystkie
+// przedmioty"). Two modes, per user request (gfSectorInventoryCombinableFilters,
+// toggled by the "combine filters" checkbox):
+//   - combinable (TRUE): flips `category` in gubSectorInventoryActiveFilters
+//     -- several can be active at once (a union, not an intersection), and
+//     turning every single one off is a valid, reachable state that shows
+//     nothing.
+//   - exclusive (FALSE, default): replaces gubSectorInventoryActiveFilters
+//     with just `category` -- always exactly one active, like a radio
+//     button group. Clicking the already-sole-active button is a no-op
+//     (still just `category`).
+static void ToggleSectorInventoryFilter(UINT8 category)
+{
+	gubSectorInventoryActiveFilters = gfSectorInventoryCombinableFilters
+		? gubSectorInventoryActiveFilters ^ category
+		: category;
+	ApplySectorInventoryFilter();
+	SyncSectorInventoryFilterButtonVisuals();
+}
+
+static void MapInventoryPoolAllItemsBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_ALL);
+}
+
+static void MapInventoryPoolFilterWeaponsBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_WEAPONS);
+}
+
+static void MapInventoryPoolFilterAttachmentsBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_ATTACHMENTS);
+}
+
+static void MapInventoryPoolFilterAmmoBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_AMMO);
+}
+
+static void MapInventoryPoolFilterArmourBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_ARMOUR);
+}
+
+static void MapInventoryPoolFilterExplosivesBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_EXPLOSIVES);
+}
+
+static void MapInventoryPoolFilterOtherBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleSectorInventoryFilter(SECTOR_INV_FILTER_OTHER);
+}
+
+
+static void CreateMapInventoryFilterButtons(void)
+{
+	// Placeholder positions, per user request -- not yet the final layout.
+	// gubSectorInventoryActiveFilters is reset to SECTOR_INV_FILTER_ALL
+	// whenever the panel opens (CreateDestroyMapInventoryPoolButtons()), so
+	// "Wszystkie przedmioty" starts ON to match and every other filter
+	// button starts OFF. All 7 are otherwise identical, independent
+	// toggles from here on (ToggleSectorInventoryFilter()) -- this is a
+	// one-time initialization, not an ongoing sync.
+	guiMapInvenButton[4]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", ALL_ITEMS_BUTTON_OFF, ALL_ITEMS_BUTTON_ON, MAP_SCREEN_X + ALL_ITEMS_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolAllItemsBtn);
+	guiMapInvenButton[4]->uiFlags |= BUTTON_CLICKED_ON;
+	guiMapInvenButton[4]->SetFastHelpText("Show All");
+	guiMapInvenButton[5]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_WEAPONS_OFF,     FILTER_WEAPONS_ON,     MAP_SCREEN_X + FILTER_WEAPONS_X,     MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterWeaponsBtn);
+	guiMapInvenButton[5]->SetFastHelpText("Show Guns");
+	guiMapInvenButton[6]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ATTACHMENTS_OFF, FILTER_ATTACHMENTS_ON, MAP_SCREEN_X + FILTER_ATTACHMENTS_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAttachmentsBtn);
+	guiMapInvenButton[6]->SetFastHelpText("Show Attachments");
+	guiMapInvenButton[7]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_AMMO_OFF,        FILTER_AMMO_ON,        MAP_SCREEN_X + FILTER_AMMO_X,        MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAmmoBtn);
+	guiMapInvenButton[7]->SetFastHelpText("Show Ammo");
+	guiMapInvenButton[8]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ARMOUR_OFF,      FILTER_ARMOUR_ON,      MAP_SCREEN_X + FILTER_ARMOUR_X,      MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterArmourBtn);
+	guiMapInvenButton[8]->SetFastHelpText("Show Armor and HeadGear");
+	guiMapInvenButton[9]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_EXPLOSIVES_OFF,  FILTER_EXPLOSIVES_ON,  MAP_SCREEN_X + FILTER_EXPLOSIVES_X,  MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterExplosivesBtn);
+	guiMapInvenButton[9]->SetFastHelpText("Show Explosives");
+	guiMapInvenButton[10] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_OTHER_OFF,       FILTER_OTHER_ON,       MAP_SCREEN_X + FILTER_OTHER_X,       MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterOtherBtn);
+	guiMapInvenButton[10]->SetFastHelpText("Show Miscellaneous");
+}
+
+
+static void DestroyMapInventoryFilterButtons(void)
+{
+	for (UINT32 i = 4; i <= 10; ++i) RemoveButton( guiMapInvenButton[ i ] );
+}
+
+
+// "Big images" toggle -- per user request. Flips gfSectorInventoryBigImages,
+// then rebuilds the main grid's own slot regions from scratch at the new
+// grid size/geometry (DestroyMapInventoryPoolSlots()/CreateMapInventoryPoolSlots()
+// both already read GetMapInventoryPoolPageSize()/GetSectorInvSlotBox()/etc.
+// fresh every time, so they pick up the new state automatically).
+//
+// ApplySectorInventoryFilter() re-partitions pInventoryPoolList (and resets
+// to page 1 -- the same absolute page number would otherwise show a
+// completely unrelated slice of it once the page size changes, e.g. 35 vs
+// 81/90, same reasoning as OpenStackSplitView()'s own "always starts at page
+// 1") for the page size GetMapInventoryPoolPageSize() now reports. Without
+// this, the visible/hidden split RebuildFilteredInventoryPoolList() made at
+// the OLD page size stays in effect: switching to a larger page size (big
+// -> small icons) while a category filter is active then reads past the
+// old, now too-narrow visible prefix into the hidden tail of
+// non-matching items appended right after it, showing a mix of the two --
+// per user report.
+static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	DestroyMapInventoryPoolSlots();
+
+	gfSectorInventoryBigImages = !gfSectorInventoryBigImages;
+	ApplySectorInventoryFilter();
+
+	CreateMapInventoryPoolSlots();
+	fMapPanelDirty = TRUE;
+}
+
+
+static void CreateMapInventoryBigImagesButton(void)
+{
+	guiMapInvenButton[13] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", BIG_IMAGES_BUTTON_OFF, BIG_IMAGES_BUTTON_ON, MAP_SCREEN_X + BIG_IMAGES_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolBigImagesBtn);
+	guiMapInvenButton[13]->SetFastHelpText("Show Large Icons");
+}
+
+
+static void DestroyMapInventoryBigImagesButton(void)
+{
+	RemoveButton( guiMapInvenButton[13] );
+}
+
+
+// "Combine filters" checkbox -- toggles gfSectorInventoryCombinableFilters.
+// Per user request, this alone doesn't touch gubSectorInventoryActiveFilters
+// or the buttons' own visuals -- it only changes how the NEXT filter click
+// behaves (ToggleSectorInventoryFilter()); whatever's currently
+// shown/checked stays exactly as it is until then.
+static void ToggleSectorInventoryFilterModeCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		gfSectorInventoryCombinableFilters = !gfSectorInventoryCombinableFilters;
+	}
+}
+
+
+static void CreateMapInventoryFilterModeCheckbox(void)
+{
+	// Same CreateCheckBoxButton() helper as the tactical screen's "Hide
+	// empty attachment slots" (giSMHideEmptySlotsCheckbox, Interface_Panels.cc),
+	// sharing its Sector_Inventory_PopupCheck.sti sheet -- that one occupies
+	// sub-images 0-3, this one 4-7 (base_index), per user request. Unlike
+	// CreateMapInventoryBigImagesButton() above, this DOES sync its visual
+	// state at creation -- gfSectorInventoryCombinableFilters can be TRUE
+	// here (loaded from a save, or just left on from a prior panel open
+	// this session), and CreateCheckBoxButton() itself always starts
+	// unchecked.
+	guiMapInvenButton[14] = CreateCheckBoxButton(
+		MAP_SCREEN_X + FILTER_MODE_CHECKBOX_X + 3, MAP_SCREEN_Y + FILTER_BUTTONS_Y + 33,
+		INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", MSYS_PRIORITY_HIGHEST,
+		ToggleSectorInventoryFilterModeCallback, 4); // sub-images 4-7, per user request
+	if (gfSectorInventoryCombinableFilters) guiMapInvenButton[14]->uiFlags |= BUTTON_CLICKED_ON;
+	guiMapInvenButton[14]->SetFastHelpText("Combine Item Filters");
+}
+
+
+static void DestroyMapInventoryFilterModeCheckbox(void)
+{
+	RemoveButton( guiMapInvenButton[14] );
+}
+
+
+// ---------------------------------------------------------------------
+// Bulk transfer buttons -- move items between the selected soldier's own
+// inventory (Inventory_bottom_panel.sti/Mapinv.sti, and the gun currently
+// shown in ItemInfoC.sti) and the sector-inventory stash. Per user
+// request.
+// ---------------------------------------------------------------------
+
+// Ejects every attachment and all loaded ammo from `gun` -- wherever it
+// actually lives (a soldier's inv[] slot, or a WORLDITEM's .o already
+// sitting in the stash) -- straight into the sector-inventory stash.
+// Same primitives GroupWorlditemRange()'s own step 1 uses on every gun in
+// the stash, just applied here to one specific gun: whichever one is
+// currently shown in ItemInfoC.sti (gpItemDescObject).
+static void MoveGunContentsToSectorStash(OBJECTTYPE* const gun)
+{
+	OBJECTTYPE ammo{};
+	if (EmptyWeaponMagazine(gun, &ammo))
+	{
+		AutoPlaceObjectInInventoryStash(&ammo);
+	}
+
+	for (INT8 pos = MAX_ATTACHMENTS - 1; pos >= 0; --pos)
+	{
+		OBJECTTYPE attachment{};
+		if (RemoveAttachment(gun, pos, &attachment))
+		{
+			AutoPlaceObjectInInventoryStash(&attachment);
+		}
+	}
+}
+
+
+// Moves every item out of the soldier's own inventory -- every slot, worn
+// gear included (HANDPOS/SECONDHANDPOS/VESTPOS/HELMETPOS/LEGPOS/HEAD1-4POS,
+// not just the BIGPOCK/SMALLPOCK pockets) -- into the sector-inventory
+// stash. Per user request, no exceptions. The while loop only matters when
+// a single inv[] slot holds more than what one stash slot can take (the
+// stash ignores ubBigPerPocket/ubSmallPerPocket -- see
+// PlaceObjectInInventoryStash()'s own comment -- so in practice this is a
+// rare, defensive case, not the common one).
+static void MoveAllMercItemsToSectorStash(SOLDIERTYPE* const soldier)
+{
+	for (UINT8 i = 0; i < NUM_INV_SLOTS; ++i)
+	{
+		while (soldier->inv[i].ubNumberOfObjects > 0)
+		{
+			AutoPlaceObjectInInventoryStash(&soldier->inv[i]);
+		}
+	}
+}
+
+
+// Moves items from the sector-inventory stash into the soldier's own
+// inventory, in on-screen display order on the CURRENTLY VISIBLE page
+// only -- per user request, "the first items that safely fit". Stops
+// trying a given stash slot as soon as AutoPlaceObject() can't place any
+// more of it anywhere (soldier full, or the item doesn't fit at all), but
+// keeps going through the rest of the page -- a later, smaller item might
+// still fit even after an earlier, bulkier one didn't.
+static void MoveSectorItemsToMerc(SOLDIERTYPE* const soldier)
+{
+	INT32 const first_slot = iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize();
+	for (INT32 i = 0; i < GetMapInventoryPoolPageSize(); ++i)
+	{
+		WORLDITEM& wi = pInventoryPoolList[first_slot + i];
+		while (wi.o.ubNumberOfObjects > 0)
+		{
+			if (!AutoPlaceObject(soldier, &wi.o, FALSE)) break;
+		}
+	}
+}
+
+
+// Same idea as MoveSectorItemsToMerc() above, but pulling from the stack
+// split window's own gStackSplitItems instead -- per user request, "Sektor
+// -> najemnik" now works while a stack is split out too. Each entry here
+// is already a physically-split 1-count unit (see the "Stack split view"
+// comment further up), so a single AutoPlaceObject() call per entry is
+// enough, unlike the multi-count WORLDITEM loop above. Whatever doesn't
+// fit is simply left behind -- CloseStackSplitView() already re-merges
+// anything still here back into the source slot when the window closes,
+// the same way it already handles items picked up one at a time via
+// StackSplitSlotPrimary().
+static void MoveStackSplitItemsToMerc(SOLDIERTYPE* const soldier)
+{
+	for (OBJECTTYPE& o : gStackSplitItems)
+	{
+		if (o.usItem == NOTHING) continue;
+		AutoPlaceObject(soldier, &o, FALSE);
+	}
+}
+
+
+// Shared validation for both transfer buttons -- same checks
+// MapInvenPoolSlotsPrimary() already applies before touching the stash on
+// behalf of the selected soldier (valid selection, soldier physically in
+// this sector, not mid-battle), plus Mapinv.sti or ItemInfoC.sti being
+// open, per user request. fShowInventoryFlag alone isn't enough:
+// ItemInfoC.sti can also be opened directly from the sector-inventory
+// stash itself (MAPInternalInitItemDescriptionBox(), this file), with
+// Mapinv.sti never having been open at all -- InItemDescriptionBox() is
+// the other half of "either one". fShowMapInventoryPool itself isn't
+// re-checked here: the buttons live on that very panel, so it's already
+// open by construction. HandleButtonStatesWhileMapInventoryActive() already
+// disables both buttons under the same conditions; this is the defensive
+// re-check right before actually moving anything.
+static SOLDIERTYPE* GetSoldierForInventoryTransfer(void)
+{
+	if (!fShowInventoryFlag && !InItemDescriptionBox()) return NULL;
+
+	SOLDIERTYPE* const s = GetSelectedInfoChar();
+	if (s == NULL) return NULL;
+
+	if (s->sSector.x != sSelMap.x || s->sSector.y != sSelMap.y ||
+		s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors)
+	{
+		return NULL;
+	}
+
+	if (!CanPlayerUseSectorInventory()) return NULL;
+
+	return s;
+}
+
+
+static void MapInventoryPoolMoveToSectorBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	SOLDIERTYPE* const s = GetSoldierForInventoryTransfer();
+	if (s == NULL) return;
+
+	// Combined button, per user request: if ItemInfoC.sti is currently
+	// showing a gun, this empties THAT gun's ammo/attachments into the
+	// stash; otherwise it empties the whole soldier's inventory instead.
+	if (InItemDescriptionBox() && gpItemDescObject != NULL && GCM->getItem(gpItemDescObject->usItem)->isGun())
+	{
+		MoveGunContentsToSectorStash(gpItemDescObject);
+	}
+	else
+	{
+		MoveAllMercItemsToSectorStash(s);
+	}
+
+	fMapPanelDirty = TRUE;
+}
+
+
+static void MapInventoryPoolMoveToMercBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	SOLDIERTYPE* const s = GetSoldierForInventoryTransfer();
+	if (s == NULL) return;
+
+	// Pull from the stack split window's own items while it's open, per
+	// user request -- otherwise from the main grid's current page as before.
+	if (gStackSplitSourceIndex != -1)
+	{
+		MoveStackSplitItemsToMerc(s);
+	}
+	else
+	{
+		MoveSectorItemsToMerc(s);
+	}
+	fMapPanelDirty = TRUE;
+}
+
+
+static void CreateMapInventoryTransferButtons(void)
+{
+	// Placeholder positions, per user request -- not yet the final layout.
+	guiMapInvenButton[11] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_SECTOR_READY, MOVE_TO_SECTOR_PRESSED, MAP_SCREEN_X + MOVE_TO_SECTOR_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToSectorBtn);
+	guiMapInvenButton[11]->SetFastHelpText("Move all items from mercenary to sector inventory.");
+	guiMapInvenButton[12] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_MERC_READY,   MOVE_TO_MERC_PRESSED,   MAP_SCREEN_X + MOVE_TO_MERC_X,   MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToMercBtn);
+	guiMapInvenButton[12]->SetFastHelpText("Move all possible items from sector to mercenary inventory.");
+}
+
+
+static void DestroyMapInventoryTransferButtons(void)
+{
+	RemoveButton( guiMapInvenButton[11] );
+	RemoveButton( guiMapInvenButton[12] );
+}
+
+
+// Which category-filter button (if any) an item belongs to -- see
+// gubSectorInventoryActiveFilters above. Order matters, since some items
+// would otherwise match more than one bucket:
+//  - IC_ARMOUR and IC_FACE are checked before the generic ITEM_ATTACHMENT
+//    flag, so ceramic plates (themselves IC_ARMOUR -- see
+//    ArmourModel::canBeAttached()) and head-slot items (night vision/UV/sun
+//    goggles, gas mask, extended ear, robot remote control -- all IC_FACE,
+//    worn in HEAD1-4POS the same way armour is worn in VEST/HELMET/LEGPOS)
+//    land in "Tylko umundurowanie" rather than "Tylko dodatki do broni",
+//    per user request.
+//  - isWeapon()/isExplosive() are checked before ITEM_ATTACHMENT too, so an
+//    under-barrel launcher (IC_LAUNCHER, itself attachable) or a 40mm
+//    grenade (loadable into one, but IC_GRENADE) land in "Tylko bronie"/
+//    "Tylko materiały wybuchowe" rather than "Tylko dodatki do broni".
+//  - What's left with ITEM_ATTACHMENT is therefore narrowed down to
+//    weapon-compatible attachments (scopes, silencers, bipods, ...), per
+//    user request ("zawężyć wyłącznie do dodatków kompatybilnych z bronią").
+//  - IC_AMMO only (not grenades) for "Tylko amunicja", per user request.
+//  - Everything else (medkits, kits, keys, money, misc, ...) is
+//    "Tylko pozostałe przedmioty".
+static UINT8 GetSectorInventoryFilterCategory(UINT16 usItem)
+{
+	if (usItem == NOTHING) return 0;
+	const ItemModel* const item = GCM->getItem(usItem);
+
+	if (item->isArmour() || item->isFace())  return SECTOR_INV_FILTER_ARMOUR;
+	if (item->isWeapon())                   return SECTOR_INV_FILTER_WEAPONS;
+	if (item->isExplosive())                return SECTOR_INV_FILTER_EXPLOSIVES;
+	if (item->getFlags() & ITEM_ATTACHMENT) return SECTOR_INV_FILTER_ATTACHMENTS;
+	// GUN_BARREL_EXTENDER/SPRING_AND_BOLT_UPGRADE are crafted, permanently
+	// installed gun upgrades (bInseparable/bNotBuyable in their own JSON)
+	// that don't carry the generic ITEM_ATTACHMENT flag there, even though
+	// the engine elsewhere (Items.cc's AttachmentInfoStruct table) already
+	// treats them as real IC_GUN attachments. Per user request.
+	if (usItem == GUN_BARREL_EXTENDER || usItem == SPRING_AND_BOLT_UPGRADE) return SECTOR_INV_FILTER_ATTACHMENTS;
+	if (item->isAmmo())                     return SECTOR_INV_FILTER_AMMO;
+	return SECTOR_INV_FILTER_OTHER;
+}
+
+
+// Splits every occupied slot in pInventoryPoolList into `matching` (shown
+// while gubSectorInventoryActiveFilters is active -- or every occupied slot
+// when it's 0, i.e. no filter) and `rest` (everything else, hidden but not
+// deleted). Shared by ApplySectorInventoryFilter() and
+// GroupSectorInventoryItems() so both agree on exactly what "visible" means.
+static void SplitPoolListByFilter(std::vector<WORLDITEM>& matching, std::vector<WORLDITEM>& rest)
+{
+	for (WORLDITEM const& wi : pInventoryPoolList)
+	{
+		// See the occupancy comment inside GroupWorlditemRange() -- fExists
+		// is not reliable here, ubNumberOfObjects is.
+		if (wi.o.ubNumberOfObjects == 0) continue;
+
+		// SECTOR_INV_FILTER_ALL short-circuits to "everything visible"
+		// regardless of the item's own category (GetSectorInventoryFilterCategory()
+		// never returns that bit itself). With every bit off, including
+		// ALL, nothing matches -- see gubSectorInventoryActiveFilters'
+		// own comment.
+		bool const visible = (gubSectorInventoryActiveFilters & SECTOR_INV_FILTER_ALL) != 0 ||
+			(GetSectorInventoryFilterCategory(wi.o.usItem) & gubSectorInventoryActiveFilters) != 0;
+		(visible ? matching : rest).push_back(wi);
+	}
+}
+
+
+// Rebuilds pInventoryPoolList from `matching` (kept visible: sorted, padded
+// to a whole number of pages, and what pagination is based on) and `rest`
+// (the hidden tail while a filter is active -- items kept, just placed
+// after the last visible page so ordinary paging can never reach them;
+// empty when no filter is active). This is the one place that defines what
+// filtering means for the underlying list, shared by
+// ApplySectorInventoryFilter() and GroupSectorInventoryItems() so a
+// "Grupuj przedmioty" while filtered lands in the exact same shape a plain
+// filter change would.
+static void RebuildFilteredInventoryPoolList(std::vector<WORLDITEM>&& matching, std::vector<WORLDITEM>&& rest)
+{
+	// Grouping (if the caller ran it) can turn a previously-occupied slot
+	// in `matching` into an empty one -- drop those now, same as step 3
+	// used to. `rest` is never touched by grouping, so this is a no-op for
+	// it, but doesn't hurt to keep both paths identical.
+	std::vector<WORLDITEM> compacted_matching;
+	compacted_matching.reserve(matching.size());
+	for (WORLDITEM const& wi : matching) if (wi.o.ubNumberOfObjects > 0) compacted_matching.push_back(wi);
+
+	size_t const visible_slots = compacted_matching.size();
+
+	// Always pad the visible prefix to a whole page, even when empty -- same
+	// "at least one page" convention BuildStashForSelectedSector() already
+	// uses. `rest` (the hidden tail) has no such precedent: when there's
+	// nothing hidden (no filter active), it must stay a true empty vector,
+	// not gain a wasted blank page appended after the visible content every
+	// single time the unfiltered case runs.
+	size_t const matching_empty = GetMapInventoryPoolPageSize() - compacted_matching.size() % GetMapInventoryPoolPageSize();
+	compacted_matching.resize(compacted_matching.size() + matching_empty, WORLDITEM{});
+	if (!rest.empty())
+	{
+		size_t const rest_empty = GetMapInventoryPoolPageSize() - rest.size() % GetMapInventoryPoolPageSize();
+		rest.resize(rest.size() + rest_empty, WORLDITEM{});
+	}
+
+	pInventoryPoolList = std::move(compacted_matching);
+	pInventoryPoolList.insert(pInventoryPoolList.end(), rest.begin(), rest.end());
+
+	// Pagination is capped to the visible prefix alone -- paging forward
+	// can never reach the hidden tail, which is what makes this a real
+	// filter and not just a reordering. gVisibleInventorySlotCount must be
+	// kept in step: CheckAndUnDateSlotAllocation() (called every frame)
+	// re-derives iLastInventoryPoolPage from it too, and re-deriving from
+	// pInventoryPoolList.size() there instead re-widens pagination to cover
+	// the hidden tail on the very next frame.
+	gVisibleInventorySlotCount = visible_slots;
+	iLastInventoryPoolPage = static_cast<INT32>(visible_slots == 0 ? 0 : (visible_slots - 1) / GetMapInventoryPoolPageSize());
+	if (iCurrentInventoryPoolPage > iLastInventoryPoolPage) iCurrentInventoryPoolPage = iLastInventoryPoolPage;
+
+	// CheckGridNoOfItemsInMapScreenMapInventory() assumes occupied slots
+	// are continuous from the front (its own FIXME) -- true here only when
+	// there's no hidden tail, since GetTotalNumberOfItems() (which it uses)
+	// counts every occupied slot including the ones sitting in `rest`.
+	// SECTOR_INV_FILTER_ALL guarantees rest is empty (see
+	// SplitPoolListByFilter()); skipped otherwise, and reruns next time a
+	// filter change (or BuildStashForSelectedSector()) calls this with
+	// rest empty again.
+	if (gubSectorInventoryActiveFilters & SECTOR_INV_FILTER_ALL) CheckGridNoOfItemsInMapScreenMapInventory();
+	SortSectorInventory(pInventoryPoolList.data(), visible_slots);
+
+	fMapPanelDirty = TRUE;
+}
+
+
+// The eject-ammo/strip-attachments + pairwise-merge core of "Grupuj
+// przedmioty", extracted so it can run on either the whole stash (no filter
+// active) or just the currently-visible filtered subset (per user request:
+// grouping while filtered only affects the visible category) without
+// duplicating this logic. Leaves now-empty slots in `items` for the caller
+// to drop (RebuildFilteredInventoryPoolList() does this).
+//
+// Groups every item of the same kind into as few slots as possible, up to
+// that item's own per-pocket capacity -- mirroring
+// PlaceObjectInInventoryStash()'s own limit (GCM->getItem(usItem)->
+// getPerPocket(), capped defensively at MAX_OBJECTS_PER_SLOT), NOT a flat 8
+// for everything: non-stackable items (guns, armour, unique items --
+// getPerPocket() < 2) naturally never get merged, since their single
+// existing unit already fills that capacity, so no separate check for them
+// is needed below.
+//
+// Also, for every gun already present: ejects its loaded ammo
+// (EmptyWeaponMagazine()) and strips its attachments (RemoveAttachment(),
+// which itself refuses to remove ITEM_INSEPARABLE ones -- respected, not
+// bypassed), so those get grouped together with any other loose
+// ammo/attachments of the same kind in the pass that follows. Per user
+// request.
+static void GroupWorlditemRange(std::vector<WORLDITEM>& items)
+{
+	// Step 1: eject ammo and strip attachments from every gun already
+	// present. Collected into a separate list and appended only once this
+	// loop is done, rather than push_back()-ing into `items` directly -- a
+	// reallocation mid-loop would invalidate the WORLDITEM& reference this
+	// loop is still using.
+	size_t const original_count = items.size();
+	std::vector<WORLDITEM> extracted;
+
+	for (size_t i = 0; i < original_count; ++i)
+	{
+		WORLDITEM& slot = items[i];
+		// Occupancy is decided by ubNumberOfObjects alone here -- same as
+		// RenderItemInPoolSlot()/GetTotalNumberOfItems() -- NOT fExists.
+		// Items dropped into the stash by hand from a merc's own inventory
+		// (PlaceObjectInInventoryStash()) only ever touch the OBJECTTYPE
+		// half of the slot, never WORLDITEM::fExists, so a real,
+		// non-empty item can legitimately have fExists == FALSE here.
+		// Requiring fExists too would silently drop exactly those items
+		// once the caller compacts the result.
+		if (slot.o.ubNumberOfObjects == 0) continue;
+
+		const ItemModel* const item = GCM->getItem(slot.o.usItem);
+
+		if (item->isGun())
+		{
+			OBJECTTYPE ammo{};
+			if (EmptyWeaponMagazine(&slot.o, &ammo))
+			{
+				WORLDITEM new_item = slot;
+				new_item.o = ammo;
+				extracted.push_back(new_item);
+			}
+		}
+
+		if (item->isWeapon())
+		{
+			for (INT8 pos = MAX_ATTACHMENTS - 1; pos >= 0; --pos)
+			{
+				OBJECTTYPE attachment{};
+				if (RemoveAttachment(&slot.o, pos, &attachment))
+				{
+					WORLDITEM new_item = slot;
+					new_item.o = attachment;
+					extracted.push_back(new_item);
+				}
+			}
+		}
+	}
+
+	items.insert(items.end(), extracted.begin(), extracted.end());
+
+	// Step 2: merge/compact every occupied slot, grouped by item type.
+	for (size_t i = 0; i < items.size(); ++i)
+	{
+		WORLDITEM& dest_wi = items[i];
+		if (dest_wi.o.ubNumberOfObjects == 0) continue;
+
+		UINT16 const usItem = dest_wi.o.usItem;
+
+		if (usItem == MONEY)
+		{
+			// Money doesn't use bStatus[]/ubNumberOfObjects the way every
+			// other stackable item does (it's a single uiMoneyAmount), so
+			// it can't go through CleanUpStack()/StackObjs() below --
+			// combine it the same way PlaceObjectInInventoryStash() already
+			// does for a single manual drop.
+			for (size_t j = i + 1; j < items.size(); ++j)
+			{
+				WORLDITEM& src_wi = items[j];
+				if (src_wi.o.usItem != MONEY || src_wi.o.ubNumberOfObjects == 0) continue;
+
+				dest_wi.o.bMoneyStatus = 100;
+				dest_wi.o.uiMoneyAmount += src_wi.o.uiMoneyAmount;
+				DeleteObj(&src_wi.o);
+			}
+			continue;
+		}
+
+		UINT8 const slot_limit = std::min<UINT8>(GCM->getItem(usItem)->getPerPocket(), MAX_OBJECTS_PER_SLOT);
+
+		for (size_t j = i + 1; j < items.size(); ++j)
+		{
+			WORLDITEM& src_wi = items[j];
+			if (src_wi.o.usItem != usItem || src_wi.o.ubNumberOfObjects == 0) continue;
+
+			// Merge partial charges first (ammo/kits/canteens/alcohol/etc.
+			// -- see Merge[] in Items.cc). Safe no-op for items it doesn't
+			// recognize as combinable.
+			CleanUpStack(&dest_wi.o, &src_wi.o);
+
+			// Physically move any whole units still left in src into dest,
+			// up to dest's own per-pocket capacity. For non-stackable items
+			// (slot_limit <= 1) dest already holds exactly 1, so this never
+			// triggers -- no separate guard needed.
+			//
+			// CanGunsStack() additionally requires two guns to be
+			// physically indistinguishable (no ammo, no attachments,
+			// identical condition) before they may share one OBJECTTYPE --
+			// see its own comment (Items.cc). Guns that don't qualify are
+			// simply left as separate slots (a no-op here, not an error).
+			if (src_wi.o.ubNumberOfObjects > 0 && dest_wi.o.ubNumberOfObjects < slot_limit &&
+				CanGunsStack(dest_wi.o, src_wi.o))
+			{
+				UINT8 const room    = slot_limit - dest_wi.o.ubNumberOfObjects;
+				UINT8 const to_move = std::min<UINT8>(src_wi.o.ubNumberOfObjects, room);
+				StackObjs(&src_wi.o, &dest_wi.o, to_move);
+			}
+		}
+	}
+}
+
+
+static void GroupSectorInventoryItems(void)
+{
+	// With no filter active, SplitPoolListByFilter() puts every occupied
+	// slot into `matching` and leaves `rest` empty -- identical to
+	// grouping the whole stash, as before. With a filter active, only the
+	// visible category is grouped; `rest` (the hidden tail) is never
+	// touched, per user request.
+	std::vector<WORLDITEM> matching, rest;
+	SplitPoolListByFilter(matching, rest);
+	GroupWorlditemRange(matching);
+	RebuildFilteredInventoryPoolList(std::move(matching), std::move(rest));
+}
+
+
+// "Wszystkie przedmioty"/category-filter buttons -- see
+// gubSectorInventoryActiveFilters above. Re-partitions the existing list by
+// the (now-changed) active filter set; nothing is grouped or otherwise
+// mutated, items just become visible/hidden.
+static void ApplySectorInventoryFilter(void)
+{
+	std::vector<WORLDITEM> matching, rest;
+	SplitPoolListByFilter(matching, rest);
+	iCurrentInventoryPoolPage = 0; // per user request: filter change resets to page 1
+	RebuildFilteredInventoryPoolList(std::move(matching), std::move(rest));
+}
+
+
 static void DisplayCurrentSector(void)
 {
 	// grab current sector being displayed
-	SetFontAttributes(COMPFONT, 183);
+	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	MPrintCenteredInBox(STD_SCREEN_X, STD_SCREEN_Y,
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::format("{}{}{}", pMapVertIndex[ sSelMap.y ],
 			pMapHortIndex[ sSelMap.x ], pMapDepthIndex[ iCurrentMapSectorZ ]),
 		g_sector_inv_loc_box);
@@ -1051,6 +3063,27 @@ static void DisplayCurrentSector(void)
 
 static void CheckAndUnDateSlotAllocation(void)
 {
+	// Ensures pInventoryPoolList always covers at least a full page up to
+	// and including the current one -- GetMapInventoryPoolPageSize() can
+	// change size abruptly at any time (the "big images" toggle switches
+	// between very different page sizes, e.g. 40 vs 108), and the "free
+	// slots" heuristic below only grows the list relative to how many
+	// items are actually placed in it, not relative to the page size
+	// itself. A nearly-empty stash could pass that check with room to
+	// spare while the list is still far too short for a newly-enlarged
+	// page, and RenderItemsForCurrentPageOfInventoryPool()/RenderItemInPoolSlot()
+	// indexing past the list's actual size then crashes ("invalid vector
+	// subscript") -- per user report, reproducing specifically when
+	// toggling from a smaller page size to a larger one (e.g. "big images"
+	// -> normal) right after opening the panel, before enough real items
+	// have accumulated to make the heuristic below grow the list on its
+	// own.
+	size_t const min_size_for_current_page = (static_cast<size_t>(iCurrentInventoryPoolPage) + 1) * static_cast<size_t>(GetMapInventoryPoolPageSize());
+	if (pInventoryPoolList.size() < min_size_for_current_page)
+	{
+		pInventoryPoolList.resize(min_size_for_current_page, WORLDITEM{});
+	}
+
 	// will check number of available slots, if less than half a page, allocate a new page
 	size_t numTakenSlots = GetTotalNumberOfItems();
 
@@ -1058,10 +3091,18 @@ static void CheckAndUnDateSlotAllocation(void)
 	{
 		// not enough space
 		// need to make more space
-		pInventoryPoolList.insert(pInventoryPoolList.end(), MAP_INVENTORY_POOL_SLOT_COUNT, WORLDITEM{});
+		pInventoryPoolList.insert(pInventoryPoolList.end(), GetMapInventoryPoolPageSize(), WORLDITEM{});
 	}
 
-	iLastInventoryPoolPage = ( ( static_cast<INT32>(pInventoryPoolList.size()) - 1 ) / MAP_INVENTORY_POOL_SLOT_COUNT );
+	// Derived from gVisibleInventorySlotCount, NOT pInventoryPoolList.size()
+	// -- this runs every frame (BlitInventoryPoolGraphic()), and the list's
+	// full size includes the hidden tail while a category filter is
+	// active. Re-deriving from the full size here silently re-widened
+	// pagination to cover that hidden tail again right after a filter
+	// change had capped it (gubSectorInventoryActiveFilters,
+	// RebuildFilteredInventoryPoolList()) -- the very next page turn would
+	// then reveal items from other categories.
+	iLastInventoryPoolPage = ( ( static_cast<INT32>(gVisibleInventorySlotCount) - 1 ) / GetMapInventoryPoolPageSize() );
 }
 
 
@@ -1074,18 +3115,18 @@ static void DrawTextOnMapInventoryBackground(void)
 
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	int xPos = STD_SCREEN_X + 268;
-	int yPos = STD_SCREEN_Y + 342;
+	int xPos = MAP_SCREEN_X + 392;
+	int yPos = MAP_SCREEN_Y + 746 + COMPACT_FOOTER_TEXT_Y_OFFSET;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
-	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
-	DisplayWrappedString(xPos, yPos - (usStringHeight / 2), 53, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED);
+	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
+	DisplayWrappedString(xPos, yPos - (usStringHeight / 2), 53, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED);
 
-	xPos = STD_SCREEN_X + 369;
+	xPos = MAP_SCREEN_X + 506;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
-	usStringHeight = DisplayWrappedString(xPos, yPos, 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
-	DisplayWrappedString( xPos, yPos - (usStringHeight / 2), 65, 1, MAP_IVEN_FONT, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
+	usStringHeight = DisplayWrappedString(xPos, yPos, 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
+	DisplayWrappedString( xPos, yPos - (usStringHeight / 2), 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
 
 	DrawTextOnSectorInventory( );
 
@@ -1098,12 +3139,90 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// are we even showing the amp inventory pool graphic?
 	if (!fShowMapInventoryPool) return;
 
-	// first page, can't go back any
-	EnableButton(guiMapInvenButton[1], iCurrentInventoryPoolPage != 0);
-	// last page, go no further
-	EnableButton(guiMapInvenButton[0], iCurrentInventoryPoolPage != iLastInventoryPoolPage);
+	// Stack split view (Wariant B) open -- changing page or re-grouping
+	// while a stack is physically split out into gStackSplitItems would
+	// strand it away from its (about to change) source slot;
+	// CloseStackSplitView() must run first (see MapInvenPoolSlotsSecondary()/
+	// CreateDestroyMapInventoryPoolButtons()).
+	BOOLEAN const fStackSplitOpen = (gStackSplitSourceIndex != -1);
+
+	// The main grid's own next/prev arrows -- HIDDEN entirely (not just
+	// disabled) while the stack split view is open, per user report:
+	// EnableButton(FALSE) alone only blocks clicks (BUTTON_ENABLED), it
+	// doesn't stop GUI_BUTTON::Draw() (which checks the underlying mouse
+	// region's own enabled state instead) -- so these stayed visibly drawn
+	// on screen, at the exact same coordinates as this window's own,
+	// independent arrows (STACK_SPLIT_PREV_X/NEXT_X, STACK_SPLIT_ARROWS_Y),
+	// causing a visible animation/z-order conflict between the two
+	// overlapping button pairs when clicked.
+	if (fStackSplitOpen)
+	{
+		HideButton(guiMapInvenButton[0]);
+		HideButton(guiMapInvenButton[1]);
+	}
+	else
+	{
+		ShowButton(guiMapInvenButton[0]);
+		ShowButton(guiMapInvenButton[1]);
+		// first page, can't go back any
+		EnableButton(guiMapInvenButton[1], iCurrentInventoryPoolPage != 0);
+		// last page, go no further
+		EnableButton(guiMapInvenButton[0], iCurrentInventoryPoolPage != iLastInventoryPoolPage);
+	}
 	// item picked up ..disable button
 	EnableButton(guiMapInvenButton[2], !fMapInventoryItem);
+	// "Group Items" -- disabled while the stack split view is open
+	EnableButton(guiMapInvenButton[3], !fStackSplitOpen);
+	// "Wszystkie przedmioty" + the 6 category filters -- same rule: they
+	// all mutate pInventoryPoolList, which the stack split view is
+	// borrowing items out of (gStackSplitItems) while open (A5: the split
+	// view itself is independent of filtering, but the main grid's own
+	// controls still can't safely run underneath it).
+	for (UINT32 i = 4; i <= 10; ++i) EnableButton(guiMapInvenButton[i], !fStackSplitOpen);
+
+	// "Big images" toggle -- same rule as the filters above: it rebuilds
+	// the main grid's own slot regions (MapInventoryPoolBigImagesBtn()),
+	// which the stack split view's items are borrowed out of while open.
+	EnableButton(guiMapInvenButton[13], !fStackSplitOpen);
+
+	// "Combine filters" checkbox -- same rule as the filter buttons it
+	// governs, above.
+	EnableButton(guiMapInvenButton[14], !fStackSplitOpen);
+
+	// The two transfer buttons -- gated on GetSoldierForInventoryTransfer()'s
+	// own checks (Mapinv.sti open, a valid soldier selected, physically in
+	// this sector, not mid-battle) -- see its own comment for why
+	// fShowMapInventoryPool itself isn't re-checked here.
+	//
+	// "Sektor -> najemnik" (guiMapInvenButton[12]) stays enabled while the
+	// stack split view is open too, per user request -- MapInventoryPoolMoveToMercBtn()
+	// redirects it to pull from gStackSplitItems instead of the main grid's
+	// current page in that case, so it no longer needs pInventoryPoolList
+	// itself to be safe to touch.
+	//
+	// "Najemnik -> sektor" (guiMapInvenButton[11]) still needs the same
+	// fStackSplitOpen guard as before: MoveAllMercItemsToSectorStash() calls
+	// AutoPlaceObjectInInventoryStash(), which could place a new item into
+	// gStackSplitSourceIndex's now-empty slot while it's being borrowed out,
+	// creating a conflict CloseStackSplitView()'s own re-merge isn't meant
+	// to arbitrate.
+	BOOLEAN const fSoldierValid = GetSoldierForInventoryTransfer() != NULL;
+	EnableButton(guiMapInvenButton[11], fSoldierValid && !fStackSplitOpen);
+	EnableButton(guiMapInvenButton[12], fSoldierValid);
+
+	// Stack split view's own Done button -- disabled while holding an item
+	// on the cursor (picked up from here via StackSplitSlotPrimary(), or
+	// from anywhere else on the map screen), same convention as the main
+	// panel's own Done button above.
+	if (fStackSplitOpen) EnableButton(gStackSplitDoneButton, !fMapInventoryItem);
+
+	// Stack split view's own, independent page arrows -- same first/last
+	// page rule as the main grid's own next/prev above.
+	if (fStackSplitOpen)
+	{
+		EnableButton(gStackSplitPrevBtn, gCurrentStackSplitPage != 0);
+		EnableButton(gStackSplitNextBtn, gCurrentStackSplitPage != gLastStackSplitPage);
+	}
 }
 
 
@@ -1114,7 +3233,7 @@ static void DrawTextOnSectorInventory(void)
 	SetFontDestBuffer(guiSAVEBUFFER);
 	SetFontAttributes(FONT14ARIAL, FONT_WHITE);
 
-	MPrintCenteredInBox(STD_SCREEN_X, STD_SCREEN_Y,
+	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + SECTOR_INV_TITLE_Y_OFFSET,
 		zMarksMapScreenText[11], g_sector_inv_title_box);
 
 	SetFontDestBuffer(FRAME_BUFFER);
@@ -1127,8 +3246,14 @@ void HandleFlashForHighLightedItem( void )
 	INT32 iDifference = 0;
 
 
-	// if there is an invalid item, reset
-	if( iCurrentlyHighLightedItem == -1 )
+	// if there is an invalid item, reset -- "invalid" now also covers the
+	// main grid's own -1 while the stack-split popup is open (its slots
+	// never touch iCurrentlyHighLightedItem, see fCursorOverStackSplitItem's
+	// own comment), so check its hover state too, or this would always look
+	// "invalid" while hovering a stack-split slot and the marker drawn from
+	// it (Radar_Screen.cc's RenderBigRadarScreenIfVisible()) would never
+	// flash.
+	if( iCurrentlyHighLightedItem == -1 && !GetHighlightedStackSplitSourceItem() )
 	{
 		fFlashHighLightInventoryItemOnradarMap = FALSE;
 		guiFlashHighlightedItemBaseTime = 0;
@@ -1210,7 +3335,7 @@ static void HandleMouseInCompatableItemForMapSectorInventory(INT32 iCurrentSlot)
 			const SOLDIERTYPE* const pSoldier = GetSelectedInfoChar();
 			if( pSoldier )
 			{
-				if( HandleCompatibleAmmoUIForMapScreen( pSoldier, iCurrentSlot + ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ), TRUE, FALSE ) )
+				if( HandleCompatibleAmmoUIForMapScreen( pSoldier, iCurrentSlot + ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() ), TRUE, FALSE ) )
 				{
 					if( GetJA2Clock( ) - guiCompatibleItemBaseTime > 100 )
 					{
@@ -1236,7 +3361,7 @@ static void HandleMouseInCompatableItemForMapSectorInventory(INT32 iCurrentSlot)
 		// check if any compatable items in the soldier inventory matches with this item
 		if( gfCheckForCursorOverMapSectorInventoryItem )
 		{
-			if( HandleCompatibleAmmoUIForMapInventory( pSoldier, iCurrentSlot, ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ) , TRUE, FALSE ) )
+			if( HandleCompatibleAmmoUIForMapInventory( pSoldier, iCurrentSlot, ( iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() ) , TRUE, FALSE ) )
 			{
 				if( GetJA2Clock( ) - guiCompatibleItemBaseTime > 100 )
 				{
@@ -1349,7 +3474,23 @@ static INT32 MapScreenSectorInventoryCompare(const void* pNum1, const void* pNum
 	ubItem1Quality = pFirst->o.bStatus[ 0 ];
 	ubItem2Quality = pSecond->o.bStatus[ 0 ];
 
-	return( CompareItemsForSorting( usItem1Index, usItem2Index, ubItem1Quality, ubItem2Quality ) );
+	INT32 const result = CompareItemsForSorting( usItem1Index, usItem2Index, ubItem1Quality, ubItem2Quality );
+	if (result != 0) return result;
+
+	// Same item type and quality here -- e.g. a stack of more than
+	// getPerPocket()/MAX_OBJECTS_PER_SLOT units, split by
+	// GroupWorlditemRange() into one full slot plus a remainder slot.
+	// CompareItemsForSorting() (shared with the arms dealer's own
+	// inventory, ArmsDealerInvInit.cc -- left untouched) treats these as
+	// equal, and qsort() is NOT a stable sort: with no tiebreaker, the
+	// relative order of two "equal" slots is unspecified and can flip
+	// between successive calls depending on the array's current state --
+	// per user report, alternating correct/reversed order every time this
+	// runs (every filter-button click and every "Stack, consolidate..."
+	// press call SortSectorInventory() again). Break the tie by quantity,
+	// largest first, so the full stack always deterministically precedes
+	// its own remainder.
+	return (INT32)pSecond->o.ubNumberOfObjects - (INT32)pFirst->o.ubNumberOfObjects;
 }
 
 

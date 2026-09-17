@@ -231,7 +231,21 @@ static void BringupMeanwhileBox(void)
 		gCurrentMeanwhileDef.ubMeanwhileID != INTERROGATION
 		&& MeanwhileSceneSeen(gCurrentMeanwhileDef.ubMeanwhileID)
 		? MSG_BOX_FLAG_OKSKIP : MSG_BOX_FLAG_OK;
-	DoMessageBox(MSG_BOX_BASIC_STYLE, zStr, guiCurrentScreen, flags, BeginMeanwhileCallBack, NULL);
+	// Centered on the map's own canvas via the shared
+	// GetMapScreenPopupCenteringRect() (Map_Screen_Interface.cc) when the
+	// meanwhile scene starts while on the map screen; meanwhile scenes can
+	// also start from other screens (guiCurrentScreen), where
+	// MAP_SCREEN_X/Y wouldn't be meaningful, so fall back to the default
+	// (full-screen) centering there.
+	if (guiCurrentScreen == MAP_SCREEN)
+	{
+		SGPBox const centering_rect = GetMapScreenPopupCenteringRect();
+		DoMessageBox(MSG_BOX_BASIC_STYLE, zStr, guiCurrentScreen, flags, BeginMeanwhileCallBack, &centering_rect);
+	}
+	else
+	{
+		DoMessageBox(MSG_BOX_BASIC_STYLE, zStr, guiCurrentScreen, flags, BeginMeanwhileCallBack, NULL);
+	}
 }
 
 void CheckForMeanwhileOKStart( )

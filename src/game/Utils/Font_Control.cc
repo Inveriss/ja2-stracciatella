@@ -19,9 +19,14 @@ SGPFont gp16PointArial;
 SGPFont gpBlockFontNarrow;
 SGPFont gpBlockyFont;
 SGPFont gpBlockyFont2;
+SGPFont gpMapFont;
+SGPFont gpGridFont;
+SGPFont gpSectorInvFont;
 SGPFont gpCompFont;
 SGPFont gpLargeFontType1;
 SGPFont gpSmallCompFont;
+SGPFont gpTextInventoryFont;
+SGPFont gpValueInventoryFont;
 SGPFont gpSmallFontType1;
 SGPFont gpTinyFontType1;
 
@@ -45,9 +50,14 @@ void InitializeFonts(void)
 	M(gpBlockFontNarrow,       FONTSDIR "/blockfontnarrow.sti");
 	M(gpBlockyFont,            FONTSDIR "/blockfont.sti");
 	M(gpBlockyFont2,           FONTSDIR "/blockfont2.sti");
+	M(gpMapFont,               FONTSDIR "/font_map.sti");
+	M(gpGridFont,              FONTSDIR "/font_grid.sti");
+	M(gpSectorInvFont,         FONTSDIR "/font_sector_inv.sti");
 	M(gpCompFont,              FONTSDIR "/compfont.sti");
 	M(gpLargeFontType1,        FONTSDIR "/largefont1.sti");
 	M(gpSmallCompFont,         FONTSDIR "/smallcompfont.sti");
+	M(gpTextInventoryFont,     FONTSDIR "/FONT_TEXT_Inventory.STI");
+	M(gpValueInventoryFont,    FONTSDIR "/FONT_VALUE_Inventory.STI");
 	M(gpSmallFontType1,        FONTSDIR "/smallfont1.sti");
 	M(gpTinyFontType1,         FONTSDIR "/tinyfont1.sti");
 

@@ -1551,10 +1551,12 @@ static void DrawGenericButton(const GUI_BUTTON* b)
 }
 
 
-GUIButtonRef CreateCheckBoxButton(INT16 x, INT16 y, const char* filename, INT16 Priority, GUI_CALLBACK ClickCallback)
+GUIButtonRef CreateCheckBoxButton(INT16 x, INT16 y, const char* filename, INT16 Priority, GUI_CALLBACK ClickCallback, INT32 base_index)
 {
 	Assert(filename != NULL);
-	BUTTON_PICS* const ButPic = LoadButtonImage(filename, -1, 0, 1, 2, 3);
+	// Grayed stays the -1 "none" sentinel regardless of base_index -- only
+	// the 4 real states shift together.
+	BUTTON_PICS* const ButPic = LoadButtonImage(filename, -1, base_index, base_index + 1, base_index + 2, base_index + 3);
 	GUIButtonRef const b      = QuickCreateButtonInternal(ButPic, x, y, BUTTON_CHECKBOX, Priority, MSYS_NO_CALLBACK, ClickCallback);
 
 	//change the flags so that it isn't a quick button anymore

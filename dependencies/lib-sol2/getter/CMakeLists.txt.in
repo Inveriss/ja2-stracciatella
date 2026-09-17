@@ -14,7 +14,13 @@ find_program(PATCH_PROGRAM "patch")
 
 # doing it with generator expressions had strange problems
 if( PATCH_PROGRAM )
-    set( PATCH_CMD patch )
+    # Quoted and using the full path found above: on Windows, "patch" (e.g.
+    # Git for Windows' usr/bin/patch.exe) is typically NOT on PATH for the
+    # process running this custom build step (MSBuild/devenv only add
+    # Git's cmd/ dir to PATH, not usr/bin/), which made the bare "patch"
+    # command fail with "not recognized" (exit code 9009). The full path may
+    # contain spaces (e.g. "Program Files"), hence the quoting.
+    set( PATCH_CMD "\"${PATCH_PROGRAM}\"" )
 else()
     set( PATCH_CMD git apply --ignore-whitespace )
 endif()

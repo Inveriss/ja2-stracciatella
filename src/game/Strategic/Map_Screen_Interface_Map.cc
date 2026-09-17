@@ -12,6 +12,7 @@
 #include "Game_Clock.h"
 #include "GameInstance.h"
 #include "HImage.h"
+#include "Input.h"
 #include "Interface.h"
 #include "Line.h"
 #include "Map_Information.h"
@@ -47,6 +48,7 @@
 #include "Timer_Control.h"
 #include "Town_Militia.h"
 #include "TownModel.h"
+#include "UILayout.h"
 #include "Vehicles.h"
 #include "Video.h"
 #include "VObject.h"
@@ -84,18 +86,47 @@
 // #define HORT_SCROLL 14
 // #define VERT_SCROLL 10
 
-// the pop up for helicopter stuff
-#define MAP_HELICOPTER_ETA_POPUP_X (STD_SCREEN_X + 400)
-#define MAP_HELICOPTER_ETA_POPUP_Y (STD_SCREEN_Y + 250)
-#define MAP_HELICOPTER_UPPER_ETA_POPUP_Y (STD_SCREEN_Y + 50)
-#define MAP_HELICOPTER_ETA_POPUP_WIDTH 120
-#define MAP_HELICOPTER_ETA_POPUP_HEIGHT 68
+// the pop up for helicopter stuff -- two independent locations (normal and
+// "upper", used when a low-on-the-map sector is selected so the popup
+// doesn't run off the bottom of the screen), each with its own graphic
+// (pos2_first.sti / pos2_second.sti, see guiMapBorderHeliSectorsFirst/
+// Second below) and fully independent X/Y.
+#define MAP_HELICOPTER_ETA_POPUP_X (MAP_SCREEN_X + 873)
+#define MAP_HELICOPTER_ETA_POPUP_Y (MAP_SCREEN_Y + 185)
+#define MAP_HELICOPTER_UPPER_ETA_POPUP_X (MAP_SCREEN_X + 873)
+#define MAP_HELICOPTER_UPPER_ETA_POPUP_Y (MAP_SCREEN_Y + 359)
+#define MAP_HELICOPTER_ETA_POPUP_WIDTH 129
+#define MAP_HELICOPTER_ETA_POPUP_HEIGHT 103
 
-#define MAP_LEVEL_STRING_X (STD_SCREEN_X + 432)
-#define MAP_LEVEL_STRING_Y (STD_SCREEN_Y + 305)
+// Text layout inside the pos2_first.sti/pos2_second.sti popup (Total
+// Distance/Safe/Unsafe/Total Cost/ETA, and the passenger count below them)
+// -- one shared (X, starting Y, and a value column width used to
+// right-align each numeric value) applied to every line, independent of the
+// popup's own X/Y/size above. Separate set for the "upper" location so each
+// location can be tuned on its own.
+#define MAP_HELICOPTER_ETA_TEXT_X       (MAP_HELICOPTER_ETA_POPUP_X + 14)
+#define MAP_HELICOPTER_ETA_TEXT_Y       (MAP_HELICOPTER_ETA_POPUP_Y + 13)
+#define MAP_HELICOPTER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -27
+
+#define MAP_HELICOPTER_UPPER_ETA_TEXT_X       (MAP_HELICOPTER_UPPER_ETA_POPUP_X + 14)
+#define MAP_HELICOPTER_UPPER_ETA_TEXT_Y       (MAP_HELICOPTER_UPPER_ETA_POPUP_Y + 13)
+#define MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -27
+
+// X shifted +190 per user request.
+#define MAP_LEVEL_STRING_X (MAP_SCREEN_X + 432 + 190)
+// Bottom-anchored to the (now recalibrated) map viewport instead of a fixed
+// MAP_SCREEN_Y offset, per user request. Was 3px above the old viewport's
+// bottom edge (old MAP_VIEW_START_Y + MAP_VIEW_HEIGHT = 10+298 = 308;
+// 308-305=3); preserved here as the same 3px margin above the new bottom.
+#define MAP_LEVEL_STRING_Y (MAP_VIEW_START_Y + MAP_VIEW_HEIGHT - 3)
 
 // font
-#define MAP_FONT BLOCKFONT2
+// Dedicated, user-authored font for the strategic map screen (town/mine/SAM
+// names, grid letters/numbers, town loyalty %, "Sublevel: N", helicopter
+// ETA, militia counts) -- was BLOCKFONT2, now its own font/asset so it can
+// be sized independently of blockfont2.sti's other (non-map) uses elsewhere
+// in the game.
+#define MAP_FONT FONTMAP
 
 // index color
 #define MAP_INDEX_COLOR 32*4-9
@@ -106,20 +137,21 @@
 
 //Map Location index regions
 
-// x start of hort index
-#define MAP_HORT_INDEX_X (STD_SCREEN_X + 292)
+// x start of hort index (numbers 1-16). Shifted +23 X / +7 Y per user
+// request.
+#define MAP_HORT_INDEX_X (MAP_SCREEN_X + 292 + 23)
 
 // y position of hort index
-#define MAP_HORT_INDEX_Y  (STD_SCREEN_Y + 10)
+#define MAP_HORT_INDEX_Y  (MAP_SCREEN_Y + 10 + 7)
 
 // height of hort index
 #define MAP_HORT_HEIGHT  GetFontHeight(MAP_FONT)
 
-// vert index start x
-#define MAP_VERT_INDEX_X (STD_SCREEN_X + 273)
+// vert index start x (letters A-P). Shifted +10 X / +15 Y per user request.
+#define MAP_VERT_INDEX_X (MAP_SCREEN_X + 273 + +10)
 
 // vert index start y
-#define MAP_VERT_INDEX_Y  (STD_SCREEN_Y + 31)
+#define MAP_VERT_INDEX_Y  (MAP_SCREEN_Y + 31 + 15)
 
 // vert width
 #define MAP_VERT_WIDTH   GetFontHeight(MAP_FONT)
@@ -227,6 +259,12 @@
 // the font use on the mvt icons for mapscreen
 #define MAP_MVT_ICON_FONT SMALLCOMPFONT
 
+// Merc-count text on merc_between_sector_icons.sti/merc_mvt_green_arrows.sti
+// (ShowPeopleInMotion()) only -- kept separate from MAP_MVT_ICON_FONT so this
+// doesn't also change the helicopter icon's passenger-count text
+// (DisplayPositionOfHelicopter()), which still uses MAP_MVT_ICON_FONT.
+#define MAP_MVT_TRANSIT_FONT FONTGRID
+
 
 // map shading colors
 
@@ -249,8 +287,8 @@ static SGPVSurface* guiBIGMAP;
 #define MILITIA_BOX_ROWS 3
 #define MILITIA_BOX_BOX_HEIGHT 36
 #define MILITIA_BOX_BOX_WIDTH 42
-#define MAP_MILITIA_BOX_POS_X (STD_SCREEN_X + 400)
-#define MAP_MILITIA_BOX_POS_Y (STD_SCREEN_Y + 125)
+#define MAP_MILITIA_BOX_POS_X (MAP_SCREEN_X + 400)
+#define MAP_MILITIA_BOX_POS_Y (MAP_SCREEN_Y + 125)
 
 #define POPUP_MILITIA_ICONS_PER_ROW 5 // max 6 rows gives the limit of 30 militia
 #define MEDIUM_MILITIA_ICON_SPACING 5
@@ -301,10 +339,31 @@ cache_key_t const guiCHARICONS{ INTERFACEDIR "/boxes.sti" };
 // the merc arrival sector landing zone icon
 cache_key_t const guiBULLSEYE{ INTERFACEDIR "/bullseye.sti" };
 
-// sublevel graphics
-cache_key_t const guiSubLevel1{ INTERFACEDIR "/mine_1.sti" };
-cache_key_t const guiSubLevel2{ INTERFACEDIR "/mine_2.sti" };
-cache_key_t const guiSubLevel3{ INTERFACEDIR "/mine_3.sti" };
+// Sublevel (mine) graphics. Not plain cache_key_t constants: which file each
+// is depends on the active resolution (see
+// UILayout::isCompactStrategicScreen()), which isn't known yet at
+// static-initialization time, so the choice has to be resolved at runtime,
+// on every call -- see GetCharListGraphicsFilename() in MapScreen.cc for the
+// same pattern. Suffix convention: _1280 for the compact strategic-screen
+// tier (height 720-767), _1024 for the large tier (height 768+).
+//
+// Naming note: sectorZ (iCurrentMapSectorZ) is 0 at the surface and 1/2/3 for
+// the three mine sublevels, but this screen's own UI labels them "Map Level
+// 1" (surface, no mine graphic) through "Map Level 4" -- one higher. The
+// filenames follow that UI numbering (mine_2/3/4), not sectorZ, hence the
+// mine_1.sti -> mine_2_*.sti-looking offset below.
+cache_key_t GetMineLevelGraphicsFilename(int const sectorZ)
+{
+	bool const compact = g_ui.isCompactStrategicScreen();
+	switch (sectorZ)
+	{
+		case 1: return compact ? INTERFACEDIR "/mine_2_1280.sti" : INTERFACEDIR "/mine_2_1024.sti";
+		case 2: return compact ? INTERFACEDIR "/mine_3_1280.sti" : INTERFACEDIR "/mine_3_1024.sti";
+		case 3: return compact ? INTERFACEDIR "/mine_4_1280.sti" : INTERFACEDIR "/mine_4_1024.sti";
+
+		default: abort(); // HACK000E
+	}
+}
 
 // militia graphics
 cache_key_t const guiMilitia{ INTERFACEDIR "/militia.sti" };
@@ -312,8 +371,10 @@ cache_key_t const guiMilitiaMaps{ INTERFACEDIR "/militiamaps.sti" };
 cache_key_t const guiMilitiaSectorHighLight{ INTERFACEDIR "/militiamapsectoroutline2.sti" };
 cache_key_t const guiMilitiaSectorOutline{ INTERFACEDIR "/militiamapsectoroutline.sti" };
 
-// heli pop up
-cache_key_t const guiMapBorderHeliSectors{ INTERFACEDIR "/pos2.sti" };
+// heli pop up -- two independent graphics, one per popup location (normal
+// vs "upper"), per user request.
+cache_key_t const guiMapBorderHeliSectorsFirst{ INTERFACEDIR "/pos2_first.sti" };
+cache_key_t const guiMapBorderHeliSectorsSecond{ INTERFACEDIR "/pos2_second.sti" };
 
 // sam and mine icons
 cache_key_t const guiSAMICON{ INTERFACEDIR "/sam.sti" };
@@ -323,6 +384,19 @@ cache_key_t const guiMINEICON{ INTERFACEDIR "/mine.sti" };
 
 // helicopter icon
 cache_key_t const guiHelicopterIcon{ INTERFACEDIR "/helicop.sti" };
+
+// Ground-vehicle destination marker -- its own dedicated graphic
+// (vehiclecursor_destination.sti), frame 0, per user request. Shown at a
+// player ground vehicle's confirmed destination sector, the same way
+// HELI_SHADOW_ICON marks the helicopter's -- see ShowVehicleDestinations().
+cache_key_t const guiVehicleCursorIcon{ CURSORSDIR "/vehiclecursor_destination.sti" };
+#define VEHICLE_DESTINATION_ICON 0
+
+// On-foot merc destination marker -- same idea as guiVehicleCursorIcon
+// above, but for walking player groups, per user request. Shown at a
+// walking group's confirmed destination sector -- see ShowMercDestinations().
+cache_key_t const guiWalkingCursorIcon{ CURSORSDIR "/walkingcursor_destination.sti" };
+#define MERC_DESTINATION_ICON 0
 
 // the between sector icons
 cache_key_t const guiCHARBETWEENSECTORICONS{ INTERFACEDIR "/merc_between_sector_icons.sti" };
@@ -417,8 +491,19 @@ void InitMapScreenInterfaceMap()
 		pTownPoints.push_back(town->townPoint);
 	}
 
+	// Bottom edge was "MAP_VIEW_HEIGHT-10 + MAP_GRID_Y" -- the "-10" was
+	// canceling out the old MAP_VIEW_HEIGHT's hidden +10px margin (298 =
+	// 16*18 + 10), recovering the true 16-row grid height before adding one
+	// more row. Now that MAP_VIEW_HEIGHT is exactly
+	// MAX_VIEW_SECTORS*MAP_GRID_Y with no hidden margin, there's nothing left
+	// to cancel out -- "-1" (matching iTop's own inclusive-pixel adjustment)
+	// is the correct, self-scaling equivalent. This rect drives both
+	// RestrictMouseCursor() and the clip used when drawing the grey town
+	// border lines (ClipBlitsToMapViewRegionForRectangleAndABit) -- with the
+	// stale "-10", both were cut short in the last (16th) row at the new,
+	// bigger grid size.
 	MapScreenRect.set((MAP_VIEW_START_X+MAP_GRID_X - 2), ( MAP_VIEW_START_Y+MAP_GRID_Y - 1),
-				MAP_VIEW_START_X + MAP_VIEW_WIDTH - 1 + MAP_GRID_X , MAP_VIEW_START_Y+MAP_VIEW_HEIGHT-10+MAP_GRID_Y);
+				MAP_VIEW_START_X + MAP_VIEW_WIDTH - 1 + MAP_GRID_X , MAP_VIEW_START_Y+MAP_VIEW_HEIGHT-1+MAP_GRID_Y);
 }
 
 void DrawMapIndexBigMap(BOOLEAN fSelectedCursorIsYellow)
@@ -733,6 +818,81 @@ static INT32 ShowVehicles(const SGPSector& sSector, INT32 icon_pos)
 }
 
 
+// Same idea as DisplayDestinationOfHelicopter() (which handles the one,
+// singleton helicopter) but for ground vehicles, of which there can be
+// several moving at once -- draws a persistent marker at each player ground
+// vehicle's confirmed destination sector, which naturally disappears once
+// the vehicle arrives (its path then has length <= 1). Called once (not
+// per-sector) from ShowTeamAndVehicles(), redrawn into guiSAVEBUFFER
+// whenever the map panel is dirty (same as the other per-sector icons in
+// this file), so unlike the helicopter's version this needs no manual
+// old-position bookkeeping even with multiple vehicles moving at once.
+static void ShowVehicleDestinations(void)
+{
+	if (iCurrentMapSectorZ != 0) return; // ground vehicles only travel on the surface
+
+	CFOR_EACH_VEHICLE(v)
+	{
+		if (IsHelicopter(v)) continue; // has its own destination marker, see DisplayDestinationOfHelicopter()
+
+		SOLDIERTYPE const& vs = GetSoldierStructureForVehicle(v);
+		if (vs.bTeam != OUR_TEAM) continue;
+
+		if (GetLengthOfPath(v.pMercPath) <= 1) continue; // not going anywhere
+
+		INT16 sLastSectorId = v.sSector.AsStrategicIndex();
+		for (PathSt const* pNode = v.pMercPath; pNode != NULL; pNode = pNode->pNext)
+		{
+			sLastSectorId = (INT16)pNode->uiSectorId;
+		}
+		SGPSector const sDest = SGPSector::FromStrategicIndex(sLastSectorId);
+
+		// same +1/+3 offset as DisplayDestinationOfHelicopter() uses for its
+		// own marker, for visual consistency
+		INT16 const x = MAP_VIEW_START_X + sDest.x * MAP_GRID_X + 1;
+		INT16 const y = MAP_VIEW_START_Y + sDest.y * MAP_GRID_Y + 3;
+		BltVideoObject(guiSAVEBUFFER, guiVehicleCursorIcon, VEHICLE_DESTINATION_ICON, x, y);
+		InvalidateRegion(x, y, x + DMAP_GRID_X, y + DMAP_GRID_Y);
+	}
+}
+
+
+// Same idea as ShowVehicleDestinations() above, but for player groups
+// travelling on foot -- draws a persistent marker at each walking group's
+// confirmed destination sector, which naturally disappears once the group
+// arrives (its path then has length <= 1). Iterates groups rather than
+// individual soldiers so a whole squad travelling together only gets one
+// marker, using GetGroupMercPathPtr() to get at the right merc's pMercPath
+// regardless of which soldier in the group actually holds it. Vehicle
+// groups are skipped -- they already have their own marker above.
+static void ShowMercDestinations(void)
+{
+	if (iCurrentMapSectorZ != 0) return; // mercs only travel on the surface
+
+	CFOR_EACH_PLAYER_GROUP(g)
+	{
+		if (g->fVehicle) continue; // has its own destination marker, see ShowVehicleDestinations()
+
+		PathSt* const pMercPath = GetGroupMercPathPtr(*g);
+		if (GetLengthOfPath(pMercPath) <= 1) continue; // not going anywhere
+
+		INT16 sLastSectorId = g->ubSector.AsStrategicIndex();
+		for (PathSt const* pNode = pMercPath; pNode != NULL; pNode = pNode->pNext)
+		{
+			sLastSectorId = (INT16)pNode->uiSectorId;
+		}
+		SGPSector const sDest = SGPSector::FromStrategicIndex(sLastSectorId);
+
+		// same +1/+3 offset as DisplayDestinationOfHelicopter()/
+		// ShowVehicleDestinations() use for their own markers, for visual consistency
+		INT16 const x = MAP_VIEW_START_X + sDest.x * MAP_GRID_X + 1;
+		INT16 const y = MAP_VIEW_START_Y + sDest.y * MAP_GRID_Y + 3;
+		BltVideoObject(guiSAVEBUFFER, guiWalkingCursorIcon, MERC_DESTINATION_ICON, x, y);
+		InvalidateRegion(x, y, x + DMAP_GRID_X, y + DMAP_GRID_Y);
+	}
+}
+
+
 static void ShowEnemiesInSector(const SGPSector& sMap, INT16 n_enemies, UINT8 icon_pos)
 {
 	while (n_enemies-- != 0)
@@ -777,6 +937,9 @@ static void ShowTeamAndVehicles()
 			ShowPeopleInMotion(sector);
 		}
 	}
+
+	ShowVehicleDestinations();
+	ShowMercDestinations();
 }
 
 
@@ -2018,18 +2181,26 @@ void RestoreClipRegionToFullScreenForRectangle( UINT32 uiDestPitchBYTES )
 #define WEST_X_MVT_OFFSET -8
 #define EAST_WEST_CENTER_OFFSET +2
 
-#define NORTH_TEXT_X_OFFSET +1
-#define NORTH_TEXT_Y_OFFSET +4
-#define SOUTH_TEXT_X_OFFSET +1
-#define SOUTH_TEXT_Y_OFFSET +2
+#define NORTH_TEXT_X_OFFSET +1 + 14 + 1 + 1
+#define NORTH_TEXT_Y_OFFSET +4 + 5 + 9 - 2
+#define SOUTH_TEXT_X_OFFSET +1 + 9
+#define SOUTH_TEXT_Y_OFFSET +2 + 14 - 9
 
-#define EAST_TEXT_X_OFFSET + 2
-#define EAST_TEXT_Y_OFFSET 0
-#define WEST_TEXT_X_OFFSET + 4
-#define WEST_TEXT_Y_OFFSET 0
+#define EAST_TEXT_X_OFFSET + 2 + 18 - 11 + 1
+#define EAST_TEXT_Y_OFFSET 0 + 10
+#define WEST_TEXT_X_OFFSET + 4 + 4 + 10 + 1
+#define WEST_TEXT_Y_OFFSET 0 + 10
 
 
 #define ICON_WIDTH 8
+
+// Total pixel displacement the transit arrow (and its merc-count number)
+// slides in the direction of travel over the course of one leg (one sector
+// to the next), reaching this exactly at arrival regardless of how long the
+// leg actually takes -- see PlayersBetweenTheseSectors()'s
+// transit_fraction_enter output. Matches MERC_BETWEEN_SECTOR_ICONS.STI's
+// own width/height (18px, per user measurement).
+#define MVT_ANIM_TOTAL_PIXELS 18
 
 
 // show the icons for people in motion
@@ -2056,9 +2227,10 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 		INT32       sExiting;
 		INT32       sEntering;
 		BOOLEAN     fAboutToEnter;
+		float       flTransitFraction;
 		INT16 const sec_src = SGPSector::FromStrategicIndex(sSource).AsByte();
 		INT16 const sec_dst = SGPSector::FromStrategicIndex(sDest).AsByte();
-		if (!PlayersBetweenTheseSectors(sec_src, sec_dst, &sExiting, &sEntering, &fAboutToEnter)) continue;
+		if (!PlayersBetweenTheseSectors(sec_src, sec_dst, &sExiting, &sEntering, &fAboutToEnter, &flTransitFraction)) continue;
 		// someone is leaving
 
 		// now find position
@@ -2126,18 +2298,42 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 
 		INT16 iX = MAP_VIEW_START_X                     + sSector.x * MAP_GRID_X + sOffsetX;
 		INT16 iY = MAP_Y_ICON_OFFSET + MAP_VIEW_START_Y + sSector.y * MAP_GRID_Y + sOffsetY;
+
+		// Slide the arrow (and, since the text position below is derived from
+		// iX/iY, its merc-count number too) smoothly in the direction of
+		// travel over the course of this leg. Reaches exactly
+		// MVT_ANIM_TOTAL_PIXELS by the time the leg completes, regardless of
+		// how long it took -- kept in sync every frame by MapScreen.cc
+		// forcing a redraw while AnyPlayerGroupInMotion() is true.
+		INT16 const sAnimOffset = (INT16)(flTransitFraction * MVT_ANIM_TOTAL_PIXELS + 0.5f);
+		switch (dir)
+		{
+			case 0: iY -= sAnimOffset; break; // north: moving up
+			case 1: iX += sAnimOffset; break; // east: moving right
+			case 2: iY += sAnimOffset; break; // south: moving down
+			case 3: iX -= sAnimOffset; break; // west: moving left
+		}
+
 		BltVideoObject(guiSAVEBUFFER, hIconHandle, dir, iX, iY);
 
 		// blit the text
-		UINT8 const foreground = fAboutToEnter ? FONT_BLACK : FONT_WHITE;
-		SetFontAttributes(MAP_MVT_ICON_FONT, foreground);
+		// Always white text on a (default, dark) shadow, on both icons --
+		// per user request, matching how it already looks on
+		// guiCHARBETWEENSECTORICONS. The old fAboutToEnter-based switch to
+		// black text broke down because DEFAULT_SHADOW (a dark index in
+		// MAP_MVT_TRANSIT_FONT's own palette) disappears behind black text.
+		SetFontAttributes(MAP_MVT_TRANSIT_FONT, FONT_WHITE);
 		SetFontDestBuffer(guiSAVEBUFFER);
 
 		ST::string buf = ST::format("{}", sExiting);
 
 		INT16 usX;
 		INT16 usY;
-		FindFontCenterCoordinates(iX + sTextXOffset, 0, ICON_WIDTH, 0, buf, MAP_FONT, &usX, &usY);
+		// Centering width must be measured with the same font the text is
+		// actually drawn in (MAP_MVT_TRANSIT_FONT) -- see MAP_MVT_TRANSIT_FONT's
+		// own comment above for why this is a separate font from
+		// MAP_MVT_ICON_FONT.
+		FindFontCenterCoordinates(iX + sTextXOffset, 0, ICON_WIDTH, 0, buf, MAP_MVT_TRANSIT_FONT, &usX, &usY);
 		MPrint(usX, iY + sTextYOffset, buf);
 
 		INT32 iWidth;
@@ -2179,25 +2375,63 @@ static void ShowPeopleInMotion(const SGPSector& sSector)
 
 /* calculate the distance travelled, the proposed distance, and total distance
  * one can go and display these on screen */
+// Old behavior: which of the two heli ETA popups (pos2_first.sti/
+// pos2_second.sti) is shown was decided by the row of the currently
+// highlighted map sector (>= row 13 -> show the "upper" one instead, so the
+// popup didn't run off the bottom of the screen). Deactivated (not removed)
+// per user request, replaced by the cursor-hover-based swap below. Flip
+// back to true to restore the old behavior.
+constexpr bool ENABLE_ROW_BASED_HELI_POPUP_SWITCH = false;
+
 void DisplayDistancesForHelicopter()
 {
+	static INT16 sOldXPosition = 0;
 	static INT16 sOldYPosition = 0;
-	INT16 const sYPosition = gsHighlightSector.IsValid() && gsHighlightSector.y >= 13 ?
-			MAP_HELICOPTER_UPPER_ETA_POPUP_Y : MAP_HELICOPTER_ETA_POPUP_Y;
+	// Persists across frames: which popup is currently being shown (false =
+	// pos2_first.sti, true = pos2_second.sti). Only used by the new
+	// hover-based swap logic below.
+	static bool fShowSecondHeliPopup = false;
 
-	if (sOldYPosition != 0 && sOldYPosition != sYPosition)
+	bool fUpper;
+	if (ENABLE_ROW_BASED_HELI_POPUP_SWITCH)
 	{
-		RestoreExternBackgroundRect(MAP_HELICOPTER_ETA_POPUP_X, sOldYPosition, MAP_HELICOPTER_ETA_POPUP_WIDTH + 20, MAP_HELICOPTER_ETA_POPUP_HEIGHT);
+		fUpper = gsHighlightSector.IsValid() && gsHighlightSector.y >= 13;
 	}
+	else
+	{
+		// New behavior, per user request: swap to the OTHER popup (and hide
+		// this one) whenever the mouse cursor (with the helicopter icon,
+		// while plotting a heli route) is hovering directly over the popup
+		// that's currently being shown.
+		INT16 const sCurX = fShowSecondHeliPopup ? MAP_HELICOPTER_UPPER_ETA_POPUP_X : MAP_HELICOPTER_ETA_POPUP_X;
+		INT16 const sCurY = fShowSecondHeliPopup ? MAP_HELICOPTER_UPPER_ETA_POPUP_Y : MAP_HELICOPTER_ETA_POPUP_Y;
+		if (gusMouseXPos >= (UINT16)sCurX && gusMouseXPos < (UINT16)(sCurX + MAP_HELICOPTER_ETA_POPUP_WIDTH) &&
+			gusMouseYPos >= (UINT16)sCurY && gusMouseYPos < (UINT16)(sCurY + MAP_HELICOPTER_ETA_POPUP_HEIGHT))
+		{
+			fShowSecondHeliPopup = !fShowSecondHeliPopup;
+		}
+		fUpper = fShowSecondHeliPopup;
+	}
+
+	INT16 const sXPosition = fUpper ? MAP_HELICOPTER_UPPER_ETA_POPUP_X : MAP_HELICOPTER_ETA_POPUP_X;
+	INT16 const sYPosition = fUpper ? MAP_HELICOPTER_UPPER_ETA_POPUP_Y : MAP_HELICOPTER_ETA_POPUP_Y;
+
+	if (sOldYPosition != 0 && (sOldXPosition != sXPosition || sOldYPosition != sYPosition))
+	{
+		RestoreExternBackgroundRect(sOldXPosition, sOldYPosition, MAP_HELICOPTER_ETA_POPUP_WIDTH + 20, MAP_HELICOPTER_ETA_POPUP_HEIGHT);
+	}
+	sOldXPosition = sXPosition;
 	sOldYPosition = sYPosition;
 
-	BltVideoObject(FRAME_BUFFER, guiMapBorderHeliSectors, 0, MAP_HELICOPTER_ETA_POPUP_X, sYPosition);
+	BltVideoObject(FRAME_BUFFER, fUpper ? guiMapBorderHeliSectorsSecond : guiMapBorderHeliSectorsFirst, 0, sXPosition, sYPosition);
 
 	SetFontAttributes(MAP_FONT, FONT_LTGREEN);
 
-	INT32 const x = MAP_HELICOPTER_ETA_POPUP_X + 5;
-	INT32       y = sYPosition + 5;
-	INT32 const w = MAP_HELICOPTER_ETA_POPUP_WIDTH;
+	// Independent text-layout constants per location -- see their
+	// definitions above.
+	INT32 const x = fUpper ? MAP_HELICOPTER_UPPER_ETA_TEXT_X       : MAP_HELICOPTER_ETA_TEXT_X;
+	INT32       y = fUpper ? MAP_HELICOPTER_UPPER_ETA_TEXT_Y       : MAP_HELICOPTER_ETA_TEXT_Y;
+	INT32 const w = fUpper ? MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN : MAP_HELICOPTER_ETA_VALUE_MARGIN;
 	INT32 const h = GetFontHeight(MAP_FONT);
 	ST::string sString;
 	INT16       sX;
@@ -2248,7 +2482,7 @@ void DisplayDistancesForHelicopter()
 	FindFontRightCoordinates(x, y, w, 0, sString, MAP_FONT, &sX, &sY);
 	MPrint(sX, y, sString);
 
-	InvalidateRegion(MAP_HELICOPTER_ETA_POPUP_X, sOldYPosition, MAP_HELICOPTER_ETA_POPUP_X + MAP_HELICOPTER_ETA_POPUP_WIDTH + 20, sOldYPosition + MAP_HELICOPTER_ETA_POPUP_HEIGHT);
+	InvalidateRegion(sXPosition, sYPosition, sXPosition + MAP_HELICOPTER_ETA_POPUP_WIDTH + 20, sYPosition + MAP_HELICOPTER_ETA_POPUP_HEIGHT);
 }
 
 
@@ -2695,7 +2929,12 @@ static void DropAPersonInASector(UINT8 const type, UINT8 const sector)
 
 void LoadMapScreenInterfaceMapGraphics()
 {
-	guiBIGMAP                      = AddVideoSurfaceFromFile(INTERFACEDIR "/b_map.pcx");
+	// Suffix convention: _1280 for the compact strategic-screen tier (height
+	// 720-767), _1024 for the large tier (height 768+) -- see
+	// GetCharListGraphicsFilename() in MapScreen.cc for the same pattern.
+	guiBIGMAP                      = AddVideoSurfaceFromFile(g_ui.isCompactStrategicScreen()
+	                                      ? INTERFACEDIR "/b_map_1280.pcx"
+	                                      : INTERFACEDIR "/b_map_1024.pcx");
 
 	for (auto s : GCM->getMapSecrets())
 	{
@@ -2719,16 +2958,19 @@ void DeleteMapScreenInterfaceMapGraphics()
 	RemoveVObject(guiCHARBETWEENSECTORICONSCLOSE);
 	RemoveVObject(guiCHARICONS);
 	RemoveVObject(guiHelicopterIcon);
+	RemoveVObject(guiVehicleCursorIcon);
+	RemoveVObject(guiWalkingCursorIcon);
 	RemoveVObject(guiMAPCURSORS);
 	RemoveVObject(guiMINEICON);
-	RemoveVObject(guiMapBorderHeliSectors);
+	RemoveVObject(guiMapBorderHeliSectorsFirst);
+	RemoveVObject(guiMapBorderHeliSectorsSecond);
 	RemoveVObject(guiMilitia);
 	RemoveVObject(guiMilitiaMaps);
 	RemoveVObject(guiMilitiaSectorHighLight);
 	RemoveVObject(guiMilitiaSectorOutline);
-	RemoveVObject(guiSubLevel1);
-	RemoveVObject(guiSubLevel2);
-	RemoveVObject(guiSubLevel3);
+	RemoveVObject(GetMineLevelGraphicsFilename(1));
+	RemoveVObject(GetMineLevelGraphicsFilename(2));
+	RemoveVObject(GetMineLevelGraphicsFilename(3));
 
 	for (auto& pair : gSecretSiteIcons)
 	{
@@ -3480,18 +3722,17 @@ static void ShadeSubLevelsNotVisited(void)
 static void HandleLowerLevelMapBlit(void)
 {
 	// blits the sub level maps
-	const char * vo{};
-	switch( iCurrentMapSectorZ )
-	{
-		case 1: vo = guiSubLevel1; break;
-		case 2: vo = guiSubLevel2; break;
-		case 3: vo = guiSubLevel3; break;
+	cache_key_t const vo = GetMineLevelGraphicsFilename(iCurrentMapSectorZ);
 
-		default: abort(); // HACK000E
-	}
+	// Mine graphics (both tiers) are offset +21 X / +17 Y from
+	// MAP_VIEW_START_X/Y, per user request. MAP_VIEW_START_X/Y themselves must
+	// stay untouched -- they also anchor the terrain (B_MAP.PCX) blit and the
+	// sector grid math above.
+	INT16 const sBltX = MAP_VIEW_START_X + 21 + 22 - 1;
+	INT16 const sBltY = MAP_VIEW_START_Y + 17 + 16 + 1;
 
 	// handle the blt of the sublevel
-	BltVideoObject(guiSAVEBUFFER, vo, 0, MAP_VIEW_START_X + 21, MAP_VIEW_START_Y + 17);
+	BltVideoObject(guiSAVEBUFFER, vo, 0, sBltX, sBltY);
 
 	// handle shading of sublevels
 	ShadeSubLevelsNotVisited( );
@@ -3799,8 +4040,12 @@ static void DrawMapBoxIcon(cache_key_t const vo, UINT16 const icon, const SGPSec
 	INT32 const col = icon_pos % MERC_ICONS_PER_LINE;
 	INT32 const row = icon_pos / MERC_ICONS_PER_LINE;
 
-	INT32 const x = MAP_VIEW_START_X + sMap.x * MAP_GRID_X + MAP_X_ICON_OFFSET + 3 * col;
-	INT32 const y = MAP_VIEW_START_Y + sMap.y * MAP_GRID_Y + MAP_Y_ICON_OFFSET + 3 * row;
+	// Spacing step was 3 (matching the old 3x3 icon size in boxes.sti/
+	// militia.sti); doubled to 6 to match the new 6x6 icon size, per user
+	// request -- otherwise consecutive icons would overlap by half their
+	// width/height.
+	INT32 const x = MAP_VIEW_START_X + sMap.x * MAP_GRID_X + MAP_X_ICON_OFFSET + 6 * col;
+	INT32 const y = MAP_VIEW_START_Y + sMap.y * MAP_GRID_Y + MAP_Y_ICON_OFFSET + 6 * row;
 	BltVideoObject(guiSAVEBUFFER, vo, icon, x, y);
 	InvalidateRegion(x, y, x + DMAP_GRID_X, y + DMAP_GRID_Y);
 }
