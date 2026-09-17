@@ -42,10 +42,10 @@ extern BOOLEAN   fRenderRadarScreen;
 // screen-height tiers (g_ui.isCompactStrategicScreen()), only Y differs.
 #define RADAR_WINDOW_BIG_WIDTH		238
 #define RADAR_WINDOW_BIG_HEIGHT		119
-#define RADAR_WINDOW_BIG_FRAME_X	1
-#define RADAR_WINDOW_BIG_FRAME_Y	(g_ui.isCompactStrategicScreen() ? 583 : 631)
-#define RADAR_WINDOW_BIG_X			6
-#define RADAR_WINDOW_BIG_Y			(g_ui.isCompactStrategicScreen() ? 589 : 637)
+#define RADAR_WINDOW_BIG_FRAME_X	0
+#define RADAR_WINDOW_BIG_FRAME_Y	(g_ui.isCompactStrategicScreen() ? 573 : 621)
+#define RADAR_WINDOW_BIG_X			12
+#define RADAR_WINDOW_BIG_Y			(g_ui.isCompactStrategicScreen() ? 591 : 639)
 
 void LoadBigRadarScreenBitmap(const ST::string&);
 void ClearOutBigRadarMapImage(void);
