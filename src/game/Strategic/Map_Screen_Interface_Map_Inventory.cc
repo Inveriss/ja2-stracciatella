@@ -827,6 +827,7 @@ static void CloseStackSplitView(void);
 static void StackSplitSlotPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void StackSplitSlotSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void StackSplitSlotMove(MOUSE_REGION* pRegion, UINT32 iReason);
+static void StackSplitSlotsScroll(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SaveSeenAndUnseenItems(void);
 
 
@@ -1290,9 +1291,12 @@ static void CreateStackSplitSlots(void)
 
 	// Click-blocker only -- per user request, this window no longer closes
 	// on a left/right click of its own background, only via
-	// gStackSplitDoneButton below.
+	// gStackSplitDoneButton below. Still wired for the mouse wheel
+	// (StackSplitSlotsScroll()), same as the main grid's own background
+	// mask -- per user request, this window pages with the wheel too, not
+	// just its Next/Prev buttons.
 	MSYS_DefineRegion(&gStackSplitBackgroundRegion, bx, by, bx + g_stack_split_box.w - 1, by + g_stack_split_box.h - 1,
-		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, MSYS_NO_CALLBACK, StackSplitSlotsScroll));
 
 	// Only the CURRENT PAGE's items get a region -- gStackSplitSlots[] is
 	// reused across pages (same screen positions each time), with the
@@ -1314,7 +1318,7 @@ static void CreateStackSplitSlots(void)
 		MOUSE_REGION* const r   = &gStackSplitSlots[i];
 		MSYS_DefineRegion(r, x, y, x + reg_box.w - 1, y + reg_box.h - 1,
 			MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, StackSplitSlotMove,
-			MouseCallbackPrimarySecondary(StackSplitSlotPrimary, StackSplitSlotSecondary, MSYS_NO_CALLBACK));
+			MouseCallbackPrimarySecondary(StackSplitSlotPrimary, StackSplitSlotSecondary, StackSplitSlotsScroll));
 		MSYS_SetRegionUserData(r, 0, static_cast<UINT32>(first + i));
 	}
 }
@@ -1396,6 +1400,25 @@ static void InventoryStackSplitPrevPage(void)
 		--gCurrentStackSplitPage;
 		CreateStackSplitSlots();
 		fMapPanelDirty = TRUE;
+	}
+}
+
+
+// Mouse-wheel paging for this window -- per user request, matching the main
+// grid's own MapInvenPoolScreenMaskCallbackScroll()/MapInvenPoolSlotsScroll()
+// (wired the same way: on the full-panel background region and on every
+// individual item slot, via MouseCallbackPrimarySecondary()'s third
+// "allEvents" callback, which -- unlike the primary/secondary slots -- fires
+// for every reason, wheel included, so it's checked here itself).
+static void StackSplitSlotsScroll(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_WHEEL_UP)
+	{
+		InventoryStackSplitPrevPage();
+	}
+	else if (iReason & MSYS_CALLBACK_REASON_WHEEL_DOWN)
+	{
+		InventoryStackSplitNextPage();
 	}
 }
 
