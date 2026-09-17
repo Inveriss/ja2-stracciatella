@@ -38,6 +38,7 @@
 #include "CharProfile.h"
 #include "ContentManager.h"
 #include "IMP_Compile_Character.h"
+#include "IMP_MainPage.h"
 #include "Merc_Hiring.h"
 #include "Soldier_Profile.h"
 #include "Florist.h"
@@ -1831,7 +1832,20 @@ void GoToWebPage(INT32 iPageId)
 		case IMP_BOOKMARK:
 			guiCurrentWWWMode    = LAPTOP_MODE_CHAR_PROFILE;
 			guiCurrentLaptopMode = LAPTOP_MODE_CHAR_PROFILE;
-			iCurrentImpPage = IMP_HOME_PAGE;
+			// Skip the activation-code and welcome/"Begin" screens and jump
+			// straight into character creation, matching what the welcome
+			// page's own "Begin" button (BtnIMPMainPageBeginCallback) would
+			// silently do anyway for this same iCurrentProfileMode range.
+			// Fall back to the code-entry page when either:
+			//  - all IMP slots are used (its existing "Profile Already
+			//    Completed" message still applies), or
+			//  - iCurrentProfileMode > 2, meaning there's an abandoned
+			//    in-progress profile from an earlier attempt -- the welcome
+			//    page's Begin button would ask to confirm restarting it
+			//    rather than silently discarding it, so route through there
+			//    instead of skipping that confirmation.
+			iCurrentImpPage = (CanCreateAnotherImpMerc() && iCurrentProfileMode <= 2)
+				? IMP_BEGIN : IMP_HOME_PAGE;
 			break;
 
 		case MERC_BOOKMARK:
