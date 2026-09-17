@@ -1858,68 +1858,22 @@ join_buddy:
 
 static BOOLEAN DisplaySnowBackground(void)
 {
-	UINT32		uiCurrentTime = 0;
-	UINT8	ubCount;
+	// Snow/static connecting animation disabled -- skip straight to completion.
+	gfFirstTimeInContactScreen = FALSE;
+	gubCurrentCount = 0;
 
-	uiCurrentTime = GetJA2Clock();
+	if( gubVideoConferencingMode == AIM_VIDEO_FIRST_CONTACT_MERC_MODE && gfAimMemberCanMercSayOpeningQuote )
+		InitVideoFaceTalking(gbCurrentSoldier, QUOTE_GREETING);
 
-	if(gubCurrentCount < VC_NUM_LINES_SNOW)
-	{
-		ubCount = gubCurrentCount;
-	}
-	else if( gubCurrentCount < VC_NUM_LINES_SNOW*2 )
-	{
-		ubCount = gubCurrentCount - VC_NUM_LINES_SNOW;
-	}
-	else
-	{
-		gfFirstTimeInContactScreen = FALSE;
-		gubCurrentCount = 0;
-		ubCount = 0;
-
-		if( gubVideoConferencingMode == AIM_VIDEO_FIRST_CONTACT_MERC_MODE && gfAimMemberCanMercSayOpeningQuote )
-			InitVideoFaceTalking(gbCurrentSoldier, QUOTE_GREETING);
-
-		return(TRUE);
-	}
-
-	// if it is time to update the snow image
-	if( (uiCurrentTime - guiLastHandleMercTime) > VC_CONTACT_STATIC_TIME)
-	{
-		gubCurrentCount++;
-		guiLastHandleMercTime = uiCurrentTime;
-	}
-	BltVideoObject(FRAME_BUFFER, guiBWSnow, ubCount,AIM_MEMBER_VIDEO_FACE_X, AIM_MEMBER_VIDEO_FACE_Y);
-
-	InvalidateRegion(AIM_MEMBER_VIDEO_FACE_X,AIM_MEMBER_VIDEO_FACE_Y, AIM_MEMBER_VIDEO_FACE_X+AIM_MEMBER_VIDEO_FACE_WIDTH,AIM_MEMBER_VIDEO_FACE_Y+AIM_MEMBER_VIDEO_FACE_HEIGHT);
-
-	return(FALSE);
+	return(TRUE);
 }
 
 
-static BOOLEAN DisplayBlackBackground(UINT8 ubMaxNumOfLoops)
+static BOOLEAN DisplayBlackBackground(UINT8)
 {
-	UINT32		uiCurrentTime = 0;
-
-	uiCurrentTime = GetJA2Clock();
-
-	if (gubCurrentCount >= ubMaxNumOfLoops)
-	{
-		gubCurrentCount = 0;
-		return(TRUE);
-	}
-
-	// if it is time to update the snow image
-	if( (uiCurrentTime - guiLastHandleMercTime) > VC_CONTACT_STATIC_TIME)
-	{
-		gubCurrentCount++;
-		guiLastHandleMercTime = uiCurrentTime;
-	}
-	// Blit color to screen
-	ColorFillVideoSurfaceArea( FRAME_BUFFER, AIM_MEMBER_VIDEO_FACE_X, AIM_MEMBER_VIDEO_FACE_Y, AIM_MEMBER_VIDEO_FACE_X+AIM_MEMBER_VIDEO_FACE_WIDTH,	AIM_MEMBER_VIDEO_FACE_Y+AIM_MEMBER_VIDEO_FACE_HEIGHT, Get16BPPColor( FROMRGB( 0, 0, 0 ) ) );
-	InvalidateRegion(AIM_MEMBER_VIDEO_FACE_X,AIM_MEMBER_VIDEO_FACE_Y, AIM_MEMBER_VIDEO_FACE_X+AIM_MEMBER_VIDEO_FACE_WIDTH,AIM_MEMBER_VIDEO_FACE_Y+AIM_MEMBER_VIDEO_FACE_HEIGHT);
-
-	return(FALSE);
+	// Black-flicker connecting animation disabled -- skip straight to completion.
+	gubCurrentCount = 0;
+	return(TRUE);
 }
 
 
@@ -2741,7 +2695,9 @@ static BOOLEAN DisplayMovingTitleBar(BOOLEAN fForward)
 
 	if (gfJustSwitchedVideoConferenceMode)
 	{
-		ubCount = (fForward ? 1 : AIM_MEMBER_VIDEO_TITLE_ITERATIONS - 1);
+		// Sliding title bar animation disabled -- jump straight to the frame
+		// the original loop would have ended on.
+		ubCount = (fForward ? AIM_MEMBER_VIDEO_TITLE_ITERATIONS - 2 : 1);
 	}
 
 	UINT16 const usPosX      = STD_SCREEN_X + Interpolate(331, 125, ubCount);
