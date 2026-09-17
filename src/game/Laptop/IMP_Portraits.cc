@@ -1,6 +1,7 @@
 #include "CharProfile.h"
 #include "Directories.h"
 #include "Font.h"
+#include "HImage.h"
 #include "IMP_Portraits.h"
 #include "IMP_MainPage.h"
 #include "IMPVideoObjects.h"
@@ -45,6 +46,21 @@ void EnterIMPPortraits( void )
 
 
 static void RenderPortrait(INT16 x, INT16 y);
+static void RenderPortraitStatusText(void);
+static void UpdatePortraitDoneButton(void);
+
+
+static INT32 GetCurrentPortraitNumber(void)
+{
+	return iCurrentPortrait + (fCharacterIsMale ? 0 : 8);
+}
+
+
+// Returns the IMP slot already using the currently browsed portrait, or -1 if free.
+static INT8 GetSlotForCurrentPortrait(void)
+{
+	return FindImpSlotUsingPortrait(GetCurrentPortraitNumber());
+}
 
 
 void RenderIMPPortraits( void )
@@ -60,6 +76,12 @@ void RenderIMPPortraits( void )
 
 	// indent for the text
 	RenderAttrib1IndentFrame( 128, 65);
+
+	// show "Deceased"/"Already Created" when browsing an already-used portrait
+	RenderPortraitStatusText( );
+
+	// disable "Finished" while browsing an already-used portrait
+	UpdatePortraitDoneButton( );
 
 	// text
 	PrintImpText( );
@@ -92,7 +114,50 @@ static void RenderPortrait(INT16 const x, INT16 const y)
 { // Render the portrait of the current picture
 	INT32 const portrait = (fCharacterIsMale ? 200 : 208) + iCurrentPortrait;
 	ST::string filename = ST::format(FACESDIR "/bigfaces/{}.sti", portrait);
-	BltVideoObjectOnce(FRAME_BUFFER, filename.c_str(), 0, LAPTOP_SCREEN_UL_X + x, LAPTOP_SCREEN_WEB_UL_Y + y);
+
+	INT32 const destX = LAPTOP_SCREEN_UL_X + x;
+	INT32 const destY = LAPTOP_SCREEN_WEB_UL_Y + y;
+
+	INT8 const slot = GetSlotForCurrentPortrait();
+	if (slot < 0)
+	{
+		BltVideoObjectOnce(FRAME_BUFFER, filename.c_str(), 0, destX, destY);
+		return;
+	}
+
+	// Already used by a completed slot -- load a private copy so we can
+	// shade it without touching any other cached copy of the same portrait.
+	AutoSGPVObject vo{ AddVideoObjectFromFile(filename) };
+	if (IsImpSlotDead(slot))
+	{
+		vo->pShades[0] = Create16BPPPaletteShaded(vo->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
+		vo->CurrentShade(0);
+	}
+	BltVideoObject(FRAME_BUFFER, vo.get(), 0, destX, destY);
+	if (!IsImpSlotDead(slot))
+	{
+		// used but still alive: darken instead of red-shading
+		ETRLEObject const& e = vo->SubregionProperties(0);
+		FRAME_BUFFER->ShadowRect(destX, destY, destX + e.usWidth, destY + e.usHeight);
+	}
+}
+
+
+static void RenderPortraitStatusText(void)
+{
+	INT8 const slot = GetSlotForCurrentPortrait();
+	if (slot < 0) return;
+
+	SetFontAttributes(FONT12ARIAL, FONT_WHITE);
+	MPrint(290 + LAPTOP_UL_X, 320,
+		IsImpSlotDead(slot) ? pImpButtonText[27] : pImpButtonText[28],
+		CenterAlign(100));
+}
+
+
+static void UpdatePortraitDoneButton(void)
+{
+	EnableButton(giIMPPortraitButton[2], GetSlotForCurrentPortrait() < 0);
 }
 
 
@@ -193,6 +258,9 @@ static void BtnIMPPortraitDoneCallback(GUI_BUTTON *btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		// this portrait already belongs to another completed IMP slot: refuse
+		if (GetSlotForCurrentPortrait() >= 0) return;
+
 		iCurrentImpPage = IMP_MAIN_PAGE;
 
 		// current mode now is voice
@@ -202,7 +270,7 @@ static void BtnIMPPortraitDoneCallback(GUI_BUTTON *btn, UINT32 reason)
 		if (iCurrentProfileMode == 5) iCurrentImpPage = IMP_FINISH;
 
 		// grab picture number
-		iPortraitNumber = iCurrentPortrait + (fCharacterIsMale ? 0 : 8);
+		iPortraitNumber = GetCurrentPortraitNumber();
 
 		fButtonPendingFlag = TRUE;
 	}

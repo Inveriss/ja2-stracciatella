@@ -1373,7 +1373,9 @@
         "Analyse",
         "OK",
         "Voix",
-        "Specialties"
+        "Specialties",
+        "Deceased",
+        "Already Created"
     ],
     "pImpPopUpStrings": [
         "Code Incorrect",

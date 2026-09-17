@@ -41,7 +41,10 @@ void LoadSmallSilhouette(void);
 void DeleteSmallSilhouette( void );
 
 void DeleteLargeSilhouette( void );
-void RenderLargeSilhouette(INT16 sX, INT16 sY);
+// iOwningImpSlot: -1 if the slot being previewed is free, otherwise the
+// IMP slot (0..MAX_IMP_MERCS-1) already using it, so the silhouette can be
+// shown as unavailable (red-shaded if that slot's merc is dead).
+void RenderLargeSilhouette(INT16 sX, INT16 sY, INT8 iOwningImpSlot = -1);
 
 void DeleteAttributeFrame( void );
 void RenderAttributeFrame(INT16 sX, INT16 sY);

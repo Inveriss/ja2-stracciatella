@@ -1373,7 +1373,9 @@
         "Analyseren",
         "OK",
         "Stem",
-        "Specialties"
+        "Specialties",
+        "Deceased",
+        "Already Created"
     ],
     "pImpPopUpStrings": [
         "Ongeldige Autorisatiecode",

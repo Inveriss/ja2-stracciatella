@@ -1373,7 +1373,9 @@
         "Analyse wird durchgeführt",
         "OK",
         "Stimme",
-        "Spezialitäten"
+        "Spezialitäten",
+        "Deceased",
+        "Already Created"
     ],
     "pImpPopUpStrings": [
         "Ungültiger Code",

@@ -1373,7 +1373,9 @@
         "Analizuję...",
         "OK",
         "Głos",
-        "Specialties"
+        "Specialties",
+        "Deceased",
+        "Already Created"
     ],
     "pImpPopUpStrings": [
         "Nieprawidłowy kod dostępu",

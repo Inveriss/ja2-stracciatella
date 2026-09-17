@@ -1,6 +1,7 @@
 #ifndef _LAPTOP_SAVE_H_
 #define _LAPTOP_SAVE_H_
 
+#include "IMP_Compile_Character.h"
 #include "Item_Types.h"
 #include "Store_Inventory.h"
 
@@ -75,7 +76,7 @@ struct LaptopSaveInfoStruct
 
 
 	//IMP Information
-	BOOLEAN fIMPCompletedFlag; // Has the player Completed the IMP process
+	BOOLEAN fIMPCompletedFlag[MAX_IMP_MERCS]; // Has the player completed the IMP process for this slot (voice/gender combo). Never cleared once set, even if the merc later dies.
 	BOOLEAN fSentImpWarningAlready; // Has the Imp email warning already been sent
 
 

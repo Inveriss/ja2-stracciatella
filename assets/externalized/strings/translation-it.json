@@ -1373,7 +1373,9 @@
         "Analisi",
         "OK",
         "Voce",
-        "Specialties"
+        "Specialties",
+        "Deceased",
+        "Already Created"
     ],
     "pImpPopUpStrings": [
         "Codice di autorizzazione non valido",

@@ -1373,7 +1373,9 @@
         "Анализ",
         "OK",
         "Голос",
-        "Specialties"
+        "Specialties",
+        "Deceased",
+        "Already Created"
     ],
     "pImpPopUpStrings": [
         "Неверный код авторизации!",

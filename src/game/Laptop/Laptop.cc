@@ -37,6 +37,9 @@
 #include "BobbyRMailOrder.h"
 #include "CharProfile.h"
 #include "ContentManager.h"
+#include "IMP_Compile_Character.h"
+#include "Merc_Hiring.h"
+#include "Soldier_Profile.h"
 #include "Florist.h"
 #include "Florist_Cards.h"
 #include "Florist_Gallery.h"
@@ -402,8 +405,8 @@ void InitLaptopAndLaptopScreens(void)
 	GameInitFinances();
 	GameInitHistory();
 
-	//Reset the flag so we can create a new IMP character
-	LaptopSaveInfo.fIMPCompletedFlag = FALSE;
+	//Reset the flags so all IMP slots are available again for a new game
+	for (UINT8 i = 0; i < MAX_IMP_MERCS; ++i) LaptopSaveInfo.fIMPCompletedFlag[i] = FALSE;
 
 	//Reset the flag so that BOBBYR's isnt available at the begining of the game
 	LaptopSaveInfo.fBobbyRSiteCanBeAccessed = FALSE;
@@ -1389,7 +1392,7 @@ static BOOLEAN HandleExit(void)
 	if (LaptopSaveInfo.gfNewGameLaptop)
 	{
 		// Set an event to send this email (day 2 8:00-12:00)
-		if (!LaptopSaveInfo.fIMPCompletedFlag && !LaptopSaveInfo.fSentImpWarningAlready)
+		if (!HasCreatedAnyImpMerc() && !LaptopSaveInfo.fSentImpWarningAlready)
 		{
 			AddFutureDayStrategicEvent(EVENT_HAVENT_MADE_IMP_CHARACTER_EMAIL, (8 + Random(4)) * 60, 0, 1);
 			fExitingLaptopFlag = TRUE;
@@ -1403,11 +1406,56 @@ static BOOLEAN HandleExit(void)
 void HaventMadeImpMercEmailCallBack()
 {
 	//if the player STILL hasnt made an imp merc yet
-	if (!LaptopSaveInfo.fIMPCompletedFlag && !LaptopSaveInfo.fSentImpWarningAlready)
+	if (!HasCreatedAnyImpMerc() && !LaptopSaveInfo.fSentImpWarningAlready)
 	{
 		LaptopSaveInfo.fSentImpWarningAlready = TRUE;
 		AddEmail(IMP_EMAIL_AGAIN,IMP_EMAIL_AGAIN_LENGTH, 1, GetWorldTotalMin());
 	}
+}
+
+
+BOOLEAN IsImpSlotCompleted(UINT8 ubSlot)
+{
+	return LaptopSaveInfo.fIMPCompletedFlag[ubSlot];
+}
+
+
+BOOLEAN IsImpSlotDead(UINT8 ubSlot)
+{
+	return IsMercDead(GetProfile(PLAYER_GENERATED_CHARACTER_ID + ubSlot));
+}
+
+
+BOOLEAN HasCreatedAnyImpMerc(void)
+{
+	for (UINT8 i = 0; i < MAX_IMP_MERCS; ++i)
+	{
+		if (LaptopSaveInfo.fIMPCompletedFlag[i]) return TRUE;
+	}
+	return FALSE;
+}
+
+
+BOOLEAN CanCreateAnotherImpMerc(void)
+{
+	for (UINT8 i = 0; i < MAX_IMP_MERCS; ++i)
+	{
+		if (!LaptopSaveInfo.fIMPCompletedFlag[i]) return TRUE;
+	}
+	return FALSE;
+}
+
+
+// Returns the slot (0..MAX_IMP_MERCS-1) whose completed IMP merc was created
+// with this portrait, or -1 if no completed slot uses it.
+INT8 FindImpSlotUsingPortrait(INT32 iPortraitNumber)
+{
+	for (UINT8 i = 0; i < MAX_IMP_MERCS; ++i)
+	{
+		if (!LaptopSaveInfo.fIMPCompletedFlag[i]) continue;
+		if (GetProfile(PLAYER_GENERATED_CHARACTER_ID + i).ubFaceIndex - 200 == iPortraitNumber) return (INT8)i;
+	}
+	return -1;
 }
 
 
@@ -3186,14 +3234,14 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 {
 	LaptopSaveInfoStruct const& l = LaptopSaveInfo;
 
-	BYTE  data[7440];
+	BYTE  data[7445];
 	DataWriter d{data};
 	INJ_BOOL( d, l.gfNewGameLaptop)
 	INJ_BOOLA(d, l.fVisitedBookmarkAlready, lengthof(l.fVisitedBookmarkAlready))
 	INJ_SKIP( d, 3)
 	INJ_I32A( d, l.iBookMarkList, lengthof(l.iBookMarkList))
 	INJ_I32(  d, l.iCurrentBalance)
-	INJ_BOOL( d, l.fIMPCompletedFlag)
+	INJ_BOOLA(d, l.fIMPCompletedFlag, lengthof(l.fIMPCompletedFlag))
 	INJ_BOOL( d, l.fSentImpWarningAlready)
 	INJ_I16A( d, l.ubDeadCharactersList, lengthof(l.ubDeadCharactersList))
 	INJ_I16A( d, l.ubLeftCharactersList, lengthof(l.ubLeftCharactersList))
@@ -3271,7 +3319,7 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 
 	l.pLifeInsurancePayouts.clear();
 
-	BYTE data[7440];
+	BYTE data[7445];
 	f->read(data, sizeof(data));
 
 	DataReader d{data};
@@ -3280,7 +3328,7 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 	EXTR_SKIP( d, 3)
 	EXTR_I32A( d, l.iBookMarkList, lengthof(l.iBookMarkList))
 	EXTR_I32(  d, l.iCurrentBalance)
-	EXTR_BOOL( d, l.fIMPCompletedFlag)
+	EXTR_BOOLA(d, l.fIMPCompletedFlag, lengthof(l.fIMPCompletedFlag))
 	EXTR_BOOL( d, l.fSentImpWarningAlready)
 	EXTR_I16A( d, l.ubDeadCharactersList, lengthof(l.ubDeadCharactersList))
 	EXTR_I16A( d, l.ubLeftCharactersList, lengthof(l.ubLeftCharactersList))

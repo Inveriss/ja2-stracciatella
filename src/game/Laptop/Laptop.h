@@ -35,6 +35,14 @@ void ClearOutTempLaptopFiles(void);
 
 void HaventMadeImpMercEmailCallBack(void);
 
+// IMP slot helpers (a "slot" is one of the MAX_IMP_MERCS voice/gender combos).
+// Slots are never freed once completed, even if the merc later dies.
+BOOLEAN IsImpSlotCompleted(UINT8 ubSlot);
+BOOLEAN IsImpSlotDead(UINT8 ubSlot);
+BOOLEAN HasCreatedAnyImpMerc(void);
+BOOLEAN CanCreateAnotherImpMerc(void);
+INT8    FindImpSlotUsingPortrait(INT32 iPortraitNumber);
+
 
 enum LaptopMode
 {

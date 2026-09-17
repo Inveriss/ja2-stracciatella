@@ -197,7 +197,7 @@ static void BtnIMPConfirmYes(GUI_BUTTON *btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		if (LaptopSaveInfo.fIMPCompletedFlag)
+		if (IsImpSlotCompleted(LaptopSaveInfo.iVoiceId))
 		{
 			// already here, leave
 			return;
@@ -210,8 +210,8 @@ static void BtnIMPConfirmYes(GUI_BUTTON *btn, UINT32 reason)
 		}
 
 		// line moved by CJC Nov 28 2002 to AFTER the check for money
-		LaptopSaveInfo.fIMPCompletedFlag = AddCharacterToPlayersTeam();
-		if (!LaptopSaveInfo.fIMPCompletedFlag) return; // only if merc hiring failed: no charge, give it another go
+		LaptopSaveInfo.fIMPCompletedFlag[LaptopSaveInfo.iVoiceId] = AddCharacterToPlayersTeam();
+		if (!IsImpSlotCompleted(LaptopSaveInfo.iVoiceId)) return; // only if merc hiring failed: no charge, give it another go
 
 		SOLDIERTYPE* const pSoldier = FindSoldierByProfileID(PLAYER_GENERATED_CHARACTER_ID + LaptopSaveInfo.iVoiceId);
 		if (!pSoldier) return;

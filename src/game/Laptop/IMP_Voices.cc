@@ -61,6 +61,14 @@ void EnterIMPVoices( void )
 
 
 static void RenderVoiceIndex(void);
+static void UpdateVoiceDoneButton(void);
+
+
+static INT8 GetSlotForCurrentVoice(void)
+{
+	INT8 const slot = (INT8)(iCurrentVoices + (fCharacterIsMale ? 0 : 3));
+	return IsImpSlotCompleted(slot) ? slot : -1;
+}
 
 
 void RenderIMPVoices( void )
@@ -72,13 +80,16 @@ void RenderIMPVoices( void )
 	RenderPortraitFrame( 191, 167 );
 
 	// the sillouette
-	RenderLargeSilhouette( 200, 176 );
+	RenderLargeSilhouette( 200, 176, GetSlotForCurrentVoice() );
 
 	// indent for the text
 	RenderAttrib1IndentFrame( 128, 65);
 
 	// render voice index value
 	RenderVoiceIndex( );
+
+	// disable "Finished" while browsing an already-used voice
+	UpdateVoiceDoneButton( );
 
 	// text
 	PrintImpText( );
@@ -212,6 +223,9 @@ static void BtnIMPVoicesDoneCallback(GUI_BUTTON *btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		// this voice already belongs to another completed IMP slot: refuse
+		if (GetSlotForCurrentVoice() >= 0) return;
+
 		iCurrentImpPage = IMP_MAIN_PAGE;
 
 		// if we are already done, leave
@@ -301,9 +315,19 @@ static void IMPPortraitRegionButtonCallback(MOUSE_REGION* pRegion, UINT32 iReaso
 
 static void RenderVoiceIndex(void)
 {
-	// render the voice index value on the the blank portrait
+	INT8 const slot = GetSlotForCurrentVoice();
+
+	ST::string text = slot < 0
+		? ST::format("{} {}", pIMPVoicesStrings, iCurrentVoices + 1)
+		: (IsImpSlotDead(slot) ? pImpButtonText[27] : pImpButtonText[28]);
+
+	// render the voice index value (or its used/dead status) on the blank portrait
 	SetFontAttributes(FONT12ARIAL, FONT_WHITE);
-	MPrint(290 + LAPTOP_UL_X, 320,
-		ST::format("{} {}", pIMPVoicesStrings, iCurrentVoices + 1),
-		CenterAlign(100));
+	MPrint(290 + LAPTOP_UL_X, 320, text, CenterAlign(100));
+}
+
+
+static void UpdateVoiceDoneButton(void)
+{
+	EnableButton(giIMPVoicesButton[2], GetSlotForCurrentVoice() < 0);
 }

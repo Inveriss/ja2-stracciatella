@@ -1373,7 +1373,9 @@
         "分析中",
         "完成",
         "嗓音",
-        "专长"
+        "专长",
+        "Deceased",
+        "Already Created"
     ],
     "pImpPopUpStrings": [
         "无效的授权号",
