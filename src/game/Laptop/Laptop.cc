@@ -107,15 +107,6 @@ enum
 	LAPTOP_PROGRAM_OPEN
 };
 
-// Toggle for the fix from commit 8eb43ce (out-of-bounds map<->laptop
-// transition rect -- see the two SGPBox rects below in
-// LaptopScreenHandle()/LeaveLapTopScreen()). Set to false to deactivate the
-// fix without removing it, restoring the original (buggy) STD_SCREEN_X/Y
-// wraps at MAP_SCREEN_WIDTH/HEIGHT, e.g. for regression testing against the
-// pre-8eb43ce state without switching branches/commits. Flip back to true
-// to re-enable the fix.
-constexpr bool ENABLE_LAPTOP_TRANSITION_RECT_FIX = true;
-
 #define BOOK_FONT     FONT10ARIAL
 #define DOWNLOAD_FONT FONT12ARIAL
 
@@ -1014,9 +1005,9 @@ ScreenID LaptopScreenHandle()
 	}
 
 	if (gfStartMapScreenToLaptopTransition)
-	{ //Everything is set up to start the transition animation.
+	{ //Everything is set up to open the laptop. The zoom-in transition
+	  //animation is disabled -- show the rendered laptop image immediately.
 		SetCurrentCursorFromDatabase(VIDEO_NO_CURSOR);
-		//Step 1:  Build the laptop image into the save buffer.
 		gfStartMapScreenToLaptopTransition = FALSE;
 		RestoreBackgroundRects();
 		RenderLapTopImage();
@@ -1027,57 +1018,9 @@ ScreenID LaptopScreenHandle()
 		PrintNumberOnTeam();
 		ShowLights();
 
-		//Step 2:  The mapscreen image is in the EXTRABUFFER, and laptop is in the SAVEBUFFER
-		//         Start transitioning the screen.
-		SGPBox const DstRect = ENABLE_LAPTOP_TRANSITION_RECT_FIX
-			? SGPBox{ STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT }
-			: SGPBox{ MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
-		const UINT32 uiTimeRange = 1000;
-		INT32 iPercentage     = 0;
-		INT32 iRealPercentage = 0;
-		const UINT32 uiStartTime = GetClock();
-		BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER,   0, 0, NULL);
-		BltVideoSurface(FRAME_BUFFER,  guiEXTRABUFFER, 0, 0, NULL);
 		PlayJA2SampleFromFile(SOUNDSDIR "/laptop power up (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
-		while (iRealPercentage < 100)
-		{
-			const UINT32 uiCurrTime = GetClock();
-			iPercentage = (uiCurrTime-uiStartTime) * 100 / uiTimeRange;
-			iPercentage = std::min(iPercentage, 100);
-
-			iRealPercentage = iPercentage;
-
-			//Factor the percentage so that it is modified by a gravity falling acceleration effect.
-			const INT32 iFactor = (iPercentage - 50) * 2;
-			if (iPercentage < 50)
-			{
-				iPercentage += iPercentage         * iFactor * 0.01 + 0.5;
-			}
-			else
-			{
-				iPercentage += (100 - iPercentage) * iFactor * 0.01 + 0.5;
-			}
-
-			INT32 iScalePercentage;
-			if (iPercentage < 99)
-			{
-				iScalePercentage = 10000 / (100 - iPercentage);
-			}
-			else
-			{
-				iScalePercentage = 5333;
-			}
-			const UINT16 uWidth  = 12 * iScalePercentage / 100;
-			const UINT16 uHeight =  9 * iScalePercentage / 100;
-			const UINT16 uX      = 472 - (472 - 320) * iScalePercentage / 5333;
-			const UINT16 uY      = 424 - (424 - 240) * iScalePercentage / 5333;
-
-			SGPBox const SrcRect2 = { (UINT16)(STD_SCREEN_X + uX - uWidth / 2), (UINT16)(STD_SCREEN_Y + uY - uHeight / 2), uWidth, uHeight };
-
-			BltStretchVideoSurface(FRAME_BUFFER, guiSAVEBUFFER, &DstRect, &SrcRect2);
-			InvalidateScreen();
-			RefreshScreen();
-		}
+		InvalidateScreen();
+		RefreshScreen();
 		fReDrawScreenFlag = TRUE;
 	}
 
@@ -1430,70 +1373,11 @@ static void LeaveLapTopScreen(void)
 		{
 			gfDontStartTransitionFromLaptop = TRUE;
 			SetCurrentCursorFromDatabase(VIDEO_NO_CURSOR);
-			//Step 1:  Build the laptop image into the save buffer.
-			RestoreBackgroundRects();
-			RenderLapTopImage();
-			RenderLaptop();
-			RenderButtons();
-			PrintDate();
-			PrintBalance();
-			PrintNumberOnTeam();
-			ShowLights();
-
-			//Step 2:  The mapscreen image is in the EXTRABUFFER, and laptop is in the SAVEBUFFER
-			//         Start transitioning the screen.
-			SGPBox const SrcRect = ENABLE_LAPTOP_TRANSITION_RECT_FIX
-				? SGPBox{ STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT }
-				: SGPBox{ MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
-			const UINT32 uiTimeRange = 1000;
-			INT32 iPercentage     = 100;
-			INT32 iRealPercentage = 100;
-			const UINT32 uiStartTime = GetClock();
-			BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER, 0, 0, NULL);
+			//Closing transition animation disabled -- show the map screen immediately.
 			PlayJA2SampleFromFile(SOUNDSDIR "/laptop power down (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
-			while (iRealPercentage > 0)
-			{
-				BltVideoSurface(FRAME_BUFFER, guiEXTRABUFFER, 0, 0, NULL);
-
-				const UINT32 uiCurrTime = GetClock();
-				iPercentage = (uiCurrTime-uiStartTime) * 100 / uiTimeRange;
-				iPercentage = std::min(iPercentage, 100);
-				iPercentage = 100 - iPercentage;
-
-				iRealPercentage = iPercentage;
-
-				//Factor the percentage so that it is modified by a gravity falling acceleration effect.
-				const INT32 iFactor = (iPercentage - 50) * 2;
-				if (iPercentage < 50)
-				{
-					iPercentage += iPercentage       * iFactor * 0.01 + 0.5;
-				}
-				else
-				{
-					iPercentage += (100-iPercentage) * iFactor * 0.01 + 0.5;
-				}
-
-				//Scaled laptop
-				INT32 iScalePercentage;
-				if (iPercentage < 99)
-				{
-					iScalePercentage = 10000 / (100-iPercentage);
-				}
-				else
-				{
-					iScalePercentage = 5333;
-				}
-				const UINT16 uWidth  = 12 * iScalePercentage / 100;
-				const UINT16 uHeight =  9 * iScalePercentage / 100;
-				const UINT16 uX = 472 - (472 - 320) * iScalePercentage / 5333;
-				const UINT16 uY = 424 - (424 - 240) * iScalePercentage / 5333;
-
-				SGPBox const DstRect = { (UINT16)(STD_SCREEN_X + uX - uWidth / 2), (UINT16)(STD_SCREEN_Y + uY - uHeight / 2), uWidth, uHeight };
-
-				BltStretchVideoSurface(FRAME_BUFFER, guiSAVEBUFFER, &SrcRect, &DstRect);
-				InvalidateScreen();
-				RefreshScreen();
-			}
+			BltVideoSurface(FRAME_BUFFER, guiEXTRABUFFER, 0, 0, NULL);
+			InvalidateScreen();
+			RefreshScreen();
 		}
 	}
 }
