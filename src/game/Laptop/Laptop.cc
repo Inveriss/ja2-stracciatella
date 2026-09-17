@@ -1045,7 +1045,6 @@ ScreenID LaptopScreenHandle()
 		PrintNumberOnTeam();
 		ShowLights();
 
-		PlayJA2SampleFromFile(SOUNDSDIR "/laptop power up (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
 		InvalidateScreen();
 		RefreshScreen();
 		fReDrawScreenFlag = TRUE;
@@ -1401,7 +1400,6 @@ static void LeaveLapTopScreen(void)
 			gfDontStartTransitionFromLaptop = TRUE;
 			SetCurrentCursorFromDatabase(VIDEO_NO_CURSOR);
 			//Closing transition animation disabled -- show the map screen immediately.
-			PlayJA2SampleFromFile(SOUNDSDIR "/laptop power down (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
 			BltVideoSurface(FRAME_BUFFER, guiEXTRABUFFER, 0, 0, NULL);
 			InvalidateScreen();
 			RefreshScreen();
