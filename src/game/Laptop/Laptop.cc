@@ -1817,7 +1817,7 @@ static void DisplayLoadPending(void)
 	// Adjust loading time based on config var
 	uiUnitTime *= gamepolicy(website_loading_time_scale);
 
-	UINT32 uiLoadTime = uiUnitTime * 30;
+	UINT32 uiLoadTime = uiUnitTime * 15;
 
 	// we are now waiting on a web page to download, reset counter
 	if (!fLoadPendingFlag)
