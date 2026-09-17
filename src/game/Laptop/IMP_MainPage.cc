@@ -220,7 +220,12 @@ static void BtnIMPMainPageBackCallback(GUI_BUTTON *btn, UINT32 reason)
 
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		iCurrentImpPage = IMP_HOME_PAGE;
+		// Same shortcut as GoToWebPage()'s IMP_BOOKMARK case: skip the
+		// activation-code page and go straight back into creating another
+		// IMP merc if a slot is still free. Safe to reset unconditionally
+		// here (no separate confirmation needed) since this is an explicit,
+		// in-the-moment "Cancel" click, not resuming a stale session.
+		iCurrentImpPage = CanCreateAnotherImpMerc() ? IMP_BEGIN : IMP_HOME_PAGE;
 		fButtonPendingFlag = TRUE;
 		iCurrentProfileMode = 0;
 		fFinishedCharGeneration = FALSE;
