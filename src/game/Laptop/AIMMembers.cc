@@ -1284,7 +1284,11 @@ static void DisplayVideoConferencingDisplay(MERCPROFILESTRUCT const& p)
 	DisplayMercChargeAmount();
 
 	//if( gfMercIsTalking && !gfIsAnsweringMachineActive)
-	if( gfMercIsTalking && gGameSettings.fOptions[ TOPTION_SUBTITLES ] )
+	// gfMercIsTalking is set synchronously by InitVideoFaceTalking(), but
+	// gsTalkingMercText is only populated ~1 frame later once the queued
+	// dialogue event actually executes -- guard against that gap so we
+	// never try to word-wrap a still-empty string.
+	if( gfMercIsTalking && gGameSettings.fOptions[ TOPTION_SUBTITLES ] && !gsTalkingMercText.empty() )
 	{
 		UINT16 usActualWidth;
 		UINT16 usActualHeight;
