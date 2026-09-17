@@ -2132,14 +2132,8 @@ static BOOLEAN DisplayTitleBarMaximizeGraphic(BOOLEAN fForward, BOOLEAN fInit, U
 	{
 		if (gfTitleBarSurfaceAlreadyActive) return FALSE;
 		gfTitleBarSurfaceAlreadyActive = TRUE;
-		if (fForward)
-		{
-			ubCount = 1;
-		}
-		else
-		{
-			ubCount = NUMBER_OF_LAPTOP_TITLEBAR_ITERATIONS - 1;
-		}
+		// Sliding title bar animation disabled -- jump straight to the final frame.
+		ubCount = fForward ? NUMBER_OF_LAPTOP_TITLEBAR_ITERATIONS : 0;
 	}
 
 	FLOAT dTemp;
