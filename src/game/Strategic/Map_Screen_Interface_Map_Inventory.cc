@@ -2507,19 +2507,21 @@ static void ToggleSectorInventoryFilterModeCallback(GUI_BUTTON* btn, UINT32 reas
 
 static void CreateMapInventoryFilterModeCheckbox(void)
 {
-	// Same checkbox graphic/helper as the tactical screen's "Hide empty
-	// attachment slots" (giSMHideEmptySlotsCheckbox, Interface_Panels.cc),
-	// per user request. Unlike CreateMapInventoryBigImagesButton() above,
-	// this DOES sync its visual state at creation -- gfSectorInventoryCombinableFilters
-	// can be TRUE here (loaded from a save, or just left on from a prior
-	// panel open this session), and CreateCheckBoxButton() itself always
-	// starts unchecked.
+	// Same CreateCheckBoxButton() helper as the tactical screen's "Hide
+	// empty attachment slots" (giSMHideEmptySlotsCheckbox, Interface_Panels.cc),
+	// sharing its Sector_Inventory_PopupCheck.sti sheet -- that one occupies
+	// sub-images 0-3, this one 4-7 (base_index), per user request. Unlike
+	// CreateMapInventoryBigImagesButton() above, this DOES sync its visual
+	// state at creation -- gfSectorInventoryCombinableFilters can be TRUE
+	// here (loaded from a save, or just left on from a prior panel open
+	// this session), and CreateCheckBoxButton() itself always starts
+	// unchecked.
 	guiMapInvenButton[14] = CreateCheckBoxButton(
-		MAP_SCREEN_X + FILTER_MODE_CHECKBOX_X + 2, MAP_SCREEN_Y + FILTER_BUTTONS_Y + 35,
-		INTERFACEDIR "/popupcheck.sti", MSYS_PRIORITY_HIGHEST,
-		ToggleSectorInventoryFilterModeCallback);
+		MAP_SCREEN_X + FILTER_MODE_CHECKBOX_X + 3, MAP_SCREEN_Y + FILTER_BUTTONS_Y + 33,
+		INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", MSYS_PRIORITY_HIGHEST,
+		ToggleSectorInventoryFilterModeCallback, 4); // sub-images 4-7, per user request
 	if (gfSectorInventoryCombinableFilters) guiMapInvenButton[14]->uiFlags |= BUTTON_CLICKED_ON;
-	guiMapInvenButton[14]->SetFastHelpText("Combine item filters");
+	guiMapInvenButton[14]->SetFastHelpText("Combine Item Filters");
 }
 
 

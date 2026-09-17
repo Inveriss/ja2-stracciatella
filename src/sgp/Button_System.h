@@ -255,7 +255,13 @@ GUIButtonRef QuickCreateButtonToggle(BUTTON_PICS* image, INT16 x, INT16 y, INT16
 GUIButtonRef QuickCreateButtonImg(const char* gfx, INT32 grayed, INT32 off_normal, INT32 off_hilite, INT32 on_normal, INT32 on_hilite, INT16 x, INT16 y, INT16 priority, GUI_CALLBACK click);
 GUIButtonRef QuickCreateButtonImg(const char* gfx, INT32 off_normal, INT32 on_normal, INT16 x, INT16 y, INT16 priority, GUI_CALLBACK click);
 
-GUIButtonRef CreateCheckBoxButton(INT16 x, INT16 y, const char* filename, INT16 Priority, GUI_CALLBACK ClickCallback);
+// base_index: sub-image offset for this checkbox's 4 real states (off-normal,
+// off-hilite, on-normal, on-hilite -- default 0, matching every existing
+// caller's own sheet, which starts its checkbox states at sub-image 0). Lets
+// two or more checkboxes share one combined sprite sheet at different
+// sub-image ranges (e.g. base_index 4 for states 4-7) without disturbing any
+// existing caller.
+GUIButtonRef CreateCheckBoxButton(INT16 x, INT16 y, const char* filename, INT16 Priority, GUI_CALLBACK ClickCallback, INT32 base_index = 0);
 
 // Creates an Iconic type button.
 GUIButtonRef CreateIconButton(INT16 Icon, INT16 IconIndex, INT16 xloc, INT16 yloc, INT16 w, INT16 h, INT16 Priority, GUI_CALLBACK ClickCallback);
