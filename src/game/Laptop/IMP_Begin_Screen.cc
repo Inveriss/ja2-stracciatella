@@ -288,7 +288,8 @@ static void BtnIMPBeginScreenDoneCallback(GUI_BUTTON *btn, UINT32 reason)
 				iCurrentProfileMode = 0;
 			}
 
-			iCurrentImpPage = IMP_MAIN_PAGE;
+			// next: the colors and body type page, which leads back to the main page
+			iCurrentImpPage = IMP_APPEARANCE;
 			fButtonPendingFlag = TRUE;
 		}
 		else if (GCM->getGamePolicy()->imp_load_saved_merc_by_nickname && IMPSavedProfileDoesFileExist(pNickNameString))

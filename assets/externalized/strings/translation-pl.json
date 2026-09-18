@@ -1376,7 +1376,17 @@
         "Głos",
         "Specialties",
         "Deceased",
-        "Already Created"
+        "Already Created",
+        "I.M.P. Colors and Body Type",
+        "Please select the respective colors of your skin, hair and clothing. And select what body type you have.",
+        "Hair Color",
+        "Skin Color",
+        "Shirt Color",
+        "Pants Color",
+        "Normal Body",
+        "Big Body",
+        "OK",
+        "Toggle this to use alternative rifle holding."
     ],
     "pImpPopUpStrings": [
         "Nieprawidłowy kod dostępu",

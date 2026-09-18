@@ -1,6 +1,7 @@
 #include "Directories.h"
 #include "Font.h"
 #include "IMP_MainPage.h"
+#include "IMP_Appearance.h"
 #include "CharProfile.h"
 #include "IMPVideoObjects.h"
 #include "MessageBoxScreen.h"
@@ -427,6 +428,7 @@ static void BeginMessageBoxCallBack(MessageBoxReturnValue const bExitValue)
 	{
 		iCurrentImpPage = IMP_BEGIN;
 		iCurrentProfileMode = 0;
+		ResetImpAppearance();
 	}
 
 	else if( bExitValue == MSG_BOX_RETURN_OK )

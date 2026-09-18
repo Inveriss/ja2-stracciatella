@@ -4,6 +4,7 @@
 #include "Cursors.h"
 #include "CharProfile.h"
 #include "IMP_AboutUs.h"
+#include "IMP_Appearance.h"
 #include "IMP_Attribute_Entrance.h"
 #include "IMP_Attribute_Finish.h"
 #include "IMP_MainPage.h"
@@ -92,6 +93,7 @@ void GameInitCharProfile(void)
 	iCurrentPortrait = 0;
 	iCurrentVoices = 0;
 	iPortraitNumber = 0;
+	ResetImpAppearance();
 }
 
 
@@ -234,6 +236,9 @@ void HandleCharProfile(void)
 		case( IMP_ABOUT_US ):
 			HandleIMPAboutUs( );
 			break;
+		case( IMP_APPEARANCE ):
+			HandleIMPAppearance( );
+			break;
 		case( IMP_MAIN_PAGE ):
 			HandleIMPMainPage( );
 			break;
@@ -295,6 +300,9 @@ void RenderCharProfile(void)
 			break;
 		case( IMP_ABOUT_US ):
 			RenderIMPAboutUs( );
+			break;
+		case( IMP_APPEARANCE ):
+			RenderIMPAppearance( );
 			break;
 		case( IMP_MAIN_PAGE ):
 			RenderIMPMainPage( );
@@ -381,6 +389,10 @@ static void ExitOldIMPMode(void)
 		case( IMP_ABOUT_US ):
 			ExitIMPAboutUs( );
 			break;
+		case( IMP_APPEARANCE ):
+			// has its own Cancel button, so no DestroyIMPButtons()
+			ExitIMPAppearance( );
+			break;
 		case( IMP_MAIN_PAGE ):
 			ExitIMPMainPage( );
 			break;
@@ -450,6 +462,10 @@ static void EnterNewIMPMode(void)
 		case( IMP_ABOUT_US ):
 			EnterIMPAboutUs( );
 			break;
+		case( IMP_APPEARANCE ):
+			// has its own Cancel button, so no CreateIMPButtons()
+			EnterIMPAppearance( );
+			break;
 		case( IMP_MAIN_PAGE ):
 			EnterIMPMainPage( );
 			break;
@@ -489,6 +505,9 @@ void ResetCharacterStats( void )
 	// names
 	pFullName.clear();
 	pNickName.clear();
+
+	// colors and body type
+	ResetImpAppearance();
 }
 
 
