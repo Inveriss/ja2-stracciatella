@@ -40,10 +40,12 @@ enum { ROW_HAIR, ROW_SKIN, ROW_SHIRT, ROW_PANTS, NUM_ROWS };
 // Palette names, in the order of the matching sub-images in Body_*.sti:
 // skin 1-4, hair 5-9, shirts 10-20, pants 21-26 (sub-image 0 is the whole merc).
 static char const* const gSkins[]  = { "PINKSKIN", "TANSKIN", "DARKSKIN", "BLACKSKIN" };
-static char const* const gHairs[]  = { "BROWNHEAD", "BLACKHEAD", "WHITEHEAD", "REDHEAD", "BLONDHEAD" };
+// (sub-image 8 of the Body_*.sti files depicts blond hair and 9 red hair)
+static char const* const gHairs[]  = { "BROWNHEAD", "BLACKHEAD", "WHITEHEAD", "BLONDHEAD", "REDHEAD" };
 static char const* const gShirts[] =
 {
-	"WHITEVEST", "YELLOWVEST", "GYELLOWSHIRT", "greyVEST", "BROWNVEST", "PURPLESHIRT",
+	// (sub-image 11 of the Body_*.sti files depicts GYELLOWSHIRT, 12 YELLOWVEST)
+	"WHITEVEST", "GYELLOWSHIRT", "YELLOWVEST", "greyVEST", "BROWNVEST", "PURPLESHIRT",
 	"BLUEVEST", "JEANVEST", "GREENVEST", "REDVEST", "BLACKSHIRT"
 };
 static char const* const gPants[]  = { "BLUEPANTS", "BLACKPANTS", "JEANPANTS", "TANPANTS", "BEIGEPANTS", "GREENPANTS" };
@@ -199,10 +201,9 @@ void RenderIMPAppearance(void)
 
 		DrawTextToScreen(pImpButtonText[IMP_APP_TXT_HAIR + row], dx + APP_LABEL_X, y + (APP_ARROW_SIZE - labelHeight) / 2, APP_LABEL_W, FONT12ARIAL, FONT_WHITE, FONT_BLACK, RIGHT_JUSTIFIED);
 
-		bool const canGoLeft  = giSelection[row] > 0;
-		bool const canGoRight = giSelection[row] < gRowCount[row] - 1;
-		INT32 const left  = !canGoLeft  ? 2 : giPressedArrow == row * 2     ? 1 : 0;
-		INT32 const right = !canGoRight ? 5 : giPressedArrow == row * 2 + 1 ? 4 : 3;
+		// the arrows wrap around, so they are never disabled
+		INT32 const left  = giPressedArrow == row * 2     ? 1 : 0;
+		INT32 const right = giPressedArrow == row * 2 + 1 ? 4 : 3;
 		BltVideoObject(FRAME_BUFFER, gvoArrows, left,  dx + APP_ARROW_LEFT_X,  y);
 		BltVideoObject(FRAME_BUFFER, gvoArrows, right, dx + APP_ARROW_RIGHT_X, y);
 	}
@@ -221,9 +222,12 @@ void RenderIMPAppearance(void)
 		}
 	}
 
-	// alternative rifle holding: 0/2 = enabled (off/on), 1/3 = disabled (off/on)
-	INT32 const checkFrame = (gfAltRifleHold ? 2 : 0) + (CheckBoxEnabled() ? 0 : 1);
-	BltVideoObject(FRAME_BUFFER, gvoCheckBox, checkFrame, dx + APP_CHECK_X, dy + APP_CHECK_Y);
+	// alternative rifle holding (men only): 0/2 = enabled (off/on), 1/3 = disabled (off/on)
+	if (IsMale())
+	{
+		INT32 const checkFrame = (gfAltRifleHold ? 2 : 0) + (CheckBoxEnabled() ? 0 : 1);
+		BltVideoObject(FRAME_BUFFER, gvoCheckBox, checkFrame, dx + APP_CHECK_X, dy + APP_CHECK_Y);
+	}
 
 	MarkButtonsDirty();
 	InvalidateRegion(LAPTOP_SCREEN_UL_X, dy, LAPTOP_SCREEN_LR_X, LAPTOP_SCREEN_LR_Y);
@@ -240,11 +244,11 @@ void HandleIMPAppearance(void)
 }
 
 
+// Steps to the previous/next color, wrapping around at either end.
 static void ChangeSelection(INT32 const row, INT32 const delta)
 {
-	INT32 const value = giSelection[row] + delta;
-	if (value < 0 || value >= gRowCount[row]) return;
-	giSelection[row] = value;
+	INT32 const count = gRowCount[row];
+	giSelection[row] = (giSelection[row] + delta + count) % count;
 }
 
 
@@ -266,9 +270,6 @@ static void ArrowClickCallback(MOUSE_REGION* const region, UINT32 const reason)
 	INT32 const idx   = static_cast<INT32>(region - gArrowRegions);
 	INT32 const row   = idx / 2;
 	INT32 const delta = (idx % 2 == 0) ? -1 : 1;
-
-	bool const enabled = delta < 0 ? giSelection[row] > 0 : giSelection[row] < gRowCount[row] - 1;
-	if (!enabled) return;
 
 	if (reason & MSYS_CALLBACK_REASON_POINTER_DWN)
 	{
@@ -392,7 +393,8 @@ void EnterIMPAppearance(void)
 		MakeRegion(&gArrowRegions[row * 2 + 1], dx + APP_ARROW_RIGHT_X, y, APP_ARROW_SIZE, APP_ARROW_SIZE, ArrowMoveCallback, ArrowClickCallback);
 	}
 
-	// body type rows (the button and its bar), men only
+	// body type rows (the button and its bar) and the alternative rifle
+	// holding check box: men only, a woman has neither
 	gfBodyRegionsCreated = IsMale();
 	if (gfBodyRegionsCreated)
 	{
@@ -401,11 +403,10 @@ void EnterIMPAppearance(void)
 			INT32 const y = dy + APP_BODY_BTN_Y + APP_BODY_STEP_Y * i;
 			MakeRegion(&gBodyRegions[i], dx + APP_BODY_BTN_X, y, APP_BODY_BAR_X + APP_BODY_BAR_W - APP_BODY_BTN_X, APP_BODY_BTN_H, MSYS_NO_CALLBACK, BodyClickCallback);
 		}
-	}
 
-	// alternative rifle holding check box
-	MakeRegion(&gCheckRegion, dx + APP_CHECK_X, dy + APP_CHECK_Y, APP_CHECK_SIZE, APP_CHECK_SIZE, MSYS_NO_CALLBACK, CheckClickCallback);
-	gCheckRegion.SetFastHelpText(pImpButtonText[IMP_APP_TXT_RIFLE_TIP]);
+		MakeRegion(&gCheckRegion, dx + APP_CHECK_X, dy + APP_CHECK_Y, APP_CHECK_SIZE, APP_CHECK_SIZE, MSYS_NO_CALLBACK, CheckClickCallback);
+		gCheckRegion.SetFastHelpText(pImpButtonText[IMP_APP_TXT_RIFLE_TIP]);
+	}
 
 	RenderIMPAppearance();
 }
@@ -417,9 +418,9 @@ void ExitIMPAppearance(void)
 	if (gfBodyRegionsCreated)
 	{
 		for (MOUSE_REGION& r : gBodyRegions) MSYS_RemoveRegion(&r);
+		MSYS_RemoveRegion(&gCheckRegion);
 		gfBodyRegionsCreated = FALSE;
 	}
-	MSYS_RemoveRegion(&gCheckRegion);
 
 	RemoveButton(gOkButton);
 	UnloadButtonImage(gpOkImage);
