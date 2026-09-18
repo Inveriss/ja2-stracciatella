@@ -9,6 +9,7 @@
 #include "Font.h"
 #include "Font_Control.h"
 #include "IMPVideoObjects.h"
+#include "IMP_Appearance.h"
 #include "IMP_Compile_Character.h"
 #include "IMP_MainPage.h"
 #include "Laptop.h"
@@ -594,7 +595,7 @@ INT8	DoesPlayerHaveExtraAttibutePointsToDistributeBasedOnSkillSelection()
 
 BOOLEAN ShouldTraitBeSkipped( UINT32 uiTrait )
 {
-	return uiTrait == IMP_SKILL_TRAITS__MARTIAL_ARTS && !fCharacterIsMale;
+	return uiTrait == IMP_SKILL_TRAITS__MARTIAL_ARTS && (!fCharacterIsMale || ImpAppearanceIsBigBody());
 }
 
 
