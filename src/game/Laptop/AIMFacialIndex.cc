@@ -98,6 +98,7 @@ static void SelectMercFaceRegionCallBackSecondary(MOUSE_REGION* pRegion, UINT32 
 // There is no SelectScreenRegionCallBackPrimary
 static void SelectScreenRegionCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectPageArrowRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
+static void MouseWheelRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
 void EnterAimFacialIndex()
@@ -120,7 +121,7 @@ void EnterAimFacialIndex()
 						(INT16)(usPosY + AIM_FI_PORTRAIT_HEIGHT),
 						MSYS_PRIORITY_HIGH,
 						CURSOR_WWW, SelectMercFaceMoveRegionCallBack,
-						MouseCallbackPrimarySecondary(SelectMercFaceRegionCallBackPrimary, SelectMercFaceRegionCallBackSecondary));
+						MouseCallbackPrimarySecondary(SelectMercFaceRegionCallBackPrimary, SelectMercFaceRegionCallBackSecondary, MouseWheelRegionCallBack));
 			MSYS_SetRegionUserData( &gMercFaceMouseRegions[ i ], 0, i);
 
 			usPosX += AIM_FI_PORTRAIT_WIDTH + AIM_FI_MUGSHOT_GAP_X;
@@ -138,7 +139,7 @@ void EnterAimFacialIndex()
 
 	MSYS_DefineRegion(&gScreenMouseRegions, LAPTOP_SCREEN_UL_X, LAPTOP_SCREEN_WEB_UL_Y,
 				LAPTOP_SCREEN_LR_X, LAPTOP_SCREEN_WEB_LR_Y, MSYS_PRIORITY_HIGH-1,
-				CURSOR_LAPTOP_SCREEN, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, SelectScreenRegionCallBackSecondary));
+				CURSOR_LAPTOP_SCREEN, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, SelectScreenRegionCallBackSecondary, MouseWheelRegionCallBack));
 
 	if (NumAimFiPages() > 1)
 	{
@@ -259,6 +260,24 @@ static void SelectPageArrowRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
 		gubAimFiPage = (gubAimFiPage + MSYS_GetRegionUserData(pRegion, 0) + pages) % pages;
 		RenderAimFacialIndex();
 	}
+	else
+	{
+		MouseWheelRegionCallBack(pRegion, iReason);
+	}
+}
+
+
+// The mouse wheel turns the pages, without wrapping around at the first and the last page
+static void MouseWheelRegionCallBack(MOUSE_REGION*, UINT32 iReason)
+{
+	int page = gubAimFiPage;
+	if (iReason & MSYS_CALLBACK_REASON_WHEEL_UP)        --page;
+	else if (iReason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ++page;
+	else return;
+
+	if (page < 0 || page >= NumAimFiPages() || page == gubAimFiPage) return;
+	gubAimFiPage = page;
+	RenderAimFacialIndex();
 }
 
 
