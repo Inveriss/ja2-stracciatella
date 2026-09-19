@@ -29,6 +29,12 @@ extern UINT8 AimMercArray[MAX_NUMBER_MERCS];
 #define AIM_SYMBOL_WIDTH		203
 #define AIM_SYMBOL_HEIGHT		51
 
+// small logo (AIMSYMBOL_SMALL.STI, 102x26) used on the sort page
+#define AIM_SMALL_SYMBOL_X		IMAGE_OFFSET_X + 4
+#define AIM_SMALL_SYMBOL_Y		IMAGE_OFFSET_Y + 4
+#define AIM_SMALL_SYMBOL_WIDTH		102
+#define AIM_SMALL_SYMBOL_HEIGHT		26
+
 // RustBackGround
 #define RUSTBACKGROUND_SIZE_X		125
 #define RUSTBACKGROUND_SIZE_Y		100
@@ -80,6 +86,9 @@ void InitAimMenuBar();
 
 void RemoveAimDefaults(void);
 void InitAimDefaults(void);
+// Use the small AIM logo (top-left corner) instead of the big one; call before
+// InitAimDefaults() and reset after RemoveAimDefaults().
+void SetAimSmallLogo(bool small);
 void DrawAimDefaults(void);
 
 void DisplayAimSlogan(void);

@@ -29,7 +29,8 @@
 #define AIM_SORT_ON			0
 #define AIM_SORT_OFF			1
 
-#define AIM_SORT_SORT_BY_X		IMAGE_OFFSET_X + 155
+// SORTBY_LONG.STI is 432 wide: centered in the 500 pixel wide page
+#define AIM_SORT_SORT_BY_X		(IMAGE_OFFSET_X + 34)
 #define AIM_SORT_SORT_BY_Y		IMAGE_OFFSET_Y + 96
 
 #define AIM_SORT_TO_MUGSHOTS_X		IMAGE_OFFSET_X + 89
@@ -44,7 +45,7 @@
 #define AIM_SORT_TO_ALUMNI_Y		AIM_SORT_TO_STATS_Y + AIM_SORT_GAP_BN_ICONS
 #define AIM_SORT_TO_ALUMNI_SIZE		AIM_SORT_TO_MUGSHOTS_SIZE
 
-#define AIM_SORT_AIM_MEMBER_X		AIM_SORT_SORT_BY_X
+#define AIM_SORT_AIM_MEMBER_X		(IMAGE_OFFSET_X + 155)
 #define AIM_SORT_AIM_MEMBER_Y		(STD_SCREEN_Y + 105 + LAPTOP_SCREEN_WEB_DELTA_Y)
 #define AIM_SORT_AIM_MEMBER_WIDTH	190
 
@@ -75,26 +76,40 @@ struct AIMSortInfo
 };
 
 
+static void SelectSortCriterionRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectAscendBoxRegionCallBack(    MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectDescendBoxRegionCallBack(   MOUSE_REGION* pRegion, UINT32 iReason);
-static void SelectExpBoxRegionCallBack(       MOUSE_REGION* pRegion, UINT32 iReason);
-static void SelectExplosiveBoxRegionCallBack( MOUSE_REGION* pRegion, UINT32 iReason);
-static void SelectMarkBoxRegionCallBack(      MOUSE_REGION* pRegion, UINT32 iReason);
-static void SelectMechanicalBoxRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
-static void SelectMedicalBoxRegionCallBack(   MOUSE_REGION* pRegion, UINT32 iReason);
-static void SelectPriceBoxRegionCallBack(     MOUSE_REGION* pRegion, UINT32 iReason);
 
+
+// Indexed by sort mode (see AIMSort.h and str_aim_sort_list), so the order is
+// fixed; x/y are the positions of the check boxes in SORTBY_LONG.STI, in four
+// columns of up to four rows (Name has the extra first row in column 1).
+#define AIM_SORT_ROW_0 21
+#define AIM_SORT_ROW_1 34
+#define AIM_SORT_ROW_2 47
+#define AIM_SORT_ROW_3 60
+#define AIM_SORT_COLUMN_0 9
+#define AIM_SORT_COLUMN_1 114
+#define AIM_SORT_COLUMN_2 219
+#define AIM_SORT_COLUMN_3 324
 
 static AIMSortInfo g_aim_sort_info[L10n::str_aim_sort_list_SIZE]
 {
-	{   9, 34, LEFT_JUSTIFIED,  0, SelectPriceBoxRegionCallBack      },
-	{   9, 47, LEFT_JUSTIFIED,  1, SelectExpBoxRegionCallBack        },
-	{   9, 60, LEFT_JUSTIFIED,  2, SelectMarkBoxRegionCallBack       },
-	{ 111, 34, LEFT_JUSTIFIED,  3, SelectMedicalBoxRegionCallBack    },
-	{ 111, 47, LEFT_JUSTIFIED,  4, SelectExplosiveBoxRegionCallBack  },
-	{ 111, 60, LEFT_JUSTIFIED,  5, SelectMechanicalBoxRegionCallBack },
-	{ 172,  4, RIGHT_JUSTIFIED, 6, SelectAscendBoxRegionCallBack     },
-	{ 172, 17, RIGHT_JUSTIFIED, 7, SelectDescendBoxRegionCallBack    }
+	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_1, LEFT_JUSTIFIED,   0, SelectSortCriterionRegionCallBack }, // Price
+	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_2, LEFT_JUSTIFIED,   1, SelectSortCriterionRegionCallBack }, // Experience
+	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_3, LEFT_JUSTIFIED,   2, SelectSortCriterionRegionCallBack }, // Marksmanship
+	{ AIM_SORT_COLUMN_1, AIM_SORT_ROW_3, LEFT_JUSTIFIED,   3, SelectSortCriterionRegionCallBack }, // Medical
+	{ AIM_SORT_COLUMN_1, AIM_SORT_ROW_2, LEFT_JUSTIFIED,   4, SelectSortCriterionRegionCallBack }, // Explosives
+	{ AIM_SORT_COLUMN_1, AIM_SORT_ROW_1, LEFT_JUSTIFIED,   5, SelectSortCriterionRegionCallBack }, // Mechanical
+	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_0, LEFT_JUSTIFIED,   6, SelectSortCriterionRegionCallBack }, // Name (nickname)
+	{ AIM_SORT_COLUMN_2, AIM_SORT_ROW_1, LEFT_JUSTIFIED,   7, SelectSortCriterionRegionCallBack }, // Health
+	{ AIM_SORT_COLUMN_2, AIM_SORT_ROW_2, LEFT_JUSTIFIED,   8, SelectSortCriterionRegionCallBack }, // Agility
+	{ AIM_SORT_COLUMN_2, AIM_SORT_ROW_3, LEFT_JUSTIFIED,   9, SelectSortCriterionRegionCallBack }, // Dexterity
+	{ AIM_SORT_COLUMN_3, AIM_SORT_ROW_1, LEFT_JUSTIFIED,  10, SelectSortCriterionRegionCallBack }, // Strength
+	{ AIM_SORT_COLUMN_3, AIM_SORT_ROW_2, LEFT_JUSTIFIED,  11, SelectSortCriterionRegionCallBack }, // Leadership
+	{ AIM_SORT_COLUMN_3, AIM_SORT_ROW_3, LEFT_JUSTIFIED,  12, SelectSortCriterionRegionCallBack }, // Wisdom
+	{ 413,               5,              RIGHT_JUSTIFIED, 13, SelectAscendBoxRegionCallBack     },
+	{ 413,               18,             RIGHT_JUSTIFIED, 14, SelectDescendBoxRegionCallBack    }
 };
 
 UINT8			gubCurrentSortMode;
@@ -138,10 +153,11 @@ void EnterAimSort()
 		AimMercArray[i] = i;
 	}
 
+	SetAimSmallLogo(true);
 	InitAimDefaults();
 
 	// load the SortBy box graphic and add it
-	guiSortByBox = AddVideoObjectFromFile(LAPTOPDIR "/sortby.sti");
+	guiSortByBox = AddVideoObjectFromFile(LAPTOPDIR "/sortby_long.sti");
 
 	// load the ToAlumni graphic and add it
 	guiToAlumni = AddVideoObjectFromFile(MLG_TOALUMNI);
@@ -184,6 +200,7 @@ void EnterAimSort()
 		const UINT16 y = AIM_SORT_SORT_BY_Y + i->y;
 		const UINT16 h = AIM_SORT_CHECKBOX_SIZE;
 		MSYS_DefineRegion(&i->region, x, y, x + w, y + h, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, i->click);
+		MSYS_SetRegionUserData(&i->region, 0, i->index);
 	}
 
 	InitAimMenuBar();
@@ -199,6 +216,7 @@ void ExitAimSort()
 	// Sort the merc array
 	SortMercArray();
 	RemoveAimDefaults();
+	SetAimSmallLogo(false);
 
 	DeleteVideoObject(guiSortByBox);
 	DeleteVideoObject(guiToAlumni);
@@ -301,39 +319,10 @@ static void SetSortCriterion(const UINT8 criterion)
 }
 
 
-static void SelectPriceBoxRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+// One callback for all the sort criteria; the region's user data is the criterion
+static void SelectSortCriterionRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
 {
-	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP) SetSortCriterion(0);
-}
-
-
-static void SelectExpBoxRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
-{
-	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP) SetSortCriterion(1);
-}
-
-
-static void SelectMarkBoxRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
-{
-	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP) SetSortCriterion(2);
-}
-
-
-static void SelectMedicalBoxRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
-{
-	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP) SetSortCriterion(3);
-}
-
-
-static void SelectExplosiveBoxRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
-{
-	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP) SetSortCriterion(4);
-}
-
-
-static void SelectMechanicalBoxRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
-{
-	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP) SetSortCriterion(5);
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP) SetSortCriterion(MSYS_GetRegionUserData(pRegion, 0));
 }
 
 
@@ -382,19 +371,35 @@ static INT32 QsortCompare(const void* pNum1, const void* pNum2)
 	MERCPROFILESTRUCT const& p1 = GetProfile(*(UINT8*)pNum1);
 	MERCPROFILESTRUCT const& p2 = GetProfile(*(UINT8*)pNum2);
 
-	INT32 v1;
-	INT32 v2;
-	switch (gubCurrentSortMode)
+	INT32 ret;
+	if (gubCurrentSortMode == AIM_SORT_NAME)
 	{
-		/* Price        */ case 0: v1 = p1.uiWeeklySalary; v2 = p2.uiWeeklySalary; break;
-		/* Experience   */ case 1: v1 = p1.bExpLevel;      v2 = p2.bExpLevel;      break;
-		/* Marksmanship */ case 2: v1 = p1.bMarksmanship;  v2 = p2.bMarksmanship;  break;
-		/* Medical      */ case 3: v1 = p1.bMedical;       v2 = p2.bMedical;       break;
-		/* Explosives   */ case 4: v1 = p1.bExplosive;     v2 = p2.bExplosive;     break;
-		/* Mechanical   */ case 5: v1 = p1.bMechanical;    v2 = p2.bMechanical;    break;
-
-		default: SLOGA("QsortCompare: invalid sort mode"); return 0;
+		// by nickname, alphabetically, ignoring case
+		ret = p1.zNickname.compare_i(p2.zNickname);
+		ret = (ret > 0) - (ret < 0);
 	}
-	const INT32 ret = (v1 > v2) - (v1 < v2);
+	else
+	{
+		INT32 v1;
+		INT32 v2;
+		switch (gubCurrentSortMode)
+		{
+			/* Price        */ case 0:  v1 = p1.uiWeeklySalary; v2 = p2.uiWeeklySalary; break;
+			/* Experience   */ case 1:  v1 = p1.bExpLevel;      v2 = p2.bExpLevel;      break;
+			/* Marksmanship */ case 2:  v1 = p1.bMarksmanship;  v2 = p2.bMarksmanship;  break;
+			/* Medical      */ case 3:  v1 = p1.bMedical;       v2 = p2.bMedical;       break;
+			/* Explosives   */ case 4:  v1 = p1.bExplosive;     v2 = p2.bExplosive;     break;
+			/* Mechanical   */ case 5:  v1 = p1.bMechanical;    v2 = p2.bMechanical;    break;
+			/* Health       */ case 7:  v1 = p1.bLifeMax;       v2 = p2.bLifeMax;       break;
+			/* Agility      */ case 8:  v1 = p1.bAgility;       v2 = p2.bAgility;       break;
+			/* Dexterity    */ case 9:  v1 = p1.bDexterity;     v2 = p2.bDexterity;     break;
+			/* Strength     */ case 10: v1 = p1.bStrength;      v2 = p2.bStrength;      break;
+			/* Leadership   */ case 11: v1 = p1.bLeadership;    v2 = p2.bLeadership;    break;
+			/* Wisdom       */ case 12: v1 = p1.bWisdom;        v2 = p2.bWisdom;        break;
+
+			default: SLOGA("QsortCompare: invalid sort mode"); return 0;
+		}
+		ret = (v1 > v2) - (v1 < v2);
+	}
 	return gubCurrentListMode == AIM_ASCEND ? ret : -ret;
 }

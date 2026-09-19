@@ -392,17 +392,29 @@ static void SelectLinksRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
 static void SelectAimLogoRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
+static bool gfAimSmallLogo = false;
+
+void SetAimSmallLogo(bool const small)
+{
+	gfAimSmallLogo = small;
+}
+
+
 void InitAimDefaults()
 {
 	// load the Rust bacground graphic and add it
 	guiRustBackGround = AddVideoObjectFromFile(LAPTOPDIR "/rustbackground.sti");
 
 	// load the Aim Symbol graphic and add it
-	guiAimSymbol = AddVideoObjectFromFile(MLG_AIMSYMBOL);
+	guiAimSymbol = gfAimSmallLogo ? AddVideoObjectFromFile(LAPTOPDIR "/aimsymbol_small.sti") : AddVideoObjectFromFile(MLG_AIMSYMBOL);
 
 	//Mouse region for the Links
-	MSYS_DefineRegion(&gSelectedAimLogo, AIM_SYMBOL_X, AIM_SYMBOL_Y,
-				AIM_SYMBOL_X+AIM_SYMBOL_WIDTH, AIM_SYMBOL_Y+AIM_SYMBOL_HEIGHT,
+	INT16 const logoX = gfAimSmallLogo ? AIM_SMALL_SYMBOL_X : AIM_SYMBOL_X;
+	INT16 const logoY = gfAimSmallLogo ? AIM_SMALL_SYMBOL_Y : AIM_SYMBOL_Y;
+	INT16 const logoW = gfAimSmallLogo ? AIM_SMALL_SYMBOL_WIDTH : AIM_SYMBOL_WIDTH;
+	INT16 const logoH = gfAimSmallLogo ? AIM_SMALL_SYMBOL_HEIGHT : AIM_SYMBOL_HEIGHT;
+	MSYS_DefineRegion(&gSelectedAimLogo, logoX, logoY,
+				logoX + logoW, logoY + logoH,
 				MSYS_PRIORITY_HIGH, CURSOR_WWW, MSYS_NO_CALLBACK,
 				SelectAimLogoRegionCallBack);
 }
@@ -432,7 +444,7 @@ void DrawAimDefaults()
 		uiPosY += RUSTBACKGROUND_SIZE_Y;
 	}
 
-	BltVideoObject(FRAME_BUFFER, guiAimSymbol, 0, AIM_SYMBOL_X, AIM_SYMBOL_Y);
+	BltVideoObject(FRAME_BUFFER, guiAimSymbol, 0, gfAimSmallLogo ? AIM_SMALL_SYMBOL_X : AIM_SYMBOL_X, gfAimSmallLogo ? AIM_SMALL_SYMBOL_Y : AIM_SYMBOL_Y);
 }
 
 

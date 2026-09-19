@@ -130,7 +130,7 @@ constexpr std::size_t CharacterInfo_SIZE = 12;
 constexpr std::size_t VideoConfercingText_SIZE = 15;
 constexpr std::size_t AimPopUpText_SIZE = 9;
 constexpr std::size_t AimHistoryText_SIZE = 5;
-constexpr std::size_t AimFiText_SIZE = 14;
+constexpr std::size_t AimFiText_SIZE = 21;
 constexpr std::size_t AimAlumniText_SIZE = 5;
 constexpr std::size_t AimScreenText_SIZE = 8;
 constexpr std::size_t AimBottomMenuText_SIZE = 6;
@@ -171,7 +171,7 @@ constexpr std::size_t gMoneyStatsDesc_SIZE = 8;
 constexpr std::size_t zHealthStr_SIZE = 7;
 constexpr std::size_t SKI_Text_SIZE = 14;
 constexpr std::size_t str_stat_list_SIZE = 11;
-constexpr std::size_t str_aim_sort_list_SIZE = 8;
+constexpr std::size_t str_aim_sort_list_SIZE = 15;
 constexpr std::size_t zNewTacticalMessages_SIZE = 7;
 constexpr std::size_t gs_dead_is_dead_mode_tab_name_SIZE = 2;
 
