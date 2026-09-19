@@ -2,6 +2,7 @@
 #include "LoadSaveData.h"
 #include "LoadSaveMercProfile.h"
 #include "Overhead_Types.h"
+#include "Soldier_Control.h"
 #include "SGPFile.h"
 #include "Soldier_Profile_Type.h"
 
@@ -29,6 +30,20 @@ UINT32 SoldierProfileChecksum(MERCPROFILESTRUCT const& p)
 	FOR_EACH(UINT8  const, i, p.bInvNumber) sum += *i;
 
 	return sum;
+}
+
+
+/** prof.dat stores its 19 inventory slots in the vanilla order (HELMET, VEST,
+* LEG, HEAD1, HEAD2, HAND, SECONDHAND, BIGPOCK1-4, SMALLPOCK1-8). InvSlotPos
+* has grown since (more HEAD, BIGPOCK and SMALLPOCK slots inserted after each
+* group), so a vanilla slot index must be mapped to the current slot. */
+static size_t VanillaInvSlotToEngine(size_t const vanillaSlot)
+{
+	if (vanillaSlot <= 4) return vanillaSlot; // HELMET .. HEAD2 kept their numbers
+	if (vanillaSlot == 5) return HANDPOS;
+	if (vanillaSlot == 6) return SECONDHANDPOS;
+	if (vanillaSlot <= 10) return BIGPOCK1POS + (vanillaSlot - 7);
+	return SMALLPOCK1POS + (vanillaSlot - 11);
 }
 
 
@@ -132,11 +147,28 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	// (rather than relying on the caller's MERCPROFILESTRUCT having been
 	// freshly zero-constructed) before reading only as many slots as the
 	// source actually has.
+	// The slots of prof.dat are in the vanilla order, so they are moved to their
+	// place in the current InvSlotPos (see VanillaInvSlotToEngine()).
 	size_t const invSlotsToRead = fVanillaProfileFormat ? VANILLA_PROF_DAT_INV_SLOTS : lengthof(p.bInvStatus);
-	std::fill(std::begin(p.bInvStatus) + invSlotsToRead, std::end(p.bInvStatus), 0);
-	std::fill(std::begin(p.bInvNumber) + invSlotsToRead, std::end(p.bInvNumber), 0);
-	EXTR_U8A(S, p.bInvStatus, invSlotsToRead)
-	EXTR_U8A(S, p.bInvNumber, invSlotsToRead)
+	std::fill(std::begin(p.bInvStatus), std::end(p.bInvStatus), 0);
+	std::fill(std::begin(p.bInvNumber), std::end(p.bInvNumber), 0);
+	if (fVanillaProfileFormat)
+	{
+		std::array<UINT8, VANILLA_PROF_DAT_INV_SLOTS> status;
+		std::array<UINT8, VANILLA_PROF_DAT_INV_SLOTS> number;
+		EXTR_U8A(S, status.data(), status.size())
+		EXTR_U8A(S, number.data(), number.size())
+		for (size_t v = 0; v != VANILLA_PROF_DAT_INV_SLOTS; ++v)
+		{
+			p.bInvStatus[VanillaInvSlotToEngine(v)] = status[v];
+			p.bInvNumber[VanillaInvSlotToEngine(v)] = number[v];
+		}
+	}
+	else
+	{
+		EXTR_U8A(S, p.bInvStatus, invSlotsToRead)
+		EXTR_U8A(S, p.bInvNumber, invSlotsToRead)
+	}
 	EXTR_U16A(S, p.usApproachFactor, lengthof(p.usApproachFactor))
 	EXTR_I8(S, p.bMainGunAttractiveness)
 	EXTR_I8(S, p.bAgility)
@@ -148,8 +180,17 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_U8(S, p.ubInvUndroppable)
 	EXTR_U8A(S, p.ubRoomRangeStart, lengthof(p.ubRoomRangeStart))
 	EXTR_SKIP(S, 1)
-	std::fill(std::begin(p.inv) + invSlotsToRead, std::end(p.inv), NOTHING);
-	EXTR_U16A(S, p.inv, invSlotsToRead)
+	std::fill(std::begin(p.inv), std::end(p.inv), NOTHING);
+	if (fVanillaProfileFormat)
+	{
+		std::array<UINT16, VANILLA_PROF_DAT_INV_SLOTS> items;
+		EXTR_U16A(S, items.data(), items.size())
+		for (size_t v = 0; v != VANILLA_PROF_DAT_INV_SLOTS; ++v) p.inv[VanillaInvSlotToEngine(v)] = items[v];
+	}
+	else
+	{
+		EXTR_U16A(S, p.inv, invSlotsToRead)
+	}
 	EXTR_SKIP(S, 20)
 	EXTR_U16A(S, p.usStatChangeChances, lengthof(p.usStatChangeChances))
 	EXTR_U16A(S, p.usStatChangeSuccesses, lengthof(p.usStatChangeSuccesses))

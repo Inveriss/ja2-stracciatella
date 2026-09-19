@@ -325,6 +325,10 @@ protected:
 	bool loadStrategicLayerData();
 	bool loadTacticalLayerData();
 	bool loadMercsData(const BinaryData& binaryProfiles);
+	/* Developer tool: when $JA2_DUMP_MERC_PROFILES names a directory, writes the fully
+	 * resolved profiles (prof.dat merged with the JSON files) there as complete
+	 * mercs-profile-info.json / mercs-relations.json replacements. */
+	void dumpMercProfilesIfRequested() const;
 	void loadVehicles();
 	void loadTranslationTable();
 	void loadAllScriptRecords();

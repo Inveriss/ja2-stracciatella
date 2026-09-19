@@ -64,6 +64,11 @@
 #include "tactical/NpcActionParamsModel.h"
 
 #include "Logger.h"
+
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <regex>
 #include "Strategic_AI.h"
 #include "Strategic_Status.h"
 
@@ -1358,7 +1363,51 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 	}
 	MERCListingModel::validateData(m_MERCListings);
 
+	dumpMercProfilesIfRequested();
+
 	return true;
+}
+
+void DefaultContentManager::dumpMercProfilesIfRequested() const
+{
+	const char* const dirName = std::getenv("JA2_DUMP_MERC_PROFILES");
+	if (dirName == nullptr || *dirName == '\0') return;
+
+	// MercProfile works on the global profile array
+	resetMercProfileStructs();
+
+	JsonArray infos;
+	JsonArray relations;
+	for (const MercProfile* profile : m_mercProfiles)
+	{
+		infos.push(profile->serializeStruct(this));
+
+		JsonValue rel = profile->serializeStructRelations(this);
+		if (!rel.toObject().GetValue("100relations").toVec().empty())
+		{
+			relations.push(std::move(rel));
+		}
+	}
+
+	// The serializers prefix the keys with three digits to get them into a
+	// readable order (objects are sorted alphabetically); take them off again.
+	const std::regex keyPrefix(R"re("[0-9]{3}([A-Za-z][A-Za-z0-9]*)"\s*:)re");
+	auto const write = [&](const char* fileName, const char* header, JsonArray const& array)
+	{
+		std::string text = array.toValue().serialize(true).c_str();
+		text = std::regex_replace(text, keyPrefix, "\"$1\":");
+		std::filesystem::path const path = std::filesystem::path(dirName) / fileName;
+		std::error_code ec;
+		std::filesystem::create_directories(path.parent_path(), ec);
+		std::ofstream out(path, std::ios::out | std::ios::trunc | std::ios::binary);
+		out << header << text << "\n";
+		SLOGI("Wrote {} ({} entries)", path.string(), array.size());
+	};
+
+	write("mercs-profile-info.json",
+		"/* Generated from the merged prof.dat + JSON profile data (JA2_DUMP_MERC_PROFILES). */\n", infos);
+	write("mercs-relations.json",
+		"/* Generated from the merged prof.dat + JSON profile data (JA2_DUMP_MERC_PROFILES). */\n", relations);
 }
 
 void DefaultContentManager::loadVehicles()
