@@ -99,7 +99,7 @@ enum
 #define	IMP_SKILL_TRAIT__TEXT_OFFSET_Y											12
 
 #define	IMP_SKILL_TRAIT__TITLE_X														LAPTOP_SCREEN_UL_X
-#define	IMP_SKILL_TRAIT__TITLE_Y														56
+#define	IMP_SKILL_TRAIT__TITLE_Y															( LAPTOP_SCREEN_WEB_UL_Y + 10 )
 #define	IMP_SKILL_TRAIT__TITLE_WIDTH												( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X )
 
 #define	IMP_SKILL_TRAIT__GREY_BOX_OFFSET_X									5
