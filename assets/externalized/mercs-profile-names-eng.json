@@ -818,14 +818,19 @@
     "nickname": "Stogie"
   },
   {
-    "profileID": 199,
-    "fullName": "Tex Colburn",
-    "nickname": "Tex"
-  },
-  {
     "profileID": 167,
     "fullName": "Col. Frederick Biggins",
     "nickname": "Biggins"
+  },
+  {
+    "profileID": 168,
+    "fullName": "John Kulba",
+    "nickname": "John"
+  },
+  {
+    "profileID": 169,
+    "fullName": "Manuel Rivas",
+    "nickname": "Manuel"
   },
   {
     "profileID": 170,
@@ -938,31 +943,6 @@
     "nickname": "Speck"
   },
   {
-    "profileID": 168,
-    "fullName": "John Kulba",
-    "nickname": "John"
-  },
-  {
-    "profileID": 196,
-    "fullName": "Elio",
-    "nickname": "Elio"
-  },
-  {
-    "profileID": 197,
-    "fullName": "Juan",
-    "nickname": "Juan"
-  },
-  {
-    "profileID": 198,
-    "fullName": "Wahan",
-    "nickname": "Wahan"
-  },
-  {
-    "profileID": 169,
-    "fullName": "Manuel Rivas",
-    "nickname": "Manuel"
-  },
-  {
     "profileID": 192,
     "fullName": "Jack \"Postie\" Durham",
     "nickname": "Postie"
@@ -981,5 +961,25 @@
     "profileID": 195,
     "fullName": "Gary Roachburn",
     "nickname": "Gary"
+  },
+  {
+    "profileID": 196,
+    "fullName": "Elio",
+    "nickname": "Elio"
+  },
+  {
+    "profileID": 197,
+    "fullName": "Juan",
+    "nickname": "Juan"
+  },
+  {
+    "profileID": 198,
+    "fullName": "Wahan",
+    "nickname": "Wahan"
+  },
+  {
+    "profileID": 199,
+    "fullName": "Tex Colburn",
+    "nickname": "Tex"
   }
 ]

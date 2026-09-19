@@ -22321,17 +22321,52 @@
     ]
   },
   {
-    "profile": "TEX",
+    "profile": "JOHN_168",
     "relations": [
       {
-        "target": "FOX",
+        "target": "IVAN",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 4
+      },
+      {
+        "target": "IGOR",
+        "opinion": 0,
+        "enemy2": true,
+        "tolerance": 4
+      },
+      {
+        "target": "GUS",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 8
+      },
+      {
+        "target": "NUMB",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 10
+      }
+    ]
+  },
+  {
+    "profile": "MANUEL",
+    "relations": [
+      {
+        "target": "IRA",
         "opinion": 0,
         "friend1": true
       },
       {
-        "target": "LARRY_NORMAL",
+        "target": "DIMITRI",
         "opinion": 0,
         "friend2": true
+      },
+      {
+        "target": "CARLOS",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 10
       }
     ]
   },
@@ -22574,56 +22609,6 @@
     ]
   },
   {
-    "profile": "JOHN_168",
-    "relations": [
-      {
-        "target": "IVAN",
-        "opinion": 0,
-        "enemy1": true,
-        "tolerance": 4
-      },
-      {
-        "target": "IGOR",
-        "opinion": 0,
-        "enemy2": true,
-        "tolerance": 4
-      },
-      {
-        "target": "GUS",
-        "opinion": 0,
-        "eventualFriend": true,
-        "resistanceToBefriending": 8
-      },
-      {
-        "target": "NUMB",
-        "opinion": 0,
-        "eventualEnemy": true,
-        "resistanceToMakingEnemy": 10
-      }
-    ]
-  },
-  {
-    "profile": "MANUEL",
-    "relations": [
-      {
-        "target": "IRA",
-        "opinion": 0,
-        "friend1": true
-      },
-      {
-        "target": "DIMITRI",
-        "opinion": 0,
-        "friend2": true
-      },
-      {
-        "target": "CARLOS",
-        "opinion": 0,
-        "eventualFriend": true,
-        "resistanceToBefriending": 10
-      }
-    ]
-  },
-  {
     "profile": "REUBAN",
     "relations": [
       {
@@ -22642,6 +22627,21 @@
         "opinion": 0,
         "enemy1": true,
         "tolerance": 30
+      }
+    ]
+  },
+  {
+    "profile": "TEX",
+    "relations": [
+      {
+        "target": "FOX",
+        "opinion": 0,
+        "friend1": true
+      },
+      {
+        "target": "LARRY_NORMAL",
+        "opinion": 0,
+        "friend2": true
       }
     ]
   }

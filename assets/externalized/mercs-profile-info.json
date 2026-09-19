@@ -15824,260 +15824,6 @@
     ]
   },
   {
-    "profileID": 196,
-    "internalName": "ELIO",
-    "type": "AIM",
-    "sex": "M",
-    "bodyType": "REGMALE",
-    "face": {
-      "eyesXY": [
-        12,
-        7
-      ],
-      "mouthXY": [
-        15,
-        26
-      ]
-    },
-    "skinColor": "DARKSKIN",
-    "hairColor": "BLACKHEAD",
-    "vestColor": "WHITEVEST",
-    "pantsColor": "TANPANTS",
-    "stats": {
-      "agility": 84,
-      "dexterity": 81,
-      "experience": 1,
-      "explosive": 0,
-      "health": 83,
-      "leadership": 13,
-      "marksmanship": 23,
-      "mechanical": 0,
-      "medical": 0,
-      "sleepiness": 6,
-      "strength": 79,
-      "wisdom": 58
-    },
-    "skillTrait": "KNIFING",
-    "attitude": "AGGRESSIVE",
-    "toleranceForPlayersReputation": 101,
-    "toleranceForPlayersDeathRate": 101,
-    "contract": {
-      "dailySalary": 100,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
-      "isMedicalDepositRequired": false
-    },
-    "dialogue": [
-      {
-        "approach": "FRIENDLY",
-        "effectiveness": 80
-      },
-      {
-        "approach": "DIRECT",
-        "effectiveness": 90
-      },
-      {
-        "approach": "THREATEN",
-        "effectiveness": 130
-      },
-      {
-        "approach": "RECRUIT",
-        "effectiveness": 100
-      }
-    ]
-  },
-  {
-    "profileID": 197,
-    "internalName": "JUAN",
-    "type": "AIM",
-    "sex": "M",
-    "bodyType": "REGMALE",
-    "face": {
-      "eyesXY": [
-        5,
-        6
-      ],
-      "mouthXY": [
-        7,
-        27
-      ]
-    },
-    "skinColor": "DARKSKIN",
-    "hairColor": "BROWNHEAD",
-    "vestColor": "greyVEST",
-    "pantsColor": "BLUEPANTS",
-    "stats": {
-      "agility": 62,
-      "dexterity": 88,
-      "experience": 1,
-      "explosive": 0,
-      "health": 78,
-      "leadership": 9,
-      "marksmanship": 24,
-      "mechanical": 70,
-      "medical": 0,
-      "sleepiness": 6,
-      "strength": 72,
-      "wisdom": 74
-    },
-    "skillTrait": "ELECTRONICS",
-    "attitude": "PESSIMIST",
-    "toleranceForPlayersReputation": 101,
-    "toleranceForPlayersDeathRate": 101,
-    "contract": {
-      "dailySalary": 100,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
-      "isMedicalDepositRequired": false
-    },
-    "dialogue": [
-      {
-        "approach": "FRIENDLY",
-        "effectiveness": 100
-      },
-      {
-        "approach": "DIRECT",
-        "effectiveness": 100
-      },
-      {
-        "approach": "THREATEN",
-        "effectiveness": 100
-      },
-      {
-        "approach": "RECRUIT",
-        "effectiveness": 100
-      }
-    ]
-  },
-  {
-    "profileID": 198,
-    "internalName": "WAHAN",
-    "type": "AIM",
-    "sex": "M",
-    "bodyType": "REGMALE",
-    "face": {
-      "eyesXY": [
-        8,
-        6
-      ],
-      "mouthXY": [
-        11,
-        26
-      ]
-    },
-    "skinColor": "DARKSKIN",
-    "hairColor": "BLACKHEAD",
-    "vestColor": "BROWNVEST",
-    "pantsColor": "BLACKPANTS",
-    "stats": {
-      "agility": 55,
-      "dexterity": 88,
-      "experience": 1,
-      "explosive": 0,
-      "health": 68,
-      "leadership": 31,
-      "marksmanship": 11,
-      "mechanical": 0,
-      "medical": 46,
-      "sleepiness": 6,
-      "strength": 70,
-      "wisdom": 82
-    },
-    "attitude": "BIG_SHOT",
-    "toleranceForPlayersReputation": 101,
-    "toleranceForPlayersDeathRate": 101,
-    "contract": {
-      "dailySalary": 100,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
-      "isMedicalDepositRequired": false
-    },
-    "dialogue": [
-      {
-        "approach": "FRIENDLY",
-        "effectiveness": 80
-      },
-      {
-        "approach": "DIRECT",
-        "effectiveness": 80
-      },
-      {
-        "approach": "THREATEN",
-        "effectiveness": 120
-      },
-      {
-        "approach": "RECRUIT",
-        "effectiveness": 100
-      }
-    ]
-  },
-  {
-    "profileID": 199,
-    "internalName": "TEX",
-    "type": "AIM",
-    "sex": "M",
-    "bodyType": "REGMALE",
-    "face": {
-      "eyesXY": [
-        3,
-        6
-      ],
-      "mouthXY": [
-        3,
-        23
-      ]
-    },
-    "skinColor": "TANSKIN",
-    "hairColor": "BLACKHEAD",
-    "vestColor": "greyVEST",
-    "pantsColor": "GREENPANTS",
-    "stats": {
-      "agility": 77,
-      "dexterity": 74,
-      "experience": 4,
-      "explosive": 2,
-      "health": 81,
-      "leadership": 3,
-      "marksmanship": 88,
-      "mechanical": 44,
-      "medical": 4,
-      "sleepiness": 7,
-      "strength": 70,
-      "wisdom": 52
-    },
-    "personalityTrait": "CLAUSTROPHOBIC",
-    "skillTrait": "AMBIDEXT",
-    "skillTrait2": "CAMOUFLAGED",
-    "sexismMode": "VERY_SEXIST",
-    "isGoodGuy": true,
-    "toleranceForPlayersReputation": 101,
-    "toleranceForPlayersDeathRate": 101,
-    "contract": {
-      "dailySalary": 1000,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
-      "isMedicalDepositRequired": false
-    },
-    "dialogue": [
-      {
-        "approach": "FRIENDLY",
-        "effectiveness": 100
-      },
-      {
-        "approach": "DIRECT",
-        "effectiveness": 60
-      },
-      {
-        "approach": "THREATEN",
-        "effectiveness": 60
-      },
-      {
-        "approach": "RECRUIT",
-        "effectiveness": 50
-      }
-    ]
-  },
-  {
     "profileID": 192,
     "internalName": "POSTIE",
     "type": "AIM",
@@ -16336,6 +16082,260 @@
       {
         "approach": "RECRUIT",
         "effectiveness": 75
+      }
+    ]
+  },
+  {
+    "profileID": 196,
+    "internalName": "ELIO",
+    "type": "AIM",
+    "sex": "M",
+    "bodyType": "REGMALE",
+    "face": {
+      "eyesXY": [
+        12,
+        7
+      ],
+      "mouthXY": [
+        15,
+        26
+      ]
+    },
+    "skinColor": "DARKSKIN",
+    "hairColor": "BLACKHEAD",
+    "vestColor": "WHITEVEST",
+    "pantsColor": "TANPANTS",
+    "stats": {
+      "agility": 84,
+      "dexterity": 81,
+      "experience": 1,
+      "explosive": 0,
+      "health": 83,
+      "leadership": 13,
+      "marksmanship": 23,
+      "mechanical": 0,
+      "medical": 0,
+      "sleepiness": 6,
+      "strength": 79,
+      "wisdom": 58
+    },
+    "skillTrait": "KNIFING",
+    "attitude": "AGGRESSIVE",
+    "toleranceForPlayersReputation": 101,
+    "toleranceForPlayersDeathRate": 101,
+    "contract": {
+      "dailySalary": 100,
+      "weeklySalary": 0,
+      "biWeeklySalary": 0,
+      "isMedicalDepositRequired": false
+    },
+    "dialogue": [
+      {
+        "approach": "FRIENDLY",
+        "effectiveness": 80
+      },
+      {
+        "approach": "DIRECT",
+        "effectiveness": 90
+      },
+      {
+        "approach": "THREATEN",
+        "effectiveness": 130
+      },
+      {
+        "approach": "RECRUIT",
+        "effectiveness": 100
+      }
+    ]
+  },
+  {
+    "profileID": 197,
+    "internalName": "JUAN",
+    "type": "AIM",
+    "sex": "M",
+    "bodyType": "REGMALE",
+    "face": {
+      "eyesXY": [
+        5,
+        6
+      ],
+      "mouthXY": [
+        7,
+        27
+      ]
+    },
+    "skinColor": "DARKSKIN",
+    "hairColor": "BROWNHEAD",
+    "vestColor": "greyVEST",
+    "pantsColor": "BLUEPANTS",
+    "stats": {
+      "agility": 62,
+      "dexterity": 88,
+      "experience": 1,
+      "explosive": 0,
+      "health": 78,
+      "leadership": 9,
+      "marksmanship": 24,
+      "mechanical": 70,
+      "medical": 0,
+      "sleepiness": 6,
+      "strength": 72,
+      "wisdom": 74
+    },
+    "skillTrait": "ELECTRONICS",
+    "attitude": "PESSIMIST",
+    "toleranceForPlayersReputation": 101,
+    "toleranceForPlayersDeathRate": 101,
+    "contract": {
+      "dailySalary": 100,
+      "weeklySalary": 0,
+      "biWeeklySalary": 0,
+      "isMedicalDepositRequired": false
+    },
+    "dialogue": [
+      {
+        "approach": "FRIENDLY",
+        "effectiveness": 100
+      },
+      {
+        "approach": "DIRECT",
+        "effectiveness": 100
+      },
+      {
+        "approach": "THREATEN",
+        "effectiveness": 100
+      },
+      {
+        "approach": "RECRUIT",
+        "effectiveness": 100
+      }
+    ]
+  },
+  {
+    "profileID": 198,
+    "internalName": "WAHAN",
+    "type": "AIM",
+    "sex": "M",
+    "bodyType": "REGMALE",
+    "face": {
+      "eyesXY": [
+        8,
+        6
+      ],
+      "mouthXY": [
+        11,
+        26
+      ]
+    },
+    "skinColor": "DARKSKIN",
+    "hairColor": "BLACKHEAD",
+    "vestColor": "BROWNVEST",
+    "pantsColor": "BLACKPANTS",
+    "stats": {
+      "agility": 55,
+      "dexterity": 88,
+      "experience": 1,
+      "explosive": 0,
+      "health": 68,
+      "leadership": 31,
+      "marksmanship": 11,
+      "mechanical": 0,
+      "medical": 46,
+      "sleepiness": 6,
+      "strength": 70,
+      "wisdom": 82
+    },
+    "attitude": "BIG_SHOT",
+    "toleranceForPlayersReputation": 101,
+    "toleranceForPlayersDeathRate": 101,
+    "contract": {
+      "dailySalary": 100,
+      "weeklySalary": 0,
+      "biWeeklySalary": 0,
+      "isMedicalDepositRequired": false
+    },
+    "dialogue": [
+      {
+        "approach": "FRIENDLY",
+        "effectiveness": 80
+      },
+      {
+        "approach": "DIRECT",
+        "effectiveness": 80
+      },
+      {
+        "approach": "THREATEN",
+        "effectiveness": 120
+      },
+      {
+        "approach": "RECRUIT",
+        "effectiveness": 100
+      }
+    ]
+  },
+  {
+    "profileID": 199,
+    "internalName": "TEX",
+    "type": "AIM",
+    "sex": "M",
+    "bodyType": "REGMALE",
+    "face": {
+      "eyesXY": [
+        3,
+        6
+      ],
+      "mouthXY": [
+        3,
+        23
+      ]
+    },
+    "skinColor": "TANSKIN",
+    "hairColor": "BLACKHEAD",
+    "vestColor": "greyVEST",
+    "pantsColor": "GREENPANTS",
+    "stats": {
+      "agility": 77,
+      "dexterity": 74,
+      "experience": 4,
+      "explosive": 2,
+      "health": 81,
+      "leadership": 3,
+      "marksmanship": 88,
+      "mechanical": 44,
+      "medical": 4,
+      "sleepiness": 7,
+      "strength": 70,
+      "wisdom": 52
+    },
+    "personalityTrait": "CLAUSTROPHOBIC",
+    "skillTrait": "AMBIDEXT",
+    "skillTrait2": "CAMOUFLAGED",
+    "sexismMode": "VERY_SEXIST",
+    "isGoodGuy": true,
+    "toleranceForPlayersReputation": 101,
+    "toleranceForPlayersDeathRate": 101,
+    "contract": {
+      "dailySalary": 1000,
+      "weeklySalary": 0,
+      "biWeeklySalary": 0,
+      "isMedicalDepositRequired": false
+    },
+    "dialogue": [
+      {
+        "approach": "FRIENDLY",
+        "effectiveness": 100
+      },
+      {
+        "approach": "DIRECT",
+        "effectiveness": 60
+      },
+      {
+        "approach": "THREATEN",
+        "effectiveness": 60
+      },
+      {
+        "approach": "RECRUIT",
+        "effectiveness": 50
       }
     ]
   }
