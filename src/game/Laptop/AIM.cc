@@ -30,6 +30,30 @@
 UINT8			AimMercArray[ MAX_NUMBER_MERCS ];
 UINT8			gubNumAimMercs = 0;
 
+static AimFilter gAimFilter = AIM_FILTER_ALL;
+
+AimFilter GetAimFilter(void)
+{
+	return gAimFilter;
+}
+
+void SetAimFilter(AimFilter const filter)
+{
+	gAimFilter = filter;
+}
+
+static bool IsInAimFilter(ProfileID const id)
+{
+	switch (gAimFilter)
+	{
+		case AIM_FILTER_JA2:      return id < NUM_ORIGINAL_AIM_MERCS;
+		case AIM_FILTER_UB:       return (id >= 165 && id <= 169) || id == 199;
+		case AIM_FILTER_WILDFIRE: return id >= 170 && id <= 177;
+		case AIM_FILTER_JA1:      return id >= NUM_ORIGINAL_AIM_MERCS && !(id >= 165 && id <= 177) && id != 199;
+		default:                  return true;
+	}
+}
+
 void ResetAimMercArray(void)
 {
 	std::fill(std::begin(AimMercArray), std::end(AimMercArray), 0);
@@ -38,7 +62,7 @@ void ResetAimMercArray(void)
 	std::vector<ProfileID> ids;
 	for (const MercProfile* p : GCM->listMercProfiles())
 	{
-		if (p->isAIMMerc()) ids.push_back(p->getID());
+		if (p->isAIMMerc() && IsInAimFilter(p->getID())) ids.push_back(p->getID());
 	}
 	std::sort(ids.begin(), ids.end());
 	if (ids.size() > MAX_NUMBER_MERCS)

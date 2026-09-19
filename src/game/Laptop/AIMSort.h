@@ -13,6 +13,8 @@ extern UINT8 gubCurrentListMode;
 #define AIM_DESCEND	14
 
 
+// Sorts AimMercArray by the current criterion and order.
+void SortAimMercArray(void);
 void GameInitAimSort(void);
 void EnterAimSort(void);
 void ExitAimSort(void);

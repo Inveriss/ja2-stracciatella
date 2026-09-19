@@ -110,6 +110,26 @@ static INT16 const AIM_FI_FILTER_BUTTON_X[AIM_FI_NUM_FILTER_BUTTONS] =
 static char const* const gAimFiFilterNames[AIM_FI_NUM_FILTER_BUTTONS] = { "ALL", "JA2", "UB", "WILDFIRE", "JA1" };
 
 
+// The faces of all mercs of AimMercArray, whatever page is shown; they are indexed like the array
+static void UnloadAimFiFaces()
+{
+	FOR_EACH(SGPVObject*, i, guiAimFiFace)
+	{
+		if (*i != nullptr) DeleteVideoObject(*i);
+		*i = nullptr;
+	}
+}
+
+
+static void LoadAimFiFaces()
+{
+	for (UINT8 i = 0; i < gubNumAimMercs; ++i)
+	{
+		guiAimFiFace[i] = LoadSmallPortrait(GetProfile(AimMercArray[i]));
+	}
+}
+
+
 // Changes the page by the given number of pages; the arrow buttons wrap around at the ends, the mouse wheel does not
 static void ChangeAimFiPage(int const delta, bool const wrap)
 {
@@ -136,9 +156,38 @@ static GUIButtonRef MakeAimFiButton(ST::string const& text, INT16 const x, INT16
 }
 
 
+// Exactly one filter button is pressed: the one of the current filter
+static void SyncFilterButtons()
+{
+	for (int i = 0; i < AIM_FI_NUM_FILTER_BUTTONS; ++i)
+	{
+		if (!guiAimFiFilterButtons[i]) continue;
+		if (i == GetAimFilter()) guiAimFiFilterButtons[i]->uiFlags |= BUTTON_CLICKED_ON;
+		else                     guiAimFiFilterButtons[i]->uiFlags &= ~BUTTON_CLICKED_ON;
+	}
+}
+
+
 static void BtnPreviousPageCallback(GUI_BUTTON*, UINT32 reason);
 static void BtnNextPageCallback(GUI_BUTTON*, UINT32 reason);
-static void BtnFilterCallback(GUI_BUTTON*, UINT32) {}
+static void BtnFilterCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		AimFilter const filter = static_cast<AimFilter>(btn->GetUserData());
+		if (filter != GetAimFilter())
+		{
+			SetAimFilter(filter);
+			ResetAimMercArray();
+			SortAimMercArray();
+			UnloadAimFiFaces();
+			LoadAimFiFaces();
+			gubAimFiPage = 0;
+			RenderAimFacialIndex();
+		}
+	}
+	SyncFilterButtons();
+}
 
 
 void EnterAimFacialIndex()
@@ -171,11 +220,7 @@ void EnterAimFacialIndex()
 		usPosY += AIM_FI_PORTRAIT_HEIGHT + AIM_FI_MUGSHOT_GAP_Y;
 	}
 
-	// the faces of all mercs, whatever page is shown
-	for (i = 0; i < gubNumAimMercs; ++i)
-	{
-		guiAimFiFace[i] = LoadSmallPortrait(GetProfile(AimMercArray[i]));
-	}
+	LoadAimFiFaces();
 
 	MSYS_DefineRegion(&gScreenMouseRegions, LAPTOP_SCREEN_UL_X, LAPTOP_SCREEN_WEB_UL_Y,
 				LAPTOP_SCREEN_LR_X, LAPTOP_SCREEN_WEB_LR_Y, MSYS_PRIORITY_HIGH-1,
@@ -191,6 +236,7 @@ void EnterAimFacialIndex()
 	for (int i = 0; i < AIM_FI_NUM_FILTER_BUTTONS; ++i)
 	{
 		guiAimFiFilterButtons[i] = MakeAimFiButton(gAimFiFilterNames[i], AIM_FI_FILTER_BUTTON_X[i], AIM_FI_FILTER_BUTTON_Y, BtnFilterCallback);
+		guiAimFiFilterButtons[i]->SetUserData(i);
 	}
 
 	RenderAimFacialIndex();
@@ -203,11 +249,7 @@ void ExitAimFacialIndex()
 
 	RemoveVObject(guiMugShotBorder);
 
-	FOR_EACH(SGPVObject*,  i, guiAimFiFace)
-	{
-		if (*i != nullptr) DeleteVideoObject(*i);
-		*i = nullptr;
-	}
+	UnloadAimFiFaces();
 	FOR_EACH(MOUSE_REGION, i, gMercFaceMouseRegions) MSYS_RemoveRegion(&*i);
 	ExitAimMenuBar();
 
@@ -215,7 +257,7 @@ void ExitAimFacialIndex()
 
 	RemoveButton(guiAimFiPreviousButton);
 	RemoveButton(guiAimFiNextButton);
-	FOR_EACH(GUIButtonRef, i, guiAimFiFilterButtons) RemoveButton(*i);
+	FOR_EACH(GUIButtonRef, i, guiAimFiFilterButtons) { RemoveButton(*i); *i = GUIButtonRef(); }
 	UnloadButtonImage(guiAimFiButtonImage);
 
 	SetAimSmallLogo(false);
@@ -256,6 +298,7 @@ void RenderAimFacialIndex()
 	}
 
 	DisableAimButton();
+	SyncFilterButtons();
 
 	MarkButtonsDirty( );
 

@@ -17,7 +17,20 @@ extern UINT8 gubNumAimMercs;
 #define NUM_ORIGINAL_AIM_MERCS		40
 // The profile IDs of the A.I.M. mercs; the order is set by the sort page.
 extern UINT8 AimMercArray[MAX_NUMBER_MERCS];
-// Fill AimMercArray with all A.I.M. mercs in profile ID order.
+// The groups the list of the A.I.M. mercs can be reduced to (the buttons above the faces).
+enum AimFilter
+{
+	AIM_FILTER_ALL,
+	AIM_FILTER_JA2,      // profiles 0-39
+	AIM_FILTER_UB,       // profiles 165-169 and 199
+	AIM_FILTER_WILDFIRE, // profiles 170-177
+	AIM_FILTER_JA1,      // all the other added mercs
+	NUM_AIM_FILTERS
+};
+AimFilter GetAimFilter(void);
+void SetAimFilter(AimFilter filter);
+
+// Fill AimMercArray with the A.I.M. mercs of the current filter in profile ID order.
 void ResetAimMercArray(void);
 
 #define NUM_AIM_SCREENS			6

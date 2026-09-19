@@ -208,13 +208,10 @@ void EnterAimSort()
 }
 
 
-static void SortMercArray(void);
-
-
 void ExitAimSort()
 {
 	// Sort the merc array
-	SortMercArray();
+	SortAimMercArray();
 	RemoveAimDefaults();
 	SetAimSmallLogo(false);
 
@@ -360,7 +357,7 @@ static void DrawSelectLight(const UINT8 ubMode, const UINT8 ubImage)
 static INT32 QsortCompare(const void* pNum1, const void* pNum2);
 
 
-static void SortMercArray(void)
+void SortAimMercArray(void)
 {
 	qsort(AimMercArray, gubNumAimMercs, sizeof(UINT8), QsortCompare);
 }
