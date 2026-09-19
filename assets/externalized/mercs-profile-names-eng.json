@@ -961,5 +961,25 @@
     "profileID": 169,
     "fullName": "Manuel Rivas",
     "nickname": "Manuel"
+  },
+  {
+    "profileID": 192,
+    "fullName": "Jack \"Postie\" Durham",
+    "nickname": "Postie"
+  },
+  {
+    "profileID": 193,
+    "fullName": "Unusually Ruthless Reuban",
+    "nickname": "Reuban"
+  },
+  {
+    "profileID": 194,
+    "fullName": "Col. Leon Roachburn",
+    "nickname": "Leon"
+  },
+  {
+    "profileID": 195,
+    "fullName": "Gary Roachburn",
+    "nickname": "Gary"
   }
 ]

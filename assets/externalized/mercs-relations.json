@@ -22622,5 +22622,27 @@
         "resistanceToBefriending": 10
       }
     ]
+  },
+  {
+    "profile": "REUBAN",
+    "relations": [
+      {
+        "target": "IVAN",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 6
+      }
+    ]
+  },
+  {
+    "profile": "GARY",
+    "relations": [
+      {
+        "target": "LARRY_NORMAL",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 30
+      }
+    ]
   }
 ]
