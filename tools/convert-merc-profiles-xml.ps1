@@ -23,16 +23,25 @@ Only what has a counterpart in this project is converted:
 Usage:
   powershell -ExecutionPolicy Bypass -File tools\convert-merc-profiles-xml.ps1 `
       -XmlPath "E:\path\MercProfiles.xml" -FirstId 165 -LastId 199
+
+One profile under a different ID (XML uiIndex 229 becomes profile 169):
+  ... -XmlPath "E:\path\MercProfiles.xml" -SourceId 229 -TargetId 169
 #>
 param(
     [Parameter(Mandatory = $true)] [string] $XmlPath,
     [int] $FirstId = 165,
     [int] $LastId = 199,
+    [int] $SourceId = -1,
+    [int] $TargetId = -1,
     [string] $AssetsDir = "",
     [string] $Language = "eng"
 )
 
 $ErrorActionPreference = "Stop"
+if ($SourceId -ge 0) {
+    if ($TargetId -lt 0) { throw "-SourceId needs -TargetId" }
+    $FirstId = $TargetId; $LastId = $TargetId
+}
 if (-not $AssetsDir) { $AssetsDir = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "..\assets\externalized" }
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
@@ -139,7 +148,8 @@ foreach ($o in $info.Objects) {
 $profiles = @{}
 foreach ($p in $xml.SelectNodes("//PROFILE")) {
     $id = [int]$p.uiIndex
-    if ($id -ge $FirstId -and $id -le $LastId) { $profiles[$id] = $p }
+    if ($SourceId -ge 0) { if ($id -eq $SourceId) { $profiles[$TargetId] = $p } }
+    elseif ($id -ge $FirstId -and $id -le $LastId) { $profiles[$id] = $p }
 }
 if ($profiles.Count -eq 0) { throw "No profile with an index from $FirstId to $LastId in $XmlPath" }
 
@@ -155,7 +165,8 @@ foreach ($id in ($profiles.Keys | Sort-Object)) {
     $p = $profiles[$id]
     $type = Int $p.Type
     $nick = Text $p.zNickname
-    if ($type -ne 1 -and $type -ne 2) {
+    if ($SourceId -ge 0 -and $type -ne 1 -and $type -ne 2) { Note "$id '$nick': XML type $type, imported as AIM because it was asked for explicitly" }
+    elseif ($type -ne 1 -and $type -ne 2) {
         Note "skipped $id '$nick': type $type is not a merc (1 = AIM, 2 = MERC)"
         continue
     }

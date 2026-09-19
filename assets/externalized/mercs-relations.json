@@ -22574,7 +22574,7 @@
     ]
   },
   {
-    "profile": "JOHN_195",
+    "profile": "JOHN_168",
     "relations": [
       {
         "target": "IVAN",
@@ -22599,6 +22599,27 @@
         "opinion": 0,
         "eventualEnemy": true,
         "resistanceToMakingEnemy": 10
+      }
+    ]
+  },
+  {
+    "profile": "MANUEL",
+    "relations": [
+      {
+        "target": "IRA",
+        "opinion": 0,
+        "friend1": true
+      },
+      {
+        "target": "DIMITRI",
+        "opinion": 0,
+        "friend2": true
+      },
+      {
+        "target": "CARLOS",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 10
       }
     ]
   }
