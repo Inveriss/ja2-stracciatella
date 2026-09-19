@@ -558,8 +558,8 @@ void AddEmailMessage(INT32 iMessageOffset, INT32 iMessageLength, INT32 iDate, UI
 	// reset Next ptr
 	pTempEmail->Next=NULL;
 
-	// set flag that new mail has arrived
-	fNewMailFlag=TRUE;
+	// set flag that new mail has arrived (mails that are already read, like the ones of a new game, are not new)
+	if (!fAlreadyRead) fNewMailFlag = TRUE;
 
 	// add this message to the pages of email
 	AddMessageToPages(pTempEmail);
