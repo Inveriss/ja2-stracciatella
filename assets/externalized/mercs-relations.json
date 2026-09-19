@@ -22249,207 +22249,356 @@
     ]
   },
   {
-    "profile": "NPC165",
+    "profile": "GASTON",
     "relations": [
       {
-        "target": "VICKY",
-        "opinion": -5
+        "target": "FOX",
+        "opinion": 0,
+        "friend1": true
       },
       {
-        "target": "TREVOR",
-        "opinion": -5
+        "target": "MALICE",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 8
       },
       {
         "target": "BUNS",
-        "opinion": -5
+        "opinion": 0,
+        "friend2": true
       },
       {
-        "target": "SPIDER",
-        "opinion": -5
+        "target": "FLO",
+        "opinion": 0,
+        "enemy2": true,
+        "tolerance": 8
       },
       {
-        "target": "MAGIC",
-        "opinion": -7
+        "target": "BUZZ",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 6
       },
       {
-        "target": "STEPHEN",
-        "opinion": -5
-      },
-      {
-        "target": "IRA",
-        "opinion": -5
-      },
-      {
-        "target": "SLAY",
-        "opinion": -5
-      },
-      {
-        "target": "DYNAMO",
-        "opinion": -15
+        "target": "BIFF",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 10
       }
     ]
   },
   {
-    "profile": "NPC166",
+    "profile": "STOGIE",
     "relations": [
       {
-        "target": "VICKY",
-        "opinion": -5
+        "target": "BULL",
+        "opinion": 0,
+        "friend1": true
       },
       {
         "target": "TREVOR",
-        "opinion": -5
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 10
       },
       {
-        "target": "BUNS",
-        "opinion": -5
+        "target": "BIFF",
+        "opinion": 0,
+        "friend2": true
       },
       {
-        "target": "SPIDER",
-        "opinion": -5
+        "target": "MELTDOWN",
+        "opinion": 0,
+        "enemy2": true,
+        "tolerance": 8
       },
       {
-        "target": "MAGIC",
-        "opinion": -7
-      },
-      {
-        "target": "STEPHEN",
-        "opinion": -5
-      },
-      {
-        "target": "IRA",
-        "opinion": -5
-      },
-      {
-        "target": "SLAY",
-        "opinion": -5
-      },
-      {
-        "target": "DYNAMO",
-        "opinion": -15
+        "target": "GUS",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 12
       }
     ]
   },
   {
-    "profile": "NPC167",
+    "profile": "TEX",
     "relations": [
       {
-        "target": "VICKY",
-        "opinion": -5
+        "target": "FOX",
+        "opinion": 0,
+        "friend1": true
       },
       {
-        "target": "TREVOR",
-        "opinion": -5
-      },
-      {
-        "target": "BUNS",
-        "opinion": -5
-      },
-      {
-        "target": "SPIDER",
-        "opinion": -5
-      },
-      {
-        "target": "MAGIC",
-        "opinion": -7
-      },
-      {
-        "target": "STEPHEN",
-        "opinion": -5
-      },
-      {
-        "target": "IRA",
-        "opinion": -5
-      },
-      {
-        "target": "SLAY",
-        "opinion": -5
-      },
-      {
-        "target": "DYNAMO",
-        "opinion": -15
+        "target": "LARRY_NORMAL",
+        "opinion": 0,
+        "friend2": true
       }
     ]
   },
   {
-    "profile": "NPC168",
+    "profile": "MONK",
     "relations": [
       {
-        "target": "VICKY",
-        "opinion": -5
+        "target": "IVAN",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 22
       },
       {
-        "target": "TREVOR",
-        "opinion": -5
-      },
-      {
-        "target": "BUNS",
-        "opinion": -5
-      },
-      {
-        "target": "SPIDER",
-        "opinion": -5
-      },
-      {
-        "target": "MAGIC",
-        "opinion": -7
-      },
-      {
-        "target": "STEPHEN",
-        "opinion": -5
-      },
-      {
-        "target": "IRA",
-        "opinion": -5
-      },
-      {
-        "target": "SLAY",
-        "opinion": -5
-      },
-      {
-        "target": "DYNAMO",
-        "opinion": -15
+        "target": "CONRAD",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 20
       }
     ]
   },
   {
-    "profile": "NPC169",
+    "profile": "BRAIN",
+    "relations": [
+      {
+        "target": "SIDNEY",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 20
+      },
+      {
+        "target": "REAPER",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 20
+      }
+    ]
+  },
+  {
+    "profile": "SCREAM",
+    "relations": [
+      {
+        "target": "DR_Q",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 12
+      },
+      {
+        "target": "LYNX",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 6
+      }
+    ]
+  },
+  {
+    "profile": "HENNING",
+    "relations": [
+      {
+        "target": "THOR",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 20
+      },
+      {
+        "target": "FIDEL",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 30
+      },
+      {
+        "target": "NUMB",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 30
+      }
+    ]
+  },
+  {
+    "profile": "LUCKY",
+    "relations": [
+      {
+        "target": "MALICE",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 88
+      },
+      {
+        "target": "BARRY",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 14
+      },
+      {
+        "target": "FLO",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 70
+      }
+    ]
+  },
+  {
+    "profile": "LAURA",
+    "relations": [
+      {
+        "target": "BUZZ",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 20
+      },
+      {
+        "target": "FOX",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 20
+      }
+    ]
+  },
+  {
+    "profile": "GRACE",
+    "relations": [
+      {
+        "target": "RED",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 12
+      },
+      {
+        "target": "NUMB",
+        "opinion": 0,
+        "enemy2": true,
+        "tolerance": 12
+      },
+      {
+        "target": "MELTDOWN",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 22
+      }
+    ]
+  },
+  {
+    "profile": "RUDOLF",
+    "relations": [
+      {
+        "target": "GASKET",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 10
+      },
+      {
+        "target": "GRUNTY",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 12
+      },
+      {
+        "target": "BULL",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 10
+      }
+    ]
+  },
+  {
+    "profile": "SPOOKY",
+    "relations": [
+      {
+        "target": "SHADOW",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 15
+      },
+      {
+        "target": "LYNX",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 21
+      }
+    ]
+  },
+  {
+    "profile": "SKITZ",
+    "relations": [
+      {
+        "target": "LARRY_DRUNK",
+        "opinion": 0,
+        "friend1": true
+      }
+    ]
+  },
+  {
+    "profile": "POPS",
+    "relations": [
+      {
+        "target": "FOX",
+        "opinion": 0,
+        "friend1": true
+      }
+    ]
+  },
+  {
+    "profile": "WALLY",
+    "relations": [
+      {
+        "target": "FOX",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 36
+      }
+    ]
+  },
+  {
+    "profile": "ELI",
+    "relations": [
+      {
+        "target": "CLIFF",
+        "opinion": 0,
+        "friend1": true
+      }
+    ]
+  },
+  {
+    "profile": "LANCE",
+    "relations": [
+      {
+        "target": "BIFF",
+        "opinion": 0,
+        "friend1": true
+      }
+    ]
+  },
+  {
+    "profile": "SPECK_191",
     "relations": [
       {
         "target": "VICKY",
-        "opinion": -5
+        "opinion": 0,
+        "friend1": true
+      }
+    ]
+  },
+  {
+    "profile": "JOHN_195",
+    "relations": [
+      {
+        "target": "IVAN",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 4
       },
       {
-        "target": "TREVOR",
-        "opinion": -5
+        "target": "IGOR",
+        "opinion": 0,
+        "enemy2": true,
+        "tolerance": 4
       },
       {
-        "target": "BUNS",
-        "opinion": -5
+        "target": "GUS",
+        "opinion": 0,
+        "eventualFriend": true,
+        "resistanceToBefriending": 8
       },
       {
-        "target": "SPIDER",
-        "opinion": -5
-      },
-      {
-        "target": "MAGIC",
-        "opinion": -7
-      },
-      {
-        "target": "STEPHEN",
-        "opinion": -5
-      },
-      {
-        "target": "IRA",
-        "opinion": -5
-      },
-      {
-        "target": "SLAY",
-        "opinion": -5
-      },
-      {
-        "target": "DYNAMO",
-        "opinion": -15
+        "target": "NUMB",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 10
       }
     ]
   }

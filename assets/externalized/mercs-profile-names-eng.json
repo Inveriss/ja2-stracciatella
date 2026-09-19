@@ -806,5 +806,155 @@
     "profileID": 162,
     "fullName": "Ice Cream Truck",
     "nickname": "Truck"
+  },
+  {
+    "profileID": 165,
+    "fullName": "Gaston Cavalier",
+    "nickname": "Gaston"
+  },
+  {
+    "profileID": 166,
+    "fullName": "Lt. \"Stogie\" Horge",
+    "nickname": "Stogie"
+  },
+  {
+    "profileID": 167,
+    "fullName": "Tex Colburn",
+    "nickname": "Tex"
+  },
+  {
+    "profileID": 168,
+    "fullName": "Col. Frederick Biggins",
+    "nickname": "Biggins"
+  },
+  {
+    "profileID": 170,
+    "fullName": "Victor \"Monk\" Kolesnikov",
+    "nickname": "Monk"
+  },
+  {
+    "profileID": 171,
+    "fullName": "Janno \"Brain\" Allik",
+    "nickname": "Brain"
+  },
+  {
+    "profileID": 172,
+    "fullName": "Lennart \"Scream\" Vilde",
+    "nickname": "Scream"
+  },
+  {
+    "profileID": 173,
+    "fullName": "Henning von Branitz",
+    "nickname": "Henning"
+  },
+  {
+    "profileID": 174,
+    "fullName": "Luc Fabre",
+    "nickname": "Lucky"
+  },
+  {
+    "profileID": 175,
+    "fullName": "Dr. Laura Colin",
+    "nickname": "Laura"
+  },
+  {
+    "profileID": 176,
+    "fullName": "Graziella \"Grace\" Girelli",
+    "nickname": "Grace"
+  },
+  {
+    "profileID": 177,
+    "fullName": "Rudolf Steiger",
+    "nickname": "Rudolf"
+  },
+  {
+    "profileID": 178,
+    "fullName": "Gregory \"Spooky\" Block",
+    "nickname": "Spooky"
+  },
+  {
+    "profileID": 179,
+    "fullName": "Bruce \"Skitz\" Bonner",
+    "nickname": "Skitz"
+  },
+  {
+    "profileID": 180,
+    "fullName": "Willy \"Weasel\" Augustin",
+    "nickname": "Weasel"
+  },
+  {
+    "profileID": 181,
+    "fullName": "Carl \"It\" Goodman",
+    "nickname": "It"
+  },
+  {
+    "profileID": 182,
+    "fullName": "Dr. Bernie Gloveless",
+    "nickname": "Bernie"
+  },
+  {
+    "profileID": 183,
+    "fullName": "Murray \"Pops\" McGillicutty",
+    "nickname": "Pops"
+  },
+  {
+    "profileID": 184,
+    "fullName": "Walter Yuntz",
+    "nickname": "Wally"
+  },
+  {
+    "profileID": 185,
+    "fullName": "Dr. Eli Summers",
+    "nickname": "Eli"
+  },
+  {
+    "profileID": 186,
+    "fullName": "Dr. Mitch Shudlem",
+    "nickname": "Mitch"
+  },
+  {
+    "profileID": 187,
+    "fullName": "Howard \"Carp\" Melfield",
+    "nickname": "Carp"
+  },
+  {
+    "profileID": 188,
+    "fullName": "Lance Fisher",
+    "nickname": "Lance"
+  },
+  {
+    "profileID": 189,
+    "fullName": "Dr. Raffitto \"Raffi\" Leevon",
+    "nickname": "Raffi"
+  },
+  {
+    "profileID": 190,
+    "fullName": "Wink E. Dickerson",
+    "nickname": "Wink"
+  },
+  {
+    "profileID": 191,
+    "fullName": "Speck T. Kline",
+    "nickname": "Speck"
+  },
+  {
+    "profileID": 195,
+    "fullName": "John Kulba",
+    "nickname": "John"
+  },
+  {
+    "profileID": 196,
+    "fullName": "Elio",
+    "nickname": "Elio"
+  },
+  {
+    "profileID": 197,
+    "fullName": "Juan",
+    "nickname": "Juan"
+  },
+  {
+    "profileID": 198,
+    "fullName": "Wahan",
+    "nickname": "Wahan"
   }
 ]
