@@ -1343,7 +1343,7 @@
         "%s gekillt"
     ],
     "pHistoryTitle": "Logbuch",
-    "pIMPBeginScreenStrings": "(max. 8 Buchstaben)",
+    "pIMPBeginScreenStrings": "(max. 12 Buchstaben)",
     "pIMPFinishButtonText": "Analyse wird durchgeführt",
     "pIMPFinishStrings": "Danke, %s",
     "pIMPVoicesStrings": "Stimme",

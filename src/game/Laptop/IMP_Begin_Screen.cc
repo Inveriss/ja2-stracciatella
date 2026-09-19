@@ -41,7 +41,7 @@
 #define MALE_BOX_WIDTH 24 - 2
 #define MALE_BOX_HEIGHT 24 - 2
 #define FEMALE_BOX_X  2 + 302 + LAPTOP_SCREEN_UL_X
-constexpr std::size_t MAX_NICKNAME_LENGTH = 8;
+constexpr std::size_t MAX_NICKNAME_LENGTH = 12;
 
 // genders
 enum {
@@ -150,7 +150,7 @@ void EnterIMPBeginScreen( void )
 }
 
 
-static void Print8CharacterOnlyString(void);
+static void PrintNicknameLengthString(void);
 static void RenderGender(void);
 
 
@@ -174,7 +174,7 @@ void RenderIMPBeginScreen( void )
 	RenderNickNameIndent( 194, 192);
 
 	// render warning string
-	Print8CharacterOnlyString();
+	PrintNicknameLengthString();
 
 	RenderGender();
 	RenderAllTextFields();
@@ -440,10 +440,10 @@ static void RenderGender(void)
 }
 
 
-static void Print8CharacterOnlyString(void)
+static void PrintNicknameLengthString(void)
 {
 	SetFontAttributes(FONT12ARIAL, FONT_BLACK, NO_SHADOW);
-	MPrint(STD_SCREEN_X + 430, STD_SCREEN_Y + LAPTOP_SCREEN_WEB_DELTA_Y + 228, pIMPBeginScreenStrings);
+	MPrint(STD_SCREEN_X + 425, STD_SCREEN_Y + LAPTOP_SCREEN_WEB_DELTA_Y + 228, pIMPBeginScreenStrings);
 	SetFontShadow(DEFAULT_SHADOW);
 }
 

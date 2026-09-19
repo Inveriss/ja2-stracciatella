@@ -1343,7 +1343,7 @@
         "%s a été tué(e)"
     ],
     "pHistoryTitle": "Historique",
-    "pIMPBeginScreenStrings": "( 8 Caractères Max )",
+    "pIMPBeginScreenStrings": "( 12 Caractères Max )",
     "pIMPFinishButtonText": "Analyse",
     "pIMPFinishStrings": "Nous vous remercions, %s",
     "pIMPVoicesStrings": "Voix",

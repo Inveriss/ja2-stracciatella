@@ -10,8 +10,12 @@
 // two constants is unrelated to slot count -- it's UTF-32 (Linux) vs UTF-16
 // (Windows) encoding for the 40-char name+nickname fields (40 * (4-2) = 80
 // bytes) -- so each grows by its own +80.
-#define MERC_PROFILE_SIZE               (796)           /**< This engine's Windows-format Merc profile size */
-#define MERC_PROFILE_SIZE_STRAC_LINUX   (876)           /**< This engine's Stracciatella Linux Merc profile size */
+// Player-chosen (IMP) nicknames may be longer than the 10 chars the vanilla
+// prof.dat allows, so this engine's own format stores NICKNAME_LENGTH_OWN_FORMAT
+// chars: +3 chars = +6 bytes (UTF-16) / +12 bytes (UTF-32).
+#define NICKNAME_LENGTH_OWN_FORMAT      (13)
+#define MERC_PROFILE_SIZE               (802)           /**< This engine's Windows-format Merc profile size */
+#define MERC_PROFILE_SIZE_STRAC_LINUX   (888)           /**< This engine's Stracciatella Linux Merc profile size */
 
 // The VANILLA game's OWN, immutable, third-party prof.dat format -- frozen
 // forever at 19 inventory slots / 716 bytes. This is NOT our format and must

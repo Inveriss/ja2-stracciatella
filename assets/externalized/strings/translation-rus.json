@@ -1343,7 +1343,7 @@
         "Убил %s"
     ],
     "pHistoryTitle": "События",
-    "pIMPBeginScreenStrings": "(не более 8 букв)",
+    "pIMPBeginScreenStrings": "(не более 12 букв)",
     "pIMPFinishButtonText": "Анализ",
     "pIMPFinishStrings": "Спасибо, %s",
     "pIMPVoicesStrings": "Голос",

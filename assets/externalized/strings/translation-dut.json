@@ -1343,7 +1343,7 @@
         "%s vermoord"
     ],
     "pHistoryTitle": "Geschiedenis",
-    "pIMPBeginScreenStrings": "( 8 Karakters Max )",
+    "pIMPBeginScreenStrings": "( 12 Karakters Max )",
     "pIMPFinishButtonText": "Analiseren",
     "pIMPFinishStrings": "Bedankt, %s",
     "pIMPVoicesStrings": "Stem",

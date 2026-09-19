@@ -1343,7 +1343,7 @@
         "Killed %s"
     ],
     "pHistoryTitle": "History Log",
-    "pIMPBeginScreenStrings": "( 8 Characters Max )",
+    "pIMPBeginScreenStrings": "( 12 Characters Max )",
     "pIMPFinishButtonText": "Analyzing",
     "pIMPFinishStrings": "Thank You, %s",
     "pIMPVoicesStrings": "Voice",

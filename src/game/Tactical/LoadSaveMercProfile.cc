@@ -37,14 +37,16 @@ UINT32 SoldierProfileChecksum(MERCPROFILESTRUCT const& p)
 void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracLinuxFormat, UINT32 *checksum, bool const isCorrectlyEncoded, bool const fVanillaProfileFormat)
 {
 	DataReader S{Src};
+	// prof.dat has the vanilla 10 char nickname, this engine's own format a longer one
+	size_t const nicknameLength = fVanillaProfileFormat ? NICKNAME_LENGTH : NICKNAME_LENGTH_OWN_FORMAT;
 
 	if (isCorrectlyEncoded) {
 		p.zName = S.readString(NAME_LENGTH, stracLinuxFormat);
-		p.zNickname = S.readString(NICKNAME_LENGTH, stracLinuxFormat);
+		p.zNickname = S.readString(nicknameLength, stracLinuxFormat);
 	}
 	else {
 		p.zName = S.readUTF16(NAME_LENGTH, false);
-		p.zNickname = S.readUTF16(NICKNAME_LENGTH, false);
+		p.zNickname = S.readUTF16(nicknameLength, false);
 	}
 	EXTR_SKIP(S, 28)
 	EXTR_U8(S, p.ubFaceIndex)
@@ -255,7 +257,7 @@ void InjectMercProfile(BYTE* const Dst, MERCPROFILESTRUCT const& p)
 	DataWriter D(Dst);
 
 	D.writeUTF16(p.zName, NAME_LENGTH);
-	D.writeUTF16(p.zNickname, NICKNAME_LENGTH);
+	D.writeUTF16(p.zNickname, NICKNAME_LENGTH_OWN_FORMAT);
 	INJ_SKIP(D, 28)
 	INJ_U8(D, p.ubFaceIndex)
 	D.writeUTF8(p.PANTS, PaletteRepID_LENGTH);

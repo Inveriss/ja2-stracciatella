@@ -1343,7 +1343,7 @@
         "Ucciso %s"
     ],
     "pHistoryTitle": "Registro",
-    "pIMPBeginScreenStrings": "(max 8 personaggi)",
+    "pIMPBeginScreenStrings": "(max 12 personaggi)",
     "pIMPFinishButtonText": "Analisi",
     "pIMPFinishStrings": "Grazie, %s",
     "pIMPVoicesStrings": "Voce",

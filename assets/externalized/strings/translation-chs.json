@@ -1343,7 +1343,7 @@
         "干掉了%s"
     ],
     "pHistoryTitle": "历史记录",
-    "pIMPBeginScreenStrings": "( 最多8个字符 )",
+    "pIMPBeginScreenStrings": "( 最多12个字符 )",
     "pIMPFinishButtonText": "分析中",
     "pIMPFinishStrings": "谢谢您, %s",
     "pIMPVoicesStrings": "嗓音",
