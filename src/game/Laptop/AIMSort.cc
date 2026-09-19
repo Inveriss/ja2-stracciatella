@@ -95,19 +95,22 @@ static void SelectDescendBoxRegionCallBack(   MOUSE_REGION* pRegion, UINT32 iRea
 
 static AIMSortInfo g_aim_sort_info[L10n::str_aim_sort_list_SIZE]
 {
+	// laid out column by column in the order the stats appear on a merc's file page:
+	// Name, Price, Health, Agility, Dexterity, Strength, Leadership, Wisdom,
+	// Experience, Marksmanship, Mechanical, Explosives, Medical
 	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_1, LEFT_JUSTIFIED,   0, SelectSortCriterionRegionCallBack }, // Price
-	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_2, LEFT_JUSTIFIED,   1, SelectSortCriterionRegionCallBack }, // Experience
-	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_3, LEFT_JUSTIFIED,   2, SelectSortCriterionRegionCallBack }, // Marksmanship
-	{ AIM_SORT_COLUMN_1, AIM_SORT_ROW_3, LEFT_JUSTIFIED,   3, SelectSortCriterionRegionCallBack }, // Medical
-	{ AIM_SORT_COLUMN_1, AIM_SORT_ROW_2, LEFT_JUSTIFIED,   4, SelectSortCriterionRegionCallBack }, // Explosives
-	{ AIM_SORT_COLUMN_1, AIM_SORT_ROW_1, LEFT_JUSTIFIED,   5, SelectSortCriterionRegionCallBack }, // Mechanical
+	{ AIM_SORT_COLUMN_2, AIM_SORT_ROW_2, LEFT_JUSTIFIED,   1, SelectSortCriterionRegionCallBack }, // Experience
+	{ AIM_SORT_COLUMN_2, AIM_SORT_ROW_3, LEFT_JUSTIFIED,   2, SelectSortCriterionRegionCallBack }, // Marksmanship
+	{ AIM_SORT_COLUMN_3, AIM_SORT_ROW_3, LEFT_JUSTIFIED,   3, SelectSortCriterionRegionCallBack }, // Medical
+	{ AIM_SORT_COLUMN_3, AIM_SORT_ROW_2, LEFT_JUSTIFIED,   4, SelectSortCriterionRegionCallBack }, // Explosives
+	{ AIM_SORT_COLUMN_3, AIM_SORT_ROW_1, LEFT_JUSTIFIED,   5, SelectSortCriterionRegionCallBack }, // Mechanical
 	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_0, LEFT_JUSTIFIED,   6, SelectSortCriterionRegionCallBack }, // Name (nickname)
-	{ AIM_SORT_COLUMN_2, AIM_SORT_ROW_1, LEFT_JUSTIFIED,   7, SelectSortCriterionRegionCallBack }, // Health
-	{ AIM_SORT_COLUMN_2, AIM_SORT_ROW_2, LEFT_JUSTIFIED,   8, SelectSortCriterionRegionCallBack }, // Agility
-	{ AIM_SORT_COLUMN_2, AIM_SORT_ROW_3, LEFT_JUSTIFIED,   9, SelectSortCriterionRegionCallBack }, // Dexterity
-	{ AIM_SORT_COLUMN_3, AIM_SORT_ROW_1, LEFT_JUSTIFIED,  10, SelectSortCriterionRegionCallBack }, // Strength
-	{ AIM_SORT_COLUMN_3, AIM_SORT_ROW_2, LEFT_JUSTIFIED,  11, SelectSortCriterionRegionCallBack }, // Leadership
-	{ AIM_SORT_COLUMN_3, AIM_SORT_ROW_3, LEFT_JUSTIFIED,  12, SelectSortCriterionRegionCallBack }, // Wisdom
+	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_2, LEFT_JUSTIFIED,   7, SelectSortCriterionRegionCallBack }, // Health
+	{ AIM_SORT_COLUMN_0, AIM_SORT_ROW_3, LEFT_JUSTIFIED,   8, SelectSortCriterionRegionCallBack }, // Agility
+	{ AIM_SORT_COLUMN_1, AIM_SORT_ROW_1, LEFT_JUSTIFIED,   9, SelectSortCriterionRegionCallBack }, // Dexterity
+	{ AIM_SORT_COLUMN_1, AIM_SORT_ROW_2, LEFT_JUSTIFIED,  10, SelectSortCriterionRegionCallBack }, // Strength
+	{ AIM_SORT_COLUMN_1, AIM_SORT_ROW_3, LEFT_JUSTIFIED,  11, SelectSortCriterionRegionCallBack }, // Leadership
+	{ AIM_SORT_COLUMN_2, AIM_SORT_ROW_1, LEFT_JUSTIFIED,  12, SelectSortCriterionRegionCallBack }, // Wisdom
 	{ 413,               5,              RIGHT_JUSTIFIED, 13, SelectAscendBoxRegionCallBack     },
 	{ 413,               18,             RIGHT_JUSTIFIED, 14, SelectDescendBoxRegionCallBack    }
 };
