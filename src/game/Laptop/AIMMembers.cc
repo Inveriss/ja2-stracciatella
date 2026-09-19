@@ -500,6 +500,7 @@ void EnterAIMMembers()
 	giContactButton  = MakeButton(CharacterInfo[AIM_MEMBER_CONTACT],  CONTACT_X,  BtnContactButtonCallback);
 	giNextButton     = MakeButton(CharacterInfo[AIM_MEMBER_NEXT],     NEXT_X,     BtnNextButtonCallback);
 
+	if (gbCurrentIndex >= gubNumAimMercs) gbCurrentIndex = 0; // the filter may have changed
 	gbCurrentSoldier = AimMercArray[gbCurrentIndex];
 
 	gfStopMercFromTalking = FALSE;
@@ -918,7 +919,7 @@ static void DisplayMercsInventory(MERCPROFILESTRUCT const& p)
 
 static void BtnPreviousButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 {
-	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	if ((reason & MSYS_CALLBACK_REASON_POINTER_UP) && gubNumAimMercs > 0)
 	{
 		DeleteAimPopUpBox();
 
@@ -951,7 +952,7 @@ static void BtnContactButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 
 static void BtnNextButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 {
-	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	if ((reason & MSYS_CALLBACK_REASON_POINTER_UP) && gubNumAimMercs > 0)
 	{
 		DeleteAimPopUpBox();
 

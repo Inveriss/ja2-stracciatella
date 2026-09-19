@@ -25,7 +25,8 @@ enum AimFilter
 	AIM_FILTER_UB,       // profiles 165-169 and 199
 	AIM_FILTER_WILDFIRE, // profiles 170-177
 	AIM_FILTER_JA1,      // all the other added mercs
-	NUM_AIM_FILTERS
+	NUM_AIM_FILTERS,     // the number of filter buttons
+	AIM_FILTER_NONE = NUM_AIM_FILTERS // no button pressed, the list is empty
 };
 AimFilter GetAimFilter(void);
 void SetAimFilter(AimFilter filter);

@@ -134,6 +134,7 @@ static void LoadAimFiFaces()
 static void ChangeAimFiPage(int const delta, bool const wrap)
 {
 	int const pages = NumAimFiPages();
+	if (pages == 0) return;
 	int page = gubAimFiPage + delta;
 	if (wrap) page = (page + pages) % pages;
 	if (page < 0 || page >= pages || page == gubAimFiPage) return;
@@ -156,7 +157,7 @@ static GUIButtonRef MakeAimFiButton(ST::string const& text, INT16 const x, INT16
 }
 
 
-// Exactly one filter button is pressed: the one of the current filter
+// The button of the current filter is pressed, none if the list is empty
 static void SyncFilterButtons()
 {
 	for (int i = 0; i < AIM_FI_NUM_FILTER_BUTTONS; ++i)
@@ -174,7 +175,9 @@ static void BtnFilterCallback(GUI_BUTTON* const btn, UINT32 const reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		AimFilter const filter = static_cast<AimFilter>(btn->GetUserData());
+		// pressing the pressed button releases it, the list is empty then
+		AimFilter filter = static_cast<AimFilter>(btn->GetUserData());
+		if (filter == GetAimFilter()) filter = AIM_FILTER_NONE;
 		if (filter != GetAimFilter())
 		{
 			SetAimFilter(filter);

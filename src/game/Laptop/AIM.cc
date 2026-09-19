@@ -4,6 +4,7 @@
 #include "GameRes.h"
 #include "Laptop.h"
 #include "AIM.h"
+#include "AIMSort.h"
 #include "VObject.h"
 #include "Timer_Control.h"
 #include "WordWrap.h"
@@ -46,6 +47,7 @@ static bool IsInAimFilter(ProfileID const id)
 {
 	switch (gAimFilter)
 	{
+		case AIM_FILTER_NONE:     return false;
 		case AIM_FILTER_JA2:      return id < NUM_ORIGINAL_AIM_MERCS;
 		case AIM_FILTER_UB:       return (id >= 165 && id <= 169) || id == 199;
 		case AIM_FILTER_WILDFIRE: return id >= 170 && id <= 177;
@@ -251,6 +253,13 @@ static void SelectPoliciesRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 void EnterAIM()
 {
+	// a list emptied with the filter buttons is not kept when the A.I.M. is entered again
+	if (gAimFilter == AIM_FILTER_NONE)
+	{
+		gAimFilter = AIM_FILTER_ALL;
+		ResetAimMercArray();
+		SortAimMercArray();
+	}
 	gubCurrentAdvertisment = AIM_AD_WARNING_BOX;
 	LaptopInitAim();
 
