@@ -110,9 +110,9 @@ static void BtnNextCallback(GUI_BUTTON* btn, UINT32 reason)
 	// act on release so the pressed state is drawn first
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		// the whole personality/skills section is done
-		iCurrentImpPage = IMP_MAIN_PAGE;
-		iCurrentProfileMode = 2;
+		// the disabilities page follows; it finishes this section
+		fButtonPendingFlag = TRUE;
+		iCurrentImpPage = IMP_DISABILITY;
 	}
 }
 

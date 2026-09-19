@@ -6,6 +6,7 @@
 #include "IMP_AboutUs.h"
 #include "IMP_Appearance.h"
 #include "IMP_Attitude.h"
+#include "IMP_Disability.h"
 #include "Soldier_Profile_Type.h"
 #include "IMP_Attribute_Entrance.h"
 #include "IMP_Attribute_Finish.h"
@@ -241,6 +242,9 @@ void HandleCharProfile(void)
 		case( IMP_ATTITUDE ):
 			HandleIMPAttitude( );
 			break;
+		case( IMP_DISABILITY ):
+			HandleIMPDisability( );
+			break;
 		case( IMP_APPEARANCE ):
 			HandleIMPAppearance( );
 			break;
@@ -308,6 +312,9 @@ void RenderCharProfile(void)
 			break;
 		case( IMP_ATTITUDE ):
 			RenderIMPAttitude( );
+			break;
+		case( IMP_DISABILITY ):
+			RenderIMPDisability( );
 			break;
 		case( IMP_APPEARANCE ):
 			RenderIMPAppearance( );
@@ -401,6 +408,10 @@ static void ExitOldIMPMode(void)
 			DestroyIMPButtons( );
 			ExitIMPAttitude( );
 			break;
+		case( IMP_DISABILITY ):
+			DestroyIMPButtons( );
+			ExitIMPDisability( );
+			break;
 		case( IMP_APPEARANCE ):
 			// has its own Cancel button, so no DestroyIMPButtons()
 			ExitIMPAppearance( );
@@ -477,6 +488,10 @@ static void EnterNewIMPMode(void)
 		case( IMP_ATTITUDE ):
 			CreateIMPButtons( );
 			EnterIMPAttitude( );
+			break;
+		case( IMP_DISABILITY ):
+			CreateIMPButtons( );
+			EnterIMPDisability( );
 			break;
 		case( IMP_APPEARANCE ):
 			// has its own Cancel button, so no CreateIMPButtons()
@@ -643,10 +658,12 @@ static void BtnIMPCancelCallback(GUI_BUTTON *btn, UINT32 reason)
 			case IMP_SKILLTRAITS:
 			case IMP_PERSONALITY_FINISH:
 			case IMP_ATTITUDE:
+			case IMP_DISABILITY:
 				giMaxPersonalityQuizQuestion = 0;
 				fStartOverFlag = TRUE;
 				iCurrentAnswer = -1;
 				iAttitude = ATT_NORMAL;
+				iPersonality = NO_PERSONALITYTRAIT;
 				iCurrentImpPage = IMP_PERSONALITY;
 				fButtonPendingFlag = TRUE;
 				break;

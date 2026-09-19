@@ -39,6 +39,7 @@ set(JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Attribute_Selection.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Begin_Screen.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Compile_Character.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Disability.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Confirm.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Finish.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_HomePage.cc
