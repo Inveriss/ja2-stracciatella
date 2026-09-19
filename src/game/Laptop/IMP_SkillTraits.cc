@@ -519,10 +519,9 @@ void BtnIMPSkillTraitFinishCallback(GUI_BUTTON *btn,UINT32 reason)
 	if (!(btn->uiFlags & BUTTON_ENABLED))
 		return;
 
-	if( reason & MSYS_CALLBACK_REASON_POINTER_DWN )
+	// act on release, like the other IMP buttons, so the pressed state is drawn first
+	if( reason & MSYS_CALLBACK_REASON_POINTER_UP )
 	{
-		btn->uiFlags|=(BUTTON_CLICKED_ON);
-
 		//if we are just reviewing the page
 		if( iCurrentProfileMode == 5 )
 		{
@@ -531,16 +530,9 @@ void BtnIMPSkillTraitFinishCallback(GUI_BUTTON *btn,UINT32 reason)
 		}
 		else
 		{
-			iCurrentImpPage = IMP_MAIN_PAGE;
-
-			if( CameBackToSpecialtiesPageButNotFinished() )
-			{
-			}
-			else
-			{
-				//We are finished on this page
-				iCurrentProfileMode = 2;
-			}
+			// the attitude page follows; it finishes this section
+			fButtonPendingFlag = TRUE;
+			iCurrentImpPage = IMP_ATTITUDE;
 		}
 	}
 }

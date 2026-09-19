@@ -172,7 +172,7 @@
     // Replace the IMP personality quiz with a form to select skills directly
     // NOTE: does not set any personality
     // vanilla setting: false
-    "pick_skills_directly": false,
+    "pick_skills_directly": true,
 
     //  Load an IMP merc from a previous save game by typing in same nickname on IMP form.
     //  Make sure to put in only the nickname and use the same capitalization!

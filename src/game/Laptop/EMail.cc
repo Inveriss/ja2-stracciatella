@@ -1967,6 +1967,8 @@ static void HandleIMPCharProfileResultsMessage(void)
 		case ATT_PESSIMIST:  iOffSet = IMP_ATTITUDE_PESSIMIST;  break;
 		case ATT_AGGRESSIVE: iOffSet = IMP_ATTITUDE_AGGRESSIVE; break;
 		case ATT_ARROGANT:   iOffSet = IMP_ATTITUDE_ARROGANT;   break;
+		// no text of its own, uses the arrogant one
+		case ATT_BIG_SHOT:   iOffSet = IMP_ATTITUDE_ARROGANT;   break;
 		case ATT_ASSHOLE:    iOffSet = IMP_ATTITUDE_ASSHOLE;    break;
 		case ATT_COWARD:     iOffSet = IMP_ATTITUDE_COWARD;     break;
 	}

@@ -1386,7 +1386,18 @@
         "Normal Body",
         "Big Body",
         "OK",
-        "Toggle this to use alternative rifle holding."
+        "Toggle this to use alternative rifle holding.",
+        "I.M.P. Attitudes",
+        "Neutral",
+        "Friendly",
+        "Loner",
+        "Optimist",
+        "Pessimist",
+        "Aggressive",
+        "Arrogant",
+        "Big Shot",
+        "Asshole",
+        "Coward"
     ],
     "pImpPopUpStrings": [
         "Code Incorrect",
