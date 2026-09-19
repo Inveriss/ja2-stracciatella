@@ -266,26 +266,6 @@
       {
         "slot": "BIGPOCK2",
         "item": "FIRSTAIDKIT"
-      },
-      {
-        "slot": "SMALLPOCK1",
-        "item": "KEY_1"
-      },
-      {
-        "slot": "SMALLPOCK2",
-        "item": "KEY_2"
-      },
-      {
-        "slot": "SMALLPOCK3",
-        "item": "KEY_3"
-      },
-      {
-        "slot": "SMALLPOCK4",
-        "item": "KEY_4"
-      },
-      {
-        "slot": "SMALLPOCK5",
-        "item": "KEY_4"
       }
     ],
     "dialogue": [
@@ -553,54 +533,33 @@
       },
       {
         "slot": "HAND",
-        "item": "MINIMI"
+        "item": "M870"
       },
       {
         "slot": "BIGPOCK1",
-        "item": "CLIP556_30_AP",
+        "item": "CLIP12G_7",
         "quantity": 4
       },
       {
         "slot": "BIGPOCK2",
-        "item": "SPRING_AND_BOLT_UPGRADE"
+        "item": "TNT"
       },
       {
         "slot": "BIGPOCK3",
-        "item": "UNDER_GLAUNCHER"
+        "item": "REMDETONATOR"
       },
       {
         "slot": "BIGPOCK4",
-        "item": "DUCKBILL",
+        "item": "TOOLKIT",
         "status": 98
       },
       {
         "slot": "SMALLPOCK1",
-        "item": "SILENCER"
+        "item": "LOCKSMITHKIT"
       },
       {
         "slot": "SMALLPOCK2",
-        "item": "SNIPERSCOPE"
-      },
-      {
-        "slot": "SMALLPOCK3",
-        "item": "BIPOD"
-      },
-      {
-        "slot": "SMALLPOCK4",
-        "item": "LASERSCOPE"
-      },
-      {
-        "slot": "SMALLPOCK5",
-        "item": "GUN_BARREL_EXTENDER"
-      },
-      {
-        "slot": "SMALLPOCK6",
-        "item": "SPRING_AND_BOLT_UPGRADE"
-      },
-      {
-        "slot": "SMALLPOCK7",
-        "item": "GL_HE_GRENADE",
-        "quantity": 2
+        "item": "REMOTEBOMBTRIGGER"
       }
     ],
     "dialogue": [
@@ -1616,43 +1575,12 @@
       },
       {
         "slot": "BIGPOCK1",
-        "item": "CAMOUFLAGEKIT"
+        "item": "CLIP556_30_AP",
+        "quantity": 4
       },
       {
         "slot": "BIGPOCK2",
         "item": "MEDICKIT"
-      },
-      {
-        "slot": "BIGPOCK3",
-        "item": "LASERSCOPE"
-      },
-      {
-        "slot": "SMALLPOCK1",
-        "item": "GASMASK"
-      },
-      {
-        "slot": "SMALLPOCK2",
-        "item": "SUNGOGGLES"
-      },
-      {
-        "slot": "SMALLPOCK3",
-        "item": "EXTENDEDEAR"
-      },
-      {
-        "slot": "SMALLPOCK4",
-        "item": "NIGHTGOGGLES"
-      },
-      {
-        "slot": "SMALLPOCK5",
-        "item": "UVGOGGLES"
-      },
-      {
-        "slot": "SMALLPOCK6",
-        "item": "WALKMAN"
-      },
-      {
-        "slot": "SMALLPOCK7",
-        "item": "BIPOD"
       }
     ],
     "dialogue": [
@@ -2287,19 +2215,8 @@
       },
       {
         "slot": "BIGPOCK1",
-        "item": "CAWS"
-      },
-      {
-        "slot": "BIGPOCK2",
-        "item": "FNFAL"
-      },
-      {
-        "slot": "BIGPOCK3",
-        "item": "MINIMI"
-      },
-      {
-        "slot": "BIGPOCK4",
-        "item": "RPK74"
+        "item": "CLIP9_30",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -3035,7 +2952,7 @@
     "contract": {
       "dailySalary": 4800,
       "weeklySalary": 30000,
-      "biWeeklySalary": 53000,
+      "biWeeklySalary": 63000,
       "isMedicalDepositRequired": true
     },
     "inventory": [
@@ -5944,7 +5861,7 @@
         "desireToTalk": 130,
         "friendlyMod": 110,
         "directMod": 100,
-        "threatenMod": 80
+        "threatenMod": 60
       },
       {
         "approach": "DIRECT",
@@ -5952,7 +5869,7 @@
         "desireToTalk": 100,
         "friendlyMod": 130,
         "directMod": 100,
-        "threatenMod": 80
+        "threatenMod": 70
       },
       {
         "approach": "THREATEN",
@@ -5965,10 +5882,10 @@
       {
         "approach": "RECRUIT",
         "effectiveness": 80,
-        "desireToTalk": 80,
+        "desireToTalk": 60,
         "friendlyMod": 200,
         "directMod": 160,
-        "threatenMod": 80
+        "threatenMod": 10
       }
     ]
   },

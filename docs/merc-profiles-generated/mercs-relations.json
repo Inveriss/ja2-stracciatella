@@ -190,7 +190,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -6
+        "opinion": -8
       },
       {
         "target": "SHANK",
@@ -668,7 +668,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -10
       },
       {
         "target": "SHANK",
@@ -907,7 +907,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -4
+        "opinion": -7
       },
       {
         "target": "SHANK",
@@ -1172,7 +1172,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -5
+        "opinion": -2
       },
       {
         "target": "SHANK",
@@ -1439,7 +1439,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -3
+        "opinion": -11
       },
       {
         "target": "SHANK",
@@ -1666,6 +1666,10 @@
         "opinion": -1
       },
       {
+        "target": "DYNAMO",
+        "opinion": -8
+      },
+      {
         "target": "SHANK",
         "opinion": -1
       },
@@ -1872,7 +1876,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -10
       },
       {
         "target": "SHANK",
@@ -2075,7 +2079,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": 3
+        "opinion": -4
       },
       {
         "target": "SHANK",
@@ -2301,6 +2305,10 @@
         "opinion": -1
       },
       {
+        "target": "DYNAMO",
+        "opinion": -7
+      },
+      {
         "target": "SHANK",
         "opinion": -1
       },
@@ -2507,7 +2515,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -10
       },
       {
         "target": "SHANK",
@@ -2730,7 +2738,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -8
       },
       {
         "target": "SHANK",
@@ -2953,7 +2961,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -3
+        "opinion": -10
       },
       {
         "target": "SHANK",
@@ -3163,7 +3171,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -3388,6 +3396,10 @@
         "opinion": -1
       },
       {
+        "target": "DYNAMO",
+        "opinion": -8
+      },
+      {
         "target": "SHANK",
         "opinion": -1
       },
@@ -3575,7 +3587,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -3
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -4107,6 +4119,10 @@
         "opinion": -4
       },
       {
+        "target": "DYNAMO",
+        "opinion": -5
+      },
+      {
         "target": "IGGY",
         "opinion": -1
       },
@@ -4572,7 +4588,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -3
+        "opinion": -8
       },
       {
         "target": "SHANK",
@@ -4829,7 +4845,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -5
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -5033,6 +5049,10 @@
       {
         "target": "SLAY",
         "opinion": 2
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -7
       },
       {
         "target": "IGGY",
@@ -5251,6 +5271,10 @@
       {
         "target": "RPC65",
         "opinion": -1
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -8
       },
       {
         "target": "SHANK",
@@ -5687,7 +5711,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": 3
+        "opinion": -4
       },
       {
         "target": "SHANK",
@@ -5901,7 +5925,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -8
       },
       {
         "target": "SHANK",
@@ -6114,7 +6138,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -6585,7 +6609,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -7171,7 +7195,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": 3
+        "opinion": -3
       },
       {
         "target": "SHANK",
@@ -7432,7 +7456,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -4
+        "opinion": -11
       },
       {
         "target": "SHANK",
@@ -7663,7 +7687,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -4
+        "opinion": -8
       },
       {
         "target": "SHANK",
@@ -7914,7 +7938,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -8144,7 +8168,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -5
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -8369,7 +8393,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -8579,7 +8603,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -10
       },
       {
         "target": "SHANK",
@@ -8798,7 +8822,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -9046,6 +9070,10 @@
       {
         "target": "RPC65",
         "opinion": -2
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -7
       },
       {
         "target": "SHANK",
@@ -9489,6 +9517,10 @@
       {
         "target": "DEVIN",
         "opinion": 1
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -7
       },
       {
         "target": "IGGY",
@@ -9955,6 +9987,10 @@
         "opinion": -2
       },
       {
+        "target": "DYNAMO",
+        "opinion": -7
+      },
+      {
         "target": "SHANK",
         "opinion": -1
       },
@@ -10190,7 +10226,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -5
+        "opinion": -7
       },
       {
         "target": "SHANK",
@@ -10439,6 +10475,10 @@
         "opinion": 3
       },
       {
+        "target": "DYNAMO",
+        "opinion": -6
+      },
+      {
         "target": "IGGY",
         "opinion": 3
       },
@@ -10642,6 +10682,10 @@
       {
         "target": "DEVIN",
         "opinion": 2
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -6
       },
       {
         "target": "IGGY",
@@ -10851,7 +10895,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -9
       },
       {
         "target": "SHANK",
@@ -11070,6 +11114,10 @@
         "opinion": 1
       },
       {
+        "target": "DYNAMO",
+        "opinion": -7
+      },
+      {
         "target": "IGGY",
         "opinion": 3
       },
@@ -11282,7 +11330,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -10
       },
       {
         "target": "SHANK",
@@ -11995,6 +12043,10 @@
         "opinion": 1
       },
       {
+        "target": "DYNAMO",
+        "opinion": -6
+      },
+      {
         "target": "IGGY",
         "opinion": 3
       },
@@ -12214,6 +12266,10 @@
       {
         "target": "SLAY",
         "opinion": 1
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -6
       },
       {
         "target": "IGGY",
@@ -12437,6 +12493,10 @@
         "opinion": 1
       },
       {
+        "target": "DYNAMO",
+        "opinion": -6
+      },
+      {
         "target": "IGGY",
         "opinion": 3
       },
@@ -12656,6 +12716,10 @@
       {
         "target": "SLAY",
         "opinion": 1
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -6
       },
       {
         "target": "IGGY",
@@ -12879,6 +12943,10 @@
         "opinion": 1
       },
       {
+        "target": "DYNAMO",
+        "opinion": -6
+      },
+      {
         "target": "IGGY",
         "opinion": 3
       },
@@ -13098,6 +13166,10 @@
       {
         "target": "SLAY",
         "opinion": 1
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -6
       },
       {
         "target": "IGGY",
@@ -13390,7 +13462,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": 1
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -13697,7 +13769,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -13917,6 +13989,10 @@
         "opinion": -5
       },
       {
+        "target": "DYNAMO",
+        "opinion": -15
+      },
+      {
         "target": "CONRAD",
         "opinion": -10
       },
@@ -13958,6 +14034,10 @@
         "target": "CARLOS",
         "opinion": 25,
         "friend2": true
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -14010,7 +14090,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -14048,6 +14128,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -14109,6 +14193,10 @@
       {
         "target": "DEVIN",
         "opinion": -7
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       },
       {
         "target": "IGGY",
@@ -14252,6 +14340,10 @@
         "opinion": -5
       },
       {
+        "target": "DYNAMO",
+        "opinion": -15
+      },
+      {
         "target": "RPC71",
         "opinion": -5
       }
@@ -14317,6 +14409,10 @@
         "opinion": -7
       },
       {
+        "target": "DYNAMO",
+        "opinion": -15
+      },
+      {
         "target": "IGGY",
         "opinion": -7
       },
@@ -14331,42 +14427,142 @@
     "relations": [
       {
         "target": "BARRY",
-        "opinion": -10
+        "opinion": -15
+      },
+      {
+        "target": "LYNX",
+        "opinion": -15
       },
       {
         "target": "GRIZZLY",
-        "opinion": -7
+        "opinion": -15
       },
       {
-        "target": "VICKY",
-        "opinion": -5
+        "target": "TREVOR",
+        "opinion": -15
+      },
+      {
+        "target": "GRUNTY",
+        "opinion": -15
+      },
+      {
+        "target": "IVAN",
+        "opinion": -15
+      },
+      {
+        "target": "STEROID",
+        "opinion": -15
+      },
+      {
+        "target": "IGOR",
+        "opinion": -15
+      },
+      {
+        "target": "SHADOW",
+        "opinion": -15
+      },
+      {
+        "target": "RED",
+        "opinion": -15
+      },
+      {
+        "target": "REAPER",
+        "opinion": -15
+      },
+      {
+        "target": "FIDEL",
+        "opinion": -15
+      },
+      {
+        "target": "FOX",
+        "opinion": -15
+      },
+      {
+        "target": "SIDNEY",
+        "opinion": -15
       },
       {
         "target": "BUNS",
-        "opinion": -5
+        "opinion": -15
       },
       {
         "target": "SPIDER",
-        "opinion": -5
+        "opinion": -15
       },
       {
         "target": "CLIFF",
-        "opinion": -7
+        "opinion": -15
+      },
+      {
+        "target": "BULL",
+        "opinion": -15
+      },
+      {
+        "target": "HITMAN",
+        "opinion": -15
       },
       {
         "target": "BUZZ",
         "opinion": -15
       },
       {
+        "target": "RAIDER",
+        "opinion": -15
+      },
+      {
+        "target": "RAVEN",
+        "opinion": -15
+      },
+      {
+        "target": "STATIC",
+        "opinion": -15
+      },
+      {
+        "target": "DANNY",
+        "opinion": -15
+      },
+      {
+        "target": "STEPHEN",
+        "opinion": -15
+      },
+      {
+        "target": "SCULLY",
+        "opinion": -15
+      },
+      {
         "target": "MALICE",
-        "opinion": -7
+        "opinion": -15
+      },
+      {
+        "target": "DR_Q",
+        "opinion": -15
       },
       {
         "target": "NAILS",
-        "opinion": -7
+        "opinion": -15
+      },
+      {
+        "target": "THOR",
+        "opinion": -15
+      },
+      {
+        "target": "SCOPE",
+        "opinion": -15
+      },
+      {
+        "target": "WOLF",
+        "opinion": -15
+      },
+      {
+        "target": "MD",
+        "opinion": -15
       },
       {
         "target": "MELTDOWN",
+        "opinion": -15
+      },
+      {
+        "target": "BIFF",
         "opinion": -15
       },
       {
@@ -14374,8 +14570,32 @@
         "opinion": -15
       },
       {
+        "target": "GASKET",
+        "opinion": -15
+      },
+      {
         "target": "RAZOR",
-        "opinion": -10
+        "opinion": -15
+      },
+      {
+        "target": "FLO",
+        "opinion": -15
+      },
+      {
+        "target": "GUMPY",
+        "opinion": -15
+      },
+      {
+        "target": "LARRY_NORMAL",
+        "opinion": -15
+      },
+      {
+        "target": "LARRY_DRUNK",
+        "opinion": -15
+      },
+      {
+        "target": "COUGAR",
+        "opinion": -15
       },
       {
         "target": "NUMB",
@@ -14388,8 +14608,64 @@
         "resistanceToMakingEnemy": 1
       },
       {
+        "target": "PGMALE1",
+        "opinion": -15
+      },
+      {
+        "target": "PGMALE2",
+        "opinion": -15
+      },
+      {
+        "target": "PGMALE3",
+        "opinion": -15
+      },
+      {
+        "target": "PGLADY1",
+        "opinion": -15
+      },
+      {
+        "target": "PGLADY2",
+        "opinion": -15
+      },
+      {
+        "target": "PGLADY3",
+        "opinion": -15
+      },
+      {
+        "target": "MIGUEL",
+        "opinion": -15
+      },
+      {
+        "target": "CARLOS",
+        "opinion": -15
+      },
+      {
+        "target": "IRA",
+        "opinion": -15
+      },
+      {
+        "target": "DIMITRI",
+        "opinion": -15
+      },
+      {
         "target": "DEVIN",
-        "opinion": -7
+        "opinion": -15
+      },
+      {
+        "target": "ROBOT",
+        "opinion": -15
+      },
+      {
+        "target": "HAMOUS",
+        "opinion": -15
+      },
+      {
+        "target": "SLAY",
+        "opinion": -15
+      },
+      {
+        "target": "RPC65",
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -14398,14 +14674,30 @@
       },
       {
         "target": "IGGY",
-        "opinion": -7
+        "opinion": -15
+      },
+      {
+        "target": "VINCE",
+        "opinion": -15
       },
       {
         "target": "CONRAD",
-        "opinion": -10
+        "opinion": -15
+      },
+      {
+        "target": "RPC71",
+        "opinion": -15
+      },
+      {
+        "target": "MADDOG",
+        "opinion": -15
       },
       {
         "target": "DARREL",
+        "opinion": -15
+      },
+      {
+        "target": "PERKO",
         "opinion": -15
       }
     ]
@@ -14489,7 +14781,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -14515,6 +14807,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -14579,7 +14875,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -10
+        "opinion": -15
       },
       {
         "target": "IGGY",
@@ -14622,6 +14918,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -14647,6 +14947,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -14725,6 +15029,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -14974,6 +15282,10 @@
         "opinion": -7
       },
       {
+        "target": "DYNAMO",
+        "opinion": -15
+      },
+      {
         "target": "IGGY",
         "opinion": -7
       },
@@ -15029,6 +15341,10 @@
       {
         "target": "IRA",
         "opinion": 1
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -15115,6 +15431,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -15408,7 +15728,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -6
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -15470,6 +15790,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -15495,6 +15819,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -15592,7 +15920,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -10
+        "opinion": -15
       }
     ]
   },
@@ -15634,6 +15962,10 @@
       {
         "target": "IRA",
         "opinion": 2
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -15717,6 +16049,10 @@
         "opinion": -5
       },
       {
+        "target": "DYNAMO",
+        "opinion": -15
+      },
+      {
         "target": "CONRAD",
         "opinion": -5
       }
@@ -15744,6 +16080,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -15976,7 +16316,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -16053,7 +16393,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -16106,7 +16446,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -16258,6 +16598,10 @@
       {
         "target": "IRA",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -16490,7 +16834,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -16737,6 +17081,10 @@
       {
         "target": "ROBOT",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       },
       {
         "target": "RPC71",
@@ -17013,7 +17361,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -17099,6 +17447,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -17574,7 +17926,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -17640,6 +17992,10 @@
       {
         "target": "IRA",
         "opinion": 1
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -17665,6 +18021,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -17748,6 +18108,10 @@
         "opinion": -5
       },
       {
+        "target": "DYNAMO",
+        "opinion": -15
+      },
+      {
         "target": "CONRAD",
         "opinion": -5
       }
@@ -17815,6 +18179,10 @@
       {
         "target": "DEVIN",
         "opinion": -7
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       },
       {
         "target": "IGGY",
@@ -17906,6 +18274,10 @@
         "opinion": -5
       },
       {
+        "target": "DYNAMO",
+        "opinion": -15
+      },
+      {
         "target": "CONRAD",
         "opinion": -5
       }
@@ -17960,7 +18332,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -17998,6 +18370,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -18019,6 +18395,10 @@
       {
         "target": "MAGIC",
         "opinion": -7
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -18251,7 +18631,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -18301,6 +18681,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -18533,7 +18917,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -18583,6 +18967,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -18635,7 +19023,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -18688,7 +19076,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -18741,7 +19129,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -18899,7 +19287,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -19132,7 +19520,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -19209,7 +19597,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -19442,7 +19830,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -1
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -19504,6 +19892,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -19541,6 +19933,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -19582,6 +19978,10 @@
       {
         "target": "IRA",
         "opinion": 5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20013,6 +20413,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20046,6 +20450,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20129,6 +20537,10 @@
         "opinion": -5
       },
       {
+        "target": "DYNAMO",
+        "opinion": -15
+      },
+      {
         "target": "CONRAD",
         "opinion": -5
       }
@@ -20168,6 +20580,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20220,7 +20636,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -7
+        "opinion": -15
       }
     ]
   },
@@ -20258,6 +20674,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20283,6 +20703,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20308,6 +20732,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20333,6 +20761,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20537,7 +20969,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -10
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -20599,6 +21031,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20636,6 +21072,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20673,6 +21113,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20710,6 +21154,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20747,6 +21195,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20784,6 +21236,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20825,6 +21281,10 @@
       {
         "target": "IRA",
         "opinion": 1
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -20878,6 +21338,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21004,6 +21468,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21082,6 +21550,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21107,6 +21579,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21132,6 +21608,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21157,6 +21637,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21182,6 +21666,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21219,6 +21707,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21451,7 +21943,7 @@
       },
       {
         "target": "DYNAMO",
-        "opinion": -2
+        "opinion": -15
       },
       {
         "target": "SHANK",
@@ -21501,6 +21993,10 @@
       {
         "target": "RAZOR",
         "opinion": -10
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21538,6 +22034,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21575,6 +22075,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21612,6 +22116,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21649,6 +22157,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21686,6 +22198,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21723,6 +22239,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21760,6 +22280,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21797,6 +22321,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21834,6 +22362,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21871,6 +22403,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   },
@@ -21908,6 +22444,10 @@
       {
         "target": "SLAY",
         "opinion": -5
+      },
+      {
+        "target": "DYNAMO",
+        "opinion": -15
       }
     ]
   }
