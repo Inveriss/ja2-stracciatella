@@ -139,8 +139,8 @@ static SGPVObject* guiSelectLight;
 void GameInitAimSort()
 {
 	SetAimFilter(AIM_FILTER_ALL);
-	gubCurrentSortMode=0;
-	gubCurrentListMode=AIM_DESCEND;
+	gubCurrentSortMode=AIM_SORT_NAME;
+	gubCurrentListMode=AIM_ASCEND;
 }
 
 
