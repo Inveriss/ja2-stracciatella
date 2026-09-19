@@ -417,10 +417,20 @@ static void SelectAimLogoRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
 static bool gfAimSmallLogo = false;
+static INT16 gsAimSmallLogoX = 0;
+static INT16 gsAimSmallLogoY = 0;
+
+void SetAimSmallLogo(bool const small, INT16 const x, INT16 const y)
+{
+	gfAimSmallLogo = small;
+	gsAimSmallLogoX = x;
+	gsAimSmallLogoY = y;
+}
+
 
 void SetAimSmallLogo(bool const small)
 {
-	gfAimSmallLogo = small;
+	SetAimSmallLogo(small, AIM_SMALL_SYMBOL_X, AIM_SMALL_SYMBOL_Y);
 }
 
 
@@ -433,8 +443,8 @@ void InitAimDefaults()
 	guiAimSymbol = gfAimSmallLogo ? AddVideoObjectFromFile(LAPTOPDIR "/aimsymbol_small.sti") : AddVideoObjectFromFile(MLG_AIMSYMBOL);
 
 	//Mouse region for the Links
-	INT16 const logoX = gfAimSmallLogo ? AIM_SMALL_SYMBOL_X : AIM_SYMBOL_X;
-	INT16 const logoY = gfAimSmallLogo ? AIM_SMALL_SYMBOL_Y : AIM_SYMBOL_Y;
+	INT16 const logoX = gfAimSmallLogo ? gsAimSmallLogoX : AIM_SYMBOL_X;
+	INT16 const logoY = gfAimSmallLogo ? gsAimSmallLogoY : AIM_SYMBOL_Y;
 	INT16 const logoW = gfAimSmallLogo ? AIM_SMALL_SYMBOL_WIDTH : AIM_SYMBOL_WIDTH;
 	INT16 const logoH = gfAimSmallLogo ? AIM_SMALL_SYMBOL_HEIGHT : AIM_SYMBOL_HEIGHT;
 	MSYS_DefineRegion(&gSelectedAimLogo, logoX, logoY,
@@ -468,7 +478,7 @@ void DrawAimDefaults()
 		uiPosY += RUSTBACKGROUND_SIZE_Y;
 	}
 
-	BltVideoObject(FRAME_BUFFER, guiAimSymbol, 0, gfAimSmallLogo ? AIM_SMALL_SYMBOL_X : AIM_SYMBOL_X, gfAimSmallLogo ? AIM_SMALL_SYMBOL_Y : AIM_SYMBOL_Y);
+	BltVideoObject(FRAME_BUFFER, guiAimSymbol, 0, gfAimSmallLogo ? gsAimSmallLogoX : AIM_SYMBOL_X, gfAimSmallLogo ? gsAimSmallLogoY : AIM_SYMBOL_Y);
 }
 
 

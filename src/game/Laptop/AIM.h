@@ -98,7 +98,9 @@ void RemoveAimDefaults(void);
 void InitAimDefaults(void);
 // Use the small AIM logo (top-left corner) instead of the big one; call before
 // InitAimDefaults() and reset after RemoveAimDefaults().
+// The small logo is drawn instead of the big one. x/y are the screen coordinates of its upper left corner.
 void SetAimSmallLogo(bool small);
+void SetAimSmallLogo(bool small, INT16 x, INT16 y);
 void DrawAimDefaults(void);
 
 void DisplayAimSlogan(void);
