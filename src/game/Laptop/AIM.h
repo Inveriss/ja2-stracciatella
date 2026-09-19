@@ -7,8 +7,18 @@
 #define AIM_HISTORY_LINE_SIZE		400
 
 
-#define MAX_NUMBER_MERCS		40
+// Room for the 40 original A.I.M. mercs (profiles 0-39) and the 35 profiles 165-199 that are
+// free for added characters (see NUM_PROFILES; profile 164 stands in for two vehicle types).
+#define MAX_NUMBER_MERCS		75
+// The number of A.I.M. mercs (profiles of type "AIM"), at most MAX_NUMBER_MERCS.
+extern UINT8 gubNumAimMercs;
+// The first mercs of the A.I.M. (the original ones) have replies etc. in the game data that
+// is indexed by their profile ID.
+#define NUM_ORIGINAL_AIM_MERCS		40
+// The profile IDs of the A.I.M. mercs; the order is set by the sort page.
 extern UINT8 AimMercArray[MAX_NUMBER_MERCS];
+// Fill AimMercArray with all A.I.M. mercs in profile ID order.
+void ResetAimMercArray(void);
 
 #define NUM_AIM_SCREENS			6
 

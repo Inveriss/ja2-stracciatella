@@ -19,10 +19,34 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 
+#include "MercProfile.h"
+
+#include <algorithm>
+#include <stdexcept>
+#include <vector>
 #include <string_theory/string>
 
 
 UINT8			AimMercArray[ MAX_NUMBER_MERCS ];
+UINT8			gubNumAimMercs = 0;
+
+void ResetAimMercArray(void)
+{
+	std::fill(std::begin(AimMercArray), std::end(AimMercArray), 0);
+	gubNumAimMercs = 0;
+
+	std::vector<ProfileID> ids;
+	for (const MercProfile* p : GCM->listMercProfiles())
+	{
+		if (p->isAIMMerc()) ids.push_back(p->getID());
+	}
+	std::sort(ids.begin(), ids.end());
+	if (ids.size() > MAX_NUMBER_MERCS)
+	{
+		throw std::runtime_error(ST::format("There are {} A.I.M. mercs, at most {} are supported", ids.size(), MAX_NUMBER_MERCS).c_str());
+	}
+	for (ProfileID id : ids) AimMercArray[gubNumAimMercs++] = id;
+}
 
 static LaptopMode const gCurrentAimPage[NUM_AIM_SCREENS] =
 {

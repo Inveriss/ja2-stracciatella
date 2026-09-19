@@ -221,7 +221,9 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_I8(S, p.bTownAttachment)
 	EXTR_SKIP(S, 1)
 	EXTR_U16(S, p.usOptionalGearCost)
-	EXTR_I8A(S, p.bMercOpinion, lengthof(p.bMercOpinion))
+	// prof.dat only has the opinions about the first VANILLA_NUM_RECRUITABLE profiles
+	std::fill(std::begin(p.bMercOpinion), std::end(p.bMercOpinion), 0);
+	EXTR_I8A(S, p.bMercOpinion, fVanillaProfileFormat ? VANILLA_NUM_RECRUITABLE : lengthof(p.bMercOpinion))
 	EXTR_I8(S, p.bApproached)
 	EXTR_I8(S, p.bMercStatus)
 	EXTR_I8A(S, p.bHatedTime, lengthof(p.bHatedTime))

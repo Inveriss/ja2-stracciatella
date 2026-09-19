@@ -49,6 +49,8 @@
 #include "Font_Control.h"
 
 #include "ContentManager.h"
+#include "MercProfile.h"
+#include "MercProfileInfo.h"
 #include "GameInstance.h"
 #include "GamePolicy.h"
 #include "GameRes.h"
@@ -823,9 +825,22 @@ static void UpdateMercInfo(void)
 			DisplayWrappedString(AIM_MEDICAL_DEPOSIT_X, AIM_MEDICAL_DEPOSIT_Y, AIM_MEDICAL_DEPOSIT_WIDTH, 2, AIM_FONT12ARIAL, AIM_M_COLOR_DYNAMIC_TEXT, sMedicalString, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
 	}
 
-	EDTFile biosfile{ EDTFile::AIMBIOS };
-	auto const MercInfoString{ biosfile.at(gbCurrentSoldier, 0) };
-	auto const AdditionalInfoString{ biosfile.at(gbCurrentSoldier, 1) };
+	// The original mercs have their texts in aimbios.edt (one row per profile ID); the ones
+	// added to the game have them in mercs-profile-info.json.
+	ST::string MercInfoString;
+	ST::string AdditionalInfoString;
+	MercProfileInfo const& profileInfo = MercProfile(gbCurrentSoldier).getInfo();
+	if (!profileInfo.biography.empty() || !profileInfo.additionalInfo.empty())
+	{
+		MercInfoString = profileInfo.biography;
+		AdditionalInfoString = profileInfo.additionalInfo;
+	}
+	else if (gbCurrentSoldier < NUM_ORIGINAL_AIM_MERCS)
+	{
+		EDTFile biosfile{ EDTFile::AIMBIOS };
+		MercInfoString = biosfile.at(gbCurrentSoldier, 0);
+		AdditionalInfoString = biosfile.at(gbCurrentSoldier, 1);
+	}
 
 	if (!MercInfoString.empty())
 	{
@@ -908,7 +923,7 @@ static void BtnPreviousButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 		DeleteAimPopUpBox();
 
 		gbCurrentIndex =
-			(gbCurrentIndex > 0 ? gbCurrentIndex - 1 : MAX_NUMBER_MERCS - 1);
+			(gbCurrentIndex > 0 ? gbCurrentIndex - 1 : gubNumAimMercs - 1);
 
 		gfRedrawScreen = TRUE;
 		gbCurrentSoldier = AimMercArray[gbCurrentIndex];
@@ -941,7 +956,7 @@ static void BtnNextButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 		DeleteAimPopUpBox();
 
 		gbCurrentIndex =
-			(gbCurrentIndex < MAX_NUMBER_MERCS - 1 ? gbCurrentIndex + 1 : 0);
+			(gbCurrentIndex < gubNumAimMercs - 1 ? gbCurrentIndex + 1 : 0);
 
 		gbCurrentSoldier = AimMercArray[gbCurrentIndex];
 		gfRedrawScreen = TRUE;

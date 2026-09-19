@@ -1,4 +1,5 @@
 #include "enums.h"
+#include <limits>
 #include "Exceptions.h"
 #include "MercProfile.h"
 #include "MercProfileInfo.h"
@@ -109,6 +110,16 @@ void MercProfile::deserializeStructRelations(const MERCPROFILESTRUCT* binaryProf
 	}
 	for (ProfileID idx = 0; idx < NUM_RECRUITABLE; idx++) {
 		prof->bMercOpinion[idx] = jOpinions[idx].getOptionalInt("opinion", binaryProf->bMercOpinion[idx]);
+
+		// friends and enemies are stored as INT8 profile IDs (-1 = nobody)
+		if (idx > std::numeric_limits<INT8>::max()) {
+			for (const char* role : { "friend1", "friend2", "eventualFriend", "enemy1", "enemy2", "eventualEnemy" }) {
+				if (jOpinions[idx].getOptionalBool(role)) {
+					throw DataError(ST::format("profile id {} is too high to be a friend or an enemy (the limit is {})", idx, std::numeric_limits<INT8>::max()));
+				}
+			}
+			continue;
+		}
 		if (jOpinions[idx].getOptionalBool("friend1", binaryProf->bBuddy[BUDDY_SLOT1] == idx)) {
 			prof->bBuddy[BUDDY_SLOT1] = idx;
 		}

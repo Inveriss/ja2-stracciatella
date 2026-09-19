@@ -6,7 +6,7 @@ items:
   properties:
     profileID:
       minimum: 0
-      maximum: 169
+      maximum: 199
       $ref: types/uint8.schema.yaml
     internalName:
       type: string
@@ -152,6 +152,12 @@ items:
           - item
     money:
       $ref: types/uint32.schema.yaml
+    biography:
+      type: string
+      description: A.I.M. description of a merc added to the game (the original ones use aimbios.edt)
+    additionalInfo:
+      type: string
+      description: A.I.M. additional information of a merc added to the game
     weaponSaleModifier:
       minimum: 10
       maximum: 180

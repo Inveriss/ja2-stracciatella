@@ -8,13 +8,13 @@
 
 std::function<const MercProfileInfo*(ProfileID)> MercProfileInfo::load = {};
 
-MercProfileInfo::MercProfileInfo(uint8_t profileID_, ST::string internalName_, MercType mercType_, uint8_t weaponSaleModifier_)
-	: internalName(std::move(internalName_)), profileID(profileID_), mercType(mercType_), weaponSaleModifier(weaponSaleModifier_)
+MercProfileInfo::MercProfileInfo(uint8_t profileID_, ST::string internalName_, MercType mercType_, uint8_t weaponSaleModifier_, ST::string biography_, ST::string additionalInfo_)
+	: internalName(std::move(internalName_)), profileID(profileID_), mercType(mercType_), weaponSaleModifier(weaponSaleModifier_), biography(std::move(biography_)), additionalInfo(std::move(additionalInfo_))
 {
 }
 
 MercProfileInfo::MercProfileInfo()
-	: internalName(""), profileID(NO_PROFILE), mercType(MercType::NOT_USED), weaponSaleModifier(100)
+	: internalName(""), profileID(NO_PROFILE), mercType(MercType::NOT_USED), weaponSaleModifier(100), biography(), additionalInfo()
 {
 }
 
@@ -24,7 +24,9 @@ MercProfileInfo *MercProfileInfo::deserialize(const JsonObject& json)
 		json.GetUInt("profileID"),
 		json.GetString("internalName"),
 		Internals::getMercTypeEnumFromString(json.GetString("type")),
-		json.getOptionalInt("weaponSaleModifier", 100)
+		json.getOptionalInt("weaponSaleModifier", 100),
+		json.getOptionalString("biography"),
+		json.getOptionalString("additionalInfo")
 		);
 }
 

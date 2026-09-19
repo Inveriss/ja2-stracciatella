@@ -6,8 +6,15 @@
 #include <string_theory/string>
 
 
-#define NUM_PROFILES						170
-#define NUM_RECRUITABLE						75
+// Profile IDs 0-169 are used by the original game (see mercs-profile-info.json; 164 also stands in
+// for two vehicle types in vehicles.json). The IDs above
+// them, up to 199, are free for additional characters (e.g. more A.I.M. mercs). NO_PROFILE (200)
+// is stored in the original sector map files and must stay out of this range.
+#define VANILLA_NUM_PROFILES			170
+#define NUM_PROFILES						200
+// bMercOpinion is indexed by the profile ID of any merc the player can have on the team
+#define VANILLA_NUM_RECRUITABLE			75
+#define NUM_RECRUITABLE						NUM_PROFILES
 
 #define NAME_LENGTH						30
 #define NICKNAME_LENGTH					10
@@ -292,7 +299,7 @@ struct MERCPROFILESTRUCT
 	// Flags used for the precedent to repeating oneself in Contract negotiations. Used for quote 80 - ~107. Gets reset every day
 	UINT8 ubTimeTillNextHatedComplaint;
 
-	INT8 bMercOpinion[75];
+	INT8 bMercOpinion[NUM_RECRUITABLE];
 
 	UINT16 inv[NUM_INV_SLOTS];
 	UINT8 bInvNumber[NUM_INV_SLOTS];

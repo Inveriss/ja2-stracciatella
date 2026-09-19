@@ -13,9 +13,11 @@
 // Player-chosen (IMP) nicknames may be longer than the 10 chars the vanilla
 // prof.dat allows, so this engine's own format stores NICKNAME_LENGTH_OWN_FORMAT
 // chars: +3 chars = +6 bytes (UTF-16) / +12 bytes (UTF-32).
+// bMercOpinion has one entry per possible profile ID (NUM_RECRUITABLE = 200) here, the
+// vanilla prof.dat only 75 (+125 bytes).
 #define NICKNAME_LENGTH_OWN_FORMAT      (13)
-#define MERC_PROFILE_SIZE               (802)           /**< This engine's Windows-format Merc profile size */
-#define MERC_PROFILE_SIZE_STRAC_LINUX   (888)           /**< This engine's Stracciatella Linux Merc profile size */
+#define MERC_PROFILE_SIZE               (927)           /**< This engine's Windows-format Merc profile size */
+#define MERC_PROFILE_SIZE_STRAC_LINUX   (1013)          /**< This engine's Stracciatella Linux Merc profile size */
 
 // The VANILLA game's OWN, immutable, third-party prof.dat format -- frozen
 // forever at 19 inventory slots / 716 bytes. This is NOT our format and must

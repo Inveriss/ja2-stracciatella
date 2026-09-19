@@ -324,7 +324,8 @@ void MercDailyUpdate()
 					p.ubMiscFlags3 &= ~PROFILE_MISC_FLAG3_PLAYER_LEFT_MSG_FOR_MERC_AT_AIM;
 
 					// TO DO: send E-mail to player telling him the merc has returned from an assignment
-					AddEmail(AIM_REPLY_BARRY + cnt * AIM_REPLY_LENGTH_BARRY, AIM_REPLY_LENGTH_BARRY, 6 + cnt, GetWorldTotalMin());
+					// the reply e-mails exist for the original A.I.M. mercs only
+					if (cnt < NUM_ORIGINAL_AIM_MERCS) AddEmail(AIM_REPLY_BARRY + cnt * AIM_REPLY_LENGTH_BARRY, AIM_REPLY_LENGTH_BARRY, 6 + cnt, GetWorldTotalMin());
 				}
 			}
 		}
@@ -334,7 +335,7 @@ void MercDailyUpdate()
 			{
 				// check to see if he goes on another assignment
 				UINT32 uiChance;
-				if (cnt < MAX_NUMBER_MERCS)
+				if (MercProfile(cnt).isAIMMerc())
 				{ // A.I.M. merc
 					uiChance = 2 * p.bExpLevel;
 

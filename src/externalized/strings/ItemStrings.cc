@@ -41,7 +41,8 @@ const ST::string& BinaryData::getItemDescription(uint32_t itemIndex) const {
 const MERCPROFILESTRUCT* BinaryData::getProfile(ProfileID profileIndex) const
 {
 	// This is to avoid failures due to prof.dat unavailability during unit-testing
-	if (profiles.empty()) {
+	// no prof.dat (unit tests, or not used), or a profile it does not have (an added character)
+	if (profileIndex >= profiles.size()) {
 		static const MERCPROFILESTRUCT DEFAULT_PROFILE{};
 		return &DEFAULT_PROFILE;
 	}
@@ -85,9 +86,9 @@ BinaryData BinaryData::deserialize(SGPFile* itemsFile, SGPFile* profilesFile) {
 	// profiles come from the JSON files alone and getProfile() returns an empty profile.
 	if (profilesFile == nullptr) return binData;
 
-	binData.profiles.resize(NUM_PROFILES);
+	binData.profiles.resize(VANILLA_NUM_PROFILES);
 	bool const isCorrectlyEncoded = !(isRussianVersion() || isRussianGoldVersion());
-	for (ProfileID profileID = 0; profileID != NUM_PROFILES; ++profileID) {
+	for (ProfileID profileID = 0; profileID != VANILLA_NUM_PROFILES; ++profileID) {
 		// prof.dat is the immutable, third-party vanilla game asset -- always
 		// VANILLA_PROF_DAT_SIZE bytes / VANILLA_PROF_DAT_INV_SLOTS inventory
 		// slots, regardless of this engine's own (now larger) profile format.

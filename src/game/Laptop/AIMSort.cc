@@ -151,10 +151,7 @@ static void SelectToStatsRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 void EnterAimSort()
 {
 	//Everytime into Aim Sort, reset array.
-	for (UINT8 i = 0; i < MAX_NUMBER_MERCS; ++i)
-	{
-		AimMercArray[i] = i;
-	}
+	ResetAimMercArray();
 
 	SetAimSmallLogo(true);
 	InitAimDefaults();
@@ -365,7 +362,7 @@ static INT32 QsortCompare(const void* pNum1, const void* pNum2);
 
 static void SortMercArray(void)
 {
-	qsort(AimMercArray, MAX_NUMBER_MERCS, sizeof(UINT8), QsortCompare);
+	qsort(AimMercArray, gubNumAimMercs, sizeof(UINT8), QsortCompare);
 }
 
 
