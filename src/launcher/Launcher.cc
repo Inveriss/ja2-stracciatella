@@ -16,6 +16,23 @@
 #include <algorithm>
 #include <vector>
 #include <limits>
+#include <chrono>
+#include <cstdint>
+#include <deque>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <process.h>
+#pragma comment(lib, "advapi32.lib")
+#else
+#include <unistd.h>
+#endif
 
 #define RESOLUTION_SEPARATOR "x"
 
@@ -59,6 +76,206 @@ void showError(const ST::string& error) {
 	fl_alert("%s", error.c_str());
 }
 
+
+// ---------------------------------------------------------------------------
+// Crash diagnostics
+//
+// Every game session gets its own crash directory, passed to the game in
+// JA2_CRASH_DIR (see src/sgp/CrashHandler.h). When the game ends abnormally
+// the launcher copies the short summary the game wrote there into its own
+// log and into the logs tab. If the game died without writing one (a
+// fast-fail abort, a kill, a crash inside the crash handler) it builds a
+// fallback summary from the exit code and the end of ja2.log instead.
+// ---------------------------------------------------------------------------
+
+namespace fs = std::filesystem;
+
+namespace {
+
+std::string gCrashDir;
+std::string gSessionId;
+std::string gLastCrashSummary;
+std::chrono::steady_clock::time_point gLaunchSteady;
+
+constexpr int kKeepCrashSessions = 20;
+
+void setEnvironment(const char* name, const std::string& value) {
+#ifdef _WIN32
+	_putenv_s(name, value.c_str());
+#else
+	setenv(name, value.c_str(), 1);
+#endif
+}
+
+std::string parentDirOfLog() {
+	RustPointer<char> logPath(Logger_getFilePath("ja2.log"));
+	std::string path = logPath ? std::string(logPath.get()) : std::string();
+	size_t const pos = path.find_last_of("/\\");
+	return pos == std::string::npos ? std::string(".") : path.substr(0, pos);
+}
+
+fs::path crashRootDir() {
+#ifdef _WIN32
+	const char* localAppData = std::getenv("LOCALAPPDATA");
+	if (localAppData && *localAppData) return fs::path(localAppData) / "JA2" / "crashes";
+#endif
+	return fs::path(parentDirOfLog()) / "ja2-crashes";
+}
+
+std::string makeSessionId() {
+	std::time_t const t = std::time(nullptr);
+	std::tm tmv;
+#ifdef _WIN32
+	localtime_s(&tmv, &t);
+	int const pid = _getpid();
+#else
+	localtime_r(&t, &tmv);
+	int const pid = (int)getpid();
+#endif
+	char buf[48];
+	std::strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &tmv);
+	return std::string(buf) + "-" + std::to_string(pid);
+}
+
+// Old empty session directories are noise; also cap how many are kept.
+void pruneCrashSessions(fs::path const& root) {
+	struct Entry { fs::file_time_type time; fs::path path; };
+	std::vector<Entry> sessions;
+	std::error_code ec;
+	for (fs::directory_iterator it(root, ec), end; !ec && it != end; it.increment(ec)) {
+		if (!it->is_directory(ec)) continue;
+		if (it->path().filename() == "wer") continue;
+		if (fs::is_empty(it->path(), ec)) {
+			fs::remove(it->path(), ec);
+			continue;
+		}
+		sessions.push_back({fs::last_write_time(it->path(), ec), it->path()});
+	}
+	if ((int)sessions.size() <= kKeepCrashSessions) return;
+	std::sort(sessions.begin(), sessions.end(), [](Entry const& l, Entry const& r) { return l.time > r.time; });
+	for (size_t i = kKeepCrashSessions; i < sessions.size(); ++i) fs::remove_all(sessions[i].path, ec);
+}
+
+#ifdef _WIN32
+// Opt-in ($JA2_WER_LOCALDUMPS=1): ask Windows Error Reporting to write a
+// minidump of ja2.exe into <crash root>\wer whenever it crashes. This is the
+// only way to get a dump for fast-fail aborts, which no in-process handler
+// can intercept. It changes a per-user setting for ja2.exe, so it is off by
+// default.
+void enableWerLocalDumps(fs::path const& root) {
+	const char* enabled = std::getenv("JA2_WER_LOCALDUMPS");
+	if (!enabled || std::string(enabled) != "1") return;
+
+	std::error_code ec;
+	fs::path const dumpDir = root / "wer";
+	fs::create_directories(dumpDir, ec);
+
+	const char* key = "Software\\Microsoft\\Windows\\Windows Error Reporting\\LocalDumps\\ja2.exe";
+	std::string const folder = dumpDir.string();
+	DWORD const count = 5;
+	DWORD const type = 1; // minidump
+	RegSetKeyValueA(HKEY_CURRENT_USER, key, "DumpFolder", REG_EXPAND_SZ, folder.c_str(), (DWORD)folder.size() + 1);
+	RegSetKeyValueA(HKEY_CURRENT_USER, key, "DumpCount", REG_DWORD, &count, sizeof(count));
+	RegSetKeyValueA(HKEY_CURRENT_USER, key, "DumpType", REG_DWORD, &type, sizeof(type));
+	SLOGI("Windows Error Reporting local dumps for ja2.exe enabled, folder: {}", folder);
+}
+#endif
+
+// "0xC0000005 (ACCESS_VIOLATION)" for Windows NTSTATUS exit codes.
+std::string describeExitCode(std::int32_t code) {
+	char hex[32];
+	std::snprintf(hex, sizeof(hex), "0x%08X", (unsigned)code);
+	const char* name = nullptr;
+	switch ((unsigned)code) {
+		case 0xC0000005u: name = "ACCESS_VIOLATION - the game read/wrote memory it must not"; break;
+		case 0xC0000409u: name = "STACK_BUFFER_OVERRUN / FAST_FAIL - abort(), failed assertion or security check"; break;
+		case 0xC00000FDu: name = "STACK_OVERFLOW"; break;
+		case 0xC0000374u: name = "HEAP_CORRUPTION"; break;
+		case 0xC000001Du: name = "ILLEGAL_INSTRUCTION"; break;
+		case 0xC0000094u: name = "INT_DIVIDE_BY_ZERO"; break;
+		case 0xC0000096u: name = "PRIV_INSTRUCTION"; break;
+		case 0xC000013Au: name = "CONTROL_C_EXIT - closed with Ctrl+C / console closed"; break;
+		case 0xC0000142u: name = "DLL_INIT_FAILED"; break;
+		case 0xC0000135u: name = "DLL_NOT_FOUND - a required DLL is missing"; break;
+		case 0xC000007Bu: name = "INVALID_IMAGE_FORMAT - wrong architecture DLL/exe"; break;
+		case 0xC000000Du: name = "INVALID_PARAMETER"; break;
+		case 27: name = "unhandled exception in the game's entry point"; break;
+		case 3: name = "abort()"; break;
+		default: break;
+	}
+	return name ? std::string(hex) + " (" + name + ")" : std::string(hex);
+}
+
+std::string readTextFile(fs::path const& path) {
+	std::ifstream in(path, std::ios::in | std::ios::binary);
+	if (!in) return std::string();
+	std::ostringstream ss;
+	ss << in.rdbuf();
+	return ss.str();
+}
+
+// The newest *.summary.txt the game wrote in this session's crash directory.
+std::string findGameCrashSummary(std::string* reportPath) {
+	std::error_code ec;
+	fs::path newest;
+	fs::file_time_type newestTime = fs::file_time_type::min();
+	for (fs::directory_iterator it(gCrashDir, ec), end; !ec && it != end; it.increment(ec)) {
+		std::string const name = it->path().filename().string();
+		if (name.size() < 12 || name.compare(name.size() - 12, 12, ".summary.txt") != 0) continue;
+		std::error_code ec2;
+		auto const t = fs::last_write_time(it->path(), ec2);
+		if (!ec2 && t >= newestTime) {
+			newestTime = t;
+			newest = it->path();
+		}
+	}
+	if (newest.empty()) return std::string();
+	*reportPath = newest.string();
+	return readTextFile(newest);
+}
+
+std::string lastLogLines(size_t maxLines) {
+	RustPointer<char> logPath(Logger_getFilePath("ja2.log"));
+	if (!logPath) return std::string();
+	std::ifstream in(logPath.get());
+	std::deque<std::string> lines;
+	std::string line;
+	while (std::getline(in, line)) {
+		lines.push_back(line);
+		if (lines.size() > maxLines) lines.pop_front();
+	}
+	std::string result;
+	for (auto const& l : lines) result += "  " + l + "\n";
+	return result;
+}
+
+// What to show when the game ended abnormally. `exitCode` is the process exit code.
+std::string buildCrashSummary(std::int32_t exitCode) {
+	auto const seconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - gLaunchSteady).count();
+
+	std::string reportPath;
+	std::string summary = findGameCrashSummary(&reportPath);
+	std::ostringstream out;
+	out << "JA2 Stracciatella ended abnormally, exit code " << describeExitCode(exitCode) << ", session " << gSessionId
+	    << ", after " << seconds << " s\n";
+
+	if (!summary.empty()) {
+		out << "The game wrote a crash report:\n\n" << summary;
+	} else {
+		out << "The game did not write a crash report: it ended without running its crash handler\n"
+		       "(a fast-fail abort, the process being killed, or a fault inside the handler itself).\n";
+#ifdef _WIN32
+		out << "Windows Error Reporting may still have recorded the crash (Event Viewer > Windows Logs > Application,\n"
+		       "source \"Application Error\", faulting application ja2.exe). Start the launcher with the environment\n"
+		       "variable JA2_WER_LOCALDUMPS=1 to have Windows write a minidump into " << (crashRootDir() / "wer").string() << ".\n";
+#endif
+		out << "Last lines of ja2.log:\n" << lastLogLines(25);
+	}
+	out << "\nCrash directory: " << gCrashDir << "\n";
+	return out.str();
+}
+
+} // namespace
 void showRustError() {
 	RustPointer<char> err(getRustError());
 	if (err) {
@@ -438,6 +655,24 @@ void Launcher::startExecutable(bool asEditor) {
 	if (asEditor) {
 		VecCString_push(args.get(), "-editor");
 	}
+	// A crash directory of its own for this session, so the summary of a crash
+	// can be found again afterwards.
+	{
+		fs::path const root = crashRootDir();
+		std::error_code ec;
+		fs::create_directories(root, ec);
+		pruneCrashSessions(root);
+		gSessionId = makeSessionId();
+		gCrashDir = (root / gSessionId).string();
+		fs::create_directories(gCrashDir, ec);
+		setEnvironment("JA2_SESSION_ID", gSessionId);
+		setEnvironment("JA2_CRASH_DIR", gCrashDir);
+#ifdef _WIN32
+		enableWerLocalDumps(root);
+#endif
+		gLastCrashSummary.clear();
+		gLaunchSteady = std::chrono::steady_clock::now();
+	}
 	subProcess = std::make_optional(RustPointer<SubProcess>(Subprocess_new(exePath.get(), args.get())));
 	update(false);
 	Launcher::maintainSubProcessState(this);
@@ -449,6 +684,10 @@ void Launcher::updateLogs() {
 	try {
 		AutoSGPFile logsFd (FileMan::openForReading(logPath.get()));
 		auto logs = logsFd->readStringToEnd();
+		if (!gLastCrashSummary.empty()) {
+			logs += "\n\n===== Crash summary =====\n";
+			logs += gLastCrashSummary.c_str();
+		}
 
 		logsDisplay->buffer()->text(logs.c_str());
 		logsDisplay->scroll(logsBuffer.count_lines(0, logsBuffer.length()) - 1, 0);
@@ -473,15 +712,24 @@ void Launcher::maintainSubProcessState(void* userdata) {
 						error = ST::format("JA2 Stracciatella crashed with error: {}", err.get());
 					}
 				} else {
-					error = ST::format("JA2 Stracciatella crashed with exit code: {}", exitCode);
+					error = ST::format("JA2 Stracciatella crashed with exit code: {}", describeExitCode(exitCode).c_str());
+					gLastCrashSummary = buildCrashSummary(exitCode);
 				}
 
 				SLOGE("{}", error);
-				error = ST::format("{}\n\nYou will be taken to the logs tab, where you can investigate the error.", error);
+				if (!gLastCrashSummary.empty()) {
+					SLOGE("Crash summary:\n{}", gLastCrashSummary.c_str());
+				}
+				error = ST::format("{}\n\nCrash reports and the minidump (if any) are in:\n{}\n\nYou will be taken to the logs tab, where the crash summary follows the game's log.",
+					error, gCrashDir.c_str());
 
 				showError(error);
 
 				window->tabs->value(window->logsTab);
+			} else {
+				// clean exit: nothing was written into the session's crash directory
+				std::error_code ec;
+				fs::remove(gCrashDir, ec);
 			}
 
 			window->subProcess = std::nullopt;
