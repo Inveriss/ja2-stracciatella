@@ -1,0 +1,21 @@
+$schema: http://json-schema.org/draft-04/schema#
+type: array
+title: Names of the named characters in one language
+description: >
+  The full name and the nickname of the profiles, for one game language
+  (mercs-profile-names-<language>.json). A language without such a file
+  takes the names from the prof.dat of the game data.
+items:
+  type: object
+  properties:
+    profileID:
+      minimum: 0
+      maximum: 169
+      $ref: types/uint8.schema.yaml
+    fullName:
+      type: string
+    nickname:
+      type: string
+  required:
+    - profileID
+  additionalProperties: false

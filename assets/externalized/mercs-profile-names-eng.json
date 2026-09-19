@@ -1,0 +1,810 @@
+/* Generated from the merged profile data (JA2_DUMP_MERC_PROFILES). */
+[
+  {
+    "profileID": 0,
+    "fullName": "Barry Unger",
+    "nickname": "Barry"
+  },
+  {
+    "profileID": 1,
+    "fullName": "Keith \"Blood\" Hanson",
+    "nickname": "Blood"
+  },
+  {
+    "profileID": 2,
+    "fullName": "Rudy \"Lynx-Eyed\" Roberts",
+    "nickname": "Lynx"
+  },
+  {
+    "profileID": 3,
+    "fullName": "Steve \"Grizzly\" Bornell",
+    "nickname": "Grizzly"
+  },
+  {
+    "profileID": 4,
+    "fullName": "Victoria Waters",
+    "nickname": "Vicki"
+  },
+  {
+    "profileID": 5,
+    "fullName": "Trevor Colby",
+    "nickname": "Trevor"
+  },
+  {
+    "profileID": 6,
+    "fullName": "Helmut Grunther",
+    "nickname": "Grunty"
+  },
+  {
+    "profileID": 7,
+    "fullName": "Ivan Dolvich",
+    "nickname": "Ivan"
+  },
+  {
+    "profileID": 8,
+    "fullName": "Bobby \"Steroid\" Gontarski",
+    "nickname": "Steroid"
+  },
+  {
+    "profileID": 9,
+    "fullName": "Igor Dolvich",
+    "nickname": "Igor"
+  },
+  {
+    "profileID": 10,
+    "fullName": "Kyle \"Shadow\" Simmons",
+    "nickname": "Shadow"
+  },
+  {
+    "profileID": 11,
+    "fullName": "Ernie \"Red\" Spragg",
+    "nickname": "Red"
+  },
+  {
+    "profileID": 12,
+    "fullName": "Carl \"Reaper\" Sheppards",
+    "nickname": "Reaper"
+  },
+  {
+    "profileID": 13,
+    "fullName": "Fidel Dahan ",
+    "nickname": "Fidel"
+  },
+  {
+    "profileID": 14,
+    "fullName": "Cynthia \"Fox\" Guzzman",
+    "nickname": "Fox"
+  },
+  {
+    "profileID": 15,
+    "fullName": "Sidney Nettleson",
+    "nickname": "Sidney"
+  },
+  {
+    "profileID": 16,
+    "fullName": "Gus Tarballs",
+    "nickname": "Gus"
+  },
+  {
+    "profileID": 17,
+    "fullName": "Monica \"Buns\" Sondergaard",
+    "nickname": "Buns"
+  },
+  {
+    "profileID": 18,
+    "fullName": "Ice Williams",
+    "nickname": "Ice"
+  },
+  {
+    "profileID": 19,
+    "fullName": "Dr. Donna \"Spider\" Houston",
+    "nickname": "Spider"
+  },
+  {
+    "profileID": 20,
+    "fullName": "Dr. Clifford Highball",
+    "nickname": "Cliff"
+  },
+  {
+    "profileID": 21,
+    "fullName": "John \"Bull\" Peters",
+    "nickname": "Bull"
+  },
+  {
+    "profileID": 22,
+    "fullName": "Frank \"Hitman\" Hennessy",
+    "nickname": "Hitman"
+  },
+  {
+    "profileID": 23,
+    "fullName": "Louisa \"Buzz\" Garneau",
+    "nickname": "Buzz"
+  },
+  {
+    "profileID": 24,
+    "fullName": "Ron \"Raider\" Higgens ",
+    "nickname": "Raider"
+  },
+  {
+    "profileID": 25,
+    "fullName": "Charlene \"Raven\" Higgens",
+    "nickname": "Raven"
+  },
+  {
+    "profileID": 26,
+    "fullName": "Kirk \"Static\" Stevenson ",
+    "nickname": "Static"
+  },
+  {
+    "profileID": 27,
+    "fullName": "Corp. Len Anderson",
+    "nickname": "Len"
+  },
+  {
+    "profileID": 28,
+    "fullName": "Dr. Daniel Quinten",
+    "nickname": "Danny"
+  },
+  {
+    "profileID": 29,
+    "fullName": "Earl \"Magic\" Walker",
+    "nickname": "Magic"
+  },
+  {
+    "profileID": 30,
+    "fullName": "Stephen Rothman",
+    "nickname": "Stephen"
+  },
+  {
+    "profileID": 31,
+    "fullName": "Robert James Sullivan",
+    "nickname": "Scully"
+  },
+  {
+    "profileID": 32,
+    "fullName": "J.P. \"La Malice\" Viau",
+    "nickname": "Malice"
+  },
+  {
+    "profileID": 33,
+    "fullName": "Dr Q. Huaong",
+    "nickname": "Dr. Q"
+  },
+  {
+    "profileID": 34,
+    "fullName": "Edgar \"Nails\" Smorth",
+    "nickname": "Nails"
+  },
+  {
+    "profileID": 35,
+    "fullName": "Thor Kaufman",
+    "nickname": "Thor"
+  },
+  {
+    "profileID": 36,
+    "fullName": "Sheila \"Scope\" Sterling",
+    "nickname": "Scope"
+  },
+  {
+    "profileID": 37,
+    "fullName": "Peter \"Wolf\" Sanderson",
+    "nickname": "Wolf"
+  },
+  {
+    "profileID": 38,
+    "fullName": "Dr. Michael Dawson",
+    "nickname": "MD"
+  },
+  {
+    "profileID": 39,
+    "fullName": "Norma \"Meltdown\" Jessop",
+    "nickname": "Meltdown"
+  },
+  {
+    "profileID": 40,
+    "fullName": "Biff Apscott",
+    "nickname": "Biff"
+  },
+  {
+    "profileID": 41,
+    "fullName": "Frankie \"Haywire\" Gordon",
+    "nickname": "Haywire"
+  },
+  {
+    "profileID": 42,
+    "fullName": "Doug \"Gasket\" Milton",
+    "nickname": "Gasket"
+  },
+  {
+    "profileID": 43,
+    "fullName": "Bill \"Razor\" Lamont",
+    "nickname": "Razor"
+  },
+  {
+    "profileID": 44,
+    "fullName": "Florence Gabriel",
+    "nickname": "Flo"
+  },
+  {
+    "profileID": 45,
+    "fullName": "Tim \"Gumpy\" Hillman",
+    "nickname": "Gumpy"
+  },
+  {
+    "profileID": 46,
+    "fullName": "Larry Roachburn",
+    "nickname": "Larry"
+  },
+  {
+    "profileID": 47,
+    "fullName": "Larry Roachburn",
+    "nickname": "Larry"
+  },
+  {
+    "profileID": 48,
+    "fullName": "Jim \"Cougar\" Wallace",
+    "nickname": "Cougar"
+  },
+  {
+    "profileID": 49,
+    "fullName": "Tim \"Numb\" Sutton",
+    "nickname": "Numb"
+  },
+  {
+    "profileID": 50,
+    "fullName": "Thorton \"Bubba\" Jones",
+    "nickname": "Bubba"
+  },
+  {
+    "profileID": 51,
+    "nickname": "PGmale1"
+  },
+  {
+    "profileID": 52,
+    "nickname": "PGmale2 "
+  },
+  {
+    "profileID": 53,
+    "nickname": "PGmale3"
+  },
+  {
+    "profileID": 54,
+    "nickname": "PGLady1"
+  },
+  {
+    "profileID": 55,
+    "nickname": "PGLady2"
+  },
+  {
+    "profileID": 56,
+    "nickname": "PGLady3"
+  },
+  {
+    "profileID": 57,
+    "fullName": "Miguel Cordona",
+    "nickname": "Miguel"
+  },
+  {
+    "profileID": 58,
+    "fullName": "Carlos Dasouza",
+    "nickname": "Carlos"
+  },
+  {
+    "profileID": 59,
+    "fullName": "Ira Smythe",
+    "nickname": "Ira"
+  },
+  {
+    "profileID": 60,
+    "fullName": "Dimitri Guzzo",
+    "nickname": "Dimitri"
+  },
+  {
+    "profileID": 61,
+    "fullName": "Devin Connell",
+    "nickname": "Devin"
+  },
+  {
+    "profileID": 62,
+    "fullName": "Madlab's Robot",
+    "nickname": "Robot"
+  },
+  {
+    "profileID": 63,
+    "fullName": "Hamous",
+    "nickname": "Hamous"
+  },
+  {
+    "profileID": 64,
+    "fullName": "Slay",
+    "nickname": "Terry"
+  },
+  {
+    "profileID": 65,
+    "fullName": "Eskimo - Removed",
+    "nickname": "RPC65"
+  },
+  {
+    "profileID": 66,
+    "fullName": "Greg \"Dynamo\" Duncan",
+    "nickname": "Dynamo"
+  },
+  {
+    "profileID": 67,
+    "fullName": "Breeham \"Shank\" Druz",
+    "nickname": "Shank"
+  },
+  {
+    "profileID": 68,
+    "fullName": "Igmus \"Iggy\" Palkov",
+    "nickname": "Iggy"
+  },
+  {
+    "profileID": 69,
+    "fullName": "Dr. Vincent Beaumont",
+    "nickname": "Vince"
+  },
+  {
+    "profileID": 70,
+    "fullName": "Lt. Conrad Gillitt",
+    "nickname": "Conrad"
+  },
+  {
+    "profileID": 71,
+    "nickname": "RPC71"
+  },
+  {
+    "profileID": 72,
+    "fullName": "Kevin \"Maddog\" Cameron",
+    "nickname": "Maddog"
+  },
+  {
+    "profileID": 73,
+    "fullName": "Darrel Jr.",
+    "nickname": "Darrel"
+  },
+  {
+    "profileID": 74,
+    "fullName": "Alish Perkopoulos",
+    "nickname": "Perko"
+  },
+  {
+    "profileID": 75,
+    "fullName": "Queen Deidranna",
+    "nickname": "Deidranna"
+  },
+  {
+    "profileID": 76,
+    "fullName": "Auntie",
+    "nickname": "Auntie"
+  },
+  {
+    "profileID": 77,
+    "fullName": "Enrico Chivaldori",
+    "nickname": "Enrico"
+  },
+  {
+    "profileID": 78,
+    "fullName": "Carmen Dancio",
+    "nickname": "Carmen"
+  },
+  {
+    "profileID": 79,
+    "fullName": "Joseph Papanus",
+    "nickname": "Joe"
+  },
+  {
+    "profileID": 80,
+    "fullName": "Dr. Steven Willis",
+    "nickname": "Steve"
+  },
+  {
+    "profileID": 81,
+    "fullName": "Ricardo \"Rat\" Grimaldo",
+    "nickname": "Rat"
+  },
+  {
+    "profileID": 82,
+    "fullName": "MoM",
+    "nickname": "Annie"
+  },
+  {
+    "profileID": 83,
+    "fullName": "Imposter",
+    "nickname": "Chris"
+  },
+  {
+    "profileID": 84,
+    "fullName": "Bob",
+    "nickname": "Bob"
+  },
+  {
+    "profileID": 85,
+    "fullName": "Brenda Drake",
+    "nickname": "Brenda"
+  },
+  {
+    "profileID": 86,
+    "fullName": "Peter \"Kingpin\" Klauss",
+    "nickname": "Kingpin"
+  },
+  {
+    "profileID": 87,
+    "fullName": "Darren Van Haussen",
+    "nickname": "Darren"
+  },
+  {
+    "profileID": 88,
+    "fullName": "Maria DaSilva",
+    "nickname": "Maria"
+  },
+  {
+    "profileID": 89,
+    "fullName": "Angel Dasilva",
+    "nickname": "Angel"
+  },
+  {
+    "profileID": 90,
+    "fullName": "Joey Graham",
+    "nickname": "Joey"
+  },
+  {
+    "profileID": 91,
+    "fullName": "Tony",
+    "nickname": "Tony"
+  },
+  {
+    "profileID": 92,
+    "fullName": "Frank",
+    "nickname": "Frank"
+  },
+  {
+    "profileID": 93,
+    "fullName": "Spike",
+    "nickname": "Spike"
+  },
+  {
+    "profileID": 94,
+    "fullName": "Damon Warrick",
+    "nickname": "Damon"
+  },
+  {
+    "profileID": 95,
+    "fullName": "Kyle  Lemmons",
+    "nickname": "Kyle"
+  },
+  {
+    "profileID": 96,
+    "fullName": "Micky O'Brien",
+    "nickname": "Micky"
+  },
+  {
+    "profileID": 97,
+    "fullName": "James \"Skyrider\" Bullock",
+    "nickname": "Skyrider"
+  },
+  {
+    "profileID": 98,
+    "fullName": "Pablo Greco",
+    "nickname": "Pablo"
+  },
+  {
+    "profileID": 99,
+    "fullName": "Salvatore Lappus",
+    "nickname": "Sal"
+  },
+  {
+    "profileID": 100,
+    "fullName": "Father John Walker",
+    "nickname": "Father"
+  },
+  {
+    "profileID": 101,
+    "fullName": "Fatima",
+    "nickname": "Fatima"
+  },
+  {
+    "profileID": 102,
+    "fullName": "Christine Woltz",
+    "nickname": "Warden"
+  },
+  {
+    "profileID": 103,
+    "fullName": "Gordon Jefferies",
+    "nickname": "Gordon"
+  },
+  {
+    "profileID": 104,
+    "fullName": "Gary \"Gabby\" Mulnick  ",
+    "nickname": "Gabby"
+  },
+  {
+    "profileID": 105,
+    "fullName": "Dr. Ernest Poppin",
+    "nickname": "Ernest"
+  },
+  {
+    "profileID": 106,
+    "fullName": "Fred Morris",
+    "nickname": "Fred"
+  },
+  {
+    "profileID": 107,
+    "fullName": "Madame Layla",
+    "nickname": "Madame"
+  },
+  {
+    "profileID": 108,
+    "fullName": "Yanni Nomigotta ",
+    "nickname": "Yanni"
+  },
+  {
+    "profileID": 109,
+    "fullName": "Martha Graham",
+    "nickname": "Martha"
+  },
+  {
+    "profileID": 110,
+    "fullName": "Tiffany",
+    "nickname": "Joe"
+  },
+  {
+    "profileID": 111,
+    "fullName": "T-Rex",
+    "nickname": "Jasmin"
+  },
+  {
+    "profileID": 112,
+    "fullName": "Druggist",
+    "nickname": "Charlie"
+  },
+  {
+    "profileID": 113,
+    "fullName": "Jake Cameron",
+    "nickname": "Jake"
+  },
+  {
+    "profileID": 114,
+    "fullName": "Pacos",
+    "nickname": "Pacos"
+  },
+  {
+    "profileID": 115,
+    "fullName": "Dave Gerard",
+    "nickname": "Dave"
+  },
+  {
+    "profileID": 116,
+    "fullName": "Skipper",
+    "nickname": "Skipper"
+  },
+  {
+    "profileID": 117,
+    "fullName": "Hans Vanderkilt",
+    "nickname": "Hans"
+  },
+  {
+    "profileID": 118,
+    "fullName": "John Kulba",
+    "nickname": "John"
+  },
+  {
+    "profileID": 119,
+    "fullName": "Mary Kulba",
+    "nickname": "Mary"
+  },
+  {
+    "profileID": 120,
+    "fullName": "General Theo Humphey",
+    "nickname": "General"
+  },
+  {
+    "profileID": 121,
+    "fullName": "Sergeant Krott",
+    "nickname": "Sergeant"
+  },
+  {
+    "profileID": 122,
+    "fullName": "Armand Ricci",
+    "nickname": "Armand"
+  },
+  {
+    "profileID": 123,
+    "fullName": "Lora Ricci",
+    "nickname": "Lora"
+  },
+  {
+    "profileID": 124,
+    "fullName": "Franz Hinkle",
+    "nickname": "Franz"
+  },
+  {
+    "profileID": 125,
+    "fullName": "Howard Filmore",
+    "nickname": "Howard"
+  },
+  {
+    "profileID": 126,
+    "fullName": "Sam Rozen",
+    "nickname": "Sam"
+  },
+  {
+    "profileID": 127,
+    "fullName": "Eldin Fiddes",
+    "nickname": "Eldin"
+  },
+  {
+    "profileID": 128,
+    "fullName": "Arnold Brunzwell",
+    "nickname": "Arnie"
+  },
+  {
+    "profileID": 129,
+    "fullName": "Tina Elzan",
+    "nickname": "Tina"
+  },
+  {
+    "profileID": 130,
+    "fullName": "Alexander Fredo",
+    "nickname": "Fredo"
+  },
+  {
+    "profileID": 131,
+    "fullName": "Walter Bazzon",
+    "nickname": "Walter"
+  },
+  {
+    "profileID": 132,
+    "fullName": "Jenny Walden",
+    "nickname": "Jenny"
+  },
+  {
+    "profileID": 133,
+    "fullName": "Billy GoonBall",
+    "nickname": "Billy"
+  },
+  {
+    "profileID": 134,
+    "fullName": "Brewster Woltz",
+    "nickname": "Brewster"
+  },
+  {
+    "profileID": 135,
+    "fullName": "Messenger of bad news",
+    "nickname": "Elliot"
+  },
+  {
+    "profileID": 136,
+    "fullName": "Part of crowd for end game",
+    "nickname": "Derek"
+  },
+  {
+    "profileID": 137,
+    "fullName": "Part of endgame crowd",
+    "nickname": "Oliver"
+  },
+  {
+    "profileID": 138,
+    "fullName": "Waldo Zimmer",
+    "nickname": "Waldo"
+  },
+  {
+    "profileID": 139,
+    "fullName": "Doreen Harrows",
+    "nickname": "Doreen"
+  },
+  {
+    "profileID": 140,
+    "fullName": "Jim Perry",
+    "nickname": "Jim"
+  },
+  {
+    "profileID": 141,
+    "fullName": "Jack Remington",
+    "nickname": "Jack"
+  },
+  {
+    "profileID": 142,
+    "fullName": "Olaf Helinski",
+    "nickname": "Olaf"
+  },
+  {
+    "profileID": 143,
+    "fullName": "Ray Baker",
+    "nickname": "Ray"
+  },
+  {
+    "profileID": 144,
+    "fullName": "Olga Statova",
+    "nickname": "Olga"
+  },
+  {
+    "profileID": 145,
+    "fullName": "Tyrone Banks",
+    "nickname": "Tyrone"
+  },
+  {
+    "profileID": 146,
+    "fullName": "Dr. Nathaniel \"MadLab\" Kairns",
+    "nickname": "MadLab"
+  },
+  {
+    "profileID": 147,
+    "fullName": "Keith Hemps",
+    "nickname": "Keith"
+  },
+  {
+    "profileID": 148,
+    "fullName": "Matt Duncan",
+    "nickname": "Matt"
+  },
+  {
+    "profileID": 149,
+    "fullName": "Mike",
+    "nickname": "Mike"
+  },
+  {
+    "profileID": 150,
+    "fullName": "Daryl Hick",
+    "nickname": "Daryl"
+  },
+  {
+    "profileID": 151,
+    "fullName": "Herve Santos",
+    "nickname": "Herve"
+  },
+  {
+    "profileID": 152,
+    "fullName": "Peter Santos",
+    "nickname": "Peter"
+  },
+  {
+    "profileID": 153,
+    "fullName": "Alberto Santos",
+    "nickname": "Alberto"
+  },
+  {
+    "profileID": 154,
+    "fullName": "Carlo Santos",
+    "nickname": "Carlo"
+  },
+  {
+    "profileID": 155,
+    "fullName": "Manny Santos",
+    "nickname": "Manny"
+  },
+  {
+    "profileID": 156,
+    "fullName": "Oswald  Johnston",
+    "nickname": "Oswald"
+  },
+  {
+    "profileID": 157,
+    "fullName": "Calvin Barkmore",
+    "nickname": "Calvin "
+  },
+  {
+    "profileID": 158,
+    "fullName": "Carl Tercel",
+    "nickname": "Carl"
+  },
+  {
+    "profileID": 159,
+    "nickname": "Speck..."
+  },
+  {
+    "profileID": 160,
+    "fullName": "Hummer",
+    "nickname": "Hummer"
+  },
+  {
+    "profileID": 161,
+    "fullName": "El Dorado",
+    "nickname": "El Dorado"
+  },
+  {
+    "profileID": 162,
+    "fullName": "Ice Cream Truck",
+    "nickname": "Truck"
+  }
+]

@@ -935,12 +935,31 @@ void DefaultContentManager::loadStringRes(const ST::string& name, std::vector<ST
 }
 
 
-/** Load the game data and the item descriptions from the original game resources. */
+/** Name of the optional file with the names of the named characters in the game language. */
+static ST::string MercProfileNamesFile(GameVersion const version)
+{
+	return ST::string("mercs-profile-names") + L10n::GetSuffix(version, true) + ".json";
+}
+
+
+/** Load the game data and the item descriptions from the original game resources.
+ *
+ * The named characters come from mercs-profile-info.json, mercs-relations.json and
+ * the names file of the game language. prof.dat is only read for a language that has
+ * no names file (the names are then taken from it), or when $JA2_USE_PROF_DAT is set
+ * (it then serves as the base the JSON files are merged into, as it always did). */
 bool DefaultContentManager::loadGameData()
 {
+	const char* const force = std::getenv("JA2_USE_PROF_DAT");
+	bool const forceProfDat = force != nullptr && *force != '\0' && std::string(force) != "0";
+	bool const haveNames = doesGameResExists(MercProfileNamesFile(m_gameVersion));
+	bool const useProfDat = doesGameResExists(BinaryData::profilesFilename()) && (forceProfDat || !haveNames);
+	if (!useProfDat) SLOGI("prof.dat is not used, the named characters come from the JSON files");
+
+	AutoSGPFile profiles{ useProfDat ? openGameResForReading(BinaryData::profilesFilename()) : nullptr };
 	return loadGameData(BinaryData::deserialize(
 		AutoSGPFile{ openGameResForReading(BinaryData::itemsFilename()) },
-		AutoSGPFile{ openGameResForReading(BinaryData::profilesFilename()) }));
+		profiles));
 }
 
 
@@ -1319,6 +1338,20 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 	MercProfileInfo::load = [this](uint8_t p) { return this->getMercProfileInfo(p); };
 
 	std::vector<std::unique_ptr<MERCPROFILESTRUCT>> temp_mercStructs(NUM_PROFILES);
+
+	// names of the game language; without such a file they come from prof.dat
+	struct MercNames { ST::string fullName; ST::string nickname; };
+	std::map<uint8_t, MercNames> names;
+	ST::string const namesFile = MercProfileNamesFile(m_gameVersion);
+	if (doesGameResExists(namesFile))
+	{
+		for (auto& element : readJsonDataFileWithSchema(namesFile).toVec())
+		{
+			auto entry = element.toObject();
+			names[entry.GetUInt("profileID")] = { entry.getOptionalString("fullName"), entry.getOptionalString("nickname") };
+		}
+	}
+
 	auto json = readJsonDataFileWithSchema("mercs-profile-info.json");
 	for (auto& element : json.toVec()) {
 		auto charProperties = element.toObject();
@@ -1327,6 +1360,13 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 		m_mercProfileInfo[profileID] = profileInfo;
 		m_mercProfiles.push_back(new MercProfile(profileID));
 		temp_mercStructs[profileID] = MercProfile::deserializeStruct(binaryProfiles.getProfile(profileID), charProperties, this);
+
+		auto const name = names.find(profileID);
+		if (name != names.end())
+		{
+			if (!name->second.fullName.empty()) temp_mercStructs[profileID]->zName = name->second.fullName;
+			if (!name->second.nickname.empty()) temp_mercStructs[profileID]->zNickname = name->second.nickname;
+		}
 	}
 	MercProfileInfo::validateData(m_mercProfileInfo);
 
@@ -1378,9 +1418,20 @@ void DefaultContentManager::dumpMercProfilesIfRequested() const
 
 	JsonArray infos;
 	JsonArray relations;
+	JsonArray names;
 	for (const MercProfile* profile : m_mercProfiles)
 	{
 		infos.push(profile->serializeStruct(this));
+
+		MERCPROFILESTRUCT const& p = profile->getStruct();
+		if (!p.zName.empty() || !p.zNickname.empty())
+		{
+			JsonObject entry;
+			entry.set("000profileID", (unsigned int)profile->getID());
+			if (!p.zName.empty()) entry.set("001fullName", p.zName);
+			if (!p.zNickname.empty()) entry.set("002nickname", p.zNickname);
+			names.push(entry.toValue());
+		}
 
 		JsonValue rel = profile->serializeStructRelations(this);
 		if (!rel.toObject().GetValue("100relations").toVec().empty())
@@ -1392,10 +1443,15 @@ void DefaultContentManager::dumpMercProfilesIfRequested() const
 	// The serializers prefix the keys with three digits to get them into a
 	// readable order (objects are sorted alphabetically); take them off again.
 	const std::regex keyPrefix(R"re("[0-9]{3}([A-Za-z][A-Za-z0-9]*)"\s*:)re");
-	auto const write = [&](const char* fileName, const char* header, JsonArray const& array)
+	auto const write = [&](const char* fileName, const char* header, JsonArray const& array, bool const stripNames = false)
 	{
 		std::string text = array.toValue().serialize(true).c_str();
 		text = std::regex_replace(text, keyPrefix, "\"$1\":");
+		if (stripNames)
+		{
+			// the names go to the names file of the language
+			text = std::regex_replace(text, std::regex(R"re(\n[ \t]*"(fullName|nickname)":[^\n]*)re"), "");
+		}
 		std::filesystem::path const path = std::filesystem::path(dirName) / fileName;
 		std::error_code ec;
 		std::filesystem::create_directories(path.parent_path(), ec);
@@ -1405,9 +1461,11 @@ void DefaultContentManager::dumpMercProfilesIfRequested() const
 	};
 
 	write("mercs-profile-info.json",
-		"/* Generated from the merged prof.dat + JSON profile data (JA2_DUMP_MERC_PROFILES). */\n", infos);
+		"/* Generated from the merged profile data (JA2_DUMP_MERC_PROFILES). The names are in the names file of the language. */\n", infos, true);
+	write(MercProfileNamesFile(m_gameVersion).c_str(),
+		"/* Generated from the merged profile data (JA2_DUMP_MERC_PROFILES). */\n", names);
 	write("mercs-relations.json",
-		"/* Generated from the merged prof.dat + JSON profile data (JA2_DUMP_MERC_PROFILES). */\n", relations);
+		"/* Generated from the merged profile data (JA2_DUMP_MERC_PROFILES). */\n", relations);
 }
 
 void DefaultContentManager::loadVehicles()
@@ -1464,10 +1522,11 @@ void DefaultContentManager::loadTranslationTable()
 
 void DefaultContentManager::loadAllScriptRecords()
 {
-	// hack for avoiding failures during unit-testing
-	if (!doesGameResExists(BINARYDATADIR "/prof.dat")) return;
-
 	auto ctrl = readJsonDataFileWithSchema("script-records-control.json").toObject();
+
+	// hack for avoiding failures during unit-testing (there is no game data then)
+	if (!doesGameResExists(NPCDATADIR "/" + ctrl.GetString("fileNameForScriptControlledPCs"))) return;
+
 	auto meanwhiles = ctrl.GetValue("meanwhiles").toVec();
 
 	for (auto& element : meanwhiles) {

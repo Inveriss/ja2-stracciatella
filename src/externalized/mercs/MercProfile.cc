@@ -115,11 +115,12 @@ void MercProfile::deserializeStructRelations(const MERCPROFILESTRUCT* binaryProf
 		else if (jOpinions[idx].getOptionalBool("friend2", binaryProf->bBuddy[BUDDY_SLOT2] == idx)) {
 			prof->bBuddy[BUDDY_SLOT2] = idx;
 		}
-		else if (jOpinions[idx].getOptionalBool("eventualFriend", binaryProf->bLearnToLike == idx)) {
+		// a target can hold several roles (e.g. an enemy who is also the eventual enemy)
+		if (jOpinions[idx].getOptionalBool("eventualFriend", binaryProf->bLearnToLike == idx)) {
 			prof->bLearnToLike = idx;
 			prof->bLearnToLikeTime = jOpinions[idx].getOptionalUInt("resistanceToBefriending", binaryProf->bLearnToLikeTime);
 		}
-		else if (jOpinions[idx].getOptionalBool("enemy1", binaryProf->bHated[HATED_SLOT1] == idx)) {
+		if (jOpinions[idx].getOptionalBool("enemy1", binaryProf->bHated[HATED_SLOT1] == idx)) {
 			prof->bHated[HATED_SLOT1] = idx;
 			prof->bHatedTime[HATED_SLOT1] = jOpinions[idx].getOptionalUInt("tolerance", binaryProf->bHatedTime[HATED_SLOT1]);
 		}
@@ -127,7 +128,7 @@ void MercProfile::deserializeStructRelations(const MERCPROFILESTRUCT* binaryProf
 			prof->bHated[HATED_SLOT2] = idx;
 			prof->bHatedTime[HATED_SLOT2] = jOpinions[idx].getOptionalUInt("tolerance", binaryProf->bHatedTime[HATED_SLOT2]);
 		}
-		else if (jOpinions[idx].getOptionalBool("eventualEnemy", binaryProf->bLearnToHate == idx)) {
+		if (jOpinions[idx].getOptionalBool("eventualEnemy", binaryProf->bLearnToHate == idx)) {
 			prof->bLearnToHate = idx;
 			prof->bLearnToHateTime = jOpinions[idx].getOptionalUInt("resistanceToMakingEnemy", binaryProf->bLearnToHateTime);
 		}

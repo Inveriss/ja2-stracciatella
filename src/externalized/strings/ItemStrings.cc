@@ -81,6 +81,10 @@ BinaryData BinaryData::deserialize(SGPFile* itemsFile, SGPFile* profilesFile) {
 		}
 	}
 
+	// prof.dat is optional: without it (see DefaultContentManager::loadGameData) the
+	// profiles come from the JSON files alone and getProfile() returns an empty profile.
+	if (profilesFile == nullptr) return binData;
+
 	binData.profiles.resize(NUM_PROFILES);
 	bool const isCorrectlyEncoded = !(isRussianVersion() || isRussianGoldVersion());
 	for (ProfileID profileID = 0; profileID != NUM_PROFILES; ++profileID) {
