@@ -34,7 +34,7 @@ static UINT8 gubAimFiPage = 0;
 static BUTTON_PICS* guiAimFiButtonImage;
 static GUIButtonRef guiAimFiPreviousButton;
 static GUIButtonRef guiAimFiNextButton;
-#define AIM_FI_NUM_FILTER_BUTTONS 5
+#define AIM_FI_NUM_FILTER_BUTTONS 6
 static GUIButtonRef guiAimFiFilterButtons[AIM_FI_NUM_FILTER_BUTTONS];
 
 
@@ -45,12 +45,12 @@ static GUIButtonRef guiAimFiFilterButtons[AIM_FI_NUM_FILTER_BUTTONS];
 
 // The small logo, the Previous and Next buttons and the row of the filter buttons above the faces.
 // The positions are relative to the upper left corner of the laptop web screen.
-#define AIM_FI_LOGO_X			(IMAGE_OFFSET_X + 200)
-#define AIM_FI_LOGO_Y			(IMAGE_OFFSET_Y + 7)
+#define AIM_FI_LOGO_X			(IMAGE_OFFSET_X + 91)
+#define AIM_FI_LOGO2_X			(IMAGE_OFFSET_X + 309)
+#define AIM_FI_LOGO_Y			(IMAGE_OFFSET_Y + 8)
 #define AIM_FI_PAGE_BUTTON_Y		(IMAGE_OFFSET_Y + 8)
 #define AIM_FI_PREVIOUS_BUTTON_X	(IMAGE_OFFSET_X + 5)
 #define AIM_FI_NEXT_BUTTON_X		(IMAGE_OFFSET_X + 420)
-#define AIM_FI_FILTER_BUTTON_Y		(IMAGE_OFFSET_Y + 46)
 
 #define AIM_FI_PORTRAIT_WIDTH		52
 #define AIM_FI_PORTRAIT_HEIGHT		48
@@ -102,12 +102,13 @@ static void SelectScreenRegionCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iR
 static void MouseWheelRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
-// x positions of the filter buttons (relative to the web screen), they do not do anything yet
-static INT16 const AIM_FI_FILTER_BUTTON_X[AIM_FI_NUM_FILTER_BUTTONS] =
-{
-	IMAGE_OFFSET_X + 218, IMAGE_OFFSET_X + 323, IMAGE_OFFSET_X + 419, IMAGE_OFFSET_X + 514, IMAGE_OFFSET_X + 609
-};
-static char const* const gAimFiFilterNames[AIM_FI_NUM_FILTER_BUTTONS] = { "ALL", "JA2", "UB", "WILDFIRE", "JA1" };
+// The filter buttons in the order of AimFilter: ALL is at the top between the logos, the others are
+// in a row above the faces (OTHERS under Next). The positions are relative to the upper left corner
+// of the laptop web screen; the offset of the screen (IMAGE_OFFSET_X/Y, it depends on the resolution)
+// is added when the buttons are made, not when the program starts.
+static INT16 const AIM_FI_FILTER_BUTTON_REL_X[AIM_FI_NUM_FILTER_BUTTONS] = { 213, 6, 110, 213, 315, 417 };
+static INT16 const AIM_FI_FILTER_BUTTON_REL_Y[AIM_FI_NUM_FILTER_BUTTONS] = { 13, 46, 46, 46, 46, 46 };
+static char const* const gAimFiFilterNames[AIM_FI_NUM_FILTER_BUTTONS] = { "ALL", "JA2", "UB", "WILDFIRE", "JA1", "OTHERS" };
 
 
 // The faces of all mercs of AimMercArray, whatever page is shown; they are indexed like the array
@@ -231,6 +232,7 @@ void EnterAimFacialIndex()
 
 	InitAimMenuBar();
 	SetAimSmallLogo(true, AIM_FI_LOGO_X, AIM_FI_LOGO_Y);
+	SetAimSecondSmallLogo(AIM_FI_LOGO2_X, AIM_FI_LOGO_Y);
 	InitAimDefaults();
 
 	guiAimFiButtonImage = LoadButtonImage(LAPTOPDIR "/bottombuttons2.sti", 0, 1);
@@ -238,7 +240,7 @@ void EnterAimFacialIndex()
 	guiAimFiNextButton     = MakeAimFiButton(CharacterInfo[AIM_MEMBER_NEXT],     AIM_FI_NEXT_BUTTON_X,     AIM_FI_PAGE_BUTTON_Y, BtnNextPageCallback);
 	for (int i = 0; i < AIM_FI_NUM_FILTER_BUTTONS; ++i)
 	{
-		guiAimFiFilterButtons[i] = MakeAimFiButton(gAimFiFilterNames[i], AIM_FI_FILTER_BUTTON_X[i], AIM_FI_FILTER_BUTTON_Y, BtnFilterCallback);
+		guiAimFiFilterButtons[i] = MakeAimFiButton(gAimFiFilterNames[i], IMAGE_OFFSET_X + AIM_FI_FILTER_BUTTON_REL_X[i], IMAGE_OFFSET_Y + AIM_FI_FILTER_BUTTON_REL_Y[i], BtnFilterCallback);
 		guiAimFiFilterButtons[i]->SetUserData(i);
 	}
 

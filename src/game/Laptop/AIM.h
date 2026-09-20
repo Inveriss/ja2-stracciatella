@@ -26,6 +26,7 @@ enum AimFilter
 	AIM_FILTER_UB,       // profiles 165-169 and 199
 	AIM_FILTER_WILDFIRE, // profiles 170-177
 	AIM_FILTER_JA1,      // all the other added mercs
+	AIM_FILTER_OTHERS,   // profiles 178 and 230
 	NUM_AIM_FILTERS,     // the number of filter buttons
 	AIM_FILTER_NONE = NUM_AIM_FILTERS // no button pressed, the list is empty
 };
@@ -119,6 +120,8 @@ void InitAimDefaults(void);
 // The small logo is drawn instead of the big one. x/y are the screen coordinates of its upper left corner.
 void SetAimSmallLogo(bool small);
 void SetAimSmallLogo(bool small, INT16 x, INT16 y);
+// A second small logo (the same picture) at the given position; SetAimSmallLogo() takes it away again.
+void SetAimSecondSmallLogo(INT16 x, INT16 y);
 void DrawAimDefaults(void);
 
 void DisplayAimSlogan(void);

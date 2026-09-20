@@ -60,7 +60,8 @@ static bool IsInAimFilter(ProfileID const id)
 		case AIM_FILTER_JA2:      return id < NUM_ORIGINAL_AIM_MERCS;
 		case AIM_FILTER_UB:       return (id >= 165 && id <= 169) || id == 199;
 		case AIM_FILTER_WILDFIRE: return id >= 170 && id <= 177;
-		case AIM_FILTER_JA1:      return id >= NUM_ORIGINAL_AIM_MERCS && !(id >= 165 && id <= 177) && id != 199;
+		case AIM_FILTER_JA1:      return id >= NUM_ORIGINAL_AIM_MERCS && !(id >= 165 && id <= 177) && id != 199 && id != 178 && id != 230;
+		case AIM_FILTER_OTHERS:   return id == 178 || id == 230;
 		default:                  return true;
 	}
 }
@@ -466,12 +467,25 @@ static void SelectAimLogoRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 static bool gfAimSmallLogo = false;
 static INT16 gsAimSmallLogoX = 0;
 static INT16 gsAimSmallLogoY = 0;
+static bool gfAimSecondLogo = false;
+static INT16 gsAimSecondLogoX = 0;
+static INT16 gsAimSecondLogoY = 0;
+static MOUSE_REGION gSelectedAimLogo2;
 
 void SetAimSmallLogo(bool const small, INT16 const x, INT16 const y)
 {
 	gfAimSmallLogo = small;
 	gsAimSmallLogoX = x;
 	gsAimSmallLogoY = y;
+	gfAimSecondLogo = false;
+}
+
+
+void SetAimSecondSmallLogo(INT16 const x, INT16 const y)
+{
+	gfAimSecondLogo = true;
+	gsAimSecondLogoX = x;
+	gsAimSecondLogoY = y;
 }
 
 
@@ -498,6 +512,13 @@ void InitAimDefaults()
 				logoX + logoW, logoY + logoH,
 				MSYS_PRIORITY_HIGH, CURSOR_WWW, MSYS_NO_CALLBACK,
 				SelectAimLogoRegionCallBack);
+	if (gfAimSecondLogo)
+	{
+		MSYS_DefineRegion(&gSelectedAimLogo2, gsAimSecondLogoX, gsAimSecondLogoY,
+					gsAimSecondLogoX + AIM_SMALL_SYMBOL_WIDTH, gsAimSecondLogoY + AIM_SMALL_SYMBOL_HEIGHT,
+					MSYS_PRIORITY_HIGH, CURSOR_WWW, MSYS_NO_CALLBACK,
+					SelectAimLogoRegionCallBack);
+	}
 }
 
 
@@ -506,6 +527,7 @@ void RemoveAimDefaults()
 	DeleteVideoObject(guiRustBackGround);
 	DeleteVideoObject(guiAimSymbol);
 	MSYS_RemoveRegion( &gSelectedAimLogo);
+	if (gfAimSecondLogo) MSYS_RemoveRegion(&gSelectedAimLogo2);
 }
 
 
@@ -526,6 +548,7 @@ void DrawAimDefaults()
 	}
 
 	BltVideoObject(FRAME_BUFFER, guiAimSymbol, 0, gfAimSmallLogo ? gsAimSmallLogoX : AIM_SYMBOL_X, gfAimSmallLogo ? gsAimSmallLogoY : AIM_SYMBOL_Y);
+	if (gfAimSecondLogo) BltVideoObject(FRAME_BUFFER, guiAimSymbol, 0, gsAimSecondLogoX, gsAimSecondLogoY);
 }
 
 
