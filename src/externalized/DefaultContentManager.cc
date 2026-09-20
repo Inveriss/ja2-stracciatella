@@ -1425,6 +1425,7 @@ void DefaultContentManager::dumpMercProfilesIfRequested() const
 	JsonArray relations;
 	JsonArray names;
 	bool const haveAimBios = doesGameResExists(BINARYDATADIR "/aimbios.edt");
+	bool const haveMercBios = doesGameResExists(BINARYDATADIR "/mercbios.edt");
 	for (const MercProfile* profile : m_mercProfiles)
 	{
 		infos.push(profile->serializeStruct(this));
@@ -1436,6 +1437,19 @@ void DefaultContentManager::dumpMercProfilesIfRequested() const
 			entry.set("000profileID", (unsigned int)profile->getID());
 			if (!p.zName.empty()) entry.set("001fullName", p.zName);
 			if (!p.zNickname.empty()) entry.set("002nickname", p.zNickname);
+			// the M.E.R.C. texts come from mercbios.edt, the row is the bioIndex of the listing
+			if (profile->isMERCMerc() && haveMercBios)
+			{
+				for (const MERCListingModel* listing : m_MERCListings)
+				{
+					if (listing->profileID != profile->getID()) continue;
+					auto const bios = openEDT(BINARYDATADIR "/mercbios.edt", { 400, 160 });
+					ST::string const biography = bios->at(listing->bioIndex, 0);
+					ST::string const additionalInfo = bios->at(listing->bioIndex, 1);
+					if (!biography.empty()) entry.set("003biography", biography);
+					if (!additionalInfo.empty()) entry.set("004additionalInfo", additionalInfo);
+				}
+			}
 			// the A.I.M. texts of the original mercs come from aimbios.edt of the game data
 			if (profile->isAIMMerc() && profile->getID() < 40 && haveAimBios /* the original A.I.M. mercs */)
 			{

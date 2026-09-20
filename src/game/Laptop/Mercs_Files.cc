@@ -19,6 +19,8 @@
 #include "Laptop.h"
 #include "LaptopSave.h"
 #include "MERCListingModel.h"
+#include "MercProfile.h"
+#include "MercProfileInfo.h"
 #include "MercPortrait.h"
 #include "Merc_Hiring.h"
 #include "MercPortrait.h"
@@ -172,7 +174,7 @@ void ExitMercsFiles()
 static void DisplayMercFace(ProfileID);
 static void DisplayMercsStats(MERCPROFILESTRUCT const&);
 static void EnableDisableMercFilesNextPreviousButton(void);
-static void LoadAndDisplayMercBio(UINT8 ubMercID);
+static void LoadAndDisplayMercBio(MERCListingModel const& listing);
 
 
 void RenderMercsFiles()
@@ -194,7 +196,7 @@ void RenderMercsFiles()
 	DrawTextToScreen(p.zName, MERC_NAME_X, MERC_NAME_Y, 0, MERC_NAME_FONT, MERC_NAME_COLOR, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
 
 	//Load and display the mercs bio
-	LoadAndDisplayMercBio(l->bioIndex);
+	LoadAndDisplayMercBio(*l);
 
 	//Display the mercs statistic
 	DisplayMercsStats(p);
@@ -331,19 +333,23 @@ try
 catch (...) { /* XXX ignore */ }
 
 
-static void LoadAndDisplayMercBio(UINT8 ubMercID)
+static void LoadAndDisplayMercBio(MERCListingModel const& listing)
 {
+	// The descriptions are in the names file of the language (mercs-profile-names-<language>.json),
+	// without them in mercbios.edt (one row per merc, the row is the bioIndex of the listing).
+	MercProfileInfo const& info = MercProfile(listing.profileID).getInfo();
+	bool const fromJson = !info.biography.empty() || !info.additionalInfo.empty();
 	EDTFile mercbios{ EDTFile::MERCBIOS };
 
 	{
 		//load and display the merc bio
-		auto const sText{ mercbios.at(ubMercID, 0) };
+		auto const sText{ fromJson ? info.biography : mercbios.at(listing.bioIndex, 0) };
 		DisplayWrappedString(MERC_BIO_TEXT_X, MERC_BIO_TEXT_Y, MERC_BIO_WIDTH, 2, MERC_BIO_FONT, MERC_BIO_COLOR, sText, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
 	}
 
 	{
 		//load and display the merc's additioanl info (if any)
-		auto const sText{ mercbios.at(ubMercID, 1) };
+		auto const sText{ fromJson ? info.additionalInfo : mercbios.at(listing.bioIndex, 1) };
 		if (!sText.empty())
 		{
 			DrawTextToScreen(MercInfo[MERC_FILES_ADDITIONAL_INFO], MERC_ADD_BIO_TITLE_X, MERC_ADD_BIO_TITLE_Y, 0, MERC_TITLE_FONT, MERC_TITLE_COLOR, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
