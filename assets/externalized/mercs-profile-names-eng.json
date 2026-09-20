@@ -4,7 +4,8 @@
     "profileID": 0,
     "fullName": "Barry Unger",
     "nickname": "Barry",
-    "biography": "Hungarian-born Unger is part of a new breed of explosive experts. He learned most of his trade the safe way - in a classroom. His studies included the theory behind incendiary devices, and the technical aspects of electronics and circuitry. He also took locksmithing and swimming courses, but failed the latter."
+    "biography": "Hungarian-born Unger is part of a new breed of explosive experts. He learned most of his trade the safe way - in a classroom. His studies included the theory behind incendiary devices, and the technical aspects of electronics and circuitry. He also took locksmithing and swimming courses, but failed the latter.",
+    "additionalInfo": ""
   },
   {
     "profileID": 1,
@@ -24,7 +25,8 @@
     "profileID": 3,
     "fullName": "Steve \"Grizzly\" Bornell",
     "nickname": "Grizzly",
-    "biography": "A bear of a man, Grizzly Bornell carries the big guns of battle with authority. Even though heavy weapons are his specialty, he is just as lethal empty-handed. He's a soldier's soldier - all guts and no need for glory. Not surprisingly, his combat exploits are almost always the talk of the plane ride home."
+    "biography": "A bear of a man, Grizzly Bornell carries the big guns of battle with authority. Even though heavy weapons are his specialty, he is just as lethal empty-handed. He's a soldier's soldier - all guts and no need for glory. Not surprisingly, his combat exploits are almost always the talk of the plane ride home.",
+    "additionalInfo": ""
   },
   {
     "profileID": 4,
@@ -107,7 +109,8 @@
     "profileID": 15,
     "fullName": "Sidney Nettleson",
     "nickname": "Sidney",
-    "biography": "Whether it's sharing a spot of tea with British blue-bloods or putting a .38 slug into an unwanted nuisance, Sidney does it with poise and dignity. Nettleson combines the mannerisms of the upper crust with the lighting quickness of a Wild West gunslinger. Years of avid cricket-playing have also given him a much-feared throwing arm."
+    "biography": "Whether it's sharing a spot of tea with British blue-bloods or putting a .38 slug into an unwanted nuisance, Sidney does it with poise and dignity. Nettleson combines the mannerisms of the upper crust with the lighting quickness of a Wild West gunslinger. Years of avid cricket-playing have also given him a much-feared throwing arm.",
+    "additionalInfo": ""
   },
   {
     "profileID": 16,
@@ -120,7 +123,8 @@
     "profileID": 17,
     "fullName": "Monica \"Buns\" Sondergaard",
     "nickname": "Buns",
-    "biography": "The prim and proper Monica Sonderguard may seem to be an unlikely candidate for the rough and tumble mercenary life, but she more than meets the minimum requirements. Before settling on A.I.M., Buns explored a number of careers. She was a kindergarten teacher, geriatric nurse, Danish sharpshooter at the Atlanta Olympic games, and professional dirt bike racer."
+    "biography": "The prim and proper Monica Sonderguard may seem to be an unlikely candidate for the rough and tumble mercenary life, but she more than meets the minimum requirements. Before settling on A.I.M., Buns explored a number of careers. She was a kindergarten teacher, geriatric nurse, Danish sharpshooter at the Atlanta Olympic games, and professional dirt bike racer.",
+    "additionalInfo": ""
   },
   {
     "profileID": 18,
@@ -224,7 +228,8 @@
     "profileID": 32,
     "fullName": "J.P. \"La Malice\" Viau",
     "nickname": "Malice",
-    "biography": "Jean Pierre may be a little rough around the edges, but he is extremely sharp with a blade in hand. He acquired most of his skills while working as the head doorman at a nightclub. Bar brawling and street fighting are definitely his strengths. Yet, La Malice seems to have found his calling with A.I.M., where he has honed his talents to exquisite perfection."
+    "biography": "Jean Pierre may be a little rough around the edges, but he is extremely sharp with a blade in hand. He acquired most of his skills while working as the head doorman at a nightclub. Bar brawling and street fighting are definitely his strengths. Yet, La Malice seems to have found his calling with A.I.M., where he has honed his talents to exquisite perfection.",
+    "additionalInfo": ""
   },
   {
     "profileID": 33,
@@ -244,7 +249,8 @@
     "profileID": 35,
     "fullName": "Thor Kaufman",
     "nickname": "Thor",
-    "biography": "This vegetarian New Age healer has an amazing grasp of medicine for a man who's never seen the inside of a university med school. He also has a decent grasp for killing quickly and quietly. Born on outskirts of Berlin, he now calls California home where he lives in the mountains with his newborn son and ex-wife, Cassandra."
+    "biography": "This vegetarian New Age healer has an amazing grasp of medicine for a man who's never seen the inside of a university med school. He also has a decent grasp for killing quickly and quietly. Born on outskirts of Berlin, he now calls California home where he lives in the mountains with his newborn son and ex-wife, Cassandra.",
+    "additionalInfo": ""
   },
   {
     "profileID": 36,
@@ -326,7 +332,9 @@
   {
     "profileID": 47,
     "fullName": "Larry Roachburn",
-    "nickname": "Larry"
+    "nickname": "Larry",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 48,
@@ -339,565 +347,791 @@
     "profileID": 49,
     "fullName": "Tim \"Numb\" Sutton",
     "nickname": "Numb",
-    "biography": "Tim Sutton suffers from a bad case of visual offensiveness and no one has been willing to give him a break. His bad haircut and neck tattoo have hindered this mercenary's career pursuits despite an otherwise impressive resume that includes martial arts and night ops training. His marksmanship and medical abilities are also excellent."
+    "biography": "Tim Sutton suffers from a bad case of visual offensiveness and no one has been willing to give him a break. His bad haircut and neck tattoo have hindered this mercenary's career pursuits despite an otherwise impressive resume that includes martial arts and night ops training. His marksmanship and medical abilities are also excellent.",
+    "additionalInfo": ""
   },
   {
     "profileID": 50,
     "fullName": "Thorton \"Bubba\" Jones",
     "nickname": "Bubba",
-    "biography": "Aside from his sheer size, Thorton is famous for being the first prison guard to ever be dismissed from the Alabama State Correctional Department for brutality towards inmates. The precise details of this chain-gang boss' infractions remain unclear as we weren't about to ask."
+    "biography": "Aside from his sheer size, Thorton is famous for being the first prison guard to ever be dismissed from the Alabama State Correctional Department for brutality towards inmates. The precise details of this chain-gang boss' infractions remain unclear as we weren't about to ask.",
+    "additionalInfo": ""
   },
   {
     "profileID": 51,
-    "nickname": "PGmale1"
+    "nickname": "PGmale1",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 52,
-    "nickname": "PGmale2 "
+    "nickname": "PGmale2 ",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 53,
-    "nickname": "PGmale3"
+    "nickname": "PGmale3",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 54,
-    "nickname": "PGLady1"
+    "nickname": "PGLady1",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 55,
-    "nickname": "PGLady2"
+    "nickname": "PGLady2",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 56,
-    "nickname": "PGLady3"
+    "nickname": "PGLady3",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 57,
     "fullName": "Miguel Cordona",
-    "nickname": "Miguel"
+    "nickname": "Miguel",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 58,
     "fullName": "Carlos Dasouza",
-    "nickname": "Carlos"
+    "nickname": "Carlos",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 59,
     "fullName": "Ira Smythe",
-    "nickname": "Ira"
+    "nickname": "Ira",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 60,
     "fullName": "Dimitri Guzzo",
-    "nickname": "Dimitri"
+    "nickname": "Dimitri",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 61,
     "fullName": "Devin Connell",
-    "nickname": "Devin"
+    "nickname": "Devin",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 62,
     "fullName": "Madlab's Robot",
-    "nickname": "Robot"
+    "nickname": "Robot",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 63,
     "fullName": "Hamous",
-    "nickname": "Hamous"
+    "nickname": "Hamous",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 64,
     "fullName": "Slay",
-    "nickname": "Terry"
+    "nickname": "Terry",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 65,
     "fullName": "Eskimo - Removed",
-    "nickname": "RPC65"
+    "nickname": "RPC65",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 66,
     "fullName": "Greg \"Dynamo\" Duncan",
-    "nickname": "Dynamo"
+    "nickname": "Dynamo",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 67,
     "fullName": "Breeham \"Shank\" Druz",
-    "nickname": "Shank"
+    "nickname": "Shank",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 68,
     "fullName": "Igmus \"Iggy\" Palkov",
-    "nickname": "Iggy"
+    "nickname": "Iggy",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 69,
     "fullName": "Dr. Vincent Beaumont",
-    "nickname": "Vince"
+    "nickname": "Vince",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 70,
     "fullName": "Lt. Conrad Gillitt",
-    "nickname": "Conrad"
+    "nickname": "Conrad",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 71,
-    "nickname": "RPC71"
+    "nickname": "RPC71",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 72,
     "fullName": "Kevin \"Maddog\" Cameron",
-    "nickname": "Maddog"
+    "nickname": "Maddog",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 73,
     "fullName": "Darrel Jr.",
-    "nickname": "Darrel"
+    "nickname": "Darrel",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 74,
     "fullName": "Alish Perkopoulos",
-    "nickname": "Perko"
+    "nickname": "Perko",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 75,
     "fullName": "Queen Deidranna",
-    "nickname": "Deidranna"
+    "nickname": "Deidranna",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 76,
     "fullName": "Auntie",
-    "nickname": "Auntie"
+    "nickname": "Auntie",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 77,
     "fullName": "Enrico Chivaldori",
-    "nickname": "Enrico"
+    "nickname": "Enrico",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 78,
     "fullName": "Carmen Dancio",
-    "nickname": "Carmen"
+    "nickname": "Carmen",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 79,
     "fullName": "Joseph Papanus",
-    "nickname": "Joe"
+    "nickname": "Joe",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 80,
     "fullName": "Dr. Steven Willis",
-    "nickname": "Steve"
+    "nickname": "Steve",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 81,
     "fullName": "Ricardo \"Rat\" Grimaldo",
-    "nickname": "Rat"
+    "nickname": "Rat",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 82,
     "fullName": "MoM",
-    "nickname": "Annie"
+    "nickname": "Annie",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 83,
     "fullName": "Imposter",
-    "nickname": "Chris"
+    "nickname": "Chris",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 84,
     "fullName": "Bob",
-    "nickname": "Bob"
+    "nickname": "Bob",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 85,
     "fullName": "Brenda Drake",
-    "nickname": "Brenda"
+    "nickname": "Brenda",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 86,
     "fullName": "Peter \"Kingpin\" Klauss",
-    "nickname": "Kingpin"
+    "nickname": "Kingpin",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 87,
     "fullName": "Darren Van Haussen",
-    "nickname": "Darren"
+    "nickname": "Darren",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 88,
     "fullName": "Maria DaSilva",
-    "nickname": "Maria"
+    "nickname": "Maria",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 89,
     "fullName": "Angel Dasilva",
-    "nickname": "Angel"
+    "nickname": "Angel",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 90,
     "fullName": "Joey Graham",
-    "nickname": "Joey"
+    "nickname": "Joey",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 91,
     "fullName": "Tony",
-    "nickname": "Tony"
+    "nickname": "Tony",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 92,
     "fullName": "Frank",
-    "nickname": "Frank"
+    "nickname": "Frank",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 93,
     "fullName": "Spike",
-    "nickname": "Spike"
+    "nickname": "Spike",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 94,
     "fullName": "Damon Warrick",
-    "nickname": "Damon"
+    "nickname": "Damon",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 95,
     "fullName": "Kyle  Lemmons",
-    "nickname": "Kyle"
+    "nickname": "Kyle",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 96,
     "fullName": "Micky O'Brien",
-    "nickname": "Micky"
+    "nickname": "Micky",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 97,
     "fullName": "James \"Skyrider\" Bullock",
-    "nickname": "Skyrider"
+    "nickname": "Skyrider",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 98,
     "fullName": "Pablo Greco",
-    "nickname": "Pablo"
+    "nickname": "Pablo",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 99,
     "fullName": "Salvatore Lappus",
-    "nickname": "Sal"
+    "nickname": "Sal",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 100,
     "fullName": "Father John Walker",
-    "nickname": "Father"
+    "nickname": "Father",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 101,
     "fullName": "Fatima",
-    "nickname": "Fatima"
+    "nickname": "Fatima",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 102,
     "fullName": "Christine Woltz",
-    "nickname": "Warden"
+    "nickname": "Warden",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 103,
     "fullName": "Gordon Jefferies",
-    "nickname": "Gordon"
+    "nickname": "Gordon",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 104,
     "fullName": "Gary \"Gabby\" Mulnick  ",
-    "nickname": "Gabby"
+    "nickname": "Gabby",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 105,
     "fullName": "Dr. Ernest Poppin",
-    "nickname": "Ernest"
+    "nickname": "Ernest",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 106,
     "fullName": "Fred Morris",
-    "nickname": "Fred"
+    "nickname": "Fred",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 107,
     "fullName": "Madame Layla",
-    "nickname": "Madame"
+    "nickname": "Madame",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 108,
     "fullName": "Yanni Nomigotta ",
-    "nickname": "Yanni"
+    "nickname": "Yanni",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 109,
     "fullName": "Martha Graham",
-    "nickname": "Martha"
+    "nickname": "Martha",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 110,
     "fullName": "Tiffany",
-    "nickname": "Joe"
+    "nickname": "Joe",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 111,
     "fullName": "T-Rex",
-    "nickname": "Jasmin"
+    "nickname": "Jasmin",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 112,
     "fullName": "Druggist",
-    "nickname": "Charlie"
+    "nickname": "Charlie",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 113,
     "fullName": "Jake Cameron",
-    "nickname": "Jake"
+    "nickname": "Jake",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 114,
     "fullName": "Pacos",
-    "nickname": "Pacos"
+    "nickname": "Pacos",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 115,
     "fullName": "Dave Gerard",
-    "nickname": "Dave"
+    "nickname": "Dave",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 116,
     "fullName": "Skipper",
-    "nickname": "Skipper"
+    "nickname": "Skipper",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 117,
     "fullName": "Hans Vanderkilt",
-    "nickname": "Hans"
+    "nickname": "Hans",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 118,
     "fullName": "John Kulba",
-    "nickname": "John"
+    "nickname": "John",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 119,
     "fullName": "Mary Kulba",
-    "nickname": "Mary"
+    "nickname": "Mary",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 120,
     "fullName": "General Theo Humphey",
-    "nickname": "General"
+    "nickname": "General",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 121,
     "fullName": "Sergeant Krott",
-    "nickname": "Sergeant"
+    "nickname": "Sergeant",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 122,
     "fullName": "Armand Ricci",
-    "nickname": "Armand"
+    "nickname": "Armand",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 123,
     "fullName": "Lora Ricci",
-    "nickname": "Lora"
+    "nickname": "Lora",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 124,
     "fullName": "Franz Hinkle",
-    "nickname": "Franz"
+    "nickname": "Franz",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 125,
     "fullName": "Howard Filmore",
-    "nickname": "Howard"
+    "nickname": "Howard",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 126,
     "fullName": "Sam Rozen",
-    "nickname": "Sam"
+    "nickname": "Sam",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 127,
     "fullName": "Eldin Fiddes",
-    "nickname": "Eldin"
+    "nickname": "Eldin",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 128,
     "fullName": "Arnold Brunzwell",
-    "nickname": "Arnie"
+    "nickname": "Arnie",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 129,
     "fullName": "Tina Elzan",
-    "nickname": "Tina"
+    "nickname": "Tina",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 130,
     "fullName": "Alexander Fredo",
-    "nickname": "Fredo"
+    "nickname": "Fredo",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 131,
     "fullName": "Walter Bazzon",
-    "nickname": "Walter"
+    "nickname": "Walter",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 132,
     "fullName": "Jenny Walden",
-    "nickname": "Jenny"
+    "nickname": "Jenny",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 133,
     "fullName": "Billy GoonBall",
-    "nickname": "Billy"
+    "nickname": "Billy",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 134,
     "fullName": "Brewster Woltz",
-    "nickname": "Brewster"
+    "nickname": "Brewster",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 135,
     "fullName": "Messenger of bad news",
-    "nickname": "Elliot"
+    "nickname": "Elliot",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 136,
     "fullName": "Part of crowd for end game",
-    "nickname": "Derek"
+    "nickname": "Derek",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 137,
     "fullName": "Part of endgame crowd",
-    "nickname": "Oliver"
+    "nickname": "Oliver",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 138,
     "fullName": "Waldo Zimmer",
-    "nickname": "Waldo"
+    "nickname": "Waldo",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 139,
     "fullName": "Doreen Harrows",
-    "nickname": "Doreen"
+    "nickname": "Doreen",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 140,
     "fullName": "Jim Perry",
-    "nickname": "Jim"
+    "nickname": "Jim",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 141,
     "fullName": "Jack Remington",
-    "nickname": "Jack"
+    "nickname": "Jack",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 142,
     "fullName": "Olaf Helinski",
-    "nickname": "Olaf"
+    "nickname": "Olaf",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 143,
     "fullName": "Ray Baker",
-    "nickname": "Ray"
+    "nickname": "Ray",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 144,
     "fullName": "Olga Statova",
-    "nickname": "Olga"
+    "nickname": "Olga",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 145,
     "fullName": "Tyrone Banks",
-    "nickname": "Tyrone"
+    "nickname": "Tyrone",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 146,
     "fullName": "Dr. Nathaniel \"MadLab\" Kairns",
-    "nickname": "MadLab"
+    "nickname": "MadLab",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 147,
     "fullName": "Keith Hemps",
-    "nickname": "Keith"
+    "nickname": "Keith",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 148,
     "fullName": "Matt Duncan",
-    "nickname": "Matt"
+    "nickname": "Matt",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 149,
     "fullName": "Mike",
-    "nickname": "Mike"
+    "nickname": "Mike",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 150,
     "fullName": "Daryl Hick",
-    "nickname": "Daryl"
+    "nickname": "Daryl",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 151,
     "fullName": "Herve Santos",
-    "nickname": "Herve"
+    "nickname": "Herve",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 152,
     "fullName": "Peter Santos",
-    "nickname": "Peter"
+    "nickname": "Peter",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 153,
     "fullName": "Alberto Santos",
-    "nickname": "Alberto"
+    "nickname": "Alberto",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 154,
     "fullName": "Carlo Santos",
-    "nickname": "Carlo"
+    "nickname": "Carlo",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 155,
     "fullName": "Manny Santos",
-    "nickname": "Manny"
+    "nickname": "Manny",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 156,
     "fullName": "Oswald  Johnston",
-    "nickname": "Oswald"
+    "nickname": "Oswald",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 157,
     "fullName": "Calvin Barkmore",
-    "nickname": "Calvin "
+    "nickname": "Calvin ",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 158,
     "fullName": "Carl Tercel",
-    "nickname": "Carl"
+    "nickname": "Carl",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 159,
-    "nickname": "Speck..."
+    "nickname": "Speck...",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 160,
     "fullName": "Hummer",
-    "nickname": "Hummer"
+    "nickname": "Hummer",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 161,
     "fullName": "El Dorado",
-    "nickname": "El Dorado"
+    "nickname": "El Dorado",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 162,
     "fullName": "Ice Cream Truck",
-    "nickname": "Truck"
+    "nickname": "Truck",
+    "biography": "",
+    "additionalInfo": ""
   },
   {
     "profileID": 165,
@@ -916,17 +1150,23 @@
   {
     "profileID": 167,
     "fullName": "Col. Frederick Biggins",
-    "nickname": "Biggins"
+    "nickname": "Biggins",
+    "biography": "When you need the very best, turn to Col. Biggins. His experiences in guerilla warfare in South Asia have given him a sharp aim with a rifle and unique skills with traps and explosives. Col. Biggins will gladly share his experiences, even without being asked. He just demands that servants carry the heavy gear.",
+    "additionalInfo": ""
   },
   {
     "profileID": 168,
     "fullName": "John Kulba",
-    "nickname": "John"
+    "nickname": "John",
+    "biography": "John Kulba, the Commando of Cleveland, Ohio - Grunt from the Great Lakes. Once a sharpshooter (in the reserves) and a commander (in the neighborhood watch), following the death of his wife, Mary, he decided to live out his lifelong dream of becoming a soldier of fortune.",
+    "additionalInfo": "Kulba specifically asks for assignments in Arulco."
   },
   {
     "profileID": 169,
     "fullName": "Manuel Rivas",
-    "nickname": "Manuel"
+    "nickname": "Manuel",
+    "biography": "Husband of Fatima and father of Pacos. Always on the run and hiding, working as a spy. He was Miguel's informant within Deidranna's army, but was eventually discovered and had to flee to Tracona. During his unplanned leave, he gathered information that may prove useful in completing our mission. Since Manuel had to remain in hiding, he has become highly skilled at sneaking. ",
+    "additionalInfo": "He has mastered the art of sneaking at night and can approach any enemy undetected."
   },
   {
     "profileID": 170,
@@ -987,256 +1227,358 @@
   {
     "profileID": 178,
     "fullName": "Gregory \"Spooky\" Block",
-    "nickname": "Spooky"
+    "nickname": "Spooky",
+    "biography": "A special operations veteran, Gregory Block served in the top secret Studies and Observations Group during the Vietnam war, and he has spent the years since as a professional gun for hire. In better shape than most soldiers half his age, Spooky's expertise in infiltration and jungle warfare is unmatched and his marksmanship and skill with bladed weapons almost without equal.",
+    "additionalInfo": "Spooky owns an impressive assortment of trophies and souvenirs collected from warzones all across the globe."
   },
   {
     "profileID": 179,
     "fullName": "Bruce \"Skitz\" Bonner",
-    "nickname": "Skitz"
+    "nickname": "Skitz",
+    "biography": "Recently released from Saint Michael's Hospital for the Criminally Insane, Bruce Bonner is a qualified explosives expert of some renown. Formerly a member of a certain competitor of ours, Skitz has on several occasions asserted that switching over to M.E.R.C. finally allowed him to turn all his fantasies into reality. We are proud to receive such high praise from a specialist of Skitz's caliber.",
+    "additionalInfo": ""
   },
   {
     "profileID": 180,
     "fullName": "Willy \"Weasel\" Augustin",
-    "nickname": "Weasel"
+    "nickname": "Weasel",
+    "biography": "On the run from his vengeful wife and several others he has tattled on over the years, Willy Augustin, also known as Weasel and Mouthpiece, is a mercenary with several years of experience. A snitch through and through, Weasel's specialty lies in the acquisition of information, usually pertaining to the moods and intentions of his colleagues.",
+    "additionalInfo": "A longtime radio amateur (much to our surprise), Weasel is also adept at battlefield radio communications."
   },
   {
     "profileID": 181,
     "fullName": "Carl \"It\" Goodman",
-    "nickname": "It"
+    "nickname": "It",
+    "biography": "Currently known in the WWF as \"The Masked Mercenary\", Carl Goodman's renewed side career as a soldier of fortune with M.E.R.C. makes him the only mercenary-themed pro wrestler who is also an actual mercenary in real life. With his brute strength and fearsome hand-to-hand fighting skills forged in the wrestling ring, Goodman is the foremost unarmed combat specialist in our roster.",
+    "additionalInfo": "Most still refer to Goodman as \"It\" due to his size and demeanor, and because \"The Masked Mercenary\" would be a lousy nickname for an actual mercenary."
   },
   {
     "profileID": 182,
     "fullName": "Dr. Bernie Gloveless",
-    "nickname": "Bernie"
+    "nickname": "Bernie",
+    "biography": "Mercenary doctors of such talent and integrity as Bernie Gloveless are few and far between, and when we here at M.E.R.C. caught wind of his discharge from our competitor, we wasted no time reaching out to him. Currently in charge of our in-house medical services, for the right price Dr. Gloveless is also prepared to put his brilliant operating and examination techniques to good use in the field.",
+    "additionalInfo": ""
   },
   {
     "profileID": 183,
     "fullName": "Murray \"Pops\" McGillicutty",
-    "nickname": "Pops"
+    "nickname": "Pops",
+    "biography": "Here at M.E.R.C. we don't believe in mandatory retirement ages, and we are more than happy to welcome Murray McGillicutty into our ranks following his departure from A.I.M. A veteran of both World Wars and quite possibly every other conflict since, the venerable and mythical McGillicutty is undoubtedly the oldest fighting man alive, possessing a small army's worth of combat experience.",
+    "additionalInfo": "When not on assignment, Pops manages a web-based Funeral Salon specializing in respectful internment of mercenaries."
   },
   {
     "profileID": 184,
     "fullName": "Walter Yuntz",
-    "nickname": "Wally"
+    "nickname": "Wally",
+    "biography": "A genius mechanic, Walter Yuntz was almost forced to give up the mercenary life after an unfortunate accident during laser eye surgery left him blind. With the help of experimental treatments and novel optometric techniques, M.E.R.C. is happy to report that Yuntz has regained most of his vision and is ready for field duty once more.",
+    "additionalInfo": "Wally is diligently working on developing his marksmanship skills. According to our instructors, notable improvement is expected to occur within the decade."
   },
   {
     "profileID": 185,
     "fullName": "Dr. Eli Summers",
-    "nickname": "Eli"
+    "nickname": "Eli",
+    "biography": "Providing superb medical care at affordable prices is a crucial part of M.E.R.C.'s mission statement, and Dr. Eli Summers delivers on both fronts. This highly qualified physician can be relied on to remain unfazed by even the most devastating of setbacks encountered in the field, ready to perform life-saving surgery at a moment's notice.",
+    "additionalInfo": "A professional-level golfer in his free time, Dr. Summers' swing with a three-iron is downright lethal in melee combat."
   },
   {
     "profileID": 186,
     "fullName": "Dr. Mitch Shudlem",
-    "nickname": "Mitch"
+    "nickname": "Mitch",
+    "biography": "Knowing his distaste for battle, we're not quite certain what spurred Dr. Shudlem to return to the mercenary business, but the casualties of combat all around the globe will surely be thankful for it. A battlefield surgeon of unmatched talent and intelligence, Mitch is also an accomplished obstetrician, well prepared for the improbable occasions where a warzone delivery has to be carried out.",
+    "additionalInfo": ""
   },
   {
     "profileID": 187,
     "fullName": "Howard \"Carp\" Melfield",
-    "nickname": "Carp"
+    "nickname": "Carp",
+    "biography": "Though Howard Melfield has slowed with age, he continues to serve as an effective member of A.I.M. A mercenary with no particular specialization, Carp is well-liked within the organization, and when he's not on assignment, he pulls triple duty as the person in charge of members' Health and Safety, Retirement and Dental plans as well as the chairman of the office Christmas Party Committee.",
+    "additionalInfo": "Carp will relay all the team scuttlebutt with the precision of a poet, a skill he has cultivated throughout his many years with A.I.M."
   },
   {
     "profileID": 188,
     "fullName": "Lance Fisher",
-    "nickname": "Lance"
+    "nickname": "Lance",
+    "biography": "Lance Fisher originally joined the mercenary trade after a short stint with the Indiana National Guard and an even shorter stint, a weekend, in Grenada. Although he's currently a highly regarded instructor of ethics and tactical withdrawal at Westpoint Military Academy, we've managed to bring him to our roster with the help of another veteran and Lance's brother-in-arms, Biff Apscott.",
+    "additionalInfo": "Fisher's recently released second book, \"The Art of the Retreat\", is available at a substantial discount to anyone who hires him."
   },
   {
     "profileID": 189,
     "fullName": "Dr. Raffitto \"Raffi\" Leevon",
-    "nickname": "Raffi"
+    "nickname": "Raffi",
+    "biography": "The Scottish-Jamaican Dr. Raffitto Leevon is an exemplar of the medical profession. Few doctors in the mercenary trade can boast a track record as impressive as Raffitto's, who assures us he has never received even a single complaint from his patients. Formerly with A.I.M., Raffi's decision to switch to M.E.R.C. is yet another sign of our ability to successfully compete with the industry giants.",
+    "additionalInfo": "When he's not saving lives, Dr. Leevon pursues a musical career with his Cajun-funk band, Rotis and Haggis, as his alter ego Dr. Raffiman."
   },
   {
     "profileID": 190,
     "fullName": "Wink E. Dickerson",
-    "nickname": "Wink"
+    "nickname": "Wink",
+    "biography": "Wink Dickerson had a good run as a pitcher with the Montreal Expos, but the team's prolonged economic troubles and inability to pay Wink a proper living wage forced him to forgo his passion for baseball and return to the mercenary trade in search of better pay. Always on the lookout for experienced talent, we were quick to recruit Dickerson into our ranks.",
+    "additionalInfo": "With the meanest throwing arm in the business, Dickerson is a real terror with hand grenades."
   },
   {
     "profileID": 191,
     "fullName": "Speck T. Kline",
-    "nickname": "Speck"
+    "nickname": "Speck",
+    "biography": "M.E.R.C. founder, a living legend, the man who once dropped on Metavira with nothing but a screwdriver and a pair of pliers, managed to fight his way through the jungle and single-handedly finish off the treacherous Lucas Santino, and who later, despite struggling with incompetence and corruption within A.I.M., brought the entire DFK down to its knees, is back on duty!",
+    "additionalInfo": "Speck has yet to retake some of the physical and marksmanship tests, and his scores are obviously out-of-date (and severely understated)."
   },
   {
     "profileID": 192,
     "fullName": "Jack \"Postie\" Durham",
-    "nickname": "Postie"
+    "nickname": "Postie",
+    "biography": "A newcomer to M.E.R.C., Jack Durham substitutes combat training with remarkable zeal and enthusiasm, proving that you don't have to be a seasoned ex-soldier to make it in the mercenary trade. A postal worker in his previous career, Postie channels his past grievances, first with the postal service and later with the union representing him, into an inexhaustible source of motivation.",
+    "additionalInfo": ""
   },
   {
     "profileID": 193,
     "fullName": "Unusually Ruthless Reuban",
-    "nickname": "Reuban"
+    "nickname": "Reuban",
+    "biography": "Unusually Ruthless Reuban originally earned his moniker with a cordless hedge trimmer, and the same gardening appliance was the tool he used to facilitate his escape from a Romanian prison earlier this year. When he quite unexpectedly showed up on the doorstep of our main office with a trimmer in hand, we simply could not refuse his demands for employment.",
+    "additionalInfo": "As our most economical recruit, Reuban is an excellent choice for exceptionally lengthy assignments in distant locations on the far side of the world."
   },
   {
     "profileID": 194,
     "fullName": "Col. Leon Roachburn",
-    "nickname": "Leon"
+    "nickname": "Leon",
+    "biography": "The legendary patriarch of the Roachburn family has been in the mercenary trade longer than many of us have been alive. Recovering from a nasty grease fire accident in record time, the Colonel opted to transfer to M.E.R.C. following a dispute over medical insurance with his previous agency. Famous for his razor-sharp tactical acumen, the Colonel is unparalleled as a field commander.",
+    "additionalInfo": "Colonel Roachburn is willing to take on assignments anywhere in the world, as long as it's far away from his children."
   },
   {
     "profileID": 195,
     "fullName": "Gary Roachburn",
-    "nickname": "Gary"
+    "nickname": "Gary",
+    "biography": "Dissatisfied with the lack of high-stakes gun battles, Gary Roachburn recently left his short-lived position with the Boy Scouts of America to make a comeback as a soldier of fortune. A scion of the great Roachburn family of mercenaries, Gary's specialties lie in the deployment and hauling of heavy weaponry and keeping commanders informed of the thoughts and intentions of their subordinates.",
+    "additionalInfo": "Gary has cited the official Boy Scout Handbook as the primary source of his newfound knowledge of combat demolitions."
   },
   {
     "profileID": 196,
     "fullName": "Elio",
-    "nickname": "Elio"
+    "nickname": "Elio",
+    "biography": "Elio was one of the key figures during the Metaviran campaign. As a native guide he led mercenary forces through the swamps, forests and deserts of Metavira, while under heavy enemy fire. Countless men owe him their lives, as he kept them safe from some of nature's most dangerous predators - the carnivorous eels that infest the murky waters of the island.",
+    "additionalInfo": "The skill with which Elio slices up his enemies is comparable only to our own proficiency at slicing down prices."
   },
   {
     "profileID": 197,
     "fullName": "Juan",
-    "nickname": "Juan"
+    "nickname": "Juan",
+    "biography": "Another Metaviran veteran, Juan earned his reputation as a man capable of maintaining weapons and equipment in the hard conditions of Metavira's hostile environment, keeping rust, water and dirt at bay with ease. Some survivors of the conflict say his mechanical skills are almost equal to those of the legendary Speck T. Kline himself.",
+    "additionalInfo": "Recruiting Juan is just another step in the struggle to provide our benefactors with economic, yet able personnel."
   },
   {
     "profileID": 198,
     "fullName": "Wahan",
-    "nickname": "Wahan"
+    "nickname": "Wahan",
+    "biography": "Wahan, a Metaviran native, was responsible for keeping soldiers' morale up throughout the Metaviran conflict. He's an experienced healer of both spirit and body, even if he lacks a formal medical education. While his treatments are highly unorthodox, their effectiveness has been proven beyond a doubt.",
+    "additionalInfo": "Bringing Wahan into our ranks was quite a challenge, as our headhunter had to negotiate it with the tribe of, well, actual headhunters."
   },
   {
     "profileID": 199,
     "fullName": "Tex Colburn",
-    "nickname": "Tex"
+    "nickname": "Tex",
+    "biography": "One of our more colorful warriors, Tex Colburn has returned to the mercenary life. As a star of Japanese westerns, he played the lead role in Much Dust, Many Bullets,\" and has received glowing reviews for his roles in the classic films \"Attack of the Clydesdales\" and \"Have Honda, Will Travel.\" Tex is quick with a .357 in each hand, and travels with his own stage make-up.",
+    "additionalInfo": ""
   },
   {
     "profileID": 201,
     "fullName": "Megan \"Sparky\" Roachburn",
-    "nickname": "Sparky"
+    "nickname": "Sparky",
+    "biography": "The youngest of the Roachburn family, Megan's return to the mercenary trade was spurred by her desire to spend more time with her brother Larry. Sparky has augmented her extensive skills in the field of mechanics with further technical education, and she is currently one of M.E.R.C.'s more accredited repair and maintenance specialists.",
+    "additionalInfo": ""
   },
   {
     "profileID": 202,
     "fullName": "Mary Beth Wilkens",
-    "nickname": "Beth"
+    "nickname": "Beth",
+    "biography": "Fresh out of witness protection after the last of her stalkers was imprisoned, we here at M.E.R.C. are excited to welcome Mary Beth Wilkens into our ever growing ranks of affordable and highly qualified professionals. With her impressive medical knowhow, gung ho attitude and pretty face, Mary Beth is a versatile addition to any team.",
+    "additionalInfo": "Wilkens loves a good gossip and has no qualms about snitching on her fellow squadmates."
   },
   {
     "profileID": 203,
     "fullName": "Samuel Garver",
-    "nickname": "Sam"
+    "nickname": "Sam",
+    "biography": "As tough and sharp as the combat knife that carries his name, Samuel Garver is back from retirement, at least for the time being. Bored of alligator ranching and inspired by the example of his close friend Leon Roachburn, Sam Garver chose to continue his mercenary career with M.E.R.C., and we are proud to have him in our roster.",
+    "additionalInfo": "Age seems unable to catch up with Sam. His health remains exemplary for a man of his years, and he assures us that his skills are as honed as ever."
   },
   {
     "profileID": 204,
     "fullName": "Hurl E. Cutter",
-    "nickname": "Hurl"
+    "nickname": "Hurl",
+    "biography": "Fit as a fiddle and healthy as a horse, in just a few short years Hurl E. Cutter has established a reputation as one of the most physically resilient individuals in the mercenary trade. His impeccably healthy lifestyle and religiously strict regime of monthly doctor's checkups ensure that when the bullets start flying, Hurl will be the last man to keel over from blood loss.",
+    "additionalInfo": "After so much time spent in the doctor's office, Hurl has picked up a surprising amount of medical knowhow. He's also quite the gossiper."
   },
   {
     "profileID": 205,
     "fullName": "Dr. Ahmad \"Doc\" Koolhan",
-    "nickname": "Doc"
+    "nickname": "Doc",
+    "biography": "A long career of medical practice in subpar or nonexistent facilities, both with A.I.M. as well as various medical charities, has afforded the calm and collected Doctor Koolhan an admirable ability to operate on his patients even in the direst of battlefield circumstances. Returning as a part-time member, Doc is somewhat selective in choosing his assignments.",
+    "additionalInfo": "Koolhan spends several months a year working for Doctors Without Frontiers."
   },
   {
     "profileID": 206,
     "fullName": "Herman \"Turtle\" Regents",
-    "nickname": "Turtle"
+    "nickname": "Turtle",
+    "biography": "In the wake of multiple allegations of abuse of authority, Herman Regents quit his job as a probation officer in Chicago. Unfairly rebuffed by the mercenary organization he once worked for, Regents approached M.E.R.C. instead, and we were pleased to accept him. An accomplished competitor in the National Police Shooting Championship, Herman's size belies a lightning quick draw.",
+    "additionalInfo": "While he no longer works in law enforcement, Turtle still prefers to be called Sergeant Detective Regents."
   },
   {
     "profileID": 207,
     "fullName": "Glen \"Boss\" Hatchet",
-    "nickname": "Boss"
+    "nickname": "Boss",
+    "biography": "Few people ever expected to see Boss Hatchet back in the mercenary business, but back he is, perhaps enticed by the ever generous paychecks and exciting travel opportunities. Known as the fixer of the unfixable, Boss' deftness with a wrench is as fearsome in hand-to-hand combat as in the workshop.",
+    "additionalInfo": "Hatchet is currently a partner in Victoria Waters' vintage car restoration and repair business."
   },
   {
     "profileID": 208,
     "fullName": "Johnny \"Snake\" Edwards",
-    "nickname": "Snake"
+    "nickname": "Snake",
+    "biography": "Too slippery for even death to catch him, Johnny Edwards slithered out of Maupaa several months after the incident in which he was reportedly killed. Rare as it is to survive a penetrating gunshot wound to the head, our medical staff has declared Edwards healthy and fit for duty following a rigorous battery of tests, and Snake himself insists that he is ready to take on a new assignment.",
+    "additionalInfo": ""
   },
   {
     "profileID": 209,
     "fullName": "Alan \"Spam\" Webster",
-    "nickname": "Spam"
+    "nickname": "Spam",
+    "biography": "Back as a probationary member, Alan Webster's dishonorable discharge from A.I.M. was amended when new details came to light concerning the incident in Maupaa. Webster is adamant that he won't hesitate to shoot first ever again, and the multiple courses on rules of engagement and sufficient use of force he's completed since with flying colors attest to his determination to better himself.",
+    "additionalInfo": "Webster is both a competent medic and technician, and skilled at creeping about in silence."
   },
   {
     "profileID": 210,
     "fullName": "Maj. Spike Scallion",
-    "nickname": "Spike"
+    "nickname": "Spike",
+    "biography": "Following a series of disagreements and unfortunate misunderstandings, Major Scallion pre-emptively terminated his long-term consultancy contract with the North Koreans before they could terminate him. As the Major puts it, armed mercenary work is both more fulfilling and less hazardous than consulting for dictatorships, and he has decided to rejoin our organization.",
+    "additionalInfo": "A decorated veteran, Spike Scallion's leadership skills and expertise in unerringly filling people with holes are reflected in his substantial fees."
   },
   {
     "profileID": 211,
     "fullName": "Jimmy Upton",
-    "nickname": "Jimmy"
+    "nickname": "Jimmy",
+    "biography": "Coming as a surprise to everyone involved, most of all Jimmy himself, Upton was recently acquitted of all burglary charges following a review of his criminal case. The locksmith-turned-mercenary is now looking for job opportunities abroad, and while he claims to have no outstanding warrants in any country, he maintains a list of locales he would rather steer clear of.",
+    "additionalInfo": ""
   },
   {
     "profileID": 212,
     "fullName": "Timothy \"Leech\" Jenkins",
-    "nickname": "Leech"
+    "nickname": "Leech",
+    "biography": "Stubborn and tenacious to a fault, Timothy Jenkins, or Leech as he's fittingly known, has been reinstated as a probationary member of A.I.M. following his years long campaign of attrition against our HR department. We would never have even considered it were it not for Leech's superb marksmanship, and we're doubtful he'll ever manage the transition back to full membership.",
+    "additionalInfo": ""
   },
   {
     "profileID": 213,
     "fullName": "Capt. Bob Adams",
-    "nickname": "Bob"
+    "nickname": "Bob",
+    "biography": "We're pleased to confirm that the recent reports of Captain Bob Adams' death in a plane crash have been greatly exaggerated. Surviving the ordeal with only a minor concussion and a newfound fear of flying, Adams has indicated interest in returning to the mercenary business, and A.I.M. welcomes him back to the fold with open arms.",
+    "additionalInfo": "A one-time USAF fighter pilot, Captain Adams has also distinguished himself as a capable ground combatant and communications specialist."
   },
   {
     "profileID": 214,
     "fullName": "Col. Leo Kelly",
-    "nickname": "Kelly"
+    "nickname": "Kelly",
+    "biography": "The indomitable Colonel Leo Kelly has recently returned from a prolonged international tour of combat spanning from Southern Europe to the remote jungles of Napir, and we are exceedingly glad to have him back among the ranks of A.I.M.'s active members. A true mercenary's mercenary, the Colonel's extensive combat record places him firmly as one of the finest fighting men presently in the business.",
+    "additionalInfo": "Colonel Kelly is proficient with a wide range of infantry armaments and an experienced technical consultant for Hollywood action films."
   },
   {
     "profileID": 215,
     "fullName": "Vincenzo Massimo",
-    "nickname": "Vinny"
+    "nickname": "Vinny",
+    "biography": "Vincenzo Massimo fought a long and gruelling campaign in the courts to clear himself of all racketeering and tax evasion charges, and contrary to our expectations, it paid off. With the help of the best lawyers his meagre savings and a sizable loan could buy, Vinny the wiseguy is now a free and deeply indebted man, eager for work anywhere, at any time, and for remarkably cheap rates.",
+    "additionalInfo": "A fixer of things both mechanical and otherwise and handy with knives and handguns, Vinny is a versatile foot soldier for any dubiously legal operation."
   },
   {
     "profileID": 216,
     "fullName": "Marty \"Kaboom\" Moffat",
-    "nickname": "Kaboom"
+    "nickname": "Kaboom",
+    "biography": "After Mr. Moffat caused a ruckus by turning up as a guest to his own funeral, an investigation revealed a complex and intricate fraud involving several of Marty's relatives and personnel at the hospital he was interred in at the time of his alleged death. With details too convoluted to explain concisely, suffice it to say that Kaboom has returned to active duty, against our better judgement.",
+    "additionalInfo": "Difficult as it may be to believe, Kaboom is a well-qualified explosives expert, as long as he's not left to wander off on his own."
   },
   {
     "profileID": 217,
     "fullName": "Lt. Bud Hellar",
-    "nickname": "Bud"
+    "nickname": "Bud",
+    "biography": "Lt. Bud Hellar's career in the world of large corporations culminated in a short stint as a security guard for Exxon Mobil. Despite his reputation as a staunch defender of the establishment, the salary of a low level corporate employee proved deficient to ensure Hellar's continued loyalty. He has since signed back on with A.I.M. where his military training and skills are properly compensated for.",
+    "additionalInfo": "Lieutenant Hellar is always prepared to spill the beans on any and all interpersonal drama he catches wind of."
   },
   {
     "profileID": 218,
     "fullName": "Russel Hunter",
-    "nickname": "Rusty"
+    "nickname": "Rusty",
+    "biography": "While a well-adjusted personality isn't as rare among our explosives experts as it once was, to this day the versatile Russel Hunter remains one of A.I.M.'s most psychologically stable members. Returning to active duty from an extended leave of absence as a special effects consultant, Rusty is a seasoned pyrotechnician and combat demolitionist whose skills are always in high demand.",
+    "additionalInfo": "Rusty has developed a particular liking for nighttime operations."
   },
   {
     "profileID": 219,
     "fullName": "Dr. Mark \"Needle\" Kranhuim",
-    "nickname": "Needle"
+    "nickname": "Needle",
+    "biography": "A distinguished medical professional, Mark Kranhuim has over a decade of combat casualty care under his belt. After spending a short while in early retirement due to issues caused by his wandering right eye, Mark opted to undergo corrective surgery last year in order to rejoin A.I.M. With most of his eyesight troubles gone, he is undoubtedly one of A.I.M.'s finest battlefield doctors.",
+    "additionalInfo": "Needle has the uncanny ability to slip a knife between the ribcage of an unsuspecting enemy as easily as he administrates a flu shot."
   },
   {
     "profileID": 220,
     "fullName": "Patrick \"Screw\" Phillips",
-    "nickname": "Screw"
+    "nickname": "Screw",
+    "biography": "Finding success as an independent mercenary requires a well-rounded skillset and flexible personality, and Patrick Philips has always struggled with the latter. Deciding to focus on his strengths, Screw abandoned his freelance career in Eastern Europe and reapplied for A.I.M. membership. A capable repairer of revolvers and rifles, Screw is also comfortable putting them to good use in the field.",
+    "additionalInfo": "During his tenure as an independent, Philips greatly improved his knowledge of battlefield communications and radio operation."
   },
   {
     "profileID": 221,
     "fullName": "Elroy B. Tolken",
-    "nickname": "Elroy"
+    "nickname": "Elroy",
+    "biography": "Known for his key role in the Watergate break-in, Elroy B. Tolken has spent the years following his lengthy prison sentence as a soldier of fortune, putting his mastery of infiltration to more profitable and less legally risky uses. Whenever stealth, covert action and disguises are called for, Elroy is the right man for the job.",
+    "additionalInfo": ""
   },
   {
     "profileID": 222,
     "fullName": "Anita \"Mouse\" Backman",
-    "nickname": "Mouse"
+    "nickname": "Mouse",
+    "biography": "Returning as a part-time member, the quiet and unassuming Anita Mouse Backman moves past hostile patrols and enemy positions as covertly and silently as her namesake animal. An expert in disguises, Mouse prefers to avoid direct confrontations and fair fights as much as possible.",
+    "additionalInfo": "Backman works best alongside Dr. Margaret Trammel, her close friend and business partner."
   },
   {
     "profileID": 223,
     "fullName": "Hector Alvarez",
-    "nickname": "Hector"
+    "nickname": "Hector",
+    "biography": "Previously on permanent medical disability, the Venezuelan-born Hector Alvarez has spent the past few years painstakingly rehabilitating his combat injuries. A living testament to the resilience of the human body, Alvarez rejoined the ranks of our active members earlier this year after passing his fitness and physical tests with remarkable ease.",
+    "additionalInfo": "A fast runner and an expert in bladed implements, Hector is at his best in close quarters."
   },
   {
     "profileID": 224,
     "fullName": "Reverend Clyde Potter",
-    "nickname": "Rev"
+    "nickname": "Rev",
+    "biography": "The Reverend Clyde Potter has had a long and illustrious career of putting the fear of God into the enemies of his clients. A falling out with his previous employer brought the Reverend to M.E.R.C., and while we have our own reservations concerning the enthusiasm and volume with which he preaches the gospel to our personnel, Potter's effectiveness on the battlefield mostly makes up for them.",
+    "additionalInfo": ""
   },
   {
     "profileID": 225,
     "fullName": "Dr. Margaret \"Stella\" Trammel",
-    "nickname": "Stella"
+    "nickname": "Stella",
+    "biography": "The call of the battlefield can often be difficult to resist for retired veterans of armed conflict, and Dr. Margaret Trammel was no exception. Back on duty as a part-time member, Stella brings with her an impressive physique and years of experience in mercenary medicine. She is a dependable asset to any team looking for a capable medical specialist.",
+    "additionalInfo": "Dr. Trammel prefers to work with her partner Anita Backman."
   },
   {
     "profileID": 226,
     "fullName": "Edward \"Ears\" Stockwell",
-    "nickname": "Ears"
+    "nickname": "Ears",
+    "biography": "The soft-spoken Edward \"Ears\" Stockwell has spent many years selling his loyalties and talents as a gun for hire to the highest bidder. Exemplifying the ideals we here at M.E.R.C. hold dear, Stockwell is a versatile, adaptable and most importantly affordable jack-of-all-trades and a master of battlefield communications and surveillance.",
+    "additionalInfo": "Ears has a particular knack for keeping his employers posted of all the latest rumours within the team."
   },
   {
     "profileID": 227,
     "fullName": "Murray \"Moses\" Ebstern",
-    "nickname": "Moses"
+    "nickname": "Moses",
+    "biography": "Mr. Ebstern's wish for one last hurrah in the mercenary world was unexpected, but we could hardly refuse a retired member with a respectable service record stretching all the way back to the founding of our organization. In spite of his uneven health and faulty memory, our medical staff has graded Moses as \"passably fit for duty\".",
+    "additionalInfo": "In the years he spent in retirement, Moses launched a succesful New Delhi-based restaurant that specializes in smoked meats."
   },
   {
     "profileID": 228,
     "fullName": "Lesley \"Smoke\" Petersen",
-    "nickname": "Smoke"
+    "nickname": "Smoke",
+    "biography": "Presumed dead following an explosives-related mishap, Smoke Peterson surprised everyone and disappointed many by emerging relatively intact out of the ordeal. Known and widely disliked for his pranks involving short-fused explosive devices, Smoke remains with our organization solely due to his undeniable and considerable skill with bombs and grenades of every type.",
+    "additionalInfo": ""
   },
   {
     "profileID": 229,
     "fullName": "Roger \"Dyno\" Wittman",
-    "nickname": "Dyno"
+    "nickname": "Dyno",
+    "biography": "Roger Wittman is a man of many talents. From starring in a popular children's TV show to detonating TNT in combat on a small island in the South Pacific, Dyno has done it all. His friendly demeanor and charming voice conceal a flexible demolitions expert who is always ready to try his best, no matter the task at hand.",
+    "additionalInfo": "Dyno is also always willing to sign an autograph or two for his adoring fans."
   }
 ]
