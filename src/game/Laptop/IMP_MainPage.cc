@@ -20,6 +20,7 @@
 #include "Font_Control.h"
 #include "GamePolicy.h"
 #include "GameInstance.h"
+#include "MercPortrait.h"
 #include "ContentManager.h"
 
 
@@ -478,7 +479,7 @@ static void IMPMainPageNotSelectableBtnCallback(MOUSE_REGION* pRegion, UINT32 iR
 
 SGPVObject* LoadIMPPortait()
 {
-	ST::string filename = ST::format(FACESDIR "/{}.sti", 200 + iPortraitNumber);
+	ST::string filename = ImpPortraitFilePath("", iPortraitNumber);
 	return AddVideoObjectFromFile(filename);
 }
 

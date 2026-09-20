@@ -1,4 +1,7 @@
+#include "ContentManager.h"
+#include "GameInstance.h"
 #include "CharProfile.h"
+#include "MercPortrait.h"
 #include "Directories.h"
 #include "Font.h"
 #include "HImage.h"
@@ -109,8 +112,8 @@ void HandleIMPPortraits( void )
 
 static void RenderPortrait(INT16 const x, INT16 const y)
 { // Render the portrait of the current picture
-	INT32 const portrait = (fCharacterIsMale ? 200 : 208) + iCurrentPortrait;
-	ST::string filename = ST::format(FACESDIR "/bigfaces/{}.sti", portrait);
+	INT32 const portrait = (fCharacterIsMale ? 0 : 8) + iCurrentPortrait;
+	ST::string filename = ImpPortraitFilePath("bigfaces/", portrait);
 
 	INT32 const destX = LAPTOP_SCREEN_UL_X + x;
 	INT32 const destY = LAPTOP_SCREEN_WEB_UL_Y + y;
