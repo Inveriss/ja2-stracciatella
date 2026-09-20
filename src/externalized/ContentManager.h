@@ -117,6 +117,8 @@ public:
 
 	/** Load dialogue quote from file. */
 	virtual ST::string loadDialogQuoteFromFile(const ST::string& filename, unsigned quote_number) = 0;
+	/** Do the quotes of this merc come from mercs-dialogue-<language>.json (and not from mercedt/NNN.edt)? */
+	virtual bool hasMercDialogue(uint8_t profileID) const = 0;
 
 	/** Get weapons with the give index. */
 	virtual const WeaponModel* getWeapon(uint16_t index) = 0;

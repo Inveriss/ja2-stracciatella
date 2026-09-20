@@ -417,6 +417,18 @@ ST::string DefaultContentManager::loadEncryptedString(const ST::string& fileName
 /** Load dialogue quote from file. */
 ST::string DefaultContentManager::loadDialogQuoteFromFile(const ST::string& fileName, unsigned quote_number)
 {
+	// The quotes of a merc that are in mercs-dialogue-<language>.json: a mercedt/NNN.edt file of a
+	// profile with such an entry is not used (unless the number is beyond its quotes)
+	ST::string const lower = fileName.to_lower();
+	if (lower.size() == 15 && lower.starts_with("mercedt/") && lower.ends_with(".edt"))
+	{
+		auto const digits = lower.substr(8, 3);
+		if (std::isdigit(digits[0]) && std::isdigit(digits[1]) && std::isdigit(digits[2]))
+		{
+			auto const merc = m_mercDialogue.find(static_cast<uint8_t>(digits.to_int()));
+			if (merc != m_mercDialogue.end() && quote_number < merc->second.size()) return merc->second[quote_number];
+		}
+	}
 	// Using the qualified name because we do not want a virtual function call here.
 	return DefaultContentManager::openEDT(fileName.view(), { DIALOGUESIZE })->at(quote_number);
 }
@@ -942,6 +954,13 @@ static ST::string MercProfileNamesFile(GameVersion const version)
 }
 
 
+/** Name of the optional file with the quotes of the mercs in the game language. */
+static ST::string MercDialogueFile(GameVersion const version)
+{
+	return ST::string("mercs-dialogue") + L10n::GetSuffix(version, true) + ".json";
+}
+
+
 /** Load the game data and the item descriptions from the original game resources.
  *
  * The named characters come from mercs-profile-info.json, mercs-relations.json and
@@ -1350,6 +1369,19 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 			auto entry = element.toObject();
 			names[entry.GetUInt("profileID")] = { entry.getOptionalString("fullName"), entry.getOptionalString("nickname"),
 			                                     entry.getOptionalString("biography"), entry.getOptionalString("additionalInfo") };
+		}
+	}
+
+	// quotes of the game language; a merc without an entry uses its mercedt/NNN.edt file
+	ST::string const dialogueFile = MercDialogueFile(m_gameVersion);
+	if (doesGameResExists(dialogueFile))
+	{
+		for (auto& element : readJsonDataFileWithSchema(dialogueFile).toVec())
+		{
+			auto entry = element.toObject();
+			std::vector<ST::string> quotes;
+			for (auto& quote : entry["quotes"].toVec()) quotes.push_back(quote.toString());
+			m_mercDialogue[entry.GetUInt("profileID")] = std::move(quotes);
 		}
 	}
 
@@ -1821,6 +1853,11 @@ const MercProfileInfo* DefaultContentManager::getMercProfileInfoByName(const ST:
 
 	SLOGW("MercProfileInfo is not defined for {}", name);
 	return NULL;
+}
+
+bool DefaultContentManager::hasMercDialogue(uint8_t const profileID) const
+{
+	return m_mercDialogue.find(profileID) != m_mercDialogue.end();
 }
 
 const std::vector<const MercProfile*>& DefaultContentManager::listMercProfiles() const

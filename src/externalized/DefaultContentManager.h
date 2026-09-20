@@ -84,6 +84,7 @@ public:
 
 	/** Load dialogue quote from file. */
 	ST::string loadDialogQuoteFromFile(const ST::string& filename, unsigned quote_number) override;
+	bool hasMercDialogue(uint8_t profileID) const override;
 
 	/** Load all dialogue quotes for a character. */
 	void loadAllDialogQuotes(STRING_ENC_TYPE encType, const ST::string& filename, std::vector<ST::string*> &quotes) const;
@@ -291,6 +292,8 @@ protected:
 	// List of pre-constructed MercProfile objects; indices of elements are arbitrary (unlike gMercProfiles) and not guaranteed to follow any order
 	std::vector<const MercProfile*> m_mercProfiles;
 	std::map<uint8_t, const MercProfileInfo*> m_mercProfileInfo;
+	// The quotes of the mercs from mercs-dialogue-<language>.json (profile ID -> quote number -> text)
+	std::map<uint8_t, std::vector<ST::string>> m_mercDialogue;
 	std::map<UINT32, UINT16> m_translationTable;
 	std::vector<std::unique_ptr<const MERCPROFILESTRUCT>> m_mercStructs;
 

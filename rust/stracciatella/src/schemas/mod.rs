@@ -76,6 +76,9 @@ impl SchemaManager {
         if path.starts_with("mercs-profile-names-") {
             return self.schemas.get("mercs-profile-names");
         }
+        if path.starts_with("mercs-dialogue-") {
+            return self.schemas.get("mercs-dialogue");
+        }
         if path.starts_with("translation_tables/") {
             return self.schemas.get("translation-table");
         }

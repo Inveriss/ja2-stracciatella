@@ -1,0 +1,24 @@
+$schema: http://json-schema.org/draft-04/schema#
+type: array
+title: Short texts (quotes) of the mercs in one language
+description: >
+  The quotes of the mercs the player can hire, for one game language
+  (mercs-dialogue-<language>.json). Each entry is the content of one mercedt/NNN.edt file:
+  the number of a quote is its place in the list, an empty string is a gap (no text) that
+  keeps the numbering of the following quotes. A profile without an entry uses its
+  mercedt/NNN.edt file. The voice files (speech/NNN_QQQ.wav) are not part of this.
+items:
+  type: object
+  properties:
+    profileID:
+      minimum: 0
+      $ref: types/uint8.schema.yaml
+    quotes:
+      type: array
+      items:
+        type: string
+        maxLength: 240
+  required:
+    - profileID
+    - quotes
+  additionalProperties: false
