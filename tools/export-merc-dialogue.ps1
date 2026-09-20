@@ -62,8 +62,21 @@ foreach ($f in $files) {
     for ($i = 0; $i -lt $count; $i++) {
         $c = [int]$bytes[2 * $i] + 256 * [int]$bytes[2 * $i + 1]
         if ($c -gt 33) { $c -= 1 }   # the "ROT-1" encryption
-        # the English data files were converted from CP437 (a few lines of Malice)
-        if ($c -eq 128) { $c = 0x00C7 } elseif ($c -eq 130) { $c = 0x00E9 } elseif ($c -eq 135) { $c = 0x00E7 }
+        if ($Language -eq "rus") {
+            # the Russian data files were converted from CP1251 as if it were CP1252
+            if ($c -ge 0xC0 -and $c -le 0xFF) { $c += 0x0350 }
+        } else {
+            # the English data files were converted from CP437 (a few lines of Malice)
+            if ($Language -eq "eng") {
+                if ($c -eq 128) { $c = 0x00C7 } elseif ($c -eq 130) { $c = 0x00E9 } elseif ($c -eq 135) { $c = 0x00E7 }
+            }
+            # the Cyrillic texts (by Ivan Dolvich) of the versions other than the Russian one are
+            # encoded in a wild manner; the same undoing as in EncryptedString.cc
+            if ($c -ge 0x044D -and $c -le 0x0452) { $c = $c - 0x044D + 0x0410 }
+            elseif ($c -eq 0x0453) { $c = 0x0401 }
+            elseif ($c -ge 0x0454 -and $c -le 0x0467) { $c = $c - 0x0454 + 0x0416 }
+            elseif ($c -ge 0x0468 -and $c -le 0x046C) { $c = $c - 0x0468 + 0x042B }
+        }
         $chars[$i] = [char]$c
     }
 
