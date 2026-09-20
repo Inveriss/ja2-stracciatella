@@ -215,7 +215,9 @@ static void MakeNewMercsAvailable(BOOLEAN fShouldNotifyPlayer);
 
 void GameInitMercs()
 {
-	LaptopSaveInfo.gubPlayersMercAccountStatus = MERC_NO_ACCOUNT;
+	// the player has an account at M.E.R.C. from the start of a new game
+	LaptopSaveInfo.gubPlayersMercAccountStatus = MERC_ACCOUNT_VALID;
+	LaptopSaveInfo.guiPlayersMercAccountNumber = Random(99999);
 	gubCurMercIndex = 0;
 
 	MakeNewMercsAvailable(FALSE);
@@ -974,12 +976,11 @@ static BOOLEAN GetSpeckConditionalOpening(BOOLEAN fJustEnteredScreen)
 	gfDoneIntroSpeech = TRUE;
 
 	//set the opening quote based on if the player has been here before
-	if( LaptopSaveInfo.ubPlayerBeenToMercSiteStatus == MERC_SITE_FIRST_VISIT && usQuoteToSay <= 8 )
+	// The nine quotes Speck says at the first visit are not played (the player is not welcomed as a
+	// new customer, the account exists from the start). The first visit must not fall through to
+	// the openings of the later visits either.
+	if( LaptopSaveInfo.ubPlayerBeenToMercSiteStatus == MERC_SITE_FIRST_VISIT )
 	{
-		StartSpeckTalking( usQuoteToSay );
-		usQuoteToSay++;
-		if( usQuoteToSay <= 8 )
-			gfDoneIntroSpeech = FALSE;
 	}
 
 	//if its the players second visit
