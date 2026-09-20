@@ -1,7 +1,5 @@
 #include "Directories.h"
 #include "MercPortrait.h"
-#include "ContentManager.h"
-#include "GameInstance.h"
 #include "MercProfile.h"
 #include "Soldier_Profile.h"
 #include "IMP_Compile_Character.h"
@@ -20,9 +18,7 @@ bool IsImpPortrait(ProfileID const id)
 
 ST::string ImpPortraitFilePath(char const* const subdir, int const portrait)
 {
-	ST::string const impFile = ST::format(FACESDIR "/imp/{}{02d}.sti", subdir, IMP_PORTRAIT_FILE_FIRST + portrait);
-	if (GCM->doesGameResExists(impFile)) return impFile;
-	return ST::format(FACESDIR "/{}{02d}.sti", subdir, IMP_PORTRAIT_FIRST + portrait);
+	return ST::format(FACESDIR "/imp/{}{02d}.sti", subdir, IMP_PORTRAIT_FILE_FIRST + portrait);
 }
 
 
@@ -32,8 +28,7 @@ ST::string PortraitFilePath(ProfileID const id, char const* const subdir, char c
 	if (IsImpPortrait(id))
 	{
 		int const portrait = p.ubFaceIndex - IMP_PORTRAIT_FIRST;
-		ST::string const impFile = ST::format(FACESDIR "/imp/{}{}{02d}.sti", subdir, prefix, IMP_PORTRAIT_FILE_FIRST + portrait);
-		if (GCM->doesGameResExists(impFile)) return impFile;
+		return ST::format(FACESDIR "/imp/{}{}{02d}.sti", subdir, prefix, IMP_PORTRAIT_FILE_FIRST + portrait);
 	}
 	return ST::format(FACESDIR "/{}{}{02d}.sti", subdir, prefix, p.ubFaceIndex);
 }

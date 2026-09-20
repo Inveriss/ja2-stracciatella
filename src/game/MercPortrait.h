@@ -20,11 +20,11 @@ SGPVObject* LoadSmallPortrait(MERCPROFILESTRUCT const&);
 bool IsImpPortrait(ProfileID id);
 
 // The path of the portrait file of a profile: subdir is "", "33face/", "65face/" or "bigfaces/",
-// prefix "" or "b" (big face of the tactical dialogues). An IMP portrait is taken from faces/imp/
-// (from faces/ under its old name IMP_PORTRAIT_FIRST + n if it is not there).
+// prefix "" or "b" (big face of the tactical dialogues). An IMP portrait is only taken from
+// faces/imp/; if the file is not there, it is a missing file like any other.
 ST::string PortraitFilePath(ProfileID id, char const* subdir, char const* prefix = "");
 
-// The path of the file of IMP portrait number 0-15 in faces/imp/ (subdir as above) and the old one
+// The path of the file of IMP portrait number 0-15 in faces/imp/ (subdir as above)
 ST::string ImpPortraitFilePath(char const* subdir, int portrait);
 
 #endif
