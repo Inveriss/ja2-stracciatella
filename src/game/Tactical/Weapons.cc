@@ -142,7 +142,8 @@ UINT8 GunShotsPerBurst(OBJECTTYPE const& o)
 		// integer division means this only rounds up to +1 once condition is >= 85
 		shots += BURST_EXTENDER_BONUS_SHOTS * WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]) / 100;
 	}
-	return shots;
+	// a burst is at most as long as the spread locations of a soldier (SOLDIERTYPE::sSpreadLocations)
+	return std::min<UINT8>(shots, 100);
 }
 
 
@@ -555,7 +556,7 @@ FireWeaponResult FireWeapon(SOLDIERTYPE * const pSoldier, GridNo const sTargetGr
 			// See ENABLE_EXTENDED_BURST_FIRE (Soldier_Control.h): restores the
 			// original 6-shot spread cap when deactivated, without shrinking
 			// sSpreadLocations back down.
-			if ( pSoldier->fDoSpread > ( ENABLE_EXTENDED_BURST_FIRE ? 10 : 6 ) )
+			if ( pSoldier->fDoSpread > ( ENABLE_EXTENDED_BURST_FIRE ? 100 : 6 ) )
 			{
 				pSoldier->fDoSpread = FALSE;
 			}
