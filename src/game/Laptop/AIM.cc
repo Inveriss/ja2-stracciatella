@@ -43,6 +43,15 @@ void SetAimFilter(AimFilter const filter)
 	gAimFilter = filter;
 }
 
+static bool gfKeepEmptyFilterOnce = false;
+
+void ResetAimFilterForNewGame(void)
+{
+	gAimFilter = AIM_FILTER_NONE;
+	gfKeepEmptyFilterOnce = true;
+	ResetAimMercArray(); // the list of an earlier game is gone, the empty filter shows nobody
+}
+
 static bool IsInAimFilter(ProfileID const id)
 {
 	switch (gAimFilter)
@@ -253,8 +262,13 @@ static void SelectPoliciesRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 void EnterAIM()
 {
-	// a list emptied with the filter buttons is not kept when the A.I.M. is entered again
-	if (gAimFilter == AIM_FILTER_NONE)
+	// a list emptied with the filter buttons is not kept when the A.I.M. is entered again; only
+	// the first entry of a new game keeps the empty list
+	if (gAimFilter == AIM_FILTER_NONE && gfKeepEmptyFilterOnce)
+	{
+		gfKeepEmptyFilterOnce = false;
+	}
+	else if (gAimFilter == AIM_FILTER_NONE)
 	{
 		gAimFilter = AIM_FILTER_ALL;
 		ResetAimMercArray();

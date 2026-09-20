@@ -31,6 +31,9 @@ enum AimFilter
 };
 AimFilter GetAimFilter(void);
 void SetAimFilter(AimFilter filter);
+// A new game starts with no filter button pressed (the list is empty), until the player presses one.
+// The first entry to the A.I.M. keeps that; later on an empty list is reset to ALL, see EnterAIM().
+void ResetAimFilterForNewGame(void);
 
 // Fill AimMercArray with the A.I.M. mercs of the current filter in profile ID order.
 void ResetAimMercArray(void);
