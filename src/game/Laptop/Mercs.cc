@@ -212,6 +212,7 @@ static GUIButtonRef guiXToCloseMercVideoButton;
 static MOUSE_REGION gMercSiteSubTitleMouseRegion;
 
 static void MakeNewMercsAvailable(BOOLEAN fShouldNotifyPlayer);
+static void MakeAllMercsAvailable(void);
 
 void GameInitMercs()
 {
@@ -221,6 +222,7 @@ void GameInitMercs()
 	gubCurMercIndex = 0;
 
 	MakeNewMercsAvailable(FALSE);
+	MakeAllMercsAvailable();
 
 	gubCurrentMercVideoMode = MERC_VIDEO_NO_VIDEO_MODE;
 	gfMercVideoIsBeingDisplayed = FALSE;
@@ -1626,6 +1628,20 @@ static void SetLastMercArrival(const MERCListingModel* merc)
 	case COUGAR:       LaptopSaveInfo.ubLastMercAvailableId = MERC_ARRIVES_COUGAR; break;
 	case NUMB:         LaptopSaveInfo.ubLastMercAvailableId = MERC_ARRIVES_NUMB; break;
 	case LARRY_NORMAL: LaptopSaveInfo.ubLastMercAvailableId = MERC_ARRIVES_LARRY; break;
+	}
+}
+
+// All the mercs of the M.E.R.C. listings can be hired from the start of a new game, whatever
+// days or spending their listings ask for
+static void MakeAllMercsAvailable(void)
+{
+	for (const MERCListingModel* merc : GCM->getMERCListings())
+	{
+		if (LaptopSaveInfo.gubLastMercIndex < merc->index)
+		{
+			LaptopSaveInfo.gubLastMercIndex = merc->index;
+		}
+		SetLastMercArrival(merc);
 	}
 }
 
