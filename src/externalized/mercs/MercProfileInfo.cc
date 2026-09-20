@@ -18,15 +18,15 @@ MercProfileInfo::MercProfileInfo()
 {
 }
 
-MercProfileInfo *MercProfileInfo::deserialize(const JsonObject& json)
+MercProfileInfo *MercProfileInfo::deserialize(const JsonObject& json, const ST::string& biographyOverride, const ST::string& additionalInfoOverride)
 {
 	return new MercProfileInfo(
 		json.GetUInt("profileID"),
 		json.GetString("internalName"),
 		Internals::getMercTypeEnumFromString(json.GetString("type")),
 		json.getOptionalInt("weaponSaleModifier", 100),
-		json.getOptionalString("biography"),
-		json.getOptionalString("additionalInfo")
+		biographyOverride.empty() ? json.getOptionalString("biography") : biographyOverride,
+		additionalInfoOverride.empty() ? json.getOptionalString("additionalInfo") : additionalInfoOverride
 		);
 }
 

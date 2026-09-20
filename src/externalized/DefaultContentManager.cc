@@ -1340,7 +1340,7 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 	std::vector<std::unique_ptr<MERCPROFILESTRUCT>> temp_mercStructs(NUM_PROFILES);
 
 	// names of the game language; without such a file they come from prof.dat
-	struct MercNames { ST::string fullName; ST::string nickname; };
+	struct MercNames { ST::string fullName; ST::string nickname; ST::string biography; ST::string additionalInfo; };
 	std::map<uint8_t, MercNames> names;
 	ST::string const namesFile = MercProfileNamesFile(m_gameVersion);
 	if (doesGameResExists(namesFile))
@@ -1348,14 +1348,19 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 		for (auto& element : readJsonDataFileWithSchema(namesFile).toVec())
 		{
 			auto entry = element.toObject();
-			names[entry.GetUInt("profileID")] = { entry.getOptionalString("fullName"), entry.getOptionalString("nickname") };
+			names[entry.GetUInt("profileID")] = { entry.getOptionalString("fullName"), entry.getOptionalString("nickname"),
+			                                     entry.getOptionalString("biography"), entry.getOptionalString("additionalInfo") };
 		}
 	}
 
 	auto json = readJsonDataFileWithSchema("mercs-profile-info.json");
 	for (auto& element : json.toVec()) {
 		auto charProperties = element.toObject();
-		auto profileInfo = MercProfileInfo::deserialize(charProperties);
+		// the descriptions of the names file of the language, if it has them
+		auto const descriptions = names.find(charProperties.GetUInt("profileID"));
+		auto profileInfo = descriptions == names.end()
+			? MercProfileInfo::deserialize(charProperties)
+			: MercProfileInfo::deserialize(charProperties, descriptions->second.biography, descriptions->second.additionalInfo);
 		ProfileID profileID = profileInfo->profileID;
 		m_mercProfileInfo[profileID] = profileInfo;
 		m_mercProfiles.push_back(new MercProfile(profileID));
@@ -1419,6 +1424,7 @@ void DefaultContentManager::dumpMercProfilesIfRequested() const
 	JsonArray infos;
 	JsonArray relations;
 	JsonArray names;
+	bool const haveAimBios = doesGameResExists(BINARYDATADIR "/aimbios.edt");
 	for (const MercProfile* profile : m_mercProfiles)
 	{
 		infos.push(profile->serializeStruct(this));
@@ -1430,6 +1436,15 @@ void DefaultContentManager::dumpMercProfilesIfRequested() const
 			entry.set("000profileID", (unsigned int)profile->getID());
 			if (!p.zName.empty()) entry.set("001fullName", p.zName);
 			if (!p.zNickname.empty()) entry.set("002nickname", p.zNickname);
+			// the A.I.M. texts of the original mercs come from aimbios.edt of the game data
+			if (profile->isAIMMerc() && profile->getID() < 40 && haveAimBios /* the original A.I.M. mercs */)
+			{
+				auto const bios = openEDT(BINARYDATADIR "/aimbios.edt", { 400, 160 });
+				ST::string const biography = bios->at(profile->getID(), 0);
+				ST::string const additionalInfo = bios->at(profile->getID(), 1);
+				if (!biography.empty()) entry.set("003biography", biography);
+				if (!additionalInfo.empty()) entry.set("004additionalInfo", additionalInfo);
+			}
 			names.push(entry.toValue());
 		}
 

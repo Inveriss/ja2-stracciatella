@@ -36,7 +36,9 @@ public:
 	// avoid a circular reference to ContentManager.
 	// This function must be initialized at init
 	static std::function<const MercProfileInfo *(ProfileID)> load;
-	static MercProfileInfo* deserialize(const JsonObject& json);
+	// The description texts of the names file of the game language (if any) take precedence
+	// over the ones of the JSON object.
+	static MercProfileInfo* deserialize(const JsonObject& json, const ST::string& biographyOverride = ST::string(), const ST::string& additionalInfoOverride = ST::string());
 	static void validateData(const std::map<uint8_t, const MercProfileInfo*>& models);
 
 protected:

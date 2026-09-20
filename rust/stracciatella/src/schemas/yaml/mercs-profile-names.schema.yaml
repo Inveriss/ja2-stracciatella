@@ -2,7 +2,7 @@ $schema: http://json-schema.org/draft-04/schema#
 type: array
 title: Names of the named characters in one language
 description: >
-  The full name and the nickname of the profiles, for one game language
+  The full name, the nickname and the A.I.M. description texts of the profiles, for one game language
   (mercs-profile-names-<language>.json). A language without such a file
   takes the names from the prof.dat of the game data.
 items:
@@ -16,6 +16,12 @@ items:
       type: string
     nickname:
       type: string
+    biography:
+      type: string
+      description: A.I.M. description of the merc (shown on the merc's file page), in the language of the file
+    additionalInfo:
+      type: string
+      description: A.I.M. additional information of the merc, in the language of the file
   required:
     - profileID
   additionalProperties: false
