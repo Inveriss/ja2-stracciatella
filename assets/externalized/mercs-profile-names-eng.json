@@ -902,12 +902,16 @@
   {
     "profileID": 165,
     "fullName": "Gaston Cavalier",
-    "nickname": "Gaston"
+    "nickname": "Gaston",
+    "biography": "As a former commando in the French Marine Corp (FMC), Gaston has played a distinguished role in many of the recent NATO and UN operations throughout this hostile world. A confident, field-proven, professional sharpshooter, Cavalier's addition to our roster is just another step in M.E.R.C.'s continuing effort to meet your mercenary needs.",
+    "additionalInfo": "Gaston operates best in the early hours of morning. He is also rather apt at sniping from an elevated vantage point."
   },
   {
     "profileID": 166,
     "fullName": "Lt. \"Stogie\" Horge",
-    "nickname": "Stogie"
+    "nickname": "Stogie",
+    "biography": "Built like a tank, Lt. Horge's specialty is destroying them. Extremely skilled with heavy weapons, Stogie spent the past two years working as a independent mercenary in the Congo. He's probably one of the toughest grunts in the business, and M.E.R.C. is proud that he has chosen us as his first foray into agency representation, even if it is on a temporary trial basis.",
+    "additionalInfo": "Please hire Stogie. We don't want to lose him."
   },
   {
     "profileID": 167,
@@ -927,42 +931,58 @@
   {
     "profileID": 170,
     "fullName": "Victor \"Monk\" Kolesnikov",
-    "nickname": "Monk"
+    "nickname": "Monk",
+    "biography": "A real Russian hard case, Kolesnikov honed his skills as a Spetsnaz operative in Chechnya before dicovering the advantages of the dollar over duty. Unfazed by anything a battlefield can throw his way, he is a dedicated soldier, preferring to work alone and happiest when he's behind enemy lines. A man of few words, it's easy to see why he has earned the nickname Monk.",
+    "additionalInfo": "His relationship with Ivan deteriorated after a \"discussion\" over the subtle differences between the AKM and its variant the AKMS."
   },
   {
     "profileID": 171,
     "fullName": "Janno \"Brain\" Allik",
-    "nickname": "Brain"
+    "nickname": "Brain",
+    "biography": "Janno spent years of his life as a grease monkey in the Soviet Army. After the Cold War ended, he became a soldier for hire. It hasn't taken him long to get a taste for the finer things in life, and he is equally at home with a glass of fine brandy as he is with heavy weapons. With a knack for getting into places he shouldn't be, he keeps himself in top shape in case anything kicks off.",
+    "additionalInfo": "Janno prefers to work together with his fellow Estonian-German Vilde, whom he met while stationed in East Germany."
   },
   {
     "profileID": 172,
     "fullName": "Lennart \"Scream\" Vilde",
-    "nickname": "Scream"
+    "nickname": "Scream",
+    "biography": "A born leader of men, Scream is a love him or hate him type of guy. A tough upbringing in Siberia has given him a unique take on life, or more specifically, death. Apart from his combat skills, Scream brings a whole new level of weird to a campaign as Dr. Q will testify, but if the conditions are right, he might just be your man.",
+    "additionalInfo": "Happy to go wherever his compatriot Brain goes. Both men became mercenaries after the Soviet withdrawal from East Germany."
   },
   {
     "profileID": 173,
     "fullName": "Henning von Branitz",
-    "nickname": "Henning"
+    "nickname": "Henning",
+    "biography": "This former NVA soldier doesn't mess around. Although new to A.I.M, Henning is an old hand at killing and a real Prussian powerhouse. He has already established himself as a must-have on any operation where large-scale resistance is expected. An expert with both auto and heavy weapons, his tactical insights can turn the tide of any engagement.",
+    "additionalInfo": "Henning's hatred of all things New Age has led to tensions between himself and Thor."
   },
   {
     "profileID": 174,
     "fullName": "Luc Fabre",
-    "nickname": "Lucky"
+    "nickname": "Lucky",
+    "biography": "Not exactly living up to his nickname, Lucky had the misfortune of working with Malice on his first assignment. Unsurprisingly, a misfired 9 mm round can sour any working relationship. Fully recuperated, he has thrown himself into being battle-ready, and if he can shoot as well as his personal website claims he can, his enemies won't stand a chance.",
+    "additionalInfo": "Luc has been known to describe himself as a \"walking weapon\"."
   },
   {
     "profileID": 175,
     "fullName": "Dr. Laura Colin",
-    "nickname": "Laura"
+    "nickname": "Laura",
+    "biography": "After years of living on the run, the Romanian-born Laura Colin fled with her parents to Germany, all while still only a child. Deemed enemies of the state, she inherited a deep hatred for dictators from her exiled parents. A student of medicine, Laura followed her partner Rudolf Steiger into the mercenary world and became a passionate and capable field medic.",
+    "additionalInfo": "On a training course for automatic weapons, Dr. Colin developed a strong dislike for Buzz Garneau."
   },
   {
     "profileID": 176,
     "fullName": "Graziella \"Grace\" Girelli",
-    "nickname": "Grace"
+    "nickname": "Grace",
+    "biography": "Born in New Jersey into an Italian-Hungarian family of acrobats, Grace's childhood was far from ordinary. Having narrowly avoided being married off at a young age by her mother, preferring the freedom her brothers enjoyed, she left home to pursue a life of adventure. Her accent and her mother's meddling have managed to keep up with her, though.",
+    "additionalInfo": "To her mother's dismay, as a young girl she perfected the art of knife throwing, easily outclassing her brothers."
   },
   {
     "profileID": 177,
     "fullName": "Rudolf Steiger",
-    "nickname": "Rudolf"
+    "nickname": "Rudolf",
+    "biography": "This former GSG 9 man has only one weakness... Dr. Laura Colin, whom he met while receiving treatment for sunstroke. He persuaded her to join him on an excursion and won her over with his ability to shoot the nuts out of a squirrel's paws from 3 km away. He still acts as a consultant for the GSG 9, mostly on their night ops courses.",
+    "additionalInfo": "Rudolf is not afraid to let you know what's on his mind."
   },
   {
     "profileID": 178,
@@ -1073,5 +1093,150 @@
     "profileID": 199,
     "fullName": "Tex Colburn",
     "nickname": "Tex"
+  },
+  {
+    "profileID": 201,
+    "fullName": "Megan \"Sparky\" Roachburn",
+    "nickname": "Sparky"
+  },
+  {
+    "profileID": 202,
+    "fullName": "Mary Beth Wilkens",
+    "nickname": "Beth"
+  },
+  {
+    "profileID": 203,
+    "fullName": "Samuel Garver",
+    "nickname": "Sam"
+  },
+  {
+    "profileID": 204,
+    "fullName": "Hurl E. Cutter",
+    "nickname": "Hurl"
+  },
+  {
+    "profileID": 205,
+    "fullName": "Dr. Ahmad \"Doc\" Koolhan",
+    "nickname": "Doc"
+  },
+  {
+    "profileID": 206,
+    "fullName": "Herman \"Turtle\" Regents",
+    "nickname": "Turtle"
+  },
+  {
+    "profileID": 207,
+    "fullName": "Glen \"Boss\" Hatchet",
+    "nickname": "Boss"
+  },
+  {
+    "profileID": 208,
+    "fullName": "Johnny \"Snake\" Edwards",
+    "nickname": "Snake"
+  },
+  {
+    "profileID": 209,
+    "fullName": "Alan \"Spam\" Webster",
+    "nickname": "Spam"
+  },
+  {
+    "profileID": 210,
+    "fullName": "Maj. Spike Scallion",
+    "nickname": "Spike"
+  },
+  {
+    "profileID": 211,
+    "fullName": "Jimmy Upton",
+    "nickname": "Jimmy"
+  },
+  {
+    "profileID": 212,
+    "fullName": "Timothy \"Leech\" Jenkins",
+    "nickname": "Leech"
+  },
+  {
+    "profileID": 213,
+    "fullName": "Capt. Bob Adams",
+    "nickname": "Bob"
+  },
+  {
+    "profileID": 214,
+    "fullName": "Col. Leo Kelly",
+    "nickname": "Kelly"
+  },
+  {
+    "profileID": 215,
+    "fullName": "Vincenzo Massimo",
+    "nickname": "Vinny"
+  },
+  {
+    "profileID": 216,
+    "fullName": "Marty \"Kaboom\" Moffat",
+    "nickname": "Kaboom"
+  },
+  {
+    "profileID": 217,
+    "fullName": "Lt. Bud Hellar",
+    "nickname": "Bud"
+  },
+  {
+    "profileID": 218,
+    "fullName": "Russel Hunter",
+    "nickname": "Rusty"
+  },
+  {
+    "profileID": 219,
+    "fullName": "Dr. Mark \"Needle\" Kranhuim",
+    "nickname": "Needle"
+  },
+  {
+    "profileID": 220,
+    "fullName": "Patrick \"Screw\" Phillips",
+    "nickname": "Screw"
+  },
+  {
+    "profileID": 221,
+    "fullName": "Elroy B. Tolken",
+    "nickname": "Elroy"
+  },
+  {
+    "profileID": 222,
+    "fullName": "Anita \"Mouse\" Backman",
+    "nickname": "Mouse"
+  },
+  {
+    "profileID": 223,
+    "fullName": "Hector Alvarez",
+    "nickname": "Hector"
+  },
+  {
+    "profileID": 224,
+    "fullName": "Reverend Clyde Potter",
+    "nickname": "Rev"
+  },
+  {
+    "profileID": 225,
+    "fullName": "Dr. Margaret \"Stella\" Trammel",
+    "nickname": "Stella"
+  },
+  {
+    "profileID": 226,
+    "fullName": "Edward \"Ears\" Stockwell",
+    "nickname": "Ears"
+  },
+  {
+    "profileID": 227,
+    "fullName": "Murray \"Moses\" Ebstern",
+    "nickname": "Moses"
+  },
+  {
+    "profileID": 228,
+    "fullName": "Lesley \"Smoke\" Petersen",
+    "nickname": "Smoke"
+  },
+  {
+    "profileID": 229,
+    "fullName": "Roger \"Dyno\" Wittman",
+    "nickname": "Dyno"
   }
 ]

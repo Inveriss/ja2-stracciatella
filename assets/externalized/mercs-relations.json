@@ -22644,5 +22644,88 @@
         "friend2": true
       }
     ]
+  },
+  {
+    "profile": "SPARKY",
+    "relations": [
+      {
+        "target": "LARRY_NORMAL",
+        "opinion": 0,
+        "friend1": true
+      },
+      {
+        "target": "LARRY_DRUNK",
+        "opinion": 0,
+        "friend2": true
+      }
+    ]
+  },
+  {
+    "profile": "SAM_203",
+    "relations": [
+      {
+        "target": "IVAN",
+        "opinion": 0,
+        "eventualEnemy": true,
+        "resistanceToMakingEnemy": 10
+      }
+    ]
+  },
+  {
+    "profile": "SNAKE",
+    "relations": [
+      {
+        "target": "ICE",
+        "opinion": 0,
+        "friend1": true
+      }
+    ]
+  },
+  {
+    "profile": "SPIKE_209",
+    "relations": [
+      {
+        "target": "LEN",
+        "opinion": 0,
+        "friend1": true
+      }
+    ]
+  },
+  {
+    "profile": "JIMMY",
+    "relations": [
+      {
+        "target": "MAGIC",
+        "opinion": 0,
+        "friend1": true
+      },
+      {
+        "target": "LYNX",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 18
+      }
+    ]
+  },
+  {
+    "profile": "MOUSE",
+    "relations": [
+      {
+        "target": "FOX",
+        "opinion": 0,
+        "enemy1": true,
+        "tolerance": 16
+      }
+    ]
+  },
+  {
+    "profile": "HECTOR",
+    "relations": [
+      {
+        "target": "HAMOUS",
+        "opinion": 0,
+        "friend1": true
+      }
+    ]
   }
 ]
