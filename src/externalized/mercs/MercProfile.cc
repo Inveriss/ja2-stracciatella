@@ -108,39 +108,30 @@ void MercProfile::deserializeStructRelations(const MERCPROFILESTRUCT* binaryProf
 			jOpinions[idx] = std::move(r);
 		}
 	}
-	for (ProfileID idx = 0; idx < NUM_RECRUITABLE; idx++) {
+	for (size_t idx = 0; idx < NUM_RECRUITABLE; idx++) {
 		prof->bMercOpinion[idx] = jOpinions[idx].getOptionalInt("opinion", binaryProf->bMercOpinion[idx]);
 
-		// friends and enemies are stored as INT8 profile IDs (-1 = nobody)
-		if (idx > std::numeric_limits<INT8>::max()) {
-			for (const char* role : { "friend1", "friend2", "eventualFriend", "enemy1", "enemy2", "eventualEnemy" }) {
-				if (jOpinions[idx].getOptionalBool(role)) {
-					throw DataError(ST::format("profile id {} is too high to be a friend or an enemy (the limit is {})", idx, std::numeric_limits<INT8>::max()));
-				}
-			}
-			continue;
-		}
 		if (jOpinions[idx].getOptionalBool("friend1", binaryProf->bBuddy[BUDDY_SLOT1] == idx)) {
-			prof->bBuddy[BUDDY_SLOT1] = idx;
+			prof->bBuddy[BUDDY_SLOT1] = static_cast<INT16>(idx);
 		}
 		else if (jOpinions[idx].getOptionalBool("friend2", binaryProf->bBuddy[BUDDY_SLOT2] == idx)) {
-			prof->bBuddy[BUDDY_SLOT2] = idx;
+			prof->bBuddy[BUDDY_SLOT2] = static_cast<INT16>(idx);
 		}
 		// a target can hold several roles (e.g. an enemy who is also the eventual enemy)
 		if (jOpinions[idx].getOptionalBool("eventualFriend", binaryProf->bLearnToLike == idx)) {
-			prof->bLearnToLike = idx;
+			prof->bLearnToLike = static_cast<INT16>(idx);
 			prof->bLearnToLikeTime = jOpinions[idx].getOptionalUInt("resistanceToBefriending", binaryProf->bLearnToLikeTime);
 		}
 		if (jOpinions[idx].getOptionalBool("enemy1", binaryProf->bHated[HATED_SLOT1] == idx)) {
-			prof->bHated[HATED_SLOT1] = idx;
+			prof->bHated[HATED_SLOT1] = static_cast<INT16>(idx);
 			prof->bHatedTime[HATED_SLOT1] = jOpinions[idx].getOptionalUInt("tolerance", binaryProf->bHatedTime[HATED_SLOT1]);
 		}
 		else if (jOpinions[idx].getOptionalBool("enemy2", binaryProf->bHated[HATED_SLOT2] == idx)) {
-			prof->bHated[HATED_SLOT2] = idx;
+			prof->bHated[HATED_SLOT2] = static_cast<INT16>(idx);
 			prof->bHatedTime[HATED_SLOT2] = jOpinions[idx].getOptionalUInt("tolerance", binaryProf->bHatedTime[HATED_SLOT2]);
 		}
 		if (jOpinions[idx].getOptionalBool("eventualEnemy", binaryProf->bLearnToHate == idx)) {
-			prof->bLearnToHate = idx;
+			prof->bLearnToHate = static_cast<INT16>(idx);
 			prof->bLearnToHateTime = jOpinions[idx].getOptionalUInt("resistanceToMakingEnemy", binaryProf->bLearnToHateTime);
 		}
 	}
@@ -574,7 +565,7 @@ JsonValue MercProfile::serializeStructRelations(const ContentManager* contentMan
 	// triple digits prepended to field names is a workaround to sort them in convenient order instead of alphabetically
 	obj.set("000profile", this->getInfo().internalName);
 	JsonArray opinions;
-	for (uint8_t i = 0; i < lengthof(prof->bMercOpinion); i++) {
+	for (size_t i = 0; i < lengthof(prof->bMercOpinion); i++) {
 		if (prof->bMercOpinion[i] != 0) {
 			JsonObject opinion;
 			opinion.set("000target", (contentManager->getMercProfileInfo(i))->internalName);

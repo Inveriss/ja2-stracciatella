@@ -7,9 +7,10 @@
 #define AIM_HISTORY_LINE_SIZE		400
 
 
-// Room for the 40 original A.I.M. mercs (profiles 0-39) and the 35 profiles 165-199 that are
-// free for added characters (see NUM_PROFILES; profile 164 stands in for two vehicle types).
-#define MAX_NUMBER_MERCS		75
+// Room for the 40 original A.I.M. mercs (profiles 0-39) and the profiles that are free for added
+// characters: 165-199 (35) and 201-254 (54), see Soldier_Profile_Type.h. Profile 164 stands in for
+// two vehicle types.
+#define MAX_NUMBER_MERCS		130
 // The number of A.I.M. mercs (profiles of type "AIM"), at most MAX_NUMBER_MERCS.
 extern UINT8 gubNumAimMercs;
 // The first mercs of the A.I.M. (the original ones) have replies etc. in the game data that

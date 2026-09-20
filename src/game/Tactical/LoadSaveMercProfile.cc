@@ -49,6 +49,14 @@ static size_t VanillaInvSlotToEngine(size_t const vanillaSlot)
 
 /**
 * Extract merc profile from the binary data. */
+// The ID of a friend or an enemy (-1: none): prof.dat has it in one byte, this engine's own
+// format in two, so the IDs above 127 fit.
+static INT16 ExtractRelationID(DataReader& S, bool const fVanillaProfileFormat)
+{
+	return fVanillaProfileFormat ? S.read<INT8>() : S.read<INT16>();
+}
+
+
 void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracLinuxFormat, UINT32 *checksum, bool const isCorrectlyEncoded, bool const fVanillaProfileFormat)
 {
 	DataReader S{Src};
@@ -75,7 +83,7 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_I8(S, p.bEvolution)
 	EXTR_U8(S, p.ubMiscFlags)
 	EXTR_U8(S, p.bSexist)
-	EXTR_I8(S, p.bLearnToHate)
+	p.bLearnToHate = ExtractRelationID(S, fVanillaProfileFormat);
 	EXTR_SKIP(S, 2)
 	EXTR_U8(S, p.ubQuoteRecord)
 	EXTR_I8(S, p.bDeathRate)
@@ -134,8 +142,8 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_I8(S, p.bExplosive)
 	EXTR_I8(S, p.bSkillTrait2)
 	EXTR_I8(S, p.bLeadership)
-	EXTR_I8A(S, p.bBuddy, lengthof(p.bBuddy))
-	EXTR_I8A(S, p.bHated, lengthof(p.bHated))
+	FOR_EACH(INT16, i, p.bBuddy) *i = ExtractRelationID(S, fVanillaProfileFormat);
+	FOR_EACH(INT16, i, p.bHated) *i = ExtractRelationID(S, fVanillaProfileFormat);
 	EXTR_I8(S, p.bExpLevel)
 	EXTR_I8(S, p.bMarksmanship)
 	EXTR_SKIP(S, 1)
@@ -214,7 +222,7 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_I8(S, p.bAttitude)
 	EXTR_SKIP(S, 2)
 	EXTR_U16(S, p.sMedicalDepositAmount)
-	EXTR_I8(S, p.bLearnToLike)
+	p.bLearnToLike = ExtractRelationID(S, fVanillaProfileFormat);
 	EXTR_U8A(S, p.ubApproachVal, lengthof(p.ubApproachVal))
 	EXTR_U8A(S, *p.ubApproachMod, sizeof(p.ubApproachMod) / sizeof(**p.ubApproachMod))
 	EXTR_I8(S, p.bTown)
@@ -313,7 +321,7 @@ void InjectMercProfile(BYTE* const Dst, MERCPROFILESTRUCT const& p)
 	INJ_I8(D, p.bEvolution)
 	INJ_U8(D, p.ubMiscFlags)
 	INJ_U8(D, p.bSexist)
-	INJ_I8(D, p.bLearnToHate)
+	INJ_I16(D, p.bLearnToHate)
 	INJ_SKIP(D, 2)
 	INJ_U8(D, p.ubQuoteRecord)
 	INJ_I8(D, p.bDeathRate)
@@ -372,8 +380,8 @@ void InjectMercProfile(BYTE* const Dst, MERCPROFILESTRUCT const& p)
 	INJ_I8(D, p.bExplosive)
 	INJ_I8(D, p.bSkillTrait2)
 	INJ_I8(D, p.bLeadership)
-	INJ_I8A(D, p.bBuddy, lengthof(p.bBuddy))
-	INJ_I8A(D, p.bHated, lengthof(p.bHated))
+	INJ_I16A(D, p.bBuddy, lengthof(p.bBuddy))
+	INJ_I16A(D, p.bHated, lengthof(p.bHated))
 	INJ_I8(D, p.bExpLevel)
 	INJ_I8(D, p.bMarksmanship)
 	INJ_SKIP(D, 1)
@@ -416,7 +424,7 @@ void InjectMercProfile(BYTE* const Dst, MERCPROFILESTRUCT const& p)
 	INJ_I8(D, p.bAttitude)
 	INJ_SKIP(D, 2)
 	INJ_U16(D, p.sMedicalDepositAmount)
-	INJ_I8(D, p.bLearnToLike)
+	INJ_I16(D, p.bLearnToLike)
 	INJ_U8A(D, p.ubApproachVal, lengthof(p.ubApproachVal))
 	INJ_U8A(D, *p.ubApproachMod, sizeof(p.ubApproachMod) / sizeof(**p.ubApproachMod))
 	INJ_I8(D, p.bTown)

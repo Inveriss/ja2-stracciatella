@@ -10,7 +10,6 @@ items:
   properties:
     profileID:
       minimum: 0
-      maximum: 199
       $ref: types/uint8.schema.yaml
     fullName:
       type: string

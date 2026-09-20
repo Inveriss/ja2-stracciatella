@@ -857,7 +857,7 @@ BuddySlot GetFirstBuddyOnTeam(MERCPROFILESTRUCT const& p)
 {
 	for (INT i = BUDDY_SLOT1; i < NUM_BUDDY_SLOTS; ++i)
 	{
-		INT8 const buddy = p.bBuddy[i];
+		INT16 const buddy = p.bBuddy[i];
 		if (buddy < 0)                     continue;
 		if (!IsMercOnTeam(buddy))          continue;
 		if (IsMercDead(GetProfile(buddy))) continue;

@@ -7,11 +7,13 @@
 
 
 // Profile IDs 0-169 are used by the original game (see mercs-profile-info.json; 164 also stands in
-// for two vehicle types in vehicles.json). The IDs above
-// them, up to 199, are free for additional characters (e.g. more A.I.M. mercs). NO_PROFILE (200)
-// is stored in the original sector map files and must stay out of this range.
+// for two vehicle types in vehicles.json). The IDs above them are free for additional characters
+// (e.g. more A.I.M. mercs), except NO_PROFILE (200): that value is stored in the original sector
+// map files as "no profile" and must not be used for a character. 255 is used as "none" in a few
+// places as well (IRRELEVANT of the NPC quotes, the owner of an item in the shop), so the
+// characters use 165-199 and 201-254.
 #define VANILLA_NUM_PROFILES			170
-#define NUM_PROFILES						200
+#define NUM_PROFILES						256
 // bMercOpinion is indexed by the profile ID of any merc the player can have on the team
 #define VANILLA_NUM_RECRUITABLE			75
 #define NUM_RECRUITABLE						NUM_PROFILES
@@ -286,14 +288,14 @@ struct MERCPROFILESTRUCT
 	UINT8 ubRoomRangeStart[2];
 	UINT8 ubRoomRangeEnd[2];
 
-	INT8 bBuddy[5]{ -1, -1, -1, -1, -1 }; // Only indices 0, 1, 2 are used. Contain id's for friend1, friend2 and eventual friend respectively
-	INT8 bHated[5]{ -1, -1, -1, -1, -1 }; // Only indices 0, 1, 2 are used. Contain id's for enemy1, enemy2 and eventual enemy respectively
+	INT16 bBuddy[5]{ -1, -1, -1, -1, -1 }; // Only indices 0, 1, 2 are used. Contain id's for friend1, friend2 and eventual friend respectively
+	INT16 bHated[5]{ -1, -1, -1, -1, -1 }; // Only indices 0, 1, 2 are used. Contain id's for enemy1, enemy2 and eventual enemy respectively
 	INT8 bHatedCount[5]; // Only indices 0, 1, 2 are used. Contain remaining decrements till contract termination due to an enemy present on the team
 	INT8 bHatedTime[5]; // Only indices 0, 1, 2 are used. Contain decrements till contract termination due to an enemy present on the team
-	INT8 bLearnToLike{ -1 }; // eventual friend's id
+	INT16 bLearnToLike{ -1 }; // eventual friend's id
 	INT8 bLearnToLikeCount; // remaining decrements till the eventual friend becomes an actual friend
 	INT8 bLearnToLikeTime; // how many decrements till the eventual friend becomes an actual friend
-	INT8 bLearnToHate{ -1 }; // eventual enemy's id
+	INT16 bLearnToHate{ -1 }; // eventual enemy's id
 	INT8 bLearnToHateCount; // remaining decrements till the eventual enemy becomes an actual enemy
 	INT8 bLearnToHateTime; // how many decrements till the eventual enemy becomes an actual enemy
 	// Flags used for the precedent to repeating oneself in Contract negotiations. Used for quote 80 - ~107. Gets reset every day

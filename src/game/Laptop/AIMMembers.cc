@@ -1802,7 +1802,7 @@ static BOOLEAN CanMercBeHired(void)
 	for (UINT8 i = HATED_SLOT1; i < NUM_HATED_SLOTS; ++i)
 	{
 		//see if someone the merc hates is on the team
-		INT8 const bMercID = p.bHated[i];
+		INT16 const bMercID = p.bHated[i];
 		if (bMercID < 0) continue;
 
 		if (!IsMercOnTeamAndInOmertaAlreadyAndAlive(bMercID)) continue;

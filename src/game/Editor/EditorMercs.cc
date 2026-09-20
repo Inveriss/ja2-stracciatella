@@ -1217,8 +1217,8 @@ static void ExtractAndUpdateMercProfile(void)
 
 	//if the string is blank, returning -1, then set the value to NO_PROFILE
 	//because ubProfile is unsigned.
-	sNum = (INT16)std::min(GetNumericStrictValueFromField( 0 ), NUM_PROFILES);
-	if( sNum == -1 )
+	sNum = (INT16)std::min(GetNumericStrictValueFromField( 0 ), NUM_PROFILES - 1);
+	if( sNum == -1 || sNum == NO_PROFILE )
 	{
 		gpSelected->pDetailedPlacement->ubProfile = NO_PROFILE;
 		gpSelected->pDetailedPlacement->fCopyProfileItemsOver = FALSE;
@@ -1911,7 +1911,7 @@ void UpdateMercsInfo()
 					"and override any values that you have edited.  It will also disable the editing features "
 					"though, you will still be able to view stats, etc.  Pressing ENTER will automatically "
 					"extract the number you have typed.  A blank field will clear the profile.  The current "
-					"number of profiles range from 0 to {}.", NUM_PROFILES);
+					"number of profiles range from 0 to {} ({} is no profile).", NUM_PROFILES - 1, (int)NO_PROFILE);
 				SetFontShadow(FONT_NEARBLACK);
 				DisplayWrappedString(180, EDITOR_TASKBAR_POS_Y + 10, 400, 2, FONT10ARIAL, 146, tempStr,	FONT_BLACK, LEFT_JUSTIFIED);
 				SetFont( FONT12POINT1 );
