@@ -18206,5 +18206,70 @@
         "effectiveness": 90
       }
     ]
+  },
+   {
+    "profileID": 230,
+    "internalName": "MIKE",
+    "type": "AIM",
+    "sex": "M",
+    "bodyType": "REGMALE",
+    "face": {
+      "eyesXY": [
+        8,
+        7
+      ],
+      "mouthXY": [
+        8,
+        26
+      ]
+    },
+    "skinColor": "PINKSKIN",
+    "hairColor": "BROWNHEAD",
+    "vestColor": "PURPLESHIRT",
+    "pantsColor": "GREENPANTS",
+    "stats": {
+      "agility": 80,
+      "dexterity": 95,
+      "experience": 1,
+      "explosive": 85,
+      "health": 48,
+      "leadership": 2,
+      "marksmanship": 60,
+      "mechanical": 11,
+      "medical": 31,
+      "sleepiness": 8,
+      "strength": 73,
+      "wisdom": 45
+    },
+    "personalityTrait": "NERVOUS",
+    "skillTrait": "ELECTRONICS",
+    "attitude": "FRIENDLY",
+    "sexismMode": "VERY_SEXIST",
+    "toleranceForPlayersReputation": 80,
+    "toleranceForPlayersDeathRate": 70,
+    "contract": {
+      "dailySalary": 350,
+      "weeklySalary": 0,
+      "biWeeklySalary": 0,
+      "isMedicalDepositRequired": false
+    },
+    "dialogue": [
+      {
+        "approach": "FRIENDLY",
+        "effectiveness": 160
+      },
+      {
+        "approach": "DIRECT",
+        "effectiveness": 90
+      },
+      {
+        "approach": "THREATEN",
+        "effectiveness": 60
+      },
+      {
+        "approach": "RECRUIT",
+        "effectiveness": 90
+      }
+    ]
   }
 ]
