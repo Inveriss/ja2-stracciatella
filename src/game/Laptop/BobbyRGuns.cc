@@ -23,6 +23,8 @@
 #include "CalibreModel.h"
 #include "ContentManager.h"
 #include "GameInstance.h"
+#include "ArmourModel.h"
+#include "Weapons.h"
 #include "MagazineModel.h"
 #include "WeaponModels.h"
 
@@ -189,6 +191,14 @@ static UINT32 const gAmmoFilterMasks[] =
 };
 static BobbyRFilterBar const gAmmoFilterBar = { 5, 5, gAmmoFilterNames, gAmmoFilterMasks, &gubAmmoFilter, IC_AMMO };
 
+static UINT8 gubArmourFilter = 0;
+static char const* const gArmourFilterNames[] = { "Head", "Vest", "Legs", "HeadGear" };
+static UINT32 const gArmourFilterMasks[] =
+{
+	BOBBYR_ARMOUR_HEAD_ITEMS, BOBBYR_ARMOUR_VEST_ITEMS, BOBBYR_ARMOUR_LEGS_ITEMS, BOBBYR_ARMOUR_HEADGEAR_ITEMS
+};
+static BobbyRFilterBar const gArmourFilterBar = { 4, 4, gArmourFilterNames, gArmourFilterMasks, &gubArmourFilter, BOBBYR_ARMOUR_ITEMS };
+
 // The buttons at the bottom of the current page, if it has them
 static BobbyRFilterBar const* gpFilterBar = nullptr;
 
@@ -199,6 +209,7 @@ static BobbyRFilterBar const* FilterBarOfPage(LaptopMode const mode)
 		case LAPTOP_MODE_BOBBY_R_GUNS:        return &gGunFilterBar;
 		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS: return &gAttachmentFilterBar;
 		case LAPTOP_MODE_BOBBY_R_AMMO:        return &gAmmoFilterBar;
+		case LAPTOP_MODE_BOBBY_R_ARMOR:        return &gArmourFilterBar;
 		default:                              return nullptr;
 	}
 }
@@ -221,6 +232,11 @@ UINT32 BobbyRAttachmentsPageMask()
 UINT32 BobbyRAmmoPageMask()
 {
 	return FilterBarMask(gAmmoFilterBar);
+}
+
+UINT32 BobbyRArmourPageMask()
+{
+	return FilterBarMask(gArmourFilterBar);
 }
 
 static UINT16 gusLastItemIndex  = 0;
@@ -287,6 +303,7 @@ void GameInitBobbyRGuns()
 	gubGunFilter = 0;
 	gubAttachmentFilter = 0;
 	gubAmmoFilter = 0;
+	gubArmourFilter = 0;
 }
 
 
@@ -1041,6 +1058,22 @@ static bool IsInAmmoClass(const ItemModel* const item, UINT32 const cls)
 }
 
 
+// Is the item in the given class of the armour page (BOBBYR_ARMOUR_*_ITEMS)? The ceramic plates
+// protect the torso, so they are with the vests.
+static bool IsInArmourClass(const ItemModel* const item, UINT32 const cls)
+{
+	if (cls == BOBBYR_ARMOUR_HEADGEAR_ITEMS) return (item->getItemClass() & IC_FACE) != 0;
+	if (item->getItemClass() != IC_ARMOUR || !item->asArmour()) return false;
+	UINT8 const armourClass = item->asArmour()->getArmourClass();
+	switch (cls)
+	{
+		case BOBBYR_ARMOUR_HEAD_ITEMS: return armourClass == ARMOURCLASS_HELMET;
+		case BOBBYR_ARMOUR_VEST_ITEMS: return armourClass == ARMOURCLASS_VEST || armourClass == ARMOURCLASS_PLATE;
+		default:                       return armourClass == ARMOURCLASS_LEGGINGS; // legs
+	}
+}
+
+
 // Is the item in the given class of the attachments page (BOBBYR_ATTACH_*_ITEMS)?
 static bool IsInAttachmentClass(const ItemModel* const item, UINT32 const cls)
 {
@@ -1077,6 +1110,7 @@ static bool IsInGunsClass(const ItemModel* const item, UINT32 const cls)
 bool BobbyRItemMatchesClass(const ItemModel* const item, UINT32 const uiClassMask)
 {
 	if (uiClassMask == BOBBYR_ATTACHMENT_ITEMS) return IsBobbyRAttachment(item);
+	if (uiClassMask >= BOBBYR_ARMOUR_HEADGEAR_ITEMS && uiClassMask <= BOBBYR_ARMOUR_HEAD_ITEMS) return IsInArmourClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_AMMO_UP_TO_250_ITEMS && uiClassMask <= BOBBYR_AMMO_UP_TO_15_ITEMS) return IsInAmmoClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_ATTACH_DOWN_ITEMS && uiClassMask <= BOBBYR_ATTACH_FRONT_ITEMS) return IsInAttachmentClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_GUNS_HEAVY_ITEMS && uiClassMask <= BOBBYR_GUNS_PISTOL_SMG_ITEMS) return IsInGunsClass(item, uiClassMask);

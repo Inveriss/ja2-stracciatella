@@ -34,6 +34,13 @@
 #define BOBBYR_ATTACH_TOP_ITEMS		0xFFFFFFF6
 #define BOBBYR_ATTACH_REAR_ITEMS	0xFFFFFFF5
 #define BOBBYR_ATTACH_DOWN_ITEMS	0xFFFFFFF4
+// The classes of the armour page (the buttons at the bottom of it): head, torso and leg protection,
+// and the headgear.
+#define BOBBYR_ARMOUR_HEAD_ITEMS	0xFFFFFFEE
+#define BOBBYR_ARMOUR_VEST_ITEMS	0xFFFFFFED
+#define BOBBYR_ARMOUR_LEGS_ITEMS	0xFFFFFFEC
+#define BOBBYR_ARMOUR_HEADGEAR_ITEMS	0xFFFFFFEB
+
 // The classes of the ammo page (the buttons at the bottom of it): the magazines by the number of
 // rounds: up to 15, 16-30, 31-50, 51-100 and 101-250.
 #define BOBBYR_AMMO_UP_TO_15_ITEMS	0xFFFFFFF3
@@ -92,5 +99,7 @@ bool BobbyRItemMatchesClass(const ItemModel* item, UINT32 uiClassMask);
 UINT32 BobbyRAttachmentsPageMask(void);
 // The class mask of the ammo page with its class button pressed (all the ammo when none is)
 UINT32 BobbyRAmmoPageMask(void);
+// The class mask of the armour page with its class button pressed (all the armour when none is)
+UINT32 BobbyRArmourPageMask(void);
 
 #endif
