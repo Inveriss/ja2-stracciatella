@@ -20,7 +20,9 @@
 // The classes of the guns page (the buttons at the bottom of it): pistols, machine pistols and
 // submachine guns plus the melee weapons; the assault rifles; the sniper rifles and the plain rifles;
 // the shotguns; the machine guns, the launchers and the rocket rifle.
-#define BOBBYR_GUNS_PISTOL_SMG_ITEMS	0xFFFFFFFC
+#define BOBBYR_GUNS_PISTOL_ITEMS	0xFFFFFFFC
+#define BOBBYR_GUNS_SMG_ITEMS	0xFFFFFFDF
+#define BOBBYR_GUNS_KNIVES_ITEMS	0xFFFFFFE0
 #define BOBBYR_GUNS_ASSAULT_ITEMS	0xFFFFFFFB
 #define BOBBYR_GUNS_SNIPER_ITEMS	0xFFFFFFFA
 #define BOBBYR_GUNS_SHOTGUN_ITEMS	0xFFFFFFF9
