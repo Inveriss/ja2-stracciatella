@@ -17,6 +17,16 @@
 #define BOBBYR_ATTACHMENT_ITEMS		0xFFFFFFFE
 // Miscellaneous: what the old Misc page had (IC_BOBBY_MISC) without the attachments and explosives.
 #define BOBBYR_MISC_ITEMS		0xFFFFFFFD
+// The classes of the guns page (the buttons at the bottom of it): pistols, machine pistols and
+// submachine guns plus the melee weapons; the assault rifles; the sniper rifles and the plain rifles;
+// the shotguns; the machine guns, the launchers and the rocket rifle.
+#define BOBBYR_GUNS_PISTOL_SMG_ITEMS	0xFFFFFFFC
+#define BOBBYR_GUNS_ASSAULT_ITEMS	0xFFFFFFFB
+#define BOBBYR_GUNS_SNIPER_ITEMS	0xFFFFFFFA
+#define BOBBYR_GUNS_SHOTGUN_ITEMS	0xFFFFFFF9
+#define BOBBYR_GUNS_HEAVY_ITEMS		0xFFFFFFF8
+// All the items of the guns page: the guns, the launchers and the melee weapons
+#define BOBBYR_ALL_GUN_ITEMS		(IC_GUN | IC_LAUNCHER | IC_BLADE | IC_THROWING_KNIFE | IC_PUNCH)
 // Armor and headgear: the armour and everything that is worn on the head (the face items).
 #define BOBBYR_ARMOUR_ITEMS		(IC_ARMOUR | IC_FACE)
 
