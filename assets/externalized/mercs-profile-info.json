@@ -18209,18 +18209,18 @@
   },
    {
     "profileID": 230,
-    "internalName": "MIKE",
+    "internalName": "MIKE_230",
     "type": "AIM",
     "sex": "M",
     "bodyType": "REGMALE",
     "face": {
       "eyesXY": [
-        8,
-        7
+        6,
+        8
       ],
       "mouthXY": [
-        8,
-        26
+        6,
+        23
       ]
     },
     "skinColor": "PINKSKIN",
