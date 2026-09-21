@@ -231,6 +231,8 @@ void InitNewGame()
 		AddPreReadEmail(RIS_REPORT,   RIS_REPORT_LENGTH,   RIS_EMAIL,   now);
 		AddPreReadEmail(OLD_ENRICO_3, OLD_ENRICO_3_LENGTH, MAIL_ENRICO, now);
 		AddPreReadEmail(IMP_EMAIL_INTRO, IMP_EMAIL_INTRO_LENGTH, CHAR_PROFILE_SITE, now);
+		// Enrico's "Good luck in Arulco" is in the mailbox from the start (it was sent when the mercs landed in Omerta)
+		AddPreReadEmail(ENRICO_CONGRATS, ENRICO_CONGRATS_LENGTH, MAIL_ENRICO, now);
 
 		// ATE: Set starting cash
 		INT32 starting_cash;
