@@ -18224,51 +18224,49 @@
       ]
     },
     "skinColor": "PINKSKIN",
-    "hairColor": "BROWNHEAD",
-    "vestColor": "PURPLESHIRT",
-    "pantsColor": "GREENPANTS",
+    "hairColor": "BLACKHEAD",
+    "vestColor": "BLACKSHIRT",
+    "pantsColor": "BLACKPANTS",
     "stats": {
-      "agility": 80,
-      "dexterity": 95,
-      "experience": 1,
-      "explosive": 85,
-      "health": 48,
-      "leadership": 2,
-      "marksmanship": 60,
-      "mechanical": 11,
-      "medical": 31,
-      "sleepiness": 8,
-      "strength": 73,
-      "wisdom": 45
+      "agility": 99,
+      "dexterity": 99,
+      "experience": 9,
+      "explosive": 99,
+      "health": 99,
+      "leadership": 99,
+      "marksmanship": 99,
+      "mechanical": 99,
+      "medical": 99,
+      "sleepiness": 5,
+      "strength": 99,
+      "wisdom": 99
     },
-    "personalityTrait": "NERVOUS",
-    "skillTrait": "ELECTRONICS",
-    "attitude": "FRIENDLY",
-    "sexismMode": "VERY_SEXIST",
-    "toleranceForPlayersReputation": 80,
-    "toleranceForPlayersDeathRate": 70,
+    "skillTrait": "HEAVY_WEAPS",
+    "skillTrait2": "AUTO_WEAPS",
+    "toleranceForPlayersReputation": 101,
+    "toleranceForPlayersDeathRate": 101,
     "contract": {
-      "dailySalary": 350,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "dailySalary": 10000,
+      "weeklySalary": 60000,
+      "biWeeklySalary": 120000,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
       {
         "approach": "FRIENDLY",
-        "effectiveness": 160
+        "effectiveness": 300
       },
       {
         "approach": "DIRECT",
-        "effectiveness": 90
+        "effectiveness": 400
       },
       {
         "approach": "THREATEN",
-        "effectiveness": 60
+        "effectiveness": 500
       },
       {
         "approach": "RECRUIT",
-        "effectiveness": 90
+        "effectiveness": 300
       }
     ]
   }
