@@ -33,6 +33,8 @@
 #include "BobbyRAmmo.h"
 #include "BobbyRArmour.h"
 #include "BobbyRMisc.h"
+#include "BobbyRAttachments.h"
+#include "BobbyRExplosives.h"
 #include "BobbyRUsed.h"
 #include "BobbyRMailOrder.h"
 #include "CharProfile.h"
@@ -724,6 +726,8 @@ static void RenderLaptop(void)
 		case LAPTOP_MODE_BOBBY_R_AMMO:             RenderBobbyRAmmo();        break;
 		case LAPTOP_MODE_BOBBY_R_ARMOR:            RenderBobbyRArmour();      break;
 		case LAPTOP_MODE_BOBBY_R_MISC:             RenderBobbyRMisc();        break;
+		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS:      RenderBobbyRAttachments(); break;
+		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:       RenderBobbyRExplosives();  break;
 		case LAPTOP_MODE_BOBBY_R_USED:             RenderBobbyRUsed();        break;
 		case LAPTOP_MODE_BOBBY_R_MAILORDER:        RenderBobbyRMailOrder();   break;
 		case LAPTOP_MODE_BOBBYR_SHIPMENTS:         RenderBobbyRShipments();   break;
@@ -919,6 +923,8 @@ do_nothing:
 		case LAPTOP_MODE_BOBBY_R_AMMO:             EnterBobbyRAmmo();        break;
 		case LAPTOP_MODE_BOBBY_R_ARMOR:            EnterBobbyRArmour();      break;
 		case LAPTOP_MODE_BOBBY_R_MISC:             EnterBobbyRMisc();        break;
+		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS:      EnterBobbyRAttachments(); break;
+		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:       EnterBobbyRExplosives();  break;
 		case LAPTOP_MODE_BOBBY_R_USED:             EnterBobbyRUsed();        break;
 		case LAPTOP_MODE_BOBBY_R_MAILORDER:        EnterBobbyRMailOrder();   break;
 		case LAPTOP_MODE_BOBBYR_SHIPMENTS:         EnterBobbyRShipments();   break;
@@ -1249,6 +1255,8 @@ static void ExitLaptopMode(LaptopMode uiMode)
 		case LAPTOP_MODE_BOBBY_R_AMMO:             ExitBobbyRAmmo();        break;
 		case LAPTOP_MODE_BOBBY_R_ARMOR:            ExitBobbyRArmour();      break;
 		case LAPTOP_MODE_BOBBY_R_MISC:             ExitBobbyRMisc();        break;
+		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS:      ExitBobbyRAttachments(); break;
+		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:       ExitBobbyRExplosives();  break;
 		case LAPTOP_MODE_BOBBY_R_USED:             ExitBobbyRUsed();        break;
 		case LAPTOP_MODE_BOBBY_R_MAILORDER:        ExitBobbyRMailOrder();   break;
 		case LAPTOP_MODE_BOBBYR_SHIPMENTS:         ExitBobbyRShipments();   break;

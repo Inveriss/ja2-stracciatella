@@ -17,6 +17,8 @@ set(JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRGuns.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRMailOrder.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRMisc.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRAttachments.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRExplosives.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRShipments.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRUsed.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BrokenLink.cc

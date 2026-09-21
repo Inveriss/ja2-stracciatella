@@ -1,7 +1,7 @@
 #include "Directories.h"
 #include "Item_Types.h"
 #include "Laptop.h"
-#include "BobbyRMisc.h"
+#include "BobbyRExplosives.h"
 #include "BobbyR.h"
 #include "BobbyRGuns.h"
 #include "Button_System.h"
@@ -10,47 +10,49 @@
 #include "VSurface.h"
 
 
+// The page of the Explosives of Bobby Ray's: the layout of the Misc page (its background and grid)
 namespace {
-cache_key_t const guiMiscBackground{ LAPTOPDIR "/miscbackground.sti" };
-cache_key_t const guiMiscGrid{ LAPTOPDIR "/miscgrid.sti" };
+cache_key_t const guiExplosivesBackground{ LAPTOPDIR "/miscbackground.sti" };
+cache_key_t const guiExplosivesGrid{ LAPTOPDIR "/miscgrid.sti" };
 }
 
-void EnterBobbyRMisc()
+void EnterBobbyRExplosives()
 {
 	InitBobbyBrTitle();
 	//Draw menu bar
 	InitBobbyMenuBar( );
 
-	SetFirstLastPagesForNew( BOBBYR_MISC_ITEMS );
+	SetFirstLastPagesForNew( IC_EXPLOSV );
 
-	RenderBobbyRMisc( );
+	RenderBobbyRExplosives( );
 }
 
 
-void ExitBobbyRMisc()
+void ExitBobbyRExplosives()
 {
-	RemoveVObject(guiMiscBackground);
-	RemoveVObject(guiMiscGrid);
+	RemoveVObject(guiExplosivesBackground);
+	RemoveVObject(guiExplosivesGrid);
 	DeleteBobbyBrTitle();
 	DeleteMouseRegionForBigImage();
 	DeleteBobbyMenuBar();
 
-	guiLastBobbyRayPage = LAPTOP_MODE_BOBBY_R_MISC;
+	giCurrentSubPage = gusCurWeaponIndex;
+	guiLastBobbyRayPage = LAPTOP_MODE_BOBBY_R_EXPLOSIVES;
 }
 
 
-void RenderBobbyRMisc()
+void RenderBobbyRExplosives()
 {
 	WebPageTileBackground(BOBBYR_NUM_HORIZONTAL_TILES, BOBBYR_NUM_VERTICAL_TILES,
 		BOBBYR_BACKGROUND_WIDTH, BOBBYR_BACKGROUND_HEIGHT,
-		GetVObject(guiMiscBackground));
+		GetVObject(guiExplosivesBackground));
 
 	//Display title at top of page
 	DisplayBobbyRBrTitle();
 
-	BltVideoObject(FRAME_BUFFER, guiMiscGrid, 0, BOBBYR_GRIDLOC_X, BOBBYR_GRIDLOC_Y);
+	BltVideoObject(FRAME_BUFFER, guiExplosivesGrid, 0, BOBBYR_GRIDLOC_X, BOBBYR_GRIDLOC_Y);
 
-	DisplayItemInfo(BOBBYR_MISC_ITEMS);
+	DisplayItemInfo(IC_EXPLOSV);
 
 	UpdateButtonText(guiCurrentLaptopMode);
 	MarkButtonsDirty( );

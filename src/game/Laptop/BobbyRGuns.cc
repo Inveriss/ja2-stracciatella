@@ -55,7 +55,7 @@
 #define   BOBBYR_ITEM_NAME_TEXT_COLOR	FONT_MCOLOR_WHITE
 
 #define NUM_BOBBYRPAGE_MENU		6
-#define NUM_CATALOGUE_BUTTONS		5
+#define NUM_CATALOGUE_BUTTONS		4
 #define BOBBYR_NUM_WEAPONS_ON_PAGE	4
 
 #define BOBBYR_BRTITLE_X		LAPTOP_SCREEN_UL_X + 4
@@ -154,8 +154,7 @@ static LaptopMode const ubCatalogueButtonValues[] =
 	LAPTOP_MODE_BOBBY_R_GUNS,
 	LAPTOP_MODE_BOBBY_R_AMMO,
 	LAPTOP_MODE_BOBBY_R_ARMOR,
-	LAPTOP_MODE_BOBBY_R_MISC,
-	LAPTOP_MODE_BOBBY_R_USED
+	LAPTOP_MODE_BOBBY_R_MISC
 };
 
 static UINT16 gusLastItemIndex  = 0;
@@ -512,7 +511,7 @@ void DisplayItemInfo(UINT32 uiItemClass)
 
 		// skip items that aren't of the right item class
 		const ItemModel * item = GCM->getItem(usItemIndex);
-		if (!(item->getItemClass() & uiItemClass)) continue;
+		if (!BobbyRItemMatchesClass(item, uiItemClass)) continue;
 
 		items[ubCount] = item;
 
@@ -915,6 +914,29 @@ static void DisplayItemNameAndInfo(UINT16 usPosY, UINT16 usIndex, UINT16 usBobby
 
 
 //Loops through Bobby Rays Inventory to find the first and last index
+// An attachment of a weapon (scopes, silencers, bipods...). Armour (the ceramic plates), face items,
+// weapons and explosives are not counted, even when they are attachable, like in the sector
+// inventory (GetSectorInventoryFilterCategory()).
+static bool IsBobbyRAttachment(const ItemModel* const item)
+{
+	if (item->isArmour() || item->isFace() || item->isWeapon() || item->isExplosive()) return false;
+	if (item->getFlags() & ITEM_ATTACHMENT) return true;
+	return item->getItemIndex() == GUN_BARREL_EXTENDER || item->getItemIndex() == SPRING_AND_BOLT_UPGRADE;
+}
+
+
+bool BobbyRItemMatchesClass(const ItemModel* const item, UINT32 const uiClassMask)
+{
+	if (uiClassMask == BOBBYR_ATTACHMENT_ITEMS) return IsBobbyRAttachment(item);
+	if (uiClassMask == BOBBYR_MISC_ITEMS)
+	{
+		// the face items (worn on the head) are on the armour page
+		return (item->getItemClass() & IC_BOBBY_MISC) && !(item->getItemClass() & (IC_EXPLOSV | IC_FACE)) && !IsBobbyRAttachment(item);
+	}
+	return (item->getItemClass() & uiClassMask) != 0;
+}
+
+
 void SetFirstLastPagesForNew( UINT32 uiClassMask )
 {
 	UINT16 i;
@@ -930,7 +952,7 @@ void SetFirstLastPagesForNew( UINT32 uiClassMask )
 		//If we have some of the inventory on hand
 		if( LaptopSaveInfo.BobbyRayInventory[ i ].ubQtyOnHand != 0 )
 		{
-			if( GCM->getItem(LaptopSaveInfo.BobbyRayInventory[ i ].usItemIndex)->getItemClass() & uiClassMask )
+			if( BobbyRItemMatchesClass(GCM->getItem(LaptopSaveInfo.BobbyRayInventory[ i ].usItemIndex), uiClassMask) )
 			{
 				ubNumItems++;
 
@@ -1303,9 +1325,6 @@ void UpdateButtonText(UINT32	uiCurPage)
 			DisableButton( guiBobbyRPageMenu[3] );
 			break;
 
-		case LAPTOP_MODE_BOBBY_R_USED:
-			DisableButton( guiBobbyRPageMenu[4] );
-			break;
 	}
 }
 
@@ -1355,7 +1374,7 @@ static void CalcFirstIndexForPage(STORE_INVENTORY* const pInv, UINT32 const item
 	UINT16 inv_idx = 0;
 	for (UINT16 i = gusFirstItemIndex; i <= gusLastItemIndex; ++i)
 	{
-		if (!(GCM->getItem(pInv[i].usItemIndex)->getItemClass() & item_class)) continue;
+		if (!BobbyRItemMatchesClass(GCM->getItem(pInv[i].usItemIndex), item_class)) continue;
 		// If we have some of the inventory on hand
 		if (pInv[i].ubQtyOnHand == 0) continue;
 

@@ -33,7 +33,7 @@
 #define BOBBIES_SIGN_BACKCOLOR			FONT_MCOLOR_BLACK
 #define BOBBIES_SIGN_BACKGROUNDCOLOR		78//NO_SHADOW
 
-#define BOBBIES_NUMBER_SIGNS			5
+#define BOBBIES_NUMBER_SIGNS			6
 
 #define BOBBIES_SENTENCE_FONT			FONT12ARIAL
 #define BOBBIES_SENTENCE_COLOR			FONT_MCOLOR_WHITE
@@ -71,37 +71,52 @@
 #define BOBBIES_2ND_SENTENCE_Y			BOBBIES_FIRST_SENTENCE_Y + 13
 #define BOBBIES_2ND_SENTENCE_WIDTH		500
 
-#define BOBBIES_CENTER_SIGN_OFFSET_Y		23
+// The six signs of the plaques graphic (bobbyplaques.sti, 414x190): the rectangle of every sign relative
+// to the upper left corner of the graphic and the page it opens. The graphic is drawn at
+// BOBBYS_PLAQUES_X/Y. The used items sign is not there any more.
+struct BobbySign
+{
+	INT16     x1;
+	INT16     y1;
+	INT16     x2;
+	INT16     y2;
+	LaptopMode mode;
+};
+static BobbySign const gBobbySigns[BOBBIES_NUMBER_SIGNS] =
+{
+	{  21,  37, 127,  89, LAPTOP_MODE_BOBBY_R_GUNS },        // GUNS
+	{ 151,  36, 258,  90, LAPTOP_MODE_BOBBY_R_ATTACHMENTS }, // ATTACHMENTS
+	{ 282,  35, 396,  90, LAPTOP_MODE_BOBBY_R_AMMO },        // AMMO
+	{  15, 118, 128, 176, LAPTOP_MODE_BOBBY_R_ARMOR },       // ARMOR
+	{ 147, 118, 263, 175, LAPTOP_MODE_BOBBY_R_EXPLOSIVES },  // EXPLOSIVES
+	{ 279, 118, 398, 177, LAPTOP_MODE_BOBBY_R_MISC }         // MISCELLANEOUS
+};
 
-#define BOBBIES_USED_SIGN_X			(UINT16)(BOBBYS_PLAQUES_X + 93)
-#define BOBBIES_USED_SIGN_Y			(UINT16)(BOBBYS_PLAQUES_Y + 32)
-#define BOBBIES_USED_SIGN_WIDTH			92
-#define BOBBIES_USED_SIGN_HEIGHT		50
-#define BOBBIES_USED_SIGN_TEXT_OFFSET		BOBBIES_USED_SIGN_Y + 10
+// The second line of a sign (under the text): the ARMOR sign says what else it holds
+static ST::string BobbySignSecondLine(int const sign)
+{
+	return sign == 3 ? ST::string("HEADGEAR") : ST::string();
+}
 
-#define BOBBIES_MISC_SIGN_X			(UINT16)(BOBBYS_PLAQUES_X + 238)
-#define BOBBIES_MISC_SIGN_Y			(UINT16)(BOBBYS_PLAQUES_Y + 27)
-#define BOBBIES_MISC_SIGN_WIDTH			103
-#define BOBBIES_MISC_SIGN_HEIGHT		57
-#define BOBBIES_MISC_SIGN_TEXT_OFFSET		BOBBIES_MISC_SIGN_Y + BOBBIES_CENTER_SIGN_OFFSET_Y
+// The font of all the texts of the signs; a text that is wider than its sign is not made smaller
+#define BOBBIES_SIGN_TEXT_FONT		FONT14ARIAL
+// The width of the area the (centred) texts are drawn in, wider than any sign
+#define BOBBIES_SIGN_TEXT_AREA_WIDTH	240
+// The second line of a sign (HEADGEAR) is this many pixels lower than right under the first one
+#define BOBBIES_SIGN_SECOND_LINE_OFFSET_Y	3
 
-#define BOBBIES_GUNS_SIGN_X			(UINT16)(BOBBYS_PLAQUES_X + 3)
-#define BOBBIES_GUNS_SIGN_Y			(UINT16)(BOBBYS_PLAQUES_Y + 102)
-#define BOBBIES_GUNS_SIGN_WIDTH			116
-#define BOBBIES_GUNS_SIGN_HEIGHT		75
-#define BOBBIES_GUNS_SIGN_TEXT_OFFSET		BOBBIES_GUNS_SIGN_Y + BOBBIES_CENTER_SIGN_OFFSET_Y
-
-#define BOBBIES_AMMO_SIGN_X			(UINT16)(BOBBYS_PLAQUES_X + 150)
-#define BOBBIES_AMMO_SIGN_Y			(UINT16)(BOBBYS_PLAQUES_Y + 105)
-#define BOBBIES_AMMO_SIGN_WIDTH			112
-#define BOBBIES_AMMO_SIGN_HEIGHT		71
-#define BOBBIES_AMMO_SIGN_TEXT_OFFSET		BOBBIES_AMMO_SIGN_Y + BOBBIES_CENTER_SIGN_OFFSET_Y
-
-#define BOBBIES_ARMOUR_SIGN_X			(UINT16)(BOBBYS_PLAQUES_X + 290)
-#define BOBBIES_ARMOUR_SIGN_Y			(UINT16)(BOBBYS_PLAQUES_Y + 108)
-#define BOBBIES_ARMOUR_SIGN_WIDTH		114
-#define BOBBIES_ARMOUR_SIGN_HEIGHT		70
-#define BOBBIES_ARMOUR_SIGN_TEXT_OFFSET		BOBBIES_ARMOUR_SIGN_Y + BOBBIES_CENTER_SIGN_OFFSET_Y
+// The text of a sign; the ones of the three new signs are not in the text tables of the languages yet
+static ST::string BobbySignText(int const sign)
+{
+	switch (sign)
+	{
+		case 0:  return BobbyRaysFrontText[BOBBYR_GUNS];
+		case 1:  return "ATTACHMENTS";
+		case 2:  return BobbyRaysFrontText[BOBBYR_AMMO];
+		case 3:  return BobbyRaysFrontText[BOBBYR_ARMOR];
+		default: return sign == 4 ? ST::string("EXPLOSIVES") : ST::string("MISCELLANEOUS");
+	}
+}
 
 #define BOBBIES_3RD_SENTENCE_X			LAPTOP_SCREEN_UL_X
 #define BOBBIES_3RD_SENTENCE_Y			BOBBIES_BOTTOMHINGE_Y + 40
@@ -139,16 +154,6 @@ static SGPVObject* guiUnderConstructionImage;
 LaptopMode guiLastBobbyRayPage;
 
 
-static LaptopMode const gubBobbyRPages[] =
-{
-	LAPTOP_MODE_BOBBY_R_USED,
-	LAPTOP_MODE_BOBBY_R_MISC,
-	LAPTOP_MODE_BOBBY_R_GUNS,
-	LAPTOP_MODE_BOBBY_R_AMMO,
-	LAPTOP_MODE_BOBBY_R_ARMOR
-};
-
-
 //Bobby's Sign menu mouse regions
 static MOUSE_REGION gSelectedBobbiesSignMenuRegion[BOBBIES_NUMBER_SIGNS];
 
@@ -161,29 +166,15 @@ void EnterBobbyR()
 {
 	UINT8 i;
 
-	// an array of mouse regions for the bobbies signs.  Top Left corner, bottom right corner
-	UINT16  usMouseRegionPosArray[] = {
-		BOBBIES_USED_SIGN_X,
-		BOBBIES_USED_SIGN_Y,
-		(UINT16)(BOBBIES_USED_SIGN_X+BOBBIES_USED_SIGN_WIDTH),
-		(UINT16)(BOBBIES_USED_SIGN_Y+BOBBIES_USED_SIGN_HEIGHT),
-		BOBBIES_MISC_SIGN_X,
-		BOBBIES_MISC_SIGN_Y,
-		(UINT16)(BOBBIES_MISC_SIGN_X+BOBBIES_MISC_SIGN_WIDTH),
-		(UINT16)(BOBBIES_MISC_SIGN_Y+BOBBIES_MISC_SIGN_HEIGHT),
-		BOBBIES_GUNS_SIGN_X,
-		BOBBIES_GUNS_SIGN_Y,
-		(UINT16)(BOBBIES_GUNS_SIGN_X+BOBBIES_GUNS_SIGN_WIDTH),
-		(UINT16)(BOBBIES_GUNS_SIGN_Y+BOBBIES_GUNS_SIGN_HEIGHT),
-		BOBBIES_AMMO_SIGN_X,
-		BOBBIES_AMMO_SIGN_Y,
-		(UINT16)(BOBBIES_AMMO_SIGN_X+BOBBIES_AMMO_SIGN_WIDTH),
-		(UINT16)(BOBBIES_AMMO_SIGN_Y+BOBBIES_AMMO_SIGN_HEIGHT),
-		BOBBIES_ARMOUR_SIGN_X,
-		BOBBIES_ARMOUR_SIGN_Y,
-		(UINT16)(BOBBIES_ARMOUR_SIGN_X+BOBBIES_ARMOUR_SIGN_WIDTH),
-		(UINT16)(BOBBIES_ARMOUR_SIGN_Y+BOBBIES_ARMOUR_SIGN_HEIGHT)
-	};
+	// the mouse regions of the signs: top left corner, bottom right corner
+	UINT16 usMouseRegionPosArray[BOBBIES_NUMBER_SIGNS * 4];
+	for (int s = 0; s < BOBBIES_NUMBER_SIGNS; ++s)
+	{
+		usMouseRegionPosArray[s * 4 + 0] = (UINT16)(BOBBYS_PLAQUES_X + gBobbySigns[s].x1);
+		usMouseRegionPosArray[s * 4 + 1] = (UINT16)(BOBBYS_PLAQUES_Y + gBobbySigns[s].y1);
+		usMouseRegionPosArray[s * 4 + 2] = (UINT16)(BOBBYS_PLAQUES_X + gBobbySigns[s].x2);
+		usMouseRegionPosArray[s * 4 + 3] = (UINT16)(BOBBYS_PLAQUES_Y + gBobbySigns[s].y2);
+	}
 
 	InitBobbyRWoodBackground();
 
@@ -284,16 +275,26 @@ void RenderBobbyR()
 
 
 	SetFontShadow(BOBBIES_SIGN_BACKGROUNDCOLOR);
-	//Text on the Used Sign
-	DisplayWrappedString(BOBBIES_USED_SIGN_X, BOBBIES_USED_SIGN_TEXT_OFFSET, BOBBIES_USED_SIGN_WIDTH - 5, 2, BOBBIES_SIGN_FONT, BOBBIES_SIGN_COLOR, BobbyRaysFrontText[BOBBYR_USED], BOBBIES_SIGN_BACKCOLOR, CENTER_JUSTIFIED);
-	//Text on the Misc Sign
-	DisplayWrappedString(BOBBIES_MISC_SIGN_X, BOBBIES_MISC_SIGN_TEXT_OFFSET, BOBBIES_MISC_SIGN_WIDTH, 2, BOBBIES_SIGN_FONT, BOBBIES_SIGN_COLOR, BobbyRaysFrontText[BOBBYR_MISC], BOBBIES_SIGN_BACKCOLOR, CENTER_JUSTIFIED);
-	//Text on the Guns Sign
-	DisplayWrappedString(BOBBIES_GUNS_SIGN_X, BOBBIES_GUNS_SIGN_TEXT_OFFSET, BOBBIES_GUNS_SIGN_WIDTH, 2, BOBBIES_SIGN_FONT, BOBBIES_SIGN_COLOR, BobbyRaysFrontText[BOBBYR_GUNS], BOBBIES_SIGN_BACKCOLOR, CENTER_JUSTIFIED);
-	//Text on the Ammo Sign
-	DisplayWrappedString(BOBBIES_AMMO_SIGN_X, BOBBIES_AMMO_SIGN_TEXT_OFFSET, BOBBIES_AMMO_SIGN_WIDTH, 2, BOBBIES_SIGN_FONT, BOBBIES_SIGN_COLOR, BobbyRaysFrontText[BOBBYR_AMMO], BOBBIES_SIGN_BACKCOLOR, CENTER_JUSTIFIED);
-	//Text on the Armour Sign
-	DisplayWrappedString(BOBBIES_ARMOUR_SIGN_X, BOBBIES_ARMOUR_SIGN_TEXT_OFFSET, BOBBIES_ARMOUR_SIGN_WIDTH, 2, BOBBIES_SIGN_FONT, BOBBIES_SIGN_COLOR, BobbyRaysFrontText[BOBBYR_ARMOR], BOBBIES_SIGN_BACKCOLOR, CENTER_JUSTIFIED);
+	// The text on the signs, in the largest font that fits, in the middle of the sign
+	for (int s = 0; s < BOBBIES_NUMBER_SIGNS; ++s)
+	{
+		BobbySign const& sign = gBobbySigns[s];
+		ST::string const text = BobbySignText(s);
+		ST::string const second = BobbySignSecondLine(s);
+		INT16 const width = BOBBIES_SIGN_TEXT_AREA_WIDTH;
+		SGPFont const font = BOBBIES_SIGN_TEXT_FONT;
+		SGPFont const font2 = BOBBIES_SIGN_TEXT_FONT;
+		// one or two lines, together in the middle of the sign
+		INT16 const height = GetFontHeight(font) + (second.empty() ? 0 : GetFontHeight(font2));
+		INT16 const x = BOBBYS_PLAQUES_X + (sign.x1 + sign.x2 - width) / 2;
+		INT16 y = BOBBYS_PLAQUES_Y + (sign.y1 + sign.y2 - height) / 2;
+		DisplayWrappedString(x, y, width, 2, font, BOBBIES_SIGN_COLOR, text, BOBBIES_SIGN_BACKCOLOR, CENTER_JUSTIFIED);
+		if (!second.empty())
+		{
+			y += GetFontHeight(font) + BOBBIES_SIGN_SECOND_LINE_OFFSET_Y;
+			DisplayWrappedString(x, y, width, 2, font2, BOBBIES_SIGN_COLOR, second, BOBBIES_SIGN_BACKCOLOR, CENTER_JUSTIFIED);
+		}
+	}
 
 	if( LaptopSaveInfo.fBobbyRSiteCanBeAccessed )
 	{
@@ -360,7 +361,7 @@ static void InitBobbiesMouseRegion(UINT8 ubNumerRegions, UINT16* usMouseRegionPo
 					usMouseRegionPosArray[ubCount+2], usMouseRegionPosArray[ubCount+3],
 					MSYS_PRIORITY_HIGH, CURSOR_WWW, MSYS_NO_CALLBACK,
 					SelectBobbiesSignMenuRegionCallBack);
-		MSYS_SetRegionUserData( &MouseRegion[i], 0, gubBobbyRPages[i]);
+		MSYS_SetRegionUserData( &MouseRegion[i], 0, gBobbySigns[i].mode);
 
 		ubCount +=4;
 	}
