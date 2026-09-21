@@ -180,6 +180,15 @@ static UINT32 const gAttachmentFilterMasks[] =
 };
 static BobbyRFilterBar const gAttachmentFilterBar = { 4, 4, gAttachmentFilterNames, gAttachmentFilterMasks, &gubAttachmentFilter, BOBBYR_ATTACHMENT_ITEMS };
 
+static UINT8 gubAmmoFilter = 0;
+static char const* const gAmmoFilterNames[] = { "Up to 15", "Up to 30", "Up to 50", "Up to 100", "Up to 250" };
+static UINT32 const gAmmoFilterMasks[] =
+{
+	BOBBYR_AMMO_UP_TO_15_ITEMS, BOBBYR_AMMO_UP_TO_30_ITEMS, BOBBYR_AMMO_UP_TO_50_ITEMS,
+	BOBBYR_AMMO_UP_TO_100_ITEMS, BOBBYR_AMMO_UP_TO_250_ITEMS
+};
+static BobbyRFilterBar const gAmmoFilterBar = { 5, 5, gAmmoFilterNames, gAmmoFilterMasks, &gubAmmoFilter, IC_AMMO };
+
 // The buttons at the bottom of the current page, if it has them
 static BobbyRFilterBar const* gpFilterBar = nullptr;
 
@@ -189,6 +198,7 @@ static BobbyRFilterBar const* FilterBarOfPage(LaptopMode const mode)
 	{
 		case LAPTOP_MODE_BOBBY_R_GUNS:        return &gGunFilterBar;
 		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS: return &gAttachmentFilterBar;
+		case LAPTOP_MODE_BOBBY_R_AMMO:        return &gAmmoFilterBar;
 		default:                              return nullptr;
 	}
 }
@@ -206,6 +216,11 @@ static UINT32 GunsPageMask()
 UINT32 BobbyRAttachmentsPageMask()
 {
 	return FilterBarMask(gAttachmentFilterBar);
+}
+
+UINT32 BobbyRAmmoPageMask()
+{
+	return FilterBarMask(gAmmoFilterBar);
 }
 
 static UINT16 gusLastItemIndex  = 0;
@@ -271,6 +286,7 @@ void GameInitBobbyRGuns()
 	std::fill_n(BobbyRayPurchases, MAX_PURCHASE_AMOUNT, BobbyRayPurchaseStruct{});
 	gubGunFilter = 0;
 	gubAttachmentFilter = 0;
+	gubAmmoFilter = 0;
 }
 
 
@@ -1008,6 +1024,23 @@ static bool IsBobbyRAttachment(const ItemModel* const item)
 }
 
 
+// Is the item a magazine of the given class of the ammo page (BOBBYR_AMMO_UP_TO_*_ITEMS)? The class is
+// the number of rounds of the magazine.
+static bool IsInAmmoClass(const ItemModel* const item, UINT32 const cls)
+{
+	if (item->getItemClass() != IC_AMMO || !item->asAmmo()) return false;
+	unsigned const rounds = item->asAmmo()->capacity;
+	switch (cls)
+	{
+		case BOBBYR_AMMO_UP_TO_15_ITEMS:  return rounds <= 15;
+		case BOBBYR_AMMO_UP_TO_30_ITEMS:  return rounds >= 16 && rounds <= 30;
+		case BOBBYR_AMMO_UP_TO_50_ITEMS:  return rounds >= 31 && rounds <= 50;
+		case BOBBYR_AMMO_UP_TO_100_ITEMS: return rounds >= 51 && rounds <= 100;
+		default:                          return rounds >= 101 && rounds <= 250;
+	}
+}
+
+
 // Is the item in the given class of the attachments page (BOBBYR_ATTACH_*_ITEMS)?
 static bool IsInAttachmentClass(const ItemModel* const item, UINT32 const cls)
 {
@@ -1044,6 +1077,7 @@ static bool IsInGunsClass(const ItemModel* const item, UINT32 const cls)
 bool BobbyRItemMatchesClass(const ItemModel* const item, UINT32 const uiClassMask)
 {
 	if (uiClassMask == BOBBYR_ATTACHMENT_ITEMS) return IsBobbyRAttachment(item);
+	if (uiClassMask >= BOBBYR_AMMO_UP_TO_250_ITEMS && uiClassMask <= BOBBYR_AMMO_UP_TO_15_ITEMS) return IsInAmmoClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_ATTACH_DOWN_ITEMS && uiClassMask <= BOBBYR_ATTACH_FRONT_ITEMS) return IsInAttachmentClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_GUNS_HEAVY_ITEMS && uiClassMask <= BOBBYR_GUNS_PISTOL_SMG_ITEMS) return IsInGunsClass(item, uiClassMask);
 	if (uiClassMask == BOBBYR_MISC_ITEMS)
