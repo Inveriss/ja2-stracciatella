@@ -208,6 +208,14 @@ static UINT32 const gExplosivesFilterMasks[] =
 };
 static BobbyRFilterBar const gExplosivesFilterBar = { 5, 5, gExplosivesFilterNames, gExplosivesFilterMasks, &gubExplosivesFilter, BOBBYR_EXPLOSIVES_ALL_ITEMS };
 
+static UINT8 gubMiscFilter = 0;
+static char const* const gMiscFilterNames[] = { "Medkits", "Tools", "Containers", "Others" };
+static UINT32 const gMiscFilterMasks[] =
+{
+	BOBBYR_MISC_MEDKITS_ITEMS, BOBBYR_MISC_TOOLS_ITEMS, BOBBYR_MISC_CONTAINERS_ITEMS, BOBBYR_MISC_OTHERS_ITEMS
+};
+static BobbyRFilterBar const gMiscFilterBar = { 4, 4, gMiscFilterNames, gMiscFilterMasks, &gubMiscFilter, BOBBYR_MISC_ITEMS };
+
 // The buttons at the bottom of the current page, if it has them
 static BobbyRFilterBar const* gpFilterBar = nullptr;
 
@@ -220,6 +228,7 @@ static BobbyRFilterBar const* FilterBarOfPage(LaptopMode const mode)
 		case LAPTOP_MODE_BOBBY_R_AMMO:        return &gAmmoFilterBar;
 		case LAPTOP_MODE_BOBBY_R_ARMOR:        return &gArmourFilterBar;
 		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:   return &gExplosivesFilterBar;
+		case LAPTOP_MODE_BOBBY_R_MISC:         return &gMiscFilterBar;
 		default:                              return nullptr;
 	}
 }
@@ -252,6 +261,11 @@ UINT32 BobbyRArmourPageMask()
 UINT32 BobbyRExplosivesPageMask()
 {
 	return FilterBarMask(gExplosivesFilterBar);
+}
+
+UINT32 BobbyRMiscPageMask()
+{
+	return FilterBarMask(gMiscFilterBar);
 }
 
 static UINT16 gusLastItemIndex  = 0;
@@ -320,6 +334,7 @@ void GameInitBobbyRGuns()
 	gubAmmoFilter = 0;
 	gubArmourFilter = 0;
 	gubExplosivesFilter = 0;
+	gubMiscFilter = 0;
 }
 
 
@@ -1074,6 +1089,35 @@ static bool IsInAmmoClass(const ItemModel* const item, UINT32 const cls)
 }
 
 
+// Is the item on the miscellaneous page at all? The crowbar (a punch weapon) is a tool there, the
+// other melee weapons are on the guns page, the face items on the armour page.
+static bool IsBobbyRMisc(const ItemModel* const item)
+{
+	if (item->getItemIndex() == CROWBAR) return true;
+	return (item->getItemClass() & IC_BOBBY_MISC) &&
+		!(item->getItemClass() & (IC_EXPLOSV | IC_FACE | IC_BLADE | IC_THROWING_KNIFE | IC_PUNCH)) && !IsBobbyRAttachment(item);
+}
+
+
+// Is the item in the given class of the miscellaneous page (BOBBYR_MISC_*_ITEMS)?
+static bool IsInMiscClass(const ItemModel* const item, UINT32 const cls)
+{
+	if (!IsBobbyRMisc(item)) return false;
+	UINT16 const i = item->getItemIndex();
+	bool const medkit = i == FIRSTAIDKIT || i == MEDICKIT;
+	bool const tool = i == TOOLKIT || i == LOCKSMITHKIT || i == METALDETECTOR || i == CROWBAR;
+	bool const container = i == CANTEEN;
+	switch (cls)
+	{
+		case BOBBYR_MISC_MEDKITS_ITEMS:    return medkit;
+		case BOBBYR_MISC_TOOLS_ITEMS:      return tool;
+		case BOBBYR_MISC_CONTAINERS_ITEMS: return container;
+		case BOBBYR_MISC_OTHERS_ITEMS:     return !medkit && !tool && !container;
+		default:                           return true; // all
+	}
+}
+
+
 // Is the item in the given class of the explosives page (BOBBYR_EXPL_*_ITEMS, or all of them)?
 static bool IsInExplosivesClass(const ItemModel* const item, UINT32 const cls)
 {
@@ -1135,7 +1179,7 @@ static bool IsInGunsClass(const ItemModel* const item, UINT32 const cls)
 	{
 		case BOBBYR_GUNS_PISTOL_SMG_ITEMS:
 			return (isGun && (type == GUN_PISTOL || type == GUN_M_PISTOL || type == GUN_SMG)) ||
-				item->isBlade() || item->isThrowingKnife() || item->isPunch();
+				item->isBlade() || item->isThrowingKnife() || (item->isPunch() && item->getItemIndex() != CROWBAR);
 		case BOBBYR_GUNS_ASSAULT_ITEMS: return isGun && type == GUN_AS_RIFLE;
 		case BOBBYR_GUNS_SNIPER_ITEMS:  return isGun && (type == GUN_SN_RIFLE || (type == GUN_RIFLE && item->getItemIndex() != ROCKET_RIFLE));
 		case BOBBYR_GUNS_SHOTGUN_ITEMS: return isGun && type == GUN_SHOTGUN;
@@ -1153,12 +1197,7 @@ bool BobbyRItemMatchesClass(const ItemModel* const item, UINT32 const uiClassMas
 	if (uiClassMask >= BOBBYR_AMMO_UP_TO_250_ITEMS && uiClassMask <= BOBBYR_AMMO_UP_TO_15_ITEMS) return IsInAmmoClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_ATTACH_DOWN_ITEMS && uiClassMask <= BOBBYR_ATTACH_FRONT_ITEMS) return IsInAttachmentClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_GUNS_HEAVY_ITEMS && uiClassMask <= BOBBYR_GUNS_PISTOL_SMG_ITEMS) return IsInGunsClass(item, uiClassMask);
-	if (uiClassMask == BOBBYR_MISC_ITEMS)
-	{
-		// the face items (worn on the head) are on the armour page
-		return (item->getItemClass() & IC_BOBBY_MISC) &&
-			!(item->getItemClass() & (IC_EXPLOSV | IC_FACE | IC_BLADE | IC_THROWING_KNIFE | IC_PUNCH)) && !IsBobbyRAttachment(item);
-	}
+	if (uiClassMask >= BOBBYR_MISC_OTHERS_ITEMS && uiClassMask <= BOBBYR_MISC_ITEMS) return IsInMiscClass(item, uiClassMask);
 	return (item->getItemClass() & uiClassMask) != 0;
 }
 

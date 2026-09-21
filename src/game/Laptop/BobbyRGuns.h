@@ -34,6 +34,13 @@
 #define BOBBYR_ATTACH_TOP_ITEMS		0xFFFFFFF6
 #define BOBBYR_ATTACH_REAR_ITEMS	0xFFFFFFF5
 #define BOBBYR_ATTACH_DOWN_ITEMS	0xFFFFFFF4
+// The classes of the miscellaneous page (the buttons at the bottom of it); BOBBYR_MISC_ITEMS are all
+// of its items. The others are everything that is neither medkit, tool nor container.
+#define BOBBYR_MISC_MEDKITS_ITEMS	0xFFFFFFE4
+#define BOBBYR_MISC_TOOLS_ITEMS	0xFFFFFFE3
+#define BOBBYR_MISC_CONTAINERS_ITEMS	0xFFFFFFE2
+#define BOBBYR_MISC_OTHERS_ITEMS	0xFFFFFFE1
+
 // The classes of the explosives page (the buttons at the bottom of it). The page shows only the items
 // of these classes, the other charges (RDX, TNT, HMX, C1, C4) are not sold.
 #define BOBBYR_EXPLOSIVES_ALL_ITEMS	0xFFFFFFEA
@@ -112,5 +119,7 @@ UINT32 BobbyRAmmoPageMask(void);
 UINT32 BobbyRArmourPageMask(void);
 // The class mask of the explosives page with its class button pressed (all its items when none is)
 UINT32 BobbyRExplosivesPageMask(void);
+// The class mask of the miscellaneous page with its class button pressed (all its items when none is)
+UINT32 BobbyRMiscPageMask(void);
 
 #endif
