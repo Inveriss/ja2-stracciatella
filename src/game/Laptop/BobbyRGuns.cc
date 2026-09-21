@@ -628,9 +628,7 @@ void DisplayItemInfo(UINT32 uiItemClass)
 		if (fLoadPendingFlag)	return;
 
 		DisableBobbyRButtons();
-
-		//Display a popup saying we are out of stock
-		DoLapTopMessageBox(MSG_BOX_LAPTOP_DEFAULT, BobbyRText[BOBBYR_NO_MORE_STOCK], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, 0);
+		// No popup about the empty stock: the page stays empty, the class buttons still work
 		return;
 	}
 
