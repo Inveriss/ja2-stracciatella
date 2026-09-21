@@ -425,7 +425,7 @@ ST::string DefaultContentManager::loadDialogQuoteFromFile(const ST::string& file
 		auto const digits = lower.substr(8, 3);
 		if (std::isdigit(digits[0]) && std::isdigit(digits[1]) && std::isdigit(digits[2]))
 		{
-			auto const merc = m_mercDialogue.find(static_cast<uint8_t>(digits.to_int()));
+			auto const merc = m_mercDialogue.find(static_cast<uint8_t>(digits.to_int(10)));
 			if (merc != m_mercDialogue.end() && quote_number < merc->second.size()) return merc->second[quote_number];
 		}
 	}
