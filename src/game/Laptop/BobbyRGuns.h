@@ -34,6 +34,15 @@
 #define BOBBYR_ATTACH_TOP_ITEMS		0xFFFFFFF6
 #define BOBBYR_ATTACH_REAR_ITEMS	0xFFFFFFF5
 #define BOBBYR_ATTACH_DOWN_ITEMS	0xFFFFFFF4
+// The classes of the explosives page (the buttons at the bottom of it). The page shows only the items
+// of these classes, the other charges (RDX, TNT, HMX, C1, C4) are not sold.
+#define BOBBYR_EXPLOSIVES_ALL_ITEMS	0xFFFFFFEA
+#define BOBBYR_EXPL_FLARES_ITEMS	0xFFFFFFE9
+#define BOBBYR_EXPL_GAS_ITEMS	0xFFFFFFE8
+#define BOBBYR_EXPL_GRENADES_ITEMS	0xFFFFFFE7
+#define BOBBYR_EXPL_40MM_ITEMS	0xFFFFFFE6
+#define BOBBYR_EXPL_HEAVY_ITEMS	0xFFFFFFE5
+
 // The classes of the armour page (the buttons at the bottom of it): head, torso and leg protection,
 // and the headgear.
 #define BOBBYR_ARMOUR_HEAD_ITEMS	0xFFFFFFEE
@@ -101,5 +110,7 @@ UINT32 BobbyRAttachmentsPageMask(void);
 UINT32 BobbyRAmmoPageMask(void);
 // The class mask of the armour page with its class button pressed (all the armour when none is)
 UINT32 BobbyRArmourPageMask(void);
+// The class mask of the explosives page with its class button pressed (all its items when none is)
+UINT32 BobbyRExplosivesPageMask(void);
 
 #endif

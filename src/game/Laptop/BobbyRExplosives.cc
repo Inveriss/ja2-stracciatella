@@ -22,7 +22,7 @@ void EnterBobbyRExplosives()
 	//Draw menu bar
 	InitBobbyMenuBar( );
 
-	SetFirstLastPagesForNew( IC_EXPLOSV );
+	SetFirstLastPagesForNew( BobbyRExplosivesPageMask() );
 
 	RenderBobbyRExplosives( );
 }
@@ -52,7 +52,7 @@ void RenderBobbyRExplosives()
 
 	BltVideoObject(FRAME_BUFFER, guiExplosivesGrid, 0, BOBBYR_GRIDLOC_X, BOBBYR_GRIDLOC_Y);
 
-	DisplayItemInfo(IC_EXPLOSV);
+	DisplayItemInfo(BobbyRExplosivesPageMask());
 
 	UpdateButtonText(guiCurrentLaptopMode);
 	MarkButtonsDirty( );

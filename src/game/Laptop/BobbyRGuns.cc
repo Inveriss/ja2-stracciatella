@@ -199,6 +199,15 @@ static UINT32 const gArmourFilterMasks[] =
 };
 static BobbyRFilterBar const gArmourFilterBar = { 4, 4, gArmourFilterNames, gArmourFilterMasks, &gubArmourFilter, BOBBYR_ARMOUR_ITEMS };
 
+static UINT8 gubExplosivesFilter = 0;
+static char const* const gExplosivesFilterNames[] = { "Flares", "Gas", "Grenades", "40mm", "Heavy" };
+static UINT32 const gExplosivesFilterMasks[] =
+{
+	BOBBYR_EXPL_FLARES_ITEMS, BOBBYR_EXPL_GAS_ITEMS, BOBBYR_EXPL_GRENADES_ITEMS,
+	BOBBYR_EXPL_40MM_ITEMS, BOBBYR_EXPL_HEAVY_ITEMS
+};
+static BobbyRFilterBar const gExplosivesFilterBar = { 5, 5, gExplosivesFilterNames, gExplosivesFilterMasks, &gubExplosivesFilter, BOBBYR_EXPLOSIVES_ALL_ITEMS };
+
 // The buttons at the bottom of the current page, if it has them
 static BobbyRFilterBar const* gpFilterBar = nullptr;
 
@@ -210,6 +219,7 @@ static BobbyRFilterBar const* FilterBarOfPage(LaptopMode const mode)
 		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS: return &gAttachmentFilterBar;
 		case LAPTOP_MODE_BOBBY_R_AMMO:        return &gAmmoFilterBar;
 		case LAPTOP_MODE_BOBBY_R_ARMOR:        return &gArmourFilterBar;
+		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:   return &gExplosivesFilterBar;
 		default:                              return nullptr;
 	}
 }
@@ -237,6 +247,11 @@ UINT32 BobbyRAmmoPageMask()
 UINT32 BobbyRArmourPageMask()
 {
 	return FilterBarMask(gArmourFilterBar);
+}
+
+UINT32 BobbyRExplosivesPageMask()
+{
+	return FilterBarMask(gExplosivesFilterBar);
 }
 
 static UINT16 gusLastItemIndex  = 0;
@@ -304,6 +319,7 @@ void GameInitBobbyRGuns()
 	gubAttachmentFilter = 0;
 	gubAmmoFilter = 0;
 	gubArmourFilter = 0;
+	gubExplosivesFilter = 0;
 }
 
 
@@ -1058,6 +1074,28 @@ static bool IsInAmmoClass(const ItemModel* const item, UINT32 const cls)
 }
 
 
+// Is the item in the given class of the explosives page (BOBBYR_EXPL_*_ITEMS, or all of them)?
+static bool IsInExplosivesClass(const ItemModel* const item, UINT32 const cls)
+{
+	if (!(item->getItemClass() & IC_EXPLOSV)) return false;
+	switch (item->getItemIndex())
+	{
+		case TRIP_FLARE: case TRIP_KLAXON: case BREAK_LIGHT:
+			return cls == BOBBYR_EXPLOSIVES_ALL_ITEMS || cls == BOBBYR_EXPL_FLARES_ITEMS;
+		case TEARGAS_GRENADE: case MUSTARD_GRENADE: case SMOKE_GRENADE:
+			return cls == BOBBYR_EXPLOSIVES_ALL_ITEMS || cls == BOBBYR_EXPL_GAS_ITEMS;
+		case HAND_GRENADE: case MINI_GRENADE: case STUN_GRENADE:
+			return cls == BOBBYR_EXPLOSIVES_ALL_ITEMS || cls == BOBBYR_EXPL_GRENADES_ITEMS;
+		case GL_HE_GRENADE: case GL_TEARGAS_GRENADE: case GL_STUN_GRENADE: case GL_SMOKE_GRENADE:
+			return cls == BOBBYR_EXPLOSIVES_ALL_ITEMS || cls == BOBBYR_EXPL_40MM_ITEMS;
+		case MORTAR_SHELL: case TANK_SHELL: case SHAPED_CHARGE: case MINE:
+			return cls == BOBBYR_EXPLOSIVES_ALL_ITEMS || cls == BOBBYR_EXPL_HEAVY_ITEMS;
+		default:
+			return false;
+	}
+}
+
+
 // Is the item in the given class of the armour page (BOBBYR_ARMOUR_*_ITEMS)? The ceramic plates
 // protect the torso, so they are with the vests.
 static bool IsInArmourClass(const ItemModel* const item, UINT32 const cls)
@@ -1110,6 +1148,7 @@ static bool IsInGunsClass(const ItemModel* const item, UINT32 const cls)
 bool BobbyRItemMatchesClass(const ItemModel* const item, UINT32 const uiClassMask)
 {
 	if (uiClassMask == BOBBYR_ATTACHMENT_ITEMS) return IsBobbyRAttachment(item);
+	if (uiClassMask >= BOBBYR_EXPL_HEAVY_ITEMS && uiClassMask <= BOBBYR_EXPLOSIVES_ALL_ITEMS) return IsInExplosivesClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_ARMOUR_HEADGEAR_ITEMS && uiClassMask <= BOBBYR_ARMOUR_HEAD_ITEMS) return IsInArmourClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_AMMO_UP_TO_250_ITEMS && uiClassMask <= BOBBYR_AMMO_UP_TO_15_ITEMS) return IsInAmmoClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_ATTACH_DOWN_ITEMS && uiClassMask <= BOBBYR_ATTACH_FRONT_ITEMS) return IsInAttachmentClass(item, uiClassMask);
