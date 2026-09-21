@@ -14257,8 +14257,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 1600,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 10100,
+      "biWeeklySalary": 17900,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -14324,8 +14324,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 500,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 3200,
+      "biWeeklySalary": 5600,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -14388,9 +14388,9 @@
     "toleranceForPlayersReputation": 101,
     "toleranceForPlayersDeathRate": 101,
     "contract": {
-      "dailySalary": 0,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "dailySalary": 500,
+      "weeklySalary": 3200,
+      "biWeeklySalary": 5600,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -14972,8 +14972,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 2800,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 17600,
+      "biWeeklySalary": 31400,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15036,8 +15036,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 100,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 600,
+      "biWeeklySalary": 1100,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15099,8 +15099,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 150,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 900,
+      "biWeeklySalary": 1700,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15165,8 +15165,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 300,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 1900,
+      "biWeeklySalary": 3400,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15228,8 +15228,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 500,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 3200,
+      "biWeeklySalary": 5600,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15292,8 +15292,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 400,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 2500,
+      "biWeeklySalary": 4500,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15357,8 +15357,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 400,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 2500,
+      "biWeeklySalary": 4500,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15419,8 +15419,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 400,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 2500,
+      "biWeeklySalary": 4500,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15610,8 +15610,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 150,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 900,
+      "biWeeklySalary": 1700,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15672,8 +15672,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 50,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 300,
+      "biWeeklySalary": 600,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15736,8 +15736,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 250,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 1600,
+      "biWeeklySalary": 2800,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15800,8 +15800,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 500,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 3200,
+      "biWeeklySalary": 5600,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15864,8 +15864,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 250,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 1600,
+      "biWeeklySalary": 2800,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15930,8 +15930,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 50,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 300,
+      "biWeeklySalary": 600,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -15997,8 +15997,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 800,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 5000,
+      "biWeeklySalary": 9000,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -16125,8 +16125,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 100,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 600,
+      "biWeeklySalary": 1100,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -16188,8 +16188,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 100,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 600,
+      "biWeeklySalary": 1100,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -16250,8 +16250,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 100,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 600,
+      "biWeeklySalary": 1100,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -16316,8 +16316,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 1000,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 6300,
+      "biWeeklySalary": 11200,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -16381,8 +16381,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 300,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 1900,
+      "biWeeklySalary": 3400,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -16446,8 +16446,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 400,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 2500,
+      "biWeeklySalary": 4500,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -16511,8 +16511,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 850,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 5400,
+      "biWeeklySalary": 9500,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -16574,8 +16574,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 200,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 1300,
+      "biWeeklySalary": 2200,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -16699,8 +16699,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 200,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 1300,
+      "biWeeklySalary": 2200,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -17672,8 +17672,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 250,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 1600,
+      "biWeeklySalary": 2800,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -17864,8 +17864,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 250,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 1600,
+      "biWeeklySalary": 2800,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -17989,8 +17989,8 @@
     "toleranceForPlayersDeathRate": 101,
     "contract": {
       "dailySalary": 350,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 2200,
+      "biWeeklySalary": 3900,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
@@ -18184,8 +18184,8 @@
     "toleranceForPlayersDeathRate": 70,
     "contract": {
       "dailySalary": 350,
-      "weeklySalary": 0,
-      "biWeeklySalary": 0,
+      "weeklySalary": 2200,
+      "biWeeklySalary": 3900,
       "isMedicalDepositRequired": false
     },
     "dialogue": [
