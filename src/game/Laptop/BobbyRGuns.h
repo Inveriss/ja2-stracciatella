@@ -27,6 +27,13 @@
 #define BOBBYR_GUNS_HEAVY_ITEMS		0xFFFFFFF8
 // All the items of the guns page: the guns, the launchers and the melee weapons
 #define BOBBYR_ALL_GUN_ITEMS		(IC_GUN | IC_LAUNCHER | IC_BLADE | IC_THROWING_KNIFE | IC_PUNCH)
+// The classes of the attachments page (the buttons at the bottom of it): the front of the barrel
+// (silencer, gun barrel extender, duckbill), the top (laser scope, sniper scope), the rear (rod and
+// spring) and down (bipod).
+#define BOBBYR_ATTACH_FRONT_ITEMS	0xFFFFFFF7
+#define BOBBYR_ATTACH_TOP_ITEMS		0xFFFFFFF6
+#define BOBBYR_ATTACH_REAR_ITEMS	0xFFFFFFF5
+#define BOBBYR_ATTACH_DOWN_ITEMS	0xFFFFFFF4
 // Armor and headgear: the armour and everything that is worn on the head (the face items).
 #define BOBBYR_ARMOUR_ITEMS		(IC_ARMOUR | IC_FACE)
 
@@ -73,5 +80,8 @@ void SetFirstLastPagesForNew( UINT32 uiClass );
 // Does the item belong to the page of the given class mask (an item class or one of the categories above)?
 struct ItemModel;
 bool BobbyRItemMatchesClass(const ItemModel* item, UINT32 uiClassMask);
+
+// The class mask of the attachments page with its class button pressed (all attachments when none is)
+UINT32 BobbyRAttachmentsPageMask(void);
 
 #endif

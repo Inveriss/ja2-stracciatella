@@ -152,18 +152,60 @@ UINT16 gusCurWeaponIndex;
 static UINT8 gubCurPage;
 // The buttons of the classes of the guns at the bottom of the guns page: none pressed shows all the guns,
 // pressing one shows its class only (the button is released with another click)
-static UINT8 gubGunFilter = 0; // 0: all, 1-5: the button
-static char const* const gGunFilterNames[NUM_CATALOGUE_BUTTONS] = { "Pistol/SMG", "Assault", "Sniper", "Shotgun", "Heavy" };
-static UINT32 const gGunFilterMasks[NUM_CATALOGUE_BUTTONS] =
+// The attachments page has the same kind of buttons (Front, Top, Rear, Down); the last two are disabled.
+struct BobbyRFilterBar
+{
+	int                  count;    // the buttons
+	int                  enabled;  // the first ones that can be pressed
+	char const* const*   names;
+	UINT32 const*        masks;
+	UINT8*               filter;   // 0: none pressed (all), 1-count: the button
+	UINT32               allMask;
+};
+
+static UINT8 gubGunFilter = 0;
+static char const* const gGunFilterNames[] = { "Pistol/SMG", "Assault", "Sniper", "Shotgun", "Heavy" };
+static UINT32 const gGunFilterMasks[] =
 {
 	BOBBYR_GUNS_PISTOL_SMG_ITEMS, BOBBYR_GUNS_ASSAULT_ITEMS, BOBBYR_GUNS_SNIPER_ITEMS,
 	BOBBYR_GUNS_SHOTGUN_ITEMS, BOBBYR_GUNS_HEAVY_ITEMS
 };
-static bool gfGunFilterButtons = false; // the buttons exist (only on the guns page)
+static BobbyRFilterBar const gGunFilterBar = { 5, 5, gGunFilterNames, gGunFilterMasks, &gubGunFilter, BOBBYR_ALL_GUN_ITEMS };
+
+static UINT8 gubAttachmentFilter = 0;
+static char const* const gAttachmentFilterNames[] = { "Front", "Top", "Rear", "Down" };
+static UINT32 const gAttachmentFilterMasks[] =
+{
+	BOBBYR_ATTACH_FRONT_ITEMS, BOBBYR_ATTACH_TOP_ITEMS, BOBBYR_ATTACH_REAR_ITEMS, BOBBYR_ATTACH_DOWN_ITEMS
+};
+static BobbyRFilterBar const gAttachmentFilterBar = { 4, 4, gAttachmentFilterNames, gAttachmentFilterMasks, &gubAttachmentFilter, BOBBYR_ATTACHMENT_ITEMS };
+
+// The buttons at the bottom of the current page, if it has them
+static BobbyRFilterBar const* gpFilterBar = nullptr;
+
+static BobbyRFilterBar const* FilterBarOfPage(LaptopMode const mode)
+{
+	switch (mode)
+	{
+		case LAPTOP_MODE_BOBBY_R_GUNS:        return &gGunFilterBar;
+		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS: return &gAttachmentFilterBar;
+		default:                              return nullptr;
+	}
+}
+
+static UINT32 FilterBarMask(BobbyRFilterBar const& bar)
+{
+	return *bar.filter == 0 ? bar.allMask : bar.masks[*bar.filter - 1];
+}
 
 static UINT32 GunsPageMask()
 {
-	return gubGunFilter == 0 ? (UINT32)BOBBYR_ALL_GUN_ITEMS : gGunFilterMasks[gubGunFilter - 1];
+	return FilterBarMask(gGunFilterBar);
+}
+
+UINT32 BobbyRAttachmentsPageMask()
+{
+	return FilterBarMask(gAttachmentFilterBar);
 }
 
 static UINT16 gusLastItemIndex  = 0;
@@ -187,11 +229,11 @@ static void BtnBobbyRPageMenuCallback(GUI_BUTTON* btn, UINT32 reason);
 // The button of the current class of the guns is pressed
 static void SyncGunFilterButtons()
 {
-	if (!gfGunFilterButtons) return;
-	for (int i = 0; i < NUM_CATALOGUE_BUTTONS; ++i)
+	if (!gpFilterBar) return;
+	for (int i = 0; i < gpFilterBar->count; ++i)
 	{
 		if (!guiBobbyRPageMenu[i]) continue;
-		if (gubGunFilter == i + 1) guiBobbyRPageMenu[i]->uiFlags |= BUTTON_CLICKED_ON;
+		if (*gpFilterBar->filter == i + 1) guiBobbyRPageMenu[i]->uiFlags |= BUTTON_CLICKED_ON;
 		else                        guiBobbyRPageMenu[i]->uiFlags &= ~BUTTON_CLICKED_ON;
 	}
 }
@@ -228,6 +270,7 @@ void GameInitBobbyRGuns()
 {
 	std::fill_n(BobbyRayPurchases, MAX_PURCHASE_AMOUNT, BobbyRayPurchaseStruct{});
 	gubGunFilter = 0;
+	gubAttachmentFilter = 0;
 }
 
 
@@ -364,18 +407,21 @@ void InitBobbyMenuBar()
 	guiBobbyRNextPage->SpecifyDisabledStyle(GUI_BUTTON::DISABLED_STYLE_SHADED);
 
 	// The buttons of the classes of the guns, only on the guns page
-	gfGunFilterButtons = guiCurrentLaptopMode == LAPTOP_MODE_BOBBY_R_GUNS;
-	if (gfGunFilterButtons)
+	gpFilterBar = FilterBarOfPage(guiCurrentLaptopMode);
+	if (gpFilterBar)
 	{
 		BUTTON_PICS* const gfx = LoadButtonImage(LAPTOPDIR "/cataloguebutton1.sti", 0, 1);
 		guiBobbyRPageMenuImage = gfx;
 
-		UINT16 x = BOBBYR_CATALOGUE_BUTTON_START_X;
+		// the buttons are centred in the room of the five buttons of the guns page
+		UINT16 x = BOBBYR_CATALOGUE_BUTTON_START_X + (NUM_CATALOGUE_BUTTONS - gpFilterBar->count) * BOBBYR_CATALOGUE_BUTTON_GAP / 2;
 		UINT16 const y = BOBBYR_CATALOGUE_BUTTON_Y;
-		for (int i = 0; i < NUM_CATALOGUE_BUTTONS; ++i, x += BOBBYR_CATALOGUE_BUTTON_GAP)
+		for (int i = 0; i < gpFilterBar->count; ++i, x += BOBBYR_CATALOGUE_BUTTON_GAP)
 		{
-			GUIButtonRef const b = MakeButton(gfx, gGunFilterNames[i], x, y, BtnBobbyRPageMenuCallback);
+			GUIButtonRef const b = MakeButton(gfx, gpFilterBar->names[i], x, y, BtnBobbyRPageMenuCallback);
 			b->SetUserData(i + 1);
+			b->SpecifyDisabledStyle(GUI_BUTTON::DISABLED_STYLE_SHADED);
+			if (i >= gpFilterBar->enabled) DisableButton(b);
 			guiBobbyRPageMenu[i] = b;
 		}
 		SyncGunFilterButtons();
@@ -399,11 +445,11 @@ void DeleteBobbyMenuBar()
 	RemoveButton(guiBobbyRNextPage);
 	UnloadButtonImage(guiBobbyRNextPageImage);
 
-	if (gfGunFilterButtons)
+	if (gpFilterBar)
 	{
-		FOR_EACH(GUIButtonRef, i, guiBobbyRPageMenu) { RemoveButton(*i); *i = GUIButtonRef(); }
+		FOR_EACH(GUIButtonRef, i, guiBobbyRPageMenu) { if (*i) RemoveButton(*i); *i = GUIButtonRef(); }
 		UnloadButtonImage(guiBobbyRPageMenuImage);
-		gfGunFilterButtons = false;
+		gpFilterBar = nullptr;
 	}
 
 	RemoveButton(guiBobbyROrderForm);
@@ -419,11 +465,12 @@ static void BtnBobbyRPageMenuCallback(GUI_BUTTON* btn, UINT32 reason)
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) { SyncGunFilterButtons(); return; }
 
 	// pressing the pressed button releases it: all the guns again
+	if (!gpFilterBar) return;
 	UINT8 const filter = static_cast<UINT8>(btn->GetUserData());
-	gubGunFilter = filter == gubGunFilter ? 0 : filter;
+	*gpFilterBar->filter = filter == *gpFilterBar->filter ? 0 : filter;
 	SyncGunFilterButtons();
 
-	SetFirstLastPagesForNew(GunsPageMask());
+	SetFirstLastPagesForNew(FilterBarMask(*gpFilterBar));
 	DeleteMouseRegionForBigImage();
 	gusOldItemNumOnTopOfPage = 65535;
 	fReDrawScreenFlag       = TRUE;
@@ -961,6 +1008,20 @@ static bool IsBobbyRAttachment(const ItemModel* const item)
 }
 
 
+// Is the item in the given class of the attachments page (BOBBYR_ATTACH_*_ITEMS)?
+static bool IsInAttachmentClass(const ItemModel* const item, UINT32 const cls)
+{
+	UINT16 const i = item->getItemIndex();
+	switch (cls)
+	{
+		case BOBBYR_ATTACH_FRONT_ITEMS: return i == SILENCER || i == GUN_BARREL_EXTENDER || i == DUCKBILL;
+		case BOBBYR_ATTACH_TOP_ITEMS:   return i == LASERSCOPE || i == SNIPERSCOPE;
+		case BOBBYR_ATTACH_REAR_ITEMS:  return i == SPRING_AND_BOLT_UPGRADE;
+		default:                        return i == BIPOD; // down
+	}
+}
+
+
 // Is the item in the given class of the guns page (BOBBYR_GUNS_*_ITEMS)?
 static bool IsInGunsClass(const ItemModel* const item, UINT32 const cls)
 {
@@ -983,6 +1044,7 @@ static bool IsInGunsClass(const ItemModel* const item, UINT32 const cls)
 bool BobbyRItemMatchesClass(const ItemModel* const item, UINT32 const uiClassMask)
 {
 	if (uiClassMask == BOBBYR_ATTACHMENT_ITEMS) return IsBobbyRAttachment(item);
+	if (uiClassMask >= BOBBYR_ATTACH_DOWN_ITEMS && uiClassMask <= BOBBYR_ATTACH_FRONT_ITEMS) return IsInAttachmentClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_GUNS_HEAVY_ITEMS && uiClassMask <= BOBBYR_GUNS_PISTOL_SMG_ITEMS) return IsInGunsClass(item, uiClassMask);
 	if (uiClassMask == BOBBYR_MISC_ITEMS)
 	{

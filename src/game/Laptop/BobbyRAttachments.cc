@@ -22,7 +22,7 @@ void EnterBobbyRAttachments()
 	//Draw menu bar
 	InitBobbyMenuBar( );
 
-	SetFirstLastPagesForNew( BOBBYR_ATTACHMENT_ITEMS );
+	SetFirstLastPagesForNew( BobbyRAttachmentsPageMask() );
 
 	RenderBobbyRAttachments( );
 }
@@ -52,7 +52,7 @@ void RenderBobbyRAttachments()
 
 	BltVideoObject(FRAME_BUFFER, guiAttachmentsGrid, 0, BOBBYR_GRIDLOC_X, BOBBYR_GRIDLOC_Y);
 
-	DisplayItemInfo(BOBBYR_ATTACHMENT_ITEMS);
+	DisplayItemInfo(BobbyRAttachmentsPageMask());
 
 	UpdateButtonText(guiCurrentLaptopMode);
 	MarkButtonsDirty( );
