@@ -432,8 +432,9 @@ void InitLaptopAndLaptopScreens(void)
 	//Reset the flags so all IMP slots are available again for a new game
 	for (UINT8 i = 0; i < MAX_IMP_MERCS; ++i) LaptopSaveInfo.fIMPCompletedFlag[i] = FALSE;
 
-	//Reset the flag so that BOBBYR's isnt available at the begining of the game
-	LaptopSaveInfo.fBobbyRSiteCanBeAccessed = FALSE;
+	// Bobby Ray's is open from the start of a new game (it used to open with the capture of the
+	// Drassen airport)
+	LaptopSaveInfo.fBobbyRSiteCanBeAccessed = TRUE;
 }
 
 
