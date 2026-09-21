@@ -144,12 +144,16 @@ static void ChangeAimFiPage(int const delta, bool const wrap)
 }
 
 
-static GUIButtonRef MakeAimFiButton(ST::string const& text, INT16 const x, INT16 const y, GUI_CALLBACK click)
+// The colour of the text of the ALL button: the yellow of the 'On Assign' texts on the portraits
+#define AIM_FI_ALL_BUTTON_TEXT_COLOR	145
+
+static GUIButtonRef MakeAimFiButton(ST::string const& text, INT16 const x, INT16 const y, GUI_CALLBACK click,
+					INT16 const colorUp = FONT_MCOLOR_DKWHITE, INT16 const colorDown = 138)
 {
 	GUIButtonRef const btn = CreateIconAndTextButton(
 		guiAimFiButtonImage, text, FONT14ARIAL,
-		FONT_MCOLOR_DKWHITE, DEFAULT_SHADOW,
-		138,                 DEFAULT_SHADOW,
+		colorUp,   DEFAULT_SHADOW,
+		colorDown, DEFAULT_SHADOW,
 		x, y, MSYS_PRIORITY_HIGH, click);
 	// the text sits 1 pixel to the right and 2 pixels lower than centered
 	btn->SpecifyTextSubOffsets(1, 1, TRUE);
@@ -240,7 +244,9 @@ void EnterAimFacialIndex()
 	guiAimFiNextButton     = MakeAimFiButton(CharacterInfo[AIM_MEMBER_NEXT],     AIM_FI_NEXT_BUTTON_X,     AIM_FI_PAGE_BUTTON_Y, BtnNextPageCallback);
 	for (int i = 0; i < AIM_FI_NUM_FILTER_BUTTONS; ++i)
 	{
-		guiAimFiFilterButtons[i] = MakeAimFiButton(gAimFiFilterNames[i], IMAGE_OFFSET_X + AIM_FI_FILTER_BUTTON_REL_X[i], IMAGE_OFFSET_Y + AIM_FI_FILTER_BUTTON_REL_Y[i], BtnFilterCallback);
+		guiAimFiFilterButtons[i] = MakeAimFiButton(gAimFiFilterNames[i], IMAGE_OFFSET_X + AIM_FI_FILTER_BUTTON_REL_X[i], IMAGE_OFFSET_Y + AIM_FI_FILTER_BUTTON_REL_Y[i], BtnFilterCallback,
+			i == AIM_FILTER_ALL ? AIM_FI_ALL_BUTTON_TEXT_COLOR : FONT_MCOLOR_DKWHITE,
+			i == AIM_FILTER_ALL ? AIM_FI_ALL_BUTTON_TEXT_COLOR : 138);
 		guiAimFiFilterButtons[i]->SetUserData(i);
 	}
 
