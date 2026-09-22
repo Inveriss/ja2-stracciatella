@@ -542,6 +542,30 @@ static void EnterLaptop(void)
 	// init program states
 	std::fill(std::begin(gLaptopProgramStates), std::end(gLaptopProgramStates), LAPTOP_PROGRAM_MINIMIZED);
 
+	// A SetLaptopEntryMode() cold-jump (guiCurrentLaptopMode is non-NONE here, unlike
+	// a normal entry, which always opens to the desktop -- see the comment above the
+	// pre-seed a bit above) has no taskbar icon to click, so mark its target program
+	// already OPEN, not MINIMIZED. Otherwise EnterNewLaptopMode()'s first call below
+	// (from the main per-frame handler) sees LAPTOP_PROGRAM_MINIMIZED, starts the
+	// "restore from the taskbar" maximize animation instead of dispatching to
+	// EnterEmail()/EnterBobbyR()/etc., and that animation assumes an icon that was
+	// actually opened once and never gets positioned for a program jumped to cold --
+	// same prog/default mapping as the switch in EnterNewLaptopMode() below.
+	if (guiCurrentLaptopMode != LAPTOP_MODE_NONE)
+	{
+		UINT prog;
+		switch (guiCurrentLaptopMode)
+		{
+			case LAPTOP_MODE_EMAIL:     prog = LAPTOP_PROGRAM_MAILER;     break;
+			case LAPTOP_MODE_FILES:     prog = LAPTOP_PROGRAM_FILES;      break;
+			case LAPTOP_MODE_PERSONNEL: prog = LAPTOP_PROGRAM_PERSONNEL;  break;
+			case LAPTOP_MODE_FINANCES:  prog = LAPTOP_PROGRAM_FINANCES;   break;
+			case LAPTOP_MODE_HISTORY:   prog = LAPTOP_PROGRAM_HISTORY;    break;
+			default:                    prog = LAPTOP_PROGRAM_WEB_BROWSER; break;
+		}
+		gLaptopProgramStates[prog] = LAPTOP_PROGRAM_OPEN;
+	}
+
 	// turn the power on
 	fPowerLightOn = TRUE;
 
@@ -1036,22 +1060,36 @@ ScreenID LaptopScreenHandle()
 	}
 
 	if (gfStartMapScreenToLaptopTransition)
-	{ //Everything is set up to open the laptop. The zoom-in transition
-	  //animation is disabled -- show the rendered laptop image immediately.
-		SetCurrentCursorFromDatabase(VIDEO_NO_CURSOR);
+	{
 		gfStartMapScreenToLaptopTransition = FALSE;
-		RestoreBackgroundRects();
-		RenderLapTopImage();
-		RenderLaptop();
-		RenderButtons();
-		PrintDate();
-		PrintBalance();
-		PrintNumberOnTeam();
-		ShowLights();
 
-		InvalidateScreen();
-		RefreshScreen();
-		fReDrawScreenFlag = TRUE;
+		// A SetLaptopEntryMode() cold-jump (guiCurrentLaptopMode is non-NONE here) has
+		// no per-mode graphics loaded yet -- EnterNewLaptopMode() (below, via the
+		// guiCurrentLaptopMode != guiPreviousLaptopMode check) hasn't run a single time
+		// yet to call EnterBobbyR()/EnterEmail()/etc. Rendering immediately here would
+		// call RenderBobbyR()/etc. (RenderLaptop() below) against those still-
+		// uninitialized globals and crash. The normal map->laptop entry always has mode
+		// == NONE at this point (DrawDeskTopBackground() needs nothing pre-loaded), so
+		// it's unaffected -- skip only the instant-render optimization for the cold-jump
+		// case and fall through to the ordinary per-frame flow below, which renders only
+		// after EnterNewLaptopMode() has dispatched.
+		if (guiCurrentLaptopMode == LAPTOP_MODE_NONE)
+		{ //Everything is set up to open the laptop. The zoom-in transition
+		  //animation is disabled -- show the rendered laptop image immediately.
+			SetCurrentCursorFromDatabase(VIDEO_NO_CURSOR);
+			RestoreBackgroundRects();
+			RenderLapTopImage();
+			RenderLaptop();
+			RenderButtons();
+			PrintDate();
+			PrintBalance();
+			PrintNumberOnTeam();
+			ShowLights();
+
+			InvalidateScreen();
+			RefreshScreen();
+			fReDrawScreenFlag = TRUE;
+		}
 	}
 
 	//DO NOT MOVE THIS FUNCTION CALL!!!
