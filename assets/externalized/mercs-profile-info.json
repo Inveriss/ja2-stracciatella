@@ -14128,6 +14128,16 @@
       "biWeeklySalary": 22000,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14195,6 +14205,20 @@
       "biWeeklySalary": 25000,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "KEVLAR_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14261,6 +14285,32 @@
       "biWeeklySalary": 17900,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "C1"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "REMDETONATOR"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "REMOTEBOMBTRIGGER"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14328,6 +14378,16 @@
       "biWeeklySalary": 5600,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14393,6 +14453,16 @@
       "biWeeklySalary": 5600,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14457,6 +14527,20 @@
       "biWeeklySalary": 30000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14522,6 +14606,24 @@
       "biWeeklySalary": 22000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "LOCKSMITHKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14588,6 +14690,20 @@
       "biWeeklySalary": 15500,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14651,6 +14767,16 @@
       "biWeeklySalary": 35000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14715,6 +14841,20 @@
       "biWeeklySalary": 14900,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14780,6 +14920,20 @@
       "biWeeklySalary": 26000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14846,6 +15000,12 @@
       "biWeeklySalary": 8700,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14911,6 +15071,20 @@
       "biWeeklySalary": 33000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -14976,6 +15150,20 @@
       "biWeeklySalary": 31400,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15169,6 +15357,12 @@
       "biWeeklySalary": 3400,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15232,6 +15426,20 @@
       "biWeeklySalary": 5600,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "MEDICKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15296,6 +15504,12 @@
       "biWeeklySalary": 4500,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15361,6 +15575,16 @@
       "biWeeklySalary": 4500,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15423,6 +15647,24 @@
       "biWeeklySalary": 4500,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "MEDICKIT"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15486,6 +15728,24 @@
       "biWeeklySalary": 13000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "MEDICKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15550,6 +15810,12 @@
       "biWeeklySalary": 4600,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15804,6 +16070,16 @@
       "biWeeklySalary": 5600,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16001,6 +16277,12 @@
       "biWeeklySalary": 9000,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16066,6 +16348,12 @@
       "biWeeklySalary": 5500,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16192,6 +16480,12 @@
       "biWeeklySalary": 1100,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16254,6 +16548,12 @@
       "biWeeklySalary": 1100,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "BIGPOCK1",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16320,6 +16620,16 @@
       "biWeeklySalary": 11200,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16385,6 +16695,16 @@
       "biWeeklySalary": 3400,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16450,6 +16770,16 @@
       "biWeeklySalary": 4500,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16515,6 +16845,16 @@
       "biWeeklySalary": 9500,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16578,6 +16918,12 @@
       "biWeeklySalary": 2200,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "BIGPOCK1",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16640,6 +16986,20 @@
       "biWeeklySalary": 8400,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "MEDICKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16767,6 +17127,20 @@
       "biWeeklySalary": 31000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16831,6 +17205,16 @@
       "biWeeklySalary": 17000,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16897,6 +17281,24 @@
       "biWeeklySalary": 34000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "KEVLAR_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16962,6 +17364,20 @@
       "biWeeklySalary": 41000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "KEVLAR_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17027,6 +17443,20 @@
       "biWeeklySalary": 9800,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "LOCKSMITHKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17091,6 +17521,12 @@
       "biWeeklySalary": 6200,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17156,6 +17592,20 @@
       "biWeeklySalary": 10000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17221,6 +17671,20 @@
       "biWeeklySalary": 42000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "KEVLAR_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17286,6 +17750,20 @@
       "biWeeklySalary": 5900,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "LOCKSMITHKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17351,6 +17829,20 @@
       "biWeeklySalary": 3600,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TNT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "DETONATOR"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17417,6 +17909,16 @@
       "biWeeklySalary": 10000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17482,6 +17984,24 @@
       "biWeeklySalary": 13000,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TNT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "DETONATOR"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17547,6 +18067,24 @@
       "biWeeklySalary": 16800,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "MEDICKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17611,6 +18149,16 @@
       "biWeeklySalary": 9800,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17676,6 +18224,16 @@
       "biWeeklySalary": 2800,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "LOCKSMITHKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17740,6 +18298,12 @@
       "biWeeklySalary": 6200,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17803,6 +18367,12 @@
       "biWeeklySalary": 4500,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17930,6 +18500,24 @@
       "biWeeklySalary": 13000,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "MEDICKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17993,6 +18581,12 @@
       "biWeeklySalary": 3900,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -18059,6 +18653,24 @@
       "biWeeklySalary": 8500,
       "isMedicalDepositRequired": true
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "LOCKSMITHKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -18123,6 +18735,24 @@
       "biWeeklySalary": 6200,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "VEST",
+        "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "C1"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "REMDETONATOR"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "REMOTEBOMBTRIGGER"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -18188,6 +18818,24 @@
       "biWeeklySalary": 3900,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TNT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "DETONATOR"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "FIRSTAIDKIT"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -18251,6 +18899,40 @@
       "biWeeklySalary": 120000,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HELMET",
+        "item": "KEVLAR_HELMET"
+      },
+      {
+        "slot": "VEST",
+        "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "MEDICKIT"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "C1"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "REMDETONATOR"
+      },
+      {
+        "slot": "BIGPOCK6",
+        "item": "REMOTEBOMBTRIGGER"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
