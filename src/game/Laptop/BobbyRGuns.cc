@@ -774,6 +774,13 @@ void DisplayItemInfo(UINT32 uiItemClass)
 		if (fOutOfStock && ubCount != ubCountBeforeRow)
 		{
 			FRAME_BUFFER->ShadowRect(BOBBYR_GRIDLOC_X, usRowPosY - 3, BOBBYR_GRIDLOC_X + 450 + 43, usRowPosY - 3 + BOBBYR_GRID_OFFSET + 1);
+
+			// Same font/colour/shadow as the "On Assign" text on an unavailable AIM
+			// merc's portrait (AimFiText[AIM_FI_DEAD + 1], AIMFacialIndex.cc), centred
+			// on the item's own picture rather than the whole (wider) dimmed row.
+			DrawTextToScreen(BobbyRText[BOBBYR_GUNS_OUT_OF_STOCK], BOBBYR_GRID_PIC_X,
+				usRowPosY + (BOBBYR_GRID_PIC_HEIGHT - GetFontHeight(FONT10ARIAL)) / 2,
+				BOBBYR_GRID_PIC_WIDTH, FONT10ARIAL, 145, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
 		}
 	}
 
