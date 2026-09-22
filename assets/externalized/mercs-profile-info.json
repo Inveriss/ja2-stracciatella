@@ -14136,6 +14136,10 @@
       {
         "slot": "VEST",
         "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "BREAK_LIGHT"
       }
     ],
     "dialogue": [
@@ -14309,6 +14313,10 @@
       {
         "slot": "BIGPOCK4",
         "item": "REMOTEBOMBTRIGGER"
+      },
+      {
+        "slot": "BIGPOCK7",
+        "item": "BREAK_LIGHT"
       }
     ],
     "dialogue": [
@@ -14702,6 +14710,10 @@
       {
         "slot": "BIGPOCK3",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "BREAK_LIGHT"
       }
     ],
     "dialogue": [
@@ -14853,6 +14865,11 @@
       {
         "slot": "BIGPOCK3",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "BRASS_KNUCKLES",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -15004,6 +15021,11 @@
       {
         "slot": "VEST",
         "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "THROWING_KNIFE",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -15083,6 +15105,10 @@
       {
         "slot": "BIGPOCK3",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "BREAK_LIGHT"
       }
     ],
     "dialogue": [
@@ -15162,6 +15188,10 @@
       {
         "slot": "BIGPOCK3",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "COMBAT_KNIFE"
       }
     ],
     "dialogue": [
@@ -15361,6 +15391,11 @@
       {
         "slot": "HELMET",
         "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "BRASS_KNUCKLES",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -16006,6 +16041,13 @@
       "biWeeklySalary": 2800,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "BIGPOCK1",
+        "item": "THROWING_KNIFE",
+        "quantity": 2
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16210,6 +16252,12 @@
       "biWeeklySalary": 600,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "BIGPOCK1",
+        "item": "COMBAT_KNIFE"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16352,6 +16400,11 @@
       {
         "slot": "VEST",
         "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "THROWING_KNIFE",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -16417,6 +16470,12 @@
       "biWeeklySalary": 1100,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "BIGPOCK1",
+        "item": "COMBAT_KNIFE"
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16853,6 +16912,10 @@
       {
         "slot": "BIGPOCK1",
         "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "COMBAT_KNIFE"
       }
     ],
     "dialogue": [
@@ -17139,6 +17202,11 @@
       {
         "slot": "BIGPOCK1",
         "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "BRASS_KNUCKLES",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -17762,6 +17830,10 @@
       {
         "slot": "BIGPOCK2",
         "item": "LOCKSMITHKIT"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "COMBAT_KNIFE"
       }
     ],
     "dialogue": [
@@ -17841,6 +17913,16 @@
       {
         "slot": "BIGPOCK2",
         "item": "DETONATOR"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "THROWING_KNIFE",
+        "quantity": 2
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "BRASS_KNUCKLES",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -17917,6 +17999,10 @@
       {
         "slot": "VEST",
         "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "BREAK_LIGHT"
       }
     ],
     "dialogue": [
@@ -18000,6 +18086,10 @@
       {
         "slot": "BIGPOCK2",
         "item": "DETONATOR"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "BREAK_LIGHT"
       }
     ],
     "dialogue": [
@@ -18083,6 +18173,10 @@
       {
         "slot": "BIGPOCK2",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "COMBAT_KNIFE"
       }
     ],
     "dialogue": [
@@ -18157,6 +18251,11 @@
       {
         "slot": "BIGPOCK1",
         "item": "TOOLKIT"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "BRASS_KNUCKLES",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -18371,6 +18470,10 @@
       {
         "slot": "VEST",
         "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "COMBAT_KNIFE"
       }
     ],
     "dialogue": [
