@@ -2531,10 +2531,10 @@ static void BtnOptionsCallback(GUI_BUTTON* btn, UINT32 reason)
 
 
 // Laptop shortcut buttons -- jump straight into the laptop on a given
-// program/page (see SetLaptopEntryMode() in Laptop.cc). Wariant A: closing
-// the laptop always returns to MAP_SCREEN (LeaveLapTopScreen()'s existing,
-// unconditional behaviour), ending the current tactical session, same as
-// leaving the sector normally.
+// program/page (see SetLaptopEntryMode() in Laptop.cc). Each one also calls
+// SetLaptopExitScreen(GAME_SCREEN), so closing the laptop returns directly
+// to the interrupted battle (LeaveLapTopScreen() in Laptop.cc honours
+// GAME_SCREEN), not to MAP_SCREEN.
 static void BtnLaptopEmailCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
