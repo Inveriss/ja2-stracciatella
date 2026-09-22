@@ -3824,6 +3824,13 @@ static INT16         gsStatsPopupInvWidth;
 static INT16         gsStatsPopupInvHeight;
 static MOUSE_REGION  gStatsPopupRegion;
 
+// Done button, map screen only -- same graphic/position (relative to the box's own
+// top-left corner) as the map's own item-description box (ItemInfoC.sti,
+// giMapInvDescButton/itemdescdonebutton.sti, Interface_Items.cc). The tactical popup
+// has no such button, closed instead by clicking anywhere on gStatsPopupRegion.
+static GUIButtonRef gStatsPopupDoneButton;
+static void BtnStatsPopupDoneCallback(GUI_BUTTON* btn, UINT32 reason);
+
 
 BOOLEAN InStatsPopup(void)
 {
@@ -3845,7 +3852,17 @@ void DeleteStatsPopup(void)
 	// Map_Screen_Interface_Bottom.cc, which opens it with fInMapMode already TRUE.
 	if (fInMapMode)
 	{
-		fMapScreenBottomDirty = TRUE;
+		// Same combination the map's own item-description box uses when closing
+		// (DeleteItemDescriptionBox(), Interface_Items.cc) -- fMapScreenBottomDirty
+		// alone only covers the bottom bar's own 121px strip, not the taller area
+		// this popup actually sits over (MAP_ITEMDESC_HEIGHT/272x268), which left the
+		// popup's own graphics as a leftover ghost until something else (e.g.
+		// opening Mapinv.sti) happened to redraw that same area.
+		fCharacterInfoPanelDirty = TRUE;
+		fMapPanelDirty           = TRUE;
+		fTeamPanelDirty          = TRUE;
+		fMapScreenBottomDirty    = TRUE;
+		RemoveButton(gStatsPopupDoneButton);
 	}
 	else
 	{
@@ -3859,6 +3876,12 @@ void DeleteStatsPopup(void)
 	}
 
 	FreeMouseCursor();
+}
+
+
+static void BtnStatsPopupDoneCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) DeleteStatsPopup();
 }
 
 
@@ -3918,6 +3941,14 @@ void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const 
 		// reason -- see HideSMBookmarkButtonsUnderInfoPopups().
 		HideSMBookmarkButtonsUnderInfoPopups();
 	}
+	else
+	{
+		// Same button/graphic/relative position as the map's own item-description box
+		// (giMapInvDescButton, Interface_Items.cc) -- see the comment by
+		// gStatsPopupDoneButton above.
+		gStatsPopupDoneButton = QuickCreateButtonImg(INTERFACEDIR "/itemdescdonebutton.sti", 0, 1,
+			sInvX + 204, sInvY + 107, MSYS_PRIORITY_HIGHEST, BtnStatsPopupDoneCallback);
+	}
 
 	gfInStatsPopup = TRUE;
 
@@ -3950,6 +3981,13 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	INT16 const dy = fInMapMode ? gsStatsPopupInvY : (STATS_POPUP_BOX_Y + gsStatsPopupInvY);
 
 	BltVideoObject(FRAME_BUFFER, fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox, 0, dx, dy);
+
+	// Draw the Done button ourselves, right on top of the box we just blitted --
+	// RenderButtons()'s own separate pass only redraws a button when something marks
+	// it dirty again (e.g. a hover event), so relying on it alone left the button
+	// erased by this same full-box blit on every frame in between, drawn for a single
+	// frame only when the mouse moved over it.
+	if (fInMapMode) gStatsPopupDoneButton->Draw();
 
 	SOLDIERTYPE const&       s = *gpStatsPopupSoldier;
 	MERCPROFILESTRUCT const& p = GetProfile(s.ubProfile);
@@ -4241,6 +4279,10 @@ static INT16         gsSkillsPopupInvWidth;
 static INT16         gsSkillsPopupInvHeight;
 static MOUSE_REGION  gSkillsPopupRegion;
 
+// See the matching comment by gStatsPopupDoneButton above.
+static GUIButtonRef gSkillsPopupDoneButton;
+static void BtnSkillsPopupDoneCallback(GUI_BUTTON* btn, UINT32 reason);
+
 
 BOOLEAN InSkillsPopup(void)
 {
@@ -4260,7 +4302,11 @@ void DeleteSkillsPopup(void)
 	// See the matching comment in DeleteStatsPopup() above.
 	if (fInMapMode)
 	{
-		fMapScreenBottomDirty = TRUE;
+		fCharacterInfoPanelDirty = TRUE;
+		fMapPanelDirty           = TRUE;
+		fTeamPanelDirty          = TRUE;
+		fMapScreenBottomDirty    = TRUE;
+		RemoveButton(gSkillsPopupDoneButton);
 	}
 	else
 	{
@@ -4274,6 +4320,12 @@ void DeleteSkillsPopup(void)
 	}
 
 	FreeMouseCursor();
+}
+
+
+static void BtnSkillsPopupDoneCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) DeleteSkillsPopup();
 }
 
 
@@ -4319,6 +4371,12 @@ void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const
 		// needed in addition to EnableSMPanelButtons(FALSE, ...).
 		HideSMBookmarkButtonsUnderInfoPopups();
 	}
+	else
+	{
+		// See the matching comment in InitStatsPopup() above.
+		gSkillsPopupDoneButton = QuickCreateButtonImg(INTERFACEDIR "/itemdescdonebutton.sti", 0, 1,
+			sInvX + 204, sInvY + 107, MSYS_PRIORITY_HIGHEST, BtnSkillsPopupDoneCallback);
+	}
 
 	gfInSkillsPopup = TRUE;
 
@@ -4348,6 +4406,9 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 	INT16 const dy = fInMapMode ? gsSkillsPopupInvY : (SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY);
 
 	BltVideoObject(FRAME_BUFFER, fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox, 0, dx, dy);
+
+	// See the matching comment in RenderStatsPopup() above.
+	if (fInMapMode) gSkillsPopupDoneButton->Draw();
 
 	MERCPROFILESTRUCT const& p = GetProfile(gpSkillsPopupSoldier->ubProfile);
 
