@@ -71,10 +71,10 @@
 #define BOBBYR_BRTITLE_HEIGHT		42
 
 #define BOBBYR_TO_ORDER_TITLE_X		(STD_SCREEN_X + 195)
-#define BOBBYR_TO_ORDER_TITLE_Y		(STD_SCREEN_Y + 42 + LAPTOP_SCREEN_WEB_DELTA_Y)
+#define BOBBYR_TO_ORDER_TITLE_Y		(STD_SCREEN_Y + 42 + LAPTOP_SCREEN_WEB_DELTA_Y - 9)
 
 #define BOBBYR_TO_ORDER_TEXT_X		BOBBYR_TO_ORDER_TITLE_X + 75
-#define BOBBYR_TO_ORDER_TEXT_Y		(STD_SCREEN_Y + 33 + LAPTOP_SCREEN_WEB_DELTA_Y)
+#define BOBBYR_TO_ORDER_TEXT_Y		(STD_SCREEN_Y + 33 + LAPTOP_SCREEN_WEB_DELTA_Y + 2)
 #define BOBBYR_TO_ORDER_TEXT_WIDTH	330
 
 #define BOBBYR_PREVIOUS_BUTTON_X	LAPTOP_SCREEN_UL_X + 5	//BOBBYR_HOME_BUTTON_X + BOBBYR_CATALOGUE_BUTTON_WIDTH + 5
@@ -91,6 +91,13 @@
 
 #define   BOBBYR_HOME_BUTTON_X		(STD_SCREEN_X + 120)
 #define   BOBBYR_HOME_BUTTON_Y		(STD_SCREEN_Y + 400 + LAPTOP_SCREEN_WEB_DELTA_Y)
+
+// Catalogue shortcuts row (GUNS/ATTACH/AMMO/ARMOR/EXPL./MISC.), at the very top of
+// the page, above the BR logo/"To Order" header -- placeholder position, tune once
+// visible in-game.
+#define BOBBYR_CATALOG_SHORTCUT_START_X	(BOBBYR_BRTITLE_X + 76)
+#define BOBBYR_CATALOG_SHORTCUT_Y		(LAPTOP_SCREEN_WEB_UL_Y + 1 + 20)
+#define BOBBYR_CATALOG_SHORTCUT_GAP		66
 
 #define BOBBYR_CATALOGUE_BUTTON_TEXT_Y	BOBBYR_CATALOGUE_BUTTON_Y + 5
 
@@ -327,6 +334,23 @@ static void BtnBobbyRHomeButtonCallback(GUI_BUTTON* btn, UINT32 reason);
 static BUTTON_PICS* guiBobbyRHomeImage;
 static GUIButtonRef guiBobbyRHome;
 
+// The 6 catalogue shortcuts (GUNS/ATTACH/AMMO/ARMOR/EXPL./MISC.) at the top of every
+// Bobby Ray's catalogue page -- jump straight to another catalogue without going back
+// through Home, same one-line navigation as SelectTitleImageLinkRegionCallBack() below.
+enum
+{
+	BOBBYR_CATALOG_SHORTCUT_GUNS = 0,
+	BOBBYR_CATALOG_SHORTCUT_ATTACH,
+	BOBBYR_CATALOG_SHORTCUT_AMMO,
+	BOBBYR_CATALOG_SHORTCUT_ARMOR,
+	BOBBYR_CATALOG_SHORTCUT_EXPL,
+	BOBBYR_CATALOG_SHORTCUT_MISC,
+	NUM_BOBBYR_CATALOG_SHORTCUTS,
+};
+static BUTTON_PICS* guiBobbyRCatalogShortcutsImage;
+static GUIButtonRef guiBobbyRCatalogShortcuts[NUM_BOBBYR_CATALOG_SHORTCUTS];
+static void BtnBobbyRCatalogShortcutCallback(GUI_BUTTON* btn, UINT32 reason);
+
 
 // Link from the title
 static MOUSE_REGION gSelectedTitleImageLinkRegion;
@@ -451,6 +475,19 @@ static void SelectTitleImageLinkRegionCallBack(MOUSE_REGION* pRegion, UINT32 iRe
 }
 
 
+static void BtnBobbyRCatalogShortcutCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	static LaptopMode const modes[NUM_BOBBYR_CATALOG_SHORTCUTS] =
+	{
+		LAPTOP_MODE_BOBBY_R_GUNS, LAPTOP_MODE_BOBBY_R_ATTACHMENTS, LAPTOP_MODE_BOBBY_R_AMMO,
+		LAPTOP_MODE_BOBBY_R_ARMOR, LAPTOP_MODE_BOBBY_R_EXPLOSIVES, LAPTOP_MODE_BOBBY_R_MISC,
+	};
+	guiCurrentLaptopMode = modes[btn->GetUserData()];
+}
+
+
 static GUIButtonRef MakeButton(BUTTON_PICS* img, const ST::string& text, INT16 x, INT16 y, GUI_CALLBACK click)
 {
 	const INT16 shadow_col = BOBBYR_GUNS_SHADOW_COLOR;
@@ -506,6 +543,21 @@ void InitBobbyMenuBar()
 		SyncGunFilterButtons();
 	}
 
+	// Catalogue shortcuts row -- same 5 buttons' graphic as the class filter buttons,
+	// always all 6 active regardless of which page is currently shown.
+	{
+		static char const* const names[NUM_BOBBYR_CATALOG_SHORTCUTS] = { "GUNS", "ATTACH.", "AMMO", "ARMOR", "EXPL.", "MISC." };
+		BUTTON_PICS* const gfx = LoadButtonImage(LAPTOPDIR "/cataloguebutton1.sti", 0, 1);
+		guiBobbyRCatalogShortcutsImage = gfx;
+		UINT16 x = BOBBYR_CATALOG_SHORTCUT_START_X;
+		for (int i = 0; i < NUM_BOBBYR_CATALOG_SHORTCUTS; ++i, x += BOBBYR_CATALOG_SHORTCUT_GAP)
+		{
+			GUIButtonRef const b = MakeButton(gfx, names[i], x, BOBBYR_CATALOG_SHORTCUT_Y, BtnBobbyRCatalogShortcutCallback);
+			b->SetUserData(i);
+			guiBobbyRCatalogShortcuts[i] = b;
+		}
+	}
+
 	// Order Form button
 	guiBobbyROrderFormImage = LoadButtonImage(LAPTOPDIR "/orderformbutton.sti", 0, 1);
 	guiBobbyROrderForm      = MakeButton(guiBobbyROrderFormImage, BobbyRText[BOBBYR_GUNS_ORDER_FORM], BOBBYR_ORDER_FORM_X + (gpFilterBar && gpFilterBar->bottom ? BOBBYR_GUNS_ORDER_FORM_SHIFT : 0), BOBBYR_ORDER_FORM_Y, BtnBobbyROrderFormCallback);
@@ -536,6 +588,9 @@ void DeleteBobbyMenuBar()
 
 	RemoveButton(guiBobbyRHome);
 	UnloadButtonImage(guiBobbyRHomeImage);
+
+	FOR_EACH(GUIButtonRef, i, guiBobbyRCatalogShortcuts) { RemoveButton(*i); *i = GUIButtonRef(); }
+	UnloadButtonImage(guiBobbyRCatalogShortcutsImage);
 }
 
 

@@ -117,7 +117,7 @@
     ],
     "BobbyRText": [
         "To Order",
-        "Click on the item(s). For more than one, keep on clicking. Right click for less. Once you've selected all you'd like to buy, go on to the order form.",
+        "Click to add. Right-click to remove. Ready? Go to checkout.",
         "Previous Items",
         "Guns",
         "Ammo",
@@ -142,7 +142,7 @@
         "Darn!  This here on-line order form will only accept 10 items per order.  If you're looking to order more stuff (and we hope you are), kindly make a separate order and accept our apologies.",
         "Sorry. We don't have any more of that in stock right now. Please try again later.",
         "Sorry, but we are currently out of stock on all items of that type.",
-        "Out of stock."
+        "Out of stock"
     ],
     "BobbyRaysFrontText": [
         "This is the place to be for the newest and hottest in weaponry and military supplies",
