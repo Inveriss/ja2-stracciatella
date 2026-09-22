@@ -124,13 +124,10 @@ enum
 #define BOOK_WIDTH  100
 
 // Manual bookmark-reordering arrow (Bookmarks_Arrows.sti: 0 = up, 1 = pressed).
-// The pressed sub-image is 1px wider than the ready one (20x18 vs 19x18) --
-// BOOK_ARROW_PRESSED_WIDTH is used only for the save/restore + invalidate
-// rects, so that extra column always gets cleaned up too, regardless of
-// which of the two sub-images was actually drawn last.
-#define BOOK_ARROW_WIDTH         19
-#define BOOK_ARROW_HEIGHT        18
-#define BOOK_ARROW_PRESSED_WIDTH 20
+// Both sub-images are the same size.
+#define BOOK_ARROW_WIDTH         22
+#define BOOK_ARROW_HEIGHT        19
+#define BOOK_ARROW_PRESSED_WIDTH 22
 
 
 #define LONG_UNIT_TIME        120
