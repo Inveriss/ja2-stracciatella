@@ -650,21 +650,24 @@ void DisplayItemInfo(UINT32 uiItemClass)
 	std::fill(std::begin(items), std::end(items), nullptr);
 	for(i=gusCurWeaponIndex; ((i<=gusLastItemIndex) && (ubCount < 4)); i++)
 	{
+		BOOLEAN fOutOfStock;
 		if( uiItemClass == BOBBYR_USED_ITEMS )
 		{
-			//If there is not items in stock
-			if( LaptopSaveInfo.BobbyRayUsedInventory[ i ].ubQtyOnHand == 0 )
+			//If the item was never eligible at all, it doesn't belong on the page
+			if( !LaptopSaveInfo.BobbyRayUsedInventory[ i ].fPreviouslyEligible )
 				continue;
 
+			fOutOfStock = LaptopSaveInfo.BobbyRayUsedInventory[ i ].ubQtyOnHand == 0;
 			usItemIndex = LaptopSaveInfo.BobbyRayUsedInventory[ i ].usItemIndex;
 			gfOnUsedPage = TRUE;
 		}
 		else
 		{
-			//If there is not items in stock
-			if( LaptopSaveInfo.BobbyRayInventory[ i ].ubQtyOnHand == 0 )
+			//If the item was never eligible at all, it doesn't belong on the page
+			if( !LaptopSaveInfo.BobbyRayInventory[ i ].fPreviouslyEligible )
 				continue;
 
+			fOutOfStock = LaptopSaveInfo.BobbyRayInventory[ i ].ubQtyOnHand == 0;
 			usItemIndex = LaptopSaveInfo.BobbyRayInventory[ i ].usItemIndex;
 			gfOnUsedPage = FALSE;
 		}
@@ -674,6 +677,10 @@ void DisplayItemInfo(UINT32 uiItemClass)
 		if (!BobbyRItemMatchesClass(item, uiItemClass)) continue;
 
 		items[ubCount] = item;
+
+		// this row's top, before the switch below advances PosY/usTextPosY for it
+		UINT16 const usRowPosY = PosY;
+		UINT8  const ubCountBeforeRow = ubCount;
 
 		switch (item->getItemClass())
 		{
@@ -759,6 +766,14 @@ void DisplayItemInfo(UINT32 uiItemClass)
 				usTextPosY += BOBBYR_GRID_OFFSET;
 				ubCount++;
 				break;
+		}
+
+		// Out of stock at this stage of the game (as opposed to never having been
+		// eligible at all -- those never reach this loop, filtered out above): dim
+		// the whole row instead of hiding the item entirely, per user request.
+		if (fOutOfStock && ubCount != ubCountBeforeRow)
+		{
+			FRAME_BUFFER->ShadowRect(BOBBYR_GRIDLOC_X, usRowPosY - 3, BOBBYR_GRIDLOC_X + 450 + 43, usRowPosY - 3 + BOBBYR_GRID_OFFSET + 1);
 		}
 	}
 
@@ -1229,8 +1244,9 @@ void SetFirstLastPagesForNew( UINT32 uiClassMask )
 	//First loop through to get the first and last index indexs
 	for(i=0; i<MAXITEMS; i++)
 	{
-		//If we have some of the inventory on hand
-		if( LaptopSaveInfo.BobbyRayInventory[ i ].ubQtyOnHand != 0 )
+		//If the item is available at this stage of the game (in stock or not -- an
+		//out-of-stock item is still shown, greyed out, in DisplayItemInfo() below)
+		if( LaptopSaveInfo.BobbyRayInventory[ i ].fPreviouslyEligible )
 		{
 			if( BobbyRItemMatchesClass(GCM->getItem(LaptopSaveInfo.BobbyRayInventory[ i ].usItemIndex), uiClassMask) )
 			{
@@ -1271,8 +1287,9 @@ void SetFirstLastPagesForUsed()
 	//First loop through to get the first and last index indexs
 	for(i=0; i<MAXITEMS; i++)
 	{
-		//If we have some of the inventory on hand
-		if( LaptopSaveInfo.BobbyRayUsedInventory[ i ].ubQtyOnHand != 0 )
+		//If the item is available at this stage of the game -- see the matching
+		//comment in SetFirstLastPagesForNew() above.
+		if( LaptopSaveInfo.BobbyRayUsedInventory[ i ].fPreviouslyEligible )
 		{
 			ubNumItems++;
 
@@ -1446,8 +1463,12 @@ static void PurchaseBobbyRayItem(UINT16 usItemNumber)
 	//if we are in the used page
 	if( guiCurrentLaptopMode == LAPTOP_MODE_BOBBY_R_USED )
 	{
-		//if there is enough inventory in stock to cover the purchase
-		if( ubPurchaseNumber == BOBBY_RAY_NOT_PURCHASED || LaptopSaveInfo.BobbyRayUsedInventory[ usItemNumber ].ubQtyOnHand >= ( BobbyRayPurchases[ ubPurchaseNumber ].ubNumberPurchased + 1) )
+		//if there is enough inventory in stock to cover the purchase -- unlike the
+		//original "|| ubPurchaseNumber == BOBBY_RAY_NOT_PURCHASED" short-circuit,
+		//an out-of-stock item's very first click (not yet in BobbyRayPurchases[])
+		//is checked too, needing 1 unit rather than ubNumberPurchased + 1
+		if( LaptopSaveInfo.BobbyRayUsedInventory[ usItemNumber ].ubQtyOnHand >=
+			( UINT8 )( ubPurchaseNumber == BOBBY_RAY_NOT_PURCHASED ? 1 : BobbyRayPurchases[ ubPurchaseNumber ].ubNumberPurchased + 1 ) )
 		{
 			// If the item has not yet been purchased
 			if( ubPurchaseNumber == BOBBY_RAY_NOT_PURCHASED )
@@ -1484,8 +1505,10 @@ static void PurchaseBobbyRayItem(UINT16 usItemNumber)
 	//else the player is on a any other page except the used page
 	else
 	{
-		//if there is enough inventory in stock to cover the purchase
-		if( ubPurchaseNumber == BOBBY_RAY_NOT_PURCHASED || LaptopSaveInfo.BobbyRayInventory[ usItemNumber ].ubQtyOnHand >= ( BobbyRayPurchases[ ubPurchaseNumber ].ubNumberPurchased + 1) )
+		//if there is enough inventory in stock to cover the purchase -- see the
+		//matching comment in the used-page branch above.
+		if( LaptopSaveInfo.BobbyRayInventory[ usItemNumber ].ubQtyOnHand >=
+			( UINT8 )( ubPurchaseNumber == BOBBY_RAY_NOT_PURCHASED ? 1 : BobbyRayPurchases[ ubPurchaseNumber ].ubNumberPurchased + 1 ) )
 		{
 			// If the item has not yet been purchased
 			if( ubPurchaseNumber == BOBBY_RAY_NOT_PURCHASED )
@@ -1637,8 +1660,9 @@ static void CalcFirstIndexForPage(STORE_INVENTORY* const pInv, UINT32 const item
 	for (UINT16 i = gusFirstItemIndex; i <= gusLastItemIndex; ++i)
 	{
 		if (!BobbyRItemMatchesClass(GCM->getItem(pInv[i].usItemIndex), item_class)) continue;
-		// If we have some of the inventory on hand
-		if (pInv[i].ubQtyOnHand == 0) continue;
+		// If the item isn't available at this stage of the game at all -- see the
+		// matching comment in SetFirstLastPagesForNew() above.
+		if (!pInv[i].fPreviouslyEligible) continue;
 
 		gusCurWeaponIndex = i;
 		if (inv_idx++ == gubCurPage * 4) break;
