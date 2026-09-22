@@ -180,7 +180,7 @@ void InitGameOptions()
 	gGameOptions = GAME_OPTIONS{};
 
 	//Init the game options
-	gGameOptions.fGunNut           = FALSE;
+	gGameOptions.fGunNut           = TRUE; // the gun options are hidden in Initial Options, Tons of Guns is always on
 	gGameOptions.fSciFi            = TRUE;
 	gGameOptions.ubDifficultyLevel = DIF_LEVEL_EASY;
 	//gGameOptions.fTurnTimeLimit  = FALSE;
