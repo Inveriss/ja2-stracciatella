@@ -17,7 +17,7 @@
 
   //  Press d in realtime mode to manually start turn based mode.
   //  vanilla setting: false
-  "can_enter_turnbased": false,
+  "can_enter_turnbased": true,
 
   //  Enables middle mouse button to trigger a look into cursor direction
   //  vanilla setting: false
@@ -42,7 +42,7 @@
   // dot on the radar map blinks once every 400 milliseconds by default; with game_durations_multiplier set
   // to 1.15 this would be slowed down to once every 460 milliseconds.
   //  Stracciatella standard value: 1.0
-  "game_durations_multiplier": 1.0,
+  "game_durations_multiplier": 0.4,
 
   //  --------------------------------------------------
   //  Gameplay settings
@@ -56,11 +56,11 @@
 
   //  Will enemies drop ALL of their equipment when they die?
   //  vanilla setting: false
-  "drop_everything": false,
+  "drop_everything": true,
 
   //  Will dropped items always be visible to the player, regardless of distance?
   //  vanilla setting: false
-  "all_drops_visible": false,
+  "all_drops_visible": true,
 
   //  Everyone will be able to interrupt multiple times in the same turn. Vanilla behaviour is that if you skipped reacting to the first interrupt
   //  (say your buddies took care of it), you'd still get skipped for any further interrupts. Annoying in ambushes or when sneaking.
@@ -75,7 +75,7 @@
   // Larger squad sizes requires the wider screen to display all members. For a squad size of n, the screen must be at
   // least (640 + (n-6)*83) pixels wide. For example, squad size of 8 requires the screen to be at least 806px wide.
   // vanilla value: 6
-  "squad_size": 6,
+  "squad_size": 10,
 
   // Enable improvements over vanilla game's tactical AI
   "ai": {
@@ -144,7 +144,7 @@
 
   //  Show chance-to-hit next to mouse cursor when preparing an attack
   //  vanilla setting: false
-  "show_hit_chance": false,
+  "show_hit_chance": true,
 
   //  Scales the loading time of websites on the laptop. Lower value means faster loading. Setting this to 0.0 removes the loading entirely.
   //  vanilla setting: 1.0
