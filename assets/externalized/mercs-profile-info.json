@@ -14140,6 +14140,15 @@
       {
         "slot": "BIGPOCK3",
         "item": "BREAK_LIGHT"
+      },
+      {
+        "slot": "HAND",
+        "item": "SKS"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "CLIP762W_10_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -14221,6 +14230,15 @@
       {
         "slot": "BIGPOCK1",
         "item": "TOOLKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MINI14"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -14317,6 +14335,15 @@
       {
         "slot": "BIGPOCK7",
         "item": "BREAK_LIGHT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MP5K"
+      },
+      {
+        "slot": "BIGPOCK8",
+        "item": "CLIP9_30",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -14394,6 +14421,15 @@
       {
         "slot": "BIGPOCK1",
         "item": "TOOLKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MP53"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "CLIP9_30",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -14469,6 +14505,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MP5K"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP9_30",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -14547,6 +14592,15 @@
       {
         "slot": "BIGPOCK3",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "AKSU74"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "CLIP545_30_AP",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -14630,6 +14684,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "LOCKSMITHKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MP5K"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP9_30",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -14714,6 +14777,15 @@
       {
         "slot": "BIGPOCK4",
         "item": "BREAK_LIGHT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MP5K"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "CLIP9_30",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -14787,6 +14859,15 @@
       {
         "slot": "VEST",
         "item": "KEVLAR_VEST"
+      },
+      {
+        "slot": "HAND",
+        "item": "G41"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP556_30_AP",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -14870,6 +14951,15 @@
         "slot": "BIGPOCK4",
         "item": "BRASS_KNUCKLES",
         "quantity": 2
+      },
+      {
+        "slot": "HAND",
+        "item": "MP53"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "CLIP556_30_AP",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -14949,6 +15039,15 @@
       {
         "slot": "BIGPOCK3",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MP5K"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "CLIP9_30",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -15025,6 +15124,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "THROWING_KNIFE",
+        "quantity": 2
+      },
+      {
+        "slot": "HAND",
+        "item": "BERETTA_93R"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP9_15",
         "quantity": 2
       }
     ],
@@ -15109,6 +15217,15 @@
       {
         "slot": "BIGPOCK4",
         "item": "BREAK_LIGHT"
+      },
+      {
+        "slot": "HAND",
+        "item": "SKS"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "CLIP762W_10_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -15192,6 +15309,15 @@
       {
         "slot": "BIGPOCK4",
         "item": "COMBAT_KNIFE"
+      },
+      {
+        "slot": "HAND",
+        "item": "COMMANDO"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "CLIP556_30_AP",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -15258,6 +15384,17 @@
       "biWeeklySalary": 1100,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HAND",
+        "item": "GLOCK_17"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP9_15",
+        "quantity": 2
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15321,6 +15458,17 @@
       "biWeeklySalary": 1700,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HAND",
+        "item": "M870"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP12G_7_BUCKSHOT",
+        "quantity": 2
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15396,6 +15544,15 @@
         "slot": "BIGPOCK2",
         "item": "BRASS_KNUCKLES",
         "quantity": 2
+      },
+      {
+        "slot": "HAND",
+        "item": "TYPE85"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -15473,6 +15630,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "THOMPSON"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP45_30",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -15543,6 +15709,15 @@
       {
         "slot": "HELMET",
         "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "HAND",
+        "item": "MINI14"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -15698,6 +15873,15 @@
       {
         "slot": "BIGPOCK3",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "GLOCK_17"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -15779,6 +15963,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "M870"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP12G_7_BUCKSHOT",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -15849,6 +16042,15 @@
       {
         "slot": "HELMET",
         "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "HAND",
+        "item": "BERETTA_93R"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -15915,6 +16117,17 @@
       "biWeeklySalary": 1700,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HAND",
+        "item": "GLOCK_17"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP9_15",
+        "quantity": 2
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -15977,6 +16190,17 @@
       "biWeeklySalary": 600,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HAND",
+        "item": "GLOCK_17"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP9_15",
+        "quantity": 2
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16045,6 +16269,15 @@
       {
         "slot": "BIGPOCK1",
         "item": "THROWING_KNIFE",
+        "quantity": 2
+      },
+      {
+        "slot": "HAND",
+        "item": "SW38"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "CLIP38_6",
         "quantity": 2
       }
     ],
@@ -16120,6 +16353,15 @@
       {
         "slot": "BIGPOCK1",
         "item": "TOOLKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "GLOCK_17"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -16186,6 +16428,17 @@
       "biWeeklySalary": 2800,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HAND",
+        "item": "BERETTA_93R"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP9_15",
+        "quantity": 2
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -16256,6 +16509,15 @@
       {
         "slot": "BIGPOCK1",
         "item": "COMBAT_KNIFE"
+      },
+      {
+        "slot": "HAND",
+        "item": "GLOCK_17"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -16329,6 +16591,15 @@
       {
         "slot": "VEST",
         "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "HAND",
+        "item": "MINI14"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -16405,6 +16676,15 @@
         "slot": "BIGPOCK2",
         "item": "THROWING_KNIFE",
         "quantity": 2
+      },
+      {
+        "slot": "HAND",
+        "item": "THOMPSON"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP45_30",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -16687,6 +16967,15 @@
       {
         "slot": "VEST",
         "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "HAND",
+        "item": "MINI14"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -16762,6 +17051,15 @@
       {
         "slot": "BIGPOCK1",
         "item": "TOOLKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "GLOCK_17"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -16837,6 +17135,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "M870"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP12G_7_BUCKSHOT",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -16916,6 +17223,15 @@
       {
         "slot": "BIGPOCK3",
         "item": "COMBAT_KNIFE"
+      },
+      {
+        "slot": "HAND",
+        "item": "MINI14"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -16985,6 +17301,15 @@
       {
         "slot": "BIGPOCK1",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "TYPE85"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -17061,6 +17386,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "BERETTA_93R"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -17126,6 +17460,17 @@
       "biWeeklySalary": 2200,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HAND",
+        "item": "THOMPSON"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP45_30",
+        "quantity": 1
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -17207,6 +17552,15 @@
         "slot": "BIGPOCK4",
         "item": "BRASS_KNUCKLES",
         "quantity": 2
+      },
+      {
+        "slot": "HAND",
+        "item": "MINI14"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -17281,6 +17635,15 @@
       {
         "slot": "VEST",
         "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "HAND",
+        "item": "MINI14"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -17365,6 +17728,15 @@
       {
         "slot": "BIGPOCK4",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MP5K"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "CLIP9_30",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -17444,6 +17816,15 @@
       {
         "slot": "BIGPOCK1",
         "item": "TOOLKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "SKS"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "CLIP762W_10_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -17523,6 +17904,19 @@
       {
         "slot": "BIGPOCK2",
         "item": "LOCKSMITHKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "M1911"
+      },
+      {
+        "slot": "SECONDHAND",
+        "item": "M1911"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP45_7",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -17593,6 +17987,15 @@
       {
         "slot": "VEST",
         "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "HAND",
+        "item": "SKS"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP762W_10_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -17672,6 +18075,15 @@
       {
         "slot": "BIGPOCK3",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "THOMPSON"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "CLIP45_30",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -17751,6 +18163,15 @@
       {
         "slot": "BIGPOCK1",
         "item": "TOOLKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "SKS"
+      },
+      {
+        "slot": "BIGPOCK2",
+        "item": "CLIP762W_10_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -17834,6 +18255,15 @@
       {
         "slot": "BIGPOCK4",
         "item": "COMBAT_KNIFE"
+      },
+      {
+        "slot": "HAND",
+        "item": "BERETTA_93R"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -17923,6 +18353,15 @@
         "slot": "BIGPOCK5",
         "item": "BRASS_KNUCKLES",
         "quantity": 2
+      },
+      {
+        "slot": "HAND",
+        "item": "TYPE85"
+      },
+      {
+        "slot": "BIGPOCK6",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -18003,6 +18442,15 @@
       {
         "slot": "BIGPOCK3",
         "item": "BREAK_LIGHT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MINI14"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -18090,6 +18538,15 @@
       {
         "slot": "BIGPOCK5",
         "item": "BREAK_LIGHT"
+      },
+      {
+        "slot": "HAND",
+        "item": "BERETTA_93R"
+      },
+      {
+        "slot": "BIGPOCK6",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -18177,6 +18634,15 @@
       {
         "slot": "BIGPOCK5",
         "item": "COMBAT_KNIFE"
+      },
+      {
+        "slot": "HAND",
+        "item": "TYPE85"
+      },
+      {
+        "slot": "BIGPOCK6",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -18256,6 +18722,15 @@
         "slot": "BIGPOCK3",
         "item": "BRASS_KNUCKLES",
         "quantity": 2
+      },
+      {
+        "slot": "HAND",
+        "item": "TYPE85"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -18331,6 +18806,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "LOCKSMITHKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "M870"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP12G_7_BUCKSHOT",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -18401,6 +18885,15 @@
       {
         "slot": "VEST",
         "item": "FLAK_JACKET"
+      },
+      {
+        "slot": "HAND",
+        "item": "BERETTA_93R"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -18474,6 +18967,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "COMBAT_KNIFE"
+      },
+      {
+        "slot": "HAND",
+        "item": "TYPE85"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -18541,6 +19043,21 @@
       "biWeeklySalary": 2800,
       "isMedicalDepositRequired": false
     },
+    "inventory": [
+      {
+        "slot": "HAND",
+        "item": "M1911"
+      },
+      {
+        "slot": "SECONDHAND",
+        "item": "M1911"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP45_7",
+        "quantity": 2
+      }
+    ],
     "dialogue": [
       {
         "approach": "FRIENDLY",
@@ -18619,6 +19136,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "BERETTA_93R"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -18688,6 +19214,15 @@
       {
         "slot": "HELMET",
         "item": "STEEL_HELMET"
+      },
+      {
+        "slot": "HAND",
+        "item": "M870"
+      },
+      {
+        "slot": "BIGPOCK1",
+        "item": "CLIP12G_7_BUCKSHOT",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -18772,6 +19307,15 @@
       {
         "slot": "BIGPOCK2",
         "item": "LOCKSMITHKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "MINI14"
+      },
+      {
+        "slot": "BIGPOCK3",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -18854,6 +19398,15 @@
       {
         "slot": "BIGPOCK3",
         "item": "REMOTEBOMBTRIGGER"
+      },
+      {
+        "slot": "HAND",
+        "item": "BERETTA_93R"
+      },
+      {
+        "slot": "BIGPOCK4",
+        "item": "CLIP9_15",
+        "quantity": 2
       }
     ],
     "dialogue": [
@@ -18937,6 +19490,15 @@
       {
         "slot": "BIGPOCK4",
         "item": "FIRSTAIDKIT"
+      },
+      {
+        "slot": "HAND",
+        "item": "TYPE85"
+      },
+      {
+        "slot": "BIGPOCK5",
+        "item": "CLIP762W_30_AP",
+        "quantity": 1
       }
     ],
     "dialogue": [
@@ -19005,35 +19567,38 @@
     "inventory": [
       {
         "slot": "HELMET",
-        "item": "KEVLAR_HELMET"
+        "item": "SPECTRA_HELMET_18"
       },
       {
         "slot": "VEST",
-        "item": "KEVLAR_VEST"
+        "item": "SPECTRA_VEST_18"
+      },
+      {
+        "slot": "LEG",
+        "item": "SPECTRA_LEGGINGS_18"
+      },
+      {
+        "slot": "HAND",
+        "item": "C7"
       },
       {
         "slot": "BIGPOCK1",
-        "item": "TOOLKIT"
+        "item": "CLIP556_30_AP",
+        "quantity": 2
       },
       {
         "slot": "BIGPOCK2",
-        "item": "MEDICKIT"
+        "item": "HAND_GRENADE",
+        "quantity": 2
       },
       {
         "slot": "BIGPOCK3",
-        "item": "FIRSTAIDKIT"
+        "item": "UNDER_GLAUNCHER"
       },
       {
         "slot": "BIGPOCK4",
-        "item": "C1"
-      },
-      {
-        "slot": "BIGPOCK5",
-        "item": "REMDETONATOR"
-      },
-      {
-        "slot": "BIGPOCK6",
-        "item": "REMOTEBOMBTRIGGER"
+        "item": "GL_HE_GRENADE",
+        "quantity": 2
       }
     ],
     "dialogue": [
