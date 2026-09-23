@@ -527,6 +527,13 @@ static void EnterLaptop(void)
 	// set the fact we are currently in laptop, for rendering purposes
 	fCurrentlyInLaptop = TRUE;
 
+	// InternalLeaveTacticalScreen() (GameScreen.cc) hides the cursor on every exit from the
+	// tactical screen, whatever the destination, expecting that screen to set its own back --
+	// the map screen's own MAP_EXIT_TO_LAPTOP exit never hides it in the first place, so this
+	// is a no-op there, but a tactical-screen shortcut straight into the laptop otherwise left
+	// the cursor invisible until the mouse happened to cross a region boundary on its own.
+	SetCurrentCursorFromDatabase(CURSOR_LAPTOP_SCREEN);
+
 	// reset redraw flag and redraw new mail
 	fReDrawScreenFlag  = FALSE;
 	fReDrawNewMailFlag = TRUE;
