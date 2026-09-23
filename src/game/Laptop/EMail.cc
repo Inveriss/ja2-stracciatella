@@ -2455,7 +2455,7 @@ static ST::string ReplaceMercNameAndAmountWithProperData(const ST::string& pFini
 	ST::string result = pFinishedString;
 	if (result.contains(sMercName)) result = result.replace(sMercName, gMercProfiles[pMail->uiSecondData].zName);
 	if (result.contains(sAmount))   result = result.replace(sAmount, SPrintMoney(pMail->iFirstData));
-	if (result.contains(sItemName)) result = result.replace(sItemName, GCM->getItem((UINT16)pMail->uiSecondData)->getName());
+	if (result.contains(sItemName)) result = result.replace(sItemName, GCM->getItem((UINT16)pMail->uiSecondData)->getName().to_upper());
 	return result;
 }
 
