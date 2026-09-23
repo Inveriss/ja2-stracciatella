@@ -347,6 +347,14 @@ void ExitEmail()
 		AddDeleteRegionsToMessageRegion( 0 );
 		fDisplayMessageFlag = TRUE;
 		fReDrawMessageFlag = TRUE;
+
+		// The From:/Subject:/Day: header and message body were painted straight onto
+		// FRAME_BUFFER by DisplayEmailMessage() (MPrint calls, not GUI_BUTTON/VObject
+		// state) -- unlike the buttons AddDeleteRegionsToMessageRegion() just removed,
+		// nothing else marks that screen area dirty once we stop drawing there, so
+		// whatever the laptop shows next (desktop, another program) never gets told to
+		// re-blit over it and the stale text keeps bleeding through.
+		InvalidateRegion(LAPTOP_SCREEN_UL_X, LAPTOP_SCREEN_UL_Y, LAPTOP_SCREEN_LR_X, LAPTOP_SCREEN_LR_Y);
 	}
 	else
 	{
@@ -2431,9 +2439,16 @@ static ST::string ReplaceMercNameAndAmountWithProperData(const ST::string& pFini
 {
 	const ST::string sMercName = "$MERCNAME$"; //Doesnt need to be translated, inside Email.txt and will be replaced by the mercs name
 	const ST::string sAmount = "$AMOUN$"; //Doesnt need to be translated, inside Email.txt and will be replaced by a dollar amount
+	// Bobby Ray's restock-notification email (BOBBYR_ITEM_BACK_IN_STOCK): repurposes
+	// uiSecondData to hold an item index rather than a merc profile index, so the two token
+	// replacements below are only computed when their own token is actually present --
+	// otherwise gMercProfiles[pMail->uiSecondData] would be indexed with an item index instead.
+	const ST::string sItemName = "$ITEMNAME$";
 
-	ST::string mercName = gMercProfiles[ pMail->uiSecondData ].zName;
-	ST::string amount = SPrintMoney(pMail->iFirstData);
-	return pFinishedString.replace(sAmount, amount).replace(sMercName, mercName);
+	ST::string result = pFinishedString;
+	if (result.contains(sMercName)) result = result.replace(sMercName, gMercProfiles[pMail->uiSecondData].zName);
+	if (result.contains(sAmount))   result = result.replace(sAmount, SPrintMoney(pMail->iFirstData));
+	if (result.contains(sItemName)) result = result.replace(sItemName, GCM->getItem((UINT16)pMail->uiSecondData)->getName());
+	return result;
 }
 

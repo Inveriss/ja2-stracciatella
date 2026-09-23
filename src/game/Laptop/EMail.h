@@ -132,6 +132,12 @@
 #define BOBBY_R_MEDUNA_SHIPMENT			( AIM_MEDICAL_DEPOSIT_NO_REFUND + AIM_MEDICAL_DEPOSIT_NO_REFUND_LENGTH )
 #define BOBBY_R_MEDUNA_SHIPMENT_LENGTH		4
 
+// player asked (Bobby Ray's restock-notification checkbox) to be e-mailed once a formerly
+// out-of-stock item is back in stock -- subject is the item's own name ($ITEMNAME$ token,
+// see ReplaceMercNameAndAmountWithProperData()), body is fixed text
+#define BOBBYR_ITEM_BACK_IN_STOCK		( BOBBY_R_MEDUNA_SHIPMENT + BOBBY_R_MEDUNA_SHIPMENT_LENGTH )
+#define BOBBYR_ITEM_BACK_IN_STOCK_LENGTH	2
+
 
 struct Email
 {

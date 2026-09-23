@@ -4,6 +4,7 @@
 #include "Laptop.h"
 #include "BobbyR.h"
 #include "BobbyRGuns.h"
+#include "EMail.h"
 #include "Timer_Control.h"
 #include "VObject.h"
 #include "WordWrap.h"
@@ -693,11 +694,23 @@ void AddFreshBobbyRayInventory( UINT16 usItemIndex )
 	}
 
 
+	BOOLEAN const fWasOutOfStock = pInventoryArray[ sInventorySlot ].ubQtyOnHand == 0;
+
 	pInventoryArray[ sInventorySlot ].ubQtyOnHand += pInventoryArray[ sInventorySlot ].ubQtyOnOrder;
 	pInventoryArray[ sInventorySlot ].ubItemQuality = ubItemQuality;
 
 	// cancel order
 	pInventoryArray[ sInventorySlot ].ubQtyOnOrder = 0;
+
+	// Player asked (Bobby Ray's restock-notification checkbox, New page only) to be e-mailed
+	// once this item came back into stock -- send it now that it just made that 0 -> some-stock
+	// jump, then clear the flag so it isn't sent again on a later restock.
+	if (fUsed == BOBBY_RAY_NEW && fWasOutOfStock && pInventoryArray[ sInventorySlot ].ubQtyOnHand > 0
+		&& pInventoryArray[ sInventorySlot ].fNotifyOnRestock)
+	{
+		pInventoryArray[ sInventorySlot ].fNotifyOnRestock = FALSE;
+		AddEmailWithSpecialData(BOBBYR_ITEM_BACK_IN_STOCK, BOBBYR_ITEM_BACK_IN_STOCK_LENGTH, BOBBY_R, GetWorldTotalMin(), 0, usItemIndex);
+	}
 }
 
 
