@@ -572,7 +572,7 @@ void InitBobbyMenuBar()
 			UINT16 const x = second ? x0 + i * BOBBYR_CATALOGUE_BUTTON_GAP : x1 + (i - bottom) * BOBBYR_CATALOGUE_BUTTON_GAP;
 			UINT16 y = y0;
 			if (second) y += guiBobbyRPageMenu[bottom]->H() + BOBBYR_CATALOGUE_ROW_GAP;
-			GUIButtonRef const b = MakeButton(gfx, gpFilterBar->names[i], x, y, BtnBobbyRPageMenuCallback);
+			GUIButtonRef const b = MakeButton(gfx, gpFilterBar->names[i], x, y, BtnBobbyRPageMenuCallback, MSYS_PRIORITY_HIGH, FONT10ARIALBOLD);
 			b->SetUserData(i + 1);
 			b->SpecifyDisabledStyle(GUI_BUTTON::DISABLED_STYLE_SHADED);
 			if (i >= gpFilterBar->enabled) DisableButton(b);
