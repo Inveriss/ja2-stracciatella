@@ -180,6 +180,7 @@ struct BobbyRFilterBar
 	UINT8*               filter;   // 0: none pressed (all), 1-count: the button
 	UINT32               allMask;
 	int                  bottom;   // the first buttons that are in the second row (under the first ones of the first row)
+	int                  xOffset = 0; // shifts the whole row/columns left (negative) or right
 };
 
 static UINT8 gubGunFilter = 0;
@@ -225,13 +226,16 @@ static UINT32 const gExplosivesFilterMasks[] =
 };
 static BobbyRFilterBar const gExplosivesFilterBar = { 5, 5, gExplosivesFilterNames, gExplosivesFilterMasks, &gubExplosivesFilter, BOBBYR_EXPLOSIVES_ALL_ITEMS };
 
-static UINT8 gubMiscFilter = 0;
-static char const* const gMiscFilterNames[] = { "Medkits", "Tools", "Containers", "Others" };
+// Default 1 ("ALL"), not the usual 0: unlike every other filter bar (where 0 means "no
+// button pressed, show allMask" implicitly), Misc has ALL as a real, explicitly selectable
+// button -- pressed by default on first entry, same as any other filter choice.
+static UINT8 gubMiscFilter = 1;
+static char const* const gMiscFilterNames[] = { "ALL", "Medkits", "Tools", "Containers", "Others" };
 static UINT32 const gMiscFilterMasks[] =
 {
-	BOBBYR_MISC_MEDKITS_ITEMS, BOBBYR_MISC_TOOLS_ITEMS, BOBBYR_MISC_CONTAINERS_ITEMS, BOBBYR_MISC_OTHERS_ITEMS
+	BOBBYR_MISC_ITEMS, BOBBYR_MISC_MEDKITS_ITEMS, BOBBYR_MISC_TOOLS_ITEMS, BOBBYR_MISC_CONTAINERS_ITEMS, BOBBYR_MISC_OTHERS_ITEMS
 };
-static BobbyRFilterBar const gMiscFilterBar = { 4, 4, gMiscFilterNames, gMiscFilterMasks, &gubMiscFilter, BOBBYR_MISC_ITEMS };
+static BobbyRFilterBar const gMiscFilterBar = { 5, 5, gMiscFilterNames, gMiscFilterMasks, &gubMiscFilter, BOBBYR_MISC_ITEMS, 0, -2 };
 
 // The buttons at the bottom of the current page, if it has them
 static BobbyRFilterBar const* gpFilterBar = nullptr;
@@ -561,7 +565,7 @@ void InitBobbyMenuBar()
 		// the buttons of the first row are centred in the room of the five buttons of the page, those of the
 		// second row start at the first one, 13 pixels under it
 		int const bottom = gpFilterBar->bottom;
-		UINT16 const x0 = BOBBYR_CATALOGUE_BUTTON_START_X;
+		UINT16 const x0 = BOBBYR_CATALOGUE_BUTTON_START_X + gpFilterBar->xOffset;
 		UINT16 const x1 = x0 + (NUM_CATALOGUE_BUTTONS - (gpFilterBar->count - bottom)) * BOBBYR_CATALOGUE_BUTTON_GAP / 2;
 		UINT16 const y0 = BOBBYR_CATALOGUE_BUTTON_Y;
 		// the first row is made first, the height of its buttons is that of the second row
