@@ -6,7 +6,11 @@
 #include "Interface.h"
 #include "LoadSaveData.h"
 #include "Local.h"
+#include "GameScreen.h"
+#include "JAScreens.h"
 #include "Map_Screen_Interface.h"
+#include "Map_Screen_Interface_Bottom.h"
+#include "Options_Screen.h"
 #include "Object_Cache.h"
 #include "Timer.h"
 #include "Timer_Control.h"
@@ -349,6 +353,27 @@ void SetLaptopExitScreen(ScreenID const uiExitScreen)
 void SetLaptopEntryMode(LaptopMode const uiEntryMode)
 {
 	guiRequestedLaptopEntryMode = uiEntryMode;
+}
+
+
+void TryAutoOpenLaptopEmailOnNewMail(void)
+{
+	if (guiCurrentScreen == MAP_SCREEN)
+	{
+		// Same two calls as BtnLaptopEmailFromMapScreenCallback() (Map_Screen_Interface_Bottom.cc).
+		SetLaptopEntryMode(LAPTOP_MODE_EMAIL);
+		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_LAPTOP);
+	}
+	else if (guiCurrentScreen == GAME_SCREEN)
+	{
+		// Same calls as BtnLaptopEmailCallback() (Interface_Panels.cc).
+		SetLaptopEntryMode(LAPTOP_MODE_EMAIL);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+	// Any other current screen (already in the laptop, Options, Save/Load, a cutscene, ...)
+	// is left alone -- fUnReadMailFlag/the map's own blinking envelope already cover those.
 }
 
 

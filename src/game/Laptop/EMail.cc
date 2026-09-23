@@ -569,7 +569,14 @@ void AddEmailMessage(INT32 iMessageOffset, INT32 iMessageLength, INT32 iDate, UI
 	pTempEmail->Next=NULL;
 
 	// set flag that new mail has arrived (mails that are already read, like the ones of a new game, are not new)
-	if (!fAlreadyRead) fNewMailFlag = TRUE;
+	if (!fAlreadyRead)
+	{
+		// Auto-open the laptop's E-mail page only on the actual FALSE -> TRUE edge, not on
+		// every single mail added while some earlier one is still unacknowledged.
+		BOOLEAN const fWasAlreadyNew = fNewMailFlag;
+		fNewMailFlag = TRUE;
+		if (!fWasAlreadyNew) TryAutoOpenLaptopEmailOnNewMail();
+	}
 
 	// add this message to the pages of email
 	AddMessageToPages(pTempEmail);

@@ -101,6 +101,12 @@ enum LaptopMode
 // it doesn't affect subsequent laptop visits.
 void SetLaptopEntryMode(LaptopMode uiEntryMode);
 
+// Jumps straight to the laptop's E-mail page the moment new mail arrives (EMail.cc's
+// AddEmailMessage()), on whichever of the two gameplay screens it can happen on -- mirrors
+// the existing "E-mail" shortcut buttons, just triggered by the mail itself instead of a
+// click. A no-op on any other current screen.
+void TryAutoOpenLaptopEmailOnNewMail(void);
+
 extern LaptopMode  guiCurrentLaptopMode;
 extern LaptopMode  guiPreviousLaptopMode;
 extern INT32       giCurrentSubPage;
