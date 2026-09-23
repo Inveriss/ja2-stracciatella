@@ -181,16 +181,23 @@ struct BobbyRFilterBar
 	UINT32               allMask;
 	int                  bottom;   // the first buttons that are in the second row (under the first ones of the first row)
 	int                  xOffset = 0; // shifts the whole row/columns left (negative) or right
+	int                  orderFormXOffset = 0; // extra shift just for the Order Form button, on this page only
 };
 
-static UINT8 gubGunFilter = 0;
-static char const* const gGunFilterNames[] = { "Knives", "Pistol", "SMG", "Assault", "Sniper", "Shotgun", "Heavy" };
+// Default 3 ("ALL"'s filter value, see below), same reasoning as gubMiscFilter above.
+static UINT8 gubGunFilter = 3;
+// Pistol/Knives swapped from their original order (Knives, Pistol, ...). "ALL" is third, not
+// first -- with bottom=3, that's the last (third) second-row slot, landing it at x0+2*GAP;
+// Sniper is the third slot of the first row (x1+2*GAP), and x1==x0 for this exact
+// count(8)/bottom(3) combination (first row has NUM_CATALOGUE_BUTTONS=5 buttons), so the two
+// line up: ALL sits 13px directly under Sniper.
+static char const* const gGunFilterNames[] = { "Pistol", "Knives", "ALL", "SMG", "Assault", "Sniper", "Shotgun", "Heavy" };
 static UINT32 const gGunFilterMasks[] =
 {
-	BOBBYR_GUNS_KNIVES_ITEMS, BOBBYR_GUNS_PISTOL_ITEMS, BOBBYR_GUNS_SMG_ITEMS, BOBBYR_GUNS_ASSAULT_ITEMS,
+	BOBBYR_GUNS_PISTOL_ITEMS, BOBBYR_GUNS_KNIVES_ITEMS, BOBBYR_ALL_GUN_ITEMS, BOBBYR_GUNS_SMG_ITEMS, BOBBYR_GUNS_ASSAULT_ITEMS,
 	BOBBYR_GUNS_SNIPER_ITEMS, BOBBYR_GUNS_SHOTGUN_ITEMS, BOBBYR_GUNS_HEAVY_ITEMS
 };
-static BobbyRFilterBar const gGunFilterBar = { 7, 7, gGunFilterNames, gGunFilterMasks, &gubGunFilter, BOBBYR_ALL_GUN_ITEMS, 2 };
+static BobbyRFilterBar const gGunFilterBar = { 8, 8, gGunFilterNames, gGunFilterMasks, &gubGunFilter, BOBBYR_ALL_GUN_ITEMS, 3, -3, 32 };
 
 // Default 1 ("ALL"), same reasoning as gubMiscFilter above.
 static UINT8 gubAttachmentFilter = 1;
@@ -615,7 +622,7 @@ void InitBobbyMenuBar()
 
 	// Order Form button
 	guiBobbyROrderFormImage = LoadButtonImage(LAPTOPDIR "/orderformbutton.sti", 0, 1);
-	guiBobbyROrderForm      = MakeButton(guiBobbyROrderFormImage, BobbyRText[BOBBYR_GUNS_ORDER_FORM], BOBBYR_ORDER_FORM_X + (gpFilterBar && gpFilterBar->bottom ? BOBBYR_GUNS_ORDER_FORM_SHIFT : 0), BOBBYR_ORDER_FORM_Y, BtnBobbyROrderFormCallback);
+	guiBobbyROrderForm      = MakeButton(guiBobbyROrderFormImage, BobbyRText[BOBBYR_GUNS_ORDER_FORM], BOBBYR_ORDER_FORM_X + (gpFilterBar && gpFilterBar->bottom ? BOBBYR_GUNS_ORDER_FORM_SHIFT : 0) + (gpFilterBar ? gpFilterBar->orderFormXOffset : 0), BOBBYR_ORDER_FORM_Y, BtnBobbyROrderFormCallback);
 
 	// Home button
 	guiBobbyRHomeImage = LoadButtonImage(LAPTOPDIR "/cataloguebutton.sti", 0, 1);
