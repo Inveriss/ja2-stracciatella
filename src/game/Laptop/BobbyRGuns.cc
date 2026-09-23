@@ -192,39 +192,48 @@ static UINT32 const gGunFilterMasks[] =
 };
 static BobbyRFilterBar const gGunFilterBar = { 7, 7, gGunFilterNames, gGunFilterMasks, &gubGunFilter, BOBBYR_ALL_GUN_ITEMS, 2 };
 
-static UINT8 gubAttachmentFilter = 0;
-static char const* const gAttachmentFilterNames[] = { "Front", "Top", "Rear", "Down" };
+// Default 1 ("ALL"), same reasoning as gubMiscFilter above.
+static UINT8 gubAttachmentFilter = 1;
+static char const* const gAttachmentFilterNames[] = { "ALL", "Front", "Top", "Rear", "Down" };
 static UINT32 const gAttachmentFilterMasks[] =
 {
-	BOBBYR_ATTACH_FRONT_ITEMS, BOBBYR_ATTACH_TOP_ITEMS, BOBBYR_ATTACH_REAR_ITEMS, BOBBYR_ATTACH_DOWN_ITEMS
+	BOBBYR_ATTACHMENT_ITEMS, BOBBYR_ATTACH_FRONT_ITEMS, BOBBYR_ATTACH_TOP_ITEMS, BOBBYR_ATTACH_REAR_ITEMS, BOBBYR_ATTACH_DOWN_ITEMS
 };
-static BobbyRFilterBar const gAttachmentFilterBar = { 4, 4, gAttachmentFilterNames, gAttachmentFilterMasks, &gubAttachmentFilter, BOBBYR_ATTACHMENT_ITEMS };
+static BobbyRFilterBar const gAttachmentFilterBar = { 5, 5, gAttachmentFilterNames, gAttachmentFilterMasks, &gubAttachmentFilter, BOBBYR_ATTACHMENT_ITEMS, 0, -2 };
 
-static UINT8 gubAmmoFilter = 0;
-static char const* const gAmmoFilterNames[] = { "Up to 15", "Up to 30", "Up to 50", "Up to 100", "Up to 250" };
+// Default 1 ("ALL"), same reasoning as gubMiscFilter above.
+static UINT8 gubAmmoFilter = 1;
+// "ALL" first -- with bottom=1 below, lands it 13px under "Up to 15" (index 1, first row),
+// same row-wrapping mechanism as gExplosivesFilterBar.
+static char const* const gAmmoFilterNames[] = { "ALL", "Up to 15", "Up to 30", "Up to 50", "Up to 100", "Up to 250" };
 static UINT32 const gAmmoFilterMasks[] =
 {
-	BOBBYR_AMMO_UP_TO_15_ITEMS, BOBBYR_AMMO_UP_TO_30_ITEMS, BOBBYR_AMMO_UP_TO_50_ITEMS,
+	IC_AMMO, BOBBYR_AMMO_UP_TO_15_ITEMS, BOBBYR_AMMO_UP_TO_30_ITEMS, BOBBYR_AMMO_UP_TO_50_ITEMS,
 	BOBBYR_AMMO_UP_TO_100_ITEMS, BOBBYR_AMMO_UP_TO_250_ITEMS
 };
-static BobbyRFilterBar const gAmmoFilterBar = { 5, 5, gAmmoFilterNames, gAmmoFilterMasks, &gubAmmoFilter, IC_AMMO };
+static BobbyRFilterBar const gAmmoFilterBar = { 6, 6, gAmmoFilterNames, gAmmoFilterMasks, &gubAmmoFilter, IC_AMMO, 1, -2 };
 
-static UINT8 gubArmourFilter = 0;
-static char const* const gArmourFilterNames[] = { "Head", "Vest", "Legs", "HeadGear" };
+// Default 1 ("ALL"), same reasoning as gubMiscFilter above.
+static UINT8 gubArmourFilter = 1;
+static char const* const gArmourFilterNames[] = { "ALL", "Head", "Vest", "Legs", "HeadGear" };
 static UINT32 const gArmourFilterMasks[] =
 {
-	BOBBYR_ARMOUR_HEAD_ITEMS, BOBBYR_ARMOUR_VEST_ITEMS, BOBBYR_ARMOUR_LEGS_ITEMS, BOBBYR_ARMOUR_HEADGEAR_ITEMS
+	BOBBYR_ARMOUR_ITEMS, BOBBYR_ARMOUR_HEAD_ITEMS, BOBBYR_ARMOUR_VEST_ITEMS, BOBBYR_ARMOUR_LEGS_ITEMS, BOBBYR_ARMOUR_HEADGEAR_ITEMS
 };
-static BobbyRFilterBar const gArmourFilterBar = { 4, 4, gArmourFilterNames, gArmourFilterMasks, &gubArmourFilter, BOBBYR_ARMOUR_ITEMS };
+static BobbyRFilterBar const gArmourFilterBar = { 5, 5, gArmourFilterNames, gArmourFilterMasks, &gubArmourFilter, BOBBYR_ARMOUR_ITEMS, 0, -2 };
 
-static UINT8 gubExplosivesFilter = 0;
-static char const* const gExplosivesFilterNames[] = { "Flares", "Gas", "Grenades", "40mm", "Heavy" };
+// Default 1 ("ALL"), same reasoning as gubMiscFilter above.
+static UINT8 gubExplosivesFilter = 1;
+// "ALL" first -- with bottom=1 below, array index 0 is the one placed in the second row (see
+// the positioning loop in InitBobbyMenuBar()), landing it 13px under "Flares" (index 1, first
+// row) since both end up sharing the same x0 anchor for this exact count/bottom combination.
+static char const* const gExplosivesFilterNames[] = { "ALL", "Flares", "Gas", "Grenades", "40mm", "Heavy" };
 static UINT32 const gExplosivesFilterMasks[] =
 {
-	BOBBYR_EXPL_FLARES_ITEMS, BOBBYR_EXPL_GAS_ITEMS, BOBBYR_EXPL_GRENADES_ITEMS,
+	BOBBYR_EXPLOSIVES_ALL_ITEMS, BOBBYR_EXPL_FLARES_ITEMS, BOBBYR_EXPL_GAS_ITEMS, BOBBYR_EXPL_GRENADES_ITEMS,
 	BOBBYR_EXPL_40MM_ITEMS, BOBBYR_EXPL_HEAVY_ITEMS
 };
-static BobbyRFilterBar const gExplosivesFilterBar = { 5, 5, gExplosivesFilterNames, gExplosivesFilterMasks, &gubExplosivesFilter, BOBBYR_EXPLOSIVES_ALL_ITEMS };
+static BobbyRFilterBar const gExplosivesFilterBar = { 6, 6, gExplosivesFilterNames, gExplosivesFilterMasks, &gubExplosivesFilter, BOBBYR_EXPLOSIVES_ALL_ITEMS, 1, -2 };
 
 // Default 1 ("ALL"), not the usual 0: unlike every other filter bar (where 0 means "no
 // button pressed, show allMask" implicitly), Misc has ALL as a real, explicitly selectable
