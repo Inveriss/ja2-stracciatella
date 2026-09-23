@@ -697,6 +697,7 @@ static void BtnBobbyRPreviousPageCallback(GUI_BUTTON* const btn, UINT32 const re
 
 static void CalcFirstIndexForPage(STORE_INVENTORY* pInv, UINT32 uiItemClass);
 static UINT32 CalculateTotalPurchasePrice();
+static UINT8 CheckIfItemIsPurchased(UINT16 usItemNumber);
 static void CreateMouseRegionForBigImage(UINT16 usPosY, UINT8 ubCount, const ItemModel* const items[]);
 static void DisableBobbyRButtons(void);
 static void DisplayAmmoInfo(UINT16 usIndex, UINT16 usTextPosY, BOOLEAN fUsed, UINT16 usBobbyIndex);
@@ -775,6 +776,22 @@ void DisplayItemInfo(UINT32 uiItemClass)
 			fOutOfStock = LaptopSaveInfo.BobbyRayInventory[ i ].ubQtyOnHand == 0;
 			usItemIndex = LaptopSaveInfo.BobbyRayInventory[ i ].usItemIndex;
 			gfOnUsedPage = FALSE;
+		}
+
+		// New page only: the player's own cart can claim the last units on hand without the
+		// stock actually reaching zero -- shown greyed out same as a genuinely empty shelf
+		// (fShowAsOutOfStock below), but NOT eligible for the restock-notification checkbox
+		// (fOutOfStock, unchanged), since there's nothing left to restock from Bobby Ray's own
+		// point of view.
+		BOOLEAN fShowAsOutOfStock = fOutOfStock;
+		if (!fOutOfStock && uiItemClass != BOBBYR_USED_ITEMS)
+		{
+			UINT8 const ubPurchaseNumber = CheckIfItemIsPurchased(i);
+			if (ubPurchaseNumber != BOBBY_RAY_NOT_PURCHASED &&
+				BobbyRayPurchases[ubPurchaseNumber].ubNumberPurchased >= LaptopSaveInfo.BobbyRayInventory[i].ubQtyOnHand)
+			{
+				fShowAsOutOfStock = TRUE;
+			}
 		}
 
 		// skip items that aren't of the right item class
@@ -875,8 +892,9 @@ void DisplayItemInfo(UINT32 uiItemClass)
 
 		// Out of stock at this stage of the game (as opposed to never having been
 		// eligible at all -- those never reach this loop, filtered out above): dim
-		// the whole row instead of hiding the item entirely, per user request.
-		if (fOutOfStock && ubCount != ubCountBeforeRow)
+		// the whole row instead of hiding the item entirely, per user request. Also covers
+		// fShowAsOutOfStock's "claimed entirely by the player's own cart" case above.
+		if (fShowAsOutOfStock && ubCount != ubCountBeforeRow)
 		{
 			FRAME_BUFFER->ShadowRect(BOBBYR_GRIDLOC_X, usRowPosY - 3, BOBBYR_GRIDLOC_X + 450 + 43, usRowPosY - 3 + BOBBYR_GRID_OFFSET + 1);
 
@@ -890,8 +908,10 @@ void DisplayItemInfo(UINT32 uiItemClass)
 			// "Email me when new stock arrives" checkbox, New page only (the Used page is
 			// deactivated) -- top-right corner of the item's own picture; recreated only when
 			// the items on screen actually changed (see fItemsOnScreenChanged above), not on
-			// every redraw of an unchanged page.
-			if (fItemsOnScreenChanged && uiItemClass != BOBBYR_USED_ITEMS)
+			// every redraw of an unchanged page. fOutOfStock (not fShowAsOutOfStock): only
+			// for genuinely zero stock on hand -- an item merely claimed entirely by the
+			// player's own cart has nothing for Bobby Ray's to actually restock.
+			if (fItemsOnScreenChanged && fOutOfStock && uiItemClass != BOBBYR_USED_ITEMS)
 			{
 				STORE_INVENTORY& inv = LaptopSaveInfo.BobbyRayInventory[i];
 
@@ -1687,7 +1707,9 @@ static void PurchaseBobbyRayItem(UINT16 usItemNumber)
 		}
 		else
 		{
-			DoLapTopMessageBox( MSG_BOX_LAPTOP_DEFAULT, BobbyRText[ BOBBYR_MORE_NO_MORE_IN_STOCK ], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+			// No more "Sorry, we don't have any more..." popup here: an item fully claimed
+			// by the player's own cart now shows greyed out with "Out of stock." instead
+			// (fShowAsOutOfStock, DisplayItemInfo()), so a further click just does nothing.
 		}
 	}
 }
