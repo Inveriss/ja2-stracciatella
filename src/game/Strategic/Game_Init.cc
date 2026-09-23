@@ -233,6 +233,11 @@ void InitNewGame()
 		AddPreReadEmail(IMP_EMAIL_INTRO, IMP_EMAIL_INTRO_LENGTH, CHAR_PROFILE_SITE, now);
 		// Enrico's "Good luck in Arulco" is in the mailbox from the start (it was sent when the mercs landed in Omerta)
 		AddPreReadEmail(ENRICO_CONGRATS, ENRICO_CONGRATS_LENGTH, MAIL_ENRICO, now);
+		// Same for Enrico's "Great news" (originally sent on making contact with Miguel) and
+		// Psych Pro Inc's IMP nag "A *little* knowledge..." (originally sent on day 2 if no IMP
+		// merc had been made yet) -- both are in the mailbox from the start as read mail now.
+		AddPreReadEmail(ENRICO_MIGUEL,   ENRICO_MIGUEL_LENGTH,   MAIL_ENRICO,       now);
+		AddPreReadEmail(IMP_EMAIL_AGAIN, IMP_EMAIL_AGAIN_LENGTH, CHAR_PROFILE_SITE, now);
 
 		// ATE: Set starting cash
 		INT32 starting_cash;

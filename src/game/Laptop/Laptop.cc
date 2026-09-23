@@ -1474,8 +1474,10 @@ void HaventMadeImpMercEmailCallBack()
 	//if the player STILL hasnt made an imp merc yet
 	if (!HasCreatedAnyImpMerc() && !LaptopSaveInfo.fSentImpWarningAlready)
 	{
+		// "A *little* knowledge is a dangerous thing..." is in the mailbox from the start
+		// as read mail now (Game_Init.cc), regardless of whether an IMP merc gets made --
+		// no longer (re-)sent here.
 		LaptopSaveInfo.fSentImpWarningAlready = TRUE;
-		AddEmail(IMP_EMAIL_AGAIN,IMP_EMAIL_AGAIN_LENGTH, 1, GetWorldTotalMin());
 	}
 }
 

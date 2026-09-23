@@ -672,10 +672,6 @@ void HandleNPCSystemEvent( UINT32 uiEvent )
 				}
 				break;
 
-			case NPC_ACTION_SEND_ENRICO_MIGUEL_EMAIL:
-				AddEmail( ENRICO_MIGUEL, ENRICO_MIGUEL_LENGTH, MAIL_ENRICO, GetWorldTotalMin() );
-				break;
-
 			case NPC_ACTION_TIMER_FOR_VEHICLE:
 				SetFactTrue( FACT_OK_USE_HUMMER );
 				break;
