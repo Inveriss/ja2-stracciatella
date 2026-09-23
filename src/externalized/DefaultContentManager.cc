@@ -433,6 +433,18 @@ ST::string DefaultContentManager::loadDialogQuoteFromFile(const ST::string& file
 	return DefaultContentManager::openEDT(fileName.view(), { DIALOGUESIZE })->at(quote_number);
 }
 
+
+ST::string DefaultContentManager::loadEmailText(uint32_t const entry) const
+{
+	if (entry < m_emailText.size()) return m_emailText[entry];
+
+	// 320 == MAIL_STRING_SIZE (EMail.cc); duplicated here rather than shared across a header for one
+	// small, essentially fixed constant -- same email.edt row a language without (or not yet fully
+	// covering) strings/email-text-<language>.json falls back to.
+	constexpr uint32_t MAIL_STRING_SIZE = 320;
+	return DefaultContentManager::loadEncryptedString(BINARYDATADIR "/email.edt", MAIL_STRING_SIZE * entry, MAIL_STRING_SIZE);
+}
+
 #if 0
 /* This function is only used when someone wants to extract all quotes to JSON,
    see the commented out code in SGP.cc */
@@ -1383,6 +1395,13 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 			for (auto& quote : entry["quotes"].toVec()) quotes.push_back(quote.toString());
 			m_mercDialogue[entry.GetUInt("profileID")] = std::move(quotes);
 		}
+	}
+
+	// texts of email.edt for the game language; a row beyond this list falls back to email.edt itself
+	ST::string const emailTextFile = ST::string("strings/email-text") + L10n::GetSuffix(m_gameVersion, true) + ".json";
+	if (doesGameResExists(emailTextFile))
+	{
+		JsonUtility::parseListStrings(readJsonDataFileWithSchema(emailTextFile), m_emailText);
 	}
 
 	auto json = readJsonDataFileWithSchema("mercs-profile-info.json");

@@ -120,6 +120,10 @@ public:
 	/** Do the quotes of this merc come from mercs-dialogue-<language>.json (and not from mercedt/NNN.edt)? */
 	virtual bool hasMercDialogue(uint8_t profileID) const = 0;
 
+	/** One entry (row) of email.edt, from strings/email-text-<language>.json when that entry is
+	 * overridden there, falling back to email.edt itself otherwise (see EMail.cc's LoadEMailText()). */
+	virtual ST::string loadEmailText(uint32_t entry) const = 0;
+
 	/** Get weapons with the give index. */
 	virtual const WeaponModel* getWeapon(uint16_t index) = 0;
 	virtual const WeaponModel* getWeaponByName(const ST::string &internalName) = 0;

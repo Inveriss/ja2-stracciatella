@@ -509,7 +509,9 @@ void AddPreReadEmail(INT32 iMessageOffset, INT32 iMessageLength, UINT8 ubSender,
 
 static ST::string LoadEMailText(UINT32 entry)
 {
-	return GCM->loadEncryptedString(BINARYDATADIR "/email.edt", MAIL_STRING_SIZE * entry, MAIL_STRING_SIZE);
+	// strings/email-text-<language>.json first (DefaultContentManager::loadEmailText()), falling back
+	// to email.edt itself for any entry it doesn't cover.
+	return GCM->loadEmailText(entry);
 }
 
 
