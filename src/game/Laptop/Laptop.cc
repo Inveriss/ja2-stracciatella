@@ -1,6 +1,7 @@
 #include "Directories.h"
 #include "Font.h"
 #include "Font_Control.h"
+#include "Logger.h"
 #include "Input.h"
 #include "Interface.h"
 #include "LoadSaveData.h"
@@ -2730,6 +2731,19 @@ static void LaptopMinimizeProgramButtonCallback(GUI_BUTTON* btn, UINT32 reason)
 		gLaptopProgramStates[prog] = LAPTOP_PROGRAM_MINIMIZED;
 		InitTitleBarMaximizeGraphics(guiTITLEBARLAPTOP, title, guiTITLEBARICONS, gfx_idx);
 		SetCurrentToLastProgramOpened();
+
+		// HandleSlidingTitleBar()'s minimizing branch switches on bProgramBeingMaximized to
+		// know which title-bar icon slot to animate to -- for a program opened normally
+		// (sidebar icon click), that was already set correctly when it was maximized and
+		// still holds that value here. A program entered cold via SetLaptopEntryMode() (a
+		// tactical/strategic shortcut) skips the maximize animation entirely, so it's never
+		// set at all and stays at EnterLaptop()'s reset value (-1). With no case in that
+		// switch matching -1, the minimize animation would never report itself done, leaving
+		// fMinizingProgram stuck TRUE forever and freezing all further laptop mode-switch
+		// handling (LaptopScreenHandle()'s dispatch is gated on !fMinizingProgram) -- exactly
+		// the "X doesn't close anything anymore" symptom on a shortcut-opened page.
+		bProgramBeingMaximized = prog;
+
 		fMinizingProgram = TRUE;
 		fInitTitle = TRUE;
 	}
