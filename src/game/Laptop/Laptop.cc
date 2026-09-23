@@ -560,7 +560,13 @@ static void EnterLaptop(void)
 	RenderLapTopImage();
 
 	// reset bookmarks flags
-	fFirstTimeInLaptop = TRUE;
+	// A SetLaptopEntryMode() cold-jump straight into a WWW sub-page (AIM Members/M.E.R.C./
+	// Bobby Ray's -- guiCurrentLaptopMode already holds that mode here, see the pre-seed
+	// above) means the player deliberately picked one specific destination via a shortcut --
+	// the "first WWW visit this session" auto-reveal of the full Web bookmark list
+	// (EnterNewLaptopMode() below) would just be unwanted noise there, unlike organically
+	// browsing into the Web tab for the first time on a normal (desktop-first) entry.
+	fFirstTimeInLaptop = guiCurrentLaptopMode <= LAPTOP_MODE_WWW;
 
 	// reset all bookmark visits
 	std::fill(std::begin(LaptopSaveInfo.fVisitedBookmarkAlready), std::end(LaptopSaveInfo.fVisitedBookmarkAlready), 0);
