@@ -526,10 +526,10 @@ static void BtnBobbyRNotifyCallback(GUI_BUTTON* const btn, UINT32 const reason)
 }
 
 
-static GUIButtonRef MakeButton(BUTTON_PICS* img, const ST::string& text, INT16 x, INT16 y, GUI_CALLBACK click, INT16 priority = MSYS_PRIORITY_HIGH)
+static GUIButtonRef MakeButton(BUTTON_PICS* img, const ST::string& text, INT16 x, INT16 y, GUI_CALLBACK click, INT16 priority = MSYS_PRIORITY_HIGH, SGPFont font = BOBBYR_GUNS_BUTTON_FONT)
 {
 	const INT16 shadow_col = BOBBYR_GUNS_SHADOW_COLOR;
-	GUIButtonRef const btn = CreateIconAndTextButton(img, text, BOBBYR_GUNS_BUTTON_FONT, BOBBYR_GUNS_TEXT_COLOR_ON, shadow_col, BOBBYR_GUNS_TEXT_COLOR_OFF, shadow_col, x, y, priority, click);
+	GUIButtonRef const btn = CreateIconAndTextButton(img, text, font, BOBBYR_GUNS_TEXT_COLOR_ON, shadow_col, BOBBYR_GUNS_TEXT_COLOR_OFF, shadow_col, x, y, priority, click);
 	btn->SetCursor(CURSOR_LAPTOP_SCREEN);
 	return btn;
 }
@@ -590,7 +590,7 @@ void InitBobbyMenuBar()
 		UINT16 x = BOBBYR_CATALOG_SHORTCUT_START_X;
 		for (int i = 0; i < NUM_BOBBYR_CATALOG_SHORTCUTS; ++i, x += BOBBYR_CATALOG_SHORTCUT_GAP)
 		{
-			GUIButtonRef const b = MakeButton(gfx, names[i], x, BOBBYR_CATALOG_SHORTCUT_Y, BtnBobbyRCatalogShortcutCallback);
+			GUIButtonRef const b = MakeButton(gfx, names[i], x, BOBBYR_CATALOG_SHORTCUT_Y, BtnBobbyRCatalogShortcutCallback, MSYS_PRIORITY_HIGH, FONT10ARIALBOLD);
 			b->SetUserData(i);
 			guiBobbyRCatalogShortcuts[i] = b;
 		}
