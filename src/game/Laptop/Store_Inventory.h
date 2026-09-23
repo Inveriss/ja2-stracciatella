@@ -11,6 +11,7 @@ struct STORE_INVENTORY
 	UINT8   ubQtyOnOrder; //The number of items on order
 	UINT8   ubItemQuality; // the % damaged listed from 0 to 100
 	BOOLEAN fPreviouslyEligible; // whether or not dealer has been eligible to sell this item in days prior to today
+	BOOLEAN fNotifyOnRestock; // player asked (Bobby Ray's checkbox) to be e-mailed once this is back in stock
 };
 
 

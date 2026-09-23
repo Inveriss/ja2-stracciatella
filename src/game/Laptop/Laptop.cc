@@ -3389,7 +3389,10 @@ static void InjectStoreInvetory(DataWriter& d, STORE_INVENTORY const& i)
 	INJ_U8(  d, i.ubQtyOnOrder)
 	INJ_U8(  d, i.ubItemQuality)
 	INJ_BOOL(d, i.fPreviouslyEligible)
-	INJ_SKIP(d, 2)
+	// 1 of the 2 formerly-skipped bytes here -- INJ_SKIP always wrote 0, so an older save (which
+	// never had this field) reads back FALSE, same as if it had been written explicitly.
+	INJ_BOOL(d, i.fNotifyOnRestock)
+	INJ_SKIP(d, 1)
 	Assert(d.getConsumed() == start + 8);
 }
 
@@ -3402,7 +3405,8 @@ static void ExtractStoreInvetory(DataReader& d, STORE_INVENTORY& i)
 	EXTR_U8(  d, i.ubQtyOnOrder)
 	EXTR_U8(  d, i.ubItemQuality)
 	EXTR_BOOL(d, i.fPreviouslyEligible)
-	EXTR_SKIP(d, 2)
+	EXTR_BOOL(d, i.fNotifyOnRestock)
+	EXTR_SKIP(d, 1)
 	Assert(d.getConsumed() == start + 8);
 }
 

@@ -41,6 +41,10 @@
 #define BOBBYR_GRID_PIC_WIDTH		118
 #define BOBBYR_GRID_PIC_HEIGHT		69
 
+// Restock-notification checkbox (BOBBY_NOTIFY.STI), top-right corner of an out-of-stock
+// item's own picture -- placeholder size, tune once visible in-game.
+#define BOBBYR_NOTIFY_WIDTH		20
+
 #define BOBBYR_GRID_PIC_X		BOBBYR_GRIDLOC_X + 3
 #define BOBBYR_GRID_PIC_Y		BOBBYR_GRIDLOC_Y + 3
 
@@ -351,6 +355,17 @@ static BUTTON_PICS* guiBobbyRCatalogShortcutsImage;
 static GUIButtonRef guiBobbyRCatalogShortcuts[NUM_BOBBYR_CATALOG_SHORTCUTS];
 static void BtnBobbyRCatalogShortcutCallback(GUI_BUTTON* btn, UINT32 reason);
 
+// Restock-notification checkbox, one per out-of-stock row currently on screen (up to
+// BOBBYR_NUM_WEAPONS_ON_PAGE), New page only (the Used page/filter is deactivated -- see
+// BOBBYR_USED_ITEMS's callers). The image is shared/loaded once per page entry
+// (InitBobbyMenuBar(), like guiBobbyRCatalogShortcutsImage above); the buttons themselves
+// are recreated whenever the set of items on screen changes (DisplayItemInfo() below),
+// same lifecycle as gSelectedBigImageRegion/CreateMouseRegionForBigImage().
+static BUTTON_PICS* guiBobbyRNotifyImage;
+static GUIButtonRef guiBobbyRNotifyButtons[BOBBYR_NUM_WEAPONS_ON_PAGE];
+static void BtnBobbyRNotifyCallback(GUI_BUTTON* btn, UINT32 reason);
+static void DeleteBobbyRNotifyButtons(void);
+
 
 // Link from the title
 static MOUSE_REGION gSelectedTitleImageLinkRegion;
@@ -488,10 +503,33 @@ static void BtnBobbyRCatalogShortcutCallback(GUI_BUTTON* btn, UINT32 reason)
 }
 
 
-static GUIButtonRef MakeButton(BUTTON_PICS* img, const ST::string& text, INT16 x, INT16 y, GUI_CALLBACK click)
+static void DeleteBobbyRNotifyButtons(void)
+{
+	FOR_EACH(GUIButtonRef, i, guiBobbyRNotifyButtons) { if (*i) RemoveButton(*i); *i = GUIButtonRef(); }
+}
+
+
+static void BtnBobbyRNotifyCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	UINT16 const slot = (UINT16)btn->GetUserData();
+	STORE_INVENTORY& inv = LaptopSaveInfo.BobbyRayInventory[slot];
+	// This guard is what actually locks the checkbox -- not DisableButton(): a disabled
+	// GUI_BUTTON always draws its OffNormal (frame 0) picture regardless of
+	// BUTTON_CLICKED_ON (see DrawQuickButton(), Button_System.cc), so disabling it after
+	// checking would show the unchecked picture again instead of staying checked.
+	if (inv.fNotifyOnRestock) return;
+
+	inv.fNotifyOnRestock = TRUE;
+	btn->uiFlags |= BUTTON_CLICKED_ON; // show the checked (frame 1) picture, staying that way
+}
+
+
+static GUIButtonRef MakeButton(BUTTON_PICS* img, const ST::string& text, INT16 x, INT16 y, GUI_CALLBACK click, INT16 priority = MSYS_PRIORITY_HIGH)
 {
 	const INT16 shadow_col = BOBBYR_GUNS_SHADOW_COLOR;
-	GUIButtonRef const btn = CreateIconAndTextButton(img, text, BOBBYR_GUNS_BUTTON_FONT, BOBBYR_GUNS_TEXT_COLOR_ON, shadow_col, BOBBYR_GUNS_TEXT_COLOR_OFF, shadow_col, x, y, MSYS_PRIORITY_HIGH, click);
+	GUIButtonRef const btn = CreateIconAndTextButton(img, text, BOBBYR_GUNS_BUTTON_FONT, BOBBYR_GUNS_TEXT_COLOR_ON, shadow_col, BOBBYR_GUNS_TEXT_COLOR_OFF, shadow_col, x, y, priority, click);
 	btn->SetCursor(CURSOR_LAPTOP_SCREEN);
 	return btn;
 }
@@ -558,6 +596,10 @@ void InitBobbyMenuBar()
 		}
 	}
 
+	// Restock-notification checkbox image -- shared by up to BOBBYR_NUM_WEAPONS_ON_PAGE
+	// buttons created/destroyed per page-turn inside DisplayItemInfo(), not here.
+	guiBobbyRNotifyImage = LoadButtonImage(LAPTOPDIR "/BOBBY_NOTIFY.STI", 0, 1);
+
 	// Order Form button
 	guiBobbyROrderFormImage = LoadButtonImage(LAPTOPDIR "/orderformbutton.sti", 0, 1);
 	guiBobbyROrderForm      = MakeButton(guiBobbyROrderFormImage, BobbyRText[BOBBYR_GUNS_ORDER_FORM], BOBBYR_ORDER_FORM_X + (gpFilterBar && gpFilterBar->bottom ? BOBBYR_GUNS_ORDER_FORM_SHIFT : 0), BOBBYR_ORDER_FORM_Y, BtnBobbyROrderFormCallback);
@@ -591,6 +633,9 @@ void DeleteBobbyMenuBar()
 
 	FOR_EACH(GUIButtonRef, i, guiBobbyRCatalogShortcuts) { RemoveButton(*i); *i = GUIButtonRef(); }
 	UnloadButtonImage(guiBobbyRCatalogShortcutsImage);
+
+	DeleteBobbyRNotifyButtons();
+	UnloadButtonImage(guiBobbyRNotifyImage);
 }
 
 
@@ -695,10 +740,15 @@ void DisplayItemInfo(UINT32 uiItemClass)
 
 	DisableBobbyRButtons();
 
-	if( gusOldItemNumOnTopOfPage != gusCurWeaponIndex )
+	// Captured once, before CreateMouseRegionForBigImage() below updates gusOldItemNumOnTopOfPage --
+	// the notify checkboxes are recreated exactly when the item mouse regions are (the set of items
+	// on screen changed), not on every redraw of an unchanged page.
+	bool const fItemsOnScreenChanged = gusOldItemNumOnTopOfPage != gusCurWeaponIndex;
+
+	if( fItemsOnScreenChanged )
 	{
 		DeleteMouseRegionForBigImage();
-
+		DeleteBobbyRNotifyButtons();
 	}
 
 	const ItemModel* items[BOBBYR_NUM_WEAPONS_ON_PAGE];
@@ -836,6 +886,43 @@ void DisplayItemInfo(UINT32 uiItemClass)
 			DrawTextToScreen(BobbyRText[BOBBYR_GUNS_OUT_OF_STOCK], BOBBYR_GRID_PIC_X,
 				usRowPosY + (BOBBYR_GRID_PIC_HEIGHT - GetFontHeight(FONT10ARIAL)) / 2,
 				BOBBYR_GRID_PIC_WIDTH, FONT10ARIAL, 145, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+
+			// "Email me when new stock arrives" checkbox, New page only (the Used page is
+			// deactivated) -- top-right corner of the item's own picture; recreated only when
+			// the items on screen actually changed (see fItemsOnScreenChanged above), not on
+			// every redraw of an unchanged page.
+			if (fItemsOnScreenChanged && uiItemClass != BOBBYR_USED_ITEMS)
+			{
+				STORE_INVENTORY& inv = LaptopSaveInfo.BobbyRayInventory[i];
+
+				// QuickCreateButtonNoMove(), not MakeButton() (-> QuickCreateButton()): the
+				// latter wires up DefaultMoveCallback, which makes the generic button-press
+				// handler (QuickButtonCallbackMButn(), Button_System.cc) itself force
+				// BUTTON_CLICKED_ON on and off across every press/release -- fine for a normal
+				// push button's momentary "pressed" look, but it fights this checkbox's own
+				// persistent checked state, which BtnBobbyRNotifyCallback() alone should own.
+				// MSYS_PRIORITY_HIGHEST (not MSYS_PRIORITY_HIGH): this button sits inside the
+				// item's own picture, which gSelectedBigImageRegion (CreateMouseRegionForBigImage()
+				// below) covers too, at that lower priority -- without outranking it, clicks on
+				// the checkbox's corner fall through to the big-image region's buy click instead.
+				GUIButtonRef const b = QuickCreateButtonNoMove(guiBobbyRNotifyImage,
+					BOBBYR_GRID_PIC_X + BOBBYR_GRID_PIC_WIDTH - BOBBYR_NOTIFY_WIDTH, usRowPosY,
+					MSYS_PRIORITY_HIGHEST, BtnBobbyRNotifyCallback);
+				// The item picture underneath shows CURSOR_WWW (FINGERCURSOR.STI) -- match that
+				// instead of the default arrow cursor.
+				b->SetCursor(CURSOR_WWW);
+				b->SetUserData(i); // slot index into BobbyRayInventory
+				b->SetFastHelpText("Email me when new stock arrives.");
+				if (inv.fNotifyOnRestock) b->uiFlags |= BUTTON_CLICKED_ON;
+				guiBobbyRNotifyButtons[ubCountBeforeRow] = b;
+			}
+
+			// Drawn ourselves, every frame, right after the row's own dimming/text above --
+			// same reason as the map screen's Stats/Skills Done button (Interface_Panels.cc):
+			// RenderButtons()'s own pass only redraws a button when something marks it dirty
+			// again (e.g. a hover), so relying on it alone left a just-checked box's checked
+			// picture erased by this same per-frame row redraw one frame later.
+			if (guiBobbyRNotifyButtons[ubCountBeforeRow]) guiBobbyRNotifyButtons[ubCountBeforeRow]->Draw();
 		}
 	}
 
