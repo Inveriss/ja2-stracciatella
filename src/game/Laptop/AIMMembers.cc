@@ -156,6 +156,7 @@
 #define PREVIOUS_X				(STD_SCREEN_X + 224)
 #define CONTACT_X				(STD_SCREEN_X + 331)
 #define NEXT_X					(STD_SCREEN_X + 431)
+#define EXIT_X					(PREVIOUS_X - 106)
 #define BTN_BOX_Y				(STD_SCREEN_Y + 386 + LAPTOP_SCREEN_WEB_DELTA_Y - 4)
 
 #define AIM_MERC_INFO_X				(STD_SCREEN_X + 124)
@@ -376,6 +377,7 @@ static BUTTON_PICS* guiPreviousContactNextButtonImage;
 static GUIButtonRef giPreviousButton;
 static GUIButtonRef giContactButton;
 static GUIButtonRef giNextButton;
+static GUIButtonRef giExitButton;
 
 //Video conference buttons
 static BUTTON_PICS* guiVideoConferenceButtonImage[3];
@@ -443,6 +445,7 @@ static GUIButtonRef MakeButton(const ST::string& text, INT16 x, GUI_CALLBACK cli
 		AIM_M_FONT_PREV_NEXT_CONTACT_COLOR_DOWN, DEFAULT_SHADOW,
 		x, BTN_BOX_Y, MSYS_PRIORITY_HIGH, click
 	);
+	btn->SpecifyTextSubOffsets(-1, 0, TRUE); // shift the button's text 1px down from its default position
 	btn->SetCursor(CURSOR_WWW);
 	return btn;
 }
@@ -451,6 +454,7 @@ static GUIButtonRef MakeButton(const ST::string& text, INT16 x, GUI_CALLBACK cli
 static void BtnContactButtonCallback( GUI_BUTTON* btn, UINT32 reason);
 static void BtnNextButtonCallback(    GUI_BUTTON* btn, UINT32 reason);
 static void BtnPreviousButtonCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnExitButtonCallback(    GUI_BUTTON* btn, UINT32 reason);
 static void InitDeleteVideoConferencePopUp(void);
 static void InitVideoFace(UINT8 ubMercID);
 static void SelectFaceMovementRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
@@ -520,6 +524,7 @@ void EnterAIMMembers()
 	giPreviousButton = MakeButton(CharacterInfo[AIM_MEMBER_PREVIOUS], PREVIOUS_X, BtnPreviousButtonCallback);
 	giContactButton  = MakeButton(CharacterInfo[AIM_MEMBER_CONTACT],  CONTACT_X,  BtnContactButtonCallback);
 	giNextButton     = MakeButton(CharacterInfo[AIM_MEMBER_NEXT],     NEXT_X,     BtnNextButtonCallback);
+	giExitButton     = MakeButton("Exit",                             EXIT_X,     BtnExitButtonCallback);
 
 	if (gbCurrentIndex >= gubNumAimMercs) gbCurrentIndex = 0; // the filter may have changed
 	gbCurrentSoldier = AimMercArray[gbCurrentIndex];
@@ -586,6 +591,7 @@ void ExitAIMMembers()
 	RemoveButton( giPreviousButton );
 	RemoveButton( giContactButton );
 	RemoveButton( giNextButton );
+	RemoveButton( giExitButton );
 
 	MSYS_RemoveRegion( &gSelectedFaceRegion);
 	MSYS_RemoveRegion( &gSelectedShutUpMercRegion);
@@ -975,6 +981,15 @@ static void BtnNextButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 		gbCurrentSoldier = AimMercArray[gbCurrentIndex];
 		gfRedrawScreen = TRUE;
 		gubVideoConferencingMode = AIM_VIDEO_NOT_DISPLAYED_MODE;
+	}
+}
+
+
+static void BtnExitButtonCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		guiCurrentLaptopMode = LAPTOP_MODE_AIM_MEMBERS_SORTED_FILES;
 	}
 }
 

@@ -607,6 +607,7 @@ void InitAimMenuBar()
 	FOR_EACHX(GUIButtonRef, i, guiBottomButtons, x += BOTTOM_BUTTON_START_WIDTH)
 	{
 		GUIButtonRef const b = CreateIconAndTextButton(gfx, *text++, FONT10ARIAL, AIM_BUTTON_ON_COLOR, DEFAULT_SHADOW, AIM_BUTTON_OFF_COLOR, DEFAULT_SHADOW, x, y, MSYS_PRIORITY_HIGH, BtnAimBottomButtonsCallback);
+		b->SpecifyTextSubOffsets(-1, 0, TRUE); // shift the button's text 1px down from its default position
 		b->SetCursor(CURSOR_LAPTOP_SCREEN);
 		b->SetUserData(*page++);
 		*i = b;
