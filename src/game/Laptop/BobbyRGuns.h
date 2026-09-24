@@ -124,4 +124,9 @@ UINT32 BobbyRExplosivesPageMask(void);
 // The class mask of the miscellaneous page with its class button pressed (all its items when none is)
 UINT32 BobbyRMiscPageMask(void);
 
+// Draws BOBBY_NOTIFY_HATCH.STI over every currently-checked restock-notification checkbox --
+// called from PostButtonRendering() (Laptop.cc), i.e. after RenderButtons() this same frame,
+// so it isn't erased by that later pass the way an in-line ShadowRect() dimming was.
+void RenderBobbyRNotifyHatchOverlay(void);
+
 #endif

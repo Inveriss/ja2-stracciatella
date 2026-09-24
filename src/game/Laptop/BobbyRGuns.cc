@@ -386,6 +386,10 @@ static GUIButtonRef guiBobbyRNotifyButtons[BOBBYR_NUM_WEAPONS_ON_PAGE];
 static void BtnBobbyRNotifyCallback(GUI_BUTTON* btn, UINT32 reason);
 static void DeleteBobbyRNotifyButtons(void);
 
+// Frame 0 (19x17, same size as the checkbox itself) of BOBBY_NOTIFY_HATCH.STI, blitted over a
+// checked checkbox by RenderBobbyRNotifyHatchOverlay() -- see its own comment (BobbyRGuns.h).
+static SGPVObject* guiBobbyRNotifyHatchVObject;
+
 
 // Link from the title
 static MOUSE_REGION gSelectedTitleImageLinkRegion;
@@ -529,6 +533,17 @@ static void DeleteBobbyRNotifyButtons(void)
 }
 
 
+void RenderBobbyRNotifyHatchOverlay(void)
+{
+	FOR_EACH(GUIButtonRef, i, guiBobbyRNotifyButtons)
+	{
+		if (!*i || !((*i)->uiFlags & BUTTON_CLICKED_ON)) continue;
+		BltVideoObject(FRAME_BUFFER, guiBobbyRNotifyHatchVObject, 0, (*i)->X(), (*i)->Y());
+		InvalidateRegion((*i)->X(), (*i)->Y(), (*i)->BottomRightX(), (*i)->BottomRightY());
+	}
+}
+
+
 static void BtnBobbyRNotifyCallback(GUI_BUTTON* const btn, UINT32 const reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
@@ -619,6 +634,7 @@ void InitBobbyMenuBar()
 	// Restock-notification checkbox image -- shared by up to BOBBYR_NUM_WEAPONS_ON_PAGE
 	// buttons created/destroyed per page-turn inside DisplayItemInfo(), not here.
 	guiBobbyRNotifyImage = LoadButtonImage(LAPTOPDIR "/BOBBY_NOTIFY.STI", 0, 1);
+	guiBobbyRNotifyHatchVObject = AddVideoObjectFromFile(LAPTOPDIR "/BOBBY_NOTIFY_HATCH.STI");
 
 	// Order Form button
 	guiBobbyROrderFormImage = LoadButtonImage(LAPTOPDIR "/orderformbutton.sti", 0, 1);
@@ -656,6 +672,7 @@ void DeleteBobbyMenuBar()
 
 	DeleteBobbyRNotifyButtons();
 	UnloadButtonImage(guiBobbyRNotifyImage);
+	DeleteVideoObject(guiBobbyRNotifyHatchVObject);
 }
 
 
@@ -962,7 +979,15 @@ void DisplayItemInfo(UINT32 uiItemClass)
 			// RenderButtons()'s own pass only redraws a button when something marks it dirty
 			// again (e.g. a hover), so relying on it alone left a just-checked box's checked
 			// picture erased by this same per-frame row redraw one frame later.
-			if (guiBobbyRNotifyButtons[ubCountBeforeRow]) guiBobbyRNotifyButtons[ubCountBeforeRow]->Draw();
+			if (guiBobbyRNotifyButtons[ubCountBeforeRow])
+			{
+				guiBobbyRNotifyButtons[ubCountBeforeRow]->Draw();
+				// Ask PostButtonRendering() (Laptop.cc) to run this frame -- it draws the
+				// checked-state hatch overlay (RenderBobbyRNotifyHatchOverlay()) after
+				// RenderButtons(), so that later pass can't erase it the way it erased an
+				// in-line ShadowRect() dimming here before.
+				fReDrawPostButtonRender = TRUE;
+			}
 		}
 	}
 

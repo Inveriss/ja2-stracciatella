@@ -2205,6 +2205,16 @@ static void PostButtonRendering(void)
 	switch (guiCurrentLaptopMode)
 	{
 		case LAPTOP_MODE_AIM_MEMBERS: RenderAIMMembersTopLevel(); break;
+
+		case LAPTOP_MODE_BOBBY_R_GUNS:
+		case LAPTOP_MODE_BOBBY_R_AMMO:
+		case LAPTOP_MODE_BOBBY_R_ARMOR:
+		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS:
+		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:
+		case LAPTOP_MODE_BOBBY_R_MISC:
+			RenderBobbyRNotifyHatchOverlay();
+			break;
+
 				default:
 						break;
 	}
