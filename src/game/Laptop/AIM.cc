@@ -74,7 +74,7 @@ void ResetAimMercArray(void)
 	std::vector<ProfileID> ids;
 	for (const MercProfile* p : GCM->listMercProfiles())
 	{
-		if (p->isAIMMerc() && IsInAimFilter(p->getID())) ids.push_back(p->getID());
+		if (p->isAIMMerc() && IsInAimFilter(p->getID()) && MercMatchesAimSkillFilter(p->getID())) ids.push_back(p->getID());
 	}
 	std::sort(ids.begin(), ids.end());
 	if (ids.size() > MAX_NUMBER_MERCS)

@@ -13,6 +13,10 @@
 #include "Video.h"
 #include "VSurface.h"
 #include "Font_Control.h"
+#include "Logger.h"
+
+#include <algorithm>
+#include <string_theory/string>
 
 
 //#define
@@ -64,6 +68,22 @@
 #define AIM_SORT_ALUMNI_TEXT_X		AIM_SORT_MUGSHOT_TEXT_X
 #define AIM_SORT_ALUMNI_TEXT_Y		(STD_SCREEN_Y + 351 + LAPTOP_SCREEN_WEB_DELTA_Y)
 
+// "Filter by skill" box (SORTBY_LONG_SKILLS.STI, 116x192): up to 2 of these 14 checkboxes can
+// be selected; AimMercArray is then reduced to mercs having (both of) the selected skill(s).
+#define AIM_SORT_SKILLS_X			(STD_SCREEN_X + 460)
+#define AIM_SORT_SKILLS_Y			(STD_SCREEN_Y + 230)
+#define AIM_SORT_SKILLS_WIDTH			116
+#define AIM_SORT_SKILLS_HEIGHT			192
+
+#define NUM_AIM_SKILL_FILTERS			14
+#define AIM_SORT_SKILLS_FIRST_ROW_Y		8
+#define AIM_SORT_SKILLS_ROW_HEIGHT		13
+#define AIM_SORT_SKILLS_CHECKBOX_X		9
+// the checkbox squares baked into SORTBY_LONG_SKILLS.STI sit 3px higher than the text row
+#define AIM_SORT_SKILLS_CHECKBOX_Y		(AIM_SORT_SKILLS_FIRST_ROW_Y - 3)
+#define AIM_SORT_SKILLS_TEXT_X			(AIM_SORT_SKILLS_CHECKBOX_X + 14)
+#define AIM_SORT_SKILLS_TEXT_WIDTH		(AIM_SORT_SKILLS_WIDTH - AIM_SORT_SKILLS_TEXT_X - 6)
+
 
 struct AIMSortInfo
 {
@@ -79,6 +99,79 @@ struct AIMSortInfo
 static void SelectSortCriterionRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectAscendBoxRegionCallBack(    MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectDescendBoxRegionCallBack(   MOUSE_REGION* pRegion, UINT32 iReason);
+static void SelectSkillFilterRegionCallBack(  MOUSE_REGION* pRegion, UINT32 iReason);
+
+
+// gzIMPSkillTraitsText[]'s entry order follows the IMP skill-selection screen's own layout, not
+// the SkillTrait enum (see IMP_SkillTraits.cc's skillTraitsMapping) -- this maps a SkillTrait to
+// the matching gzIMPSkillTraitsText index. THIEF has no equivalent there (never offered during
+// IMP creation) and NO_SKILLTRAIT isn't a real skill, so neither is offered as a filter.
+static INT8 SkillToImpSkillTextIndex(SkillTrait const skill)
+{
+	switch (skill)
+	{
+		case LOCKPICKING: return 0;
+		case HANDTOHAND:  return 1;
+		case ELECTRONICS: return 2;
+		case NIGHTOPS:    return 3;
+		case THROWING:    return 4;
+		case TEACHING:    return 5;
+		case HEAVY_WEAPS: return 6;
+		case AUTO_WEAPS:  return 7;
+		case STEALTHY:    return 8;
+		case AMBIDEXT:    return 9;
+		case KNIFING:     return 10;
+		case ONROOF:      return 11;
+		case CAMOUFLAGED: return 12;
+		case MARTIALARTS: return 13;
+		default:          SLOGA("SkillToImpSkillTextIndex: not a filterable skill"); return 14;
+	}
+}
+
+
+struct AimSkillFilterInfo
+{
+	SkillTrait   skill;
+	ST::string   text; // gzIMPSkillTraitsText[], resolved once so the list can be sorted by it
+	MOUSE_REGION region;
+};
+
+// The up to 2 skills currently selected as filters; NO_SKILLTRAIT means the slot is unset.
+static SkillTrait gbAimSkillFilter[2] = { NO_SKILLTRAIT, NO_SKILLTRAIT };
+
+static AimSkillFilterInfo g_aim_skill_filter[NUM_AIM_SKILL_FILTERS] =
+{
+	{ LOCKPICKING }, { HANDTOHAND }, { ELECTRONICS }, { NIGHTOPS }, { THROWING }, { TEACHING },
+	{ HEAVY_WEAPS }, { AUTO_WEAPS }, { STEALTHY },     { AMBIDEXT }, { MARTIALARTS }, { KNIFING },
+	{ ONROOF },      { CAMOUFLAGED },
+};
+
+
+// Resolves each filter's display text and sorts the list alphabetically by it (point 7): the
+// display order depends on the current language, so this is (re)done on every entry to the page
+// rather than hardcoded.
+static void SortAimSkillFilterList()
+{
+	for (AimSkillFilterInfo& i : g_aim_skill_filter)
+	{
+		i.text = gzIMPSkillTraitsText[SkillToImpSkillTextIndex(i.skill)];
+	}
+	std::sort(std::begin(g_aim_skill_filter), std::end(g_aim_skill_filter),
+		[](AimSkillFilterInfo const& a, AimSkillFilterInfo const& b) { return a.text.compare_i(b.text) < 0; });
+}
+
+
+BOOLEAN MercMatchesAimSkillFilter(ProfileID const id)
+{
+	if (gbAimSkillFilter[0] == NO_SKILLTRAIT) return TRUE;
+
+	MERCPROFILESTRUCT const& p = GetProfile(id);
+	auto const HasSkill = [&](SkillTrait const skill) { return p.bSkillTrait == skill || p.bSkillTrait2 == skill; };
+
+	if (gbAimSkillFilter[1] == NO_SKILLTRAIT) return HasSkill(gbAimSkillFilter[0]);
+
+	return HasSkill(gbAimSkillFilter[0]) && HasSkill(gbAimSkillFilter[1]);
+}
 
 
 // Indexed by sort mode (see AIMSort.h and str_aim_sort_list), so the order is
@@ -130,6 +223,7 @@ static MOUSE_REGION gSelectedToArchiveRegion;
 
 
 static SGPVObject* guiSortByBox;
+static SGPVObject* guiSortBySkillsBox;
 static SGPVObject* guiToAlumni;
 static SGPVObject* guiToMugShots;
 static SGPVObject* guiToStats;
@@ -141,6 +235,8 @@ void GameInitAimSort()
 	ResetAimFilterForNewGame();
 	gubCurrentSortMode=AIM_SORT_NAME;
 	gubCurrentListMode=AIM_ASCEND;
+	gbAimSkillFilter[0] = NO_SKILLTRAIT;
+	gbAimSkillFilter[1] = NO_SKILLTRAIT;
 }
 
 
@@ -159,6 +255,9 @@ void EnterAimSort()
 
 	// load the SortBy box graphic and add it
 	guiSortByBox = AddVideoObjectFromFile(LAPTOPDIR "/sortby_long.sti");
+
+	// load the "filter by skill" box graphic and add it
+	guiSortBySkillsBox = AddVideoObjectFromFile(LAPTOPDIR "/SORTBY_LONG_SKILLS.STI");
 
 	// load the ToAlumni graphic and add it
 	guiToAlumni = AddVideoObjectFromFile(MLG_TOALUMNI);
@@ -204,6 +303,19 @@ void EnterAimSort()
 		MSYS_SetRegionUserData(&i->region, 0, i->index);
 	}
 
+	// the display order depends on the current language, so it's (re)computed every time
+	SortAimSkillFilterList();
+	UINT16 skillRow = 0;
+	FOR_EACHX(AimSkillFilterInfo, i, g_aim_skill_filter, ++skillRow)
+	{
+		const UINT16 x = AIM_SORT_SKILLS_X + AIM_SORT_SKILLS_CHECKBOX_X;
+		const UINT16 y = AIM_SORT_SKILLS_Y + AIM_SORT_SKILLS_FIRST_ROW_Y + skillRow * AIM_SORT_SKILLS_ROW_HEIGHT;
+		const UINT16 w = AIM_SORT_SKILLS_TEXT_X - AIM_SORT_SKILLS_CHECKBOX_X + StringPixLength(i->text, AIM_SORT_FONT_SORT_TEXT);
+		const UINT16 h = AIM_SORT_CHECKBOX_SIZE;
+		MSYS_DefineRegion(&i->region, x, y, x + w, y + h, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, SelectSkillFilterRegionCallBack);
+		MSYS_SetRegionUserData(&i->region, 0, skillRow);
+	}
+
 	InitAimMenuBar();
 	RenderAimSort();
 }
@@ -217,6 +329,7 @@ void ExitAimSort()
 	SetAimSmallLogo(false);
 
 	DeleteVideoObject(guiSortByBox);
+	DeleteVideoObject(guiSortBySkillsBox);
 	DeleteVideoObject(guiToAlumni);
 	DeleteVideoObject(guiToMugShots);
 	DeleteVideoObject(guiToStats);
@@ -227,6 +340,11 @@ void ExitAimSort()
 	MSYS_RemoveRegion( &gSelectedToArchiveRegion);
 
 	FOR_EACH(AIMSortInfo, i, g_aim_sort_info)
+	{
+		MSYS_RemoveRegion(&i->region);
+	}
+
+	FOR_EACH(AimSkillFilterInfo, i, g_aim_skill_filter)
 	{
 		MSYS_RemoveRegion(&i->region);
 	}
@@ -242,7 +360,8 @@ static void DrawSelectLight(UINT8 ubMode, UINT8 ubImage);
 void RenderAimSort()
 {
 	DrawAimDefaults();
-	BltVideoObject(FRAME_BUFFER, guiSortByBox,  0, AIM_SORT_SORT_BY_X,     AIM_SORT_SORT_BY_Y);
+	BltVideoObject(FRAME_BUFFER, guiSortByBox,       0, AIM_SORT_SORT_BY_X, AIM_SORT_SORT_BY_Y);
+	BltVideoObject(FRAME_BUFFER, guiSortBySkillsBox, 0, AIM_SORT_SKILLS_X,  AIM_SORT_SKILLS_Y);
 	BltVideoObject(FRAME_BUFFER, guiToMugShots, 0, AIM_SORT_TO_MUGSHOTS_X, AIM_SORT_TO_MUGSHOTS_Y);
 	BltVideoObject(FRAME_BUFFER, guiToStats,    0, AIM_SORT_TO_STATS_X,    AIM_SORT_TO_STATS_Y);
 	BltVideoObject(FRAME_BUFFER, guiToAlumni,   0, AIM_SORT_TO_ALUMNI_X,   AIM_SORT_TO_ALUMNI_Y);
@@ -270,6 +389,17 @@ void RenderAimSort()
 
 	DrawSelectLight(gubCurrentSortMode, AIM_SORT_ON);
 	DrawSelectLight(gubCurrentListMode, AIM_SORT_ON);
+
+	// Display the skill filter checkboxes and their (alphabetically sorted) text
+	UINT16 skillRow = 0;
+	FOR_EACHX(AimSkillFilterInfo const, i, g_aim_skill_filter, ++skillRow)
+	{
+		const UINT16 x = AIM_SORT_SKILLS_X + AIM_SORT_SKILLS_CHECKBOX_X;
+		const UINT16 rowY = AIM_SORT_SKILLS_Y + AIM_SORT_SKILLS_CHECKBOX_Y + skillRow * AIM_SORT_SKILLS_ROW_HEIGHT;
+		const BOOLEAN selected = (i->skill == gbAimSkillFilter[0] || i->skill == gbAimSkillFilter[1]);
+		BltVideoObject(FRAME_BUFFER, guiSelectLight, selected ? AIM_SORT_ON : AIM_SORT_OFF, x, rowY);
+		DrawTextToScreen(i->text, AIM_SORT_SKILLS_X + AIM_SORT_SKILLS_TEXT_X, rowY + 2, AIM_SORT_SKILLS_TEXT_WIDTH, AIM_SORT_FONT_SORT_TEXT, AIM_SORT_COLOR_SORT_TEXT, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+	}
 
 	DisableAimButton();
 
@@ -342,6 +472,49 @@ static void SelectAscendBoxRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
 static void SelectDescendBoxRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
 {
 	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP) SetSortOrder(AIM_DESCEND);
+}
+
+
+// Toggles a skill filter on/off. Up to 2 can be active; picking a 3rd while 2 are already set
+// drops the oldest one, the same "last two win" rule IMP character creation uses for skills
+// (see IMP_SkillTraits.cc's HandleLastSelectedTraits).
+static void ToggleAimSkillFilter(SkillTrait const skill)
+{
+	if (gbAimSkillFilter[0] == skill)
+	{
+		gbAimSkillFilter[0] = gbAimSkillFilter[1];
+		gbAimSkillFilter[1] = NO_SKILLTRAIT;
+	}
+	else if (gbAimSkillFilter[1] == skill)
+	{
+		gbAimSkillFilter[1] = NO_SKILLTRAIT;
+	}
+	else if (gbAimSkillFilter[0] == NO_SKILLTRAIT)
+	{
+		gbAimSkillFilter[0] = skill;
+	}
+	else if (gbAimSkillFilter[1] == NO_SKILLTRAIT)
+	{
+		gbAimSkillFilter[1] = skill;
+	}
+	else
+	{
+		gbAimSkillFilter[0] = gbAimSkillFilter[1];
+		gbAimSkillFilter[1] = skill;
+	}
+
+	ResetAimMercArray();
+	SortAimMercArray();
+	RenderAimSort();
+}
+
+
+static void SelectSkillFilterRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		ToggleAimSkillFilter(g_aim_skill_filter[MSYS_GetRegionUserData(pRegion, 0)].skill);
+	}
 }
 
 
