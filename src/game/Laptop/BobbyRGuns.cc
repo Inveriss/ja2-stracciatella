@@ -1472,6 +1472,11 @@ bool BobbyRItemMatchesClass(const ItemModel* const item, UINT32 const uiClassMas
 	if ((uiClassMask >= BOBBYR_GUNS_HEAVY_ITEMS && uiClassMask <= BOBBYR_GUNS_PISTOL_ITEMS) ||
 		uiClassMask == BOBBYR_GUNS_KNIVES_ITEMS || uiClassMask == BOBBYR_GUNS_SMG_ITEMS) return IsInGunsClass(item, uiClassMask);
 	if (uiClassMask >= BOBBYR_MISC_OTHERS_ITEMS && uiClassMask <= BOBBYR_MISC_ITEMS) return IsInMiscClass(item, uiClassMask);
+	// Same carve-out as IsInGunsClass()'s BOBBYR_GUNS_KNIVES_ITEMS case: the crowbar is a
+	// IC_PUNCH item but belongs only to Misc's Tools (IsInMiscClass() above), not the guns
+	// page's own ALL (BOBBYR_ALL_GUN_ITEMS, which isn't one of the per-sub-filter special
+	// cases above and would otherwise fall through to the raw item-class check below).
+	if (uiClassMask == BOBBYR_ALL_GUN_ITEMS) return (item->getItemClass() & uiClassMask) != 0 && item->getItemIndex() != CROWBAR;
 	return (item->getItemClass() & uiClassMask) != 0;
 }
 
