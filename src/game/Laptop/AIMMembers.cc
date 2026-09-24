@@ -179,6 +179,24 @@
 #define AIM_MEMBER_OPTIONAL_GEAR_X		AIM_MERC_INFO_X
 #define AIM_MEMBER_OPTIONAL_GEAR_Y		WEAPONBOX_Y - 13
 
+// skill / attitude / disability content buttons (2x2 grid, top of the merc detail view)
+#define AIM_MEMBER_SKILL_BTN_WIDTH		135
+#define AIM_MEMBER_SKILL_BTN_HEIGHT		19
+#define AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET	5
+
+#define AIM_MEMBER_SKILL_LEFT_X			(STD_SCREEN_X + 119)
+#define AIM_MEMBER_SKILL_RIGHT_X		(STD_SCREEN_X + 468)
+#define AIM_MEMBER_SKILL_TOP_Y			(STD_SCREEN_Y + 54)
+#define AIM_MEMBER_SKILL_BOTTOM_Y		(STD_SCREEN_Y + 78)
+
+#define AIM_MEMBER_SKILL_BTN_FONT		FONT12ARIAL
+#define AIM_MEMBER_SKILL_BTN_COLOR		FONT_MCOLOR_WHITE
+
+// pImpButtonText[] offsets for the attitude/disability display strings -- must match
+// IMP_ATT_TXT_FIRST (IMP_Attitude.cc) and IMP_DIS_TXT_FIRST (IMP_Disability.cc).
+#define AIM_MEMBER_ATT_TXT_FIRST		40
+#define AIM_MEMBER_DIS_TXT_FIRST		51
+
 #define AIM_MEMBER_WEAPON_NAME_Y		WEAPONBOX_Y + WEAPONBOX_SIZE_Y + 1
 #define AIM_MEMBER_WEAPON_NAME_WIDTH		WEAPONBOX_SIZE_X - 2
 
@@ -309,6 +327,7 @@ static SGPVObject* guiStraightLine;
 static SGPVObject* guiTransSnow;
 static SGPVObject* guiVideoContractCharge;
 static SGPVSurface* guiVideoTitleBar;
+static SGPVObject* guiContentButtonSkills;
 
 static UINT8 gbCurrentSoldier = 0;
 UINT8        gbCurrentIndex = 0;
@@ -476,6 +495,9 @@ void EnterAIMMembers()
 	// load the translucent snow for the video conf terminal
 	guiVideoContractCharge = AddVideoObjectFromFile(LAPTOPDIR "/videocontractcharge.sti");
 
+	// load the skill/attitude/disability content button graphic
+	guiContentButtonSkills = AddVideoObjectFromFile(LAPTOPDIR "/CONTENTBUTTON_SKILLS.STI");
+
 
 	//** Mouse Regions **
 	MSYS_DefineRegion(&gSelectedFaceRegion, PORTRAIT_X, PORTRAIT_Y,
@@ -557,6 +579,7 @@ void ExitAIMMembers()
 	DeleteVideoObject(guiStraightLine);
 	DeleteVideoObject(guiTransSnow);
 	DeleteVideoObject(guiVideoContractCharge);
+	DeleteVideoObject(guiContentButtonSkills);
 
 	UnloadButtonImage( guiPreviousContactNextButtonImage );
 	UnloadButtonImage( giXToCloseVideoConfButtonImage );
@@ -1047,6 +1070,66 @@ static void DrawStat(UINT16 x, UINT16 y, const ST::string& stat, INT32 val)
 }
 
 
+// gzIMPSkillTraitsText[]'s entry order follows the IMP skill-selection screen's own layout,
+// not the SkillTrait enum (see IMP_SkillTraits.cc's skillTraitsMapping) -- this maps a merc's
+// actual SkillTrait to the matching gzIMPSkillTraitsText index. THIEF has no equivalent on
+// that screen (it's never offered during IMP creation, and no merc profile currently uses it),
+// so it falls back to the "None" entry.
+static const INT8 gbSkillTraitToImpSkillText[NUM_SKILLTRAITS] =
+{
+	/* NO_SKILLTRAIT */ 14,
+	/* LOCKPICKING   */ 0,
+	/* HANDTOHAND    */ 1,
+	/* ELECTRONICS   */ 2,
+	/* NIGHTOPS      */ 3,
+	/* THROWING      */ 4,
+	/* TEACHING      */ 5,
+	/* HEAVY_WEAPS   */ 6,
+	/* AUTO_WEAPS    */ 7,
+	/* STEALTHY      */ 8,
+	/* AMBIDEXT      */ 9,
+	/* THIEF         */ 14,
+	/* MARTIALARTS   */ 13,
+	/* KNIFING       */ 10,
+	/* ONROOF        */ 11,
+	/* CAMOUFLAGED   */ 12,
+};
+
+
+static void DisplaySkillAttitudeDisabilityButtons(MERCPROFILESTRUCT const& p)
+{
+	INT8 bSkill1 = p.bSkillTrait;
+	INT8 bSkill2 = p.bSkillTrait2;
+	if (bSkill1 == NO_SKILLTRAIT) { bSkill1 = bSkill2; bSkill2 = NO_SKILLTRAIT; }
+
+	if (bSkill1 != NO_SKILLTRAIT)
+	{
+		ST::string const sSkill1 = bSkill1 == bSkill2
+			? ST::format("{} {}", gzIMPSkillTraitsText[gbSkillTraitToImpSkillText[bSkill1]], gzMercSkillText[NUM_SKILLTRAITS])
+			: gzIMPSkillTraitsText[gbSkillTraitToImpSkillText[bSkill1]];
+
+		BltVideoObject(FRAME_BUFFER, guiContentButtonSkills, 0, AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_TOP_Y);
+		DrawTextToScreen(sSkill1, AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_TOP_Y + AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET,
+			AIM_MEMBER_SKILL_BTN_WIDTH, AIM_MEMBER_SKILL_BTN_FONT, AIM_MEMBER_SKILL_BTN_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+
+		if (bSkill1 != bSkill2 && bSkill2 != NO_SKILLTRAIT)
+		{
+			BltVideoObject(FRAME_BUFFER, guiContentButtonSkills, 0, AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_BOTTOM_Y);
+			DrawTextToScreen(gzIMPSkillTraitsText[gbSkillTraitToImpSkillText[bSkill2]], AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_BOTTOM_Y + AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET,
+				AIM_MEMBER_SKILL_BTN_WIDTH, AIM_MEMBER_SKILL_BTN_FONT, AIM_MEMBER_SKILL_BTN_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+		}
+	}
+
+	BltVideoObject(FRAME_BUFFER, guiContentButtonSkills, 0, AIM_MEMBER_SKILL_RIGHT_X, AIM_MEMBER_SKILL_TOP_Y);
+	DrawTextToScreen(pImpButtonText[AIM_MEMBER_ATT_TXT_FIRST + p.bAttitude], AIM_MEMBER_SKILL_RIGHT_X, AIM_MEMBER_SKILL_TOP_Y + AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET,
+		AIM_MEMBER_SKILL_BTN_WIDTH, AIM_MEMBER_SKILL_BTN_FONT, AIM_MEMBER_SKILL_BTN_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+
+	BltVideoObject(FRAME_BUFFER, guiContentButtonSkills, 0, AIM_MEMBER_SKILL_RIGHT_X, AIM_MEMBER_SKILL_BOTTOM_Y);
+	DrawTextToScreen(pImpButtonText[AIM_MEMBER_DIS_TXT_FIRST + p.bPersonalityTrait], AIM_MEMBER_SKILL_RIGHT_X, AIM_MEMBER_SKILL_BOTTOM_Y + AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET,
+		AIM_MEMBER_SKILL_BTN_WIDTH, AIM_MEMBER_SKILL_BTN_FONT, AIM_MEMBER_SKILL_BTN_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+}
+
+
 static void DisplayMercStats(MERCPROFILESTRUCT const& p)
 {
 	//Name
@@ -1068,6 +1151,8 @@ static void DisplayMercStats(MERCPROFILESTRUCT const& p)
 	DrawStat(        x2, MECHANAICAL_Y, str_stat_mechanical,   p.bMechanical  );
 	DrawStat(        x2, EXPLOSIVE_Y,   str_stat_explosive,    p.bExplosive   );
 	DrawStat(        x2, MEDICAL_Y,     str_stat_medical,      p.bMedical     );
+
+	DisplaySkillAttitudeDisabilityButtons(p);
 }
 
 
