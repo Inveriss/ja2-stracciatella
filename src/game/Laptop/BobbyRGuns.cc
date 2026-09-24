@@ -390,6 +390,15 @@ static void DeleteBobbyRNotifyButtons(void);
 // checked checkbox by RenderBobbyRNotifyHatchOverlay() -- see its own comment (BobbyRGuns.h).
 static SGPVObject* guiBobbyRNotifyHatchVObject;
 
+// Per-slot "the checkbox has shown at least once this laptop session" -- NOT saved (unlike
+// fNotifyOnRestock), just runtime state. Once set, the checkbox keeps showing even after the
+// row stops being out of stock (e.g. a "right click to remove" on a cart-exhausted item), so
+// the player can still find and check it; the only ways out are checking it (leading to the
+// eventual restock e-mail) or closing the laptop entirely (ResetBobbyRNotifyEverShown()
+// below, called from ExitLaptop() in Laptop.cc) -- merely switching to another laptop tab
+// (E-mail, Web, ...) and back leaves it alone, since that may just be a brief detour.
+static BOOLEAN gfBobbyRNotifyEverShown[MAXITEMS];
+
 
 // Link from the title
 static MOUSE_REGION gSelectedTitleImageLinkRegion;
@@ -676,6 +685,16 @@ void DeleteBobbyMenuBar()
 }
 
 
+void ResetBobbyRNotifyEverShown(void)
+{
+	// Called from ExitLaptop() (Laptop.cc) -- only a genuine "the player closed the laptop"
+	// resets gfBobbyRNotifyEverShown[]'s "sticky" checkboxes, not just switching to another
+	// laptop tab (E-mail, Web, ...) and back, which may well be a brief detour before
+	// continuing the same shopping trip.
+	std::fill(std::begin(gfBobbyRNotifyEverShown), std::end(gfBobbyRNotifyEverShown), FALSE);
+}
+
+
 static void BtnBobbyRPageMenuCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) { SyncGunFilterButtons(); return; }
@@ -941,14 +960,25 @@ void DisplayItemInfo(UINT32 uiItemClass)
 			DrawTextToScreen(BobbyRText[BOBBYR_GUNS_OUT_OF_STOCK], BOBBYR_GRID_PIC_X,
 				usRowPosY + (BOBBYR_GRID_PIC_HEIGHT - GetFontHeight(FONT10ARIAL)) / 2,
 				BOBBYR_GRID_PIC_WIDTH, FONT10ARIAL, 145, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+		}
 
-			// "Email me when new stock arrives" checkbox, New page only (the Used page is
-			// deactivated) -- top-right corner of the item's own picture; recreated only when
-			// the items on screen actually changed (see fItemsOnScreenChanged above), not on
-			// every redraw of an unchanged page. fOutOfStock (not fShowAsOutOfStock): only
-			// for genuinely zero stock on hand -- an item merely claimed entirely by the
-			// player's own cart has nothing for Bobby Ray's to actually restock.
-			if (fItemsOnScreenChanged && fOutOfStock && uiItemClass != BOBBYR_USED_ITEMS)
+		// "Email me when new stock arrives" checkbox, New page only (the Used page is
+		// deactivated) -- top-right corner of the item's own picture. Shown whenever the row
+		// is currently out of stock (real or cart-exhausted, fShowAsOutOfStock -- which also
+		// latches gfBobbyRNotifyEverShown[i]) OR whenever that already latched true earlier
+		// this laptop session: once shown, it keeps showing even after the row goes back to
+		// being purchasable (e.g. "right click to remove" undoing a cart-exhausted row), so
+		// the player can still find and use it. The only ways out are checking it (leading to
+		// the eventual restock e-mail clearing fNotifyOnRestock) or closing the laptop
+		// entirely (ResetBobbyRNotifyEverShown(), called from ExitLaptop() in Laptop.cc).
+		// Created the moment a row slot needs one and doesn't have one yet (not just on page
+		// turns, see fItemsOnScreenChanged's DeleteBobbyRNotifyButtons() above -- a
+		// cart-exhausted item's row still needs its checkbox to appear immediately on the
+		// very same page view).
+		if (fShowAsOutOfStock) gfBobbyRNotifyEverShown[i] = TRUE;
+		if ((fShowAsOutOfStock || gfBobbyRNotifyEverShown[i]) && ubCount != ubCountBeforeRow && uiItemClass != BOBBYR_USED_ITEMS)
+		{
+			if (!guiBobbyRNotifyButtons[ubCountBeforeRow])
 			{
 				STORE_INVENTORY& inv = LaptopSaveInfo.BobbyRayInventory[i];
 

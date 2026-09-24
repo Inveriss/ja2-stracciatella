@@ -129,4 +129,9 @@ UINT32 BobbyRMiscPageMask(void);
 // so it isn't erased by that later pass the way an in-line ShadowRect() dimming was.
 void RenderBobbyRNotifyHatchOverlay(void);
 
+// Clears gfBobbyRNotifyEverShown[] (which rows have shown their restock-notification checkbox
+// at least once this laptop session) -- called from ExitLaptop() (Laptop.cc) when the player
+// actually closes the laptop, not on every laptop-internal tab switch.
+void ResetBobbyRNotifyEverShown(void);
+
 #endif

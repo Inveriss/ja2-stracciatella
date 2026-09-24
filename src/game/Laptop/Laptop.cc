@@ -687,6 +687,10 @@ void ExitLaptop(void)
 	//Deallocate, save data -- leaving laptop.
 	SetRenderFlags(RENDER_FLAG_FULL);
 
+	// The player is genuinely closing the laptop here (as opposed to just switching to
+	// another of its own tabs) -- reset Bobby Ray's "sticky" restock-notification checkboxes.
+	ResetBobbyRNotifyEverShown();
+
 	ExitLaptopMode(fExitDuringLoad ? guiPreviousLaptopMode : guiCurrentLaptopMode);
 
 	fExitDuringLoad  = FALSE;
