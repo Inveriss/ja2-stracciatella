@@ -369,9 +369,6 @@ extern		BOOLEAN fExitDueToMessageBox;
 
 static BOOLEAN gfWaitingForMercToStopTalkingOrUserToClick=FALSE;
 
-static BOOLEAN gfAimMemberDisplayFaceHelpText = FALSE;
-
-
 static BOOLEAN gfAimMemberCanMercSayOpeningQuote = TRUE;
 
 
@@ -699,7 +696,6 @@ void RenderAIMMembersTopLevel()
 }
 
 
-static void DisplayAimMemberClickOnFaceHelpText(void);
 static void DisplayMercStats(MERCPROFILESTRUCT const&);
 static void DisplayMercsFace(void);
 static void DisplayMercsInventory(MERCPROFILESTRUCT const&);
@@ -768,12 +764,6 @@ void RenderAIMMembers()
 	//check to see if the merc is dead if so disable the contact button
 	EnableButton(giContactButton, !IsMercDead(p));
 
-	//if we are to renbder the 'click face' text
-	if(	gfAimMemberDisplayFaceHelpText )
-	{
-		DisplayAimMemberClickOnFaceHelpText();
-	}
-
 
 
 
@@ -815,12 +805,10 @@ static void SelectFaceMovementRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReas
 {
 	if( iReason & MSYS_CALLBACK_REASON_LOST_MOUSE )
 	{
-		gfAimMemberDisplayFaceHelpText = FALSE;
 		gfRedrawScreen = TRUE;
 	}
 	else if( iReason & MSYS_CALLBACK_REASON_GAIN_MOUSE )
 	{
-		gfAimMemberDisplayFaceHelpText = TRUE;
 		gfRedrawScreen = TRUE;
 	}
 }
@@ -2348,9 +2336,6 @@ static void DeleteVideoConfPopUp(void);
 
 static void InitDeleteVideoConferencePopUp(void)
 {
-	//remove the face help text
-	gfAimMemberDisplayFaceHelpText = FALSE;
-
 	//Gets reset to FALSE in the HandleCurrentVideoConfMode() function
 	gfJustSwitchedVideoConferenceMode = TRUE;
 
@@ -2994,12 +2979,3 @@ static void DisplayPopUpBoxExplainingMercArrivalLocationAndTimeCallBack(MessageB
 }
 
 
-static void DisplayAimMemberClickOnFaceHelpText(void)
-{
-	//display the 'left and right click' onscreen help msg
-	DrawTextToScreen(AimMemberText[0], AIM_FI_LEFT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y,                                   AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_TITLE_FONT, AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-	DrawTextToScreen(AimMemberText[1], AIM_FI_LEFT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y + AIM_FI_CLICK_DESC_TEXT_Y_OFFSET, AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_FONT,       AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-
-	DrawTextToScreen(AimMemberText[2], AIM_FI_RIGHT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y,                                   AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_TITLE_FONT, AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-	DrawTextToScreen(AimMemberText[3], AIM_FI_RIGHT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y + AIM_FI_CLICK_DESC_TEXT_Y_OFFSET, AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_FONT,       AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-}
