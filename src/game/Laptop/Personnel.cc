@@ -682,6 +682,25 @@ static void PrintStat(UINT16 stat, INT32 y, const ST::string& text)
 }
 
 
+// Same layout as PrintStat(), but the value is already text -- for the Attitude/Disabilities
+// row below (their display strings, pImpButtonText[], come straight from the IMP creation
+// screens, not a number).
+static void PrintStatText(INT32 y, const ST::string& label, const ST::string& value)
+{
+	MPrint(pers_stat_x, y, ST::format("{}:", label));
+	INT16 sX, sY;
+	FindFontRightCoordinates(pers_stat_x, 0, TEXT_BOX_WIDTH - 20, 0, value, PERS_FONT, &sX, &sY);
+	MPrint(sX, y, value);
+}
+
+
+// pImpButtonText[] offsets for the attitude/disability display strings -- must match
+// IMP_ATT_TXT_FIRST (IMP_Attitude.cc) and IMP_DIS_TXT_FIRST (IMP_Disability.cc), which own
+// the actual layout of that shared string table.
+#define PERS_ATT_TXT_FIRST 40
+#define PERS_DIS_TXT_FIRST 51
+
+
 static void DisplayCharStats(SOLDIERTYPE const& s)
 {
 	ST::string sString;
@@ -749,6 +768,9 @@ static void DisplayCharStats(SOLDIERTYPE const& s)
 
 	PrintStat(p.usBattlesFought, STD_SCREEN_Y + pers_stat_y[24], pPersonnelScreenStrings[PRSNL_TXT_BATTLES]);
 	PrintStat(p.usTimesWounded,  STD_SCREEN_Y + pers_stat_y[25], pPersonnelScreenStrings[PRSNL_TXT_TIMES_WOUNDED]);
+
+	PrintStatText(STD_SCREEN_Y + pers_stat_y[25] + 16, "Attitude",     pImpButtonText[PERS_ATT_TXT_FIRST + p.bAttitude]);
+	PrintStatText(STD_SCREEN_Y + pers_stat_y[25] + 27, "Disabilities", pImpButtonText[PERS_DIS_TXT_FIRST + p.bPersonalityTrait]);
 
 	//Display the 'Skills' text
 	MPrint(pers_stat_x, STD_SCREEN_Y + pers_stat_y[19], pPersonnelScreenStrings[PRSNL_TXT_SKILLS]);
@@ -1856,6 +1878,9 @@ static void DisplayDepartedCharStats(MERCPROFILESTRUCT const& p, INT32 const iSt
 
 	PrintStat(p.usBattlesFought, STD_SCREEN_Y + pers_stat_y[24], pPersonnelScreenStrings[PRSNL_TXT_BATTLES]);
 	PrintStat(p.usTimesWounded,  STD_SCREEN_Y + pers_stat_y[25], pPersonnelScreenStrings[PRSNL_TXT_TIMES_WOUNDED]);
+
+	PrintStatText(STD_SCREEN_Y + pers_stat_y[25] + 16, "Attitude",     pImpButtonText[PERS_ATT_TXT_FIRST + p.bAttitude]);
+	PrintStatText(STD_SCREEN_Y + pers_stat_y[25] + 27, "Disabilities", pImpButtonText[PERS_DIS_TXT_FIRST + p.bPersonalityTrait]);
 }
 
 
