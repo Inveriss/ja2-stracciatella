@@ -102,11 +102,37 @@
 
 #define MERC_PORTRAIT_TEXT_OFFSET_Y	110
 
+// "Unavailable" is moved to the top of the portrait, and a "Click hire / to leave a message"
+// hint is added at the bottom, in the same font/size/centering (only for the "merc is simply
+// away" case -- dead/POW/already-hired mercs keep the old single centered line).
+#define MERC_UNAVAILABLE_TOP_TEXT_Y_OFFSET	4
+#define MERC_UNAVAILABLE_BOTTOM_TEXT_Y_OFFSET	86
+#define MERC_UNAVAILABLE_TEXT_LINE_HEIGHT	16
+
+// The "unavailable merc" video-conferencing box: opened from the Hire button when the merc is
+// simply away on assignment (not dead, not already hired). Lets the player leave a message and
+// get an e-mail once the merc becomes available -- like A.I.M.'s answering machine, but without
+// any animation or talking, just the merc's portrait and name.
+#define MERC_UNAVAIL_BOX_X			(STD_SCREEN_X + 125)
+#define MERC_UNAVAIL_BOX_Y			(STD_SCREEN_Y + 97 + LAPTOP_SCREEN_WEB_DELTA_Y)
+#define MERC_UNAVAIL_BOX_TITLE_HEIGHT		20
+
+#define MERC_UNAVAIL_BOX_NAME_X			(MERC_UNAVAIL_BOX_X + 7)
+#define MERC_UNAVAIL_BOX_NAME_Y			(MERC_UNAVAIL_BOX_Y + 5)
+
+#define MERC_UNAVAIL_BOX_FACE_X			(MERC_UNAVAIL_BOX_X + 8)
+#define MERC_UNAVAIL_BOX_FACE_Y			(MERC_UNAVAIL_BOX_Y + MERC_UNAVAIL_BOX_TITLE_HEIGHT + 4)
+
+#define MERC_UNAVAIL_BOX_BUTTON_X		(MERC_UNAVAIL_BOX_X + 134)
+#define MERC_UNAVAIL_BOX_BUTTON_Y1		(MERC_UNAVAIL_BOX_Y + MERC_UNAVAIL_BOX_TITLE_HEIGHT + 40)
+#define MERC_UNAVAIL_BOX_BUTTON_Y2		(MERC_UNAVAIL_BOX_BUTTON_Y1 + 30)
+
 
 namespace {
 constexpr MultiLanguageGraphic guiStatsBox{ MLG_STATSBOX };
 cache_key_t const guiBioBox{ LAPTOPDIR "/biobox.sti" };
 cache_key_t const guiPortraitBox{ LAPTOPDIR "/portraitbox.sti" };
+cache_key_t const guiMercUnavailableBox{ LAPTOPDIR "/videoconfterminal.sti" };
 }
 
 //
@@ -130,11 +156,32 @@ GUIButtonRef guiHireButton;
 static void BtnMercFilesBackButtonCallback(GUI_BUTTON *btn, UINT32 reason);
 GUIButtonRef guiMercBackButton;
 
+// The "unavailable merc" box's Leave Message / Hang Up buttons -- created only while the box
+// is open (see OpenMercUnavailableBox()/CloseMercUnavailableBox())
+static void BtnMercUnavailableLeaveMessageCallback(GUI_BUTTON *btn, UINT32 reason);
+static void BtnMercUnavailableHangUpCallback(GUI_BUTTON *btn, UINT32 reason);
+static BUTTON_PICS* guiMercUnavailableBoxButtonImage;
+static GUIButtonRef guiLeaveMessageButton;
+static GUIButtonRef guiHangUpBoxButton;
+
+static BOOLEAN gfMercUnavailableBoxActive;
+static ProfileID gubMercUnavailableBoxMercID;
+
 
 static GUIButtonRef MakeButton(const ST::string& text, INT16 x, GUI_CALLBACK click)
 {
 	const INT16 shadow_col = DEFAULT_SHADOW;
 	GUIButtonRef const btn = CreateIconAndTextButton(guiButtonImage, text, FONT12ARIAL, MERC_BUTTON_UP_COLOR, shadow_col, MERC_BUTTON_DOWN_COLOR, shadow_col, x, MERC_FILES_BUTTON_Y, MSYS_PRIORITY_HIGH, click);
+	btn->SetCursor(CURSOR_LAPTOP_SCREEN);
+	btn->SpecifyDisabledStyle(GUI_BUTTON::DISABLED_STYLE_SHADED);
+	return btn;
+}
+
+
+static GUIButtonRef MakeUnavailableBoxButton(const ST::string& text, INT16 y, GUI_CALLBACK click)
+{
+	const INT16 shadow_col = DEFAULT_SHADOW;
+	GUIButtonRef const btn = CreateIconAndTextButton(guiMercUnavailableBoxButtonImage, text, FONT12ARIAL, MERC_BUTTON_UP_COLOR, shadow_col, MERC_BUTTON_DOWN_COLOR, shadow_col, MERC_UNAVAIL_BOX_BUTTON_X, y, MSYS_PRIORITY_HIGH, click);
 	btn->SetCursor(CURSOR_LAPTOP_SCREEN);
 	btn->SpecifyDisabledStyle(GUI_BUTTON::DISABLED_STYLE_SHADED);
 	return btn;
@@ -151,6 +198,10 @@ void EnterMercsFiles()
 	guiHireButton     = MakeButton(MercInfo[MERC_FILES_HIRE],     MERC_FILES_HIRE_BUTTON_X, BtnMercHireButtonCallback);
 	guiMercBackButton = MakeButton(MercInfo[MERC_FILES_HOME],     MERC_FILES_BACK_BUTTON_X, BtnMercFilesBackButtonCallback);
 
+	// same button graphic A.I.M.'s answering machine uses (frames 2/3 = up/down)
+	guiMercUnavailableBoxButtonImage = LoadButtonImage(LAPTOPDIR "/videoconfbuttons.sti", 2, 3);
+	gfMercUnavailableBoxActive       = FALSE;
+
 	//RenderMercsFiles();
 }
 
@@ -160,12 +211,21 @@ void ExitMercsFiles()
 	RemoveVObject(guiPortraitBox);
 	RemoveVObject(guiStatsBox);
 	RemoveVObject(guiBioBox);
+	RemoveVObject(guiMercUnavailableBox);
 
 	UnloadButtonImage( guiButtonImage );
 	RemoveButton( guiPrevButton );
 	RemoveButton( guiNextButton );
 	RemoveButton( guiHireButton );
 	RemoveButton( guiMercBackButton );
+
+	UnloadButtonImage( guiMercUnavailableBoxButtonImage );
+	if (gfMercUnavailableBoxActive)
+	{
+		RemoveButton( guiLeaveMessageButton );
+		RemoveButton( guiHangUpBoxButton );
+		gfMercUnavailableBoxActive = FALSE;
+	}
 
 	RemoveMercBackGround();
 }
@@ -175,6 +235,7 @@ static void DisplayMercFace(ProfileID);
 static void DisplayMercsStats(MERCPROFILESTRUCT const&);
 static void EnableDisableMercFilesNextPreviousButton(void);
 static void LoadAndDisplayMercBio(MERCListingModel const& listing);
+static void DisplayMercUnavailableBox(void);
 
 
 void RenderMercsFiles()
@@ -201,17 +262,24 @@ void RenderMercsFiles()
 	//Display the mercs statistic
 	DisplayMercsStats(p);
 
-	bool const enable =
-		!IsMercDead(p) &&
-		(
-			LaptopSaveInfo.gubPlayersMercAccountStatus == MERC_ACCOUNT_VALID     ||
-			LaptopSaveInfo.gubPlayersMercAccountStatus == MERC_ACCOUNT_SUSPENDED ||
-			LaptopSaveInfo.gubPlayersMercAccountStatus == MERC_ACCOUNT_VALID_FIRST_WARNING
-		);
-	EnableButton(guiHireButton, enable);
+	if (gfMercUnavailableBoxActive)
+	{
+		DisplayMercUnavailableBox();
+	}
+	else
+	{
+		bool const enable =
+			!IsMercDead(p) &&
+			(
+				LaptopSaveInfo.gubPlayersMercAccountStatus == MERC_ACCOUNT_VALID     ||
+				LaptopSaveInfo.gubPlayersMercAccountStatus == MERC_ACCOUNT_SUSPENDED ||
+				LaptopSaveInfo.gubPlayersMercAccountStatus == MERC_ACCOUNT_VALID_FIRST_WARNING
+			);
+		EnableButton(guiHireButton, enable);
 
-	//Enable or disable the buttons
-	EnableDisableMercFilesNextPreviousButton();
+		//Enable or disable the buttons
+		EnableDisableMercFilesNextPreviousButton();
+	}
 
 	MarkButtonsDirty();
 	RenderWWWProgramTitleBar();
@@ -242,6 +310,20 @@ static void BtnMercNextButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 
 
 static BOOLEAN MercFilesHireMerc(UINT8 ubMercID);
+static void OpenMercUnavailableBox(ProfileID pid);
+
+
+// Is this merc simply away on assignment (not dead, not a POW, not already hired)? That's the
+// only case where clicking Hire should open the "leave a message" box instead of the usual
+// hire-attempt/Speck-quote handling -- mirrors the branch order DisplayMercFace() uses to pick
+// which status text to show.
+static bool IsMercUnavailableForBox(MERCPROFILESTRUCT const& p, SOLDIERTYPE const* const s)
+{
+	if (IsMercDead(p)) return false;
+	if (p.bMercStatus == MERC_FIRED_AS_A_POW || (s && s->bAssignment == ASSIGNMENT_POW)) return false;
+	if (p.bMercStatus == MERC_HIRED_BUT_NOT_ARRIVED_YET || p.bMercStatus > 0) return false;
+	return !IsMercHireable(p);
+}
 
 
 static void BtnMercHireButtonCallback(GUI_BUTTON *btn, UINT32 reason)
@@ -254,8 +336,18 @@ static void BtnMercHireButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 			guiCurrentLaptopMode = LAPTOP_MODE_MERC;
 			gusMercVideoSpeckSpeech = SPECK_QUOTE_ALTERNATE_OPENING_5_PLAYER_OWES_SPECK_ACCOUNT_SUSPENDED;
 			gubArrivedFromMercSubSite = MERC_CAME_FROM_HIRE_PAGE;
+			return;
 		}
-		else if (MercFilesHireMerc(GetProfileIDFromMERCListingIndex(gubCurMercIndex)))
+
+		ProfileID          const pid = GetProfileIDFromMERCListingIndex(gubCurMercIndex);
+		MERCPROFILESTRUCT const& p   = GetProfile(pid);
+		SOLDIERTYPE  const* const s  = FindSoldierByProfileIDOnPlayerTeam(pid);
+
+		if (IsMercUnavailableForBox(p, s))
+		{
+			OpenMercUnavailableBox(pid);
+		}
+		else if (MercFilesHireMerc(pid))
 		{
 			// else try to hire the merc
 			guiCurrentLaptopMode = LAPTOP_MODE_MERC;
@@ -280,6 +372,7 @@ try
 	AutoSGPVObject face(LoadBigPortrait(p));
 
 	BOOLEAN        shaded;
+	BOOLEAN        unavailable = FALSE;
 	ST::string text;
 	if (IsMercDead(p))
 	{
@@ -306,11 +399,12 @@ try
 		shaded = TRUE;
 		text   = MercInfo[MERC_FILES_ALREADY_HIRED];
 	}
-	else if (!IsMercHireable(p))
+	else if (IsMercUnavailableForBox(p, s))
 	{
 		// The merc is away on another assignemnt, say the merc is unavailable
-		shaded = TRUE;
-		text   = MercInfo[MERC_FILES_MERC_UNAVAILABLE];
+		shaded      = TRUE;
+		unavailable = TRUE;
+		text        = MercInfo[MERC_FILES_MERC_UNAVAILABLE];
 	}
 	else
 	{
@@ -325,7 +419,15 @@ try
 		FRAME_BUFFER->ShadowRect(MERC_FACE_X, MERC_FACE_Y, MERC_FACE_X + MERC_FACE_WIDTH, MERC_FACE_Y + MERC_FACE_HEIGHT);
 	}
 
-	if (!text.empty())
+	if (unavailable)
+	{
+		DrawTextToScreen(text, MERC_FACE_X, MERC_FACE_Y + MERC_UNAVAILABLE_TOP_TEXT_Y_OFFSET, MERC_FACE_WIDTH, FONT14ARIAL, 145, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+
+		const UINT16 bottomY = MERC_FACE_Y + MERC_UNAVAILABLE_BOTTOM_TEXT_Y_OFFSET;
+		DrawTextToScreen(MercInfo[MERC_FILES_CLICK_HIRE_LINE1], MERC_FACE_X, bottomY,                                   MERC_FACE_WIDTH, FONT14ARIAL, 145, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+		DrawTextToScreen(MercInfo[MERC_FILES_CLICK_HIRE_LINE2], MERC_FACE_X, bottomY + MERC_UNAVAILABLE_TEXT_LINE_HEIGHT, MERC_FACE_WIDTH, FONT14ARIAL, 145, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+	}
+	else if (!text.empty())
 	{
 		DisplayWrappedString(MERC_FACE_X, MERC_FACE_Y + MERC_PORTRAIT_TEXT_OFFSET_Y, MERC_FACE_WIDTH, 2, FONT14ARIAL, 145, text, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
 	}
@@ -467,6 +569,70 @@ static BOOLEAN MercFilesHireMerc(UINT8 ubMercID)
 		//if we succesfully hired the merc
 		return(TRUE);
 	}
+}
+
+
+static void OpenMercUnavailableBox(ProfileID const pid)
+{
+	gubMercUnavailableBoxMercID = pid;
+	gfMercUnavailableBoxActive  = TRUE;
+
+	guiLeaveMessageButton = MakeUnavailableBoxButton(MercInfo[MERC_FILES_LEAVE_MESSAGE], MERC_UNAVAIL_BOX_BUTTON_Y1, BtnMercUnavailableLeaveMessageCallback);
+	if (GetProfile(pid).ubMiscFlags2 & PROFILE_MISC_FLAG2_PLAYER_LEFT_MSG_FOR_MERC_AT_MERC)
+	{
+		DisableButton(guiLeaveMessageButton);
+	}
+	guiHangUpBoxButton = MakeUnavailableBoxButton(MercInfo[MERC_FILES_HANG_UP], MERC_UNAVAIL_BOX_BUTTON_Y2, BtnMercUnavailableHangUpCallback);
+
+	EnableButton(guiPrevButton,     FALSE);
+	EnableButton(guiNextButton,     FALSE);
+	EnableButton(guiHireButton,     FALSE);
+	EnableButton(guiMercBackButton, FALSE);
+
+	fReDrawScreenFlag = TRUE;
+}
+
+
+static void CloseMercUnavailableBox()
+{
+	gfMercUnavailableBoxActive = FALSE;
+
+	RemoveButton(guiLeaveMessageButton);
+	RemoveButton(guiHangUpBoxButton);
+
+	EnableDisableMercFilesNextPreviousButton();
+	EnableButton(guiMercBackButton, TRUE);
+
+	fReDrawScreenFlag = TRUE;
+}
+
+
+static void BtnMercUnavailableLeaveMessageCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	GetProfile(gubMercUnavailableBoxMercID).ubMiscFlags2 |= PROFILE_MISC_FLAG2_PLAYER_LEFT_MSG_FOR_MERC_AT_MERC;
+	CloseMercUnavailableBox();
+	DoLapTopMessageBox(MSG_BOX_LAPTOP_DEFAULT, MercInfo[MERC_FILES_MESSAGE_RECORDED], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+}
+
+
+static void BtnMercUnavailableHangUpCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) CloseMercUnavailableBox();
+}
+
+
+static void DisplayMercUnavailableBox()
+{
+	MERCPROFILESTRUCT const& p = GetProfile(gubMercUnavailableBoxMercID);
+
+	BltVideoObject(FRAME_BUFFER, GetVObject(guiMercUnavailableBox), 0, MERC_UNAVAIL_BOX_X, MERC_UNAVAIL_BOX_Y);
+
+	DrawTextToScreen(p.zName, MERC_UNAVAIL_BOX_NAME_X, MERC_UNAVAIL_BOX_NAME_Y, 0, FONT12ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+
+	AutoSGPVObject face(LoadBigPortrait(p));
+	BltVideoObject(FRAME_BUFFER, face.get(), 0, MERC_UNAVAIL_BOX_FACE_X, MERC_UNAVAIL_BOX_FACE_Y);
 }
 
 

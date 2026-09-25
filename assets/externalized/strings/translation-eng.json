@@ -225,7 +225,12 @@
         "Per Day",
         "Deceased",
         "Looks like you're trying to hire too many mercs. Your limit is 18.",
-        "Unavailable"
+        "Unavailable",
+        "LEAVE MESSAGE",
+        "HANG UP",
+        "Message recorded",
+        "Click hire ",
+        "to leave a message"
     ],
     "MercNoAccountText": [
         "Open Account",
@@ -1916,7 +1921,8 @@
         "Bobby Rays",
         "Kingpin",
         "John Kulba",
-        "A.I.M."
+        "A.I.M.",
+        "M.E.R.C."
     ],
     "pShortAttributeStrings": [
         "Agi",
