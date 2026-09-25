@@ -118,7 +118,7 @@
 #define MERC_UNAVAIL_BOX_TITLE_HEIGHT		20
 
 #define MERC_UNAVAIL_BOX_NAME_X			(MERC_UNAVAIL_BOX_X + 7)
-#define MERC_UNAVAIL_BOX_NAME_Y			(MERC_UNAVAIL_BOX_Y + 5)
+#define MERC_UNAVAIL_BOX_NAME_Y			(MERC_UNAVAIL_BOX_Y + 5 + 1)
 
 #define MERC_UNAVAIL_BOX_FACE_X			(MERC_UNAVAIL_BOX_X + 8 - 4)
 #define MERC_UNAVAIL_BOX_FACE_Y			(MERC_UNAVAIL_BOX_Y + MERC_UNAVAIL_BOX_TITLE_HEIGHT + 4 - 1)
@@ -136,12 +136,36 @@
 #define MERC_UNAVAIL_BOX_HANG_UP_X		(MERC_UNAVAIL_BOX_BUTTON_X + 108)
 #define MERC_UNAVAIL_BOX_HANG_UP_Y		(MERC_UNAVAIL_BOX_BUTTON_Y2 - 24 + 1)
 
+// skill / attitude / disability boxes (2x2 grid, MERC_BOX_SKILLS.STI, 132x22) -- same rules as
+// the AIM Members CONTENTBUTTON_SKILLS.STI buttons: top-left = first skill (or "X (expert)"),
+// bottom-left = second distinct skill, both invisible if the merc has no skill(s); top-right =
+// Attitude; bottom-right = Disabilities.
+#define MERC_SKILL_BOX_WIDTH		132
+#define MERC_SKILL_BOX_HEIGHT		22
+#define MERC_SKILL_BOX_TEXT_Y_OFFSET	6
+
+#define MERC_SKILL_BOX_LEFT_X		(STD_SCREEN_X + 128)
+#define MERC_SKILL_BOX_RIGHT_X		(STD_SCREEN_X + 380)
+#define MERC_SKILL_BOX_TOP_Y		(STD_SCREEN_Y + 350)
+#define MERC_SKILL_BOX_BOTTOM_Y		(STD_SCREEN_Y + 374)
+
+#define MERC_SKILL_BOX_FONT		FONT12ARIAL
+#define MERC_SKILL_BOX_COLOR		FONT_MCOLOR_WHITE
+
+// pImpButtonText[] offsets for the attitude/disability display strings -- must match
+// IMP_ATT_TXT_FIRST (IMP_Attitude.cc) and IMP_DIS_TXT_FIRST (IMP_Disability.cc).
+#define MERC_ATT_TXT_FIRST		40
+#define MERC_DIS_TXT_FIRST		51
+
+#define MERC_ATT_DIS_TEXT_X_OFFSET	7
+
 
 namespace {
 constexpr MultiLanguageGraphic guiStatsBox{ MLG_STATSBOX };
 cache_key_t const guiBioBox{ LAPTOPDIR "/biobox.sti" };
 cache_key_t const guiPortraitBox{ LAPTOPDIR "/portraitbox.sti" };
 cache_key_t const guiMercUnavailableBox{ LAPTOPDIR "/videoconfterminal.sti" };
+cache_key_t const guiMercSkillsBox{ LAPTOPDIR "/MERC_BOX_SKILLS.STI" };
 }
 
 //
@@ -225,6 +249,7 @@ void ExitMercsFiles()
 	RemoveVObject(guiStatsBox);
 	RemoveVObject(guiBioBox);
 	RemoveVObject(guiMercUnavailableBox);
+	RemoveVObject(guiMercSkillsBox);
 
 	UnloadButtonImage( guiButtonImage );
 	RemoveButton( guiPrevButton );
@@ -251,6 +276,70 @@ static void DisplayMercsStats(MERCPROFILESTRUCT const&);
 static void EnableDisableMercFilesNextPreviousButton(void);
 static void LoadAndDisplayMercBio(MERCListingModel const& listing);
 static void DisplayMercUnavailableBox(void);
+static void DisplayMercSkillAttitudeDisabilityBoxes(MERCPROFILESTRUCT const&);
+
+
+// gzIMPSkillTraitsText[]'s entry order follows the IMP skill-selection screen's own layout, not
+// the SkillTrait enum (see IMP_SkillTraits.cc's skillTraitsMapping) -- this maps a merc's actual
+// SkillTrait to the matching gzIMPSkillTraitsText index. THIEF has no equivalent there (never
+// offered during IMP creation, and no merc profile currently uses it), so it falls back to "None".
+static const INT8 gbMercSkillTraitToImpSkillText[NUM_SKILLTRAITS] =
+{
+	/* NO_SKILLTRAIT */ 14,
+	/* LOCKPICKING   */ 0,
+	/* HANDTOHAND    */ 1,
+	/* ELECTRONICS   */ 2,
+	/* NIGHTOPS      */ 3,
+	/* THROWING      */ 4,
+	/* TEACHING      */ 5,
+	/* HEAVY_WEAPS   */ 6,
+	/* AUTO_WEAPS    */ 7,
+	/* STEALTHY      */ 8,
+	/* AMBIDEXT      */ 9,
+	/* THIEF         */ 14,
+	/* MARTIALARTS   */ 13,
+	/* KNIFING       */ 10,
+	/* ONROOF        */ 11,
+	/* CAMOUFLAGED   */ 12,
+};
+
+
+static void DisplayMercSkillAttitudeDisabilityBoxes(MERCPROFILESTRUCT const& p)
+{
+	INT8 bSkill1 = p.bSkillTrait;
+	INT8 bSkill2 = p.bSkillTrait2;
+	if (bSkill1 == NO_SKILLTRAIT) { bSkill1 = bSkill2; bSkill2 = NO_SKILLTRAIT; }
+
+	if (bSkill1 != NO_SKILLTRAIT)
+	{
+		BltVideoObject(FRAME_BUFFER, GetVObject(guiMercSkillsBox), 0, MERC_SKILL_BOX_LEFT_X, MERC_SKILL_BOX_TOP_Y);
+		DrawTextToScreen(gzIMPSkillTraitsText[gbMercSkillTraitToImpSkillText[bSkill1]], MERC_SKILL_BOX_LEFT_X, MERC_SKILL_BOX_TOP_Y + MERC_SKILL_BOX_TEXT_Y_OFFSET,
+			MERC_SKILL_BOX_WIDTH, MERC_SKILL_BOX_FONT, MERC_SKILL_BOX_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+
+		if (bSkill1 == bSkill2)
+		{
+			BltVideoObject(FRAME_BUFFER, GetVObject(guiMercSkillsBox), 0, MERC_SKILL_BOX_LEFT_X, MERC_SKILL_BOX_BOTTOM_Y);
+			DrawTextToScreen(gzMercSkillText[NUM_SKILLTRAITS], MERC_SKILL_BOX_LEFT_X, MERC_SKILL_BOX_BOTTOM_Y + MERC_SKILL_BOX_TEXT_Y_OFFSET,
+				MERC_SKILL_BOX_WIDTH, MERC_SKILL_BOX_FONT, MERC_SKILL_BOX_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+		}
+		else if (bSkill2 != NO_SKILLTRAIT)
+		{
+			BltVideoObject(FRAME_BUFFER, GetVObject(guiMercSkillsBox), 0, MERC_SKILL_BOX_LEFT_X, MERC_SKILL_BOX_BOTTOM_Y);
+			DrawTextToScreen(gzIMPSkillTraitsText[gbMercSkillTraitToImpSkillText[bSkill2]], MERC_SKILL_BOX_LEFT_X, MERC_SKILL_BOX_BOTTOM_Y + MERC_SKILL_BOX_TEXT_Y_OFFSET,
+				MERC_SKILL_BOX_WIDTH, MERC_SKILL_BOX_FONT, MERC_SKILL_BOX_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+		}
+	}
+
+	BltVideoObject(FRAME_BUFFER, GetVObject(guiMercSkillsBox), 0, MERC_SKILL_BOX_RIGHT_X, MERC_SKILL_BOX_TOP_Y);
+	DrawTextToScreen(ST::format("Att: {}", pImpButtonText[MERC_ATT_TXT_FIRST + p.bAttitude]),
+		MERC_SKILL_BOX_RIGHT_X + MERC_ATT_DIS_TEXT_X_OFFSET, MERC_SKILL_BOX_TOP_Y + MERC_SKILL_BOX_TEXT_Y_OFFSET,
+		0, MERC_SKILL_BOX_FONT, MERC_SKILL_BOX_COLOR, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+
+	BltVideoObject(FRAME_BUFFER, GetVObject(guiMercSkillsBox), 0, MERC_SKILL_BOX_RIGHT_X, MERC_SKILL_BOX_BOTTOM_Y);
+	DrawTextToScreen(ST::format("Dis: {}", pImpButtonText[MERC_DIS_TXT_FIRST + p.bPersonalityTrait]),
+		MERC_SKILL_BOX_RIGHT_X + MERC_ATT_DIS_TEXT_X_OFFSET, MERC_SKILL_BOX_BOTTOM_Y + MERC_SKILL_BOX_TEXT_Y_OFFSET,
+		0, MERC_SKILL_BOX_FONT, MERC_SKILL_BOX_COLOR, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+}
 
 
 void RenderMercsFiles()
@@ -276,6 +365,8 @@ void RenderMercsFiles()
 
 	//Display the mercs statistic
 	DisplayMercsStats(p);
+
+	DisplayMercSkillAttitudeDisabilityBoxes(p);
 
 	if (gfMercUnavailableBoxActive)
 	{
