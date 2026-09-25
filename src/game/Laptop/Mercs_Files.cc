@@ -106,7 +106,7 @@
 // hint is added at the bottom, in the same font/size/centering (only for the "merc is simply
 // away" case -- dead/POW/already-hired mercs keep the old single centered line).
 #define MERC_UNAVAILABLE_TOP_TEXT_Y_OFFSET	4
-#define MERC_UNAVAILABLE_BOTTOM_TEXT_Y_OFFSET	86
+#define MERC_UNAVAILABLE_BOTTOM_TEXT_Y_OFFSET	91
 #define MERC_UNAVAILABLE_TEXT_LINE_HEIGHT	16
 
 // The "unavailable merc" video-conferencing box: opened from the Hire button when the merc is
@@ -120,12 +120,21 @@
 #define MERC_UNAVAIL_BOX_NAME_X			(MERC_UNAVAIL_BOX_X + 7)
 #define MERC_UNAVAIL_BOX_NAME_Y			(MERC_UNAVAIL_BOX_Y + 5)
 
-#define MERC_UNAVAIL_BOX_FACE_X			(MERC_UNAVAIL_BOX_X + 8)
-#define MERC_UNAVAIL_BOX_FACE_Y			(MERC_UNAVAIL_BOX_Y + MERC_UNAVAIL_BOX_TITLE_HEIGHT + 4)
+#define MERC_UNAVAIL_BOX_FACE_X			(MERC_UNAVAIL_BOX_X + 8 - 4)
+#define MERC_UNAVAIL_BOX_FACE_Y			(MERC_UNAVAIL_BOX_Y + MERC_UNAVAIL_BOX_TITLE_HEIGHT + 4 - 1)
 
 #define MERC_UNAVAIL_BOX_BUTTON_X		(MERC_UNAVAIL_BOX_X + 134)
 #define MERC_UNAVAIL_BOX_BUTTON_Y1		(MERC_UNAVAIL_BOX_Y + MERC_UNAVAIL_BOX_TITLE_HEIGHT + 40)
 #define MERC_UNAVAIL_BOX_BUTTON_Y2		(MERC_UNAVAIL_BOX_BUTTON_Y1 + 30)
+
+#define MERC_UNAVAIL_BOX_LEAVE_MSG_X		(MERC_UNAVAIL_BOX_BUTTON_X - 18)
+#define MERC_UNAVAIL_BOX_LEAVE_MSG_Y		(MERC_UNAVAIL_BOX_BUTTON_Y1 + 7)
+
+#define MERC_UNAVAIL_BOX_XCLOSE_X		(MERC_UNAVAIL_BOX_X + 348)
+#define MERC_UNAVAIL_BOX_XCLOSE_Y		(MERC_UNAVAIL_BOX_Y + 3)
+
+#define MERC_UNAVAIL_BOX_HANG_UP_X		(MERC_UNAVAIL_BOX_BUTTON_X + 108)
+#define MERC_UNAVAIL_BOX_HANG_UP_Y		(MERC_UNAVAIL_BOX_BUTTON_Y2 - 24 + 1)
 
 
 namespace {
@@ -156,13 +165,16 @@ GUIButtonRef guiHireButton;
 static void BtnMercFilesBackButtonCallback(GUI_BUTTON *btn, UINT32 reason);
 GUIButtonRef guiMercBackButton;
 
-// The "unavailable merc" box's Leave Message / Hang Up buttons -- created only while the box
-// is open (see OpenMercUnavailableBox()/CloseMercUnavailableBox())
+// The "unavailable merc" box's Leave Message / Hang Up / X-to-close buttons -- created only
+// while the box is open (see OpenMercUnavailableBox()/CloseMercUnavailableBox())
 static void BtnMercUnavailableLeaveMessageCallback(GUI_BUTTON *btn, UINT32 reason);
 static void BtnMercUnavailableHangUpCallback(GUI_BUTTON *btn, UINT32 reason);
 static BUTTON_PICS* guiMercUnavailableBoxButtonImage;
 static GUIButtonRef guiLeaveMessageButton;
 static GUIButtonRef guiHangUpBoxButton;
+
+static BUTTON_PICS* guiMercUnavailableBoxCloseButtonImage;
+static GUIButtonRef guiMercUnavailableBoxCloseButton;
 
 static BOOLEAN gfMercUnavailableBoxActive;
 static ProfileID gubMercUnavailableBoxMercID;
@@ -178,10 +190,10 @@ static GUIButtonRef MakeButton(const ST::string& text, INT16 x, GUI_CALLBACK cli
 }
 
 
-static GUIButtonRef MakeUnavailableBoxButton(const ST::string& text, INT16 y, GUI_CALLBACK click)
+static GUIButtonRef MakeUnavailableBoxButton(const ST::string& text, INT16 x, INT16 y, GUI_CALLBACK click)
 {
 	const INT16 shadow_col = DEFAULT_SHADOW;
-	GUIButtonRef const btn = CreateIconAndTextButton(guiMercUnavailableBoxButtonImage, text, FONT12ARIAL, MERC_BUTTON_UP_COLOR, shadow_col, MERC_BUTTON_DOWN_COLOR, shadow_col, MERC_UNAVAIL_BOX_BUTTON_X, y, MSYS_PRIORITY_HIGH, click);
+	GUIButtonRef const btn = CreateIconAndTextButton(guiMercUnavailableBoxButtonImage, text, FONT12ARIAL, MERC_BUTTON_UP_COLOR, shadow_col, MERC_BUTTON_DOWN_COLOR, shadow_col, x, y, MSYS_PRIORITY_HIGH, click);
 	btn->SetCursor(CURSOR_LAPTOP_SCREEN);
 	btn->SpecifyDisabledStyle(GUI_BUTTON::DISABLED_STYLE_SHADED);
 	return btn;
@@ -199,8 +211,9 @@ void EnterMercsFiles()
 	guiMercBackButton = MakeButton(MercInfo[MERC_FILES_HOME],     MERC_FILES_BACK_BUTTON_X, BtnMercFilesBackButtonCallback);
 
 	// same button graphic A.I.M.'s answering machine uses (frames 2/3 = up/down)
-	guiMercUnavailableBoxButtonImage = LoadButtonImage(LAPTOPDIR "/videoconfbuttons.sti", 2, 3);
-	gfMercUnavailableBoxActive       = FALSE;
+	guiMercUnavailableBoxButtonImage      = LoadButtonImage(LAPTOPDIR "/videoconfbuttons.sti", 2, 3);
+	guiMercUnavailableBoxCloseButtonImage = LoadButtonImage(LAPTOPDIR "/x_button.sti", 0, 1);
+	gfMercUnavailableBoxActive            = FALSE;
 
 	//RenderMercsFiles();
 }
@@ -220,10 +233,12 @@ void ExitMercsFiles()
 	RemoveButton( guiMercBackButton );
 
 	UnloadButtonImage( guiMercUnavailableBoxButtonImage );
+	UnloadButtonImage( guiMercUnavailableBoxCloseButtonImage );
 	if (gfMercUnavailableBoxActive)
 	{
 		RemoveButton( guiLeaveMessageButton );
 		RemoveButton( guiHangUpBoxButton );
+		RemoveButton( guiMercUnavailableBoxCloseButton );
 		gfMercUnavailableBoxActive = FALSE;
 	}
 
@@ -577,12 +592,16 @@ static void OpenMercUnavailableBox(ProfileID const pid)
 	gubMercUnavailableBoxMercID = pid;
 	gfMercUnavailableBoxActive  = TRUE;
 
-	guiLeaveMessageButton = MakeUnavailableBoxButton(MercInfo[MERC_FILES_LEAVE_MESSAGE], MERC_UNAVAIL_BOX_BUTTON_Y1, BtnMercUnavailableLeaveMessageCallback);
+	guiLeaveMessageButton = MakeUnavailableBoxButton(MercInfo[MERC_FILES_LEAVE_MESSAGE], MERC_UNAVAIL_BOX_LEAVE_MSG_X, MERC_UNAVAIL_BOX_LEAVE_MSG_Y, BtnMercUnavailableLeaveMessageCallback);
 	if (GetProfile(pid).ubMiscFlags2 & PROFILE_MISC_FLAG2_PLAYER_LEFT_MSG_FOR_MERC_AT_MERC)
 	{
 		DisableButton(guiLeaveMessageButton);
 	}
-	guiHangUpBoxButton = MakeUnavailableBoxButton(MercInfo[MERC_FILES_HANG_UP], MERC_UNAVAIL_BOX_BUTTON_Y2, BtnMercUnavailableHangUpCallback);
+	guiHangUpBoxButton = MakeUnavailableBoxButton(MercInfo[MERC_FILES_HANG_UP], MERC_UNAVAIL_BOX_HANG_UP_X, MERC_UNAVAIL_BOX_HANG_UP_Y, BtnMercUnavailableHangUpCallback);
+
+	guiMercUnavailableBoxCloseButton = QuickCreateButton(guiMercUnavailableBoxCloseButtonImage, MERC_UNAVAIL_BOX_XCLOSE_X, MERC_UNAVAIL_BOX_XCLOSE_Y, MSYS_PRIORITY_HIGH, BtnMercUnavailableHangUpCallback);
+	guiMercUnavailableBoxCloseButton->SetCursor(CURSOR_LAPTOP_SCREEN);
+	guiMercUnavailableBoxCloseButton->SpecifyDisabledStyle(GUI_BUTTON::DISABLED_STYLE_NONE);
 
 	EnableButton(guiPrevButton,     FALSE);
 	EnableButton(guiNextButton,     FALSE);
@@ -596,6 +615,8 @@ static void OpenMercUnavailableBox(ProfileID const pid)
 static void CloseMercUnavailableBox()
 {
 	gfMercUnavailableBoxActive = FALSE;
+
+	RemoveButton(guiMercUnavailableBoxCloseButton);
 
 	RemoveButton(guiLeaveMessageButton);
 	RemoveButton(guiHangUpBoxButton);
