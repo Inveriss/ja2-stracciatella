@@ -82,6 +82,8 @@
 #include "VObject_Blitters.h"
 #include "VSurface.h"
 
+#include <map>
+#include <string>
 #include <string_theory/format>
 
 #define MAX_SORT_METHODS					6
@@ -137,6 +139,16 @@
 // block starts at MAP_SCREEN_RIGHT_BLOCK_X, so MAP_SCREEN_WIDTH would be off
 // by the free space's width.
 #define MAP_BG_WIDTH      (MAP_LEGACY_CANVAS_WIDTH - 261)
+
+// Free space between the left column and MBS on the wide strategic screen:
+// from the canvas top down to map_screen_bottom.sti's top edge (121px above
+// the canvas bottom, see MAP_BOTTOM_Y in Map_Screen_Interface_Bottom.cc).
+#define MAP_MIDDLE_BACKGROUND_HEIGHT (MAP_SCREEN_HEIGHT - 121)
+// Width of the left column (plus, on the wide strategic screen, the free
+// space next to it) -- what the left column's own background restores and
+// shading must cover, so the wider mapinv_wide/iteminfoc_wide graphics and
+// the free space's background get copied/cleared along with it.
+#define LEFT_COLUMN_BG_WIDTH (261 + (g_ui.isWideStrategicScreen() ? MAP_MIDDLE_BACKGROUND_WIDTH : 0))
 
 #define MAP_ARMOR_LABEL_X (MAP_SCREEN_X + 208)
 #define MAP_ARMOR_LABEL_Y (MAP_SCREEN_Y + 179)
@@ -347,7 +359,6 @@ UINT32 guiPotCharPathBaseTime = 0;
 
 namespace {
 cache_key_t const guiSleepIcon { INTERFACEDIR "/sleepicon.sti" };
-cache_key_t const guiMAPINV { INTERFACEDIR "/mapinv.sti" };
 cache_key_t const guiULICONS { INTERFACEDIR "/top_left_corner_icons.sti" };
 cache_key_t const guiNewMailIcons{ INTERFACEDIR "/newemail.sti" };
 
@@ -372,6 +383,37 @@ cache_key_t GetCharInfoGraphicsFilename()
 		? INTERFACEDIR "/charinfo_1280.sti"
 		: INTERFACEDIR "/charinfo_1024.sti";
 }
+
+// Merc inventory panel -- a single file for both height tiers, plus a
+// wider _wide variant (reaching across the free space up to MBS) for the
+// wide strategic screen; see GetWideStrategicAsset().
+cache_key_t GetMapInvGraphicsFilename()
+{
+	return GetWideStrategicAsset(INTERFACEDIR "/mapinv_wide.sti", INTERFACEDIR "/mapinv.sti");
+}
+
+// Background filling the free space between the left column and MBS on the
+// wide strategic screen (MAP_MIDDLE_BACKGROUND_X/WIDTH). Suffix follows the
+// height tier, same as the files above: 256x599 for the compact tier,
+// 256x647 for the large one (canvas height minus map_screen_bottom's 121).
+cache_key_t GetMapMiddleBackgroundGraphicsFilename()
+{
+	return g_ui.isCompactStrategicScreen()
+		? INTERFACEDIR "/background_middle_wide_1280.sti"
+		: INTERFACEDIR "/background_middle_wide_1024.sti";
+}
+}
+
+
+cache_key_t GetWideStrategicAsset(cache_key_t const wide, cache_key_t const legacy)
+{
+	if (!g_ui.isWideStrategicScreen()) return legacy;
+
+	// Checked once per file -- this runs every time the asset is drawn.
+	static std::map<std::string, bool> exists;
+	auto it = exists.find(wide);
+	if (it == exists.end()) it = exists.emplace(wide, GCM->doesGameResExists(wide)).first;
+	return it->second ? wide : legacy;
 }
 
 // misc mouse regions
@@ -3540,7 +3582,7 @@ static void BltCharInvPanel(void)
 	Assert(pSoldier);
 	Assert(MapCharacterHasAccessibleInventory(*pSoldier));
 
-	BltVideoObject(guiSAVEBUFFER, guiMAPINV, 0, PLAYER_INFO_X, PLAYER_INFO_Y);
+	BltVideoObject(guiSAVEBUFFER, GetMapInvGraphicsFilename(), 0, PLAYER_INFO_X, PLAYER_INFO_Y);
 
 	CreateDestroyMapInvButton();
 
@@ -3598,7 +3640,9 @@ static void BltCharInvPanel(void)
 		// Same old-canvas-boundary bug as the RestoreExternBackgroundRect calls
 		// in RenderMapRegionBackground()/RenderTeamRegionBackground() -- extend
 		// to the actual (now bigger) canvas bottom instead of the literal 359.
-		guiSAVEBUFFER->ShadowRect(PLAYER_INFO_X, PLAYER_INFO_Y, PLAYER_INFO_X + 261,  PLAYER_INFO_Y + (MAP_SCREEN_HEIGHT - 107));
+		// Width covers the free space too on the wide strategic screen, where
+		// mapinv_wide.sti reaches across it.
+		guiSAVEBUFFER->ShadowRect(PLAYER_INFO_X, PLAYER_INFO_Y, PLAYER_INFO_X + LEFT_COLUMN_BG_WIDTH,  PLAYER_INFO_Y + (MAP_SCREEN_HEIGHT - 107));
 	}
 	else
 	{
@@ -5032,10 +5076,50 @@ void RenderMapRegionBackground( void )
 static void DisplayIconsForMercsAsleep(void);
 
 
+// Wide strategic screen only: (re)draws the free space between the left
+// column and MBS into guiSAVEBUFFER, rows `top`..`bottom` (relative to
+// MAP_SCREEN_Y, bottom exclusive, clamped to MAP_MIDDLE_BACKGROUND_HEIGHT).
+// Called by the left column's own renderers right before they draw their
+// graphic, so whatever the left column draws on top (mapinv_wide.sti,
+// iteminfoc_wide.sti) wins, and the free space is always repainted along with
+// it -- it's never left showing stale pixels (e.g. of the tactical screen at
+// exactly 1280x720/768, where isBigScreen() is false and nothing else clears
+// it). Clipped to the free space itself: background_middle_wide_*.sti's first
+// column sits under the left column's last one (MAP_MIDDLE_BACKGROUND_X),
+// which stays the left column's. Falls back to black until the background
+// file is delivered.
+static void RenderMapMiddleBackground(INT16 const top, INT16 const bottom)
+{
+	if (!g_ui.isWideStrategicScreen()) return;
+
+	INT16 const y1 = MAP_SCREEN_Y + top;
+	INT16 const y2 = MAP_SCREEN_Y + std::min<INT16>(bottom, MAP_MIDDLE_BACKGROUND_HEIGHT);
+	if (y1 >= y2) return;
+
+	INT16 const x1 = MAP_MIDDLE_BACKGROUND_X + 1;
+	INT16 const x2 = MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_WIDTH;
+
+	cache_key_t const bg = GetWideStrategicAsset(GetMapMiddleBackgroundGraphicsFilename(), nullptr);
+	if (bg)
+	{
+		SGPRect const clip = { (UINT16)x1, (UINT16)y1, (UINT16)x2, (UINT16)y2 };
+		SGPRect const old  = SetClippingRect(clip);
+		BltVideoObject(guiSAVEBUFFER, bg, 0, MAP_MIDDLE_BACKGROUND_X, MAP_SCREEN_Y);
+		SetClippingRect(old);
+	}
+	else
+	{
+		ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, y1, x2, y2, 0);
+	}
+}
+
+
 static void RenderTeamRegionBackground()
 {
 	// Render to save buffer when dirty flag set
 	if (!fTeamPanelDirty) return;
+
+	RenderMapMiddleBackground(107, MAP_SCREEN_HEIGHT);
 
 	// Show inventory or the team list?
 	if (!fShowInventoryFlag)
@@ -5058,7 +5142,9 @@ static void RenderTeamRegionBackground()
 	// Same fix as RenderMapRegionBackground() above: height was hardcoded to
 	// 359-107 (old canvas boundary), clipping anything the (now potentially
 	// taller, e.g. newgoldpiece3_1280.sti) team-list graphic draws further down.
-	RestoreExternBackgroundRect(MAP_SCREEN_X + 0, MAP_SCREEN_Y + 107, 261 - 0, MAP_SCREEN_HEIGHT - 107);
+	// Width includes the free space on the wide strategic screen (see
+	// LEFT_COLUMN_BG_WIDTH).
+	RestoreExternBackgroundRect(MAP_SCREEN_X + 0, MAP_SCREEN_Y + 107, LEFT_COLUMN_BG_WIDTH, MAP_SCREEN_HEIGHT - 107);
 	MapscreenMarkButtonsDirty();
 }
 
@@ -5072,6 +5158,8 @@ static void RenderCharacterInfoBackground(void)
 		// not dirty, leave
 		return;
 	}
+
+	RenderMapMiddleBackground(0, 107);
 
 	// the upleft hand corner character info panel
 	BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
@@ -5096,7 +5184,7 @@ static void RenderCharacterInfoBackground(void)
 	MarkAllBoxesAsAltered( );
 
 	// restore background for area
-	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, 261, 107 );
+	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, LEFT_COLUMN_BG_WIDTH, 107 );
 
 }
 
@@ -6168,7 +6256,8 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(GetCharListGraphicsFilename());
 	RemoveVObject(GetCharInfoGraphicsFilename());
 
-	RemoveVObject(guiMAPINV);
+	RemoveVObject(GetMapInvGraphicsFilename());
+	RemoveVObject(GetMapMiddleBackgroundGraphicsFilename());
 	RemoveVObject(guiULICONS);
 
 	//Kris:  Remove the email icons.

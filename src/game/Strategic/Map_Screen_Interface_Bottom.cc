@@ -171,11 +171,18 @@ cache_key_t const guiSliderBar{ INTERFACEDIR "/map_screen_bottom_arrows.sti" };
 // tier (height 720-767), _1024 for the large tier (height 768+) -- see
 // GetCharListGraphicsFilename()/GetCharInfoGraphicsFilename() in
 // MapScreen.cc for the same pattern.
+// On the wide strategic screen (UILayout::isWideStrategicScreen()) the
+// 1280px-wide _wide_ variants of the same two height tiers are used instead
+// (falling back to the legacy ones until delivered -- see
+// GetWideStrategicAsset() in MapScreen.cc). Their right-hand part must keep
+// the same distance from the right edge as today's graphics: everything
+// there (clock, radar, balance, time compression, exit buttons) is anchored
+// to MAP_SCREEN_RIGHT, their left part to MAP_SCREEN_X.
 cache_key_t GetMapScreenBottomGraphicsFilename()
 {
 	return g_ui.isCompactStrategicScreen()
-		? INTERFACEDIR "/map_screen_bottom_1280.sti"
-		: INTERFACEDIR "/map_screen_bottom_1024.sti";
+		? GetWideStrategicAsset(INTERFACEDIR "/map_screen_bottom_wide_1280.sti", INTERFACEDIR "/map_screen_bottom_1280.sti")
+		: GetWideStrategicAsset(INTERFACEDIR "/map_screen_bottom_wide_1024.sti", INTERFACEDIR "/map_screen_bottom_1024.sti");
 }
 }
 

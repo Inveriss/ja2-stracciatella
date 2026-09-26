@@ -84,6 +84,7 @@
 #include <string_theory/string>
 
 #include <algorithm>
+#include <cstring>
 #include <iterator>
 
 #define ITEMDESC_FONT					BLOCKFONT2
@@ -309,7 +310,28 @@ static BOOLEAN gbItemPointerLocateGood = FALSE;
 namespace {
 // ITEM DESCRIPTION BOX STUFF
 cache_key_t const guiItemDescBox{ INTERFACEDIR "/infobox.sti" };
-cache_key_t const guiMapItemDescBox{ INTERFACEDIR "/iteminfoc.sti" };
+// Map-screen item description box: iteminfoc.sti, or on the wide strategic
+// screen the wider iteminfoc_wide.sti reaching across the free space up to
+// MBS (falls back to iteminfoc.sti until delivered) -- see
+// GetWideStrategicAsset() in MapScreen.cc. Only the background changes; every
+// slot/button/text inside keeps its current position.
+#define MAP_ITEMDESC_BOX_FILE      INTERFACEDIR "/iteminfoc.sti"
+#define MAP_ITEMDESC_BOX_WIDE_FILE INTERFACEDIR "/iteminfoc_wide.sti"
+cache_key_t GetMapItemDescBoxFilename()
+{
+	return GetWideStrategicAsset(MAP_ITEMDESC_BOX_WIDE_FILE, MAP_ITEMDESC_BOX_FILE);
+}
+
+// Width actually covered by the map-screen description box: the legacy
+// MAP_ITEMDESC_WIDTH, or the real width of iteminfoc_wide.sti when that one
+// is in use, so the box's background restore and its click-blocking mouse
+// region cover the whole (wider) graphic.
+INT16 GetMapItemDescWidth()
+{
+	cache_key_t const box = GetMapItemDescBoxFilename();
+	if (std::strcmp(box, MAP_ITEMDESC_BOX_WIDE_FILE) != 0) return MAP_ITEMDESC_WIDTH;
+	return std::max<INT16>(MAP_ITEMDESC_WIDTH, GetVObject(box)->SubregionProperties(0).usWidth);
+}
 // Same-sized alternate background for the tactical item description box when
 // displaying money - doesn't need the room reserved for weapon stats/attachments.
 cache_key_t const guiMoneyItemDescBox{ INTERFACEDIR "/Infobox_money.sti" };
@@ -2235,7 +2257,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	// Build a mouse region here that is over any others.....
 	if (in_map)
 	{
-		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + MAP_ITEMDESC_WIDTH, gsInvDescY + MAP_ITEMDESC_HEIGHT, MSYS_PRIORITY_HIGHEST - 2, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
+		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + GetMapItemDescWidth(), gsInvDescY + MAP_ITEMDESC_HEIGHT, MSYS_PRIORITY_HIGHEST - 2, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
 
 		giMapInvDescButton = QuickCreateButtonImg(INTERFACEDIR "/itemdescdonebutton.sti", 0, 1, gsInvDescX + 204, gsInvDescY + 107, MSYS_PRIORITY_HIGHEST, ButtonCallbackPrimarySecondary(ItemDescDoneButtonCallbackPrimary, ItemDescDoneButtonCallbackSecondary));
 
@@ -2885,7 +2907,7 @@ void RenderItemDescriptionBox(void)
 		            gDescNameBox_Items;
 
 	auto * const box_gfx =
-		in_map    ? guiMapItemDescBox :
+		in_map    ? GetMapItemDescBoxFilename() :
 		fIsMoney  ? guiMoneyItemDescBox :
 		fIsWeapon ? guiItemDescBox :
 		            guiGenericItemDescBox;
@@ -3062,7 +3084,7 @@ void RenderItemDescriptionBox(void)
 
 	{
 		INT16 const w =
-			in_map    ? MAP_ITEMDESC_WIDTH :
+			in_map    ? GetMapItemDescWidth() :
 			fIsMoney  ? ITEMDESC_WIDTH_MONEY :
 			fIsWeapon ? ITEMDESC_WIDTH :
 			            ITEMDESC_WIDTH_ITEMS;
@@ -3621,7 +3643,7 @@ void DeleteItemDescriptionBox( )
 	}
 
 	RemoveVObject(guiItemDescBox);
-	RemoveVObject(guiMapItemDescBox);
+	RemoveVObject(GetMapItemDescBoxFilename());
 	RemoveVObject(guiMoneyItemDescBox);
 	RemoveVObject(guiBullet);
 	DeleteVideoObject(guiItemGraphic);

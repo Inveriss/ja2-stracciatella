@@ -81,6 +81,11 @@
 #define MAP_LEGACY_CANVAS_WIDTH         (1024)   // width the right block's own coordinates were laid out for
 #define MAP_RIGHT_BLOCK_SHIFT           (WIDE_STRATEGIC_SCREEN_WIDTH - MAP_LEGACY_CANVAS_WIDTH)   // 256
 #define MAP_SCREEN_RIGHT_BLOCK_X        (g_ui.m_mapRightBlockOffsetX)
+// The free space's own column (X relative to MAP_SCREEN_X) -- starts under
+// the left column's last pixel column, the same 1px overlap MBS has always
+// had with it; the left column is drawn on top.
+#define MAP_MIDDLE_BACKGROUND_X         (MAP_SCREEN_X + 261)
+#define MAP_MIDDLE_BACKGROUND_WIDTH     (MAP_RIGHT_BLOCK_SHIFT)
 
 #define SM_BODYINV_X                    (INTERFACE_START_X + 324)
 #define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)

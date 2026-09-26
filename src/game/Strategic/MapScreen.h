@@ -108,6 +108,12 @@ extern SGPSector    gsHighlightSector;
 // create/destroy inventory button as needed
 void CreateDestroyMapInvButton(void);
 
+// On the wide strategic screen (UILayout::isWideStrategicScreen()) returns
+// `wide` if that file exists, otherwise -- and always on the legacy 1024
+// canvas -- `legacy`, so the game keeps working before the _wide assets are
+// delivered. Both must be string literals (cache_key_t).
+char const* GetWideStrategicAsset(char const* wide, char const* legacy);
+
 void     MapScreenInit(void);
 ScreenID MapScreenHandle(void);
 void     MapScreenShutdown(void);
