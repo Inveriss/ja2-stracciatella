@@ -212,13 +212,17 @@ static GUIButtonRef guiXToCloseMercVideoButton;
 static MOUSE_REGION gMercSiteSubTitleMouseRegion;
 
 static void MakeNewMercsAvailable(BOOLEAN fShouldNotifyPlayer);
+static void MakeAllMercsAvailable(void);
 
 void GameInitMercs()
 {
-	LaptopSaveInfo.gubPlayersMercAccountStatus = MERC_NO_ACCOUNT;
+	// the player has an account at M.E.R.C. from the start of a new game
+	LaptopSaveInfo.gubPlayersMercAccountStatus = MERC_ACCOUNT_VALID;
+	LaptopSaveInfo.guiPlayersMercAccountNumber = Random(99999);
 	gubCurMercIndex = 0;
 
 	MakeNewMercsAvailable(FALSE);
+	MakeAllMercsAvailable();
 
 	gubCurrentMercVideoMode = MERC_VIDEO_NO_VIDEO_MODE;
 	gfMercVideoIsBeingDisplayed = FALSE;
@@ -974,12 +978,11 @@ static BOOLEAN GetSpeckConditionalOpening(BOOLEAN fJustEnteredScreen)
 	gfDoneIntroSpeech = TRUE;
 
 	//set the opening quote based on if the player has been here before
-	if( LaptopSaveInfo.ubPlayerBeenToMercSiteStatus == MERC_SITE_FIRST_VISIT && usQuoteToSay <= 8 )
+	// The nine quotes Speck says at the first visit are not played (the player is not welcomed as a
+	// new customer, the account exists from the start). The first visit must not fall through to
+	// the openings of the later visits either.
+	if( LaptopSaveInfo.ubPlayerBeenToMercSiteStatus == MERC_SITE_FIRST_VISIT )
 	{
-		StartSpeckTalking( usQuoteToSay );
-		usQuoteToSay++;
-		if( usQuoteToSay <= 8 )
-			gfDoneIntroSpeech = FALSE;
 	}
 
 	//if its the players second visit
@@ -1625,6 +1628,20 @@ static void SetLastMercArrival(const MERCListingModel* merc)
 	case COUGAR:       LaptopSaveInfo.ubLastMercAvailableId = MERC_ARRIVES_COUGAR; break;
 	case NUMB:         LaptopSaveInfo.ubLastMercAvailableId = MERC_ARRIVES_NUMB; break;
 	case LARRY_NORMAL: LaptopSaveInfo.ubLastMercAvailableId = MERC_ARRIVES_LARRY; break;
+	}
+}
+
+// All the mercs of the M.E.R.C. listings can be hired from the start of a new game, whatever
+// days or spending their listings ask for
+static void MakeAllMercsAvailable(void)
+{
+	for (const MERCListingModel* merc : GCM->getMERCListings())
+	{
+		if (LaptopSaveInfo.gubLastMercIndex < merc->index)
+		{
+			LaptopSaveInfo.gubLastMercIndex = merc->index;
+		}
+		SetLastMercArrival(merc);
 	}
 }
 

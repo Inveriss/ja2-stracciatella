@@ -64,6 +64,11 @@
 #include "tactical/NpcActionParamsModel.h"
 
 #include "Logger.h"
+
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <regex>
 #include "Strategic_AI.h"
 #include "Strategic_Status.h"
 
@@ -412,8 +417,32 @@ ST::string DefaultContentManager::loadEncryptedString(const ST::string& fileName
 /** Load dialogue quote from file. */
 ST::string DefaultContentManager::loadDialogQuoteFromFile(const ST::string& fileName, unsigned quote_number)
 {
+	// The quotes of a merc that are in mercs-dialogue-<language>.json: a mercedt/NNN.edt file of a
+	// profile with such an entry is not used (unless the number is beyond its quotes)
+	ST::string const lower = fileName.to_lower();
+	if (lower.size() == 15 && lower.starts_with("mercedt/") && lower.ends_with(".edt"))
+	{
+		auto const digits = lower.substr(8, 3);
+		if (std::isdigit(digits[0]) && std::isdigit(digits[1]) && std::isdigit(digits[2]))
+		{
+			auto const merc = m_mercDialogue.find(static_cast<uint8_t>(digits.to_int(10)));
+			if (merc != m_mercDialogue.end() && quote_number < merc->second.size()) return merc->second[quote_number];
+		}
+	}
 	// Using the qualified name because we do not want a virtual function call here.
 	return DefaultContentManager::openEDT(fileName.view(), { DIALOGUESIZE })->at(quote_number);
+}
+
+
+ST::string DefaultContentManager::loadEmailText(uint32_t const entry) const
+{
+	if (entry < m_emailText.size()) return m_emailText[entry];
+
+	// 320 == MAIL_STRING_SIZE (EMail.cc); duplicated here rather than shared across a header for one
+	// small, essentially fixed constant -- same email.edt row a language without (or not yet fully
+	// covering) strings/email-text-<language>.json falls back to.
+	constexpr uint32_t MAIL_STRING_SIZE = 320;
+	return DefaultContentManager::loadEncryptedString(BINARYDATADIR "/email.edt", MAIL_STRING_SIZE * entry, MAIL_STRING_SIZE);
 }
 
 #if 0
@@ -930,12 +959,38 @@ void DefaultContentManager::loadStringRes(const ST::string& name, std::vector<ST
 }
 
 
-/** Load the game data and the item descriptions from the original game resources. */
+/** Name of the optional file with the names of the named characters in the game language. */
+static ST::string MercProfileNamesFile(GameVersion const version)
+{
+	return ST::string("mercs-profile-names") + L10n::GetSuffix(version, true) + ".json";
+}
+
+
+/** Name of the optional file with the quotes of the mercs in the game language. */
+static ST::string MercDialogueFile(GameVersion const version)
+{
+	return ST::string("mercs-dialogue") + L10n::GetSuffix(version, true) + ".json";
+}
+
+
+/** Load the game data and the item descriptions from the original game resources.
+ *
+ * The named characters come from mercs-profile-info.json, mercs-relations.json and
+ * the names file of the game language. prof.dat is only read for a language that has
+ * no names file (the names are then taken from it), or when $JA2_USE_PROF_DAT is set
+ * (it then serves as the base the JSON files are merged into, as it always did). */
 bool DefaultContentManager::loadGameData()
 {
+	const char* const force = std::getenv("JA2_USE_PROF_DAT");
+	bool const forceProfDat = force != nullptr && *force != '\0' && std::string(force) != "0";
+	bool const haveNames = doesGameResExists(MercProfileNamesFile(m_gameVersion));
+	bool const useProfDat = doesGameResExists(BinaryData::profilesFilename()) && (forceProfDat || !haveNames);
+	if (!useProfDat) SLOGI("prof.dat is not used, the named characters come from the JSON files");
+
+	AutoSGPFile profiles{ useProfDat ? openGameResForReading(BinaryData::profilesFilename()) : nullptr };
 	return loadGameData(BinaryData::deserialize(
 		AutoSGPFile{ openGameResForReading(BinaryData::itemsFilename()) },
-		AutoSGPFile{ openGameResForReading(BinaryData::profilesFilename()) }));
+		profiles));
 }
 
 
@@ -1314,14 +1369,60 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 	MercProfileInfo::load = [this](uint8_t p) { return this->getMercProfileInfo(p); };
 
 	std::vector<std::unique_ptr<MERCPROFILESTRUCT>> temp_mercStructs(NUM_PROFILES);
+
+	// names of the game language; without such a file they come from prof.dat
+	struct MercNames { ST::string fullName; ST::string nickname; ST::string biography; ST::string additionalInfo; };
+	std::map<uint8_t, MercNames> names;
+	ST::string const namesFile = MercProfileNamesFile(m_gameVersion);
+	if (doesGameResExists(namesFile))
+	{
+		for (auto& element : readJsonDataFileWithSchema(namesFile).toVec())
+		{
+			auto entry = element.toObject();
+			names[entry.GetUInt("profileID")] = { entry.getOptionalString("fullName"), entry.getOptionalString("nickname"),
+			                                     entry.getOptionalString("biography"), entry.getOptionalString("additionalInfo") };
+		}
+	}
+
+	// quotes of the game language; a merc without an entry uses its mercedt/NNN.edt file
+	ST::string const dialogueFile = MercDialogueFile(m_gameVersion);
+	if (doesGameResExists(dialogueFile))
+	{
+		for (auto& element : readJsonDataFileWithSchema(dialogueFile).toVec())
+		{
+			auto entry = element.toObject();
+			std::vector<ST::string> quotes;
+			for (auto& quote : entry["quotes"].toVec()) quotes.push_back(quote.toString());
+			m_mercDialogue[entry.GetUInt("profileID")] = std::move(quotes);
+		}
+	}
+
+	// texts of email.edt for the game language; a row beyond this list falls back to email.edt itself
+	ST::string const emailTextFile = ST::string("strings/email-text") + L10n::GetSuffix(m_gameVersion, true) + ".json";
+	if (doesGameResExists(emailTextFile))
+	{
+		JsonUtility::parseListStrings(readJsonDataFileWithSchema(emailTextFile), m_emailText);
+	}
+
 	auto json = readJsonDataFileWithSchema("mercs-profile-info.json");
 	for (auto& element : json.toVec()) {
 		auto charProperties = element.toObject();
-		auto profileInfo = MercProfileInfo::deserialize(charProperties);
+		// the descriptions of the names file of the language, if it has them
+		auto const descriptions = names.find(charProperties.GetUInt("profileID"));
+		auto profileInfo = descriptions == names.end()
+			? MercProfileInfo::deserialize(charProperties)
+			: MercProfileInfo::deserialize(charProperties, descriptions->second.biography, descriptions->second.additionalInfo);
 		ProfileID profileID = profileInfo->profileID;
 		m_mercProfileInfo[profileID] = profileInfo;
 		m_mercProfiles.push_back(new MercProfile(profileID));
 		temp_mercStructs[profileID] = MercProfile::deserializeStruct(binaryProfiles.getProfile(profileID), charProperties, this);
+
+		auto const name = names.find(profileID);
+		if (name != names.end())
+		{
+			if (!name->second.fullName.empty()) temp_mercStructs[profileID]->zName = name->second.fullName;
+			if (!name->second.nickname.empty()) temp_mercStructs[profileID]->zNickname = name->second.nickname;
+		}
 	}
 	MercProfileInfo::validateData(m_mercProfileInfo);
 
@@ -1358,7 +1459,93 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 	}
 	MERCListingModel::validateData(m_MERCListings);
 
+	dumpMercProfilesIfRequested();
+
 	return true;
+}
+
+void DefaultContentManager::dumpMercProfilesIfRequested() const
+{
+	const char* const dirName = std::getenv("JA2_DUMP_MERC_PROFILES");
+	if (dirName == nullptr || *dirName == '\0') return;
+
+	// MercProfile works on the global profile array
+	resetMercProfileStructs();
+
+	JsonArray infos;
+	JsonArray relations;
+	JsonArray names;
+	bool const haveAimBios = doesGameResExists(BINARYDATADIR "/aimbios.edt");
+	bool const haveMercBios = doesGameResExists(BINARYDATADIR "/mercbios.edt");
+	for (const MercProfile* profile : m_mercProfiles)
+	{
+		infos.push(profile->serializeStruct(this));
+
+		MERCPROFILESTRUCT const& p = profile->getStruct();
+		if (!p.zName.empty() || !p.zNickname.empty())
+		{
+			JsonObject entry;
+			entry.set("000profileID", (unsigned int)profile->getID());
+			if (!p.zName.empty()) entry.set("001fullName", p.zName);
+			if (!p.zNickname.empty()) entry.set("002nickname", p.zNickname);
+			// the M.E.R.C. texts come from mercbios.edt, the row is the bioIndex of the listing
+			if (profile->isMERCMerc() && haveMercBios)
+			{
+				for (const MERCListingModel* listing : m_MERCListings)
+				{
+					if (listing->profileID != profile->getID()) continue;
+					auto const bios = openEDT(BINARYDATADIR "/mercbios.edt", { 400, 160 });
+					ST::string const biography = bios->at(listing->bioIndex, 0);
+					ST::string const additionalInfo = bios->at(listing->bioIndex, 1);
+					if (!biography.empty()) entry.set("003biography", biography);
+					if (!additionalInfo.empty()) entry.set("004additionalInfo", additionalInfo);
+				}
+			}
+			// the A.I.M. texts of the original mercs come from aimbios.edt of the game data
+			if (profile->isAIMMerc() && profile->getID() < 40 && haveAimBios /* the original A.I.M. mercs */)
+			{
+				auto const bios = openEDT(BINARYDATADIR "/aimbios.edt", { 400, 160 });
+				ST::string const biography = bios->at(profile->getID(), 0);
+				ST::string const additionalInfo = bios->at(profile->getID(), 1);
+				if (!biography.empty()) entry.set("003biography", biography);
+				if (!additionalInfo.empty()) entry.set("004additionalInfo", additionalInfo);
+			}
+			names.push(entry.toValue());
+		}
+
+		JsonValue rel = profile->serializeStructRelations(this);
+		if (!rel.toObject().GetValue("100relations").toVec().empty())
+		{
+			relations.push(std::move(rel));
+		}
+	}
+
+	// The serializers prefix the keys with three digits to get them into a
+	// readable order (objects are sorted alphabetically); take them off again.
+	const std::regex keyPrefix(R"re("[0-9]{3}([A-Za-z][A-Za-z0-9]*)"\s*:)re");
+	auto const write = [&](const char* fileName, const char* header, JsonArray const& array, bool const stripNames = false)
+	{
+		std::string text = array.toValue().serialize(true).c_str();
+		text = std::regex_replace(text, keyPrefix, "\"$1\":");
+		if (stripNames)
+		{
+			// the names go to the names file of the language
+			text = std::regex_replace(text, std::regex(R"re(\n[ \t]*"(fullName|nickname)":[^\n]*)re"), "");
+		}
+		std::filesystem::path const path = std::filesystem::path(dirName) / fileName;
+		std::error_code ec;
+		std::filesystem::create_directories(path.parent_path(), ec);
+		std::ofstream out(path, std::ios::out | std::ios::trunc | std::ios::binary);
+		out << header << text << "\n";
+		SLOGI("Wrote {} ({} entries)", path.string(), array.size());
+	};
+
+	write("mercs-profile-info.json",
+		"/* Generated from the merged profile data (JA2_DUMP_MERC_PROFILES). The names are in the names file of the language. */\n", infos, true);
+	write(MercProfileNamesFile(m_gameVersion).c_str(),
+		"/* Generated from the merged profile data (JA2_DUMP_MERC_PROFILES). */\n", names);
+	write("mercs-relations.json",
+		"/* Generated from the merged profile data (JA2_DUMP_MERC_PROFILES). */\n", relations);
 }
 
 void DefaultContentManager::loadVehicles()
@@ -1415,10 +1602,11 @@ void DefaultContentManager::loadTranslationTable()
 
 void DefaultContentManager::loadAllScriptRecords()
 {
-	// hack for avoiding failures during unit-testing
-	if (!doesGameResExists(BINARYDATADIR "/prof.dat")) return;
-
 	auto ctrl = readJsonDataFileWithSchema("script-records-control.json").toObject();
+
+	// hack for avoiding failures during unit-testing (there is no game data then)
+	if (!doesGameResExists(NPCDATADIR "/" + ctrl.GetString("fileNameForScriptControlledPCs"))) return;
+
 	auto meanwhiles = ctrl.GetValue("meanwhiles").toVec();
 
 	for (auto& element : meanwhiles) {
@@ -1684,6 +1872,11 @@ const MercProfileInfo* DefaultContentManager::getMercProfileInfoByName(const ST:
 
 	SLOGW("MercProfileInfo is not defined for {}", name);
 	return NULL;
+}
+
+bool DefaultContentManager::hasMercDialogue(uint8_t const profileID) const
+{
+	return m_mercDialogue.find(profileID) != m_mercDialogue.end();
 }
 
 const std::vector<const MercProfile*>& DefaultContentManager::listMercProfiles() const

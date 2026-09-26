@@ -4,6 +4,10 @@
 #include "Cursors.h"
 #include "CharProfile.h"
 #include "IMP_AboutUs.h"
+#include "IMP_Appearance.h"
+#include "IMP_Attitude.h"
+#include "IMP_Disability.h"
+#include "Soldier_Profile_Type.h"
 #include "IMP_Attribute_Entrance.h"
 #include "IMP_Attribute_Finish.h"
 #include "IMP_MainPage.h"
@@ -92,6 +96,7 @@ void GameInitCharProfile(void)
 	iCurrentPortrait = 0;
 	iCurrentVoices = 0;
 	iPortraitNumber = 0;
+	ResetImpAppearance();
 }
 
 
@@ -234,6 +239,15 @@ void HandleCharProfile(void)
 		case( IMP_ABOUT_US ):
 			HandleIMPAboutUs( );
 			break;
+		case( IMP_ATTITUDE ):
+			HandleIMPAttitude( );
+			break;
+		case( IMP_DISABILITY ):
+			HandleIMPDisability( );
+			break;
+		case( IMP_APPEARANCE ):
+			HandleIMPAppearance( );
+			break;
 		case( IMP_MAIN_PAGE ):
 			HandleIMPMainPage( );
 			break;
@@ -295,6 +309,15 @@ void RenderCharProfile(void)
 			break;
 		case( IMP_ABOUT_US ):
 			RenderIMPAboutUs( );
+			break;
+		case( IMP_ATTITUDE ):
+			RenderIMPAttitude( );
+			break;
+		case( IMP_DISABILITY ):
+			RenderIMPDisability( );
+			break;
+		case( IMP_APPEARANCE ):
+			RenderIMPAppearance( );
 			break;
 		case( IMP_MAIN_PAGE ):
 			RenderIMPMainPage( );
@@ -381,6 +404,18 @@ static void ExitOldIMPMode(void)
 		case( IMP_ABOUT_US ):
 			ExitIMPAboutUs( );
 			break;
+		case( IMP_ATTITUDE ):
+			DestroyIMPButtons( );
+			ExitIMPAttitude( );
+			break;
+		case( IMP_DISABILITY ):
+			DestroyIMPButtons( );
+			ExitIMPDisability( );
+			break;
+		case( IMP_APPEARANCE ):
+			// has its own Cancel button, so no DestroyIMPButtons()
+			ExitIMPAppearance( );
+			break;
 		case( IMP_MAIN_PAGE ):
 			ExitIMPMainPage( );
 			break;
@@ -450,6 +485,18 @@ static void EnterNewIMPMode(void)
 		case( IMP_ABOUT_US ):
 			EnterIMPAboutUs( );
 			break;
+		case( IMP_ATTITUDE ):
+			CreateIMPButtons( );
+			EnterIMPAttitude( );
+			break;
+		case( IMP_DISABILITY ):
+			CreateIMPButtons( );
+			EnterIMPDisability( );
+			break;
+		case( IMP_APPEARANCE ):
+			// has its own Cancel button, so no CreateIMPButtons()
+			EnterIMPAppearance( );
+			break;
 		case( IMP_MAIN_PAGE ):
 			EnterIMPMainPage( );
 			break;
@@ -489,6 +536,9 @@ void ResetCharacterStats( void )
 	// names
 	pFullName.clear();
 	pNickName.clear();
+
+	// colors and body type
+	ResetImpAppearance();
 }
 
 
@@ -607,9 +657,13 @@ static void BtnIMPCancelCallback(GUI_BUTTON *btn, UINT32 reason)
 			case IMP_PERSONALITY_QUIZ:
 			case IMP_SKILLTRAITS:
 			case IMP_PERSONALITY_FINISH:
+			case IMP_ATTITUDE:
+			case IMP_DISABILITY:
 				giMaxPersonalityQuizQuestion = 0;
 				fStartOverFlag = TRUE;
 				iCurrentAnswer = -1;
+				iAttitude = ATT_NORMAL;
+				iPersonality = NO_PERSONALITYTRAIT;
 				iCurrentImpPage = IMP_PERSONALITY;
 				fButtonPendingFlag = TRUE;
 				break;

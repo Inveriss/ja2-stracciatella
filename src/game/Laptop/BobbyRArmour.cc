@@ -26,7 +26,7 @@ void EnterBobbyRArmour()
 	//Draw menu bar
 	InitBobbyMenuBar( );
 
-	SetFirstLastPagesForNew( IC_ARMOUR );
+	SetFirstLastPagesForNew( BobbyRArmourPageMask() );
 
 	RenderBobbyRArmour( );
 }
@@ -55,7 +55,7 @@ void RenderBobbyRArmour()
 
 	BltVideoObject(FRAME_BUFFER, guiArmourGrid, 0, BOBBYR_GRIDLOC_X, BOBBYR_GRIDLOC_Y);
 
-	DisplayItemInfo(IC_ARMOUR);
+	DisplayItemInfo(BobbyRArmourPageMask());
 
 	UpdateButtonText(guiCurrentLaptopMode);
 	MarkButtonsDirty( );

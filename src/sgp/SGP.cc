@@ -119,6 +119,8 @@ static void MainLoop()
 
 	while (true)
 	{
+		CrashHandlerHeartbeat();
+
 		// cycle until SDL_Quit is received
 		extern void UpdateJA2Clock();
 		UpdateJA2Clock();
@@ -137,6 +139,7 @@ static void MainLoop()
 					break;
 
 				case SDL_KEYDOWN:
+					CrashHandlerRecordInput(1, (int)event.key.keysym.sym, (int)event.key.keysym.mod, 0);
 					if (event.key.keysym.sym == SDLK_f &&
 					    SDL_GetModState() & KMOD_CTRL)
 					{
@@ -150,8 +153,14 @@ static void MainLoop()
 				case SDL_KEYUP:   KeyUp(  &event.key.keysym); break;
 				case SDL_TEXTINPUT: TextInput(&event.text); break;
 
-				case SDL_MOUSEBUTTONDOWN: MouseButtonDown(&event.button); break;
-				case SDL_MOUSEBUTTONUP:   MouseButtonUp(&event.button);   break;
+				case SDL_MOUSEBUTTONDOWN:
+					CrashHandlerRecordInput(2, event.button.x, event.button.y, event.button.button);
+					MouseButtonDown(&event.button);
+					break;
+				case SDL_MOUSEBUTTONUP:
+					CrashHandlerRecordInput(3, event.button.x, event.button.y, event.button.button);
+					MouseButtonUp(&event.button);
+					break;
 
 				case SDL_MOUSEMOTION: MouseMove(&event.motion); break;
 
@@ -179,7 +188,10 @@ static void MainLoop()
 			}
 			else
 			{
+				// blocked on purpose (window in the background): not a hang
+				CrashHandlerPauseWatchdog(true);
 				SDL_WaitEvent(NULL);
+				CrashHandlerPauseWatchdog(false);
 			}
 		}
 	}
@@ -267,6 +279,9 @@ std::vector<ST::string> InitGlobalLocale()
 	return problems;
 }
 
+// Defined in game/CrashStateProviders.cc
+void RegisterGameCrashStateProviders();
+
 int main(int argc, char* argv[])
 {
     try {
@@ -289,6 +304,7 @@ int main(int argc, char* argv[])
 			// As early as possible, so it can catch native crashes during
 			// startup too -- writes its reports next to ja2.log.
 			InstallCrashHandler();
+			RegisterGameCrashStateProviders();
 			for (const ST::string& msg : problems)
 			{
 				SLOGW("{}", msg);
@@ -424,6 +440,7 @@ int main(int argc, char* argv[])
 		}
 
 		SLOGD("Running Game");
+		CrashHandlerStartWatchdog();
 
 		/* At this point the SGP is set up, which means all I/O, Memory, tools, etc.
 		* are available. All we need to do is attend to the gaming mechanics

@@ -84,6 +84,9 @@ public:
 
 	/** Load dialogue quote from file. */
 	ST::string loadDialogQuoteFromFile(const ST::string& filename, unsigned quote_number) override;
+	bool hasMercDialogue(uint8_t profileID) const override;
+
+	ST::string loadEmailText(uint32_t entry) const override;
 
 	/** Load all dialogue quotes for a character. */
 	void loadAllDialogQuotes(STRING_ENC_TYPE encType, const ST::string& filename, std::vector<ST::string*> &quotes) const;
@@ -291,6 +294,11 @@ protected:
 	// List of pre-constructed MercProfile objects; indices of elements are arbitrary (unlike gMercProfiles) and not guaranteed to follow any order
 	std::vector<const MercProfile*> m_mercProfiles;
 	std::map<uint8_t, const MercProfileInfo*> m_mercProfileInfo;
+	// The quotes of the mercs from mercs-dialogue-<language>.json (profile ID -> quote number -> text)
+	std::map<uint8_t, std::vector<ST::string>> m_mercDialogue;
+	// The texts of email.edt, overridden from strings/email-text-<language>.json (row number -> text);
+	// entries beyond this vector's size fall back to email.edt itself -- see loadEmailText().
+	std::vector<ST::string> m_emailText;
 	std::map<UINT32, UINT16> m_translationTable;
 	std::vector<std::unique_ptr<const MERCPROFILESTRUCT>> m_mercStructs;
 
@@ -325,6 +333,10 @@ protected:
 	bool loadStrategicLayerData();
 	bool loadTacticalLayerData();
 	bool loadMercsData(const BinaryData& binaryProfiles);
+	/* Developer tool: when $JA2_DUMP_MERC_PROFILES names a directory, writes the fully
+	 * resolved profiles (prof.dat merged with the JSON files) there as complete
+	 * mercs-profile-info.json / mercs-relations.json replacements. */
+	void dumpMercProfilesIfRequested() const;
 	void loadVehicles();
 	void loadTranslationTable();
 	void loadAllScriptRecords();

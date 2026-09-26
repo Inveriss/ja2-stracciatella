@@ -7,8 +7,37 @@
 #define AIM_HISTORY_LINE_SIZE		400
 
 
-#define MAX_NUMBER_MERCS		40
+// Room for the 40 original A.I.M. mercs (profiles 0-39) and the profiles that are free for added
+// characters: 165-199 (35) and 201-254 (54), see Soldier_Profile_Type.h. Profile 164 stands in for
+// two vehicle types.
+#define MAX_NUMBER_MERCS		130
+// The number of A.I.M. mercs (profiles of type "AIM"), at most MAX_NUMBER_MERCS.
+extern UINT8 gubNumAimMercs;
+// The first mercs of the A.I.M. (the original ones) have replies etc. in the game data that
+// is indexed by their profile ID.
+#define NUM_ORIGINAL_AIM_MERCS		40
+// The profile IDs of the A.I.M. mercs; the order is set by the sort page.
 extern UINT8 AimMercArray[MAX_NUMBER_MERCS];
+// The groups the list of the A.I.M. mercs can be reduced to (the buttons above the faces).
+enum AimFilter
+{
+	AIM_FILTER_ALL,
+	AIM_FILTER_JA2,      // profiles 0-39
+	AIM_FILTER_UB,       // profiles 165-169 and 199
+	AIM_FILTER_WILDFIRE, // profiles 170-177
+	AIM_FILTER_JA1,      // all the other added mercs
+	AIM_FILTER_OTHERS,   // profiles 178 and 230
+	NUM_AIM_FILTERS,     // the number of filter buttons
+	AIM_FILTER_NONE = NUM_AIM_FILTERS // no button pressed, the list is empty
+};
+AimFilter GetAimFilter(void);
+void SetAimFilter(AimFilter filter);
+// A new game starts with no filter button pressed (the list is empty), until the player presses one.
+// The first entry to the A.I.M. keeps that; later on an empty list is reset to ALL, see EnterAIM().
+void ResetAimFilterForNewGame(void);
+
+// Fill AimMercArray with the A.I.M. mercs of the current filter in profile ID order.
+void ResetAimMercArray(void);
 
 #define NUM_AIM_SCREENS			6
 
@@ -28,6 +57,12 @@ extern UINT8 AimMercArray[MAX_NUMBER_MERCS];
 #define AIM_SYMBOL_Y			IMAGE_OFFSET_Y + 3
 #define AIM_SYMBOL_WIDTH		203
 #define AIM_SYMBOL_HEIGHT		51
+
+// small logo (AIMSYMBOL_SMALL.STI, 102x26) used on the sort page
+#define AIM_SMALL_SYMBOL_X		IMAGE_OFFSET_X + 4
+#define AIM_SMALL_SYMBOL_Y		IMAGE_OFFSET_Y + 4
+#define AIM_SMALL_SYMBOL_WIDTH		102
+#define AIM_SMALL_SYMBOL_HEIGHT		26
 
 // RustBackGround
 #define RUSTBACKGROUND_SIZE_X		125
@@ -80,6 +115,13 @@ void InitAimMenuBar();
 
 void RemoveAimDefaults(void);
 void InitAimDefaults(void);
+// Use the small AIM logo (top-left corner) instead of the big one; call before
+// InitAimDefaults() and reset after RemoveAimDefaults().
+// The small logo is drawn instead of the big one. x/y are the screen coordinates of its upper left corner.
+void SetAimSmallLogo(bool small);
+void SetAimSmallLogo(bool small, INT16 x, INT16 y);
+// A second small logo (the same picture) at the given position; SetAimSmallLogo() takes it away again.
+void SetAimSecondSmallLogo(INT16 x, INT16 y);
 void DrawAimDefaults(void);
 
 void DisplayAimSlogan(void);

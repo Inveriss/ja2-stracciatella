@@ -9,6 +9,7 @@
 #include "Font.h"
 #include "Font_Control.h"
 #include "IMPVideoObjects.h"
+#include "IMP_Appearance.h"
 #include "IMP_Compile_Character.h"
 #include "IMP_MainPage.h"
 #include "Laptop.h"
@@ -98,7 +99,7 @@ enum
 #define	IMP_SKILL_TRAIT__TEXT_OFFSET_Y											12
 
 #define	IMP_SKILL_TRAIT__TITLE_X														LAPTOP_SCREEN_UL_X
-#define	IMP_SKILL_TRAIT__TITLE_Y														56
+#define	IMP_SKILL_TRAIT__TITLE_Y															( LAPTOP_SCREEN_WEB_UL_Y + 10 )
 #define	IMP_SKILL_TRAIT__TITLE_WIDTH												( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X )
 
 #define	IMP_SKILL_TRAIT__GREY_BOX_OFFSET_X									5
@@ -518,10 +519,9 @@ void BtnIMPSkillTraitFinishCallback(GUI_BUTTON *btn,UINT32 reason)
 	if (!(btn->uiFlags & BUTTON_ENABLED))
 		return;
 
-	if( reason & MSYS_CALLBACK_REASON_POINTER_DWN )
+	// act on release, like the other IMP buttons, so the pressed state is drawn first
+	if( reason & MSYS_CALLBACK_REASON_POINTER_UP )
 	{
-		btn->uiFlags|=(BUTTON_CLICKED_ON);
-
 		//if we are just reviewing the page
 		if( iCurrentProfileMode == 5 )
 		{
@@ -530,16 +530,9 @@ void BtnIMPSkillTraitFinishCallback(GUI_BUTTON *btn,UINT32 reason)
 		}
 		else
 		{
-			iCurrentImpPage = IMP_MAIN_PAGE;
-
-			if( CameBackToSpecialtiesPageButNotFinished() )
-			{
-			}
-			else
-			{
-				//We are finished on this page
-				iCurrentProfileMode = 2;
-			}
+			// the attitude page follows; it finishes this section
+			fButtonPendingFlag = TRUE;
+			iCurrentImpPage = IMP_ATTITUDE;
 		}
 	}
 }
@@ -594,7 +587,7 @@ INT8	DoesPlayerHaveExtraAttibutePointsToDistributeBasedOnSkillSelection()
 
 BOOLEAN ShouldTraitBeSkipped( UINT32 uiTrait )
 {
-	return uiTrait == IMP_SKILL_TRAITS__MARTIAL_ARTS && !fCharacterIsMale;
+	return uiTrait == IMP_SKILL_TRAITS__MARTIAL_ARTS && (!fCharacterIsMale || ImpAppearanceIsBigBody());
 }
 
 

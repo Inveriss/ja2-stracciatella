@@ -21,6 +21,13 @@
         "Medical",
         "Explosives",
         "Mechanical",
+        "Name",
+        "Health",
+        "Agility",
+        "Dexterity",
+        "Strength",
+        "Leadership",
+        "Wisdom",
         "A.I.M. Members Sorted Ascending By %s",
         "A.I.M. Members Sorted Descending By %s",
         "Left Click",
@@ -110,7 +117,7 @@
     ],
     "BobbyRText": [
         "To Order",
-        "Click on the item(s). For more than one, keep on clicking. Right click for less. Once you've selected all you'd like to buy, go on to the order form.",
+        "Click to add. Right-click to remove. Ready? Go to checkout.",
         "Previous Items",
         "Guns",
         "Ammo",
@@ -134,7 +141,8 @@
         "* % Functional",
         "Darn!  This here on-line order form will only accept 10 items per order.  If you're looking to order more stuff (and we hope you are), kindly make a separate order and accept our apologies.",
         "Sorry. We don't have any more of that in stock right now. Please try again later.",
-        "Sorry, but we are currently out of stock on all items of that type."
+        "Sorry, but we are currently out of stock on all items of that type.",
+        "Out of stock"
     ],
     "BobbyRaysFrontText": [
         "This is the place to be for the newest and hottest in weaponry and military supplies",
@@ -217,7 +225,12 @@
         "Per Day",
         "Deceased",
         "Looks like you're trying to hire too many mercs. Your limit is 18.",
-        "Unavailable"
+        "Unavailable",
+        "LEAVE MESSAGE",
+        "HANG UP",
+        "Message recorded",
+        "Click",
+        "Hire Button"
     ],
     "MercNoAccountText": [
         "Open Account",
@@ -930,7 +943,8 @@
         "More Economic Recruiting Center",
         "McGillicutty's Mortuary",
         "United Floral Service",
-        "Insurance Brokers for A.I.M. contracts"
+        "Insurance Brokers for A.I.M. contracts",
+        "Move Up One Position"
     ],
     "gzLateLocalizedString": [
         "The robot cannot leave this sector when nobody is using the controller.",
@@ -1342,7 +1356,7 @@
         "Killed %s"
     ],
     "pHistoryTitle": "History Log",
-    "pIMPBeginScreenStrings": "( 8 Characters Max )",
+    "pIMPBeginScreenStrings": "( 12 Characters Max )",
     "pIMPFinishButtonText": "Analyzing",
     "pIMPFinishStrings": "Thank You, %s",
     "pIMPVoicesStrings": "Voice",
@@ -1373,7 +1387,39 @@
         "Analyzing",
         "OK",
         "Voice",
-        "Specialties"
+        "Specialties",
+        "Deceased",
+        "Already Created",
+        "I.M.P. Colors and Body Type",
+        "Please select the respective colors of your skin, hair and clothing. And select what body type you have.",
+        "Hair Color",
+        "Skin Color",
+        "Shirt Color",
+        "Pants Color",
+        "Normal Body",
+        "Big Body",
+        "OK",
+        "Toggle this to use alternative rifle holding.",
+        "I.M.P. Attitudes",
+        "Neutral",
+        "Friendly",
+        "Loner",
+        "Optimist",
+        "Pessimist",
+        "Aggressive",
+        "Arrogant",
+        "Big Shot",
+        "Asshole",
+        "Coward",
+        "I.M.P. Disabilities",
+        "No Disability",
+        "Heat Intolerant",
+        "Nervous",
+        "Claustrophobic",
+        "Nonswimmer",
+        "Fear of Insects",
+        "Forgetful",
+        "Psycho"
     ],
     "pImpPopUpStrings": [
         "Invalid Authorization Code",
@@ -1875,7 +1921,8 @@
         "Bobby Rays",
         "Kingpin",
         "John Kulba",
-        "A.I.M."
+        "A.I.M.",
+        "M.E.R.C."
     ],
     "pShortAttributeStrings": [
         "Agi",
@@ -2221,6 +2268,13 @@
         "Medical",
         "Explosives",
         "Mechanical",
+        "Name",
+        "Health",
+        "Agility",
+        "Dexterity",
+        "Strength",
+        "Leadership",
+        "Wisdom",
         "Ascending",
         "Descending"
     ],

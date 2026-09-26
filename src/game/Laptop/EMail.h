@@ -132,6 +132,18 @@
 #define BOBBY_R_MEDUNA_SHIPMENT			( AIM_MEDICAL_DEPOSIT_NO_REFUND + AIM_MEDICAL_DEPOSIT_NO_REFUND_LENGTH )
 #define BOBBY_R_MEDUNA_SHIPMENT_LENGTH		4
 
+// player asked (Bobby Ray's restock-notification checkbox) to be e-mailed once a formerly
+// out-of-stock item is back in stock -- subject is the item's own name ($ITEMNAME$ token,
+// see ReplaceMercNameAndAmountWithProperData()), body is fixed text
+#define BOBBYR_ITEM_BACK_IN_STOCK		( BOBBY_R_MEDUNA_SHIPMENT + BOBBY_R_MEDUNA_SHIPMENT_LENGTH )
+#define BOBBYR_ITEM_BACK_IN_STOCK_LENGTH	2
+
+// player asked ("Leave Message" on the M.E.R.C. Index page) to be e-mailed once an unavailable
+// M.E.R.C. merc becomes available -- subject uses the $MERCNAME$ token (see
+// ReplaceMercNameAndAmountWithProperData()), body is fixed text
+#define MERC_MERC_NOW_AVAILABLE		( BOBBYR_ITEM_BACK_IN_STOCK + BOBBYR_ITEM_BACK_IN_STOCK_LENGTH )
+#define MERC_MERC_NOW_AVAILABLE_LENGTH		2
+
 
 struct Email
 {
@@ -163,6 +175,7 @@ enum {
 	KING_PIN,
 	JOHN_KULBA,
 	AIM_SITE,
+	MERC_ORGANIZATION, // "M.E.R.C." itself, e.g. the "merc is now available" reply
 };
 
 extern BOOLEAN fUnReadMailFlag;

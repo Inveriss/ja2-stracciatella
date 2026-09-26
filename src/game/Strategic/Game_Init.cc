@@ -230,7 +230,14 @@ void InitNewGame()
 		AddPreReadEmail(OLD_ENRICO_2, OLD_ENRICO_2_LENGTH, MAIL_ENRICO, now);
 		AddPreReadEmail(RIS_REPORT,   RIS_REPORT_LENGTH,   RIS_EMAIL,   now);
 		AddPreReadEmail(OLD_ENRICO_3, OLD_ENRICO_3_LENGTH, MAIL_ENRICO, now);
-		AddEmail(IMP_EMAIL_INTRO, IMP_EMAIL_INTRO_LENGTH, CHAR_PROFILE_SITE, now);
+		AddPreReadEmail(IMP_EMAIL_INTRO, IMP_EMAIL_INTRO_LENGTH, CHAR_PROFILE_SITE, now);
+		// Enrico's "Good luck in Arulco" is in the mailbox from the start (it was sent when the mercs landed in Omerta)
+		AddPreReadEmail(ENRICO_CONGRATS, ENRICO_CONGRATS_LENGTH, MAIL_ENRICO, now);
+		// Same for Enrico's "Great news" (originally sent on making contact with Miguel) and
+		// Psych Pro Inc's IMP nag "A *little* knowledge..." (originally sent on day 2 if no IMP
+		// merc had been made yet) -- both are in the mailbox from the start as read mail now.
+		AddPreReadEmail(ENRICO_MIGUEL,   ENRICO_MIGUEL_LENGTH,   MAIL_ENRICO,       now);
+		AddPreReadEmail(IMP_EMAIL_AGAIN, IMP_EMAIL_AGAIN_LENGTH, CHAR_PROFILE_SITE, now);
 
 		// ATE: Set starting cash
 		INT32 starting_cash;
@@ -243,21 +250,9 @@ void InitNewGame()
 		}
 		AddTransactionToPlayersBook(ANONYMOUS_DEPOSIT, 0, now, starting_cash);
 
-		// random day between min and max days, inclusive
-		UINT8 ubMin = gamepolicy(merc_online_min_days);
-		UINT8 ubMax = gamepolicy(merc_online_max_days);
-		UINT32 const days_time_merc_site_available = Random(ubMax - ubMin + 1) + ubMin;
-		if (days_time_merc_site_available == 0)
-		{
-			// M.E.R.C. is already online
-			AddEmail(MERC_INTRO, MERC_INTRO_LENGTH, SPECK_FROM_MERC, GetWorldTotalMin());
-		}
-		else
-		{
-			// Schedule email for message from Speck at 7am on a random day in the future
-			AddFutureDayStrategicEvent(EVENT_DAY3_ADD_EMAIL_FROM_SPECK, 60 * 7, 0, days_time_merc_site_available);
-		}
-
+		// M.E.R.C. is online from the start (its Web bookmark is set in the laptop init), Speck's
+		// welcome mail is in the mailbox already read instead of arriving on a later day
+		AddPreReadEmail(MERC_INTRO, MERC_INTRO_LENGTH, SPECK_FROM_MERC, now);
 		// Don't SetLaptopExitScreen(INIT_SCREEN) here -- INIT_SCREEN is not a
 		// real screen to return to, it's InitScreenHandle()'s one-shot boot
 		// sequence (JAScreens.cc), which no longer advances past its final

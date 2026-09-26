@@ -39,6 +39,7 @@
 #include "Logger.h"
 #include "MapScreen.h"
 #include "Map_Screen_Interface.h"
+#include "Map_Screen_Interface_Bottom.h"
 #include "Message.h"
 #include "MessageBoxScreen.h"
 #include "MouseSystem.h"
@@ -411,6 +412,14 @@ static cache_key_t const guiStatsInfoBox{ INTERFACEDIR "/Infobox_stats.sti" };
 // Split out of Infobox_stats.sti/guiStatsInfoBox above into its own
 // independent button/file/coordinates.
 static cache_key_t const guiSkillsInfoBox{ INTERFACEDIR "/Infobox_skills.sti" };
+
+// Strategic-screen versions of the two above, opened by the map screen's own
+// Statistics/Skills shortcut buttons (Map_Screen_Interface_Bottom.cc) -- sized and
+// positioned like the map's own item-description box (ItemInfoC.sti/
+// guiMapItemDescBox, Interface_Items.cc) rather than the tactical popups' bottom
+// panel strip.
+static cache_key_t const guiMapStatsInfoBox{ INTERFACEDIR "/ITEMINFOC_stats.STI" };
+static cache_key_t const guiMapSkillsInfoBox{ INTERFACEDIR "/ITEMINFOC_skills.STI" };
 
 // Sub-image 15 (0-based 14) of inventory_bottom_panel_bookmarks.sti is the
 // "ready" state icon for the money region on this panel, moved here from
@@ -2531,10 +2540,10 @@ static void BtnOptionsCallback(GUI_BUTTON* btn, UINT32 reason)
 
 
 // Laptop shortcut buttons -- jump straight into the laptop on a given
-// program/page (see SetLaptopEntryMode() in Laptop.cc). Wariant A: closing
-// the laptop always returns to MAP_SCREEN (LeaveLapTopScreen()'s existing,
-// unconditional behaviour), ending the current tactical session, same as
-// leaving the sector normally.
+// program/page (see SetLaptopEntryMode() in Laptop.cc). Each one also calls
+// SetLaptopExitScreen(GAME_SCREEN), so closing the laptop returns directly
+// to the interrupted battle (LeaveLapTopScreen() in Laptop.cc honours
+// GAME_SCREEN), not to MAP_SCREEN.
 static void BtnLaptopEmailCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
@@ -3775,6 +3784,29 @@ static const StatsPopupCoord gStatsPopupCoords[NUM_STATS_TXT] =
 	/* STATS_TXT_DAILY_COST        */ {  199, 48, 97 },
 };
 
+// Strategic-screen version of the table above, for ITEMINFOC_stats.STI
+// (Map_Screen_Interface_Bottom.cc's BtnStatsFromMapScreenCallback) -- an
+// independent copy (not a reference to gStatsPopupCoords) so the two graphics'
+// internal layouts can be tuned separately; starts out identical, placeholder
+// values, tune once visible in-game.
+static const StatsPopupCoord gMapStatsPopupCoords[NUM_STATS_TXT] =
+{
+	/* STATS_TXT_BATTLE_HEADER     */ {  30,  19,   0 },
+	/* STATS_TXT_KILLS             */ {  19,  48,  38 },
+	/* STATS_TXT_ASSISTS           */ {  19,  65,  38 },
+	/* STATS_TXT_SHOTS_FIRED       */ {  19,  94,  38 },
+	/* STATS_TXT_SHOTS_HIT         */ {  19,  111,  38 },
+	/* STATS_TXT_HIT_PERCENTAGE    */ {  19,  128,  38 },
+	/* STATS_TXT_BATTLES           */ {  19,  157,  38 },
+	/* STATS_TXT_TIMES_WOUNDED     */ {  19, 174,  38 },
+	/* STATS_TXT_CONTRACT_HEADER   */ {  259, 19,   0 },
+	/* STATS_TXT_REMAINING_CONTRACT*/ {  199, 65, 97 },
+	/* STATS_TXT_TOTAL_SERVICE     */ {  199, 94, 97 },
+	/* STATS_TXT_TOTAL_COST        */ {  199, 111, 97 },
+	/* STATS_TXT_MEDICAL_DEPOSIT   */ {  199, 128, 97 },
+	/* STATS_TXT_DAILY_COST        */ {  199, 48, 97 },
+};
+
 // Placeholder position/size for the Infobox_stats.sti graphic itself (as
 // opposed to the screen-wide dismiss region set up in InitStatsPopup(),
 // which matches the keyring popup's own footprint) -- tune once the real
@@ -3792,6 +3824,13 @@ static INT16         gsStatsPopupInvWidth;
 static INT16         gsStatsPopupInvHeight;
 static MOUSE_REGION  gStatsPopupRegion;
 
+// Done button, map screen only -- same graphic/position (relative to the box's own
+// top-left corner) as the map's own item-description box (ItemInfoC.sti,
+// giMapInvDescButton/itemdescdonebutton.sti, Interface_Items.cc). The tactical popup
+// has no such button, closed instead by clicking anywhere on gStatsPopupRegion.
+static GUIButtonRef gStatsPopupDoneButton;
+static void BtnStatsPopupDoneCallback(GUI_BUTTON* btn, UINT32 reason);
+
 
 BOOLEAN InStatsPopup(void)
 {
@@ -3808,15 +3847,41 @@ void DeleteStatsPopup(void)
 	gfInStatsPopup = FALSE;
 	gpStatsPopupSoldier = NULL;
 
-	fInterfacePanelDirty = DIRTYLEVEL2;
+	// The SM panel (iSMPanelButtons[] etc.) only exists on the tactical screen --
+	// see the strategic-screen equivalent of this popup in
+	// Map_Screen_Interface_Bottom.cc, which opens it with fInMapMode already TRUE.
+	if (fInMapMode)
+	{
+		// Same combination the map's own item-description box uses when closing
+		// (DeleteItemDescriptionBox(), Interface_Items.cc) -- fMapScreenBottomDirty
+		// alone only covers the bottom bar's own 121px strip, not the taller area
+		// this popup actually sits over (MAP_ITEMDESC_HEIGHT/272x268), which left the
+		// popup's own graphics as a leftover ghost until something else (e.g.
+		// opening Mapinv.sti) happened to redraw that same area.
+		fCharacterInfoPanelDirty = TRUE;
+		fMapPanelDirty           = TRUE;
+		fTeamPanelDirty          = TRUE;
+		fMapScreenBottomDirty    = TRUE;
+		RemoveButton(gStatsPopupDoneButton);
+	}
+	else
+	{
+		fInterfacePanelDirty = DIRTYLEVEL2;
 
-	EnableSMPanelButtons(TRUE, FALSE);
+		EnableSMPanelButtons(TRUE, FALSE);
 
-	// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
-	// InitStatsPopup() below.
-	ShowSMBookmarkButtonsUnderInfoPopups();
+		// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
+		// InitStatsPopup() below.
+		ShowSMBookmarkButtonsUnderInfoPopups();
+	}
 
 	FreeMouseCursor();
+}
+
+
+static void BtnStatsPopupDoneCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) DeleteStatsPopup();
 }
 
 
@@ -3853,23 +3918,37 @@ void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const 
 
 	SetAllAutoFacesInactive();
 
-	fInterfacePanelDirty = DIRTYLEVEL2;
+	// The SM panel (iSMPanelButtons[] etc.) only exists on the tactical screen; the
+	// strategic-screen shortcut (Map_Screen_Interface_Bottom.cc) calls this with
+	// fInMapMode already TRUE and has no such panel to hide buttons under.
+	if (!fInMapMode)
+	{
+		fInterfacePanelDirty = DIRTYLEVEL2;
 
-	EnableSMPanelButtons(FALSE, FALSE);
+		EnableSMPanelButtons(FALSE, FALSE);
 
-	// GUI_BUTTONs (RenderButtons()) render after this popup's own background
-	// every frame (RenderTopmostTacticalInterface(), Interface_Control.cc),
-	// and EnableSMPanelButtons(FALSE, ...) above only disables them -- it
-	// doesn't stop them being drawn. Without hiding the ones this popup
-	// actually covers too, they'd paint on top of it whenever
-	// fInterfacePanelDirty == DIRTYLEVEL2 forces a button refresh (e.g.
-	// right when this popup opens, or a merc switch) -- same reason
-	// InternalInitItemDescriptionBox() (Infobox.sti) calls the wider
-	// HideSMBookmarkButtons(). This popup is narrower than Infobox.sti and
-	// never covers the left end of the bookmark row (Mail/AIM/MERC/BR/
-	// History/Personnel), so the full hide made those flicker out for no
-	// reason -- see HideSMBookmarkButtonsUnderInfoPopups().
-	HideSMBookmarkButtonsUnderInfoPopups();
+		// GUI_BUTTONs (RenderButtons()) render after this popup's own background
+		// every frame (RenderTopmostTacticalInterface(), Interface_Control.cc),
+		// and EnableSMPanelButtons(FALSE, ...) above only disables them -- it
+		// doesn't stop them being drawn. Without hiding the ones this popup
+		// actually covers too, they'd paint on top of it whenever
+		// fInterfacePanelDirty == DIRTYLEVEL2 forces a button refresh (e.g.
+		// right when this popup opens, or a merc switch) -- same reason
+		// InternalInitItemDescriptionBox() (Infobox.sti) calls the wider
+		// HideSMBookmarkButtons(). This popup is narrower than Infobox.sti and
+		// never covers the left end of the bookmark row (Mail/AIM/MERC/BR/
+		// History/Personnel), so the full hide made those flicker out for no
+		// reason -- see HideSMBookmarkButtonsUnderInfoPopups().
+		HideSMBookmarkButtonsUnderInfoPopups();
+	}
+	else
+	{
+		// Same button/graphic/relative position as the map's own item-description box
+		// (giMapInvDescButton, Interface_Items.cc) -- see the comment by
+		// gStatsPopupDoneButton above.
+		gStatsPopupDoneButton = QuickCreateButtonImg(INTERFACEDIR "/itemdescdonebutton.sti", 0, 1,
+			sInvX + 204, sInvY + 107, MSYS_PRIORITY_HIGHEST, BtnStatsPopupDoneCallback);
+	}
 
 	gfInStatsPopup = TRUE;
 
@@ -3894,10 +3973,21 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 			gsStatsPopupInvX + gsStatsPopupInvWidth, gsStatsPopupInvY + gsStatsPopupInvHeight);
 	}
 
-	INT16 const dx = STATS_POPUP_BOX_X + gsStatsPopupInvX;
-	INT16 const dy = STATS_POPUP_BOX_Y + gsStatsPopupInvY;
+	// The map-screen shortcut (Map_Screen_Interface_Bottom.cc) passes the exact
+	// ItemInfoC.sti position/size as sInvX/Y/Width/Height, so the box goes there
+	// directly, with no extra offset -- unlike the tactical bottom-panel strip,
+	// where STATS_POPUP_BOX_X/Y positions the (differently sized) box within it.
+	INT16 const dx = fInMapMode ? gsStatsPopupInvX : (STATS_POPUP_BOX_X + gsStatsPopupInvX);
+	INT16 const dy = fInMapMode ? gsStatsPopupInvY : (STATS_POPUP_BOX_Y + gsStatsPopupInvY);
 
-	BltVideoObject(FRAME_BUFFER, guiStatsInfoBox, 0, dx, dy);
+	BltVideoObject(FRAME_BUFFER, fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox, 0, dx, dy);
+
+	// Draw the Done button ourselves, right on top of the box we just blitted --
+	// RenderButtons()'s own separate pass only redraws a button when something marks
+	// it dirty again (e.g. a hover event), so relying on it alone left the button
+	// erased by this same full-box blit on every frame in between, drawn for a single
+	// frame only when the mouse moved over it.
+	if (fInMapMode) gStatsPopupDoneButton->Draw();
 
 	SOLDIERTYPE const&       s = *gpStatsPopupSoldier;
 	MERCPROFILESTRUCT const& p = GetProfile(s.ubProfile);
@@ -3905,11 +3995,14 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	INT16 usX, usY;
 	ST::string sVal;
 
+	// Independent coordinates for the map version -- see gMapStatsPopupCoords above.
+	StatsPopupCoord const* const coords = fInMapMode ? gMapStatsPopupCoords : gStatsPopupCoords;
+
 #define STATS_LABEL(idx) \
-	MPrint(dx + gStatsPopupCoords[idx].sX, dy + gStatsPopupCoords[idx].sY, gzInfoboxStatsStrings[idx])
+	MPrint(dx + coords[idx].sX, dy + coords[idx].sY, gzInfoboxStatsStrings[idx])
 #define STATS_VALUE(idx, str) \
 	do { \
-		FindFontRightCoordinates(dx + gStatsPopupCoords[idx].sX + gStatsPopupCoords[idx].sValDx, dy + gStatsPopupCoords[idx].sY, 80, 8, (str), BLOCKFONT2, &usX, &usY); \
+		FindFontRightCoordinates(dx + coords[idx].sX + coords[idx].sValDx, dy + coords[idx].sY, 80, 8, (str), BLOCKFONT2, &usX, &usY); \
 		MPrint(usX, usY, (str)); \
 	} while (0)
 
@@ -4042,6 +4135,15 @@ static const StatsPopupCoord gSkillsPopupCoords[NUM_SKILLS_COORDS] =
 	/* SKILLS_COORD_LINE2 */ {  272,  48,   0 },
 };
 
+// Strategic-screen version, for ITEMINFOC_skills.STI -- see the matching
+// comment on gMapStatsPopupCoords above.
+static const StatsPopupCoord gMapSkillsPopupCoords[NUM_SKILLS_COORDS] =
+{
+	/* SKILLS_TXT_HEADER  */ {  225,  19,   0 },
+	/* SKILLS_COORD_LINE1 */ {  19,  48,   0 },
+	/* SKILLS_COORD_LINE2 */ {  272,  48,   0 },
+};
+
 // Per-line position for the 10 reserved description lines (GetSkillDescription()
 // below) shown under each skill-name line above -- one independent {x, y} per
 // line, no value/margin (these are printed as plain text, not label+value
@@ -4072,6 +4174,36 @@ static const SkillDescCoord gSkillTrait1DescCoords[10] =
 };
 
 static const SkillDescCoord gSkillTrait2DescCoords[10] =
+{
+	/* FIRST_DESC  */ { 271,  77 },
+	/* SECOND_DESC */ { 271,  91 },
+	/* THIRD_DESC  */ { 271,  104 },
+	/* FOURTH_DESC */ { 271, 117 },
+	/* FIFTH_DESC  */ { 271, 130 },
+	/* SIXTH_DESC  */ { 271, 143 },
+	/* SEVENTH_DESC*/ { 271, 156 },
+	/* EIGHTH_DESC */ { 271, 169 },
+	/* NINTH_DESC  */ { 271, 182 },
+	/* TENTH_DESC  */ { 271, 195 },
+};
+
+// Strategic-screen versions, for ITEMINFOC_skills.STI -- see the matching
+// comment on gMapStatsPopupCoords above.
+static const SkillDescCoord gMapSkillTrait1DescCoords[10] =
+{
+	/* FIRST_DESC  */ {  19,  77 },
+	/* SECOND_DESC */ {  19,  91 },
+	/* THIRD_DESC  */ {  19,  104 },
+	/* FOURTH_DESC */ {  19, 117 },
+	/* FIFTH_DESC  */ {  19, 130 },
+	/* SIXTH_DESC  */ {  19, 143 },
+	/* SEVENTH_DESC*/ {  19, 156 },
+	/* EIGHTH_DESC */ {  19, 169 },
+	/* NINTH_DESC  */ {  19, 182 },
+	/* TENTH_DESC  */ {  19, 195 },
+};
+
+static const SkillDescCoord gMapSkillTrait2DescCoords[10] =
 {
 	/* FIRST_DESC  */ { 271,  77 },
 	/* SECOND_DESC */ { 271,  91 },
@@ -4147,6 +4279,10 @@ static INT16         gsSkillsPopupInvWidth;
 static INT16         gsSkillsPopupInvHeight;
 static MOUSE_REGION  gSkillsPopupRegion;
 
+// See the matching comment by gStatsPopupDoneButton above.
+static GUIButtonRef gSkillsPopupDoneButton;
+static void BtnSkillsPopupDoneCallback(GUI_BUTTON* btn, UINT32 reason);
+
 
 BOOLEAN InSkillsPopup(void)
 {
@@ -4163,15 +4299,33 @@ void DeleteSkillsPopup(void)
 	gfInSkillsPopup = FALSE;
 	gpSkillsPopupSoldier = NULL;
 
-	fInterfacePanelDirty = DIRTYLEVEL2;
+	// See the matching comment in DeleteStatsPopup() above.
+	if (fInMapMode)
+	{
+		fCharacterInfoPanelDirty = TRUE;
+		fMapPanelDirty           = TRUE;
+		fTeamPanelDirty          = TRUE;
+		fMapScreenBottomDirty    = TRUE;
+		RemoveButton(gSkillsPopupDoneButton);
+	}
+	else
+	{
+		fInterfacePanelDirty = DIRTYLEVEL2;
 
-	EnableSMPanelButtons(TRUE, FALSE);
+		EnableSMPanelButtons(TRUE, FALSE);
 
-	// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
-	// InitSkillsPopup() below.
-	ShowSMBookmarkButtonsUnderInfoPopups();
+		// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
+		// InitSkillsPopup() below.
+		ShowSMBookmarkButtonsUnderInfoPopups();
+	}
 
 	FreeMouseCursor();
+}
+
+
+static void BtnSkillsPopupDoneCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) DeleteSkillsPopup();
 }
 
 
@@ -4206,13 +4360,23 @@ void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const
 
 	SetAllAutoFacesInactive();
 
-	fInterfacePanelDirty = DIRTYLEVEL2;
+	// See the matching comment in InitStatsPopup() above.
+	if (!fInMapMode)
+	{
+		fInterfacePanelDirty = DIRTYLEVEL2;
 
-	EnableSMPanelButtons(FALSE, FALSE);
+		EnableSMPanelButtons(FALSE, FALSE);
 
-	// See the matching call in InitStatsPopup() above for why this is
-	// needed in addition to EnableSMPanelButtons(FALSE, ...).
-	HideSMBookmarkButtonsUnderInfoPopups();
+		// See the matching call in InitStatsPopup() above for why this is
+		// needed in addition to EnableSMPanelButtons(FALSE, ...).
+		HideSMBookmarkButtonsUnderInfoPopups();
+	}
+	else
+	{
+		// See the matching comment in InitStatsPopup() above.
+		gSkillsPopupDoneButton = QuickCreateButtonImg(INTERFACEDIR "/itemdescdonebutton.sti", 0, 1,
+			sInvX + 204, sInvY + 107, MSYS_PRIORITY_HIGHEST, BtnSkillsPopupDoneCallback);
+	}
 
 	gfInSkillsPopup = TRUE;
 
@@ -4237,22 +4401,32 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 			gsSkillsPopupInvX + gsSkillsPopupInvWidth, gsSkillsPopupInvY + gsSkillsPopupInvHeight);
 	}
 
-	INT16 const dx = SKILLS_POPUP_BOX_X + gsSkillsPopupInvX;
-	INT16 const dy = SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY;
+	// See the matching comment in RenderStatsPopup() above.
+	INT16 const dx = fInMapMode ? gsSkillsPopupInvX : (SKILLS_POPUP_BOX_X + gsSkillsPopupInvX);
+	INT16 const dy = fInMapMode ? gsSkillsPopupInvY : (SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY);
 
-	BltVideoObject(FRAME_BUFFER, guiSkillsInfoBox, 0, dx, dy);
+	BltVideoObject(FRAME_BUFFER, fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox, 0, dx, dy);
+
+	// See the matching comment in RenderStatsPopup() above.
+	if (fInMapMode) gSkillsPopupDoneButton->Draw();
 
 	MERCPROFILESTRUCT const& p = GetProfile(gpSkillsPopupSoldier->ubProfile);
 
+	// Independent coordinates for the map version -- see gMapSkillsPopupCoords/
+	// gMapSkillTrait1DescCoords/gMapSkillTrait2DescCoords above.
+	StatsPopupCoord const* const skillsCoords = fInMapMode ? gMapSkillsPopupCoords  : gSkillsPopupCoords;
+	SkillDescCoord const* const  trait1Coords = fInMapMode ? gMapSkillTrait1DescCoords : gSkillTrait1DescCoords;
+	SkillDescCoord const* const  trait2Coords = fInMapMode ? gMapSkillTrait2DescCoords : gSkillTrait2DescCoords;
+
 	// -- Header --
 	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
-	MPrint(dx + gSkillsPopupCoords[SKILLS_TXT_HEADER].sX, dy + gSkillsPopupCoords[SKILLS_TXT_HEADER].sY, gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
+	MPrint(dx + skillsCoords[SKILLS_TXT_HEADER].sX, dy + skillsCoords[SKILLS_TXT_HEADER].sY, gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
 
 	// -- Skill name(s), as a mini-header for each description block below --
 	SetFontForeground(5);
 	if (p.bSkillTrait != NO_SKILLTRAIT)
 	{
-		StatsPopupCoord const& c1 = gSkillsPopupCoords[SKILLS_COORD_LINE1];
+		StatsPopupCoord const& c1 = skillsCoords[SKILLS_COORD_LINE1];
 		if (p.bSkillTrait == p.bSkillTrait2)
 		{
 			// Same skill in both slots ("expert") -- append "(expert)", and
@@ -4261,18 +4435,18 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 			// GetSkillDescription()); SKILL_TRAIT_2 is unused in this case.
 			ST::string const sVal = ST::format("{} {}", gzMercSkillText[p.bSkillTrait], gzMercSkillText[NUM_SKILLTRAITS]);
 			MPrint(dx + c1.sX, dy + c1.sY, sVal);
-			PrintSkillDescription(dx, dy, gSkillTrait1DescCoords, (SkillTrait)p.bSkillTrait, true);
+			PrintSkillDescription(dx, dy, trait1Coords, (SkillTrait)p.bSkillTrait, true);
 		}
 		else
 		{
 			MPrint(dx + c1.sX, dy + c1.sY, gzMercSkillText[p.bSkillTrait]);
-			PrintSkillDescription(dx, dy, gSkillTrait1DescCoords, (SkillTrait)p.bSkillTrait, false);
+			PrintSkillDescription(dx, dy, trait1Coords, (SkillTrait)p.bSkillTrait, false);
 
 			if (p.bSkillTrait2 != NO_SKILLTRAIT)
 			{
-				StatsPopupCoord const& c2 = gSkillsPopupCoords[SKILLS_COORD_LINE2];
+				StatsPopupCoord const& c2 = skillsCoords[SKILLS_COORD_LINE2];
 				MPrint(dx + c2.sX, dy + c2.sY, gzMercSkillText[p.bSkillTrait2]);
-				PrintSkillDescription(dx, dy, gSkillTrait2DescCoords, (SkillTrait)p.bSkillTrait2, false);
+				PrintSkillDescription(dx, dy, trait2Coords, (SkillTrait)p.bSkillTrait2, false);
 			}
 		}
 	}

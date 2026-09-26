@@ -4,6 +4,7 @@
 #include "GameRes.h"
 #include "Laptop.h"
 #include "AIM.h"
+#include "AIMSort.h"
 #include "VObject.h"
 #include "Timer_Control.h"
 #include "WordWrap.h"
@@ -19,10 +20,69 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 
+#include "MercProfile.h"
+
+#include <algorithm>
+#include <stdexcept>
+#include <vector>
 #include <string_theory/string>
 
 
 UINT8			AimMercArray[ MAX_NUMBER_MERCS ];
+UINT8			gubNumAimMercs = 0;
+
+static AimFilter gAimFilter = AIM_FILTER_ALL;
+
+AimFilter GetAimFilter(void)
+{
+	return gAimFilter;
+}
+
+void SetAimFilter(AimFilter const filter)
+{
+	gAimFilter = filter;
+}
+
+static bool gfKeepEmptyFilterOnce = false;
+
+void ResetAimFilterForNewGame(void)
+{
+	gAimFilter = AIM_FILTER_NONE;
+	gfKeepEmptyFilterOnce = true;
+	ResetAimMercArray(); // the list of an earlier game is gone, the empty filter shows nobody
+}
+
+static bool IsInAimFilter(ProfileID const id)
+{
+	switch (gAimFilter)
+	{
+		case AIM_FILTER_NONE:     return false;
+		case AIM_FILTER_JA2:      return id < NUM_ORIGINAL_AIM_MERCS;
+		case AIM_FILTER_UB:       return (id >= 165 && id <= 169) || id == 199;
+		case AIM_FILTER_WILDFIRE: return id >= 170 && id <= 177;
+		case AIM_FILTER_JA1:      return id >= NUM_ORIGINAL_AIM_MERCS && !(id >= 165 && id <= 177) && id != 199 && id != 178 && id != 230;
+		case AIM_FILTER_OTHERS:   return id == 178 || id == 230;
+		default:                  return true;
+	}
+}
+
+void ResetAimMercArray(void)
+{
+	std::fill(std::begin(AimMercArray), std::end(AimMercArray), 0);
+	gubNumAimMercs = 0;
+
+	std::vector<ProfileID> ids;
+	for (const MercProfile* p : GCM->listMercProfiles())
+	{
+		if (p->isAIMMerc() && IsInAimFilter(p->getID()) && MercMatchesAimSkillFilter(p->getID())) ids.push_back(p->getID());
+	}
+	std::sort(ids.begin(), ids.end());
+	if (ids.size() > MAX_NUMBER_MERCS)
+	{
+		throw std::runtime_error(ST::format("There are {} A.I.M. mercs, at most {} are supported", ids.size(), MAX_NUMBER_MERCS).c_str());
+	}
+	for (ProfileID id : ids) AimMercArray[gubNumAimMercs++] = id;
+}
 
 static LaptopMode const gCurrentAimPage[NUM_AIM_SCREENS] =
 {
@@ -203,6 +263,18 @@ static void SelectPoliciesRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 void EnterAIM()
 {
+	// a list emptied with the filter buttons is not kept when the A.I.M. is entered again; only
+	// the first entry of a new game keeps the empty list
+	if (gAimFilter == AIM_FILTER_NONE && gfKeepEmptyFilterOnce)
+	{
+		gfKeepEmptyFilterOnce = false;
+	}
+	else if (gAimFilter == AIM_FILTER_NONE)
+	{
+		gAimFilter = AIM_FILTER_ALL;
+		ResetAimMercArray();
+		SortAimMercArray();
+	}
 	gubCurrentAdvertisment = AIM_AD_WARNING_BOX;
 	LaptopInitAim();
 
@@ -392,19 +464,61 @@ static void SelectLinksRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
 static void SelectAimLogoRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
+static bool gfAimSmallLogo = false;
+static INT16 gsAimSmallLogoX = 0;
+static INT16 gsAimSmallLogoY = 0;
+static bool gfAimSecondLogo = false;
+static INT16 gsAimSecondLogoX = 0;
+static INT16 gsAimSecondLogoY = 0;
+static MOUSE_REGION gSelectedAimLogo2;
+
+void SetAimSmallLogo(bool const small, INT16 const x, INT16 const y)
+{
+	gfAimSmallLogo = small;
+	gsAimSmallLogoX = x;
+	gsAimSmallLogoY = y;
+	gfAimSecondLogo = false;
+}
+
+
+void SetAimSecondSmallLogo(INT16 const x, INT16 const y)
+{
+	gfAimSecondLogo = true;
+	gsAimSecondLogoX = x;
+	gsAimSecondLogoY = y;
+}
+
+
+void SetAimSmallLogo(bool const small)
+{
+	SetAimSmallLogo(small, AIM_SMALL_SYMBOL_X, AIM_SMALL_SYMBOL_Y);
+}
+
+
 void InitAimDefaults()
 {
 	// load the Rust bacground graphic and add it
 	guiRustBackGround = AddVideoObjectFromFile(LAPTOPDIR "/rustbackground.sti");
 
 	// load the Aim Symbol graphic and add it
-	guiAimSymbol = AddVideoObjectFromFile(MLG_AIMSYMBOL);
+	guiAimSymbol = gfAimSmallLogo ? AddVideoObjectFromFile(LAPTOPDIR "/aimsymbol_small.sti") : AddVideoObjectFromFile(MLG_AIMSYMBOL);
 
 	//Mouse region for the Links
-	MSYS_DefineRegion(&gSelectedAimLogo, AIM_SYMBOL_X, AIM_SYMBOL_Y,
-				AIM_SYMBOL_X+AIM_SYMBOL_WIDTH, AIM_SYMBOL_Y+AIM_SYMBOL_HEIGHT,
+	INT16 const logoX = gfAimSmallLogo ? gsAimSmallLogoX : AIM_SYMBOL_X;
+	INT16 const logoY = gfAimSmallLogo ? gsAimSmallLogoY : AIM_SYMBOL_Y;
+	INT16 const logoW = gfAimSmallLogo ? AIM_SMALL_SYMBOL_WIDTH : AIM_SYMBOL_WIDTH;
+	INT16 const logoH = gfAimSmallLogo ? AIM_SMALL_SYMBOL_HEIGHT : AIM_SYMBOL_HEIGHT;
+	MSYS_DefineRegion(&gSelectedAimLogo, logoX, logoY,
+				logoX + logoW, logoY + logoH,
 				MSYS_PRIORITY_HIGH, CURSOR_WWW, MSYS_NO_CALLBACK,
 				SelectAimLogoRegionCallBack);
+	if (gfAimSecondLogo)
+	{
+		MSYS_DefineRegion(&gSelectedAimLogo2, gsAimSecondLogoX, gsAimSecondLogoY,
+					gsAimSecondLogoX + AIM_SMALL_SYMBOL_WIDTH, gsAimSecondLogoY + AIM_SMALL_SYMBOL_HEIGHT,
+					MSYS_PRIORITY_HIGH, CURSOR_WWW, MSYS_NO_CALLBACK,
+					SelectAimLogoRegionCallBack);
+	}
 }
 
 
@@ -413,6 +527,7 @@ void RemoveAimDefaults()
 	DeleteVideoObject(guiRustBackGround);
 	DeleteVideoObject(guiAimSymbol);
 	MSYS_RemoveRegion( &gSelectedAimLogo);
+	if (gfAimSecondLogo) MSYS_RemoveRegion(&gSelectedAimLogo2);
 }
 
 
@@ -432,7 +547,8 @@ void DrawAimDefaults()
 		uiPosY += RUSTBACKGROUND_SIZE_Y;
 	}
 
-	BltVideoObject(FRAME_BUFFER, guiAimSymbol, 0, AIM_SYMBOL_X, AIM_SYMBOL_Y);
+	BltVideoObject(FRAME_BUFFER, guiAimSymbol, 0, gfAimSmallLogo ? gsAimSmallLogoX : AIM_SYMBOL_X, gfAimSmallLogo ? gsAimSmallLogoY : AIM_SYMBOL_Y);
+	if (gfAimSecondLogo) BltVideoObject(FRAME_BUFFER, guiAimSymbol, 0, gsAimSecondLogoX, gsAimSecondLogoY);
 }
 
 
@@ -491,6 +607,7 @@ void InitAimMenuBar()
 	FOR_EACHX(GUIButtonRef, i, guiBottomButtons, x += BOTTOM_BUTTON_START_WIDTH)
 	{
 		GUIButtonRef const b = CreateIconAndTextButton(gfx, *text++, FONT10ARIAL, AIM_BUTTON_ON_COLOR, DEFAULT_SHADOW, AIM_BUTTON_OFF_COLOR, DEFAULT_SHADOW, x, y, MSYS_PRIORITY_HIGH, BtnAimBottomButtonsCallback);
+		b->SpecifyTextSubOffsets(-1, 0, TRUE); // shift the button's text 1px down from its default position
 		b->SetCursor(CURSOR_LAPTOP_SCREEN);
 		b->SetUserData(*page++);
 		*i = b;

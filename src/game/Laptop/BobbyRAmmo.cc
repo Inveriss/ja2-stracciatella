@@ -25,7 +25,7 @@ void EnterBobbyRAmmo()
 	InitBobbyBrTitle();
 
 
-	SetFirstLastPagesForNew( IC_AMMO );
+	SetFirstLastPagesForNew( BobbyRAmmoPageMask() );
 
 	//Draw menu bar
 	InitBobbyMenuBar( );
@@ -57,7 +57,7 @@ void RenderBobbyRAmmo()
 
 	BltVideoObject(FRAME_BUFFER, guiAmmoGrid, 0, BOBBYR_GRIDLOC_X, BOBBYR_GRIDLOC_Y);
 
-	DisplayItemInfo(IC_AMMO);
+	DisplayItemInfo(BobbyRAmmoPageMask());
 
 	UpdateButtonText(guiCurrentLaptopMode);
 	MarkButtonsDirty( );

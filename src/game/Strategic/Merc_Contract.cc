@@ -348,7 +348,7 @@ static UINT16 FindRefusalReason(SOLDIERTYPE const* const s)
 	// see if someone the merc hates is on the team
 	for (UINT8 i = 0; i < 2; ++i)
 	{
-		INT8 const bMercID = p.bHated[i];
+		INT16 const bMercID = p.bHated[i];
 		if (bMercID < 0) continue;
 
 		if (!IsMercOnTeamAndInOmertaAlreadyAndAlive(bMercID)) continue;
@@ -368,7 +368,7 @@ static UINT16 FindRefusalReason(SOLDIERTYPE const* const s)
 	}
 
 	// now check for learn to hate
-	INT8 const bMercID = p.bLearnToHate;
+	INT16 const bMercID = p.bLearnToHate;
 	if (bMercID >= 0 && IsMercOnTeamAndInOmertaAlreadyAndAlive(bMercID))
 	{
 		if (p.bLearnToHateCount == 0)

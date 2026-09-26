@@ -17,6 +17,8 @@ set(JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRGuns.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRMailOrder.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRMisc.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRAttachments.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRExplosives.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRShipments.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BobbyRUsed.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/BrokenLink.cc
@@ -32,11 +34,14 @@ set(JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/History.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMPVideoObjects.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_AboutUs.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Appearance.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Attitude.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Attribute_Entrance.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Attribute_Finish.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Attribute_Selection.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Begin_Screen.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Compile_Character.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Disability.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Confirm.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_Finish.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/IMP_HomePage.cc

@@ -22,10 +22,10 @@ namespace magic_enum::customize
 {
 	template<> struct enum_range<ITEMDEFINE>	{ static constexpr int min = 0;	static constexpr int max = 400; };
 	template<> struct enum_range<SectorIndex>	{ static constexpr int min = 0;	static constexpr int max = 256; };
-	template<> struct enum_range<NPCIDs>	{ static constexpr int min = 0;	static constexpr int max = 200; };
+	template<> struct enum_range<NPCIDs>	{ static constexpr int min = 0;	static constexpr int max = 255; };
 	template<> struct enum_range<Quests>	{ static constexpr int min = 0;	static constexpr int max = 500; };
 	template<> struct enum_range<Fact>	{ static constexpr int min = -1;	static constexpr int max = 400; };
-	template<> struct enum_range<TileTypeDefines>	{ static constexpr int min = 0;	static constexpr int max = 200; };
+	template<> struct enum_range<TileTypeDefines>	{ static constexpr int min = 0;	static constexpr int max = 255; };
 	template<> struct enum_range<SoundID>	{ static constexpr int min = -1;	static constexpr int max = 300; };
 }
 

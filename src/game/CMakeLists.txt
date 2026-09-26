@@ -12,6 +12,7 @@ set(LOCAL_JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/UILayout.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Fade_Screen.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/GameInitOptionsScreen.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/CrashStateProviders.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/GameRes.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/GameMode.cc

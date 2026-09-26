@@ -21,6 +21,21 @@ struct MagazineModel;
 #define WEAPON_TYPE_PUNCH ("PUNCH")
 #define WEAPON_TYPE_THROWN ("THROWN")
 
+// exact gun types (ubWeaponType of a weapon)
+// used as an index in WeaponType[] string array
+enum
+{
+	NOT_GUN = 0,
+	GUN_PISTOL,
+	GUN_M_PISTOL,
+	GUN_SMG,
+	GUN_RIFLE,
+	GUN_SN_RIFLE,
+	GUN_AS_RIFLE,
+	GUN_LMG,
+	GUN_SHOTGUN
+};
+
 struct WeaponModel : ItemModel
 {
 	WeaponModel(uint32_t itemClass,

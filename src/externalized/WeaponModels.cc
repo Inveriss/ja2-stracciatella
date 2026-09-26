@@ -10,21 +10,6 @@
 #include "Weapons.h"
 #include <utility>
 
-// exact gun types
-// used as an index in WeaponType[] string array
-enum
-{
-	NOT_GUN = 0,
-	GUN_PISTOL,
-	GUN_M_PISTOL,
-	GUN_SMG,
-	GUN_RIFLE,
-	GUN_SN_RIFLE,
-	GUN_AS_RIFLE,
-	GUN_LMG,
-	GUN_SHOTGUN
-};
-
 WeaponModel::WeaponModel(uint32_t itemClass, uint8_t weaponType, uint8_t cursor, uint16_t itemIndex, ST::string&& internalName_)
 	:ItemModel(itemIndex, std::move(internalName_), itemClass, itemIndex, (ItemCursor)cursor),
 	sound(NO_WEAPON_SOUND_STR),

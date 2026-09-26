@@ -46,6 +46,7 @@
 #include <set>
 #include <stdexcept>
 
+
 constexpr UINT8 ANY_MAGSIZE = 255; // magic number for FindAmmo's mag_size parameter
 
 struct AttachmentInfoStruct

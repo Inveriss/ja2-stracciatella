@@ -49,6 +49,8 @@
 #include "Font_Control.h"
 
 #include "ContentManager.h"
+#include "MercProfile.h"
+#include "MercProfileInfo.h"
 #include "GameInstance.h"
 #include "GamePolicy.h"
 #include "GameRes.h"
@@ -154,6 +156,7 @@
 #define PREVIOUS_X				(STD_SCREEN_X + 224)
 #define CONTACT_X				(STD_SCREEN_X + 331)
 #define NEXT_X					(STD_SCREEN_X + 431)
+#define EXIT_X					(PREVIOUS_X - 106)
 #define BTN_BOX_Y				(STD_SCREEN_Y + 386 + LAPTOP_SCREEN_WEB_DELTA_Y - 4)
 
 #define AIM_MERC_INFO_X				(STD_SCREEN_X + 124)
@@ -176,6 +179,26 @@
 
 #define AIM_MEMBER_OPTIONAL_GEAR_X		AIM_MERC_INFO_X
 #define AIM_MEMBER_OPTIONAL_GEAR_Y		WEAPONBOX_Y - 13
+
+// skill / attitude / disability content buttons (2x2 grid, top of the merc detail view)
+#define AIM_MEMBER_SKILL_BTN_WIDTH		135
+#define AIM_MEMBER_SKILL_BTN_HEIGHT		19
+#define AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET	5
+
+#define AIM_MEMBER_SKILL_LEFT_X			(STD_SCREEN_X + 119)
+#define AIM_MEMBER_SKILL_RIGHT_X		(STD_SCREEN_X + 468)
+#define AIM_MEMBER_SKILL_TOP_Y			(STD_SCREEN_Y + 54)
+#define AIM_MEMBER_SKILL_BOTTOM_Y		(STD_SCREEN_Y + 78)
+
+#define AIM_MEMBER_SKILL_BTN_FONT		FONT12ARIAL
+#define AIM_MEMBER_SKILL_BTN_COLOR		FONT_MCOLOR_WHITE
+
+#define AIM_MEMBER_ATT_DIS_TEXT_X_OFFSET	7
+
+// pImpButtonText[] offsets for the attitude/disability display strings -- must match
+// IMP_ATT_TXT_FIRST (IMP_Attitude.cc) and IMP_DIS_TXT_FIRST (IMP_Disability.cc).
+#define AIM_MEMBER_ATT_TXT_FIRST		40
+#define AIM_MEMBER_DIS_TXT_FIRST		51
 
 #define AIM_MEMBER_WEAPON_NAME_Y		WEAPONBOX_Y + WEAPONBOX_SIZE_Y + 1
 #define AIM_MEMBER_WEAPON_NAME_WIDTH		WEAPONBOX_SIZE_X - 2
@@ -307,6 +330,7 @@ static SGPVObject* guiStraightLine;
 static SGPVObject* guiTransSnow;
 static SGPVObject* guiVideoContractCharge;
 static SGPVSurface* guiVideoTitleBar;
+static SGPVObject* guiContentButtonSkills;
 
 static UINT8 gbCurrentSoldier = 0;
 UINT8        gbCurrentIndex = 0;
@@ -346,9 +370,6 @@ extern		BOOLEAN fExitDueToMessageBox;
 
 static BOOLEAN gfWaitingForMercToStopTalkingOrUserToClick=FALSE;
 
-static BOOLEAN gfAimMemberDisplayFaceHelpText = FALSE;
-
-
 static BOOLEAN gfAimMemberCanMercSayOpeningQuote = TRUE;
 
 
@@ -356,6 +377,7 @@ static BUTTON_PICS* guiPreviousContactNextButtonImage;
 static GUIButtonRef giPreviousButton;
 static GUIButtonRef giContactButton;
 static GUIButtonRef giNextButton;
+static GUIButtonRef giExitButton;
 
 //Video conference buttons
 static BUTTON_PICS* guiVideoConferenceButtonImage[3];
@@ -423,6 +445,7 @@ static GUIButtonRef MakeButton(const ST::string& text, INT16 x, GUI_CALLBACK cli
 		AIM_M_FONT_PREV_NEXT_CONTACT_COLOR_DOWN, DEFAULT_SHADOW,
 		x, BTN_BOX_Y, MSYS_PRIORITY_HIGH, click
 	);
+	btn->SpecifyTextSubOffsets(-1, 0, TRUE); // shift the button's text 1px down from its default position
 	btn->SetCursor(CURSOR_WWW);
 	return btn;
 }
@@ -431,6 +454,7 @@ static GUIButtonRef MakeButton(const ST::string& text, INT16 x, GUI_CALLBACK cli
 static void BtnContactButtonCallback( GUI_BUTTON* btn, UINT32 reason);
 static void BtnNextButtonCallback(    GUI_BUTTON* btn, UINT32 reason);
 static void BtnPreviousButtonCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnExitButtonCallback(    GUI_BUTTON* btn, UINT32 reason);
 static void InitDeleteVideoConferencePopUp(void);
 static void InitVideoFace(UINT8 ubMercID);
 static void SelectFaceMovementRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
@@ -474,6 +498,9 @@ void EnterAIMMembers()
 	// load the translucent snow for the video conf terminal
 	guiVideoContractCharge = AddVideoObjectFromFile(LAPTOPDIR "/videocontractcharge.sti");
 
+	// load the skill/attitude/disability content button graphic
+	guiContentButtonSkills = AddVideoObjectFromFile(LAPTOPDIR "/CONTENTBUTTON_SKILLS.STI");
+
 
 	//** Mouse Regions **
 	MSYS_DefineRegion(&gSelectedFaceRegion, PORTRAIT_X, PORTRAIT_Y,
@@ -497,7 +524,9 @@ void EnterAIMMembers()
 	giPreviousButton = MakeButton(CharacterInfo[AIM_MEMBER_PREVIOUS], PREVIOUS_X, BtnPreviousButtonCallback);
 	giContactButton  = MakeButton(CharacterInfo[AIM_MEMBER_CONTACT],  CONTACT_X,  BtnContactButtonCallback);
 	giNextButton     = MakeButton(CharacterInfo[AIM_MEMBER_NEXT],     NEXT_X,     BtnNextButtonCallback);
+	giExitButton     = MakeButton("Exit",                             EXIT_X,     BtnExitButtonCallback);
 
+	if (gbCurrentIndex >= gubNumAimMercs) gbCurrentIndex = 0; // the filter may have changed
 	gbCurrentSoldier = AimMercArray[gbCurrentIndex];
 
 	gfStopMercFromTalking = FALSE;
@@ -554,6 +583,7 @@ void ExitAIMMembers()
 	DeleteVideoObject(guiStraightLine);
 	DeleteVideoObject(guiTransSnow);
 	DeleteVideoObject(guiVideoContractCharge);
+	DeleteVideoObject(guiContentButtonSkills);
 
 	UnloadButtonImage( guiPreviousContactNextButtonImage );
 	UnloadButtonImage( giXToCloseVideoConfButtonImage );
@@ -561,6 +591,7 @@ void ExitAIMMembers()
 	RemoveButton( giPreviousButton );
 	RemoveButton( giContactButton );
 	RemoveButton( giNextButton );
+	RemoveButton( giExitButton );
 
 	MSYS_RemoveRegion( &gSelectedFaceRegion);
 	MSYS_RemoveRegion( &gSelectedShutUpMercRegion);
@@ -671,7 +702,6 @@ void RenderAIMMembersTopLevel()
 }
 
 
-static void DisplayAimMemberClickOnFaceHelpText(void);
 static void DisplayMercStats(MERCPROFILESTRUCT const&);
 static void DisplayMercsFace(void);
 static void DisplayMercsInventory(MERCPROFILESTRUCT const&);
@@ -740,12 +770,6 @@ void RenderAIMMembers()
 	//check to see if the merc is dead if so disable the contact button
 	EnableButton(giContactButton, !IsMercDead(p));
 
-	//if we are to renbder the 'click face' text
-	if(	gfAimMemberDisplayFaceHelpText )
-	{
-		DisplayAimMemberClickOnFaceHelpText();
-	}
-
 
 
 
@@ -787,12 +811,10 @@ static void SelectFaceMovementRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReas
 {
 	if( iReason & MSYS_CALLBACK_REASON_LOST_MOUSE )
 	{
-		gfAimMemberDisplayFaceHelpText = FALSE;
 		gfRedrawScreen = TRUE;
 	}
 	else if( iReason & MSYS_CALLBACK_REASON_GAIN_MOUSE )
 	{
-		gfAimMemberDisplayFaceHelpText = TRUE;
 		gfRedrawScreen = TRUE;
 	}
 }
@@ -823,9 +845,22 @@ static void UpdateMercInfo(void)
 			DisplayWrappedString(AIM_MEDICAL_DEPOSIT_X, AIM_MEDICAL_DEPOSIT_Y, AIM_MEDICAL_DEPOSIT_WIDTH, 2, AIM_FONT12ARIAL, AIM_M_COLOR_DYNAMIC_TEXT, sMedicalString, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
 	}
 
-	EDTFile biosfile{ EDTFile::AIMBIOS };
-	auto const MercInfoString{ biosfile.at(gbCurrentSoldier, 0) };
-	auto const AdditionalInfoString{ biosfile.at(gbCurrentSoldier, 1) };
+	// The original mercs have their texts in aimbios.edt (one row per profile ID); the ones
+	// added to the game have them in mercs-profile-info.json.
+	ST::string MercInfoString;
+	ST::string AdditionalInfoString;
+	MercProfileInfo const& profileInfo = MercProfile(gbCurrentSoldier).getInfo();
+	if (!profileInfo.biography.empty() || !profileInfo.additionalInfo.empty())
+	{
+		MercInfoString = profileInfo.biography;
+		AdditionalInfoString = profileInfo.additionalInfo;
+	}
+	else if (gbCurrentSoldier < NUM_ORIGINAL_AIM_MERCS)
+	{
+		EDTFile biosfile{ EDTFile::AIMBIOS };
+		MercInfoString = biosfile.at(gbCurrentSoldier, 0);
+		AdditionalInfoString = biosfile.at(gbCurrentSoldier, 1);
+	}
 
 	if (!MercInfoString.empty())
 	{
@@ -903,12 +938,12 @@ static void DisplayMercsInventory(MERCPROFILESTRUCT const& p)
 
 static void BtnPreviousButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 {
-	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	if ((reason & MSYS_CALLBACK_REASON_POINTER_UP) && gubNumAimMercs > 0)
 	{
 		DeleteAimPopUpBox();
 
 		gbCurrentIndex =
-			(gbCurrentIndex > 0 ? gbCurrentIndex - 1 : MAX_NUMBER_MERCS - 1);
+			(gbCurrentIndex > 0 ? gbCurrentIndex - 1 : gubNumAimMercs - 1);
 
 		gfRedrawScreen = TRUE;
 		gbCurrentSoldier = AimMercArray[gbCurrentIndex];
@@ -936,16 +971,25 @@ static void BtnContactButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 
 static void BtnNextButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 {
-	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	if ((reason & MSYS_CALLBACK_REASON_POINTER_UP) && gubNumAimMercs > 0)
 	{
 		DeleteAimPopUpBox();
 
 		gbCurrentIndex =
-			(gbCurrentIndex < MAX_NUMBER_MERCS - 1 ? gbCurrentIndex + 1 : 0);
+			(gbCurrentIndex < gubNumAimMercs - 1 ? gbCurrentIndex + 1 : 0);
 
 		gbCurrentSoldier = AimMercArray[gbCurrentIndex];
 		gfRedrawScreen = TRUE;
 		gubVideoConferencingMode = AIM_VIDEO_NOT_DISPLAYED_MODE;
+	}
+}
+
+
+static void BtnExitButtonCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		guiCurrentLaptopMode = LAPTOP_MODE_AIM_MEMBERS_SORTED_FILES;
 	}
 }
 
@@ -1031,6 +1075,71 @@ static void DrawStat(UINT16 x, UINT16 y, const ST::string& stat, INT32 val)
 }
 
 
+// gzIMPSkillTraitsText[]'s entry order follows the IMP skill-selection screen's own layout,
+// not the SkillTrait enum (see IMP_SkillTraits.cc's skillTraitsMapping) -- this maps a merc's
+// actual SkillTrait to the matching gzIMPSkillTraitsText index. THIEF has no equivalent on
+// that screen (it's never offered during IMP creation, and no merc profile currently uses it),
+// so it falls back to the "None" entry.
+static const INT8 gbSkillTraitToImpSkillText[NUM_SKILLTRAITS] =
+{
+	/* NO_SKILLTRAIT */ 14,
+	/* LOCKPICKING   */ 0,
+	/* HANDTOHAND    */ 1,
+	/* ELECTRONICS   */ 2,
+	/* NIGHTOPS      */ 3,
+	/* THROWING      */ 4,
+	/* TEACHING      */ 5,
+	/* HEAVY_WEAPS   */ 6,
+	/* AUTO_WEAPS    */ 7,
+	/* STEALTHY      */ 8,
+	/* AMBIDEXT      */ 9,
+	/* THIEF         */ 14,
+	/* MARTIALARTS   */ 13,
+	/* KNIFING       */ 10,
+	/* ONROOF        */ 11,
+	/* CAMOUFLAGED   */ 12,
+};
+
+
+static void DisplaySkillAttitudeDisabilityButtons(MERCPROFILESTRUCT const& p)
+{
+	INT8 bSkill1 = p.bSkillTrait;
+	INT8 bSkill2 = p.bSkillTrait2;
+	if (bSkill1 == NO_SKILLTRAIT) { bSkill1 = bSkill2; bSkill2 = NO_SKILLTRAIT; }
+
+	if (bSkill1 != NO_SKILLTRAIT)
+	{
+		BltVideoObject(FRAME_BUFFER, guiContentButtonSkills, 0, AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_TOP_Y);
+		DrawTextToScreen(gzIMPSkillTraitsText[gbSkillTraitToImpSkillText[bSkill1]], AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_TOP_Y + AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET,
+			AIM_MEMBER_SKILL_BTN_WIDTH, AIM_MEMBER_SKILL_BTN_FONT, AIM_MEMBER_SKILL_BTN_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+
+		if (bSkill1 == bSkill2)
+		{
+			// same skill twice = expert -- shown on its own, on the bottom-left graphic
+			BltVideoObject(FRAME_BUFFER, guiContentButtonSkills, 0, AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_BOTTOM_Y);
+			DrawTextToScreen(gzMercSkillText[NUM_SKILLTRAITS], AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_BOTTOM_Y + AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET,
+				AIM_MEMBER_SKILL_BTN_WIDTH, AIM_MEMBER_SKILL_BTN_FONT, AIM_MEMBER_SKILL_BTN_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+		}
+		else if (bSkill2 != NO_SKILLTRAIT)
+		{
+			BltVideoObject(FRAME_BUFFER, guiContentButtonSkills, 0, AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_BOTTOM_Y);
+			DrawTextToScreen(gzIMPSkillTraitsText[gbSkillTraitToImpSkillText[bSkill2]], AIM_MEMBER_SKILL_LEFT_X, AIM_MEMBER_SKILL_BOTTOM_Y + AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET,
+				AIM_MEMBER_SKILL_BTN_WIDTH, AIM_MEMBER_SKILL_BTN_FONT, AIM_MEMBER_SKILL_BTN_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+		}
+	}
+
+	BltVideoObject(FRAME_BUFFER, guiContentButtonSkills, 0, AIM_MEMBER_SKILL_RIGHT_X, AIM_MEMBER_SKILL_TOP_Y);
+	DrawTextToScreen(ST::format("Att: {}", pImpButtonText[AIM_MEMBER_ATT_TXT_FIRST + p.bAttitude]),
+		AIM_MEMBER_SKILL_RIGHT_X + AIM_MEMBER_ATT_DIS_TEXT_X_OFFSET, AIM_MEMBER_SKILL_TOP_Y + AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET,
+		0, AIM_MEMBER_SKILL_BTN_FONT, AIM_MEMBER_SKILL_BTN_COLOR, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+
+	BltVideoObject(FRAME_BUFFER, guiContentButtonSkills, 0, AIM_MEMBER_SKILL_RIGHT_X, AIM_MEMBER_SKILL_BOTTOM_Y);
+	DrawTextToScreen(ST::format("Dis: {}", pImpButtonText[AIM_MEMBER_DIS_TXT_FIRST + p.bPersonalityTrait]),
+		AIM_MEMBER_SKILL_RIGHT_X + AIM_MEMBER_ATT_DIS_TEXT_X_OFFSET, AIM_MEMBER_SKILL_BOTTOM_Y + AIM_MEMBER_SKILL_BTN_TEXT_Y_OFFSET,
+		0, AIM_MEMBER_SKILL_BTN_FONT, AIM_MEMBER_SKILL_BTN_COLOR, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+}
+
+
 static void DisplayMercStats(MERCPROFILESTRUCT const& p)
 {
 	//Name
@@ -1052,6 +1161,8 @@ static void DisplayMercStats(MERCPROFILESTRUCT const& p)
 	DrawStat(        x2, MECHANAICAL_Y, str_stat_mechanical,   p.bMechanical  );
 	DrawStat(        x2, EXPLOSIVE_Y,   str_stat_explosive,    p.bExplosive   );
 	DrawStat(        x2, MEDICAL_Y,     str_stat_medical,      p.bMedical     );
+
+	DisplaySkillAttitudeDisabilityButtons(p);
 }
 
 
@@ -1284,7 +1395,11 @@ static void DisplayVideoConferencingDisplay(MERCPROFILESTRUCT const& p)
 	DisplayMercChargeAmount();
 
 	//if( gfMercIsTalking && !gfIsAnsweringMachineActive)
-	if( gfMercIsTalking && gGameSettings.fOptions[ TOPTION_SUBTITLES ] )
+	// gfMercIsTalking is set synchronously by InitVideoFaceTalking(), but
+	// gsTalkingMercText is only populated ~1 frame later once the queued
+	// dialogue event actually executes -- guard against that gap so we
+	// never try to word-wrap a still-empty string.
+	if( gfMercIsTalking && gGameSettings.fOptions[ TOPTION_SUBTITLES ] && !gsTalkingMercText.empty() )
 	{
 		UINT16 usActualWidth;
 		UINT16 usActualHeight;
@@ -1782,7 +1897,7 @@ static BOOLEAN CanMercBeHired(void)
 	for (UINT8 i = HATED_SLOT1; i < NUM_HATED_SLOTS; ++i)
 	{
 		//see if someone the merc hates is on the team
-		INT8 const bMercID = p.bHated[i];
+		INT16 const bMercID = p.bHated[i];
 		if (bMercID < 0) continue;
 
 		if (!IsMercOnTeamAndInOmertaAlreadyAndAlive(bMercID)) continue;
@@ -1858,68 +1973,22 @@ join_buddy:
 
 static BOOLEAN DisplaySnowBackground(void)
 {
-	UINT32		uiCurrentTime = 0;
-	UINT8	ubCount;
+	// Snow/static connecting animation disabled -- skip straight to completion.
+	gfFirstTimeInContactScreen = FALSE;
+	gubCurrentCount = 0;
 
-	uiCurrentTime = GetJA2Clock();
+	if( gubVideoConferencingMode == AIM_VIDEO_FIRST_CONTACT_MERC_MODE && gfAimMemberCanMercSayOpeningQuote )
+		InitVideoFaceTalking(gbCurrentSoldier, QUOTE_GREETING);
 
-	if(gubCurrentCount < VC_NUM_LINES_SNOW)
-	{
-		ubCount = gubCurrentCount;
-	}
-	else if( gubCurrentCount < VC_NUM_LINES_SNOW*2 )
-	{
-		ubCount = gubCurrentCount - VC_NUM_LINES_SNOW;
-	}
-	else
-	{
-		gfFirstTimeInContactScreen = FALSE;
-		gubCurrentCount = 0;
-		ubCount = 0;
-
-		if( gubVideoConferencingMode == AIM_VIDEO_FIRST_CONTACT_MERC_MODE && gfAimMemberCanMercSayOpeningQuote )
-			InitVideoFaceTalking(gbCurrentSoldier, QUOTE_GREETING);
-
-		return(TRUE);
-	}
-
-	// if it is time to update the snow image
-	if( (uiCurrentTime - guiLastHandleMercTime) > VC_CONTACT_STATIC_TIME)
-	{
-		gubCurrentCount++;
-		guiLastHandleMercTime = uiCurrentTime;
-	}
-	BltVideoObject(FRAME_BUFFER, guiBWSnow, ubCount,AIM_MEMBER_VIDEO_FACE_X, AIM_MEMBER_VIDEO_FACE_Y);
-
-	InvalidateRegion(AIM_MEMBER_VIDEO_FACE_X,AIM_MEMBER_VIDEO_FACE_Y, AIM_MEMBER_VIDEO_FACE_X+AIM_MEMBER_VIDEO_FACE_WIDTH,AIM_MEMBER_VIDEO_FACE_Y+AIM_MEMBER_VIDEO_FACE_HEIGHT);
-
-	return(FALSE);
+	return(TRUE);
 }
 
 
-static BOOLEAN DisplayBlackBackground(UINT8 ubMaxNumOfLoops)
+static BOOLEAN DisplayBlackBackground(UINT8)
 {
-	UINT32		uiCurrentTime = 0;
-
-	uiCurrentTime = GetJA2Clock();
-
-	if (gubCurrentCount >= ubMaxNumOfLoops)
-	{
-		gubCurrentCount = 0;
-		return(TRUE);
-	}
-
-	// if it is time to update the snow image
-	if( (uiCurrentTime - guiLastHandleMercTime) > VC_CONTACT_STATIC_TIME)
-	{
-		gubCurrentCount++;
-		guiLastHandleMercTime = uiCurrentTime;
-	}
-	// Blit color to screen
-	ColorFillVideoSurfaceArea( FRAME_BUFFER, AIM_MEMBER_VIDEO_FACE_X, AIM_MEMBER_VIDEO_FACE_Y, AIM_MEMBER_VIDEO_FACE_X+AIM_MEMBER_VIDEO_FACE_WIDTH,	AIM_MEMBER_VIDEO_FACE_Y+AIM_MEMBER_VIDEO_FACE_HEIGHT, Get16BPPColor( FROMRGB( 0, 0, 0 ) ) );
-	InvalidateRegion(AIM_MEMBER_VIDEO_FACE_X,AIM_MEMBER_VIDEO_FACE_Y, AIM_MEMBER_VIDEO_FACE_X+AIM_MEMBER_VIDEO_FACE_WIDTH,AIM_MEMBER_VIDEO_FACE_Y+AIM_MEMBER_VIDEO_FACE_HEIGHT);
-
-	return(FALSE);
+	// Black-flicker connecting animation disabled -- skip straight to completion.
+	gubCurrentCount = 0;
+	return(TRUE);
 }
 
 
@@ -2282,9 +2351,6 @@ static void DeleteVideoConfPopUp(void);
 
 static void InitDeleteVideoConferencePopUp(void)
 {
-	//remove the face help text
-	gfAimMemberDisplayFaceHelpText = FALSE;
-
 	//Gets reset to FALSE in the HandleCurrentVideoConfMode() function
 	gfJustSwitchedVideoConferenceMode = TRUE;
 
@@ -2741,7 +2807,9 @@ static BOOLEAN DisplayMovingTitleBar(BOOLEAN fForward)
 
 	if (gfJustSwitchedVideoConferenceMode)
 	{
-		ubCount = (fForward ? 1 : AIM_MEMBER_VIDEO_TITLE_ITERATIONS - 1);
+		// Sliding title bar animation disabled -- jump straight to the frame
+		// the original loop would have ended on.
+		ubCount = (fForward ? AIM_MEMBER_VIDEO_TITLE_ITERATIONS - 2 : 1);
 	}
 
 	UINT16 const usPosX      = STD_SCREEN_X + Interpolate(331, 125, ubCount);
@@ -2926,12 +2994,3 @@ static void DisplayPopUpBoxExplainingMercArrivalLocationAndTimeCallBack(MessageB
 }
 
 
-static void DisplayAimMemberClickOnFaceHelpText(void)
-{
-	//display the 'left and right click' onscreen help msg
-	DrawTextToScreen(AimMemberText[0], AIM_FI_LEFT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y,                                   AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_TITLE_FONT, AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-	DrawTextToScreen(AimMemberText[1], AIM_FI_LEFT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y + AIM_FI_CLICK_DESC_TEXT_Y_OFFSET, AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_FONT,       AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-
-	DrawTextToScreen(AimMemberText[2], AIM_FI_RIGHT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y,                                   AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_TITLE_FONT, AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-	DrawTextToScreen(AimMemberText[3], AIM_FI_RIGHT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y + AIM_FI_CLICK_DESC_TEXT_Y_OFFSET, AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_FONT,       AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-}

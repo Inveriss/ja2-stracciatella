@@ -18,6 +18,7 @@
 #include "Video.h"
 #include "VSurface.h"
 #include "Font_Control.h"
+#include "Font.h"
 
 #include <string_theory/string>
 
@@ -28,10 +29,28 @@ extern UINT8			gbCurrentIndex;
 static cache_key_t const guiMugShotBorder{ LAPTOPDIR "/mugshotborder3.sti" };
 static SGPVObject* guiAimFiFace[MAX_NUMBER_MERCS];
 
+// With more mercs than fit on the screen the index has several pages.
+static UINT8 gubAimFiPage = 0;
+static BUTTON_PICS* guiAimFiButtonImage;
+static GUIButtonRef guiAimFiPreviousButton;
+static GUIButtonRef guiAimFiNextButton;
+#define AIM_FI_NUM_FILTER_BUTTONS 6
+static GUIButtonRef guiAimFiFilterButtons[AIM_FI_NUM_FILTER_BUTTONS];
+
 
 
 #define AIM_FI_NUM_MUHSHOTS_X		8
 #define AIM_FI_NUM_MUHSHOTS_Y		5
+#define AIM_FI_MUGSHOTS_PER_PAGE	(AIM_FI_NUM_MUHSHOTS_X * AIM_FI_NUM_MUHSHOTS_Y)
+
+// The small logo, the Previous and Next buttons and the row of the filter buttons above the faces.
+// The positions are relative to the upper left corner of the laptop web screen.
+#define AIM_FI_LOGO_X			(IMAGE_OFFSET_X + 91)
+#define AIM_FI_LOGO2_X			(IMAGE_OFFSET_X + 309)
+#define AIM_FI_LOGO_Y			(IMAGE_OFFSET_Y + 8)
+#define AIM_FI_PAGE_BUTTON_Y		(IMAGE_OFFSET_Y + 8)
+#define AIM_FI_PREVIOUS_BUTTON_X	(IMAGE_OFFSET_X + 5)
+#define AIM_FI_NEXT_BUTTON_X		(IMAGE_OFFSET_X + 420)
 
 #define AIM_FI_PORTRAIT_WIDTH		52
 #define AIM_FI_PORTRAIT_HEIGHT		48
@@ -45,10 +64,6 @@ static SGPVObject* guiAimFiFace[MAX_NUMBER_MERCS];
 #define AIM_FI_NNAME_OFFSET_X		2
 #define AIM_FI_NNAME_OFFSET_Y		AIM_FI_PORTRAIT_HEIGHT+1
 #define AIM_FI_NNAME_WIDTH		AIM_FI_PORTRAIT_WIDTH+4
-
-#define AIM_FI_MEMBER_TEXT_X		IMAGE_OFFSET_X + 155
-#define AIM_FI_MEMBER_TEXT_Y		AIM_SYMBOL_Y + AIM_SYMBOL_SIZE_Y + 1
-#define AIM_FI_MEMBER_TEXT_WIDTH	190
 
 #define AIM_FI_AWAY_TEXT_OFFSET_X	3
 #define AIM_FI_AWAY_TEXT_OFFSET_Y	23//3//36
@@ -64,17 +79,131 @@ static MOUSE_REGION gMercFaceMouseRegions[MAX_NUMBER_MERCS];
 static MOUSE_REGION gScreenMouseRegions;
 
 
+static UINT8 NumAimFiPages()
+{
+	return (gubNumAimMercs + AIM_FI_MUGSHOTS_PER_PAGE - 1) / AIM_FI_MUGSHOTS_PER_PAGE;
+}
+
+
+// The index (in AimMercArray) of the merc shown at the given place of the current page,
+// or gubNumAimMercs if the place is empty.
+static UINT8 MercAtPlace(UINT8 const place)
+{
+	unsigned const index = gubAimFiPage * AIM_FI_MUGSHOTS_PER_PAGE + place;
+	return index < gubNumAimMercs ? index : gubNumAimMercs;
+}
+
+
 static void SelectMercFaceMoveRegionCallBack(MOUSE_REGION* pRegion, UINT32 reason);
 static void SelectMercFaceRegionCallBackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void SelectMercFaceRegionCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 // There is no SelectScreenRegionCallBackPrimary
 static void SelectScreenRegionCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
+static void MouseWheelRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
+
+
+// The filter buttons in the order of AimFilter: ALL is at the top between the logos, the others are
+// in a row above the faces (OTHERS under Next). The positions are relative to the upper left corner
+// of the laptop web screen; the offset of the screen (IMAGE_OFFSET_X/Y, it depends on the resolution)
+// is added when the buttons are made, not when the program starts.
+static INT16 const AIM_FI_FILTER_BUTTON_REL_X[AIM_FI_NUM_FILTER_BUTTONS] = { 213, 6, 110, 213, 315, 417 };
+static INT16 const AIM_FI_FILTER_BUTTON_REL_Y[AIM_FI_NUM_FILTER_BUTTONS] = { 13, 46, 46, 46, 46, 46 };
+static char const* const gAimFiFilterNames[AIM_FI_NUM_FILTER_BUTTONS] = { "ALL", "JA2", "UB", "WILDFIRE", "JA1", "OTHERS" };
+
+
+// The faces of all mercs of AimMercArray, whatever page is shown; they are indexed like the array
+static void UnloadAimFiFaces()
+{
+	FOR_EACH(SGPVObject*, i, guiAimFiFace)
+	{
+		if (*i != nullptr) DeleteVideoObject(*i);
+		*i = nullptr;
+	}
+}
+
+
+static void LoadAimFiFaces()
+{
+	for (UINT8 i = 0; i < gubNumAimMercs; ++i)
+	{
+		guiAimFiFace[i] = LoadSmallPortrait(GetProfile(AimMercArray[i]));
+	}
+}
+
+
+// Changes the page by the given number of pages; the arrow buttons wrap around at the ends, the mouse wheel does not
+static void ChangeAimFiPage(int const delta, bool const wrap)
+{
+	int const pages = NumAimFiPages();
+	if (pages == 0) return;
+	int page = gubAimFiPage + delta;
+	if (wrap) page = (page + pages) % pages;
+	if (page < 0 || page >= pages || page == gubAimFiPage) return;
+	gubAimFiPage = page;
+	RenderAimFacialIndex();
+}
+
+
+// The colour of the text of the ALL button: the yellow of the 'On Assign' texts on the portraits
+#define AIM_FI_ALL_BUTTON_TEXT_COLOR	145
+
+static GUIButtonRef MakeAimFiButton(ST::string const& text, INT16 const x, INT16 const y, GUI_CALLBACK click,
+					INT16 const colorUp = FONT_MCOLOR_DKWHITE, INT16 const colorDown = 138)
+{
+	GUIButtonRef const btn = CreateIconAndTextButton(
+		guiAimFiButtonImage, text, FONT14ARIAL,
+		colorUp,   DEFAULT_SHADOW,
+		colorDown, DEFAULT_SHADOW,
+		x, y, MSYS_PRIORITY_HIGH, click);
+	// the text sits 1 pixel to the right and 2 pixels lower than centered
+	btn->SpecifyTextSubOffsets(1, 1, TRUE);
+	btn->SetCursor(CURSOR_WWW);
+	return btn;
+}
+
+
+// The button of the current filter is pressed, none if the list is empty
+static void SyncFilterButtons()
+{
+	for (int i = 0; i < AIM_FI_NUM_FILTER_BUTTONS; ++i)
+	{
+		if (!guiAimFiFilterButtons[i]) continue;
+		if (i == GetAimFilter()) guiAimFiFilterButtons[i]->uiFlags |= BUTTON_CLICKED_ON;
+		else                     guiAimFiFilterButtons[i]->uiFlags &= ~BUTTON_CLICKED_ON;
+	}
+}
+
+
+static void BtnPreviousPageCallback(GUI_BUTTON*, UINT32 reason);
+static void BtnNextPageCallback(GUI_BUTTON*, UINT32 reason);
+static void BtnFilterCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		// pressing the pressed button releases it, the list is empty then
+		AimFilter filter = static_cast<AimFilter>(btn->GetUserData());
+		if (filter == GetAimFilter()) filter = AIM_FILTER_NONE;
+		if (filter != GetAimFilter())
+		{
+			SetAimFilter(filter);
+			ResetAimMercArray();
+			SortAimMercArray();
+			UnloadAimFiFaces();
+			LoadAimFiFaces();
+			gubAimFiPage = 0;
+			RenderAimFacialIndex();
+		}
+	}
+	SyncFilterButtons();
+}
 
 
 void EnterAimFacialIndex()
 {
 	UINT8	i;
 	UINT16		usPosX, usPosY, x,y;
+
+	if (gubAimFiPage >= NumAimFiPages()) gubAimFiPage = 0;
 
 	usPosX = AIM_FI_FIRST_MUGSHOT_X;
 	usPosY = AIM_FI_FIRST_MUGSHOT_Y;
@@ -89,10 +218,8 @@ void EnterAimFacialIndex()
 						(INT16)(usPosY + AIM_FI_PORTRAIT_HEIGHT),
 						MSYS_PRIORITY_HIGH,
 						CURSOR_WWW, SelectMercFaceMoveRegionCallBack,
-						MouseCallbackPrimarySecondary(SelectMercFaceRegionCallBackPrimary, SelectMercFaceRegionCallBackSecondary));
+						MouseCallbackPrimarySecondary(SelectMercFaceRegionCallBackPrimary, SelectMercFaceRegionCallBackSecondary, MouseWheelRegionCallBack));
 			MSYS_SetRegionUserData( &gMercFaceMouseRegions[ i ], 0, i);
-
-			guiAimFiFace[i] = LoadSmallPortrait(GetProfile(AimMercArray[i]));
 
 			usPosX += AIM_FI_PORTRAIT_WIDTH + AIM_FI_MUGSHOT_GAP_X;
 			i++;
@@ -101,12 +228,27 @@ void EnterAimFacialIndex()
 		usPosY += AIM_FI_PORTRAIT_HEIGHT + AIM_FI_MUGSHOT_GAP_Y;
 	}
 
+	LoadAimFiFaces();
+
 	MSYS_DefineRegion(&gScreenMouseRegions, LAPTOP_SCREEN_UL_X, LAPTOP_SCREEN_WEB_UL_Y,
 				LAPTOP_SCREEN_LR_X, LAPTOP_SCREEN_WEB_LR_Y, MSYS_PRIORITY_HIGH-1,
-				CURSOR_LAPTOP_SCREEN, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, SelectScreenRegionCallBackSecondary));
+				CURSOR_LAPTOP_SCREEN, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, SelectScreenRegionCallBackSecondary, MouseWheelRegionCallBack));
 
 	InitAimMenuBar();
+	SetAimSmallLogo(true, AIM_FI_LOGO_X, AIM_FI_LOGO_Y);
+	SetAimSecondSmallLogo(AIM_FI_LOGO2_X, AIM_FI_LOGO_Y);
 	InitAimDefaults();
+
+	guiAimFiButtonImage = LoadButtonImage(LAPTOPDIR "/bottombuttons2.sti", 0, 1);
+	guiAimFiPreviousButton = MakeAimFiButton(CharacterInfo[AIM_MEMBER_PREVIOUS], AIM_FI_PREVIOUS_BUTTON_X, AIM_FI_PAGE_BUTTON_Y, BtnPreviousPageCallback);
+	guiAimFiNextButton     = MakeAimFiButton(CharacterInfo[AIM_MEMBER_NEXT],     AIM_FI_NEXT_BUTTON_X,     AIM_FI_PAGE_BUTTON_Y, BtnNextPageCallback);
+	for (int i = 0; i < AIM_FI_NUM_FILTER_BUTTONS; ++i)
+	{
+		guiAimFiFilterButtons[i] = MakeAimFiButton(gAimFiFilterNames[i], IMAGE_OFFSET_X + AIM_FI_FILTER_BUTTON_REL_X[i], IMAGE_OFFSET_Y + AIM_FI_FILTER_BUTTON_REL_Y[i], BtnFilterCallback,
+			i == AIM_FILTER_ALL ? AIM_FI_ALL_BUTTON_TEXT_COLOR : FONT_MCOLOR_DKWHITE,
+			i == AIM_FILTER_ALL ? AIM_FI_ALL_BUTTON_TEXT_COLOR : 138);
+		guiAimFiFilterButtons[i]->SetUserData(i);
+	}
 
 	RenderAimFacialIndex();
 }
@@ -118,11 +260,18 @@ void ExitAimFacialIndex()
 
 	RemoveVObject(guiMugShotBorder);
 
-	FOR_EACH(SGPVObject*,  i, guiAimFiFace)          DeleteVideoObject(*i);
+	UnloadAimFiFaces();
 	FOR_EACH(MOUSE_REGION, i, gMercFaceMouseRegions) MSYS_RemoveRegion(&*i);
 	ExitAimMenuBar();
 
 	MSYS_RemoveRegion(&gScreenMouseRegions);
+
+	RemoveButton(guiAimFiPreviousButton);
+	RemoveButton(guiAimFiNextButton);
+	FOR_EACH(GUIButtonRef, i, guiAimFiFilterButtons) { RemoveButton(*i); *i = GUIButtonRef(); }
+	UnloadButtonImage(guiAimFiButtonImage);
+
+	SetAimSmallLogo(false);
 }
 
 
@@ -132,19 +281,9 @@ static void DrawMercsFaceToScreen(UINT8 ubMercID, UINT16 usPosX, UINT16 usPosY, 
 void RenderAimFacialIndex()
 {
 	UINT16		usPosX, usPosY, x,y;
-	ST::string sString;
 	UINT8			i;
 
 	DrawAimDefaults();
-
-	//Display the 'A.I.M. Members Sorted Ascending By Price' type string
-	if( gubCurrentListMode == AIM_ASCEND )
-		sString = st_format_printf(AimFiText[ AIM_FI_AIM_MEMBERS_SORTED_ASCENDING ], AimFiText[gubCurrentSortMode]);
-	else
-		sString = st_format_printf(AimFiText[ AIM_FI_AIM_MEMBERS_SORTED_DESCENDING ], AimFiText[gubCurrentSortMode]);
-
-	DrawTextToScreen(sString, AIM_FI_MEMBER_TEXT_X, AIM_FI_MEMBER_TEXT_Y, AIM_FI_MEMBER_TEXT_WIDTH, AIM_MAINTITLE_FONT, AIM_MAINTITLE_COLOR, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-
 
 	//Draw the mug shot border and face
 	usPosX = AIM_FI_FIRST_MUGSHOT_X;
@@ -155,8 +294,12 @@ void RenderAimFacialIndex()
 	{
 		for(x=0; x<AIM_FI_NUM_MUHSHOTS_X; x++)
 		{
-			DrawMercsFaceToScreen(i, usPosX, usPosY, 1);
-			DrawTextToScreen(gMercProfiles[AimMercArray[i]].zNickname, usPosX - AIM_FI_NNAME_OFFSET_X, usPosY + AIM_FI_NNAME_OFFSET_Y, AIM_FI_NNAME_WIDTH, AIM_FONT12ARIAL, AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+			UINT8 const merc = MercAtPlace(i);
+			if (merc < gubNumAimMercs)
+			{
+				DrawMercsFaceToScreen(merc, usPosX, usPosY, 1);
+				DrawTextToScreen(gMercProfiles[AimMercArray[merc]].zNickname, usPosX - AIM_FI_NNAME_OFFSET_X, usPosY + AIM_FI_NNAME_OFFSET_Y, AIM_FI_NNAME_WIDTH, AIM_FONT12ARIAL, AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+			}
 
 			usPosX += AIM_FI_PORTRAIT_WIDTH + AIM_FI_MUGSHOT_GAP_X;
 			i++;
@@ -166,13 +309,7 @@ void RenderAimFacialIndex()
 	}
 
 	DisableAimButton();
-
-	//display the 'left and right click' onscreen help msg
-	DrawTextToScreen(AimFiText[AIM_FI_LEFT_CLICK], AIM_FI_LEFT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y,                                   AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_TITLE_FONT, AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-	DrawTextToScreen(AimFiText[AIM_FI_TO_SELECT],  AIM_FI_LEFT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y + AIM_FI_CLICK_DESC_TEXT_Y_OFFSET, AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_FONT,       AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-
-	DrawTextToScreen(AimFiText[AIM_FI_RIGHT_CLICK],        AIM_FI_RIGHT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y,                                   AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_TITLE_FONT, AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
-	DrawTextToScreen(AimFiText[AIM_FI_TO_ENTER_SORT_PAGE], AIM_FI_RIGHT_CLICK_TEXT_X, AIM_FI_LEFT_CLICK_TEXT_Y + AIM_FI_CLICK_DESC_TEXT_Y_OFFSET, AIM_FI_CLICK_TEXT_WIDTH, AIM_FI_HELP_FONT,       AIM_FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, CENTER_JUSTIFIED);
+	SyncFilterButtons();
 
 	MarkButtonsDirty( );
 
@@ -182,10 +319,34 @@ void RenderAimFacialIndex()
 }
 
 
+static void BtnPreviousPageCallback(GUI_BUTTON*, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ChangeAimFiPage(-1, true);
+}
+
+
+static void BtnNextPageCallback(GUI_BUTTON*, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ChangeAimFiPage(1, true);
+}
+
+
+
+// The mouse wheel turns the pages, without wrapping around at the first and the last page
+static void MouseWheelRegionCallBack(MOUSE_REGION*, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_WHEEL_UP)        ChangeAimFiPage(-1, false);
+	else if (iReason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ChangeAimFiPage(1, false);
+}
+
+
 static void SelectMercFaceRegionCallBackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 {
+	UINT8 const merc = MercAtPlace(MSYS_GetRegionUserData(pRegion, 0));
+	if (merc >= gubNumAimMercs) return; // empty place on the last page
+
 	guiCurrentLaptopMode = LAPTOP_MODE_AIM_MEMBERS;
-	gbCurrentIndex = (UINT8) MSYS_GetRegionUserData( pRegion, 0 );
+	gbCurrentIndex = merc;
 }
 
 static void SelectMercFaceRegionCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
@@ -202,15 +363,17 @@ static void SelectScreenRegionCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iR
 
 static void SelectMercFaceMoveRegionCallBack(MOUSE_REGION* pRegion, UINT32 reason)
 {
-	UINT8	ubMercNum;
+	UINT8	ubPlace;
 	UINT16 usPosX, usPosY;
 
-	ubMercNum = (UINT8) MSYS_GetRegionUserData( pRegion, 0 );
+	ubPlace = (UINT8) MSYS_GetRegionUserData( pRegion, 0 );
+	UINT8 const ubMercNum = MercAtPlace(ubPlace);
+	if (ubMercNum >= gubNumAimMercs) return; // empty place on the last page
 
-	usPosY = ubMercNum / AIM_FI_NUM_MUHSHOTS_X;
+	usPosY = ubPlace / AIM_FI_NUM_MUHSHOTS_X;
 	usPosY = AIM_FI_FIRST_MUGSHOT_Y + (AIM_FI_PORTRAIT_HEIGHT + AIM_FI_MUGSHOT_GAP_Y) * usPosY;
 
-	usPosX = ubMercNum % AIM_FI_NUM_MUHSHOTS_X;
+	usPosX = ubPlace % AIM_FI_NUM_MUHSHOTS_X;
 	usPosX = AIM_FI_FIRST_MUGSHOT_X + (AIM_FI_PORTRAIT_WIDTH + AIM_FI_MUGSHOT_GAP_X) * usPosX;
 
 	//fReDrawNewMailFlag = TRUE;

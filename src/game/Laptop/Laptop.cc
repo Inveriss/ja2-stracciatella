@@ -1,11 +1,16 @@
 #include "Directories.h"
 #include "Font.h"
 #include "Font_Control.h"
+#include "Logger.h"
 #include "Input.h"
 #include "Interface.h"
 #include "LoadSaveData.h"
 #include "Local.h"
+#include "GameScreen.h"
+#include "JAScreens.h"
 #include "Map_Screen_Interface.h"
+#include "Map_Screen_Interface_Bottom.h"
+#include "Options_Screen.h"
 #include "Object_Cache.h"
 #include "Timer.h"
 #include "Timer_Control.h"
@@ -33,10 +38,16 @@
 #include "BobbyRAmmo.h"
 #include "BobbyRArmour.h"
 #include "BobbyRMisc.h"
+#include "BobbyRAttachments.h"
+#include "BobbyRExplosives.h"
 #include "BobbyRUsed.h"
 #include "BobbyRMailOrder.h"
 #include "CharProfile.h"
 #include "ContentManager.h"
+#include "IMP_Compile_Character.h"
+#include "IMP_MainPage.h"
+#include "Merc_Hiring.h"
+#include "Soldier_Profile.h"
 #include "Florist.h"
 #include "Florist_Cards.h"
 #include "Florist_Gallery.h"
@@ -107,15 +118,6 @@ enum
 	LAPTOP_PROGRAM_OPEN
 };
 
-// Toggle for the fix from commit 8eb43ce (out-of-bounds map<->laptop
-// transition rect -- see the two SGPBox rects below in
-// LaptopScreenHandle()/LeaveLapTopScreen()). Set to false to deactivate the
-// fix without removing it, restoring the original (buggy) STD_SCREEN_X/Y
-// wraps at MAP_SCREEN_WIDTH/HEIGHT, e.g. for regression testing against the
-// pre-8eb43ce state without switching branches/commits. Flip back to true
-// to re-enable the fix.
-constexpr bool ENABLE_LAPTOP_TRANSITION_RECT_FIX = true;
-
 #define BOOK_FONT     FONT10ARIAL
 #define DOWNLOAD_FONT FONT12ARIAL
 
@@ -125,6 +127,12 @@ constexpr bool ENABLE_LAPTOP_TRANSITION_RECT_FIX = true;
 #define BOOK_HEIGHT  12
 #define DOWN_HEIGHT  19
 #define BOOK_WIDTH  100
+
+// Manual bookmark-reordering arrow (Bookmarks_Arrows.sti: 0 = up, 1 = pressed).
+// Both sub-images are the same size.
+#define BOOK_ARROW_WIDTH         22
+#define BOOK_ARROW_HEIGHT        19
+#define BOOK_ARROW_PRESSED_WIDTH 22
 
 
 #define LONG_UNIT_TIME        120
@@ -191,6 +199,7 @@ INT32  giCurrentSubPage;
 
 
 static INT32 iHighLightBookLine = -1;
+static INT32 iPressedBookArrow  = -1; // index of the reorder arrow currently held down, or -1
 BOOLEAN fFastLoadFlag = FALSE;
 static BOOLEAN gfEnterLapTop=TRUE;
 BOOLEAN gfShowBookmarks=FALSE;
@@ -254,6 +263,7 @@ cache_key_t const guiDOWNLOADMID{ LAPTOPDIR "/downloadmid.sti" };
 cache_key_t const guiDOWNLOADBOT{ LAPTOPDIR "/downloadbot.sti" };
 cache_key_t const guiBOOKMARK{ LAPTOPDIR "/webpages.sti" };
 cache_key_t const guiBOOKHIGH{ LAPTOPDIR "/hilite.sti" };
+cache_key_t const guiBOOKARROWS{ LAPTOPDIR "/Bookmarks_Arrows.sti" };
 cache_key_t const guiGRAPHWINDOW{ LAPTOPDIR "/graphwindow.sti" };
 cache_key_t const guiGRAPHBAR{ LAPTOPDIR "/graphsegment.sti" };
 cache_key_t const guiLIGHTS{ LAPTOPDIR "/lights.sti" };
@@ -313,6 +323,7 @@ static bool gfWWWaitSubSitesVisitedFlags[LAPTOP_MODE_END - (LAPTOP_MODE_WWW + 1)
 // mouse regions
 static MOUSE_REGION gLapTopScreenRegion;
 static MOUSE_REGION gBookmarkMouseRegions[MAX_BOOKMARKS];
+static MOUSE_REGION gBookmarkArrowRegions[MAX_BOOKMARKS];
 static MOUSE_REGION gLapTopProgramMinIcon;
 static MOUSE_REGION gNewMailIconRegion;
 static MOUSE_REGION gNewFileIconRegion;
@@ -342,6 +353,27 @@ void SetLaptopExitScreen(ScreenID const uiExitScreen)
 void SetLaptopEntryMode(LaptopMode const uiEntryMode)
 {
 	guiRequestedLaptopEntryMode = uiEntryMode;
+}
+
+
+void TryAutoOpenLaptopEmailOnNewMail(void)
+{
+	if (guiCurrentScreen == MAP_SCREEN)
+	{
+		// Same two calls as BtnLaptopEmailFromMapScreenCallback() (Map_Screen_Interface_Bottom.cc).
+		SetLaptopEntryMode(LAPTOP_MODE_EMAIL);
+		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_LAPTOP);
+	}
+	else if (guiCurrentScreen == GAME_SCREEN)
+	{
+		// Same calls as BtnLaptopEmailCallback() (Interface_Panels.cc).
+		SetLaptopEntryMode(LAPTOP_MODE_EMAIL);
+		SetLaptopExitScreen(GAME_SCREEN);
+		guiPreviousOptionScreen = guiCurrentScreen;
+		LeaveTacticalScreen(LAPTOP_SCREEN);
+	}
+	// Any other current screen (already in the laptop, Options, Save/Load, a cutscene, ...)
+	// is left alone -- fUnReadMailFlag/the map's own blinking envelope already cover those.
 }
 
 
@@ -387,6 +419,17 @@ void LaptopScreenInit(void)
 
 	gfShowBookmarks = FALSE;
 	InitBookMarkList();
+
+	// All Web sub-tabs are available from the start of the game, instead of
+	// only appearing once their site is actually visited.
+	SetBookMark(AIM_BOOKMARK);
+	SetBookMark(MERC_BOOKMARK);
+	SetBookMark(IMP_BOOKMARK);
+	SetBookMark(BOBBYR_BOOKMARK);
+	SetBookMark(FLORIST_BOOKMARK);
+	SetBookMark(FUNERAL_BOOKMARK);
+	SetBookMark(INSURANCE_BOOKMARK);
+
 	GameInitAIM();
 	GameInitAimSort();
 	GameInitMercs();
@@ -411,11 +454,12 @@ void InitLaptopAndLaptopScreens(void)
 	GameInitFinances();
 	GameInitHistory();
 
-	//Reset the flag so we can create a new IMP character
-	LaptopSaveInfo.fIMPCompletedFlag = FALSE;
+	//Reset the flags so all IMP slots are available again for a new game
+	for (UINT8 i = 0; i < MAX_IMP_MERCS; ++i) LaptopSaveInfo.fIMPCompletedFlag[i] = FALSE;
 
-	//Reset the flag so that BOBBYR's isnt available at the begining of the game
-	LaptopSaveInfo.fBobbyRSiteCanBeAccessed = FALSE;
+	// Bobby Ray's is open from the start of a new game (it used to open with the capture of the
+	// Drassen airport)
+	LaptopSaveInfo.fBobbyRSiteCanBeAccessed = TRUE;
 }
 
 
@@ -483,6 +527,13 @@ static void EnterLaptop(void)
 	// set the fact we are currently in laptop, for rendering purposes
 	fCurrentlyInLaptop = TRUE;
 
+	// InternalLeaveTacticalScreen() (GameScreen.cc) hides the cursor on every exit from the
+	// tactical screen, whatever the destination, expecting that screen to set its own back --
+	// the map screen's own MAP_EXIT_TO_LAPTOP exit never hides it in the first place, so this
+	// is a no-op there, but a tactical-screen shortcut straight into the laptop otherwise left
+	// the cursor invisible until the mouse happened to cross a region boundary on its own.
+	SetCurrentCursorFromDatabase(CURSOR_LAPTOP_SCREEN);
+
 	// reset redraw flag and redraw new mail
 	fReDrawScreenFlag  = FALSE;
 	fReDrawNewMailFlag = TRUE;
@@ -516,13 +567,43 @@ static void EnterLaptop(void)
 	RenderLapTopImage();
 
 	// reset bookmarks flags
-	fFirstTimeInLaptop = TRUE;
+	// A SetLaptopEntryMode() cold-jump straight into a WWW sub-page (AIM Members/M.E.R.C./
+	// Bobby Ray's -- guiCurrentLaptopMode already holds that mode here, see the pre-seed
+	// above) means the player deliberately picked one specific destination via a shortcut --
+	// the "first WWW visit this session" auto-reveal of the full Web bookmark list
+	// (EnterNewLaptopMode() below) would just be unwanted noise there, unlike organically
+	// browsing into the Web tab for the first time on a normal (desktop-first) entry.
+	fFirstTimeInLaptop = guiCurrentLaptopMode <= LAPTOP_MODE_WWW;
 
 	// reset all bookmark visits
 	std::fill(std::begin(LaptopSaveInfo.fVisitedBookmarkAlready), std::end(LaptopSaveInfo.fVisitedBookmarkAlready), 0);
 
 	// init program states
 	std::fill(std::begin(gLaptopProgramStates), std::end(gLaptopProgramStates), LAPTOP_PROGRAM_MINIMIZED);
+
+	// A SetLaptopEntryMode() cold-jump (guiCurrentLaptopMode is non-NONE here, unlike
+	// a normal entry, which always opens to the desktop -- see the comment above the
+	// pre-seed a bit above) has no taskbar icon to click, so mark its target program
+	// already OPEN, not MINIMIZED. Otherwise EnterNewLaptopMode()'s first call below
+	// (from the main per-frame handler) sees LAPTOP_PROGRAM_MINIMIZED, starts the
+	// "restore from the taskbar" maximize animation instead of dispatching to
+	// EnterEmail()/EnterBobbyR()/etc., and that animation assumes an icon that was
+	// actually opened once and never gets positioned for a program jumped to cold --
+	// same prog/default mapping as the switch in EnterNewLaptopMode() below.
+	if (guiCurrentLaptopMode != LAPTOP_MODE_NONE)
+	{
+		UINT prog;
+		switch (guiCurrentLaptopMode)
+		{
+			case LAPTOP_MODE_EMAIL:     prog = LAPTOP_PROGRAM_MAILER;     break;
+			case LAPTOP_MODE_FILES:     prog = LAPTOP_PROGRAM_FILES;      break;
+			case LAPTOP_MODE_PERSONNEL: prog = LAPTOP_PROGRAM_PERSONNEL;  break;
+			case LAPTOP_MODE_FINANCES:  prog = LAPTOP_PROGRAM_FINANCES;   break;
+			case LAPTOP_MODE_HISTORY:   prog = LAPTOP_PROGRAM_HISTORY;    break;
+			default:                    prog = LAPTOP_PROGRAM_WEB_BROWSER; break;
+		}
+		gLaptopProgramStates[prog] = LAPTOP_PROGRAM_OPEN;
+	}
 
 	// turn the power on
 	fPowerLightOn = TRUE;
@@ -605,6 +686,10 @@ void ExitLaptop(void)
 
 	//Deallocate, save data -- leaving laptop.
 	SetRenderFlags(RENDER_FLAG_FULL);
+
+	// The player is genuinely closing the laptop here (as opposed to just switching to
+	// another of its own tabs) -- reset Bobby Ray's "sticky" restock-notification checkboxes.
+	ResetBobbyRNotifyEverShown();
 
 	ExitLaptopMode(fExitDuringLoad ? guiPreviousLaptopMode : guiCurrentLaptopMode);
 
@@ -705,6 +790,8 @@ static void RenderLaptop(void)
 		case LAPTOP_MODE_BOBBY_R_AMMO:             RenderBobbyRAmmo();        break;
 		case LAPTOP_MODE_BOBBY_R_ARMOR:            RenderBobbyRArmour();      break;
 		case LAPTOP_MODE_BOBBY_R_MISC:             RenderBobbyRMisc();        break;
+		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS:      RenderBobbyRAttachments(); break;
+		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:       RenderBobbyRExplosives();  break;
 		case LAPTOP_MODE_BOBBY_R_USED:             RenderBobbyRUsed();        break;
 		case LAPTOP_MODE_BOBBY_R_MAILORDER:        RenderBobbyRMailOrder();   break;
 		case LAPTOP_MODE_BOBBYR_SHIPMENTS:         RenderBobbyRShipments();   break;
@@ -900,6 +987,8 @@ do_nothing:
 		case LAPTOP_MODE_BOBBY_R_AMMO:             EnterBobbyRAmmo();        break;
 		case LAPTOP_MODE_BOBBY_R_ARMOR:            EnterBobbyRArmour();      break;
 		case LAPTOP_MODE_BOBBY_R_MISC:             EnterBobbyRMisc();        break;
+		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS:      EnterBobbyRAttachments(); break;
+		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:       EnterBobbyRExplosives();  break;
 		case LAPTOP_MODE_BOBBY_R_USED:             EnterBobbyRUsed();        break;
 		case LAPTOP_MODE_BOBBY_R_MAILORDER:        EnterBobbyRMailOrder();   break;
 		case LAPTOP_MODE_BOBBYR_SHIPMENTS:         EnterBobbyRShipments();   break;
@@ -1014,71 +1103,36 @@ ScreenID LaptopScreenHandle()
 	}
 
 	if (gfStartMapScreenToLaptopTransition)
-	{ //Everything is set up to start the transition animation.
-		SetCurrentCursorFromDatabase(VIDEO_NO_CURSOR);
-		//Step 1:  Build the laptop image into the save buffer.
+	{
 		gfStartMapScreenToLaptopTransition = FALSE;
-		RestoreBackgroundRects();
-		RenderLapTopImage();
-		RenderLaptop();
-		RenderButtons();
-		PrintDate();
-		PrintBalance();
-		PrintNumberOnTeam();
-		ShowLights();
 
-		//Step 2:  The mapscreen image is in the EXTRABUFFER, and laptop is in the SAVEBUFFER
-		//         Start transitioning the screen.
-		SGPBox const DstRect = ENABLE_LAPTOP_TRANSITION_RECT_FIX
-			? SGPBox{ STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT }
-			: SGPBox{ MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
-		const UINT32 uiTimeRange = 1000;
-		INT32 iPercentage     = 0;
-		INT32 iRealPercentage = 0;
-		const UINT32 uiStartTime = GetClock();
-		BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER,   0, 0, NULL);
-		BltVideoSurface(FRAME_BUFFER,  guiEXTRABUFFER, 0, 0, NULL);
-		PlayJA2SampleFromFile(SOUNDSDIR "/laptop power up (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
-		while (iRealPercentage < 100)
-		{
-			const UINT32 uiCurrTime = GetClock();
-			iPercentage = (uiCurrTime-uiStartTime) * 100 / uiTimeRange;
-			iPercentage = std::min(iPercentage, 100);
+		// A SetLaptopEntryMode() cold-jump (guiCurrentLaptopMode is non-NONE here) has
+		// no per-mode graphics loaded yet -- EnterNewLaptopMode() (below, via the
+		// guiCurrentLaptopMode != guiPreviousLaptopMode check) hasn't run a single time
+		// yet to call EnterBobbyR()/EnterEmail()/etc. Rendering immediately here would
+		// call RenderBobbyR()/etc. (RenderLaptop() below) against those still-
+		// uninitialized globals and crash. The normal map->laptop entry always has mode
+		// == NONE at this point (DrawDeskTopBackground() needs nothing pre-loaded), so
+		// it's unaffected -- skip only the instant-render optimization for the cold-jump
+		// case and fall through to the ordinary per-frame flow below, which renders only
+		// after EnterNewLaptopMode() has dispatched.
+		if (guiCurrentLaptopMode == LAPTOP_MODE_NONE)
+		{ //Everything is set up to open the laptop. The zoom-in transition
+		  //animation is disabled -- show the rendered laptop image immediately.
+			SetCurrentCursorFromDatabase(VIDEO_NO_CURSOR);
+			RestoreBackgroundRects();
+			RenderLapTopImage();
+			RenderLaptop();
+			RenderButtons();
+			PrintDate();
+			PrintBalance();
+			PrintNumberOnTeam();
+			ShowLights();
 
-			iRealPercentage = iPercentage;
-
-			//Factor the percentage so that it is modified by a gravity falling acceleration effect.
-			const INT32 iFactor = (iPercentage - 50) * 2;
-			if (iPercentage < 50)
-			{
-				iPercentage += iPercentage         * iFactor * 0.01 + 0.5;
-			}
-			else
-			{
-				iPercentage += (100 - iPercentage) * iFactor * 0.01 + 0.5;
-			}
-
-			INT32 iScalePercentage;
-			if (iPercentage < 99)
-			{
-				iScalePercentage = 10000 / (100 - iPercentage);
-			}
-			else
-			{
-				iScalePercentage = 5333;
-			}
-			const UINT16 uWidth  = 12 * iScalePercentage / 100;
-			const UINT16 uHeight =  9 * iScalePercentage / 100;
-			const UINT16 uX      = 472 - (472 - 320) * iScalePercentage / 5333;
-			const UINT16 uY      = 424 - (424 - 240) * iScalePercentage / 5333;
-
-			SGPBox const SrcRect2 = { (UINT16)(STD_SCREEN_X + uX - uWidth / 2), (UINT16)(STD_SCREEN_Y + uY - uHeight / 2), uWidth, uHeight };
-
-			BltStretchVideoSurface(FRAME_BUFFER, guiSAVEBUFFER, &DstRect, &SrcRect2);
 			InvalidateScreen();
 			RefreshScreen();
+			fReDrawScreenFlag = TRUE;
 		}
-		fReDrawScreenFlag = TRUE;
 	}
 
 	//DO NOT MOVE THIS FUNCTION CALL!!!
@@ -1279,6 +1333,8 @@ static void ExitLaptopMode(LaptopMode uiMode)
 		case LAPTOP_MODE_BOBBY_R_AMMO:             ExitBobbyRAmmo();        break;
 		case LAPTOP_MODE_BOBBY_R_ARMOR:            ExitBobbyRArmour();      break;
 		case LAPTOP_MODE_BOBBY_R_MISC:             ExitBobbyRMisc();        break;
+		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS:      ExitBobbyRAttachments(); break;
+		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:       ExitBobbyRExplosives();  break;
 		case LAPTOP_MODE_BOBBY_R_USED:             ExitBobbyRUsed();        break;
 		case LAPTOP_MODE_BOBBY_R_MAILORDER:        ExitBobbyRMailOrder();   break;
 		case LAPTOP_MODE_BOBBYR_SHIPMENTS:         ExitBobbyRShipments();   break;
@@ -1430,70 +1486,10 @@ static void LeaveLapTopScreen(void)
 		{
 			gfDontStartTransitionFromLaptop = TRUE;
 			SetCurrentCursorFromDatabase(VIDEO_NO_CURSOR);
-			//Step 1:  Build the laptop image into the save buffer.
-			RestoreBackgroundRects();
-			RenderLapTopImage();
-			RenderLaptop();
-			RenderButtons();
-			PrintDate();
-			PrintBalance();
-			PrintNumberOnTeam();
-			ShowLights();
-
-			//Step 2:  The mapscreen image is in the EXTRABUFFER, and laptop is in the SAVEBUFFER
-			//         Start transitioning the screen.
-			SGPBox const SrcRect = ENABLE_LAPTOP_TRANSITION_RECT_FIX
-				? SGPBox{ STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT }
-				: SGPBox{ MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
-			const UINT32 uiTimeRange = 1000;
-			INT32 iPercentage     = 100;
-			INT32 iRealPercentage = 100;
-			const UINT32 uiStartTime = GetClock();
-			BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER, 0, 0, NULL);
-			PlayJA2SampleFromFile(SOUNDSDIR "/laptop power down (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
-			while (iRealPercentage > 0)
-			{
-				BltVideoSurface(FRAME_BUFFER, guiEXTRABUFFER, 0, 0, NULL);
-
-				const UINT32 uiCurrTime = GetClock();
-				iPercentage = (uiCurrTime-uiStartTime) * 100 / uiTimeRange;
-				iPercentage = std::min(iPercentage, 100);
-				iPercentage = 100 - iPercentage;
-
-				iRealPercentage = iPercentage;
-
-				//Factor the percentage so that it is modified by a gravity falling acceleration effect.
-				const INT32 iFactor = (iPercentage - 50) * 2;
-				if (iPercentage < 50)
-				{
-					iPercentage += iPercentage       * iFactor * 0.01 + 0.5;
-				}
-				else
-				{
-					iPercentage += (100-iPercentage) * iFactor * 0.01 + 0.5;
-				}
-
-				//Scaled laptop
-				INT32 iScalePercentage;
-				if (iPercentage < 99)
-				{
-					iScalePercentage = 10000 / (100-iPercentage);
-				}
-				else
-				{
-					iScalePercentage = 5333;
-				}
-				const UINT16 uWidth  = 12 * iScalePercentage / 100;
-				const UINT16 uHeight =  9 * iScalePercentage / 100;
-				const UINT16 uX = 472 - (472 - 320) * iScalePercentage / 5333;
-				const UINT16 uY = 424 - (424 - 240) * iScalePercentage / 5333;
-
-				SGPBox const DstRect = { (UINT16)(STD_SCREEN_X + uX - uWidth / 2), (UINT16)(STD_SCREEN_Y + uY - uHeight / 2), uWidth, uHeight };
-
-				BltStretchVideoSurface(FRAME_BUFFER, guiSAVEBUFFER, &SrcRect, &DstRect);
-				InvalidateScreen();
-				RefreshScreen();
-			}
+			//Closing transition animation disabled -- show the map screen immediately.
+			BltVideoSurface(FRAME_BUFFER, guiEXTRABUFFER, 0, 0, NULL);
+			InvalidateScreen();
+			RefreshScreen();
 		}
 	}
 }
@@ -1505,7 +1501,7 @@ static BOOLEAN HandleExit(void)
 	if (LaptopSaveInfo.gfNewGameLaptop)
 	{
 		// Set an event to send this email (day 2 8:00-12:00)
-		if (!LaptopSaveInfo.fIMPCompletedFlag && !LaptopSaveInfo.fSentImpWarningAlready)
+		if (!HasCreatedAnyImpMerc() && !LaptopSaveInfo.fSentImpWarningAlready)
 		{
 			AddFutureDayStrategicEvent(EVENT_HAVENT_MADE_IMP_CHARACTER_EMAIL, (8 + Random(4)) * 60, 0, 1);
 			fExitingLaptopFlag = TRUE;
@@ -1519,11 +1515,58 @@ static BOOLEAN HandleExit(void)
 void HaventMadeImpMercEmailCallBack()
 {
 	//if the player STILL hasnt made an imp merc yet
-	if (!LaptopSaveInfo.fIMPCompletedFlag && !LaptopSaveInfo.fSentImpWarningAlready)
+	if (!HasCreatedAnyImpMerc() && !LaptopSaveInfo.fSentImpWarningAlready)
 	{
+		// "A *little* knowledge is a dangerous thing..." is in the mailbox from the start
+		// as read mail now (Game_Init.cc), regardless of whether an IMP merc gets made --
+		// no longer (re-)sent here.
 		LaptopSaveInfo.fSentImpWarningAlready = TRUE;
-		AddEmail(IMP_EMAIL_AGAIN,IMP_EMAIL_AGAIN_LENGTH, 1, GetWorldTotalMin());
 	}
+}
+
+
+BOOLEAN IsImpSlotCompleted(UINT8 ubSlot)
+{
+	return LaptopSaveInfo.fIMPCompletedFlag[ubSlot];
+}
+
+
+BOOLEAN IsImpSlotDead(UINT8 ubSlot)
+{
+	return IsMercDead(GetProfile(PLAYER_GENERATED_CHARACTER_ID + ubSlot));
+}
+
+
+BOOLEAN HasCreatedAnyImpMerc(void)
+{
+	for (UINT8 i = 0; i < MAX_IMP_MERCS; ++i)
+	{
+		if (LaptopSaveInfo.fIMPCompletedFlag[i]) return TRUE;
+	}
+	return FALSE;
+}
+
+
+BOOLEAN CanCreateAnotherImpMerc(void)
+{
+	for (UINT8 i = 0; i < MAX_IMP_MERCS; ++i)
+	{
+		if (!LaptopSaveInfo.fIMPCompletedFlag[i]) return TRUE;
+	}
+	return FALSE;
+}
+
+
+// Returns the slot (0..MAX_IMP_MERCS-1) whose completed IMP merc was created
+// with this portrait, or -1 if no completed slot uses it.
+INT8 FindImpSlotUsingPortrait(INT32 iPortraitNumber)
+{
+	for (UINT8 i = 0; i < MAX_IMP_MERCS; ++i)
+	{
+		if (!LaptopSaveInfo.fIMPCompletedFlag[i]) continue;
+		if (GetProfile(PLAYER_GENERATED_CHARACTER_ID + i).ubFaceIndex - 200 == iPortraitNumber) return (INT8)i;
+	}
+	return -1;
 }
 
 
@@ -1698,6 +1741,17 @@ static void DisplayBookMarks(void)
 	INT32 const sy = BOOK_TOP_Y + 6 + h;
 	INT32       y  = sy;
 	HCenterVCenterAlign const alignment{ BOOK_WIDTH - 3, h };
+
+	// Restore whatever background the reorder arrow was drawn over last
+	// frame, before this frame decides whether (and where) to draw it again.
+	static SGPBox   LastArrowRect;
+	static BOOLEAN  fArrowShownLastFrame = FALSE;
+	if (fArrowShownLastFrame)
+	{
+		BlitBufferToBuffer(guiSAVEBUFFER, FRAME_BUFFER, LastArrowRect.x, LastArrowRect.y, LastArrowRect.w, LastArrowRect.h);
+		fArrowShownLastFrame = FALSE;
+	}
+
 	for (INT32 i = 0;; ++i)
 	{
 		bool              const highlighted = iHighLightBookLine == i;
@@ -1708,6 +1762,20 @@ static void DisplayBookMarks(void)
 		INT32          const idx = LaptopSaveInfo.iBookMarkList[i];
 		MPrint(BOOK_X + 3, y + 2,
 			pBookMarkStrings[idx != -1 ? idx : CANCEL_STRING], alignment);
+
+		// Manual-sort arrow: only for a real (non-Cancel) bookmark under the cursor
+		if (highlighted && idx != -1)
+		{
+			// Reserve/restore the wider (pressed) sub-image's footprint
+			// regardless of which one is actually drawn, so its extra
+			// column of pixels always gets cleaned up too.
+			SGPBox const ArrowRect = { (UINT16)(BOOK_X + BOOK_WIDTH), (UINT16)y, BOOK_ARROW_PRESSED_WIDTH, BOOK_ARROW_HEIGHT };
+			BlitBufferToBuffer(FRAME_BUFFER, guiSAVEBUFFER, ArrowRect.x, ArrowRect.y, ArrowRect.w, ArrowRect.h);
+			BltVideoObject(FRAME_BUFFER, guiBOOKARROWS, (iPressedBookArrow == i) ? 1 : 0, ArrowRect.x, ArrowRect.y);
+			LastArrowRect        = ArrowRect;
+			fArrowShownLastFrame = TRUE;
+		}
+
 		y += h;
 		if (idx == -1) break;
 	}
@@ -1715,7 +1783,7 @@ static void DisplayBookMarks(void)
 	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontShadow(DEFAULT_SHADOW);
 
-	InvalidateRegion(BOOK_X, sy, BOOK_X + BOOK_WIDTH, y);
+	InvalidateRegion(BOOK_X, sy, BOOK_X + BOOK_WIDTH + BOOK_ARROW_PRESSED_WIDTH, y);
 }
 
 
@@ -1723,6 +1791,7 @@ static void DeleteBookmark(void)
 {
 	RemoveVObject(guiBOOKHIGH);
 	RemoveVObject(guiBOOKMARK);
+	RemoveVObject(guiBOOKARROWS);
 	RemoveVObject(guiDOWNLOADTOP);
 	RemoveVObject(guiDOWNLOADMID);
 	RemoveVObject(guiDOWNLOADBOT);
@@ -1731,6 +1800,8 @@ static void DeleteBookmark(void)
 
 static void BookmarkCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 static void BookmarkMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
+static void BookmarkArrowCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
+static void BookmarkArrowMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
 static void CreateBookMarkMouseRegions(void)
@@ -1745,6 +1816,12 @@ static void CreateBookMarkMouseRegions(void)
 		INT32 const idx = LaptopSaveInfo.iBookMarkList[i];
 		if (idx == -1) break; // just added region for cancel
 		r->SetFastHelpText(gzLaptopHelpText[BOOKMARK_TEXT_ASSOCIATION_OF_INTERNATION_MERCENARIES + idx]);
+
+		// manual-sort arrow, immediately to the right of the row, no gap
+		MOUSE_REGION* const arrow = &gBookmarkArrowRegions[i];
+		MSYS_DefineRegion(arrow, BOOK_X + BOOK_WIDTH, y, BOOK_X + BOOK_WIDTH + BOOK_ARROW_WIDTH, y + BOOK_ARROW_HEIGHT, MSYS_PRIORITY_HIGHEST - 2, CURSOR_LAPTOP_SCREEN, BookmarkArrowMvtCallBack, BookmarkArrowCallBack);
+		MSYS_SetRegionUserData(arrow, 0, i);
+		arrow->SetFastHelpText(gzLaptopHelpText[BOOKMARK_TEXT_MOVE_UP_ONE_POSITION]);
 	}
 }
 
@@ -1756,6 +1833,7 @@ static void DeleteBookmarkRegions(void)
 	for (i = 0; LaptopSaveInfo.iBookMarkList[i] != -1; ++i)
 	{
 		MSYS_RemoveRegion(&gBookmarkMouseRegions[i]);
+		MSYS_RemoveRegion(&gBookmarkArrowRegions[i]);
 	}
 
 	// now one for the cancel
@@ -1841,7 +1919,20 @@ void GoToWebPage(INT32 iPageId)
 		case IMP_BOOKMARK:
 			guiCurrentWWWMode    = LAPTOP_MODE_CHAR_PROFILE;
 			guiCurrentLaptopMode = LAPTOP_MODE_CHAR_PROFILE;
-			iCurrentImpPage = IMP_HOME_PAGE;
+			// Skip the activation-code and welcome/"Begin" screens and jump
+			// straight into character creation, matching what the welcome
+			// page's own "Begin" button (BtnIMPMainPageBeginCallback) would
+			// silently do anyway for this same iCurrentProfileMode range.
+			// Fall back to the code-entry page when either:
+			//  - all IMP slots are used (its existing "Profile Already
+			//    Completed" message still applies), or
+			//  - iCurrentProfileMode > 2, meaning there's an abandoned
+			//    in-progress profile from an earlier attempt -- the welcome
+			//    page's Begin button would ask to confirm restarting it
+			//    rather than silently discarding it, so route through there
+			//    instead of skipping that confirmation.
+			iCurrentImpPage = (CanCreateAnotherImpMerc() && iCurrentProfileMode <= 2)
+				? IMP_BEGIN : IMP_HOME_PAGE;
 			break;
 
 		case MERC_BOOKMARK:
@@ -1897,6 +1988,69 @@ static void BookmarkMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
 }
 
 
+// Moves the bookmark at position i one row up. If it's already at the top,
+// it wraps around to the bottom instead, and every other bookmark shifts up
+// one row to fill the gap.
+static void MoveBookmarkUp(INT32 const i)
+{
+	if (i > 0)
+	{
+		std::swap(LaptopSaveInfo.iBookMarkList[i], LaptopSaveInfo.iBookMarkList[i - 1]);
+		return;
+	}
+
+	INT32 count = 0;
+	while (LaptopSaveInfo.iBookMarkList[count] != -1) ++count;
+	if (count <= 1) return;
+
+	INT32 const first = LaptopSaveInfo.iBookMarkList[0];
+	for (INT32 k = 0; k < count - 1; ++k)
+	{
+		LaptopSaveInfo.iBookMarkList[k] = LaptopSaveInfo.iBookMarkList[k + 1];
+	}
+	LaptopSaveInfo.iBookMarkList[count - 1] = first;
+}
+
+
+static void BookmarkArrowMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		iHighLightBookLine = -1;
+		iPressedBookArrow  = -1;
+	}
+	else if (iReason & MSYS_CALLBACK_REASON_MOVE)
+	{
+		// keep the row (and its arrow) visible while the cursor is over the
+		// arrow itself, exactly as if still hovering the row
+		iHighLightBookLine = MSYS_GetRegionUserData(pRegion, 0);
+	}
+}
+
+
+static void BookmarkArrowCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	if (fLoadPendingFlag) return;
+
+	INT32 const i = MSYS_GetRegionUserData(pRegion, 0);
+
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN)
+	{
+		iPressedBookArrow = i;
+	}
+
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		iPressedBookArrow = -1;
+		MoveBookmarkUp(i);
+
+		// row content shifted around: rebuild regions/help-text to match
+		DeleteBookmarkRegions();
+		CreateBookMarkMouseRegions();
+	}
+}
+
+
 static void DisplayLoadPending(void)
 {
 	// this function will display the load pending and return if the load is done
@@ -1933,7 +2087,7 @@ static void DisplayLoadPending(void)
 	// Adjust loading time based on config var
 	uiUnitTime *= gamepolicy(website_loading_time_scale);
 
-	UINT32 uiLoadTime = uiUnitTime * 30;
+	UINT32 uiLoadTime = uiUnitTime * 15;
 
 	// we are now waiting on a web page to download, reset counter
 	if (!fLoadPendingFlag)
@@ -2055,6 +2209,16 @@ static void PostButtonRendering(void)
 	switch (guiCurrentLaptopMode)
 	{
 		case LAPTOP_MODE_AIM_MEMBERS: RenderAIMMembersTopLevel(); break;
+
+		case LAPTOP_MODE_BOBBY_R_GUNS:
+		case LAPTOP_MODE_BOBBY_R_AMMO:
+		case LAPTOP_MODE_BOBBY_R_ARMOR:
+		case LAPTOP_MODE_BOBBY_R_ATTACHMENTS:
+		case LAPTOP_MODE_BOBBY_R_EXPLOSIVES:
+		case LAPTOP_MODE_BOBBY_R_MISC:
+			RenderBobbyRNotifyHatchOverlay();
+			break;
+
 				default:
 						break;
 	}
@@ -2248,14 +2412,8 @@ static BOOLEAN DisplayTitleBarMaximizeGraphic(BOOLEAN fForward, BOOLEAN fInit, U
 	{
 		if (gfTitleBarSurfaceAlreadyActive) return FALSE;
 		gfTitleBarSurfaceAlreadyActive = TRUE;
-		if (fForward)
-		{
-			ubCount = 1;
-		}
-		else
-		{
-			ubCount = NUMBER_OF_LAPTOP_TITLEBAR_ITERATIONS - 1;
-		}
+		// Sliding title bar animation disabled -- jump straight to the final frame.
+		ubCount = fForward ? NUMBER_OF_LAPTOP_TITLEBAR_ITERATIONS : 0;
 	}
 
 	FLOAT dTemp;
@@ -2625,6 +2783,19 @@ static void LaptopMinimizeProgramButtonCallback(GUI_BUTTON* btn, UINT32 reason)
 		gLaptopProgramStates[prog] = LAPTOP_PROGRAM_MINIMIZED;
 		InitTitleBarMaximizeGraphics(guiTITLEBARLAPTOP, title, guiTITLEBARICONS, gfx_idx);
 		SetCurrentToLastProgramOpened();
+
+		// HandleSlidingTitleBar()'s minimizing branch switches on bProgramBeingMaximized to
+		// know which title-bar icon slot to animate to -- for a program opened normally
+		// (sidebar icon click), that was already set correctly when it was maximized and
+		// still holds that value here. A program entered cold via SetLaptopEntryMode() (a
+		// tactical/strategic shortcut) skips the maximize animation entirely, so it's never
+		// set at all and stays at EnterLaptop()'s reset value (-1). With no case in that
+		// switch matching -1, the minimize animation would never report itself done, leaving
+		// fMinizingProgram stuck TRUE forever and freezing all further laptop mode-switch
+		// handling (LaptopScreenHandle()'s dispatch is gated on !fMinizingProgram) -- exactly
+		// the "X doesn't close anything anymore" symptom on a shortcut-opened page.
+		bProgramBeingMaximized = prog;
+
 		fMinizingProgram = TRUE;
 		fInitTitle = TRUE;
 	}
@@ -3286,7 +3457,10 @@ static void InjectStoreInvetory(DataWriter& d, STORE_INVENTORY const& i)
 	INJ_U8(  d, i.ubQtyOnOrder)
 	INJ_U8(  d, i.ubItemQuality)
 	INJ_BOOL(d, i.fPreviouslyEligible)
-	INJ_SKIP(d, 2)
+	// 1 of the 2 formerly-skipped bytes here -- INJ_SKIP always wrote 0, so an older save (which
+	// never had this field) reads back FALSE, same as if it had been written explicitly.
+	INJ_BOOL(d, i.fNotifyOnRestock)
+	INJ_SKIP(d, 1)
 	Assert(d.getConsumed() == start + 8);
 }
 
@@ -3299,7 +3473,8 @@ static void ExtractStoreInvetory(DataReader& d, STORE_INVENTORY& i)
 	EXTR_U8(  d, i.ubQtyOnOrder)
 	EXTR_U8(  d, i.ubItemQuality)
 	EXTR_BOOL(d, i.fPreviouslyEligible)
-	EXTR_SKIP(d, 2)
+	EXTR_BOOL(d, i.fNotifyOnRestock)
+	EXTR_SKIP(d, 1)
 	Assert(d.getConsumed() == start + 8);
 }
 
@@ -3308,14 +3483,14 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 {
 	LaptopSaveInfoStruct const& l = LaptopSaveInfo;
 
-	BYTE  data[7440];
+	BYTE  data[7445];
 	DataWriter d{data};
 	INJ_BOOL( d, l.gfNewGameLaptop)
 	INJ_BOOLA(d, l.fVisitedBookmarkAlready, lengthof(l.fVisitedBookmarkAlready))
 	INJ_SKIP( d, 3)
 	INJ_I32A( d, l.iBookMarkList, lengthof(l.iBookMarkList))
 	INJ_I32(  d, l.iCurrentBalance)
-	INJ_BOOL( d, l.fIMPCompletedFlag)
+	INJ_BOOLA(d, l.fIMPCompletedFlag, lengthof(l.fIMPCompletedFlag))
 	INJ_BOOL( d, l.fSentImpWarningAlready)
 	INJ_I16A( d, l.ubDeadCharactersList, lengthof(l.ubDeadCharactersList))
 	INJ_I16A( d, l.ubLeftCharactersList, lengthof(l.ubLeftCharactersList))
@@ -3393,7 +3568,7 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 
 	l.pLifeInsurancePayouts.clear();
 
-	BYTE data[7440];
+	BYTE data[7445];
 	f->read(data, sizeof(data));
 
 	DataReader d{data};
@@ -3402,7 +3577,7 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 	EXTR_SKIP( d, 3)
 	EXTR_I32A( d, l.iBookMarkList, lengthof(l.iBookMarkList))
 	EXTR_I32(  d, l.iCurrentBalance)
-	EXTR_BOOL( d, l.fIMPCompletedFlag)
+	EXTR_BOOLA(d, l.fIMPCompletedFlag, lengthof(l.fIMPCompletedFlag))
 	EXTR_BOOL( d, l.fSentImpWarningAlready)
 	EXTR_I16A( d, l.ubDeadCharactersList, lengthof(l.ubDeadCharactersList))
 	EXTR_I16A( d, l.ubLeftCharactersList, lengthof(l.ubLeftCharactersList))

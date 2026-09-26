@@ -96,7 +96,7 @@ void MERCListingModel::validateData(const std::vector<const MERCListingModel*>& 
 	std::set<uint8_t> uniqueProfileIDs;
 	for (auto m : models)
 	{
-		if (m->profileID == 0 || m->profileID >= NO_PROFILE)
+		if (m->profileID == 0 || m->profileID == NO_PROFILE)
 		{
 			throw DataError(ST::format("Invalid profileID '{}'", m->profileID));
 		}

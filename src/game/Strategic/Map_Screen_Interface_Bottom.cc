@@ -1,6 +1,9 @@
 #include "Directories.h"
 #include "Font.h"
 #include "Interface.h"
+#include "Interface_Panels.h"
+#include "Laptop.h"
+#include "AIMSort.h"
 #include "Local.h"
 #include "Map_Screen_Interface_Bottom.h"
 #include "Map_Screen_Interface_Border.h"
@@ -81,6 +84,21 @@
 
 
 
+// Laptop shortcut buttons (E-mail, AIM Members, M.E.R.C., Bobby Ray's, History,
+// Personnel, Keyboard Shortcuts) -- same 9-icon idea as the tactical screen's SM
+// panel (SM_EMAIL_BUTTON etc. in Interface_Panels.cc), minus Statistics/Skills,
+// which have no equivalent of gpSMCurrentMerc here. Top-left anchored (unlike the
+// bottom/right-anchored buttons above), one pixel offset per strategic-screen size
+// tier, given separately even though currently equal, so either can move on its own
+// later -- see isCompactStrategicScreen()/g_ui.
+#define MAP_LAPTOP_SHORTCUT_X_1280 (MAP_SCREEN_X + 386) // height 720-767
+#define MAP_LAPTOP_SHORTCUT_Y_1280 (MAP_SCREEN_Y + 664)
+#define MAP_LAPTOP_SHORTCUT_X_1024 (MAP_SCREEN_X + 386) // height 768+
+#define MAP_LAPTOP_SHORTCUT_Y_1024 (MAP_SCREEN_Y + 664)
+#define MAP_LAPTOP_SHORTCUT_WIDTH  32
+#define MAP_LAPTOP_SHORTCUT_GAP     3
+#define MAP_LAPTOP_SHORTCUT_STEP   (MAP_LAPTOP_SHORTCUT_WIDTH + MAP_LAPTOP_SHORTCUT_GAP)
+
 #define MESSAGE_BTN_SCROLL_TIME 100
 
 // delay for paused flash
@@ -97,6 +115,22 @@ enum{
 enum{
 	MAP_TIME_COMPRESS_MORE = 0,
 	MAP_TIME_COMPRESS_LESS,
+};
+
+enum{
+	MAP_LAPTOP_SHORTCUT_EMAIL = 0,
+	MAP_LAPTOP_SHORTCUT_AIM_MEMBERS,
+	MAP_LAPTOP_SHORTCUT_MERC,
+	MAP_LAPTOP_SHORTCUT_BOBBYR,
+	MAP_LAPTOP_SHORTCUT_HISTORY,
+	MAP_LAPTOP_SHORTCUT_PERSONNEL,
+	MAP_LAPTOP_SHORTCUT_KEYBOARD,
+	// Not laptop shortcuts (they don't leave the map screen at all) -- the merc-stats/
+	// skills popups, same as SM_STATS_BUTTON/SM_SKILLS_BUTTON on the tactical screen's
+	// SM panel, kept in this same array/row since they're part of the same 9-icon set.
+	MAP_LAPTOP_SHORTCUT_STATS,
+	MAP_LAPTOP_SHORTCUT_SKILLS,
+	NUM_MAP_LAPTOP_SHORTCUTS,
 };
 
 
@@ -149,6 +183,7 @@ cache_key_t GetMapScreenBottomGraphicsFilename()
 GUIButtonRef        guiMapBottomExitButtons[3];
 static GUIButtonRef guiMapBottomTimeButtons[2];
 static GUIButtonRef guiMapMessageScrollButtons[2];
+static GUIButtonRef guiMapBottomLaptopShortcutButtons[NUM_MAP_LAPTOP_SHORTCUTS];
 
 // mouse regions
 static MOUSE_REGION gMapMessageScrollBarRegion;
@@ -160,6 +195,16 @@ static MOUSE_REGION gTimeCompressionMask[3];
 static void BtnLaptopCallback(GUI_BUTTON *btn, UINT32 reason);
 static void BtnTacticalCallback(GUI_BUTTON *btn, UINT32 reason);
 static void BtnOptionsFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
+
+static void BtnLaptopEmailFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
+static void BtnLaptopAIMMembersFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
+static void BtnLaptopMercFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
+static void BtnLaptopBobbyRFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
+static void BtnLaptopHistoryFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
+static void BtnLaptopPersonnelFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
+static void BtnLaptopKeyboardShortcutsFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
+static void BtnStatsFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
+static void BtnSkillsFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
 
 static void BtnTimeCompressMoreMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
 static void BtnTimeCompressLessMapScreenCallback(GUI_BUTTON *btn, UINT32 reason);
@@ -247,6 +292,9 @@ void RenderMapScreenInterfaceBottom( void )
 		HideButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS]);
 		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
 		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+		// The laptop shortcut row (Y=664) sits inside this same 121px-tall bottom
+		// strip -- same visibility fix as the buttons above.
+		for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons) HideButton(btn);
 		return;
 	}
 
@@ -259,6 +307,7 @@ void RenderMapScreenInterfaceBottom( void )
 	ShowButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS]);
 	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
 	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+	for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons) ShowButton(btn);
 
 	// render whole panel
 	if (fMapScreenBottomDirty)
@@ -314,6 +363,14 @@ void RenderMapScreenInterfaceBottom( void )
 
 	EnableDisableBottomButtonsAndRegions( );
 
+	// Drawn last (on top of everything else above) -- same idea as
+	// RenderTopmostTacticalInterface()'s InStatsPopup()/InSkillsPopup() calls on the
+	// tactical screen (Interface_Control.cc), which these popups have no equivalent
+	// of here, so always ask for a full render; a static stat sheet redrawing every
+	// frame while open is not worth the extra state just to skip a few redundant blits.
+	if (InStatsPopup())  RenderStatsPopup(TRUE);
+	if (InSkillsPopup()) RenderSkillsPopup(TRUE);
+
 	fMapBottomDirtied = FALSE;
 }
 
@@ -336,6 +393,17 @@ static GUIButtonRef MakeArrowButton(INT32 grayed, INT32 off, INT32 on, INT16 x, 
 }
 
 
+// Same icon sheet (and off/on frame numbering) as the tactical screen's SM panel --
+// see SM_EMAIL_IMAGES etc. in Interface_Panels.cc.
+static GUIButtonRef MakeLaptopShortcutButton(INT32 off, INT32 on, INT16 x, INT16 y, GUI_CALLBACK click, const ST::string& help)
+{
+	GUIButtonRef const btn = QuickCreateButtonImg(INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti", off, on, x, y, MSYS_PRIORITY_HIGHEST - 1, click);
+	btn->SetFastHelpText(help);
+	btn->SetCursor(MSYS_NO_CURSOR);
+	return btn;
+}
+
+
 static void CreateButtonsForMapScreenInterfaceBottom(void)
 {
 	// Bottom+right-anchored (see MAP_SCREEN_RIGHT/MAP_SCREEN_BOTTOM), preserving
@@ -352,14 +420,42 @@ static void CreateButtonsForMapScreenInterfaceBottom(void)
 	// scroll buttons -- part of the message box (bottom only, X unchanged)
 	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]   = MakeArrowButton(11, 4, 6, MAP_SCREEN_X + 331, MAP_SCREEN_BOTTOM - 109, BtnMessageUpMapScreenCallback,   pMapScreenBottomFastHelp[5]);
 	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN] = MakeArrowButton(12, 5, 7, MAP_SCREEN_X + 331, MAP_SCREEN_BOTTOM - 28,  BtnMessageDownMapScreenCallback, pMapScreenBottomFastHelp[6]);
+
+	// Laptop shortcut buttons -- top-left anchored, one row, a fixed 3px apart; see
+	// MAP_LAPTOP_SHORTCUT_X_1280/_1024 above for why the two tiers are resolved
+	// separately even though they currently share the same numbers.
+	{
+		INT16 const x0 = g_ui.isCompactStrategicScreen() ? MAP_LAPTOP_SHORTCUT_X_1280 : MAP_LAPTOP_SHORTCUT_X_1024;
+		INT16 const y  = g_ui.isCompactStrategicScreen() ? MAP_LAPTOP_SHORTCUT_Y_1280 : MAP_LAPTOP_SHORTCUT_Y_1024;
+
+		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_EMAIL] = MakeLaptopShortcutButton(0, 1,
+			x0 + MAP_LAPTOP_SHORTCUT_EMAIL * MAP_LAPTOP_SHORTCUT_STEP, y, BtnLaptopEmailFromMapScreenCallback, "E-mail");
+		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_AIM_MEMBERS] = MakeLaptopShortcutButton(2, 3,
+			x0 + MAP_LAPTOP_SHORTCUT_AIM_MEMBERS * MAP_LAPTOP_SHORTCUT_STEP, y, BtnLaptopAIMMembersFromMapScreenCallback, "AIM Members");
+		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_MERC] = MakeLaptopShortcutButton(4, 5,
+			x0 + MAP_LAPTOP_SHORTCUT_MERC * MAP_LAPTOP_SHORTCUT_STEP, y, BtnLaptopMercFromMapScreenCallback, "M.E.R.C.");
+		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_BOBBYR] = MakeLaptopShortcutButton(6, 7,
+			x0 + MAP_LAPTOP_SHORTCUT_BOBBYR * MAP_LAPTOP_SHORTCUT_STEP, y, BtnLaptopBobbyRFromMapScreenCallback, "Bobby Ray's");
+		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_HISTORY] = MakeLaptopShortcutButton(8, 9,
+			x0 + MAP_LAPTOP_SHORTCUT_HISTORY * MAP_LAPTOP_SHORTCUT_STEP, y, BtnLaptopHistoryFromMapScreenCallback, "History");
+		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_PERSONNEL] = MakeLaptopShortcutButton(10, 11,
+			x0 + MAP_LAPTOP_SHORTCUT_PERSONNEL * MAP_LAPTOP_SHORTCUT_STEP, y, BtnLaptopPersonnelFromMapScreenCallback, "Personnel");
+		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_KEYBOARD] = MakeLaptopShortcutButton(20, 21,
+			x0 + MAP_LAPTOP_SHORTCUT_KEYBOARD * MAP_LAPTOP_SHORTCUT_STEP, y, BtnLaptopKeyboardShortcutsFromMapScreenCallback, "Keyboard Shortcuts");
+		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_STATS] = MakeLaptopShortcutButton(22, 23,
+			x0 + MAP_LAPTOP_SHORTCUT_STATS * MAP_LAPTOP_SHORTCUT_STEP, y, BtnStatsFromMapScreenCallback, "Statistics");
+		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_SKILLS] = MakeLaptopShortcutButton(24, 25,
+			x0 + MAP_LAPTOP_SHORTCUT_SKILLS * MAP_LAPTOP_SHORTCUT_STEP, y, BtnSkillsFromMapScreenCallback, "Skills");
+	}
 }
 
 
 static void DestroyButtonsForMapScreenInterfaceBottom()
 {
-	FOR_EACH(GUIButtonRef, i, guiMapBottomExitButtons)    RemoveButton(*i);
-	FOR_EACH(GUIButtonRef, i, guiMapBottomTimeButtons)    RemoveButton(*i);
-	FOR_EACH(GUIButtonRef, i, guiMapMessageScrollButtons) RemoveButton(*i);
+	FOR_EACH(GUIButtonRef, i, guiMapBottomExitButtons)             RemoveButton(*i);
+	FOR_EACH(GUIButtonRef, i, guiMapBottomTimeButtons)             RemoveButton(*i);
+	FOR_EACH(GUIButtonRef, i, guiMapMessageScrollButtons)          RemoveButton(*i);
+	FOR_EACH(GUIButtonRef, i, guiMapBottomLaptopShortcutButtons)   RemoveButton(*i);
 	fMapScreenBottomDirty = TRUE;
 }
 
@@ -387,6 +483,134 @@ static void BtnOptionsFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
 		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_OPTIONS);
+	}
+}
+
+
+// Laptop shortcut buttons -- jump straight into the laptop on a given
+// program/page (see SetLaptopEntryMode() in Laptop.cc), same idea as the
+// tactical screen's SM panel (Interface_Panels.cc). guiExitScreen is left at
+// its MAP_SCREEN default (unlike the tactical shortcuts, which set it to
+// GAME_SCREEN), so closing the laptop returns here, to the map, same as the
+// existing MAP_EXIT_TO_LAPTOP button.
+static void BtnLaptopEmailFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_EMAIL);
+		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_LAPTOP);
+	}
+}
+
+
+static void BtnLaptopAIMMembersFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		// See the matching comment on BtnLaptopAIMMembersCallback() in
+		// Interface_Panels.cc: LAPTOP_MODE_AIM_MEMBERS_SORTED_FILES is the
+		// mugshot list/index, forced to the canonical "price, descending" view.
+		SetLaptopEntryMode(LAPTOP_MODE_AIM_MEMBERS_SORTED_FILES);
+		gubCurrentSortMode = 0; // Price -- see QsortCompare() in AimSort.cc
+		gubCurrentListMode = AIM_DESCEND;
+		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_LAPTOP);
+	}
+}
+
+
+static void BtnLaptopMercFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_MERC);
+		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_LAPTOP);
+	}
+}
+
+
+static void BtnLaptopBobbyRFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_BOBBY_R);
+		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_LAPTOP);
+	}
+}
+
+
+static void BtnLaptopHistoryFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_HISTORY);
+		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_LAPTOP);
+	}
+}
+
+
+static void BtnLaptopPersonnelFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		SetLaptopEntryMode(LAPTOP_MODE_PERSONNEL);
+		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_LAPTOP);
+	}
+}
+
+
+static void BtnLaptopKeyboardShortcutsFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		RequestTriggerExitFromMapscreen(MAP_EXIT_TO_OPTIONS);
+	}
+}
+
+
+// Same position/size as the map's own item-description box (ItemInfoC.sti,
+// MAP_ITEMDESC_START_X/Y == PLAYER_INFO_X/Y and MAP_ITEMDESC_WIDTH/HEIGHT,
+// Interface_Items.cc/MapScreen.cc) -- kept as a literal copy rather than an
+// extern/include, since those are local #defines in that other file's .cc.
+#define MAP_STATS_SKILLS_POPUP_X      (MAP_SCREEN_X + 0)
+#define MAP_STATS_SKILLS_POPUP_Y      (MAP_SCREEN_Y + 107)
+#define MAP_STATS_SKILLS_POPUP_WIDTH  272
+#define MAP_STATS_SKILLS_POPUP_HEIGHT 268
+
+// Merc-stats/skills popups -- same InitStatsPopup()/InitSkillsPopup() as the tactical
+// screen's SM_STATS_BUTTON/SM_SKILLS_BUTTON (Interface_Panels.cc), for the merc most
+// recently selected (clicked) in the team panel -- GetSelectedInfoChar() (MapScreen.cc),
+// the same accessor the map's own per-item description box uses
+// (MAPInternalInitItemDescriptionBox() callers, Map_Screen_Interface_Map_Inventory.cc).
+static void BtnStatsFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	if (InStatsPopup())
+	{
+		DeleteStatsPopup();
+	}
+	else
+	{
+		SOLDIERTYPE* const soldier = GetSelectedInfoChar();
+		if (soldier) InitStatsPopup(soldier, MAP_STATS_SKILLS_POPUP_X, MAP_STATS_SKILLS_POPUP_Y,
+			MAP_STATS_SKILLS_POPUP_WIDTH, MAP_STATS_SKILLS_POPUP_HEIGHT);
+	}
+}
+
+
+static void BtnSkillsFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	if (InSkillsPopup())
+	{
+		DeleteSkillsPopup();
+	}
+	else
+	{
+		SOLDIERTYPE* const soldier = GetSelectedInfoChar();
+		if (soldier) InitSkillsPopup(soldier, MAP_STATS_SKILLS_POPUP_X, MAP_STATS_SKILLS_POPUP_Y,
+			MAP_STATS_SKILLS_POPUP_WIDTH, MAP_STATS_SKILLS_POPUP_HEIGHT);
 	}
 }
 
@@ -759,6 +983,20 @@ static void EnableDisableBottomButtonsAndRegions(void)
 	for (ExitToWhere iExitButtonIndex = MAP_EXIT_TO_LAPTOP; iExitButtonIndex <= MAP_EXIT_TO_OPTIONS; ++iExitButtonIndex)
 	{
 		EnableButton(guiMapBottomExitButtons[iExitButtonIndex], AllowedToExitFromMapscreenTo(iExitButtonIndex));
+	}
+
+	// the laptop shortcut buttons follow the same allowed-to-exit checks as the
+	// single MAP_EXIT_TO_LAPTOP/MAP_EXIT_TO_OPTIONS buttons they end up triggering
+	{
+		bool const laptopAllowed = AllowedToExitFromMapscreenTo(MAP_EXIT_TO_LAPTOP);
+		EnableButton(guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_EMAIL],        laptopAllowed);
+		EnableButton(guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_AIM_MEMBERS],  laptopAllowed);
+		EnableButton(guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_MERC],         laptopAllowed);
+		EnableButton(guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_BOBBYR],       laptopAllowed);
+		EnableButton(guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_HISTORY],      laptopAllowed);
+		EnableButton(guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_PERSONNEL],    laptopAllowed);
+		EnableButton(guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_KEYBOARD],
+			AllowedToExitFromMapscreenTo(MAP_EXIT_TO_OPTIONS));
 	}
 
 	// enable/disable time compress buttons and region masks
@@ -1174,6 +1412,16 @@ void HandleExitsFromMapScreen( void )
 	// make sure it's still legal to do this!
 	if ( AllowedToExitFromMapscreenTo( gbExitingMapScreenToWhere ) )
 	{
+		// Close the map's own Statistics/Skills popup (BtnStatsFromMapScreenCallback
+		// etc., above) before leaving, whichever way we're leaving -- it's map-screen
+		// state (its own graphics/coordinates), left open it would otherwise still be
+		// showing (InStatsPopup()/InSkillsPopup() stay TRUE) once the destination
+		// screen's own render loop picks it up, e.g. the tactical screen's
+		// RenderTopmostTacticalInterface() (Interface_Control.cc), which draws it with
+		// the tactical graphics/position instead.
+		if (InStatsPopup())  DeleteStatsPopup();
+		if (InSkillsPopup()) DeleteSkillsPopup();
+
 		// see where we're trying to go
 		switch ( gbExitingMapScreenToWhere )
 		{

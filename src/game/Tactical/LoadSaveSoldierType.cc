@@ -558,11 +558,11 @@ void ExtractSoldierType(const BYTE* const data, SOLDIERTYPE* const s, bool strac
 	// count or any other field.
 	if(stracLinuxFormat)
 	{
-		Assert(d.getConsumed() == 8424); // 4992 + 3432
+		Assert(d.getConsumed() == 8604); // 4992 + 3432 + 180
 	}
 	else
 	{
-		Assert(d.getConsumed() == 8400); // 4968 + 3432
+		Assert(d.getConsumed() == 8580); // 4968 + 3432 + 180
 	}
 
 	if (checksum != MercChecksum(*s))
@@ -1086,5 +1086,5 @@ void InjectSoldierType(BYTE* const data, const SOLDIERTYPE* const s)
 	// is an exact, mechanically certain multiple; it only changed how many
 	// bytes each of the 39 already-existing InjectObject() calls
 	// (CFOR_EACH_SOLDIER_INV_SLOT loop above) writes.
-	Assert(d.getConsumed() == 8400); // 4968 + 3432
+	Assert(d.getConsumed() == 8580); // 4968 + 3432 + 180
 }

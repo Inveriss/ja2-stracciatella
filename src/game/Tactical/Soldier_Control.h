@@ -685,7 +685,7 @@ struct SOLDIERTYPE
 
 	UINT16* effect_shade; // Shading table for effects
 
-	INT16 sSpreadLocations[ 10 ];
+	INT16 sSpreadLocations[ 100 ];
 	BOOLEAN fDoSpread;
 	INT16 sStartGridNo;
 	INT16 sEndGridNo;

@@ -21,7 +21,7 @@ void EnterBobbyRMisc()
 	//Draw menu bar
 	InitBobbyMenuBar( );
 
-	SetFirstLastPagesForNew( IC_BOBBY_MISC );
+	SetFirstLastPagesForNew( BobbyRMiscPageMask() );
 
 	RenderBobbyRMisc( );
 }
@@ -50,7 +50,7 @@ void RenderBobbyRMisc()
 
 	BltVideoObject(FRAME_BUFFER, guiMiscGrid, 0, BOBBYR_GRIDLOC_X, BOBBYR_GRIDLOC_Y);
 
-	DisplayItemInfo(IC_BOBBY_MISC);
+	DisplayItemInfo(BobbyRMiscPageMask());
 
 	UpdateButtonText(guiCurrentLaptopMode);
 	MarkButtonsDirty( );

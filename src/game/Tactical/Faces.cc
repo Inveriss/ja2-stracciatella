@@ -32,6 +32,7 @@
 #include "ScreenIDs.h"
 #include "Soldier_Control.h"
 #include "Soldier_Macros.h"
+#include "MercPortrait.h"
 #include "Soldier_Profile.h"
 #include "Soldier_Profile_Type.h"
 #include "Sound_Control.h"
@@ -136,6 +137,7 @@ FACETYPE& InitFace(const ProfileID id, SOLDIERTYPE* const s, const UINT32 uiInit
 	INT32 const face_id = HERVE <= id && id <= CARLO ? HERVE : p.ubFaceIndex;
 
 	ST::string ImageFile = ST::format(face_file.c_str(), face_id);
+	if (IsImpPortrait(id)) ImageFile = PortraitFilePath(id, "", (uiInitFlags & FACE_BIGFACE) ? "b" : "");
 	SGPVObject* const vo = AddVideoObjectFromFile(ImageFile);
 
 	f = FACETYPE{};

@@ -347,6 +347,14 @@ void ExitEmail()
 		AddDeleteRegionsToMessageRegion( 0 );
 		fDisplayMessageFlag = TRUE;
 		fReDrawMessageFlag = TRUE;
+
+		// The From:/Subject:/Day: header and message body were painted straight onto
+		// FRAME_BUFFER by DisplayEmailMessage() (MPrint calls, not GUI_BUTTON/VObject
+		// state) -- unlike the buttons AddDeleteRegionsToMessageRegion() just removed,
+		// nothing else marks that screen area dirty once we stop drawing there, so
+		// whatever the laptop shows next (desktop, another program) never gets told to
+		// re-blit over it and the stale text keeps bleeding through.
+		InvalidateRegion(LAPTOP_SCREEN_UL_X, LAPTOP_SCREEN_UL_Y, LAPTOP_SCREEN_LR_X, LAPTOP_SCREEN_LR_Y);
 	}
 	else
 	{
@@ -509,7 +517,9 @@ void AddPreReadEmail(INT32 iMessageOffset, INT32 iMessageLength, UINT8 ubSender,
 
 static ST::string LoadEMailText(UINT32 entry)
 {
-	return GCM->loadEncryptedString(BINARYDATADIR "/email.edt", MAIL_STRING_SIZE * entry, MAIL_STRING_SIZE);
+	// strings/email-text-<language>.json first (DefaultContentManager::loadEmailText()), falling back
+	// to email.edt itself for any entry it doesn't cover.
+	return GCM->loadEmailText(entry);
 }
 
 
@@ -558,8 +568,15 @@ void AddEmailMessage(INT32 iMessageOffset, INT32 iMessageLength, INT32 iDate, UI
 	// reset Next ptr
 	pTempEmail->Next=NULL;
 
-	// set flag that new mail has arrived
-	fNewMailFlag=TRUE;
+	// set flag that new mail has arrived (mails that are already read, like the ones of a new game, are not new)
+	if (!fAlreadyRead)
+	{
+		// Auto-open the laptop's E-mail page only on the actual FALSE -> TRUE edge, not on
+		// every single mail added while some earlier one is still unacknowledged.
+		BOOLEAN const fWasAlreadyNew = fNewMailFlag;
+		fNewMailFlag = TRUE;
+		if (!fWasAlreadyNew) TryAutoOpenLaptopEmailOnNewMail();
+	}
 
 	// add this message to the pages of email
 	AddMessageToPages(pTempEmail);
@@ -1967,6 +1984,8 @@ static void HandleIMPCharProfileResultsMessage(void)
 		case ATT_PESSIMIST:  iOffSet = IMP_ATTITUDE_PESSIMIST;  break;
 		case ATT_AGGRESSIVE: iOffSet = IMP_ATTITUDE_AGGRESSIVE; break;
 		case ATT_ARROGANT:   iOffSet = IMP_ATTITUDE_ARROGANT;   break;
+		// no text of its own, uses the arrogant one
+		case ATT_BIG_SHOT:   iOffSet = IMP_ATTITUDE_ARROGANT;   break;
 		case ATT_ASSHOLE:    iOffSet = IMP_ATTITUDE_ASSHOLE;    break;
 		case ATT_COWARD:     iOffSet = IMP_ATTITUDE_COWARD;     break;
 	}
@@ -2427,9 +2446,16 @@ static ST::string ReplaceMercNameAndAmountWithProperData(const ST::string& pFini
 {
 	const ST::string sMercName = "$MERCNAME$"; //Doesnt need to be translated, inside Email.txt and will be replaced by the mercs name
 	const ST::string sAmount = "$AMOUN$"; //Doesnt need to be translated, inside Email.txt and will be replaced by a dollar amount
+	// Bobby Ray's restock-notification email (BOBBYR_ITEM_BACK_IN_STOCK): repurposes
+	// uiSecondData to hold an item index rather than a merc profile index, so the two token
+	// replacements below are only computed when their own token is actually present --
+	// otherwise gMercProfiles[pMail->uiSecondData] would be indexed with an item index instead.
+	const ST::string sItemName = "$ITEMNAME$";
 
-	ST::string mercName = gMercProfiles[ pMail->uiSecondData ].zName;
-	ST::string amount = SPrintMoney(pMail->iFirstData);
-	return pFinishedString.replace(sAmount, amount).replace(sMercName, mercName);
+	ST::string result = pFinishedString;
+	if (result.contains(sMercName)) result = result.replace(sMercName, gMercProfiles[pMail->uiSecondData].zName);
+	if (result.contains(sAmount))   result = result.replace(sAmount, SPrintMoney(pMail->iFirstData));
+	if (result.contains(sItemName)) result = result.replace(sItemName, GCM->getItem((UINT16)pMail->uiSecondData)->getName().to_upper());
+	return result;
 }
 

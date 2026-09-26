@@ -11,6 +11,64 @@
 
 #define BOBBYR_USED_ITEMS		0xFFFFFFFF
 
+// Categories of the pages that are not a plain item class (see BobbyRItemMatchesClass()); they are
+// used in the place of the class mask of SetFirstLastPagesForNew() and DisplayItemInfo().
+// Attachments: the attachments of weapons (not armour, face items, weapons and explosives).
+#define BOBBYR_ATTACHMENT_ITEMS		0xFFFFFFFE
+// Miscellaneous: what the old Misc page had (IC_BOBBY_MISC) without the attachments and explosives.
+#define BOBBYR_MISC_ITEMS		0xFFFFFFFD
+// The classes of the guns page (the buttons at the bottom of it): pistols, machine pistols and
+// submachine guns plus the melee weapons; the assault rifles; the sniper rifles and the plain rifles;
+// the shotguns; the machine guns, the launchers and the rocket rifle.
+#define BOBBYR_GUNS_PISTOL_ITEMS	0xFFFFFFFC
+#define BOBBYR_GUNS_SMG_ITEMS	0xFFFFFFDF
+#define BOBBYR_GUNS_KNIVES_ITEMS	0xFFFFFFE0
+#define BOBBYR_GUNS_ASSAULT_ITEMS	0xFFFFFFFB
+#define BOBBYR_GUNS_SNIPER_ITEMS	0xFFFFFFFA
+#define BOBBYR_GUNS_SHOTGUN_ITEMS	0xFFFFFFF9
+#define BOBBYR_GUNS_HEAVY_ITEMS		0xFFFFFFF8
+// All the items of the guns page: the guns, the launchers and the melee weapons
+#define BOBBYR_ALL_GUN_ITEMS		(IC_GUN | IC_LAUNCHER | IC_BLADE | IC_THROWING_KNIFE | IC_PUNCH)
+// The classes of the attachments page (the buttons at the bottom of it): the front of the barrel
+// (silencer, gun barrel extender, duckbill), the top (laser scope, sniper scope), the rear (rod and
+// spring) and down (bipod).
+#define BOBBYR_ATTACH_FRONT_ITEMS	0xFFFFFFF7
+#define BOBBYR_ATTACH_TOP_ITEMS		0xFFFFFFF6
+#define BOBBYR_ATTACH_REAR_ITEMS	0xFFFFFFF5
+#define BOBBYR_ATTACH_DOWN_ITEMS	0xFFFFFFF4
+// The classes of the miscellaneous page (the buttons at the bottom of it); BOBBYR_MISC_ITEMS are all
+// of its items. The others are everything that is neither medkit, tool nor container.
+#define BOBBYR_MISC_MEDKITS_ITEMS	0xFFFFFFE4
+#define BOBBYR_MISC_TOOLS_ITEMS	0xFFFFFFE3
+#define BOBBYR_MISC_CONTAINERS_ITEMS	0xFFFFFFE2
+#define BOBBYR_MISC_OTHERS_ITEMS	0xFFFFFFE1
+
+// The classes of the explosives page (the buttons at the bottom of it). The page shows only the items
+// of these classes, the other charges (RDX, TNT, HMX, C1, C4) are not sold.
+#define BOBBYR_EXPLOSIVES_ALL_ITEMS	0xFFFFFFEA
+#define BOBBYR_EXPL_FLARES_ITEMS	0xFFFFFFE9
+#define BOBBYR_EXPL_GAS_ITEMS	0xFFFFFFE8
+#define BOBBYR_EXPL_GRENADES_ITEMS	0xFFFFFFE7
+#define BOBBYR_EXPL_40MM_ITEMS	0xFFFFFFE6
+#define BOBBYR_EXPL_HEAVY_ITEMS	0xFFFFFFE5
+
+// The classes of the armour page (the buttons at the bottom of it): head, torso and leg protection,
+// and the headgear.
+#define BOBBYR_ARMOUR_HEAD_ITEMS	0xFFFFFFEE
+#define BOBBYR_ARMOUR_VEST_ITEMS	0xFFFFFFED
+#define BOBBYR_ARMOUR_LEGS_ITEMS	0xFFFFFFEC
+#define BOBBYR_ARMOUR_HEADGEAR_ITEMS	0xFFFFFFEB
+
+// The classes of the ammo page (the buttons at the bottom of it): the magazines by the number of
+// rounds: up to 15, 16-30, 31-50, 51-100 and 101-250.
+#define BOBBYR_AMMO_UP_TO_15_ITEMS	0xFFFFFFF3
+#define BOBBYR_AMMO_UP_TO_30_ITEMS	0xFFFFFFF2
+#define BOBBYR_AMMO_UP_TO_50_ITEMS	0xFFFFFFF1
+#define BOBBYR_AMMO_UP_TO_100_ITEMS	0xFFFFFFF0
+#define BOBBYR_AMMO_UP_TO_250_ITEMS	0xFFFFFFEF
+// Armor and headgear: the armour and everything that is worn on the head (the face items).
+#define BOBBYR_ARMOUR_ITEMS		(IC_ARMOUR | IC_FACE)
+
 
 #define BOBBYR_GUNS_BUTTON_FONT		FONT10ARIAL
 #define BOBBYR_GUNS_TEXT_COLOR_ON	FONT_NEARBLACK
@@ -50,5 +108,30 @@ void UpdateButtonText(UINT32	uiCurPage);
 UINT16 CalcBobbyRayCost( UINT16 usIndex, UINT16 usBobbyIndex, BOOLEAN fUsed);
 void SetFirstLastPagesForUsed(void);
 void SetFirstLastPagesForNew( UINT32 uiClass );
+
+// Does the item belong to the page of the given class mask (an item class or one of the categories above)?
+struct ItemModel;
+bool BobbyRItemMatchesClass(const ItemModel* item, UINT32 uiClassMask);
+
+// The class mask of the attachments page with its class button pressed (all attachments when none is)
+UINT32 BobbyRAttachmentsPageMask(void);
+// The class mask of the ammo page with its class button pressed (all the ammo when none is)
+UINT32 BobbyRAmmoPageMask(void);
+// The class mask of the armour page with its class button pressed (all the armour when none is)
+UINT32 BobbyRArmourPageMask(void);
+// The class mask of the explosives page with its class button pressed (all its items when none is)
+UINT32 BobbyRExplosivesPageMask(void);
+// The class mask of the miscellaneous page with its class button pressed (all its items when none is)
+UINT32 BobbyRMiscPageMask(void);
+
+// Draws BOBBY_NOTIFY_HATCH.STI over every currently-checked restock-notification checkbox --
+// called from PostButtonRendering() (Laptop.cc), i.e. after RenderButtons() this same frame,
+// so it isn't erased by that later pass the way an in-line ShadowRect() dimming was.
+void RenderBobbyRNotifyHatchOverlay(void);
+
+// Clears gfBobbyRNotifyEverShown[] (which rows have shown their restock-notification checkbox
+// at least once this laptop session) -- called from ExitLaptop() (Laptop.cc) when the player
+// actually closes the laptop, not on every laptop-internal tab switch.
+void ResetBobbyRNotifyEverShown(void);
 
 #endif

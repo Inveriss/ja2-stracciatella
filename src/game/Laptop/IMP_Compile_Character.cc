@@ -4,12 +4,14 @@
 #include "GamePolicy.h"
 #include "IMPPolicy.h"
 #include "ContentManager.h"
+#include "IMP_Appearance.h"
 #include "IMP_Portraits.h"
 #include "IMP_SkillTraits.h"
 #include "IMP_Compile_Character.h"
 #include "Soldier_Profile_Type.h"
 #include "Soldier_Profile.h"
 #include "Animation_Data.h"
+#include "Overhead_Types.h"
 #include "Random.h"
 #include "LaptopSave.h"
 
@@ -324,9 +326,6 @@ void ResetSkillsAttributesAndPersonality( void )
 }
 
 
-static void SetMercSkinAndHairColors(void);
-
-
 static void SelectMercFace(void)
 {
 	// this procedure will select the approriate face for the merc and save offsets
@@ -343,56 +342,9 @@ static void SelectMercFace(void)
 	p.usMouthX = 0;
 	p.usMouthY = 0;
 
-	// set merc skins and hair color
-	SetMercSkinAndHairColors();
+	// skin, hair, shirt and pants colors chosen on the colors and body type page
+	ApplyImpAppearanceToProfile(p);
 }
-
-
-static void SetMercSkinAndHairColors(void)
-{
-#define PINKSKIN  "PINKSKIN"
-#define TANSKIN   "TANSKIN"
-#define DARKSKIN  "DARKSKIN"
-#define BLACKSKIN "BLACKSKIN"
-
-#define BROWNHEAD "BROWNHEAD"
-#define BLACKHEAD "BLACKHEAD" // black skin till here
-#define WHITEHEAD "WHITEHEAD" // dark skin till here
-#define BLONDHEAD "BLONDHEAD"
-#define REDHEAD   "REDHEAD"   // pink/tan skin till here
-
-	static const struct
-	{
-		const char* Skin;
-		const char* Hair;
-	} Colors[] =
-	{
-		{ BLACKSKIN, BROWNHEAD },
-		{ TANSKIN,   BROWNHEAD },
-		{ TANSKIN,   BROWNHEAD },
-		{ DARKSKIN,  BROWNHEAD },
-		{ TANSKIN,   BROWNHEAD },
-		{ DARKSKIN,  BLACKHEAD },
-		{ TANSKIN,   BROWNHEAD },
-		{ TANSKIN,   BROWNHEAD },
-		{ TANSKIN,   BROWNHEAD },
-		{ PINKSKIN,  BROWNHEAD },
-		{ TANSKIN,   BLACKHEAD },
-		{ TANSKIN,   BLACKHEAD },
-		{ PINKSKIN,  BROWNHEAD },
-		{ BLACKSKIN, BROWNHEAD },
-		{ TANSKIN,   REDHEAD   },
-		{ TANSKIN,   BLONDHEAD }
-	};
-
-	Assert(iPortraitNumber < static_cast<INT32>(lengthof(Colors)));
-	MERCPROFILESTRUCT& p = GetProfile(PLAYER_GENERATED_CHARACTER_ID + LaptopSaveInfo.iVoiceId);
-	p.HAIR = Colors[iPortraitNumber].Hair;
-	p.SKIN = Colors[iPortraitNumber].Skin;
-}
-
-
-static BOOLEAN ShouldThisMercHaveABigBody(void);
 
 
 void HandleMercStatsForChangesInFace(void)
@@ -406,7 +358,7 @@ void HandleMercStatsForChangesInFace(void)
 	// body type
 	if (fCharacterIsMale)
 	{
-		if (ShouldThisMercHaveABigBody())
+		if (ImpAppearanceIsBigBody())
 		{
 			p.ubBodyType = BIGMALE;
 			if (iSkillA == MARTIALARTS) iSkillA = HANDTOHAND;
@@ -424,16 +376,17 @@ void HandleMercStatsForChangesInFace(void)
 		if (iSkillB == MARTIALARTS) iSkillB = HANDTOHAND;
 	}
 
+	// alternative rifle holding (standing rifle aim animation), big male only
+	if (p.ubBodyType == BIGMALE && ImpAppearanceUsesAltRifleHold())
+	{
+		p.uiBodyTypeSubFlags |= SUB_ANIM_BIGGUYSHOOT2;
+	}
+	else
+	{
+		p.uiBodyTypeSubFlags &= ~SUB_ANIM_BIGGUYSHOOT2;
+	}
+
 	// skill trait
 	p.bSkillTrait  = iSkillA;
 	p.bSkillTrait2 = iSkillB;
-}
-
-
-static BOOLEAN ShouldThisMercHaveABigBody(void)
-{
-	// should this merc be a big body typ
-	return
-		(iPortraitNumber == 0 || iPortraitNumber == 6 || iPortraitNumber == 7) &&
-		gMercProfiles[PLAYER_GENERATED_CHARACTER_ID + LaptopSaveInfo.iVoiceId].bStrength >= 75;
 }

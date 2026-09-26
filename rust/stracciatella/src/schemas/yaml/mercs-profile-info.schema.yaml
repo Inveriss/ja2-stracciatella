@@ -6,7 +6,6 @@ items:
   properties:
     profileID:
       minimum: 0
-      maximum: 169
       $ref: types/uint8.schema.yaml
     internalName:
       type: string
@@ -152,6 +151,19 @@ items:
           - item
     money:
       $ref: types/uint32.schema.yaml
+    biography:
+      type: string
+      description: A.I.M. description of a merc added to the game (the original ones use aimbios.edt)
+    additionalInfo:
+      type: string
+      description: A.I.M. additional information of a merc added to the game
+    faceIndex:
+      title: Number of the portrait files
+      description: >
+        The portraits of the profile are faces/NNN.sti (and the 33face, 65face and bigfaces versions)
+        with this number. Default: the profileID. The numbers 200-215 are the portraits of the IMP
+        characters and 255 is used by the game data as well.
+      $ref: types/uint8.schema.yaml
     weaponSaleModifier:
       minimum: 10
       maximum: 180

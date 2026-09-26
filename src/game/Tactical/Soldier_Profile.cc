@@ -44,6 +44,7 @@
 #include "content/ContentMercs.h"
 #include "WeaponModels.h"
 #include "MercProfile.h"
+#include "MercProfileInfo.h"
 #include "Strategic.h"
 
 extern BOOLEAN gfProfileDataLoaded;
@@ -141,8 +142,9 @@ void LoadMercProfiles()
 			p.sMedicalDepositAmount = p.bMedicalDeposit ? CalcMedicalDeposit(p) : 0;
 
 			// ATE: New, face display independent of ID num now, default is the
-			// profile ID
-			p.ubFaceIndex = i;
+			// profile ID; a profile can name another portrait ("faceIndex" in mercs-profile-info.json)
+			MercProfileInfo const* const info = GCM->getMercProfileInfo(i);
+			p.ubFaceIndex = info->profileID == i ? info->faceIndex : i;
 
 			if (!gGameOptions.fGunNut)
 			{
@@ -857,7 +859,7 @@ BuddySlot GetFirstBuddyOnTeam(MERCPROFILESTRUCT const& p)
 {
 	for (INT i = BUDDY_SLOT1; i < NUM_BUDDY_SLOTS; ++i)
 	{
-		INT8 const buddy = p.bBuddy[i];
+		INT16 const buddy = p.bBuddy[i];
 		if (buddy < 0)                     continue;
 		if (!IsMercOnTeam(buddy))          continue;
 		if (IsMercDead(GetProfile(buddy))) continue;

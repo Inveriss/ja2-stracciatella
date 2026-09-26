@@ -302,6 +302,10 @@ UINT16 IanDisplayWrappedString(UINT16 sx, UINT16 sy, UINT16 max_w, UINT8 gap, SG
 				break;
 
 			default: // not a special character
+				// the terminator falls through to here too (it isn't one of
+				// the TEXT_CODE_* cases above) -- don't measure/consume it
+				if (*i == U'\0') break;
+
 				// get the length (in pixels) of this word
 				UINT16 word_w = 0;
 				// each character goes towards building a new word
@@ -480,6 +484,10 @@ UINT16 IanWrappedStringHeight(UINT16 max_w, UINT8 gap, SGPFont font, const ST::u
 				break;
 
 			default:
+				// the terminator falls through to here too (it isn't one of
+				// the TEXT_CODE_* cases above) -- don't measure/consume it
+				if (*i == U'\0') break;
+
 				// get the length (in pixels) of this word
 				UINT16 word_w = 0;
 

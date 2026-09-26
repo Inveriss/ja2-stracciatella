@@ -138,6 +138,9 @@ static void EnterIntroScreen(void)
 	//get the index opf the first video to watch
 	iFirstVideoID = GetNextIntroVideo( SMKINTRO_FIRST_VIDEO );
 
+	// the intro at the beginning of a new game is not played, the game goes on at once
+	if (gbIntroScreenMode == INTRO_BEGINING) iFirstVideoID = -1;
+
 
 	if( iFirstVideoID != -1 )
 	{

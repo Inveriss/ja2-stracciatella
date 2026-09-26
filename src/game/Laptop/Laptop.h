@@ -35,6 +35,14 @@ void ClearOutTempLaptopFiles(void);
 
 void HaventMadeImpMercEmailCallBack(void);
 
+// IMP slot helpers (a "slot" is one of the MAX_IMP_MERCS voice/gender combos).
+// Slots are never freed once completed, even if the merc later dies.
+BOOLEAN IsImpSlotCompleted(UINT8 ubSlot);
+BOOLEAN IsImpSlotDead(UINT8 ubSlot);
+BOOLEAN HasCreatedAnyImpMerc(void);
+BOOLEAN CanCreateAnotherImpMerc(void);
+INT8    FindImpSlotUsingPortrait(INT32 iPortraitNumber);
+
 
 enum LaptopMode
 {
@@ -82,6 +90,8 @@ enum LaptopMode
 	LAPTOP_MODE_FUNERAL,
 	LAPTOP_MODE_BROKEN_LINK,
 	LAPTOP_MODE_BOBBYR_SHIPMENTS,
+	LAPTOP_MODE_BOBBY_R_ATTACHMENTS,
+	LAPTOP_MODE_BOBBY_R_EXPLOSIVES,
 	LAPTOP_MODE_END
 };
 
@@ -90,6 +100,12 @@ enum LaptopMode
 // LAPTOP_MODE_NONE (the normal desktop) as soon as that entry happens, so
 // it doesn't affect subsequent laptop visits.
 void SetLaptopEntryMode(LaptopMode uiEntryMode);
+
+// Jumps straight to the laptop's E-mail page the moment new mail arrives (EMail.cc's
+// AddEmailMessage()), on whichever of the two gameplay screens it can happen on -- mirrors
+// the existing "E-mail" shortcut buttons, just triggered by the mail itself instead of a
+// click. A no-op on any other current screen.
+void TryAutoOpenLaptopEmailOnNewMail(void);
 
 extern LaptopMode  guiCurrentLaptopMode;
 extern LaptopMode  guiPreviousLaptopMode;

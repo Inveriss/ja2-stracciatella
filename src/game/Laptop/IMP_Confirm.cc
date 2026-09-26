@@ -9,6 +9,8 @@
 #include "IMP_Compile_Character.h"
 #include "IMP_Text_System.h"
 #include "IMP_Confirm.h"
+#include "IMP_MainPage.h"
+#include "IMP_Finish.h"
 #include "Items.h"
 #include "Finances.h"
 #include "Soldier_Profile.h"
@@ -197,7 +199,7 @@ static void BtnIMPConfirmYes(GUI_BUTTON *btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		if (LaptopSaveInfo.fIMPCompletedFlag)
+		if (IsImpSlotCompleted(LaptopSaveInfo.iVoiceId))
 		{
 			// already here, leave
 			return;
@@ -210,8 +212,8 @@ static void BtnIMPConfirmYes(GUI_BUTTON *btn, UINT32 reason)
 		}
 
 		// line moved by CJC Nov 28 2002 to AFTER the check for money
-		LaptopSaveInfo.fIMPCompletedFlag = AddCharacterToPlayersTeam();
-		if (!LaptopSaveInfo.fIMPCompletedFlag) return; // only if merc hiring failed: no charge, give it another go
+		LaptopSaveInfo.fIMPCompletedFlag[LaptopSaveInfo.iVoiceId] = AddCharacterToPlayersTeam();
+		if (!IsImpSlotCompleted(LaptopSaveInfo.iVoiceId)) return; // only if merc hiring failed: no charge, give it another go
 
 		SOLDIERTYPE* const pSoldier = FindSoldierByProfileID(PLAYER_GENERATED_CHARACTER_ID + LaptopSaveInfo.iVoiceId);
 		if (!pSoldier) return;
@@ -230,7 +232,23 @@ static void BtnIMPConfirmYes(GUI_BUTTON *btn, UINT32 reason)
 		AddHistoryToPlayersLog(HISTORY_CHARACTER_GENERATED, 0, GetWorldTotalMin(), SGPSector(-1, -1));
 
 		fButtonPendingFlag = TRUE;
-		iCurrentImpPage = IMP_HOME_PAGE;
+
+		// If another IMP slot is still free, skip the activation-code and
+		// welcome/"Begin" screens and go straight into creating the next
+		// one -- same shortcut as GoToWebPage()'s IMP_BOOKMARK case. This is
+		// an intentional fresh start (the previous profile was already
+		// successfully saved above), so it's safe to reset the wizard state
+		// here rather than requiring the usual "restart?" confirmation.
+		if (CanCreateAnotherImpMerc())
+		{
+			iCurrentImpPage         = IMP_BEGIN;
+			iCurrentProfileMode     = 0;
+			fFinishedCharGeneration = FALSE;
+		}
+		else
+		{
+			iCurrentImpPage = IMP_HOME_PAGE;
+		}
 
 		// send email notice
 		//AddEmail(IMP_EMAIL_PROFILE_RESULTS, IMP_EMAIL_PROFILE_RESULTS_LENGTH, IMP_PROFILE_RESULTS, GetWorldTotalMin());

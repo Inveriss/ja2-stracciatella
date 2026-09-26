@@ -2,6 +2,7 @@
 #include "LoadSaveData.h"
 #include "LoadSaveMercProfile.h"
 #include "Overhead_Types.h"
+#include "Soldier_Control.h"
 #include "SGPFile.h"
 #include "Soldier_Profile_Type.h"
 
@@ -32,19 +33,43 @@ UINT32 SoldierProfileChecksum(MERCPROFILESTRUCT const& p)
 }
 
 
+/** prof.dat stores its 19 inventory slots in the vanilla order (HELMET, VEST,
+* LEG, HEAD1, HEAD2, HAND, SECONDHAND, BIGPOCK1-4, SMALLPOCK1-8). InvSlotPos
+* has grown since (more HEAD, BIGPOCK and SMALLPOCK slots inserted after each
+* group), so a vanilla slot index must be mapped to the current slot. */
+static size_t VanillaInvSlotToEngine(size_t const vanillaSlot)
+{
+	if (vanillaSlot <= 4) return vanillaSlot; // HELMET .. HEAD2 kept their numbers
+	if (vanillaSlot == 5) return HANDPOS;
+	if (vanillaSlot == 6) return SECONDHANDPOS;
+	if (vanillaSlot <= 10) return BIGPOCK1POS + (vanillaSlot - 7);
+	return SMALLPOCK1POS + (vanillaSlot - 11);
+}
+
+
 /**
 * Extract merc profile from the binary data. */
+// The ID of a friend or an enemy (-1: none): prof.dat has it in one byte, this engine's own
+// format in two, so the IDs above 127 fit.
+static INT16 ExtractRelationID(DataReader& S, bool const fVanillaProfileFormat)
+{
+	return fVanillaProfileFormat ? S.read<INT8>() : S.read<INT16>();
+}
+
+
 void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracLinuxFormat, UINT32 *checksum, bool const isCorrectlyEncoded, bool const fVanillaProfileFormat)
 {
 	DataReader S{Src};
+	// prof.dat has the vanilla 10 char nickname, this engine's own format a longer one
+	size_t const nicknameLength = fVanillaProfileFormat ? NICKNAME_LENGTH : NICKNAME_LENGTH_OWN_FORMAT;
 
 	if (isCorrectlyEncoded) {
 		p.zName = S.readString(NAME_LENGTH, stracLinuxFormat);
-		p.zNickname = S.readString(NICKNAME_LENGTH, stracLinuxFormat);
+		p.zNickname = S.readString(nicknameLength, stracLinuxFormat);
 	}
 	else {
 		p.zName = S.readUTF16(NAME_LENGTH, false);
-		p.zNickname = S.readUTF16(NICKNAME_LENGTH, false);
+		p.zNickname = S.readUTF16(nicknameLength, false);
 	}
 	EXTR_SKIP(S, 28)
 	EXTR_U8(S, p.ubFaceIndex)
@@ -58,7 +83,7 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_I8(S, p.bEvolution)
 	EXTR_U8(S, p.ubMiscFlags)
 	EXTR_U8(S, p.bSexist)
-	EXTR_I8(S, p.bLearnToHate)
+	p.bLearnToHate = ExtractRelationID(S, fVanillaProfileFormat);
 	EXTR_SKIP(S, 2)
 	EXTR_U8(S, p.ubQuoteRecord)
 	EXTR_I8(S, p.bDeathRate)
@@ -117,8 +142,8 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_I8(S, p.bExplosive)
 	EXTR_I8(S, p.bSkillTrait2)
 	EXTR_I8(S, p.bLeadership)
-	EXTR_I8A(S, p.bBuddy, lengthof(p.bBuddy))
-	EXTR_I8A(S, p.bHated, lengthof(p.bHated))
+	FOR_EACH(INT16, i, p.bBuddy) *i = ExtractRelationID(S, fVanillaProfileFormat);
+	FOR_EACH(INT16, i, p.bHated) *i = ExtractRelationID(S, fVanillaProfileFormat);
 	EXTR_I8(S, p.bExpLevel)
 	EXTR_I8(S, p.bMarksmanship)
 	EXTR_SKIP(S, 1)
@@ -130,11 +155,28 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	// (rather than relying on the caller's MERCPROFILESTRUCT having been
 	// freshly zero-constructed) before reading only as many slots as the
 	// source actually has.
+	// The slots of prof.dat are in the vanilla order, so they are moved to their
+	// place in the current InvSlotPos (see VanillaInvSlotToEngine()).
 	size_t const invSlotsToRead = fVanillaProfileFormat ? VANILLA_PROF_DAT_INV_SLOTS : lengthof(p.bInvStatus);
-	std::fill(std::begin(p.bInvStatus) + invSlotsToRead, std::end(p.bInvStatus), 0);
-	std::fill(std::begin(p.bInvNumber) + invSlotsToRead, std::end(p.bInvNumber), 0);
-	EXTR_U8A(S, p.bInvStatus, invSlotsToRead)
-	EXTR_U8A(S, p.bInvNumber, invSlotsToRead)
+	std::fill(std::begin(p.bInvStatus), std::end(p.bInvStatus), 0);
+	std::fill(std::begin(p.bInvNumber), std::end(p.bInvNumber), 0);
+	if (fVanillaProfileFormat)
+	{
+		std::array<UINT8, VANILLA_PROF_DAT_INV_SLOTS> status;
+		std::array<UINT8, VANILLA_PROF_DAT_INV_SLOTS> number;
+		EXTR_U8A(S, status.data(), status.size())
+		EXTR_U8A(S, number.data(), number.size())
+		for (size_t v = 0; v != VANILLA_PROF_DAT_INV_SLOTS; ++v)
+		{
+			p.bInvStatus[VanillaInvSlotToEngine(v)] = status[v];
+			p.bInvNumber[VanillaInvSlotToEngine(v)] = number[v];
+		}
+	}
+	else
+	{
+		EXTR_U8A(S, p.bInvStatus, invSlotsToRead)
+		EXTR_U8A(S, p.bInvNumber, invSlotsToRead)
+	}
 	EXTR_U16A(S, p.usApproachFactor, lengthof(p.usApproachFactor))
 	EXTR_I8(S, p.bMainGunAttractiveness)
 	EXTR_I8(S, p.bAgility)
@@ -146,8 +188,17 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_U8(S, p.ubInvUndroppable)
 	EXTR_U8A(S, p.ubRoomRangeStart, lengthof(p.ubRoomRangeStart))
 	EXTR_SKIP(S, 1)
-	std::fill(std::begin(p.inv) + invSlotsToRead, std::end(p.inv), NOTHING);
-	EXTR_U16A(S, p.inv, invSlotsToRead)
+	std::fill(std::begin(p.inv), std::end(p.inv), NOTHING);
+	if (fVanillaProfileFormat)
+	{
+		std::array<UINT16, VANILLA_PROF_DAT_INV_SLOTS> items;
+		EXTR_U16A(S, items.data(), items.size())
+		for (size_t v = 0; v != VANILLA_PROF_DAT_INV_SLOTS; ++v) p.inv[VanillaInvSlotToEngine(v)] = items[v];
+	}
+	else
+	{
+		EXTR_U16A(S, p.inv, invSlotsToRead)
+	}
 	EXTR_SKIP(S, 20)
 	EXTR_U16A(S, p.usStatChangeChances, lengthof(p.usStatChangeChances))
 	EXTR_U16A(S, p.usStatChangeSuccesses, lengthof(p.usStatChangeSuccesses))
@@ -171,14 +222,16 @@ void ExtractMercProfile(BYTE const* const Src, MERCPROFILESTRUCT& p, bool stracL
 	EXTR_I8(S, p.bAttitude)
 	EXTR_SKIP(S, 2)
 	EXTR_U16(S, p.sMedicalDepositAmount)
-	EXTR_I8(S, p.bLearnToLike)
+	p.bLearnToLike = ExtractRelationID(S, fVanillaProfileFormat);
 	EXTR_U8A(S, p.ubApproachVal, lengthof(p.ubApproachVal))
 	EXTR_U8A(S, *p.ubApproachMod, sizeof(p.ubApproachMod) / sizeof(**p.ubApproachMod))
 	EXTR_I8(S, p.bTown)
 	EXTR_I8(S, p.bTownAttachment)
 	EXTR_SKIP(S, 1)
 	EXTR_U16(S, p.usOptionalGearCost)
-	EXTR_I8A(S, p.bMercOpinion, lengthof(p.bMercOpinion))
+	// prof.dat only has the opinions about the first VANILLA_NUM_RECRUITABLE profiles
+	std::fill(std::begin(p.bMercOpinion), std::end(p.bMercOpinion), 0);
+	EXTR_I8A(S, p.bMercOpinion, fVanillaProfileFormat ? VANILLA_NUM_RECRUITABLE : lengthof(p.bMercOpinion))
 	EXTR_I8(S, p.bApproached)
 	EXTR_I8(S, p.bMercStatus)
 	EXTR_I8A(S, p.bHatedTime, lengthof(p.bHatedTime))
@@ -255,7 +308,7 @@ void InjectMercProfile(BYTE* const Dst, MERCPROFILESTRUCT const& p)
 	DataWriter D(Dst);
 
 	D.writeUTF16(p.zName, NAME_LENGTH);
-	D.writeUTF16(p.zNickname, NICKNAME_LENGTH);
+	D.writeUTF16(p.zNickname, NICKNAME_LENGTH_OWN_FORMAT);
 	INJ_SKIP(D, 28)
 	INJ_U8(D, p.ubFaceIndex)
 	D.writeUTF8(p.PANTS, PaletteRepID_LENGTH);
@@ -268,7 +321,7 @@ void InjectMercProfile(BYTE* const Dst, MERCPROFILESTRUCT const& p)
 	INJ_I8(D, p.bEvolution)
 	INJ_U8(D, p.ubMiscFlags)
 	INJ_U8(D, p.bSexist)
-	INJ_I8(D, p.bLearnToHate)
+	INJ_I16(D, p.bLearnToHate)
 	INJ_SKIP(D, 2)
 	INJ_U8(D, p.ubQuoteRecord)
 	INJ_I8(D, p.bDeathRate)
@@ -327,8 +380,8 @@ void InjectMercProfile(BYTE* const Dst, MERCPROFILESTRUCT const& p)
 	INJ_I8(D, p.bExplosive)
 	INJ_I8(D, p.bSkillTrait2)
 	INJ_I8(D, p.bLeadership)
-	INJ_I8A(D, p.bBuddy, lengthof(p.bBuddy))
-	INJ_I8A(D, p.bHated, lengthof(p.bHated))
+	INJ_I16A(D, p.bBuddy, lengthof(p.bBuddy))
+	INJ_I16A(D, p.bHated, lengthof(p.bHated))
 	INJ_I8(D, p.bExpLevel)
 	INJ_I8(D, p.bMarksmanship)
 	INJ_SKIP(D, 1)
@@ -371,7 +424,7 @@ void InjectMercProfile(BYTE* const Dst, MERCPROFILESTRUCT const& p)
 	INJ_I8(D, p.bAttitude)
 	INJ_SKIP(D, 2)
 	INJ_U16(D, p.sMedicalDepositAmount)
-	INJ_I8(D, p.bLearnToLike)
+	INJ_I16(D, p.bLearnToLike)
 	INJ_U8A(D, p.ubApproachVal, lengthof(p.ubApproachVal))
 	INJ_U8A(D, *p.ubApproachMod, sizeof(p.ubApproachMod) / sizeof(**p.ubApproachMod))
 	INJ_I8(D, p.bTown)

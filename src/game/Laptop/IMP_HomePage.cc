@@ -60,7 +60,7 @@ static void ProcessPlayerInputActivationString(void)
 	ST::string str = GetStringFromField(0);
 	bool stringMatchesCode = GCM->getIMPPolicy()->isCodeAccepted(str);
 
-	if (stringMatchesCode && !LaptopSaveInfo.fIMPCompletedFlag) {
+	if (stringMatchesCode && CanCreateAnotherImpMerc()) {
 		iCurrentImpPage = IMP_MAIN_PAGE;
 		return;
 	}
