@@ -141,13 +141,17 @@ class StracciatellaLauncher {open
               label Predefined open
               xywh {210 130 110 30}
             } {}
+            Fl_Check_Button stretchCheckbox {
+              label Stretch
+              tooltip {Stretch the game image to fill the whole screen, ignoring its aspect ratio (no black bars).} xywh {345 130 70 30} down_box DOWN_BOX
+            }
             Fl_Group {} {
               label resizable open
               xywh {415 115 30 30} labeltype NO_LABEL align 17 resizable
             } {}
             Fl_Box invalidResolutionLabel {
               label {invalid!}
-              tooltip {the resolution must be at least 1024x720, the smallest one JA2 Stracciatella supports} xywh {340 130 160 30} labelfont 1 labelcolor 1 align 20
+              tooltip {the resolution must be at least 1024x720, the smallest one JA2 Stracciatella supports} xywh {210 167 110 14} labelfont 1 labelcolor 1 align 20
             }
           }
           Fl_Group {} {open

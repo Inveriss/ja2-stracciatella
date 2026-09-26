@@ -594,8 +594,10 @@ void SimulateMouseMovement( UINT32 uiNewXPos, UINT32 uiNewYPos )
 	double scaleFactorY = windowHeightD / screenHeightD;
 	double scaleFactor = windowWidth > windowHeight ? scaleFactorY : scaleFactorX;
 
-	double scaledWindowWidth = scaleFactor * screenWidthD;
-	double scaledWindowHeight = scaleFactor * screenHeightD;
+	// Stretch to fill (see ApplyStretchToFill() in Video.cc): X and Y are
+	// scaled independently to the whole window, with no black bars.
+	double scaledWindowWidth = VideoIsStretchedToFill() ? windowWidthD : scaleFactor * screenWidthD;
+	double scaledWindowHeight = VideoIsStretchedToFill() ? windowHeightD : scaleFactor * screenHeightD;
 
 	double paddingX = (windowWidthD - scaledWindowWidth) / 2.0;
 	double paddingY = (windowHeight - scaledWindowHeight) / 2.0;

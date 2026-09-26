@@ -41,6 +41,7 @@ public:
   Fl_Value_Input *resolutionXInput;
   Fl_Value_Input *resolutionYInput;
   Fl_Menu_Button *predefinedResolutionMenuButton;
+  Fl_Check_Button *stretchCheckbox;
   Fl_Box *invalidResolutionLabel;
   Fl_Choice *scalingModeChoice;
   Fl_Check_Button *fullscreenCheckbox;

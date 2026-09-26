@@ -16,7 +16,10 @@ extern SDL_Window* g_game_window;
 using VideoScaleQuality = ScalingQuality;
 
 void         VideoSetFullScreen(BOOLEAN enable);
-void         InitializeVideoManager(VideoScaleQuality quality, int32_t targetFPS);
+// stretchToFill: scale the game image to the whole window/screen, X and Y
+// independently, ignoring its aspect ratio (no black bars).
+void         InitializeVideoManager(VideoScaleQuality quality, bool stretchToFill, int32_t targetFPS);
+bool         VideoIsStretchedToFill();
 void         ShutdownVideoManager(void);
 void         InvalidateRegion(INT32 iLeft, INT32 iTop, INT32 iRight, INT32 iBottom);
 void         InvalidateScreen(void);

@@ -75,6 +75,9 @@ pub struct EngineOptions {
     pub start_in_window: bool,
     /// Scaling quality that is used when scaling up game resources
     pub scaling_quality: ScalingQuality,
+    /// Whether to stretch the game image to fill the whole window/screen,
+    /// ignoring its aspect ratio (no black bars)
+    pub stretch_to_fill: bool,
     /// Whether to start in debug mode
     pub start_in_debug_mode: bool,
     /// Whether to enable sound
@@ -100,6 +103,7 @@ impl Default for EngineOptions {
             start_in_fullscreen: false,
             start_in_window: true,
             scaling_quality: ScalingQuality::default(),
+            stretch_to_fill: false,
             start_in_debug_mode: false,
             start_without_sound: false,
             run_enum_gen: false,
