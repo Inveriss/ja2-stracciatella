@@ -128,14 +128,14 @@ class StracciatellaLauncher {open
           } {
             Fl_Value_Input resolutionXInput {
               label {Internal Resolution:}
-              xywh {20 130 75 30} align 5 minimum 640 maximum 0 value 640
+              xywh {20 130 75 30} align 5 minimum 1024 maximum 0 value 1024
             }
             Fl_Box {} {
               label x
               xywh {95 130 20 30}
             }
             Fl_Value_Input resolutionYInput {
-              xywh {115 130 75 30} labeltype NO_LABEL align 5 minimum 480 maximum 0 value 480
+              xywh {115 130 75 30} labeltype NO_LABEL align 5 minimum 720 maximum 0 value 720
             }
             Fl_Menu_Button predefinedResolutionMenuButton {
               label Predefined open
@@ -147,7 +147,7 @@ class StracciatellaLauncher {open
             } {}
             Fl_Box invalidResolutionLabel {
               label {invalid!}
-              tooltip {the resolution must be at least 640x480, the original game resolution} xywh {340 130 160 30} labelfont 1 labelcolor 1 align 20
+              tooltip {the resolution must be at least 1024x720, the smallest one JA2 Stracciatella supports} xywh {340 130 160 30} labelfont 1 labelcolor 1 align 20
             }
           }
           Fl_Group {} {open

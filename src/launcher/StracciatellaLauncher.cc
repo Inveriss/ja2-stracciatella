@@ -114,18 +114,18 @@ on their features.");
 e very small at higher internal resolutions. Note that menus and the strategic\
  map screen are always rendered at 640x480.");
           { resolutionXInput = new Fl_Value_Input(20, 130, 75, 30, "Internal Resolution:");
-            resolutionXInput->minimum(640);
+            resolutionXInput->minimum(1024);
             resolutionXInput->maximum(0);
-            resolutionXInput->value(640);
+            resolutionXInput->value(1024);
             resolutionXInput->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           } // Fl_Value_Input* resolutionXInput
           { new Fl_Box(95, 130, 20, 30, "x");
           } // Fl_Box* o
           { resolutionYInput = new Fl_Value_Input(115, 130, 75, 30);
             resolutionYInput->labeltype(FL_NO_LABEL);
-            resolutionYInput->minimum(480);
+            resolutionYInput->minimum(720);
             resolutionYInput->maximum(0);
-            resolutionYInput->value(480);
+            resolutionYInput->value(720);
             resolutionYInput->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           } // Fl_Value_Input* resolutionYInput
           { predefinedResolutionMenuButton = new Fl_Menu_Button(210, 130, 110, 30, "Predefined");
@@ -137,7 +137,7 @@ e very small at higher internal resolutions. Note that menus and the strategic\
             Fl_Group::current()->resizable(o);
           } // Fl_Group* o
           { invalidResolutionLabel = new Fl_Box(340, 130, 160, 30, "invalid!");
-            invalidResolutionLabel->tooltip("the resolution must be at least 640x480, the original game resolution");
+            invalidResolutionLabel->tooltip("the resolution must be at least 1024x720, the smallest one JA2 Stracciatella supports");
             invalidResolutionLabel->labelfont(1);
             invalidResolutionLabel->labelcolor((Fl_Color)1);
             invalidResolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));

@@ -39,6 +39,8 @@ private:
 	void populateChoices();
 	void startExecutable(bool asEditor);
 	bool resolutionIsInvalid();
+	void showInvalidResolutionAlert();
+	std::pair<int, int> lastWarnedResolution{ 0, 0 };
 	bool gameIsRunning();
 	void update(bool changed);
 	void updateLogs();
@@ -52,6 +54,7 @@ private:
 	static void guessVersion(Fl_Widget* btn, void* userdata);
 	static void setPredefinedResolution(Fl_Widget* btn, void* userdata);
 	static void widgetChanged(Fl_Widget* widget, void* userdata);
+	static void resolutionChanged(Fl_Widget* widget, void* userdata);
 	static void reloadJa2Json(Fl_Widget* widget, void* userdata);
 	static void saveJa2Json(Fl_Widget* widget, void* userdata);
 	static void selectEnabledMods(Fl_Widget* widget, void* userdata);
