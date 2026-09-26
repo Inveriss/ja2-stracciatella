@@ -835,10 +835,13 @@ void DoMapMessageBoxWithRect(MessageBoxStyleID ubStyle, const ST::string& str, S
 // tall, see UILayout::isCompactStrategicScreen()) needs its own further
 // +24 Y correction, since its asset doesn't scale down 1:1 from the large
 // tier's.
+// Anchored to MAP_SCREEN_RIGHT_BLOCK_X and the legacy 1024 canvas width (not
+// MAP_SCREEN_X/MAP_SCREEN_WIDTH), so on the wide strategic screen the popups
+// stay centered over the (shifted) map instead of the whole 1280 canvas.
 SGPBox GetMapScreenPopupCenteringRect(void)
 {
 	INT16 const y = MAP_SCREEN_Y - 61 + (g_ui.isCompactStrategicScreen() ? 24 : 0);
-	return { (UINT16)(MAP_SCREEN_X + 146), (UINT16)y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+	return { (UINT16)(MAP_SCREEN_RIGHT_BLOCK_X + 146), (UINT16)y, MAP_LEGACY_CANVAS_WIDTH, MAP_SCREEN_HEIGHT };
 }
 
 
@@ -2291,7 +2294,7 @@ static void AddStringsToMoveBox(PopUpBox*);
 
 static void CreatePopUpBoxForMovementBox(void)
 {
-	SGPPoint const MovePosition = { (UINT16)(MAP_SCREEN_X + 450), (UINT16)(MAP_SCREEN_Y + 100) };
+	SGPPoint const MovePosition = { (UINT16)(MAP_SCREEN_RIGHT_BLOCK_X + 450), (UINT16)(MAP_SCREEN_Y + 100) };
 
 	// create the pop up box and mouse regions for movement list
 	PopUpBox* const box = CreatePopUpBox(MovePosition, POPUP_BOX_FLAG_RESIZE, FRAME_BUFFER, guiPOPUPBORDERS, guiPOPUPTEX, 6, 6, 4, 4, 2);

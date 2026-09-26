@@ -54,7 +54,7 @@
 #define STD_SCREEN_WIDTH                (640)
 #define STD_SCREEN_HEIGHT               (480)
 // MAP_SCREEN_X/Y centers the strategic map's own, larger canvas
-// (MAP_SCREEN_WIDTH x MAP_SCREEN_HEIGHT, 1024x768/720) -- use this (not
+// (MAP_SCREEN_WIDTH x MAP_SCREEN_HEIGHT, 1024 or 1280 x 768/720) -- use this (not
 // STD_SCREEN_X/Y) for anything drawn as part of the strategic map screen
 // itself.
 #define MAP_SCREEN_X                    (g_ui.m_mapScreenOffsetX)
@@ -67,6 +67,20 @@
 // automatically across both strategic-screen size tiers.
 #define MAP_SCREEN_RIGHT                (MAP_SCREEN_X + MAP_SCREEN_WIDTH)
 #define MAP_SCREEN_BOTTOM               (MAP_SCREEN_Y + MAP_SCREEN_HEIGHT)
+
+// Wide strategic screen (screen width >= WIDE_STRATEGIC_SCREEN_WIDTH): the
+// map canvas is a fixed 1280px wide (centered on anything wider). The left
+// column (charinfo/newgoldpiece3/mapinv/iteminfoc, pre-battle panel) and
+// the left part of map_screen_bottom stay on MAP_SCREEN_X; the map itself,
+// MBS and everything drawn on it (border buttons of the large tier, ETA,
+// map view, sector inventory, map popups) use MAP_SCREEN_RIGHT_BLOCK_X,
+// which is shifted right by MAP_RIGHT_BLOCK_SHIFT, leaving a free space
+// between the two (filled with background_middle_wide_*.sti). On the legacy
+// 1024px canvas MAP_SCREEN_RIGHT_BLOCK_X == MAP_SCREEN_X.
+#define WIDE_STRATEGIC_SCREEN_WIDTH     (1280)
+#define MAP_LEGACY_CANVAS_WIDTH         (1024)   // width the right block's own coordinates were laid out for
+#define MAP_RIGHT_BLOCK_SHIFT           (WIDE_STRATEGIC_SCREEN_WIDTH - MAP_LEGACY_CANVAS_WIDTH)   // 256
+#define MAP_SCREEN_RIGHT_BLOCK_X        (g_ui.m_mapRightBlockOffsetX)
 
 #define SM_BODYINV_X                    (INTERFACE_START_X + 324)
 #define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
@@ -86,7 +100,7 @@
 // Same speech-bubble default, but for the strategic map screen (where the
 // panel must align with the map's own, larger canvas) -- see
 // Strategic_Mines.cc / Map_Screen_Helicopter.cc.
-#define DEFAULT_MAP_EXTERN_PANEL_X_POS  (MAP_SCREEN_X + 320)
+#define DEFAULT_MAP_EXTERN_PANEL_X_POS  (MAP_SCREEN_RIGHT_BLOCK_X + 320)
 #define DEFAULT_MAP_EXTERN_PANEL_Y_POS  (MAP_SCREEN_Y + 40)
 
 #define TEAMPANEL_SLOT_WIDTH            (83)     // width of one slot in the bottom team panel
@@ -180,6 +194,7 @@ public:
 	UINT16                m_stdScreenOffsetY;             /** Offset of the legacy (STD_SCREEN_WIDTH x STD_SCREEN_HEIGHT, 640x480) window used by every screen except the strategic map -- see STD_SCREEN_X/Y */
 	UINT16                m_mapScreenOffsetX;             /** Offset of the strategic map's own canvas (m_mapScreenWidth x m_mapScreenHeight) -- see MAP_SCREEN_X/Y */
 	UINT16                m_mapScreenOffsetY;             /** Offset of the strategic map's own canvas (m_mapScreenWidth x m_mapScreenHeight) -- see MAP_SCREEN_X/Y */
+	UINT16                m_mapRightBlockOffsetX;         /** Offset of the strategic map's right block (MBS, map, sector inventory) -- see MAP_SCREEN_RIGHT_BLOCK_X */
 
 	/** Constructor.
 	 * @param screenWidth Screen width
@@ -194,6 +209,9 @@ public:
 
 	/** True when the active resolution uses the compact (720px-tall) strategic screen asset set instead of the large (768px-tall) one. */
 	bool isCompactStrategicScreen() const;
+
+	/** True when the active resolution uses the wide (1280px) strategic screen canvas, i.e. screen width >= WIDE_STRATEGIC_SCREEN_WIDTH. */
+	bool isWideStrategicScreen() const;
 
 	UINT16 currentHeight() const;
 	UINT16 get_CLOCK_X() const;

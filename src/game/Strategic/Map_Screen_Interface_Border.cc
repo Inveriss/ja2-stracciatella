@@ -25,21 +25,25 @@ struct BUTTON_PICS;
 // their shared row Y, and the map-level marker/regions -- these are the
 // values already tuned via prior requests (X net +191/+192, Y net +1 from
 // the original bottom-anchored positions).
-#define BTN_TOWN_X_LARGE           (MAP_SCREEN_X + 490)
-#define BTN_MINE_X_LARGE           (MAP_SCREEN_X + 533)
-#define BTN_TEAMS_X_LARGE          (MAP_SCREEN_X + 576)
-#define BTN_MILITIA_X_LARGE        (MAP_SCREEN_X + 619)
-#define BTN_AIR_X_LARGE            (MAP_SCREEN_X + 662)
-#define BTN_ITEM_X_LARGE           (MAP_SCREEN_X + 705)
+#define BTN_TOWN_X_LARGE           (MAP_SCREEN_RIGHT_BLOCK_X + 490)
+#define BTN_MINE_X_LARGE           (MAP_SCREEN_RIGHT_BLOCK_X + 533)
+#define BTN_TEAMS_X_LARGE          (MAP_SCREEN_RIGHT_BLOCK_X + 576)
+#define BTN_MILITIA_X_LARGE        (MAP_SCREEN_RIGHT_BLOCK_X + 619)
+#define BTN_AIR_X_LARGE            (MAP_SCREEN_RIGHT_BLOCK_X + 662)
+#define BTN_ITEM_X_LARGE           (MAP_SCREEN_RIGHT_BLOCK_X + 705)
 #define BTN_ROW_Y_LARGE            (MAP_SCREEN_BOTTOM - 156)
-#define MAP_LEVEL_MARKER_X_LARGE   (MAP_SCREEN_X + 757)
+#define MAP_LEVEL_MARKER_X_LARGE   (MAP_SCREEN_RIGHT_BLOCK_X + 757)
 
 // Compact-tier (map canvas height 720-767) coordinates -- a second,
 // independent set from the large tier above, per user request. Initialized
 // as the large-tier values shifted -97 X / +55 Y (Y+55 down = 55 less
 // distance from the bottom edge, i.e. 156-55=101); tune freely from here
 // without affecting the large tier.
-#define BTN_TOWN_X_COMPACT         (MAP_SCREEN_X + 393)
+// Deliberately MAP_SCREEN_X (not MAP_SCREEN_RIGHT_BLOCK_X like the large
+// tier above): on the compact tier this row sits on map_screen_bottom.sti's
+// own (left-anchored) territory, so on the wide strategic screen it stays
+// put with the bottom panel instead of moving right with MBS.
+#define BTN_TOWN_X_COMPACT        (MAP_SCREEN_X + 393)
 #define BTN_MINE_X_COMPACT         (MAP_SCREEN_X + 436)
 #define BTN_TEAMS_X_COMPACT        (MAP_SCREEN_X + 479)
 #define BTN_MILITIA_X_COMPACT      (MAP_SCREEN_X + 522)
@@ -72,10 +76,10 @@ struct BUTTON_PICS;
 #define MAP_LEVEL_MARKER_WIDTH  55
 
 
-#define MAP_BORDER_X (MAP_SCREEN_X + 261)
+#define MAP_BORDER_X (MAP_SCREEN_RIGHT_BLOCK_X + 261)
 #define MAP_BORDER_Y (MAP_SCREEN_Y + 0)
 
-#define MAP_BORDER_CORNER_X (MAP_SCREEN_X + 584)
+#define MAP_BORDER_CORNER_X (MAP_SCREEN_RIGHT_BLOCK_X + 584)
 #define MAP_BORDER_CORNER_Y (MAP_SCREEN_Y + 279)
 
 

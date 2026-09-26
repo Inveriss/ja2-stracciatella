@@ -241,7 +241,7 @@ static const SGPBox g_sector_inv_page_box   = { 657, 740,  50,  10 };
 BOOLEAN IsCursorOverSectorInventoryWindow(void)
 {
 	SGPBox const& box = g_sector_inv_box;
-	UINT16 const x1 = MAP_SCREEN_X + box.x;
+	UINT16 const x1 = MAP_SCREEN_RIGHT_BLOCK_X + box.x;
 	UINT16 const y1 = MAP_SCREEN_Y + box.y;
 	return gusMouseXPos >= x1 && gusMouseXPos < x1 + box.w &&
 	       gusMouseYPos >= y1 && gusMouseYPos < y1 + box.h;
@@ -654,7 +654,7 @@ void MPrintCenteredInBox(int x, int y, ST::string const& text, SGPBox const& box
 void BlitInventoryPoolGraphic( void )
 {
 	const SGPBox* const box = &g_sector_inv_box;
-	BltVideoObject(guiSAVEBUFFER, GetMapInventoryPoolBackgroundFilename(), 0, MAP_SCREEN_X + box->x, MAP_SCREEN_Y + box->y);
+	BltVideoObject(guiSAVEBUFFER, GetMapInventoryPoolBackgroundFilename(), 0, MAP_SCREEN_RIGHT_BLOCK_X + box->x, MAP_SCREEN_Y + box->y);
 
 	// resize list
 	CheckAndUnDateSlotAllocation( );
@@ -723,7 +723,7 @@ static BOOLEAN RenderItemInPoolSlot(INT32 iCurrentSlot, INT32 iFirstSlotOnPage)
 
 	const SGPBox* const slot_box = &GetSectorInvSlotBox();
 	INT32       const  row       = iCurrentSlot % MAP_INV_SLOT_ROWS;
-	const INT32 dx = MAP_SCREEN_X + slot_box->x + slot_box->w * (iCurrentSlot / MAP_INV_SLOT_ROWS);
+	const INT32 dx = MAP_SCREEN_RIGHT_BLOCK_X + slot_box->x + slot_box->w * (iCurrentSlot / MAP_INV_SLOT_ROWS);
 	const INT32 dy = MAP_SCREEN_Y + slot_box->y + (slot_box->h + GetBigImagesCompactRowPitchCorrection()) * row + GetSectorInvLastRowYCorrection(row) + GetBigImagesCompactYCorrection();
 
 	SetFontDestBuffer(guiSAVEBUFFER);
@@ -1068,7 +1068,7 @@ static void CreateMapInventoryPoolSlots(void)
 {
 	{
 		const SGPBox* const inv_box = &g_sector_inv_box;
-		UINT16        const x       = MAP_SCREEN_X + inv_box->x;
+		UINT16        const x       = MAP_SCREEN_RIGHT_BLOCK_X + inv_box->x;
 		UINT16        const y       = MAP_SCREEN_Y + inv_box->y;
 		UINT16        const w       = inv_box->w;
 		UINT16        const h       = inv_box->h;
@@ -1089,7 +1089,7 @@ static void CreateMapInventoryPoolSlots(void)
 	{
 		UINT16        const sx = i / MAP_INV_SLOT_ROWS;
 		UINT16        const sy = i % MAP_INV_SLOT_ROWS;
-		UINT16        const x  = reg_box->x + MAP_SCREEN_X + slot_box->x + sx * slot_box->w;
+		UINT16        const x  = reg_box->x + MAP_SCREEN_RIGHT_BLOCK_X + slot_box->x + sx * slot_box->w;
 		UINT16        const y  = reg_box->y + MAP_SCREEN_Y + slot_box->y + sy * (slot_box->h + GetBigImagesCompactRowPitchCorrection()) + GetSectorInvLastRowYCorrection(sy) + GetBigImagesCompactYCorrection();
 		UINT16        const w  = reg_box->w;
 		UINT16        const h  = reg_box->h;
@@ -1286,7 +1286,7 @@ static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32
 
 static void CreateStackSplitSlots(void)
 {
-	UINT16 const bx = MAP_SCREEN_X + g_stack_split_box.x;
+	UINT16 const bx = MAP_SCREEN_RIGHT_BLOCK_X + g_stack_split_box.x;
 	UINT16 const by = MAP_SCREEN_Y + g_stack_split_box.y;
 
 	// Click-blocker only -- per user request, this window no longer closes
@@ -1363,7 +1363,7 @@ static void CreateStackSplitDoneButton(void)
 	// button (CreateMapInventoryPoolDoneButton()), next sequential
 	// sub-image pair (2/3, vs. the main grid's own 0/1), per user request.
 	gStackSplitDoneButton = QuickCreateButtonImg(INTERFACEDIR "/SECTOR_INVENTORY_DONE_BUTTONS.sti", 2, 3,
-		MAP_SCREEN_X + STACK_SPLIT_DONE_X, MAP_SCREEN_Y + STACK_SPLIT_DONE_Y, MSYS_PRIORITY_HIGHEST, StackSplitDoneBtn);
+		MAP_SCREEN_RIGHT_BLOCK_X + STACK_SPLIT_DONE_X, MAP_SCREEN_Y + STACK_SPLIT_DONE_Y, MSYS_PRIORITY_HIGHEST, StackSplitDoneBtn);
 	gStackSplitDoneButton->SetFastHelpText("Done (Stack Inventory)");
 }
 
@@ -1441,8 +1441,8 @@ static void CreateStackSplitPageButtons(void)
 	// Same map_screen_bottom_arrows.sti sub-images as the main grid's own
 	// next/prev (CreateMapInventoryButtons()) -- a generic page-arrow
 	// graphic, reused here for this window's own, independent pagination.
-	gStackSplitNextBtn = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + STACK_SPLIT_NEXT_X, MAP_SCREEN_Y + STACK_SPLIT_ARROWS_Y, MSYS_PRIORITY_HIGHEST, StackSplitNextBtn);
-	gStackSplitPrevBtn = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + STACK_SPLIT_PREV_X, MAP_SCREEN_Y + STACK_SPLIT_ARROWS_Y, MSYS_PRIORITY_HIGHEST, StackSplitPrevBtn);
+	gStackSplitNextBtn = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_RIGHT_BLOCK_X + STACK_SPLIT_NEXT_X, MAP_SCREEN_Y + STACK_SPLIT_ARROWS_Y, MSYS_PRIORITY_HIGHEST, StackSplitNextBtn);
+	gStackSplitPrevBtn = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_RIGHT_BLOCK_X + STACK_SPLIT_PREV_X, MAP_SCREEN_Y + STACK_SPLIT_ARROWS_Y, MSYS_PRIORITY_HIGHEST, StackSplitPrevBtn);
 }
 
 
@@ -1457,7 +1457,7 @@ static void RenderStackSplitItems(void)
 {
 	if (gStackSplitSourceIndex == -1) return;
 
-	UINT16 const bx = MAP_SCREEN_X + g_stack_split_box.x;
+	UINT16 const bx = MAP_SCREEN_RIGHT_BLOCK_X + g_stack_split_box.x;
 	UINT16 const by = MAP_SCREEN_Y + g_stack_split_box.y;
 
 	BltVideoObject(guiSAVEBUFFER, GetStackSplitBackgroundFilename(), 0, bx, by);
@@ -1496,7 +1496,7 @@ static void RenderStackSplitItems(void)
 
 	// This window's own, independent page indicator -- per user request.
 	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
+	MPrintCenteredInBox(MAP_SCREEN_RIGHT_BLOCK_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::format("{} / {}", gCurrentStackSplitPage + 1, gLastStackSplitPage + 1),
 		g_stack_split_page_box);
 
@@ -1508,13 +1508,13 @@ static void RenderStackSplitItems(void)
 	// gStackSplitItems instead of pInventoryPoolList
 	// (GetTotalNumberOfItemsInStackSplit()).
 	{
-		int const textX = MAP_SCREEN_X + STACK_SPLIT_TOTAL_TEXT_X;
+		int const textX = MAP_SCREEN_RIGHT_BLOCK_X + STACK_SPLIT_TOTAL_TEXT_X;
 		int const textY = MAP_SCREEN_Y + STACK_SPLIT_TOTAL_TEXT_Y;
 		UINT16 const textH = DisplayWrappedString(textX, textY, 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
 		DisplayWrappedString(textX, textY - (textH / 2), 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED);
 
 		SetFontAttributes(FONT_VALUE_INVENTORY, 183);
-		MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
+		MPrintCenteredInBox(MAP_SCREEN_RIGHT_BLOCK_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 			ST::string::from_uint(GetTotalNumberOfItemsInStackSplit()),
 			g_stack_split_count_box);
 	}
@@ -1822,8 +1822,8 @@ static void MapInventoryPoolNextBtn(GUI_BUTTON* btn, UINT32 reason);
 
 static void CreateMapInventoryButtons(void)
 {
-	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_X + 711, MAP_SCREEN_Y + 739 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
-	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_X + 638, MAP_SCREEN_Y + 739 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
+	guiMapInvenButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 10, 1, -1, 3, -1, MAP_SCREEN_RIGHT_BLOCK_X + 711, MAP_SCREEN_Y + 739 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolNextBtn);
+	guiMapInvenButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti",  9, 0, -1, 2, -1, MAP_SCREEN_RIGHT_BLOCK_X + 638, MAP_SCREEN_Y + 739 + COMPACT_FOOTER_TEXT_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolPrevBtn);
 
 	//reset the current inventory page to be the first page
 	iCurrentInventoryPoolPage = 0;
@@ -2218,7 +2218,7 @@ static void DisplayPagesForMapInventoryPool(void)
 	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
+	MPrintCenteredInBox(MAP_SCREEN_RIGHT_BLOCK_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::format("{} / {}", iCurrentInventoryPoolPage + 1, iLastInventoryPoolPage + 1),
 		g_sector_inv_page_box);
 
@@ -2297,7 +2297,7 @@ static void DrawNumberOfInventoryPoolItems()
 	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
+	MPrintCenteredInBox(MAP_SCREEN_RIGHT_BLOCK_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::string::from_uint(GetTotalNumberOfVisibleItemsInSectorStash()),
 		g_sector_inv_count_box);
 
@@ -2308,7 +2308,7 @@ static void DrawNumberOfInventoryPoolItems()
 static void CreateMapInventoryPoolDoneButton(void)
 {
 	// create done button
-	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/SECTOR_INVENTORY_DONE_BUTTONS.sti", 0, 1, MAP_SCREEN_X + 813, MAP_SCREEN_Y + 737 + COMPACT_DONE_BUTTON_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
+	guiMapInvenButton[2] = QuickCreateButtonImg(INTERFACEDIR "/SECTOR_INVENTORY_DONE_BUTTONS.sti", 0, 1, MAP_SCREEN_RIGHT_BLOCK_X + 813, MAP_SCREEN_Y + 737 + COMPACT_DONE_BUTTON_Y_OFFSET, MSYS_PRIORITY_HIGHEST, MapInventoryPoolDoneBtn);
 	guiMapInvenButton[2]->SetFastHelpText("Done (Sector Inventory)");
 }
 
@@ -2332,7 +2332,7 @@ static void MapInventoryPoolGroupBtn(GUI_BUTTON* btn, UINT32 reason)
 static void CreateMapInventoryGroupButton(void)
 {
 	// create "group items" button -- placeholder position, per user request
-	guiMapInvenButton[3] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", GROUP_BUTTON_READY, GROUP_BUTTON_PRESSED, MAP_SCREEN_X + GROUP_BUTTON_X, MAP_SCREEN_Y + GROUP_BUTTON_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolGroupBtn);
+	guiMapInvenButton[3] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", GROUP_BUTTON_READY, GROUP_BUTTON_PRESSED, MAP_SCREEN_RIGHT_BLOCK_X + GROUP_BUTTON_X, MAP_SCREEN_Y + GROUP_BUTTON_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolGroupBtn);
 	guiMapInvenButton[3]->SetFastHelpText("Stack, consolidate and unload items.");
 }
 
@@ -2460,20 +2460,20 @@ static void CreateMapInventoryFilterButtons(void)
 	// button starts OFF. All 7 are otherwise identical, independent
 	// toggles from here on (ToggleSectorInventoryFilter()) -- this is a
 	// one-time initialization, not an ongoing sync.
-	guiMapInvenButton[4]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", ALL_ITEMS_BUTTON_OFF, ALL_ITEMS_BUTTON_ON, MAP_SCREEN_X + ALL_ITEMS_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolAllItemsBtn);
+	guiMapInvenButton[4]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", ALL_ITEMS_BUTTON_OFF, ALL_ITEMS_BUTTON_ON, MAP_SCREEN_RIGHT_BLOCK_X + ALL_ITEMS_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolAllItemsBtn);
 	guiMapInvenButton[4]->uiFlags |= BUTTON_CLICKED_ON;
 	guiMapInvenButton[4]->SetFastHelpText("Show All");
-	guiMapInvenButton[5]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_WEAPONS_OFF,     FILTER_WEAPONS_ON,     MAP_SCREEN_X + FILTER_WEAPONS_X,     MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterWeaponsBtn);
+	guiMapInvenButton[5]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_WEAPONS_OFF,     FILTER_WEAPONS_ON,     MAP_SCREEN_RIGHT_BLOCK_X + FILTER_WEAPONS_X,     MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterWeaponsBtn);
 	guiMapInvenButton[5]->SetFastHelpText("Show Guns");
-	guiMapInvenButton[6]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ATTACHMENTS_OFF, FILTER_ATTACHMENTS_ON, MAP_SCREEN_X + FILTER_ATTACHMENTS_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAttachmentsBtn);
+	guiMapInvenButton[6]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ATTACHMENTS_OFF, FILTER_ATTACHMENTS_ON, MAP_SCREEN_RIGHT_BLOCK_X + FILTER_ATTACHMENTS_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAttachmentsBtn);
 	guiMapInvenButton[6]->SetFastHelpText("Show Attachments");
-	guiMapInvenButton[7]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_AMMO_OFF,        FILTER_AMMO_ON,        MAP_SCREEN_X + FILTER_AMMO_X,        MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAmmoBtn);
+	guiMapInvenButton[7]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_AMMO_OFF,        FILTER_AMMO_ON,        MAP_SCREEN_RIGHT_BLOCK_X + FILTER_AMMO_X,        MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterAmmoBtn);
 	guiMapInvenButton[7]->SetFastHelpText("Show Ammo");
-	guiMapInvenButton[8]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ARMOUR_OFF,      FILTER_ARMOUR_ON,      MAP_SCREEN_X + FILTER_ARMOUR_X,      MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterArmourBtn);
+	guiMapInvenButton[8]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_ARMOUR_OFF,      FILTER_ARMOUR_ON,      MAP_SCREEN_RIGHT_BLOCK_X + FILTER_ARMOUR_X,      MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterArmourBtn);
 	guiMapInvenButton[8]->SetFastHelpText("Show Armor and HeadGear");
-	guiMapInvenButton[9]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_EXPLOSIVES_OFF,  FILTER_EXPLOSIVES_ON,  MAP_SCREEN_X + FILTER_EXPLOSIVES_X,  MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterExplosivesBtn);
+	guiMapInvenButton[9]  = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_EXPLOSIVES_OFF,  FILTER_EXPLOSIVES_ON,  MAP_SCREEN_RIGHT_BLOCK_X + FILTER_EXPLOSIVES_X,  MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterExplosivesBtn);
 	guiMapInvenButton[9]->SetFastHelpText("Show Explosives");
-	guiMapInvenButton[10] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_OTHER_OFF,       FILTER_OTHER_ON,       MAP_SCREEN_X + FILTER_OTHER_X,       MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterOtherBtn);
+	guiMapInvenButton[10] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", FILTER_OTHER_OFF,       FILTER_OTHER_ON,       MAP_SCREEN_RIGHT_BLOCK_X + FILTER_OTHER_X,       MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolFilterOtherBtn);
 	guiMapInvenButton[10]->SetFastHelpText("Show Miscellaneous");
 }
 
@@ -2517,7 +2517,7 @@ static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
 
 static void CreateMapInventoryBigImagesButton(void)
 {
-	guiMapInvenButton[13] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", BIG_IMAGES_BUTTON_OFF, BIG_IMAGES_BUTTON_ON, MAP_SCREEN_X + BIG_IMAGES_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolBigImagesBtn);
+	guiMapInvenButton[13] = QuickCreateFilterToggleButton(INTERFACEDIR "/sector_inventory_bookmarks.sti", BIG_IMAGES_BUTTON_OFF, BIG_IMAGES_BUTTON_ON, MAP_SCREEN_RIGHT_BLOCK_X + BIG_IMAGES_BUTTON_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolBigImagesBtn);
 	guiMapInvenButton[13]->SetFastHelpText("Show Large Icons");
 }
 
@@ -2554,7 +2554,7 @@ static void CreateMapInventoryFilterModeCheckbox(void)
 	// this session), and CreateCheckBoxButton() itself always starts
 	// unchecked.
 	guiMapInvenButton[14] = CreateCheckBoxButton(
-		MAP_SCREEN_X + FILTER_MODE_CHECKBOX_X + 3, MAP_SCREEN_Y + FILTER_BUTTONS_Y + 33,
+		MAP_SCREEN_RIGHT_BLOCK_X + FILTER_MODE_CHECKBOX_X + 3, MAP_SCREEN_Y + FILTER_BUTTONS_Y + 33,
 		INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", MSYS_PRIORITY_HIGHEST,
 		ToggleSectorInventoryFilterModeCallback, 4); // sub-images 4-7, per user request
 	if (gfSectorInventoryCombinableFilters) guiMapInvenButton[14]->uiFlags |= BUTTON_CLICKED_ON;
@@ -2740,9 +2740,9 @@ static void MapInventoryPoolMoveToMercBtn(GUI_BUTTON* btn, UINT32 reason)
 static void CreateMapInventoryTransferButtons(void)
 {
 	// Placeholder positions, per user request -- not yet the final layout.
-	guiMapInvenButton[11] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_SECTOR_READY, MOVE_TO_SECTOR_PRESSED, MAP_SCREEN_X + MOVE_TO_SECTOR_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToSectorBtn);
+	guiMapInvenButton[11] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_SECTOR_READY, MOVE_TO_SECTOR_PRESSED, MAP_SCREEN_RIGHT_BLOCK_X + MOVE_TO_SECTOR_X, MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToSectorBtn);
 	guiMapInvenButton[11]->SetFastHelpText("Move all items from mercenary to sector inventory.");
-	guiMapInvenButton[12] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_MERC_READY,   MOVE_TO_MERC_PRESSED,   MAP_SCREEN_X + MOVE_TO_MERC_X,   MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToMercBtn);
+	guiMapInvenButton[12] = QuickCreateButtonImg(INTERFACEDIR "/sector_inventory_bookmarks.sti", MOVE_TO_MERC_READY,   MOVE_TO_MERC_PRESSED,   MAP_SCREEN_RIGHT_BLOCK_X + MOVE_TO_MERC_X,   MAP_SCREEN_Y + FILTER_BUTTONS_Y, MSYS_PRIORITY_HIGHEST, MapInventoryPoolMoveToMercBtn);
 	guiMapInvenButton[12]->SetFastHelpText("Move all possible items from sector to mercenary inventory.");
 }
 
@@ -3052,7 +3052,7 @@ static void DisplayCurrentSector(void)
 	SetFontAttributes(FONT_VALUE_INVENTORY, 183);
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
+	MPrintCenteredInBox(MAP_SCREEN_RIGHT_BLOCK_X, MAP_SCREEN_Y + COMPACT_FOOTER_TEXT_Y_OFFSET,
 		ST::format("{}{}{}", pMapVertIndex[ sSelMap.y ],
 			pMapHortIndex[ sSelMap.x ], pMapDepthIndex[ iCurrentMapSectorZ ]),
 		g_sector_inv_loc_box);
@@ -3115,14 +3115,14 @@ static void DrawTextOnMapInventoryBackground(void)
 
 	SetFontDestBuffer(guiSAVEBUFFER);
 
-	int xPos = MAP_SCREEN_X + 392;
+	int xPos = MAP_SCREEN_RIGHT_BLOCK_X + 392;
 	int yPos = MAP_SCREEN_Y + 746 + COMPACT_FOOTER_TEXT_Y_OFFSET;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 53, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
 	DisplayWrappedString(xPos, yPos - (usStringHeight / 2), 53, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[0], FONT_BLACK, RIGHT_JUSTIFIED);
 
-	xPos = MAP_SCREEN_X + 506;
+	xPos = MAP_SCREEN_RIGHT_BLOCK_X + 506;
 
 	//Calculate the height of the string, as it needs to be vertically centered.
 	usStringHeight = DisplayWrappedString(xPos, yPos, 65, 1, FONT_TEXT_INVENTORY, FONT_BEIGE, pMapInventoryStrings[1], FONT_BLACK, RIGHT_JUSTIFIED | DONT_DISPLAY_TEXT);
@@ -3233,7 +3233,7 @@ static void DrawTextOnSectorInventory(void)
 	SetFontDestBuffer(guiSAVEBUFFER);
 	SetFontAttributes(FONT14ARIAL, FONT_WHITE);
 
-	MPrintCenteredInBox(MAP_SCREEN_X, MAP_SCREEN_Y + SECTOR_INV_TITLE_Y_OFFSET,
+	MPrintCenteredInBox(MAP_SCREEN_RIGHT_BLOCK_X, MAP_SCREEN_Y + SECTOR_INV_TITLE_Y_OFFSET,
 		zMarksMapScreenText[11], g_sector_inv_title_box);
 
 	SetFontDestBuffer(FRAME_BUFFER);

@@ -91,9 +91,9 @@
 // doesn't run off the bottom of the screen), each with its own graphic
 // (pos2_first.sti / pos2_second.sti, see guiMapBorderHeliSectorsFirst/
 // Second below) and fully independent X/Y.
-#define MAP_HELICOPTER_ETA_POPUP_X (MAP_SCREEN_X + 873)
+#define MAP_HELICOPTER_ETA_POPUP_X (MAP_SCREEN_RIGHT_BLOCK_X + 873)
 #define MAP_HELICOPTER_ETA_POPUP_Y (MAP_SCREEN_Y + 185)
-#define MAP_HELICOPTER_UPPER_ETA_POPUP_X (MAP_SCREEN_X + 873)
+#define MAP_HELICOPTER_UPPER_ETA_POPUP_X (MAP_SCREEN_RIGHT_BLOCK_X + 873)
 #define MAP_HELICOPTER_UPPER_ETA_POPUP_Y (MAP_SCREEN_Y + 359)
 #define MAP_HELICOPTER_ETA_POPUP_WIDTH 129
 #define MAP_HELICOPTER_ETA_POPUP_HEIGHT 103
@@ -113,7 +113,7 @@
 #define MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -27
 
 // X shifted +190 per user request.
-#define MAP_LEVEL_STRING_X (MAP_SCREEN_X + 432 + 190)
+#define MAP_LEVEL_STRING_X (MAP_SCREEN_RIGHT_BLOCK_X + 432 + 190)
 // Bottom-anchored to the (now recalibrated) map viewport instead of a fixed
 // MAP_SCREEN_Y offset, per user request. Was 3px above the old viewport's
 // bottom edge (old MAP_VIEW_START_Y + MAP_VIEW_HEIGHT = 10+298 = 308;
@@ -139,7 +139,7 @@
 
 // x start of hort index (numbers 1-16). Shifted +23 X / +7 Y per user
 // request.
-#define MAP_HORT_INDEX_X (MAP_SCREEN_X + 292 + 23)
+#define MAP_HORT_INDEX_X (MAP_SCREEN_RIGHT_BLOCK_X + 292 + 23)
 
 // y position of hort index
 #define MAP_HORT_INDEX_Y  (MAP_SCREEN_Y + 10 + 7)
@@ -148,7 +148,7 @@
 #define MAP_HORT_HEIGHT  GetFontHeight(MAP_FONT)
 
 // vert index start x (letters A-P). Shifted +10 X / +15 Y per user request.
-#define MAP_VERT_INDEX_X (MAP_SCREEN_X + 273 + +10)
+#define MAP_VERT_INDEX_X (MAP_SCREEN_RIGHT_BLOCK_X + 273 + +10)
 
 // vert index start y
 #define MAP_VERT_INDEX_Y  (MAP_SCREEN_Y + 31 + 15)
@@ -287,7 +287,7 @@ static SGPVSurface* guiBIGMAP;
 #define MILITIA_BOX_ROWS 3
 #define MILITIA_BOX_BOX_HEIGHT 36
 #define MILITIA_BOX_BOX_WIDTH 42
-#define MAP_MILITIA_BOX_POS_X (MAP_SCREEN_X + 400)
+#define MAP_MILITIA_BOX_POS_X (MAP_SCREEN_RIGHT_BLOCK_X + 400)
 #define MAP_MILITIA_BOX_POS_Y (MAP_SCREEN_Y + 125)
 
 #define POPUP_MILITIA_ICONS_PER_ROW 5 // max 6 rows gives the limit of 30 militia

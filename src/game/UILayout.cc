@@ -15,6 +15,8 @@
 #define MIN_INTERFACE_WIDTH             1024  // absolute minimum width, both strategic-screen asset variants
 #define MIN_INTERFACE_HEIGHT            720   // absolute minimum height == height of the compact strategic-screen asset variant
 #define LARGE_STRATEGIC_SCREEN_HEIGHT   768   // screens at/above this height use the large strategic-screen asset variant instead of the compact one
+// WIDE_STRATEGIC_SCREEN_WIDTH / MAP_LEGACY_CANVAS_WIDTH / MAP_RIGHT_BLOCK_SHIFT
+// live in UILayout.h, since the strategic screen code needs them too.
 
 /**
  * Default screen layout.
@@ -53,6 +55,13 @@ bool UILayout::isBigScreen() const
 bool UILayout::isCompactStrategicScreen() const
 {
 	return m_mapScreenHeight < LARGE_STRATEGIC_SCREEN_HEIGHT;
+}
+
+
+/** True when the active resolution uses the wide (1280px) strategic screen canvas -- left column left-aligned, map/MBS block shifted right by MAP_RIGHT_BLOCK_SHIFT. */
+bool UILayout::isWideStrategicScreen() const
+{
+	return m_mapScreenWidth >= WIDE_STRATEGIC_SCREEN_WIDTH;
 }
 
 
@@ -118,8 +127,14 @@ void UILayout::recalculatePositions()
 
 	// Resolve which strategic-screen asset variant is active for the current
 	// resolution -- see isCompactStrategicScreen() / LARGE_STRATEGIC_SCREEN_HEIGHT.
-	m_mapScreenWidth              = MIN_INTERFACE_WIDTH;
-	m_mapScreenHeight             = (m_screenHeight >= LARGE_STRATEGIC_SCREEN_HEIGHT)
+	// Width is its own, independent axis: screens at least
+	// WIDE_STRATEGIC_SCREEN_WIDTH wide get the fixed 1280px wide canvas (the
+	// same one for every width from 1280 up -- centered, like the 1024 one),
+	// everything narrower keeps the legacy 1024px canvas.
+	m_mapScreenWidth              = (m_screenWidth >= WIDE_STRATEGIC_SCREEN_WIDTH)
+	                                     ? WIDE_STRATEGIC_SCREEN_WIDTH
+	                                     : MAP_LEGACY_CANVAS_WIDTH;
+	m_mapScreenHeight            = (m_screenHeight >= LARGE_STRATEGIC_SCREEN_HEIGHT)
 	                                     ? LARGE_STRATEGIC_SCREEN_HEIGHT
 	                                     : MIN_INTERFACE_HEIGHT;
 
@@ -130,6 +145,10 @@ void UILayout::recalculatePositions()
 	// MAP_SCREEN_X/Y centers the strategic map's own, larger canvas.
 	m_mapScreenOffsetX            = (m_screenWidth - m_mapScreenWidth) / 2;
 	m_mapScreenOffsetY            = (m_screenHeight - m_mapScreenHeight) / 2;
+	// MAP_SCREEN_RIGHT_BLOCK_X: the map/MBS/sector-inventory block. Same as
+	// MAP_SCREEN_X on the legacy 1024 canvas; shifted right on the wide one,
+	// opening the free space between the left column and MBS.
+	m_mapRightBlockOffsetX        = m_mapScreenOffsetX + (isWideStrategicScreen() ? MAP_RIGHT_BLOCK_SHIFT : 0);
 
 	// tactical screen inventory position
 	m_invSlotPositionTac[HELMETPOS           ].set(startX + 431, startInvY +   8);

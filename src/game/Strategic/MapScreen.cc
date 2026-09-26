@@ -131,8 +131,12 @@
 
 // Bottom+right-anchored, not a fixed 640x480-canvas literal, so the
 // background restore below actually reaches the new, bigger canvas' edges
-// -- see RenderMapRegionBackground()/RenderTeamRegionBackground().
-#define MAP_BG_WIDTH      (MAP_SCREEN_WIDTH - 261)
+// -- see RenderMapRegionBackground()/RenderTeamRegionBackground(). Width of
+// the map/MBS block itself (the part of the legacy 1024 canvas right of the
+// left column), not of the whole canvas -- on the wide strategic screen that
+// block starts at MAP_SCREEN_RIGHT_BLOCK_X, so MAP_SCREEN_WIDTH would be off
+// by the free space's width.
+#define MAP_BG_WIDTH      (MAP_LEGACY_CANVAS_WIDTH - 261)
 
 #define MAP_ARMOR_LABEL_X (MAP_SCREEN_X + 208)
 #define MAP_ARMOR_LABEL_Y (MAP_SCREEN_Y + 179)
@@ -353,7 +357,8 @@ cache_key_t const guiNewMailIcons{ INTERFACEDIR "/newemail.sti" };
 // be resolved at runtime, on every call. Suffix convention: _1280 for the
 // compact strategic-screen tier (height 720-767), _1024 for the large tier
 // (height 768+) -- matching the resolution each tier's assets were authored
-// for, not the map canvas' own (always 1024-wide) MAP_SCREEN_WIDTH.
+// for, not the map canvas' own MAP_SCREEN_WIDTH (1024, or 1280 on the wide
+// strategic screen -- see isWideStrategicScreen()).
 cache_key_t GetCharListGraphicsFilename()
 {
 	return g_ui.isCompactStrategicScreen()
@@ -5004,7 +5009,7 @@ void RenderMapRegionBackground( void )
 	// mask it were moved down to the real bottom edge. Restore the full
 	// remaining canvas height instead -- safe, since RenderMapScreenInterfaceBottom()
 	// (BlitBackgroundToSaveBuffer()) draws its own area on top afterwards.
-	RestoreExternBackgroundRect(MAP_SCREEN_X + 261, MAP_SCREEN_Y + 0, MAP_BG_WIDTH, MAP_SCREEN_HEIGHT);
+	RestoreExternBackgroundRect(MAP_SCREEN_RIGHT_BLOCK_X + 261, MAP_SCREEN_Y + 0, MAP_BG_WIDTH, MAP_SCREEN_HEIGHT);
 
 	// don't bother if showing sector inventory instead of the map!!!
 	if( !fShowMapInventoryPool )
