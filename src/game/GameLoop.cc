@@ -127,6 +127,14 @@ static SGPBox GetStretchRegion()
 			if (LaptopReturnsToMapScreen()) return { MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
 			break;
 
+		case OPTIONS_SCREEN:
+		case SAVE_LOAD_SCREEN:
+			// Same as the laptop above: opened from the map screen, the map
+			// stays drawn behind these 640x480 screens (centered, so inside
+			// the map canvas) -- keep it zoomed.
+			if (guiPreviousOptionScreen == MAP_SCREEN) return { MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+			break;
+
 		default:
 			break;
 	}
