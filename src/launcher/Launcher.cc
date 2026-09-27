@@ -349,6 +349,9 @@ void Launcher::loadJa2Json() {
 void Launcher::show() {
 	editorButton->callback( (Fl_Callback*)startEditor, (void*)(this) );
 	playButton->callback( (Fl_Callback*)startGame, (void*)(this) );
+	// Same two buttons, duplicated on the Settings tab.
+	settingsEditorButton->callback( (Fl_Callback*)startEditor, (void*)(this) );
+	settingsPlayButton->callback( (Fl_Callback*)startGame, (void*)(this) );
 	gameDirectoryInput->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	saveGameDirectoryInput->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	browseJa2DirectoryButton->callback((Fl_Callback *) openGameDirectorySelector, (void *) (this));
@@ -848,12 +851,16 @@ void Launcher::update(bool changed) {
 		tabs->deactivate();
 		playButton->deactivate();
 		editorButton->deactivate();
+		settingsPlayButton->deactivate();
+		settingsEditorButton->deactivate();
 		ja2JsonReloadBtn->deactivate();
 		ja2JsonSaveBtn->deactivate();
 	} else {
 		tabs->activate();
 		playButton->activate();
 		editorButton->activate();
+		settingsPlayButton->activate();
+		settingsEditorButton->activate();
 		ja2JsonReloadBtn->activate();
 		ja2JsonSaveBtn->activate();
 	}

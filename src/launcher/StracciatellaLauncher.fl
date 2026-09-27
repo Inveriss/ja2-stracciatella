@@ -178,6 +178,14 @@ class StracciatellaLauncher {open
               xywh {20 255 109 30} down_box DOWN_BOX value 1
             }
           }
+          Fl_Button settingsEditorButton {
+            label {Start Map Editor}
+            xywh {165 236 200 25}
+          }
+          Fl_Button settingsPlayButton {
+            label {Play Ja2 Stracciatella}
+            xywh {165 271 200 55}
+          }
         }
         Fl_Group logsTab {
           label {@square Logs} open

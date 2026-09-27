@@ -178,6 +178,10 @@ n) but gives sharp images.");
           } // Fl_Check_Button* playSoundsCheckbox
           o->end();
         } // Fl_Group* o
+        { settingsEditorButton = new Fl_Button(165, 236, 200, 25, "Start Map Editor");
+        } // Fl_Button* settingsEditorButton
+        { settingsPlayButton = new Fl_Button(165, 271, 200, 55, "Play Ja2 Stracciatella");
+        } // Fl_Button* settingsPlayButton
         o->end();
       } // Fl_Group* o
       { logsTab = new Fl_Group(0, 50, 520, 300, "@square Logs");
