@@ -210,9 +210,9 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionMap[SMALLPOCK1POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 270);
 	m_invSlotPositionMap[SMALLPOCK2POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 306);
 	m_invSlotPositionMap[SMALLPOCK3POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 342);
-	m_invSlotPositionMap[SMALLPOCK4POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 414);
-	m_invSlotPositionMap[SMALLPOCK5POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 450);
-	m_invSlotPositionMap[SMALLPOCK6POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 270);
+	m_invSlotPositionMap[SMALLPOCK4POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 378);
+	m_invSlotPositionMap[SMALLPOCK5POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 270);
+	m_invSlotPositionMap[SMALLPOCK6POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 306);
 	m_invSlotPositionMap[SMALLPOCK7POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 342);
 	m_invSlotPositionMap[SMALLPOCK8POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 378);
 
