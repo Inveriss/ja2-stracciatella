@@ -2776,6 +2776,12 @@ static void BlitMineText(UINT8 const mine_idx, const SGPSector& sMap)
 }
 
 
+// Each town's grey border ("Show Towns") can be nudged independently on top
+// of its sector-grid position (GetScreenXYFromMapXY()), to line up with the
+// map graphic without moving the grid, sector icons or mouse regions: the
+// town's optional "borderOffset1024" (height 768+, b_map_1024.pcx) /
+// "borderOffset1280" (height 720-767, b_map_1280.pcx) in
+// strategic-map-towns.json -- see TownModel. Still clipped to MapScreenRect.
 static void BlitTownGridMarkers(void)
 {
 	SGPVSurface::Lock l(guiSAVEBUFFER);
@@ -2801,6 +2807,14 @@ static void BlitTownGridMarkers(void)
 		w  = MAP_GRID_X - 1;
 		h  = MAP_GRID_Y;
 		x += 2;
+
+		TownModel const* const town = GCM->getTown(i->town);
+		if (town)
+		{
+			TownBorderOffset const& offset = g_ui.isCompactStrategicScreen() ? town->borderOffset1280 : town->borderOffset1024;
+			x += offset.x;
+			y += offset.y;
+		}
 
 		INT32 const loc = sMap.AsStrategicIndex();
 		if (StrategicMap[loc - MAP_WORLD_X].bNameId == BLANK_SECTOR)
