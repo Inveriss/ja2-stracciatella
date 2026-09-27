@@ -120,6 +120,11 @@ static SGPBox GetStretchRegion()
 
 		case LAPTOP_SCREEN:
 			if (gfStretchLaptop) return { STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT };
+			// Opened from the map screen: the map is drawn behind the laptop,
+			// so keep the map canvas zoomed (the laptop, centered like it,
+			// lies entirely inside it) instead of dropping back to the whole
+			// frame with its black margins.
+			if (LaptopReturnsToMapScreen()) return { MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
 			break;
 
 		default:

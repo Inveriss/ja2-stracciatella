@@ -350,6 +350,13 @@ void SetLaptopExitScreen(ScreenID const uiExitScreen)
 }
 
 
+bool LaptopReturnsToMapScreen()
+{
+	// Same rule LeaveLapTopScreen() uses to pick where "Done" returns to.
+	return guiExitScreen != GAME_SCREEN;
+}
+
+
 void SetLaptopEntryMode(LaptopMode const uiEntryMode)
 {
 	guiRequestedLaptopEntryMode = uiEntryMode;

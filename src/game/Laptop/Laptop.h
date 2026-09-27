@@ -16,6 +16,10 @@ void ExitLaptop(void);
 void HandleLapTopESCKey(void);
 void SetBookMark(INT32 iBookId);
 void SetLaptopExitScreen(ScreenID uiExitScreen);
+// True when closing the laptop returns to the strategic map screen, i.e. it
+// was opened from there (the tactical-screen shortcuts return to GAME_SCREEN)
+// -- the map is then what's drawn behind the laptop.
+bool LaptopReturnsToMapScreen();
 void SetLaptopNewGameFlag(void);
 extern MOUSE_CALLBACK LapTopScreenCallBack;
 void HandleRightButtonUpEvent(void);
