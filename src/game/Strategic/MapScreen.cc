@@ -153,26 +153,66 @@
 // the free space's background get copied/cleared along with it.
 #define LEFT_COLUMN_BG_WIDTH (261 + (g_ui.isWideStrategicScreen() ? MAP_MIDDLE_BACKGROUND_WIDTH : 0))
 
-#define MAP_ARMOR_LABEL_X (MAP_SCREEN_X + 216)
-#define MAP_ARMOR_LABEL_Y (MAP_SCREEN_Y + 195)
-#define MAP_ARMOR_X       (MAP_SCREEN_X + 201)
-#define MAP_ARMOR_Y       (MAP_SCREEN_Y + 195)
-#define MAP_ARMOR_W        45
-#define MAP_ARMOR_H        29
+// Armour / weight / camo labels and value boxes of the merc inventory
+// panel -- normal mode (..._NORMAL) and an independent "Show Large Icons"
+// mode (..._BIG, mapinv_wide_big.sti, starts equal to the normal one); the
+// plain names pick the current mode's (IsMapInvBigImages()).
+#define MAP_ARMOR_LABEL_X_NORMAL (MAP_SCREEN_X + 216)
+#define MAP_ARMOR_LABEL_Y_NORMAL (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_X_NORMAL (MAP_SCREEN_X + 201)
+#define MAP_ARMOR_Y_NORMAL (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_W_NORMAL 45
+#define MAP_ARMOR_H_NORMAL 29
+#define MAP_WEIGHT_LABEL_X_NORMAL (MAP_SCREEN_X + 13)
+#define MAP_WEIGHT_LABEL_Y_NORMAL (MAP_SCREEN_Y + 194)
+#define MAP_WEIGHT_X_NORMAL (MAP_SCREEN_X + -3)
+#define MAP_WEIGHT_Y_NORMAL (MAP_SCREEN_Y + 196)
+#define MAP_WEIGHT_W_NORMAL 45
+#define MAP_WEIGHT_H_NORMAL 29
+#define MAP_CAMO_LABEL_X_NORMAL (MAP_SCREEN_X + 17)
+#define MAP_CAMO_LABEL_Y_NORMAL (MAP_SCREEN_Y + 232)
+#define MAP_CAMO_X_NORMAL (MAP_SCREEN_X + -3)
+#define MAP_CAMO_Y_NORMAL (MAP_SCREEN_Y + 234)
+#define MAP_CAMO_W_NORMAL 45
+#define MAP_CAMO_H_NORMAL 29
 
-#define MAP_WEIGHT_LABEL_X (MAP_SCREEN_X + 13)
-#define MAP_WEIGHT_LABEL_Y (MAP_SCREEN_Y + 194)
-#define MAP_WEIGHT_X       (MAP_SCREEN_X + -3)
-#define MAP_WEIGHT_Y       (MAP_SCREEN_Y + 196)
-#define MAP_WEIGHT_W        45
-#define MAP_WEIGHT_H        29
+#define MAP_ARMOR_LABEL_X_BIG (MAP_SCREEN_X + 216)
+#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_X_BIG (MAP_SCREEN_X + 201)
+#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_W_BIG 45
+#define MAP_ARMOR_H_BIG 29
+#define MAP_WEIGHT_LABEL_X_BIG (MAP_SCREEN_X + 13)
+#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 194)
+#define MAP_WEIGHT_X_BIG (MAP_SCREEN_X + -3)
+#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 196)
+#define MAP_WEIGHT_W_BIG 45
+#define MAP_WEIGHT_H_BIG 29
+#define MAP_CAMO_LABEL_X_BIG (MAP_SCREEN_X + 17)
+#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 232)
+#define MAP_CAMO_X_BIG (MAP_SCREEN_X + -3)
+#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 234)
+#define MAP_CAMO_W_BIG 45
+#define MAP_CAMO_H_BIG 29
 
-#define MAP_CAMO_LABEL_X (MAP_SCREEN_X + 17)
-#define MAP_CAMO_LABEL_Y (MAP_SCREEN_Y + 232)
-#define MAP_CAMO_X       (MAP_SCREEN_X + -3)
-#define MAP_CAMO_Y       (MAP_SCREEN_Y + 234)
-#define MAP_CAMO_W        45
-#define MAP_CAMO_H        29
+#define MAP_ARMOR_LABEL_X (IsMapInvBigImages() ? MAP_ARMOR_LABEL_X_BIG : MAP_ARMOR_LABEL_X_NORMAL)
+#define MAP_ARMOR_LABEL_Y (IsMapInvBigImages() ? MAP_ARMOR_LABEL_Y_BIG : MAP_ARMOR_LABEL_Y_NORMAL)
+#define MAP_ARMOR_X (IsMapInvBigImages() ? MAP_ARMOR_X_BIG : MAP_ARMOR_X_NORMAL)
+#define MAP_ARMOR_Y (IsMapInvBigImages() ? MAP_ARMOR_Y_BIG : MAP_ARMOR_Y_NORMAL)
+#define MAP_ARMOR_W (IsMapInvBigImages() ? MAP_ARMOR_W_BIG : MAP_ARMOR_W_NORMAL)
+#define MAP_ARMOR_H (IsMapInvBigImages() ? MAP_ARMOR_H_BIG : MAP_ARMOR_H_NORMAL)
+#define MAP_WEIGHT_LABEL_X (IsMapInvBigImages() ? MAP_WEIGHT_LABEL_X_BIG : MAP_WEIGHT_LABEL_X_NORMAL)
+#define MAP_WEIGHT_LABEL_Y (IsMapInvBigImages() ? MAP_WEIGHT_LABEL_Y_BIG : MAP_WEIGHT_LABEL_Y_NORMAL)
+#define MAP_WEIGHT_X (IsMapInvBigImages() ? MAP_WEIGHT_X_BIG : MAP_WEIGHT_X_NORMAL)
+#define MAP_WEIGHT_Y (IsMapInvBigImages() ? MAP_WEIGHT_Y_BIG : MAP_WEIGHT_Y_NORMAL)
+#define MAP_WEIGHT_W (IsMapInvBigImages() ? MAP_WEIGHT_W_BIG : MAP_WEIGHT_W_NORMAL)
+#define MAP_WEIGHT_H (IsMapInvBigImages() ? MAP_WEIGHT_H_BIG : MAP_WEIGHT_H_NORMAL)
+#define MAP_CAMO_LABEL_X (IsMapInvBigImages() ? MAP_CAMO_LABEL_X_BIG : MAP_CAMO_LABEL_X_NORMAL)
+#define MAP_CAMO_LABEL_Y (IsMapInvBigImages() ? MAP_CAMO_LABEL_Y_BIG : MAP_CAMO_LABEL_Y_NORMAL)
+#define MAP_CAMO_X (IsMapInvBigImages() ? MAP_CAMO_X_BIG : MAP_CAMO_X_NORMAL)
+#define MAP_CAMO_Y (IsMapInvBigImages() ? MAP_CAMO_Y_BIG : MAP_CAMO_Y_NORMAL)
+#define MAP_CAMO_W (IsMapInvBigImages() ? MAP_CAMO_W_BIG : MAP_CAMO_W_NORMAL)
+#define MAP_CAMO_H (IsMapInvBigImages() ? MAP_CAMO_H_BIG : MAP_CAMO_H_NORMAL)
 
 #define MAP_INV_STATS_TITLE_FONT_COLOR 6
 
@@ -186,8 +226,14 @@
 #define PLAYER_INFO_HAND_END_X      (MAP_SCREEN_X + 62)
 #define PLAYER_INFO_HAND_END_Y      (MAP_SCREEN_Y + 103)
 
-#define INV_BODY_X (UINT16)(MAP_SCREEN_X + 109)
-#define INV_BODY_Y (UINT16)(MAP_SCREEN_Y + 113)
+// Body/camo figure (BODYINV) of the merc inventory panel -- normal mode and
+// an independent "Show Large Icons" mode (starts equal to the normal one).
+#define INV_BODY_X_NORMAL (MAP_SCREEN_X + 109)
+#define INV_BODY_Y_NORMAL (MAP_SCREEN_Y + 113)
+#define INV_BODY_X_BIG    (MAP_SCREEN_X + 109)
+#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + 113)
+#define INV_BODY_X (UINT16)(IsMapInvBigImages() ? INV_BODY_X_BIG : INV_BODY_X_NORMAL)
+#define INV_BODY_Y (UINT16)(IsMapInvBigImages() ? INV_BODY_Y_BIG : INV_BODY_Y_NORMAL)
 
 //Text offsets
 #define Y_OFFSET 2
@@ -371,16 +417,20 @@ GUIButtonRef giMapInvDoneButton;
 // screen only) -- Sector_Inventory_bookmarks.sti, its own sub-images
 // (0-based, as STI-Edit numbers them): 26 = selected (large icons on),
 // 27 = not selected -- independent of the sector inventory's
-// BIG_IMAGES_BUTTON_OFF/ON (20/21). Placed
-// MAP_INV_BIG_IMAGES_BTN_GAP px right of the SMALLPOCK13POS slot and the
-// same distance below the LEGPOS slot, both taken from the normal-mode
-// slot table, so it doesn't move when the mode is switched.
+// BIG_IMAGES_BUTTON_OFF/ON (20/21). Normal mode: MAP_INV_BIG_IMAGES_BTN_GAP
+// px right of the SMALLPOCK13POS slot and the same distance below the
+// LEGPOS slot (normal-mode slot table). "Show Large Icons" mode: its own,
+// independent position (starts at the same place).
 static GUIButtonRef giMapInvBigImagesButton;
 #define MAP_INV_BIG_IMAGES_BTN_OFF 27
 #define MAP_INV_BIG_IMAGES_BTN_ON  26
 #define MAP_INV_BIG_IMAGES_BTN_GAP 12
-#define MAP_INV_BIG_IMAGES_BTN_X   (g_ui.m_invSlotPositionMap[SMALLPOCK13POS].uX + SM_INV_SLOT_WIDTH + MAP_INV_BIG_IMAGES_BTN_GAP)
-#define MAP_INV_BIG_IMAGES_BTN_Y   (g_ui.m_invSlotPositionMap[LEGPOS].uY + LEGS_INV_SLOT_HEIGHT + MAP_INV_BIG_IMAGES_BTN_GAP)
+#define MAP_INV_BIG_IMAGES_BTN_X_NORMAL (g_ui.m_invSlotPositionMap[SMALLPOCK13POS].uX + SM_INV_SLOT_WIDTH + MAP_INV_BIG_IMAGES_BTN_GAP)
+#define MAP_INV_BIG_IMAGES_BTN_Y_NORMAL (g_ui.m_invSlotPositionMap[LEGPOS].uY + LEGS_INV_SLOT_HEIGHT + MAP_INV_BIG_IMAGES_BTN_GAP)
+#define MAP_INV_BIG_IMAGES_BTN_X_BIG    (MAP_SCREEN_X + 204)
+#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + 266)
+#define MAP_INV_BIG_IMAGES_BTN_X   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_X_BIG : MAP_INV_BIG_IMAGES_BTN_X_NORMAL)
+#define MAP_INV_BIG_IMAGES_BTN_Y   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_Y_BIG : MAP_INV_BIG_IMAGES_BTN_Y_NORMAL)
 
 GUIButtonRef giMapContractButton;
 
@@ -6243,6 +6293,10 @@ static void UpdateStatusOfMapSortButtons(void)
 static void DoneInventoryMapBtnCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
+static void CreateMapInvPanelControls(void);
+static void DestroyMapInvPanelControls(void);
+
+
 static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
@@ -6258,13 +6312,68 @@ static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
 
 	gfMapInvBigImages = !gfMapInvBigImages;
 
-	// Rebuild the slot regions in the new mode's layout/sizes.
+	// Rebuild the slot regions and the panel's other regions/buttons at the
+	// new mode's positions. Removing this very button from inside its own
+	// callback is safe -- the button system defers the deletion until the
+	// callback returns (gfDelayButtonDeletion, Button_System.cc).
 	ShutdownInvSlotInterface();
 	InitMapInvSlotRegions();
+	DestroyMapInvPanelControls();
+	CreateMapInvPanelControls();
+	fShowTrashCanHighLight = FALSE;
 
 	SOLDIERTYPE* const s = GetSelectedInfoChar();
 	if (s != NULL) ReevaluateItemHatches(s, FALSE);
 	fTeamPanelDirty = TRUE;
+}
+
+
+// Mouse regions and buttons of the merc inventory panel -- trash can,
+// money, keyring, Done and "Show Large Icons" -- at the current mode's
+// positions (normal / "Show Large Icons", see IsMapInvBigImages()).
+static void CreateMapInvPanelControls(void)
+{
+	// trash can
+	MSYS_DefineRegion( &gTrashCanRegion, 	TRASH_CAN_X, TRASH_CAN_Y, TRASH_CAN_X + TRASH_CAN_WIDTH, TRASH_CAN_Y + TRASH_CAN_HEIGHT , MSYS_PRIORITY_HIGHEST - 4 ,
+				MSYS_NO_CURSOR, TrashCanMoveCallback, TrashCanBtnCallback );
+
+	// done inventory button define
+	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/done_button2.sti", 0, 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
+	giMapInvDoneButton->SetFastHelpText(pMiscMapScreenMouseRegionHelpText[2]);
+
+	gTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
+
+	// money: deposit to / withdraw from the player's account
+	MSYS_DefineRegion(&gMapInvMoneyRegion, MAP_INV_MONEY_X, MAP_INV_MONEY_Y,
+		MAP_INV_MONEY_X + MAP_INV_MONEY_WIDTH, MAP_INV_MONEY_Y + MAP_INV_MONEY_HEIGHT,
+		MSYS_PRIORITY_HIGHEST - 4, MSYS_NO_CURSOR, MapInvMoneyMoveCallback, MapInvMoneyBtnCallback);
+	gMapInvMoneyRegion.SetFastHelpText(TacticalStr[MONEY_BUTTON_HELP_TEXT]);
+	fMapInvMoneyIconPressed = FALSE;
+	fMapInvTrashIconPressed = FALSE;
+
+	InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
+
+	// "Show Large Icons" -- wide strategic screen (1280+) only, per user request
+	if (g_ui.isWideStrategicScreen())
+	{
+		BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/sector_inventory_bookmarks.sti", MAP_INV_BIG_IMAGES_BTN_OFF, MAP_INV_BIG_IMAGES_BTN_ON);
+		giMapInvBigImagesButton = QuickCreateButtonToggle(img, MAP_INV_BIG_IMAGES_BTN_X, MAP_INV_BIG_IMAGES_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, MapInvBigImagesBtnCallback);
+		giMapInvBigImagesButton->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+		if (gfMapInvBigImages) giMapInvBigImagesButton->uiFlags |= BUTTON_CLICKED_ON;
+		giMapInvBigImagesButton->SetFastHelpText("Show Large Icons");
+	}
+}
+
+
+static void DestroyMapInvPanelControls(void)
+{
+	MSYS_RemoveRegion( &gTrashCanRegion );
+	MSYS_RemoveRegion( &gMapInvMoneyRegion );
+
+	RemoveButton( giMapInvDoneButton );
+	if (giMapInvBigImagesButton) RemoveButton(giMapInvBigImagesButton);
+
+	ShutdownKeyRingInterface( );
 }
 
 
@@ -6274,62 +6383,22 @@ static void CreateDestroyTrashCanRegion(void)
 
 	if (fShowInventoryFlag && !fCreated)
 	{
-
 		fCreated = TRUE;
+		CreateMapInvPanelControls();
 
-		// trash can
-		MSYS_DefineRegion( &gTrashCanRegion, 	TRASH_CAN_X, TRASH_CAN_Y, TRASH_CAN_X + TRASH_CAN_WIDTH, TRASH_CAN_Y + TRASH_CAN_HEIGHT , MSYS_PRIORITY_HIGHEST - 4 ,
-					MSYS_NO_CURSOR, TrashCanMoveCallback, TrashCanBtnCallback );
-
-		// done inventory button define
-		giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/done_button2.sti", 0, 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
-		giMapInvDoneButton->SetFastHelpText(pMiscMapScreenMouseRegionHelpText[2]);
-
-		gTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
-
-		// money: deposit to / withdraw from the player's account
-		MSYS_DefineRegion(&gMapInvMoneyRegion, MAP_INV_MONEY_X, MAP_INV_MONEY_Y,
-			MAP_INV_MONEY_X + MAP_INV_MONEY_WIDTH, MAP_INV_MONEY_Y + MAP_INV_MONEY_HEIGHT,
-			MSYS_PRIORITY_HIGHEST - 4, MSYS_NO_CURSOR, MapInvMoneyMoveCallback, MapInvMoneyBtnCallback);
-		gMapInvMoneyRegion.SetFastHelpText(TacticalStr[MONEY_BUTTON_HELP_TEXT]);
-		fMapInvMoneyIconPressed = FALSE;
-		fMapInvTrashIconPressed = FALSE;
-
-		InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
-
-		// "Show Large Icons" -- wide strategic screen (1280+) only, per user request
-		if (g_ui.isWideStrategicScreen())
-		{
-			BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/sector_inventory_bookmarks.sti", MAP_INV_BIG_IMAGES_BTN_OFF, MAP_INV_BIG_IMAGES_BTN_ON);
-			giMapInvBigImagesButton = QuickCreateButtonToggle(img, MAP_INV_BIG_IMAGES_BTN_X, MAP_INV_BIG_IMAGES_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, MapInvBigImagesBtnCallback);
-			giMapInvBigImagesButton->uiFlags |= BUTTON_SELFDELETE_IMAGE;
-			if (gfMapInvBigImages) giMapInvBigImagesButton->uiFlags |= BUTTON_CLICKED_ON;
-			giMapInvBigImagesButton->SetFastHelpText("Show Large Icons");
-		}
-
-			// reset the compatable item array at this point
+		// reset the compatable item array at this point
 		ResetCompatibleItemArray( );
-
 	}
 	else if (!fShowInventoryFlag && fCreated)
 	{
-		// trash can region
 		fCreated = FALSE;
-		MSYS_RemoveRegion( &gTrashCanRegion );
-		MSYS_RemoveRegion( &gMapInvMoneyRegion );
-
-		// map inv done button
-		RemoveButton( giMapInvDoneButton );
-		if (giMapInvBigImagesButton) RemoveButton(giMapInvBigImagesButton);
-
-		ShutdownKeyRingInterface( );
+		DestroyMapInvPanelControls();
 
 		if (fShowDescriptionFlag)
 		{
 			// kill description
 			DeleteItemDescriptionBox( );
 		}
-
 	}
 }
 

@@ -158,35 +158,61 @@ void SetMapCursorItem();
 #define CONTRACT_X            (MAP_SCREEN_X + 185)
 #define CONTRACT_Y            (MAP_SCREEN_Y + 50)
 
-// Done button of the merc inventory panel (mapinv.sti, itself drawn at
-// MAP_SCREEN_X, MAP_SCREEN_Y + 107 -- PLAYER_INFO_X/Y in MapScreen.cc).
-#define MAP_INV_DONE_BTN_X    (MAP_SCREEN_X + 221)
-#define MAP_INV_DONE_BTN_Y    (MAP_SCREEN_Y + 107 + 453)
+// Merc inventory panel (mapinv.sti, drawn at MAP_SCREEN_X, MAP_SCREEN_Y +
+// 107 -- PLAYER_INFO_X/Y in MapScreen.cc): Done button and the money
+// (deposit/withdraw), keyring and trash-can icons next to it.
+//
+// Every position has a normal-mode value (..._NORMAL: mapinv.sti /
+// mapinv_wide.sti) and an independent "Show Large Icons"-mode value
+// (..._BIG: mapinv_wide_big.sti, see IsMapInvBigImages() in MapScreen.cc);
+// the plain name (bottom block) picks the one for the current mode.
 
-// Money (deposit/withdraw), keyring and trash-can icons of the merc
-// inventory panel -- MAP_INV_ICON_SIZE square each, drawn from
+// Normal mode. Icons are MAP_INV_ICON_SIZE square, drawn from
 // inventory_bottom_panel_bookmarks.sti with the same sub-images as the
-// tactical panel. One row, left to right money, keyring, trash can (the
+// tactical panel, in one row: left to right money, keyring, trash can (the
 // tactical order), the trash can ending MAP_INV_ICON_GAP px left of the
 // Done button and each icon MAP_INV_ICON_GAP px from the next; top edges
-// aligned with the Done button (MAP_INV_ICONS_Y).
-#define MAP_INV_ICON_SIZE     32
-#define MAP_INV_ICON_GAP      3
-#define MAP_INV_ICONS_Y       (MAP_INV_DONE_BTN_Y)
+// aligned with the Done button.
+#define MAP_INV_ICON_SIZE             32
+#define MAP_INV_ICON_GAP              3
+#define MAP_INV_DONE_BTN_X_NORMAL     (MAP_SCREEN_X + 221)
+#define MAP_INV_DONE_BTN_Y_NORMAL     (MAP_SCREEN_Y + 107 + 453)
+#define TRASH_CAN_X_NORMAL            (MAP_INV_DONE_BTN_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
+#define TRASH_CAN_Y_NORMAL            (MAP_INV_DONE_BTN_Y_NORMAL)
+#define MAP_INV_KEYRING_X_NORMAL      (TRASH_CAN_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
+#define MAP_INV_KEYRING_Y_NORMAL      (MAP_INV_DONE_BTN_Y_NORMAL)
+#define MAP_INV_MONEY_X_NORMAL        (MAP_INV_KEYRING_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
+#define MAP_INV_MONEY_Y_NORMAL        (MAP_INV_DONE_BTN_Y_NORMAL)
+
+// "Show Large Icons" mode -- independent of the normal mode; starts equal
+// to it (X/Y relative to MAP_SCREEN_X/MAP_SCREEN_Y) -- tune to
+// mapinv_wide_big.sti.
+#define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 221)
+#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 453)
+#define TRASH_CAN_X_BIG               (MAP_SCREEN_X + 186)
+#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + 107 + 453)
+#define MAP_INV_KEYRING_X_BIG         (MAP_SCREEN_X + 151)
+#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + 107 + 453)
+#define MAP_INV_MONEY_X_BIG           (MAP_SCREEN_X + 116)
+#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + 107 + 453)
+
+// Current mode -- what the code uses.
+#define MAP_INV_DONE_BTN_X    (IsMapInvBigImages() ? MAP_INV_DONE_BTN_X_BIG : MAP_INV_DONE_BTN_X_NORMAL)
+#define MAP_INV_DONE_BTN_Y    (IsMapInvBigImages() ? MAP_INV_DONE_BTN_Y_BIG : MAP_INV_DONE_BTN_Y_NORMAL)
 
 // trash can
-#define TRASH_CAN_X           (MAP_INV_DONE_BTN_X - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
-#define TRASH_CAN_Y           (MAP_INV_ICONS_Y)
+#define TRASH_CAN_X           (IsMapInvBigImages() ? TRASH_CAN_X_BIG : TRASH_CAN_X_NORMAL)
+#define TRASH_CAN_Y           (IsMapInvBigImages() ? TRASH_CAN_Y_BIG : TRASH_CAN_Y_NORMAL)
 #define TRASH_CAN_WIDTH       (MAP_INV_ICON_SIZE)
 #define TRASH_CAN_HEIGHT      (MAP_INV_ICON_SIZE)
 
 // keyring
-#define MAP_INV_KEYRING_X     (TRASH_CAN_X - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
-#define MAP_INV_KEYRING_Y     (MAP_INV_ICONS_Y)
+#define MAP_INV_KEYRING_X     (IsMapInvBigImages() ? MAP_INV_KEYRING_X_BIG : MAP_INV_KEYRING_X_NORMAL)
+#define MAP_INV_KEYRING_Y     (IsMapInvBigImages() ? MAP_INV_KEYRING_Y_BIG : MAP_INV_KEYRING_Y_NORMAL)
 
 // money (deposit to / withdraw from the player's account)
-#define MAP_INV_MONEY_X       (MAP_INV_KEYRING_X - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
-#define MAP_INV_MONEY_Y       (MAP_INV_ICONS_Y)
+#define MAP_INV_MONEY_X       (IsMapInvBigImages() ? MAP_INV_MONEY_X_BIG : MAP_INV_MONEY_X_NORMAL)
+#define MAP_INV_MONEY_Y       (IsMapInvBigImages() ? MAP_INV_MONEY_Y_BIG : MAP_INV_MONEY_Y_NORMAL)
 #define MAP_INV_MONEY_WIDTH   (MAP_INV_ICON_SIZE)
 #define MAP_INV_MONEY_HEIGHT  (MAP_INV_ICON_SIZE)
 

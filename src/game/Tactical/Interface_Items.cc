@@ -118,10 +118,23 @@
 // MAP_ITEM_BAR_HEIGHT: bar height at 100% status.
 // MAP_ITEM_BAR_WIDTH: bar width; the last column is drawn in the shadow
 //                 colour, the rest in the main colour (2 = original look).
-#define MAP_INV_BAR_DX					7
-#define MAP_INV_BAR_DY					30
-#define MAP_ITEM_BAR_HEIGHT				31
-#define MAP_ITEM_BAR_WIDTH				2
+#define MAP_INV_BAR_DX_NORMAL				7
+#define MAP_INV_BAR_DY_NORMAL				30
+#define MAP_ITEM_BAR_HEIGHT_NORMAL			31
+#define MAP_ITEM_BAR_WIDTH_NORMAL			2
+
+// Same four for the map's "Show Large Icons" mode (mapinv_wide_big.sti,
+// IsMapInvBigImages() in MapScreen.cc) -- independent of the normal ones
+// above; start equal to them.
+#define MAP_INV_BAR_DX_BIG				7
+#define MAP_INV_BAR_DY_BIG				30
+#define MAP_ITEM_BAR_HEIGHT_BIG				31
+#define MAP_ITEM_BAR_WIDTH_BIG				2
+
+#define MAP_INV_BAR_DX      (IsMapInvBigImages() ? MAP_INV_BAR_DX_BIG      : MAP_INV_BAR_DX_NORMAL)
+#define MAP_INV_BAR_DY      (IsMapInvBigImages() ? MAP_INV_BAR_DY_BIG      : MAP_INV_BAR_DY_NORMAL)
+#define MAP_ITEM_BAR_HEIGHT (IsMapInvBigImages() ? MAP_ITEM_BAR_HEIGHT_BIG : MAP_ITEM_BAR_HEIGHT_NORMAL)
+#define MAP_ITEM_BAR_WIDTH  (IsMapInvBigImages() ? MAP_ITEM_BAR_WIDTH_BIG  : MAP_ITEM_BAR_WIDTH_NORMAL)
 
 // Cover (map_inv_2nd_gun_cover.sti) drawn over the second hand slot on the
 // strategic map while the first hand holds a two-handed item -- independent
