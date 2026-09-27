@@ -253,8 +253,8 @@ BOOLEAN IsCursorOverSectorInventoryWindow(void)
 // itself differs by tier; the pitch/sub-box geometry below does not), per
 // user request.
 static const SGPBox g_sector_inv_slot_box_big   = { 274,  37, 139,  69 };
-static const SGPBox g_sector_inv_region_box_big = {  30,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
-static const SGPBox g_sector_inv_item_box_big   = {  30,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_region_box_big = {  33,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
+static const SGPBox g_sector_inv_item_box_big   = {  33,  67, 120,  50 }; // relative to g_sector_inv_slot_box_big
 static const SGPBox g_sector_inv_bar_box_big    = {  24,  67,   4,  50 }; // relative to g_sector_inv_slot_box_big
 static const SGPBox g_sector_inv_name_box_big   = {  31, 121, 120,  11 }; // relative to g_sector_inv_slot_box_big
 
@@ -529,8 +529,8 @@ static const SGPBox g_stack_split_name_box   = {   25,  108,  70,  10 }; // rela
 // resolution tiers, only the row count itself differs -- 8 compact / 9
 // large, GetInventoryGridRows()).
 static const SGPBox g_stack_split_slot_box_big   = {  10,  30, 139,  69 };
-static const SGPBox g_stack_split_region_box_big = {  33, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
-static const SGPBox g_stack_split_item_box_big   = {  33, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_region_box_big = {  36, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
+static const SGPBox g_stack_split_item_box_big   = {  36, 74, 120,  50 }; // relative to g_stack_split_slot_box_big
 static const SGPBox g_stack_split_bar_box_big    = {  27, 74,   4,  50 }; // relative to g_stack_split_slot_box_big
 static const SGPBox g_stack_split_name_box_big   = {  33, 126, 126,  14 }; // relative to g_stack_split_slot_box_big
 
