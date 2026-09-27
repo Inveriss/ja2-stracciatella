@@ -150,26 +150,26 @@
 // the free space's background get copied/cleared along with it.
 #define LEFT_COLUMN_BG_WIDTH (261 + (g_ui.isWideStrategicScreen() ? MAP_MIDDLE_BACKGROUND_WIDTH : 0))
 
-#define MAP_ARMOR_LABEL_X (MAP_SCREEN_X + 208)
-#define MAP_ARMOR_LABEL_Y (MAP_SCREEN_Y + 179)
-#define MAP_ARMOR_X       (MAP_SCREEN_X + 209)
-#define MAP_ARMOR_Y       (MAP_SCREEN_Y + 188)
-#define MAP_ARMOR_W        28
-#define MAP_ARMOR_H        10
+#define MAP_ARMOR_LABEL_X (MAP_SCREEN_X + 216)
+#define MAP_ARMOR_LABEL_Y (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_X       (MAP_SCREEN_X + 201)
+#define MAP_ARMOR_Y       (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_W        45
+#define MAP_ARMOR_H        29
 
-#define MAP_WEIGHT_LABEL_X (MAP_SCREEN_X + 173)
-#define MAP_WEIGHT_LABEL_Y (MAP_SCREEN_Y + 256)
-#define MAP_WEIGHT_X       (MAP_SCREEN_X + 176)
-#define MAP_WEIGHT_Y       (MAP_SCREEN_Y + 265)
-#define MAP_WEIGHT_W        28
-#define MAP_WEIGHT_H        10
+#define MAP_WEIGHT_LABEL_X (MAP_SCREEN_X + 13)
+#define MAP_WEIGHT_LABEL_Y (MAP_SCREEN_Y + 194)
+#define MAP_WEIGHT_X       (MAP_SCREEN_X + -3)
+#define MAP_WEIGHT_Y       (MAP_SCREEN_Y + 196)
+#define MAP_WEIGHT_W        45
+#define MAP_WEIGHT_H        29
 
-#define MAP_CAMO_LABEL_X (MAP_SCREEN_X + 178)
-#define MAP_CAMO_LABEL_Y (MAP_SCREEN_Y + 283)
-#define MAP_CAMO_X       (MAP_SCREEN_X + 176)
-#define MAP_CAMO_Y       (MAP_SCREEN_Y + 292)
-#define MAP_CAMO_W        28
-#define MAP_CAMO_H        10
+#define MAP_CAMO_LABEL_X (MAP_SCREEN_X + 17)
+#define MAP_CAMO_LABEL_Y (MAP_SCREEN_Y + 232)
+#define MAP_CAMO_X       (MAP_SCREEN_X + -3)
+#define MAP_CAMO_Y       (MAP_SCREEN_Y + 234)
+#define MAP_CAMO_W        45
+#define MAP_CAMO_H        29
 
 #define MAP_INV_STATS_TITLE_FONT_COLOR 6
 
@@ -183,8 +183,8 @@
 #define PLAYER_INFO_HAND_END_X      (MAP_SCREEN_X + 62)
 #define PLAYER_INFO_HAND_END_Y      (MAP_SCREEN_Y + 103)
 
-#define INV_BODY_X (UINT16)(MAP_SCREEN_X + 71)
-#define INV_BODY_Y (UINT16)(MAP_SCREEN_Y + 116)
+#define INV_BODY_X (UINT16)(MAP_SCREEN_X + 109)
+#define INV_BODY_Y (UINT16)(MAP_SCREEN_Y + 113)
 
 //Text offsets
 #define Y_OFFSET 2

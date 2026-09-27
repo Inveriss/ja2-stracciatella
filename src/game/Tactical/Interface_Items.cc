@@ -123,6 +123,20 @@
 #define MAP_ITEM_BAR_HEIGHT				31
 #define MAP_ITEM_BAR_WIDTH				2
 
+// Cover (map_inv_2nd_gun_cover.sti) drawn over the second hand slot on the
+// strategic map while the first hand holds a two-handed item -- independent
+// of the tactical secondary_gun_hidden.sti position/size. X/Y are relative
+// to MAP_SCREEN_X/MAP_SCREEN_Y (the left column's own origin, like
+// m_invSlotPositionMap[] in UILayout.cc), not to the legacy 640x480
+// STD_SCREEN_X/Y window. WIDTH/HEIGHT is the area refreshed after the blit
+// and should match the graphic's size. The defaults mirror the tactical
+// cover's placement relative to its slot (status bar + slot, 75x35) for the
+// SECONDHANDPOS slot at MAP_SCREEN_X + 88, MAP_SCREEN_Y + 225.
+#define MAP_INV_2ND_GUN_COVER_X				79
+#define MAP_INV_2ND_GUN_COVER_Y				223
+#define MAP_INV_2ND_GUN_COVER_WIDTH			75
+#define MAP_INV_2ND_GUN_COVER_HEIGHT			35
+
 // Adjustable offset (from the slot's own top-left corner) and size delta
 // (relative to the slot's own width/height) for the "item doesn't fit
 // here" hatch drawn over inventory slots in INVRenderINVPanelItem() --
@@ -1244,8 +1258,10 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 		{
 			if (in_map)
 			{
-				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockout, 0, STD_SCREEN_X + 14, STD_SCREEN_Y + 218);
-				RestoreExternBackgroundRect(STD_SCREEN_X + 14, STD_SCREEN_Y + 218, 102, 24);
+				INT32 const x = MAP_SCREEN_X + MAP_INV_2ND_GUN_COVER_X;
+				INT32 const y = MAP_SCREEN_Y + MAP_INV_2ND_GUN_COVER_Y;
+				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockout, 0, x, y);
+				RestoreExternBackgroundRect(x, y, MAP_INV_2ND_GUN_COVER_WIDTH, MAP_INV_2ND_GUN_COVER_HEIGHT);
 			}
 			else
 			{
