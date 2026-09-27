@@ -16,6 +16,7 @@ from PIL import Image, ImageDraw, ImageTk
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import drawing  # noqa: E402
+import palette_io  # noqa: E402
 import sti  # noqa: E402
 
 APP_TITLE = "STI Editor"
@@ -125,6 +126,11 @@ class STIEditor:
         v.add_checkbutton(label="Siatka pikseli (zoom ≥ 6)", variable=self.show_grid, command=self.render)
         m.add_cascade(label="Widok", menu=v)
 
+        p = tk.Menu(m, tearoff=False)
+        p.add_command(label="Importuj paletę…", command=self.import_palette)
+        p.add_command(label="Eksportuj paletę…", command=self.export_palette)
+        m.add_cascade(label="Paleta", menu=p)
+
         a = tk.Menu(m, tearoff=False)
         a.add_command(label="Analiza bieżącej klatki", command=self.analyze_frame)
         a.add_command(label="Informacje o pliku", command=self.file_info)
@@ -175,6 +181,10 @@ class STIEditor:
         self.color_label = ttk.Label(row, text="", width=28)
         self.color_label.pack(side="left", padx=4)
         ttk.Button(right, text="Przezroczysty (gumka)", command=lambda: self.select_color(None)).pack(anchor="w")
+        row = ttk.Frame(right)
+        row.pack(anchor="w", pady=(2, 0))
+        ttk.Button(row, text="Importuj paletę…", command=self.import_palette).pack(side="left")
+        ttk.Button(row, text="Eksportuj paletę…", command=self.export_palette).pack(side="left", padx=(4, 0))
 
         ttk.Separator(right).pack(fill="x", pady=6)
         ttk.Label(right, text="Bieżąca klatka").pack(anchor="w")
@@ -672,6 +682,55 @@ class STIEditor:
                 self._after_edit()
                 self.select_color(i)
                 self.render()
+
+    def import_palette(self, path=None):
+        if not self._require_editable():
+            return
+        if path is None:
+            path = filedialog.askopenfilename(title="Importuj paletę", filetypes=[
+                ("Palety i obrazy", "*.pal *.act *.gpl *.sti *.png *.bmp *.gif"),
+                ("Wszystkie", "*.*")])
+            if not path:
+                return
+        try:
+            new = palette_io.load_palette(path)
+        except (OSError, palette_io.PaletteError) as exc:
+            messagebox.showerror(APP_TITLE, f"Nie można wczytać palety:\n{exc}")
+            return
+        if list(self.sti.palette[:len(new)]) == new:
+            self._set_status(f"Paleta z {os.path.basename(path)} jest identyczna -- brak zmian")
+            return
+        self._push_palette_undo()
+        changed = palette_io.apply_palette(self.sti.palette, new)
+        self._after_edit()
+        self._update_palette()
+        self.render()
+        note = "" if len(new) == palette_io.PALETTE_SIZE else \
+            f" (plik ma {len(new)} kolorów -- zastąpiono tylko indeksy 0..{len(new) - 1})"
+        self._set_status(f"Zaimportowano paletę z {os.path.basename(path)}: zmieniono {changed} kolorów{note}")
+
+    def export_palette(self, path=None, fmt=None):
+        if not self.sti or not self.sti.is_indexed:
+            return
+        if path is None:
+            fmt_var = tk.StringVar(value=palette_io.FORMATS["jasc"])
+            stem = os.path.splitext(os.path.basename(self.path or "nowy"))[0]
+            path = filedialog.asksaveasfilename(title="Eksportuj paletę", initialfile=f"{stem}.pal",
+                defaultextension=".pal", typevariable=fmt_var, filetypes=[
+                    (label.rsplit(" (", 1)[0], label.rsplit("(", 1)[1].rstrip(")"))
+                    for label in palette_io.FORMATS.values()])
+            if not path:
+                return
+            chosen = fmt_var.get()
+            fmt = next((k for k, label in palette_io.FORMATS.items() if label.startswith(chosen)), None)
+            if fmt is None or (fmt in ("jasc", "riff") and not path.lower().endswith(".pal")):
+                fmt = palette_io.guess_format(path)
+        try:
+            used = palette_io.save_palette(path, self.sti.palette[:self.sti.number_of_colours], fmt)
+        except (OSError, palette_io.PaletteError) as exc:
+            messagebox.showerror(APP_TITLE, f"Nie można zapisać palety:\n{exc}")
+            return
+        self._set_status(f"Wyeksportowano paletę ({palette_io.FORMATS[used]}) -> {path}")
 
     # ------------------------------------------------------------- canvas
     def _to_pixel(self, event):

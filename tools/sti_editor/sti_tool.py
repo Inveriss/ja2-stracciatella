@@ -5,6 +5,8 @@
     py -3 tools/sti_editor/sti_tool.py analyze   FILE.sti [--frame N]
     py -3 tools/sti_editor/sti_tool.py pixel     FILE.sti X Y [--frame N]
     py -3 tools/sti_editor/sti_tool.py roundtrip FILE.sti [...]
+    py -3 tools/sti_editor/sti_tool.py palette-export FILE.sti OUT.pal [--format jasc|riff|act|gpl|png]
+    py -3 tools/sti_editor/sti_tool.py palette-import FILE.sti PALETTE OUT.sti
 
 `roundtrip` never writes to disk: it re-serialises in memory, checks the
 bytes are identical, then forces a full ETRLE re-encode and checks every
@@ -19,6 +21,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import palette_io  # noqa: E402
 import sti  # noqa: E402
 
 
@@ -79,6 +82,26 @@ def cmd_pixel(args):
           f"{'opaque' if opaque else 'transparent'}")
 
 
+def cmd_palette_export(args):
+    s = sti.STIFile.load(args.file)
+    if not s.is_indexed:
+        raise sti.STIError("RGB file has no palette")
+    used = palette_io.save_palette(args.out, s.palette[:s.number_of_colours], args.format)
+    print(f"{args.out} ({palette_io.FORMATS[used]})")
+
+
+def cmd_palette_import(args):
+    if os.path.abspath(args.out) == os.path.abspath(args.file):
+        raise sti.STIError("refusing to overwrite the input file -- choose a different OUT.sti")
+    s = sti.STIFile.load(args.file)
+    if not s.is_indexed:
+        raise sti.STIError("RGB file has no palette")
+    new = palette_io.load_palette(args.palette)
+    changed = palette_io.apply_palette(s.palette, new)
+    s.save(args.out)
+    print(f"{args.out}: {len(new)} colours read, {changed} changed")
+
+
 def roundtrip_check(path) -> tuple[bool, str]:
     with open(path, "rb") as fh:
         data = fh.read()
@@ -137,13 +160,23 @@ def main(argv=None):
     p.add_argument("y", type=int)
     p.add_argument("--frame", type=int)
     p.set_defaults(func=cmd_pixel)
+    p = sub.add_parser("palette-export")
+    p.add_argument("file")
+    p.add_argument("out")
+    p.add_argument("--format", choices=sorted(palette_io.FORMATS), help="default: from the extension (.pal = JASC)")
+    p.set_defaults(func=cmd_palette_export)
+    p = sub.add_parser("palette-import")
+    p.add_argument("file")
+    p.add_argument("palette")
+    p.add_argument("out")
+    p.set_defaults(func=cmd_palette_import)
     p = sub.add_parser("roundtrip")
     p.add_argument("files", nargs="+")
     p.set_defaults(func=cmd_roundtrip)
     args = ap.parse_args(argv)
     try:
         return args.func(args) or 0
-    except (OSError, sti.STIError) as exc:
+    except (OSError, sti.STIError, palette_io.PaletteError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

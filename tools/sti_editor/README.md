@@ -8,6 +8,7 @@ modyfikuje kodu JA2 i nie jest częścią buildu.
 | Plik | Rola |
 |---|---|
 | `sti.py` | parser/zapis formatu STI, ETRLE, eksport do Pillow/PNG |
+| `palette_io.py` | import/eksport palety (JASC-PAL, RIFF PAL, ACT, GIMP, STI, PNG) |
 | `drawing.py` | maski kształtów (ołówek, linia, prostokąt, elipsa, wypełnienie, tekst) |
 | `sti_editor.py` | desktopowy edytor (GUI, Tk) |
 | `sti_tool.py` | wersja wiersza poleceń: info, eksport, analiza, piksel, round-trip |
@@ -37,6 +38,8 @@ py -3 tools/sti_editor/sti_tool.py analyze   plik.sti [--frame N]
 py -3 tools/sti_editor/sti_tool.py pixel     plik.sti X Y [--frame N]
 py -3 tools/sti_editor/sti_tool.py export    plik.sti KATALOG [--frame N] [--mask]
 py -3 tools/sti_editor/sti_tool.py roundtrip plik1.sti [plik2.sti ...]
+py -3 tools/sti_editor/sti_tool.py palette-export plik.sti paleta.pal [--format jasc|riff|act|gpl|png]
+py -3 tools/sti_editor/sti_tool.py palette-import plik.sti paleta.pal wynik.sti
 ```
 
 `roundtrip` niczego nie zapisuje na dysk: serializuje plik w pamięci i
@@ -67,6 +70,14 @@ katalogów tymczasowych.
   wyłącznie podgląd w edytorze, zob. ograniczenia.
 - **Paleta:** 256 kolorów; klik = wybór koloru, dwuklik = edycja koloru
   palety, przycisk *Przezroczysty*. Najechanie pokazuje indeks i RGB.
+- **Import / eksport palety** (menu *Paleta* lub przyciski pod paletą):
+  eksport do JASC-PAL (`.pal`), Microsoft RIFF PAL (`.pal`), Adobe ACT
+  (`.act`), GIMP (`.gpl`) albo próbnika PNG 16×16 (jedna komórka = jeden
+  indeks). Import rozpoznaje format po zawartości pliku (nie po
+  rozszerzeniu) i przyjmuje też paletę innego pliku `.sti` lub
+  paletowego PNG/BMP/GIF. Import zmienia kolory, nie indeksy pikseli
+  (tak działa paleta STI); można go cofnąć (Ctrl+Z). Paleta krótsza niż 256
+  kolorów zastępuje tylko pierwsze indeksy.
 - **Narzędzia:** ołówek (P), linia (L), prostokąt (R), elipsa (E) -- obrys lub
   wypełnione, wypełnienie (F), tekst (T), pipeta (I, także prawy przycisk
   myszy przy każdym narzędziu), gumka/przezroczystość (X); rozmiar pędzla
@@ -141,6 +152,12 @@ dane aplikacji        uiAppDataSize B (AuxObjectData[], 16 B na klatkę)
 - **Indeksowane bez ETRLE:** odczyt, podgląd i eksport; edycja wyłączona
   (silnik tworzy obiekty wideo tylko z plików ETRLE).
 - **ZLIB:** nieobsługiwany -- tak jak w silniku (`STCI.cc` odrzuca takie pliki).
+- **Format palet STI-Edit:** nie ustalono, w jakim formacie STI-Edit zapisuje
+  swoje pliki palet, więc import obsługuje popularne formaty i rozpoznaje je
+  po zawartości. Jeśli plik palety z STI-Edit nie zostanie rozpoznany, import
+  zgłosi błąd zamiast zgadywać.
+- **Import palety bez przemapowania:** piksele zachowują swoje indeksy, więc
+  obraz przyjmuje kolory nowej palety pod tymi samymi numerami.
 - **Edycja palety** zmienia kolor we wszystkich klatkach (paleta jest wspólna
   dla pliku).
 - **Rozmiar z nagłówka** (`usWidth/usHeight`): w plikach wieloklatkowych

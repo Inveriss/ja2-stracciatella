@@ -24,6 +24,7 @@ sys.path.insert(0, TOOL_DIR)
 from PIL import Image  # noqa: E402
 
 import drawing  # noqa: E402
+import palette_io  # noqa: E402
 import sti  # noqa: E402
 import sti_tool  # noqa: E402
 
@@ -284,6 +285,84 @@ class DrawingTests(unittest.TestCase):
         self.assertEqual(list(f.mask), [0, 255, 0])
 
 
+class PaletteTests(unittest.TestCase):
+    PAL = [(i, (i * 7) % 256, 255 - i) for i in range(256)]
+
+    def test_export_import_every_format(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for fmt, ext in (("jasc", ".pal"), ("riff", ".pal"), ("act", ".act"), ("gpl", ".gpl"), ("png", ".png")):
+                with self.subTest(fmt=fmt):
+                    p = os.path.join(tmp, f"p_{fmt}{ext}")
+                    self.assertEqual(palette_io.save_palette(p, self.PAL, fmt), fmt)
+                    self.assertEqual(palette_io.load_palette(p), self.PAL)
+
+    def test_format_detection_does_not_trust_extension(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = os.path.join(tmp, "riff_named.act")
+            palette_io.save_palette(p, self.PAL, "riff")
+            self.assertEqual(palette_io.load_palette(p), self.PAL)
+
+    def test_known_riff_and_jasc_bytes(self):
+        body = struct.pack("<HH", 0x0300, 2) + bytes([1, 2, 3, 0, 4, 5, 6, 0])
+        riff = b"RIFF" + struct.pack("<I", 4 + 8 + len(body)) + b"PAL " + b"data" + struct.pack("<I", len(body)) + body
+        jasc = b"JASC-PAL\r\n0100\r\n2\r\n1 2 3\r\n4 5 6\r\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, data in (("a.pal", riff), ("b.pal", jasc)):
+                p = os.path.join(tmp, name)
+                with open(p, "wb") as fh:
+                    fh.write(data)
+                self.assertEqual(palette_io.load_palette(p), [(1, 2, 3), (4, 5, 6)])
+
+    def test_invalid_palettes_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = os.path.join(tmp, "bad.pal")
+            with open(bad, "wb") as fh:
+                fh.write(b"JASC-PAL\r\n0100\r\n1\r\n300 0 0\r\n")
+            with self.assertRaises(palette_io.PaletteError):
+                palette_io.load_palette(bad)
+            rgb = os.path.join(tmp, "rgb.png")
+            Image.new("RGB", (2, 2)).save(rgb)
+            with self.assertRaises(palette_io.PaletteError):
+                palette_io.load_palette(rgb)
+
+    def test_short_palette_replaces_only_first_entries(self):
+        target = list(self.PAL)
+        changed = palette_io.apply_palette(target, [(9, 9, 9), self.PAL[1]])
+        self.assertEqual(changed, 1)
+        self.assertEqual(target[0], (9, 9, 9))
+        self.assertEqual(target[2:], self.PAL[2:])
+
+    def test_import_recolours_without_touching_pixels(self):
+        s = sti.STIFile.from_bytes(make_file(frames=2).to_bytes())
+        raws = [f.encoded() for f in s.frames]
+        palette_io.apply_palette(s.palette, self.PAL)
+        s2 = sti.STIFile.from_bytes(s.to_bytes())
+        self.assertEqual(s2.palette, self.PAL)
+        self.assertEqual([f.encoded() for f in s2.frames], raws)
+        idx, _ = s2.frames[0].get(1, 0)
+        self.assertEqual(s2.frame_rgba(0).getpixel((1, 0))[:3], self.PAL[idx])
+
+    @unittest.skipUnless(REAL_FILES, "no .sti files found under assets/")
+    def test_palette_from_sti_file(self):
+        self.assertEqual(palette_io.load_palette(REAL_FILES[0]), sti.STIFile.load(REAL_FILES[0]).palette)
+
+    def test_cli_palette_roundtrip_and_no_overwrite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "src.sti")
+            make_file().save(src)
+            pal = os.path.join(tmp, "x.gpl")
+            palette_io.save_palette(pal, self.PAL)
+            out = os.path.join(tmp, "out.sti")
+            self.assertEqual(sti_tool.main(["palette-import", src, pal, out]), 0)
+            self.assertEqual(sti.STIFile.load(out).palette, self.PAL)
+            before = read_bytes(src)
+            self.assertEqual(sti_tool.main(["palette-import", src, pal, src]), 1)
+            self.assertEqual(read_bytes(src), before)
+            exp = os.path.join(tmp, "e.pal")
+            self.assertEqual(sti_tool.main(["palette-export", out, exp]), 0)
+            self.assertEqual(palette_io.load_palette(exp), self.PAL)
+
+
 @unittest.skipUnless(REAL_FILES, "no .sti files found under assets/")
 class RealFileTests(unittest.TestCase):
     @classmethod
@@ -395,6 +474,16 @@ class GuiSmokeTest(unittest.TestCase):
         app.show_mask.set(True)
         app.render()
         app.analyze_frame()
+        with tempfile.TemporaryDirectory() as tmp:
+            pal_path = os.path.join(tmp, "p.pal")
+            app.export_palette(pal_path, "jasc")
+            self.assertEqual(palette_io.load_palette(pal_path), app.sti.palette)
+            inverted = [(255 - r, 255 - g, 255 - b) for r, g, b in app.sti.palette]
+            palette_io.save_palette(pal_path, inverted, "riff")
+            app.import_palette(pal_path)
+            self.assertEqual(app.sti.palette, inverted)
+            app.undo()
+        self.assertEqual(app.sti.to_bytes(), original)
         self.assertEqual(read_bytes(path), original)
 
 
