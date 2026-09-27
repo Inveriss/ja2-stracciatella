@@ -428,8 +428,8 @@ mod tests {
   "resversion": "ENGLISH",
   "fullscreen": false,
   "scaling": "PERFECT",
-  "stretch": false,
-  "stretch_laptop": false,
+  "stretch": true,
+  "stretch_laptop": true,
   "debug": false,
   "nosound": false
 }"##

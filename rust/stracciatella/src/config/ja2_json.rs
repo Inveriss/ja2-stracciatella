@@ -354,29 +354,34 @@ mod tests {
     }
 
     #[test]
-    fn apply_to_engine_options_should_be_able_to_stretch_to_fill() {
+    // stretch/stretch_laptop default to true, so these check that an explicit
+    // false in ja2.json is honoured.
+    #[test]
+    fn apply_to_engine_options_should_be_able_to_disable_stretch_to_fill() {
         let mut engine_options = EngineOptions::default();
-        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"stretch\": true }");
+        assert!(engine_options.stretch_to_fill);
+        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"stretch\": false }");
         let ja2json = Ja2Json::from_stracciatella_home(temp_dir.path().join(".ja2"));
 
         ja2json
             .apply_to_engine_options(&mut engine_options)
             .unwrap();
 
-        assert!(engine_options.stretch_to_fill);
+        assert!(!engine_options.stretch_to_fill);
     }
 
     #[test]
-    fn apply_to_engine_options_should_be_able_to_stretch_laptop() {
+    fn apply_to_engine_options_should_be_able_to_disable_stretch_laptop() {
         let mut engine_options = EngineOptions::default();
-        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"stretch_laptop\": true }");
+        assert!(engine_options.stretch_laptop);
+        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"stretch_laptop\": false }");
         let ja2json = Ja2Json::from_stracciatella_home(temp_dir.path().join(".ja2"));
 
         ja2json
             .apply_to_engine_options(&mut engine_options)
             .unwrap();
 
-        assert!(engine_options.stretch_laptop);
+        assert!(!engine_options.stretch_laptop);
     }
 
     #[test]

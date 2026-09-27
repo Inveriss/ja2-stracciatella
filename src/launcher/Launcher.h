@@ -41,6 +41,9 @@ private:
 	bool resolutionIsInvalid();
 	void showInvalidResolutionAlert();
 	std::pair<int, int> lastWarnedResolution{ 0, 0 };
+	// "Stretch In-Game Laptop"'s own value while its checkbox is inactive
+	// (shown empty) -- see update().
+	bool stretchLaptopValue = true;
 	bool gameIsRunning();
 	void update(bool changed);
 	void updateLogs();

@@ -475,7 +475,11 @@ void Launcher::initializeInputsFromDefaults() {
 
 	fullscreenCheckbox->value(EngineOptions_shouldStartInFullscreen(this->engineOptions.get()) ? 1 : 0);
 	stretchCheckbox->value(EngineOptions_shouldStretchToFill(this->engineOptions.get()) ? 1 : 0);
-	stretchLaptopCheckbox->value(EngineOptions_shouldStretchLaptop(this->engineOptions.get()) ? 1 : 0);
+	// Shown empty while inactive -- see update(), which (de)activates it and
+	// moves the value between the checkbox and stretchLaptopValue as needed.
+	stretchLaptopValue = EngineOptions_shouldStretchLaptop(this->engineOptions.get());
+	bool const showLaptopValue = stretchLaptopCheckbox->active() || stretchCheckbox->value();
+	stretchLaptopCheckbox->value(showLaptopValue && stretchLaptopValue ? 1 : 0);
 	playSoundsCheckbox->value(EngineOptions_shouldStartWithoutSound(this->engineOptions.get()) ? 0 : 1);
 	update(false);
 }
@@ -483,7 +487,9 @@ void Launcher::initializeInputsFromDefaults() {
 int Launcher::writeJsonFile() {
 	EngineOptions_setStartInFullscreen(this->engineOptions.get(), fullscreenCheckbox->value());
 	EngineOptions_setStretchToFill(this->engineOptions.get(), stretchCheckbox->value());
-	EngineOptions_setStretchLaptop(this->engineOptions.get(), stretchLaptopCheckbox->value());
+	// While inactive the checkbox is shown empty, but its own value is kept.
+	EngineOptions_setStretchLaptop(this->engineOptions.get(),
+		stretchLaptopCheckbox->active() ? stretchLaptopCheckbox->value() != 0 : stretchLaptopValue);
 	EngineOptions_setStartWithoutSound(this->engineOptions.get(), !playSoundsCheckbox->value());
 
 	EngineOptions_setVanillaGameDir(this->engineOptions.get(), gameDirectoryInput->value());
@@ -813,11 +819,18 @@ void Launcher::update(bool changed) {
 		invalidResolutionLabel->hide();
 	}
 
-	// "Stretch Laptop" only applies together with "Stretch"; keeps its own
-	// value while inactive.
+	// "Stretch In-Game Laptop" only applies together with "Stretch to Your
+	// Screen". While inactive it's shown empty (grey, no checkmark), but its own
+	// value is remembered (stretchLaptopValue), restored once "Stretch to Your
+	// Screen" is checked again, and still saved to ja2.json.
 	if (stretchCheckbox->value()) {
-		stretchLaptopCheckbox->activate();
-	} else {
+		if (!stretchLaptopCheckbox->active()) {
+			stretchLaptopCheckbox->value(stretchLaptopValue ? 1 : 0);
+			stretchLaptopCheckbox->activate();
+		}
+	} else if (stretchLaptopCheckbox->active()) {
+		stretchLaptopValue = stretchLaptopCheckbox->value() != 0;
+		stretchLaptopCheckbox->value(0);
 		stretchLaptopCheckbox->deactivate();
 	}
 

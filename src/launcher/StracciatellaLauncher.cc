@@ -130,15 +130,15 @@ e very small at higher internal resolutions. Note that menus and the strategic\
           } // Fl_Value_Input* resolutionYInput
           { predefinedResolutionMenuButton = new Fl_Menu_Button(210, 130, 110, 30, "Predefined");
           } // Fl_Menu_Button* predefinedResolutionMenuButton
-          { stretchCheckbox = new Fl_Check_Button(345, 130, 70, 30, "Stretch");
+          { stretchCheckbox = new Fl_Check_Button(331, 122, 165, 30, "Stretch to Your Screen");
             stretchCheckbox->tooltip("Stretch the game image to fill the whole screen, ignoring its aspect ratio (no\
  black bars).");
             stretchCheckbox->down_box(FL_DOWN_BOX);
           } // Fl_Check_Button* stretchCheckbox
-          { stretchLaptopCheckbox = new Fl_Check_Button(345, 157, 110, 18, "Stretch Laptop");
-            stretchLaptopCheckbox->tooltip("Also stretch the laptop (640x480) to fill the whole screen. Ignores its aspec\
-t ratio, so the laptop looks noticeably wider on widescreen monitors. Requires\
- \"Stretch\".");
+          { stretchLaptopCheckbox = new Fl_Check_Button(331, 149, 165, 18, "Stretch In-Game Laptop");
+            stretchLaptopCheckbox->tooltip("Also stretch the In-Game Laptop (640x480) to fill the whole screen. Ignores i\
+ts aspect ratio, so the In-Game Laptop looks noticeably wider on widescreen mo\
+nitors. Requires \"Stretch to Your Screen\".");
             stretchLaptopCheckbox->down_box(FL_DOWN_BOX);
           } // Fl_Check_Button* stretchLaptopCheckbox
           { Fl_Group* o = new Fl_Group(415, 115, 30, 30, "resizable");
@@ -147,7 +147,7 @@ t ratio, so the laptop looks noticeably wider on widescreen monitors. Requires\
             o->end();
             Fl_Group::current()->resizable(o);
           } // Fl_Group* o
-          { invalidResolutionLabel = new Fl_Box(210, 167, 110, 14, "invalid!");
+          { invalidResolutionLabel = new Fl_Box(240, 166, 110, 14, "invalid!");
             invalidResolutionLabel->tooltip("the resolution must be at least 1024x720, the smallest one JA2 Stracciatella supports");
             invalidResolutionLabel->labelfont(1);
             invalidResolutionLabel->labelcolor((Fl_Color)1);
