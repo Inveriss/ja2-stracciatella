@@ -20,6 +20,14 @@ void         VideoSetFullScreen(BOOLEAN enable);
 // independently, ignoring its aspect ratio (no black bars).
 void         InitializeVideoManager(VideoScaleQuality quality, bool stretchToFill, int32_t targetFPS);
 bool         VideoIsStretchedToFill();
+// While stretching, `provider` is asked on every screen refresh which part of
+// the frame should fill the screen ({0,0,0,0}: the whole frame) -- lets a
+// screen with a smaller fixed canvas (strategic map, laptop) zoom that canvas
+// instead of the whole frame.
+void         VideoSetStretchRegionProvider(SGPBox (*provider)());
+// The part of the frame currently filling the screen while stretching (the
+// whole frame when not zoomed).
+SGPBox       VideoGetStretchRegion();
 void         ShutdownVideoManager(void);
 void         InvalidateRegion(INT32 iLeft, INT32 iTop, INT32 iRight, INT32 iBottom);
 void         InvalidateScreen(void);

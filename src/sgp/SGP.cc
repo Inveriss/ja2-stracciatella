@@ -372,6 +372,7 @@ int main(int argc, char* argv[])
 
 		VideoScaleQuality scalingQuality = EngineOptions_getScalingQuality(params.get());
 		bool const stretchToFill = EngineOptions_shouldStretchToFill(params.get());
+		bool const stretchLaptop = EngineOptions_shouldStretchLaptop(params.get());
 
 		FLOAT brightness = EngineOptions_getBrightness(params.get());
 
@@ -412,6 +413,7 @@ int main(int argc, char* argv[])
 
 		SLOGD("Initializing Video Manager");
 		InitializeVideoManager(scalingQuality, stretchToFill, GCM->getGamePolicy()->target_fps);
+		InitStretchRegion(stretchLaptop);
 		VideoSetBrightness(brightness);
 
 		SLOGD("Initializing Video Object Manager");

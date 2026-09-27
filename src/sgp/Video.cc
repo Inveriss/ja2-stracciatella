@@ -122,12 +122,38 @@ bool VideoIsStretchedToFill()
 }
 
 
+// Part of the frame that fills the screen while stretching -- a screen with a
+// fixed canvas smaller than the frame (the strategic map, the laptop) is
+// zoomed so that canvas fills the screen, instead of the whole frame with the
+// black margins around it. {0,0,0,0} means the whole frame.
+static SGPBox (*g_stretch_region_provider)() = nullptr;
+static SGPBox   g_stretch_region = { 0, 0, 0, 0 };
+
+void VideoSetStretchRegionProvider(SGPBox (*const provider)())
+{
+	g_stretch_region_provider = provider;
+}
+
+SGPBox VideoGetStretchRegion()
+{
+	if (g_stretch_region.w == 0 || g_stretch_region.h == 0)
+	{
+		return { 0, 0, (UINT16)SCREEN_WIDTH, (UINT16)SCREEN_HEIGHT };
+	}
+	return g_stretch_region;
+}
+
+
 // Stretch to fill: SDL_RenderSetLogicalSize() always keeps the game image's
 // aspect ratio, adding black bars when the window/desktop's differs (e.g.
 // 1280x768 on a 1920x1080 desktop). The logical size stays set -- SDL keeps
 // mapping mouse coordinates through the renderer's viewport and scale -- but
 // the uniform scale and centered viewport it computes are overridden with
-// independent X/Y scales and a viewport covering the whole output.
+// independent X/Y scales mapping the stretch region (VideoGetStretchRegion())
+// onto the whole output, and a viewport shifted by that region's offset, so
+// the rest of the frame falls off-screen. SDL subtracts the viewport offset
+// and divides by the scale when mapping mouse events, so they keep arriving in
+// frame coordinates.
 static void ApplyStretchToFill()
 {
 	if (!g_stretch_to_fill || !GameRenderer) return;
@@ -135,9 +161,25 @@ static void ApplyStretchToFill()
 	int w, h;
 	if (SDL_GetRendererOutputSize(GameRenderer, &w, &h) != 0 || w <= 0 || h <= 0) return;
 
-	SDL_RenderSetScale(GameRenderer, float(w) / SCREEN_WIDTH, float(h) / SCREEN_HEIGHT);
-	SDL_Rect const viewport = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
+	SGPBox const region = VideoGetStretchRegion();
+	SDL_RenderSetScale(GameRenderer, float(w) / region.w, float(h) / region.h);
+	SDL_Rect const viewport = { -region.x, -region.y, SCREEN_WIDTH, SCREEN_HEIGHT };
 	SDL_RenderSetViewport(GameRenderer, &viewport);
+}
+
+
+// Asks the game which region should fill the screen now, and reapplies the
+// stretch when that changed (e.g. map screen -> laptop -> tactical).
+static void UpdateStretchRegion()
+{
+	if (!g_stretch_to_fill || !g_stretch_region_provider) return;
+
+	SGPBox const region = g_stretch_region_provider();
+	if (region.x == g_stretch_region.x && region.y == g_stretch_region.y &&
+	    region.w == g_stretch_region.w && region.h == g_stretch_region.h) return;
+
+	g_stretch_region = region;
+	ApplyStretchToFill();
 }
 
 
@@ -591,6 +633,10 @@ void RefreshScreen(void)
 		+ ScreenTextureUpdateRect.x * ScreenBuffer->format->BytesPerPixel;
 	SDL_UpdateTexture(ScreenTexture, &ScreenTextureUpdateRect,
 	                  SrcPixels, ScreenBuffer->pitch);
+
+	// Every refresh, not just the per-frame one from the game loop -- some
+	// screens (e.g. the laptop opening) call RefreshScreen() directly.
+	UpdateStretchRegion();
 
 	SDL_RenderClear(GameRenderer);
 
