@@ -5046,7 +5046,7 @@ static void CreateSquadBox(void)
 	DetermineBoxPositions();
 
 	SGPBox const& area  = GetBoxArea(box);
-	INT16  const  max_y = SCREEN_HEIGHT - area.h;
+	INT16  const  max_y = (fInMapMode ? MAP_SCREEN_BOTTOM : SCREEN_HEIGHT) - area.h; // map: keep inside the map canvas (see GetStretchRegion(), GameLoop.cc)
 	if (giBoxY > max_y)
 	{
 		SquadPosition.iY = max_y;
@@ -5070,7 +5070,7 @@ static void CreateEPCBox(void)
 	ResizeBoxToText(box);
 
 	SGPBox const& area  = GetBoxArea(box);
-	INT16  const  max_y = SCREEN_HEIGHT - area.h;
+	INT16  const  max_y = (fInMapMode ? MAP_SCREEN_BOTTOM : SCREEN_HEIGHT) - area.h; // map: keep inside the map canvas (see GetStretchRegion(), GameLoop.cc)
 	if (giBoxY > max_y)
 	{
 		AssignmentPosition.iY = max_y;
