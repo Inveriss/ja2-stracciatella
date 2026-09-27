@@ -216,9 +216,6 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionMap[SMALLPOCK7POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 342);
 	m_invSlotPositionMap[SMALLPOCK8POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 378);
 
-	// TODO: placeholder positions for the 20 new slots (HEAD3/4, BIGPOCK5-10,
-	// SMALLPOCK9-20) added for the inventory expansion -- replace with real
-	// coordinates once the redesigned mapinv.sti layout is final.
 	m_invSlotPositionMap[HEAD3POS            ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 115);
 	m_invSlotPositionMap[HEAD4POS            ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 150);
 	m_invSlotPositionMap[BIGPOCK5POS         ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 486);
