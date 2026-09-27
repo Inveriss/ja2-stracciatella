@@ -297,6 +297,20 @@ pub extern "C" fn EngineOptions_setStretchToFill(ptr: *mut EngineOptions, val: b
     engine_options.stretch_to_fill = val
 }
 
+/// Gets `EngineOptions.stretch_laptop`.
+#[no_mangle]
+pub extern "C" fn EngineOptions_shouldStretchLaptop(ptr: *const EngineOptions) -> bool {
+    let engine_options = unsafe_ref(ptr);
+    engine_options.stretch_laptop
+}
+
+/// Sets `EngineOptions.stretch_laptop`.
+#[no_mangle]
+pub extern "C" fn EngineOptions_setStretchLaptop(ptr: *mut EngineOptions, val: bool) {
+    let engine_options = unsafe_mut(ptr);
+    engine_options.stretch_laptop = val
+}
+
 /// Gets `EngineOptions.start_in_window`.
 #[no_mangle]
 pub extern "C" fn EngineOptions_shouldStartInWindow(ptr: *const EngineOptions) -> bool {
@@ -415,6 +429,7 @@ mod tests {
   "fullscreen": false,
   "scaling": "PERFECT",
   "stretch": false,
+  "stretch_laptop": false,
   "debug": false,
   "nosound": false
 }"##

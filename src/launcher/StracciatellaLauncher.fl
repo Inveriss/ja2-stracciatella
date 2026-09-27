@@ -145,6 +145,10 @@ class StracciatellaLauncher {open
               label Stretch
               tooltip {Stretch the game image to fill the whole screen, ignoring its aspect ratio (no black bars).} xywh {345 130 70 30} down_box DOWN_BOX
             }
+            Fl_Check_Button stretchLaptopCheckbox {
+              label {Stretch Laptop}
+              tooltip {Also stretch the laptop (640x480) to fill the whole screen. Ignores its aspect ratio, so the laptop looks noticeably wider on widescreen monitors. Requires "Stretch".} xywh {345 157 110 18} down_box DOWN_BOX
+            }
             Fl_Group {} {
               label resizable open
               xywh {415 115 30 30} labeltype NO_LABEL align 17 resizable

@@ -375,6 +375,7 @@ void Launcher::show() {
 	}
 	fullscreenCheckbox->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	stretchCheckbox->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
+	stretchLaptopCheckbox->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	playSoundsCheckbox->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	RustPointer<char> ja2_json_path(findPathFromStracciatellaHome(this->engineOptions.get(), "ja2.json", false, true));
 	if (ja2_json_path) {
@@ -474,6 +475,7 @@ void Launcher::initializeInputsFromDefaults() {
 
 	fullscreenCheckbox->value(EngineOptions_shouldStartInFullscreen(this->engineOptions.get()) ? 1 : 0);
 	stretchCheckbox->value(EngineOptions_shouldStretchToFill(this->engineOptions.get()) ? 1 : 0);
+	stretchLaptopCheckbox->value(EngineOptions_shouldStretchLaptop(this->engineOptions.get()) ? 1 : 0);
 	playSoundsCheckbox->value(EngineOptions_shouldStartWithoutSound(this->engineOptions.get()) ? 0 : 1);
 	update(false);
 }
@@ -481,6 +483,7 @@ void Launcher::initializeInputsFromDefaults() {
 int Launcher::writeJsonFile() {
 	EngineOptions_setStartInFullscreen(this->engineOptions.get(), fullscreenCheckbox->value());
 	EngineOptions_setStretchToFill(this->engineOptions.get(), stretchCheckbox->value());
+	EngineOptions_setStretchLaptop(this->engineOptions.get(), stretchLaptopCheckbox->value());
 	EngineOptions_setStartWithoutSound(this->engineOptions.get(), !playSoundsCheckbox->value());
 
 	EngineOptions_setVanillaGameDir(this->engineOptions.get(), gameDirectoryInput->value());
@@ -808,6 +811,14 @@ void Launcher::update(bool changed) {
 		invalidResolutionLabel->show();
 	} else {
 		invalidResolutionLabel->hide();
+	}
+
+	// "Stretch Laptop" only applies together with "Stretch"; keeps its own
+	// value while inactive.
+	if (stretchCheckbox->value()) {
+		stretchLaptopCheckbox->activate();
+	} else {
+		stretchLaptopCheckbox->deactivate();
 	}
 
 	// something changed indicator

@@ -135,6 +135,12 @@ e very small at higher internal resolutions. Note that menus and the strategic\
  black bars).");
             stretchCheckbox->down_box(FL_DOWN_BOX);
           } // Fl_Check_Button* stretchCheckbox
+          { stretchLaptopCheckbox = new Fl_Check_Button(345, 157, 110, 18, "Stretch Laptop");
+            stretchLaptopCheckbox->tooltip("Also stretch the laptop (640x480) to fill the whole screen. Ignores its aspec\
+t ratio, so the laptop looks noticeably wider on widescreen monitors. Requires\
+ \"Stretch\".");
+            stretchLaptopCheckbox->down_box(FL_DOWN_BOX);
+          } // Fl_Check_Button* stretchLaptopCheckbox
           { Fl_Group* o = new Fl_Group(415, 115, 30, 30, "resizable");
             o->labeltype(FL_NO_LABEL);
             o->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
