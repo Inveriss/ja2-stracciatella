@@ -303,8 +303,10 @@ constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 
 #define KEYRING_X      (INTERFACE_START_X + 314)
 #define KEYRING_Y      (INV_INTERFACE_START_Y + 160)
-#define MAP_KEYRING_X (STD_SCREEN_X + 217)
-#define MAP_KEYRING_Y (STD_SCREEN_Y + 271)
+// Strategic map keyring icon -- laid out next to the map inventory's Done
+// button, see MAP_INV_KEYRING_X/Y in MapScreen.h.
+#define MAP_KEYRING_X (MAP_INV_KEYRING_X)
+#define MAP_KEYRING_Y (MAP_INV_KEYRING_Y)
 #define KEYRING_WIDTH   32
 #define KEYRING_HEIGHT  32
 #define TACTICAL_INVENTORY_KEYRING_GRAPHIC_OFFSET_X 215
@@ -1129,13 +1131,15 @@ void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 // Resets fSMKeyringIconPressed (Interface_Panels.h) if the mouse is dragged
 // off the region while still held down -- POINTER_UP never reaches
 // KeyRingItemPanelButtonCallback in that case (see
-// MSYS_UpdateMouseRegion()'s g_clicked_region gating). Tactical only -- the
-// map screen's keyring icon doesn't use this pressed-state system.
+// MSYS_UpdateMouseRegion()'s g_clicked_region gating). Used by both the
+// tactical and the map screen's keyring region.
 static void KeyRingMoveCallback(MOUSE_REGION*, UINT32 iReason)
 {
 	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
 	{
 		fSMKeyringIconPressed = FALSE;
+		// The map's keyring icon is drawn with the rest of the inventory panel.
+		if (guiCurrentScreen == MAP_SCREEN) fTeamPanelDirty = TRUE;
 	}
 }
 
@@ -1154,7 +1158,7 @@ void InitMapKeyRingInterface( MOUSE_CALLBACK KeyRingClickCallback )
 {
 	MSYS_DefineRegion(&gKeyRingPanel, MAP_KEYRING_X, MAP_KEYRING_Y,
 		MAP_KEYRING_X + KEYRING_WIDTH, MAP_KEYRING_Y + KEYRING_HEIGHT,
-		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, KeyRingMoveCallback,
 		std::move(KeyRingClickCallback));
 	gKeyRingPanel.SetFastHelpText(TacticalStr[KEYRING_HELP_TEXT]);
 }
@@ -1338,27 +1342,12 @@ void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 		INVRenderINVPanelItem(s, i, dirty_level);
 	}
 
-	if (guiCurrentItemDescriptionScreen == MAP_SCREEN)
-	{
-		// Map screen keyring is unchanged: gold_key_button.sti only lights up
-		// when the keyring actually holds a key.
-		if (KeyExistsInKeyRing(s, ANYKEY))
-		{
-			BltVideoObject(guiSAVEBUFFER, guiGoldKeyVO, 0, MAP_KEYRING_X, MAP_KEYRING_Y);
-			RestoreExternBackgroundRect(MAP_KEYRING_X, MAP_KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
-		}
-	}
-	else
-	{
-		// Tactical panel keyring icon draw moved out to RenderSMKeyringIcon()
-		// below -- it used to live here, but that meant it shared this
-		// function's early-return above, which skips it while
-		// InKeyRingPopup() is true, i.e. exactly while the keyring's own
-		// popup is open. RenderSMKeyringIcon() is instead called
-		// unconditionally from RenderSMPanel(), the same way
-		// RenderSMMoneyAndTrashIcons() already is, so the button icon stays
-		// visible the same way Money/Trash/Map/Shortcuts already do.
-	}
+	// Keyring icons are not drawn here on either screen: the tactical one by
+	// RenderSMKeyringIcon() below (called unconditionally from
+	// RenderSMPanel(), like RenderSMMoneyAndTrashIcons()), the map one by
+	// RenderMapInvBookmarkIcons() in MapScreen.cc together with the map's
+	// money and trash-can icons -- this function's early-return above skips
+	// exactly while the keyring's own popup is open.
 }
 
 
@@ -3462,7 +3451,7 @@ void RenderItemDescriptionBox(void)
 			// Display the 'Separate' text
 			SetFontForeground(in_map ? 5 : 6);
 			MoneyLoc const&       xy    = in_map ? gMapMoneyButtonLoc : gMoneyButtonLoc;
-			ST::string label = !in_map && gfAddingMoneyToMercFromPlayersAccount ? gzMoneyAmounts[5] : gzMoneyAmounts[4];
+			ST::string label = gfAddingMoneyToMercFromPlayersAccount ? gzMoneyAmounts[5] : gzMoneyAmounts[4];
 			MPrint(xy.x + gMoneyButtonOffsets[4].x, xy.y + gMoneyButtonOffsets[4].y, label);
 		}
 
@@ -3470,7 +3459,7 @@ void RenderItemDescriptionBox(void)
 
 		INV_DESC_STATS const* const xy = in_map ? gMapMoneyStats : gMoneyStats;
 
-		if (!in_map && gfAddingMoneyToMercFromPlayersAccount)
+		if (gfAddingMoneyToMercFromPlayersAccount)
 		{
 			MPrint(dx + xy[0].sX, dy + xy[0].sY, gMoneyStatsDesc[MONEY_DESC_PLAYERS]);           // current ...
 			MPrint(dx + xy[1].sX, dy + xy[1].sY, gMoneyStatsDesc[MONEY_DESC_BALANCE]);           // ... balance
@@ -5002,10 +4991,11 @@ void InitKeyRingPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 cons
 
 	if( guiCurrentScreen == MAP_SCREEN )
 	{
-		gsKeyRingPopupInvX = STD_SCREEN_X + 0;
+		// sInvX is MAP_KEYRING_POPUP_X (MapScreen.h)
+		gsKeyRingPopupInvX = sInvX;
 		sKeyRingItemWidth = MAP_KEY_RING_ROW_WIDTH;
-		sOffSetX = 40;
-		sOffSetY = 15;
+		sOffSetX = MAP_KEYRING_POPUP_BOX_OFFSET_X;
+		sOffSetY = MAP_KEYRING_POPUP_BOX_OFFSET_Y;
 	}
 	else
 	{
@@ -5111,8 +5101,8 @@ void RenderKeyRingPopup(const BOOLEAN fFullRender)
 	INT16 key_ring_cols;
 	if (guiCurrentScreen == MAP_SCREEN)
 	{
-		offset_x      = 40;
-		offset_y      = 15;
+		offset_x      = MAP_KEYRING_POPUP_BOX_OFFSET_X;
+		offset_y      = MAP_KEYRING_POPUP_BOX_OFFSET_Y;
 		key_ring_cols = MAP_KEY_RING_ROW_WIDTH;
 	}
 	else
@@ -6179,6 +6169,11 @@ static void BtnMoneyButtonCallbackPrimary(GUI_BUTTON* const btn, UINT32 const re
 	{
 		if (gfAddingMoneyToMercFromPlayersAccount && gRemoveMoney.uiMoneyRemoving + amount > MAX_MONEY_PER_SLOT)
 		{
+			if (guiCurrentScreen == MAP_SCREEN)
+			{
+				DoMapMessageBox(MSG_BOX_BASIC_STYLE, gzMoneyWithdrawMessageText[MONEY_TEXT_WITHDRAW_MORE_THEN_MAXIMUM], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+				return;
+			}
 			ScreenID const exit_screen = guiCurrentScreen == SHOPKEEPER_SCREEN ?
 				SHOPKEEPER_SCREEN : GAME_SCREEN;
 			DoMessageBox(MSG_BOX_BASIC_STYLE, gzMoneyWithdrawMessageText[MONEY_TEXT_WITHDRAW_MORE_THEN_MAXIMUM], exit_screen, MSG_BOX_FLAG_OK, NULL, NULL);
@@ -6285,8 +6280,10 @@ static void RemoveMoney(void)
 			{
 				gpItemDescObject->uiMoneyAmount = gRemoveMoney.uiMoneyRemoving;
 
-				//take the money from the player
-				AddTransactionToPlayersBook ( TRANSFER_FUNDS_TO_MERC, gpSMCurrentMerc->ubProfile, GetWorldTotalMin() , -(INT32)( gpItemDescObject->uiMoneyAmount ) );
+				//take the money from the player -- booked to the merc the box was
+				//opened for (gpSMCurrentMerc on the tactical panel, the selected
+				//character on the map screen, where gpSMCurrentMerc isn't his)
+				AddTransactionToPlayersBook ( TRANSFER_FUNDS_TO_MERC, gpItemDescSoldier->ubProfile, GetWorldTotalMin() , -(INT32)( gpItemDescObject->uiMoneyAmount ) );
 			}
 			else
 				gpItemDescObject->uiMoneyAmount = gRemoveMoney.uiMoneyRemaining;

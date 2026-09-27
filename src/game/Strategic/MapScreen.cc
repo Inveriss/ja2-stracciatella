@@ -128,8 +128,10 @@
 #define INV_REGION_Y PLAYER_INFO_Y
 #define INV_REGION_WIDTH 262
 #define INV_REGION_HEIGHT 359-94
-#define INV_BTN_X PLAYER_INFO_X + 221
-#define INV_BTN_Y PLAYER_INFO_Y + 280
+// Done button position -- MAP_INV_DONE_BTN_X/Y in MapScreen.h, where the
+// money/keyring/trash-can icons next to it are laid out from it.
+#define INV_BTN_X MAP_INV_DONE_BTN_X
+#define INV_BTN_Y MAP_INV_DONE_BTN_Y
 
 // Bottom+right-anchored, not a fixed 640x480-canvas literal, so the
 // background restore below actually reaches the new, bigger canvas' edges
@@ -312,6 +314,23 @@ static BOOLEAN fFlashContractFlag = FALSE;
 
 static BOOLEAN fShowTrashCanHighLight = FALSE;
 
+// Money / keyring / trash-can icons of the merc inventory panel -- see
+// MAP_INV_ICON_SIZE etc. in MapScreen.h. Same sheet and sub-images as the
+// tactical panel's icons (SM_*_ICON_* in Interface_Panels.cc).
+static cache_key_t const guiMapInvBookmarksVO{ INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti" };
+#define MAP_INV_MONEY_ICON_READY      14
+#define MAP_INV_MONEY_ICON_PRESSED    15
+#define MAP_INV_KEYRING_ICON_READY    16
+#define MAP_INV_KEYRING_ICON_PRESSED  17
+#define MAP_INV_TRASHCAN_ICON_READY   18
+#define MAP_INV_TRASHCAN_ICON_PRESSED 19
+
+// Pressed-state flags, set on POINTER_DWN and cleared on POINTER_UP or
+// LOST_MOUSE (the keyring's own flag is fSMKeyringIconPressed, shared with
+// the tactical panel -- Interface_Panels.h).
+static BOOLEAN fMapInvMoneyIconPressed = FALSE;
+static BOOLEAN fMapInvTrashIconPressed = FALSE;
+
 // the flags for display of pop up boxes/menus
 BOOLEAN gfInConfirmMapMoveMode = FALSE;
 BOOLEAN gfInChangeArrivalSectorMode = FALSE;
@@ -423,6 +442,7 @@ static MOUSE_REGION gMPanelRegion;
 static MOUSE_REGION gMapViewRegion;
 static MOUSE_REGION gMapScreenMaskRegion;
 static MOUSE_REGION gTrashCanRegion;
+static MOUSE_REGION gMapInvMoneyRegion;
 
 // mouse regions for team info panel
 struct CharacterRegions
@@ -3574,6 +3594,27 @@ void CreateDestroyMapInvButton()
 }
 
 
+// Money / keyring / trash-can icons next to the Done button -- see
+// MAP_INV_ICON_SIZE etc. in MapScreen.h. Redrawn with the rest of the
+// inventory panel (fTeamPanelDirty), which the icons' callbacks set whenever
+// their pressed state changes. The trash can also shows its pressed icon
+// while an item is held over it (fShowTrashCanHighLight), like the tactical
+// panel's (RenderSMMoneyAndTrashIcons(), Interface_Panels.cc).
+static void RenderMapInvBookmarkIcons()
+{
+	BltVideoObject(guiSAVEBUFFER, guiMapInvBookmarksVO,
+		fMapInvMoneyIconPressed ? MAP_INV_MONEY_ICON_PRESSED : MAP_INV_MONEY_ICON_READY,
+		MAP_INV_MONEY_X, MAP_INV_MONEY_Y);
+	BltVideoObject(guiSAVEBUFFER, guiMapInvBookmarksVO,
+		fSMKeyringIconPressed ? MAP_INV_KEYRING_ICON_PRESSED : MAP_INV_KEYRING_ICON_READY,
+		MAP_INV_KEYRING_X, MAP_INV_KEYRING_Y);
+	BOOLEAN const fTrashPressed = fMapInvTrashIconPressed || fShowTrashCanHighLight;
+	BltVideoObject(guiSAVEBUFFER, guiMapInvBookmarksVO,
+		fTrashPressed ? MAP_INV_TRASHCAN_ICON_PRESSED : MAP_INV_TRASHCAN_ICON_READY,
+		TRASH_CAN_X, TRASH_CAN_Y);
+}
+
+
 static void BltCharInvPanel(void)
 {
 	ST::string sString;
@@ -3609,6 +3650,8 @@ static void BltCharInvPanel(void)
 
 	// render items in each of chars slots
 	HandleRenderInvSlots(*pSoldier, DIRTYLEVEL2);
+
+	RenderMapInvBookmarkIcons();
 
 	// Render Values for stats!
 	SetFontAttributes(BLOCKFONT2, MAP_INV_STATS_TITLE_FONT_COLOR);
@@ -5977,8 +6020,17 @@ static void TrashItemMessageBoxCallBack(MessageBoxReturnValue const bExitValue)
 
 static void TrashCanBtnCallback(MOUSE_REGION*, UINT32 const reason)
 {
+	if (reason & MSYS_CALLBACK_REASON_POINTER_DWN)
+	{
+		fMapInvTrashIconPressed = TRUE;
+		fTeamPanelDirty = TRUE;
+	}
+
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		fMapInvTrashIconPressed = FALSE;
+		fTeamPanelDirty = TRUE;
+
 		// Check if an item is in the cursor, if so, warn player
 		if (OBJECTTYPE* const o = gpItemPointer)
 		{
@@ -5997,11 +6049,80 @@ static void TrashCanMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 		if (fMapInventoryItem)
 		{
 			fShowTrashCanHighLight = TRUE;
+			fTeamPanelDirty = TRUE;
 		}
 	}
 	else if( iReason & MSYS_CALLBACK_REASON_LOST_MOUSE )
 	{
 		fShowTrashCanHighLight = FALSE;
+		fMapInvTrashIconPressed = FALSE;
+		fTeamPanelDirty = TRUE;
+	}
+}
+
+
+static void MapInvDepositMoneyMessageBoxCallBack(MessageBoxReturnValue const ubExitValue)
+{
+	if (ubExitValue != MSG_BOX_RETURN_YES || gpItemPointer == NULL) return;
+
+	SOLDIERTYPE const* const s = gpItemPointerSoldier ? gpItemPointerSoldier : GetSelectedInfoChar();
+	if (s == NULL) return;
+
+	// add the money to the player's account; the money on the cursor is gone
+	AddTransactionToPlayersBook(MERC_DEPOSITED_MONEY_TO_PLAYER_ACCOUNT, s->ubProfile,
+		GetWorldTotalMin(), gpItemPointer->uiMoneyAmount);
+	MAPEndItemPointer();
+	fTeamPanelDirty = TRUE;
+	fMapScreenBottomDirty = TRUE;
+}
+
+
+static void MapInvMoneyMoveCallback(MOUSE_REGION*, UINT32 const iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE && fMapInvMoneyIconPressed)
+	{
+		fMapInvMoneyIconPressed = FALSE;
+		fTeamPanelDirty = TRUE;
+	}
+}
+
+
+// Map screen's version of SMInvMoneyButtonCallback() (Interface_Panels.cc):
+// with money on the cursor, offer to deposit it to the player's account;
+// otherwise open the money description box to withdraw from the account.
+static void MapInvMoneyBtnCallback(MOUSE_REGION*, UINT32 const iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN)
+	{
+		fMapInvMoneyIconPressed = TRUE;
+		fTeamPanelDirty = TRUE;
+	}
+
+	if (!(iReason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	fMapInvMoneyIconPressed = FALSE;
+	fTeamPanelDirty = TRUE;
+
+	if (fShowDescriptionFlag) return;
+
+	SOLDIERTYPE* const s = GetSelectedInfoChar();
+	if (s == NULL) return;
+
+	if (gpItemPointer != NULL)
+	{
+		if (GCM->getItem(gpItemPointer->usItem)->getItemClass() != IC_MONEY) return;
+
+		ST::string const zMoney = SPrintMoney(gpItemPointer->uiMoneyAmount);
+		ST::string const zText  = st_format_printf(gzMoneyWithdrawMessageText[CONFIRMATION_TO_DEPOSIT_MONEY_TO_ACCOUNT], zMoney);
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, zText, MAP_SCREEN, MSG_BOX_FLAG_YESNO, MapInvDepositMoneyMessageBoxCallBack);
+	}
+	else
+	{
+		// removing money from the player's account (see RemoveMoney(),
+		// Interface_Items.cc)
+		gfAddingMoneyToMercFromPlayersAccount = TRUE;
+		CreateMoney(LaptopSaveInfo.iCurrentBalance, &gItemPointer);
+		MAPInternalInitItemDescriptionBox(&gItemPointer, 0, s);
 	}
 }
 
@@ -6074,6 +6195,14 @@ static void CreateDestroyTrashCanRegion(void)
 
 		gTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
 
+		// money: deposit to / withdraw from the player's account
+		MSYS_DefineRegion(&gMapInvMoneyRegion, MAP_INV_MONEY_X, MAP_INV_MONEY_Y,
+			MAP_INV_MONEY_X + MAP_INV_MONEY_WIDTH, MAP_INV_MONEY_Y + MAP_INV_MONEY_HEIGHT,
+			MSYS_PRIORITY_HIGHEST - 4, MSYS_NO_CURSOR, MapInvMoneyMoveCallback, MapInvMoneyBtnCallback);
+		gMapInvMoneyRegion.SetFastHelpText(TacticalStr[MONEY_BUTTON_HELP_TEXT]);
+		fMapInvMoneyIconPressed = FALSE;
+		fMapInvTrashIconPressed = FALSE;
+
 		InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
 
 			// reset the compatable item array at this point
@@ -6085,6 +6214,7 @@ static void CreateDestroyTrashCanRegion(void)
 		// trash can region
 		fCreated = FALSE;
 		MSYS_RemoveRegion( &gTrashCanRegion );
+		MSYS_RemoveRegion( &gMapInvMoneyRegion );
 
 		// map inv done button
 		RemoveButton( giMapInvDoneButton );
