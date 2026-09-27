@@ -153,6 +153,7 @@ public:
 	UINT16                m_screenWidth;
 	UINT16                m_screenHeight;
 	INV_REGION_DESC       m_invSlotPositionMap[NUM_INVENTORY_SLOTS];      /**< Map screen inventory slots positions  */
+	INV_REGION_DESC       m_invSlotPositionMapBig[NUM_INVENTORY_SLOTS];   /**< Map screen inventory slots positions, "Show Large Icons" mode (mapinv_wide_big.sti) */
 	INV_REGION_DESC       m_invSlotPositionTac[NUM_INVENTORY_SLOTS];      /**< Tactical screen Inventory slots positions */
 	INV_REGION_DESC       m_invCamoRegion;                                /**< Camo (body) region in the inventory. */
 

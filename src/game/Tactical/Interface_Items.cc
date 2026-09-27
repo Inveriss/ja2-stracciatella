@@ -828,6 +828,56 @@ static INV_REGIONS const gSMInvData[] =
 #undef M
 };
 
+// Slot sizes on the strategic map in "Show Large Icons" mode (see
+// m_invSlotPositionMapBig[] in UILayout.cc and IsMapInvBigImages(),
+// MapScreen.cc) -- independent of gSMInvData[] above, which the tactical
+// panel and the map's normal mode share. Starts as a copy of it -- tune to
+// mapinv_wide_big.sti's slots.
+static INV_REGIONS const gSMInvDataMapBig[] =
+{
+#define M(w, h) { w, h }
+	M(HEAD_INV_SLOT_WIDTH, HEAD_INV_SLOT_HEIGHT), // HELMETPOS
+	M(VEST_INV_SLOT_WIDTH, VEST_INV_SLOT_HEIGHT), // VESTPOS
+	M(LEGS_INV_SLOT_WIDTH, LEGS_INV_SLOT_HEIGHT), // LEGPOS,
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD1POS
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD2POS
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD3POS
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD4POS
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // HANDPOS,
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // SECONDHANDPOS
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK1
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK2
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK3
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK4
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK5
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK6
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK7
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK8
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK9
+	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK10
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK1
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK2
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK3
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK4
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK5
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK6
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK7
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK8
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK9
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK10
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK11
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK12
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK13
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK14
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK15
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK16
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK17
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK18
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK19
+	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  )  // SMALLPOCK20
+#undef M
+};
+
 
 struct REMOVE_MONEY
 {
@@ -1091,8 +1141,11 @@ static void GenerateConsString(ST::string& zItemCons, const OBJECTTYPE& o, UINT3
 void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 	INV_REGION_DESC const* const pCamoRegion,
 	MOUSE_CALLBACK INVMoveCallback, MOUSE_CALLBACK INVClickCallback,
-	MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback)
+	MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback,
+	bool const fMapBigImages)
 {
+	INV_REGIONS const* const sizes = fMapBigImages ? gSMInvDataMapBig : gSMInvData;
+
 	// Load all four body type images
 	guiBodyInvVO[0][0] = AddVideoObjectFromFile(INTERFACEDIR "/inventory_normal_male.sti");
 	guiBodyInvVO[0][1] = AddVideoObjectFromFile(INTERFACEDIR "/inventory_normal_male_h.sti");
@@ -1116,7 +1169,7 @@ void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 		// Set inventory pocket coordinates from the table passed in
 		INT16       const  x = pRegionDesc[i].uX;
 		INT16       const  y = pRegionDesc[i].uY;
-		INV_REGIONS const& r = gSMInvData[i];
+		INV_REGIONS const& r = sizes[i];
 		MOUSE_REGION&      m = gSMInvRegion[i];
 		MSYS_DefineRegion(&m, x, y, x + r.w, y + r.h,
 			MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR,
@@ -1289,7 +1342,10 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 		gsCurInterfacePanel != SM_PANEL ||
 		fInterfacePanelDirty == DIRTYLEVEL2 ? dirty_level :
 		DIRTYLEVEL0; // We have a new item and we are in the right panel
-	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline);
+	// "Show Large Icons" on the map draws the same BIGITEMS graphics as the
+	// sector inventory's big mode (IsMapInvBigImages(), MapScreen.cc).
+	BOOLEAN const big = in_map && IsMapInvBigImages();
+	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline, big);
 
 	if (gbInvalidPlacementSlot[pocket])
 	{

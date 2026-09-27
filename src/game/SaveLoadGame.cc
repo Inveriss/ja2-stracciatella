@@ -461,6 +461,10 @@ BOOLEAN SaveGame(const ST::string& saveName, const ST::string& gameDesc)
 		// Same convention, for the "combine filters" checkbox -- per user request.
 		SaveSectorInventoryFilterModeToSaveGameFile();
 
+		// Same convention, for the merc inventory panel's own "Show Large
+		// Icons" toggle (MapScreen.cc) -- per user request.
+		SaveMapInvBigImagesToSaveGameFile();
+
 		SaveStrategicAI(f);
 
 		SaveWatchedLocsToSavedGame(f);
@@ -1056,6 +1060,9 @@ void LoadSavedGame(const ST::string &saveName)
 	// TRUE for saves with no stored value -- there's no prior behavior to
 	// preserve for this one, unlike the big-images toggle above.
 	LoadSectorInventoryFilterModeFromSaveGameFile();
+
+	// Merc inventory panel's "Show Large Icons" toggle -- falls back to ON.
+	LoadMapInvBigImagesFromSaveGameFile();
 
 	BAR(1, "Final Checks...");
 

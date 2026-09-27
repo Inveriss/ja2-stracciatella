@@ -63,6 +63,14 @@ void ChangeSelectedInfoChar( INT8 bCharNumber, BOOLEAN fResetSelectedList );
 
 void MAPEndItemPointer(void);
 
+// "Show Large Icons" toggle of the merc inventory panel (mapinv.sti) --
+// independent of the sector inventory's own toggle. TRUE only on the wide
+// strategic screen (1280+), the only one the button exists on.
+BOOLEAN IsMapInvBigImages(void);
+void InitMapInvBigImagesForNewGame(void);
+void SaveMapInvBigImagesToSaveGameFile(void);
+void LoadMapInvBigImagesFromSaveGameFile(void);
+
 void CopyPathToAllSelectedCharacters(PathSt* pPath);
 void CancelPathsOfAllSelectedCharacters(void);
 

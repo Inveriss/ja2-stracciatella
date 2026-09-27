@@ -237,6 +237,51 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionMap[SMALLPOCK19POS      ].set(m_mapScreenOffsetX + 62, m_mapScreenOffsetY + 414);
 	m_invSlotPositionMap[SMALLPOCK20POS      ].set(m_mapScreenOffsetX + 62, m_mapScreenOffsetY + 450);
 
+	// map screen inventory position -- "Show Large Icons" mode
+	// (MapInvBigImagesBtnCallback(), MapScreen.cc; background
+	// mapinv_wide_big.sti, wide strategic screen only). Independent of the
+	// table above; starts as a copy of it -- tune to the big graphic's slots.
+	// Slot sizes for this mode: gSMInvDataMapBig[] in Interface_Items.cc.
+	m_invSlotPositionMapBig[HELMETPOS           ].set(m_mapScreenOffsetX + 216, m_mapScreenOffsetY + 115);
+	m_invSlotPositionMapBig[VESTPOS             ].set(m_mapScreenOffsetX + 216, m_mapScreenOffsetY + 154);
+	m_invSlotPositionMapBig[LEGPOS              ].set(m_mapScreenOffsetX + 216, m_mapScreenOffsetY + 223);
+	m_invSlotPositionMapBig[HEAD1POS            ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 115);
+	m_invSlotPositionMapBig[HEAD2POS            ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 150);
+	m_invSlotPositionMapBig[HANDPOS             ].set(m_mapScreenOffsetX +  88, m_mapScreenOffsetY + 190);
+	m_invSlotPositionMapBig[SECONDHANDPOS       ].set(m_mapScreenOffsetX +  88, m_mapScreenOffsetY + 225);
+	m_invSlotPositionMapBig[BIGPOCK1POS         ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 486);
+	m_invSlotPositionMapBig[BIGPOCK2POS         ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 522);
+	m_invSlotPositionMapBig[BIGPOCK3POS         ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 414);
+	m_invSlotPositionMapBig[BIGPOCK4POS         ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 450);
+	m_invSlotPositionMapBig[SMALLPOCK1POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 270);
+	m_invSlotPositionMapBig[SMALLPOCK2POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 306);
+	m_invSlotPositionMapBig[SMALLPOCK3POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 342);
+	m_invSlotPositionMapBig[SMALLPOCK4POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 378);
+	m_invSlotPositionMapBig[SMALLPOCK5POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 270);
+	m_invSlotPositionMapBig[SMALLPOCK6POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 306);
+	m_invSlotPositionMapBig[SMALLPOCK7POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 342);
+	m_invSlotPositionMapBig[SMALLPOCK8POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 378);
+	m_invSlotPositionMapBig[HEAD3POS            ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 115);
+	m_invSlotPositionMapBig[HEAD4POS            ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 150);
+	m_invSlotPositionMapBig[BIGPOCK5POS         ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 486);
+	m_invSlotPositionMapBig[BIGPOCK6POS         ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 522);
+	m_invSlotPositionMapBig[BIGPOCK7POS         ].set(m_mapScreenOffsetX +  185, m_mapScreenOffsetY + 414);
+	m_invSlotPositionMapBig[BIGPOCK8POS         ].set(m_mapScreenOffsetX +  185, m_mapScreenOffsetY + 450);
+	m_invSlotPositionMapBig[BIGPOCK9POS         ].set(m_mapScreenOffsetX +  185, m_mapScreenOffsetY + 486);
+	m_invSlotPositionMapBig[BIGPOCK10POS        ].set(m_mapScreenOffsetX +  185, m_mapScreenOffsetY + 522);
+	m_invSlotPositionMapBig[SMALLPOCK9POS       ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 270);
+	m_invSlotPositionMapBig[SMALLPOCK10POS      ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 306);
+	m_invSlotPositionMapBig[SMALLPOCK11POS      ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 342);
+	m_invSlotPositionMapBig[SMALLPOCK12POS      ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 378);
+	m_invSlotPositionMapBig[SMALLPOCK13POS      ].set(m_mapScreenOffsetX + 156, m_mapScreenOffsetY + 270);
+	m_invSlotPositionMapBig[SMALLPOCK14POS      ].set(m_mapScreenOffsetX + 156, m_mapScreenOffsetY + 306);
+	m_invSlotPositionMapBig[SMALLPOCK15POS      ].set(m_mapScreenOffsetX + 156, m_mapScreenOffsetY + 342);
+	m_invSlotPositionMapBig[SMALLPOCK16POS      ].set(m_mapScreenOffsetX + 156, m_mapScreenOffsetY + 378);
+	m_invSlotPositionMapBig[SMALLPOCK17POS      ].set(m_mapScreenOffsetX + 15, m_mapScreenOffsetY + 414);
+	m_invSlotPositionMapBig[SMALLPOCK18POS      ].set(m_mapScreenOffsetX + 15, m_mapScreenOffsetY + 450);
+	m_invSlotPositionMapBig[SMALLPOCK19POS      ].set(m_mapScreenOffsetX + 62, m_mapScreenOffsetY + 414);
+	m_invSlotPositionMapBig[SMALLPOCK20POS      ].set(m_mapScreenOffsetX + 62, m_mapScreenOffsetY + 450);
+
 	m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);
 
 	m_progress_bar_box.set(STD_SCREEN_X + 5, 2, STD_SCREEN_WIDTH - 10, 12);

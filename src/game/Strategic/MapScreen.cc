@@ -74,6 +74,7 @@
 #include "SysUtil.h"
 #include "Tactical_Save.h"
 #include "Text.h"
+#include "SaveLoadGameStates.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
 #include "UILayout.h"
@@ -366,6 +367,21 @@ GUIButtonRef giCharInfoButton[2];
 
 GUIButtonRef giMapInvDoneButton;
 
+// "Show Large Icons" button of the merc inventory panel (wide strategic
+// screen only) -- Sector_Inventory_bookmarks.sti, its own sub-images
+// (0-based, as STI-Edit numbers them): 26 = selected (large icons on),
+// 27 = not selected -- independent of the sector inventory's
+// BIG_IMAGES_BUTTON_OFF/ON (20/21). Placed
+// MAP_INV_BIG_IMAGES_BTN_GAP px right of the SMALLPOCK13POS slot and the
+// same distance below the LEGPOS slot, both taken from the normal-mode
+// slot table, so it doesn't move when the mode is switched.
+static GUIButtonRef giMapInvBigImagesButton;
+#define MAP_INV_BIG_IMAGES_BTN_OFF 27
+#define MAP_INV_BIG_IMAGES_BTN_ON  26
+#define MAP_INV_BIG_IMAGES_BTN_GAP 12
+#define MAP_INV_BIG_IMAGES_BTN_X   (g_ui.m_invSlotPositionMap[SMALLPOCK13POS].uX + SM_INV_SLOT_WIDTH + MAP_INV_BIG_IMAGES_BTN_GAP)
+#define MAP_INV_BIG_IMAGES_BTN_Y   (g_ui.m_invSlotPositionMap[LEGPOS].uY + LEGS_INV_SLOT_HEIGHT + MAP_INV_BIG_IMAGES_BTN_GAP)
+
 GUIButtonRef giMapContractButton;
 
 INT32 giSortStateForMapScreenList = 0;
@@ -408,8 +424,11 @@ cache_key_t GetCharInfoGraphicsFilename()
 // wide strategic screen; see GetWideStrategicAsset().
 cache_key_t GetMapInvGraphicsFilename()
 {
-	return GetWideStrategicAsset(INTERFACEDIR "/mapinv_wide.sti", INTERFACEDIR "/mapinv.sti");
+	cache_key_t const normal = GetWideStrategicAsset(INTERFACEDIR "/mapinv_wide.sti", INTERFACEDIR "/mapinv.sti");
+	// "Show Large Icons" mode (wide strategic screen only) -- see IsMapInvBigImages().
+	return IsMapInvBigImages() ? GetWideStrategicAsset(INTERFACEDIR "/mapinv_wide_big.sti", normal) : normal;
 }
+
 
 // Background filling the free space between the left column and MBS on the
 // wide strategic screen (MAP_MIDDLE_BACKGROUND_X/WIDTH). Suffix follows the
@@ -421,6 +440,44 @@ cache_key_t GetMapMiddleBackgroundGraphicsFilename()
 		? INTERFACEDIR "/background_middle_wide_1280.sti"
 		: INTERFACEDIR "/background_middle_wide_1024.sti";
 }
+}
+
+
+// "Show Large Icons" toggle of the merc inventory panel -- swaps the item
+// icons in its slots to their BIGITEMS graphics (the same ones the sector
+// inventory's own "Show Large Icons" uses), the background to
+// mapinv_wide_big.sti and the slots to their own layout
+// (m_invSlotPositionMapBig[], UILayout.cc; gSMInvDataMapBig[],
+// Interface_Items.cc). Independent of the sector inventory's toggle, per
+// user request, but the same three lifecycles as that one
+// (gfSectorInventoryBigImages, Map_Screen_Interface_Map_Inventory.cc):
+// new game -> ON, toggled only by MapInvBigImagesBtnCallback(), persisted
+// in g_gameStates (saves without it load as ON). Only takes effect on the
+// wide strategic screen, where the button exists.
+static BOOLEAN gfMapInvBigImages = TRUE;
+static ST::string const gMapInvBigImagesStateKey{ "MapInventory::bigImages" };
+
+BOOLEAN IsMapInvBigImages(void)
+{
+	return gfMapInvBigImages && g_ui.isWideStrategicScreen();
+}
+
+void InitMapInvBigImagesForNewGame(void)
+{
+	gfMapInvBigImages = TRUE;
+	g_gameStates.Set(gMapInvBigImagesStateKey, static_cast<bool>(gfMapInvBigImages));
+}
+
+void SaveMapInvBigImagesToSaveGameFile(void)
+{
+	g_gameStates.Set(gMapInvBigImagesStateKey, static_cast<bool>(gfMapInvBigImages));
+}
+
+void LoadMapInvBigImagesFromSaveGameFile(void)
+{
+	gfMapInvBigImages = g_gameStates.HasKey(gMapInvBigImagesStateKey)
+		? g_gameStates.Get<bool>(gMapInvBigImagesStateKey)
+		: TRUE;
 }
 
 
@@ -2048,6 +2105,7 @@ ScreenID MapScreenHandle(void)
 		}
 
 		UnMarkButtonDirty( giMapInvDoneButton );
+		if (giMapInvBigImagesButton) UnMarkButtonDirty(giMapInvBigImagesButton);
 		//UnMarkButtonDirty( giCharInfoButton[ 0 ] );
 		//UnMarkButtonDirty( giCharInfoButton[ 1 ] );
 		MarkAButtonDirty( giMapInvDescButton );
@@ -2057,6 +2115,7 @@ ScreenID MapScreenHandle(void)
 		if (fShowInventoryFlag)
 		{
 			MarkAButtonDirty( giMapInvDoneButton );
+			if (giMapInvBigImagesButton) MarkAButtonDirty(giMapInvBigImagesButton);
 			MarkAButtonDirty( giCharInfoButton[ 1 ] );
 			MarkAButtonDirty( giCharInfoButton[ 0 ] );
 		}
@@ -3555,6 +3614,16 @@ static void MAPInvMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void MAPInvMoveCamoCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
+// Slot/camo mouse regions of the merc inventory panel, in the layout of the
+// current "Show Large Icons" mode (IsMapInvBigImages()).
+static void InitMapInvSlotRegions()
+{
+	INV_REGION_DESC gSCamoXY = {INV_BODY_X, INV_BODY_Y};
+	bool const big = IsMapInvBigImages();
+	InitInvSlotInterface(big ? g_ui.m_invSlotPositionMapBig : g_ui.m_invSlotPositionMap, &gSCamoXY, MAPInvMoveCallback, MouseCallbackPrimarySecondary(MAPInvClickCallbackPrimary, MAPInvClickCallbackSecondary, MAPInvClickCallbackCancelMessage), MAPInvMoveCamoCallback, MAPInvClickCamoCallback, big);
+}
+
+
 void CreateDestroyMapInvButton()
 {
 	static BOOLEAN fOldShowInventoryFlag=FALSE;
@@ -3566,9 +3635,7 @@ void CreateDestroyMapInvButton()
 		// disable allmouse regions in this space
 		fTeamPanelDirty=TRUE;
 
-		INV_REGION_DESC gSCamoXY = {INV_BODY_X, INV_BODY_Y};
-
-		InitInvSlotInterface(g_ui.m_invSlotPositionMap, &gSCamoXY, MAPInvMoveCallback, MouseCallbackPrimarySecondary(MAPInvClickCallbackPrimary, MAPInvClickCallbackSecondary, MAPInvClickCallbackCancelMessage), MAPInvMoveCamoCallback, MAPInvClickCamoCallback);
+		InitMapInvSlotRegions();
 		gMPanelRegion.Enable();
 
 		// switch hand region help text to "Exit Inventory"
@@ -6176,6 +6243,31 @@ static void UpdateStatusOfMapSortButtons(void)
 static void DoneInventoryMapBtnCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
+static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	// Not while something sits on top of the slots -- keep the button's own
+	// (already toggled) look in step with the unchanged state.
+	if (fShowDescriptionFlag || InKeyRingPopup() || InItemStackPopup())
+	{
+		if (gfMapInvBigImages) btn->uiFlags |= BUTTON_CLICKED_ON;
+		else                   btn->uiFlags &= ~BUTTON_CLICKED_ON;
+		return;
+	}
+
+	gfMapInvBigImages = !gfMapInvBigImages;
+
+	// Rebuild the slot regions in the new mode's layout/sizes.
+	ShutdownInvSlotInterface();
+	InitMapInvSlotRegions();
+
+	SOLDIERTYPE* const s = GetSelectedInfoChar();
+	if (s != NULL) ReevaluateItemHatches(s, FALSE);
+	fTeamPanelDirty = TRUE;
+}
+
+
 static void CreateDestroyTrashCanRegion(void)
 {
 	static BOOLEAN fCreated = FALSE;
@@ -6205,6 +6297,16 @@ static void CreateDestroyTrashCanRegion(void)
 
 		InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
 
+		// "Show Large Icons" -- wide strategic screen (1280+) only, per user request
+		if (g_ui.isWideStrategicScreen())
+		{
+			BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/sector_inventory_bookmarks.sti", MAP_INV_BIG_IMAGES_BTN_OFF, MAP_INV_BIG_IMAGES_BTN_ON);
+			giMapInvBigImagesButton = QuickCreateButtonToggle(img, MAP_INV_BIG_IMAGES_BTN_X, MAP_INV_BIG_IMAGES_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, MapInvBigImagesBtnCallback);
+			giMapInvBigImagesButton->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+			if (gfMapInvBigImages) giMapInvBigImagesButton->uiFlags |= BUTTON_CLICKED_ON;
+			giMapInvBigImagesButton->SetFastHelpText("Show Large Icons");
+		}
+
 			// reset the compatable item array at this point
 		ResetCompatibleItemArray( );
 
@@ -6218,6 +6320,7 @@ static void CreateDestroyTrashCanRegion(void)
 
 		// map inv done button
 		RemoveButton( giMapInvDoneButton );
+		if (giMapInvBigImagesButton) RemoveButton(giMapInvBigImagesButton);
 
 		ShutdownKeyRingInterface( );
 
@@ -6387,6 +6490,8 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(GetCharInfoGraphicsFilename());
 
 	RemoveVObject(GetMapInvGraphicsFilename());
+	RemoveVObject(INTERFACEDIR "/mapinv_wide.sti");
+	RemoveVObject(INTERFACEDIR "/mapinv_wide_big.sti");
 	RemoveVObject(GetMapMiddleBackgroundGraphicsFilename());
 	RemoveVObject(guiULICONS);
 

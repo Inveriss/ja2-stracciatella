@@ -37,7 +37,9 @@ BOOLEAN HandleItemPickupMenu(void);
 
 
 // FUNCTIONS FOR INTERFACEING WITH ITEM PANEL STUFF
-void InitInvSlotInterface(INV_REGION_DESC const* pRegionDesc, INV_REGION_DESC const* pCamoRegion, MOUSE_CALLBACK INVMoveCallback, MOUSE_CALLBACK INVClickCallback, MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback);
+// fMapBigImages: use the strategic map's "Show Large Icons" slot sizes
+// (gSMInvDataMapBig[] in Interface_Items.cc) instead of the shared ones.
+void InitInvSlotInterface(INV_REGION_DESC const* pRegionDesc, INV_REGION_DESC const* pCamoRegion, MOUSE_CALLBACK INVMoveCallback, MOUSE_CALLBACK INVClickCallback, MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback, bool fMapBigImages = false);
 void ShutdownInvSlotInterface();
 void HandleRenderInvSlots(SOLDIERTYPE const&, DirtyLevel);
 void RenderSMKeyringIcon(void);
