@@ -41,10 +41,14 @@ public:
   Fl_Value_Input *resolutionXInput;
   Fl_Value_Input *resolutionYInput;
   Fl_Menu_Button *predefinedResolutionMenuButton;
+  Fl_Check_Button *stretchCheckbox;
+  Fl_Check_Button *stretchLaptopCheckbox;
   Fl_Box *invalidResolutionLabel;
   Fl_Choice *scalingModeChoice;
   Fl_Check_Button *fullscreenCheckbox;
   Fl_Check_Button *playSoundsCheckbox;
+  Fl_Button *settingsEditorButton;
+  Fl_Button *settingsPlayButton;
   Fl_Group *logsTab;
   Fl_Text_Display *logsDisplay;
   Fl_Output *ja2JsonPathOutput;

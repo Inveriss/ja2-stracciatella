@@ -24,6 +24,7 @@
 #include "Button_System.h"
 #include "Font_Control.h"
 #include "UILayout.h"
+#include "Video.h"
 #include "GameMode.h"
 #include "FPS.h"
 #include "Logger.h"
@@ -98,6 +99,53 @@ void    ShutdownGame(void)
 	SaveGameSettings();
 
 	InitTacticalSave();
+}
+
+
+static bool gfStretchLaptop = false;
+
+
+// See InitStretchRegion(). A message box keeps the region of the screen it
+// belongs to (its exit screen). The auto-resolve screen deliberately stays on
+// the whole frame: its panel can be wider than the map canvas.
+static SGPBox GetStretchRegion()
+{
+	ScreenID screen = guiCurrentScreen;
+	if (screen == MSG_BOX_SCREEN) screen = gMsgBox.uiExitScreen;
+
+	switch (screen)
+	{
+		case MAP_SCREEN:
+			return { MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+
+		case LAPTOP_SCREEN:
+			if (gfStretchLaptop) return { STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_WIDTH, STD_SCREEN_HEIGHT };
+			// Opened from the map screen: the map is drawn behind the laptop,
+			// so keep the map canvas zoomed (the laptop, centered like it,
+			// lies entirely inside it) instead of dropping back to the whole
+			// frame with its black margins.
+			if (LaptopReturnsToMapScreen()) return { MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+			break;
+
+		case OPTIONS_SCREEN:
+		case SAVE_LOAD_SCREEN:
+			// Same as the laptop above: opened from the map screen, the map
+			// stays drawn behind these 640x480 screens (centered, so inside
+			// the map canvas) -- keep it zoomed.
+			if (guiPreviousOptionScreen == MAP_SCREEN) return { MAP_SCREEN_X, MAP_SCREEN_Y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+			break;
+
+		default:
+			break;
+	}
+	return { 0, 0, 0, 0 };
+}
+
+
+void InitStretchRegion(bool const stretchLaptop)
+{
+	gfStretchLaptop = stretchLaptop;
+	VideoSetStretchRegionProvider(GetStretchRegion);
 }
 
 

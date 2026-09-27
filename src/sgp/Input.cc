@@ -594,6 +594,18 @@ void SimulateMouseMovement( UINT32 uiNewXPos, UINT32 uiNewYPos )
 	double scaleFactorY = windowHeightD / screenHeightD;
 	double scaleFactor = windowWidth > windowHeight ? scaleFactorY : scaleFactorX;
 
+	// Stretch to fill (see ApplyStretchToFill() in Video.cc): the stretch
+	// region (the whole frame, or a screen's own zoomed canvas) is scaled to
+	// the whole window, X and Y independently, with no black bars.
+	if (VideoIsStretchedToFill())
+	{
+		SGPBox const region = VideoGetStretchRegion();
+		int const x = (int)(((double)uiNewXPos - region.x) * windowWidthD / region.w);
+		int const y = (int)(((double)uiNewYPos - region.y) * windowHeightD / region.h);
+		SDL_WarpMouseInWindow(GAME_WINDOW, x, y);
+		return;
+	}
+
 	double scaledWindowWidth = scaleFactor * screenWidthD;
 	double scaledWindowHeight = scaleFactor * screenHeightD;
 

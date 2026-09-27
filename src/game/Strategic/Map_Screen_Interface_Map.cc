@@ -91,9 +91,9 @@
 // doesn't run off the bottom of the screen), each with its own graphic
 // (pos2_first.sti / pos2_second.sti, see guiMapBorderHeliSectorsFirst/
 // Second below) and fully independent X/Y.
-#define MAP_HELICOPTER_ETA_POPUP_X (MAP_SCREEN_X + 873)
+#define MAP_HELICOPTER_ETA_POPUP_X (MAP_SCREEN_RIGHT_BLOCK_X + 873)
 #define MAP_HELICOPTER_ETA_POPUP_Y (MAP_SCREEN_Y + 185)
-#define MAP_HELICOPTER_UPPER_ETA_POPUP_X (MAP_SCREEN_X + 873)
+#define MAP_HELICOPTER_UPPER_ETA_POPUP_X (MAP_SCREEN_RIGHT_BLOCK_X + 873)
 #define MAP_HELICOPTER_UPPER_ETA_POPUP_Y (MAP_SCREEN_Y + 359)
 #define MAP_HELICOPTER_ETA_POPUP_WIDTH 129
 #define MAP_HELICOPTER_ETA_POPUP_HEIGHT 103
@@ -113,7 +113,7 @@
 #define MAP_HELICOPTER_UPPER_ETA_VALUE_MARGIN MAP_HELICOPTER_ETA_POPUP_WIDTH -27
 
 // X shifted +190 per user request.
-#define MAP_LEVEL_STRING_X (MAP_SCREEN_X + 432 + 190)
+#define MAP_LEVEL_STRING_X (MAP_SCREEN_RIGHT_BLOCK_X + 432 + 190)
 // Bottom-anchored to the (now recalibrated) map viewport instead of a fixed
 // MAP_SCREEN_Y offset, per user request. Was 3px above the old viewport's
 // bottom edge (old MAP_VIEW_START_Y + MAP_VIEW_HEIGHT = 10+298 = 308;
@@ -139,7 +139,7 @@
 
 // x start of hort index (numbers 1-16). Shifted +23 X / +7 Y per user
 // request.
-#define MAP_HORT_INDEX_X (MAP_SCREEN_X + 292 + 23)
+#define MAP_HORT_INDEX_X (MAP_SCREEN_RIGHT_BLOCK_X + 292 + 23)
 
 // y position of hort index
 #define MAP_HORT_INDEX_Y  (MAP_SCREEN_Y + 10 + 7)
@@ -148,7 +148,7 @@
 #define MAP_HORT_HEIGHT  GetFontHeight(MAP_FONT)
 
 // vert index start x (letters A-P). Shifted +10 X / +15 Y per user request.
-#define MAP_VERT_INDEX_X (MAP_SCREEN_X + 273 + +10)
+#define MAP_VERT_INDEX_X (MAP_SCREEN_RIGHT_BLOCK_X + 273 + +10)
 
 // vert index start y
 #define MAP_VERT_INDEX_Y  (MAP_SCREEN_Y + 31 + 15)
@@ -287,7 +287,7 @@ static SGPVSurface* guiBIGMAP;
 #define MILITIA_BOX_ROWS 3
 #define MILITIA_BOX_BOX_HEIGHT 36
 #define MILITIA_BOX_BOX_WIDTH 42
-#define MAP_MILITIA_BOX_POS_X (MAP_SCREEN_X + 400)
+#define MAP_MILITIA_BOX_POS_X (MAP_SCREEN_RIGHT_BLOCK_X + 400)
 #define MAP_MILITIA_BOX_POS_Y (MAP_SCREEN_Y + 125)
 
 #define POPUP_MILITIA_ICONS_PER_ROW 5 // max 6 rows gives the limit of 30 militia
@@ -2776,6 +2776,12 @@ static void BlitMineText(UINT8 const mine_idx, const SGPSector& sMap)
 }
 
 
+// Each town's grey border ("Show Towns") can be nudged independently on top
+// of its sector-grid position (GetScreenXYFromMapXY()), to line up with the
+// map graphic without moving the grid, sector icons or mouse regions: the
+// town's optional "borderOffset1024" (height 768+, b_map_1024.pcx) /
+// "borderOffset1280" (height 720-767, b_map_1280.pcx) in
+// strategic-map-towns.json -- see TownModel. Still clipped to MapScreenRect.
 static void BlitTownGridMarkers(void)
 {
 	SGPVSurface::Lock l(guiSAVEBUFFER);
@@ -2801,6 +2807,14 @@ static void BlitTownGridMarkers(void)
 		w  = MAP_GRID_X - 1;
 		h  = MAP_GRID_Y;
 		x += 2;
+
+		TownModel const* const town = GCM->getTown(i->town);
+		if (town)
+		{
+			TownBorderOffset const& offset = g_ui.isCompactStrategicScreen() ? town->borderOffset1280 : town->borderOffset1024;
+			x += offset.x;
+			y += offset.y;
+		}
 
 		INT32 const loc = sMap.AsStrategicIndex();
 		if (StrategicMap[loc - MAP_WORLD_X].bNameId == BLANK_SECTOR)

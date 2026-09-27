@@ -123,7 +123,7 @@ enum {
 
 
 // map view region
-#define MAP_VIEW_START_X	(MAP_SCREEN_X + 270)
+#define MAP_VIEW_START_X	(MAP_SCREEN_RIGHT_BLOCK_X + 270)
 #define MAP_VIEW_START_Y	(MAP_SCREEN_Y + 10)
 // 16x16 visible sector grid (MAP_WORLD_X/Y is 18, with a 1-sector border on
 // each side excluded from view) x MAP_GRID_X/Y, per user request.

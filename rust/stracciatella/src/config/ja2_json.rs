@@ -42,6 +42,8 @@ pub struct Ja2JsonContent {
     resversion: Option<VanillaVersion>,
     fullscreen: Option<bool>,
     scaling: Option<ScalingQuality>,
+    stretch: Option<bool>,
+    stretch_laptop: Option<bool>,
     debug: Option<bool>,
     nosound: Option<bool>,
 }
@@ -104,6 +106,8 @@ impl Ja2Json {
         copy_to!(content.resversion, engine_options.resource_version);
         copy_to!(content.fullscreen, engine_options.start_in_fullscreen);
         copy_to!(content.scaling, engine_options.scaling_quality);
+        copy_to!(content.stretch, engine_options.stretch_to_fill);
+        copy_to!(content.stretch_laptop, engine_options.stretch_laptop);
         copy_to!(content.debug, engine_options.start_in_debug_mode);
         copy_to!(content.nosound, engine_options.start_without_sound);
 
@@ -128,6 +132,8 @@ impl Ja2Json {
             resversion: None,
             fullscreen: None,
             scaling: None,
+            stretch: None,
+            stretch_laptop: None,
             debug: None,
             nosound: None,
         };
@@ -140,6 +146,8 @@ impl Ja2Json {
         copy_to!(engine_options.resource_version, content.resversion);
         copy_to!(engine_options.start_in_fullscreen, content.fullscreen);
         copy_to!(engine_options.scaling_quality, content.scaling);
+        copy_to!(engine_options.stretch_to_fill, content.stretch);
+        copy_to!(engine_options.stretch_laptop, content.stretch_laptop);
         copy_to!(engine_options.start_in_debug_mode, content.debug);
         copy_to!(engine_options.start_without_sound, content.nosound);
 
@@ -343,6 +351,37 @@ mod tests {
             .unwrap();
 
         assert!(engine_options.start_without_sound);
+    }
+
+    #[test]
+    // stretch/stretch_laptop default to true, so these check that an explicit
+    // false in ja2.json is honoured.
+    #[test]
+    fn apply_to_engine_options_should_be_able_to_disable_stretch_to_fill() {
+        let mut engine_options = EngineOptions::default();
+        assert!(engine_options.stretch_to_fill);
+        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"stretch\": false }");
+        let ja2json = Ja2Json::from_stracciatella_home(temp_dir.path().join(".ja2"));
+
+        ja2json
+            .apply_to_engine_options(&mut engine_options)
+            .unwrap();
+
+        assert!(!engine_options.stretch_to_fill);
+    }
+
+    #[test]
+    fn apply_to_engine_options_should_be_able_to_disable_stretch_laptop() {
+        let mut engine_options = EngineOptions::default();
+        assert!(engine_options.stretch_laptop);
+        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"stretch_laptop\": false }");
+        let ja2json = Ja2Json::from_stracciatella_home(temp_dir.path().join(".ja2"));
+
+        ja2json
+            .apply_to_engine_options(&mut engine_options)
+            .unwrap();
+
+        assert!(!engine_options.stretch_laptop);
     }
 
     #[test]

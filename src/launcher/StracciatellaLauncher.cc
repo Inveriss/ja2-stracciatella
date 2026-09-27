@@ -114,30 +114,41 @@ on their features.");
 e very small at higher internal resolutions. Note that menus and the strategic\
  map screen are always rendered at 640x480.");
           { resolutionXInput = new Fl_Value_Input(20, 130, 75, 30, "Internal Resolution:");
-            resolutionXInput->minimum(640);
+            resolutionXInput->minimum(1024);
             resolutionXInput->maximum(0);
-            resolutionXInput->value(640);
+            resolutionXInput->value(1024);
             resolutionXInput->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           } // Fl_Value_Input* resolutionXInput
           { new Fl_Box(95, 130, 20, 30, "x");
           } // Fl_Box* o
           { resolutionYInput = new Fl_Value_Input(115, 130, 75, 30);
             resolutionYInput->labeltype(FL_NO_LABEL);
-            resolutionYInput->minimum(480);
+            resolutionYInput->minimum(720);
             resolutionYInput->maximum(0);
-            resolutionYInput->value(480);
+            resolutionYInput->value(720);
             resolutionYInput->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           } // Fl_Value_Input* resolutionYInput
           { predefinedResolutionMenuButton = new Fl_Menu_Button(210, 130, 110, 30, "Predefined");
           } // Fl_Menu_Button* predefinedResolutionMenuButton
+          { stretchCheckbox = new Fl_Check_Button(331, 122, 165, 30, "Stretch to Your Screen");
+            stretchCheckbox->tooltip("Stretch the game image to fill the whole screen, ignoring its aspect ratio (no\
+ black bars).");
+            stretchCheckbox->down_box(FL_DOWN_BOX);
+          } // Fl_Check_Button* stretchCheckbox
+          { stretchLaptopCheckbox = new Fl_Check_Button(331, 149, 165, 18, "Stretch In-Game Laptop");
+            stretchLaptopCheckbox->tooltip("Also stretch the In-Game Laptop (640x480) to fill the whole screen. Ignores i\
+ts aspect ratio, so the In-Game Laptop looks noticeably wider on widescreen mo\
+nitors. Requires \"Stretch to Your Screen\".");
+            stretchLaptopCheckbox->down_box(FL_DOWN_BOX);
+          } // Fl_Check_Button* stretchLaptopCheckbox
           { Fl_Group* o = new Fl_Group(415, 115, 30, 30, "resizable");
             o->labeltype(FL_NO_LABEL);
             o->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
             o->end();
             Fl_Group::current()->resizable(o);
           } // Fl_Group* o
-          { invalidResolutionLabel = new Fl_Box(340, 130, 160, 30, "invalid!");
-            invalidResolutionLabel->tooltip("the resolution must be at least 640x480, the original game resolution");
+          { invalidResolutionLabel = new Fl_Box(240, 166, 110, 14, "invalid!");
+            invalidResolutionLabel->tooltip("the resolution must be at least 1024x720, the smallest one JA2 Stracciatella supports");
             invalidResolutionLabel->labelfont(1);
             invalidResolutionLabel->labelcolor((Fl_Color)1);
             invalidResolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
@@ -167,6 +178,10 @@ n) but gives sharp images.");
           } // Fl_Check_Button* playSoundsCheckbox
           o->end();
         } // Fl_Group* o
+        { settingsEditorButton = new Fl_Button(165, 236, 200, 25, "Start Map Editor");
+        } // Fl_Button* settingsEditorButton
+        { settingsPlayButton = new Fl_Button(165, 271, 200, 55, "Play Ja2 Stracciatella");
+        } // Fl_Button* settingsPlayButton
         o->end();
       } // Fl_Group* o
       { logsTab = new Fl_Group(0, 50, 520, 300, "@square Logs");

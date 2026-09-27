@@ -108,6 +108,12 @@ extern SGPSector    gsHighlightSector;
 // create/destroy inventory button as needed
 void CreateDestroyMapInvButton(void);
 
+// On the wide strategic screen (UILayout::isWideStrategicScreen()) returns
+// `wide` if that file exists, otherwise -- and always on the legacy 1024
+// canvas -- `legacy`, so the game keeps working before the _wide assets are
+// delivered. Both must be string literals (cache_key_t).
+char const* GetWideStrategicAsset(char const* wide, char const* legacy);
+
 void     MapScreenInit(void);
 ScreenID MapScreenHandle(void);
 void     MapScreenShutdown(void);
@@ -136,9 +142,9 @@ void SetMapCursorItem();
 // (the value columns) additionally shifted +15 to add a margin between the
 // "ETA:" label and the values -- the new, wider FONTMAP made the label wide
 // enough to overlap them.
-#define CLOCK_ETA_X           (MAP_SCREEN_X + 463 - 15 + 6 + 30 + 136)
-#define CLOCK_HOUR_X_START    (MAP_SCREEN_X + 463 + 25 + 30 + 136 + 15)
-#define CLOCK_MIN_X_START     (MAP_SCREEN_X + 463 + 45 + 30 + 136 + 15)
+#define CLOCK_ETA_X           (MAP_SCREEN_RIGHT_BLOCK_X + 463 - 15 + 6 + 30 + 136)
+#define CLOCK_HOUR_X_START    (MAP_SCREEN_RIGHT_BLOCK_X + 463 + 25 + 30 + 136 + 15)
+#define CLOCK_MIN_X_START     (MAP_SCREEN_RIGHT_BLOCK_X + 463 + 45 + 30 + 136 + 15)
 
 // contract
 #define CONTRACT_X            (MAP_SCREEN_X + 185)

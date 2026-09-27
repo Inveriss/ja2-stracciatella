@@ -35,6 +35,9 @@
 #endif
 
 #define RESOLUTION_SEPARATOR "x"
+// The game's own minimum -- UILayout::setScreenSize() refuses anything smaller.
+#define MIN_RESOLUTION_X 1024
+#define MIN_RESOLUTION_Y 720
 
 const double checkGameRunningIntervalSeconds = 1.0;
 
@@ -58,11 +61,19 @@ const std::vector<GameVersion> predefinedVersions = {
 	GameVersion::SIMPLIFIED_CHINESE
 };
 const std::vector< std::pair<int, int> > predefinedResolutions = {
-	std::make_pair(640,  480),
-	std::make_pair(800,  600),
 	std::make_pair(1024, 768),
 	std::make_pair(1280, 720),
+	std::make_pair(1280, 768),
+	std::make_pair(1280, 800),
+	std::make_pair(1280, 960),
+	std::make_pair(1280, 1024),
+	std::make_pair(1360, 768),
+	std::make_pair(1366, 768),
+	std::make_pair(1440, 900),
+	std::make_pair(1440, 1080),
 	std::make_pair(1600, 900),
+	std::make_pair(1600, 1024),
+	std::make_pair(1680, 1050),
 	std::make_pair(1920, 1080)
 };
 const std::vector<VideoScaleQuality> scalingModes = {
@@ -338,6 +349,9 @@ void Launcher::loadJa2Json() {
 void Launcher::show() {
 	editorButton->callback( (Fl_Callback*)startEditor, (void*)(this) );
 	playButton->callback( (Fl_Callback*)startGame, (void*)(this) );
+	// Same two buttons, duplicated on the Settings tab.
+	settingsEditorButton->callback( (Fl_Callback*)startEditor, (void*)(this) );
+	settingsPlayButton->callback( (Fl_Callback*)startGame, (void*)(this) );
 	gameDirectoryInput->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	saveGameDirectoryInput->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	browseJa2DirectoryButton->callback((Fl_Callback *) openGameDirectorySelector, (void *) (this));
@@ -345,8 +359,17 @@ void Launcher::show() {
 	gameVersionInput->callback( (Fl_Callback*)selectGameVersion, (void*)(this) );
 	guessVersionButton->callback( (Fl_Callback*)guessVersion, (void*)(this) );
 	scalingModeChoice->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
-	resolutionXInput->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
-	resolutionYInput->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
+	// Besides every keystroke (FL_WHEN_CHANGED), also call back when the value
+	// is committed -- Enter, or leaving the field -- even if it didn't change
+	// then, so resolutionChanged() can warn about an unsupported resolution
+	// at that point instead of on every keystroke (typing 1080 passes through
+	// 1, 10 and 108).
+	for (Fl_Value_Input* input : { resolutionXInput, resolutionYInput })
+	{
+		input->callback( (Fl_Callback*)resolutionChanged, (void*)(this) );
+		input->when(FL_WHEN_CHANGED | FL_WHEN_NOT_CHANGED);
+		input->input.when(FL_WHEN_CHANGED | FL_WHEN_RELEASE_ALWAYS | FL_WHEN_ENTER_KEY_ALWAYS);
+	}
 	RustPointer<char> game_json_path(findPathFromAssetsDir("externalized/game.json", true, true));
 	if (game_json_path) {
 		gameSettingsOutput->value(game_json_path.get());
@@ -354,6 +377,8 @@ void Launcher::show() {
 		gameSettingsOutput->value("failed to find path to game.json");
 	}
 	fullscreenCheckbox->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
+	stretchCheckbox->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
+	stretchLaptopCheckbox->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	playSoundsCheckbox->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	RustPointer<char> ja2_json_path(findPathFromStracciatellaHome(this->engineOptions.get(), "ja2.json", false, true));
 	if (ja2_json_path) {
@@ -452,12 +477,22 @@ void Launcher::initializeInputsFromDefaults() {
 	this->scalingModeChoice->value(scalingModeIndex);
 
 	fullscreenCheckbox->value(EngineOptions_shouldStartInFullscreen(this->engineOptions.get()) ? 1 : 0);
+	stretchCheckbox->value(EngineOptions_shouldStretchToFill(this->engineOptions.get()) ? 1 : 0);
+	// Shown empty while inactive -- see update(), which (de)activates it and
+	// moves the value between the checkbox and stretchLaptopValue as needed.
+	stretchLaptopValue = EngineOptions_shouldStretchLaptop(this->engineOptions.get());
+	bool const showLaptopValue = stretchLaptopCheckbox->active() || stretchCheckbox->value();
+	stretchLaptopCheckbox->value(showLaptopValue && stretchLaptopValue ? 1 : 0);
 	playSoundsCheckbox->value(EngineOptions_shouldStartWithoutSound(this->engineOptions.get()) ? 0 : 1);
 	update(false);
 }
 
 int Launcher::writeJsonFile() {
 	EngineOptions_setStartInFullscreen(this->engineOptions.get(), fullscreenCheckbox->value());
+	EngineOptions_setStretchToFill(this->engineOptions.get(), stretchCheckbox->value());
+	// While inactive the checkbox is shown empty, but its own value is kept.
+	EngineOptions_setStretchLaptop(this->engineOptions.get(),
+		stretchLaptopCheckbox->active() ? stretchLaptopCheckbox->value() != 0 : stretchLaptopValue);
 	EngineOptions_setStartWithoutSound(this->engineOptions.get(), !playSoundsCheckbox->value());
 
 	EngineOptions_setVanillaGameDir(this->engineOptions.get(), gameDirectoryInput->value());
@@ -596,10 +631,7 @@ void Launcher::startExecutable(bool asEditor) {
 	}
 	// check minimal resolution:
 	if (resolutionIsInvalid()) {
-		fl_message_title("Invalid resolution");
-		fl_alert("Invalid custom resolution %dx%d.\nJA2 Stracciatella needs a resolution of at least 640x480.",
-			(int) resolutionXInput->value(),
-			(int) resolutionYInput->value());
+		showInvalidResolutionAlert();
 		return;
 	}
 
@@ -740,7 +772,42 @@ void Launcher::maintainSubProcessState(void* userdata) {
 }
 
 bool Launcher::resolutionIsInvalid() {
-	return resolutionXInput->value() < 640 || resolutionYInput->value() < 480;
+	return resolutionXInput->value() < MIN_RESOLUTION_X || resolutionYInput->value() < MIN_RESOLUTION_Y;
+}
+
+void Launcher::showInvalidResolutionAlert() {
+	fl_message_title("Invalid resolution");
+	fl_alert("Resolution %dx%d is not supported.\nResolutions below %dx%d (width below %d or height below %d) are not supported.",
+		(int) resolutionXInput->value(),
+		(int) resolutionYInput->value(),
+		MIN_RESOLUTION_X, MIN_RESOLUTION_Y, MIN_RESOLUTION_X, MIN_RESOLUTION_Y);
+}
+
+void Launcher::resolutionChanged(Fl_Widget* widget, void* userdata) {
+	Launcher* window = static_cast< Launcher* >( userdata );
+	// changed() is only set while this runs if the value actually changed
+	// (Fl_Value_Input::input_cb()), not on a mere commit of the same value.
+	if (widget->changed()) window->update(true);
+
+	bool const committed =
+		Fl::event() == FL_UNFOCUS ||
+		(Fl::event() == FL_KEYBOARD && (Fl::event_key() == FL_Enter || Fl::event_key() == FL_KP_Enter));
+	if (!committed) return;
+
+	int const x = (int) window->resolutionXInput->value();
+	int const y = (int) window->resolutionYInput->value();
+	if (!window->resolutionIsInvalid()) {
+		window->lastWarnedResolution = { 0, 0 };
+		return;
+	}
+	// Warn once per invalid value (not again when merely moving between the
+	// X and Y fields), and not from inside the focus change itself -- defer
+	// the modal alert until the current event is done.
+	if (window->lastWarnedResolution == std::make_pair(x, y)) return;
+	window->lastWarnedResolution = { x, y };
+	Fl::add_timeout(0.0, [](void* data) {
+		static_cast< Launcher* >( data )->showInvalidResolutionAlert();
+	}, window);
 }
 
 bool Launcher::gameIsRunning() {
@@ -753,6 +820,21 @@ void Launcher::update(bool changed) {
 		invalidResolutionLabel->show();
 	} else {
 		invalidResolutionLabel->hide();
+	}
+
+	// "Stretch In-Game Laptop" only applies together with "Stretch to Your
+	// Screen". While inactive it's shown empty (grey, no checkmark), but its own
+	// value is remembered (stretchLaptopValue), restored once "Stretch to Your
+	// Screen" is checked again, and still saved to ja2.json.
+	if (stretchCheckbox->value()) {
+		if (!stretchLaptopCheckbox->active()) {
+			stretchLaptopCheckbox->value(stretchLaptopValue ? 1 : 0);
+			stretchLaptopCheckbox->activate();
+		}
+	} else if (stretchLaptopCheckbox->active()) {
+		stretchLaptopValue = stretchLaptopCheckbox->value() != 0;
+		stretchLaptopCheckbox->value(0);
+		stretchLaptopCheckbox->deactivate();
 	}
 
 	// something changed indicator
@@ -769,12 +851,16 @@ void Launcher::update(bool changed) {
 		tabs->deactivate();
 		playButton->deactivate();
 		editorButton->deactivate();
+		settingsPlayButton->deactivate();
+		settingsEditorButton->deactivate();
 		ja2JsonReloadBtn->deactivate();
 		ja2JsonSaveBtn->deactivate();
 	} else {
 		tabs->activate();
 		playButton->activate();
 		editorButton->activate();
+		settingsPlayButton->activate();
+		settingsEditorButton->activate();
 		ja2JsonReloadBtn->activate();
 		ja2JsonSaveBtn->activate();
 	}

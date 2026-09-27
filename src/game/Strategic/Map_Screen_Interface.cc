@@ -835,10 +835,13 @@ void DoMapMessageBoxWithRect(MessageBoxStyleID ubStyle, const ST::string& str, S
 // tall, see UILayout::isCompactStrategicScreen()) needs its own further
 // +24 Y correction, since its asset doesn't scale down 1:1 from the large
 // tier's.
+// Anchored to MAP_SCREEN_RIGHT_BLOCK_X and the legacy 1024 canvas width (not
+// MAP_SCREEN_X/MAP_SCREEN_WIDTH), so on the wide strategic screen the popups
+// stay centered over the (shifted) map instead of the whole 1280 canvas.
 SGPBox GetMapScreenPopupCenteringRect(void)
 {
 	INT16 const y = MAP_SCREEN_Y - 61 + (g_ui.isCompactStrategicScreen() ? 24 : 0);
-	return { (UINT16)(MAP_SCREEN_X + 146), (UINT16)y, MAP_SCREEN_WIDTH, MAP_SCREEN_HEIGHT };
+	return { (UINT16)(MAP_SCREEN_RIGHT_BLOCK_X + 146), (UINT16)y, MAP_LEGACY_CANVAS_WIDTH, MAP_SCREEN_HEIGHT };
 }
 
 
@@ -1795,24 +1798,27 @@ static void DisplayUserDefineHelpTextRegions(FASTHELPREGION* pRegion)
 	// tack on the outer border
 	iH += 14;
 
+	// Kept inside the map's own canvas (not the whole screen): with the
+	// "Stretch" option only that canvas is visible (see GetStretchRegion() in
+	// GameLoop.cc), and otherwise the area around it is just black margin.
 	// gone not far enough?
-	if ( iX < 0 )
-		iX = 0;
+	if ( iX < MAP_SCREEN_X )
+		iX = MAP_SCREEN_X;
 
 	// gone too far
-	if ( ( pRegion->iX + iW ) >= SCREEN_WIDTH )
-		iX = (SCREEN_WIDTH - iW - 4);
+	if ( ( pRegion->iX + iW ) >= MAP_SCREEN_RIGHT )
+		iX = (MAP_SCREEN_RIGHT - iW - 4);
 
 	// what about the y value?
 	iY = (INT32)pRegion->iY - (  iH * 3 / 4);
 
 	// not far enough
-	if (iY < 0)
-		iY = 0;
+	if (iY < MAP_SCREEN_Y)
+		iY = MAP_SCREEN_Y;
 
 	// too far
-	if ( (iY + iH) >= SCREEN_HEIGHT )
-		iY = (SCREEN_HEIGHT - iH - 15);
+	if ( (iY + iH) >= MAP_SCREEN_BOTTOM )
+		iY = (MAP_SCREEN_BOTTOM - iH - 15);
 
 	{ SGPVSurface::Lock l(FRAME_BUFFER);
 		SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -2291,7 +2297,7 @@ static void AddStringsToMoveBox(PopUpBox*);
 
 static void CreatePopUpBoxForMovementBox(void)
 {
-	SGPPoint const MovePosition = { (UINT16)(MAP_SCREEN_X + 450), (UINT16)(MAP_SCREEN_Y + 100) };
+	SGPPoint const MovePosition = { (UINT16)(MAP_SCREEN_RIGHT_BLOCK_X + 450), (UINT16)(MAP_SCREEN_Y + 100) };
 
 	// create the pop up box and mouse regions for movement list
 	PopUpBox* const box = CreatePopUpBox(MovePosition, POPUP_BOX_FLAG_RESIZE, FRAME_BUFFER, guiPOPUPBORDERS, guiPOPUPTEX, 6, 6, 4, 4, 2);

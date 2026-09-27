@@ -128,26 +128,34 @@ class StracciatellaLauncher {open
           } {
             Fl_Value_Input resolutionXInput {
               label {Internal Resolution:}
-              xywh {20 130 75 30} align 5 minimum 640 maximum 0 value 640
+              xywh {20 130 75 30} align 5 minimum 1024 maximum 0 value 1024
             }
             Fl_Box {} {
               label x
               xywh {95 130 20 30}
             }
             Fl_Value_Input resolutionYInput {
-              xywh {115 130 75 30} labeltype NO_LABEL align 5 minimum 480 maximum 0 value 480
+              xywh {115 130 75 30} labeltype NO_LABEL align 5 minimum 720 maximum 0 value 720
             }
             Fl_Menu_Button predefinedResolutionMenuButton {
               label Predefined open
               xywh {210 130 110 30}
             } {}
+            Fl_Check_Button stretchCheckbox {
+              label {Stretch to Your Screen}
+              tooltip {Stretch the game image to fill the whole screen, ignoring its aspect ratio (no black bars).} xywh {331 122 165 30} down_box DOWN_BOX
+            }
+            Fl_Check_Button stretchLaptopCheckbox {
+              label {Stretch In-Game Laptop}
+              tooltip {Also stretch the In-Game Laptop (640x480) to fill the whole screen. Ignores its aspect ratio, so the In-Game Laptop looks noticeably wider on widescreen monitors. Requires "Stretch to Your Screen".} xywh {331 149 165 18} down_box DOWN_BOX
+            }
             Fl_Group {} {
               label resizable open
               xywh {415 115 30 30} labeltype NO_LABEL align 17 resizable
             } {}
             Fl_Box invalidResolutionLabel {
               label {invalid!}
-              tooltip {the resolution must be at least 640x480, the original game resolution} xywh {340 130 160 30} labelfont 1 labelcolor 1 align 20
+              tooltip {the resolution must be at least 1024x720, the smallest one JA2 Stracciatella supports} xywh {240 166 110 14} labelfont 1 labelcolor 1 align 20
             }
           }
           Fl_Group {} {open
@@ -169,6 +177,14 @@ class StracciatellaLauncher {open
               label {Play Sounds}
               xywh {20 255 109 30} down_box DOWN_BOX value 1
             }
+          }
+          Fl_Button settingsEditorButton {
+            label {Start Map Editor}
+            xywh {165 236 200 25}
+          }
+          Fl_Button settingsPlayButton {
+            label {Play Ja2 Stracciatella}
+            xywh {165 271 200 55}
           }
         }
         Fl_Group logsTab {

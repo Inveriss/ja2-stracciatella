@@ -712,7 +712,7 @@ static void HandleSkyRiderMonologueEvent(SkyriderMonologueEvent const uiEventCod
 			HandleSkyRiderMonologueAboutCambriaHospital( uiSpecialCode );
 			break;
 		case( SKYRIDER_MONOLOGUE_EVENT_OTHER_SAM_SITES ):
-			SetExternMapscreenSpeechPanelXY( MAP_SCREEN_X + 335, DEFAULT_MAP_EXTERN_PANEL_Y_POS );
+			SetExternMapscreenSpeechPanelXY( MAP_SCREEN_RIGHT_BLOCK_X + 335, DEFAULT_MAP_EXTERN_PANEL_Y_POS );
 			HandleSkyRiderMonologueAboutOtherSAMSites( uiSpecialCode );
 			break;
 		case( SKYRIDER_MONOLOGUE_EVENT_ESTONI_REFUEL ):

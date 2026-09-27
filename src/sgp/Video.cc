@@ -59,6 +59,7 @@ static SDL_Texture* ScreenTexture;
 static SDL_Texture* ScaledScreenTexture;
 static Uint32       g_window_flags = 0;
 static VideoScaleQuality ScaleQuality = VideoScaleQuality::LINEAR;
+static bool g_stretch_to_fill = false;
 static std::chrono::steady_clock::duration TimeBetweenRefreshScreens;
 
 static void DeletePrimaryVideoSurfaces(void);
@@ -115,12 +116,97 @@ void VideoSetBrightness(float brightness)
 static void GetRGBDistribution();
 
 
+bool VideoIsStretchedToFill()
+{
+	return g_stretch_to_fill;
+}
+
+
+// Part of the frame that fills the screen while stretching -- a screen with a
+// fixed canvas smaller than the frame (the strategic map, the laptop) is
+// zoomed so that canvas fills the screen, instead of the whole frame with the
+// black margins around it. {0,0,0,0} means the whole frame.
+static SGPBox (*g_stretch_region_provider)() = nullptr;
+static SGPBox   g_stretch_region = { 0, 0, 0, 0 };
+
+void VideoSetStretchRegionProvider(SGPBox (*const provider)())
+{
+	g_stretch_region_provider = provider;
+}
+
+SGPBox VideoGetStretchRegion()
+{
+	if (g_stretch_region.w == 0 || g_stretch_region.h == 0)
+	{
+		return { 0, 0, (UINT16)SCREEN_WIDTH, (UINT16)SCREEN_HEIGHT };
+	}
+	return g_stretch_region;
+}
+
+
+// Stretch to fill: SDL_RenderSetLogicalSize() always keeps the game image's
+// aspect ratio, adding black bars when the window/desktop's differs (e.g.
+// 1280x768 on a 1920x1080 desktop). The logical size stays set -- SDL keeps
+// mapping mouse coordinates through the renderer's viewport and scale -- but
+// the uniform scale and centered viewport it computes are overridden with
+// independent X/Y scales mapping the stretch region (VideoGetStretchRegion())
+// onto the whole output, and a viewport shifted by that region's offset, so
+// the rest of the frame falls off-screen. SDL subtracts the viewport offset
+// and divides by the scale when mapping mouse events, so they keep arriving in
+// frame coordinates.
+static void ApplyStretchToFill()
+{
+	if (!g_stretch_to_fill || !GameRenderer) return;
+
+	int w, h;
+	if (SDL_GetRendererOutputSize(GameRenderer, &w, &h) != 0 || w <= 0 || h <= 0) return;
+
+	SGPBox const region = VideoGetStretchRegion();
+	SDL_RenderSetScale(GameRenderer, float(w) / region.w, float(h) / region.h);
+	SDL_Rect const viewport = { -region.x, -region.y, SCREEN_WIDTH, SCREEN_HEIGHT };
+	SDL_RenderSetViewport(GameRenderer, &viewport);
+}
+
+
+// Asks the game which region should fill the screen now, and reapplies the
+// stretch when that changed (e.g. map screen -> laptop -> tactical).
+static void UpdateStretchRegion()
+{
+	if (!g_stretch_to_fill || !g_stretch_region_provider) return;
+
+	SGPBox const region = g_stretch_region_provider();
+	if (region.x == g_stretch_region.x && region.y == g_stretch_region.y &&
+	    region.w == g_stretch_region.w && region.h == g_stretch_region.h) return;
+
+	g_stretch_region = region;
+	ApplyStretchToFill();
+}
+
+
+// SDL recomputes the logical-size scale/viewport on every window size change
+// (fullscreen toggle, window resize) from its own renderer event watch,
+// registered in SDL_CreateRenderer(). Event watches run in the order they
+// were added, so this one -- added after the renderer -- reapplies the
+// stretch right after SDL's recompute, before any later mouse event is
+// mapped through it.
+static int SDLCALL StretchToFillEventWatch(void*, SDL_Event* const event)
+{
+	if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+	{
+		ApplyStretchToFill();
+	}
+	return 0;
+}
+
+
 void InitializeVideoManager(const VideoScaleQuality quality,
+                            const bool stretchToFill,
                             const int32_t targetFPS)
 {
 	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
 	ScaleQuality = quality;
+	g_stretch_to_fill = stretchToFill;
 	g_window_flags |= SDL_WINDOW_RESIZABLE;
 
 	g_game_window = SDL_CreateWindow(APPLICATION_NAME,
@@ -195,6 +281,15 @@ void InitializeVideoManager(const VideoScaleQuality quality,
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	}
 
+	// After SDL_RenderSetIntegerScale() above, which recomputes the logical
+	// size scale/viewport itself. In PERFECT mode, stretching gives up the
+	// integer scale too -- stretch wins.
+	if (g_stretch_to_fill)
+	{
+		SDL_AddEventWatch(StretchToFillEventWatch, nullptr);
+		ApplyStretchToFill();
+	}
+
 	ScreenTexture = SDL_CreateTexture(GameRenderer,
 					SDL_PIXELFORMAT_RGB565,
 					SDL_TEXTUREACCESS_STREAMING,
@@ -241,6 +336,8 @@ void ShutdownVideoManager(void)
 {
 	// ScreenBuffer SDL surface freed by its SGPVSurface wrapper.
 	ScreenBuffer = nullptr;
+
+	if (g_stretch_to_fill) SDL_DelEventWatch(StretchToFillEventWatch, nullptr);
 
 	if (ScreenTexture != NULL) {
 		SDL_DestroyTexture(ScreenTexture);
@@ -536,6 +633,10 @@ void RefreshScreen(void)
 		+ ScreenTextureUpdateRect.x * ScreenBuffer->format->BytesPerPixel;
 	SDL_UpdateTexture(ScreenTexture, &ScreenTextureUpdateRect,
 	                  SrcPixels, ScreenBuffer->pitch);
+
+	// Every refresh, not just the per-frame one from the game loop -- some
+	// screens (e.g. the laptop opening) call RefreshScreen() directly.
+	UpdateStretchRegion();
 
 	SDL_RenderClear(GameRenderer);
 

@@ -72,8 +72,12 @@ static GUIButtonRef guiAimFiFilterButtons[AIM_FI_NUM_FILTER_BUTTONS];
 
 //Mouse Regions
 
-//Face regions
-static MOUSE_REGION gMercFaceMouseRegions[MAX_NUMBER_MERCS];
+//Face regions -- one per mugshot slot on the current page (the 8x5 grid
+// EnterAimFacialIndex() defines), not per merc: ExitAimFacialIndex() removes
+// the whole array, so it must not be bigger than what actually gets defined
+// (it used to be MAX_NUMBER_MERCS, asserting on every never-defined entry
+// once that grew past 40).
+static MOUSE_REGION gMercFaceMouseRegions[AIM_FI_MUGSHOTS_PER_PAGE];
 
 //Screen region, used to right click to go back to previous page
 static MOUSE_REGION gScreenMouseRegions;
