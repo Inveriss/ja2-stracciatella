@@ -178,8 +178,9 @@ void DrawSoldierUIBars(SOLDIERTYPE const& s, INT16 const sXPos, INT16 const sYPo
 }
 
 
-void DrawItemUIBarEx(OBJECTTYPE const& o, const UINT8 ubStatus, const INT16 x, const INT16 y, INT16 max_h, const INT16 sColor1, const INT16 sColor2, SGPVSurface* const uiBuffer)
+void DrawItemUIBarEx(OBJECTTYPE const& o, const UINT8 ubStatus, const INT16 x, const INT16 y, INT16 max_h, const INT16 sColor1, const INT16 sColor2, SGPVSurface* const uiBuffer, INT16 width)
 {
+	if (width < 1) width = 1;
 	INT16 value;
 	// Adjust for ammo, other things
 	const ItemModel * item = GCM->getItem(o.usItem);
@@ -213,17 +214,23 @@ void DrawItemUIBarEx(OBJECTTYPE const& o, const UINT8 ubStatus, const INT16 x, c
 
 		--max_h; // LineDraw() includes the end point
 		const INT h = max_h * value / 100;
-		LineDraw(TRUE, x,     y, x,     y - h, sColor1, pDestBuf);
-		LineDraw(TRUE, x + 1, y, x + 1, y - h, sColor2, pDestBuf);
+		// All columns but the last in the main colour, the last one in the
+		// shadow colour (width 2 == the original two LineDraw() calls); a
+		// 1px bar has no shadow column.
+		for (INT16 col = 0; col < width; ++col)
+		{
+			const INT16 colour = (col == width - 1 && width > 1) ? sColor2 : sColor1;
+			LineDraw(TRUE, x + col, y, x + col, y - h, colour, pDestBuf);
+		}
 	}
 
 	if (uiBuffer == guiSAVEBUFFER)
 	{
-		RestoreExternBackgroundRect(x, y - max_h, 2, max_h + 1);
+		RestoreExternBackgroundRect(x, y - max_h, width, max_h + 1);
 	}
 	else
 	{
-		InvalidateRegion(x, y - max_h, x + 2, y + 1);
+		InvalidateRegion(x, y - max_h, x + width, y + 1);
 	}
 }
 

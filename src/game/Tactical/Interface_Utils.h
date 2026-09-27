@@ -11,7 +11,9 @@
 
 void DrawSoldierUIBars(SOLDIERTYPE const&, INT16 sXPos, INT16 sYPos, BOOLEAN fErase, SGPVSurface* buffer);
 
-void DrawItemUIBarEx(OBJECTTYPE const&, UINT8 ubStatus, INT16 sXPos, INT16 sYPos, INT16 sHeight, INT16 sColor1, INT16 sColor2, SGPVSurface* buffer);
+// sWidth: bar width in pixels; the last column uses sColor2 (shadow), the
+// rest sColor1. The default 2 is the original one-line-plus-shadow bar.
+void DrawItemUIBarEx(OBJECTTYPE const&, UINT8 ubStatus, INT16 sXPos, INT16 sYPos, INT16 sHeight, INT16 sColor1, INT16 sColor2, SGPVSurface* buffer, INT16 sWidth = 2);
 
 void RenderSoldierFace(SOLDIERTYPE const&, INT16 sFaceX, INT16 sFaceY);
 

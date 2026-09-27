@@ -108,6 +108,21 @@
 #define INV_BAR_DX					7
 #define INV_BAR_DY					30
 
+// Status bar next to each inventory slot on the strategic map (mapinv.sti)
+// -- independent of the tactical INV_BAR_DX/INV_BAR_DY/ITEM_BAR_HEIGHT
+// above, which the item stack popup and keyring popup also share. Used only
+// by INVRenderINVPanelItem() while in MAP_SCREEN.
+// MAP_INV_BAR_DX: bar X = slot X - MAP_INV_BAR_DX (positive = further left).
+// MAP_INV_BAR_DY: Y of the bar's BOTTOM edge = slot Y + MAP_INV_BAR_DY (the
+//                 bar grows upwards from there).
+// MAP_ITEM_BAR_HEIGHT: bar height at 100% status.
+// MAP_ITEM_BAR_WIDTH: bar width; the last column is drawn in the shadow
+//                 colour, the rest in the main colour (2 = original look).
+#define MAP_INV_BAR_DX					7
+#define MAP_INV_BAR_DY					30
+#define MAP_ITEM_BAR_HEIGHT				31
+#define MAP_ITEM_BAR_WIDTH				2
+
 // Adjustable offset (from the slot's own top-left corner) and size delta
 // (relative to the slot's own width/height) for the "item doesn't fit
 // here" hatch drawn over inventory slots in INVRenderINVPanelItem() --
@@ -697,14 +712,14 @@ struct AttachmentGfxInfo
 static const AttachmentGfxInfo g_attachment_info =
 {
 	
-//	{ 7, 0, 28, 25 },
-//	{ 2, 2,  2, 22 },
+//	{ 7, 0, 28, 25 },  // x position of picture attachment vs status bar ### y position of picture attachment vs status bar ### lenght and hight of attachment box and shadow when you can not attach something
+//	{ 2, 2,  2, 22 }, // x position of status bar ### y position of status bar ### width and hight of status bar
 	
 // NEW POSITION
 	{ 8, 1, 36, 31 },
     { 1, 1,  2, 31 },
 	
-	{
+	{ // x position of status bar and picture attachment ### y positon of status bar and picture attachment
 		{   155,   8 }, {  204,   8 }, {  252,   8 }, { 350,   8 }, // First row
 		{   8,  65 }, {  57,  65 }, {  106,  65 }, { 301,  46 },	{   301,  84 }, {  350,  65 }, // Second row
 		{  105,  122 }, { 154,  122 },	{   203,  122 }, {  252,  122 }, {  349,  122 }, // Third row
@@ -714,8 +729,8 @@ static const AttachmentGfxInfo g_attachment_info =
 
 static const AttachmentGfxInfo g_map_attachment_info =
 {
-	{ 6, 0, 31, 25 },
-	{ 1, 1,  2, 23 },
+	{ 8, 0, 36, 25 },
+	{ 1, 1,  2, 31 },
 	{
 		{   5,   5 }, {  39,   5 }, {  73,   5 }, { 107,   5 },
 		{   5,  31 }, {  39,  31 }, {  73,  31 }, { 107,  31 },
@@ -1284,8 +1299,16 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 	if (o.usItem != NOTHING)
 	{
 		// Add item status bar
-		DrawItemUIBarEx(o, 0, x - INV_BAR_DX, y + INV_BAR_DY, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR),
-				Get16BPPColor(STATUS_BAR_SHADOW), guiSAVEBUFFER);
+		if (in_map)
+		{
+			DrawItemUIBarEx(o, 0, x - MAP_INV_BAR_DX, y + MAP_INV_BAR_DY, MAP_ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR),
+					Get16BPPColor(STATUS_BAR_SHADOW), guiSAVEBUFFER, MAP_ITEM_BAR_WIDTH);
+		}
+		else
+		{
+			DrawItemUIBarEx(o, 0, x - INV_BAR_DX, y + INV_BAR_DY, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR),
+					Get16BPPColor(STATUS_BAR_SHADOW), guiSAVEBUFFER);
+		}
 	}
 }
 
