@@ -128,8 +128,8 @@
 #define INV_REGION_Y PLAYER_INFO_Y
 #define INV_REGION_WIDTH 262
 #define INV_REGION_HEIGHT 359-94
-#define INV_BTN_X PLAYER_INFO_X + 217
-#define INV_BTN_Y PLAYER_INFO_Y + 210
+#define INV_BTN_X PLAYER_INFO_X + 221
+#define INV_BTN_Y PLAYER_INFO_Y + 280
 
 // Bottom+right-anchored, not a fixed 640x480-canvas literal, so the
 // background restore below actually reaches the new, bigger canvas' edges
