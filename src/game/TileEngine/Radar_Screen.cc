@@ -38,6 +38,7 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 
+#include <algorithm>
 #include <cmath>
 
 // the squad list font
@@ -347,31 +348,45 @@ void RenderBigRadarScreenIfVisible(void)
 		IsCursorOverSectorInventoryWindow() &&
 		gpItemPointer == NULL;
 
-	INT16 const frame_x = MAP_SCREEN_X + RADAR_WINDOW_BIG_FRAME_X;
-	INT16 const frame_y = MAP_SCREEN_Y + RADAR_WINDOW_BIG_FRAME_Y;
-	INT16 const map_x   = MAP_SCREEN_X + RADAR_WINDOW_BIG_X;
-	INT16 const map_y   = MAP_SCREEN_Y + RADAR_WINDOW_BIG_Y;
-	// The frame graphic starts RADAR_WINDOW_BIG_X/Y - RADAR_WINDOW_BIG_FRAME_X/Y
-	// pixels before the minimap bitmap itself and is always at least as big
-	// as the minimap plus that border on every side, so this rect
-	// (used for both restoring and erasing) covers both.
-	INT16 const rect_w  = (RADAR_WINDOW_BIG_X - RADAR_WINDOW_BIG_FRAME_X) * 2 + RADAR_WINDOW_BIG_WIDTH;
-	INT16 const rect_h  = (RADAR_WINDOW_BIG_Y - RADAR_WINDOW_BIG_FRAME_Y) * 2 + RADAR_WINDOW_BIG_HEIGHT;
+	// Last drawn frame rect, restored once the minimap hides again.
+	static SGPBox restore_rect;
 
 	if (!fVisible)
 	{
 		if (gfBigRadarWasVisible)
 		{
-			RestoreExternBackgroundRect(frame_x, frame_y, rect_w, rect_h);
+			RestoreExternBackgroundRect(restore_rect.x, restore_rect.y, restore_rect.w, restore_rect.h);
 		}
 		gfBigRadarWasVisible = FALSE;
 		return;
 	}
 
+	// On the wide strategic screen, SECTOR_INVENTORY_MINIMAP_wide.sti (falls
+	// back to the legacy frame until delivered -- see GetWideStrategicAsset()).
+	static bool frame_is_wide = false;
 	if (!gusBigRadarFrameImage)
 	{
-		gusBigRadarFrameImage = AddVideoObjectFromFile(INTERFACEDIR "/SECTOR_INVENTORY_MINIMAP.sti");
+		char const* const wide_file   = INTERFACEDIR "/SECTOR_INVENTORY_MINIMAP_wide.sti";
+		char const* const frame_file  = GetWideStrategicAsset(wide_file, INTERFACEDIR "/SECTOR_INVENTORY_MINIMAP.sti");
+		frame_is_wide         = frame_file == wide_file;
+		gusBigRadarFrameImage = AddVideoObjectFromFile(frame_file);
 	}
+
+	INT16 const shift   = g_ui.isWideStrategicScreen() ? RADAR_WINDOW_BIG_WIDE_SHIFT : 0;
+	INT16 const map_x   = MAP_SCREEN_X + RADAR_WINDOW_BIG_X + shift;
+	INT16 const map_y   = MAP_SCREEN_Y + RADAR_WINDOW_BIG_Y;
+	INT16 const frame_x = MAP_SCREEN_X + RADAR_WINDOW_BIG_FRAME_X + shift - (frame_is_wide ? RADAR_WINDOW_BIG_WIDE_FRAME_EXTRA_LEFT : 0);
+	INT16 const frame_y = MAP_SCREEN_Y + RADAR_WINDOW_BIG_FRAME_Y;
+	// The frame graphic starts RADAR_WINDOW_BIG_X/Y - RADAR_WINDOW_BIG_FRAME_X/Y
+	// pixels before the minimap bitmap itself and is always at least as big
+	// as the minimap plus that border on every side, so this rect
+	// (used for both restoring and erasing) covers both -- widened to the
+	// frame graphic's own width if that's bigger (the _wide frame).
+	INT16 const rect_w  = std::max<INT16>(
+		(RADAR_WINDOW_BIG_X - RADAR_WINDOW_BIG_FRAME_X) * 2 + RADAR_WINDOW_BIG_WIDTH,
+		gusBigRadarFrameImage->SubregionProperties(0).usWidth);
+	INT16 const rect_h  = (RADAR_WINDOW_BIG_Y - RADAR_WINDOW_BIG_FRAME_Y) * 2 + RADAR_WINDOW_BIG_HEIGHT;
+	restore_rect = { (UINT16)frame_x, (UINT16)frame_y, (UINT16)rect_w, (UINT16)rect_h };
 
 	// First delete what's there (same idiom as RenderRadarScreen() above).
 	RestoreExternBackgroundRect(frame_x, frame_y, rect_w, rect_h);
