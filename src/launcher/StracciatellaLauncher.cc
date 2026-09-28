@@ -99,9 +99,9 @@ on their features.");
         } // Fl_Box* o
         o->end();
       } // Fl_Group* o
-      { Fl_Group* o = new Fl_Group(0, 50, 520, 300, "@menu Settings ");
-        o->labelcolor((Fl_Color)24);
-        o->hide();
+      { settingsTab = new Fl_Group(0, 50, 520, 300, "@menu Settings ");
+        settingsTab->labelcolor((Fl_Color)24);
+        settingsTab->hide();
         { Fl_Group* o = new Fl_Group(10, 60, 500, 45);
           { gameSettingsOutput = new Fl_Output(20, 75, 480, 30, "Game Settings:");
             gameSettingsOutput->align(Fl_Align(FL_ALIGN_TOP_LEFT));
@@ -182,8 +182,8 @@ n) but gives sharp images.");
         } // Fl_Button* settingsEditorButton
         { settingsPlayButton = new Fl_Button(165, 271, 200, 55, "Play Ja2 Stracciatella");
         } // Fl_Button* settingsPlayButton
-        o->end();
-      } // Fl_Group* o
+        settingsTab->end();
+      } // Fl_Group* settingsTab
       { logsTab = new Fl_Group(0, 50, 520, 300, "@square Logs");
         logsTab->labelcolor((Fl_Color)24);
         logsTab->hide();

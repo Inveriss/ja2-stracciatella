@@ -111,7 +111,7 @@ class StracciatellaLauncher {open
             tooltip {Higher priority mods can overwrite changes from lower-priority ones or build on their features.} xywh {17 55 480 20} align 149
           }
         }
-        Fl_Group {} {
+        Fl_Group settingsTab {
           label {@menu Settings } open
           xywh {0 50 520 300} labelcolor 24 hide
         } {

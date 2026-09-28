@@ -404,7 +404,9 @@ void Launcher::show() {
 	populateChoices();
 	initializeInputsFromDefaults();
 
-	playButton->take_focus();
+	// Open on the Settings tab (it has its own Play/Map Editor buttons).
+	tabs->value(settingsTab);
+	settingsPlayButton->take_focus();
 
 	const Fl_PNG_Image icon("logo32.png", logo32_png, 1374);
 	stracciatellaLauncher->icon(&icon);
