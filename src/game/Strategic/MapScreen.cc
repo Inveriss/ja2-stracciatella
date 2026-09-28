@@ -128,7 +128,7 @@
 #define INV_REGION_X PLAYER_INFO_X
 #define INV_REGION_Y PLAYER_INFO_Y
 #define INV_REGION_WIDTH 262
-#define INV_REGION_HEIGHT 359-94
+#define INV_REGION_HEIGHT (359-94)
 // Done button position -- MAP_INV_DONE_BTN_X/Y in MapScreen.h, where the
 // money/keyring/trash-can icons next to it are laid out from it.
 #define INV_BTN_X MAP_INV_DONE_BTN_X
@@ -176,24 +176,24 @@
 #define MAP_CAMO_W_NORMAL 45
 #define MAP_CAMO_H_NORMAL 29
 
-#define MAP_ARMOR_LABEL_X_BIG (MAP_SCREEN_X + 216)
-#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 195)
-#define MAP_ARMOR_X_BIG (MAP_SCREEN_X + 201)
-#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 195)
-#define MAP_ARMOR_W_BIG 45
-#define MAP_ARMOR_H_BIG 29
-#define MAP_WEIGHT_LABEL_X_BIG (MAP_SCREEN_X + 13)
-#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 194)
-#define MAP_WEIGHT_X_BIG (MAP_SCREEN_X + -3)
-#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 196)
-#define MAP_WEIGHT_W_BIG 45
-#define MAP_WEIGHT_H_BIG 29
-#define MAP_CAMO_LABEL_X_BIG (MAP_SCREEN_X + 17)
-#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 232)
-#define MAP_CAMO_X_BIG (MAP_SCREEN_X + -3)
-#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 234)
-#define MAP_CAMO_W_BIG 45
-#define MAP_CAMO_H_BIG 29
+#define MAP_ARMOR_LABEL_X_BIG (MAP_SCREEN_X + 300)
+#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 270)
+#define MAP_ARMOR_X_BIG (MAP_SCREEN_X + 263)
+#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 268)
+#define MAP_ARMOR_W_BIG 66
+#define MAP_ARMOR_H_BIG 36
+#define MAP_WEIGHT_LABEL_X_BIG (MAP_SCREEN_X + 46)
+#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 263)
+#define MAP_WEIGHT_X_BIG (MAP_SCREEN_X + 11)
+#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 261)
+#define MAP_WEIGHT_W_BIG 66
+#define MAP_WEIGHT_H_BIG 36
+#define MAP_CAMO_LABEL_X_BIG (MAP_SCREEN_X + 50)
+#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 318)
+#define MAP_CAMO_X_BIG (MAP_SCREEN_X + 7)
+#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 316)
+#define MAP_CAMO_W_BIG 66
+#define MAP_CAMO_H_BIG 36
 
 #define MAP_ARMOR_LABEL_X (IsMapInvBigImages() ? MAP_ARMOR_LABEL_X_BIG : MAP_ARMOR_LABEL_X_NORMAL)
 #define MAP_ARMOR_LABEL_Y (IsMapInvBigImages() ? MAP_ARMOR_LABEL_Y_BIG : MAP_ARMOR_LABEL_Y_NORMAL)
@@ -230,8 +230,8 @@
 // an independent "Show Large Icons" mode (starts equal to the normal one).
 #define INV_BODY_X_NORMAL (MAP_SCREEN_X + 109)
 #define INV_BODY_Y_NORMAL (MAP_SCREEN_Y + 113)
-#define INV_BODY_X_BIG    (MAP_SCREEN_X + 109)
-#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + 113)
+#define INV_BODY_X_BIG    (MAP_SCREEN_X + 183)
+#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + 179)
 #define INV_BODY_X (UINT16)(IsMapInvBigImages() ? INV_BODY_X_BIG : INV_BODY_X_NORMAL)
 #define INV_BODY_Y (UINT16)(IsMapInvBigImages() ? INV_BODY_Y_BIG : INV_BODY_Y_NORMAL)
 
@@ -427,8 +427,8 @@ static GUIButtonRef giMapInvBigImagesButton;
 #define MAP_INV_BIG_IMAGES_BTN_GAP 12
 #define MAP_INV_BIG_IMAGES_BTN_X_NORMAL (g_ui.m_invSlotPositionMap[SMALLPOCK13POS].uX + SM_INV_SLOT_WIDTH + MAP_INV_BIG_IMAGES_BTN_GAP)
 #define MAP_INV_BIG_IMAGES_BTN_Y_NORMAL (g_ui.m_invSlotPositionMap[LEGPOS].uY + LEGS_INV_SLOT_HEIGHT + MAP_INV_BIG_IMAGES_BTN_GAP)
-#define MAP_INV_BIG_IMAGES_BTN_X_BIG    (MAP_SCREEN_X + 204)
-#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + 266)
+#define MAP_INV_BIG_IMAGES_BTN_X_BIG    (MAP_SCREEN_X + 435)
+#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + 137)
 #define MAP_INV_BIG_IMAGES_BTN_X   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_X_BIG : MAP_INV_BIG_IMAGES_BTN_X_NORMAL)
 #define MAP_INV_BIG_IMAGES_BTN_Y   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_Y_BIG : MAP_INV_BIG_IMAGES_BTN_Y_NORMAL)
 
@@ -512,6 +512,14 @@ BOOLEAN IsMapInvBigImages(void)
 	return gfMapInvBigImages && g_ui.isWideStrategicScreen();
 }
 
+BOOLEAN MapInvBigPanelCoversBottomStrip(void)
+{
+	// map_screen_bottom's strip starts at MAP_SCREEN_BOTTOM - 121 (MAP_BOTTOM_Y,
+	// Map_Screen_Interface_Bottom.cc).
+	return fShowInventoryFlag && IsMapInvBigImages() &&
+		MAP_SCREEN_Y + 107 + MAP_INV_BIG_PANEL_HEIGHT > MAP_SCREEN_BOTTOM - 121;
+}
+
 void InitMapInvBigImagesForNewGame(void)
 {
 	gfMapInvBigImages = TRUE;
@@ -546,6 +554,17 @@ cache_key_t GetWideStrategicAsset(cache_key_t const wide, cache_key_t const lega
 static MOUSE_REGION gCharInfoFaceRegion;
 static MOUSE_REGION gCharInfoHandRegion;
 static MOUSE_REGION gMPanelRegion;
+
+// gMPanelRegion blocks clicks over the whole merc inventory panel -- sized
+// to the current mode's graphic (normal: INV_REGION_WIDTH/HEIGHT,
+// "Show Large Icons": MAP_INV_BIG_PANEL_WIDTH/HEIGHT, MapScreen.h).
+static void DefineMapInvPanelRegion()
+{
+	bool const big = IsMapInvBigImages();
+	UINT16 const w = big ? MAP_INV_BIG_PANEL_WIDTH  : INV_REGION_WIDTH;
+	UINT16 const h = big ? MAP_INV_BIG_PANEL_HEIGHT : INV_REGION_HEIGHT;
+	MSYS_DefineRegion(&gMPanelRegion, INV_REGION_X, INV_REGION_Y, INV_REGION_X + w, INV_REGION_Y + h, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+}
 static MOUSE_REGION gMapViewRegion;
 static MOUSE_REGION gMapScreenMaskRegion;
 static MOUSE_REGION gTrashCanRegion;
@@ -1731,7 +1750,7 @@ ScreenID MapScreenHandle(void)
 		MSYS_DefineRegion( &gCharInfoFaceRegion, (INT16) PLAYER_INFO_FACE_START_X, (INT16) PLAYER_INFO_FACE_START_Y, (INT16) PLAYER_INFO_FACE_END_X, (INT16) PLAYER_INFO_FACE_END_Y, MSYS_PRIORITY_HIGH,
 					MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(FaceRegionBtnCallbackPrimary, FaceRegionBtnCallbackSecondary) );
 
-		MSYS_DefineRegion(&gMPanelRegion, INV_REGION_X, INV_REGION_Y, INV_REGION_X + INV_REGION_WIDTH, INV_REGION_Y + INV_REGION_HEIGHT, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+		DefineMapInvPanelRegion();
 		// screen mask for animated cursors
 		MSYS_DefineRegion(&gMapScreenMaskRegion, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_LOW, CURSOR_NORMAL, MSYS_NO_CALLBACK, MapScreenMarkRegionBtnCallback);
 
@@ -3700,6 +3719,8 @@ void CreateDestroyMapInvButton()
 		ShutdownInvSlotInterface( );
 		fOldShowInventoryFlag=FALSE;
 		fTeamPanelDirty=TRUE;
+		// the "Show Large Icons" panel may have been covering part of it
+		fMapScreenBottomDirty = TRUE;
 		gMPanelRegion.Disable();
 
 		// switch hand region help text to "Enter Inventory"
@@ -4384,7 +4405,17 @@ static void BlitBackgroundToSaveBuffer(void)
 	}
 
 	// now render lower panel
+	BOOLEAN const fBottomRedrawn = fMapScreenBottomDirty;
 	RenderMapScreenInterfaceBottom( );
+
+	// The "Show Large Icons" merc inventory panel reaches down over the
+	// bottom strip's left part (MapInvBigPanelCoversBottomStrip()) -- draw it
+	// again on top whenever the strip itself was just redrawn.
+	if (fBottomRedrawn && !fDisableDueToBattleRoster && MapInvBigPanelCoversBottomStrip())
+	{
+		fTeamPanelDirty = TRUE;
+		RenderTeamRegionBackground( );
+	}
 
 	// Sector-inventory "big minimap" -- must draw after (i.e. on top of)
 	// both RenderTeamRegionBackground() and RenderMapScreenInterfaceBottom()
@@ -6321,6 +6352,16 @@ static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
 	DestroyMapInvPanelControls();
 	CreateMapInvPanelControls();
 	fShowTrashCanHighLight = FALSE;
+
+	// The panel's click-blocking region follows the new mode's panel size.
+	bool const panel_region_enabled = (gMPanelRegion.uiFlags & MSYS_REGION_ENABLED) != 0;
+	MSYS_RemoveRegion(&gMPanelRegion);
+	DefineMapInvPanelRegion();
+	if (panel_region_enabled) gMPanelRegion.Enable(); else gMPanelRegion.Disable();
+	if (fMapInventoryItem) gMPanelRegion.ChangeCursor(EXTERN_CURSOR);
+
+	// The large panel covers part of the bottom strip, the normal one doesn't.
+	fMapScreenBottomDirty = TRUE;
 
 	SOLDIERTYPE* const s = GetSelectedInfoChar();
 	if (s != NULL) ReevaluateItemHatches(s, FALSE);

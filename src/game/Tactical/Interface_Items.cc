@@ -127,8 +127,8 @@
 // IsMapInvBigImages() in MapScreen.cc) -- independent of the normal ones
 // above; start equal to them.
 #define MAP_INV_BAR_DX_BIG				7
-#define MAP_INV_BAR_DY_BIG				30
-#define MAP_ITEM_BAR_HEIGHT_BIG				31
+#define MAP_INV_BAR_DY_BIG				49
+#define MAP_ITEM_BAR_HEIGHT_BIG				50
 #define MAP_ITEM_BAR_WIDTH_BIG				2
 
 #define MAP_INV_BAR_DX      (IsMapInvBigImages() ? MAP_INV_BAR_DX_BIG      : MAP_INV_BAR_DX_NORMAL)
@@ -149,6 +149,21 @@
 #define MAP_INV_2ND_GUN_COVER_Y				223
 #define MAP_INV_2ND_GUN_COVER_WIDTH			75
 #define MAP_INV_2ND_GUN_COVER_HEIGHT			35
+
+// Same cover in the map's "Show Large Icons" mode (mapinv_wide_big.sti,
+// IsMapInvBigImages() in MapScreen.cc) -- its own graphic,
+// secondary_gun_hidden_big.sti, and its own position/size, independent of
+// the MAP_INV_2ND_GUN_COVER_* above and of the tactical cover. X/Y relative
+// to MAP_SCREEN_X/MAP_SCREEN_Y; WIDTH/HEIGHT is the area refreshed after
+// the blit and should match the graphic. Defaults: 2 px left of the
+// large-mode status bar (MAP_INV_BAR_DX_BIG) and 2 px above the SECONDHANDPOS
+// slot of m_invSlotPositionMapBig[] (UILayout.cc), like the normal cover;
+// size of the current graphic. Falls back to the normal cover if the file
+// is missing.
+#define MAP_INV_2ND_GUN_COVER_BIG_X			100
+#define MAP_INV_2ND_GUN_COVER_BIG_Y			309
+#define MAP_INV_2ND_GUN_COVER_BIG_WIDTH			128
+#define MAP_INV_2ND_GUN_COVER_BIG_HEIGHT		52
 
 // Adjustable offset (from the slot's own top-left corner) and size delta
 // (relative to the slot's own width/height) for the "item doesn't fit
@@ -844,52 +859,74 @@ static INV_REGIONS const gSMInvData[] =
 // Slot sizes on the strategic map in "Show Large Icons" mode (see
 // m_invSlotPositionMapBig[] in UILayout.cc and IsMapInvBigImages(),
 // MapScreen.cc) -- independent of gSMInvData[] above, which the tactical
-// panel and the map's normal mode share. Starts as a copy of it -- tune to
-// mapinv_wide_big.sti's slots.
+// panel and the map's normal mode share. Sized to mapinv_wide_big.sti's
+// slots, one width/height pair per slot kind.
+#define MAP_BIG_HEAD_SLOT_WIDTH			60	// HEAD1-4POS (face items)
+#define MAP_BIG_HEAD_SLOT_HEIGHT		50
+#define MAP_BIG_ARMOUR_SLOT_WIDTH		60	// HELMETPOS, VESTPOS, LEGPOS
+#define MAP_BIG_ARMOUR_SLOT_HEIGHT		50
+#define MAP_BIG_HAND_SLOT_WIDTH			120	// HANDPOS, SECONDHANDPOS
+#define MAP_BIG_HAND_SLOT_HEIGHT		50
+#define MAP_BIG_BIGPOCK_SLOT_WIDTH		120	// BIGPOCK1-10POS
+#define MAP_BIG_BIGPOCK_SLOT_HEIGHT		50
+#define MAP_BIG_SMALLPOCK_SLOT_WIDTH		70	// SMALLPOCK1-20POS
+#define MAP_BIG_SMALLPOCK_SLOT_HEIGHT		50
+
 static INV_REGIONS const gSMInvDataMapBig[] =
 {
 #define M(w, h) { w, h }
-	M(HEAD_INV_SLOT_WIDTH, HEAD_INV_SLOT_HEIGHT), // HELMETPOS
-	M(VEST_INV_SLOT_WIDTH, VEST_INV_SLOT_HEIGHT), // VESTPOS
-	M(LEGS_INV_SLOT_WIDTH, LEGS_INV_SLOT_HEIGHT), // LEGPOS,
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD1POS
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD2POS
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD3POS
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // HEAD4POS
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // HANDPOS,
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // SECONDHANDPOS
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK1
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK2
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK3
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK4
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK5
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK6
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK7
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK8
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK9
-	M(BIG_INV_SLOT_WIDTH,  BIG_INV_SLOT_HEIGHT ), // BIGPOCK10
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK1
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK2
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK3
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK4
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK5
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK6
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK7
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK8
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK9
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK10
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK11
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK12
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK13
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK14
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK15
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK16
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK17
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK18
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  ), // SMALLPOCK19
-	M(SM_INV_SLOT_WIDTH,   SM_INV_SLOT_HEIGHT  )  // SMALLPOCK20
+#define HEAD      M(MAP_BIG_HEAD_SLOT_WIDTH,      MAP_BIG_HEAD_SLOT_HEIGHT     )
+#define ARMOUR    M(MAP_BIG_ARMOUR_SLOT_WIDTH,    MAP_BIG_ARMOUR_SLOT_HEIGHT   )
+#define HAND      M(MAP_BIG_HAND_SLOT_WIDTH,      MAP_BIG_HAND_SLOT_HEIGHT     )
+#define BIGPOCK   M(MAP_BIG_BIGPOCK_SLOT_WIDTH,   MAP_BIG_BIGPOCK_SLOT_HEIGHT  )
+#define SMALLPOCK M(MAP_BIG_SMALLPOCK_SLOT_WIDTH, MAP_BIG_SMALLPOCK_SLOT_HEIGHT)
+	ARMOUR,    // HELMETPOS
+	ARMOUR,    // VESTPOS
+	ARMOUR,    // LEGPOS
+	HEAD,      // HEAD1POS
+	HEAD,      // HEAD2POS
+	HEAD,      // HEAD3POS
+	HEAD,      // HEAD4POS
+	HAND,      // HANDPOS
+	HAND,      // SECONDHANDPOS
+	BIGPOCK,   // BIGPOCK1
+	BIGPOCK,   // BIGPOCK2
+	BIGPOCK,   // BIGPOCK3
+	BIGPOCK,   // BIGPOCK4
+	BIGPOCK,   // BIGPOCK5
+	BIGPOCK,   // BIGPOCK6
+	BIGPOCK,   // BIGPOCK7
+	BIGPOCK,   // BIGPOCK8
+	BIGPOCK,   // BIGPOCK9
+	BIGPOCK,   // BIGPOCK10
+	SMALLPOCK, // SMALLPOCK1
+	SMALLPOCK, // SMALLPOCK2
+	SMALLPOCK, // SMALLPOCK3
+	SMALLPOCK, // SMALLPOCK4
+	SMALLPOCK, // SMALLPOCK5
+	SMALLPOCK, // SMALLPOCK6
+	SMALLPOCK, // SMALLPOCK7
+	SMALLPOCK, // SMALLPOCK8
+	SMALLPOCK, // SMALLPOCK9
+	SMALLPOCK, // SMALLPOCK10
+	SMALLPOCK, // SMALLPOCK11
+	SMALLPOCK, // SMALLPOCK12
+	SMALLPOCK, // SMALLPOCK13
+	SMALLPOCK, // SMALLPOCK14
+	SMALLPOCK, // SMALLPOCK15
+	SMALLPOCK, // SMALLPOCK16
+	SMALLPOCK, // SMALLPOCK17
+	SMALLPOCK, // SMALLPOCK18
+	SMALLPOCK, // SMALLPOCK19
+	SMALLPOCK  // SMALLPOCK20
+#undef SMALLPOCK
+#undef BIGPOCK
+#undef HAND
+#undef ARMOUR
+#undef HEAD
 #undef M
 };
+static_assert(std::size(gSMInvDataMapBig) == NUM_INV_SLOTS, "one gSMInvDataMapBig entry per inventory slot");
 
 
 struct REMOVE_MONEY
@@ -913,6 +950,8 @@ INT8 gbCompatibleApplyItem = FALSE;
 
 static SGPVObject *guiMapInvSecondHandBlockout;
 static SGPVObject *guiSecItemHiddenVO;
+// Loaded on first use (only drawn in the map's "Show Large Icons" mode).
+static cache_key_t const guiMapInvSecondHandBlockoutBig{ INTERFACEDIR "/secondary_gun_hidden_big.sti" };
 static SGPVObject *guiSmallInventoryGraphicMissingSmallPocket;
 static SGPVObject *guiSmallInventoryGraphicMissingBigPocket;
 static std::map<ST::string, SGPVObject*> allInventoryGraphics;
@@ -1326,7 +1365,16 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 		// second hand position graphic
 		if (pocket == SECONDHANDPOS && GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded())
 		{
-			if (in_map)
+			// Checked once -- secondary_gun_hidden_big.sti is optional.
+			static bool const big_cover_exists = GCM->doesGameResExists(INTERFACEDIR "/secondary_gun_hidden_big.sti");
+			if (in_map && IsMapInvBigImages() && big_cover_exists)
+			{
+				INT32 const x = MAP_SCREEN_X + MAP_INV_2ND_GUN_COVER_BIG_X;
+				INT32 const y = MAP_SCREEN_Y + MAP_INV_2ND_GUN_COVER_BIG_Y;
+				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockoutBig, 0, x, y);
+				RestoreExternBackgroundRect(x, y, MAP_INV_2ND_GUN_COVER_BIG_WIDTH, MAP_INV_2ND_GUN_COVER_BIG_HEIGHT);
+			}
+			else if (in_map)
 			{
 				INT32 const x = MAP_SCREEN_X + MAP_INV_2ND_GUN_COVER_X;
 				INT32 const y = MAP_SCREEN_Y + MAP_INV_2ND_GUN_COVER_Y;
@@ -6607,6 +6655,7 @@ void DeleteInterfaceItemsGraphics()
 {
 	DeleteVideoObject(guiMapInvSecondHandBlockout);
 	DeleteVideoObject(guiSecItemHiddenVO);
+	RemoveVObject(guiMapInvSecondHandBlockoutBig);
 	DeleteVideoObject(guiSmallInventoryGraphicMissingSmallPocket);
 	DeleteVideoObject(guiSmallInventoryGraphicMissingBigPocket);
 	for (auto const& v : allInventoryGraphics) {

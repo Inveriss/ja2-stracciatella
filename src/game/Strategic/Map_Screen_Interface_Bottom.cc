@@ -12,6 +12,7 @@
 #include "Timer_Control.h"
 #include "Types.h"
 #include "VObject.h"
+#include "VObject_Blitters.h"
 #include "VSurface.h"
 #include "MouseSystem.h"
 #include "Button_System.h"
@@ -267,9 +268,42 @@ static void DrawNameOfLoadedSector();
 static void EnableDisableBottomButtonsAndRegions(void);
 static void EnableDisableMessageScrollButtonsAndRegions(void);
 
+// TRUE while the "Show Large Icons" merc inventory panel (mapinv_wide_big.sti,
+// MapScreen.cc) has painted over this strip's left part, until that part has
+// been redrawn -- see RestoreBottomStripUnderBigInvPanel() below.
+static BOOLEAN gfBottomStripUnderBigInvPanel = FALSE;
+
+
+// Redraws just the part of this strip the large merc inventory panel was
+// covering (its left MAP_INV_BIG_PANEL_WIDTH px): the strip's own graphic,
+// clipped to that part, plus the message list and its scroll bar that live
+// there. Used once the panel stops covering the strip while the sector
+// inventory is open -- the rest of the strip is skipped entirely then (see
+// RenderMapScreenInterfaceBottom()), so without this the panel's pixels
+// would stay there until the sector inventory closes.
+static void RestoreBottomStripUnderBigInvPanel(void)
+{
+	SGPRect const covered = {
+		(UINT16)MAP_BOTTOM_X, (UINT16)MAP_BOTTOM_Y,
+		(UINT16)(MAP_SCREEN_X + MAP_INV_BIG_PANEL_WIDTH), (UINT16)SCREEN_HEIGHT };
+	SGPRect const old_clip = SetClippingRect(covered);
+	BltVideoObject(guiSAVEBUFFER, GetMapScreenBottomGraphicsFilename(), 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
+	SetClippingRect(old_clip);
+
+	DisplayScrollBarSlider();
+	DisplayStringsInMapScreenMessageList();
+
+	RestoreExternBackgroundRect(covered.iLeft, covered.iTop, covered.iRight - covered.iLeft, covered.iBottom - covered.iTop);
+	gfBottomStripUnderBigInvPanel = FALSE;
+}
+
+
 // will render the map screen bottom interface
 void RenderMapScreenInterfaceBottom( void )
 {
+	bool const fCoveredByBigInvPanel = MapInvBigPanelCoversBottomStrip();
+	if (fCoveredByBigInvPanel) gfBottomStripUnderBigInvPanel = TRUE;
+
 	// The sector-inventory panel (SECTOR_INVENTORY_FIRST_1024.sti/
 	// SECTOR_INVENTORY_STACK_1024.sti) was resized tall enough to physically
 	// cover this same screen area, per user request -- this used to never
@@ -302,7 +336,22 @@ void RenderMapScreenInterfaceBottom( void )
 		// The laptop shortcut row (Y=664) sits inside this same 121px-tall bottom
 		// strip -- same visibility fix as the buttons above.
 		for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons) HideButton(btn);
+
+		// The large merc inventory panel was just closed/switched off while
+		// the sector inventory is open -- repair the part of this strip it
+		// was covering (see RestoreBottomStripUnderBigInvPanel()).
+		if (gfBottomStripUnderBigInvPanel && !fCoveredByBigInvPanel)
+		{
+			RestoreBottomStripUnderBigInvPanel();
+		}
 		return;
+	}
+
+	// Same, with the sector inventory closed: a full redraw covers it.
+	if (gfBottomStripUnderBigInvPanel && !fCoveredByBigInvPanel)
+	{
+		fMapScreenBottomDirty = TRUE;
+		gfBottomStripUnderBigInvPanel = FALSE;
 	}
 
 	// Undo the above once the inventory panel closes -- ShowButton() on an
@@ -315,6 +364,22 @@ void RenderMapScreenInterfaceBottom( void )
 	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
 	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
 	for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons) ShowButton(btn);
+
+	// The "Show Large Icons" merc inventory panel (mapinv_wide_big.sti,
+	// MapScreen.cc) reaches down over this strip's left part: hide the
+	// buttons under it, and skip the message list and its scroll bar below
+	// (both drawn every frame) -- the panel itself is drawn on top of the
+	// rest of the strip by BlitBackgroundToSaveBuffer() (MapScreen.cc).
+	if (fCoveredByBigInvPanel)
+	{
+		INT16 const panel_right = MAP_SCREEN_X + MAP_INV_BIG_PANEL_WIDTH;
+		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
+		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+		for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons)
+		{
+			if (btn->X() < panel_right) HideButton(btn);
+		}
+	}
 
 	// render whole panel
 	if (fMapScreenBottomDirty)
@@ -360,11 +425,14 @@ void RenderMapScreenInterfaceBottom( void )
 	// draw the name of the loaded sector
 	DrawNameOfLoadedSector( );
 
-	// display slider on the scroll bar
-	DisplayScrollBarSlider( );
+	if (!fCoveredByBigInvPanel)
+	{
+		// display slider on the scroll bar
+		DisplayScrollBarSlider( );
 
-	// display messages that can be scrolled through
-	DisplayStringsInMapScreenMessageList( );
+		// display messages that can be scrolled through
+		DisplayStringsInMapScreenMessageList( );
+	}
 
 	EnableDisableMessageScrollButtonsAndRegions( );
 

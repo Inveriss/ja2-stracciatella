@@ -67,6 +67,18 @@ void MAPEndItemPointer(void);
 // independent of the sector inventory's own toggle. TRUE only on the wide
 // strategic screen (1280+), the only one the button exists on.
 BOOLEAN IsMapInvBigImages(void);
+
+// Size of mapinv_wide_big.sti, the "Show Large Icons" merc inventory panel.
+// Drawn at MAP_SCREEN_X, MAP_SCREEN_Y + 107 on every 1280+ resolution,
+// whatever the screen height -- so it reaches down over the left part of
+// map_screen_bottom's strip (see MapInvBigPanelCoversBottomStrip()).
+#define MAP_INV_BIG_PANEL_WIDTH   518
+#define MAP_INV_BIG_PANEL_HEIGHT  613
+
+// TRUE while that panel is showing and reaches into the bottom strip: the
+// strip then leaves its covered part (message list, scroll bar/buttons,
+// laptop shortcuts under the panel) alone, and the panel is drawn on top.
+BOOLEAN MapInvBigPanelCoversBottomStrip(void);
 void InitMapInvBigImagesForNewGame(void);
 void SaveMapInvBigImagesToSaveGameFile(void);
 void LoadMapInvBigImagesFromSaveGameFile(void);
@@ -187,14 +199,14 @@ void SetMapCursorItem();
 // "Show Large Icons" mode -- independent of the normal mode; starts equal
 // to it (X/Y relative to MAP_SCREEN_X/MAP_SCREEN_Y) -- tune to
 // mapinv_wide_big.sti.
-#define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 221)
-#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 453)
-#define TRASH_CAN_X_BIG               (MAP_SCREEN_X + 186)
-#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + 107 + 453)
-#define MAP_INV_KEYRING_X_BIG         (MAP_SCREEN_X + 151)
-#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + 107 + 453)
-#define MAP_INV_MONEY_X_BIG           (MAP_SCREEN_X + 116)
-#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + 107 + 453)
+#define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 459)
+#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 121)
+#define TRASH_CAN_X_BIG               (MAP_SCREEN_X + 424)
+#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + 107 + 112)
+#define MAP_INV_KEYRING_X_BIG         (MAP_SCREEN_X + 389)
+#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + 107 + 112)
+#define MAP_INV_MONEY_X_BIG           (MAP_SCREEN_X + 354)
+#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + 107 + 112)
 
 // Current mode -- what the code uses.
 #define MAP_INV_DONE_BTN_X    (IsMapInvBigImages() ? MAP_INV_DONE_BTN_X_BIG : MAP_INV_DONE_BTN_X_NORMAL)
