@@ -153,6 +153,13 @@
 // the free space's background get copied/cleared along with it.
 #define LEFT_COLUMN_BG_WIDTH (261 + (g_ui.isWideStrategicScreen() ? MAP_MIDDLE_BACKGROUND_WIDTH : 0))
 
+// Width copied to the screen after the team/inventory column is redrawn
+// (RenderTeamRegionBackground()). On the 1024 canvas mapinv_1024.sti is
+// 262 px wide (x 0..261), one more than the 261 px left column, so its
+// last column is copied too; on the wide strategic screen
+// LEFT_COLUMN_BG_WIDTH already reaches across the free space beyond it.
+#define TEAM_REGION_RESTORE_WIDTH (g_ui.isWideStrategicScreen() ? LEFT_COLUMN_BG_WIDTH : 262)
+
 // Armour / weight / camo labels and value boxes of the merc inventory
 // panel -- normal mode (..._NORMAL) and an independent "Show Large Icons"
 // mode (..._BIG, mapinv_big_1280_720/768.sti, starts equal to the normal one); the
@@ -5346,7 +5353,7 @@ static void RenderTeamRegionBackground()
 	// taller, e.g. newgoldpiece3_1280.sti) team-list graphic draws further down.
 	// Width includes the free space on the wide strategic screen (see
 	// LEFT_COLUMN_BG_WIDTH).
-	RestoreExternBackgroundRect(MAP_SCREEN_X + 0, MAP_SCREEN_Y + 107, LEFT_COLUMN_BG_WIDTH, MAP_SCREEN_HEIGHT - 107);
+	RestoreExternBackgroundRect(MAP_SCREEN_X + 0, MAP_SCREEN_Y + 107, TEAM_REGION_RESTORE_WIDTH, MAP_SCREEN_HEIGHT - 107);
 	MapscreenMarkButtonsDirty();
 }
 
