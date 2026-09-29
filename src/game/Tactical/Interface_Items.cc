@@ -123,7 +123,7 @@
 #define MAP_ITEM_BAR_HEIGHT_NORMAL			31
 #define MAP_ITEM_BAR_WIDTH_NORMAL			2
 
-// Same four for the map's "Show Large Icons" mode (mapinv_wide_big.sti,
+// Same four for the map's "Show Large Icons" mode (mapinv_big_1280_720/768.sti,
 // IsMapInvBigImages() in MapScreen.cc) -- independent of the normal ones
 // above; start equal to them.
 #define MAP_INV_BAR_DX_BIG				7
@@ -150,7 +150,7 @@
 #define MAP_INV_2ND_GUN_COVER_WIDTH			75
 #define MAP_INV_2ND_GUN_COVER_HEIGHT			35
 
-// Same cover in the map's "Show Large Icons" mode (mapinv_wide_big.sti,
+// Same cover in the map's "Show Large Icons" mode (mapinv_big_1280_720/768.sti,
 // IsMapInvBigImages() in MapScreen.cc) -- its own graphic,
 // secondary_gun_hidden_big.sti, and its own position/size, independent of
 // the MAP_INV_2ND_GUN_COVER_* above and of the tactical cover. X/Y relative
@@ -859,7 +859,7 @@ static INV_REGIONS const gSMInvData[] =
 // Slot sizes on the strategic map in "Show Large Icons" mode (see
 // m_invSlotPositionMapBig[] in UILayout.cc and IsMapInvBigImages(),
 // MapScreen.cc) -- independent of gSMInvData[] above, which the tactical
-// panel and the map's normal mode share. Sized to mapinv_wide_big.sti's
+// panel and the map's normal mode share. Sized to mapinv_big_1280_720/768.sti's
 // slots, one width/height pair per slot kind.
 #define MAP_BIG_HEAD_SLOT_WIDTH			60	// HEAD1-4POS (face items)
 #define MAP_BIG_HEAD_SLOT_HEIGHT		50

@@ -268,7 +268,7 @@ static void DrawNameOfLoadedSector();
 static void EnableDisableBottomButtonsAndRegions(void);
 static void EnableDisableMessageScrollButtonsAndRegions(void);
 
-// TRUE while the "Show Large Icons" merc inventory panel (mapinv_wide_big.sti,
+// TRUE while the "Show Large Icons" merc inventory panel (mapinv_big_1280_720/768.sti,
 // MapScreen.cc) has painted over this strip's left part, until that part has
 // been redrawn -- see RestoreBottomStripUnderBigInvPanel() below.
 static BOOLEAN gfBottomStripUnderBigInvPanel = FALSE;
@@ -365,7 +365,7 @@ void RenderMapScreenInterfaceBottom( void )
 	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
 	for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons) ShowButton(btn);
 
-	// The "Show Large Icons" merc inventory panel (mapinv_wide_big.sti,
+	// The "Show Large Icons" merc inventory panel (mapinv_big_1280_720/768.sti,
 	// MapScreen.cc) reaches down over this strip's left part: hide the
 	// buttons under it, and skip the message list and its scroll bar below
 	// (both drawn every frame) -- the panel itself is drawn on top of the

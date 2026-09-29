@@ -239,7 +239,7 @@ void UILayout::recalculatePositions()
 
 	// map screen inventory position -- "Show Large Icons" mode
 	// (MapInvBigImagesBtnCallback(), MapScreen.cc; background
-	// mapinv_wide_big.sti, wide strategic screen only). Independent of the
+	// mapinv_big_1280_720/768.sti, wide strategic screen only). Independent of the
 	// table above; starts as a copy of it -- tune to the big graphic's slots.
 	// Slot sizes for this mode: gSMInvDataMapBig[] in Interface_Items.cc.
 	m_invSlotPositionMapBig[HELMETPOS           ].set(m_mapScreenOffsetX + 290, m_mapScreenOffsetY + 138);

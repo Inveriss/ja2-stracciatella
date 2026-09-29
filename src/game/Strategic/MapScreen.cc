@@ -149,13 +149,13 @@
 #define MAP_MIDDLE_BACKGROUND_HEIGHT (MAP_SCREEN_HEIGHT - 121)
 // Width of the left column (plus, on the wide strategic screen, the free
 // space next to it) -- what the left column's own background restores and
-// shading must cover, so the wider mapinv_wide/iteminfoc_wide graphics and
+// shading must cover, so the wider mapinv_1280/iteminfoc_wide graphics and
 // the free space's background get copied/cleared along with it.
 #define LEFT_COLUMN_BG_WIDTH (261 + (g_ui.isWideStrategicScreen() ? MAP_MIDDLE_BACKGROUND_WIDTH : 0))
 
 // Armour / weight / camo labels and value boxes of the merc inventory
 // panel -- normal mode (..._NORMAL) and an independent "Show Large Icons"
-// mode (..._BIG, mapinv_wide_big.sti, starts equal to the normal one); the
+// mode (..._BIG, mapinv_big_1280_720/768.sti, starts equal to the normal one); the
 // plain names pick the current mode's (IsMapInvBigImages()).
 #define MAP_ARMOR_LABEL_X_NORMAL (MAP_SCREEN_X + 216)
 #define MAP_ARMOR_LABEL_Y_NORMAL (MAP_SCREEN_Y + 195)
@@ -469,14 +469,25 @@ cache_key_t GetCharInfoGraphicsFilename()
 		: INTERFACEDIR "/charinfo_1024.sti";
 }
 
-// Merc inventory panel -- a single file for both height tiers, plus a
-// wider _wide variant (reaching across the free space up to MBS) for the
-// wide strategic screen; see GetWideStrategicAsset().
+// Merc inventory panel background, by screen width (and, for the
+// "Show Large Icons" panel, height):
+//   mapinv_1024.sti          -- screens narrower than 1280, any height
+//   mapinv_1280.sti          -- 1280+ wide (wide strategic screen), any height
+//   mapinv_big_1280_720.sti  -- "Show Large Icons", 1280+ wide, 720-767 high
+//   mapinv_big_1280_768.sti  -- "Show Large Icons", 1280+ wide, 768+ high
+// ("Show Large Icons" only exists on the wide strategic screen -- see
+// IsMapInvBigImages(); the height split is isCompactStrategicScreen()).
 cache_key_t GetMapInvGraphicsFilename()
 {
-	cache_key_t const normal = GetWideStrategicAsset(INTERFACEDIR "/mapinv_wide.sti", INTERFACEDIR "/mapinv.sti");
-	// "Show Large Icons" mode (wide strategic screen only) -- see IsMapInvBigImages().
-	return IsMapInvBigImages() ? GetWideStrategicAsset(INTERFACEDIR "/mapinv_wide_big.sti", normal) : normal;
+	if (IsMapInvBigImages())
+	{
+		return g_ui.isCompactStrategicScreen()
+			? INTERFACEDIR "/mapinv_big_1280_720.sti"
+			: INTERFACEDIR "/mapinv_big_1280_768.sti";
+	}
+	return g_ui.isWideStrategicScreen()
+		? INTERFACEDIR "/mapinv_1280.sti"
+		: INTERFACEDIR "/mapinv_1024.sti";
 }
 
 
@@ -496,7 +507,7 @@ cache_key_t GetMapMiddleBackgroundGraphicsFilename()
 // "Show Large Icons" toggle of the merc inventory panel -- swaps the item
 // icons in its slots to their BIGITEMS graphics (the same ones the sector
 // inventory's own "Show Large Icons" uses), the background to
-// mapinv_wide_big.sti and the slots to their own layout
+// mapinv_big_1280_720/768.sti and the slots to their own layout
 // (m_invSlotPositionMapBig[], UILayout.cc; gSMInvDataMapBig[],
 // Interface_Items.cc). Independent of the sector inventory's toggle, per
 // user request, but the same three lifecycles as that one
@@ -3822,7 +3833,7 @@ static void BltCharInvPanel(void)
 		// in RenderMapRegionBackground()/RenderTeamRegionBackground() -- extend
 		// to the actual (now bigger) canvas bottom instead of the literal 359.
 		// Width covers the free space too on the wide strategic screen, where
-		// mapinv_wide.sti reaches across it.
+		// mapinv_1280.sti reaches across it.
 		guiSAVEBUFFER->ShadowRect(PLAYER_INFO_X, PLAYER_INFO_Y, PLAYER_INFO_X + LEFT_COLUMN_BG_WIDTH,  PLAYER_INFO_Y + (MAP_SCREEN_HEIGHT - 107));
 	}
 	else
@@ -5271,7 +5282,7 @@ static void DisplayIconsForMercsAsleep(void);
 // column and MBS into guiSAVEBUFFER, rows `top`..`bottom` (relative to
 // MAP_SCREEN_Y, bottom exclusive, clamped to MAP_MIDDLE_BACKGROUND_HEIGHT).
 // Called by the left column's own renderers right before they draw their
-// graphic, so whatever the left column draws on top (mapinv_wide.sti,
+// graphic, so whatever the left column draws on top (mapinv_1280.sti,
 // iteminfoc_wide.sti) wins, and the free space is always repainted along with
 // it -- it's never left showing stale pixels (e.g. of the tactical screen at
 // exactly 1280x720/768, where isBigScreen() is false and nothing else clears
@@ -6380,7 +6391,7 @@ static void CreateMapInvPanelControls(void)
 
 	// done inventory button define
 	// mapinv_done_buttons.sti, 27x27, sub-image 0 = ready, 1 = pressed -- on
-	// every panel (mapinv.sti, mapinv_wide.sti, mapinv_wide_big.sti).
+	// every panel (mapinv.sti, mapinv_1280.sti, mapinv_big_1280_720/768.sti).
 	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", 0, 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
 	giMapInvDoneButton->SetFastHelpText(pMiscMapScreenMouseRegionHelpText[2]);
 
@@ -6601,9 +6612,11 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(GetCharListGraphicsFilename());
 	RemoveVObject(GetCharInfoGraphicsFilename());
 
-	RemoveVObject(GetMapInvGraphicsFilename());
-	RemoveVObject(INTERFACEDIR "/mapinv_wide.sti");
-	RemoveVObject(INTERFACEDIR "/mapinv_wide_big.sti");
+	// every merc inventory panel variant (GetMapInvGraphicsFilename())
+	RemoveVObject(INTERFACEDIR "/mapinv_1024.sti");
+	RemoveVObject(INTERFACEDIR "/mapinv_1280.sti");
+	RemoveVObject(INTERFACEDIR "/mapinv_big_1280_720.sti");
+	RemoveVObject(INTERFACEDIR "/mapinv_big_1280_768.sti");
 	RemoveVObject(GetMapMiddleBackgroundGraphicsFilename());
 	RemoveVObject(guiULICONS);
 

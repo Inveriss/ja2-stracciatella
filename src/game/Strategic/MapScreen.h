@@ -68,7 +68,7 @@ void MAPEndItemPointer(void);
 // strategic screen (1280+), the only one the button exists on.
 BOOLEAN IsMapInvBigImages(void);
 
-// Size of mapinv_wide_big.sti, the "Show Large Icons" merc inventory panel.
+// Size of mapinv_big_1280_720/768.sti, the "Show Large Icons" merc inventory panel.
 // Drawn at MAP_SCREEN_X, MAP_SCREEN_Y + 107 on every 1280+ resolution,
 // whatever the screen height -- so it reaches down over the left part of
 // map_screen_bottom's strip (see MapInvBigPanelCoversBottomStrip()).
@@ -175,8 +175,8 @@ void SetMapCursorItem();
 // (deposit/withdraw), keyring and trash-can icons next to it.
 //
 // Every position has a normal-mode value (..._NORMAL: mapinv.sti /
-// mapinv_wide.sti) and an independent "Show Large Icons"-mode value
-// (..._BIG: mapinv_wide_big.sti, see IsMapInvBigImages() in MapScreen.cc);
+// mapinv_1280.sti) and an independent "Show Large Icons"-mode value
+// (..._BIG: mapinv_big_1280_720/768.sti, see IsMapInvBigImages() in MapScreen.cc);
 // the plain name (bottom block) picks the one for the current mode.
 
 // Normal mode. Icons are MAP_INV_ICON_SIZE square, drawn from
@@ -198,7 +198,7 @@ void SetMapCursorItem();
 
 // "Show Large Icons" mode -- independent of the normal mode; starts equal
 // to it (X/Y relative to MAP_SCREEN_X/MAP_SCREEN_Y) -- tune to
-// mapinv_wide_big.sti.
+// mapinv_big_1280_720/768.sti.
 #define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 459)
 #define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 121)
 #define TRASH_CAN_X_BIG               (MAP_SCREEN_X + 424)
