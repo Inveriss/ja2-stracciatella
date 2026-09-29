@@ -6379,7 +6379,9 @@ static void CreateMapInvPanelControls(void)
 				MSYS_NO_CURSOR, TrashCanMoveCallback, TrashCanBtnCallback );
 
 	// done inventory button define
-	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/done_button2.sti", 0, 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
+	// mapinv_done_buttons.sti, 27x27, sub-image 0 = ready, 1 = pressed -- on
+	// every panel (mapinv.sti, mapinv_wide.sti, mapinv_wide_big.sti).
+	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", 0, 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
 	giMapInvDoneButton->SetFastHelpText(pMiscMapScreenMouseRegionHelpText[2]);
 
 	gTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
