@@ -161,7 +161,7 @@
 // size of the current graphic. Falls back to the normal cover if the file
 // is missing.
 #define MAP_INV_2ND_GUN_COVER_BIG_X			100
-#define MAP_INV_2ND_GUN_COVER_BIG_Y			309
+#define MAP_INV_2ND_GUN_COVER_BIG_Y			305
 #define MAP_INV_2ND_GUN_COVER_BIG_WIDTH			128
 #define MAP_INV_2ND_GUN_COVER_BIG_HEIGHT		52
 

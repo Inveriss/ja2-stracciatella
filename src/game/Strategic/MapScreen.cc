@@ -184,21 +184,21 @@
 #define MAP_CAMO_H_NORMAL 29
 
 #define MAP_ARMOR_LABEL_X_BIG (MAP_SCREEN_X + 300)
-#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 270)
+#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 266)
 #define MAP_ARMOR_X_BIG (MAP_SCREEN_X + 263)
-#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 268)
+#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 264)
 #define MAP_ARMOR_W_BIG 66
 #define MAP_ARMOR_H_BIG 36
 #define MAP_WEIGHT_LABEL_X_BIG (MAP_SCREEN_X + 46)
-#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 263)
+#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 259)
 #define MAP_WEIGHT_X_BIG (MAP_SCREEN_X + 11)
-#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 261)
+#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 257)
 #define MAP_WEIGHT_W_BIG 66
 #define MAP_WEIGHT_H_BIG 36
 #define MAP_CAMO_LABEL_X_BIG (MAP_SCREEN_X + 50)
-#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 318)
+#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 314)
 #define MAP_CAMO_X_BIG (MAP_SCREEN_X + 7)
-#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 316)
+#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 312)
 #define MAP_CAMO_W_BIG 66
 #define MAP_CAMO_H_BIG 36
 
@@ -238,7 +238,7 @@
 #define INV_BODY_X_NORMAL (MAP_SCREEN_X + 109)
 #define INV_BODY_Y_NORMAL (MAP_SCREEN_Y + 113)
 #define INV_BODY_X_BIG    (MAP_SCREEN_X + 183)
-#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + 179)
+#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + 175)
 #define INV_BODY_X (UINT16)(IsMapInvBigImages() ? INV_BODY_X_BIG : INV_BODY_X_NORMAL)
 #define INV_BODY_Y (UINT16)(IsMapInvBigImages() ? INV_BODY_Y_BIG : INV_BODY_Y_NORMAL)
 
@@ -435,7 +435,7 @@ static GUIButtonRef giMapInvBigImagesButton;
 #define MAP_INV_BIG_IMAGES_BTN_X_NORMAL (g_ui.m_invSlotPositionMap[SMALLPOCK13POS].uX + SM_INV_SLOT_WIDTH + MAP_INV_BIG_IMAGES_BTN_GAP)
 #define MAP_INV_BIG_IMAGES_BTN_Y_NORMAL (g_ui.m_invSlotPositionMap[LEGPOS].uY + LEGS_INV_SLOT_HEIGHT + MAP_INV_BIG_IMAGES_BTN_GAP)
 #define MAP_INV_BIG_IMAGES_BTN_X_BIG    (MAP_SCREEN_X + 435)
-#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + 137)
+#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + 133)
 #define MAP_INV_BIG_IMAGES_BTN_X   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_X_BIG : MAP_INV_BIG_IMAGES_BTN_X_NORMAL)
 #define MAP_INV_BIG_IMAGES_BTN_Y   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_Y_BIG : MAP_INV_BIG_IMAGES_BTN_Y_NORMAL)
 
@@ -6397,9 +6397,16 @@ static void CreateMapInvPanelControls(void)
 				MSYS_NO_CURSOR, TrashCanMoveCallback, TrashCanBtnCallback );
 
 	// done inventory button define
-	// mapinv_done_buttons.sti, 27x27, sub-image 0 = ready, 1 = pressed -- on
-	// every panel (mapinv.sti, mapinv_1280.sti, mapinv_big_1280_720/768.sti).
-	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", 0, 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
+	// mapinv_done_buttons.sti: sub-images 2 = ready, 3 = pressed (50x50) on
+	// mapinv_big_1280_720.sti; 0 = ready, 1 = pressed on every other panel
+	// (mapinv_1024.sti, mapinv_1280.sti, mapinv_big_1280_768.sti).
+	bool const big_720 = IsMapInvBigImages() && g_ui.isCompactStrategicScreen();
+	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big_720 ? 2 : 0, big_720 ? 3 : 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
+	if (big_720 && (giMapInvDoneButton->W() != MAP_INV_DONE_BTN_W_BIG_720 || giMapInvDoneButton->H() != MAP_INV_DONE_BTN_H_BIG_720))
+	{
+		SLOGW("mapinv_done_buttons.sti sub-image 2 is {}x{}, expected {}x{} (MAP_INV_DONE_BTN_W/H_BIG_720)",
+			giMapInvDoneButton->W(), giMapInvDoneButton->H(), MAP_INV_DONE_BTN_W_BIG_720, MAP_INV_DONE_BTN_H_BIG_720);
+	}
 	giMapInvDoneButton->SetFastHelpText(pMiscMapScreenMouseRegionHelpText[2]);
 
 	gTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
