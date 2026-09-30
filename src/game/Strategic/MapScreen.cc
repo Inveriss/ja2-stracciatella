@@ -4436,10 +4436,21 @@ static void RenderMapMiddleBackground(INT16 top, INT16 bottom);
 static void BlitBackgroundToSaveBuffer(void)
 {
 	// render map
+	BOOLEAN const fMapRedrawn = fMapPanelDirty;
 	RenderMapRegionBackground( );
 
 	if (!fDisableDueToBattleRoster)
 	{
+		// background_middle_wide_*.sti reaches 1 px over the first column of
+		// what the right block draws there -- MBS, or the sector-inventory
+		// window (MAP_MIDDLE_BACKGROUND_RIGHT, x 517) -- and stays on top of
+		// either: whenever the right block was just redrawn, redraw the left
+		// column (middle background, then whatever panel sits on it) after it.
+		if (fMapRedrawn && g_ui.isWideStrategicScreen())
+		{
+			fTeamPanelDirty = TRUE;
+		}
+
 		// render team
 		RenderTeamRegionBackground( );
 
