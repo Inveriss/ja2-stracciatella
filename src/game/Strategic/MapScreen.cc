@@ -197,21 +197,21 @@
 #define MAP_CAMO_H_NORMAL 29
 
 #define MAP_ARMOR_LABEL_X_BIG (MAP_SCREEN_X + 300)
-#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 266)
+#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 263)
 #define MAP_ARMOR_X_BIG (MAP_SCREEN_X + 263)
-#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 264)
+#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 267)
 #define MAP_ARMOR_W_BIG 66
 #define MAP_ARMOR_H_BIG 36
-#define MAP_WEIGHT_LABEL_X_BIG (MAP_SCREEN_X + 46)
-#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 259)
-#define MAP_WEIGHT_X_BIG (MAP_SCREEN_X + 11)
-#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 257)
+#define MAP_WEIGHT_LABEL_X_BIG (MAP_SCREEN_X + 45)
+#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 256)
+#define MAP_WEIGHT_X_BIG (MAP_SCREEN_X + 12)
+#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 260)
 #define MAP_WEIGHT_W_BIG 66
 #define MAP_WEIGHT_H_BIG 36
-#define MAP_CAMO_LABEL_X_BIG (MAP_SCREEN_X + 50)
-#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 314)
-#define MAP_CAMO_X_BIG (MAP_SCREEN_X + 7)
-#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 312)
+#define MAP_CAMO_LABEL_X_BIG (MAP_SCREEN_X + 48)
+#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 311)
+#define MAP_CAMO_X_BIG (MAP_SCREEN_X + 11)
+#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 315)
 #define MAP_CAMO_W_BIG 66
 #define MAP_CAMO_H_BIG 36
 
@@ -235,6 +235,16 @@
 #define MAP_CAMO_H (IsMapInvBigImages() ? MAP_CAMO_H_BIG : MAP_CAMO_H_NORMAL)
 
 #define MAP_INV_STATS_TITLE_FONT_COLOR 6
+// Armour/weight/camo labels and values on the "Show Large Icons" panel
+// (mapinv_big_1280_*.sti): their own font, fonts/font_mapinv_big.sti
+// (FONTMAPINVBIG), and colour, independent of the normal panel's
+// BLOCKFONT2 / MAP_INV_STATS_TITLE_FONT_COLOR.
+#define MAP_INV_STATS_FONT_BIG         FONTMAPINVBIG
+// Index into font_mapinv_big.sti's OWN palette (index 6 is black there,
+// unlike in blockfont2.sti): 126 = (178,168,118), the nearest match to
+// blockfont2.sti's colour 6 (173,148,115). Glyph pixels of value 1 are the
+// (black) shadow, every other value is drawn in this colour.
+#define MAP_INV_STATS_FONT_COLOR_BIG   126
 
 #define PLAYER_INFO_FACE_START_X    (MAP_SCREEN_X + 9)
 #define PLAYER_INFO_FACE_START_Y    (MAP_SCREEN_Y + 17)
@@ -3822,8 +3832,14 @@ static void BltCharInvPanel(void)
 
 	RenderMapInvBookmarkIcons();
 
-	// Render Values for stats!
-	SetFontAttributes(BLOCKFONT2, MAP_INV_STATS_TITLE_FONT_COLOR);
+	// Render Values for stats! The big panel's own font is used only if it has
+	// every character needed (labels are localized; "100%" covers digits and
+	// the percent sign) -- otherwise BLOCKFONT2, like the normal panel.
+	bool const fBigPanel = IsMapInvBigImages();
+	bool const fBigFont  = fBigPanel &&
+		FontHasGlyphsFor(MAP_INV_STATS_FONT_BIG, pInvPanelTitleStrings[0] + pInvPanelTitleStrings[1] + pInvPanelTitleStrings[2] + "0123456789% ");
+	SGPFont const stats_font = fBigFont ? MAP_INV_STATS_FONT_BIG : BLOCKFONT2;
+	SetFontAttributes(stats_font, fBigPanel ? MAP_INV_STATS_FONT_COLOR_BIG : MAP_INV_STATS_TITLE_FONT_COLOR);
 
 	INT16 usX;
 	INT16 usY;
@@ -3831,19 +3847,19 @@ static void BltCharInvPanel(void)
 	// Display armor
 	MPrint(MAP_ARMOR_LABEL_X, MAP_ARMOR_LABEL_Y, pInvPanelTitleStrings[0]);
 	sString = ST::format("{3d}%", ArmourPercent(pSoldier));
-	FindFontRightCoordinates(MAP_ARMOR_X, MAP_ARMOR_Y, MAP_ARMOR_W, MAP_ARMOR_H, sString, BLOCKFONT2, &usX, &usY);
+	FindFontRightCoordinates(MAP_ARMOR_X, MAP_ARMOR_Y, MAP_ARMOR_W, MAP_ARMOR_H, sString, stats_font, &usX, &usY);
 	MPrint(usX, usY, sString);
 
 	// Display weight
 	MPrint(MAP_WEIGHT_LABEL_X, MAP_WEIGHT_LABEL_Y, pInvPanelTitleStrings[1]);
 	sString = ST::format("{}%", CalculateCarriedWeight(pSoldier));
-	FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, BLOCKFONT2, &usX, &usY);
+	FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, stats_font, &usX, &usY);
 	MPrint(usX, usY, sString);
 
 	// Display camouflage
 	MPrint(MAP_CAMO_LABEL_X, MAP_CAMO_LABEL_Y, pInvPanelTitleStrings[2]);
 	sString = ST::format("{}%", pSoldier->bCamo);
-	FindFontRightCoordinates(MAP_CAMO_X, MAP_CAMO_Y, MAP_CAMO_W, MAP_CAMO_H, sString, BLOCKFONT2, &usX, &usY);
+	FindFontRightCoordinates(MAP_CAMO_X, MAP_CAMO_Y, MAP_CAMO_W, MAP_CAMO_H, sString, stats_font, &usX, &usY);
 	MPrint(usX, usY, sString);
 
 	if( InKeyRingPopup() || InItemStackPopup() )
