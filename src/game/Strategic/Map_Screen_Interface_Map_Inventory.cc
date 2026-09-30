@@ -151,6 +151,40 @@ void LoadSectorInventoryFilterModeFromSaveGameFile(void)
 		: FALSE;
 }
 
+// "Hide the big minimap" checkbox (CreateMapInventoryMinimapCheckbox()) in
+// the bottom-left corner of both sector-inventory windows (FIRST and
+// STACK) -- TRUE keeps the big minimap (RenderBigRadarScreenIfVisible(),
+// Radar_Screen.cc) from popping up over the window. Same three lifecycles
+// as gfSectorInventoryCombinableFilters above: new game -> FALSE (minimap
+// shown, checkbox unchecked), changed only by the checkbox, persisted in
+// g_gameStates (saves without it load as FALSE).
+static BOOLEAN gfSectorInventoryHideBigMinimap = FALSE;
+
+static ST::string const gSectorInventoryHideBigMinimapStateKey{ "SectorInventory::hideBigMinimap" };
+
+BOOLEAN IsSectorInventoryBigMinimapHidden(void)
+{
+	return gfSectorInventoryHideBigMinimap;
+}
+
+void InitSectorInventoryMinimapForNewGame(void)
+{
+	gfSectorInventoryHideBigMinimap = FALSE;
+	g_gameStates.Set(gSectorInventoryHideBigMinimapStateKey, static_cast<bool>(gfSectorInventoryHideBigMinimap));
+}
+
+void SaveSectorInventoryMinimapToSaveGameFile(void)
+{
+	g_gameStates.Set(gSectorInventoryHideBigMinimapStateKey, static_cast<bool>(gfSectorInventoryHideBigMinimap));
+}
+
+void LoadSectorInventoryMinimapFromSaveGameFile(void)
+{
+	gfSectorInventoryHideBigMinimap = g_gameStates.HasKey(gSectorInventoryHideBigMinimapStateKey)
+		? g_gameStates.Get<bool>(gSectorInventoryHideBigMinimapStateKey)
+		: FALSE;
+}
+
 // inventory pool slot positions and sizes. Column count (ROW X): 5 while
 // gfSectorInventoryBigImages is on, else always 9 -- tier-independent in
 // both cases. Row count (COL Y) is both resolution- and
@@ -471,7 +505,7 @@ UINT32 guiCompatibleItemBaseTime = 0;
 // [4] = all items (clears filters), [5] = weapons, [6] = attachments,
 // [7] = ammo, [8] = armour, [9] = explosives, [10] = other,
 // [11] = move to sector, [12] = move to merc, [13] = big images toggle
-static GUIButtonRef guiMapInvenButton[15]; // [14] is the "combine filters" checkbox, see CreateMapInventoryFilterModeCheckbox()
+static GUIButtonRef guiMapInvenButton[16]; // [14] is the "combine filters" checkbox, see CreateMapInventoryFilterModeCheckbox(); [15] the "hide big minimap" one, CreateMapInventoryMinimapCheckbox()
 
 static BOOLEAN gfCheckForCursorOverMapSectorInventoryItem = FALSE;
 
@@ -803,6 +837,7 @@ static void CreateMapInventoryGroupButton(void);
 static void CreateMapInventoryFilterButtons(void);
 static void CreateMapInventoryBigImagesButton(void);
 static void CreateMapInventoryFilterModeCheckbox(void);
+static void CreateMapInventoryMinimapCheckbox(void);
 static void CreateMapInventoryTransferButtons(void);
 static void CreateStackSplitSlots(void);
 static void CreateStackSplitDoneButton(void);
@@ -814,6 +849,7 @@ static void DestroyMapInventoryGroupButton(void);
 static void DestroyMapInventoryFilterButtons(void);
 static void DestroyMapInventoryBigImagesButton(void);
 static void DestroyMapInventoryFilterModeCheckbox(void);
+static void DestroyMapInventoryMinimapCheckbox(void);
 static void DestroyMapInventoryTransferButtons(void);
 static void DestroyStackSplitSlots(void);
 static void DestroyStackSplitDoneButton(void);
@@ -885,6 +921,7 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		CreateMapInventoryFilterButtons( );
 		CreateMapInventoryBigImagesButton( );
 		CreateMapInventoryFilterModeCheckbox( );
+		CreateMapInventoryMinimapCheckbox( );
 		CreateMapInventoryTransferButtons( );
 
 		fMapPanelDirty = TRUE;
@@ -926,6 +963,7 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		DestroyMapInventoryFilterButtons( );
 		DestroyMapInventoryBigImagesButton( );
 		DestroyMapInventoryFilterModeCheckbox( );
+		DestroyMapInventoryMinimapCheckbox( );
 		DestroyMapInventoryTransferButtons( );
 
 		// now save results
@@ -2565,6 +2603,47 @@ static void CreateMapInventoryFilterModeCheckbox(void)
 static void DestroyMapInventoryFilterModeCheckbox(void)
 {
 	RemoveButton( guiMapInvenButton[14] );
+}
+
+
+// "Hide the big minimap" checkbox -- SECTOR_INVENTORY_RADARMAP_CHECKBOX.sti,
+// 19x17, sub-image 0 = checked (minimap hidden), 1 = unchecked. Bottom-left
+// corner of the sector-inventory window (g_sector_inv_box):
+// MINIMAP_CHECKBOX_X px from its left edge, MINIMAP_CHECKBOX_FROM_BOTTOM px
+// above the canvas bottom, so it sits in the same corner on both height
+// tiers. Created with the rest of the window's buttons and left enabled
+// while the stack split view is open, so it works on both the FIRST and
+// the STACK window -- it doesn't touch the item list.
+#define MINIMAP_CHECKBOX_OFF          1
+#define MINIMAP_CHECKBOX_ON           0
+#define MINIMAP_CHECKBOX_X            22
+#define MINIMAP_CHECKBOX_FROM_BOTTOM  32
+
+static void ToggleSectorInventoryMinimapCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		gfSectorInventoryHideBigMinimap = !gfSectorInventoryHideBigMinimap;
+	}
+}
+
+
+static void CreateMapInventoryMinimapCheckbox(void)
+{
+	BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/SECTOR_INVENTORY_RADARMAP_CHECKBOX.sti", MINIMAP_CHECKBOX_OFF, MINIMAP_CHECKBOX_ON);
+	guiMapInvenButton[15] = QuickCreateButtonToggle(img,
+		MAP_SCREEN_RIGHT_BLOCK_X + g_sector_inv_box.x + MINIMAP_CHECKBOX_X,
+		MAP_SCREEN_BOTTOM - MINIMAP_CHECKBOX_FROM_BOTTOM,
+		MSYS_PRIORITY_HIGHEST, ToggleSectorInventoryMinimapCallback);
+	guiMapInvenButton[15]->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+	if (gfSectorInventoryHideBigMinimap) guiMapInvenButton[15]->uiFlags |= BUTTON_CLICKED_ON;
+	guiMapInvenButton[15]->SetFastHelpText("Hide Big Minimap");
+}
+
+
+static void DestroyMapInventoryMinimapCheckbox(void)
+{
+	RemoveButton( guiMapInvenButton[15] );
 }
 
 

@@ -345,6 +345,7 @@ void RenderBigRadarScreenIfVisible(void)
 {
 	BOOLEAN const fVisible =
 		fShowMapInventoryPool &&
+		!IsSectorInventoryBigMinimapHidden() && // the window's own checkbox
 		IsCursorOverSectorInventoryWindow() &&
 		gpItemPointer == NULL;
 

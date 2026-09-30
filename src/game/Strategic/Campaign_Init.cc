@@ -131,6 +131,9 @@ void InitNewCampaign()
 	// (Map_Screen_Interface_Map_Inventory.cc) for the full story.
 	InitSectorInventoryFilterModeForNewGame();
 
+	// "Hide big minimap" checkbox -- unchecked (minimap shown) for a new game.
+	InitSectorInventoryMinimapForNewGame();
+
 	// Merc inventory panel's "Show Large Icons" toggle -- ON for a new game.
 	InitMapInvBigImagesForNewGame();
 }
