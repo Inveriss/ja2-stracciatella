@@ -156,6 +156,10 @@
 // Horizontal shift of background_middle_wide_*.sti relative to
 // MAP_MIDDLE_BACKGROUND_X (positive = right).
 #define MAP_MIDDLE_BACKGROUND_SHIFT_X  1
+// Right edge (exclusive) of the free space the background may paint:
+// MAP_SCREEN_X + 518, i.e. up to x 517 -- 1 px over MBS's first column
+// (fully transparent in MBS_1024/1280.sti), like mapinv_big_1280_*.sti.
+#define MAP_MIDDLE_BACKGROUND_RIGHT    (MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_WIDTH + 1)
 // Width of the left column (plus, on the wide strategic screen, the free
 // space next to it) -- what the left column's own background restores and
 // shading must cover, so the wider mapinv_1280/iteminfoc_wide graphics and
@@ -167,7 +171,7 @@
 // 262 px wide (x 0..261), one more than the 261 px left column, so its
 // last column is copied too; on the wide strategic screen
 // LEFT_COLUMN_BG_WIDTH already reaches across the free space beyond it.
-#define TEAM_REGION_RESTORE_WIDTH (g_ui.isWideStrategicScreen() ? LEFT_COLUMN_BG_WIDTH : 262)
+#define TEAM_REGION_RESTORE_WIDTH (g_ui.isWideStrategicScreen() ? MAP_MIDDLE_BACKGROUND_RIGHT - MAP_SCREEN_X : 262)
 
 // Armour / weight / camo labels and value boxes of the merc inventory
 // panel -- normal mode (..._NORMAL) and an independent "Show Large Icons"
@@ -4445,7 +4449,7 @@ static void BlitBackgroundToSaveBuffer(void)
 	{
 		RenderMapMiddleBackground(MAP_MIDDLE_BACKGROUND_HEIGHT, MAP_SCREEN_HEIGHT);
 		RestoreExternBackgroundRect(MAP_MIDDLE_BACKGROUND_X + 1, MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT,
-			MAP_MIDDLE_BACKGROUND_WIDTH - 1, MAP_SCREEN_HEIGHT - MAP_MIDDLE_BACKGROUND_HEIGHT);
+			MAP_MIDDLE_BACKGROUND_RIGHT - (MAP_MIDDLE_BACKGROUND_X + 1), MAP_SCREEN_HEIGHT - MAP_MIDDLE_BACKGROUND_HEIGHT);
 	}
 
 	// The "Show Large Icons" merc inventory panel reaches down over the
@@ -5332,7 +5336,7 @@ static void RenderMapMiddleBackground(INT16 const top, INT16 const bottom)
 	if (y1 >= y2) return;
 
 	INT16 const x1 = MAP_MIDDLE_BACKGROUND_X + 1;
-	INT16 const x2 = MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_WIDTH;
+	INT16 const x2 = MAP_MIDDLE_BACKGROUND_RIGHT;
 
 	// Rows above the background graphic (MAP_MIDDLE_BACKGROUND_TOP): black.
 	INT16 const bg_top = MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_TOP;
