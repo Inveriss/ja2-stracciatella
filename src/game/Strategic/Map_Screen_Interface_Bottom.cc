@@ -95,7 +95,9 @@
 // bottom/right-anchored buttons above), one pixel offset per strategic-screen size
 // tier, given separately even though currently equal, so either can move on its own
 // later -- see isCompactStrategicScreen()/g_ui.
-#define MAP_LAPTOP_SHORTCUT_X_1280 (MAP_SCREEN_X + 386) // height 720-767
+// On the wide strategic screen (1280+) the height 720-767 row sits 256 px
+// further right, per user request; the 1024 canvas keeps MAP_SCREEN_X + 386.
+#define MAP_LAPTOP_SHORTCUT_X_1280 (MAP_SCREEN_X + 386 + (g_ui.isWideStrategicScreen() ? 256 : 0)) // height 720-767
 #define MAP_LAPTOP_SHORTCUT_Y_1280 (MAP_SCREEN_Y + 664)
 #define MAP_LAPTOP_SHORTCUT_X_1024 (MAP_SCREEN_X + 386) // height 768+
 #define MAP_LAPTOP_SHORTCUT_Y_1024 (MAP_SCREEN_Y + 664)
