@@ -199,8 +199,6 @@ void SetMapCursorItem();
 // "Show Large Icons" mode -- independent of the normal mode; starts equal
 // to it (X/Y relative to MAP_SCREEN_X/MAP_SCREEN_Y) -- tune to
 // mapinv_big_1280_720/768.sti.
-#define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 459)
-#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 121)
 #define TRASH_CAN_X_BIG               (MAP_SCREEN_X + 245)
 #define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + 107 + 26)
 #define MAP_INV_KEYRING_X_BIG         (MAP_SCREEN_X + 209)
@@ -208,19 +206,17 @@ void SetMapCursorItem();
 #define MAP_INV_MONEY_X_BIG           (MAP_SCREEN_X + 173)
 #define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + 107 + 26)
 
-// Done button on mapinv_big_1280_720.sti only ("Show Large Icons", screen
-// height 720-767) -- its own graphic (mapinv_done_buttons.sti sub-images
-// 2 = ready, 3 = pressed, MAP_INV_DONE_BTN_W/H_BIG_720) and its own
-// position, independent of the ..._BIG ones above (which
-// mapinv_big_1280_768.sti keeps). Starts at the same place.
-#define MAP_INV_DONE_BTN_X_BIG_720    (MAP_SCREEN_X + 438)
-#define MAP_INV_DONE_BTN_Y_BIG_720    (MAP_SCREEN_Y + 107 + 90)
-#define MAP_INV_DONE_BTN_W_BIG_720    50
-#define MAP_INV_DONE_BTN_H_BIG_720    50
+// Done button on both "Show Large Icons" panels (mapinv_big_1280_720.sti and
+// mapinv_big_1280_768.sti -- one set): its own graphic (mapinv_done_buttons.sti
+// sub-images 2 = ready, 3 = pressed, MAP_INV_DONE_BTN_W/H_BIG) and position.
+#define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 438)
+#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 90)
+#define MAP_INV_DONE_BTN_W_BIG        50
+#define MAP_INV_DONE_BTN_H_BIG        50
 
 // Current mode -- what the code uses.
-#define MAP_INV_DONE_BTN_X    (IsMapInvBigImages() ? (g_ui.isCompactStrategicScreen() ? MAP_INV_DONE_BTN_X_BIG_720 : MAP_INV_DONE_BTN_X_BIG) : MAP_INV_DONE_BTN_X_NORMAL)
-#define MAP_INV_DONE_BTN_Y    (IsMapInvBigImages() ? (g_ui.isCompactStrategicScreen() ? MAP_INV_DONE_BTN_Y_BIG_720 : MAP_INV_DONE_BTN_Y_BIG) : MAP_INV_DONE_BTN_Y_NORMAL)
+#define MAP_INV_DONE_BTN_X    (IsMapInvBigImages() ? MAP_INV_DONE_BTN_X_BIG : MAP_INV_DONE_BTN_X_NORMAL)
+#define MAP_INV_DONE_BTN_Y    (IsMapInvBigImages() ? MAP_INV_DONE_BTN_Y_BIG : MAP_INV_DONE_BTN_Y_NORMAL)
 
 // trash can
 #define TRASH_CAN_X           (IsMapInvBigImages() ? TRASH_CAN_X_BIG : TRASH_CAN_X_NORMAL)

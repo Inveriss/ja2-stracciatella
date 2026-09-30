@@ -6468,14 +6468,14 @@ static void CreateMapInvPanelControls(void)
 
 	// done inventory button define
 	// mapinv_done_buttons.sti: sub-images 2 = ready, 3 = pressed (50x50) on
-	// mapinv_big_1280_720.sti; 0 = ready, 1 = pressed on every other panel
-	// (mapinv_1024.sti, mapinv_1280.sti, mapinv_big_1280_768.sti).
-	bool const big_720 = IsMapInvBigImages() && g_ui.isCompactStrategicScreen();
-	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big_720 ? 2 : 0, big_720 ? 3 : 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
-	if (big_720 && (giMapInvDoneButton->W() != MAP_INV_DONE_BTN_W_BIG_720 || giMapInvDoneButton->H() != MAP_INV_DONE_BTN_H_BIG_720))
+	// both "Show Large Icons" panels (mapinv_big_1280_720/768.sti);
+	// 0 = ready, 1 = pressed on the normal ones (mapinv_1024/1280.sti).
+	bool const big = IsMapInvBigImages();
+	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big ? 2 : 0, big ? 3 : 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
+	if (big && (giMapInvDoneButton->W() != MAP_INV_DONE_BTN_W_BIG || giMapInvDoneButton->H() != MAP_INV_DONE_BTN_H_BIG))
 	{
-		SLOGW("mapinv_done_buttons.sti sub-image 2 is {}x{}, expected {}x{} (MAP_INV_DONE_BTN_W/H_BIG_720)",
-			giMapInvDoneButton->W(), giMapInvDoneButton->H(), MAP_INV_DONE_BTN_W_BIG_720, MAP_INV_DONE_BTN_H_BIG_720);
+		SLOGW("mapinv_done_buttons.sti sub-image 2 is {}x{}, expected {}x{} (MAP_INV_DONE_BTN_W/H_BIG)",
+			giMapInvDoneButton->W(), giMapInvDoneButton->H(), MAP_INV_DONE_BTN_W_BIG, MAP_INV_DONE_BTN_H_BIG);
 	}
 	giMapInvDoneButton->SetFastHelpText(pMiscMapScreenMouseRegionHelpText[2]);
 
