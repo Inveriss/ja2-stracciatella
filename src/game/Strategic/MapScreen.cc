@@ -147,6 +147,15 @@
 // from the canvas top down to map_screen_bottom.sti's top edge (121px above
 // the canvas bottom, see MAP_BOTTOM_Y in Map_Screen_Interface_Bottom.cc).
 #define MAP_MIDDLE_BACKGROUND_HEIGHT (MAP_SCREEN_HEIGHT - 121)
+// Top of background_middle_wide_*.sti, relative to MAP_SCREEN_Y -- level with
+// the team list panel next to it (newgoldpiece3_*.sti at PLAYER_INFO_Y,
+// i.e. MAP_SCREEN_Y + 107); the matching _1024/_1280 files are picked by the
+// same height tier (isCompactStrategicScreen()). The free space above it
+// (next to the character info panel) is filled with black.
+#define MAP_MIDDLE_BACKGROUND_TOP    107
+// Horizontal shift of background_middle_wide_*.sti relative to
+// MAP_MIDDLE_BACKGROUND_X (positive = right).
+#define MAP_MIDDLE_BACKGROUND_SHIFT_X  1
 // Width of the left column (plus, on the wide strategic screen, the free
 // space next to it) -- what the left column's own background restores and
 // shading must cover, so the wider mapinv_1280/iteminfoc_wide graphics and
@@ -4401,6 +4410,9 @@ void AbortMovementPlottingMode( void )
 static void RenderCharacterInfoBackground(void);
 
 
+static void RenderMapMiddleBackground(INT16 top, INT16 bottom);
+
+
 static void BlitBackgroundToSaveBuffer(void)
 {
 	// render map
@@ -4425,6 +4437,16 @@ static void BlitBackgroundToSaveBuffer(void)
 	// now render lower panel
 	BOOLEAN const fBottomRedrawn = fMapScreenBottomDirty;
 	RenderMapScreenInterfaceBottom( );
+
+	// background_middle_wide_*.sti reaches down into the bottom strip (whose
+	// top rows are transparent) and stays on top of it: redraw its part there
+	// whenever the strip itself was just redrawn.
+	if (fBottomRedrawn && !fDisableDueToBattleRoster && g_ui.isWideStrategicScreen())
+	{
+		RenderMapMiddleBackground(MAP_MIDDLE_BACKGROUND_HEIGHT, MAP_SCREEN_HEIGHT);
+		RestoreExternBackgroundRect(MAP_MIDDLE_BACKGROUND_X + 1, MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT,
+			MAP_MIDDLE_BACKGROUND_WIDTH - 1, MAP_SCREEN_HEIGHT - MAP_MIDDLE_BACKGROUND_HEIGHT);
+	}
 
 	// The "Show Large Icons" merc inventory panel reaches down over the
 	// bottom strip's left part (MapInvBigPanelCoversBottomStrip()) -- draw it
@@ -5301,24 +5323,37 @@ static void RenderMapMiddleBackground(INT16 const top, INT16 const bottom)
 {
 	if (!g_ui.isWideStrategicScreen()) return;
 
+	// Not clamped to the bottom strip's top (MAP_MIDDLE_BACKGROUND_HEIGHT):
+	// the graphic may reach down into map_screen_bottom's strip, whose top
+	// rows are transparent, and is drawn on top of it -- see
+	// BlitBackgroundToSaveBuffer(). Only the black fallback stays above it.
 	INT16 const y1 = MAP_SCREEN_Y + top;
-	INT16 const y2 = MAP_SCREEN_Y + std::min<INT16>(bottom, MAP_MIDDLE_BACKGROUND_HEIGHT);
+	INT16 const y2 = MAP_SCREEN_Y + std::min<INT16>(bottom, MAP_SCREEN_HEIGHT);
 	if (y1 >= y2) return;
 
 	INT16 const x1 = MAP_MIDDLE_BACKGROUND_X + 1;
 	INT16 const x2 = MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_WIDTH;
 
+	// Rows above the background graphic (MAP_MIDDLE_BACKGROUND_TOP): black.
+	INT16 const bg_top = MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_TOP;
+	INT16 const fill_bottom = std::min(y2, bg_top);
+	if (y1 < fill_bottom) ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, y1, x2, fill_bottom, 0);
+
+	INT16 const img_top = std::max(y1, bg_top);
+	if (img_top >= y2) return;
+
 	cache_key_t const bg = GetWideStrategicAsset(GetMapMiddleBackgroundGraphicsFilename(), nullptr);
 	if (bg)
 	{
-		SGPRect const clip = { (UINT16)x1, (UINT16)y1, (UINT16)x2, (UINT16)y2 };
+		SGPRect const clip = { (UINT16)x1, (UINT16)img_top, (UINT16)x2, (UINT16)y2 };
 		SGPRect const old  = SetClippingRect(clip);
-		BltVideoObject(guiSAVEBUFFER, bg, 0, MAP_MIDDLE_BACKGROUND_X, MAP_SCREEN_Y);
+		BltVideoObject(guiSAVEBUFFER, bg, 0, MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_SHIFT_X, bg_top);
 		SetClippingRect(old);
 	}
 	else
 	{
-		ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, y1, x2, y2, 0);
+		INT16 const fill_y2 = std::min<INT16>(y2, MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT);
+		if (img_top < fill_y2) ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, img_top, x2, fill_y2, 0);
 	}
 }
 
