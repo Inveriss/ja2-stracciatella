@@ -68,7 +68,22 @@ BOOLEAN HandleCompatibleAmmoUI(const SOLDIERTYPE* pSoldier, INT8 bInvPos, BOOLEA
 //  the usual MDITEMS one, for the sector-inventory panel's own "big images"
 //  toggle only. Defaults to FALSE, so every other caller (merc's own
 //  inventory, shop panels, etc.) is unaffected.
-void INVRenderItem(SGPVSurface* uiBuffer, SOLDIERTYPE const* pSoldier, OBJECTTYPE const&, INT16 sX, INT16 sY, INT16 sWidth, INT16 sHeight, DirtyLevel, UINT8 ubStatusIndex, INT16 sOutlineColor, BOOLEAN fUseSectorInventoryBigGraphic = FALSE);
+//
+//  layout -- optional font, positions and colours of the ammo count (bottom-
+//  left of the slot) and stack count (bottom-right); NULL = the usual
+//  ITEM_FONT layout every caller had so far.
+struct InvItemTextLayout
+{
+	SGPFont font;            // ammo count, stack count and "JAMMED"
+	INT16   ammoX;           // ammo count: px from the slot's left edge
+	INT16   ammoFromBottom;  // ammo count: text top, px above the slot's bottom
+	INT16   countFromRight;  // stack count: px between the text and the slot's right edge
+	INT16   countFromBottom; // stack count: text top, px above the slot's bottom
+	UINT8   colAP, colHP, colBuckshot, colHE, colHEAP, colAmmoDefault; // ammo type colours (font palette indices)
+	UINT8   colCount;        // stack count colour
+	UINT8   colJammed;       // "JAMMED" colour
+};
+void INVRenderItem(SGPVSurface* uiBuffer, SOLDIERTYPE const* pSoldier, OBJECTTYPE const&, INT16 sX, INT16 sY, INT16 sWidth, INT16 sHeight, DirtyLevel, UINT8 ubStatusIndex, INT16 sOutlineColor, BOOLEAN fUseSectorInventoryBigGraphic = FALSE, InvItemTextLayout const* layout = NULL);
 
 
 extern BOOLEAN gfInItemDescBox;

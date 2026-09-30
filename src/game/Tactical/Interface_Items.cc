@@ -928,6 +928,28 @@ static INV_REGIONS const gSMInvDataMapBig[] =
 };
 static_assert(std::size(gSMInvDataMapBig) == NUM_INV_SLOTS, "one gSMInvDataMapBig entry per inventory slot");
 
+// Ammo left (bottom-left of the item picture) and stack count (bottom-right)
+// in the "Show Large Icons" panel's slots (mapinv_big_1280_720/768.sti --
+// one set for both): own font, fonts/font_mapinv_big_count.sti, and own
+// positions, independent of every other inventory (ITEM_FONT; ammo at
+// x+1 / 11 px above the bottom, count 4 px from the right / 10 px above the
+// bottom -- the values these start from). Colours are indices into the new
+// font's OWN palette: the ammo-type ones match tinyfont1.sti's except HP,
+// whose index 24 is black there -- 203 (0,0,255) is the nearest blue.
+#define MAP_BIG_COUNT_FONT              FONTMAPINVBIGCOUNT
+#define MAP_BIG_AMMO_TEXT_X             2
+#define MAP_BIG_AMMO_TEXT_FROM_BOTTOM   10
+#define MAP_BIG_STACK_TEXT_FROM_RIGHT   4
+#define MAP_BIG_STACK_TEXT_FROM_BOTTOM  10
+#define MAP_BIG_COUNT_COL_AP            218
+#define MAP_BIG_COUNT_COL_HP            203
+#define MAP_BIG_COUNT_COL_BUCKSHOT      125
+#define MAP_BIG_COUNT_COL_HE            75
+#define MAP_BIG_COUNT_COL_HEAP          76
+#define MAP_BIG_COUNT_COL_AMMO          FONT_MCOLOR_DKGRAY
+#define MAP_BIG_COUNT_COL_STACK         FONT_GRAY4
+#define MAP_BIG_COUNT_COL_JAMMED        FONT_MCOLOR_RED
+
 
 struct REMOVE_MONEY
 {
@@ -1406,7 +1428,22 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 	// "Show Large Icons" on the map draws the same BIGITEMS graphics as the
 	// sector inventory's big mode (IsMapInvBigImages(), MapScreen.cc).
 	BOOLEAN const big = in_map && IsMapInvBigImages();
-	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline, big);
+	InvItemTextLayout big_text{};
+	if (big)
+	{
+		// Falls back to ITEM_FONT if the dedicated font lacks a glyph the
+		// counts or the (localized) "JAMMED" strings need.
+		bool const has_glyphs = FontHasGlyphsFor(MAP_BIG_COUNT_FONT,
+			ST::string("0123456789") + TacticalStr[JAMMED_ITEM_STR] + TacticalStr[SHORT_JAMMED_GUN]);
+		big_text = InvItemTextLayout{
+			has_glyphs ? MAP_BIG_COUNT_FONT : ITEM_FONT,
+			MAP_BIG_AMMO_TEXT_X, MAP_BIG_AMMO_TEXT_FROM_BOTTOM,
+			MAP_BIG_STACK_TEXT_FROM_RIGHT, MAP_BIG_STACK_TEXT_FROM_BOTTOM,
+			MAP_BIG_COUNT_COL_AP, MAP_BIG_COUNT_COL_HP, MAP_BIG_COUNT_COL_BUCKSHOT,
+			MAP_BIG_COUNT_COL_HE, MAP_BIG_COUNT_COL_HEAP, MAP_BIG_COUNT_COL_AMMO,
+			MAP_BIG_COUNT_COL_STACK, MAP_BIG_COUNT_COL_JAMMED };
+	}
+	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline, big, big ? &big_text : NULL);
 
 	if (gbInvalidPlacementSlot[pocket])
 	{
@@ -2138,7 +2175,7 @@ UINT8 GetAttachmentHintColor(const OBJECTTYPE* o) {
 }
 
 
-void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECTTYPE const& o, INT16 const sX, INT16 const sY, INT16 const sWidth, INT16 const sHeight, DirtyLevel const dirty_level, UINT8 const ubStatusIndex, INT16 const outline_colour, BOOLEAN const fUseSectorInventoryBigGraphic)
+void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECTTYPE const& o, INT16 const sX, INT16 const sY, INT16 const sWidth, INT16 const sHeight, DirtyLevel const dirty_level, UINT8 const ubStatusIndex, INT16 const outline_colour, BOOLEAN const fUseSectorInventoryBigGraphic, InvItemTextLayout const* const layout)
 {
 	if (o.usItem    == NOTHING)     return;
 	if (dirty_level == DIRTYLEVEL0) return;
@@ -2177,7 +2214,17 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 
 	if (ubStatusIndex < RENDER_ITEM_ATTACHMENT1)
 	{
-		SetFont(ITEM_FONT);
+		// Ammo/stack count text layout: the caller's (layout -- e.g. the map's
+		// "Show Large Icons" panel), else the usual ITEM_FONT one.
+		SGPFont const text_font        = layout ? layout->font            : ITEM_FONT;
+		INT16   const ammo_x           = layout ? layout->ammoX           : 1;
+		INT16   const ammo_from_bottom = layout ? layout->ammoFromBottom  : 11;
+		INT16   const cnt_from_right   = layout ? layout->countFromRight  : 4;
+		INT16   const cnt_from_bottom  = layout ? layout->countFromBottom : 10;
+		// restore height: at least the original 15, more for a taller font
+		INT16   const text_h           = std::max<INT16>(15, GetFontHeight(text_font) + 2);
+
+		SetFont(text_font);
 		SetFontBackground(FONT_MCOLOR_BLACK);
 
 		if (item->getItemClass() == IC_GUN && o.usItem != ROCKET_LAUNCHER)
@@ -2187,27 +2234,28 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 			switch (o.ubGunAmmoType)
 			{
 				case AMMO_AP:
-				case AMMO_SUPER_AP: colour = ITEMDESC_FONTAPFORE;   break;
-				case AMMO_HP:       colour = ITEMDESC_FONTHPFORE;   break;
-				case AMMO_BUCKSHOT: colour = ITEMDESC_FONTBSFORE;   break;
-				case AMMO_HE:       colour = ITEMDESC_FONTHEFORE;   break;
-				case AMMO_HEAT:     colour = ITEMDESC_FONTHEAPFORE; break;
-				default:            colour = FONT_MCOLOR_DKGRAY;    break;
+				case AMMO_SUPER_AP: colour = layout ? layout->colAP          : ITEMDESC_FONTAPFORE;   break;
+				case AMMO_HP:       colour = layout ? layout->colHP          : ITEMDESC_FONTHPFORE;   break;
+				case AMMO_BUCKSHOT: colour = layout ? layout->colBuckshot    : ITEMDESC_FONTBSFORE;   break;
+				case AMMO_HE:       colour = layout ? layout->colHE          : ITEMDESC_FONTHEFORE;   break;
+				case AMMO_HEAT:     colour = layout ? layout->colHEAP        : ITEMDESC_FONTHEAPFORE; break;
+				default:            colour = layout ? layout->colAmmoDefault : FONT_MCOLOR_DKGRAY;    break;
 			}
 			SetFontForeground(colour);
 
-			const INT16 sNewX = sX + 1;
-			const INT16 sNewY = sY + sHeight - 11;
+			ST::string const ammo = ST::format("{}", o.ubGunShotsLeft);
+			const INT16 sNewX = sX + ammo_x;
+			const INT16 sNewY = sY + sHeight - ammo_from_bottom;
 			if (buffer == guiSAVEBUFFER)
 			{
-				RestoreExternBackgroundRect(sNewX, sNewY, 20, 15);
+				RestoreExternBackgroundRect(sNewX, sNewY, std::max<INT16>(20, StringPixLength(ammo, text_font) + 2), text_h);
 			}
-			GPrintInvalidate(sNewX, sNewY, ST::format("{}", o.ubGunShotsLeft));
+			GPrintInvalidate(sNewX, sNewY, ammo);
 
 			// Display 'JAMMED' if we are jammed
 			if (o.bGunAmmoStatus < 0)
 			{
-				SetFontForeground(FONT_MCOLOR_RED);
+				SetFontForeground(layout ? layout->colJammed : FONT_MCOLOR_RED);
 
 				ST::string jammed =
 					sWidth >= BIG_INV_SLOT_WIDTH - 10 ?
@@ -2216,7 +2264,7 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 
 				INT16 cx;
 				INT16 cy;
-				FindFontCenterCoordinates(sX, sY, sWidth, sHeight, jammed, ITEM_FONT, &cx, &cy);
+				FindFontCenterCoordinates(sX, sY, sWidth, sHeight, jammed, text_font, &cx, &cy);
 				GPrintInvalidate(cx, cy, jammed);
 			}
 		}
@@ -2229,13 +2277,13 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 		if (ubStatusIndex != RENDER_ITEM_NOSTATUS && o.ubNumberOfObjects > 1)
 		{
 			// Display # of items
-			SetFontForeground(FONT_GRAY4);
+			SetFontForeground(layout ? layout->colCount : FONT_GRAY4);
 
 			ST::string pStr = ST::format("{}", o.ubNumberOfObjects);
 
-			const UINT16 uiStringLength = StringPixLength(pStr, ITEM_FONT);
-			const INT16  sNewX          = sX + sWidth - uiStringLength - 4;
-			const INT16  sNewY          = sY + sHeight - 10;
+			const UINT16 uiStringLength = StringPixLength(pStr, text_font);
+			const INT16  sNewX          = sX + sWidth - uiStringLength - cnt_from_right;
+			const INT16  sNewY          = sY + sHeight - cnt_from_bottom;
 
 			if (buffer == guiSAVEBUFFER)
 			{
@@ -2253,14 +2301,17 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 				// old flat 15px never exercised this edge (a single digit was
 				// never wide enough to matter) so clamp rather than assume.
 				INT16 const clampedX  = std::max<INT16>(sNewX, 0);
-				INT16 const rectWidth = std::max<INT16>(0, std::min<INT16>(uiStringLength + 4, SCREEN_WIDTH - clampedX));
+				INT16 const rectWidth = std::max<INT16>(0, std::min<INT16>(uiStringLength + cnt_from_right, SCREEN_WIDTH - clampedX));
 				if (rectWidth > 0)
 				{
-					RestoreExternBackgroundRect(clampedX, sNewY, rectWidth, 15);
+					RestoreExternBackgroundRect(clampedX, sNewY, rectWidth, text_h);
 				}
 			}
 			GPrintInvalidate(sNewX, sNewY, pStr);
 		}
+
+		// the attachment / weapon mode markers below keep ITEM_FONT
+		SetFont(ITEM_FONT);
 
 		if (ItemHasAttachments(o))
 		{
