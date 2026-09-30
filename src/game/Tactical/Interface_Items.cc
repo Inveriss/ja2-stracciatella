@@ -937,17 +937,17 @@ static_assert(std::size(gSMInvDataMapBig) == NUM_INV_SLOTS, "one gSMInvDataMapBi
 // font's OWN palette: the ammo-type ones match tinyfont1.sti's except HP,
 // whose index 24 is black there -- 203 (0,0,255) is the nearest blue.
 #define MAP_BIG_COUNT_FONT              FONTMAPINVBIGCOUNT
-#define MAP_BIG_AMMO_TEXT_X             2
-#define MAP_BIG_AMMO_TEXT_FROM_BOTTOM   10
-#define MAP_BIG_STACK_TEXT_FROM_RIGHT   4
-#define MAP_BIG_STACK_TEXT_FROM_BOTTOM  10
+#define MAP_BIG_AMMO_TEXT_X             1
+#define MAP_BIG_AMMO_TEXT_FROM_BOTTOM   12
+#define MAP_BIG_STACK_TEXT_FROM_RIGHT   3
+#define MAP_BIG_STACK_TEXT_FROM_BOTTOM  12
 #define MAP_BIG_COUNT_COL_AP            218
 #define MAP_BIG_COUNT_COL_HP            203
 #define MAP_BIG_COUNT_COL_BUCKSHOT      125
 #define MAP_BIG_COUNT_COL_HE            75
 #define MAP_BIG_COUNT_COL_HEAP          76
-#define MAP_BIG_COUNT_COL_AMMO          FONT_MCOLOR_DKGRAY
-#define MAP_BIG_COUNT_COL_STACK         FONT_GRAY4
+#define MAP_BIG_COUNT_COL_AMMO          FONT_WHITE
+#define MAP_BIG_COUNT_COL_STACK         FONT_WHITE
 #define MAP_BIG_COUNT_COL_JAMMED        FONT_MCOLOR_RED
 
 
