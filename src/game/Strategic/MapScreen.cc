@@ -6416,6 +6416,17 @@ static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
 
 	gfMapInvBigImages = !gfMapInvBigImages;
 
+	// The panel's click-blocking region follows the new mode's panel size.
+	// Re-defined FIRST: regions of equal priority defined later take
+	// precedence (MSYS_AddRegionToList()), and the slot, camo and keyring
+	// regions below share its MSYS_PRIORITY_HIGH -- defined after them it
+	// would sit on top and swallow every click on the slots.
+	bool const panel_region_enabled = (gMPanelRegion.uiFlags & MSYS_REGION_ENABLED) != 0;
+	MSYS_RemoveRegion(&gMPanelRegion);
+	DefineMapInvPanelRegion();
+	if (panel_region_enabled) gMPanelRegion.Enable(); else gMPanelRegion.Disable();
+	if (fMapInventoryItem) gMPanelRegion.ChangeCursor(EXTERN_CURSOR);
+
 	// Rebuild the slot regions and the panel's other regions/buttons at the
 	// new mode's positions. Removing this very button from inside its own
 	// callback is safe -- the button system defers the deletion until the
@@ -6425,13 +6436,6 @@ static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
 	DestroyMapInvPanelControls();
 	CreateMapInvPanelControls();
 	fShowTrashCanHighLight = FALSE;
-
-	// The panel's click-blocking region follows the new mode's panel size.
-	bool const panel_region_enabled = (gMPanelRegion.uiFlags & MSYS_REGION_ENABLED) != 0;
-	MSYS_RemoveRegion(&gMPanelRegion);
-	DefineMapInvPanelRegion();
-	if (panel_region_enabled) gMPanelRegion.Enable(); else gMPanelRegion.Disable();
-	if (fMapInventoryItem) gMPanelRegion.ChangeCursor(EXTERN_CURSOR);
 
 	// The large panel covers part of the bottom strip, the normal one doesn't.
 	fMapScreenBottomDirty = TRUE;
