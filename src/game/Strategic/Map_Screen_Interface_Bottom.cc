@@ -99,7 +99,9 @@
 // further right, per user request; the 1024 canvas keeps MAP_SCREEN_X + 386.
 #define MAP_LAPTOP_SHORTCUT_X_1280 (MAP_SCREEN_X + 386 + (g_ui.isWideStrategicScreen() ? 256 : 0)) // height 720-767
 #define MAP_LAPTOP_SHORTCUT_Y_1280 (MAP_SCREEN_Y + 664)
-#define MAP_LAPTOP_SHORTCUT_X_1024 (MAP_SCREEN_X + 386) // height 768+
+// Same for height 768+: 267 px further right on the wide strategic screen
+// (map_screen_bottom_wide_1024.sti), per user request.
+#define MAP_LAPTOP_SHORTCUT_X_1024 (MAP_SCREEN_X + 386 + (g_ui.isWideStrategicScreen() ? 267 : 0)) // height 768+
 #define MAP_LAPTOP_SHORTCUT_Y_1024 (MAP_SCREEN_Y + 664)
 #define MAP_LAPTOP_SHORTCUT_WIDTH  32
 #define MAP_LAPTOP_SHORTCUT_GAP     3
