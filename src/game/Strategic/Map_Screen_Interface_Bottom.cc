@@ -73,6 +73,9 @@
 #define MESSAGE_BOX_H  86
 
 #define MESSAGE_SCROLL_AREA_START_X (MAP_SCREEN_X + 330)
+// Right edge of everything the message log draws (its text is clipped at
+// MAP_SCREEN_X + 407, DisplayStringsInMapScreenMessageList(), Message.cc).
+#define MESSAGE_LOG_RIGHT           (MAP_SCREEN_X + 407)
 #define MESSAGE_SCROLL_AREA_WIDTH    15
 
 #define MESSAGE_SCROLL_AREA_START_Y (MAP_SCREEN_BOTTOM - 90)
@@ -331,11 +334,30 @@ void RenderMapScreenInterfaceBottom( void )
 		for (GUIButtonRef& btn : guiMapBottomExitButtons) HideButton(btn);
 		HideButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE]);
 		HideButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS]);
-		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
-		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
 		// The laptop shortcut row (Y=664) sits inside this same 121px-tall bottom
 		// strip -- same visibility fix as the buttons above.
 		for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons) HideButton(btn);
+
+		// The message log (text, scroll bar, scroll arrows) stays live when it
+		// lies entirely left of the sector-inventory panel -- the wide
+		// strategic screen, where the panel starts at MAP_SCREEN_X + 517 --
+		// and isn't covered by the large merc inventory panel either. On the
+		// 1024 canvas the panel (from MAP_SCREEN_X + 261) covers it.
+		INT16 const sector_panel_left = MAP_SCREEN_RIGHT_BLOCK_X + 261;
+		bool  const fLogBesidePanel   = !fCoveredByBigInvPanel && MESSAGE_LOG_RIGHT <= sector_panel_left;
+		// The scroll arrows also hide while the big minimap is showing: it
+		// overlaps them and, being plain buttons, they would draw on top of it.
+		// The log text and scroll bar are drawn before it, so it covers them.
+		if (fLogBesidePanel && !IsBigRadarScreenVisible())
+		{
+			ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
+			ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+		}
+		else
+		{
+			HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
+			HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+		}
 
 		// The large merc inventory panel was just closed/switched off while
 		// the sector inventory is open -- repair the part of this strip it
@@ -343,6 +365,31 @@ void RenderMapScreenInterfaceBottom( void )
 		if (gfBottomStripUnderBigInvPanel && !fCoveredByBigInvPanel)
 		{
 			RestoreBottomStripUnderBigInvPanel();
+		}
+
+		if (fLogBesidePanel)
+		{
+			// A scroll/new message dirtied the strip: redraw only its part left
+			// of the sector-inventory panel (the rest stays under the panel).
+			// Closing the panel dirties the whole strip again
+			// (CreateDestroyMapInventoryPoolButtons()).
+			if (fMapScreenBottomDirty)
+			{
+				SGPRect const left_part = {
+					(UINT16)MAP_BOTTOM_X, (UINT16)MAP_BOTTOM_Y,
+					(UINT16)sector_panel_left, (UINT16)SCREEN_HEIGHT };
+				SGPRect const old_clip = SetClippingRect(left_part);
+				BltVideoObject(guiSAVEBUFFER, GetMapScreenBottomGraphicsFilename(), 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
+				SetClippingRect(old_clip);
+				RestoreExternBackgroundRect(left_part.iLeft, left_part.iTop, left_part.iRight - left_part.iLeft, left_part.iBottom - left_part.iTop);
+				MarkButtonsDirty();
+				fMapScreenBottomDirty = FALSE;
+			}
+
+			// drawn every frame, like outside the sector inventory
+			DisplayScrollBarSlider();
+			DisplayStringsInMapScreenMessageList();
+			EnableDisableMessageScrollButtonsAndRegions();
 		}
 		return;
 	}
