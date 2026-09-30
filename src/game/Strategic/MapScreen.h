@@ -73,7 +73,11 @@ BOOLEAN IsMapInvBigImages(void);
 // whatever the screen height -- so it reaches down over the left part of
 // map_screen_bottom's strip (see MapInvBigPanelCoversBottomStrip()).
 #define MAP_INV_BIG_PANEL_WIDTH   518
-#define MAP_INV_BIG_PANEL_HEIGHT  613
+// mapinv_big_1280_720.sti is 518x613 (screen height 720-767),
+// mapinv_big_1280_768.sti 518x661 (768+).
+#define MAP_INV_BIG_PANEL_HEIGHT_720  613
+#define MAP_INV_BIG_PANEL_HEIGHT_768  661
+#define MAP_INV_BIG_PANEL_HEIGHT  (g_ui.isCompactStrategicScreen() ? MAP_INV_BIG_PANEL_HEIGHT_720 : MAP_INV_BIG_PANEL_HEIGHT_768)
 
 // TRUE while that panel is showing and reaches into the bottom strip: the
 // strip then leaves its covered part (message list, scroll bar/buttons,
