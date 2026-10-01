@@ -20,6 +20,7 @@ extern SGPFont gpGridFont;
 extern SGPFont gpSectorInvFont;
 extern SGPFont gpMapInvBigFont;
 extern SGPFont gpMapInvBigCountFont;
+extern SGPFont gpSecInvBigCountFont;
 extern SGPFont gpLargeFontType1;
 extern SGPFont gpSmallFontType1;
 extern SGPFont gpTinyFontType1;
@@ -54,6 +55,8 @@ extern SGPFont gpHugeFont;
 #define FONTMAPINVBIG		gpMapInvBigFont
 // ammo left / stack count on the "Show Large Icons" merc inventory panel's slots
 #define FONTMAPINVBIGCOUNT	gpMapInvBigCountFont
+// ammo left / stack count in the sector inventory's FIRST and STACK windows, "big images" mode
+#define FONTSECINVBIGCOUNT	gpSecInvBigCountFont
 #define FONT12ARIALFIXEDWIDTH	gp12PointArialFixedFont
 #define FONT16ARIAL		gp16PointArial
 #define BLOCKFONTNARROW	gpBlockFontNarrow

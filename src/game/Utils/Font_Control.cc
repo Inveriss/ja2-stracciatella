@@ -24,6 +24,7 @@ SGPFont gpGridFont;
 SGPFont gpSectorInvFont;
 SGPFont gpMapInvBigFont;
 SGPFont gpMapInvBigCountFont;
+SGPFont gpSecInvBigCountFont;
 SGPFont gpCompFont;
 SGPFont gpLargeFontType1;
 SGPFont gpSmallCompFont;
@@ -57,6 +58,7 @@ void InitializeFonts(void)
 	M(gpSectorInvFont,         FONTSDIR "/font_sector_inv.sti");
 	M(gpMapInvBigFont,         FONTSDIR "/font_mapinv_big.sti");
 	M(gpMapInvBigCountFont,    FONTSDIR "/font_mapinv_big_count.sti");
+	M(gpSecInvBigCountFont,    FONTSDIR "/font_sec_inv_big_count.sti");
 	M(gpCompFont,              FONTSDIR "/compfont.sti");
 	M(gpLargeFontType1,        FONTSDIR "/largefont1.sti");
 	M(gpSmallCompFont,         FONTSDIR "/smallcompfont.sti");

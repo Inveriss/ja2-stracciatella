@@ -673,6 +673,51 @@ static void DrawTextOnMapInventoryBackground(void);
 static size_t GetTotalNumberOfItemsInStackSplit(void);
 static void RenderItemsForCurrentPageOfInventoryPool(void);
 static void RenderStackSplitItems(void);
+
+
+// Ammo left (bottom-left of the item picture) and stack count (bottom-right)
+// in the sector inventory's slots while gfSectorInventoryBigImages is on --
+// one set for both the FIRST and the STACK window. Own font,
+// fonts/font_sec_inv_big_count.sti, and own positions/colours, independent
+// of every other inventory (ITEM_FONT; ammo at x+1 / 11 px above the
+// bottom, count 4 px from the right / 10 px above the bottom -- the values
+// these start from). Colours are indices into the new font's OWN palette:
+// the ammo-type ones match tinyfont1.sti's except HP, whose index 24 is
+// black there -- 203 (0,0,255) is the nearest blue. Normal (small images)
+// mode keeps the ITEM_FONT layout.
+#define SEC_INV_BIG_COUNT_FONT              FONTSECINVBIGCOUNT
+#define SEC_INV_BIG_AMMO_TEXT_X             -1
+#define SEC_INV_BIG_AMMO_TEXT_FROM_BOTTOM   12
+#define SEC_INV_BIG_STACK_TEXT_FROM_RIGHT   -1
+#define SEC_INV_BIG_STACK_TEXT_FROM_BOTTOM  12
+#define SEC_INV_BIG_COUNT_COL_AP            218
+#define SEC_INV_BIG_COUNT_COL_HP            203
+#define SEC_INV_BIG_COUNT_COL_BUCKSHOT      125
+#define SEC_INV_BIG_COUNT_COL_HE            75
+#define SEC_INV_BIG_COUNT_COL_HEAP          76
+#define SEC_INV_BIG_COUNT_COL_AMMO          FONT_WHITE
+#define SEC_INV_BIG_COUNT_COL_STACK         FONT_WHITE
+#define SEC_INV_BIG_COUNT_COL_JAMMED        FONT_MCOLOR_RED
+
+// The layout above, or NULL (= the usual ITEM_FONT layout) outside the
+// "big images" mode. Falls back to ITEM_FONT if the dedicated font lacks a
+// glyph the counts or the (localized) "JAMMED" strings need.
+static InvItemTextLayout const* GetSectorInvBigTextLayout(void)
+{
+	if (!gfSectorInventoryBigImages) return NULL;
+
+	static InvItemTextLayout layout;
+	bool const has_glyphs = FontHasGlyphsFor(SEC_INV_BIG_COUNT_FONT,
+		ST::string("0123456789") + TacticalStr[JAMMED_ITEM_STR] + TacticalStr[SHORT_JAMMED_GUN]);
+	layout = InvItemTextLayout{
+		has_glyphs ? SEC_INV_BIG_COUNT_FONT : TINYFONT1,
+		SEC_INV_BIG_AMMO_TEXT_X, SEC_INV_BIG_AMMO_TEXT_FROM_BOTTOM,
+		SEC_INV_BIG_STACK_TEXT_FROM_RIGHT, SEC_INV_BIG_STACK_TEXT_FROM_BOTTOM,
+		SEC_INV_BIG_COUNT_COL_AP, SEC_INV_BIG_COUNT_COL_HP, SEC_INV_BIG_COUNT_COL_BUCKSHOT,
+		SEC_INV_BIG_COUNT_COL_HE, SEC_INV_BIG_COUNT_COL_HEAP, SEC_INV_BIG_COUNT_COL_AMMO,
+		SEC_INV_BIG_COUNT_COL_STACK, SEC_INV_BIG_COUNT_COL_JAMMED };
+	return &layout;
+}
 static void UpdateHelpTextForInvnentoryStashSlots(void);
 
 namespace {
@@ -763,7 +808,7 @@ static BOOLEAN RenderItemInPoolSlot(INT32 iCurrentSlot, INT32 iFirstSlotOnPage)
 	SetFontDestBuffer(guiSAVEBUFFER);
 	const SGPBox* const item_box = &GetSectorInvItemBox();
 	const UINT16        outline  = fMapInventoryItemCompatable[iCurrentSlot] ? Get16BPPColor(FROMRGB(255, 255, 255)) : SGP_TRANSPARENT;
-	INVRenderItem(guiSAVEBUFFER, NULL, item.o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, outline, gfSectorInventoryBigImages);
+	INVRenderItem(guiSAVEBUFFER, NULL, item.o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, outline, gfSectorInventoryBigImages, GetSectorInvBigTextLayout());
 
 	// draw bar for condition
 	const UINT16 col0 = Get16BPPColor(DESC_STATUS_BAR);
@@ -1519,7 +1564,7 @@ static void RenderStackSplitItems(void)
 		INT32 const dy  = by + slot_box.y + row * (slot_box.h + GetBigImagesCompactRowPitchCorrection()) + GetBigImagesCompactYCorrection();
 
 		const SGPBox* const item_box = &GetStackSplitItemBox();
-		INVRenderItem(guiSAVEBUFFER, NULL, o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, SGP_TRANSPARENT, gfSectorInventoryBigImages);
+		INVRenderItem(guiSAVEBUFFER, NULL, o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, SGP_TRANSPARENT, gfSectorInventoryBigImages, GetSectorInvBigTextLayout());
 
 		const UINT16        col0    = Get16BPPColor(DESC_STATUS_BAR);
 		const UINT16        col1    = Get16BPPColor(DESC_STATUS_BAR_SHADOW);
