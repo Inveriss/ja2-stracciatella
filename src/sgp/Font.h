@@ -134,4 +134,9 @@ inline void FindFontCenterCoordinates(INT16 sLeft, INT16 sTop, INT16 sWidth, INT
 
 bool IsPrintableChar(char32_t c);
 
+/* True if every character of str maps to a glyph the font actually has --
+ * fonts with fewer glyphs than the translation table expects (e.g. a
+ * custom Latin-only font on the Chinese version) would otherwise fail. */
+bool FontHasGlyphsFor(SGPFont font, const ST::string& str);
+
 #endif

@@ -74,6 +74,7 @@
 #include "SysUtil.h"
 #include "Tactical_Save.h"
 #include "Text.h"
+#include "SaveLoadGameStates.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
 #include "UILayout.h"
@@ -127,9 +128,11 @@
 #define INV_REGION_X PLAYER_INFO_X
 #define INV_REGION_Y PLAYER_INFO_Y
 #define INV_REGION_WIDTH 262
-#define INV_REGION_HEIGHT 359-94
-#define INV_BTN_X PLAYER_INFO_X + 217
-#define INV_BTN_Y PLAYER_INFO_Y + 210
+#define INV_REGION_HEIGHT (359-94)
+// Done button position -- MAP_INV_DONE_BTN_X/Y in MapScreen.h, where the
+// money/keyring/trash-can icons next to it are laid out from it.
+#define INV_BTN_X MAP_INV_DONE_BTN_X
+#define INV_BTN_Y MAP_INV_DONE_BTN_Y
 
 // Bottom+right-anchored, not a fixed 640x480-canvas literal, so the
 // background restore below actually reaches the new, bigger canvas' edges
@@ -144,34 +147,104 @@
 // from the canvas top down to map_screen_bottom.sti's top edge (121px above
 // the canvas bottom, see MAP_BOTTOM_Y in Map_Screen_Interface_Bottom.cc).
 #define MAP_MIDDLE_BACKGROUND_HEIGHT (MAP_SCREEN_HEIGHT - 121)
+// Top of background_middle_wide_*.sti, relative to MAP_SCREEN_Y -- level with
+// the team list panel next to it (newgoldpiece3_*.sti at PLAYER_INFO_Y,
+// i.e. MAP_SCREEN_Y + 107); the matching _1024/_1280 files are picked by the
+// same height tier (isCompactStrategicScreen()). The free space above it
+// (next to the character info panel) is filled with black.
+#define MAP_MIDDLE_BACKGROUND_TOP    107
+// Horizontal shift of background_middle_wide_*.sti relative to
+// MAP_MIDDLE_BACKGROUND_X (positive = right).
+#define MAP_MIDDLE_BACKGROUND_SHIFT_X  1
+// Right edge (exclusive) of the free space the background may paint:
+// MAP_SCREEN_X + 518, i.e. up to x 517 -- 1 px over MBS's first column
+// (fully transparent in MBS_1024/1280.sti), like mapinv_big_1280_*.sti.
+#define MAP_MIDDLE_BACKGROUND_RIGHT    (MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_WIDTH + 1)
 // Width of the left column (plus, on the wide strategic screen, the free
 // space next to it) -- what the left column's own background restores and
-// shading must cover, so the wider mapinv_wide/iteminfoc_wide graphics and
+// shading must cover, so the wider mapinv_1280/iteminfoc_wide graphics and
 // the free space's background get copied/cleared along with it.
 #define LEFT_COLUMN_BG_WIDTH (261 + (g_ui.isWideStrategicScreen() ? MAP_MIDDLE_BACKGROUND_WIDTH : 0))
 
-#define MAP_ARMOR_LABEL_X (MAP_SCREEN_X + 208)
-#define MAP_ARMOR_LABEL_Y (MAP_SCREEN_Y + 179)
-#define MAP_ARMOR_X       (MAP_SCREEN_X + 209)
-#define MAP_ARMOR_Y       (MAP_SCREEN_Y + 188)
-#define MAP_ARMOR_W        28
-#define MAP_ARMOR_H        10
+// Width copied to the screen after the team/inventory column is redrawn
+// (RenderTeamRegionBackground()). On the 1024 canvas mapinv_1024.sti is
+// 262 px wide (x 0..261), one more than the 261 px left column, so its
+// last column is copied too; on the wide strategic screen
+// LEFT_COLUMN_BG_WIDTH already reaches across the free space beyond it.
+#define TEAM_REGION_RESTORE_WIDTH (g_ui.isWideStrategicScreen() ? MAP_MIDDLE_BACKGROUND_RIGHT - MAP_SCREEN_X : 262)
 
-#define MAP_WEIGHT_LABEL_X (MAP_SCREEN_X + 173)
-#define MAP_WEIGHT_LABEL_Y (MAP_SCREEN_Y + 256)
-#define MAP_WEIGHT_X       (MAP_SCREEN_X + 176)
-#define MAP_WEIGHT_Y       (MAP_SCREEN_Y + 265)
-#define MAP_WEIGHT_W        28
-#define MAP_WEIGHT_H        10
+// Armour / weight / camo labels and value boxes of the merc inventory
+// panel -- normal mode (..._NORMAL) and an independent "Show Large Icons"
+// mode (..._BIG, mapinv_big_1280_720/768.sti, starts equal to the normal one); the
+// plain names pick the current mode's (IsMapInvBigImages()).
+#define MAP_ARMOR_LABEL_X_NORMAL (MAP_SCREEN_X + 216)
+#define MAP_ARMOR_LABEL_Y_NORMAL (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_X_NORMAL (MAP_SCREEN_X + 201)
+#define MAP_ARMOR_Y_NORMAL (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_W_NORMAL 45
+#define MAP_ARMOR_H_NORMAL 29
+#define MAP_WEIGHT_LABEL_X_NORMAL (MAP_SCREEN_X + 13)
+#define MAP_WEIGHT_LABEL_Y_NORMAL (MAP_SCREEN_Y + 194)
+#define MAP_WEIGHT_X_NORMAL (MAP_SCREEN_X + -3)
+#define MAP_WEIGHT_Y_NORMAL (MAP_SCREEN_Y + 196)
+#define MAP_WEIGHT_W_NORMAL 45
+#define MAP_WEIGHT_H_NORMAL 29
+#define MAP_CAMO_LABEL_X_NORMAL (MAP_SCREEN_X + 17)
+#define MAP_CAMO_LABEL_Y_NORMAL (MAP_SCREEN_Y + 232)
+#define MAP_CAMO_X_NORMAL (MAP_SCREEN_X + -3)
+#define MAP_CAMO_Y_NORMAL (MAP_SCREEN_Y + 234)
+#define MAP_CAMO_W_NORMAL 45
+#define MAP_CAMO_H_NORMAL 29
 
-#define MAP_CAMO_LABEL_X (MAP_SCREEN_X + 178)
-#define MAP_CAMO_LABEL_Y (MAP_SCREEN_Y + 283)
-#define MAP_CAMO_X       (MAP_SCREEN_X + 176)
-#define MAP_CAMO_Y       (MAP_SCREEN_Y + 292)
-#define MAP_CAMO_W        28
-#define MAP_CAMO_H        10
+#define MAP_ARMOR_LABEL_X_BIG (MAP_SCREEN_X + 300)
+#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 261)
+#define MAP_ARMOR_X_BIG (MAP_SCREEN_X + 264)
+#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 265)
+#define MAP_ARMOR_W_BIG 66
+#define MAP_ARMOR_H_BIG 36
+#define MAP_WEIGHT_LABEL_X_BIG (MAP_SCREEN_X + 40)
+#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 261)
+#define MAP_WEIGHT_X_BIG (MAP_SCREEN_X + 7)
+#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 265)
+#define MAP_WEIGHT_W_BIG 66
+#define MAP_WEIGHT_H_BIG 36
+#define MAP_CAMO_LABEL_X_BIG (MAP_SCREEN_X + 43)
+#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 316)
+#define MAP_CAMO_X_BIG (MAP_SCREEN_X + 6)
+#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 319)
+#define MAP_CAMO_W_BIG 66
+#define MAP_CAMO_H_BIG 36
+
+#define MAP_ARMOR_LABEL_X (IsMapInvBigImages() ? MAP_ARMOR_LABEL_X_BIG : MAP_ARMOR_LABEL_X_NORMAL)
+#define MAP_ARMOR_LABEL_Y (IsMapInvBigImages() ? MAP_ARMOR_LABEL_Y_BIG : MAP_ARMOR_LABEL_Y_NORMAL)
+#define MAP_ARMOR_X (IsMapInvBigImages() ? MAP_ARMOR_X_BIG : MAP_ARMOR_X_NORMAL)
+#define MAP_ARMOR_Y (IsMapInvBigImages() ? MAP_ARMOR_Y_BIG : MAP_ARMOR_Y_NORMAL)
+#define MAP_ARMOR_W (IsMapInvBigImages() ? MAP_ARMOR_W_BIG : MAP_ARMOR_W_NORMAL)
+#define MAP_ARMOR_H (IsMapInvBigImages() ? MAP_ARMOR_H_BIG : MAP_ARMOR_H_NORMAL)
+#define MAP_WEIGHT_LABEL_X (IsMapInvBigImages() ? MAP_WEIGHT_LABEL_X_BIG : MAP_WEIGHT_LABEL_X_NORMAL)
+#define MAP_WEIGHT_LABEL_Y (IsMapInvBigImages() ? MAP_WEIGHT_LABEL_Y_BIG : MAP_WEIGHT_LABEL_Y_NORMAL)
+#define MAP_WEIGHT_X (IsMapInvBigImages() ? MAP_WEIGHT_X_BIG : MAP_WEIGHT_X_NORMAL)
+#define MAP_WEIGHT_Y (IsMapInvBigImages() ? MAP_WEIGHT_Y_BIG : MAP_WEIGHT_Y_NORMAL)
+#define MAP_WEIGHT_W (IsMapInvBigImages() ? MAP_WEIGHT_W_BIG : MAP_WEIGHT_W_NORMAL)
+#define MAP_WEIGHT_H (IsMapInvBigImages() ? MAP_WEIGHT_H_BIG : MAP_WEIGHT_H_NORMAL)
+#define MAP_CAMO_LABEL_X (IsMapInvBigImages() ? MAP_CAMO_LABEL_X_BIG : MAP_CAMO_LABEL_X_NORMAL)
+#define MAP_CAMO_LABEL_Y (IsMapInvBigImages() ? MAP_CAMO_LABEL_Y_BIG : MAP_CAMO_LABEL_Y_NORMAL)
+#define MAP_CAMO_X (IsMapInvBigImages() ? MAP_CAMO_X_BIG : MAP_CAMO_X_NORMAL)
+#define MAP_CAMO_Y (IsMapInvBigImages() ? MAP_CAMO_Y_BIG : MAP_CAMO_Y_NORMAL)
+#define MAP_CAMO_W (IsMapInvBigImages() ? MAP_CAMO_W_BIG : MAP_CAMO_W_NORMAL)
+#define MAP_CAMO_H (IsMapInvBigImages() ? MAP_CAMO_H_BIG : MAP_CAMO_H_NORMAL)
 
 #define MAP_INV_STATS_TITLE_FONT_COLOR 6
+// Armour/weight/camo labels and values on the "Show Large Icons" panel
+// (mapinv_big_1280_*.sti): their own font, fonts/font_mapinv_big.sti
+// (FONTMAPINVBIG), and colour, independent of the normal panel's
+// BLOCKFONT2 / MAP_INV_STATS_TITLE_FONT_COLOR.
+#define MAP_INV_STATS_FONT_BIG         FONTMAPINVBIG
+// Index into font_mapinv_big.sti's OWN palette (index 6 is black there,
+// unlike in blockfont2.sti): 126 = (178,168,118), the nearest match to
+// blockfont2.sti's colour 6 (173,148,115). Glyph pixels of value 1 are the
+// (black) shadow, every other value is drawn in this colour.
+#define MAP_INV_STATS_FONT_COLOR_BIG   126
 
 #define PLAYER_INFO_FACE_START_X    (MAP_SCREEN_X + 9)
 #define PLAYER_INFO_FACE_START_Y    (MAP_SCREEN_Y + 17)
@@ -183,8 +256,14 @@
 #define PLAYER_INFO_HAND_END_X      (MAP_SCREEN_X + 62)
 #define PLAYER_INFO_HAND_END_Y      (MAP_SCREEN_Y + 103)
 
-#define INV_BODY_X (UINT16)(MAP_SCREEN_X + 71)
-#define INV_BODY_Y (UINT16)(MAP_SCREEN_Y + 116)
+// Body/camo figure (BODYINV) of the merc inventory panel -- normal mode and
+// an independent "Show Large Icons" mode (starts equal to the normal one).
+#define INV_BODY_X_NORMAL (MAP_SCREEN_X + 109)
+#define INV_BODY_Y_NORMAL (MAP_SCREEN_Y + 113)
+#define INV_BODY_X_BIG    (MAP_SCREEN_X + 181)
+#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + 173)
+#define INV_BODY_X (UINT16)(IsMapInvBigImages() ? INV_BODY_X_BIG : INV_BODY_X_NORMAL)
+#define INV_BODY_Y (UINT16)(IsMapInvBigImages() ? INV_BODY_Y_BIG : INV_BODY_Y_NORMAL)
 
 //Text offsets
 #define Y_OFFSET 2
@@ -312,6 +391,23 @@ static BOOLEAN fFlashContractFlag = FALSE;
 
 static BOOLEAN fShowTrashCanHighLight = FALSE;
 
+// Money / keyring / trash-can icons of the merc inventory panel -- see
+// MAP_INV_ICON_SIZE etc. in MapScreen.h. Same sheet and sub-images as the
+// tactical panel's icons (SM_*_ICON_* in Interface_Panels.cc).
+static cache_key_t const guiMapInvBookmarksVO{ INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti" };
+#define MAP_INV_MONEY_ICON_READY      14
+#define MAP_INV_MONEY_ICON_PRESSED    15
+#define MAP_INV_KEYRING_ICON_READY    16
+#define MAP_INV_KEYRING_ICON_PRESSED  17
+#define MAP_INV_TRASHCAN_ICON_READY   18
+#define MAP_INV_TRASHCAN_ICON_PRESSED 19
+
+// Pressed-state flags, set on POINTER_DWN and cleared on POINTER_UP or
+// LOST_MOUSE (the keyring's own flag is fSMKeyringIconPressed, shared with
+// the tactical panel -- Interface_Panels.h).
+static BOOLEAN fMapInvMoneyIconPressed = FALSE;
+static BOOLEAN fMapInvTrashIconPressed = FALSE;
+
 // the flags for display of pop up boxes/menus
 BOOLEAN gfInConfirmMapMoveMode = FALSE;
 BOOLEAN gfInChangeArrivalSectorMode = FALSE;
@@ -346,6 +442,25 @@ static GUIButtonRef giMapSortButton[MAX_SORT_METHODS];
 GUIButtonRef giCharInfoButton[2];
 
 GUIButtonRef giMapInvDoneButton;
+
+// "Show Large Icons" button of the merc inventory panel (wide strategic
+// screen only) -- Sector_Inventory_bookmarks.sti, its own sub-images
+// (0-based, as STI-Edit numbers them): 26 = selected (large icons on),
+// 27 = not selected -- independent of the sector inventory's
+// BIG_IMAGES_BUTTON_OFF/ON (20/21). Normal mode: MAP_INV_BIG_IMAGES_BTN_GAP
+// px right of the SMALLPOCK13POS slot and the same distance below the
+// LEGPOS slot (normal-mode slot table). "Show Large Icons" mode: its own,
+// independent position (starts at the same place).
+static GUIButtonRef giMapInvBigImagesButton;
+#define MAP_INV_BIG_IMAGES_BTN_OFF 27
+#define MAP_INV_BIG_IMAGES_BTN_ON  26
+#define MAP_INV_BIG_IMAGES_BTN_GAP 12
+#define MAP_INV_BIG_IMAGES_BTN_X_NORMAL (g_ui.m_invSlotPositionMap[SMALLPOCK13POS].uX + SM_INV_SLOT_WIDTH + MAP_INV_BIG_IMAGES_BTN_GAP)
+#define MAP_INV_BIG_IMAGES_BTN_Y_NORMAL (g_ui.m_invSlotPositionMap[LEGPOS].uY + LEGS_INV_SLOT_HEIGHT + MAP_INV_BIG_IMAGES_BTN_GAP)
+#define MAP_INV_BIG_IMAGES_BTN_X_BIG    (MAP_SCREEN_X + 442)
+#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + 130)
+#define MAP_INV_BIG_IMAGES_BTN_X   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_X_BIG : MAP_INV_BIG_IMAGES_BTN_X_NORMAL)
+#define MAP_INV_BIG_IMAGES_BTN_Y   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_Y_BIG : MAP_INV_BIG_IMAGES_BTN_Y_NORMAL)
 
 GUIButtonRef giMapContractButton;
 
@@ -384,13 +499,27 @@ cache_key_t GetCharInfoGraphicsFilename()
 		: INTERFACEDIR "/charinfo_1024.sti";
 }
 
-// Merc inventory panel -- a single file for both height tiers, plus a
-// wider _wide variant (reaching across the free space up to MBS) for the
-// wide strategic screen; see GetWideStrategicAsset().
+// Merc inventory panel background, by screen width (and, for the
+// "Show Large Icons" panel, height):
+//   mapinv_1024.sti          -- screens narrower than 1280, any height
+//   mapinv_1280.sti          -- 1280+ wide (wide strategic screen), any height
+//   mapinv_big_1280_720.sti  -- "Show Large Icons", 1280+ wide, 720-767 high
+//   mapinv_big_1280_768.sti  -- "Show Large Icons", 1280+ wide, 768+ high
+// ("Show Large Icons" only exists on the wide strategic screen -- see
+// IsMapInvBigImages(); the height split is isCompactStrategicScreen()).
 cache_key_t GetMapInvGraphicsFilename()
 {
-	return GetWideStrategicAsset(INTERFACEDIR "/mapinv_wide.sti", INTERFACEDIR "/mapinv.sti");
+	if (IsMapInvBigImages())
+	{
+		return g_ui.isCompactStrategicScreen()
+			? INTERFACEDIR "/mapinv_big_1280_720.sti"
+			: INTERFACEDIR "/mapinv_big_1280_768.sti";
+	}
+	return g_ui.isWideStrategicScreen()
+		? INTERFACEDIR "/mapinv_1280.sti"
+		: INTERFACEDIR "/mapinv_1024.sti";
 }
+
 
 // Background filling the free space between the left column and MBS on the
 // wide strategic screen (MAP_MIDDLE_BACKGROUND_X/WIDTH). Suffix follows the
@@ -402,6 +531,52 @@ cache_key_t GetMapMiddleBackgroundGraphicsFilename()
 		? INTERFACEDIR "/background_middle_wide_1280.sti"
 		: INTERFACEDIR "/background_middle_wide_1024.sti";
 }
+}
+
+
+// "Show Large Icons" toggle of the merc inventory panel -- swaps the item
+// icons in its slots to their BIGITEMS graphics (the same ones the sector
+// inventory's own "Show Large Icons" uses), the background to
+// mapinv_big_1280_720/768.sti and the slots to their own layout
+// (m_invSlotPositionMapBig[], UILayout.cc; gSMInvDataMapBig[],
+// Interface_Items.cc). Independent of the sector inventory's toggle, per
+// user request, but the same three lifecycles as that one
+// (gfSectorInventoryBigImages, Map_Screen_Interface_Map_Inventory.cc):
+// new game -> ON, toggled only by MapInvBigImagesBtnCallback(), persisted
+// in g_gameStates (saves without it load as ON). Only takes effect on the
+// wide strategic screen, where the button exists.
+static BOOLEAN gfMapInvBigImages = TRUE;
+static ST::string const gMapInvBigImagesStateKey{ "MapInventory::bigImages" };
+
+BOOLEAN IsMapInvBigImages(void)
+{
+	return gfMapInvBigImages && g_ui.isWideStrategicScreen();
+}
+
+BOOLEAN MapInvBigPanelCoversBottomStrip(void)
+{
+	// map_screen_bottom's strip starts at MAP_SCREEN_BOTTOM - 121 (MAP_BOTTOM_Y,
+	// Map_Screen_Interface_Bottom.cc).
+	return fShowInventoryFlag && IsMapInvBigImages() &&
+		MAP_SCREEN_Y + 107 + MAP_INV_BIG_PANEL_HEIGHT > MAP_SCREEN_BOTTOM - 121;
+}
+
+void InitMapInvBigImagesForNewGame(void)
+{
+	gfMapInvBigImages = TRUE;
+	g_gameStates.Set(gMapInvBigImagesStateKey, static_cast<bool>(gfMapInvBigImages));
+}
+
+void SaveMapInvBigImagesToSaveGameFile(void)
+{
+	g_gameStates.Set(gMapInvBigImagesStateKey, static_cast<bool>(gfMapInvBigImages));
+}
+
+void LoadMapInvBigImagesFromSaveGameFile(void)
+{
+	gfMapInvBigImages = g_gameStates.HasKey(gMapInvBigImagesStateKey)
+		? g_gameStates.Get<bool>(gMapInvBigImagesStateKey)
+		: TRUE;
 }
 
 
@@ -420,9 +595,21 @@ cache_key_t GetWideStrategicAsset(cache_key_t const wide, cache_key_t const lega
 static MOUSE_REGION gCharInfoFaceRegion;
 static MOUSE_REGION gCharInfoHandRegion;
 static MOUSE_REGION gMPanelRegion;
+
+// gMPanelRegion blocks clicks over the whole merc inventory panel -- sized
+// to the current mode's graphic (normal: INV_REGION_WIDTH/HEIGHT,
+// "Show Large Icons": MAP_INV_BIG_PANEL_WIDTH/HEIGHT, MapScreen.h).
+static void DefineMapInvPanelRegion()
+{
+	bool const big = IsMapInvBigImages();
+	UINT16 const w = big ? MAP_INV_BIG_PANEL_WIDTH  : INV_REGION_WIDTH;
+	UINT16 const h = big ? MAP_INV_BIG_PANEL_HEIGHT : INV_REGION_HEIGHT;
+	MSYS_DefineRegion(&gMPanelRegion, INV_REGION_X, INV_REGION_Y, INV_REGION_X + w, INV_REGION_Y + h, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+}
 static MOUSE_REGION gMapViewRegion;
 static MOUSE_REGION gMapScreenMaskRegion;
 static MOUSE_REGION gTrashCanRegion;
+static MOUSE_REGION gMapInvMoneyRegion;
 
 // mouse regions for team info panel
 struct CharacterRegions
@@ -1604,7 +1791,7 @@ ScreenID MapScreenHandle(void)
 		MSYS_DefineRegion( &gCharInfoFaceRegion, (INT16) PLAYER_INFO_FACE_START_X, (INT16) PLAYER_INFO_FACE_START_Y, (INT16) PLAYER_INFO_FACE_END_X, (INT16) PLAYER_INFO_FACE_END_Y, MSYS_PRIORITY_HIGH,
 					MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(FaceRegionBtnCallbackPrimary, FaceRegionBtnCallbackSecondary) );
 
-		MSYS_DefineRegion(&gMPanelRegion, INV_REGION_X, INV_REGION_Y, INV_REGION_X + INV_REGION_WIDTH, INV_REGION_Y + INV_REGION_HEIGHT, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+		DefineMapInvPanelRegion();
 		// screen mask for animated cursors
 		MSYS_DefineRegion(&gMapScreenMaskRegion, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_LOW, CURSOR_NORMAL, MSYS_NO_CALLBACK, MapScreenMarkRegionBtnCallback);
 
@@ -2028,6 +2215,7 @@ ScreenID MapScreenHandle(void)
 		}
 
 		UnMarkButtonDirty( giMapInvDoneButton );
+		if (giMapInvBigImagesButton) UnMarkButtonDirty(giMapInvBigImagesButton);
 		//UnMarkButtonDirty( giCharInfoButton[ 0 ] );
 		//UnMarkButtonDirty( giCharInfoButton[ 1 ] );
 		MarkAButtonDirty( giMapInvDescButton );
@@ -2037,6 +2225,7 @@ ScreenID MapScreenHandle(void)
 		if (fShowInventoryFlag)
 		{
 			MarkAButtonDirty( giMapInvDoneButton );
+			if (giMapInvBigImagesButton) MarkAButtonDirty(giMapInvBigImagesButton);
 			MarkAButtonDirty( giCharInfoButton[ 1 ] );
 			MarkAButtonDirty( giCharInfoButton[ 0 ] );
 		}
@@ -3535,6 +3724,16 @@ static void MAPInvMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 static void MAPInvMoveCamoCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
+// Slot/camo mouse regions of the merc inventory panel, in the layout of the
+// current "Show Large Icons" mode (IsMapInvBigImages()).
+static void InitMapInvSlotRegions()
+{
+	INV_REGION_DESC gSCamoXY = {INV_BODY_X, INV_BODY_Y};
+	bool const big = IsMapInvBigImages();
+	InitInvSlotInterface(big ? g_ui.m_invSlotPositionMapBig : g_ui.m_invSlotPositionMap, &gSCamoXY, MAPInvMoveCallback, MouseCallbackPrimarySecondary(MAPInvClickCallbackPrimary, MAPInvClickCallbackSecondary, MAPInvClickCallbackCancelMessage), MAPInvMoveCamoCallback, MAPInvClickCamoCallback, big);
+}
+
+
 void CreateDestroyMapInvButton()
 {
 	static BOOLEAN fOldShowInventoryFlag=FALSE;
@@ -3546,9 +3745,7 @@ void CreateDestroyMapInvButton()
 		// disable allmouse regions in this space
 		fTeamPanelDirty=TRUE;
 
-		INV_REGION_DESC gSCamoXY = {INV_BODY_X, INV_BODY_Y};
-
-		InitInvSlotInterface(g_ui.m_invSlotPositionMap, &gSCamoXY, MAPInvMoveCallback, MouseCallbackPrimarySecondary(MAPInvClickCallbackPrimary, MAPInvClickCallbackSecondary, MAPInvClickCallbackCancelMessage), MAPInvMoveCamoCallback, MAPInvClickCamoCallback);
+		InitMapInvSlotRegions();
 		gMPanelRegion.Enable();
 
 		// switch hand region help text to "Exit Inventory"
@@ -3563,6 +3760,8 @@ void CreateDestroyMapInvButton()
 		ShutdownInvSlotInterface( );
 		fOldShowInventoryFlag=FALSE;
 		fTeamPanelDirty=TRUE;
+		// the "Show Large Icons" panel may have been covering part of it
+		fMapScreenBottomDirty = TRUE;
 		gMPanelRegion.Disable();
 
 		// switch hand region help text to "Enter Inventory"
@@ -3571,6 +3770,27 @@ void CreateDestroyMapInvButton()
 		// force immediate reblit of item in HANDPOS now that it's not blitted while in inventory mode
 		fCharacterInfoPanelDirty=TRUE;
 	}
+}
+
+
+// Money / keyring / trash-can icons next to the Done button -- see
+// MAP_INV_ICON_SIZE etc. in MapScreen.h. Redrawn with the rest of the
+// inventory panel (fTeamPanelDirty), which the icons' callbacks set whenever
+// their pressed state changes. The trash can also shows its pressed icon
+// while an item is held over it (fShowTrashCanHighLight), like the tactical
+// panel's (RenderSMMoneyAndTrashIcons(), Interface_Panels.cc).
+static void RenderMapInvBookmarkIcons()
+{
+	BltVideoObject(guiSAVEBUFFER, guiMapInvBookmarksVO,
+		fMapInvMoneyIconPressed ? MAP_INV_MONEY_ICON_PRESSED : MAP_INV_MONEY_ICON_READY,
+		MAP_INV_MONEY_X, MAP_INV_MONEY_Y);
+	BltVideoObject(guiSAVEBUFFER, guiMapInvBookmarksVO,
+		fSMKeyringIconPressed ? MAP_INV_KEYRING_ICON_PRESSED : MAP_INV_KEYRING_ICON_READY,
+		MAP_INV_KEYRING_X, MAP_INV_KEYRING_Y);
+	BOOLEAN const fTrashPressed = fMapInvTrashIconPressed || fShowTrashCanHighLight;
+	BltVideoObject(guiSAVEBUFFER, guiMapInvBookmarksVO,
+		fTrashPressed ? MAP_INV_TRASHCAN_ICON_PRESSED : MAP_INV_TRASHCAN_ICON_READY,
+		TRASH_CAN_X, TRASH_CAN_Y);
 }
 
 
@@ -3610,8 +3830,16 @@ static void BltCharInvPanel(void)
 	// render items in each of chars slots
 	HandleRenderInvSlots(*pSoldier, DIRTYLEVEL2);
 
-	// Render Values for stats!
-	SetFontAttributes(BLOCKFONT2, MAP_INV_STATS_TITLE_FONT_COLOR);
+	RenderMapInvBookmarkIcons();
+
+	// Render Values for stats! The big panel's own font is used only if it has
+	// every character needed (labels are localized; "100%" covers digits and
+	// the percent sign) -- otherwise BLOCKFONT2, like the normal panel.
+	bool const fBigPanel = IsMapInvBigImages();
+	bool const fBigFont  = fBigPanel &&
+		FontHasGlyphsFor(MAP_INV_STATS_FONT_BIG, pInvPanelTitleStrings[0] + pInvPanelTitleStrings[1] + pInvPanelTitleStrings[2] + "0123456789% ");
+	SGPFont const stats_font = fBigFont ? MAP_INV_STATS_FONT_BIG : BLOCKFONT2;
+	SetFontAttributes(stats_font, fBigPanel ? MAP_INV_STATS_FONT_COLOR_BIG : MAP_INV_STATS_TITLE_FONT_COLOR);
 
 	INT16 usX;
 	INT16 usY;
@@ -3619,19 +3847,19 @@ static void BltCharInvPanel(void)
 	// Display armor
 	MPrint(MAP_ARMOR_LABEL_X, MAP_ARMOR_LABEL_Y, pInvPanelTitleStrings[0]);
 	sString = ST::format("{3d}%", ArmourPercent(pSoldier));
-	FindFontRightCoordinates(MAP_ARMOR_X, MAP_ARMOR_Y, MAP_ARMOR_W, MAP_ARMOR_H, sString, BLOCKFONT2, &usX, &usY);
+	FindFontRightCoordinates(MAP_ARMOR_X, MAP_ARMOR_Y, MAP_ARMOR_W, MAP_ARMOR_H, sString, stats_font, &usX, &usY);
 	MPrint(usX, usY, sString);
 
 	// Display weight
 	MPrint(MAP_WEIGHT_LABEL_X, MAP_WEIGHT_LABEL_Y, pInvPanelTitleStrings[1]);
 	sString = ST::format("{}%", CalculateCarriedWeight(pSoldier));
-	FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, BLOCKFONT2, &usX, &usY);
+	FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, stats_font, &usX, &usY);
 	MPrint(usX, usY, sString);
 
 	// Display camouflage
 	MPrint(MAP_CAMO_LABEL_X, MAP_CAMO_LABEL_Y, pInvPanelTitleStrings[2]);
 	sString = ST::format("{}%", pSoldier->bCamo);
-	FindFontRightCoordinates(MAP_CAMO_X, MAP_CAMO_Y, MAP_CAMO_W, MAP_CAMO_H, sString, BLOCKFONT2, &usX, &usY);
+	FindFontRightCoordinates(MAP_CAMO_X, MAP_CAMO_Y, MAP_CAMO_W, MAP_CAMO_H, sString, stats_font, &usX, &usY);
 	MPrint(usX, usY, sString);
 
 	if( InKeyRingPopup() || InItemStackPopup() )
@@ -3641,7 +3869,7 @@ static void BltCharInvPanel(void)
 		// in RenderMapRegionBackground()/RenderTeamRegionBackground() -- extend
 		// to the actual (now bigger) canvas bottom instead of the literal 359.
 		// Width covers the free space too on the wide strategic screen, where
-		// mapinv_wide.sti reaches across it.
+		// mapinv_1280.sti reaches across it.
 		guiSAVEBUFFER->ShadowRect(PLAYER_INFO_X, PLAYER_INFO_Y, PLAYER_INFO_X + LEFT_COLUMN_BG_WIDTH,  PLAYER_INFO_Y + (MAP_SCREEN_HEIGHT - 107));
 	}
 	else
@@ -4202,13 +4430,27 @@ void AbortMovementPlottingMode( void )
 static void RenderCharacterInfoBackground(void);
 
 
+static void RenderMapMiddleBackground(INT16 top, INT16 bottom);
+
+
 static void BlitBackgroundToSaveBuffer(void)
 {
 	// render map
+	BOOLEAN const fMapRedrawn = fMapPanelDirty;
 	RenderMapRegionBackground( );
 
 	if (!fDisableDueToBattleRoster)
 	{
+		// background_middle_wide_*.sti reaches 1 px over the first column of
+		// what the right block draws there -- MBS, or the sector-inventory
+		// window (MAP_MIDDLE_BACKGROUND_RIGHT, x 517) -- and stays on top of
+		// either: whenever the right block was just redrawn, redraw the left
+		// column (middle background, then whatever panel sits on it) after it.
+		if (fMapRedrawn && g_ui.isWideStrategicScreen())
+		{
+			fTeamPanelDirty = TRUE;
+		}
+
 		// render team
 		RenderTeamRegionBackground( );
 
@@ -4224,7 +4466,27 @@ static void BlitBackgroundToSaveBuffer(void)
 	}
 
 	// now render lower panel
+	BOOLEAN const fBottomRedrawn = fMapScreenBottomDirty;
 	RenderMapScreenInterfaceBottom( );
+
+	// background_middle_wide_*.sti reaches down into the bottom strip (whose
+	// top rows are transparent) and stays on top of it: redraw its part there
+	// whenever the strip itself was just redrawn.
+	if (fBottomRedrawn && !fDisableDueToBattleRoster && g_ui.isWideStrategicScreen())
+	{
+		RenderMapMiddleBackground(MAP_MIDDLE_BACKGROUND_HEIGHT, MAP_SCREEN_HEIGHT);
+		RestoreExternBackgroundRect(MAP_MIDDLE_BACKGROUND_X + 1, MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT,
+			MAP_MIDDLE_BACKGROUND_RIGHT - (MAP_MIDDLE_BACKGROUND_X + 1), MAP_SCREEN_HEIGHT - MAP_MIDDLE_BACKGROUND_HEIGHT);
+	}
+
+	// The "Show Large Icons" merc inventory panel reaches down over the
+	// bottom strip's left part (MapInvBigPanelCoversBottomStrip()) -- draw it
+	// again on top whenever the strip itself was just redrawn.
+	if (fBottomRedrawn && !fDisableDueToBattleRoster && MapInvBigPanelCoversBottomStrip())
+	{
+		fTeamPanelDirty = TRUE;
+		RenderTeamRegionBackground( );
+	}
 
 	// Sector-inventory "big minimap" -- must draw after (i.e. on top of)
 	// both RenderTeamRegionBackground() and RenderMapScreenInterfaceBottom()
@@ -5080,7 +5342,7 @@ static void DisplayIconsForMercsAsleep(void);
 // column and MBS into guiSAVEBUFFER, rows `top`..`bottom` (relative to
 // MAP_SCREEN_Y, bottom exclusive, clamped to MAP_MIDDLE_BACKGROUND_HEIGHT).
 // Called by the left column's own renderers right before they draw their
-// graphic, so whatever the left column draws on top (mapinv_wide.sti,
+// graphic, so whatever the left column draws on top (mapinv_1280.sti,
 // iteminfoc_wide.sti) wins, and the free space is always repainted along with
 // it -- it's never left showing stale pixels (e.g. of the tactical screen at
 // exactly 1280x720/768, where isBigScreen() is false and nothing else clears
@@ -5092,24 +5354,37 @@ static void RenderMapMiddleBackground(INT16 const top, INT16 const bottom)
 {
 	if (!g_ui.isWideStrategicScreen()) return;
 
+	// Not clamped to the bottom strip's top (MAP_MIDDLE_BACKGROUND_HEIGHT):
+	// the graphic may reach down into map_screen_bottom's strip, whose top
+	// rows are transparent, and is drawn on top of it -- see
+	// BlitBackgroundToSaveBuffer(). Only the black fallback stays above it.
 	INT16 const y1 = MAP_SCREEN_Y + top;
-	INT16 const y2 = MAP_SCREEN_Y + std::min<INT16>(bottom, MAP_MIDDLE_BACKGROUND_HEIGHT);
+	INT16 const y2 = MAP_SCREEN_Y + std::min<INT16>(bottom, MAP_SCREEN_HEIGHT);
 	if (y1 >= y2) return;
 
 	INT16 const x1 = MAP_MIDDLE_BACKGROUND_X + 1;
-	INT16 const x2 = MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_WIDTH;
+	INT16 const x2 = MAP_MIDDLE_BACKGROUND_RIGHT;
+
+	// Rows above the background graphic (MAP_MIDDLE_BACKGROUND_TOP): black.
+	INT16 const bg_top = MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_TOP;
+	INT16 const fill_bottom = std::min(y2, bg_top);
+	if (y1 < fill_bottom) ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, y1, x2, fill_bottom, 0);
+
+	INT16 const img_top = std::max(y1, bg_top);
+	if (img_top >= y2) return;
 
 	cache_key_t const bg = GetWideStrategicAsset(GetMapMiddleBackgroundGraphicsFilename(), nullptr);
 	if (bg)
 	{
-		SGPRect const clip = { (UINT16)x1, (UINT16)y1, (UINT16)x2, (UINT16)y2 };
+		SGPRect const clip = { (UINT16)x1, (UINT16)img_top, (UINT16)x2, (UINT16)y2 };
 		SGPRect const old  = SetClippingRect(clip);
-		BltVideoObject(guiSAVEBUFFER, bg, 0, MAP_MIDDLE_BACKGROUND_X, MAP_SCREEN_Y);
+		BltVideoObject(guiSAVEBUFFER, bg, 0, MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_SHIFT_X, bg_top);
 		SetClippingRect(old);
 	}
 	else
 	{
-		ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, y1, x2, y2, 0);
+		INT16 const fill_y2 = std::min<INT16>(y2, MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT);
+		if (img_top < fill_y2) ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, img_top, x2, fill_y2, 0);
 	}
 }
 
@@ -5144,7 +5419,7 @@ static void RenderTeamRegionBackground()
 	// taller, e.g. newgoldpiece3_1280.sti) team-list graphic draws further down.
 	// Width includes the free space on the wide strategic screen (see
 	// LEFT_COLUMN_BG_WIDTH).
-	RestoreExternBackgroundRect(MAP_SCREEN_X + 0, MAP_SCREEN_Y + 107, LEFT_COLUMN_BG_WIDTH, MAP_SCREEN_HEIGHT - 107);
+	RestoreExternBackgroundRect(MAP_SCREEN_X + 0, MAP_SCREEN_Y + 107, TEAM_REGION_RESTORE_WIDTH, MAP_SCREEN_HEIGHT - 107);
 	MapscreenMarkButtonsDirty();
 }
 
@@ -5977,8 +6252,17 @@ static void TrashItemMessageBoxCallBack(MessageBoxReturnValue const bExitValue)
 
 static void TrashCanBtnCallback(MOUSE_REGION*, UINT32 const reason)
 {
+	if (reason & MSYS_CALLBACK_REASON_POINTER_DWN)
+	{
+		fMapInvTrashIconPressed = TRUE;
+		fTeamPanelDirty = TRUE;
+	}
+
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		fMapInvTrashIconPressed = FALSE;
+		fTeamPanelDirty = TRUE;
+
 		// Check if an item is in the cursor, if so, warn player
 		if (OBJECTTYPE* const o = gpItemPointer)
 		{
@@ -5997,11 +6281,80 @@ static void TrashCanMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 		if (fMapInventoryItem)
 		{
 			fShowTrashCanHighLight = TRUE;
+			fTeamPanelDirty = TRUE;
 		}
 	}
 	else if( iReason & MSYS_CALLBACK_REASON_LOST_MOUSE )
 	{
 		fShowTrashCanHighLight = FALSE;
+		fMapInvTrashIconPressed = FALSE;
+		fTeamPanelDirty = TRUE;
+	}
+}
+
+
+static void MapInvDepositMoneyMessageBoxCallBack(MessageBoxReturnValue const ubExitValue)
+{
+	if (ubExitValue != MSG_BOX_RETURN_YES || gpItemPointer == NULL) return;
+
+	SOLDIERTYPE const* const s = gpItemPointerSoldier ? gpItemPointerSoldier : GetSelectedInfoChar();
+	if (s == NULL) return;
+
+	// add the money to the player's account; the money on the cursor is gone
+	AddTransactionToPlayersBook(MERC_DEPOSITED_MONEY_TO_PLAYER_ACCOUNT, s->ubProfile,
+		GetWorldTotalMin(), gpItemPointer->uiMoneyAmount);
+	MAPEndItemPointer();
+	fTeamPanelDirty = TRUE;
+	fMapScreenBottomDirty = TRUE;
+}
+
+
+static void MapInvMoneyMoveCallback(MOUSE_REGION*, UINT32 const iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE && fMapInvMoneyIconPressed)
+	{
+		fMapInvMoneyIconPressed = FALSE;
+		fTeamPanelDirty = TRUE;
+	}
+}
+
+
+// Map screen's version of SMInvMoneyButtonCallback() (Interface_Panels.cc):
+// with money on the cursor, offer to deposit it to the player's account;
+// otherwise open the money description box to withdraw from the account.
+static void MapInvMoneyBtnCallback(MOUSE_REGION*, UINT32 const iReason)
+{
+	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN)
+	{
+		fMapInvMoneyIconPressed = TRUE;
+		fTeamPanelDirty = TRUE;
+	}
+
+	if (!(iReason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	fMapInvMoneyIconPressed = FALSE;
+	fTeamPanelDirty = TRUE;
+
+	if (fShowDescriptionFlag) return;
+
+	SOLDIERTYPE* const s = GetSelectedInfoChar();
+	if (s == NULL) return;
+
+	if (gpItemPointer != NULL)
+	{
+		if (GCM->getItem(gpItemPointer->usItem)->getItemClass() != IC_MONEY) return;
+
+		ST::string const zMoney = SPrintMoney(gpItemPointer->uiMoneyAmount);
+		ST::string const zText  = st_format_printf(gzMoneyWithdrawMessageText[CONFIRMATION_TO_DEPOSIT_MONEY_TO_ACCOUNT], zMoney);
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, zText, MAP_SCREEN, MSG_BOX_FLAG_YESNO, MapInvDepositMoneyMessageBoxCallBack);
+	}
+	else
+	{
+		// removing money from the player's account (see RemoveMoney(),
+		// Interface_Items.cc)
+		gfAddingMoneyToMercFromPlayersAccount = TRUE;
+		CreateMoney(LaptopSaveInfo.iCurrentBalance, &gItemPointer);
+		MAPInternalInitItemDescriptionBox(&gItemPointer, 0, s);
 	}
 }
 
@@ -6055,48 +6408,135 @@ static void UpdateStatusOfMapSortButtons(void)
 static void DoneInventoryMapBtnCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
+static void CreateMapInvPanelControls(void);
+static void DestroyMapInvPanelControls(void);
+
+
+static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	// Not while something sits on top of the slots -- keep the button's own
+	// (already toggled) look in step with the unchanged state.
+	if (fShowDescriptionFlag || InKeyRingPopup() || InItemStackPopup())
+	{
+		if (gfMapInvBigImages) btn->uiFlags |= BUTTON_CLICKED_ON;
+		else                   btn->uiFlags &= ~BUTTON_CLICKED_ON;
+		return;
+	}
+
+	gfMapInvBigImages = !gfMapInvBigImages;
+
+	// The panel's click-blocking region follows the new mode's panel size.
+	// Re-defined FIRST: regions of equal priority defined later take
+	// precedence (MSYS_AddRegionToList()), and the slot, camo and keyring
+	// regions below share its MSYS_PRIORITY_HIGH -- defined after them it
+	// would sit on top and swallow every click on the slots.
+	bool const panel_region_enabled = (gMPanelRegion.uiFlags & MSYS_REGION_ENABLED) != 0;
+	MSYS_RemoveRegion(&gMPanelRegion);
+	DefineMapInvPanelRegion();
+	if (panel_region_enabled) gMPanelRegion.Enable(); else gMPanelRegion.Disable();
+	if (fMapInventoryItem) gMPanelRegion.ChangeCursor(EXTERN_CURSOR);
+
+	// Rebuild the slot regions and the panel's other regions/buttons at the
+	// new mode's positions. Removing this very button from inside its own
+	// callback is safe -- the button system defers the deletion until the
+	// callback returns (gfDelayButtonDeletion, Button_System.cc).
+	ShutdownInvSlotInterface();
+	InitMapInvSlotRegions();
+	DestroyMapInvPanelControls();
+	CreateMapInvPanelControls();
+	fShowTrashCanHighLight = FALSE;
+
+	// The large panel covers part of the bottom strip, the normal one doesn't.
+	fMapScreenBottomDirty = TRUE;
+
+	SOLDIERTYPE* const s = GetSelectedInfoChar();
+	if (s != NULL) ReevaluateItemHatches(s, FALSE);
+	fTeamPanelDirty = TRUE;
+}
+
+
+// Mouse regions and buttons of the merc inventory panel -- trash can,
+// money, keyring, Done and "Show Large Icons" -- at the current mode's
+// positions (normal / "Show Large Icons", see IsMapInvBigImages()).
+static void CreateMapInvPanelControls(void)
+{
+	// trash can
+	MSYS_DefineRegion( &gTrashCanRegion, 	TRASH_CAN_X, TRASH_CAN_Y, TRASH_CAN_X + TRASH_CAN_WIDTH, TRASH_CAN_Y + TRASH_CAN_HEIGHT , MSYS_PRIORITY_HIGHEST - 4 ,
+				MSYS_NO_CURSOR, TrashCanMoveCallback, TrashCanBtnCallback );
+
+	// done inventory button define
+	// mapinv_done_buttons.sti: sub-images 2 = ready, 3 = pressed (50x50) on
+	// both "Show Large Icons" panels (mapinv_big_1280_720/768.sti);
+	// 0 = ready, 1 = pressed on the normal ones (mapinv_1024/1280.sti).
+	bool const big = IsMapInvBigImages();
+	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big ? 2 : 0, big ? 3 : 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
+	if (big && (giMapInvDoneButton->W() != MAP_INV_DONE_BTN_W_BIG || giMapInvDoneButton->H() != MAP_INV_DONE_BTN_H_BIG))
+	{
+		SLOGW("mapinv_done_buttons.sti sub-image 2 is {}x{}, expected {}x{} (MAP_INV_DONE_BTN_W/H_BIG)",
+			giMapInvDoneButton->W(), giMapInvDoneButton->H(), MAP_INV_DONE_BTN_W_BIG, MAP_INV_DONE_BTN_H_BIG);
+	}
+	giMapInvDoneButton->SetFastHelpText(pMiscMapScreenMouseRegionHelpText[2]);
+
+	gTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
+
+	// money: deposit to / withdraw from the player's account
+	MSYS_DefineRegion(&gMapInvMoneyRegion, MAP_INV_MONEY_X, MAP_INV_MONEY_Y,
+		MAP_INV_MONEY_X + MAP_INV_MONEY_WIDTH, MAP_INV_MONEY_Y + MAP_INV_MONEY_HEIGHT,
+		MSYS_PRIORITY_HIGHEST - 4, MSYS_NO_CURSOR, MapInvMoneyMoveCallback, MapInvMoneyBtnCallback);
+	gMapInvMoneyRegion.SetFastHelpText(TacticalStr[MONEY_BUTTON_HELP_TEXT]);
+	fMapInvMoneyIconPressed = FALSE;
+	fMapInvTrashIconPressed = FALSE;
+
+	InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
+
+	// "Show Large Icons" -- wide strategic screen (1280+) only, per user request
+	if (g_ui.isWideStrategicScreen())
+	{
+		BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/sector_inventory_bookmarks.sti", MAP_INV_BIG_IMAGES_BTN_OFF, MAP_INV_BIG_IMAGES_BTN_ON);
+		giMapInvBigImagesButton = QuickCreateButtonToggle(img, MAP_INV_BIG_IMAGES_BTN_X, MAP_INV_BIG_IMAGES_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, MapInvBigImagesBtnCallback);
+		giMapInvBigImagesButton->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+		if (gfMapInvBigImages) giMapInvBigImagesButton->uiFlags |= BUTTON_CLICKED_ON;
+		giMapInvBigImagesButton->SetFastHelpText("Show Large Icons");
+	}
+}
+
+
+static void DestroyMapInvPanelControls(void)
+{
+	MSYS_RemoveRegion( &gTrashCanRegion );
+	MSYS_RemoveRegion( &gMapInvMoneyRegion );
+
+	RemoveButton( giMapInvDoneButton );
+	if (giMapInvBigImagesButton) RemoveButton(giMapInvBigImagesButton);
+
+	ShutdownKeyRingInterface( );
+}
+
+
 static void CreateDestroyTrashCanRegion(void)
 {
 	static BOOLEAN fCreated = FALSE;
 
 	if (fShowInventoryFlag && !fCreated)
 	{
-
 		fCreated = TRUE;
+		CreateMapInvPanelControls();
 
-		// trash can
-		MSYS_DefineRegion( &gTrashCanRegion, 	TRASH_CAN_X, TRASH_CAN_Y, TRASH_CAN_X + TRASH_CAN_WIDTH, TRASH_CAN_Y + TRASH_CAN_HEIGHT , MSYS_PRIORITY_HIGHEST - 4 ,
-					MSYS_NO_CURSOR, TrashCanMoveCallback, TrashCanBtnCallback );
-
-		// done inventory button define
-		giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/done_button2.sti", 0, 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
-		giMapInvDoneButton->SetFastHelpText(pMiscMapScreenMouseRegionHelpText[2]);
-
-		gTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
-
-		InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
-
-			// reset the compatable item array at this point
+		// reset the compatable item array at this point
 		ResetCompatibleItemArray( );
-
 	}
 	else if (!fShowInventoryFlag && fCreated)
 	{
-		// trash can region
 		fCreated = FALSE;
-		MSYS_RemoveRegion( &gTrashCanRegion );
-
-		// map inv done button
-		RemoveButton( giMapInvDoneButton );
-
-		ShutdownKeyRingInterface( );
+		DestroyMapInvPanelControls();
 
 		if (fShowDescriptionFlag)
 		{
 			// kill description
 			DeleteItemDescriptionBox( );
 		}
-
 	}
 }
 
@@ -6256,7 +6696,11 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(GetCharListGraphicsFilename());
 	RemoveVObject(GetCharInfoGraphicsFilename());
 
-	RemoveVObject(GetMapInvGraphicsFilename());
+	// every merc inventory panel variant (GetMapInvGraphicsFilename())
+	RemoveVObject(INTERFACEDIR "/mapinv_1024.sti");
+	RemoveVObject(INTERFACEDIR "/mapinv_1280.sti");
+	RemoveVObject(INTERFACEDIR "/mapinv_big_1280_720.sti");
+	RemoveVObject(INTERFACEDIR "/mapinv_big_1280_768.sti");
 	RemoveVObject(GetMapMiddleBackgroundGraphicsFilename());
 	RemoveVObject(guiULICONS);
 

@@ -63,6 +63,30 @@ void ChangeSelectedInfoChar( INT8 bCharNumber, BOOLEAN fResetSelectedList );
 
 void MAPEndItemPointer(void);
 
+// "Show Large Icons" toggle of the merc inventory panel (mapinv.sti) --
+// independent of the sector inventory's own toggle. TRUE only on the wide
+// strategic screen (1280+), the only one the button exists on.
+BOOLEAN IsMapInvBigImages(void);
+
+// Size of mapinv_big_1280_720/768.sti, the "Show Large Icons" merc inventory panel.
+// Drawn at MAP_SCREEN_X, MAP_SCREEN_Y + 107 on every 1280+ resolution,
+// whatever the screen height -- so it reaches down over the left part of
+// map_screen_bottom's strip (see MapInvBigPanelCoversBottomStrip()).
+#define MAP_INV_BIG_PANEL_WIDTH   518
+// mapinv_big_1280_720.sti is 518x613 (screen height 720-767),
+// mapinv_big_1280_768.sti 518x661 (768+).
+#define MAP_INV_BIG_PANEL_HEIGHT_720  613
+#define MAP_INV_BIG_PANEL_HEIGHT_768  661
+#define MAP_INV_BIG_PANEL_HEIGHT  (g_ui.isCompactStrategicScreen() ? MAP_INV_BIG_PANEL_HEIGHT_720 : MAP_INV_BIG_PANEL_HEIGHT_768)
+
+// TRUE while that panel is showing and reaches into the bottom strip: the
+// strip then leaves its covered part (message list, scroll bar/buttons,
+// laptop shortcuts under the panel) alone, and the panel is drawn on top.
+BOOLEAN MapInvBigPanelCoversBottomStrip(void);
+void InitMapInvBigImagesForNewGame(void);
+void SaveMapInvBigImagesToSaveGameFile(void);
+void LoadMapInvBigImagesFromSaveGameFile(void);
+
 void CopyPathToAllSelectedCharacters(PathSt* pPath);
 void CancelPathsOfAllSelectedCharacters(void);
 
@@ -150,10 +174,84 @@ void SetMapCursorItem();
 #define CONTRACT_X            (MAP_SCREEN_X + 185)
 #define CONTRACT_Y            (MAP_SCREEN_Y + 50)
 
+// Merc inventory panel (mapinv.sti, drawn at MAP_SCREEN_X, MAP_SCREEN_Y +
+// 107 -- PLAYER_INFO_X/Y in MapScreen.cc): Done button and the money
+// (deposit/withdraw), keyring and trash-can icons next to it.
+//
+// Every position has a normal-mode value (..._NORMAL: mapinv.sti /
+// mapinv_1280.sti) and an independent "Show Large Icons"-mode value
+// (..._BIG: mapinv_big_1280_720/768.sti, see IsMapInvBigImages() in MapScreen.cc);
+// the plain name (bottom block) picks the one for the current mode.
+
+// Normal mode. Icons are MAP_INV_ICON_SIZE square, drawn from
+// inventory_bottom_panel_bookmarks.sti with the same sub-images as the
+// tactical panel, in one row: left to right money, keyring, trash can (the
+// tactical order), the trash can ending MAP_INV_ICON_GAP px left of the
+// Done button and each icon MAP_INV_ICON_GAP px from the next; top edges
+// aligned with the Done button.
+#define MAP_INV_ICON_SIZE             32
+#define MAP_INV_ICON_GAP              3
+#define MAP_INV_DONE_BTN_X_NORMAL     (MAP_SCREEN_X + 221)
+#define MAP_INV_DONE_BTN_Y_NORMAL     (MAP_SCREEN_Y + 107 + 453)
+#define TRASH_CAN_X_NORMAL            (MAP_INV_DONE_BTN_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
+#define TRASH_CAN_Y_NORMAL            (MAP_INV_DONE_BTN_Y_NORMAL)
+#define MAP_INV_KEYRING_X_NORMAL      (TRASH_CAN_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
+#define MAP_INV_KEYRING_Y_NORMAL      (MAP_INV_DONE_BTN_Y_NORMAL)
+#define MAP_INV_MONEY_X_NORMAL        (MAP_INV_KEYRING_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
+#define MAP_INV_MONEY_Y_NORMAL        (MAP_INV_DONE_BTN_Y_NORMAL)
+
+// "Show Large Icons" mode -- independent of the normal mode; starts equal
+// to it (X/Y relative to MAP_SCREEN_X/MAP_SCREEN_Y) -- tune to
+// mapinv_big_1280_720/768.sti.
+#define TRASH_CAN_X_BIG               (MAP_SCREEN_X + 245)
+#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + 107 + 24)
+#define MAP_INV_KEYRING_X_BIG         (MAP_SCREEN_X + 208)
+#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + 107 + 24)
+#define MAP_INV_MONEY_X_BIG           (MAP_SCREEN_X + 171)
+#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + 107 + 24)
+
+// Done button on both "Show Large Icons" panels (mapinv_big_1280_720.sti and
+// mapinv_big_1280_768.sti -- one set): its own graphic (mapinv_done_buttons.sti
+// sub-images 2 = ready, 3 = pressed, MAP_INV_DONE_BTN_W/H_BIG) and position.
+#define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 444)
+#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 88)
+#define MAP_INV_DONE_BTN_W_BIG        50
+#define MAP_INV_DONE_BTN_H_BIG        50
+
+// Current mode -- what the code uses.
+#define MAP_INV_DONE_BTN_X    (IsMapInvBigImages() ? MAP_INV_DONE_BTN_X_BIG : MAP_INV_DONE_BTN_X_NORMAL)
+#define MAP_INV_DONE_BTN_Y    (IsMapInvBigImages() ? MAP_INV_DONE_BTN_Y_BIG : MAP_INV_DONE_BTN_Y_NORMAL)
+
 // trash can
-#define TRASH_CAN_X           (MAP_SCREEN_X + 176)
-#define TRASH_CAN_Y           (211 + PLAYER_INFO_Y)
-#define TRASH_CAN_WIDTH       193 - 165
-#define TRASH_CAN_HEIGHT      239 - 217
+#define TRASH_CAN_X           (IsMapInvBigImages() ? TRASH_CAN_X_BIG : TRASH_CAN_X_NORMAL)
+#define TRASH_CAN_Y           (IsMapInvBigImages() ? TRASH_CAN_Y_BIG : TRASH_CAN_Y_NORMAL)
+#define TRASH_CAN_WIDTH       (MAP_INV_ICON_SIZE)
+#define TRASH_CAN_HEIGHT      (MAP_INV_ICON_SIZE)
+
+// keyring
+#define MAP_INV_KEYRING_X     (IsMapInvBigImages() ? MAP_INV_KEYRING_X_BIG : MAP_INV_KEYRING_X_NORMAL)
+#define MAP_INV_KEYRING_Y     (IsMapInvBigImages() ? MAP_INV_KEYRING_Y_BIG : MAP_INV_KEYRING_Y_NORMAL)
+
+// money (deposit to / withdraw from the player's account)
+#define MAP_INV_MONEY_X       (IsMapInvBigImages() ? MAP_INV_MONEY_X_BIG : MAP_INV_MONEY_X_NORMAL)
+#define MAP_INV_MONEY_Y       (IsMapInvBigImages() ? MAP_INV_MONEY_Y_BIG : MAP_INV_MONEY_Y_NORMAL)
+#define MAP_INV_MONEY_WIDTH   (MAP_INV_ICON_SIZE)
+#define MAP_INV_MONEY_HEIGHT  (MAP_INV_ICON_SIZE)
+
+// Keyring popup on the map -- independent of the tactical one. Its origin
+// is the same place the map's item description box (ItemInfoC.sti) opens
+// at: the left column's own origin, MAP_SCREEN_X, MAP_SCREEN_Y + 107
+// (MAP_ITEMDESC_START_X/Y in MapScreen.cc) -- not the legacy 640x480
+// STD_SCREEN_X/Y window. WIDTH/HEIGHT is the area the popup takes over
+// (shaded, mouse restricted to it, a click outside the key boxes closes
+// it). BOX_OFFSET_X/Y is where the first extra_inventory.sti key box sits
+// relative to the popup's origin; the boxes then run MAP_KEY_RING_ROW_WIDTH
+// per row (Interface_Items.cc).
+#define MAP_KEYRING_POPUP_X             (MAP_SCREEN_X + 0)
+#define MAP_KEYRING_POPUP_Y             (MAP_SCREEN_Y + 107)
+#define MAP_KEYRING_POPUP_WIDTH         261
+#define MAP_KEYRING_POPUP_HEIGHT        (359 - 107)
+#define MAP_KEYRING_POPUP_BOX_OFFSET_X  40
+#define MAP_KEYRING_POPUP_BOX_OFFSET_Y  15
 
 #endif

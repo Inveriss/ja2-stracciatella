@@ -41,17 +41,22 @@ struct BUTTON_PICS;
 // without affecting the large tier.
 // Deliberately MAP_SCREEN_X (not MAP_SCREEN_RIGHT_BLOCK_X like the large
 // tier above): on the compact tier this row sits on map_screen_bottom.sti's
-// own (left-anchored) territory, so on the wide strategic screen it stays
-// put with the bottom panel instead of moving right with MBS.
-#define BTN_TOWN_X_COMPACT        (MAP_SCREEN_X + 393)
-#define BTN_MINE_X_COMPACT         (MAP_SCREEN_X + 436)
-#define BTN_TEAMS_X_COMPACT        (MAP_SCREEN_X + 479)
-#define BTN_MILITIA_X_COMPACT      (MAP_SCREEN_X + 522)
-#define BTN_AIR_X_COMPACT          (MAP_SCREEN_X + 565)
-#define BTN_ITEM_X_COMPACT         (MAP_SCREEN_X + 608)
+// own (left-anchored) territory; on the wide strategic screen it moves
+// with that panel's wide graphic instead (BTN_ROW_WIDE_SHIFT_COMPACT).
+// On the wide strategic screen (1280+) the whole compact-tier row sits
+// BTN_ROW_WIDE_SHIFT_COMPACT px further right, per user request (map_screen_bottom's
+// wide graphic); the 1024 canvas keeps the positions below.
+#define BTN_ROW_WIDE_SHIFT_COMPACT (g_ui.isWideStrategicScreen() ? 257 : 0)
+#define BTN_TOWN_X_COMPACT        (MAP_SCREEN_X + 393 + BTN_ROW_WIDE_SHIFT_COMPACT)
+#define BTN_MINE_X_COMPACT         (MAP_SCREEN_X + 436 + BTN_ROW_WIDE_SHIFT_COMPACT)
+#define BTN_TEAMS_X_COMPACT        (MAP_SCREEN_X + 479 + BTN_ROW_WIDE_SHIFT_COMPACT)
+#define BTN_MILITIA_X_COMPACT      (MAP_SCREEN_X + 522 + BTN_ROW_WIDE_SHIFT_COMPACT)
+#define BTN_AIR_X_COMPACT          (MAP_SCREEN_X + 565 + BTN_ROW_WIDE_SHIFT_COMPACT)
+#define BTN_ITEM_X_COMPACT         (MAP_SCREEN_X + 608 + BTN_ROW_WIDE_SHIFT_COMPACT)
 #define BTN_ROW_Y_COMPACT          (MAP_SCREEN_BOTTOM - 101)
-// X shifted -9 per user request.
-#define MAP_LEVEL_MARKER_X_COMPACT (MAP_SCREEN_X + 660 - 9)
+// X shifted -9 per user request; on the wide strategic screen a further
+// 257 px right, together with the button row (BTN_ROW_WIDE_SHIFT_COMPACT).
+#define MAP_LEVEL_MARKER_X_COMPACT (MAP_SCREEN_X + 660 - 9 + BTN_ROW_WIDE_SHIFT_COMPACT)
 
 // Resolved at runtime (not static-init time) via
 // UILayout::isCompactStrategicScreen(), same reasoning as

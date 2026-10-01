@@ -108,6 +108,63 @@
 #define INV_BAR_DX					7
 #define INV_BAR_DY					30
 
+// Status bar next to each inventory slot on the strategic map (mapinv.sti)
+// -- independent of the tactical INV_BAR_DX/INV_BAR_DY/ITEM_BAR_HEIGHT
+// above, which the item stack popup and keyring popup also share. Used only
+// by INVRenderINVPanelItem() while in MAP_SCREEN.
+// MAP_INV_BAR_DX: bar X = slot X - MAP_INV_BAR_DX (positive = further left).
+// MAP_INV_BAR_DY: Y of the bar's BOTTOM edge = slot Y + MAP_INV_BAR_DY (the
+//                 bar grows upwards from there).
+// MAP_ITEM_BAR_HEIGHT: bar height at 100% status.
+// MAP_ITEM_BAR_WIDTH: bar width; the last column is drawn in the shadow
+//                 colour, the rest in the main colour (2 = original look).
+#define MAP_INV_BAR_DX_NORMAL				7
+#define MAP_INV_BAR_DY_NORMAL				30
+#define MAP_ITEM_BAR_HEIGHT_NORMAL			31
+#define MAP_ITEM_BAR_WIDTH_NORMAL			2
+
+// Same four for the map's "Show Large Icons" mode (mapinv_big_1280_720/768.sti,
+// IsMapInvBigImages() in MapScreen.cc) -- independent of the normal ones
+// above; start equal to them.
+#define MAP_INV_BAR_DX_BIG				7
+#define MAP_INV_BAR_DY_BIG				49
+#define MAP_ITEM_BAR_HEIGHT_BIG				50
+#define MAP_ITEM_BAR_WIDTH_BIG				2
+
+#define MAP_INV_BAR_DX      (IsMapInvBigImages() ? MAP_INV_BAR_DX_BIG      : MAP_INV_BAR_DX_NORMAL)
+#define MAP_INV_BAR_DY      (IsMapInvBigImages() ? MAP_INV_BAR_DY_BIG      : MAP_INV_BAR_DY_NORMAL)
+#define MAP_ITEM_BAR_HEIGHT (IsMapInvBigImages() ? MAP_ITEM_BAR_HEIGHT_BIG : MAP_ITEM_BAR_HEIGHT_NORMAL)
+#define MAP_ITEM_BAR_WIDTH  (IsMapInvBigImages() ? MAP_ITEM_BAR_WIDTH_BIG  : MAP_ITEM_BAR_WIDTH_NORMAL)
+
+// Cover (map_inv_2nd_gun_cover.sti) drawn over the second hand slot on the
+// strategic map while the first hand holds a two-handed item -- independent
+// of the tactical secondary_gun_hidden.sti position/size. X/Y are relative
+// to MAP_SCREEN_X/MAP_SCREEN_Y (the left column's own origin, like
+// m_invSlotPositionMap[] in UILayout.cc), not to the legacy 640x480
+// STD_SCREEN_X/Y window. WIDTH/HEIGHT is the area refreshed after the blit
+// and should match the graphic's size. The defaults mirror the tactical
+// cover's placement relative to its slot (status bar + slot, 75x35) for the
+// SECONDHANDPOS slot at MAP_SCREEN_X + 88, MAP_SCREEN_Y + 225.
+#define MAP_INV_2ND_GUN_COVER_X				79
+#define MAP_INV_2ND_GUN_COVER_Y				223
+#define MAP_INV_2ND_GUN_COVER_WIDTH			75
+#define MAP_INV_2ND_GUN_COVER_HEIGHT			35
+
+// Same cover in the map's "Show Large Icons" mode (mapinv_big_1280_720/768.sti,
+// IsMapInvBigImages() in MapScreen.cc) -- its own graphic,
+// secondary_gun_hidden_big.sti, and its own position/size, independent of
+// the MAP_INV_2ND_GUN_COVER_* above and of the tactical cover. X/Y relative
+// to MAP_SCREEN_X/MAP_SCREEN_Y; WIDTH/HEIGHT is the area refreshed after
+// the blit and should match the graphic. Defaults: 2 px left of the
+// large-mode status bar (MAP_INV_BAR_DX_BIG) and 2 px above the SECONDHANDPOS
+// slot of m_invSlotPositionMapBig[] (UILayout.cc), like the normal cover;
+// size of the current graphic. Falls back to the normal cover if the file
+// is missing.
+#define MAP_INV_2ND_GUN_COVER_BIG_X			96
+#define MAP_INV_2ND_GUN_COVER_BIG_Y			303
+#define MAP_INV_2ND_GUN_COVER_BIG_WIDTH			130
+#define MAP_INV_2ND_GUN_COVER_BIG_HEIGHT		52
+
 // Adjustable offset (from the slot's own top-left corner) and size delta
 // (relative to the slot's own width/height) for the "item doesn't fit
 // here" hatch drawn over inventory slots in INVRenderINVPanelItem() --
@@ -274,8 +331,10 @@ constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 
 #define KEYRING_X      (INTERFACE_START_X + 314)
 #define KEYRING_Y      (INV_INTERFACE_START_Y + 160)
-#define MAP_KEYRING_X (STD_SCREEN_X + 217)
-#define MAP_KEYRING_Y (STD_SCREEN_Y + 271)
+// Strategic map keyring icon -- laid out next to the map inventory's Done
+// button, see MAP_INV_KEYRING_X/Y in MapScreen.h.
+#define MAP_KEYRING_X (MAP_INV_KEYRING_X)
+#define MAP_KEYRING_Y (MAP_INV_KEYRING_Y)
 #define KEYRING_WIDTH   32
 #define KEYRING_HEIGHT  32
 #define TACTICAL_INVENTORY_KEYRING_GRAPHIC_OFFSET_X 215
@@ -697,14 +756,14 @@ struct AttachmentGfxInfo
 static const AttachmentGfxInfo g_attachment_info =
 {
 	
-//	{ 7, 0, 28, 25 },
-//	{ 2, 2,  2, 22 },
+//	{ 7, 0, 28, 25 },  // x position of picture attachment vs status bar ### y position of picture attachment vs status bar ### lenght and hight of attachment box and shadow when you can not attach something
+//	{ 2, 2,  2, 22 }, // x position of status bar ### y position of status bar ### width and hight of status bar
 	
 // NEW POSITION
 	{ 8, 1, 36, 31 },
     { 1, 1,  2, 31 },
 	
-	{
+	{ // x position of status bar and picture attachment ### y positon of status bar and picture attachment
 		{   155,   8 }, {  204,   8 }, {  252,   8 }, { 350,   8 }, // First row
 		{   8,  65 }, {  57,  65 }, {  106,  65 }, { 301,  46 },	{   301,  84 }, {  350,  65 }, // Second row
 		{  105,  122 }, { 154,  122 },	{   203,  122 }, {  252,  122 }, {  349,  122 }, // Third row
@@ -714,8 +773,8 @@ static const AttachmentGfxInfo g_attachment_info =
 
 static const AttachmentGfxInfo g_map_attachment_info =
 {
-	{ 6, 0, 31, 25 },
-	{ 1, 1,  2, 23 },
+	{ 8, 0, 36, 25 },
+	{ 1, 1,  2, 31 },
 	{
 		{   5,   5 }, {  39,   5 }, {  73,   5 }, { 107,   5 },
 		{   5,  31 }, {  39,  31 }, {  73,  31 }, { 107,  31 },
@@ -797,6 +856,100 @@ static INV_REGIONS const gSMInvData[] =
 #undef M
 };
 
+// Slot sizes on the strategic map in "Show Large Icons" mode (see
+// m_invSlotPositionMapBig[] in UILayout.cc and IsMapInvBigImages(),
+// MapScreen.cc) -- independent of gSMInvData[] above, which the tactical
+// panel and the map's normal mode share. Sized to mapinv_big_1280_720/768.sti's
+// slots, one width/height pair per slot kind.
+#define MAP_BIG_HEAD_SLOT_WIDTH			62	// HEAD1-4POS (face items)
+#define MAP_BIG_HEAD_SLOT_HEIGHT		50
+#define MAP_BIG_ARMOUR_SLOT_WIDTH		62	// HELMETPOS, VESTPOS, LEGPOS
+#define MAP_BIG_ARMOUR_SLOT_HEIGHT		50
+#define MAP_BIG_HAND_SLOT_WIDTH			122	// HANDPOS, SECONDHANDPOS
+#define MAP_BIG_HAND_SLOT_HEIGHT		50
+#define MAP_BIG_BIGPOCK_SLOT_WIDTH		122	// BIGPOCK1-10POS
+#define MAP_BIG_BIGPOCK_SLOT_HEIGHT		50
+#define MAP_BIG_SMALLPOCK_SLOT_WIDTH		72	// SMALLPOCK1-20POS
+#define MAP_BIG_SMALLPOCK_SLOT_HEIGHT		50
+
+static INV_REGIONS const gSMInvDataMapBig[] =
+{
+#define M(w, h) { w, h }
+#define HEAD      M(MAP_BIG_HEAD_SLOT_WIDTH,      MAP_BIG_HEAD_SLOT_HEIGHT     )
+#define ARMOUR    M(MAP_BIG_ARMOUR_SLOT_WIDTH,    MAP_BIG_ARMOUR_SLOT_HEIGHT   )
+#define HAND      M(MAP_BIG_HAND_SLOT_WIDTH,      MAP_BIG_HAND_SLOT_HEIGHT     )
+#define BIGPOCK   M(MAP_BIG_BIGPOCK_SLOT_WIDTH,   MAP_BIG_BIGPOCK_SLOT_HEIGHT  )
+#define SMALLPOCK M(MAP_BIG_SMALLPOCK_SLOT_WIDTH, MAP_BIG_SMALLPOCK_SLOT_HEIGHT)
+	ARMOUR,    // HELMETPOS
+	ARMOUR,    // VESTPOS
+	ARMOUR,    // LEGPOS
+	HEAD,      // HEAD1POS
+	HEAD,      // HEAD2POS
+	HEAD,      // HEAD3POS
+	HEAD,      // HEAD4POS
+	HAND,      // HANDPOS
+	HAND,      // SECONDHANDPOS
+	BIGPOCK,   // BIGPOCK1
+	BIGPOCK,   // BIGPOCK2
+	BIGPOCK,   // BIGPOCK3
+	BIGPOCK,   // BIGPOCK4
+	BIGPOCK,   // BIGPOCK5
+	BIGPOCK,   // BIGPOCK6
+	BIGPOCK,   // BIGPOCK7
+	BIGPOCK,   // BIGPOCK8
+	BIGPOCK,   // BIGPOCK9
+	BIGPOCK,   // BIGPOCK10
+	SMALLPOCK, // SMALLPOCK1
+	SMALLPOCK, // SMALLPOCK2
+	SMALLPOCK, // SMALLPOCK3
+	SMALLPOCK, // SMALLPOCK4
+	SMALLPOCK, // SMALLPOCK5
+	SMALLPOCK, // SMALLPOCK6
+	SMALLPOCK, // SMALLPOCK7
+	SMALLPOCK, // SMALLPOCK8
+	SMALLPOCK, // SMALLPOCK9
+	SMALLPOCK, // SMALLPOCK10
+	SMALLPOCK, // SMALLPOCK11
+	SMALLPOCK, // SMALLPOCK12
+	SMALLPOCK, // SMALLPOCK13
+	SMALLPOCK, // SMALLPOCK14
+	SMALLPOCK, // SMALLPOCK15
+	SMALLPOCK, // SMALLPOCK16
+	SMALLPOCK, // SMALLPOCK17
+	SMALLPOCK, // SMALLPOCK18
+	SMALLPOCK, // SMALLPOCK19
+	SMALLPOCK  // SMALLPOCK20
+#undef SMALLPOCK
+#undef BIGPOCK
+#undef HAND
+#undef ARMOUR
+#undef HEAD
+#undef M
+};
+static_assert(std::size(gSMInvDataMapBig) == NUM_INV_SLOTS, "one gSMInvDataMapBig entry per inventory slot");
+
+// Ammo left (bottom-left of the item picture) and stack count (bottom-right)
+// in the "Show Large Icons" panel's slots (mapinv_big_1280_720/768.sti --
+// one set for both): own font, fonts/font_mapinv_big_count.sti, and own
+// positions, independent of every other inventory (ITEM_FONT; ammo at
+// x+1 / 11 px above the bottom, count 4 px from the right / 10 px above the
+// bottom -- the values these start from). Colours are indices into the new
+// font's OWN palette: the ammo-type ones match tinyfont1.sti's except HP,
+// whose index 24 is black there -- 203 (0,0,255) is the nearest blue.
+#define MAP_BIG_COUNT_FONT              FONTMAPINVBIGCOUNT
+#define MAP_BIG_AMMO_TEXT_X             1
+#define MAP_BIG_AMMO_TEXT_FROM_BOTTOM   12
+#define MAP_BIG_STACK_TEXT_FROM_RIGHT   3
+#define MAP_BIG_STACK_TEXT_FROM_BOTTOM  12
+#define MAP_BIG_COUNT_COL_AP            218
+#define MAP_BIG_COUNT_COL_HP            203
+#define MAP_BIG_COUNT_COL_BUCKSHOT      125
+#define MAP_BIG_COUNT_COL_HE            75
+#define MAP_BIG_COUNT_COL_HEAP          76
+#define MAP_BIG_COUNT_COL_AMMO          FONT_WHITE
+#define MAP_BIG_COUNT_COL_STACK         FONT_WHITE
+#define MAP_BIG_COUNT_COL_JAMMED        FONT_MCOLOR_RED
+
 
 struct REMOVE_MONEY
 {
@@ -819,6 +972,8 @@ INT8 gbCompatibleApplyItem = FALSE;
 
 static SGPVObject *guiMapInvSecondHandBlockout;
 static SGPVObject *guiSecItemHiddenVO;
+// Loaded on first use (only drawn in the map's "Show Large Icons" mode).
+static cache_key_t const guiMapInvSecondHandBlockoutBig{ INTERFACEDIR "/secondary_gun_hidden_big.sti" };
 static SGPVObject *guiSmallInventoryGraphicMissingSmallPocket;
 static SGPVObject *guiSmallInventoryGraphicMissingBigPocket;
 static std::map<ST::string, SGPVObject*> allInventoryGraphics;
@@ -1060,8 +1215,11 @@ static void GenerateConsString(ST::string& zItemCons, const OBJECTTYPE& o, UINT3
 void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 	INV_REGION_DESC const* const pCamoRegion,
 	MOUSE_CALLBACK INVMoveCallback, MOUSE_CALLBACK INVClickCallback,
-	MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback)
+	MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback,
+	bool const fMapBigImages)
 {
+	INV_REGIONS const* const sizes = fMapBigImages ? gSMInvDataMapBig : gSMInvData;
+
 	// Load all four body type images
 	guiBodyInvVO[0][0] = AddVideoObjectFromFile(INTERFACEDIR "/inventory_normal_male.sti");
 	guiBodyInvVO[0][1] = AddVideoObjectFromFile(INTERFACEDIR "/inventory_normal_male_h.sti");
@@ -1085,7 +1243,7 @@ void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 		// Set inventory pocket coordinates from the table passed in
 		INT16       const  x = pRegionDesc[i].uX;
 		INT16       const  y = pRegionDesc[i].uY;
-		INV_REGIONS const& r = gSMInvData[i];
+		INV_REGIONS const& r = sizes[i];
 		MOUSE_REGION&      m = gSMInvRegion[i];
 		MSYS_DefineRegion(&m, x, y, x + r.w, y + r.h,
 			MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR,
@@ -1100,13 +1258,15 @@ void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 // Resets fSMKeyringIconPressed (Interface_Panels.h) if the mouse is dragged
 // off the region while still held down -- POINTER_UP never reaches
 // KeyRingItemPanelButtonCallback in that case (see
-// MSYS_UpdateMouseRegion()'s g_clicked_region gating). Tactical only -- the
-// map screen's keyring icon doesn't use this pressed-state system.
+// MSYS_UpdateMouseRegion()'s g_clicked_region gating). Used by both the
+// tactical and the map screen's keyring region.
 static void KeyRingMoveCallback(MOUSE_REGION*, UINT32 iReason)
 {
 	if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
 	{
 		fSMKeyringIconPressed = FALSE;
+		// The map's keyring icon is drawn with the rest of the inventory panel.
+		if (guiCurrentScreen == MAP_SCREEN) fTeamPanelDirty = TRUE;
 	}
 }
 
@@ -1125,7 +1285,7 @@ void InitMapKeyRingInterface( MOUSE_CALLBACK KeyRingClickCallback )
 {
 	MSYS_DefineRegion(&gKeyRingPanel, MAP_KEYRING_X, MAP_KEYRING_Y,
 		MAP_KEYRING_X + KEYRING_WIDTH, MAP_KEYRING_Y + KEYRING_HEIGHT,
-		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK,
+		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, KeyRingMoveCallback,
 		std::move(KeyRingClickCallback));
 	gKeyRingPanel.SetFastHelpText(TacticalStr[KEYRING_HELP_TEXT]);
 }
@@ -1227,10 +1387,21 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 		// second hand position graphic
 		if (pocket == SECONDHANDPOS && GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded())
 		{
-			if (in_map)
+			// Checked once -- secondary_gun_hidden_big.sti is optional.
+			static bool const big_cover_exists = GCM->doesGameResExists(INTERFACEDIR "/secondary_gun_hidden_big.sti");
+			if (in_map && IsMapInvBigImages() && big_cover_exists)
 			{
-				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockout, 0, STD_SCREEN_X + 14, STD_SCREEN_Y + 218);
-				RestoreExternBackgroundRect(STD_SCREEN_X + 14, STD_SCREEN_Y + 218, 102, 24);
+				INT32 const x = MAP_SCREEN_X + MAP_INV_2ND_GUN_COVER_BIG_X;
+				INT32 const y = MAP_SCREEN_Y + MAP_INV_2ND_GUN_COVER_BIG_Y;
+				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockoutBig, 0, x, y);
+				RestoreExternBackgroundRect(x, y, MAP_INV_2ND_GUN_COVER_BIG_WIDTH, MAP_INV_2ND_GUN_COVER_BIG_HEIGHT);
+			}
+			else if (in_map)
+			{
+				INT32 const x = MAP_SCREEN_X + MAP_INV_2ND_GUN_COVER_X;
+				INT32 const y = MAP_SCREEN_Y + MAP_INV_2ND_GUN_COVER_Y;
+				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockout, 0, x, y);
+				RestoreExternBackgroundRect(x, y, MAP_INV_2ND_GUN_COVER_WIDTH, MAP_INV_2ND_GUN_COVER_HEIGHT);
 			}
 			else
 			{
@@ -1254,7 +1425,25 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 		gsCurInterfacePanel != SM_PANEL ||
 		fInterfacePanelDirty == DIRTYLEVEL2 ? dirty_level :
 		DIRTYLEVEL0; // We have a new item and we are in the right panel
-	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline);
+	// "Show Large Icons" on the map draws the same BIGITEMS graphics as the
+	// sector inventory's big mode (IsMapInvBigImages(), MapScreen.cc).
+	BOOLEAN const big = in_map && IsMapInvBigImages();
+	InvItemTextLayout big_text{};
+	if (big)
+	{
+		// Falls back to ITEM_FONT if the dedicated font lacks a glyph the
+		// counts or the (localized) "JAMMED" strings need.
+		bool const has_glyphs = FontHasGlyphsFor(MAP_BIG_COUNT_FONT,
+			ST::string("0123456789") + TacticalStr[JAMMED_ITEM_STR] + TacticalStr[SHORT_JAMMED_GUN]);
+		big_text = InvItemTextLayout{
+			has_glyphs ? MAP_BIG_COUNT_FONT : ITEM_FONT,
+			MAP_BIG_AMMO_TEXT_X, MAP_BIG_AMMO_TEXT_FROM_BOTTOM,
+			MAP_BIG_STACK_TEXT_FROM_RIGHT, MAP_BIG_STACK_TEXT_FROM_BOTTOM,
+			MAP_BIG_COUNT_COL_AP, MAP_BIG_COUNT_COL_HP, MAP_BIG_COUNT_COL_BUCKSHOT,
+			MAP_BIG_COUNT_COL_HE, MAP_BIG_COUNT_COL_HEAP, MAP_BIG_COUNT_COL_AMMO,
+			MAP_BIG_COUNT_COL_STACK, MAP_BIG_COUNT_COL_JAMMED };
+	}
+	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline, big, big ? &big_text : NULL);
 
 	if (gbInvalidPlacementSlot[pocket])
 	{
@@ -1284,8 +1473,16 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 	if (o.usItem != NOTHING)
 	{
 		// Add item status bar
-		DrawItemUIBarEx(o, 0, x - INV_BAR_DX, y + INV_BAR_DY, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR),
-				Get16BPPColor(STATUS_BAR_SHADOW), guiSAVEBUFFER);
+		if (in_map)
+		{
+			DrawItemUIBarEx(o, 0, x - MAP_INV_BAR_DX, y + MAP_INV_BAR_DY, MAP_ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR),
+					Get16BPPColor(STATUS_BAR_SHADOW), guiSAVEBUFFER, MAP_ITEM_BAR_WIDTH);
+		}
+		else
+		{
+			DrawItemUIBarEx(o, 0, x - INV_BAR_DX, y + INV_BAR_DY, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR),
+					Get16BPPColor(STATUS_BAR_SHADOW), guiSAVEBUFFER);
+		}
 	}
 }
 
@@ -1299,27 +1496,12 @@ void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 		INVRenderINVPanelItem(s, i, dirty_level);
 	}
 
-	if (guiCurrentItemDescriptionScreen == MAP_SCREEN)
-	{
-		// Map screen keyring is unchanged: gold_key_button.sti only lights up
-		// when the keyring actually holds a key.
-		if (KeyExistsInKeyRing(s, ANYKEY))
-		{
-			BltVideoObject(guiSAVEBUFFER, guiGoldKeyVO, 0, MAP_KEYRING_X, MAP_KEYRING_Y);
-			RestoreExternBackgroundRect(MAP_KEYRING_X, MAP_KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
-		}
-	}
-	else
-	{
-		// Tactical panel keyring icon draw moved out to RenderSMKeyringIcon()
-		// below -- it used to live here, but that meant it shared this
-		// function's early-return above, which skips it while
-		// InKeyRingPopup() is true, i.e. exactly while the keyring's own
-		// popup is open. RenderSMKeyringIcon() is instead called
-		// unconditionally from RenderSMPanel(), the same way
-		// RenderSMMoneyAndTrashIcons() already is, so the button icon stays
-		// visible the same way Money/Trash/Map/Shortcuts already do.
-	}
+	// Keyring icons are not drawn here on either screen: the tactical one by
+	// RenderSMKeyringIcon() below (called unconditionally from
+	// RenderSMPanel(), like RenderSMMoneyAndTrashIcons()), the map one by
+	// RenderMapInvBookmarkIcons() in MapScreen.cc together with the map's
+	// money and trash-can icons -- this function's early-return above skips
+	// exactly while the keyring's own popup is open.
 }
 
 
@@ -1993,7 +2175,7 @@ UINT8 GetAttachmentHintColor(const OBJECTTYPE* o) {
 }
 
 
-void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECTTYPE const& o, INT16 const sX, INT16 const sY, INT16 const sWidth, INT16 const sHeight, DirtyLevel const dirty_level, UINT8 const ubStatusIndex, INT16 const outline_colour, BOOLEAN const fUseSectorInventoryBigGraphic)
+void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECTTYPE const& o, INT16 const sX, INT16 const sY, INT16 const sWidth, INT16 const sHeight, DirtyLevel const dirty_level, UINT8 const ubStatusIndex, INT16 const outline_colour, BOOLEAN const fUseSectorInventoryBigGraphic, InvItemTextLayout const* const layout)
 {
 	if (o.usItem    == NOTHING)     return;
 	if (dirty_level == DIRTYLEVEL0) return;
@@ -2032,7 +2214,17 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 
 	if (ubStatusIndex < RENDER_ITEM_ATTACHMENT1)
 	{
-		SetFont(ITEM_FONT);
+		// Ammo/stack count text layout: the caller's (layout -- e.g. the map's
+		// "Show Large Icons" panel), else the usual ITEM_FONT one.
+		SGPFont const text_font        = layout ? layout->font            : ITEM_FONT;
+		INT16   const ammo_x           = layout ? layout->ammoX           : 1;
+		INT16   const ammo_from_bottom = layout ? layout->ammoFromBottom  : 11;
+		INT16   const cnt_from_right   = layout ? layout->countFromRight  : 4;
+		INT16   const cnt_from_bottom  = layout ? layout->countFromBottom : 10;
+		// restore height: at least the original 15, more for a taller font
+		INT16   const text_h           = std::max<INT16>(15, GetFontHeight(text_font) + 2);
+
+		SetFont(text_font);
 		SetFontBackground(FONT_MCOLOR_BLACK);
 
 		if (item->getItemClass() == IC_GUN && o.usItem != ROCKET_LAUNCHER)
@@ -2042,27 +2234,28 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 			switch (o.ubGunAmmoType)
 			{
 				case AMMO_AP:
-				case AMMO_SUPER_AP: colour = ITEMDESC_FONTAPFORE;   break;
-				case AMMO_HP:       colour = ITEMDESC_FONTHPFORE;   break;
-				case AMMO_BUCKSHOT: colour = ITEMDESC_FONTBSFORE;   break;
-				case AMMO_HE:       colour = ITEMDESC_FONTHEFORE;   break;
-				case AMMO_HEAT:     colour = ITEMDESC_FONTHEAPFORE; break;
-				default:            colour = FONT_MCOLOR_DKGRAY;    break;
+				case AMMO_SUPER_AP: colour = layout ? layout->colAP          : ITEMDESC_FONTAPFORE;   break;
+				case AMMO_HP:       colour = layout ? layout->colHP          : ITEMDESC_FONTHPFORE;   break;
+				case AMMO_BUCKSHOT: colour = layout ? layout->colBuckshot    : ITEMDESC_FONTBSFORE;   break;
+				case AMMO_HE:       colour = layout ? layout->colHE          : ITEMDESC_FONTHEFORE;   break;
+				case AMMO_HEAT:     colour = layout ? layout->colHEAP        : ITEMDESC_FONTHEAPFORE; break;
+				default:            colour = layout ? layout->colAmmoDefault : FONT_MCOLOR_DKGRAY;    break;
 			}
 			SetFontForeground(colour);
 
-			const INT16 sNewX = sX + 1;
-			const INT16 sNewY = sY + sHeight - 11;
+			ST::string const ammo = ST::format("{}", o.ubGunShotsLeft);
+			const INT16 sNewX = sX + ammo_x;
+			const INT16 sNewY = sY + sHeight - ammo_from_bottom;
 			if (buffer == guiSAVEBUFFER)
 			{
-				RestoreExternBackgroundRect(sNewX, sNewY, 20, 15);
+				RestoreExternBackgroundRect(sNewX, sNewY, std::max<INT16>(20, StringPixLength(ammo, text_font) + 2), text_h);
 			}
-			GPrintInvalidate(sNewX, sNewY, ST::format("{}", o.ubGunShotsLeft));
+			GPrintInvalidate(sNewX, sNewY, ammo);
 
 			// Display 'JAMMED' if we are jammed
 			if (o.bGunAmmoStatus < 0)
 			{
-				SetFontForeground(FONT_MCOLOR_RED);
+				SetFontForeground(layout ? layout->colJammed : FONT_MCOLOR_RED);
 
 				ST::string jammed =
 					sWidth >= BIG_INV_SLOT_WIDTH - 10 ?
@@ -2071,7 +2264,7 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 
 				INT16 cx;
 				INT16 cy;
-				FindFontCenterCoordinates(sX, sY, sWidth, sHeight, jammed, ITEM_FONT, &cx, &cy);
+				FindFontCenterCoordinates(sX, sY, sWidth, sHeight, jammed, text_font, &cx, &cy);
 				GPrintInvalidate(cx, cy, jammed);
 			}
 		}
@@ -2084,13 +2277,13 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 		if (ubStatusIndex != RENDER_ITEM_NOSTATUS && o.ubNumberOfObjects > 1)
 		{
 			// Display # of items
-			SetFontForeground(FONT_GRAY4);
+			SetFontForeground(layout ? layout->colCount : FONT_GRAY4);
 
 			ST::string pStr = ST::format("{}", o.ubNumberOfObjects);
 
-			const UINT16 uiStringLength = StringPixLength(pStr, ITEM_FONT);
-			const INT16  sNewX          = sX + sWidth - uiStringLength - 4;
-			const INT16  sNewY          = sY + sHeight - 10;
+			const UINT16 uiStringLength = StringPixLength(pStr, text_font);
+			const INT16  sNewX          = sX + sWidth - uiStringLength - cnt_from_right;
+			const INT16  sNewY          = sY + sHeight - cnt_from_bottom;
 
 			if (buffer == guiSAVEBUFFER)
 			{
@@ -2108,14 +2301,17 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 				// old flat 15px never exercised this edge (a single digit was
 				// never wide enough to matter) so clamp rather than assume.
 				INT16 const clampedX  = std::max<INT16>(sNewX, 0);
-				INT16 const rectWidth = std::max<INT16>(0, std::min<INT16>(uiStringLength + 4, SCREEN_WIDTH - clampedX));
+				INT16 const rectWidth = std::max<INT16>(0, std::min<INT16>(uiStringLength + cnt_from_right, SCREEN_WIDTH - clampedX));
 				if (rectWidth > 0)
 				{
-					RestoreExternBackgroundRect(clampedX, sNewY, rectWidth, 15);
+					RestoreExternBackgroundRect(clampedX, sNewY, rectWidth, text_h);
 				}
 			}
 			GPrintInvalidate(sNewX, sNewY, pStr);
 		}
+
+		// the attachment / weapon mode markers below keep ITEM_FONT
+		SetFont(ITEM_FONT);
 
 		if (ItemHasAttachments(o))
 		{
@@ -3423,7 +3619,7 @@ void RenderItemDescriptionBox(void)
 			// Display the 'Separate' text
 			SetFontForeground(in_map ? 5 : 6);
 			MoneyLoc const&       xy    = in_map ? gMapMoneyButtonLoc : gMoneyButtonLoc;
-			ST::string label = !in_map && gfAddingMoneyToMercFromPlayersAccount ? gzMoneyAmounts[5] : gzMoneyAmounts[4];
+			ST::string label = gfAddingMoneyToMercFromPlayersAccount ? gzMoneyAmounts[5] : gzMoneyAmounts[4];
 			MPrint(xy.x + gMoneyButtonOffsets[4].x, xy.y + gMoneyButtonOffsets[4].y, label);
 		}
 
@@ -3431,7 +3627,7 @@ void RenderItemDescriptionBox(void)
 
 		INV_DESC_STATS const* const xy = in_map ? gMapMoneyStats : gMoneyStats;
 
-		if (!in_map && gfAddingMoneyToMercFromPlayersAccount)
+		if (gfAddingMoneyToMercFromPlayersAccount)
 		{
 			MPrint(dx + xy[0].sX, dy + xy[0].sY, gMoneyStatsDesc[MONEY_DESC_PLAYERS]);           // current ...
 			MPrint(dx + xy[1].sX, dy + xy[1].sY, gMoneyStatsDesc[MONEY_DESC_BALANCE]);           // ... balance
@@ -4963,10 +5159,11 @@ void InitKeyRingPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 cons
 
 	if( guiCurrentScreen == MAP_SCREEN )
 	{
-		gsKeyRingPopupInvX = STD_SCREEN_X + 0;
+		// sInvX is MAP_KEYRING_POPUP_X (MapScreen.h)
+		gsKeyRingPopupInvX = sInvX;
 		sKeyRingItemWidth = MAP_KEY_RING_ROW_WIDTH;
-		sOffSetX = 40;
-		sOffSetY = 15;
+		sOffSetX = MAP_KEYRING_POPUP_BOX_OFFSET_X;
+		sOffSetY = MAP_KEYRING_POPUP_BOX_OFFSET_Y;
 	}
 	else
 	{
@@ -5072,8 +5269,8 @@ void RenderKeyRingPopup(const BOOLEAN fFullRender)
 	INT16 key_ring_cols;
 	if (guiCurrentScreen == MAP_SCREEN)
 	{
-		offset_x      = 40;
-		offset_y      = 15;
+		offset_x      = MAP_KEYRING_POPUP_BOX_OFFSET_X;
+		offset_y      = MAP_KEYRING_POPUP_BOX_OFFSET_Y;
 		key_ring_cols = MAP_KEY_RING_ROW_WIDTH;
 	}
 	else
@@ -6140,6 +6337,11 @@ static void BtnMoneyButtonCallbackPrimary(GUI_BUTTON* const btn, UINT32 const re
 	{
 		if (gfAddingMoneyToMercFromPlayersAccount && gRemoveMoney.uiMoneyRemoving + amount > MAX_MONEY_PER_SLOT)
 		{
+			if (guiCurrentScreen == MAP_SCREEN)
+			{
+				DoMapMessageBox(MSG_BOX_BASIC_STYLE, gzMoneyWithdrawMessageText[MONEY_TEXT_WITHDRAW_MORE_THEN_MAXIMUM], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+				return;
+			}
 			ScreenID const exit_screen = guiCurrentScreen == SHOPKEEPER_SCREEN ?
 				SHOPKEEPER_SCREEN : GAME_SCREEN;
 			DoMessageBox(MSG_BOX_BASIC_STYLE, gzMoneyWithdrawMessageText[MONEY_TEXT_WITHDRAW_MORE_THEN_MAXIMUM], exit_screen, MSG_BOX_FLAG_OK, NULL, NULL);
@@ -6246,8 +6448,10 @@ static void RemoveMoney(void)
 			{
 				gpItemDescObject->uiMoneyAmount = gRemoveMoney.uiMoneyRemoving;
 
-				//take the money from the player
-				AddTransactionToPlayersBook ( TRANSFER_FUNDS_TO_MERC, gpSMCurrentMerc->ubProfile, GetWorldTotalMin() , -(INT32)( gpItemDescObject->uiMoneyAmount ) );
+				//take the money from the player -- booked to the merc the box was
+				//opened for (gpSMCurrentMerc on the tactical panel, the selected
+				//character on the map screen, where gpSMCurrentMerc isn't his)
+				AddTransactionToPlayersBook ( TRANSFER_FUNDS_TO_MERC, gpItemDescSoldier->ubProfile, GetWorldTotalMin() , -(INT32)( gpItemDescObject->uiMoneyAmount ) );
 			}
 			else
 				gpItemDescObject->uiMoneyAmount = gRemoveMoney.uiMoneyRemaining;
@@ -6502,6 +6706,7 @@ void DeleteInterfaceItemsGraphics()
 {
 	DeleteVideoObject(guiMapInvSecondHandBlockout);
 	DeleteVideoObject(guiSecItemHiddenVO);
+	RemoveVObject(guiMapInvSecondHandBlockoutBig);
 	DeleteVideoObject(guiSmallInventoryGraphicMissingSmallPocket);
 	DeleteVideoObject(guiSmallInventoryGraphicMissingBigPocket);
 	for (auto const& v : allInventoryGraphics) {

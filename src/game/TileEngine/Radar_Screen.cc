@@ -341,12 +341,19 @@ void RenderRadarScreen()
 // those panels' own dirty-flag timing -- see its call site in
 // MapScreen.cc's BlitBackgroundToSaveBuffer(), called right after
 // RenderMapScreenInterfaceBottom() every frame.
-void RenderBigRadarScreenIfVisible(void)
+BOOLEAN IsBigRadarScreenVisible(void)
 {
-	BOOLEAN const fVisible =
+	return
 		fShowMapInventoryPool &&
+		!IsSectorInventoryBigMinimapHidden() && // the window's own checkbox
 		IsCursorOverSectorInventoryWindow() &&
 		gpItemPointer == NULL;
+}
+
+
+void RenderBigRadarScreenIfVisible(void)
+{
+	BOOLEAN const fVisible = IsBigRadarScreenVisible();
 
 	// Last drawn frame rect, restored once the minimap hides again.
 	static SGPBox restore_rect;

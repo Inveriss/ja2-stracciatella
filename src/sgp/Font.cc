@@ -174,6 +174,16 @@ static GlyphIdx GetGlyphIndex(char32_t c)
 }
 
 
+bool FontHasGlyphsFor(SGPFont const font, const ST::string& str)
+{
+	for (char32_t const c : str.to_utf32())
+	{
+		if (GetGlyphIndex(c) >= font->SubregionCount()) return false;
+	}
+	return true;
+}
+
+
 UINT32 GetCharWidth(SGPFont SGPFont, char32_t c)
 {
 	return GetWidth(SGPFont, GetGlyphIndex(c));

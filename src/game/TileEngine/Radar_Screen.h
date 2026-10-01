@@ -59,4 +59,10 @@ void LoadBigRadarScreenBitmap(const ST::string&);
 void ClearOutBigRadarMapImage(void);
 void RenderBigRadarScreenIfVisible(void);
 
+// TRUE while the sector-inventory "big minimap" is showing (same condition
+// RenderBigRadarScreenIfVisible() draws it under). Anything drawn by the
+// button system in its area (e.g. the message log's scroll arrows) has to
+// hide meanwhile -- buttons are drawn after it and would show on top.
+BOOLEAN IsBigRadarScreenVisible(void);
+
 #endif

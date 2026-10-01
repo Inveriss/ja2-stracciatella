@@ -4513,6 +4513,13 @@ void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 	// visually presses even when the click itself turns out to be a no-op.
 	if (iReason & MSYS_CALLBACK_REASON_POINTER_DWN) fSMKeyringIconPressed = TRUE;
 	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)  fSMKeyringIconPressed = FALSE;
+	// The map's keyring icon is drawn with the rest of the inventory panel
+	// (RenderMapInvBookmarkIcons(), MapScreen.cc), so redraw it on a change.
+	if (guiCurrentScreen == MAP_SCREEN &&
+		iReason & (MSYS_CALLBACK_REASON_POINTER_DWN | MSYS_CALLBACK_REASON_POINTER_UP))
+	{
+		fTeamPanelDirty = TRUE;
+	}
 
 	SOLDIERTYPE *pSoldier = NULL;
 	INT16 sStartYPosition = 0;
@@ -4523,9 +4530,10 @@ void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 		pSoldier = GetSelectedInfoChar();
 		if (pSoldier == NULL) return;
 
-		sStartYPosition = MAP_START_KEYRING_Y;
-		sWidth = 261;
-		sHeight = ( 359 - 107 );
+		// see MAP_KEYRING_POPUP_* in MapScreen.h
+		sStartYPosition = MAP_KEYRING_POPUP_Y;
+		sWidth = MAP_KEYRING_POPUP_WIDTH;
+		sHeight = MAP_KEYRING_POPUP_HEIGHT;
 	}
 	else
 	{
@@ -4548,10 +4556,10 @@ void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 		if( guiCurrentScreen == MAP_SCREEN )
 		{
 			// shade the background
-			FRAME_BUFFER->ShadowRect(STD_SCREEN_X + 0, STD_SCREEN_Y + 107,
-							STD_SCREEN_X + 261, STD_SCREEN_Y + 359);
-			InvalidateRegion(STD_SCREEN_X + 0, STD_SCREEN_Y + 107, STD_SCREEN_X + 261, STD_SCREEN_Y + 359);
-			InitKeyRingPopup(pSoldier, STD_SCREEN_X + 0, sStartYPosition, sWidth, sHeight);
+			FRAME_BUFFER->ShadowRect(MAP_KEYRING_POPUP_X, sStartYPosition,
+							MAP_KEYRING_POPUP_X + sWidth, sStartYPosition + sHeight);
+			InvalidateRegion(MAP_KEYRING_POPUP_X, sStartYPosition, MAP_KEYRING_POPUP_X + sWidth, sStartYPosition + sHeight);
+			InitKeyRingPopup(pSoldier, MAP_KEYRING_POPUP_X, sStartYPosition, sWidth, sHeight);
 		}
 		else
 		{

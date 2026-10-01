@@ -88,4 +88,11 @@ void InitSectorInventoryFilterModeForNewGame(void);
 void SaveSectorInventoryFilterModeToSaveGameFile(void);
 void LoadSectorInventoryFilterModeFromSaveGameFile(void);
 
+// "Hide the big minimap" checkbox of the sector-inventory windows -- see
+// gfSectorInventoryHideBigMinimap (Map_Screen_Interface_Map_Inventory.cc).
+BOOLEAN IsSectorInventoryBigMinimapHidden(void);
+void InitSectorInventoryMinimapForNewGame(void);
+void SaveSectorInventoryMinimapToSaveGameFile(void);
+void LoadSectorInventoryMinimapFromSaveGameFile(void);
+
 #endif
