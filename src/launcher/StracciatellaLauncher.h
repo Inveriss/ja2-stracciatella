@@ -41,6 +41,7 @@ public:
   Fl_Value_Input *resolutionXInput;
   Fl_Value_Input *resolutionYInput;
   Fl_Menu_Button *predefinedResolutionMenuButton;
+  Fl_Menu_Button *highResResolutionMenuButton;
   Fl_Check_Button *stretchCheckbox;
   Fl_Check_Button *stretchLaptopCheckbox;
   Fl_Box *invalidResolutionLabel;

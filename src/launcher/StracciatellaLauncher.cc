@@ -109,7 +109,7 @@ on their features.");
           } // Fl_Output* gameSettingsOutput
           o->end();
         } // Fl_Group* o
-        { Fl_Group* o = new Fl_Group(10, 115, 500, 52);
+        { Fl_Group* o = new Fl_Group(10, 105, 500, 75);
           o->tooltip("Specify the resolution for tactical screen rendering. Texts and sprites becom\
 e very small at higher internal resolutions. Note that menus and the strategic\
  map screen are always rendered at 640x480.");
@@ -128,14 +128,18 @@ e very small at higher internal resolutions. Note that menus and the strategic\
             resolutionYInput->value(720);
             resolutionYInput->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           } // Fl_Value_Input* resolutionYInput
-          { predefinedResolutionMenuButton = new Fl_Menu_Button(210, 130, 110, 30, "Predefined");
+          { predefinedResolutionMenuButton = new Fl_Menu_Button(205, 111, 133, 30, "Preset: Standard");
+            predefinedResolutionMenuButton->tooltip("Select a legacy resolution up to Full HD (1920x1080). Ideal for older monitors and classic setups.");
           } // Fl_Menu_Button* predefinedResolutionMenuButton
-          { stretchCheckbox = new Fl_Check_Button(331, 122, 165, 30, "Stretch to Your Screen");
+          { highResResolutionMenuButton = new Fl_Menu_Button(205, 147, 133, 30, "Preset: High Res");
+            highResResolutionMenuButton->tooltip("Select a modern high-definition, Ultrawide, or 4K/8K resolution. Designed for high-end gaming monitors and crisp image scaling.");
+          } // Fl_Menu_Button* highResResolutionMenuButton
+          { stretchCheckbox = new Fl_Check_Button(346, 119, 165, 30, "Stretch to Your Screen");
             stretchCheckbox->tooltip("Stretch the game image to fill the whole screen, ignoring its aspect ratio (no\
  black bars).");
             stretchCheckbox->down_box(FL_DOWN_BOX);
           } // Fl_Check_Button* stretchCheckbox
-          { stretchLaptopCheckbox = new Fl_Check_Button(331, 149, 165, 18, "Stretch In-Game Laptop");
+          { stretchLaptopCheckbox = new Fl_Check_Button(346, 146, 165, 18, "Stretch In-Game Laptop");
             stretchLaptopCheckbox->tooltip("Also stretch the In-Game Laptop (640x480) to fill the whole screen. Ignores i\
 ts aspect ratio, so the In-Game Laptop looks noticeably wider on widescreen mo\
 nitors. Requires \"Stretch to Your Screen\".");

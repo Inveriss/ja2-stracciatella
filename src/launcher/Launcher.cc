@@ -11,6 +11,7 @@
 #include "FL/Fl_Native_File_Chooser.H"
 #include <FL/Fl_PNG_Image.H>
 #include <FL/fl_ask.H>
+#include <FL/fl_draw.H>
 #include <string_theory/string>
 
 #include <algorithm>
@@ -61,13 +62,16 @@ const std::vector<GameVersion> predefinedVersions = {
 	GameVersion::SIMPLIFIED_CHINESE
 };
 const std::vector< std::pair<int, int> > predefinedResolutions = {
+	std::make_pair(1024, 720),
 	std::make_pair(1024, 768),
 	std::make_pair(1280, 720),
 	std::make_pair(1280, 768),
 	std::make_pair(1280, 800),
 	std::make_pair(1280, 960),
 	std::make_pair(1280, 1024),
+	std::make_pair(1360, 720),
 	std::make_pair(1360, 768),
+	std::make_pair(1366, 720),
 	std::make_pair(1366, 768),
 	std::make_pair(1440, 900),
 	std::make_pair(1440, 1080),
@@ -75,6 +79,19 @@ const std::vector< std::pair<int, int> > predefinedResolutions = {
 	std::make_pair(1600, 1024),
 	std::make_pair(1680, 1050),
 	std::make_pair(1920, 1080)
+};
+// "Preset: High Res" menu. Each label starts with WIDTHxHEIGHT, which
+// setPredefinedResolution() parses; the description after it is ignored.
+const std::vector<const char*> predefinedHighResolutions = {
+	"2560x1080  (Ultrawide 21:9 - Ultrawide FHD)",
+	"2560x1440  (Standard 16:9 - 2K QHD)",
+	"2560x1600  (Productivity 16:10 - WQXGA)",
+	"3440x1440  (Ultrawide 21:9 - Ultrawide QHD)",
+	"3840x1600  (Ultrawide 21:9 - Ultrawide QHD+)",
+	"3840x2160  (Standard 16:9 - 4K UHD)",
+	"5120x1440  (Super Ultrawide 32:9 - Dual QHD)",
+	"5120x2880  (Standard 16:9 - 5K)",
+	"7680x4320  (Standard 16:9 - 8K UHD)"
 };
 const std::vector<VideoScaleQuality> scalingModes = {
 	VideoScaleQuality::LINEAR,
@@ -412,6 +429,25 @@ void Launcher::show() {
 	stracciatellaLauncher->icon(&icon);
 	stracciatellaLauncher->show();
 
+	// "invalid!" goes 3px right of the "Internal Resolution:" label, on its
+	// line (1px lower). That label is drawn above resolutionXInput (FL_ALIGN_TOP_LEFT),
+	// starting at its x; the "invalid!" box's own text is inset 3px
+	// (FL_ALIGN_LEFT|FL_ALIGN_INSIDE). Measured after show(), once the display
+	// is open; init_sizes() so a later window resize starts from here. The box
+	// is only as wide as its own text, so it doesn't overlap (and steal hover
+	// from) the "Preset: Standard" button next to it.
+	fl_font(resolutionXInput->labelfont(), resolutionXInput->labelsize());
+	int labelW = 0;
+	int labelH = 0;
+	fl_measure(resolutionXInput->label(), labelW, labelH, 0);
+	fl_font(invalidResolutionLabel->labelfont(), invalidResolutionLabel->labelsize());
+	int invalidW = 0;
+	int invalidH = 0;
+	fl_measure(invalidResolutionLabel->label(), invalidW, invalidH, 0);
+	invalidResolutionLabel->resize(resolutionXInput->x() + labelW + 3 - 3,
+		resolutionXInput->y() - labelH + 1, invalidW + 6, labelH);
+	invalidResolutionLabel->parent()->init_sizes();
+
 	logsDisplay->buffer(logsBuffer);
 	updateLogs();
 }
@@ -538,6 +574,9 @@ void Launcher::populateChoices() {
 	for (std::pair<int,int> res : predefinedResolutions) {
 		ST::string resolutionString = ST::format("{d}x{d}", res.first, res.second);
 		predefinedResolutionMenuButton->insert(-1, resolutionString.c_str(), 0, setPredefinedResolution, this, 0);
+	}
+	for (const char* res : predefinedHighResolutions) {
+		highResResolutionMenuButton->insert(-1, res, 0, setPredefinedResolution, this, 0);
 	}
 
 	for (VideoScaleQuality scalingMode : scalingModes) {
