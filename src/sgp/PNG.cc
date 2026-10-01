@@ -1,0 +1,365 @@
+#include "PNG.h"
+
+#include "SGPFile.h"
+
+#include "ContentManager.h"
+#include "GameInstance.h"
+
+#include <string_theory/format>
+
+#include <climits>
+#include <cstdlib>
+#include <cstring>
+#include <memory>
+#include <stdexcept>
+
+// stb_image is only used in this file: its implementation is compiled here
+// with internal linkage, and everything but the PNG decoder is disabled.
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#define STBI_NO_STDIO
+#define STBI_NO_LINEAR
+#define STBI_NO_HDR
+#ifdef _MSC_VER
+#pragma warning(push, 0)
+#endif
+#include <stb_image.h>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+
+namespace
+{
+
+UINT8 const PNG_SIGNATURE[8] = { 137, 'P', 'N', 'G', '\r', '\n', 26, '\n' };
+
+UINT8 const COLOUR_TYPE_INDEXED = 3;
+
+// Upper limit for width * height, to reject absurd allocations up front.
+// 2^26 pixels are 256 MiB as RGBA, far beyond anything the game shows.
+size_t const MAX_PIXELS = size_t{1} << 26;
+
+
+[[noreturn]] void Fail(ST::string const& message)
+{
+	throw std::runtime_error(ST::format("PNG: {}", message).to_std_string());
+}
+
+
+UINT32 ReadBE32(UINT8 const* const p)
+{
+	return UINT32{p[0]} << 24 | UINT32{p[1]} << 16 | UINT32{p[2]} << 8 | UINT32{p[3]};
+}
+
+
+struct PNGHeader
+{
+	UINT32 width;
+	UINT32 height;
+	UINT8  bitDepth;
+	UINT8  colourType;
+	UINT8  interlace;
+};
+
+
+PNGHeader ReadHeader(UINT8 const* const data, size_t const size)
+{
+	if (size < sizeof(PNG_SIGNATURE) || memcmp(data, PNG_SIGNATURE, sizeof(PNG_SIGNATURE)) != 0)
+	{
+		Fail("not a PNG file");
+	}
+
+	// IHDR must be the first chunk: length (4), type (4), 13 bytes of data, CRC (4)
+	size_t const pos = sizeof(PNG_SIGNATURE);
+	if (size - pos < 8 + 13 + 4 || ReadBE32(data + pos) != 13 || memcmp(data + pos + 4, "IHDR", 4) != 0)
+	{
+		Fail("missing or invalid IHDR chunk");
+	}
+
+	UINT8 const* const ihdr = data + pos + 8;
+	PNGHeader h;
+	h.width      = ReadBE32(ihdr);
+	h.height     = ReadBE32(ihdr + 4);
+	h.bitDepth   = ihdr[8];
+	h.colourType = ihdr[9];
+	h.interlace  = ihdr[12];
+
+	if (h.width == 0 || h.height == 0)
+	{
+		Fail("image has no pixels");
+	}
+	if (h.width > UINT16_MAX || h.height > UINT16_MAX ||
+		size_t{h.width} * h.height > MAX_PIXELS)
+	{
+		Fail(ST::format("image too large ({}x{})", h.width, h.height));
+	}
+	if (ihdr[10] != 0 || ihdr[11] != 0 || h.interlace > 1)
+	{
+		Fail("unknown compression, filter or interlace method");
+	}
+	return h;
+}
+
+
+DecodedPNG DecodeWithStb(UINT8 const* const data, size_t const size, PNGHeader const& h)
+{
+	if (size > INT_MAX) Fail("file too large");
+
+	int w;
+	int ht;
+	int channels;
+	std::unique_ptr<stbi_uc, void (*)(void*)> const px{
+		stbi_load_from_memory(data, static_cast<int>(size), &w, &ht, &channels, 4),
+		stbi_image_free };
+	if (!px)
+	{
+		Fail(ST::format("failed to decode image: {}", stbi_failure_reason()));
+	}
+
+	DecodedPNG png;
+	png.kind             = DecodedPNG::Kind::RGBA;
+	png.width            = static_cast<UINT16>(w);
+	png.height           = static_cast<UINT16>(ht);
+	png.sourceColourType = h.colourType;
+	png.sourceBitDepth   = h.bitDepth;
+	png.pixels.assign(px.get(), px.get() + size_t{png.width} * png.height * 4);
+	return png;
+}
+
+
+UINT8 Paeth(UINT8 const a, UINT8 const b, UINT8 const c)
+{
+	int const p  = int{a} + b - c;
+	int const pa = std::abs(p - a);
+	int const pb = std::abs(p - b);
+	int const pc = std::abs(p - c);
+	if (pa <= pb && pa <= pc) return a;
+	if (pb <= pc)             return b;
+	return c;
+}
+
+
+// Reverses the PNG row filters of one (sub)image. src holds `rows` rows of a
+// filter type byte followed by rowBytes bytes, dst receives rows * rowBytes
+// bytes. Palettised images have at most 8 bits per pixel, so the filters
+// always work on neighbouring bytes.
+void Unfilter(UINT8 const* src, UINT8* const dst, size_t const rowBytes, size_t const rows)
+{
+	std::vector<UINT8> const zeroRow(rowBytes, 0);
+	for (size_t r = 0; r != rows; ++r)
+	{
+		UINT8 const  filter = *src++;
+		UINT8*       cur    = dst + r * rowBytes;
+		UINT8 const* prev   = r == 0 ? zeroRow.data() : cur - rowBytes;
+		for (size_t i = 0; i != rowBytes; ++i)
+		{
+			UINT8 const a = i != 0 ? cur[i - 1]  : 0;
+			UINT8 const b = prev[i];
+			UINT8 const c = i != 0 ? prev[i - 1] : 0;
+			UINT8 const x = src[i];
+			switch (filter)
+			{
+				case 0: cur[i] = x;                                         break;
+				case 1: cur[i] = static_cast<UINT8>(x + a);                 break;
+				case 2: cur[i] = static_cast<UINT8>(x + b);                 break;
+				case 3: cur[i] = static_cast<UINT8>(x + ((a + b) >> 1));    break;
+				case 4: cur[i] = static_cast<UINT8>(x + Paeth(a, b, c));    break;
+				default: Fail(ST::format("invalid row filter type {}", filter));
+			}
+		}
+		src += rowBytes;
+	}
+}
+
+
+// Expands one row of packed 1, 2, 4 or 8 bit palette indices.
+void UnpackRow(UINT8 const* const row, UINT8 const bitDepth, size_t const count,
+	UINT8* dst, size_t const dstStep)
+{
+	if (bitDepth == 8)
+	{
+		for (size_t i = 0; i != count; ++i, dst += dstStep) *dst = row[i];
+		return;
+	}
+
+	UINT8 const mask = static_cast<UINT8>((1U << bitDepth) - 1);
+	for (size_t i = 0; i != count; ++i, dst += dstStep)
+	{
+		size_t   const bit   = i * bitDepth;
+		unsigned const shift = 8 - bitDepth - static_cast<unsigned>(bit & 7);
+		*dst = static_cast<UINT8>((row[bit >> 3] >> shift) & mask);
+	}
+}
+
+
+struct Pass
+{
+	size_t x0, y0, dx, dy;
+};
+
+// Adam7 interlacing; a non-interlaced image is one pass over all pixels.
+Pass const ADAM7_PASSES[] =
+{
+	{ 0, 0, 8, 8 }, { 4, 0, 8, 8 }, { 0, 4, 4, 8 }, { 2, 0, 4, 4 },
+	{ 0, 2, 2, 4 }, { 1, 0, 2, 2 }, { 0, 1, 1, 2 }
+};
+Pass const SINGLE_PASS[] = { { 0, 0, 1, 1 } };
+
+
+DecodedPNG DecodeIndexed(UINT8 const* const data, size_t const size, PNGHeader const& h)
+{
+	switch (h.bitDepth)
+	{
+		case 1: case 2: case 4: case 8: break;
+		default: Fail(ST::format("invalid bit depth {} for a palettised image", h.bitDepth));
+	}
+
+	DecodedPNG png;
+	png.kind             = DecodedPNG::Kind::Indexed;
+	png.width            = static_cast<UINT16>(h.width);
+	png.height           = static_cast<UINT16>(h.height);
+	png.sourceColourType = h.colourType;
+	png.sourceBitDepth   = h.bitDepth;
+
+	// Collect PLTE, tRNS and IDAT. The signature and IHDR were checked already.
+	std::vector<UINT8> idat;
+	bool hasPalette = false;
+	bool hasEnd     = false;
+	for (size_t pos = sizeof(PNG_SIGNATURE); pos != size;)
+	{
+		if (size - pos < 12) Fail("file is truncated");
+		UINT32       const len   = ReadBE32(data + pos);
+		UINT8  const*const type  = data + pos + 4;
+		UINT8  const*const chunk = data + pos + 8;
+		if (len > size - pos - 12) Fail("file is truncated");
+
+		if (memcmp(type, "IHDR", 4) == 0)
+		{
+			if (pos != sizeof(PNG_SIGNATURE)) Fail("duplicate IHDR chunk");
+		}
+		else if (memcmp(type, "PLTE", 4) == 0)
+		{
+			if (hasPalette || !idat.empty()) Fail("misplaced PLTE chunk");
+			if (len == 0 || len % 3 != 0 || len > 256 * 3) Fail("invalid PLTE chunk");
+			png.palette.resize(len / 3);
+			for (size_t i = 0; i != png.palette.size(); ++i)
+			{
+				SGPPaletteEntry& e = png.palette[i];
+				e.r = chunk[i * 3];
+				e.g = chunk[i * 3 + 1];
+				e.b = chunk[i * 3 + 2];
+				e.a = 255;
+			}
+			hasPalette = true;
+		}
+		else if (memcmp(type, "tRNS", 4) == 0)
+		{
+			if (!hasPalette || !idat.empty()) Fail("misplaced tRNS chunk");
+			if (len > png.palette.size()) Fail("tRNS chunk has more entries than the palette");
+			for (size_t i = 0; i != len; ++i) png.palette[i].a = chunk[i];
+		}
+		else if (memcmp(type, "IDAT", 4) == 0)
+		{
+			if (!hasPalette) Fail("missing PLTE chunk");
+			idat.insert(idat.end(), chunk, chunk + len);
+		}
+		else if (memcmp(type, "IEND", 4) == 0)
+		{
+			hasEnd = true;
+			break;
+		}
+		else if (!(type[0] & 0x20))
+		{
+			Fail(ST::format("unknown critical chunk {}{}{}{}",
+				char(type[0]), char(type[1]), char(type[2]), char(type[3])));
+		}
+		// Ancillary chunks we do not know are skipped.
+
+		pos += 12 + size_t{len};
+	}
+	if (!hasEnd)      Fail("file is truncated (missing IEND chunk)");
+	if (idat.empty()) Fail("missing IDAT chunk");
+
+	// Work out the passes and the amount of filtered data they take.
+	Pass const* const passBegin = h.interlace ? std::begin(ADAM7_PASSES) : std::begin(SINGLE_PASS);
+	Pass const* const passEnd   = h.interlace ? std::end(ADAM7_PASSES)   : std::end(SINGLE_PASS);
+	auto const passWidth  = [&](Pass const& p) { return h.width  > p.x0 ? (h.width  - p.x0 + p.dx - 1) / p.dx : 0; };
+	auto const passHeight = [&](Pass const& p) { return h.height > p.y0 ? (h.height - p.y0 + p.dy - 1) / p.dy : 0; };
+	auto const rowBytesOf = [&](size_t const w) { return (w * h.bitDepth + 7) / 8; };
+
+	size_t expected = 0;
+	for (Pass const* p = passBegin; p != passEnd; ++p)
+	{
+		size_t const w = passWidth(*p);
+		size_t const ht = passHeight(*p);
+		if (w != 0 && ht != 0) expected += ht * (1 + rowBytesOf(w));
+	}
+
+	if (idat.size() > INT_MAX) Fail("image data too large");
+	int rawLen = 0;
+	std::unique_ptr<char, void (*)(void*)> const raw{
+		stbi_zlib_decode_malloc_guesssize_headerflag(reinterpret_cast<char const*>(idat.data()),
+			static_cast<int>(idat.size()), static_cast<int>(expected), &rawLen, 1),
+		std::free };
+	if (!raw) Fail("image data is corrupt");
+	if (static_cast<size_t>(rawLen) < expected) Fail("image data is too short");
+
+	png.pixels.resize(size_t{h.width} * h.height);
+	UINT8 const*       src = reinterpret_cast<UINT8 const*>(raw.get());
+	std::vector<UINT8> rows;
+	for (Pass const* p = passBegin; p != passEnd; ++p)
+	{
+		size_t const w  = passWidth(*p);
+		size_t const ht = passHeight(*p);
+		if (w == 0 || ht == 0) continue;
+
+		size_t const rowBytes = rowBytesOf(w);
+		rows.resize(rowBytes * ht);
+		Unfilter(src, rows.data(), rowBytes, ht);
+		src += ht * (1 + rowBytes);
+
+		for (size_t y = 0; y != ht; ++y)
+		{
+			UINT8* const dst = png.pixels.data() + (p->y0 + y * p->dy) * h.width + p->x0;
+			UnpackRow(rows.data() + y * rowBytes, h.bitDepth, w, dst, p->dx);
+		}
+	}
+
+	for (UINT8 const index : png.pixels)
+	{
+		if (index >= png.palette.size())
+		{
+			Fail(ST::format("palette index {} out of range, the palette has {} entries",
+				index, png.palette.size()));
+		}
+	}
+	return png;
+}
+
+}
+
+
+DecodedPNG DecodePNG(UINT8 const* const data, size_t const size)
+{
+	PNGHeader const h = ReadHeader(data, size);
+	return h.colourType == COLOUR_TYPE_INDEXED
+		? DecodeIndexed(data, size, h)
+		: DecodeWithStb(data, size, h);
+}
+
+
+DecodedPNG DecodePNGFile(ST::string const& filename)
+{
+	AutoSGPFile f(GCM->openGameResForReading(filename));
+	std::vector<uint8_t> const data = f->readToEnd();
+	try
+	{
+		return DecodePNG(data.data(), data.size());
+	}
+	catch (std::runtime_error const& e)
+	{
+		throw std::runtime_error(ST::format("{}: {}", filename, e.what()).to_std_string());
+	}
+}

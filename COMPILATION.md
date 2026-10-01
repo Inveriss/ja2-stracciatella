@@ -169,6 +169,7 @@ cmake. The supported options are:
 | ------------- |-------------| -----|
 | `EXTRA_DATA_DIR` | Directory to read externalized data from relative to binary location. Useful for creating installable packages that have a fixed data path. | `` |
 | `LOCAL_SDL_LIB` | Use SDL library from this directory. | `` |
+| `LOCAL_STB_LIB` | Use the bundled stb_image (`dependencies/lib-stb`). When `OFF`, set `STB_INCLUDE_DIR` to a directory containing `stb_image.h`. | `ON` |
 | `WITH_UNITTESTS` | Build with unit tests | `ON` |
 | `WITH_FIXMES` | Build with fixme messages | `OFF` |
 | `WITH_MAEMO` | Build with right click mapped to F4 (menu button) | `OFF` |

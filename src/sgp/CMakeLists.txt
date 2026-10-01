@@ -16,6 +16,7 @@ set(LOCAL_JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/MouseSystem.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Object_Cache.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/PCX.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/PNG.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Random.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/SGP.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/SGPFile.cc
@@ -36,6 +37,7 @@ if (WITH_UNITTESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/FileMan_unittest.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/LoadSaveData_unittest.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/Logger_unittest.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/PNG_unittest.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/SGPStrings_unittest.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/string_unittest.cc
     )
@@ -51,6 +53,13 @@ set_property(
 # building this object file takes longer than all of the other files combined.
 set_property(
     SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/SoundMan.cc
+    DIRECTORY ${CMAKE_SOURCE_DIR}
+    PROPERTY UNITY_GROUP
+)
+
+# Same for PNG, which compiles the stb_image implementation.
+set_property(
+    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/PNG.cc
     DIRECTORY ${CMAKE_SOURCE_DIR}
     PROPERTY UNITY_GROUP
 )
