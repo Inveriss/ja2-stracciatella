@@ -9,17 +9,17 @@
 #include "TestUtils.h"
 
 
-// NOTE: vanillaProfile and stracLinuxProfile below are EXPECTED to fail as of
-// the 19->39 slot inventory expansion. Both read fixed, pre-recorded IMP.dat
-// fixture files (unittests/saves/vanilla-russian/IMP.dat,
-// unittests/saves/strac-macos/imp.dat) serialized under the old
-// MERC_PROFILE_SIZE/MERC_PROFILE_SIZE_STRAC_LINUX byte layout (716/796 bytes).
-// ExtractImpProfileFromFile() now expects the new sizes (796/876 bytes, see
-// LoadSaveMercProfile.h), so these old-format fixtures no longer parse --
-// exactly the same kind of backward-compatibility break as pre-expansion
-// savegames, which this project has deliberately chosen not to support (this
-// change always requires starting a new game). Left failing on purpose rather
-// than regenerated/disabled; do not "fix" by reverting the slot-count sizes.
+// NOTE: the fixture files (unittests/saves/vanilla-russian/IMP.dat,
+// unittests/saves/strac-macos/imp.dat) were originally recorded in the old
+// 716/796 byte profile layout (19 inventory slots, 10 char nicknames, one
+// byte relation IDs, 75 merc opinions), which this engine deliberately no
+// longer reads. They were converted once to the current own format
+// (MERC_PROFILE_SIZE / MERC_PROFILE_SIZE_STRAC_LINUX, see
+// LoadSaveMercProfile.h): read with ExtractMercProfile(..., fVanillaProfileFormat
+// = true), whose layout the old files share, and written with
+// InjectMercProfile(); for strac-macos the name and nickname were then
+// re-encoded as UTF-32. The profile values are unchanged. If the own format
+// changes again, convert the fixtures the same way.
 TEST(LoadSaveMercProfileTest, vanillaProfile)
 {
 	MERCPROFILESTRUCT p;
@@ -172,7 +172,7 @@ TEST(LoadSaveMercProfileTest, vanillaProfile)
 	// UINT32 uiTotalCostToDate;
 }
 
-// NOTE: expected to fail -- see comment above vanillaProfile.
+// NOTE: fixture converted to the current format -- see comment above vanillaProfile.
 TEST(LoadSaveMercProfileTest, stracLinuxProfile)
 {
 	MERCPROFILESTRUCT p;
