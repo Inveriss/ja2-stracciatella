@@ -5,6 +5,7 @@
 #include "Json.h"
 #include "Logger.h"
 #include "SGPFile.h"
+#include "VObject.h"
 
 #include "ContentManager.h"
 #include "GameInstance.h"
@@ -557,9 +558,70 @@ SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> 
 }
 
 
+SGPImage* ConvertPNGToSurfaceImage(DecodedPNG const& png, UINT16 const fContents)
+{
+	size_t const pixelCount = size_t{png.width} * png.height;
+
+	if (png.kind == DecodedPNG::Kind::Indexed)
+	{
+		AutoSGPImage img(new SGPImage(png.width, png.height, 8));
+		if (fContents & IMAGE_PALETTE)
+		{
+			SGPPaletteEntry* const palette = img->pPalette.Allocate(256);
+			for (size_t i = 0; i != 256; ++i)
+			{
+				SGPPaletteEntry& e = palette[i];
+				if (i < png.palette.size())
+				{
+					e.r = png.palette[i].r;
+					e.g = png.palette[i].g;
+					e.b = png.palette[i].b;
+				}
+				else
+				{
+					e.r = e.g = e.b = 0;
+				}
+				e.a = 0;
+			}
+			img->fFlags |= IMAGE_PALETTE;
+		}
+		if (fContents & IMAGE_BITMAPDATA)
+		{
+			UINT8* const data = img->pImageData.Allocate(pixelCount);
+			std::copy(png.pixels.begin(), png.pixels.end(), data);
+			img->uiSizePixData = static_cast<UINT32>(pixelCount);
+			img->fFlags       |= IMAGE_BITMAPDATA;
+		}
+		return img.release();
+	}
+
+	AutoSGPImage img(new SGPImage(png.width, png.height, 16));
+	if (fContents & IMAGE_BITMAPDATA)
+	{
+		UINT16* const data = reinterpret_cast<UINT16*>(
+			static_cast<UINT8*>(img->pImageData.Allocate(pixelCount * 2)));
+		UINT8 const* src = png.pixels.data();
+		for (size_t i = 0; i != pixelCount; ++i, src += 4)
+		{
+			UINT16 colour = 0;
+			if (src[3] >= 128)
+			{
+				colour = Get16BPPColor(FROMRGB(src[0], src[1], src[2]));
+				if (colour == 0) colour = BLACK_SUBSTITUTE;
+			}
+			data[i] = colour;
+		}
+		img->uiSizePixData = static_cast<UINT32>(pixelCount * 2);
+		img->fFlags       |= IMAGE_BITMAPDATA;
+	}
+	return img.release();
+}
+
+
 SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 const fContents)
 {
 	DecodedPNG const png = DecodePNGFile(filename);
+	if (fContents & IMAGE_FOR_SURFACE) return ConvertPNGToSurfaceImage(png, fContents);
 
 	std::vector<PNGFrame> frames;
 	ST::string const metaName = filename + ".json";

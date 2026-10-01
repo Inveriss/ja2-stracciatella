@@ -247,6 +247,13 @@ def write_pairs():
     pixels = [(x + y) % 4 for y in range(3) for x in range(6)]
     write_pair("trns", pal[:4], [(0, 0, 6, 3, 0, 0, pixels)], 6, 3, trns=[255, 255, 0, 200])
 
+    # RGBA image for the video surface path (16 bpp): pure colours, black,
+    # alpha just below and at the 128 threshold, a red too dark for RGB565
+    rgba = [[(255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255), (0, 0, 0, 255)],
+            [(255, 255, 255, 0), (10, 20, 30, 127), (10, 20, 30, 128), (4, 0, 0, 255)]]
+    rows = [b"".join(bytes(p) for p in row) for row in rgba]
+    write_png("rgba_surface.png", ihdr(4, 2, 8, 6), [], filtered_image(rows, 4, lambda r: r % 5), PAIR_DIR)
+
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)

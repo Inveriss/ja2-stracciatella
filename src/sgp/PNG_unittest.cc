@@ -4,6 +4,7 @@
 #include "HImage.h"
 #include "PNG.h"
 #include "TestUtils.h"
+#include "VSurface.h"
 
 #include <string_theory/format>
 
@@ -561,4 +562,174 @@ TEST_F(PNGLoadTest, extensionIsCaseInsensitive)
 TEST_F(PNGLoadTest, missingFileFails)
 {
 	EXPECT_THROW(CreateImage("pngtest/does_not_exist.png", IMAGE_ALLIMAGEDATA), std::runtime_error);
+}
+
+
+// ---------------------------------------------------------------------------
+// Video surfaces (IMAGE_FOR_SURFACE)
+
+namespace
+{
+
+// The 16 bpp conversion uses the screen's pixel format, which Video.cc sets
+// up at run time; the tests use RGB565 as the game does.
+class RGB565Format
+{
+public:
+	RGB565Format() :
+		red_{ gusRedMask }, green_{ gusGreenMask }, blue_{ gusBlueMask },
+		redShift_{ gusRedShift }, greenShift_{ gusGreenShift }, blueShift_{ gusBlueShift }
+	{
+		gusRedMask    = 0xF800;
+		gusGreenMask  = 0x07E0;
+		gusBlueMask   = 0x001F;
+		gusRedShift   = 8;
+		gusGreenShift = 3;
+		gusBlueShift  = -3;
+	}
+
+	~RGB565Format()
+	{
+		gusRedMask    = red_;
+		gusGreenMask  = green_;
+		gusBlueMask   = blue_;
+		gusRedShift   = redShift_;
+		gusGreenShift = greenShift_;
+		gusBlueShift  = blueShift_;
+	}
+
+private:
+	UINT16 red_, green_, blue_;
+	INT16  redShift_, greenShift_, blueShift_;
+};
+
+// Expected 16 bpp values of unittests/data/pngtest/rgba_surface.png
+UINT16 const RGBA_SURFACE_565[] = {
+	0xF800, 0x07E0, 0x001F, BLACK_SUBSTITUTE,   // red, green, blue, black stays visible
+	0x0000, 0x0000, 0x08A3, BLACK_SUBSTITUTE    // alpha 0 and 127 transparent, alpha 128 opaque, too dark red
+};
+
+}
+
+
+TEST(PNG, surfaceIndexedKeepsIndices)
+{
+	DecodedPNG const png = SmallIndexedPNG();
+	AutoSGPImage const img(ConvertPNGToSurfaceImage(png, IMAGE_ALLIMAGEDATA | IMAGE_FOR_SURFACE));
+
+	EXPECT_EQ(img->ubBitDepth, 8);
+	EXPECT_EQ(img->usWidth, 4);
+	EXPECT_EQ(img->usHeight, 2);
+	EXPECT_EQ(img->fFlags, IMAGE_PALETTE | IMAGE_BITMAPDATA);
+	EXPECT_EQ(img->usNumberOfObjects, 0);
+	ASSERT_EQ(img->uiSizePixData, 8u);
+
+	// plain indices; tRNS does not matter (index 2 has alpha 0)
+	UINT8 const* const data = img->pImageData;
+	EXPECT_EQ(std::vector<UINT8>(data, data + 8), png.pixels);
+
+	SGPPaletteEntry const* const pal = img->pPalette;
+	EXPECT_EQ(pal[2].r, 7);
+	EXPECT_EQ(pal[2].g, 8);
+	EXPECT_EQ(pal[2].b, 9);
+	EXPECT_EQ(pal[200].r, 0);
+
+	AutoSGPImage const palOnly(ConvertPNGToSurfaceImage(png, IMAGE_PALETTE));
+	EXPECT_EQ(palOnly->fFlags, IMAGE_PALETTE);
+	EXPECT_TRUE(static_cast<UINT8 const*>(palOnly->pImageData) == nullptr);
+}
+
+
+TEST(PNG, surfaceRGBATo565)
+{
+	RGB565Format const format;
+	DecodedPNG const rgb = DecodeTestPNG("rgb8.png");
+	AutoSGPImage const img(ConvertPNGToSurfaceImage(rgb, IMAGE_ALLIMAGEDATA | IMAGE_FOR_SURFACE));
+
+	EXPECT_EQ(img->ubBitDepth, 16);
+	EXPECT_EQ(img->fFlags, IMAGE_BITMAPDATA);
+	ASSERT_EQ(img->uiSizePixData, 4u * 3u * 2u);
+	UINT16 const* const data = reinterpret_cast<UINT16 const*>(static_cast<UINT8 const*>(img->pImageData));
+	for (unsigned y = 0; y != 3; ++y)
+	{
+		for (unsigned x = 0; x != 4; ++x)
+		{
+			unsigned const r = x * 60, g = y * 100, b = (x + y) * 30;
+			UINT16 want = static_cast<UINT16>((r >> 3) << 11 | (g >> 2) << 5 | (b >> 3));
+			if (want == 0) want = BLACK_SUBSTITUTE;
+			EXPECT_EQ(data[y * 4 + x], want) << "pixel " << x << "," << y;
+		}
+	}
+}
+
+
+TEST_F(PNGLoadTest, surfaceImageThroughVFS)
+{
+	RGB565Format const format;
+	AutoSGPImage const img(CreateImage("pngtest/rgba_surface.png", IMAGE_ALLIMAGEDATA | IMAGE_FOR_SURFACE));
+	ASSERT_EQ(img->ubBitDepth, 16);
+	UINT16 const* const data = reinterpret_cast<UINT16 const*>(static_cast<UINT8 const*>(img->pImageData));
+	for (size_t i = 0; i != 8; ++i)
+	{
+		EXPECT_EQ(data[i], RGBA_SURFACE_565[i]) << "pixel " << i;
+	}
+
+	// The frame metadata of a sheet is not used for a surface.
+	AutoSGPImage const sheet(CreateImage("pngtest/frames.png", IMAGE_ALLIMAGEDATA | IMAGE_FOR_SURFACE));
+	EXPECT_EQ(sheet->ubBitDepth, 8);
+	EXPECT_EQ(sheet->usWidth, 20);
+	EXPECT_EQ(sheet->usHeight, 12);
+	EXPECT_EQ(sheet->fFlags & IMAGE_TRLECOMPRESSED, 0);
+}
+
+
+TEST_F(PNGLoadTest, videoSurfaceFromPNG)
+{
+	RGB565Format const format;
+
+	std::unique_ptr<SGPVSurface> const rgba(AddVideoSurfaceFromFile("pngtest/rgba_surface.png"));
+	ASSERT_EQ(rgba->BPP(), 16);
+	ASSERT_EQ(rgba->Width(), 4);
+	ASSERT_EQ(rgba->Height(), 2);
+	{
+		SDL_Surface const& s = rgba->GetSDLSurface();
+		for (int y = 0; y != 2; ++y)
+		{
+			UINT16 const* const row = reinterpret_cast<UINT16 const*>(static_cast<UINT8 const*>(s.pixels) + y * s.pitch);
+			for (int x = 0; x != 4; ++x)
+			{
+				EXPECT_EQ(row[x], RGBA_SURFACE_565[y * 4 + x]) << "pixel " << x << "," << y;
+			}
+		}
+	}
+
+	std::unique_ptr<SGPVSurface> const indexed(AddVideoSurfaceFromFile("pngtest/single.png"));
+	ASSERT_EQ(indexed->BPP(), 8);
+	ASSERT_EQ(indexed->Width(), 150);
+	ASSERT_EQ(indexed->Height(), 4);
+	{
+		std::vector<uint8_t> const file = [] {
+			AutoSGPFile f(GCM->openGameResForReading("pngtest/single.png"));
+			return f->readToEnd();
+		}();
+		DecodedPNG const png = DecodePNG(file.data(), file.size());
+		SDL_Surface const& s = indexed->GetSDLSurface();
+		for (int y = 0; y != 4; ++y)
+		{
+			UINT8 const* const row = static_cast<UINT8 const*>(s.pixels) + y * s.pitch;
+			EXPECT_EQ(std::memcmp(row, &png.pixels[y * 150], 150), 0) << "row " << y;
+		}
+		SGPPaletteEntry const* const pal = indexed->GetPalette();
+		ASSERT_TRUE(pal != nullptr);
+		EXPECT_EQ(pal[7].r, png.palette[7].r);
+		EXPECT_EQ(pal[7].g, png.palette[7].g);
+		EXPECT_EQ(pal[7].b, png.palette[7].b);
+	}
+}
+
+
+TEST_F(PNGLoadTest, videoSurfaceRejectsETRLEImages)
+{
+	// An indexed ETRLE STI can only become a video object.
+	EXPECT_THROW(AddVideoSurfaceFromFile("pngtest/single.sti"), std::runtime_error);
 }

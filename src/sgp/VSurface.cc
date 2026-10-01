@@ -142,7 +142,13 @@ void SGPVSurface::ShadowRectUsingLowPercentTable(INT32 const x1, INT32 const y1,
 
 SGPVSurface* AddVideoSurfaceFromFile(const char* const Filename)
 {
-	AutoSGPImage img(CreateImage(Filename, IMAGE_ALLIMAGEDATA));
+	AutoSGPImage img(CreateImage(Filename, IMAGE_ALLIMAGEDATA | IMAGE_FOR_SURFACE));
+
+	// The pixel data is copied as it is below, which needs plain pixels.
+	if (img->fFlags & IMAGE_TRLECOMPRESSED)
+	{
+		throw std::runtime_error(ST::format("{}: an ETRLE compressed image cannot be loaded as a video surface", Filename).to_std_string());
+	}
 
 	auto vs = std::make_unique<SGPVSurface>(img->usWidth, img->usHeight, img->ubBitDepth);
 

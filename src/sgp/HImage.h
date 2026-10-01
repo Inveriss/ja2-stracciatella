@@ -27,6 +27,15 @@
 #define IMAGE_ALLIMAGEDATA			0x000C
 #define IMAGE_ALLDATA						0x001C
 
+// Additional content flag for CreateImage(): the image becomes a video
+// surface, so it needs plain (not ETRLE compressed) pixels. Only loaders that
+// can produce either form (PNG) look at it.
+#define IMAGE_FOR_SURFACE				0x0020
+
+// This is the color substituted to keep a 24bpp -> 16bpp color
+// from going transparent (0x0000) -- DB
+#define BLACK_SUBSTITUTE	0x0001
+
 #define AUX_FULL_TILE					0x01
 #define AUX_ANIMATED_TILE			0x02
 #define AUX_DYNAMIC_TILE			0x04

@@ -85,7 +85,18 @@ std::vector<PNGFrame> ParsePNGFrames(ST::string const& json, UINT16 imageWidth, 
 SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
 	UINT16 fContents, ST::string const& name);
 
-// Loads a PNG game resource as an SGPImage. Frame metadata is read from
-// <filename>.json if that exists, otherwise the whole image is one frame.
-// Only palettised PNGs are supported so far.
+// Converts a PNG to an SGPImage with plain pixels for a video surface:
+// - palettised: 8 bpp palette indices (unchanged, tRNS is ignored like the
+//   transparency of PCX images) and the palette padded to 256 entries;
+// - all others: 16 bpp in the current screen pixel format (gusRedMask etc.).
+//   Pixels with alpha below 128 become 0x0000, the colour key of video
+//   surfaces; opaque black becomes BLACK_SUBSTITUTE so it stays visible.
+// fContents selects what is filled in (IMAGE_PALETTE, IMAGE_BITMAPDATA).
+SGPImage* ConvertPNGToSurfaceImage(DecodedPNG const& png, UINT16 fContents);
+
+// Loads a PNG game resource as an SGPImage. With IMAGE_FOR_SURFACE in
+// fContents, see ConvertPNGToSurfaceImage(). Otherwise frame metadata is read
+// from <filename>.json if that exists (else the whole image is one frame) and
+// the image is converted by ConvertIndexedPNGToImage(); only palettised PNGs
+// are supported there so far.
 SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 fContents);
