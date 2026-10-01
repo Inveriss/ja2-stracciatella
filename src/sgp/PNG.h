@@ -50,3 +50,42 @@ DecodedPNG DecodePNG(UINT8 const* data, size_t size);
 
 // Reads a PNG game resource through the VFS and decodes it.
 DecodedPNG DecodePNGFile(ST::string const& filename);
+
+
+// A frame (subimage) of a PNG: a rectangle of the image, and the offset at
+// which it is drawn relative to the blit position (like the subimages of an
+// STCI file).
+struct PNGFrame
+{
+	UINT16 x;
+	UINT16 y;
+	UINT16 width;
+	UINT16 height;
+	INT16  offsetX;
+	INT16  offsetY;
+};
+
+// Parses the frame metadata of a PNG (the contents of <image>.png.json) for
+// an image of the given size. Two forms are accepted:
+//
+//   { "frames": [ { "x": 0, "y": 0, "w": 32, "h": 24, "offsetX": -3, "offsetY": 0 }, ... ] }
+//
+//   { "grid": { "w": 32, "h": 24, "count": 10 }, "offsets": [ [ -3, 0 ], ... ] }
+//
+// "offsetX"/"offsetY" default to 0. A grid is read left to right, top to
+// bottom; "count" defaults to all cells and "offsets", if given, must have
+// one entry per frame. Throws std::runtime_error on invalid metadata.
+std::vector<PNGFrame> ParsePNGFrames(ST::string const& json, UINT16 imageWidth, UINT16 imageHeight);
+
+// Converts a palettised PNG to an 8 bit SGPImage with one ETRLE compressed
+// subimage per frame, like an indexed STCI image. fContents selects what is
+// filled in (IMAGE_PALETTE, IMAGE_BITMAPDATA), as for the STCI loader.
+// Transparent are palette index 0 (as in STCI files) and every index whose
+// tRNS alpha is below 128; name is only used in messages.
+SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
+	UINT16 fContents, ST::string const& name);
+
+// Loads a PNG game resource as an SGPImage. Frame metadata is read from
+// <filename>.json if that exists, otherwise the whole image is one frame.
+// Only palettised PNGs are supported so far.
+SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 fContents);

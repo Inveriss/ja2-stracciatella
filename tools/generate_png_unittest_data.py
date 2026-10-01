@@ -8,15 +8,26 @@ size, tRNS, row filter types and Adam7 interlacing.
 The pixel values follow simple formulas that PNG_unittest.cc repeats; if you
 change a formula here, change it there as well.
 
+It also writes pairs of an STI file (made with tools/sti_editor) and a PNG
+(+ frame metadata) with the same content into assets/unittests/data/pngtest/.
+PNG_unittest.cc loads both through the VFS and expects identical images.
+
 Usage: python tools/generate_png_unittest_data.py
-       (writes into assets/unittests/png/)
+       (writes into assets/unittests/png/ and assets/unittests/data/pngtest/)
 """
 
+import json
 import os
 import struct
+import sys
 import zlib
 
-OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "unittests", "png")
+ASSETS_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "unittests")
+OUT_DIR = os.path.join(ASSETS_DIR, "png")
+PAIR_DIR = os.path.join(ASSETS_DIR, "data", "pngtest")
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "sti_editor"))
+import sti  # noqa: E402
 
 ADAM7 = [(0, 0, 8, 8), (4, 0, 8, 8), (0, 4, 4, 8), (2, 0, 4, 4),
          (0, 2, 2, 4), (1, 0, 2, 2), (0, 1, 1, 2)]
@@ -121,10 +132,10 @@ def filtered_image(rows, bpp, filter_for_row):
     return bytes(out)
 
 
-def write_png(name, header, extra_chunks, raw):
+def write_png(name, header, extra_chunks, raw, directory=OUT_DIR):
     data = (b"\x89PNG\r\n\x1a\n" + header + b"".join(extra_chunks)
             + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
-    with open(os.path.join(OUT_DIR, name), "wb") as f:
+    with open(os.path.join(directory, name), "wb") as f:
         f.write(data)
 
 
@@ -152,8 +163,94 @@ def indexed_interlaced(name, width, height):
     write_png(name, ihdr(width, height, 8, 3, interlace=1), [plte(256)], bytes(raw))
 
 
+# --- STI / PNG pairs ----------------------------------------------------------
+
+def pair_palette(count=256):
+    return [((i * 5) & 0xFF, (i * 11) & 0xFF, (255 - i) & 0xFF) for i in range(count)]
+
+
+def write_pair(stem, palette, frames, sheet_w, sheet_h, meta=None, trns=None):
+    """frames: list of (x, y, w, h, offset_x, offset_y, pixels); pixels is a
+    w*h list of palette indices, None for transparent. The STI gets the frames
+    as subimages, the PNG a sheet with each frame at x, y (index 0 elsewhere)."""
+    sheet = [0] * (sheet_w * sheet_h)
+    s = sti.STIFile()
+    s.palette = list(palette) + [(0, 0, 0)] * (256 - len(palette))
+    transparent = {i for i, a in enumerate(trns or []) if a < 128} | {0}
+    for x, y, w, h, ox, oy, pixels in frames:
+        idx = bytearray(0 if p is None else p for p in pixels)
+        mask = bytearray(0 if p is None or p in transparent else 255 for p in pixels)
+        s.frames.append(sti.Frame(w, h, ox, oy, idx, mask))
+        for j in range(h):
+            for i in range(w):
+                sheet[(y + j) * sheet_w + x + i] = pixels[j * w + i] or 0
+    s.width, s.height = sheet_w, sheet_h
+    s.save(os.path.join(PAIR_DIR, stem + ".sti"))
+
+    rows = [bytes(sheet[r * sheet_w:(r + 1) * sheet_w]) for r in range(sheet_h)]
+    extra = [chunk(b"PLTE", b"".join(bytes(c) for c in palette))]
+    if trns:
+        extra.append(chunk(b"tRNS", bytes(trns)))
+    write_png(stem + ".png", ihdr(sheet_w, sheet_h, 8, 3), extra,
+              filtered_image(rows, 1, lambda r: r % 5), PAIR_DIR)
+    if meta is not None:
+        with open(os.path.join(PAIR_DIR, stem + ".png.json"), "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
+            f.write("\n")
+
+
+def frame_pixels(w, h, seed):
+    """Indices with transparent (None) and index 0 pixels, 254 and 255, and
+    runs longer than 127 pixels in wide frames."""
+    out = []
+    for y in range(h):
+        for x in range(w):
+            v = (x * 7 + y * 13 + seed) % 23
+            if v < 6:
+                out.append(None)
+            elif v == 6:
+                out.append(254)
+            elif v == 7:
+                out.append(255)
+            elif x >= 140:
+                out.append(None)         # long transparent run at the end
+            elif 5 <= x < 140 and y == 1:
+                out.append(9)            # long opaque run
+            else:
+                out.append((x * 3 + y * 5 + seed) % 250 + 1)
+    return out
+
+
+def write_pairs():
+    os.makedirs(PAIR_DIR, exist_ok=True)
+    pal = pair_palette()
+
+    # one frame, no metadata: rows longer than 127 pixels
+    write_pair("single", pal, [(0, 0, 150, 4, 0, 0, frame_pixels(150, 4, 1))], 150, 4)
+
+    # explicit frames of different sizes and offsets on a sheet
+    frames = [(0, 0, 10, 6, -3, 2, frame_pixels(10, 6, 2)),
+              (12, 0, 4, 9, 5, -7, frame_pixels(4, 9, 3)),
+              (0, 9, 17, 3, 0, 0, frame_pixels(17, 3, 4))]
+    write_pair("frames", pal, frames, 20, 12, meta={"frames": [
+        {"x": x, "y": y, "w": w, "h": h, "offsetX": ox, "offsetY": oy}
+        for x, y, w, h, ox, oy, _ in frames]})
+
+    # a 3x2 grid of 5x4 cells, 5 of them used, with offsets
+    offsets = [(0, 0), (-1, 1), (2, -2), (3, 3), (-4, 0)]
+    frames = [(i % 3 * 5, i // 3 * 4, 5, 4, ox, oy, frame_pixels(5, 4, 10 + i))
+              for i, (ox, oy) in enumerate(offsets)]
+    write_pair("grid", pal, frames, 15, 8,
+               meta={"grid": {"w": 5, "h": 4, "count": 5}, "offsets": [list(o) for o in offsets]})
+
+    # 4 colour palette; tRNS makes index 2 transparent, index 3 half transparent
+    pixels = [(x + y) % 4 for y in range(3) for x in range(6)]
+    write_pair("trns", pal[:4], [(0, 0, 6, 3, 0, 0, pixels)], 6, 3, trns=[255, 255, 0, 200])
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
+    write_pairs()
 
     indexed("indexed8.png", 7, 5, 8, idx8_value, 256)
     for depth in (1, 2, 4):

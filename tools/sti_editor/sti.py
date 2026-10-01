@@ -702,6 +702,66 @@ class STIFile:
             paths.append(p)
         return paths
 
+    def export_indexed_sheet(self, path, max_width: int = 1024) -> Tuple[Optional[str], List[str]]:
+        """Write all frames of an indexed STI as one palettised PNG that the
+        game loads instead of the STI (src/sgp/PNG.cc): palette indices are
+        kept as they are, transparent pixels get index 0 (which the game always
+        treats as transparent, tRNS marks it in other programs too). The frames
+        are placed on rows, left to right, with a 1 pixel gap.
+
+        Unless the file is a single frame without offset, the frame positions
+        and offsets go to <path>.json. Returns (json path or None, warnings);
+        opaque index 0 pixels are reported, as the game would not draw them."""
+        import json
+        from PIL import Image
+        if not self.is_indexed or self.is_rgb or not self.frames:
+            raise STIError("only indexed STI files with frames can be exported as a PNG sheet")
+
+        places = []
+        x = y = row_h = sheet_w = 0
+        limit = max(max_width, max(f.width for f in self.frames))
+        for f in self.frames:
+            if x and x + f.width > limit:
+                x, y, row_h = 0, y + row_h + 1, 0
+            places.append((x, y))
+            x += f.width + 1
+            row_h = max(row_h, f.height)
+            sheet_w = max(sheet_w, x - 1)
+        sheet_h = y + row_h
+
+        sheet = bytearray(sheet_w * sheet_h)
+        warnings = []
+        for i, (f, (fx, fy)) in enumerate(zip(self.frames, places)):
+            px, mask = f.pixels, f.mask
+            index0 = 0
+            for j in range(f.height):
+                for k in range(f.width):
+                    n = j * f.width + k
+                    if mask[n]:
+                        sheet[(fy + j) * sheet_w + fx + k] = px[n]
+                        index0 += px[n] == 0
+            if index0:
+                warnings.append(f"frame {i}: {index0} opaque index 0 pixel(s) become transparent")
+
+        img = Image.frombytes("P", (sheet_w, sheet_h), bytes(sheet))
+        pal = [c for rgb in self.palette[:PALETTE_SIZE] for c in rgb]
+        img.putpalette(pal + [0] * (PALETTE_SIZE * 3 - len(pal)))
+        img.info["transparency"] = 0
+        img.save(path, "PNG", transparency=0)
+
+        json_path = None
+        f0 = self.frames[0]
+        if len(self.frames) > 1 or f0.offset_x or f0.offset_y:
+            json_path = str(path) + ".json"
+            frames = [{"x": fx, "y": fy, "w": f.width, "h": f.height,
+                       "offsetX": f.offset_x, "offsetY": f.offset_y}
+                      for f, (fx, fy) in zip(self.frames, places)]
+            with open(json_path, "w", encoding="utf-8") as fh:
+                fh.write('{\n  "frames": [\n')
+                fh.write(",\n".join("    " + json.dumps(fr) for fr in frames))
+                fh.write("\n  ]\n}\n")
+        return json_path, warnings
+
     def describe(self) -> str:
         lines = [
             f"flags          : {flag_names(self.flags)} ({self.flags:#06x})",

@@ -40,11 +40,21 @@ py -3 tools/sti_editor/sti_tool.py export    plik.sti KATALOG [--frame N] [--mas
 py -3 tools/sti_editor/sti_tool.py roundtrip plik1.sti [plik2.sti ...]
 py -3 tools/sti_editor/sti_tool.py palette-export plik.sti paleta.pal [--format jasc|riff|act|gpl|png]
 py -3 tools/sti_editor/sti_tool.py palette-import plik.sti paleta.pal wynik.sti
+py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti wynik.png [--max-width N]
 ```
 
 `roundtrip` niczego nie zapisuje na dysk: serializuje plik w pamięci i
 sprawdza, czy bajty są identyczne, a następnie wymusza ponowną kompresję
 wszystkich klatek i porównuje każdy piksel, maskę, pozycję, paletę i dane aux.
+
+`png-sheet` zapisuje wszystkie klatki STI z paletą jako jeden PNG z paletą,
+który gra wczytuje zamiast STI (`src/sgp/PNG.cc`). Indeksy palety zostają bez
+zmian, a piksele przezroczyste dostają indeks 0, który gra zawsze traktuje
+jako przezroczysty. Klatki układane są w wierszach o szerokości
+`--max-width` (domyślnie 1024) z odstępem 1 piksela. Pozycje i przesunięcia
+klatek trafiają do `wynik.png.json`; przy jednej klatce bez przesunięcia ten
+plik nie powstaje. Nieprzezroczyste piksele o indeksie 0 są zgłaszane jako
+ostrzeżenie, bo w grze stałyby się przezroczyste.
 
 Testy:
 

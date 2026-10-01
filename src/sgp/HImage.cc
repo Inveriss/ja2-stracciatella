@@ -5,6 +5,7 @@
 #include "HImage.h"
 #include "ImpTGA.h"
 #include "PCX.h"
+#include "PNG.h"
 #include "STCI.h"
 #include "VObject.h"
 
@@ -38,6 +39,9 @@ SGPImage* CreateImage(const ST::string& filename, const UINT16 fContents)
 	}
 	if (ext.compare_i("PCX") == 0) {
 		return LoadPCXFileToImage( filename, fContents);
+	}
+	if (ext.compare_i("PNG") == 0) {
+		return LoadPNGFileToImage(filename, fContents);
 	}
 	if (ext.compare_i("TGA") == 0) {
 		return LoadTGAFileToImage( filename, fContents);

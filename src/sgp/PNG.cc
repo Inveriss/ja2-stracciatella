@@ -1,5 +1,9 @@
 #include "PNG.h"
 
+#include "ETRLE.h"
+#include "HImage.h"
+#include "Json.h"
+#include "Logger.h"
 #include "SGPFile.h"
 
 #include "ContentManager.h"
@@ -7,6 +11,7 @@
 
 #include <string_theory/format>
 
+#include <algorithm>
 #include <climits>
 #include <cstdlib>
 #include <cstring>
@@ -362,4 +367,218 @@ DecodedPNG DecodePNGFile(ST::string const& filename)
 	{
 		throw std::runtime_error(ST::format("{}: {}", filename, e.what()).to_std_string());
 	}
+}
+
+
+namespace
+{
+
+PNGFrame MakeFrame(int const x, int const y, int const w, int const h, int const offsetX, int const offsetY,
+	UINT16 const imageWidth, UINT16 const imageHeight, size_t const index)
+{
+	if (x < 0 || y < 0 || w <= 0 || h <= 0 || x + w > imageWidth || y + h > imageHeight)
+	{
+		Fail(ST::format("frame {} ({},{} {}x{}) is not inside the {}x{} image",
+			index, x, y, w, h, imageWidth, imageHeight));
+	}
+	if (offsetX < INT16_MIN || offsetX > INT16_MAX || offsetY < INT16_MIN || offsetY > INT16_MAX)
+	{
+		Fail(ST::format("frame {} has an offset out of range", index));
+	}
+	return PNGFrame{ static_cast<UINT16>(x), static_cast<UINT16>(y),
+		static_cast<UINT16>(w), static_cast<UINT16>(h),
+		static_cast<INT16>(offsetX), static_cast<INT16>(offsetY) };
+}
+
+}
+
+
+std::vector<PNGFrame> ParsePNGFrames(ST::string const& json, UINT16 const imageWidth, UINT16 const imageHeight)
+{
+	JsonValue const root = JsonValue::deserialize(json);
+	if (!root.isObject()) Fail("frame metadata must be a JSON object");
+	JsonObject const meta = root.toObject();
+
+	bool const hasFrames = meta.has("frames");
+	if (hasFrames == meta.has("grid")) Fail("frame metadata needs either \"frames\" or \"grid\"");
+
+	std::vector<PNGFrame> frames;
+	if (hasFrames)
+	{
+		JsonValue const list = meta.GetValue("frames");
+		if (!list.isVec()) Fail("\"frames\" must be an array");
+		for (JsonValue const& v : list.toVec())
+		{
+			if (!v.isObject()) Fail("each frame must be a JSON object");
+			JsonObject const f = v.toObject();
+			frames.push_back(MakeFrame(f.GetInt("x"), f.GetInt("y"), f.GetInt("w"), f.GetInt("h"),
+				f.getOptionalInt("offsetX"), f.getOptionalInt("offsetY"),
+				imageWidth, imageHeight, frames.size()));
+		}
+	}
+	else
+	{
+		JsonValue const gridValue = meta.GetValue("grid");
+		if (!gridValue.isObject()) Fail("\"grid\" must be a JSON object");
+		JsonObject const grid = gridValue.toObject();
+		int const w = grid.GetInt("w");
+		int const h = grid.GetInt("h");
+		if (w <= 0 || h <= 0 || w > imageWidth || h > imageHeight)
+		{
+			Fail(ST::format("grid cell {}x{} does not fit the {}x{} image", w, h, imageWidth, imageHeight));
+		}
+		int const columns = imageWidth / w;
+		int const cells   = columns * (imageHeight / h);
+		int const count   = grid.getOptionalInt("count", cells);
+		if (count <= 0 || count > cells)
+		{
+			Fail(ST::format("grid count {} is not between 1 and the {} cells of the image", count, cells));
+		}
+
+		std::vector<JsonValue> offsets;
+		if (meta.has("offsets"))
+		{
+			JsonValue const list = meta.GetValue("offsets");
+			if (!list.isVec()) Fail("\"offsets\" must be an array");
+			offsets = list.toVec();
+			if (offsets.size() != static_cast<size_t>(count))
+			{
+				Fail(ST::format("\"offsets\" has {} entries for {} frames", offsets.size(), count));
+			}
+		}
+
+		for (int i = 0; i != count; ++i)
+		{
+			int offsetX = 0;
+			int offsetY = 0;
+			if (!offsets.empty())
+			{
+				std::vector<JsonValue> const xy = offsets[i].isVec() ? offsets[i].toVec() : std::vector<JsonValue>{};
+				if (xy.size() != 2) Fail(ST::format("offset {} must be an array [x, y]", i));
+				offsetX = xy[0].toInt();
+				offsetY = xy[1].toInt();
+			}
+			frames.push_back(MakeFrame(i % columns * w, i / columns * h, w, h, offsetX, offsetY,
+				imageWidth, imageHeight, frames.size()));
+		}
+	}
+
+	if (frames.empty())           Fail("frame metadata has no frames");
+	if (frames.size() > UINT16_MAX) Fail("frame metadata has too many frames");
+	return frames;
+}
+
+
+SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
+	UINT16 const fContents, ST::string const& name)
+{
+	if (png.kind != DecodedPNG::Kind::Indexed)
+	{
+		Fail(ST::format("{}: only palettised PNGs are supported so far, this one has colour type {}",
+			name, png.sourceColourType));
+	}
+
+	AutoSGPImage img(new SGPImage(png.width, png.height, 8));
+
+	if (fContents & IMAGE_PALETTE)
+	{
+		// Like the STCI loader: always 256 entries, alpha unused (0).
+		SGPPaletteEntry* const palette = img->pPalette.Allocate(256);
+		for (size_t i = 0; i != 256; ++i)
+		{
+			SGPPaletteEntry& e = palette[i];
+			if (i < png.palette.size())
+			{
+				e.r = png.palette[i].r;
+				e.g = png.palette[i].g;
+				e.b = png.palette[i].b;
+			}
+			else
+			{
+				e.r = e.g = e.b = 0;
+			}
+			e.a = 0;
+		}
+		img->fFlags |= IMAGE_PALETTE;
+	}
+
+	if (fContents & IMAGE_BITMAPDATA)
+	{
+		if (frames.empty() || frames.size() > UINT16_MAX)
+		{
+			Fail(ST::format("{}: invalid number of frames ({})", name, frames.size()));
+		}
+
+		ETRLETransparency transparent{};
+		transparent[0] = true;
+		bool partialAlpha = false;
+		for (size_t i = 0; i != png.palette.size(); ++i)
+		{
+			UINT8 const a = png.palette[i].a;
+			if (a < 128) transparent[i] = true;
+			if (a != 0 && a != 255) partialAlpha = true;
+		}
+		if (partialAlpha)
+		{
+			SLOGW("{}: palette entries with partial alpha are drawn either opaque (alpha >= 128) or transparent", name);
+		}
+
+		std::vector<UINT8> data;
+		ETRLEObject* const objects = img->pETRLEObject.Allocate(frames.size());
+		for (size_t i = 0; i != frames.size(); ++i)
+		{
+			PNGFrame const& f = frames[i];
+			if (f.width == 0 || f.height == 0 || f.x + f.width > png.width || f.y + f.height > png.height)
+			{
+				Fail(ST::format("{}: frame {} is not inside the image", name, i));
+			}
+
+			size_t const start = data.size();
+			EncodeETRLE(png.pixels.data() + size_t{f.y} * png.width + f.x, png.width,
+				f.width, f.height, transparent, data);
+
+			ETRLEObject& o = objects[i];
+			o.uiDataOffset = static_cast<UINT32>(start);
+			o.uiDataLength = static_cast<UINT32>(data.size() - start);
+			o.sOffsetX     = f.offsetX;
+			o.sOffsetY     = f.offsetY;
+			o.usHeight     = f.height;
+			o.usWidth      = f.width;
+		}
+
+		std::copy(data.begin(), data.end(), static_cast<UINT8*>(img->pImageData.Allocate(data.size())));
+		img->usNumberOfObjects = static_cast<UINT16>(frames.size());
+		img->uiSizePixData     = static_cast<UINT32>(data.size());
+		img->fFlags           |= IMAGE_TRLECOMPRESSED | IMAGE_BITMAPDATA;
+	}
+
+	img->uiAppDataSize = 0;
+	return img.release();
+}
+
+
+SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 const fContents)
+{
+	DecodedPNG const png = DecodePNGFile(filename);
+
+	std::vector<PNGFrame> frames;
+	ST::string const metaName = filename + ".json";
+	if (GCM->doesGameResExists(metaName))
+	{
+		AutoSGPFile f(GCM->openGameResForReading(metaName));
+		try
+		{
+			frames = ParsePNGFrames(f->readStringToEnd(), png.width, png.height);
+		}
+		catch (std::runtime_error const& e)
+		{
+			throw std::runtime_error(ST::format("{}: {}", metaName, e.what()).to_std_string());
+		}
+	}
+	else
+	{
+		frames.push_back(PNGFrame{ 0, 0, png.width, png.height, 0, 0 });
+	}
+
+	return ConvertIndexedPNGToImage(png, frames, fContents, filename);
 }

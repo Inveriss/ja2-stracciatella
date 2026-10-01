@@ -5,6 +5,7 @@ set(LOCAL_JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/CrashHandler.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Cursor_Control.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/DirFs.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/ETRLE.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/FileMan.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Font.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/FPS.cc
@@ -34,6 +35,7 @@ set(LOCAL_JA2_SOURCES
 if (WITH_UNITTESTS)
     set(LOCAL_JA2_SOURCES
         ${LOCAL_JA2_SOURCES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/ETRLE_unittest.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/FileMan_unittest.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/LoadSaveData_unittest.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/Logger_unittest.cc

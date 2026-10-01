@@ -7,6 +7,7 @@
     py -3 tools/sti_editor/sti_tool.py roundtrip FILE.sti [...]
     py -3 tools/sti_editor/sti_tool.py palette-export FILE.sti OUT.pal [--format jasc|riff|act|gpl|png]
     py -3 tools/sti_editor/sti_tool.py palette-import FILE.sti PALETTE OUT.sti
+    py -3 tools/sti_editor/sti_tool.py png-sheet FILE.sti OUT.png [--max-width N]
 
 `roundtrip` never writes to disk: it re-serialises in memory, checks the
 bytes are identical, then forces a full ETRLE re-encode and checks every
@@ -102,6 +103,14 @@ def cmd_palette_import(args):
     print(f"{args.out}: {len(new)} colours read, {changed} changed")
 
 
+def cmd_png_sheet(args):
+    s = sti.STIFile.load(args.file)
+    json_path, warnings = s.export_indexed_sheet(args.out, args.max_width)
+    print(args.out + (f" + {json_path}" if json_path else ""))
+    for w in warnings:
+        print(f"warning: {w}")
+
+
 def roundtrip_check(path) -> tuple[bool, str]:
     with open(path, "rb") as fh:
         data = fh.read()
@@ -170,6 +179,11 @@ def main(argv=None):
     p.add_argument("palette")
     p.add_argument("out")
     p.set_defaults(func=cmd_palette_import)
+    p = sub.add_parser("png-sheet", help="palettised PNG (+ frame metadata) for the game's PNG loader")
+    p.add_argument("file")
+    p.add_argument("out")
+    p.add_argument("--max-width", type=int, default=1024, help="wrap frames to rows of this width")
+    p.set_defaults(func=cmd_png_sheet)
     p = sub.add_parser("roundtrip")
     p.add_argument("files", nargs="+")
     p.set_defaults(func=cmd_roundtrip)

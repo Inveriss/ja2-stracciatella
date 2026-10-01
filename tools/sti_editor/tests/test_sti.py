@@ -220,6 +220,46 @@ class ImageTests(unittest.TestCase):
                         if opaque:
                             self.assertEqual((r, g, b), s.palette[idx])
 
+    def test_export_indexed_sheet_keeps_indices_and_frames(self):
+        s = make_file(width=6, height=5, frames=3)
+        s.frames[1].offset_x, s.frames[1].offset_y = -4, 7
+        s.frames[2].set(0, 0, 0)                       # opaque index 0 -> warning
+        s.frames[2].set(1, 0, 254)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "sheet.png")
+            json_path, warnings = s.export_indexed_sheet(out, max_width=13)
+            self.assertEqual(json_path, out + ".json")
+            self.assertEqual(len(warnings), 1)
+            self.assertIn("frame 2", warnings[0])
+
+            import json
+            with open(json_path, encoding="utf-8") as fh:
+                frames = json.load(fh)["frames"]
+            # two frames fit into 13 pixels (6 + 1 + 6), the third wraps
+            self.assertEqual([(f["x"], f["y"]) for f in frames], [(0, 0), (7, 0), (0, 6)])
+            self.assertEqual((frames[1]["offsetX"], frames[1]["offsetY"]), (-4, 7))
+
+            img = Image.open(out)
+            self.assertEqual(img.mode, "P")
+            self.assertEqual(img.size, (13, 11))
+            self.assertEqual(img.info.get("transparency"), 0)
+            pal = img.getpalette()
+            self.assertEqual([tuple(pal[i * 3:i * 3 + 3]) for i in range(256)], s.palette)
+            for f, meta in zip(s.frames, frames):
+                for y in range(f.height):
+                    for x in range(f.width):
+                        idx, opaque = f.get(x, y)
+                        self.assertEqual(img.getpixel((meta["x"] + x, meta["y"] + y)), idx if opaque else 0)
+
+    def test_export_indexed_sheet_single_frame_has_no_metadata(self):
+        s = make_file(width=4, height=3, frames=1)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "one.png")
+            json_path, _ = s.export_indexed_sheet(out)
+            self.assertIsNone(json_path)
+            self.assertFalse(os.path.exists(out + ".json"))
+            self.assertEqual(Image.open(out).size, (4, 3))
+
     def test_new_from_palette_image_keeps_indices(self):
         img = Image.new("P", (3, 1))
         img.putpalette([0, 0, 0, 10, 20, 30, 40, 50, 60] + [0] * (768 - 9))
