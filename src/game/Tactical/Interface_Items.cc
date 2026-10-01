@@ -160,9 +160,9 @@
 // slot of m_invSlotPositionMapBig[] (UILayout.cc), like the normal cover;
 // size of the current graphic. Falls back to the normal cover if the file
 // is missing.
-#define MAP_INV_2ND_GUN_COVER_BIG_X			100
-#define MAP_INV_2ND_GUN_COVER_BIG_Y			305
-#define MAP_INV_2ND_GUN_COVER_BIG_WIDTH			128
+#define MAP_INV_2ND_GUN_COVER_BIG_X			96
+#define MAP_INV_2ND_GUN_COVER_BIG_Y			303
+#define MAP_INV_2ND_GUN_COVER_BIG_WIDTH			130
 #define MAP_INV_2ND_GUN_COVER_BIG_HEIGHT		52
 
 // Adjustable offset (from the slot's own top-left corner) and size delta
@@ -861,15 +861,15 @@ static INV_REGIONS const gSMInvData[] =
 // MapScreen.cc) -- independent of gSMInvData[] above, which the tactical
 // panel and the map's normal mode share. Sized to mapinv_big_1280_720/768.sti's
 // slots, one width/height pair per slot kind.
-#define MAP_BIG_HEAD_SLOT_WIDTH			60	// HEAD1-4POS (face items)
+#define MAP_BIG_HEAD_SLOT_WIDTH			62	// HEAD1-4POS (face items)
 #define MAP_BIG_HEAD_SLOT_HEIGHT		50
-#define MAP_BIG_ARMOUR_SLOT_WIDTH		60	// HELMETPOS, VESTPOS, LEGPOS
+#define MAP_BIG_ARMOUR_SLOT_WIDTH		62	// HELMETPOS, VESTPOS, LEGPOS
 #define MAP_BIG_ARMOUR_SLOT_HEIGHT		50
-#define MAP_BIG_HAND_SLOT_WIDTH			120	// HANDPOS, SECONDHANDPOS
+#define MAP_BIG_HAND_SLOT_WIDTH			122	// HANDPOS, SECONDHANDPOS
 #define MAP_BIG_HAND_SLOT_HEIGHT		50
-#define MAP_BIG_BIGPOCK_SLOT_WIDTH		120	// BIGPOCK1-10POS
+#define MAP_BIG_BIGPOCK_SLOT_WIDTH		122	// BIGPOCK1-10POS
 #define MAP_BIG_BIGPOCK_SLOT_HEIGHT		50
-#define MAP_BIG_SMALLPOCK_SLOT_WIDTH		70	// SMALLPOCK1-20POS
+#define MAP_BIG_SMALLPOCK_SLOT_WIDTH		72	// SMALLPOCK1-20POS
 #define MAP_BIG_SMALLPOCK_SLOT_HEIGHT		50
 
 static INV_REGIONS const gSMInvDataMapBig[] =

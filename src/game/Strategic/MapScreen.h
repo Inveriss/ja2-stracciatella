@@ -204,17 +204,17 @@ void SetMapCursorItem();
 // to it (X/Y relative to MAP_SCREEN_X/MAP_SCREEN_Y) -- tune to
 // mapinv_big_1280_720/768.sti.
 #define TRASH_CAN_X_BIG               (MAP_SCREEN_X + 245)
-#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + 107 + 26)
-#define MAP_INV_KEYRING_X_BIG         (MAP_SCREEN_X + 209)
-#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + 107 + 26)
-#define MAP_INV_MONEY_X_BIG           (MAP_SCREEN_X + 173)
-#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + 107 + 26)
+#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + 107 + 24)
+#define MAP_INV_KEYRING_X_BIG         (MAP_SCREEN_X + 208)
+#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + 107 + 24)
+#define MAP_INV_MONEY_X_BIG           (MAP_SCREEN_X + 171)
+#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + 107 + 24)
 
 // Done button on both "Show Large Icons" panels (mapinv_big_1280_720.sti and
 // mapinv_big_1280_768.sti -- one set): its own graphic (mapinv_done_buttons.sti
 // sub-images 2 = ready, 3 = pressed, MAP_INV_DONE_BTN_W/H_BIG) and position.
-#define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 438)
-#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 90)
+#define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 444)
+#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 88)
 #define MAP_INV_DONE_BTN_W_BIG        50
 #define MAP_INV_DONE_BTN_H_BIG        50
 
