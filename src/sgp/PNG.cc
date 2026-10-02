@@ -391,6 +391,27 @@ PNGFrame MakeFrame(int const x, int const y, int const w, int const h, int const
 		static_cast<INT16>(offsetX), static_cast<INT16>(offsetY) };
 }
 
+// Puts the frame durations into the image, if any frame has one.
+void SetFrameDurations(SGPImage& img, std::vector<PNGFrame> const& frames)
+{
+	img.frameDurations.clear();
+	for (PNGFrame const& f : frames)
+	{
+		if (f.duration == 0) continue;
+		for (PNGFrame const& g : frames) img.frameDurations.push_back(g.duration);
+		return;
+	}
+}
+
+// A frame duration in milliseconds: a whole number from 0 to 65535.
+UINT16 ReadDuration(JsonValue const& v, ST::string const& what)
+{
+	if (!v.isInt()) Fail(ST::format("{} must be a whole number of milliseconds", what));
+	int const ms = v.toInt();
+	if (ms < 0 || ms > UINT16_MAX) Fail(ST::format("{} must be from 0 to {} milliseconds", what, UINT16_MAX));
+	return static_cast<UINT16>(ms);
+}
+
 }
 
 
@@ -408,9 +429,13 @@ PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 const imageWidth, UI
 		result.outline = outline.toBool();
 	}
 
+	UINT16 const frameDuration = meta.has("frameDuration")
+		? ReadDuration(meta.GetValue("frameDuration"), "\"frameDuration\"") : 0;
+
 	bool const hasFrames = meta.has("frames");
 	bool const hasGrid   = meta.has("grid");
 	if (hasFrames && hasGrid) Fail("metadata can have either \"frames\" or \"grid\", not both");
+	if (meta.has("durations") && !hasGrid) Fail("\"durations\" needs a \"grid\", use \"duration\" in \"frames\"");
 
 	std::vector<PNGFrame>& frames = result.frames;
 	if (!hasFrames && !hasGrid)
@@ -429,6 +454,11 @@ PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 const imageWidth, UI
 			frames.push_back(MakeFrame(f.GetInt("x"), f.GetInt("y"), f.GetInt("w"), f.GetInt("h"),
 				f.getOptionalInt("offsetX"), f.getOptionalInt("offsetY"),
 				imageWidth, imageHeight, frames.size()));
+			if (f.has("duration"))
+			{
+				frames.back().duration = ReadDuration(f.GetValue("duration"),
+					ST::format("\"duration\" of frame {}", frames.size() - 1));
+			}
 		}
 	}
 	else
@@ -462,6 +492,18 @@ PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 const imageWidth, UI
 			}
 		}
 
+		std::vector<JsonValue> durations;
+		if (meta.has("durations"))
+		{
+			JsonValue const list = meta.GetValue("durations");
+			if (!list.isVec()) Fail("\"durations\" must be an array");
+			durations = list.toVec();
+			if (durations.size() != static_cast<size_t>(count))
+			{
+				Fail(ST::format("\"durations\" has {} entries for {} frames", durations.size(), count));
+			}
+		}
+
 		for (int i = 0; i != count; ++i)
 		{
 			int offsetX = 0;
@@ -475,11 +517,20 @@ PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 const imageWidth, UI
 			}
 			frames.push_back(MakeFrame(i % columns * w, i / columns * h, w, h, offsetX, offsetY,
 				imageWidth, imageHeight, frames.size()));
+			if (!durations.empty())
+			{
+				frames.back().duration = ReadDuration(durations[i], ST::format("duration {}", i));
+			}
 		}
 	}
 
 	if (frames.empty())           Fail("metadata has no frames");
 	if (frames.size() > UINT16_MAX) Fail("metadata has too many frames");
+
+	for (PNGFrame& f : frames)
+	{
+		if (f.duration == 0) f.duration = frameDuration;
+	}
 	return result;
 }
 
@@ -565,6 +616,7 @@ SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> 
 		img->usNumberOfObjects = static_cast<UINT16>(frames.size());
 		img->uiSizePixData     = static_cast<UINT32>(data.size());
 		img->fFlags           |= IMAGE_TRLECOMPRESSED | IMAGE_BITMAPDATA;
+		SetFrameDurations(*img, frames);
 	}
 
 	img->uiAppDataSize = 0;
@@ -628,6 +680,7 @@ SGPImage* ConvertRGBAPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> con
 		img->uiSizePixData     = static_cast<UINT32>(total);
 		img->fFlags           |= IMAGE_RGBA | IMAGE_BITMAPDATA;
 		if (!outline) img->fFlags |= IMAGE_NO_OUTLINE;
+		SetFrameDurations(*img, frames);
 	}
 
 	img->uiAppDataSize = 0;

@@ -1250,3 +1250,158 @@ TEST_F(PNGLoadTest, DISABLED_benchmark)
 	double const cached = timeLookups();
 	std::printf("replacement lookup: %.1f us first, %.2f us cached\n", first, cached);
 }
+
+
+// ---------------------------------------------------------------------------
+// Animations: frame durations
+
+TEST(PNG, frameDurationsInFrames)
+{
+	PNGMetadata const meta = ParsePNGMetadata(R"({ "frameDuration": 70, "frames": [
+		{ "x": 0, "y": 0, "w": 2, "h": 2, "duration": 50 },
+		{ "x": 2, "y": 0, "w": 2, "h": 2 },
+		{ "x": 4, "y": 0, "w": 2, "h": 2, "duration": 0 },
+		{ "x": 6, "y": 0, "w": 2, "h": 2, "duration": 65535 } ] })", 8, 2);
+	ASSERT_EQ(meta.frames.size(), 4u);
+	EXPECT_EQ(meta.frames[0].duration, 50);
+	EXPECT_EQ(meta.frames[1].duration, 70); // "frameDuration"
+	EXPECT_EQ(meta.frames[2].duration, 70); // 0 = not given
+	EXPECT_EQ(meta.frames[3].duration, 65535);
+}
+
+
+TEST(PNG, frameDurationsInGrid)
+{
+	PNGMetadata const meta = ParsePNGMetadata(
+		R"({ "grid": { "w": 2, "h": 2, "count": 3 }, "durations": [ 10, 0, 30 ], "frameDuration": 99 })", 6, 2);
+	ASSERT_EQ(meta.frames.size(), 3u);
+	EXPECT_EQ(meta.frames[0].duration, 10);
+	EXPECT_EQ(meta.frames[1].duration, 99);
+	EXPECT_EQ(meta.frames[2].duration, 30);
+}
+
+
+TEST(PNG, frameDurationsDefaults)
+{
+	// no durations at all
+	PNGMetadata const none = ParsePNGMetadata(R"({ "grid": { "w": 2, "h": 2 } })", 4, 2);
+	for (PNGFrame const& f : none.frames) EXPECT_EQ(f.duration, 0);
+
+	// only "frameDuration", also for the whole image as one frame
+	PNGMetadata const whole = ParsePNGMetadata(R"({ "frameDuration": 120 })", 4, 2);
+	ASSERT_EQ(whole.frames.size(), 1u);
+	EXPECT_EQ(whole.frames[0].duration, 120);
+}
+
+
+TEST(PNG, invalidFrameDurationsFail)
+{
+	char const* const invalid[] = {
+		R"({ "frameDuration": -1 })",
+		R"({ "frameDuration": 65536 })",
+		R"({ "frameDuration": "fast" })",
+		R"({ "frameDuration": 1.5 })",
+		R"({ "frames": [ { "x": 0, "y": 0, "w": 1, "h": 1, "duration": -5 } ] })",
+		R"({ "frames": [ { "x": 0, "y": 0, "w": 1, "h": 1, "duration": true } ] })",
+		R"({ "grid": { "w": 5, "h": 5, "count": 2 }, "durations": [ 10 ] })",
+		R"({ "grid": { "w": 5, "h": 5, "count": 2 }, "durations": 10 })",
+		R"({ "grid": { "w": 5, "h": 5, "count": 2 }, "durations": [ 10, "x" ] })",
+		R"({ "durations": [ 10 ] })",                                           // no grid
+		R"({ "frames": [ { "x": 0, "y": 0, "w": 1, "h": 1 } ], "durations": [ 10 ] })",
+	};
+	for (char const* const json : invalid)
+	{
+		SCOPED_TRACE(json);
+		EXPECT_THROW(ParsePNGMetadata(json, 10, 10), std::runtime_error);
+	}
+}
+
+
+TEST(PNG, frameDurationsInImageAndVideoObject)
+{
+	std::vector<PNGFrame> frames{ { 0, 0, 2, 1, 0, 0 }, { 2, 0, 2, 1, 0, 0 } };
+	frames[0].duration = 40;
+	frames[1].duration = 80;
+
+	// palettised
+	AutoSGPImage indexed(ConvertIndexedPNGToImage(SmallIndexedPNG(), frames, IMAGE_ALLIMAGEDATA, "test"));
+	EXPECT_EQ(indexed->frameDurations, (std::vector<UINT16>{ 40, 80 }));
+	std::unique_ptr<SGPVObject> const vo(AddVideoObjectFromHImage(indexed.get()));
+	EXPECT_TRUE(vo->HasFrameDurations());
+	EXPECT_EQ(vo->FrameDuration(0), 40);
+	EXPECT_EQ(vo->FrameDuration(1), 80);
+	EXPECT_EQ(vo->FrameDuration(2), 0); // out of range
+
+	// RGBA
+	frames = { { 0, 0, 3, 3, 0, 0 } };
+	frames[0].duration = 25;
+	AutoSGPImage rgba(ConvertRGBAPNGToImage(SmallRGBAPNG(), frames, IMAGE_ALLIMAGEDATA, "test"));
+	EXPECT_EQ(rgba->frameDurations, (std::vector<UINT16>{ 25 }));
+
+	// no durations: empty, as for STI files
+	AutoSGPImage plain(ConvertIndexedPNGToImage(SmallIndexedPNG(), { PNGFrame{ 0, 0, 4, 2, 0, 0 } }, IMAGE_ALLIMAGEDATA, "test"));
+	EXPECT_TRUE(plain->frameDurations.empty());
+	std::unique_ptr<SGPVObject> const plainVO(AddVideoObjectFromHImage(plain.get()));
+	EXPECT_FALSE(plainVO->HasFrameDurations());
+	EXPECT_EQ(plainVO->FrameDuration(0), 0);
+}
+
+
+TEST_F(PNGLoadTest, animationsThroughVFS)
+{
+	// palettised, frames of different sizes and offsets (anim_frames.png.json)
+	std::unique_ptr<SGPVObject> const pal(AddVideoObjectFromFile("pngtest/anim_frames.png"));
+	ASSERT_EQ(pal->SubregionCount(), 3);
+	EXPECT_FALSE(pal->IsRGBA());
+	ETRLEObject const& f0 = pal->SubregionProperties(0);
+	ETRLEObject const& f1 = pal->SubregionProperties(1);
+	ETRLEObject const& f2 = pal->SubregionProperties(2);
+	EXPECT_EQ(f0.usWidth, 6);
+	EXPECT_EQ(f0.usHeight, 4);
+	EXPECT_EQ(f0.sOffsetX, -1);
+	EXPECT_EQ(f0.sOffsetY, 2);
+	EXPECT_EQ(f1.usWidth, 3);
+	EXPECT_EQ(f1.usHeight, 5);
+	EXPECT_EQ(f1.sOffsetX, 4);
+	EXPECT_EQ(f1.sOffsetY, -3);
+	EXPECT_EQ(f2.usWidth, 8);
+	EXPECT_EQ(f2.usHeight, 2);
+	EXPECT_EQ(pal->FrameDuration(0), 50);
+	EXPECT_EQ(pal->FrameDuration(1), 100);
+	EXPECT_EQ(pal->FrameDuration(2), 70);
+
+	// RGBA grid with "durations"
+	std::unique_ptr<SGPVObject> const rgba(AddVideoObjectFromFile("pngtest/anim_grid_rgba.png"));
+	ASSERT_EQ(rgba->SubregionCount(), 4);
+	EXPECT_TRUE(rgba->IsRGBA());
+	for (UINT16 i = 0; i != 4; ++i) EXPECT_EQ(rgba->FrameDuration(i), (i + 1) * 10);
+
+	// a multi-frame PNG without durations, and an STI
+	std::unique_ptr<SGPVObject> const noDurations(AddVideoObjectFromFile("pngtest/frames.png"));
+	EXPECT_EQ(noDurations->SubregionCount(), 3);
+	EXPECT_FALSE(noDurations->HasFrameDurations());
+	std::unique_ptr<SGPVObject> const sti(AddVideoObjectFromFile("pngtest/etrle_only.sti"));
+	EXPECT_FALSE(sti->HasFrameDurations());
+}
+
+
+TEST_F(PNGLoadTest, animationFramesRender)
+{
+	// first, middle and last frame of the RGBA grid at an offset position;
+	// each cell is one colour: (n * 60, 255 - n * 60, 0)
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo(AddVideoObjectFromFile("pngtest/anim_grid_rgba.png"));
+	ScopedClip const clip(SGPRect{ 0, 0, 8, 8 });
+	for (UINT16 const frame : { UINT16{0}, UINT16{2}, UINT16{3} })
+	{
+		SCOPED_TRACE(frame);
+		SGPVSurface dst(8, 8, 16);
+		dst.Fill(0);
+		BltVideoObject(&dst, vo.get(), frame, 2, 3);
+		UINT16 const want = static_cast<UINT16>((frame * 60 >> 3) << 11 | ((255 - frame * 60) >> 2) << 5);
+		EXPECT_EQ(Pixel(dst, 2, 3), want);
+		EXPECT_EQ(Pixel(dst, 5, 6), want);
+		EXPECT_EQ(Pixel(dst, 1, 3), 0);
+		EXPECT_EQ(Pixel(dst, 6, 3), 0);
+	}
+}

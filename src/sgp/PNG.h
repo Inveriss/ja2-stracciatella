@@ -63,11 +63,17 @@ struct PNGFrame
 	UINT16 height;
 	INT16  offsetX;
 	INT16  offsetY;
+	// How long the frame is shown in milliseconds, 0 if the metadata does not
+	// say. Only animations that support it use it (see docs/png-images.md);
+	// the others keep their own timing.
+	UINT16 duration = 0;
 };
 
 // The metadata of a PNG (the contents of <image>.png.json).
 struct PNGMetadata
 {
+	// frame durations are already resolved: "duration" of the frame, else
+	// "frameDuration" of the image, else 0
 	std::vector<PNGFrame> frames;
 	// Full colour images only: draw an outline around the image where the
 	// game asks for one (e.g. compatible items). Palettised images have their
@@ -85,8 +91,13 @@ struct PNGMetadata
 // or not at all, then the whole image is one frame. "offsetX"/"offsetY"
 // default to 0. A grid is read left to right, top to bottom; "count" defaults
 // to all cells and "offsets", if given, must have one entry per frame.
-// "outline": false turns the outline off. Throws std::runtime_error on
-// invalid metadata.
+// "outline": false turns the outline off.
+//
+// Frame durations in milliseconds (0 to 65535): "duration" in a frame of
+// "frames", "durations": [ ... ] with one entry per frame next to "grid", and
+// "frameDuration" for the frames without one of their own.
+//
+// Throws std::runtime_error on invalid metadata.
 PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 imageWidth, UINT16 imageHeight);
 
 // Converts a palettised PNG to an 8 bit SGPImage with one ETRLE compressed

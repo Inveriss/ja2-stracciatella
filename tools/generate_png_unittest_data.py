@@ -256,6 +256,40 @@ def write_pairs():
 
     write_replacement_files(pal)
     write_resolution_backgrounds()
+    write_animations(pal)
+
+
+# --- animations: frames with durations -----------------------------------------
+
+def write_animations(palette):
+    # palettised, 3 frames of different sizes and offsets; durations 50 and 100
+    # of their own, the third one takes "frameDuration" (70)
+    w, h = 12, 8
+    sheet = [[0] * w for _ in range(h)]
+    frames = [(0, 0, 6, 4, -1, 2, 50), (7, 0, 3, 5, 4, -3, 100), (0, 6, 8, 2, 0, 0, None)]
+    for n, (fx, fy, fw, fh, _, _, _) in enumerate(frames):
+        for y in range(fh):
+            for x in range(fw):
+                sheet[fy + y][fx + x] = 1 + (n * 40 + x + y) % 200
+    rows = [bytes(r) for r in sheet]
+    plte_chunk = chunk(b"PLTE", b"".join(bytes(c) for c in palette))
+    write_png("anim_frames.png", ihdr(w, h, 8, 3), [plte_chunk], filtered_image(rows, 1, lambda r: r % 5), PAIR_DIR)
+    meta = {"frameDuration": 70, "frames": []}
+    for fx, fy, fw, fh, ox, oy, d in frames:
+        f = {"x": fx, "y": fy, "w": fw, "h": fh, "offsetX": ox, "offsetY": oy}
+        if d is not None:
+            f["duration"] = d
+        meta["frames"].append(f)
+    with open(os.path.join(PAIR_DIR, "anim_frames.png.json"), "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+        f.write("\n")
+
+    # RGBA, a 4x1 grid of 4x4 cells with "durations"
+    rows = [b"".join(bytes((n * 60, 255 - n * 60, 0, 255)) for n in range(4) for _ in range(4)) for _ in range(4)]
+    write_png("anim_grid_rgba.png", ihdr(16, 4, 8, 6), [], filtered_image(rows, 4, lambda r: 0), PAIR_DIR)
+    with open(os.path.join(PAIR_DIR, "anim_grid_rgba.png.json"), "w", encoding="utf-8") as f:
+        json.dump({"grid": {"w": 4, "h": 4}, "durations": [10, 20, 30, 40]}, f, indent=2)
+        f.write("\n")
 
 
 # --- backgrounds for the screen resolution (src/game/ScreenBackground.cc) -----

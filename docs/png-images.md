@@ -160,6 +160,35 @@ Siatka jednakowych komórek, od lewej do prawej i z góry na dół:
 Kolejność klatek musi odpowiadać kolejności podobrazów w STI, które PNG zastępuje
 (gra odwołuje się do nich po numerze).
 
+### Czas klatek animacji
+
+Czas wyświetlania klatki w milisekundach (liczba całkowita 0–65535):
+
+```json
+{
+  "frameDuration": 100,
+  "frames": [
+    { "x": 0,   "y": 0, "w": 248, "h": 110, "duration": 400 },
+    { "x": 249, "y": 0, "w": 248, "h": 110 }
+  ]
+}
+```
+
+```json
+{ "grid": { "w": 64, "h": 64, "count": 4 }, "durations": [80, 80, 120, 200] }
+```
+
+- `duration` w klatce z listy `frames`, `durations` (jeden wpis na klatkę) obok
+  `grid`;
+- `frameDuration` dotyczy klatek bez własnego czasu (także pojedynczej klatki
+  bez `frames`/`grid`);
+- `0` albo brak oznacza „bez zmiany”: animacja używa swojego dotychczasowego
+  czasu z gry.
+
+Czasy działają tylko w animacjach, które je obsługują. Gdzie indziej są pomijane i
+animacja zachowuje tempo z gry (tak jak przy STI, które nie mają czasów klatek).
+Animacje obsługujące czasy z PNG: na razie żadne (dochodzą w kolejnych etapach).
+
 ## Narzędzia
 
 Eksport STI do PNG z paletą z zachowaniem indeksów, klatek i przesunięć:

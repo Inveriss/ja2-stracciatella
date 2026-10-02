@@ -4,6 +4,7 @@
 #include "Buffer.h"
 #include "Types.h"
 #include <memory>
+#include <vector>
 
 // The HIMAGE module provides a common interface for managing image data. This module
 // includes:
@@ -115,6 +116,9 @@ struct SGPImage
 	UINT32                       uiSizePixData;
 	SGP::Buffer<ETRLEObject>     pETRLEObject;
 	UINT16                       usNumberOfObjects;
+	// PNG images only: how long each frame is shown in milliseconds (0 = not
+	// given), one entry per frame; empty if no frame has a duration.
+	std::vector<UINT16>          frameDurations;
 };
 
 

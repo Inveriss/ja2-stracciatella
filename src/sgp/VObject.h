@@ -3,6 +3,7 @@
 
 #include "Types.h"
 #include <memory>
+#include <vector>
 
 
 // Defines for HVOBJECT limits
@@ -51,6 +52,15 @@ class SGPVObject
 		void CurrentShade(size_t idx);
 
 		UINT16 SubregionCount() const { return subregion_count_; }
+
+		// How long a subimage is shown in milliseconds, from the metadata of a
+		// PNG ("duration"); 0 if not given, always 0 for STI files. Animations
+		// that support it use it instead of their own delay.
+		UINT16 FrameDuration(size_t idx) const
+		{
+			return idx < frame_durations_.size() ? frame_durations_[idx] : 0;
+		}
+		bool HasFrameDurations() const { return !frame_durations_.empty(); }
 
 		ETRLEObject const& SubregionProperties(size_t idx) const;
 
@@ -103,6 +113,7 @@ class SGPVObject
 
 	private:
 		UINT16                       subregion_count_;               // Total number of objects
+		std::vector<UINT16>          frame_durations_;               // see FrameDuration()
 		UINT8                        bit_depth_;                     // BPP
 
 	public:

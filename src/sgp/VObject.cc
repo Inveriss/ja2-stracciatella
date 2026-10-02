@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
+#include <utility>
 
 // ******************************************************************************
 //
@@ -36,6 +37,7 @@ SGPVObject::SGPVObject(SGPImage * const img) :
 	etrle_object_{ img->pETRLEObject.moveToUnique() },
 	current_shade_(),
 	subregion_count_{ img->usNumberOfObjects },
+	frame_durations_{ std::move(img->frameDurations) },
 	bit_depth_{ img->ubBitDepth },
 	next_(gpVObjectHead)
 {
