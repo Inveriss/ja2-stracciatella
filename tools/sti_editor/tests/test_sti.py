@@ -271,6 +271,36 @@ class ImageTests(unittest.TestCase):
             self.assertEqual(meta["frameDuration"], 120)
             self.assertEqual(len(meta["frames"]), 1)
 
+    def test_export_animated_sheet(self):
+        import json
+        # 2 directions of 3 frames, aux as in the game's animation files
+        s = make_file(width=4, height=3, frames=6)
+        for i, f in enumerate(s.frames):
+            f.aux = sti.AuxData(number_of_frames=3, flags=sti.AUX_ANIMATED_TILE) if i % 3 == 0 else sti.AuxData()
+        self.assertEqual(s.animation_frames_per_direction(), 3)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "anim.png")
+            json_path, warnings = s.export_indexed_sheet(out)
+            self.assertEqual(warnings, [])
+            with open(json_path, encoding="utf-8") as fh:
+                meta = json.load(fh)
+            self.assertEqual(meta["animation"], {"framesPerDirection": 3})
+            # one row per direction
+            self.assertEqual([(f["x"], f["y"]) for f in meta["frames"]],
+                             [(0, 0), (5, 0), (10, 0), (0, 4), (5, 4), (10, 4)])
+
+    def test_export_sheet_with_other_aux_warns(self):
+        import json
+        # tileset-like aux (tile location data): not reproducible from a PNG
+        s = make_file(width=4, height=3, frames=2, aux=True)
+        self.assertIsNone(s.animation_frames_per_direction())
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "tiles.png")
+            json_path, warnings = s.export_indexed_sheet(out)
+            self.assertTrue(any("application data" in w for w in warnings))
+            with open(json_path, encoding="utf-8") as fh:
+                self.assertNotIn("animation", json.load(fh))
+
     def test_assemble_palettised_frames(self):
         import json
         pal = [i % 256 for i in range(768)]

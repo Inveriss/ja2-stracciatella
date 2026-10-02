@@ -713,15 +713,25 @@ class STIFile:
         frame_duration), the frame positions and offsets go to <path>.json,
         frame_duration (milliseconds) as "frameDuration". Returns (json path or
         None, warnings); opaque index 0 pixels are reported, as the game would
-        not draw them."""
+        not draw them.
+
+        An animated STI (see animation_frames_per_direction()) gets the
+        "animation" section the game needs for animations in the game world
+        and one row per direction on the sheet."""
         from PIL import Image
         if not self.is_indexed or self.is_rgb or not self.frames:
             raise STIError("only indexed STI files with frames can be exported as a PNG sheet")
 
-        places, sheet_w, sheet_h = sheet_layout([(f.width, f.height) for f in self.frames], max_width)
+        warnings = []
+        per_direction = self.animation_frames_per_direction()
+        if self.has_aux and not per_direction:
+            warnings.append("the application data (AuxObjectData) is more than animation frame counts "
+                            "(e.g. a tileset): it is not exported, the game cannot use such a PNG instead")
+
+        places, sheet_w, sheet_h = sheet_layout([(f.width, f.height) for f in self.frames], max_width,
+                                                per_direction or 0)
 
         sheet = bytearray(sheet_w * sheet_h)
-        warnings = []
         for i, (f, (fx, fy)) in enumerate(zip(self.frames, places)):
             px, mask = f.pixels, f.mask
             index0 = 0
@@ -742,13 +752,33 @@ class STIFile:
 
         json_path = None
         f0 = self.frames[0]
-        if len(self.frames) > 1 or f0.offset_x or f0.offset_y or frame_duration:
+        if len(self.frames) > 1 or f0.offset_x or f0.offset_y or frame_duration or per_direction:
             json_path = str(path) + ".json"
             frames = [{"x": fx, "y": fy, "w": f.width, "h": f.height,
                        "offsetX": f.offset_x, "offsetY": f.offset_y}
                       for f, (fx, fy) in zip(self.frames, places)]
-            write_sheet_metadata(json_path, frames, frame_duration)
+            write_sheet_metadata(json_path, frames, frame_duration, per_direction or 0)
         return json_path, warnings
+
+    def animation_frames_per_direction(self) -> Optional[int]:
+        """N if the AuxObjectData of the frames is only the animation data the
+        game builds from a PNG's "animation": { "framesPerDirection": N }: the
+        first frame of each direction (every N-th) with number_of_frames N
+        and AUX_ANIMATED_TILE, everything else 0; None otherwise."""
+        if not self.has_aux or not self.frames:
+            return None
+        first = self.frames[0].aux
+        if first is None or not first.flags & AUX_ANIMATED_TILE:
+            return None
+        n = first.number_of_frames
+        if n < 1 or n > len(self.frames):
+            return None
+        for i, f in enumerate(self.frames):
+            a = f.aux or AuxData()
+            want = AuxData(number_of_frames=n, flags=AUX_ANIMATED_TILE) if i % n == 0 else AuxData()
+            if a.pack() != want.pack():
+                return None
+        return n
 
     def describe(self) -> str:
         lines = [
@@ -768,15 +798,18 @@ class STIFile:
         return "\n".join(lines)
 
 
-def sheet_layout(sizes: Sequence[Tuple[int, int]], max_width: int = 1024) -> Tuple[List[Tuple[int, int]], int, int]:
+def sheet_layout(sizes: Sequence[Tuple[int, int]], max_width: int = 1024,
+        row_length: int = 0) -> Tuple[List[Tuple[int, int]], int, int]:
     """Places frames of the given (width, height) on rows, left to right, with
     a 1 pixel gap, rows at most max_width wide (or as wide as the widest
-    frame). Returns (positions, sheet width, sheet height)."""
+    frame); with row_length, a new row also starts every row_length frames
+    (e.g. one row per animation direction). Returns (positions, sheet width,
+    sheet height)."""
     places = []
     x = y = row_h = sheet_w = 0
     limit = max(max_width, max(w for w, _ in sizes))
-    for w, h in sizes:
-        if x and x + w > limit:
+    for i, (w, h) in enumerate(sizes):
+        if x and (x + w > limit or (row_length and i % row_length == 0)):
             x, y, row_h = 0, y + row_h + 1, 0
         places.append((x, y))
         x += w + 1
@@ -785,11 +818,15 @@ def sheet_layout(sizes: Sequence[Tuple[int, int]], max_width: int = 1024) -> Tup
     return places, sheet_w, y + row_h
 
 
-def write_sheet_metadata(json_path, frames: Sequence[dict], frame_duration: int = 0) -> None:
-    """Writes <image>.png.json: one frame per line, "frameDuration" if given."""
+def write_sheet_metadata(json_path, frames: Sequence[dict], frame_duration: int = 0,
+        frames_per_direction: int = 0) -> None:
+    """Writes <image>.png.json: one frame per line, "frameDuration" and the
+    "animation" section if given."""
     import json
     with open(json_path, "w", encoding="utf-8") as fh:
         fh.write("{\n")
+        if frames_per_direction:
+            fh.write(f'  "animation": {{ "framesPerDirection": {int(frames_per_direction)} }},\n')
         if frame_duration:
             fh.write(f'  "frameDuration": {int(frame_duration)},\n')
         fh.write('  "frames": [\n')

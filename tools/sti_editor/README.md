@@ -57,6 +57,10 @@ klatek trafiają do `wynik.png.json`; przy jednej klatce bez przesunięcia ten
 plik nie powstaje. Nieprzezroczyste piksele o indeksie 0 są zgłaszane jako
 ostrzeżenie, bo w grze stałyby się przezroczyste. `--duration` zapisuje czas
 klatek animacji w milisekundach (`frameDuration`, opis w `docs/png-images.md`).
+Dla animowanych STI (dane aux to tylko liczby klatek animacji: postacie,
+eksplozje, kursory) zapisywana jest sekcja `"animation": { "framesPerDirection":
+N }`, a każdy kierunek trafia do osobnego rzędu arkusza. Inne dane aux (np.
+tilesetów) nie są eksportowane – wtedy pojawia się ostrzeżenie.
 
 `png-assemble` składa osobne pliki klatek (katalog z plikami PNG w kolejności
 nazw albo lista plików) w jeden arkusz `wynik.png` z `wynik.png.json`. Gdy

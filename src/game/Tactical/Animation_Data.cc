@@ -678,7 +678,10 @@ void LoadAnimationSurface(UINT16 const usSoldierID, UINT16 const usSurfaceIndex,
 			// Load into memory
 			SLOGD("Surface Database: Loading {}", usSurfaceIndex);
 
-			AutoSGPImage   hImage(CreateImage(a->Filename, IMAGE_ALLDATA));
+			// Only the number of frames per direction is used from the aux data,
+			// so a palettised PNG with an "animation" section may replace the file
+			// (docs/png-images.md).
+			AutoSGPImage   hImage(CreateImage(a->Filename, IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
 			AutoSGPVObject hVObject(AddVideoObjectFromHImage(hImage.get()));
 
 			// Get aux data

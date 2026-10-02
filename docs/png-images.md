@@ -23,9 +23,10 @@ oryginał. Kolejność warstw (od najwyższej): katalog domowy, mody, `externali
 (`items.json`, `weapons.json`, `loading-screens.json` itd.), można wpisać ścieżkę
 do pliku `.png`.
 
-Animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
-można podmienić PNG z paletą z sekcją `animation` w metadanych (opis niżej,
-„Animacje w świecie gry”). Kafli tilesetów i animacji postaci PNG nie podmienia.
+Animacje postaci (`anims/`), animacje z pamięci podręcznej kafli (`tilecache/`,
+np. eksplozje) i kursory można podmienić PNG z paletą z sekcją `animation` w
+metadanych (opis niżej, „Animacje w świecie gry”). Kafli tilesetów PNG nie
+podmienia.
 
 ### Gdy PNG nie da się użyć
 
@@ -207,9 +208,10 @@ dokładnie jak dotąd, także z dłużej wyświetlaną pierwszą i ostatnią kla
 z czasami o długości każdej klatki decyduje tylko `png.json`. Pliki reklam w
 innych wersjach językowych mają inne nazwy (np. `german/yourad_13_german`).
 
-### Animacje w świecie gry (eksplozje, kursory)
+### Animacje w świecie gry (postacie, eksplozje, kursory)
 
-Animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
+Animacje postaci (`anims/`, np. `anims/s_merc/s_r_std` – najemnik stojący),
+animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
 potrzebują danych dodatkowych: liczby klatek animacji. PNG może je zastąpić, gdy:
 
 - jest **PNG z paletą** (efekty świata gry – Z-bufor, oświetlenie, cień
@@ -232,8 +234,26 @@ znacznik animacji. Statyczny kursor ma `"framesPerDirection": 1`.
 
 Bez sekcji `animation` albo dla PNG w pełnym kolorze gra wczytuje oryginał i
 zapisuje błąd w logu. Liczba klatek i ich rozmiary muszą pasować do pliku
-`.jsd` o tej samej nazwie, jeśli taki istnieje. Kursory nie używają czasów
-klatek (ich tempo zależy od gry). Kafle tilesetów nie są podmieniane.
+`.jsd` o tej samej nazwie, jeśli taki istnieje. Kafle tilesetów nie są
+podmieniane.
+
+Postacie:
+
+- klatki są ułożone kierunkami: liczba kierunków animacji (1, 2, 3, 4, 8 albo
+  32, zależnie od animacji) × `framesPerDirection` musi być równa liczbie
+  klatek oryginału, inaczej gra zgłasza w logu niezgodność;
+- kolejność i rozmiary klatek muszą odpowiadać oryginałowi, bo skrypty animacji
+  (`binarydata/ja2bin.dat`) wskazują klatki po numerze, a dane struktur
+  (`anims/structdata/*.jsd`) dotyczą ich rozmiarów;
+- **paleta musi zostać bez zmian**: gra podmienia kolory włosów, skóry, kamizelki
+  i spodni przez wpisy palety (palety postaci), a oświetlenie i cień również
+  korzystają z palety;
+- cienie postaci są osobnymi animacjami (osobne pliki) i podmienia się je tak samo.
+
+Czasy klatek (`duration`) nie dotyczą postaci ani kursorów: ich tempo ustala gra.
+Najprościej zacząć od eksportu oryginału komendą `png-sheet` (niżej), która dla
+animacji sama zapisuje sekcję `animation` i układa każdy kierunek w osobnym
+rzędzie arkusza.
 
 ## Narzędzia
 
@@ -244,7 +264,10 @@ py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti plik.png [--max-width N] [
 ```
 
 Tworzy `plik.png` i, przy wielu klatkach, przesunięciach lub `--duration`,
-`plik.png.json` (`--duration` zapisuje `frameDuration`).
+`plik.png.json` (`--duration` zapisuje `frameDuration`). Dla animowanych STI
+(postacie, eksplozje, kursory) zapisuje też sekcję `animation` i układa każdy
+kierunek w osobnym rzędzie. STI z innymi danymi dodatkowymi (tilesety) dają
+ostrzeżenie, bo takiego PNG gra nie może użyć.
 
 Złożenie osobnych plików klatek (np. `explosion/000.png`, `001.png`, … w
 kolejności nazw) w jeden arkusz z metadanymi:
@@ -261,7 +284,9 @@ klatek. Szczegóły w `tools/sti_editor/README.md`.
 ## Ograniczenia
 
 - Wymiary obrazu do 65535 pikseli w każdym kierunku i do 2^26 pikseli łącznie.
-- Animacje postaci, kafle i kursory nadal wymagają STI.
+- Kafle tilesetów nadal wymagają STI; animacje postaci, efekty z pamięci
+  podręcznej kafli i kursory – PNG tylko z paletą (pełny kolor w świecie gry nie
+  jest jeszcze obsługiwany).
 - Grafika PNG z paletą zajmuje w pamięci tyle samo co STI, grafika w pełnym
   kolorze około 5 bajtów na piksel (RGBA i maska obrysu).
 
