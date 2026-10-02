@@ -136,7 +136,9 @@ static ScreenID gubGIOExitScreen = GAME_INIT_OPTIONS_SCREEN;
 
 static cache_key_t const guiGIOMainBackGroundImage{ INTERFACEDIR "/optionsscreenbackground.sti" };
 // The background for the current resolution, if there is one (see ScreenBackground.h)
-static std::unique_ptr<SGPVSurface> gGIOResolutionBackground;
+// (not a smart pointer: the video surface manager frees all surfaces at
+// shutdown, also one left when the game is closed on this screen)
+static SGPVSurface* gGIOResolutionBackground = nullptr;
 
 
 // Done Button
@@ -266,7 +268,8 @@ static void EnterGIOScreen()
 {
 	if (gfGIOButtonsAllocated) return;
 
-	gGIOResolutionBackground = LoadResolutionBackground(guiGIOMainBackGroundImage);
+	DeleteVideoSurface(gGIOResolutionBackground);
+	gGIOResolutionBackground = LoadResolutionBackground(guiGIOMainBackGroundImage).release();
 
 	SetCurrentCursorFromDatabase(CURSOR_NORMAL);
 
@@ -337,7 +340,8 @@ static void ExitGIOScreen()
 
 	// Delete the main options screen background.
 	RemoveVObject(guiGIOMainBackGroundImage);
-	gGIOResolutionBackground.reset();
+	DeleteVideoSurface(gGIOResolutionBackground);
+	gGIOResolutionBackground = nullptr;
 
 	RemoveButton(guiGIOCancelButton);
 	RemoveButton(guiGIODoneButton);
@@ -428,7 +432,7 @@ static void RenderGIOScreen(void)
 
 	if (gGIOResolutionBackground)
 	{
-		DrawResolutionBackground(FRAME_BUFFER, gGIOResolutionBackground.get());
+		DrawResolutionBackground(FRAME_BUFFER, gGIOResolutionBackground);
 	}
 	else
 	{

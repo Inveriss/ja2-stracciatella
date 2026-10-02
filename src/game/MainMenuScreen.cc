@@ -56,7 +56,9 @@ static GUIButtonRef iMenuButtons[NUM_MENU_ITEMS];
 namespace {
 cache_key_t const guiMainMenuBackGroundImage{ LOADSCREENSDIR "/mainmenubackground.sti" };
 // The background for the current resolution, if there is one (see ScreenBackground.h)
-static std::unique_ptr<SGPVSurface> gMainMenuResolutionBackground;
+// (not a smart pointer: the video surface manager frees all surfaces at
+// shutdown, also one left when the game is closed on this screen)
+static SGPVSurface* gMainMenuResolutionBackground = nullptr;
 cache_key_t const guiJa2LogoImage{ LOADSCREENSDIR "/ja2logo.sti" };
 }
 
@@ -191,7 +193,8 @@ static void CreateDestroyMainMenuButtons(BOOLEAN fCreate);
 
 void InitMainMenu(void)
 {
-	gMainMenuResolutionBackground = LoadResolutionBackground(guiMainMenuBackGroundImage);
+	DeleteVideoSurface(gMainMenuResolutionBackground);
+	gMainMenuResolutionBackground = LoadResolutionBackground(guiMainMenuBackGroundImage).release();
 
 	CreateDestroyMainMenuButtons(TRUE);
 
@@ -214,7 +217,8 @@ static void ExitMainMenu(void)
 {
 	CreateDestroyMainMenuButtons(FALSE);
 	RemoveVObject(guiMainMenuBackGroundImage);
-	gMainMenuResolutionBackground.reset();
+	DeleteVideoSurface(gMainMenuResolutionBackground);
+	gMainMenuResolutionBackground = nullptr;
 	RemoveVObject(guiJa2LogoImage);
 	gMsgBox.uiExitScreen = MAINMENU_SCREEN;
 }
@@ -342,7 +346,7 @@ static void RenderMainMenu(void)
 {
 	if (gMainMenuResolutionBackground)
 	{
-		DrawResolutionBackground(FRAME_BUFFER, gMainMenuResolutionBackground.get());
+		DrawResolutionBackground(FRAME_BUFFER, gMainMenuResolutionBackground);
 	}
 	else
 	{
