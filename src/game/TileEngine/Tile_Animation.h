@@ -128,6 +128,11 @@ ANITILE* CreateAnimationTile(const ANITILE_PARAMS*);
 
 void DeleteAniTile( ANITILE *pAniTile );
 void UpdateAniTiles(void);
+
+// How long the current frame of an animation tile stays on screen: its
+// duration from a PNG (tile cache animations such as explosions, see
+// docs/png-images.md), else sDelay.
+UINT32 GetAniTileFrameDelay(ANITILE const&);
 void DeleteAniTiles(void);
 
 void HideAniTile( ANITILE *pAniTile, BOOLEAN fHide );

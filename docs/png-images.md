@@ -23,8 +23,9 @@ oryginał. Kolejność warstw (od najwyższej): katalog domowy, mody, `externali
 (`items.json`, `weapons.json`, `loading-screens.json` itd.), można wpisać ścieżkę
 do pliku `.png`.
 
-Podmiany nie dotyczą kafli, animacji postaci ani kursorów (używają danych
-dodatkowych, których PNG nie ma).
+Animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
+można podmienić PNG z paletą z sekcją `animation` w metadanych (opis niżej,
+„Animacje w świecie gry”). Kafli tilesetów i animacji postaci PNG nie podmienia.
 
 ### Gdy PNG nie da się użyć
 
@@ -196,6 +197,7 @@ Animacje obsługujące czasy z PNG:
 | reklama ubezpieczeń (AIM) | `laptop/insurancead_10.png` | 10 klatek, domyślnie 150 ms |
 | reklama zakładu pogrzebowego (AIM) | `laptop/funeralad_9.png` | 9 klatek, domyślnie 250 ms |
 | reklama Bobby Ray's (AIM) | `laptop/bobbyrayad_21.png` | 21 klatek, odtwarzane jako 0–6, 0–6, 7–20; domyślnie 300 ms |
+| animacje z pamięci podręcznej kafli (eksplozje, dym i inne efekty) | np. `tilecache/zgrav_d.png` | czas klatki zastępuje opóźnienie animacji (dla eksplozji `blastSpeed` z `explosion-animations.json`); klatki bez czasu trwają jak dotąd |
 
 W reklamach AIM z czasami klatek każda klatka jest rysowana na tle strony
 zapamiętanym przy jej rysowaniu, a nie na poprzedniej klatce, więc klatki mogą
@@ -204,6 +206,34 @@ domyślny czas reklamy z tabeli. Bez czasów w PNG (i dla STI) reklamy działaj�
 dokładnie jak dotąd, także z dłużej wyświetlaną pierwszą i ostatnią klatką;
 z czasami o długości każdej klatki decyduje tylko `png.json`. Pliki reklam w
 innych wersjach językowych mają inne nazwy (np. `german/yourad_13_german`).
+
+### Animacje w świecie gry (eksplozje, kursory)
+
+Animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
+potrzebują danych dodatkowych: liczby klatek animacji. PNG może je zastąpić, gdy:
+
+- jest **PNG z paletą** (efekty świata gry – Z-bufor, oświetlenie, cień
+  indeksu 254 – działają tylko na palecie; PNG w pełnym kolorze jest odrzucany),
+- jego metadane mają sekcję `animation`:
+
+```json
+{
+  "animation": { "framesPerDirection": 21 },
+  "frameDuration": 80,
+  "frames": [ ... ]
+}
+```
+
+`framesPerDirection` (1–255) to liczba klatek jednej animacji; przy kilku
+kierunkach klatki kolejnych kierunków następują po sobie (kierunek 0: klatki
+0…N−1, kierunek 1: N…2N−1, …). Gra tworzy z tego te same dane, które mają
+oryginalne STI: pierwsza klatka każdego kierunku dostaje liczbę klatek i
+znacznik animacji. Statyczny kursor ma `"framesPerDirection": 1`.
+
+Bez sekcji `animation` albo dla PNG w pełnym kolorze gra wczytuje oryginał i
+zapisuje błąd w logu. Liczba klatek i ich rozmiary muszą pasować do pliku
+`.jsd` o tej samej nazwie, jeśli taki istnieje. Kursory nie używają czasów
+klatek (ich tempo zależy od gry). Kafle tilesetów nie są podmieniane.
 
 ## Narzędzia
 

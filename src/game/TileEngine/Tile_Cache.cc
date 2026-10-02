@@ -136,7 +136,7 @@ INT32 GetCachedTile(ST::string const& filename)
 
 	TILE_CACHE_ELEMENT* const tce = &gpTileCache[idx];
 
-	tce->pImagery = LoadTileSurface(filename);
+	tce->pImagery = LoadTileSurface(filename, true); // a PNG animation may replace it
 
 	tce->zName = filename;
 	tce->sHits = 1;

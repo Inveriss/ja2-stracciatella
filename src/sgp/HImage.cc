@@ -33,10 +33,12 @@ SGPImage* CreateImage(const ST::string& filename, const UINT16 fContents)
 	}
 
 	// A PNG next to the file replaces it (see ContentManager::getPNGReplacement()),
-	// except where the caller needs application data, which PNG files do not
-	// have (tiles, animations, cursors). If the PNG cannot be used, the
-	// original is loaded.
-	if (ext.compare_i("PNG") != 0 && !(fContents & IMAGE_APPDATA))
+	// except where the caller needs application data: PNG files only have its
+	// animation part, from their metadata, for callers that allow it with
+	// IMAGE_ANIMATION_METADATA (tile cache animations, cursors), not tilesets.
+	// If the PNG cannot be used, the original is loaded.
+	bool const appDataOK = !(fContents & IMAGE_APPDATA) || (fContents & IMAGE_ANIMATION_METADATA);
+	if (ext.compare_i("PNG") != 0 && appDataOK)
 	{
 		ST::string const png = GCM->getPNGReplacement(filename);
 		if (!png.empty())

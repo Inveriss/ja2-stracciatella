@@ -39,6 +39,14 @@
 // replacement of that kind is skipped).
 #define IMAGE_NEEDS_PALETTE			0x0040
 
+// Additional content flag for CreateImage() together with IMAGE_APPDATA: the
+// caller only uses the animation part of the application data (the number of
+// frames per direction, AuxObjectData::ubNumberOfFrames), so a palettised PNG
+// with an "animation" section in its metadata may replace the image (the PNG
+// loader builds the AuxObjectData from it). Without this flag no PNG replaces
+// an image loaded with IMAGE_APPDATA (tilesets, which need the full data).
+#define IMAGE_ANIMATION_METADATA		0x0080
+
 // SGPImage flag: the bitmap data holds the frames as 32 bit RGBA (8 bits per
 // channel, in this byte order), one after the other; ubBitDepth is 32 and
 // the ETRLEObjects give the byte offset, size and drawing offset of each frame.

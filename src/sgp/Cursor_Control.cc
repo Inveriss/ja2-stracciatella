@@ -107,7 +107,8 @@ static void LoadCursorData(UINT32 uiCursorIndex)
 			// First load as an SGPImage so we can get aux data!
 			Assert(CFData->Filename != NULL);
 
-			AutoSGPImage hImage(CreateImage(CFData->Filename, IMAGE_ALLDATA));
+			// a palettised PNG with an "animation" section may replace it
+			AutoSGPImage hImage(CreateImage(CFData->Filename, IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
 
 			CFData->hVObject = AddVideoObjectFromHImage(hImage.get());
 

@@ -13,6 +13,7 @@
 #include "Isometric_Utils.h"
 #include "Tile_Animation.h"
 #include "Tile_Cache.h"
+#include "VObject.h"
 #include "Explosion_Control.h"
 #include "Weapons.h"
 #include "Keys.h"
@@ -241,6 +242,17 @@ void DeleteAniTile(ANITILE* const a)
 }
 
 
+UINT32 GetAniTileFrameDelay(ANITILE const& a)
+{
+	UINT32 const delay = static_cast<UINT32>(a.sDelay);
+	if (a.sCachedTileID < 0 || a.sCurrentFrame < 0) return delay;
+
+	TILE_IMAGERY const* const t = gpTileCache[a.sCachedTileID].pImagery;
+	if (t == NULL || t->vo == NULL) return delay;
+	return t->vo->FrameDurationOr(a.sCurrentFrame, delay);
+}
+
+
 void UpdateAniTiles( )
 {
 	ANITILE *pAniNode			= NULL;
@@ -255,7 +267,7 @@ void UpdateAniTiles( )
 		pNode = pAniNode;
 		pAniNode = pAniNode->pNext;
 
-		if ( (uiClock - pNode->uiTimeLastUpdate ) > (UINT32)pNode->sDelay && !( pNode->uiFlags & ANITILE_PAUSED ) )
+		if ( (uiClock - pNode->uiTimeLastUpdate ) > GetAniTileFrameDelay(*pNode) && !( pNode->uiFlags & ANITILE_PAUSED ) )
 		{
 			pNode->uiTimeLastUpdate = GetJA2Clock( );
 

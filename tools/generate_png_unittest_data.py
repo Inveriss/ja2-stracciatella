@@ -257,6 +257,64 @@ def write_pairs():
     write_replacement_files(pal)
     write_resolution_backgrounds()
     write_animations(pal)
+    write_world_animations(pal)
+
+
+# --- animations with application data (tile cache, cursors) -------------------
+#
+# anim_tile*.sti are animated like explosions in the tile cache: 2 directions
+# of 3 frames, the first frame of each direction with AuxObjectData
+# (number_of_frames 3, AUX_ANIMATED_TILE), the others zero. The PNG next to
+# anim_tile.sti has the same frames and "animation": { "framesPerDirection": 3 }.
+
+def write_world_animations(palette):
+    frames = [(0 + 7 * n, 0, 6, 5, -n, n, frame_pixels(6, 5, 30 + n)) for n in range(6)]
+    sheet_w, sheet_h = 7 * 6 - 1, 5
+
+    def aux_sti(stem):
+        s = sti.STIFile()
+        s.palette = list(palette)
+        for n, (x, y, w, h, ox, oy, pixels) in enumerate(frames):
+            f = sti.Frame(w, h, ox, oy, bytearray(p or 0 for p in pixels),
+                          bytearray(0 if p is None else 255 for p in pixels))
+            f.aux = sti.AuxData(number_of_frames=3, flags=sti.AUX_ANIMATED_TILE) if n % 3 == 0 else sti.AuxData()
+            s.frames.append(f)
+        s.width, s.height = sheet_w, sheet_h
+        s.save(os.path.join(PAIR_DIR, stem + ".sti"))
+
+    def sheet_png(stem, meta):
+        sheet = [0] * (sheet_w * sheet_h)
+        for x, y, w, h, _, _, pixels in frames:
+            for j in range(h):
+                for i in range(w):
+                    sheet[(y + j) * sheet_w + x + i] = pixels[j * w + i] or 0
+        rows = [bytes(sheet[r * sheet_w:(r + 1) * sheet_w]) for r in range(sheet_h)]
+        plte_chunk = chunk(b"PLTE", b"".join(bytes(c) for c in palette))
+        write_png(stem + ".png", ihdr(sheet_w, sheet_h, 8, 3), [plte_chunk],
+                  filtered_image(rows, 1, lambda r: r % 5), PAIR_DIR)
+        with open(os.path.join(PAIR_DIR, stem + ".png.json"), "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
+            f.write("\n")
+
+    frame_meta = [{"x": x, "y": y, "w": w, "h": h, "offsetX": ox, "offsetY": oy}
+                  for x, y, w, h, ox, oy, _ in frames]
+    for i, fm in enumerate(frame_meta):
+        fm["duration"] = 20 * (i + 1)
+
+    # replaced by its PNG (with "animation")
+    aux_sti("anim_tile")
+    sheet_png("anim_tile", {"animation": {"framesPerDirection": 3}, "frames": frame_meta})
+    # PNG without "animation": the STI stays
+    aux_sti("anim_tile_noanim")
+    sheet_png("anim_tile_noanim", {"frames": frame_meta})
+    # RGBA PNG: the STI stays
+    aux_sti("anim_tile_rgba")
+    with open(os.path.join(OUT_DIR, "rgba8.png"), "rb") as f:
+        rgba = f.read()
+    with open(os.path.join(PAIR_DIR, "anim_tile_rgba.png"), "wb") as f:
+        f.write(rgba)
+    with open(os.path.join(PAIR_DIR, "anim_tile_rgba.png.json"), "w", encoding="utf-8") as f:
+        f.write('{ "animation": { "framesPerDirection": 1 } }\n')
 
 
 # --- animations: frames with durations -----------------------------------------

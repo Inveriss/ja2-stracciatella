@@ -9,6 +9,10 @@
 #include "VObject.h"
 #include "VObject_Blitters.h"
 #include "Shading.h"
+#include "TileDef.h"
+#include "Tile_Animation.h"
+#include "Tile_Cache.h"
+#include "Tile_Surface.h"
 #include "VSurface.h"
 
 #include <string_theory/format>
@@ -1424,4 +1428,154 @@ TEST_F(PNGLoadTest, animationFramesRender)
 		EXPECT_EQ(Pixel(dst, 1, 3), 0);
 		EXPECT_EQ(Pixel(dst, 6, 3), 0);
 	}
+}
+
+
+// ---------------------------------------------------------------------------
+// Animations with application data (tile cache animations, cursors)
+
+TEST(PNG, animationMetadata)
+{
+	PNGMetadata const meta = ParsePNGMetadata(R"({ "animation": { "framesPerDirection": 3 }, "grid": { "w": 1, "h": 1 } })", 6, 1);
+	EXPECT_EQ(meta.framesPerDirection, 3);
+	EXPECT_EQ(ParsePNGMetadata("{}", 6, 1).framesPerDirection, 0);
+
+	char const* const invalid[] = {
+		R"({ "animation": 3 })",
+		R"({ "animation": {} })",
+		R"({ "animation": { "framesPerDirection": 0 } })",
+		R"({ "animation": { "framesPerDirection": 256 } })",
+		R"({ "animation": { "framesPerDirection": "3" } })",
+		R"({ "animation": { "framesPerDirection": 2 } })", // more than the 1 frame
+	};
+	for (char const* const json : invalid)
+	{
+		SCOPED_TRACE(json);
+		EXPECT_THROW(ParsePNGMetadata(json, 6, 1), std::runtime_error);
+	}
+}
+
+
+TEST(PNG, convertIndexedWithAnimationAppData)
+{
+	DecodedPNG const png = SmallIndexedPNG(); // 4x2
+	std::vector<PNGFrame> const frames{ { 0, 0, 1, 2, 0, 0 }, { 1, 0, 1, 2, 0, 0 }, { 2, 0, 1, 2, 0, 0 }, { 3, 0, 1, 2, 0, 0 } };
+
+	AutoSGPImage const img(ConvertIndexedPNGToImage(png, frames, IMAGE_ALLDATA, "test", 2));
+	EXPECT_EQ(img->fFlags & IMAGE_APPDATA, IMAGE_APPDATA);
+	ASSERT_EQ(img->uiAppDataSize, 4 * sizeof(AuxObjectData));
+	AuxObjectData const* const aux = reinterpret_cast<AuxObjectData const*>(static_cast<UINT8 const*>(img->pAppData));
+	for (size_t i = 0; i != 4; ++i)
+	{
+		SCOPED_TRACE(i);
+		bool const first = i % 2 == 0; // first frame of a direction
+		EXPECT_EQ(aux[i].ubNumberOfFrames, first ? 2 : 0);
+		EXPECT_EQ(aux[i].fFlags, first ? AUX_ANIMATED_TILE : 0);
+		EXPECT_EQ(aux[i].ubCurrentFrame, 0);
+		EXPECT_EQ(aux[i].usTileLocIndex, 0);
+		EXPECT_EQ(aux[i].ubNumberOfTiles, 0);
+		EXPECT_EQ(aux[i].ubWallOrientation, 0);
+	}
+
+	// no application data without IMAGE_APPDATA or without the animation section
+	AutoSGPImage const noAppData(ConvertIndexedPNGToImage(png, frames, IMAGE_ALLIMAGEDATA, "test", 2));
+	EXPECT_EQ(noAppData->uiAppDataSize, 0u);
+	AutoSGPImage const noAnimation(ConvertIndexedPNGToImage(png, frames, IMAGE_ALLDATA, "test", 0));
+	EXPECT_EQ(noAnimation->uiAppDataSize, 0u);
+}
+
+
+namespace
+{
+
+void ExpectSameAnimatedImage(SGPImage const& sti, SGPImage const& png)
+{
+	ASSERT_EQ(png.ubBitDepth, 8);
+	ASSERT_EQ(png.usNumberOfObjects, sti.usNumberOfObjects);
+	ETRLEObject const* const a = sti.pETRLEObject;
+	ETRLEObject const* const b = png.pETRLEObject;
+	for (size_t i = 0; i != sti.usNumberOfObjects; ++i)
+	{
+		EXPECT_EQ(b[i].uiDataOffset, a[i].uiDataOffset) << "frame " << i;
+		EXPECT_EQ(b[i].sOffsetX,     a[i].sOffsetX)     << "frame " << i;
+		EXPECT_EQ(b[i].sOffsetY,     a[i].sOffsetY)     << "frame " << i;
+		EXPECT_EQ(b[i].usWidth,      a[i].usWidth)      << "frame " << i;
+	}
+	ASSERT_EQ(png.uiSizePixData, sti.uiSizePixData);
+	UINT8 const* const stiData = sti.pImageData;
+	UINT8 const* const pngData = png.pImageData;
+	EXPECT_EQ(std::memcmp(pngData, stiData, sti.uiSizePixData), 0);
+
+	// the application data is byte for byte the one of the STI
+	ASSERT_EQ(png.uiAppDataSize, sti.uiAppDataSize);
+	UINT8 const* const stiApp = sti.pAppData;
+	UINT8 const* const pngApp = png.pAppData;
+	EXPECT_EQ(std::memcmp(pngApp, stiApp, sti.uiAppDataSize), 0);
+}
+
+}
+
+
+TEST_F(PNGLoadTest, worldAnimationReplacesSTI)
+{
+	AutoSGPImage const sti(LoadSTCIFileToImage("pngtest/anim_tile.sti", IMAGE_ALLDATA));
+	AutoSGPImage const png(CreateImage("pngtest/anim_tile.sti", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
+	ExpectSameAnimatedImage(*sti, *png);
+	EXPECT_EQ(png->frameDurations, (std::vector<UINT16>{ 20, 40, 60, 80, 100, 120 }));
+}
+
+
+TEST_F(PNGLoadTest, worldAnimationKeepsSTI)
+{
+	// without IMAGE_ANIMATION_METADATA (tilesets): no PNG for application data
+	AutoSGPImage const tileset(CreateImage("pngtest/anim_tile.sti", IMAGE_ALLDATA));
+	EXPECT_TRUE(tileset->frameDurations.empty());
+
+	// a PNG without "animation" and an RGBA PNG: the STI is loaded
+	AutoSGPImage const noAnimation(CreateImage("pngtest/anim_tile_noanim.sti", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
+	EXPECT_TRUE(noAnimation->frameDurations.empty());
+	EXPECT_EQ(noAnimation->uiAppDataSize, 6 * sizeof(AuxObjectData));
+
+	AutoSGPImage const rgba(CreateImage("pngtest/anim_tile_rgba.sti", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
+	EXPECT_EQ(rgba->ubBitDepth, 8);
+	EXPECT_EQ(rgba->usNumberOfObjects, 6);
+
+	// such a PNG named directly fails
+	EXPECT_THROW(CreateImage("pngtest/anim_tile_noanim.png", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA), std::runtime_error);
+	EXPECT_THROW(CreateImage("pngtest/anim_tile_rgba.png", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA), std::runtime_error);
+}
+
+
+TEST_F(PNGLoadTest, tileCacheAnimationTiming)
+{
+	// the tile cache loads with pngAnimation; tilesets do not
+	TILE_IMAGERY* const pngTile = LoadTileSurface("pngtest/anim_tile.sti", true);
+	TILE_IMAGERY* const stiTile = LoadTileSurface("pngtest/anim_tile.sti");
+	ASSERT_TRUE(pngTile->pAuxData != NULL);
+	EXPECT_EQ(pngTile->pAuxData[0].ubNumberOfFrames, 3);
+	EXPECT_TRUE(pngTile->vo->HasFrameDurations());
+	EXPECT_FALSE(stiTile->vo->HasFrameDurations());
+
+	// GetAniTileFrameDelay() looks the image up in the tile cache
+	TILE_CACHE_ELEMENT cache[2];
+	cache[0].pImagery = pngTile;
+	cache[1].pImagery = stiTile;
+	TILE_CACHE_ELEMENT* const oldCache = gpTileCache;
+	gpTileCache = cache;
+
+	ANITILE a{};
+	a.sDelay        = 80;
+	a.sCachedTileID = 0;
+	a.sCurrentFrame = 2;
+	EXPECT_EQ(GetAniTileFrameDelay(a), 60u);   // the PNG duration of frame 2
+	a.sCurrentFrame = 5;
+	EXPECT_EQ(GetAniTileFrameDelay(a), 120u);
+	a.sCachedTileID = 1;
+	EXPECT_EQ(GetAniTileFrameDelay(a), 80u);   // STI: sDelay
+	a.sCachedTileID = -1;
+	EXPECT_EQ(GetAniTileFrameDelay(a), 80u);   // not a cached tile
+
+	gpTileCache = oldCache;
+	DeleteTileSurface(pngTile);
+	DeleteTileSurface(stiTile);
 }

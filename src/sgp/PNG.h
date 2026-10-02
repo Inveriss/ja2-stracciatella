@@ -79,6 +79,9 @@ struct PNGMetadata
 	// game asks for one (e.g. compatible items). Palettised images have their
 	// outline in the image itself (index 254).
 	bool outline = true;
+	// "animation": { "framesPerDirection": N } – the frames are animations
+	// of N frames each (one per direction); 0 if there is no such section.
+	UINT8 framesPerDirection = 0;
 };
 
 // Parses the metadata of a PNG for an image of the given size. The frames
@@ -93,6 +96,10 @@ struct PNGMetadata
 // to all cells and "offsets", if given, must have one entry per frame.
 // "outline": false turns the outline off.
 //
+// "animation": { "framesPerDirection": N } (1 to 255) describes animated
+// images loaded with application data (explosions and other tile cache
+// animations, animated cursors), see ConvertIndexedPNGToImage().
+//
 // Frame durations in milliseconds (0 to 65535): "duration" in a frame of
 // "frames", "durations": [ ... ] with one entry per frame next to "grid", and
 // "frameDuration" for the frames without one of their own.
@@ -105,8 +112,13 @@ PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 imageWidth, UINT16 i
 // filled in (IMAGE_PALETTE, IMAGE_BITMAPDATA), as for the STCI loader.
 // Transparent are palette index 0 (as in STCI files) and every index whose
 // tRNS alpha is below 128; name is only used in messages.
+//
+// With IMAGE_APPDATA in fContents and framesPerDirection != 0, the image gets
+// application data like an animated STCI image: one AuxObjectData per frame,
+// the first frame of each animation (every framesPerDirection-th) with
+// ubNumberOfFrames = framesPerDirection and AUX_ANIMATED_TILE, the others 0.
 SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
-	UINT16 fContents, ST::string const& name);
+	UINT16 fContents, ST::string const& name, UINT8 framesPerDirection = 0);
 
 // Converts a full colour PNG to a 32 bit SGPImage (IMAGE_RGBA): the frames
 // are stored one after the other as RGBA rows, described by the ETRLEObjects.

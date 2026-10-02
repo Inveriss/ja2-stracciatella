@@ -429,6 +429,20 @@ PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 const imageWidth, UI
 		result.outline = outline.toBool();
 	}
 
+	if (meta.has("animation"))
+	{
+		JsonValue const animation = meta.GetValue("animation");
+		if (!animation.isObject()) Fail("\"animation\" must be a JSON object");
+		JsonObject const a = animation.toObject();
+		if (!a.has("framesPerDirection")) Fail("\"animation\" needs \"framesPerDirection\"");
+		JsonValue const n = a.GetValue("framesPerDirection");
+		if (!n.isInt() || n.toInt() < 1 || n.toInt() > UINT8_MAX)
+		{
+			Fail(ST::format("\"framesPerDirection\" must be a whole number from 1 to {}", UINT8_MAX));
+		}
+		result.framesPerDirection = static_cast<UINT8>(n.toInt());
+	}
+
 	UINT16 const frameDuration = meta.has("frameDuration")
 		? ReadDuration(meta.GetValue("frameDuration"), "\"frameDuration\"") : 0;
 
@@ -526,6 +540,10 @@ PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 const imageWidth, UI
 
 	if (frames.empty())           Fail("metadata has no frames");
 	if (frames.size() > UINT16_MAX) Fail("metadata has too many frames");
+	if (result.framesPerDirection > frames.size())
+	{
+		Fail(ST::format("\"framesPerDirection\" is {}, but there are only {} frames", result.framesPerDirection, frames.size()));
+	}
 
 	for (PNGFrame& f : frames)
 	{
@@ -536,7 +554,7 @@ PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 const imageWidth, UI
 
 
 SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
-	UINT16 const fContents, ST::string const& name)
+	UINT16 const fContents, ST::string const& name, UINT8 const framesPerDirection)
 {
 	if (png.kind != DecodedPNG::Kind::Indexed)
 	{
@@ -620,6 +638,22 @@ SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> 
 	}
 
 	img->uiAppDataSize = 0;
+	if (fContents & IMAGE_APPDATA && framesPerDirection != 0 && !frames.empty())
+	{
+		// As in animated STCI images: the first frame of each animation tells
+		// the number of frames, all other entries are 0.
+		size_t const bytes = frames.size() * sizeof(AuxObjectData);
+		UINT8* const appData = img->pAppData.Allocate(bytes);
+		std::fill(appData, appData + bytes, 0);
+		AuxObjectData* const aux = reinterpret_cast<AuxObjectData*>(appData);
+		for (size_t i = 0; i < frames.size(); i += framesPerDirection)
+		{
+			aux[i].ubNumberOfFrames = framesPerDirection;
+			aux[i].fFlags           = AUX_ANIMATED_TILE;
+		}
+		img->uiAppDataSize  = static_cast<UINT32>(bytes);
+		img->fFlags        |= IMAGE_APPDATA;
+	}
 	return img.release();
 }
 
@@ -773,9 +807,23 @@ SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 const fContents)
 	}
 	std::vector<PNGFrame> const& frames = meta.frames;
 
+	// Animations drawn in the game world (tile cache, cursors): they are
+	// drawn with palette based effects and need the number of frames.
+	if ((fContents & IMAGE_APPDATA) && (fContents & IMAGE_ANIMATION_METADATA))
+	{
+		if (png.kind != DecodedPNG::Kind::Indexed)
+		{
+			Fail(ST::format("{}: animations in the game world must be palettised PNGs", filename));
+		}
+		if (meta.framesPerDirection == 0)
+		{
+			Fail(ST::format("{}: needs \"animation\": {{ \"framesPerDirection\": N }} in {}", filename, metaName));
+		}
+	}
+
 	if (png.kind == DecodedPNG::Kind::Indexed)
 	{
-		return ConvertIndexedPNGToImage(png, frames, fContents, filename);
+		return ConvertIndexedPNGToImage(png, frames, fContents, filename, meta.framesPerDirection);
 	}
 	if (fContents & IMAGE_NEEDS_PALETTE)
 	{
