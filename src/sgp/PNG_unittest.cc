@@ -13,6 +13,7 @@
 #include "Tile_Animation.h"
 #include "Tile_Cache.h"
 #include "Tile_Surface.h"
+#include "Interactive_Tiles.h"
 #include "VSurface.h"
 
 #include <string_theory/format>
@@ -1578,4 +1579,143 @@ TEST_F(PNGLoadTest, tileCacheAnimationTiming)
 	gpTileCache = oldCache;
 	DeleteTileSurface(pngTile);
 	DeleteTileSurface(stiTile);
+}
+
+
+// ---------------------------------------------------------------------------
+// Full colour objects in the game world: Z-buffer blitter and hit test
+
+namespace
+{
+
+// A 16 bit surface and a Z-buffer of the same size, Z-buffer filled with z.
+struct ZTarget
+{
+	SGPVSurface         surface;
+	std::vector<UINT16> zbuf;
+
+	ZTarget(UINT16 const w, UINT16 const h, UINT16 const colour, UINT16 const z) :
+		surface(w, h, 16), zbuf()
+	{
+		surface.Fill(colour);
+		zbuf.assign(static_cast<size_t>(surface.GetSDLSurface().pitch / 2) * h, z);
+	}
+
+	UINT16& Z(int const x, int const y) { return zbuf[y * (surface.GetSDLSurface().pitch / 2) + x]; }
+
+	void Blit(SGPVObject const* const vo, INT32 const x, INT32 const y, UINT16 const z, bool const writeZ, bool const translucent, SGPRect const& clip)
+	{
+		SGPVSurface::Lock l(&surface);
+		Blt32BPPDataTo16BPPBufferAlphaZ(l.Buffer<UINT16>(), l.Pitch(), zbuf.data(), z, vo, x, y, 0, &clip, writeZ, translucent);
+	}
+};
+
+}
+
+
+TEST(PNG, rgbaZBlitterTestsZ)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject();
+	SGPRect const clip{ 0, 0, 3, 3 };
+
+	// Z-buffer value <= object Z: drawn
+	ZTarget equal(3, 3, BLUE_565, 10);
+	equal.Blit(vo.get(), 0, 0, 10, false, false, clip);
+	EXPECT_EQ(Pixel(equal.surface, 1, 1), 0xF800);
+	EXPECT_EQ(Pixel(equal.surface, 2, 1), BLACK_SUBSTITUTE);
+	EXPECT_EQ(Pixel(equal.surface, 1, 2), 0x841F);  // white at alpha 128 over blue
+
+	// Z-buffer value > object Z: hidden
+	ZTarget behind(3, 3, BLUE_565, 11);
+	behind.Blit(vo.get(), 0, 0, 10, false, false, clip);
+	for (int y = 0; y != 3; ++y)
+	{
+		for (int x = 0; x != 3; ++x) EXPECT_EQ(Pixel(behind.surface, x, y), BLUE_565) << x << "," << y;
+	}
+
+	// only one pixel hidden
+	ZTarget one(3, 3, BLUE_565, 5);
+	one.Z(1, 1) = 20;
+	one.Blit(vo.get(), 0, 0, 10, false, false, clip);
+	EXPECT_EQ(Pixel(one.surface, 1, 1), BLUE_565);
+	EXPECT_EQ(Pixel(one.surface, 2, 1), BLACK_SUBSTITUTE);
+}
+
+
+TEST(PNG, rgbaZBlitterWritesZForOpaquePixels)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject();
+	SGPRect const clip{ 0, 0, 3, 3 };
+
+	ZTarget t(3, 3, BLUE_565, 5);
+	t.Blit(vo.get(), 0, 0, 10, true, false, clip);
+	EXPECT_EQ(t.Z(1, 1), 10); // alpha 255
+	EXPECT_EQ(t.Z(2, 1), 10);
+	EXPECT_EQ(t.Z(1, 2), 10); // alpha 128
+	EXPECT_EQ(t.Z(0, 0), 5);  // alpha 100: drawn, but no Z
+	EXPECT_EQ(t.Z(2, 2), 5);  // alpha 0
+	EXPECT_NE(Pixel(t.surface, 0, 0), BLUE_565);
+
+	// without writeZ the Z-buffer stays
+	ZTarget n(3, 3, BLUE_565, 5);
+	n.Blit(vo.get(), 0, 0, 10, false, false, clip);
+	EXPECT_EQ(n.Z(1, 1), 5);
+}
+
+
+TEST(PNG, rgbaZBlitterTranslucentAndClipped)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject({ PNGFrame{ 0, 0, 3, 3, 1, 1 } }); // offset 1,1
+
+	// translucent: alpha halved, opaque red over blue becomes half and half
+	ZTarget t(5, 5, BLUE_565, 0);
+	t.Blit(vo.get(), 0, 0, 1, true, true, SGPRect{ 0, 0, 5, 5 });
+	EXPECT_EQ(Pixel(t.surface, 2, 2), 0x800F);
+	EXPECT_EQ(t.Z(2, 2), 1); // Z from the pixel's own alpha
+
+	// clipped to the column x = 2 (frame drawn at 1,1)
+	ZTarget c(5, 5, BLUE_565, 0);
+	c.Blit(vo.get(), 0, 0, 1, true, false, SGPRect{ 2, 0, 3, 5 });
+	EXPECT_EQ(Pixel(c.surface, 2, 2), 0xF800);  // frame pixel (1,1)
+	EXPECT_EQ(Pixel(c.surface, 3, 2), BLUE_565); // frame pixel (2,1), clipped
+	EXPECT_EQ(c.Z(3, 2), 0);
+}
+
+
+TEST(PNG, rgbaHitTestMatchesPalettisedHitTest)
+{
+	// the same shape as a palettised and as an RGBA object: opaque where
+	// the RGBA alpha is >= 128
+	std::unique_ptr<SGPVObject> const rgba = SmallRGBAObject();
+
+	DecodedPNG pal;
+	pal.kind   = DecodedPNG::Kind::Indexed;
+	pal.width  = 3;
+	pal.height = 3;
+	pal.palette.assign(2, SGPPaletteEntry{ 0, 0, 0, 255 });
+	DecodedPNG const src = SmallRGBAPNG();
+	for (size_t i = 0; i != 9; ++i) pal.pixels.push_back(src.pixels[i * 4 + 3] >= 128 ? 1 : 0);
+	AutoSGPImage palImage(ConvertIndexedPNGToImage(pal, { PNGFrame{ 0, 0, 3, 3, 0, 0 } }, IMAGE_ALLIMAGEDATA, "test"));
+	std::unique_ptr<SGPVObject> const indexed(AddVideoObjectFromHImage(palImage.get()));
+
+	int hits = 0;
+	for (INT32 y = -1; y <= 5; ++y)
+	{
+		for (INT32 x = -1; x <= 5; ++x)
+		{
+			BOOLEAN const a = CheckVideoObjectScreenCoordinateInData(rgba.get(), 0, x, y);
+			BOOLEAN const b = CheckVideoObjectScreenCoordinateInData(indexed.get(), 0, x, y);
+			EXPECT_EQ(a, b) << "test point " << x << "," << y;
+			hits += a;
+		}
+	}
+	EXPECT_GT(hits, 0);
+
+	// pixel (1,1): testX = 1 + 1, testY = height - 1
+	EXPECT_TRUE(CheckVideoObjectScreenCoordinateInData(rgba.get(), 0, 2, 2));
+	// pixel (0,0) has alpha 100
+	EXPECT_FALSE(CheckVideoObjectScreenCoordinateInData(rgba.get(), 0, 1, 3));
 }

@@ -5674,3 +5674,46 @@ void Blt32BPPDataTo16BPPBufferShadow(UINT16* const buf, UINT32 const uiDestPitch
 		}
 	}
 }
+
+
+void Blt32BPPDataTo16BPPBufferAlphaZ(UINT16* const buf, UINT32 const uiDestPitchBYTES, UINT16* const pZBuffer, UINT16 const usZValue, SGPVObject const* const hSrcVObject, INT32 const iX, INT32 const iY, UINT16 const usIndex, SGPRect const* const clipregion, bool const writeZ, bool const translucent)
+{
+	Assert(hSrcVObject);
+	Assert(buf);
+	Assert(pZBuffer);
+
+	ETRLEObject const& e = hSrcVObject->SubregionProperties(usIndex);
+	ClippedFrame const c = ClipFrame(e, iX, iY, clipregion);
+	if (c.empty) return;
+
+	UINT8  const* const rgba  = hSrcVObject->RGBAData(e);
+	UINT32        const pitch = uiDestPitchBYTES / 2;
+	Format16      const f;
+
+	for (INT32 y = c.y0; y != c.y1; ++y)
+	{
+		size_t const       row = static_cast<size_t>(c.top + y) * pitch + c.left + c.x0;
+		UINT16*            dst = buf + row;
+		UINT16*            z   = pZBuffer + row;
+		UINT8  const*      src = rgba + (static_cast<size_t>(y) * e.usWidth + c.x0) * 4;
+		for (INT32 x = c.x0; x != c.x1; ++x, ++dst, ++z, src += 4)
+		{
+			UINT32 const alpha = translucent ? (src[3] + 1U) / 2 : src[3];
+			if (alpha == 0 || *z > usZValue) continue;
+
+			if (alpha == 255)
+			{
+				*dst = f.Pack(src[0], src[1], src[2]);
+			}
+			else
+			{
+				UINT16 const d = *dst;
+				*dst = f.Pack(
+					Blend(src[0], f.r.Unpack(d), alpha),
+					Blend(src[1], f.g.Unpack(d), alpha),
+					Blend(src[2], f.b.Unpack(d), alpha));
+			}
+			if (writeZ && src[3] >= 128) *z = usZValue;
+		}
+	}
+}

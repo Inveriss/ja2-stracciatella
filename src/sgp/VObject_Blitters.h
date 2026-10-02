@@ -21,6 +21,12 @@ BOOLEAN BltIsClipped(const SGPVObject* hSrcVObject, INT32 iX, INT32 iY, UINT16 u
 void Blt32BPPDataTo16BPPBufferAlpha(UINT16* buf, UINT32 uiDestPitchBYTES, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, INT16 outline);
 // Shades the buffer (ShadeTable) where the subimage is opaque (alpha >= 128).
 void Blt32BPPDataTo16BPPBufferShadow(UINT16* buf, UINT32 uiDestPitchBYTES, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion);
+// Alpha blending with the Z-buffer, like the TransZ blitters of palettised
+// objects: a pixel is drawn where the Z-buffer value is <= usZValue; with
+// writeZ the Z-buffer gets usZValue where the pixel is opaque (alpha >= 128);
+// translucent halves the alpha (the 50% translucency of the 8 bit blitters).
+// The Z-buffer has the same pitch as the buffer.
+void Blt32BPPDataTo16BPPBufferAlphaZ(UINT16* buf, UINT32 uiDestPitchBYTES, UINT16* pZBuffer, UINT16 usZValue, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, bool writeZ, bool translucent);
 CHAR8 BltIsClippedOrOffScreen( HVOBJECT hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect *clipregion );
 
 
