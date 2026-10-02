@@ -214,8 +214,9 @@ Animacje postaci (`anims/`, np. `anims/s_merc/s_r_std` – najemnik stojący),
 animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
 potrzebują danych dodatkowych: liczby klatek animacji. PNG może je zastąpić, gdy:
 
-- jest **PNG z paletą** (efekty świata gry – Z-bufor, oświetlenie, cień
-  indeksu 254 – działają tylko na palecie; PNG w pełnym kolorze jest odrzucany),
+- jest **PNG z paletą**, a dla efektów z pamięci podręcznej kafli także PNG w
+  pełnym kolorze (niżej); postacie, zwłoki i kursory muszą mieć paletę, bo gra
+  podmienia i cieniuje ich kolory przez paletę,
 - jego metadane mają sekcję `animation`:
 
 ```json
@@ -232,8 +233,8 @@ kierunkach klatki kolejnych kierunków następują po sobie (kierunek 0: klatki
 oryginalne STI: pierwsza klatka każdego kierunku dostaje liczbę klatek i
 znacznik animacji. Statyczny kursor ma `"framesPerDirection": 1`.
 
-Bez sekcji `animation` albo dla PNG w pełnym kolorze gra wczytuje oryginał i
-zapisuje błąd w logu. Liczba klatek i ich rozmiary muszą pasować do pliku
+Bez sekcji `animation` albo dla PNG w pełnym kolorze tam, gdzie potrzebna jest
+paleta, gra wczytuje oryginał i zapisuje błąd w logu. Liczba klatek i ich rozmiary muszą pasować do pliku
 `.jsd` o tej samej nazwie, jeśli taki istnieje. Kafle tilesetów nie są
 podmieniane.
 
@@ -249,6 +250,24 @@ Postacie:
   i spodni przez wpisy palety (palety postaci), a oświetlenie i cień również
   korzystają z palety;
 - cienie postaci są osobnymi animacjami (osobne pliki) i podmienia się je tak samo.
+
+Efekty z pamięci podręcznej kafli (`tilecache/`: eksplozje, dym, rozbryzgi i
+inne) mogą być **PNG w pełnym kolorze** (RGBA):
+
+- alfa jest mieszana z tłem jak w obiektach RGBA, więc dym i ogień mogą mieć
+  miękkie, półprzezroczyste krawędzie;
+- Z-bufor działa jak w STI: efekt chowa się za ścianami i postaciami przed nim;
+  efekty zapisujące Z robią to tylko dla pikseli z alfą co najmniej 128;
+- efekty półprzezroczyste w grze (np. dym, koniec eksplozji) rysują PNG z alfą
+  zmniejszoną o połowę zamiast siatki pikseli STI;
+- warstwa cienia rysuje piksele z alfą co najmniej 128 jako cień;
+- efekty nie są oświetlane (jak STI tych efektów); kolory PNG są wyświetlane
+  wprost;
+- zalecane `"outline": false`, bo efekty nie używają obrysu, a maska obrysu
+  zajmuje pamięć;
+- **zwłoki** (`anims/corpses/`), choć też rysowane jak te efekty, zostają z
+  paletą: gra cieniuje je paletą zwłok; PNG w pełnym kolorze zwłok jest
+  pomijany i gra wczytuje oryginał.
 
 Czasy klatek (`duration`) nie dotyczą postaci ani kursorów: ich tempo ustala gra.
 Najprościej zacząć od eksportu oryginału komendą `png-sheet` (niżej), która dla

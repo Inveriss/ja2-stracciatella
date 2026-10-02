@@ -122,9 +122,10 @@ SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> 
 
 // Converts a full colour PNG to a 32 bit SGPImage (IMAGE_RGBA): the frames
 // are stored one after the other as RGBA rows, described by the ETRLEObjects.
-// Without outline, the image gets IMAGE_NO_OUTLINE.
+// Without outline, the image gets IMAGE_NO_OUTLINE. Application data as in
+// ConvertIndexedPNGToImage().
 SGPImage* ConvertRGBAPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
-	UINT16 fContents, ST::string const& name, bool outline = true);
+	UINT16 fContents, ST::string const& name, bool outline = true, UINT8 framesPerDirection = 0);
 
 // Converts a PNG to an SGPImage with plain pixels for a video surface:
 // - palettised: 8 bpp palette indices (unchanged, tRNS is ignored like the

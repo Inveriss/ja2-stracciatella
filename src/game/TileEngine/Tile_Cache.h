@@ -23,7 +23,9 @@ extern TILE_CACHE_ELEMENT* gpTileCache;
 void InitTileCache(void);
 void DeleteTileCache(void);
 
-INT32 GetCachedTile(ST::string const& filename);
+// needsPalette: the tile is shaded with its palette (corpses), so no full
+// colour PNG may replace it; only matters for the call that loads the file.
+INT32 GetCachedTile(ST::string const& filename, bool needsPalette = false);
 void  RemoveCachedTile(INT32 cached_tile);
 
 STRUCTURE_FILE_REF* GetCachedTileStructureRefFromFilename(ST::string const& filename);

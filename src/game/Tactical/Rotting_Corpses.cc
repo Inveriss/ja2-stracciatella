@@ -477,10 +477,12 @@ try
 	if (!gGameSettings.fOptions[TOPTION_BLOOD_N_GORE])
 	{
 		AniParams.zCachedFile = zNoBloodCorpseFilenames[c->def.ubType];
+		AniParams.needsPalette = true; // CreateCorpsePalettes()
 	}
 	else
 	{
 		AniParams.zCachedFile = zCorpseFilenames[c->def.ubType];
+		AniParams.needsPalette = true; // CreateCorpsePalettes()
 	}
 
 	ANITILE* const ani = CreateAnimationTile(&AniParams);

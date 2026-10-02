@@ -103,6 +103,7 @@ struct ANITILE_PARAMS
 
 	LEVELNODE      *pGivenLevelNode; // Levelnode for existing tile ( optional )
 	const char     *zCachedFile; // Filename for cached tile name ( optional )
+	bool           needsPalette; // the cached tile is shaded with its palette (corpses): no full colour PNG
 
 	UINT8          ubKeyFrame1; // Key frame 1
 	UINT32         uiKeyFrame1Code; // Key frame code

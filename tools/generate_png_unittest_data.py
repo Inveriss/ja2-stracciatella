@@ -307,14 +307,28 @@ def write_world_animations(palette):
     # PNG without "animation": the STI stays
     aux_sti("anim_tile_noanim")
     sheet_png("anim_tile_noanim", {"frames": frame_meta})
-    # RGBA PNG: the STI stays
+    # RGBA PNG with the same frames (opaque pixels in their palette colour,
+    # every 4th one half transparent): replaces the STI where full colour is
+    # allowed (tile cache animations), not where the palette is needed
     aux_sti("anim_tile_rgba")
-    with open(os.path.join(OUT_DIR, "rgba8.png"), "rb") as f:
-        rgba = f.read()
-    with open(os.path.join(PAIR_DIR, "anim_tile_rgba.png"), "wb") as f:
-        f.write(rgba)
+    rows = []
+    for r in range(sheet_h):
+        row = bytearray()
+        for c in range(sheet_w):
+            p = None
+            for x, y, w, h, _, _, pixels in frames:
+                if x <= c < x + w and y <= r < y + h:
+                    p = pixels[(r - y) * w + (c - x)]
+            if p is None or p == 0:
+                row += bytes((0, 0, 0, 0))
+            else:
+                row += bytes(palette[p]) + bytes((128 if (r + c) % 4 == 0 else 255,))
+        rows.append(bytes(row))
+    write_png("anim_tile_rgba.png", ihdr(sheet_w, sheet_h, 8, 6), [],
+              filtered_image(rows, 4, lambda r: r % 5), PAIR_DIR)
     with open(os.path.join(PAIR_DIR, "anim_tile_rgba.png.json"), "w", encoding="utf-8") as f:
-        f.write('{ "animation": { "framesPerDirection": 1 } }\n')
+        json.dump({"animation": {"framesPerDirection": 3}, "frames": frame_meta}, f, indent=2)
+        f.write("\n")
 
 
 # --- animations: frames with durations -----------------------------------------

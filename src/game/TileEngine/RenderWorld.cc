@@ -1266,7 +1266,38 @@ zlevel_topmost:
 						}
 						else
 						{
-							if (fMultiTransShadowZBlitter)
+							if (hVObject->IsRGBA())
+							{
+								// Full colour objects: only tile cache animations, without
+								// corpses (docs/png-images.md). The same choices as for the
+								// palettised objects below, with alpha blending; they are not
+								// lit, like the palettised tile cache animations.
+								SGPRect const* const clip = &gClippingRect;
+								if (fPixelate)
+								{
+									Blt32BPPDataTo16BPPBufferAlphaZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, fZWrite, true);
+								}
+								else if (fShadowBlitter)
+								{
+									Blt32BPPDataTo16BPPBufferShadow(pDestBuf, uiDestPitchBYTES, hVObject, sXPos, sYPos, usImageIndex, clip);
+								}
+								else if (fZBlitter)
+								{
+									Blt32BPPDataTo16BPPBufferAlphaZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, fZWrite, false);
+								}
+								else
+								{
+									Blt32BPPDataTo16BPPBufferAlpha(pDestBuf, uiDestPitchBYTES, hVObject, sXPos, sYPos, usImageIndex, clip, SGP_TRANSPARENT);
+								}
+
+								if (uiLevelNodeFlags & LEVELNODE_UPDATESAVEBUFFERONCE)
+								{
+									SGPVSurface::Lock l(guiSAVEBUFFER);
+									Blt32BPPDataTo16BPPBufferAlphaZ(l.Buffer<UINT16>(), l.Pitch(), gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, true, false);
+									pNode->uiFlags &= ~LEVELNODE_UPDATESAVEBUFFERONCE;
+								}
+							}
+							else if (fMultiTransShadowZBlitter)
 							{
 								if (fZBlitter)
 								{

@@ -403,6 +403,27 @@ void SetFrameDurations(SGPImage& img, std::vector<PNGFrame> const& frames)
 	}
 }
 
+// With IMAGE_APPDATA and framesPerDirection != 0: the application data of an
+// animated STCI image; the first frame of each animation tells the number of
+// frames, all other entries are 0. Otherwise no application data.
+void SetAnimationAppData(SGPImage& img, size_t const frameCount, UINT8 const framesPerDirection, UINT16 const fContents)
+{
+	img.uiAppDataSize = 0;
+	if (!(fContents & IMAGE_APPDATA) || framesPerDirection == 0 || frameCount == 0) return;
+
+	size_t const bytes = frameCount * sizeof(AuxObjectData);
+	UINT8* const appData = img.pAppData.Allocate(bytes);
+	std::fill(appData, appData + bytes, 0);
+	AuxObjectData* const aux = reinterpret_cast<AuxObjectData*>(appData);
+	for (size_t i = 0; i < frameCount; i += framesPerDirection)
+	{
+		aux[i].ubNumberOfFrames = framesPerDirection;
+		aux[i].fFlags           = AUX_ANIMATED_TILE;
+	}
+	img.uiAppDataSize  = static_cast<UINT32>(bytes);
+	img.fFlags        |= IMAGE_APPDATA;
+}
+
 // A frame duration in milliseconds: a whole number from 0 to 65535.
 UINT16 ReadDuration(JsonValue const& v, ST::string const& what)
 {
@@ -637,29 +658,13 @@ SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> 
 		SetFrameDurations(*img, frames);
 	}
 
-	img->uiAppDataSize = 0;
-	if (fContents & IMAGE_APPDATA && framesPerDirection != 0 && !frames.empty())
-	{
-		// As in animated STCI images: the first frame of each animation tells
-		// the number of frames, all other entries are 0.
-		size_t const bytes = frames.size() * sizeof(AuxObjectData);
-		UINT8* const appData = img->pAppData.Allocate(bytes);
-		std::fill(appData, appData + bytes, 0);
-		AuxObjectData* const aux = reinterpret_cast<AuxObjectData*>(appData);
-		for (size_t i = 0; i < frames.size(); i += framesPerDirection)
-		{
-			aux[i].ubNumberOfFrames = framesPerDirection;
-			aux[i].fFlags           = AUX_ANIMATED_TILE;
-		}
-		img->uiAppDataSize  = static_cast<UINT32>(bytes);
-		img->fFlags        |= IMAGE_APPDATA;
-	}
+	SetAnimationAppData(*img, frames.size(), framesPerDirection, fContents);
 	return img.release();
 }
 
 
 SGPImage* ConvertRGBAPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
-	UINT16 const fContents, ST::string const& name, bool const outline)
+	UINT16 const fContents, ST::string const& name, bool const outline, UINT8 const framesPerDirection)
 {
 	if (png.kind != DecodedPNG::Kind::RGBA)
 	{
@@ -717,7 +722,7 @@ SGPImage* ConvertRGBAPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> con
 		SetFrameDurations(*img, frames);
 	}
 
-	img->uiAppDataSize = 0;
+	SetAnimationAppData(*img, frames.size(), framesPerDirection, fContents);
 	return img.release();
 }
 
@@ -807,14 +812,12 @@ SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 const fContents)
 	}
 	std::vector<PNGFrame> const& frames = meta.frames;
 
-	// Animations drawn in the game world (tile cache, cursors): they are
-	// drawn with palette based effects and need the number of frames.
+	// Animations in the game world (tile cache, characters, cursors) need the
+	// number of frames. Full colour is only drawn for tile cache animations
+	// without palette effects; the others (characters, corpses, cursors) come
+	// with IMAGE_NEEDS_PALETTE, see below.
 	if ((fContents & IMAGE_APPDATA) && (fContents & IMAGE_ANIMATION_METADATA))
 	{
-		if (png.kind != DecodedPNG::Kind::Indexed)
-		{
-			Fail(ST::format("{}: animations in the game world must be palettised PNGs", filename));
-		}
 		if (meta.framesPerDirection == 0)
 		{
 			Fail(ST::format("{}: needs \"animation\": {{ \"framesPerDirection\": N }} in {}", filename, metaName));
@@ -829,5 +832,5 @@ SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 const fContents)
 	{
 		Fail(ST::format("{}: this image is used with its palette, so it must be a palettised PNG", filename));
 	}
-	return ConvertRGBAPNGToImage(png, frames, fContents, filename, meta.outline);
+	return ConvertRGBAPNGToImage(png, frames, fContents, filename, meta.outline, meta.framesPerDirection);
 }

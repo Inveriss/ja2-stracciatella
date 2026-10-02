@@ -1532,18 +1532,55 @@ TEST_F(PNGLoadTest, worldAnimationKeepsSTI)
 	AutoSGPImage const tileset(CreateImage("pngtest/anim_tile.sti", IMAGE_ALLDATA));
 	EXPECT_TRUE(tileset->frameDurations.empty());
 
-	// a PNG without "animation" and an RGBA PNG: the STI is loaded
+	// a PNG without "animation": the STI is loaded
 	AutoSGPImage const noAnimation(CreateImage("pngtest/anim_tile_noanim.sti", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
 	EXPECT_TRUE(noAnimation->frameDurations.empty());
 	EXPECT_EQ(noAnimation->uiAppDataSize, 6 * sizeof(AuxObjectData));
 
-	AutoSGPImage const rgba(CreateImage("pngtest/anim_tile_rgba.sti", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
+	// an RGBA PNG where the palette is needed (characters, corpses, cursors): the STI
+	AutoSGPImage const rgba(CreateImage("pngtest/anim_tile_rgba.sti", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA | IMAGE_NEEDS_PALETTE));
 	EXPECT_EQ(rgba->ubBitDepth, 8);
 	EXPECT_EQ(rgba->usNumberOfObjects, 6);
 
-	// such a PNG named directly fails
+	// such PNGs named directly fail
 	EXPECT_THROW(CreateImage("pngtest/anim_tile_noanim.png", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA), std::runtime_error);
-	EXPECT_THROW(CreateImage("pngtest/anim_tile_rgba.png", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA), std::runtime_error);
+	EXPECT_THROW(CreateImage("pngtest/anim_tile_rgba.png", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA | IMAGE_NEEDS_PALETTE), std::runtime_error);
+}
+
+
+TEST_F(PNGLoadTest, worldAnimationRGBAReplacesSTI)
+{
+	// tile cache animations may be full colour: the same frames and
+	// application data as the STI
+	AutoSGPImage const sti(LoadSTCIFileToImage("pngtest/anim_tile_rgba.sti", IMAGE_ALLDATA));
+	AutoSGPImage const png(CreateImage("pngtest/anim_tile_rgba.sti", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
+	ASSERT_EQ(png->ubBitDepth, 32);
+	EXPECT_EQ(png->fFlags & IMAGE_RGBA, IMAGE_RGBA);
+	ASSERT_EQ(png->usNumberOfObjects, sti->usNumberOfObjects);
+	ETRLEObject const* const a = sti->pETRLEObject;
+	ETRLEObject const* const b = png->pETRLEObject;
+	for (size_t i = 0; i != sti->usNumberOfObjects; ++i)
+	{
+		EXPECT_EQ(b[i].sOffsetX, a[i].sOffsetX) << "frame " << i;
+		EXPECT_EQ(b[i].sOffsetY, a[i].sOffsetY) << "frame " << i;
+		EXPECT_EQ(b[i].usWidth,  a[i].usWidth)  << "frame " << i;
+		EXPECT_EQ(b[i].usHeight, a[i].usHeight) << "frame " << i;
+	}
+	ASSERT_EQ(png->uiAppDataSize, sti->uiAppDataSize);
+	UINT8 const* const stiApp = sti->pAppData;
+	UINT8 const* const pngApp = png->pAppData;
+	EXPECT_EQ(std::memcmp(pngApp, stiApp, sti->uiAppDataSize), 0);
+
+	// through the tile cache loader, and not for corpses (needsPalette)
+	TILE_IMAGERY* const effect = LoadTileSurface("pngtest/anim_tile_rgba.sti", true);
+	TILE_IMAGERY* const corpse = LoadTileSurface("pngtest/anim_tile_rgba.sti", true, true);
+	EXPECT_TRUE(effect->vo->IsRGBA());
+	ASSERT_TRUE(effect->pAuxData != NULL);
+	EXPECT_EQ(effect->pAuxData[0].ubNumberOfFrames, 3);
+	EXPECT_EQ(effect->pAuxData[3].ubNumberOfFrames, 3);
+	EXPECT_FALSE(corpse->vo->IsRGBA());
+	DeleteTileSurface(effect);
+	DeleteTileSurface(corpse);
 }
 
 

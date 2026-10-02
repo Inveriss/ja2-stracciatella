@@ -64,7 +64,7 @@ ANITILE* CreateAnimationTile(const ANITILE_PARAMS* const parms)
 	{
 		if (parms->zCachedFile != NULL)
 		{
-			cached_tile = GetCachedTile(parms->zCachedFile);
+			cached_tile = GetCachedTile(parms->zCachedFile, parms->needsPalette);
 			tile_index  = cached_tile + TILE_CACHE_START_INDEX;
 		}
 

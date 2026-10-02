@@ -11,7 +11,8 @@ extern TILE_IMAGERY* gTileSurfaceArray[NUMBEROFTILETYPES];
 // pngAnimation: a palettised PNG with an "animation" section may replace the
 // image (see IMAGE_ANIMATION_METADATA); only for tile cache animations, not
 // for tilesets.
-TILE_IMAGERY* LoadTileSurface(ST::string const& cFilename, bool pngAnimation = false);
+// needsPalette: see IMAGE_NEEDS_PALETTE.
+TILE_IMAGERY* LoadTileSurface(ST::string const& cFilename, bool pngAnimation = false, bool needsPalette = false);
 
 void DeleteTileSurface(TILE_IMAGERY* pTileSurf);
 
