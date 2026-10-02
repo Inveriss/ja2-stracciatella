@@ -785,7 +785,15 @@ static BOOLEAN DisplayFlowerAd(BOOLEAN fInit, BOOLEAN fRedraw)
 		gSelectedBannerRegion.Enable();
 	}
 
-	if( ((uiCurTime - uiLastTime) > AIM_FLOWER_AD_DELAY) || fRedraw)
+	// How long the frame on screen stays: its "duration" from a PNG
+	// (docs/png-images.md), else AIM_FLOWER_AD_DELAY. The frame on screen is
+	// the one before ubSubImage; the closing display of frame 0 with the
+	// text keeps the original timing.
+	UINT32 const uiDelay = ubSubImage == 0 || (ubSubImage == AIM_FLOWER_NUM_SUBIMAGES && ubCount != 0)
+		? AIM_FLOWER_AD_DELAY
+		: guiFlowerAdvertisement->FrameDurationOr(ubSubImage - 1, AIM_FLOWER_AD_DELAY);
+
+	if( ((uiCurTime - uiLastTime) > uiDelay) || fRedraw)
 	{
 		if( ubSubImage == AIM_FLOWER_NUM_SUBIMAGES)
 		{

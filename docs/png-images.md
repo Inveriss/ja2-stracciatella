@@ -187,7 +187,11 @@ Czas wyświetlania klatki w milisekundach (liczba całkowita 0–65535):
 
 Czasy działają tylko w animacjach, które je obsługują. Gdzie indziej są pomijane i
 animacja zachowuje tempo z gry (tak jak przy STI, które nie mają czasów klatek).
-Animacje obsługujące czasy z PNG: na razie żadne (dochodzą w kolejnych etapach).
+Animacje obsługujące czasy z PNG:
+
+| Animacja | Plik | Uwagi |
+|---|---|---|
+| reklama kwiaciarni na stronie AIM | `laptop/flowerad_16.png` | 16 klatek; czas klatki określa, jak długo jest widoczna przed następną (domyślnie 150 ms); końcowe wyświetlenie klatki 0 z tekstem trwa jak dotąd. Klatki muszą być **w pełni kryjące** (alfa 255 lub PNG z paletą bez przezroczystości), bo każda jest rysowana na poprzedniej. |
 
 ## Narzędzia
 

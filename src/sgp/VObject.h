@@ -62,6 +62,13 @@ class SGPVObject
 		}
 		bool HasFrameDurations() const { return !frame_durations_.empty(); }
 
+		// FrameDuration(idx), or the animation's own delay if it is not given.
+		UINT32 FrameDurationOr(size_t const idx, UINT32 const ownDelay) const
+		{
+			UINT16 const ms = FrameDuration(idx);
+			return ms != 0 ? ms : ownDelay;
+		}
+
 		ETRLEObject const& SubregionProperties(size_t idx) const;
 
 		// ETRLE data of a subimage (8 bit objects only)

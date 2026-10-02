@@ -1347,6 +1347,26 @@ TEST(PNG, frameDurationsInImageAndVideoObject)
 }
 
 
+TEST(PNG, frameDurationOrOwnDelay)
+{
+	// what an animation waits for: the PNG duration, else its own delay
+	std::vector<PNGFrame> frames{ { 0, 0, 1, 1, 0, 0 }, { 1, 0, 1, 1, 0, 0 }, { 2, 0, 1, 1, 0, 0 } };
+	frames[0].duration = 400;
+	frames[2].duration = 50;
+	AutoSGPImage img(ConvertIndexedPNGToImage(SmallIndexedPNG(), frames, IMAGE_ALLIMAGEDATA, "test"));
+	std::unique_ptr<SGPVObject> const vo(AddVideoObjectFromHImage(img.get()));
+	EXPECT_EQ(vo->FrameDurationOr(0, 150), 400u);
+	EXPECT_EQ(vo->FrameDurationOr(1, 150), 150u); // no duration of its own
+	EXPECT_EQ(vo->FrameDurationOr(2, 150), 50u);
+	EXPECT_EQ(vo->FrameDurationOr(3, 150), 150u); // out of range
+
+	// no durations at all (as for STI files): always the own delay
+	AutoSGPImage plain(ConvertIndexedPNGToImage(SmallIndexedPNG(), { PNGFrame{ 0, 0, 4, 2, 0, 0 } }, IMAGE_ALLIMAGEDATA, "test"));
+	std::unique_ptr<SGPVObject> const plainVO(AddVideoObjectFromHImage(plain.get()));
+	EXPECT_EQ(plainVO->FrameDurationOr(0, 150), 150u);
+}
+
+
 TEST_F(PNGLoadTest, animationsThroughVFS)
 {
 	// palettised, frames of different sizes and offsets (anim_frames.png.json)
