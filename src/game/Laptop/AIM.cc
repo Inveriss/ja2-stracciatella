@@ -16,6 +16,7 @@
 #include "VSurface.h"
 #include "Button_System.h"
 #include "Font_Control.h"
+#include "FrameAnimation.h"
 
 #include "ContentManager.h"
 #include "GameInstance.h"
@@ -665,9 +666,26 @@ static BOOLEAN DrawWarningBox(BOOLEAN fInit, BOOLEAN fRedraw);
 static UINT8 GetNextAimAd(UINT8 ubCurrentAd);
 
 
+// Ads from PNG files with frame durations (docs/png-images.md) are played by
+// gAdAnimation, every frame drawn on gAdBackground: the page under the ad
+// area, saved when the page is drawn.
+static FrameAnimation   gAdAnimation;
+static ScreenAreaBackup gAdBackground;
+
+static SGPBox AdArea()
+{
+	return SGPBox{ static_cast<UINT16>(AIM_AD_TOP_LEFT_X), static_cast<UINT16>(AIM_AD_TOP_LEFT_Y),
+		static_cast<UINT16>((AIM_AD_BOTTOM_RIGHT_X) - (AIM_AD_TOP_LEFT_X)),
+		static_cast<UINT16>((AIM_AD_BOTTOM_RIGHT_Y) - (AIM_AD_TOP_LEFT_Y)) };
+}
+
+
 static void HandleAdAndWarningArea(BOOLEAN fInit, BOOLEAN fRedraw)
 {
 	static UINT8 ubPreviousAdvertisment;
+
+	// RenderAIM() has just drawn the page, without an ad
+	if (fRedraw) gAdBackground.Save(FRAME_BUFFER, AdArea());
 
 	if( fInit )
 		gubCurrentAdvertisment = AIM_AD_WARNING_BOX;
@@ -799,6 +817,7 @@ static BOOLEAN DisplayFlowerAd(BOOLEAN fInit, BOOLEAN fRedraw)
 		{
 			if(ubCount == 0 || fRedraw)
 			{
+				if (guiFlowerAdvertisement->HasFrameDurations()) gAdBackground.Restore(FRAME_BUFFER);
 				BltVideoObject(FRAME_BUFFER, guiFlowerAdvertisement, 0, WARNING_X, WARNING_Y);
 
 				// redraw new mail warning, and create new mail button, if nessacary
@@ -828,6 +847,8 @@ static BOOLEAN DisplayFlowerAd(BOOLEAN fInit, BOOLEAN fRedraw)
 		}
 		else
 		{
+			// a PNG with frame durations: each frame on the page background, not on the previous frame
+			if (guiFlowerAdvertisement->HasFrameDurations()) gAdBackground.Restore(FRAME_BUFFER);
 			BltVideoObject(FRAME_BUFFER, guiFlowerAdvertisement, ubSubImage, WARNING_X, WARNING_Y);
 
 			// redraw new mail warning, and create new mail button, if nessacary
@@ -894,8 +915,41 @@ static void SelectBannerRegionCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
 static void HandleTextOnAimAdd(UINT8 ubCurSubImage);
 
 
+// An ad whose PNG has frame durations: the subimages of sequence, each for its
+// duration (else ownDelay), each drawn on the saved page background.
+static BOOLEAN PlayAdWithDurations(BOOLEAN const fInit, BOOLEAN const fRedraw, std::vector<UINT16> sequence,
+	UINT32 const ownDelay, SGPVObject const* const ad_image)
+{
+	UINT32 const now = GetJA2Clock();
+	if (fInit || !gAdAnimation.Started())
+	{
+		gAdAnimation.Start(*ad_image, std::move(sequence), ownDelay, now);
+	}
+
+	FrameAnimation::State const s = gAdAnimation.Update(now);
+	if (s.changed || fRedraw)
+	{
+		gAdBackground.Restore(FRAME_BUFFER);
+		BltVideoObject(FRAME_BUFFER, ad_image, s.frame, WARNING_X, WARNING_Y);
+		HandleTextOnAimAdd(static_cast<UINT8>(s.frame));
+
+		// redraw new mail warning, and create new mail button, if nessacary
+		fReDrawNewMailFlag = TRUE;
+		InvalidateRegion(AIM_AD_TOP_LEFT_X, AIM_AD_TOP_LEFT_Y, AIM_AD_BOTTOM_RIGHT_X, AIM_AD_BOTTOM_RIGHT_Y);
+	}
+	return s.finished ? AIM_AD_DONE : AIM_AD_NOT_DONE;
+}
+
+
 static BOOLEAN DisplayAd(const BOOLEAN fInit, const BOOLEAN fRedraw, const UINT16 usDelay, const UINT16 usNumberOfSubImages, const SGPVObject* const ad_image)
 {
+	if (ad_image->HasFrameDurations())
+	{
+		std::vector<UINT16> sequence(usNumberOfSubImages);
+		for (UINT16 i = 0; i != usNumberOfSubImages; ++i) sequence[i] = i;
+		return PlayAdWithDurations(fInit, fRedraw, std::move(sequence), usDelay, ad_image);
+	}
+
 	static UINT32 uiLastTime;
 	static UINT8	ubSubImage=0;
 	static UINT8	ubCount=0;
@@ -1033,6 +1087,18 @@ static void HandleTextOnAimAdd(UINT8 ubCurSubImage)
 
 static BOOLEAN DisplayBobbyRAd(BOOLEAN fInit, BOOLEAN fRedraw)
 {
+	if (guiBobbyRAdImages->HasFrameDurations())
+	{
+		// as below: the duck images twice, then the rest
+		std::vector<UINT16> sequence;
+		for (int pass = 0; pass != 2; ++pass)
+		{
+			for (UINT16 i = 0; i <= AIM_AD_BOBBYR_AD_NUM_DUCK_SUBIMAGES; ++i) sequence.push_back(i);
+		}
+		for (UINT16 i = AIM_AD_BOBBYR_AD_NUM_DUCK_SUBIMAGES + 1; i < AIM_AD_BOBBYR_AD__NUM_SUBIMAGES; ++i) sequence.push_back(i);
+		return PlayAdWithDurations(fInit, fRedraw, std::move(sequence), AIM_AD_BOBBYR_AD_DELAY, guiBobbyRAdImages);
+	}
+
 	static UINT32 uiLastTime;
 	static UINT8	ubSubImage=0;
 	static UINT8	ubDuckCount=0;

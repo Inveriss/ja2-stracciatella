@@ -191,18 +191,42 @@ Animacje obsługujące czasy z PNG:
 
 | Animacja | Plik | Uwagi |
 |---|---|---|
-| reklama kwiaciarni na stronie AIM | `laptop/flowerad_16.png` | 16 klatek; czas klatki określa, jak długo jest widoczna przed następną (domyślnie 150 ms); końcowe wyświetlenie klatki 0 z tekstem trwa jak dotąd. Klatki muszą być **w pełni kryjące** (alfa 255 lub PNG z paletą bez przezroczystości), bo każda jest rysowana na poprzedniej. |
+| reklama kwiaciarni (AIM) | `laptop/flowerad_16.png` | 16 klatek; czas klatki określa, jak długo jest widoczna przed następną (domyślnie 150 ms); końcowe wyświetlenie klatki 0 z tekstem trwa jak dotąd |
+| reklama „Twoja reklama” (AIM) | `laptop/yourad_13.png` | 13 klatek, domyślnie 150 ms |
+| reklama ubezpieczeń (AIM) | `laptop/insurancead_10.png` | 10 klatek, domyślnie 150 ms |
+| reklama zakładu pogrzebowego (AIM) | `laptop/funeralad_9.png` | 9 klatek, domyślnie 250 ms |
+| reklama Bobby Ray's (AIM) | `laptop/bobbyrayad_21.png` | 21 klatek, odtwarzane jako 0–6, 0–6, 7–20; domyślnie 300 ms |
+
+W reklamach AIM z czasami klatek każda klatka jest rysowana na tle strony
+zapamiętanym przy jej rysowaniu, a nie na poprzedniej klatce, więc klatki mogą
+mieć przezroczystość i półprzezroczystość. Klatka bez własnego czasu trwa
+domyślny czas reklamy z tabeli. Bez czasów w PNG (i dla STI) reklamy działają
+dokładnie jak dotąd, także z dłużej wyświetlaną pierwszą i ostatnią klatką;
+z czasami o długości każdej klatki decyduje tylko `png.json`. Pliki reklam w
+innych wersjach językowych mają inne nazwy (np. `german/yourad_13_german`).
 
 ## Narzędzia
 
 Eksport STI do PNG z paletą z zachowaniem indeksów, klatek i przesunięć:
 
 ```
-py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti plik.png [--max-width N]
+py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti plik.png [--max-width N] [--duration MS]
 ```
 
-Tworzy `plik.png` i, przy wielu klatkach lub przesunięciach, `plik.png.json`.
-Szczegóły w `tools/sti_editor/README.md`.
+Tworzy `plik.png` i, przy wielu klatkach, przesunięciach lub `--duration`,
+`plik.png.json` (`--duration` zapisuje `frameDuration`).
+
+Złożenie osobnych plików klatek (np. `explosion/000.png`, `001.png`, … w
+kolejności nazw) w jeden arkusz z metadanymi:
+
+```
+py -3 tools/sti_editor/sti_tool.py png-assemble explosion --out explosion.png [--duration MS] [--durations 80,80,120]
+```
+
+Jeśli wszystkie klatki są PNG z tą samą paletą, arkusz też ma paletę (indeksy bez
+zmian); w przeciwnym razie jest RGBA. Przesunięcia klatek są równe 0 i można je
+potem zmienić w `explosion.png.json`. Gra zawsze wczytuje arkusz, nie osobne pliki
+klatek. Szczegóły w `tools/sti_editor/README.md`.
 
 ## Ograniczenia
 
