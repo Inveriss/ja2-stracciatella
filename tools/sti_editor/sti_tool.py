@@ -7,7 +7,8 @@
     py -3 tools/sti_editor/sti_tool.py roundtrip FILE.sti [...]
     py -3 tools/sti_editor/sti_tool.py palette-export FILE.sti OUT.pal [--format jasc|riff|act|gpl|png]
     py -3 tools/sti_editor/sti_tool.py palette-import FILE.sti PALETTE OUT.sti
-    py -3 tools/sti_editor/sti_tool.py png-sheet FILE.sti OUT.png [--max-width N]
+    py -3 tools/sti_editor/sti_tool.py png-sheet FILE.sti OUT.png [--max-width N] [--duration MS]
+    py -3 tools/sti_editor/sti_tool.py png-assemble FRAME_DIR --out OUT.png [--duration MS] [--durations MS,MS,...]
 
 `roundtrip` never writes to disk: it re-serialises in memory, checks the
 bytes are identical, then forces a full ETRLE re-encode and checks every
@@ -105,10 +106,23 @@ def cmd_palette_import(args):
 
 def cmd_png_sheet(args):
     s = sti.STIFile.load(args.file)
-    json_path, warnings = s.export_indexed_sheet(args.out, args.max_width)
+    json_path, warnings = s.export_indexed_sheet(args.out, args.max_width, args.duration)
     print(args.out + (f" + {json_path}" if json_path else ""))
     for w in warnings:
         print(f"warning: {w}")
+
+
+def cmd_png_assemble(args):
+    if os.path.isdir(args.frames[0]) and len(args.frames) == 1:
+        directory = args.frames[0]
+        paths = sorted(os.path.join(directory, n) for n in os.listdir(directory) if n.lower().endswith(".png"))
+    else:
+        paths = list(args.frames)
+    durations = None
+    if args.durations:
+        durations = [int(d) for d in args.durations.split(",")]
+    json_path, kind = sti.assemble_png_sheet(paths, args.out, args.max_width, args.duration, durations)
+    print(f"{args.out} + {json_path}: {len(paths)} frames, {kind}")
 
 
 def roundtrip_check(path) -> tuple[bool, str]:
@@ -183,7 +197,15 @@ def main(argv=None):
     p.add_argument("file")
     p.add_argument("out")
     p.add_argument("--max-width", type=int, default=1024, help="wrap frames to rows of this width")
+    p.add_argument("--duration", type=int, default=0, help="frame duration in milliseconds (\"frameDuration\")")
     p.set_defaults(func=cmd_png_sheet)
+    p = sub.add_parser("png-assemble", help="one PNG sheet (+ frame metadata) from separate frame images")
+    p.add_argument("frames", nargs="+", help="a directory of frame PNGs (in name order) or the frame files")
+    p.add_argument("--out", required=True, help="the sheet to write (.png)")
+    p.add_argument("--max-width", type=int, default=1024, help="wrap frames to rows of this width")
+    p.add_argument("--duration", type=int, default=0, help="frame duration in milliseconds (\"frameDuration\")")
+    p.add_argument("--durations", help="comma separated durations, one per frame, e.g. 80,80,120")
+    p.set_defaults(func=cmd_png_assemble)
     p = sub.add_parser("roundtrip")
     p.add_argument("files", nargs="+")
     p.set_defaults(func=cmd_roundtrip)

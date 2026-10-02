@@ -260,6 +260,74 @@ class ImageTests(unittest.TestCase):
             self.assertFalse(os.path.exists(out + ".json"))
             self.assertEqual(Image.open(out).size, (4, 3))
 
+    def test_export_indexed_sheet_frame_duration(self):
+        import json
+        s = make_file(width=4, height=3, frames=1)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "one.png")
+            json_path, _ = s.export_indexed_sheet(out, frame_duration=120)
+            with open(json_path, encoding="utf-8") as fh:
+                meta = json.load(fh)
+            self.assertEqual(meta["frameDuration"], 120)
+            self.assertEqual(len(meta["frames"]), 1)
+
+    def test_assemble_palettised_frames(self):
+        import json
+        pal = [i % 256 for i in range(768)]
+        with tempfile.TemporaryDirectory() as tmp:
+            frame_dir = os.path.join(tmp, "explosion")
+            os.makedirs(frame_dir)
+            for n, (w, h) in enumerate([(5, 4), (3, 6), (7, 2)]):
+                img = Image.new("P", (w, h), 0)
+                img.putpalette(pal)
+                img.putdata([(n * 20 + i) % 250 + 1 if i % 3 else 0 for i in range(w * h)])
+                img.save(os.path.join(frame_dir, f"{n:03d}.png"))
+            out = os.path.join(tmp, "explosion.png")
+            rc = sti_tool.main(["png-assemble", frame_dir, "--out", out, "--duration", "80", "--durations", "50,0,200"])
+            self.assertEqual(rc, 0)
+
+            sheet = Image.open(out)
+            self.assertEqual(sheet.mode, "P")
+            self.assertEqual(sheet.info.get("transparency"), 0)
+            with open(out + ".json", encoding="utf-8") as fh:
+                meta = json.load(fh)
+            self.assertEqual(meta["frameDuration"], 80)
+            frames = meta["frames"]
+            self.assertEqual([(f["w"], f["h"]) for f in frames], [(5, 4), (3, 6), (7, 2)])
+            self.assertEqual([f.get("duration") for f in frames], [50, None, 200])
+            # pixels (palette indices) are where the metadata says
+            for n, f in enumerate(frames):
+                src = Image.open(os.path.join(frame_dir, f"{n:03d}.png"))
+                crop = sheet.crop((f["x"], f["y"], f["x"] + f["w"], f["y"] + f["h"]))
+                self.assertEqual(crop.tobytes(), src.tobytes())
+
+    def test_assemble_mixed_frames_gives_rgba(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "a.png")
+            b = os.path.join(tmp, "b.png")
+            Image.new("RGBA", (2, 2), (255, 0, 0, 128)).save(a)
+            img = Image.new("P", (3, 1), 1)
+            img.putpalette([0, 0, 0, 0, 255, 0] + [0] * 762)
+            img.save(b)
+            out = os.path.join(tmp, "sheet.png")
+            _, kind = sti.assemble_png_sheet([a, b], out)
+            self.assertEqual(kind, "RGBA")
+            sheet = Image.open(out)
+            self.assertEqual(sheet.mode, "RGBA")
+            self.assertEqual(sheet.getpixel((0, 0)), (255, 0, 0, 128))
+
+    def test_assemble_rejects_bad_durations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "a.png")
+            Image.new("RGBA", (2, 2)).save(a)
+            out = os.path.join(tmp, "sheet.png")
+            with self.assertRaises(sti.STIError):
+                sti.assemble_png_sheet([a], out, durations=[1, 2])
+            with self.assertRaises(sti.STIError):
+                sti.assemble_png_sheet([a], out, frame_duration=70000)
+            with self.assertRaises(sti.STIError):
+                sti.assemble_png_sheet([], out)
+
     def test_new_from_palette_image_keeps_indices(self):
         img = Image.new("P", (3, 1))
         img.putpalette([0, 0, 0, 10, 20, 30, 40, 50, 60] + [0] * (768 - 9))

@@ -702,32 +702,23 @@ class STIFile:
             paths.append(p)
         return paths
 
-    def export_indexed_sheet(self, path, max_width: int = 1024) -> Tuple[Optional[str], List[str]]:
+    def export_indexed_sheet(self, path, max_width: int = 1024, frame_duration: int = 0) -> Tuple[Optional[str], List[str]]:
         """Write all frames of an indexed STI as one palettised PNG that the
         game loads instead of the STI (src/sgp/PNG.cc): palette indices are
         kept as they are, transparent pixels get index 0 (which the game always
         treats as transparent, tRNS marks it in other programs too). The frames
         are placed on rows, left to right, with a 1 pixel gap.
 
-        Unless the file is a single frame without offset, the frame positions
-        and offsets go to <path>.json. Returns (json path or None, warnings);
-        opaque index 0 pixels are reported, as the game would not draw them."""
-        import json
+        Unless the file is a single frame without offset (and no
+        frame_duration), the frame positions and offsets go to <path>.json,
+        frame_duration (milliseconds) as "frameDuration". Returns (json path or
+        None, warnings); opaque index 0 pixels are reported, as the game would
+        not draw them."""
         from PIL import Image
         if not self.is_indexed or self.is_rgb or not self.frames:
             raise STIError("only indexed STI files with frames can be exported as a PNG sheet")
 
-        places = []
-        x = y = row_h = sheet_w = 0
-        limit = max(max_width, max(f.width for f in self.frames))
-        for f in self.frames:
-            if x and x + f.width > limit:
-                x, y, row_h = 0, y + row_h + 1, 0
-            places.append((x, y))
-            x += f.width + 1
-            row_h = max(row_h, f.height)
-            sheet_w = max(sheet_w, x - 1)
-        sheet_h = y + row_h
+        places, sheet_w, sheet_h = sheet_layout([(f.width, f.height) for f in self.frames], max_width)
 
         sheet = bytearray(sheet_w * sheet_h)
         warnings = []
@@ -751,15 +742,12 @@ class STIFile:
 
         json_path = None
         f0 = self.frames[0]
-        if len(self.frames) > 1 or f0.offset_x or f0.offset_y:
+        if len(self.frames) > 1 or f0.offset_x or f0.offset_y or frame_duration:
             json_path = str(path) + ".json"
             frames = [{"x": fx, "y": fy, "w": f.width, "h": f.height,
                        "offsetX": f.offset_x, "offsetY": f.offset_y}
                       for f, (fx, fy) in zip(self.frames, places)]
-            with open(json_path, "w", encoding="utf-8") as fh:
-                fh.write('{\n  "frames": [\n')
-                fh.write(",\n".join("    " + json.dumps(fr) for fr in frames))
-                fh.write("\n  ]\n}\n")
+            write_sheet_metadata(json_path, frames, frame_duration)
         return json_path, warnings
 
     def describe(self) -> str:
@@ -778,6 +766,85 @@ class STIFile:
         for w in self.warnings:
             lines.append(f"warning        : {w}")
         return "\n".join(lines)
+
+
+def sheet_layout(sizes: Sequence[Tuple[int, int]], max_width: int = 1024) -> Tuple[List[Tuple[int, int]], int, int]:
+    """Places frames of the given (width, height) on rows, left to right, with
+    a 1 pixel gap, rows at most max_width wide (or as wide as the widest
+    frame). Returns (positions, sheet width, sheet height)."""
+    places = []
+    x = y = row_h = sheet_w = 0
+    limit = max(max_width, max(w for w, _ in sizes))
+    for w, h in sizes:
+        if x and x + w > limit:
+            x, y, row_h = 0, y + row_h + 1, 0
+        places.append((x, y))
+        x += w + 1
+        row_h = max(row_h, h)
+        sheet_w = max(sheet_w, x - 1)
+    return places, sheet_w, y + row_h
+
+
+def write_sheet_metadata(json_path, frames: Sequence[dict], frame_duration: int = 0) -> None:
+    """Writes <image>.png.json: one frame per line, "frameDuration" if given."""
+    import json
+    with open(json_path, "w", encoding="utf-8") as fh:
+        fh.write("{\n")
+        if frame_duration:
+            fh.write(f'  "frameDuration": {int(frame_duration)},\n')
+        fh.write('  "frames": [\n')
+        fh.write(",\n".join("    " + json.dumps(fr) for fr in frames))
+        fh.write("\n  ]\n}\n")
+
+
+def assemble_png_sheet(frame_paths: Sequence, out_path, max_width: int = 1024,
+        frame_duration: int = 0, durations: Optional[Sequence[int]] = None) -> Tuple[str, str]:
+    """Puts separate frame images (e.g. 000.png, 001.png, ...) in this order
+    into one sheet for the game's PNG loader, with <out_path>.json listing
+    the frames (offset 0) and their durations in milliseconds.
+
+    If every frame is palettised with the same palette, the sheet is
+    palettised too (indices kept, index 0 transparent); otherwise it is RGBA.
+    Returns (json path, "palettised" or "RGBA")."""
+    from PIL import Image
+    if not frame_paths:
+        raise STIError("no frames to assemble")
+    if durations is not None and len(durations) != len(frame_paths):
+        raise STIError(f"{len(durations)} durations for {len(frame_paths)} frames")
+    if any(d < 0 or d > 65535 for d in (durations or [])) or not 0 <= frame_duration <= 65535:
+        raise STIError("durations must be from 0 to 65535 milliseconds")
+
+    images = []
+    for p in frame_paths:
+        img = Image.open(p)
+        img.load()
+        images.append(img)
+
+    palette = images[0].getpalette() if images[0].mode == "P" else None
+    indexed = palette is not None and all(i.mode == "P" and i.getpalette() == palette for i in images)
+
+    places, sheet_w, sheet_h = sheet_layout([i.size for i in images], max_width)
+    if indexed:
+        sheet = Image.new("P", (sheet_w, sheet_h), 0)
+        sheet.putpalette(palette)
+        for img, pos in zip(images, places):
+            sheet.paste(img, pos)
+        sheet.save(out_path, "PNG", transparency=0)
+    else:
+        sheet = Image.new("RGBA", (sheet_w, sheet_h), (0, 0, 0, 0))
+        for img, pos in zip(images, places):
+            sheet.paste(img.convert("RGBA"), pos)
+        sheet.save(out_path, "PNG")
+
+    frames = []
+    for n, (img, (x, y)) in enumerate(zip(images, places)):
+        fr = {"x": x, "y": y, "w": img.width, "h": img.height, "offsetX": 0, "offsetY": 0}
+        if durations is not None and durations[n]:
+            fr["duration"] = int(durations[n])
+        frames.append(fr)
+    json_path = str(out_path) + ".json"
+    write_sheet_metadata(json_path, frames, frame_duration)
+    return json_path, "palettised" if indexed else "RGBA"
 
 
 def nearest_palette_index(palette: Sequence[Tuple[int, int, int]], rgb: Tuple[int, int, int],
