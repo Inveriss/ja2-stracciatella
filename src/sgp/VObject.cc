@@ -41,22 +41,78 @@ SGPVObject::SGPVObject(SGPImage * const img) :
 {
 	std::fill(std::begin(pShades), std::end(pShades), nullptr);
 
-	if (!(img->fFlags & IMAGE_TRLECOMPRESSED))
+	if (img->fFlags & IMAGE_RGBA)
 	{
-		throw std::runtime_error("Image for video object creation must be TRLE compressed");
+		if (img->ubBitDepth != 32)
+		{
+			throw std::runtime_error("RGBA image for video object creation must be 32 bit");
+		}
+		if (!(img->fFlags & IMAGE_NO_OUTLINE)) BuildOutlineMask();
 	}
-
-	if (img->ubBitDepth == 8)
+	else
 	{
-		// move palette data over
-		palette_ = img->pPalette.moveToUnique();
-		Assert(palette_);
+		if (!(img->fFlags & IMAGE_TRLECOMPRESSED))
+		{
+			throw std::runtime_error("Image for video object creation must be TRLE compressed");
+		}
 
-		palette16_     = Create16BPPPalette(palette_.get());
-		current_shade_ = palette16_;
+		if (img->ubBitDepth == 8)
+		{
+			// move palette data over
+			palette_ = img->pPalette.moveToUnique();
+			Assert(palette_);
+
+			palette16_     = Create16BPPPalette(palette_.get());
+			current_shade_ = palette16_;
+		}
 	}
 
 	gpVObjectHead = this;
+}
+
+
+void SGPVObject::BuildOutlineMask()
+{
+	size_t size = 0;
+	for (size_t i = 0; i != subregion_count_; ++i)
+	{
+		ETRLEObject const& e = etrle_object_[i];
+		size = std::max(size, e.uiDataOffset / 4 + size_t{e.usWidth} * e.usHeight);
+	}
+	outline_mask_ = std::make_unique<UINT8 []>(size);
+
+	auto const opaque = [](UINT8 const* const rgba, size_t const i) { return rgba[i * 4 + 3] >= 128; };
+	for (size_t i = 0; i != subregion_count_; ++i)
+	{
+		ETRLEObject const& e    = etrle_object_[i];
+		UINT8 const* const rgba = &pix_data_[e.uiDataOffset];
+		UINT8*       const mask = &outline_mask_[e.uiDataOffset / 4];
+		size_t const w = e.usWidth;
+		size_t const h = e.usHeight;
+		for (size_t y = 0; y != h; ++y)
+		{
+			for (size_t x = 0; x != w; ++x)
+			{
+				size_t const n = y * w + x;
+				if (opaque(rgba, n)) continue;
+				mask[n] =
+					(x != 0     && opaque(rgba, n - 1)) ||
+					(x + 1 != w && opaque(rgba, n + 1)) ||
+					(y != 0     && opaque(rgba, n - w)) ||
+					(y + 1 != h && opaque(rgba, n + w));
+			}
+		}
+	}
+}
+
+
+SGPPaletteEntry const* SGPVObject::Palette() const
+{
+	if (IsRGBA())
+	{
+		throw std::logic_error("Tried to use the palette of a full colour (RGBA) video object");
+	}
+	return palette_.get();
 }
 
 
@@ -75,6 +131,9 @@ SGPVObject::~SGPVObject()
 
 void SGPVObject::CurrentShade(size_t const idx)
 {
+	// Full colour objects are drawn without shade tables.
+	if (IsRGBA()) return;
+
 	if (idx >= lengthof(pShades) || !pShades[idx])
 	{
 		throw std::logic_error("Tried to set invalid video object shade");
@@ -95,7 +154,31 @@ ETRLEObject const& SGPVObject::SubregionProperties(size_t const idx) const
 
 UINT8 const* SGPVObject::PixData(ETRLEObject const& e) const
 {
+	if (IsRGBA())
+	{
+		throw std::logic_error("Tried to draw a full colour (RGBA) video object with an 8 bit blitter");
+	}
 	return &pix_data_[e.uiDataOffset];
+}
+
+
+UINT8 const* SGPVObject::RGBAData(ETRLEObject const& e) const
+{
+	if (!IsRGBA())
+	{
+		throw std::logic_error("Tried to read RGBA data of a palettised video object");
+	}
+	return &pix_data_[e.uiDataOffset];
+}
+
+
+UINT8 const* SGPVObject::OutlineMask(ETRLEObject const& e) const
+{
+	if (!IsRGBA())
+	{
+		throw std::logic_error("Tried to read the outline mask of a palettised video object");
+	}
+	return outline_mask_ ? &outline_mask_[e.uiDataOffset / 4] : nullptr;
 }
 
 
@@ -105,6 +188,11 @@ UINT8 const* SGPVObject::PixData(ETRLEObject const& e) const
 
 UINT8 SGPVObject::GetETRLEPixelValue(UINT16 const usETRLEIndex, UINT16 const usX, UINT16 const usY) const
 {
+	if (IsRGBA())
+	{
+		throw std::logic_error("Tried to read a palette index of a full colour (RGBA) video object");
+	}
+
 	ETRLEObject const& pETRLEObject = SubregionProperties(usETRLEIndex);
 
 	if (usX >= pETRLEObject.usWidth || usY >= pETRLEObject.usHeight)
@@ -223,22 +311,28 @@ SGPVObject* AddVideoObjectFromHImage(SGPImage* const img)
 	return new SGPVObject(img);
 }
 
-SGPVObject* AddVideoObjectFromFile(const ST::string& ImageFile)
+SGPVObject* AddVideoObjectFromFile(const ST::string& ImageFile, bool const needsPalette)
 {
-	AutoSGPImage hImage(CreateImage(ImageFile, IMAGE_ALLIMAGEDATA));
+	AutoSGPImage hImage(CreateImage(ImageFile, IMAGE_ALLIMAGEDATA | (needsPalette ? IMAGE_NEEDS_PALETTE : 0)));
 	return AddVideoObjectFromHImage(hImage.get());
 }
 
 
 void BltVideoObject(SGPVSurface* const dst, SGPVObject const* const src, UINT16 const usRegionIndex, INT32 const iDestX, INT32 const iDestY)
 {
-	Assert(src->BPP() ==  8);
 	Assert(dst->BPP() == 16);
 
 	SGPVSurface::Lock l(dst);
 	UINT16* const pBuffer = l.Buffer<UINT16>();
 	UINT32  const uiPitch = l.Pitch();
 
+	if (src->IsRGBA())
+	{
+		Blt32BPPDataTo16BPPBufferAlpha(pBuffer, uiPitch, src, iDestX, iDestY, usRegionIndex, &ClippingRect, SGP_TRANSPARENT);
+		return;
+	}
+
+	Assert(src->BPP() ==  8);
 	if (BltIsClipped(src, iDestX, iDestY, usRegionIndex, &ClippingRect))
 	{
 		Blt8BPPDataTo16BPPBufferTransparentClip(pBuffer, uiPitch, src, iDestX, iDestY, usRegionIndex, &ClippingRect);
@@ -256,6 +350,12 @@ void BltVideoObjectOutline(SGPVSurface* const dst, SGPVObject const* const hSrcV
 	UINT16* const pBuffer = l.Buffer<UINT16>();
 	UINT32  const uiPitch = l.Pitch();
 
+	if (hSrcVObject->IsRGBA())
+	{
+		Blt32BPPDataTo16BPPBufferAlpha(pBuffer, uiPitch, hSrcVObject, iDestX, iDestY, usIndex, &ClippingRect, s16BPPColor);
+		return;
+	}
+
 	if (BltIsClipped(hSrcVObject, iDestX, iDestY, usIndex, &ClippingRect))
 	{
 		Blt8BPPDataTo16BPPBufferOutlineClip(pBuffer, uiPitch, hSrcVObject, iDestX, iDestY, usIndex, s16BPPColor, &ClippingRect);
@@ -272,6 +372,12 @@ void BltVideoObjectOutlineShadow(SGPVSurface* const dst, const SGPVObject* const
 	SGPVSurface::Lock l(dst);
 	UINT16* const pBuffer = l.Buffer<UINT16>();
 	UINT32  const uiPitch = l.Pitch();
+
+	if (src->IsRGBA())
+	{
+		Blt32BPPDataTo16BPPBufferShadow(pBuffer, uiPitch, src, iDestX, iDestY, usIndex, &ClippingRect);
+		return;
+	}
 
 	if (BltIsClipped(src, iDestX, iDestY, usIndex, &ClippingRect))
 	{

@@ -32,6 +32,23 @@
 // can produce either form (PNG) look at it.
 #define IMAGE_FOR_SURFACE				0x0020
 
+// Additional content flag for CreateImage(): the caller uses the palette of
+// the image (palette shading, palette colours, pixel values), so it must be an
+// 8 bit palettised image; a full colour PNG is not loaded (and a PNG
+// replacement of that kind is skipped).
+#define IMAGE_NEEDS_PALETTE			0x0040
+
+// SGPImage flag: the bitmap data holds the frames as 32 bit RGBA (8 bits per
+// channel, in this byte order), one after the other; ubBitDepth is 32 and
+// the ETRLEObjects give the byte offset, size and drawing offset of each frame.
+// (Kept clear of the content flags above, which the PCX loader copies into
+// fFlags.)
+#define IMAGE_RGBA							0x0100
+
+// SGPImage flag for IMAGE_RGBA images: no outline is drawn around the image
+// (see SGPVObject::OutlineMask()).
+#define IMAGE_NO_OUTLINE				0x0200
+
 // This is the color substituted to keep a 24bpp -> 16bpp color
 // from going transparent (0x0000) -- DB
 #define BLACK_SUBSTITUTE	0x0001

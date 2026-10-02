@@ -33,7 +33,15 @@ class SGPVObject
 
 		UINT8 BPP() const { return bit_depth_; }
 
-		SGPPaletteEntry const* Palette() const { return palette_.get(); }
+		// A full colour (32 bit RGBA) video object, loaded from a PNG. It has no
+		// palette and no shade tables: Palette(), PixData() and
+		// GetETRLEPixelValue() throw, CurrentShade(idx) does nothing and
+		// CurrentShade() is null. It is drawn by BltVideoObject(),
+		// BltVideoObjectOutline(), BltVideoObjectOutlineShadow() and
+		// Blt8BPPDataTo16BPPBufferTransparent[Clip]().
+		bool IsRGBA() const { return bit_depth_ == 32; }
+
+		SGPPaletteEntry const* Palette() const;
 
 		UINT16 const* Palette16() const { return palette16_; }
 
@@ -46,7 +54,18 @@ class SGPVObject
 
 		ETRLEObject const& SubregionProperties(size_t idx) const;
 
+		// ETRLE data of a subimage (8 bit objects only)
 		UINT8 const* PixData(ETRLEObject const&) const;
+
+		// RGBA rows of a subimage (32 bit objects only)
+		UINT8 const* RGBAData(ETRLEObject const&) const;
+
+		// Outline of a subimage of a 32 bit object, one byte per pixel: non-zero
+		// for the transparent pixels next to an opaque one (left, right, above
+		// or below). It replaces the outline colour pixels (index 254) of
+		// palettised images. Null if the image has no outline ("outline": false
+		// in its .png.json).
+		UINT8 const* OutlineMask(ETRLEObject const&) const;
 
 		/* Given a ETRLE image index, retrieves the value of the pixel located at
 		 * the given image coordinates. The value returned is an 8-bit palette index
@@ -65,12 +84,15 @@ class SGPVObject
 		};
 
 	private:
+		void BuildOutlineMask();
+
 		Flags                        flags_;                         // Special flags
 		std::unique_ptr<SGPPaletteEntry const []> palette_;          // 8BPP Palette
 		UINT16*                      palette16_;                     // A 16BPP palette used for 8->16 blits
 
-		std::unique_ptr<UINT8 const []> pix_data_;                   // ETRLE pixel data
+		std::unique_ptr<UINT8 const []> pix_data_;                   // ETRLE pixel data, or RGBA rows
 		std::unique_ptr<ETRLEObject const []> etrle_object_;         // Object offset data etc
+		std::unique_ptr<UINT8 []>    outline_mask_;                  // 32 bit objects: see OutlineMask()
 	public:
 		UINT16*                      pShades[HVOBJECT_SHADE_TABLES]; // Shading tables
 	private:
@@ -97,7 +119,10 @@ void ShutdownVideoObjectManager(void);
 
 // Creates and adds a video object to list
 SGPVObject* AddVideoObjectFromHImage(SGPImage*);
-SGPVObject* AddVideoObjectFromFile(const ST::string& ImageFile);
+// needsPalette: the caller uses the palette of the object (shades it with
+// Create16BPPPaletteShaded(), reads palette colours or pixel values), so a full
+// colour image is not loaded (see IMAGE_NEEDS_PALETTE).
+SGPVObject* AddVideoObjectFromFile(const ST::string& ImageFile, bool needsPalette = false);
 
 // Removes a video object
 static inline void DeleteVideoObject(SGPVObject* const vo)

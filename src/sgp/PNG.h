@@ -65,17 +65,29 @@ struct PNGFrame
 	INT16  offsetY;
 };
 
-// Parses the frame metadata of a PNG (the contents of <image>.png.json) for
-// an image of the given size. Two forms are accepted:
+// The metadata of a PNG (the contents of <image>.png.json).
+struct PNGMetadata
+{
+	std::vector<PNGFrame> frames;
+	// Full colour images only: draw an outline around the image where the
+	// game asks for one (e.g. compatible items). Palettised images have their
+	// outline in the image itself (index 254).
+	bool outline = true;
+};
+
+// Parses the metadata of a PNG for an image of the given size. The frames
+// are given in one of two forms:
 //
 //   { "frames": [ { "x": 0, "y": 0, "w": 32, "h": 24, "offsetX": -3, "offsetY": 0 }, ... ] }
 //
 //   { "grid": { "w": 32, "h": 24, "count": 10 }, "offsets": [ [ -3, 0 ], ... ] }
 //
-// "offsetX"/"offsetY" default to 0. A grid is read left to right, top to
-// bottom; "count" defaults to all cells and "offsets", if given, must have
-// one entry per frame. Throws std::runtime_error on invalid metadata.
-std::vector<PNGFrame> ParsePNGFrames(ST::string const& json, UINT16 imageWidth, UINT16 imageHeight);
+// or not at all, then the whole image is one frame. "offsetX"/"offsetY"
+// default to 0. A grid is read left to right, top to bottom; "count" defaults
+// to all cells and "offsets", if given, must have one entry per frame.
+// "outline": false turns the outline off. Throws std::runtime_error on
+// invalid metadata.
+PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 imageWidth, UINT16 imageHeight);
 
 // Converts a palettised PNG to an 8 bit SGPImage with one ETRLE compressed
 // subimage per frame, like an indexed STCI image. fContents selects what is
@@ -84,6 +96,12 @@ std::vector<PNGFrame> ParsePNGFrames(ST::string const& json, UINT16 imageWidth, 
 // tRNS alpha is below 128; name is only used in messages.
 SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
 	UINT16 fContents, ST::string const& name);
+
+// Converts a full colour PNG to a 32 bit SGPImage (IMAGE_RGBA): the frames
+// are stored one after the other as RGBA rows, described by the ETRLEObjects.
+// Without outline, the image gets IMAGE_NO_OUTLINE.
+SGPImage* ConvertRGBAPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
+	UINT16 fContents, ST::string const& name, bool outline = true);
 
 // Converts a PNG to an SGPImage with plain pixels for a video surface:
 // - palettised: 8 bpp palette indices (unchanged, tRNS is ignored like the
@@ -95,8 +113,8 @@ SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> 
 SGPImage* ConvertPNGToSurfaceImage(DecodedPNG const& png, UINT16 fContents);
 
 // Loads a PNG game resource as an SGPImage. With IMAGE_FOR_SURFACE in
-// fContents, see ConvertPNGToSurfaceImage(). Otherwise frame metadata is read
+// fContents, see ConvertPNGToSurfaceImage(). Otherwise the metadata is read
 // from <filename>.json if that exists (else the whole image is one frame) and
-// the image is converted by ConvertIndexedPNGToImage(); only palettised PNGs
-// are supported there so far.
+// the image is converted by ConvertIndexedPNGToImage() or, for full colour
+// PNGs, ConvertRGBAPNGToImage() (not with IMAGE_NEEDS_PALETTE).
 SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 fContents);

@@ -12,6 +12,15 @@ SGPRect GetClippingRect();
 
 
 BOOLEAN BltIsClipped(const SGPVObject* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, const SGPRect* clipregion);
+
+// Full colour (32 bit RGBA) video objects. Both clip to clipregion
+// (ClippingRect if null).
+// Alpha blends a subimage onto a 16 bit buffer; with an outline colour other
+// than SGP_TRANSPARENT, the outline pixels of the subimage (see
+// SGPVObject::OutlineMask()) are drawn in that colour.
+void Blt32BPPDataTo16BPPBufferAlpha(UINT16* buf, UINT32 uiDestPitchBYTES, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, INT16 outline);
+// Shades the buffer (ShadeTable) where the subimage is opaque (alpha >= 128).
+void Blt32BPPDataTo16BPPBufferShadow(UINT16* buf, UINT32 uiDestPitchBYTES, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion);
 CHAR8 BltIsClippedOrOffScreen( HVOBJECT hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect *clipregion );
 
 

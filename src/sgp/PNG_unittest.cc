@@ -6,6 +6,8 @@
 #include "STCI.h"
 #include "TestUtils.h"
 #include "VObject.h"
+#include "VObject_Blitters.h"
+#include "Shading.h"
 #include "VSurface.h"
 
 #include <string_theory/format>
@@ -290,9 +292,9 @@ TEST(PNG, invalidDataFails)
 
 TEST(PNG, framesMetadata)
 {
-	std::vector<PNGFrame> const frames = ParsePNGFrames(R"({ "frames": [
+	std::vector<PNGFrame> const frames = ParsePNGMetadata(R"({ "frames": [
 		{ "x": 0, "y": 0, "w": 10, "h": 6, "offsetX": -3, "offsetY": 2 },
-		{ "x": 12, "y": 1, "w": 4, "h": 9 } ] })", 20, 12);
+		{ "x": 12, "y": 1, "w": 4, "h": 9 } ] })", 20, 12).frames;
 	ASSERT_EQ(frames.size(), 2u);
 	EXPECT_EQ(frames[0].x, 0);
 	EXPECT_EQ(frames[0].width, 10);
@@ -309,7 +311,7 @@ TEST(PNG, framesMetadata)
 TEST(PNG, gridMetadata)
 {
 	// 3x2 cells of 5x4, the remaining 2 pixels of width are ignored
-	std::vector<PNGFrame> const all = ParsePNGFrames(R"({ "grid": { "w": 5, "h": 4 } })", 17, 8);
+	std::vector<PNGFrame> const all = ParsePNGMetadata(R"({ "grid": { "w": 5, "h": 4 } })", 17, 8).frames;
 	ASSERT_EQ(all.size(), 6u);
 	EXPECT_EQ(all[2].x, 10);
 	EXPECT_EQ(all[2].y, 0);
@@ -317,8 +319,8 @@ TEST(PNG, gridMetadata)
 	EXPECT_EQ(all[3].y, 4);
 	EXPECT_EQ(all[5].offsetX, 0);
 
-	std::vector<PNGFrame> const some = ParsePNGFrames(
-		R"({ "grid": { "w": 5, "h": 4, "count": 4 }, "offsets": [ [0, 0], [-1, 1], [2, -2], [3, 3] ] })", 15, 8);
+	std::vector<PNGFrame> const some = ParsePNGMetadata(
+		R"({ "grid": { "w": 5, "h": 4, "count": 4 }, "offsets": [ [0, 0], [-1, 1], [2, -2], [3, 3] ] })", 15, 8).frames;
 	ASSERT_EQ(some.size(), 4u);
 	EXPECT_EQ(some[3].x, 0);
 	EXPECT_EQ(some[3].y, 4);
@@ -332,7 +334,6 @@ TEST(PNG, invalidMetadataFails)
 	char const* const invalid[] = {
 		"not json",
 		"[]",
-		"{}",
 		R"({ "frames": [], "grid": { "w": 1, "h": 1 } })",
 		R"({ "frames": [] })",
 		R"({ "frames": [ { "x": 0, "y": 0, "w": 11, "h": 1 } ] })",  // wider than the image
@@ -344,12 +345,33 @@ TEST(PNG, invalidMetadataFails)
 		R"({ "grid": { "w": 11, "h": 1 } })",
 		R"({ "grid": { "w": 5, "h": 5, "count": 2 }, "offsets": [ [0, 0] ] })",
 		R"({ "grid": { "w": 5, "h": 5, "count": 1 }, "offsets": [ [0] ] })",
+		R"({ "offsets": [ [0, 0] ] })",                              // offsets without a grid
+		R"({ "outline": "no" })",
 	};
 	for (char const* const json : invalid)
 	{
 		SCOPED_TRACE(json);
-		EXPECT_THROW(ParsePNGFrames(json, 10, 10), std::runtime_error);
+		EXPECT_THROW(ParsePNGMetadata(json, 10, 10), std::runtime_error);
 	}
+}
+
+
+TEST(PNG, metadataWithoutFrames)
+{
+	// no frames given: the whole image is one frame
+	PNGMetadata const empty = ParsePNGMetadata("{}", 7, 5);
+	ASSERT_EQ(empty.frames.size(), 1u);
+	EXPECT_EQ(empty.frames[0].width, 7);
+	EXPECT_EQ(empty.frames[0].height, 5);
+	EXPECT_TRUE(empty.outline);
+
+	PNGMetadata const noOutline = ParsePNGMetadata(R"({ "outline": false })", 7, 5);
+	EXPECT_FALSE(noOutline.outline);
+	EXPECT_EQ(noOutline.frames.size(), 1u);
+
+	PNGMetadata const withGrid = ParsePNGMetadata(R"({ "grid": { "w": 7, "h": 1 }, "outline": false })", 7, 5);
+	EXPECT_FALSE(withGrid.outline);
+	EXPECT_EQ(withGrid.frames.size(), 5u);
 }
 
 
@@ -814,14 +836,309 @@ TEST_F(PNGLoadTest, unusableReplacementFallsBackToOriginal)
 	AutoSGPImage const broken(CreateImage("pngtest/broken.sti", IMAGE_ALLIMAGEDATA));
 	EXPECT_EQ(broken->usNumberOfObjects, 2);
 
-	// an RGBA PNG cannot be a video object yet ...
-	AutoSGPImage const object(CreateImage("pngtest/rgba_next_to_sti.sti", IMAGE_ALLIMAGEDATA));
+	// an RGBA PNG where the palette is needed
+	AutoSGPImage const object(CreateImage("pngtest/rgba_next_to_sti.sti", IMAGE_ALLIMAGEDATA | IMAGE_NEEDS_PALETTE));
+	EXPECT_EQ(object->ubBitDepth, 8);
 	EXPECT_EQ(object->usNumberOfObjects, 2);
 
-	// ... but it can be a video surface
+	// the same PNG as a video surface
 	RGB565Format const format;
 	std::unique_ptr<SGPVSurface> const surface(AddVideoSurfaceFromFile("pngtest/rgba_next_to_sti.sti"));
 	EXPECT_EQ(surface->BPP(), 16);
 	EXPECT_EQ(surface->Width(), 4);
 	EXPECT_EQ(surface->Height(), 3);
+}
+
+
+// ---------------------------------------------------------------------------
+// Full colour (32 bit RGBA) video objects
+
+namespace
+{
+
+// 3x3 RGBA image: transparent except an opaque red centre, a black pixel
+// right of it and a half transparent white one below it.
+DecodedPNG SmallRGBAPNG()
+{
+	DecodedPNG png;
+	png.kind             = DecodedPNG::Kind::RGBA;
+	png.width            = 3;
+	png.height           = 3;
+	png.sourceColourType = 6;
+	png.sourceBitDepth   = 8;
+	png.pixels.assign(3 * 3 * 4, 0);
+	auto const set = [&](size_t x, size_t y, UINT8 r, UINT8 g, UINT8 b, UINT8 a)
+	{
+		UINT8* const p = &png.pixels[(y * 3 + x) * 4];
+		p[0] = r; p[1] = g; p[2] = b; p[3] = a;
+	};
+	set(1, 1, 255,   0,   0, 255);
+	set(2, 1,   0,   0,   0, 255);
+	set(1, 2, 255, 255, 255, 128);
+	set(0, 0,  50,  60,  70, 100); // below the opacity threshold
+	return png;
+}
+
+std::unique_ptr<SGPVObject> SmallRGBAObject(std::vector<PNGFrame> const& frames)
+{
+	AutoSGPImage img(ConvertRGBAPNGToImage(SmallRGBAPNG(), frames, IMAGE_ALLIMAGEDATA, "test"));
+	return std::unique_ptr<SGPVObject>(AddVideoObjectFromHImage(img.get()));
+}
+
+std::unique_ptr<SGPVObject> SmallRGBAObject()
+{
+	return SmallRGBAObject({ PNGFrame{ 0, 0, 3, 3, 0, 0 } });
+}
+
+UINT16 Pixel(SGPVSurface const& s, int const x, int const y)
+{
+	SDL_Surface const& sdl = s.GetSDLSurface();
+	return reinterpret_cast<UINT16 const*>(static_cast<UINT8 const*>(sdl.pixels) + y * sdl.pitch)[x];
+}
+
+// Sets the clip rect for the lifetime of the object.
+class ScopedClip
+{
+public:
+	explicit ScopedClip(SGPRect const r) : old_{ SetClippingRect(r) } {}
+	~ScopedClip() { SetClippingRect(old_); }
+private:
+	SGPRect old_;
+};
+
+UINT16 const BLUE_565 = 0x001F;
+
+}
+
+
+TEST(PNG, convertRGBA)
+{
+	DecodedPNG const png = SmallRGBAPNG();
+	std::vector<PNGFrame> const frames{ { 1, 1, 2, 2, -3, 4 }, { 0, 0, 3, 1, 0, 0 } };
+	AutoSGPImage const img(ConvertRGBAPNGToImage(png, frames, IMAGE_ALLIMAGEDATA, "test"));
+
+	EXPECT_EQ(img->ubBitDepth, 32);
+	EXPECT_EQ(img->fFlags, IMAGE_RGBA | IMAGE_BITMAPDATA);
+	ASSERT_EQ(img->usNumberOfObjects, 2);
+	ASSERT_EQ(img->uiSizePixData, (2u * 2u + 3u) * 4u);
+
+	ETRLEObject const* const o = img->pETRLEObject;
+	EXPECT_EQ(o[0].uiDataOffset, 0u);
+	EXPECT_EQ(o[0].uiDataLength, 16u);
+	EXPECT_EQ(o[0].sOffsetX, -3);
+	EXPECT_EQ(o[0].sOffsetY, 4);
+	EXPECT_EQ(o[0].usWidth, 2);
+	EXPECT_EQ(o[0].usHeight, 2);
+	EXPECT_EQ(o[1].uiDataOffset, 16u);
+	EXPECT_EQ(o[1].uiDataLength, 12u);
+
+	// frame 0 is the 2x2 area at 1,1: red, black / white 128, transparent
+	UINT8 const* const data = img->pImageData;
+	EXPECT_EQ(std::vector<UINT8>(data, data + 16), (std::vector<UINT8>{
+		255, 0, 0, 255,      0, 0, 0, 255,
+		255, 255, 255, 128,  0, 0, 0, 0 }));
+	// frame 1 is the first row
+	EXPECT_EQ(std::vector<UINT8>(data + 16, data + 20), (std::vector<UINT8>{ 50, 60, 70, 100 }));
+
+	EXPECT_THROW(ConvertRGBAPNGToImage(SmallIndexedPNG(), frames, IMAGE_ALLIMAGEDATA, "test"), std::runtime_error);
+	std::vector<PNGFrame> const outside{ { 2, 2, 2, 2, 0, 0 } };
+	EXPECT_THROW(ConvertRGBAPNGToImage(png, outside, IMAGE_ALLIMAGEDATA, "test"), std::runtime_error);
+}
+
+
+TEST(PNG, rgbaVideoObjectHasNoPalette)
+{
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject();
+	EXPECT_TRUE(vo->IsRGBA());
+	EXPECT_EQ(vo->BPP(), 32);
+	EXPECT_EQ(vo->SubregionCount(), 1);
+	EXPECT_THROW(vo->Palette(), std::logic_error);
+	EXPECT_THROW(vo->PixData(vo->SubregionProperties(0)), std::logic_error);
+	EXPECT_THROW(vo->GetETRLEPixelValue(0, 1, 1), std::logic_error);
+	EXPECT_TRUE(vo->CurrentShade() == nullptr);
+	EXPECT_NO_THROW(vo->CurrentShade(3)); // ignored
+	EXPECT_NO_THROW(vo->RGBAData(vo->SubregionProperties(0)));
+}
+
+
+TEST(PNG, rgbaOutlineMask)
+{
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject();
+	UINT8 const* const mask = vo->OutlineMask(vo->SubregionProperties(0));
+	// opaque: (1,1) and (2,1); (1,2) has alpha 128, so it is opaque too;
+	// (0,0) has alpha 100 and is no neighbour of an opaque pixel's side
+	UINT8 const expected[] = {
+		0, 1, 1,
+		1, 0, 0,
+		1, 0, 1 };
+	for (size_t i = 0; i != 9; ++i)
+	{
+		EXPECT_EQ(mask[i] != 0, expected[i] != 0) << "pixel " << i % 3 << "," << i / 3;
+	}
+
+	// per frame: the mask of frame 1 (the top row only) has no opaque pixels next to it
+	std::unique_ptr<SGPVObject> const frames = SmallRGBAObject({ { 0, 1, 3, 2, 0, 0 }, { 0, 0, 3, 1, 0, 0 } });
+	UINT8 const* const top = frames->OutlineMask(frames->SubregionProperties(1));
+	EXPECT_EQ(top[0] | top[1] | top[2], 0);
+}
+
+
+TEST(PNG, rgbaBlitAlphaBlends)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject({ PNGFrame{ 0, 0, 3, 3, 1, 2 } });
+	SGPVSurface dst(6, 6, 16);
+	dst.Fill(BLUE_565);
+	ScopedClip const clip(SGPRect{ 0, 0, 6, 6 });
+
+	BltVideoObject(&dst, vo.get(), 0, 1, 0); // drawn at 2,2 (offset 1,2)
+
+	EXPECT_EQ(Pixel(dst, 3, 3), 0xF800);           // opaque red
+	EXPECT_EQ(Pixel(dst, 4, 3), BLACK_SUBSTITUTE); // opaque black stays visible
+	EXPECT_EQ(Pixel(dst, 3, 4), 0x841F);           // white at alpha 128 over blue
+	EXPECT_EQ(Pixel(dst, 2, 2), 0x10D6);           // (50, 60, 70) at alpha 100 over blue: 20, 24, 182
+	EXPECT_EQ(Pixel(dst, 4, 4), BLUE_565);         // alpha 0 untouched
+}
+
+
+TEST(PNG, rgbaBlitAlphaPartial)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject();
+	SGPVSurface dst(3, 3, 16);
+	dst.Fill(0);
+	ScopedClip const clip(SGPRect{ 0, 0, 3, 3 });
+	BltVideoObject(&dst, vo.get(), 0, 0, 0);
+	// (50, 60, 70) at alpha 100 over black: 20, 24, 27 -> 565
+	UINT16 const want = (20 >> 3) << 11 | (24 >> 2) << 5 | (27 >> 3);
+	EXPECT_EQ(Pixel(dst, 0, 0), want);
+}
+
+
+TEST(PNG, rgbaBlitClips)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject();
+	SGPVSurface dst(4, 4, 16);
+	dst.Fill(BLUE_565);
+	{
+		// only column 2 and below row 1 of the surface are inside
+		ScopedClip const clip(SGPRect{ 2, 1, 3, 4 });
+		BltVideoObject(&dst, vo.get(), 0, 1, 0);  // red at 2,1, black at 3,1
+	}
+	EXPECT_EQ(Pixel(dst, 2, 1), 0xF800);
+	EXPECT_EQ(Pixel(dst, 3, 1), BLUE_565); // clipped
+	EXPECT_EQ(Pixel(dst, 2, 2), 0x841F);
+
+	// completely outside, or partly left of / above the surface: no crash
+	dst.Fill(BLUE_565);
+	ScopedClip const clip(SGPRect{ 0, 0, 4, 4 });
+	BltVideoObject(&dst, vo.get(), 0, 10, 10);
+	BltVideoObject(&dst, vo.get(), 0, -1, -1); // red at 0,0
+	EXPECT_EQ(Pixel(dst, 0, 0), 0xF800);
+	EXPECT_EQ(Pixel(dst, 1, 1), BLUE_565);
+}
+
+
+TEST(PNG, rgbaOutlineAndShadow)
+{
+	RGB565Format const format;
+	BuildShadeTable();
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject();
+	ScopedClip const clip(SGPRect{ 0, 0, 3, 3 });
+
+	SGPVSurface dst(3, 3, 16);
+	dst.Fill(BLUE_565);
+	BltVideoObjectOutline(&dst, vo.get(), 0, 0, 0, 0x07E0);
+	EXPECT_EQ(Pixel(dst, 1, 0), 0x07E0); // outline
+	EXPECT_EQ(Pixel(dst, 0, 1), 0x07E0);
+	EXPECT_EQ(Pixel(dst, 2, 2), 0x07E0);
+	EXPECT_EQ(Pixel(dst, 1, 1), 0xF800); // image
+	EXPECT_EQ(Pixel(dst, 2, 1), BLACK_SUBSTITUTE);
+
+	dst.Fill(BLUE_565);
+	BltVideoObjectOutline(&dst, vo.get(), 0, 0, 0, SGP_TRANSPARENT);
+	EXPECT_EQ(Pixel(dst, 1, 0), BLUE_565); // no outline
+	EXPECT_EQ(Pixel(dst, 1, 1), 0xF800);
+
+	dst.Fill(BLUE_565);
+	BltVideoObjectOutlineShadow(&dst, vo.get(), 0, 0, 0);
+	EXPECT_EQ(Pixel(dst, 1, 1), ShadeTable[BLUE_565]); // opaque: shaded
+	EXPECT_EQ(Pixel(dst, 1, 2), ShadeTable[BLUE_565]); // alpha 128
+	EXPECT_EQ(Pixel(dst, 0, 0), BLUE_565);             // alpha 100
+}
+
+
+TEST(PNG, rgbaThroughTransparentBlitter)
+{
+	// direct callers of the 8 bit transparent blitters (buttons, map markers)
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = SmallRGBAObject();
+	SGPVSurface dst(3, 3, 16);
+	dst.Fill(BLUE_565);
+	SGPRect const clip{ 0, 0, 3, 3 };
+	{
+		SGPVSurface::Lock l(&dst);
+		Blt8BPPDataTo16BPPBufferTransparentClip(l.Buffer<UINT16>(), l.Pitch(), vo.get(), 0, 0, 0, &clip);
+	}
+	EXPECT_EQ(Pixel(dst, 1, 1), 0xF800);
+	EXPECT_EQ(Pixel(dst, 1, 2), 0x841F);
+
+	dst.Fill(BLUE_565);
+	{
+		SGPVSurface::Lock l(&dst);
+		Blt8BPPDataTo16BPPBufferTransparent(l.Buffer<UINT16>(), l.Pitch(), vo.get(), 0, 0, 0);
+	}
+	EXPECT_EQ(Pixel(dst, 2, 1), BLACK_SUBSTITUTE);
+}
+
+
+TEST_F(PNGLoadTest, rgbaVideoObjectFromFile)
+{
+	// the RGBA PNG next to the STI
+	std::unique_ptr<SGPVObject> const rgba(AddVideoObjectFromFile("pngtest/rgba_next_to_sti.sti"));
+	EXPECT_TRUE(rgba->IsRGBA());
+	EXPECT_EQ(rgba->SubregionCount(), 1);
+	EXPECT_EQ(rgba->SubregionProperties(0).usWidth, 4);
+	EXPECT_EQ(rgba->SubregionProperties(0).usHeight, 3);
+
+	// where the palette is used, the STI
+	std::unique_ptr<SGPVObject> const pal(AddVideoObjectFromFile("pngtest/rgba_next_to_sti.sti", true));
+	EXPECT_FALSE(pal->IsRGBA());
+	EXPECT_EQ(pal->SubregionCount(), 2);
+
+	// an RGBA PNG loaded directly where the palette is used
+	EXPECT_THROW(AddVideoObjectFromFile("pngtest/rgba_surface.png", true), std::runtime_error);
+}
+
+
+TEST(PNG, rgbaWithoutOutline)
+{
+	RGB565Format const format;
+	AutoSGPImage img(ConvertRGBAPNGToImage(SmallRGBAPNG(), { PNGFrame{ 0, 0, 3, 3, 0, 0 } },
+		IMAGE_ALLIMAGEDATA, "test", false));
+	EXPECT_EQ(img->fFlags & IMAGE_NO_OUTLINE, IMAGE_NO_OUTLINE);
+	std::unique_ptr<SGPVObject> const vo(AddVideoObjectFromHImage(img.get()));
+	EXPECT_TRUE(vo->OutlineMask(vo->SubregionProperties(0)) == nullptr);
+
+	ScopedClip const clip(SGPRect{ 0, 0, 3, 3 });
+	SGPVSurface dst(3, 3, 16);
+	dst.Fill(BLUE_565);
+	BltVideoObjectOutline(&dst, vo.get(), 0, 0, 0, 0x07E0);
+	EXPECT_EQ(Pixel(dst, 1, 0), BLUE_565); // no outline
+	EXPECT_EQ(Pixel(dst, 2, 2), BLUE_565);
+	EXPECT_EQ(Pixel(dst, 1, 1), 0xF800);   // the image itself
+}
+
+
+TEST_F(PNGLoadTest, rgbaOutlineOffInMetadata)
+{
+	// rgba_no_outline.png.json: { "outline": false }
+	std::unique_ptr<SGPVObject> const off(AddVideoObjectFromFile("pngtest/rgba_no_outline.png"));
+	ASSERT_TRUE(off->IsRGBA());
+	EXPECT_TRUE(off->OutlineMask(off->SubregionProperties(0)) == nullptr);
+
+	std::unique_ptr<SGPVObject> const on(AddVideoObjectFromFile("pngtest/rgba_surface.png"));
+	ASSERT_TRUE(on->IsRGBA());
+	EXPECT_TRUE(on->OutlineMask(on->SubregionProperties(0)) != nullptr);
 }

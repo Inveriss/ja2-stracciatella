@@ -394,17 +394,31 @@ PNGFrame MakeFrame(int const x, int const y, int const w, int const h, int const
 }
 
 
-std::vector<PNGFrame> ParsePNGFrames(ST::string const& json, UINT16 const imageWidth, UINT16 const imageHeight)
+PNGMetadata ParsePNGMetadata(ST::string const& json, UINT16 const imageWidth, UINT16 const imageHeight)
 {
 	JsonValue const root = JsonValue::deserialize(json);
-	if (!root.isObject()) Fail("frame metadata must be a JSON object");
+	if (!root.isObject()) Fail("metadata must be a JSON object");
 	JsonObject const meta = root.toObject();
 
-	bool const hasFrames = meta.has("frames");
-	if (hasFrames == meta.has("grid")) Fail("frame metadata needs either \"frames\" or \"grid\"");
+	PNGMetadata result;
+	if (meta.has("outline"))
+	{
+		JsonValue const outline = meta.GetValue("outline");
+		if (!outline.isBool()) Fail("\"outline\" must be true or false");
+		result.outline = outline.toBool();
+	}
 
-	std::vector<PNGFrame> frames;
-	if (hasFrames)
+	bool const hasFrames = meta.has("frames");
+	bool const hasGrid   = meta.has("grid");
+	if (hasFrames && hasGrid) Fail("metadata can have either \"frames\" or \"grid\", not both");
+
+	std::vector<PNGFrame>& frames = result.frames;
+	if (!hasFrames && !hasGrid)
+	{
+		if (meta.has("offsets")) Fail("\"offsets\" needs a \"grid\"");
+		frames.push_back(PNGFrame{ 0, 0, imageWidth, imageHeight, 0, 0 });
+	}
+	else if (hasFrames)
 	{
 		JsonValue const list = meta.GetValue("frames");
 		if (!list.isVec()) Fail("\"frames\" must be an array");
@@ -464,9 +478,9 @@ std::vector<PNGFrame> ParsePNGFrames(ST::string const& json, UINT16 const imageW
 		}
 	}
 
-	if (frames.empty())           Fail("frame metadata has no frames");
-	if (frames.size() > UINT16_MAX) Fail("frame metadata has too many frames");
-	return frames;
+	if (frames.empty())           Fail("metadata has no frames");
+	if (frames.size() > UINT16_MAX) Fail("metadata has too many frames");
+	return result;
 }
 
 
@@ -475,7 +489,7 @@ SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> 
 {
 	if (png.kind != DecodedPNG::Kind::Indexed)
 	{
-		Fail(ST::format("{}: only palettised PNGs are supported so far, this one has colour type {}",
+		Fail(ST::format("{}: not a palettised PNG (colour type {})",
 			name, png.sourceColourType));
 	}
 
@@ -558,6 +572,69 @@ SGPImage* ConvertIndexedPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> 
 }
 
 
+SGPImage* ConvertRGBAPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> const& frames,
+	UINT16 const fContents, ST::string const& name, bool const outline)
+{
+	if (png.kind != DecodedPNG::Kind::RGBA)
+	{
+		Fail(ST::format("{}: not a full colour PNG (colour type {})", name, png.sourceColourType));
+	}
+
+	AutoSGPImage img(new SGPImage(png.width, png.height, 32));
+
+	if (fContents & IMAGE_BITMAPDATA)
+	{
+		if (frames.empty() || frames.size() > UINT16_MAX)
+		{
+			Fail(ST::format("{}: invalid number of frames ({})", name, frames.size()));
+		}
+
+		size_t total = 0;
+		for (size_t i = 0; i != frames.size(); ++i)
+		{
+			PNGFrame const& f = frames[i];
+			if (f.width == 0 || f.height == 0 || f.x + f.width > png.width || f.y + f.height > png.height)
+			{
+				Fail(ST::format("{}: frame {} is not inside the image", name, i));
+			}
+			total += size_t{f.width} * f.height * 4;
+		}
+		if (total > UINT32_MAX) Fail(ST::format("{}: image data too large", name));
+
+		UINT8*       const data    = img->pImageData.Allocate(total);
+		ETRLEObject* const objects = img->pETRLEObject.Allocate(frames.size());
+		size_t offset = 0;
+		for (size_t i = 0; i != frames.size(); ++i)
+		{
+			PNGFrame const& f = frames[i];
+			size_t const rowBytes = size_t{f.width} * 4;
+			for (UINT16 y = 0; y != f.height; ++y)
+			{
+				UINT8 const* const src = png.pixels.data() + ((size_t{f.y} + y) * png.width + f.x) * 4;
+				std::copy(src, src + rowBytes, data + offset + y * rowBytes);
+			}
+
+			ETRLEObject& o = objects[i];
+			o.uiDataOffset = static_cast<UINT32>(offset);
+			o.uiDataLength = static_cast<UINT32>(rowBytes * f.height);
+			o.sOffsetX     = f.offsetX;
+			o.sOffsetY     = f.offsetY;
+			o.usHeight     = f.height;
+			o.usWidth      = f.width;
+			offset += o.uiDataLength;
+		}
+
+		img->usNumberOfObjects = static_cast<UINT16>(frames.size());
+		img->uiSizePixData     = static_cast<UINT32>(total);
+		img->fFlags           |= IMAGE_RGBA | IMAGE_BITMAPDATA;
+		if (!outline) img->fFlags |= IMAGE_NO_OUTLINE;
+	}
+
+	img->uiAppDataSize = 0;
+	return img.release();
+}
+
+
 SGPImage* ConvertPNGToSurfaceImage(DecodedPNG const& png, UINT16 const fContents)
 {
 	size_t const pixelCount = size_t{png.width} * png.height;
@@ -623,14 +700,14 @@ SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 const fContents)
 	DecodedPNG const png = DecodePNGFile(filename);
 	if (fContents & IMAGE_FOR_SURFACE) return ConvertPNGToSurfaceImage(png, fContents);
 
-	std::vector<PNGFrame> frames;
+	PNGMetadata meta;
 	ST::string const metaName = filename + ".json";
 	if (GCM->doesGameResExists(metaName))
 	{
 		AutoSGPFile f(GCM->openGameResForReading(metaName));
 		try
 		{
-			frames = ParsePNGFrames(f->readStringToEnd(), png.width, png.height);
+			meta = ParsePNGMetadata(f->readStringToEnd(), png.width, png.height);
 		}
 		catch (std::runtime_error const& e)
 		{
@@ -639,8 +716,17 @@ SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 const fContents)
 	}
 	else
 	{
-		frames.push_back(PNGFrame{ 0, 0, png.width, png.height, 0, 0 });
+		meta.frames.push_back(PNGFrame{ 0, 0, png.width, png.height, 0, 0 });
 	}
+	std::vector<PNGFrame> const& frames = meta.frames;
 
-	return ConvertIndexedPNGToImage(png, frames, fContents, filename);
+	if (png.kind == DecodedPNG::Kind::Indexed)
+	{
+		return ConvertIndexedPNGToImage(png, frames, fContents, filename);
+	}
+	if (fContents & IMAGE_NEEDS_PALETTE)
+	{
+		Fail(ST::format("{}: this image is used with its palette, so it must be a palettised PNG", filename));
+	}
+	return ConvertRGBAPNGToImage(png, frames, fContents, filename, meta.outline);
 }

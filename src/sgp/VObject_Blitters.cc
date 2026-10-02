@@ -6,6 +6,7 @@
 #include "VObject_Blitters.h"
 #include "VSurface.h"
 #include "WCheck.h"
+#include <algorithm>
 #include <utility>
 
 							//555      565
@@ -2670,6 +2671,14 @@ void Blt8BPPDataTo16BPPBufferTransparent(UINT16* const buf, UINT32 const uiDestP
 	Assert(hSrcVObject);
 	Assert(buf);
 
+	if (hSrcVObject->IsRGBA())
+	{
+		// unclipped, like the 8 bit code below
+		SGPRect const all{ 0, 0, UINT16_MAX, UINT16_MAX };
+		Blt32BPPDataTo16BPPBufferAlpha(buf, uiDestPitchBYTES, hSrcVObject, iX, iY, usIndex, &all, SGP_TRANSPARENT);
+		return;
+	}
+
 	// Get offsets from index into structure
 	ETRLEObject const& e      = hSrcVObject->SubregionProperties(usIndex);
 	UINT32             height = e.usHeight;
@@ -2730,6 +2739,12 @@ void Blt8BPPDataTo16BPPBufferTransparentClip(UINT16* const pBuffer, const UINT32
 	// Assertions
 	Assert( hSrcVObject != NULL );
 	Assert( pBuffer != NULL );
+
+	if (hSrcVObject->IsRGBA())
+	{
+		Blt32BPPDataTo16BPPBufferAlpha(pBuffer, uiDestPitchBYTES, hSrcVObject, iX, iY, usIndex, clipregion, SGP_TRANSPARENT);
+		return;
+	}
 
 	// Get Offsets from Index into structure
 	ETRLEObject const& pTrav = hSrcVObject->SubregionProperties(usIndex);
@@ -5510,4 +5525,152 @@ BlitNonTransLoop: // blit non-transparent pixels
 		uiLineFlag ^= 1;
 	}
 	while (--BlitHeight > 0);
+}
+
+
+/**********************************************************************************************
+Full colour (32 bit RGBA) video objects
+
+	The destination is a 16 bit buffer in the screen format (gusRedMask etc.).
+	The source pixels are 8 bit R, G, B, A, frame by frame (see IMAGE_RGBA).
+
+**********************************************************************************************/
+namespace
+{
+
+// One colour channel of the 16 bit screen format.
+struct Channel16
+{
+	UINT16 mask;
+	INT16  shift; // as gusRedShift: from an 8 bit value to its place in the mask
+	UINT8  bits;
+
+	Channel16(UINT16 const m, INT16 const s) : mask(m), shift(s), bits(0)
+	{
+		for (UINT16 v = m; v != 0; v >>= 1) bits += v & 1;
+	}
+
+	// 8 bit value, the low bits filled with copies of the high ones
+	UINT32 Unpack(UINT16 const px) const
+	{
+		UINT32 const v = px & mask;
+		UINT32 const c = shift < 0 ? v << -shift : v >> shift;
+		return bits != 0 && bits < 8 ? (c | c >> bits) & 0xFF : c & 0xFF;
+	}
+
+	UINT16 Pack(UINT32 const c) const
+	{
+		return static_cast<UINT16>((shift < 0 ? c >> -shift : c << shift) & mask);
+	}
+};
+
+struct Format16
+{
+	Channel16 r{ gusRedMask,   gusRedShift   };
+	Channel16 g{ gusGreenMask, gusGreenShift };
+	Channel16 b{ gusBlueMask,  gusBlueShift  };
+
+	UINT16 Pack(UINT32 const red, UINT32 const green, UINT32 const blue) const
+	{
+		UINT16 const px = r.Pack(red) | g.Pack(green) | b.Pack(blue);
+		// 0 is the colour key of the mouse buffer and many surfaces
+		return px != 0 ? px : BLACK_SUBSTITUTE;
+	}
+};
+
+UINT32 Blend(UINT32 const src, UINT32 const dst, UINT32 const alpha)
+{
+	return (src * alpha + dst * (255 - alpha) + 127) / 255;
+}
+
+// The part of a subimage at (iX, iY) inside the clip rect: the subimage
+// rows [y0, y1) and columns [x0, x1), and its top left corner on the buffer.
+struct ClippedFrame
+{
+	INT32 left, top, x0, y0, x1, y1;
+	bool  empty;
+};
+
+ClippedFrame ClipFrame(ETRLEObject const& e, INT32 const iX, INT32 const iY, SGPRect const* const clipregion)
+{
+	SGPRect const& clip = clipregion ? *clipregion : ClippingRect;
+	ClippedFrame c;
+	c.left  = iX + e.sOffsetX;
+	c.top   = iY + e.sOffsetY;
+	c.x0    = std::max<INT32>(clip.iLeft - c.left, 0);
+	c.y0    = std::max<INT32>(clip.iTop  - c.top,  0);
+	c.x1    = std::min<INT32>(e.usWidth,  clip.iRight  - c.left);
+	c.y1    = std::min<INT32>(e.usHeight, clip.iBottom - c.top);
+	c.empty = c.x0 >= c.x1 || c.y0 >= c.y1;
+	return c;
+}
+
+}
+
+
+void Blt32BPPDataTo16BPPBufferAlpha(UINT16* const buf, UINT32 const uiDestPitchBYTES, SGPVObject const* const hSrcVObject, INT32 const iX, INT32 const iY, UINT16 const usIndex, SGPRect const* const clipregion, INT16 const outline)
+{
+	Assert(hSrcVObject);
+	Assert(buf);
+
+	ETRLEObject const& e = hSrcVObject->SubregionProperties(usIndex);
+	ClippedFrame const c = ClipFrame(e, iX, iY, clipregion);
+	if (c.empty) return;
+
+	UINT8  const* const rgba  = hSrcVObject->RGBAData(e);
+	UINT8  const* const mask  = static_cast<UINT16>(outline) != SGP_TRANSPARENT ? hSrcVObject->OutlineMask(e) : nullptr;
+	UINT32        const pitch = uiDestPitchBYTES / 2;
+	Format16      const f;
+
+	for (INT32 y = c.y0; y != c.y1; ++y)
+	{
+		UINT16*             dst = buf + (c.top + y) * pitch + c.left + c.x0;
+		size_t        const n0  = static_cast<size_t>(y) * e.usWidth + c.x0;
+		UINT8  const*       src = rgba + n0 * 4;
+		for (INT32 x = c.x0; x != c.x1; ++x, ++dst, src += 4)
+		{
+			if (mask && mask[n0 + (x - c.x0)])
+			{
+				*dst = static_cast<UINT16>(outline);
+				continue;
+			}
+
+			UINT32 const a = src[3];
+			if (a == 0) continue;
+			if (a == 255)
+			{
+				*dst = f.Pack(src[0], src[1], src[2]);
+				continue;
+			}
+			UINT16 const d = *dst;
+			*dst = f.Pack(
+				Blend(src[0], f.r.Unpack(d), a),
+				Blend(src[1], f.g.Unpack(d), a),
+				Blend(src[2], f.b.Unpack(d), a));
+		}
+	}
+}
+
+
+void Blt32BPPDataTo16BPPBufferShadow(UINT16* const buf, UINT32 const uiDestPitchBYTES, SGPVObject const* const hSrcVObject, INT32 const iX, INT32 const iY, UINT16 const usIndex, SGPRect const* const clipregion)
+{
+	Assert(hSrcVObject);
+	Assert(buf);
+
+	ETRLEObject const& e = hSrcVObject->SubregionProperties(usIndex);
+	ClippedFrame const c = ClipFrame(e, iX, iY, clipregion);
+	if (c.empty) return;
+
+	UINT8  const* const rgba  = hSrcVObject->RGBAData(e);
+	UINT32        const pitch = uiDestPitchBYTES / 2;
+
+	for (INT32 y = c.y0; y != c.y1; ++y)
+	{
+		UINT16*            dst = buf + (c.top + y) * pitch + c.left + c.x0;
+		UINT8  const*      src = rgba + (static_cast<size_t>(y) * e.usWidth + c.x0) * 4;
+		for (INT32 x = c.x0; x != c.x1; ++x, ++dst, src += 4)
+		{
+			if (src[3] >= 128) *dst = ShadeTable[*dst];
+		}
+	}
 }

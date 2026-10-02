@@ -138,7 +138,7 @@ FACETYPE& InitFace(const ProfileID id, SOLDIERTYPE* const s, const UINT32 uiInit
 
 	ST::string ImageFile = ST::format(face_file.c_str(), face_id);
 	if (IsImpPortrait(id)) ImageFile = PortraitFilePath(id, "", (uiInitFlags & FACE_BIGFACE) ? "b" : "");
-	SGPVObject* const vo = AddVideoObjectFromFile(ImageFile);
+	SGPVObject* const vo = AddVideoObjectFromFile(ImageFile, true); // shaded with its palette
 
 	f = FACETYPE{};
 	f.uiFlags               = uiInitFlags;

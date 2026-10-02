@@ -127,7 +127,7 @@ static void RenderPortrait(INT16 const x, INT16 const y)
 
 	// Already used by a completed slot -- load a private copy so we can
 	// shade it without touching any other cached copy of the same portrait.
-	AutoSGPVObject vo{ AddVideoObjectFromFile(filename) };
+	AutoSGPVObject vo{ AddVideoObjectFromFile(filename, true) }; // shaded with its palette
 	BOOLEAN const fDead = IsImpSlotDead(slot);
 	if (fDead)
 	{

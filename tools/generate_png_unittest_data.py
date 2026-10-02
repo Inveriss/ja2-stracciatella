@@ -312,7 +312,11 @@ def write_replacement_files(palette):
     put("broken.png", b"this is not a PNG file")
     put("rgba_next_to_sti.sti", sti_data)
     with open(os.path.join(OUT_DIR, "rgba8.png"), "rb") as f:
-        put("rgba_next_to_sti.png", f.read())
+        rgba_png = f.read()
+    put("rgba_next_to_sti.png", rgba_png)
+    # full colour image whose metadata turns the outline off
+    put("rgba_no_outline.png", rgba_png)
+    put("rgba_no_outline.png.json", b'{ "outline": false }\n')
     # different layers: loose files in data/ have a higher priority than the
     # files in data/pngtest.slf
     put("loose_sti.sti", sti_data)      # loose_sti.png is in the SLF: STI wins
