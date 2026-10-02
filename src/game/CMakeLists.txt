@@ -28,6 +28,7 @@ set(LOCAL_JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/LoadSaveTacticalStatusType.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Loading_Screen.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/MainMenuScreen.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/ScreenBackground.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/MercPortrait.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/MessageBoxScreen.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Options_Screen.cc
@@ -42,6 +43,7 @@ if (WITH_UNITTESTS)
         ${LOCAL_JA2_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/SaveLoadGame_unittest.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/SaveLoadGameStates_unittest.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/ScreenBackground_unittest.cc
     )
 endif()
 

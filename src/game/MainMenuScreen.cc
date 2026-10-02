@@ -21,6 +21,7 @@
 #include "Render_Dirty.h"
 #include "SGP.h"
 #include "SaveLoadScreen.h"
+#include "ScreenBackground.h"
 #include "SysUtil.h"
 #include "Text.h"
 #include "Timer_Control.h"
@@ -54,6 +55,8 @@ static GUIButtonRef iMenuButtons[NUM_MENU_ITEMS];
 
 namespace {
 cache_key_t const guiMainMenuBackGroundImage{ LOADSCREENSDIR "/mainmenubackground.sti" };
+// The background for the current resolution, if there is one (see ScreenBackground.h)
+static std::unique_ptr<SGPVSurface> gMainMenuResolutionBackground;
 cache_key_t const guiJa2LogoImage{ LOADSCREENSDIR "/ja2logo.sti" };
 }
 
@@ -188,6 +191,8 @@ static void CreateDestroyMainMenuButtons(BOOLEAN fCreate);
 
 void InitMainMenu(void)
 {
+	gMainMenuResolutionBackground = LoadResolutionBackground(guiMainMenuBackGroundImage);
+
 	CreateDestroyMainMenuButtons(TRUE);
 
 	// If there are no saved games, disable the button
@@ -209,6 +214,7 @@ static void ExitMainMenu(void)
 {
 	CreateDestroyMainMenuButtons(FALSE);
 	RemoveVObject(guiMainMenuBackGroundImage);
+	gMainMenuResolutionBackground.reset();
 	RemoveVObject(guiJa2LogoImage);
 	gMsgBox.uiExitScreen = MAINMENU_SCREEN;
 }
@@ -222,6 +228,12 @@ static void MenuButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 
 		gbHandledMainMenu = bID;
 		RenderMainMenu();
+		if (gMainMenuResolutionBackground)
+		{
+			// the full screen background covers them
+			RenderGameVersion();
+			RenderCopyright();
+		}
 
 		switch (gbHandledMainMenu)
 		{
@@ -328,7 +340,14 @@ static void CreateDestroyMainMenuButtons(BOOLEAN fCreate)
 
 static void RenderMainMenu(void)
 {
-	BltVideoObject(FRAME_BUFFER, guiMainMenuBackGroundImage, 0, STD_SCREEN_X,       STD_SCREEN_Y     );
+	if (gMainMenuResolutionBackground)
+	{
+		DrawResolutionBackground(FRAME_BUFFER, gMainMenuResolutionBackground.get());
+	}
+	else
+	{
+		BltVideoObject(FRAME_BUFFER, guiMainMenuBackGroundImage, 0, STD_SCREEN_X, STD_SCREEN_Y);
+	}
 	BltVideoObject(FRAME_BUFFER, guiJa2LogoImage,            0, STD_SCREEN_X + 188, STD_SCREEN_Y + 15);
 }
 

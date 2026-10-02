@@ -17,6 +17,7 @@
 #include "ContentMusic.h"
 #include "Options_Screen.h"
 #include "Render_Dirty.h"
+#include "ScreenBackground.h"
 #include "ScreenIDs.h"
 #include "SysUtil.h"
 #include "Text.h"
@@ -134,6 +135,8 @@ static UINT8 gubGameOptionScreenHandler = GIO_NOTHING;
 static ScreenID gubGIOExitScreen = GAME_INIT_OPTIONS_SCREEN;
 
 static cache_key_t const guiGIOMainBackGroundImage{ INTERFACEDIR "/optionsscreenbackground.sti" };
+// The background for the current resolution, if there is one (see ScreenBackground.h)
+static std::unique_ptr<SGPVSurface> gGIOResolutionBackground;
 
 
 // Done Button
@@ -263,6 +266,8 @@ static void EnterGIOScreen()
 {
 	if (gfGIOButtonsAllocated) return;
 
+	gGIOResolutionBackground = LoadResolutionBackground(guiGIOMainBackGroundImage);
+
 	SetCurrentCursorFromDatabase(CURSOR_NORMAL);
 
 	// Ok button
@@ -332,6 +337,7 @@ static void ExitGIOScreen()
 
 	// Delete the main options screen background.
 	RemoveVObject(guiGIOMainBackGroundImage);
+	gGIOResolutionBackground.reset();
 
 	RemoveButton(guiGIOCancelButton);
 	RemoveButton(guiGIODoneButton);
@@ -420,7 +426,14 @@ static void RenderGIOScreen(void)
 {
 	UINT16		usPosY;
 
-	BltVideoObject(FRAME_BUFFER, guiGIOMainBackGroundImage, 0, STD_SCREEN_X, STD_SCREEN_Y);
+	if (gGIOResolutionBackground)
+	{
+		DrawResolutionBackground(FRAME_BUFFER, gGIOResolutionBackground.get());
+	}
+	else
+	{
+		BltVideoObject(FRAME_BUFFER, guiGIOMainBackGroundImage, 0, STD_SCREEN_X, STD_SCREEN_Y);
+	}
 
 	//Shade the background
 	FRAME_BUFFER->ShadowRect(STD_SCREEN_X + 48, STD_SCREEN_Y + 55, STD_SCREEN_X + 592, STD_SCREEN_Y + 408); //358

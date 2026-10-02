@@ -97,6 +97,35 @@ efekty gry: cieniowanie, oświetlenie, szare twarze poległych, kolory czcionek.
   rysuje ją pomniejszoną i cieniowaną przez paletę. PNG w pełnym kolorze kończy
   się czytelnym błędem.
 
+### Tła menu głównego i opcji początkowych w rozdzielczości gry
+
+Oryginalne tła tych ekranów mają 640×480 i są rysowane na środku ekranu.
+Tło na cały ekran dla bieżącej rozdzielczości gry to plik w tym samym
+katalogu, z rozdzielczością w nazwie:
+
+| Ekran | Oryginał | Tło dla 1366×768 |
+|---|---|---|
+| menu główne | `loadscreens/mainmenubackground.sti` (`Loadscreens.slf`) | `loadscreens/mainmenubackground_1366x768.png` |
+| opcje początkowe (nowa gra) | `interface/optionsscreenbackground.sti` (`Interface.slf`) | `interface/optionsscreenbackground_1366x768.png` |
+
+- Nazwa powstaje z bieżącej rozdzielczości, więc działa dla każdej rozdzielczości
+  z presetów Standard i High Res, a także dla własnych. Wielkość liter nie ma
+  znaczenia. Plik może leżeć w modzie albo luźno w `Data`.
+- Szukane są kolejno `.png`, `.sti` i `.pcx` (STI musi być 16-bitowe RGB albo
+  8-bitowe bez ETRLE).
+- Obraz o innym rozmiarze niż ekran jest rozciągany do pełnego ekranu (najbliższy
+  piksel, proporcje mogą się zmienić), z ostrzeżeniem w logu.
+- Bez pliku dla bieżącej rozdzielczości (albo gdy nie da się go wczytać, z błędem w
+  logu) ekran rysuje oryginał 640×480 jak dotąd.
+- Przyciski, logo, napisy i przyciemniony prostokąt na ekranie opcji zostają w
+  obszarze 640×480 na środku ekranu: przy rozdzielczości W×H zaczyna się on w
+  punkcie ((W-640)/2, (H-480)/2). Tło trzeba projektować z myślą o tym.
+- Tło jest 16-bitowe jak cały ekran gry, więc pełny kolor PNG jest wyświetlany w
+  65 536 kolorach. Przezroczystość nie ma tu znaczenia (piksele z alfą poniżej 128
+  są czarne).
+- Pamięć: 2 bajty na piksel ekranu (np. 1366×768: 2 MB, 3840×2160: 16 MB,
+  7680×4320: 66 MB), na czas pobytu na danym ekranie.
+
 ## Metadane: `nazwa.png.json`
 
 Opcjonalny plik obok PNG. Bez niego cały obraz jest jedną klatką bez

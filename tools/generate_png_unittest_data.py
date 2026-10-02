@@ -255,6 +255,19 @@ def write_pairs():
     write_png("rgba_surface.png", ihdr(4, 2, 8, 6), [], filtered_image(rows, 4, lambda r: r % 5), PAIR_DIR)
 
     write_replacement_files(pal)
+    write_resolution_backgrounds()
+
+
+# --- backgrounds for the screen resolution (src/game/ScreenBackground.cc) -----
+
+def write_resolution_backgrounds():
+    # exact size: left half red, right half blue
+    w, h = 1024, 720
+    rows = [bytes((255, 0, 0) * (w // 2) + (0, 0, 255) * (w // 2)) for _ in range(h)]
+    write_png("bg_1024x720.png", ihdr(w, h, 8, 2), [], filtered_image(rows, 3, lambda r: 0), PAIR_DIR)
+    # named for 1024x720 but 4x3: stretched; left column green, rest white
+    rows = [bytes((0, 255, 0) + (255, 255, 255) * 3) for _ in range(3)]
+    write_png("bgsmall_1024x720.png", ihdr(4, 3, 8, 2), [], filtered_image(rows, 3, lambda r: 0), PAIR_DIR)
 
 
 # --- PNG replacing an image of another format (CreateImage) -------------------
