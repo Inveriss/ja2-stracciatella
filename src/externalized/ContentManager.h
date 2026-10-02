@@ -106,7 +106,8 @@ public:
 	/* The PNG image that replaces an image resource of another format: the
 	 * same path with the extension .png, if that exists in the same or a
 	 * higher priority VFS layer than the original (or the original does not
-	 * exist at all). Empty if there is none. */
+	 * exist at all). Empty if there is none, or if this is turned off
+	 * ("image_png_override": false in ja2.json). */
 	virtual ST::string getPNGReplacement(const ST::string& filename) const = 0;
 
 	/** User private file (e.g. settings) */

@@ -2,6 +2,7 @@
 
 #include "DefaultContentManagerUT.h"
 #include "HImage.h"
+#include "PCX.h"
 #include "PNG.h"
 #include "STCI.h"
 #include "TestUtils.h"
@@ -12,6 +13,8 @@
 
 #include <string_theory/format>
 
+#include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <stdexcept>
 #include <vector>
@@ -1141,4 +1144,109 @@ TEST_F(PNGLoadTest, rgbaOutlineOffInMetadata)
 	std::unique_ptr<SGPVObject> const on(AddVideoObjectFromFile("pngtest/rgba_surface.png"));
 	ASSERT_TRUE(on->IsRGBA());
 	EXPECT_TRUE(on->OutlineMask(on->SubregionProperties(0)) != nullptr);
+}
+
+
+TEST_F(PNGLoadTest, replacementCanBeTurnedOff)
+{
+	cm->setImagePNGOverride(false);
+	EXPECT_TRUE(GCM->getPNGReplacement("pngtest/replaced.sti").empty());
+	AutoSGPImage const sti(CreateImage("pngtest/replaced.sti", IMAGE_ALLIMAGEDATA));
+	EXPECT_EQ(sti->usNumberOfObjects, 2);
+
+	// a PNG named directly is still loaded
+	AutoSGPImage const png(CreateImage("pngtest/replaced.png", IMAGE_ALLIMAGEDATA));
+	EXPECT_EQ(png->usNumberOfObjects, 1);
+}
+
+
+// ---------------------------------------------------------------------------
+// Load time and memory of PNG images compared to the images they replace.
+// Not run by default. Put pairs of <name>.png (+ <name>.png.json) and
+// <name>.sti or <name>.pcx into <build dir>/unittests/data/pngbench/ and run
+//   GTEST_ALSO_RUN_DISABLED_TESTS=1 GTEST_FILTER=PNGLoadTest.DISABLED_benchmark ja2 -unittests
+
+namespace
+{
+
+template<typename F> double MillisecondsPerCall(F&& f)
+{
+	using Clock = std::chrono::steady_clock;
+	f(); // warm up the file cache
+	int n = 0;
+	Clock::time_point const start = Clock::now();
+	Clock::time_point now;
+	do
+	{
+		f();
+		++n;
+		now = Clock::now();
+	}
+	while (n < 5 || (now - start < std::chrono::milliseconds(300) && n < 500));
+	return std::chrono::duration<double, std::milli>(now - start).count() / n;
+}
+
+}
+
+
+TEST_F(PNGLoadTest, DISABLED_benchmark)
+{
+	RGB565Format const format;
+	std::vector<ST::string> const pngs = GCM->getAllFiles("pngbench", "png");
+	if (pngs.empty()) GTEST_SKIP() << "no files in unittests/data/pngbench";
+
+	std::printf("%-28s %-8s %8s %8s %6s %10s %10s\n",
+		"image", "used as", "orig ms", "png ms", "ratio", "orig KiB", "png KiB");
+	for (ST::string const& png : pngs)
+	{
+		ST::string const stem = png.substr(0, png.size() - 4);
+		ST::string original;
+		for (char const* const ext : { ".sti", ".pcx" })
+		{
+			if (GCM->doesGameResExists(stem + ext)) original = stem + ext;
+		}
+		if (original.empty()) continue;
+		bool const isPCX = original.ends_with(".pcx", ST::case_insensitive);
+
+		// as the original is used: ETRLE images become video objects, all others surfaces
+		auto const loadOriginal = [&](UINT16 const contents) {
+			return isPCX ? LoadPCXFileToImage(original, contents) : LoadSTCIFileToImage(original, contents);
+		};
+		AutoSGPImage const probe(loadOriginal(IMAGE_ALLIMAGEDATA));
+		bool   const object   = (probe->fFlags & IMAGE_TRLECOMPRESSED) != 0;
+		UINT16 const contents = IMAGE_ALLIMAGEDATA | (object ? 0 : IMAGE_FOR_SURFACE);
+		AutoSGPImage const converted(LoadPNGFileToImage(png, contents));
+
+		auto const imageBytes = [](SGPImage const& img) {
+			size_t bytes = img.uiSizePixData != 0 ? img.uiSizePixData : size_t{img.usWidth} * img.usHeight * img.ubBitDepth / 8;
+			if (img.fFlags & IMAGE_RGBA) bytes += bytes / 4; // outline mask
+			return bytes;
+		};
+
+		double const msOriginal = MillisecondsPerCall([&] {
+			AutoSGPImage img(loadOriginal(contents));
+			if (object) std::unique_ptr<SGPVObject>(AddVideoObjectFromHImage(img.get()));
+		});
+		double const msPNG = MillisecondsPerCall([&] {
+			AutoSGPImage img(LoadPNGFileToImage(png, contents));
+			if (object) std::unique_ptr<SGPVObject>(AddVideoObjectFromHImage(img.get()));
+		});
+
+		ST::string const kind = ST::format("{}{}", object ? "object" : "surface",
+			converted->ubBitDepth == 32 ? " RGBA" : "");
+		std::printf("%-28s %-8s %8.3f %8.3f %6.1f %10.1f %10.1f\n",
+			png.c_str(), kind.c_str(), msOriginal, msPNG, msPNG / msOriginal,
+			imageBytes(*probe) / 1024.0, imageBytes(*converted) / 1024.0);
+	}
+
+	// the replacement lookup for images without a PNG: first through the VFS, then cached
+	int const lookups = 500;
+	auto const timeLookups = [&] {
+		auto const start = std::chrono::steady_clock::now();
+		for (int i = 0; i != lookups; ++i) GCM->getPNGReplacement(ST::format("pngbench/missing_{}.sti", i));
+		return std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count() / lookups;
+	};
+	double const first  = timeLookups();
+	double const cached = timeLookups();
+	std::printf("replacement lookup: %.1f us first, %.2f us cached\n", first, cached);
 }

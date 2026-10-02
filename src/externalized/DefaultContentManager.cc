@@ -410,6 +410,9 @@ static size_t HighestPriorityLayer(Vfs* const vfs, ST::string const& filename)
 
 ST::string DefaultContentManager::getPNGReplacement(const ST::string& filename) const
 {
+	// "image_png_override": false in ja2.json
+	if (!EngineOptions_shouldOverrideImagesWithPNG(m_engineOptions.get())) return {};
+
 	ST::string const key = filename.to_lower();
 	std::lock_guard<std::mutex> const lock(m_pngReplacementsMutex);
 	auto const cached = m_pngReplacements.find(key);
