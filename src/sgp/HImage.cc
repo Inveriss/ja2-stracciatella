@@ -4,10 +4,14 @@
 #include "Debug.h"
 #include "HImage.h"
 #include "ImpTGA.h"
+#include "Logger.h"
 #include "PCX.h"
 #include "PNG.h"
 #include "STCI.h"
 #include "VObject.h"
+
+#include "ContentManager.h"
+#include "GameInstance.h"
 
 
 UINT16 gusRedMask = 0;
@@ -26,6 +30,26 @@ SGPImage* CreateImage(const ST::string& filename, const UINT16 fContents)
 	{
 		auto errorMessage = ST::format("Tried to load image `{}` with no extension", filename);
 		throw std::logic_error(errorMessage.c_str());
+	}
+
+	// A PNG next to the file replaces it (see ContentManager::getPNGReplacement()),
+	// except where the caller needs application data, which PNG files do not
+	// have (tiles, animations, cursors). If the PNG cannot be used, the
+	// original is loaded.
+	if (ext.compare_i("PNG") != 0 && !(fContents & IMAGE_APPDATA))
+	{
+		ST::string const png = GCM->getPNGReplacement(filename);
+		if (!png.empty())
+		{
+			try
+			{
+				return LoadPNGFileToImage(png, fContents);
+			}
+			catch (std::exception const& e)
+			{
+				SLOGE("Cannot use {} instead of {}, loading the original: {}", png, filename, e.what());
+			}
+		}
 	}
 
 	if (ext.compare_i("STI") == 0) {

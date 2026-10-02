@@ -3,7 +3,9 @@
 #include "DefaultContentManagerUT.h"
 #include "HImage.h"
 #include "PNG.h"
+#include "STCI.h"
 #include "TestUtils.h"
+#include "VObject.h"
 #include "VSurface.h"
 
 #include <string_theory/format>
@@ -520,7 +522,8 @@ void ExpectSameImage(SGPImage const& sti, SGPImage const& png)
 void ExpectSameAsSTI(char const* const stem)
 {
 	SCOPED_TRACE(stem);
-	AutoSGPImage const sti(CreateImage(ST::format("pngtest/{}.sti", stem), IMAGE_ALLDATA));
+	// Not CreateImage(): the PNG next to the STI would replace it.
+	AutoSGPImage const sti(LoadSTCIFileToImage(ST::format("pngtest/{}.sti", stem), IMAGE_ALLDATA));
 	AutoSGPImage const png(CreateImage(ST::format("pngtest/{}.png", stem), IMAGE_ALLDATA));
 	ExpectSameImage(*sti, *png);
 }
@@ -731,5 +734,94 @@ TEST_F(PNGLoadTest, videoSurfaceFromPNG)
 TEST_F(PNGLoadTest, videoSurfaceRejectsETRLEImages)
 {
 	// An indexed ETRLE STI can only become a video object.
-	EXPECT_THROW(AddVideoSurfaceFromFile("pngtest/single.sti"), std::runtime_error);
+	EXPECT_THROW(AddVideoSurfaceFromFile("pngtest/etrle_only.sti"), std::runtime_error);
+}
+
+
+TEST_F(PNGLoadTest, stretchPalettisedSurface)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVSurface> const src(AddVideoSurfaceFromFile("pngtest/single.png"));
+	ASSERT_EQ(src->BPP(), 8);
+	SGPVSurface dst(150, 4, 16);
+	FillVideoSurfaceWithStretch(&dst, src.get());
+
+	SDL_Surface const& s = src->GetSDLSurface();
+	SDL_Surface const& d = dst.GetSDLSurface();
+	SGPPaletteEntry const* const pal = src->GetPalette();
+	for (int y = 0; y != 4; ++y)
+	{
+		for (int x = 0; x != 150; ++x)
+		{
+			UINT8  const index = static_cast<UINT8 const*>(s.pixels)[y * s.pitch + x];
+			UINT16 const got   = reinterpret_cast<UINT16 const*>(static_cast<UINT8 const*>(d.pixels) + y * d.pitch)[x];
+			EXPECT_EQ(got, Get16BPPColor(FROMRGB(pal[index].r, pal[index].g, pal[index].b))) << "pixel " << x << "," << y;
+		}
+	}
+}
+
+
+// ---------------------------------------------------------------------------
+// A PNG next to an image of another format replaces it (CreateImage()).
+// The STI files used here have 2 frames, the PNGs 1.
+
+TEST_F(PNGLoadTest, replacementInTheSameLayer)
+{
+	EXPECT_EQ(GCM->getPNGReplacement("pngtest/replaced.sti"), "pngtest/replaced.png");
+	EXPECT_FALSE(GCM->getPNGReplacement("PNGTEST/Replaced.STI").empty());
+	EXPECT_TRUE(GCM->getPNGReplacement("pngtest/replaced.png").empty());
+
+	AutoSGPImage const img(CreateImage("pngtest/replaced.sti", IMAGE_ALLIMAGEDATA));
+	EXPECT_EQ(img->usNumberOfObjects, 1);
+}
+
+
+TEST_F(PNGLoadTest, noReplacement)
+{
+	EXPECT_TRUE(GCM->getPNGReplacement("pngtest/etrle_only.sti").empty());
+	AutoSGPImage const img(CreateImage("pngtest/etrle_only.sti", IMAGE_ALLIMAGEDATA));
+	EXPECT_EQ(img->usNumberOfObjects, 2);
+}
+
+
+TEST_F(PNGLoadTest, noReplacementWhenAppDataIsNeeded)
+{
+	// tiles, animations and cursors: PNG files have no application data
+	AutoSGPImage const img(CreateImage("pngtest/replaced.sti", IMAGE_ALLDATA));
+	EXPECT_EQ(img->usNumberOfObjects, 2);
+}
+
+
+TEST_F(PNGLoadTest, replacementFollowsLayerPriority)
+{
+	// loose_sti.sti is a loose file in data/, loose_sti.png is in data/pngtest.slf,
+	// a lower priority layer: the STI stays.
+	EXPECT_TRUE(GCM->getPNGReplacement("pngtest/loose_sti.sti").empty());
+	AutoSGPImage const sti(CreateImage("pngtest/loose_sti.sti", IMAGE_ALLIMAGEDATA));
+	EXPECT_EQ(sti->usNumberOfObjects, 2);
+
+	// loose_png.sti is in the SLF, loose_png.png a loose file: the PNG wins.
+	EXPECT_EQ(GCM->getPNGReplacement("pngtest/loose_png.sti"), "pngtest/loose_png.png");
+	AutoSGPImage const png(CreateImage("pngtest/loose_png.sti", IMAGE_ALLIMAGEDATA));
+	EXPECT_EQ(png->usNumberOfObjects, 1);
+}
+
+
+TEST_F(PNGLoadTest, unusableReplacementFallsBackToOriginal)
+{
+	// not a PNG at all
+	EXPECT_FALSE(GCM->getPNGReplacement("pngtest/broken.sti").empty());
+	AutoSGPImage const broken(CreateImage("pngtest/broken.sti", IMAGE_ALLIMAGEDATA));
+	EXPECT_EQ(broken->usNumberOfObjects, 2);
+
+	// an RGBA PNG cannot be a video object yet ...
+	AutoSGPImage const object(CreateImage("pngtest/rgba_next_to_sti.sti", IMAGE_ALLIMAGEDATA));
+	EXPECT_EQ(object->usNumberOfObjects, 2);
+
+	// ... but it can be a video surface
+	RGB565Format const format;
+	std::unique_ptr<SGPVSurface> const surface(AddVideoSurfaceFromFile("pngtest/rgba_next_to_sti.sti"));
+	EXPECT_EQ(surface->BPP(), 16);
+	EXPECT_EQ(surface->Width(), 4);
+	EXPECT_EQ(surface->Height(), 3);
 }

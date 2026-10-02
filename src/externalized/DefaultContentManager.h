@@ -19,6 +19,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string_view>
 #include <vector>
 
@@ -78,6 +79,8 @@ public:
 
 	/* Checks if a game resource exists. */
 	virtual bool doesGameResExists(const ST::string& filename) const override;
+
+	virtual ST::string getPNGReplacement(const ST::string& filename) const override;
 
 	/** Load encrypted string from game resource file. */
 	virtual ST::string loadEncryptedString(const ST::string& fileName, uint32_t seek_chars, uint32_t read_chars) const override;
@@ -303,6 +306,10 @@ protected:
 	std::vector<std::unique_ptr<const MERCPROFILESTRUCT>> m_mercStructs;
 
 	RustPointer<Vfs> m_vfs;
+
+	// getPNGReplacement() results, by lower case path
+	mutable std::map<ST::string, ST::string> m_pngReplacements;
+	mutable std::mutex m_pngReplacementsMutex;
 
 	bool loadGameData(const BinaryData& vanillaItemStrings);
 	/* Extracts the content that requires load precedence and it can't be resolved

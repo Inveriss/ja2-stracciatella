@@ -254,6 +254,72 @@ def write_pairs():
     rows = [b"".join(bytes(p) for p in row) for row in rgba]
     write_png("rgba_surface.png", ihdr(4, 2, 8, 6), [], filtered_image(rows, 4, lambda r: r % 5), PAIR_DIR)
 
+    write_replacement_files(pal)
+
+
+# --- PNG replacing an image of another format (CreateImage) -------------------
+#
+# The STI files below have 2 frames and the PNGs next to them 1, so a test can
+# tell which of the two was loaded.
+
+def two_frame_sti(palette):
+    s = sti.STIFile()
+    s.palette = list(palette)
+    for seed in (20, 21):
+        px = frame_pixels(6, 4, seed)
+        s.frames.append(sti.Frame(6, 4, 0, 0, bytearray(p or 0 for p in px),
+                                  bytearray(0 if p is None else 255 for p in px)))
+    s.width, s.height = 6, 4
+    return s.to_bytes()
+
+
+def one_frame_png(palette):
+    rows = [bytes((x * 3 + y) % 250 + 1 for x in range(5)) for y in range(3)]
+    extra = [chunk(b"PLTE", b"".join(bytes(c) for c in palette))]
+    return (b"\x89PNG\r\n\x1a\n" + ihdr(5, 3, 8, 3) + b"".join(extra)
+            + chunk(b"IDAT", zlib.compress(filtered_image(rows, 1, lambda r: 0), 9)) + chunk(b"IEND", b""))
+
+
+def write_slf(path, library_path, entries):
+    """entries: list of (name relative to library_path, data)."""
+    header = struct.pack("<256s256siiHHB3xi", b"pngtest.slf", library_path.encode("ascii"),
+                         len(entries), len(entries), 0xFFFF, 0x0200, 0, 0)
+    body = bytearray()
+    table = bytearray()
+    offset = len(header)
+    for name, data in entries:
+        table += struct.pack("<256sIIBB2xQH2x", name.encode("ascii"), offset + len(body), len(data), 0, 0, 0, 0)
+        body += data
+    with open(path, "wb") as f:
+        f.write(header + body + table)
+
+
+def write_replacement_files(palette):
+    sti_data = two_frame_sti(palette)
+    png_data = one_frame_png(palette)
+
+    def put(name, data):
+        with open(os.path.join(PAIR_DIR, name), "wb") as f:
+            f.write(data)
+
+    # same layer: the PNG replaces the STI
+    put("replaced.sti", sti_data)
+    put("replaced.png", png_data)
+    # no PNG next to it
+    put("etrle_only.sti", sti_data)
+    # unusable PNGs: the STI is loaded instead
+    put("broken.sti", sti_data)
+    put("broken.png", b"this is not a PNG file")
+    put("rgba_next_to_sti.sti", sti_data)
+    with open(os.path.join(OUT_DIR, "rgba8.png"), "rb") as f:
+        put("rgba_next_to_sti.png", f.read())
+    # different layers: loose files in data/ have a higher priority than the
+    # files in data/pngtest.slf
+    put("loose_sti.sti", sti_data)      # loose_sti.png is in the SLF: STI wins
+    put("loose_png.png", png_data)      # loose_png.sti is in the SLF: PNG wins
+    write_slf(os.path.join(ASSETS_DIR, "data", "pngtest.slf"), "pngtest\\",
+              [("loose_sti.png", png_data), ("loose_png.sti", sti_data)])
+
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)

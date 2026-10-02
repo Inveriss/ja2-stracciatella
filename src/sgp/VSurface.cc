@@ -344,6 +344,15 @@ void BltVideoSurfaceOnceWithStretch(SGPVSurface* const dst, const char* const fi
 /** Fill video surface with another one with stretch. */
 void FillVideoSurfaceWithStretch(SGPVSurface* const dst, SGPVSurface* const src)
 {
+	// The stretch blitter only handles 16 bpp, so convert a palettised image first.
+	if (src->BPP() == 8)
+	{
+		SGPVSurface converted(src->Width(), src->Height(), 16);
+		BltVideoSurface(&converted, src, 0, 0, nullptr);
+		FillVideoSurfaceWithStretch(dst, &converted);
+		return;
+	}
+
 	SGPBox srcRec;
 	SGPBox dstRec;
 	srcRec.set(0, 0, src->Width(), src->Height());

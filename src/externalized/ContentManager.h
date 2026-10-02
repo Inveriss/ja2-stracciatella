@@ -103,6 +103,12 @@ public:
 	/* Checks if a game resource exists. */
 	virtual bool doesGameResExists(const ST::string& filename) const = 0;
 
+	/* The PNG image that replaces an image resource of another format: the
+	 * same path with the extension .png, if that exists in the same or a
+	 * higher priority VFS layer than the original (or the original does not
+	 * exist at all). Empty if there is none. */
+	virtual ST::string getPNGReplacement(const ST::string& filename) const = 0;
+
 	/** User private file (e.g. settings) */
 	virtual DirFs* userPrivateFiles() const = 0;
 

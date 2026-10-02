@@ -72,6 +72,7 @@
 #include "Strategic_AI.h"
 #include "Strategic_Status.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string_theory/format>
 #include <string_theory/string>
@@ -390,6 +391,42 @@ bool DefaultContentManager::doesGameResExists(const ST::string& filename) const
 {
 	RustPointer<VFile> vfile(Vfs_open(m_vfs.get(), filename.c_str()));
 	return static_cast<bool>(vfile.get());
+}
+
+/* The index of the highest priority VFS layer that has the file (lower index =
+ * higher priority, like the search order of Vfs_open), or SIZE_MAX if none. */
+static size_t HighestPriorityLayer(Vfs* const vfs, ST::string const& filename)
+{
+	RustPointer<VecUSize> layers(Vfs_readLayers(vfs, filename.c_str()));
+	if (!layers) return SIZE_MAX;
+	size_t best = SIZE_MAX;
+	auto const n = VecUSize_len(layers.get());
+	for (uintptr_t i = 0; i < n; i++)
+	{
+		best = std::min<size_t>(best, VecUSize_get(layers.get(), i));
+	}
+	return best;
+}
+
+ST::string DefaultContentManager::getPNGReplacement(const ST::string& filename) const
+{
+	ST::string const key = filename.to_lower();
+	std::lock_guard<std::mutex> const lock(m_pngReplacementsMutex);
+	auto const cached = m_pngReplacements.find(key);
+	if (cached != m_pngReplacements.end()) return cached->second;
+
+	ST::string result;
+	ST::string const png = FileMan::replaceExtension(filename, "png");
+	if (png.compare_i(filename) != 0)
+	{
+		size_t const pngLayer = HighestPriorityLayer(m_vfs.get(), png);
+		if (pngLayer != SIZE_MAX && pngLayer <= HighestPriorityLayer(m_vfs.get(), filename))
+		{
+			result = png;
+		}
+	}
+	m_pngReplacements.emplace(key, result);
+	return result;
 }
 
 DirFs *DefaultContentManager::tempFiles() const

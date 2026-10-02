@@ -2946,9 +2946,16 @@ void LoadMapScreenInterfaceMapGraphics()
 	// Suffix convention: _1280 for the compact strategic-screen tier (height
 	// 720-767), _1024 for the large tier (height 768+) -- see
 	// GetCharListGraphicsFilename() in MapScreen.cc for the same pattern.
-	guiBIGMAP                      = AddVideoSurfaceFromFile(g_ui.isCompactStrategicScreen()
+	char const* const bigMapFile = g_ui.isCompactStrategicScreen()
 	                                      ? INTERFACEDIR "/b_map_1280.pcx"
-	                                      : INTERFACEDIR "/b_map_1024.pcx");
+	                                      : INTERFACEDIR "/b_map_1024.pcx";
+	guiBIGMAP                      = AddVideoSurfaceFromFile(bigMapFile);
+	// The map is drawn shaded and halved through its palette (BltVideoSurfaceHalf(),
+	// InitializePalettesForMap()), so a replacement PNG must be palettised too.
+	if (guiBIGMAP->BPP() != 8)
+	{
+		throw std::runtime_error(ST::format("{}: the strategic map needs an 8 bit palettised image, a PNG replacing it must be palettised", bigMapFile).to_std_string());
+	}
 
 	for (auto s : GCM->getMapSecrets())
 	{
