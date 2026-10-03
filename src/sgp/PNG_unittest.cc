@@ -908,12 +908,14 @@ UINT16 Pixel(SGPVSurface const& s, int const x, int const y)
 	return reinterpret_cast<UINT16 const*>(static_cast<UINT8 const*>(sdl.pixels) + y * sdl.pitch)[x];
 }
 
-// Sets the clip rect for the lifetime of the object.
+// Sets the clip rect for the lifetime of the object. The old one is put back
+// directly: without video (unit tests) it is empty, which SetClippingRect()
+// asserts against.
 class ScopedClip
 {
 public:
 	explicit ScopedClip(SGPRect const r) : old_{ SetClippingRect(r) } {}
-	~ScopedClip() { SetClippingRect(old_); }
+	~ScopedClip() { ClippingRect = old_; }
 private:
 	SGPRect old_;
 };
