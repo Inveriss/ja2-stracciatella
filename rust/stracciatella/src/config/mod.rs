@@ -4,6 +4,7 @@ mod cli;
 mod engine_options;
 mod ja2_json;
 mod resolution;
+mod resolution_mode;
 mod scaling_quality;
 mod stracciatella_home;
 mod vanilla_version;
@@ -12,6 +13,10 @@ pub use self::cli::{Cli, CliError};
 pub use self::engine_options::{EngineOptions, EngineOptionsError};
 pub use self::ja2_json::{Ja2Json, Ja2JsonError};
 pub use self::resolution::Resolution;
+pub use self::resolution_mode::{
+    auto_base_resolution, auto_base_resolution_index, base_resolution_fits_desktop, ResolutionMode,
+    BASE_RESOLUTIONS,
+};
 pub use self::scaling_quality::ScalingQuality;
 pub use self::stracciatella_home::find_stracciatella_home;
 pub use self::vanilla_version::VanillaVersion;

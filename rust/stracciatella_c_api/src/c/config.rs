@@ -5,8 +5,9 @@
 use std::ptr;
 
 use stracciatella::config::{
-    find_stracciatella_home, Cli, EngineOptions, EngineOptionsError, Ja2Json, Resolution,
-    ScalingQuality, VanillaVersion,
+    auto_base_resolution_index, base_resolution_fits_desktop, find_stracciatella_home, Cli,
+    EngineOptions, EngineOptionsError, Ja2Json, Resolution, ResolutionMode, ScalingQuality,
+    VanillaVersion, BASE_RESOLUTIONS,
 };
 
 use crate::c::common::*;
@@ -201,6 +202,58 @@ pub extern "C" fn EngineOptions_getResolutionY(ptr: *const EngineOptions) -> u16
 pub extern "C" fn EngineOptions_setResolution(ptr: *mut EngineOptions, x: u16, y: u16) {
     let engine_options = unsafe_mut(ptr);
     engine_options.resolution = Resolution(x, y);
+}
+
+/// Gets `EngineOptions.resolution_mode`.
+#[no_mangle]
+pub extern "C" fn EngineOptions_getResolutionMode(ptr: *const EngineOptions) -> ResolutionMode {
+    let engine_options = unsafe_ref(ptr);
+    engine_options.resolution_mode
+}
+
+/// Sets `EngineOptions.resolution_mode`.
+#[no_mangle]
+pub extern "C" fn EngineOptions_setResolutionMode(ptr: *mut EngineOptions, mode: ResolutionMode) {
+    let engine_options = unsafe_mut(ptr);
+    engine_options.resolution_mode = mode;
+}
+
+/// Number of base resolutions the launcher offers.
+#[no_mangle]
+pub extern "C" fn BaseResolution_getCount() -> size_t {
+    BASE_RESOLUTIONS.len()
+}
+
+/// Width of the base resolution at `index` (0 = the smallest one, also the minimum).
+#[no_mangle]
+pub extern "C" fn BaseResolution_getWidth(index: size_t) -> u16 {
+    BASE_RESOLUTIONS[index].0
+}
+
+/// Height of the base resolution at `index` (0 = the smallest one, also the minimum).
+#[no_mangle]
+pub extern "C" fn BaseResolution_getHeight(index: size_t) -> u16 {
+    BASE_RESOLUTIONS[index].1
+}
+
+/// Whether the base resolution at `index` fits on a desktop of the given size.
+#[no_mangle]
+pub extern "C" fn BaseResolution_fitsDesktop(
+    index: size_t,
+    desktop_width: u16,
+    desktop_height: u16,
+) -> bool {
+    base_resolution_fits_desktop(
+        BASE_RESOLUTIONS[index],
+        Resolution(desktop_width, desktop_height),
+    )
+}
+
+/// Index of the base resolution the AUTO resolution mode uses on a desktop of
+/// the given size: the largest one that fits, or 0 if none does.
+#[no_mangle]
+pub extern "C" fn BaseResolution_getAutoIndex(desktop_width: u16, desktop_height: u16) -> size_t {
+    auto_base_resolution_index(Resolution(desktop_width, desktop_height))
 }
 
 /// Gets `EngineOptions.brightness`.
@@ -438,6 +491,7 @@ mod tests {
   "save_game_dir": "",
   "mods": [],
   "res": "100x100",
+  "resolution_mode": "auto",
   "brightness": -1.0,
   "resversion": "ENGLISH",
   "fullscreen": false,
@@ -449,6 +503,45 @@ mod tests {
   "image_png_override": true
 }"##
         );
+    }
+
+    #[test]
+    fn write_engine_options_should_keep_the_manual_resolution_mode() {
+        let mut engine_options = EngineOptions::default();
+        let temp_dir = write_temp_folder_with_ja2_json(b"Invalid JSON");
+        engine_options.stracciatella_home = temp_dir.path().join(".ja2");
+        EngineOptions_setResolutionMode(&mut engine_options, ResolutionMode::MANUAL);
+
+        assert!(EngineOptions_write(&mut engine_options));
+
+        let mut got_engine_options = EngineOptions::default();
+        Ja2Json::from_stracciatella_home(&engine_options.stracciatella_home)
+            .apply_to_engine_options(&mut got_engine_options)
+            .unwrap();
+
+        assert_eq!(
+            EngineOptions_getResolutionMode(&got_engine_options),
+            ResolutionMode::MANUAL
+        );
+    }
+
+    #[test]
+    fn base_resolution_functions_should_describe_the_two_bases() {
+        assert_eq!(BaseResolution_getCount(), 2);
+        assert_eq!(
+            (BaseResolution_getWidth(0), BaseResolution_getHeight(0)),
+            (1280, 720)
+        );
+        assert_eq!(
+            (BaseResolution_getWidth(1), BaseResolution_getHeight(1)),
+            (1366, 768)
+        );
+        assert!(BaseResolution_fitsDesktop(1, 1920, 1080));
+        assert!(!BaseResolution_fitsDesktop(1, 1360, 768));
+        assert!(!BaseResolution_fitsDesktop(0, 1024, 768));
+        assert_eq!(BaseResolution_getAutoIndex(1920, 1080), 1);
+        assert_eq!(BaseResolution_getAutoIndex(1360, 768), 0);
+        assert_eq!(BaseResolution_getAutoIndex(1024, 768), 0);
     }
 
     #[test]

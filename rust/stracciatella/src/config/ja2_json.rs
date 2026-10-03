@@ -7,7 +7,7 @@ use log::warn;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-use crate::config::{EngineOptions, Resolution, ScalingQuality, VanillaVersion};
+use crate::config::{EngineOptions, Resolution, ResolutionMode, ScalingQuality, VanillaVersion};
 use crate::fs::resolve_existing_components;
 use crate::json;
 
@@ -38,6 +38,7 @@ pub struct Ja2JsonContent {
     save_game_dir: Option<PathBuf>,
     mods: Option<Vec<String>>,
     res: Option<Resolution>,
+    resolution_mode: Option<ResolutionMode>,
     brightness: Option<f32>,
     resversion: Option<VanillaVersion>,
     fullscreen: Option<bool>,
@@ -103,6 +104,7 @@ impl Ja2Json {
             engine_options.mods
         );
         copy_to!(content.res, engine_options.resolution);
+        copy_to!(content.resolution_mode, engine_options.resolution_mode);
         copy_to!(content.brightness, engine_options.brightness);
         copy_to!(content.resversion, engine_options.resource_version);
         copy_to!(content.fullscreen, engine_options.start_in_fullscreen);
@@ -133,6 +135,7 @@ impl Ja2Json {
             save_game_dir: None,
             mods: None,
             res: None,
+            resolution_mode: None,
             brightness: None,
             resversion: None,
             fullscreen: None,
@@ -148,6 +151,7 @@ impl Ja2Json {
         copy_to!(engine_options.save_game_dir, content.save_game_dir);
         copy_to!(engine_options.mods, content.mods);
         copy_to!(engine_options.resolution, content.res);
+        copy_to!(engine_options.resolution_mode, content.resolution_mode);
         copy_to!(engine_options.brightness, content.brightness);
         copy_to!(engine_options.resource_version, content.resversion);
         copy_to!(engine_options.start_in_fullscreen, content.fullscreen);
@@ -527,5 +531,47 @@ mod tests {
 
         assert_eq!(engine_options.resolution.0, 1024);
         assert_eq!(engine_options.resolution.1, 768);
+    }
+
+    #[test]
+    fn apply_to_engine_options_should_default_to_the_auto_resolution_mode() {
+        // An older ja2.json without "resolution_mode" -- its "res" is kept, but
+        // the AUTO mode doesn't use it.
+        let mut engine_options = EngineOptions::default();
+        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"res\": \"1024x768\" }");
+        let ja2json = Ja2Json::from_stracciatella_home(temp_dir.path().join(".ja2"));
+
+        ja2json
+            .apply_to_engine_options(&mut engine_options)
+            .unwrap();
+
+        assert_eq!(engine_options.resolution_mode, ResolutionMode::AUTO);
+        assert_eq!(engine_options.resolution, Resolution(1024, 768));
+    }
+
+    #[test]
+    fn apply_to_engine_options_should_be_able_to_set_the_manual_resolution_mode() {
+        let mut engine_options = EngineOptions::default();
+        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"resolution_mode\": \"manual\" }");
+        let ja2json = Ja2Json::from_stracciatella_home(temp_dir.path().join(".ja2"));
+
+        ja2json
+            .apply_to_engine_options(&mut engine_options)
+            .unwrap();
+
+        assert_eq!(engine_options.resolution_mode, ResolutionMode::MANUAL);
+    }
+
+    #[test]
+    fn apply_to_engine_options_should_fail_with_unknown_resolution_mode() {
+        let mut engine_options = EngineOptions::default();
+        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"resolution_mode\": \"MANUAL\" }");
+        let ja2json = Ja2Json::from_stracciatella_home(temp_dir.path().join(".ja2"));
+        let result = ja2json.apply_to_engine_options(&mut engine_options);
+
+        match result {
+            Err(Ja2JsonError::ParsingFailed(_)) => {}
+            _ => panic!("incorrect error variant"),
+        }
     }
 }

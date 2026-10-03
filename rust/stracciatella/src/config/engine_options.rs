@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::config::{Resolution, ScalingQuality, VanillaVersion};
+use crate::config::{Resolution, ResolutionMode, ScalingQuality, VanillaVersion};
 use crate::fs::resolve_existing_components;
 use crate::get_assets_dir;
 
@@ -57,8 +57,11 @@ pub struct EngineOptions {
     pub save_game_dir: PathBuf,
     /// List of enabled mods
     pub mods: Vec<String>,
-    /// Resolution the game will start in
+    /// Resolution the game will start in, in the MANUAL resolution mode
     pub resolution: Resolution,
+    /// Whether the game picks its resolution from the desktop resolution (AUTO)
+    /// or uses `resolution` (MANUAL)
+    pub resolution_mode: ResolutionMode,
     /// Gamma correction parameter
     pub brightness: f32,
     /// Vanilla game version that the user is in posession of
@@ -101,6 +104,7 @@ impl Default for EngineOptions {
             save_game_dir: PathBuf::from(""),
             mods: vec![],
             resolution: Resolution::default(),
+            resolution_mode: ResolutionMode::default(),
             brightness: -1.0,
             resource_version: VanillaVersion::ENGLISH,
             show_help: false,

@@ -6,7 +6,7 @@ use std::str::FromStr;
 use getopts::Options;
 use log::warn;
 
-use crate::config::{EngineOptions, Resolution, VanillaVersion};
+use crate::config::{EngineOptions, Resolution, ResolutionMode, VanillaVersion};
 use crate::fs::canonicalize;
 
 #[cfg(not(windows))]
@@ -79,7 +79,7 @@ impl Cli {
         opts.optopt(
             "",
             "res",
-            "Screen resolution, e.g. 1280x720. Default value is 1024x768",
+            "Screen resolution, e.g. 1366x768. Implies the manual resolution mode. Default value is 1280x720",
             "WIDTHxHEIGHT",
         );
         opts.optopt(
@@ -157,7 +157,9 @@ impl Cli {
                 if let Some(s) = m.opt_str("res") {
                     match Resolution::from_str(&s) {
                         Ok(res) => {
+                            // An explicit resolution always wins over the AUTO mode.
                             engine_options.resolution = res;
+                            engine_options.resolution_mode = ResolutionMode::MANUAL;
                         }
                         Err(s) => return Err(CliError::InvalidValue("res".to_string(), s)),
                     }
@@ -381,6 +383,7 @@ mod tests {
         );
         assert_eq!(engine_options.resolution.0, 1120);
         assert_eq!(engine_options.resolution.1, 960);
+        assert_eq!(engine_options.resolution_mode, ResolutionMode::MANUAL);
     }
 
     #[test]
