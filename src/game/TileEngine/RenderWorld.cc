@@ -613,7 +613,7 @@ private: void Render(RenderTilesFlags const uiFlags, size_t const ubNumLevels, R
 										pCorpse     = ROTTING_CORPSE::FromID(a.v.user.uiData);
 										pShadeTable = pCorpse->pShades[pNode->ubShadeLevel];
 										pRGBAShade  = &pCorpse->rgbaShades[pNode->ubShadeLevel];
-										pRGBARecolour = 0;
+										pRGBARecolour = &pCorpse->rgbaRecolour;
 
 										// OK, if this is a corpse.... stop if not visible
 										if (pCorpse->def.bVisible != 1 && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS)) goto next_prev_node;

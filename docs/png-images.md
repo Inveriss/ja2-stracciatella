@@ -215,9 +215,9 @@ animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
 potrzebują danych dodatkowych: liczby klatek animacji. PNG może je zastąpić, gdy:
 
 - jest **PNG z paletą**, a dla efektów z pamięci podręcznej kafli, postaci
-  (ludzi z maską kolorów) i części zwłok także PNG w pełnym kolorze (niżej);
-  dorosłe potwory, pozostałe zwłoki i kursory muszą mieć paletę, bo gra
-  podmienia ich kolory przez paletę,
+  (ludzi z maską kolorów) i zwłok także PNG w pełnym kolorze (niżej); dorosłe
+  potwory, ich zwłoki i kursory muszą mieć paletę, bo gra podmienia ich kolory
+  przez paletę,
 - jego metadane mają sekcję `animation`:
 
 ```json
@@ -323,9 +323,12 @@ inne) mogą być **PNG w pełnym kolorze** (RGBA):
   oświetleniem. Mogą być PNG w pełnym kolorze, gdy gra nie podmienia ich
   kolorów: zwłoki zwierząt (`ct_dead`, `cw_dead1`), wraki pojazdów (`tk_wrek`,
   `tk2_wrek`, `hm_wrek`, `ic_wrek`), królowej (`qn_dead`), robota (`j_dead`) i
-  zwłoki w późnym stadium rozkładu (`p_decomp2`). Zwłoki ludzi i pozostałych
-  potworów mają paletę: PNG w pełnym kolorze jest pomijany i gra wczytuje
-  oryginał.
+  zwłoki w późnym stadium rozkładu (`p_decomp2`), a także larw i młodych potworów
+  (`l_dead1`, `i_dead1`). **Zwłoki ludzi** (także w kamuflażu; `s_d_*`, `m_d_*`,
+  `f_d_*`, zwłoki cywilów i ich wersje `_nb` bez krwi) mogą być w pełnym kolorze
+  tylko z **maską kolorów** `nazwa.mask.png`, tak jak animacje ludzi: zwłoki
+  zachowują kolory postaci, z której powstały. Zwłoki dorosłych potworów mają
+  paletę: PNG w pełnym kolorze jest pomijany i gra wczytuje oryginał.
 
 Czasy klatek (`duration`) nie dotyczą postaci ani kursorów: ich tempo ustala gra.
 Najprościej zacząć od eksportu oryginału komendą `png-sheet` (niżej), która dla

@@ -24,8 +24,10 @@ void InitTileCache(void);
 void DeleteTileCache(void);
 
 // needsPalette: the tile is shaded with its palette (corpses), so no full
-// colour PNG may replace it; only matters for the call that loads the file.
-INT32 GetCachedTile(ST::string const& filename, bool needsPalette = false);
+// colour PNG may replace it; colourMask: a full colour PNG only with its colour
+// mask (corpses of people, see IMAGE_COLOUR_MASK). Only matter for the call
+// that loads the file.
+INT32 GetCachedTile(ST::string const& filename, bool needsPalette = false, bool colourMask = false);
 void  RemoveCachedTile(INT32 cached_tile);
 
 STRUCTURE_FILE_REF* GetCachedTileStructureRefFromFilename(ST::string const& filename);

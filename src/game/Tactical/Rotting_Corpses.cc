@@ -423,7 +423,6 @@ UINT16 GetCorpseStructIndex(const ROTTING_CORPSE_DEFINITION* pCorpseDef, BOOLEAN
 
 
 static void CreateCorpsePalette(ROTTING_CORPSE*);
-static bool CorpseNeedsPalette(ROTTING_CORPSE_DEFINITION const&);
 
 
 ROTTING_CORPSE* AddRottingCorpse(ROTTING_CORPSE_DEFINITION* const pCorpseDef)
@@ -488,7 +487,9 @@ try
 	{
 		AniParams.zCachedFile = zCorpseFilenames[c->def.ubType];
 	}
-	AniParams.needsPalette = CorpseNeedsPalette(c->def);
+	AnimationColours const colours = GetCorpseImageColours(c->def);
+	AniParams.needsPalette = colours == AnimationColours::Palette;
+	AniParams.colourMask   = colours == AnimationColours::ColourMask;
 
 	ANITILE* const ani = CreateAnimationTile(&AniParams);
 	c->pAniTile = ani;
@@ -592,12 +593,25 @@ static char const* CorpsePaletteSubstitution(ROTTING_CORPSE_DEFINITION const& de
 }
 
 
-// Only corpses with the palette of their image (no colour changes) may be
-// full colour PNGs (docs/png-images.md).
-static bool CorpseNeedsPalette(ROTTING_CORPSE_DEFINITION const& def)
+AnimationColours GetCorpseImageColours(ROTTING_CORPSE_DEFINITION const& def)
 {
 	char const* const substitution = CorpsePaletteSubstitution(def);
-	return !substitution || substitution[0] != '\0';
+	if (substitution && substitution[0] == '\0') return AnimationColours::FullColour;
+
+	// people: clothing, hair and skin colours, or camouflage
+	if (def.usFlags & ROTTING_CORPSE_USE_CAMO_PALETTE) return AnimationColours::ColourMask;
+	if (substitution) return AnimationColours::Palette; // the adult creatures' .COL palettes
+
+	switch (def.ubBodyType)
+	{
+		// their palette colour changes touch no pixel of their images
+		case LARVAE_MONSTER:
+		case INFANT_MONSTER:
+			return AnimationColours::FullColour;
+
+		default:
+			return AnimationColours::ColourMask;
+	}
 }
 
 
@@ -645,6 +659,11 @@ static void CreateCorpsePalette(ROTTING_CORPSE* const c)
 	}
 
 	CreateBiasedShadedPalettes(c->pShades, pal);
+
+	// The colours of a full colour corpse with a colour mask
+	SGPPaletteEntry original[256];
+	GetCorpseImagePalette(c, original);
+	BuildCharacterRecolour(c->rgbaRecolour, original, pal);
 
 	// The same shades for a full colour corpse, which has no palette
 	std::fill(std::begin(c->rgbaShades), std::end(c->rgbaShades), RGBA_SHADE_NONE);

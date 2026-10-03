@@ -83,7 +83,7 @@ void DeleteTileCache( )
 }
 
 
-INT32 GetCachedTile(ST::string const& filename, bool const needsPalette)
+INT32 GetCachedTile(ST::string const& filename, bool const needsPalette, bool const colourMask)
 {
 	INT32 idx = -1;
 
@@ -136,7 +136,7 @@ INT32 GetCachedTile(ST::string const& filename, bool const needsPalette)
 
 	TILE_CACHE_ELEMENT* const tce = &gpTileCache[idx];
 
-	tce->pImagery = LoadTileSurface(filename, true, needsPalette); // a PNG animation may replace it
+	tce->pImagery = LoadTileSurface(filename, true, needsPalette, colourMask); // a PNG animation may replace it
 
 	tce->zName = filename;
 	tce->sHits = 1;

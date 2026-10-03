@@ -18,6 +18,7 @@
 #include "Animation_Data.h"
 #include "Lighting.h"
 #include "RenderWorld.h"
+#include "Rotting_Corpses.h"
 
 #include <string_theory/format>
 
@@ -2343,4 +2344,49 @@ TEST_F(PNGLoadTest, etrlePixelValueOfSTIFrames)
 			}
 		}
 	}
+}
+
+
+// ---------------------------------------------------------------------------
+// Full colour corpses
+
+TEST(PNG, corpseImageColours)
+{
+	using C = AnimationColours;
+	auto colours = [](UINT8 const type, UINT8 const body, UINT16 const flags = 0)
+	{
+		ROTTING_CORPSE_DEFINITION def{};
+		def.ubType     = type;
+		def.ubBodyType = body;
+		def.usFlags    = flags;
+		return GetCorpseImageColours(def);
+	};
+	// people: with a colour mask, also in camouflage
+	EXPECT_EQ(colours(SMERC_BCK, REGMALE),                                  C::ColourMask);
+	EXPECT_EQ(colours(FMERC_JFK, REGFEMALE),                                C::ColourMask);
+	EXPECT_EQ(colours(M_DEAD1, MANCIV),                                     C::ColourMask);
+	EXPECT_EQ(colours(SMERC_FWD, REGMALE, ROTTING_CORPSE_USE_CAMO_PALETTE), C::ColourMask);
+	// no palette colour changes: full colour
+	EXPECT_EQ(colours(ROTTING_STAGE2, REGMALE),                             C::FullColour);
+	EXPECT_EQ(colours(COW_DEAD, COW),                                       C::FullColour);
+	EXPECT_EQ(colours(TANK1_DEAD, TANK_NW),                                 C::FullColour);
+	EXPECT_EQ(colours(QUEEN_MONSTER_DEAD, QUEENMONSTER),                    C::FullColour);
+	EXPECT_EQ(colours(LARVAEMONSTER_DEAD, LARVAE_MONSTER),                  C::FullColour);
+	// adult creatures (.COL palettes): palettised only
+	EXPECT_EQ(colours(ADULTMONSTER_DEAD, ADULTFEMALEMONSTER),               C::Palette);
+}
+
+
+TEST_F(PNGLoadTest, tileSurfaceWithColourMask)
+{
+	// a corpse of a person: full colour with the colour mask, else the STI
+	TILE_IMAGERY* const masked   = LoadTileSurface("pngtest/anim_tile_rgba.sti", true, false, true);
+	TILE_IMAGERY* const unmasked = LoadTileSurface("pngtest/anim_tile_rgba_nomask.sti", true, false, true);
+	ASSERT_TRUE(masked->vo->IsRGBA());
+	EXPECT_TRUE(masked->vo->ColourMask(masked->vo->SubregionProperties(0)) != nullptr);
+	ASSERT_TRUE(masked->pAuxData != NULL);
+	EXPECT_EQ(masked->pAuxData[0].ubNumberOfFrames, 3);
+	EXPECT_FALSE(unmasked->vo->IsRGBA());
+	DeleteTileSurface(masked);
+	DeleteTileSurface(unmasked);
 }
