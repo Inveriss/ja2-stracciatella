@@ -111,56 +111,56 @@ on their features.");
         } // Fl_Group* o
         { Fl_Group* o = new Fl_Group(10, 105, 500, 75);
           o->tooltip("The resolution the game runs in.");
-          { resolutionLabel = new Fl_Box(17, 111, 300, 18, "Current Screen Resolution:");
+          { resolutionLabel = new Fl_Box(17, 113, 300, 18, "Current Screen Resolution:");
             resolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Box* resolutionLabel
-          { Fl_Group* o = new Fl_Group(145, 130, 140, 22);
-            { autoModeRadio = new Fl_Round_Button(145, 130, 60, 22, "Auto");
+          { Fl_Group* o = new Fl_Group(149, 135, 140, 22);
+            { autoModeRadio = new Fl_Round_Button(149, 135, 60, 22, "Auto");
               autoModeRadio->tooltip("Pick the base resolution for your desktop on every start: 1366x768 if it fi\
 ts, otherwise 1280x720.");
               autoModeRadio->type(102);
               autoModeRadio->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* autoModeRadio
-            { manualModeRadio = new Fl_Round_Button(210, 130, 75, 22, "Manual");
+            { manualModeRadio = new Fl_Round_Button(214, 135, 75, 22, "Manual");
               manualModeRadio->tooltip("Choose the base resolution yourself.");
               manualModeRadio->type(102);
               manualModeRadio->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* manualModeRadio
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(145, 154, 185, 22);
-            { baseResolutionRadio0 = new Fl_Round_Button(145, 154, 90, 22, "1280x720");
+          { Fl_Group* o = new Fl_Group(149, 156, 185, 22);
+            { baseResolutionRadio0 = new Fl_Round_Button(149, 156, 90, 22, "1280x720");
               baseResolutionRadio0->tooltip("Base resolution 1280x720 (16:9).");
               baseResolutionRadio0->type(102);
               baseResolutionRadio0->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* baseResolutionRadio0
-            { baseResolutionRadio1 = new Fl_Round_Button(240, 154, 90, 22, "1366x768");
+            { baseResolutionRadio1 = new Fl_Round_Button(244, 156, 90, 22, "1366x768");
               baseResolutionRadio1->tooltip("Base resolution 1366x768 (about 16:9).");
               baseResolutionRadio1->type(102);
               baseResolutionRadio1->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* baseResolutionRadio1
             { // Shows the reason as a tooltip while baseResolutionRadio0 is inactive (inactive widgets show no tooltip)
-              baseResolutionHint0 = new Fl_Box(145, 154, 90, 22);
+              baseResolutionHint0 = new Fl_Box(149, 156, 90, 22);
               baseResolutionHint0->hide();
             } // Fl_Box* baseResolutionHint0
             { // Shows the reason as a tooltip while baseResolutionRadio1 is inactive (inactive widgets show no tooltip)
-              baseResolutionHint1 = new Fl_Box(240, 154, 90, 22);
+              baseResolutionHint1 = new Fl_Box(244, 156, 90, 22);
               baseResolutionHint1->hide();
             } // Fl_Box* baseResolutionHint1
             o->end();
           } // Fl_Group* o
-          { resolutionModeLabel = new Fl_Box(17, 130, 125, 22, "UI Resolution Mode:");
+          { resolutionModeLabel = new Fl_Box(17, 135, 125, 22, "UI Resolution Mode:");
             resolutionModeLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Box* resolutionModeLabel
-          { baseResolutionLabel = new Fl_Box(17, 154, 125, 22, "UI Base Resolution:");
+          { baseResolutionLabel = new Fl_Box(17, 156, 125, 22, "UI Base Resolution:");
             baseResolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Box* baseResolutionLabel
-          { stretchCheckbox = new Fl_Check_Button(346, 119, 165, 30, "Stretch to Your Screen");
+          { stretchCheckbox = new Fl_Check_Button(336, 108, 165, 30, "Stretch to Your Screen");
             stretchCheckbox->tooltip("Stretch the game image to fill the whole screen, ignoring its aspect ratio (no\
  black bars).");
             stretchCheckbox->down_box(FL_DOWN_BOX);
           } // Fl_Check_Button* stretchCheckbox
-          { stretchLaptopCheckbox = new Fl_Check_Button(346, 146, 165, 18, "Stretch In-Game Laptop");
+          { stretchLaptopCheckbox = new Fl_Check_Button(336, 135, 165, 18, "Stretch In-Game Laptop");
             stretchLaptopCheckbox->tooltip("Also stretch the In-Game Laptop (640x480) to fill the whole screen. Ignores i\
 ts aspect ratio, so the In-Game Laptop looks noticeably wider on widescreen mo\
 nitors. Requires \"Stretch to Your Screen\".");
