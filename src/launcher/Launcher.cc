@@ -393,6 +393,10 @@ void Launcher::show() {
 	baseResolutionRadio0->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	baseResolutionRadio1->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
 	detectDesktopResolution(desktopWidth, desktopHeight);
+	resolutionLabelText = "Current Screen Resolution: " + (desktopKnown()
+		? ST::format("{}x{}", desktopWidth, desktopHeight).to_std_string()
+		: std::string("unknown"));
+	resolutionLabel->label(resolutionLabelText.c_str());
 	RustPointer<char> game_json_path(findPathFromAssetsDir("externalized/game.json", true, true));
 	if (game_json_path) {
 		gameSettingsOutput->value(game_json_path.get());
@@ -892,16 +896,15 @@ void Launcher::updateResolutionWidgets() {
 		invalidResolutionLabel->show();
 	}
 
+	// MANUAL with a "res" from ja2.json that is no base resolution: no radio
+	// is selected, the label's tooltip says why.
 	if (manual && selected < 0) {
-		desktopInfoText = "Custom: " + resolutionText(EngineOptions_getResolutionX(engineOptions.get()), EngineOptions_getResolutionY(engineOptions.get()));
-		desktopInfoTooltip = "Resolution from ja2.json, not one of the base resolutions. Select one to replace it. Desktop: " + desktopText + ".";
+		baseResolutionLabelTooltip = "Custom resolution " + resolutionText(EngineOptions_getResolutionX(engineOptions.get()), EngineOptions_getResolutionY(engineOptions.get()))
+			+ " from ja2.json, not one of the base resolutions. Select one to replace it.";
+		baseResolutionLabel->tooltip(baseResolutionLabelTooltip.c_str());
 	} else {
-		desktopInfoText = "Desktop: " + desktopText;
-		desktopInfoTooltip = "Desktop resolution of the primary monitor.";
+		baseResolutionLabel->tooltip(nullptr);
 	}
-	desktopInfoLabel->label(desktopInfoText.c_str());
-	desktopInfoLabel->tooltip(desktopInfoTooltip.c_str());
-	desktopInfoLabel->redraw_label();
 }
 
 void Launcher::resolutionModeChanged(Fl_Widget* widget, void* userdata) {

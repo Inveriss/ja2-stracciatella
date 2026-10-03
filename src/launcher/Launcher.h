@@ -58,8 +58,8 @@ private:
 	// Texts the widgets' tooltip() and label() point to.
 	std::string invalidResolutionTooltip;
 	std::string baseResolutionHintTooltip[2];
-	std::string desktopInfoText;
-	std::string desktopInfoTooltip;
+	std::string resolutionLabelText;
+	std::string baseResolutionLabelTooltip;
 	// "Stretch In-Game Laptop"'s own value while its checkbox is inactive
 	// (shown empty) -- see update().
 	bool stretchLaptopValue = true;

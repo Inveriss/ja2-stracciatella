@@ -44,7 +44,8 @@ public:
   Fl_Round_Button *baseResolutionRadio1;
   Fl_Box *baseResolutionHint0;
   Fl_Box *baseResolutionHint1;
-  Fl_Box *desktopInfoLabel;
+  Fl_Box *resolutionModeLabel;
+  Fl_Box *baseResolutionLabel;
   Fl_Check_Button *stretchCheckbox;
   Fl_Check_Button *stretchLaptopCheckbox;
   Fl_Box *invalidResolutionLabel;

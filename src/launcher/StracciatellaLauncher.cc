@@ -111,47 +111,50 @@ on their features.");
         } // Fl_Group* o
         { Fl_Group* o = new Fl_Group(10, 105, 500, 75);
           o->tooltip("The resolution the game runs in.");
-          { resolutionLabel = new Fl_Box(17, 111, 85, 18, "Resolution:");
+          { resolutionLabel = new Fl_Box(17, 111, 300, 18, "Current Screen Resolution:");
             resolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Box* resolutionLabel
-          { Fl_Group* o = new Fl_Group(20, 130, 140, 22);
-            { autoModeRadio = new Fl_Round_Button(20, 130, 60, 22, "Auto");
+          { Fl_Group* o = new Fl_Group(145, 130, 140, 22);
+            { autoModeRadio = new Fl_Round_Button(145, 130, 60, 22, "Auto");
               autoModeRadio->tooltip("Pick the base resolution for your desktop on every start: 1366x768 if it fi\
 ts, otherwise 1280x720.");
               autoModeRadio->type(102);
               autoModeRadio->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* autoModeRadio
-            { manualModeRadio = new Fl_Round_Button(85, 130, 75, 22, "Manual");
+            { manualModeRadio = new Fl_Round_Button(210, 130, 75, 22, "Manual");
               manualModeRadio->tooltip("Choose the base resolution yourself.");
               manualModeRadio->type(102);
               manualModeRadio->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* manualModeRadio
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(20, 154, 185, 22);
-            { baseResolutionRadio0 = new Fl_Round_Button(20, 154, 90, 22, "1280x720");
+          { Fl_Group* o = new Fl_Group(145, 154, 185, 22);
+            { baseResolutionRadio0 = new Fl_Round_Button(145, 154, 90, 22, "1280x720");
               baseResolutionRadio0->tooltip("Base resolution 1280x720 (16:9).");
               baseResolutionRadio0->type(102);
               baseResolutionRadio0->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* baseResolutionRadio0
-            { baseResolutionRadio1 = new Fl_Round_Button(115, 154, 90, 22, "1366x768");
+            { baseResolutionRadio1 = new Fl_Round_Button(240, 154, 90, 22, "1366x768");
               baseResolutionRadio1->tooltip("Base resolution 1366x768 (about 16:9).");
               baseResolutionRadio1->type(102);
               baseResolutionRadio1->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* baseResolutionRadio1
             { // Shows the reason as a tooltip while baseResolutionRadio0 is inactive (inactive widgets show no tooltip)
-              baseResolutionHint0 = new Fl_Box(20, 154, 90, 22);
+              baseResolutionHint0 = new Fl_Box(145, 154, 90, 22);
               baseResolutionHint0->hide();
             } // Fl_Box* baseResolutionHint0
             { // Shows the reason as a tooltip while baseResolutionRadio1 is inactive (inactive widgets show no tooltip)
-              baseResolutionHint1 = new Fl_Box(115, 154, 90, 22);
+              baseResolutionHint1 = new Fl_Box(240, 154, 90, 22);
               baseResolutionHint1->hide();
             } // Fl_Box* baseResolutionHint1
             o->end();
           } // Fl_Group* o
-          { desktopInfoLabel = new Fl_Box(165, 130, 175, 22);
-            desktopInfoLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-          } // Fl_Box* desktopInfoLabel
+          { resolutionModeLabel = new Fl_Box(17, 130, 125, 22, "UI Resolution Mode:");
+            resolutionModeLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+          } // Fl_Box* resolutionModeLabel
+          { baseResolutionLabel = new Fl_Box(17, 154, 125, 22, "UI Base Resolution:");
+            baseResolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+          } // Fl_Box* baseResolutionLabel
           { stretchCheckbox = new Fl_Check_Button(346, 119, 165, 30, "Stretch to Your Screen");
             stretchCheckbox->tooltip("Stretch the game image to fill the whole screen, ignoring its aspect ratio (no\
  black bars).");
@@ -176,32 +179,32 @@ nitors. Requires \"Stretch to Your Screen\".");
           } // Fl_Box* invalidResolutionLabel
           o->end();
         } // Fl_Group* o
-        { Fl_Group* o = new Fl_Group(10, 170, 500, 55);
+        { Fl_Group* o = new Fl_Group(10, 190, 500, 55);
           o->tooltip("Choose a scaling mode to stretch the game video to fit the screen. Linear and\
  Near-Perfect modes stretch the video to match any window sizes, but the image\
  may look blurred. Pixel-Perfect can only scale up by integer (1x, 2x and so o\
 n) but gives sharp images.");
-          { scalingModeChoice = new Fl_Choice(20, 185, 480, 30, "Scaling Mode:");
+          { scalingModeChoice = new Fl_Choice(20, 205, 480, 30, "Scaling Mode:");
             scalingModeChoice->down_box(FL_BORDER_BOX);
             scalingModeChoice->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             Fl_Group::current()->resizable(scalingModeChoice);
           } // Fl_Choice* scalingModeChoice
           o->end();
         } // Fl_Group* o
-        { Fl_Group* o = new Fl_Group(10, 220, 500, 65);
-          { fullscreenCheckbox = new Fl_Check_Button(20, 225, 95, 30, "Fullscreen");
+        { Fl_Group* o = new Fl_Group(10, 240, 500, 65);
+          { fullscreenCheckbox = new Fl_Check_Button(20, 245, 95, 30, "Fullscreen");
             fullscreenCheckbox->tooltip("Check to run in a borderless full-screen window");
             fullscreenCheckbox->down_box(FL_DOWN_BOX);
           } // Fl_Check_Button* fullscreenCheckbox
-          { playSoundsCheckbox = new Fl_Check_Button(20, 255, 109, 30, "Play Sounds");
+          { playSoundsCheckbox = new Fl_Check_Button(20, 275, 109, 30, "Play Sounds");
             playSoundsCheckbox->down_box(FL_DOWN_BOX);
             playSoundsCheckbox->value(1);
           } // Fl_Check_Button* playSoundsCheckbox
           o->end();
         } // Fl_Group* o
-        { settingsEditorButton = new Fl_Button(165, 236, 200, 25, "Start Map Editor");
+        { settingsEditorButton = new Fl_Button(165, 256, 200, 25, "Start Map Editor");
         } // Fl_Button* settingsEditorButton
-        { settingsPlayButton = new Fl_Button(165, 271, 200, 55, "Play Ja2 Stracciatella");
+        { settingsPlayButton = new Fl_Button(165, 291, 200, 55, "Play Ja2 Stracciatella");
         } // Fl_Button* settingsPlayButton
         settingsTab->end();
       } // Fl_Group* settingsTab
