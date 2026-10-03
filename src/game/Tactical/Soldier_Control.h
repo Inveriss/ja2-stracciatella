@@ -10,6 +10,7 @@
 #include "JA2Types.h"
 #include "Keys.h"
 #include "Overhead_Types.h"
+#include "Shading.h"
 #include "Item_Types.h"
 #include "Timer_Control.h"
 
@@ -520,6 +521,10 @@ struct SOLDIERTYPE
 
 	UINT16 *pShades[ NUM_SOLDIER_SHADES ]; // Shading tables
 	UINT16 *pGlowShades[20];
+	// The same shades for full colour animations (docs/png-images.md)
+	RGBAShade rgbaShades[NUM_SOLDIER_SHADES];
+	RGBAShade rgbaGlowShades[20];
+	RGBAShade rgbaEffectShade;
 	INT8 bMedical;
 	BOOLEAN fBeginFade;
 	UINT8 ubFadeLevel;

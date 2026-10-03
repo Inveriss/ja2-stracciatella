@@ -1,6 +1,7 @@
 #include "Directories.h"
 #include "HImage.h"
 #include "Overhead.h"
+#include "STCI.h"
 #include "Structure.h"
 #include "VObject.h"
 #include "WCheck.h"
@@ -655,6 +656,48 @@ STRUCTURE_FILE_REF* GetAnimationStructureRef(const SOLDIERTYPE* const s, const U
 }
 
 
+bool AnimationSurfaceAllowsFullColour(UINT16 const usSurfaceIndex)
+{
+	switch (usSurfaceIndex)
+	{
+		// GetBodyTypePaletteSubstitution() gives these body types the palette
+		// of the animation; their structures (.jsd) take one tile.
+		case CROWWALKING:
+		case CROWFLYING:
+		case CROWEATING:
+		case CROWDYING:
+		case ROBOTNWBREATH:
+		case ROBOTNWWALK:
+		case ROBOTNWHIT:
+		case ROBOTNWDIE:
+		case ROBOTNWSHOOT:
+			return true;
+
+		default:
+			return false;
+	}
+}
+
+
+void GetAnimationSurfacePalette(UINT16 const usSurfaceIndex, SGPPaletteEntry pal[256])
+{
+	AnimationSurfaceType const& a = gAnimSurfaceDatabase[usSurfaceIndex];
+	SGPPaletteEntry const* src;
+	AutoSGPImage original;
+	if (!a.hVideoObject->IsRGBA())
+	{
+		src = a.hVideoObject->Palette();
+	}
+	else
+	{
+		// the STI itself: CreateImage() would try the PNG again
+		original.reset(LoadSTCIFileToImage(a.Filename, IMAGE_PALETTE));
+		src = original->pPalette;
+	}
+	std::copy_n(src, 256, pal);
+}
+
+
 // Surface mamagement functions
 void LoadAnimationSurface(UINT16 const usSoldierID, UINT16 const usSurfaceIndex, UINT16 const usAnimState)
 {
@@ -681,9 +724,12 @@ void LoadAnimationSurface(UINT16 const usSoldierID, UINT16 const usSurfaceIndex,
 			// Only the number of frames per direction is used from the aux data,
 			// so a palettised PNG with an "animation" section may replace the file
 			// (docs/png-images.md).
-			// Characters are drawn with palettes (clothing colours, lighting): no
-			// full colour PNG.
-			AutoSGPImage   hImage(CreateImage(a->Filename, IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA | IMAGE_NEEDS_PALETTE));
+			// Most characters get their clothing colours from palette changes: no
+			// full colour PNG for them.
+			UINT16 const fullColour = AnimationSurfaceAllowsFullColour(usSurfaceIndex) ? 0 : IMAGE_NEEDS_PALETTE;
+			AutoSGPImage hImage(CreateImage(a->Filename, IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA | fullColour));
+			// Characters are never outlined
+			hImage->fFlags |= IMAGE_NO_OUTLINE;
 			AutoSGPVObject hVObject(AddVideoObjectFromHImage(hImage.get()));
 
 			// Get aux data

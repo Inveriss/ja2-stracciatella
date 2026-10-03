@@ -15,6 +15,8 @@
 #include "Tile_Surface.h"
 #include "Interactive_Tiles.h"
 #include "VSurface.h"
+#include "Animation_Data.h"
+#include "Lighting.h"
 
 #include <string_theory/format>
 
@@ -1755,4 +1757,197 @@ TEST(PNG, rgbaHitTestMatchesPalettisedHitTest)
 	EXPECT_TRUE(CheckVideoObjectScreenCoordinateInData(rgba.get(), 0, 2, 2));
 	// pixel (0,0) has alpha 100
 	EXPECT_FALSE(CheckVideoObjectScreenCoordinateInData(rgba.get(), 0, 1, 3));
+}
+
+
+
+// ---------------------------------------------------------------------------
+// Full colour characters: shades instead of palette shade tables
+
+namespace
+{
+
+// 256 colours spread over the colour cube
+std::vector<SGPPaletteEntry> TestPalette()
+{
+	std::vector<SGPPaletteEntry> pal;
+	for (UINT32 i = 0; i != 256; ++i)
+	{
+		pal.push_back(SGPPaletteEntry{ static_cast<UINT8>(i), static_cast<UINT8>(i * 7 + 13), static_cast<UINT8>(255 - i * 3), 255 });
+	}
+	return pal;
+}
+
+// The 16 bit colour of a palette entry changed by the shade, as a shade
+// table entry
+UINT16 Shaded16(RGBAShade const& shade, SGPPaletteEntry const& c)
+{
+	UINT8 r = c.r;
+	UINT8 g = c.g;
+	UINT8 b = c.b;
+	ApplyRGBAShade(shade, r, g, b);
+	return Get16BPPColor(FROMRGB(r, g, b));
+}
+
+}
+
+
+TEST(PNG, rgbaShadeMatchesShadedPalette)
+{
+	RGB565Format const format;
+	std::vector<SGPPaletteEntry> const pal = TestPalette();
+	struct { UINT32 r, g, b; bool mono; } const cases[] = {
+		{ 255, 255, 255, false }, { 100, 100, 100, true }, { 500, 500, 500, true },
+		{ 115, 115, 160, false }, { 48, 222, 48, false }, { 0, 0, 0, false } };
+	for (auto const& c : cases)
+	{
+		std::unique_ptr<UINT16[]> const table(Create16BPPPaletteShaded(pal.data(), c.r, c.g, c.b, c.mono));
+		RGBAShade const shade = MakeRGBAShade(c.r, c.g, c.b, c.mono);
+		for (size_t i = 0; i != 256; ++i)
+		{
+			EXPECT_EQ(Shaded16(shade, pal[i]), table[i]) << c.r << "," << c.g << "," << c.b << " colour " << i;
+		}
+	}
+}
+
+
+TEST(PNG, rgbaShadesMatchBiasedShadedPalettes)
+{
+	RGB565Format const format;
+	std::vector<SGPPaletteEntry> const pal = TestPalette();
+	SGPPaletteEntry const oldLight = g_light_color;
+	g_light_color = SGPPaletteEntry{ 30, 0, 90, 0 };
+
+	UINT16*   tables[16];
+	RGBAShade shades[16];
+	CreateBiasedShadedPalettes(tables, pal.data());
+	CreateBiasedRGBAShades(shades);
+	for (size_t level = 0; level != 16; ++level)
+	{
+		for (size_t i = 0; i != 256; ++i)
+		{
+			EXPECT_EQ(Shaded16(shades[level], pal[i]), tables[level][i]) << "level " << level << " colour " << i;
+		}
+		delete[] tables[level];
+	}
+	g_light_color = oldLight;
+}
+
+
+TEST(PNG, rgbaShadeMinimumAndWhite)
+{
+	// the enemy glow: red raised to at least the glow value
+	RGBAShade glow = RGBA_SHADE_NONE;
+	glow.minR = 200;
+	UINT8 r = 10, g = 20, b = 30;
+	ApplyRGBAShade(glow, r, g, b);
+	EXPECT_EQ(r, 200);
+	EXPECT_EQ(g, 20);
+	EXPECT_EQ(b, 30);
+
+	r = 0; g = 0; b = 0;
+	ApplyRGBAShade(RGBA_SHADE_WHITE, r, g, b);
+	EXPECT_EQ(r, 255);
+	EXPECT_EQ(g, 255);
+	EXPECT_EQ(b, 255);
+}
+
+
+namespace
+{
+
+// 4x1: red, shadow (black at alpha 128), opaque black, transparent
+std::unique_ptr<SGPVObject> CharacterRGBAObject()
+{
+	DecodedPNG png;
+	png.kind             = DecodedPNG::Kind::RGBA;
+	png.width            = 4;
+	png.height           = 1;
+	png.sourceColourType = 6;
+	png.sourceBitDepth   = 8;
+	png.pixels = {
+		255, 0, 0, 255,   0, 0, 0, 128,   0, 0, 0, 255,   0, 0, 0, 0 };
+	AutoSGPImage img(ConvertRGBAPNGToImage(png, { PNGFrame{ 0, 0, 4, 1, 0, 0 } }, IMAGE_ALLIMAGEDATA, "test"));
+	return std::unique_ptr<SGPVObject>(AddVideoObjectFromHImage(img.get()));
+}
+
+void BlitShaded(ZTarget& t, SGPVObject const* const vo, INT32 const x, INT32 const y, UINT16 const z, RGBAShade const& shade, bool const useZ, bool const writeZ, bool const obscured, bool const translucent)
+{
+	SGPRect const clip{ 0, 0, t.surface.Width(), t.surface.Height() };
+	SGPVSurface::Lock l(&t.surface);
+	Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), useZ ? t.zbuf.data() : nullptr, z, vo, x, y, 0, &clip, shade, writeZ, obscured, translucent);
+}
+
+}
+
+
+TEST(PNG, rgbaShadeBlitterShadesButNotShadow)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = CharacterRGBAObject();
+
+	// half brightness: red becomes 127; the shadow (alpha 128) darkens blue to 127;
+	// opaque black stays black
+	ZTarget t(4, 1, BLUE_565, 0);
+	BlitShaded(t, vo.get(), 0, 0, 5, MakeRGBAShade(128, 128, 128, false), true, true, false, false);
+	EXPECT_EQ(Pixel(t.surface, 0, 0), 0x7800);
+	EXPECT_EQ(Pixel(t.surface, 1, 0), 0x000F);
+	EXPECT_EQ(Pixel(t.surface, 2, 0), BLACK_SUBSTITUTE);
+	EXPECT_EQ(Pixel(t.surface, 3, 0), BLUE_565);
+	EXPECT_EQ(t.Z(0, 0), 5);
+	EXPECT_EQ(t.Z(1, 0), 5); // alpha 128
+	EXPECT_EQ(t.Z(3, 0), 0);
+
+	// the white flash whitens everything but the shadow
+	ZTarget w(4, 1, BLUE_565, 0);
+	BlitShaded(w, vo.get(), 0, 0, 5, RGBA_SHADE_WHITE, true, false, false, false);
+	EXPECT_EQ(Pixel(w.surface, 0, 0), 0xFFFF);
+	EXPECT_EQ(Pixel(w.surface, 1, 0), 0x000F);
+	EXPECT_EQ(Pixel(w.surface, 2, 0), 0xFFFF);
+	EXPECT_EQ(w.Z(0, 0), 0); // no writeZ
+}
+
+
+TEST(PNG, rgbaShadeBlitterZObscuredAndNoZ)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = CharacterRGBAObject();
+
+	// behind something: hidden
+	ZTarget hidden(6, 2, BLUE_565, 9);
+	BlitShaded(hidden, vo.get(), 1, 0, 5, RGBA_SHADE_NONE, true, false, false, false);
+	EXPECT_EQ(Pixel(hidden.surface, 1, 0), BLUE_565);
+
+	// obscured: every other pixel, (x & 1) == (y & 1) as the 8 bit blitters
+	ZTarget even(6, 2, BLUE_565, 9);
+	BlitShaded(even, vo.get(), 1, 0, 5, RGBA_SHADE_NONE, true, false, true, false);
+	EXPECT_EQ(Pixel(even.surface, 1, 0), BLUE_565); // red: odd column on an even row
+	EXPECT_EQ(Pixel(even.surface, 2, 0), 0x000F);   // shadow: even column
+	EXPECT_EQ(Pixel(even.surface, 3, 0), BLUE_565); // opaque black: odd column
+	ZTarget odd(6, 2, BLUE_565, 9);
+	BlitShaded(odd, vo.get(), 1, 1, 5, RGBA_SHADE_NONE, true, false, true, false);
+	EXPECT_EQ(Pixel(odd.surface, 1, 1), 0xF800);
+	EXPECT_EQ(Pixel(odd.surface, 2, 1), BLUE_565);
+	EXPECT_EQ(Pixel(odd.surface, 3, 1), BLACK_SUBSTITUTE);
+	EXPECT_EQ(odd.Z(1, 1), 9); // a hidden pixel never writes Z
+
+	// no Z-buffer: everything drawn; translucent halves alpha
+	ZTarget noZ(4, 1, BLUE_565, 9);
+	BlitShaded(noZ, vo.get(), 0, 0, 5, RGBA_SHADE_NONE, false, true, false, true);
+	EXPECT_EQ(Pixel(noZ.surface, 0, 0), 0x800F);
+	EXPECT_EQ(noZ.Z(0, 0), 9);
+}
+
+
+TEST(PNG, fullColourCharacterAnimations)
+{
+	// only one tile animations without palette colour changes
+	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(CROWWALKING));
+	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(CROWFLYING));
+	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(ROBOTNWBREATH));
+	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(RGMSTANDING));
+	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(COWSTANDING));
+	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(CATBREATH));
+	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(QUEENMONSTERSTANDING));
+	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(HUMVEE_BASIC));
 }

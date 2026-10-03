@@ -214,9 +214,9 @@ Animacje postaci (`anims/`, np. `anims/s_merc/s_r_std` – najemnik stojący),
 animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
 potrzebują danych dodatkowych: liczby klatek animacji. PNG może je zastąpić, gdy:
 
-- jest **PNG z paletą**, a dla efektów z pamięci podręcznej kafli także PNG w
-  pełnym kolorze (niżej); postacie, zwłoki i kursory muszą mieć paletę, bo gra
-  podmienia i cieniuje ich kolory przez paletę,
+- jest **PNG z paletą**, a dla efektów z pamięci podręcznej kafli, wrony i
+  robota także PNG w pełnym kolorze (niżej); pozostałe postacie, zwłoki i
+  kursory muszą mieć paletę, bo gra podmienia ich kolory przez paletę,
 - jego metadane mają sekcję `animation`:
 
 ```json
@@ -249,7 +249,28 @@ Postacie:
 - **paleta musi zostać bez zmian**: gra podmienia kolory włosów, skóry, kamizelki
   i spodni przez wpisy palety (palety postaci), a oświetlenie i cień również
   korzystają z palety;
-- cienie postaci są osobnymi animacjami (osobne pliki) i podmienia się je tak samo.
+- cień postaci jest częścią jej klatek: piksele o indeksie 254 przyciemniają tło.
+
+Postacie w pełnym kolorze (RGBA) są możliwe tylko dla **wrony**
+(`anims/animals/cr_walk`, `cr_fly`, `cr_eat`, `cr_die`) i **robota**
+(`anims/civs/j_r_bret`, `j_r_walk`, `j_r_hit`, `j_r_die`, `j_r_shot`): gra
+nie podmienia ich kolorów, a ich struktury zajmują jeden kafel. Dla pozostałych
+postaci PNG w pełnym kolorze jest pomijany i gra wczytuje oryginał (z wpisem w
+logu). Postać RGBA:
+
+- jest oświetlana i podświetlana tak samo jak z paletą (poziomy światła i jego
+  kolor, czerwone podświetlenie wroga, szarość niewidocznego wroga, biały błysk):
+  gra zmienia kolory pikseli tymi samymi wzorami, którymi tworzy palety
+  cieniowania;
+- **cień** w klatce to czarny piksel z częściową przezroczystością (alfa poniżej
+  255): przyciemnia tło przez mieszanie i nie jest oświetlany ani podświetlany;
+  zalecana alfa to około 100–127, bo piksele z alfą co najmniej 128 zapisują Z;
+- Z-bufor działa jak w STI; piksele z alfą co najmniej 128 zapisują Z; postać za
+  konstrukcją jest rysowana w szachownicę jak z paletą;
+- nie ma obrysu (gra nie tworzy dla postaci maski obrysu);
+- może być mieszana z animacjami STI tej samej postaci (np. tylko `cr_fly` w
+  RGBA): palety cieniowania dla STI gra bierze wtedy z oryginału, który PNG
+  zastępuje.
 
 Efekty z pamięci podręcznej kafli (`tilecache/`: eksplozje, dym, rozbryzgi i
 inne) mogą być **PNG w pełnym kolorze** (RGBA):

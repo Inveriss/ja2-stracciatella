@@ -37,6 +37,31 @@ void BuildShadeTable(void)
 }
 
 
+RGBAShade MakeRGBAShade(UINT32 const rscale, UINT32 const gscale, UINT32 const bscale, bool const mono)
+{
+	return RGBAShade{ 0, 0, 0,
+		static_cast<UINT16>(rscale), static_cast<UINT16>(gscale), static_cast<UINT16>(bscale),
+		0, 0, 0, mono };
+}
+
+
+void ApplyRGBAShade(RGBAShade const& s, UINT8& r, UINT8& g, UINT8& b)
+{
+	// The same steps as Create16BPPPaletteShaded() and AddSaturatePalette()
+	UINT32 vr = std::min(r + s.biasR, 255);
+	UINT32 vg = std::min(g + s.biasG, 255);
+	UINT32 vb = std::min(b + s.biasB, 255);
+	if (s.mono)
+	{
+		UINT32 const lumin = (vr * 299 + vg * 587 + vb * 114) / 1000;
+		vr = vg = vb = lumin;
+	}
+	r = static_cast<UINT8>(std::min(std::max<UINT32>(s.scaleR * vr / 256, s.minR), 255U));
+	g = static_cast<UINT8>(std::min(std::max<UINT32>(s.scaleG * vg / 256, s.minG), 255U));
+	b = static_cast<UINT8>(std::min(std::max<UINT32>(s.scaleB * vb / 256, s.minB), 255U));
+}
+
+
 /* Builds a 16-bit color shading table. This function should be called only
  * after the current video adapter's pixel format is known (IE:
  * GetRgbDistribution() has been called, and the globals for masks and shifts

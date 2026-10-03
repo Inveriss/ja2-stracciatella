@@ -3,6 +3,8 @@
 
 #include "Types.h"
 
+struct RGBAShade;
+
 inline SGPRect		ClippingRect;
 extern UINT32			guiTranslucentMask;
 
@@ -27,6 +29,13 @@ void Blt32BPPDataTo16BPPBufferShadow(UINT16* buf, UINT32 uiDestPitchBYTES, SGPVO
 // translucent halves the alpha (the 50% translucency of the 8 bit blitters).
 // The Z-buffer has the same pitch as the buffer.
 void Blt32BPPDataTo16BPPBufferAlphaZ(UINT16* buf, UINT32 uiDestPitchBYTES, UINT16* pZBuffer, UINT16 usZValue, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, bool writeZ, bool translucent);
+// Full colour characters, like the TransShadow blitters of palettised ones:
+// alpha blending of the colours changed by shade (lighting, glow; see
+// RGBAShade), except for black partly transparent pixels, which are shadow.
+// With a Z-buffer the same as Blt32BPPDataTo16BPPBufferAlphaZ(); obscured also
+// draws every other pixel (a checkerboard) where the Z test fails. Without a
+// Z-buffer (null) every pixel is drawn.
+void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* buf, UINT32 uiDestPitchBYTES, UINT16* pZBuffer, UINT16 usZValue, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, RGBAShade const& shade, bool writeZ, bool obscured, bool translucent);
 CHAR8 BltIsClippedOrOffScreen( HVOBJECT hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect *clipregion );
 
 

@@ -354,6 +354,7 @@ private: void Render(RenderTilesFlags const uiFlags, size_t const ubNumLevels, R
 	INT16           sZLevel      = 0;
 	BackgroundFlags uiDirtyFlags = BGND_FLAG_NONE;
 	UINT16 const*   pShadeTable  = 0;
+	RGBAShade const* pRGBAShade  = 0; // the same shade for full colour soldiers
 
 	INT32 iAnchorPosX_M = iStartPointX_M;
 	INT32 iAnchorPosY_M = iStartPointY_M;
@@ -975,6 +976,7 @@ zlevel_topmost:
 									ubShadeLevel |= pNode->ubShadeLevel & 0x30;
 								}
 								pShadeTable = s.pShades[ubShadeLevel];
+								pRGBAShade  = &s.rgbaShades[ubShadeLevel];
 
 								// Position guy based on guy's position
 								float const dOffsetX = s.dXPos - gsRenderCenterX;
@@ -1024,6 +1026,8 @@ zlevel_topmost:
 
 										UINT16* const* pShadeStart =
 											s.bLevel == 0 ? &s.pGlowShades[0] : &s.pShades[20];
+										RGBAShade const* const pRGBAShadeStart =
+											s.bLevel == 0 ? &s.rgbaGlowShades[0] : &s.rgbaShades[20];
 
 										// Set shade
 										// If a bad guy is highlighted
@@ -1032,6 +1036,7 @@ zlevel_topmost:
 											if (gSelectedGuy == &s)
 											{
 												pShadeTable = pShadeStart[gsGlowFrames[gsCurrentGlowFrame] + bGlowShadeOffset];
+												pRGBAShade  = &pRGBAShadeStart[gsGlowFrames[gsCurrentGlowFrame] + bGlowShadeOffset];
 												gsForceSoldierZLevel = TOPMOST_Z_LEVEL;
 											}
 											else
@@ -1040,6 +1045,7 @@ zlevel_topmost:
 												if (bGlowShadeOffset == 10)
 												{
 													pShadeTable = s.effect_shade;
+													pRGBAShade  = &s.rgbaEffectShade;
 												}
 											}
 										}
@@ -1050,6 +1056,7 @@ zlevel_topmost:
 													s.uiStatusFlags & SOLDIER_UNDERAICONTROL) // Does he have baton?
 											{
 												pShadeTable = pShadeStart[gsGlowFrames[gsCurrentGlowFrame] + bGlowShadeOffset];
+												pRGBAShade  = &pRGBAShadeStart[gsGlowFrames[gsCurrentGlowFrame] + bGlowShadeOffset];
 												if (gsGlowFrames[gsCurrentGlowFrame] >= 7)
 												{
 													gsForceSoldierZLevel = TOPMOST_Z_LEVEL;
@@ -1102,6 +1109,8 @@ zlevel_topmost:
 								if (!(uiFlags & TILES_DIRTY) && s.fForceShade)
 								{
 									pShadeTable = s.pForcedShade;
+									// the only forced shade is the white flash
+									pRGBAShade  = s.pForcedShade == White16BPPPalette ? &RGBA_SHADE_WHITE : &s.rgbaShades[DEFAULT_SHADE_LEVEL];
 								}
 
 								hVObject = gAnimSurfaceDatabase[usAnimSurface].hVideoObject;
@@ -1266,9 +1275,37 @@ zlevel_topmost:
 						}
 						else
 						{
-							if (hVObject->IsRGBA())
+							if (hVObject->IsRGBA() && fMerc && !(uiLevelNodeFlags & LEVELNODE_ROTTINGCORPSE))
 							{
-								// Full colour objects: only tile cache animations, without
+								// Full colour soldiers: only those on one tile, without palette
+								// colour changes (AnimationSurfaceAllowsFullColour()). The same
+								// choices as for the palettised soldiers below, with the shade of
+								// the soldier and alpha blending.
+								SGPRect const* const clip  = &gClippingRect;
+								RGBAShade const&     shade = pRGBAShade ? *pRGBAShade : RGBA_SHADE_NONE;
+								if (fPixelate)
+								{
+									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, shade, false, false, true);
+								}
+								else if (fZBlitter)
+								{
+									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, shade, fZWrite, !fZWrite && fObscuredBlitter, false);
+
+									if (uiLevelNodeFlags & LEVELNODE_UPDATESAVEBUFFERONCE)
+									{
+										SGPVSurface::Lock l(guiSAVEBUFFER);
+										Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), NULL, 0, hVObject, sXPos, sYPos, usImageIndex, clip, shade, false, false, false);
+										pNode->uiFlags &= ~LEVELNODE_UPDATESAVEBUFFERONCE;
+									}
+								}
+								else
+								{
+									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, NULL, 0, hVObject, sXPos, sYPos, usImageIndex, clip, shade, false, false, false);
+								}
+							}
+							else if (hVObject->IsRGBA())
+							{
+								// Full colour objects: tile cache animations, without
 								// corpses (docs/png-images.md). The same choices as for the
 								// palettised objects below, with alpha blending; they are not
 								// lit, like the palettised tile cache animations.

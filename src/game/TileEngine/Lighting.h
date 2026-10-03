@@ -2,6 +2,7 @@
 #define _LIGHTING_H_
 
 #include "JA2Types.h"
+#include "Shading.h"
 
 
 /****************************************************************************************
@@ -157,5 +158,8 @@ extern SGPPaletteEntry g_light_color;
 const char* LightSpriteGetTypeName(const LIGHT_SPRITE*);
 
 void CreateBiasedShadedPalettes(UINT16* Shades[16], const SGPPaletteEntry ShadePal[256]);
+
+// The same shades for full colour images (see RGBAShade)
+void CreateBiasedRGBAShades(RGBAShade Shades[16]);
 
 #endif

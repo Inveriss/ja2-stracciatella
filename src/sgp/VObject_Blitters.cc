@@ -5717,3 +5717,60 @@ void Blt32BPPDataTo16BPPBufferAlphaZ(UINT16* const buf, UINT32 const uiDestPitch
 		}
 	}
 }
+
+
+void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* const buf, UINT32 const uiDestPitchBYTES, UINT16* const pZBuffer, UINT16 const usZValue, SGPVObject const* const hSrcVObject, INT32 const iX, INT32 const iY, UINT16 const usIndex, SGPRect const* const clipregion, RGBAShade const& shade, bool const writeZ, bool const obscured, bool const translucent)
+{
+	Assert(hSrcVObject);
+	Assert(buf);
+
+	ETRLEObject const& e = hSrcVObject->SubregionProperties(usIndex);
+	ClippedFrame const c = ClipFrame(e, iX, iY, clipregion);
+	if (c.empty) return;
+
+	UINT8  const* const rgba  = hSrcVObject->RGBAData(e);
+	UINT32        const pitch = uiDestPitchBYTES / 2;
+	Format16      const f;
+
+	for (INT32 y = c.y0; y != c.y1; ++y)
+	{
+		size_t const  row = static_cast<size_t>(c.top + y) * pitch + c.left + c.x0;
+		UINT16*       dst = buf + row;
+		UINT16*       z   = pZBuffer ? pZBuffer + row : nullptr;
+		UINT8  const* src = rgba + (static_cast<size_t>(y) * e.usWidth + c.x0) * 4;
+		// the checkerboard of the obscured 8 bit blitters
+		bool          odd = ((c.top + y) & 1) != ((c.left + c.x0) & 1);
+		for (INT32 x = c.x0; x != c.x1; ++x, ++dst, src += 4, odd = !odd)
+		{
+			UINT32 const alpha = translucent ? (src[3] + 1U) / 2 : src[3];
+			if (alpha == 0) continue;
+
+			bool zPass = true;
+			if (z)
+			{
+				zPass = z[x - c.x0] <= usZValue;
+				if (!zPass && !(obscured && !odd)) continue;
+			}
+
+			UINT8 r = src[0];
+			UINT8 g = src[1];
+			UINT8 b = src[2];
+			bool const shadow = r == 0 && g == 0 && b == 0 && src[3] != 255;
+			if (!shadow) ApplyRGBAShade(shade, r, g, b);
+
+			if (alpha == 255)
+			{
+				*dst = f.Pack(r, g, b);
+			}
+			else
+			{
+				UINT16 const d = *dst;
+				*dst = f.Pack(
+					Blend(r, f.r.Unpack(d), alpha),
+					Blend(g, f.g.Unpack(d), alpha),
+					Blend(b, f.b.Unpack(d), alpha));
+			}
+			if (z && zPass && writeZ && src[3] >= 128) z[x - c.x0] = usZValue;
+		}
+	}
+}
