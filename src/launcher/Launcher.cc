@@ -848,8 +848,9 @@ void Launcher::selectBaseResolution(int const index) {
 // AUTO: the base resolution radios show (inactive) the one the game will
 // pick. MANUAL: a base resolution that doesn't fit on the desktop is inactive
 // -- except the smallest one, which the game uses anyway on a desktop below
-// it -- but stays selected if it was, with "invalid!". Inactive widgets show
-// no tooltip, so baseResolutionHint* (on top of them) tell why instead.
+// it -- but stays selected if it was, with "invalid!". The radios have no
+// tooltips of their own; one that doesn't fit gets a baseResolutionHint* on
+// top of it telling why (inactive widgets show no tooltip themselves).
 void Launcher::updateResolutionWidgets() {
 	bool const manual = manualModeRadio->value() != 0;
 	if (manual) {
@@ -870,13 +871,15 @@ void Launcher::updateResolutionWidgets() {
 		bool const fits = baseResolutionFits(i) || i == 0;
 		if (manual && fits) {
 			radio->activate();
+		} else {
+			radio->deactivate();
+		}
+		if (fits) {
 			hint->hide();
 			continue;
 		}
-		radio->deactivate();
-		baseResolutionHintTooltip[i] = !fits
-			? "Requires a desktop resolution of at least " + resolutionText(BaseResolution_getWidth(i), BaseResolution_getHeight(i)) + " (current: " + desktopText + ")."
-			: "Auto picks the base resolution for your desktop. Select Manual to choose it yourself.";
+		baseResolutionHintTooltip[i] = "Requires a desktop resolution of at least "
+			+ resolutionText(BaseResolution_getWidth(i), BaseResolution_getHeight(i)) + " (current: " + desktopText + ").";
 		hint->tooltip(baseResolutionHintTooltip[i].c_str());
 		hint->show();
 	}
@@ -897,14 +900,13 @@ void Launcher::updateResolutionWidgets() {
 	}
 
 	// MANUAL with a "res" from ja2.json that is no base resolution: no radio
-	// is selected, the label's tooltip says why.
+	// is selected, the label's tooltip also says why.
+	baseResolutionLabelTooltip = "Base interface resolution used for scaling in the game.";
 	if (manual && selected < 0) {
-		baseResolutionLabelTooltip = "Custom resolution " + resolutionText(EngineOptions_getResolutionX(engineOptions.get()), EngineOptions_getResolutionY(engineOptions.get()))
+		baseResolutionLabelTooltip += " Custom resolution " + resolutionText(EngineOptions_getResolutionX(engineOptions.get()), EngineOptions_getResolutionY(engineOptions.get()))
 			+ " from ja2.json, not one of the base resolutions. Select one to replace it.";
-		baseResolutionLabel->tooltip(baseResolutionLabelTooltip.c_str());
-	} else {
-		baseResolutionLabel->tooltip(nullptr);
 	}
+	baseResolutionLabel->tooltip(baseResolutionLabelTooltip.c_str());
 }
 
 void Launcher::resolutionModeChanged(Fl_Widget* widget, void* userdata) {

@@ -110,35 +110,35 @@ on their features.");
           o->end();
         } // Fl_Group* o
         { Fl_Group* o = new Fl_Group(10, 105, 500, 75);
-          o->tooltip("The resolution the game runs in.");
           { resolutionLabel = new Fl_Box(17, 113, 300, 18, "Current Screen Resolution:");
             resolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Box* resolutionLabel
           { Fl_Group* o = new Fl_Group(149, 135, 140, 22);
             { autoModeRadio = new Fl_Round_Button(149, 135, 60, 22, "Auto");
-              autoModeRadio->tooltip("Pick the base resolution for your desktop on every start: 1366x768 if it fi\
-ts, otherwise 1280x720.");
               autoModeRadio->type(102);
               autoModeRadio->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* autoModeRadio
             { manualModeRadio = new Fl_Round_Button(214, 135, 75, 22, "Manual");
-              manualModeRadio->tooltip("Choose the base resolution yourself.");
               manualModeRadio->type(102);
               manualModeRadio->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* manualModeRadio
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(149, 156, 185, 22);
+          { Fl_Group* o = new Fl_Group(149, 156, 280, 22);
             { baseResolutionRadio0 = new Fl_Round_Button(149, 156, 90, 22, "1280x720");
-              baseResolutionRadio0->tooltip("Base resolution 1280x720 (16:9).");
               baseResolutionRadio0->type(102);
               baseResolutionRadio0->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* baseResolutionRadio0
             { baseResolutionRadio1 = new Fl_Round_Button(244, 156, 90, 22, "1366x768");
-              baseResolutionRadio1->tooltip("Base resolution 1366x768 (about 16:9).");
               baseResolutionRadio1->type(102);
               baseResolutionRadio1->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* baseResolutionRadio1
+            { // Placeholder for a future base resolution: inactive, not used by the code
+              Fl_Round_Button* o = new Fl_Round_Button(339, 156, 90, 22, "1920x1080");
+              o->type(102);
+              o->down_box(FL_ROUND_DOWN_BOX);
+              o->deactivate();
+            } // Fl_Round_Button* o
             { // Shows the reason as a tooltip while baseResolutionRadio0 is inactive (inactive widgets show no tooltip)
               baseResolutionHint0 = new Fl_Box(149, 156, 90, 22);
               baseResolutionHint0->hide();
@@ -150,9 +150,12 @@ ts, otherwise 1280x720.");
             o->end();
           } // Fl_Group* o
           { resolutionModeLabel = new Fl_Box(17, 135, 125, 22, "UI Resolution Mode:");
+            resolutionModeLabel->tooltip("Selects how the base interface resolution is chosen: automatic adjustment fo\
+r the best 16:9 match or manual selection.");
             resolutionModeLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Box* resolutionModeLabel
           { baseResolutionLabel = new Fl_Box(17, 156, 125, 22, "UI Base Resolution:");
+            baseResolutionLabel->tooltip("Base interface resolution used for scaling in the game.");
             baseResolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Box* baseResolutionLabel
           { stretchCheckbox = new Fl_Check_Button(336, 108, 165, 30, "Stretch to Your Screen");
@@ -202,9 +205,9 @@ n) but gives sharp images.");
           } // Fl_Check_Button* playSoundsCheckbox
           o->end();
         } // Fl_Group* o
-        { settingsEditorButton = new Fl_Button(165, 318, 200, 25, "Start Map Editor");
+        { settingsEditorButton = new Fl_Button(165, 311, 200, 25, "Start Map Editor");
         } // Fl_Button* settingsEditorButton
-        { settingsPlayButton = new Fl_Button(165, 252, 200, 55, "Play Ja2 Stracciatella");
+        { settingsPlayButton = new Fl_Button(165, 245, 200, 55, "Play Ja2 Stracciatella");
         } // Fl_Button* settingsPlayButton
         settingsTab->end();
       } // Fl_Group* settingsTab

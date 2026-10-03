@@ -124,7 +124,7 @@ class StracciatellaLauncher {open
             }
           }
           Fl_Group {} {open
-            tooltip {The resolution the game runs in.} xywh {10 105 500 75}
+            xywh {10 105 500 75}
           } {
             Fl_Box resolutionLabel {
               label {Current Screen Resolution:}
@@ -135,23 +135,28 @@ class StracciatellaLauncher {open
             } {
               Fl_Round_Button autoModeRadio {
                 label Auto
-                tooltip {Pick the base resolution for your desktop on every start: 1366x768 if it fits, otherwise 1280x720.} xywh {149 135 60 22} type Radio down_box ROUND_DOWN_BOX
+                xywh {149 135 60 22} type Radio down_box ROUND_DOWN_BOX
               }
               Fl_Round_Button manualModeRadio {
                 label Manual
-                tooltip {Choose the base resolution yourself.} xywh {214 135 75 22} type Radio down_box ROUND_DOWN_BOX
+                xywh {214 135 75 22} type Radio down_box ROUND_DOWN_BOX
               }
             }
             Fl_Group {} {open
-              xywh {149 156 185 22}
+              xywh {149 156 280 22}
             } {
               Fl_Round_Button baseResolutionRadio0 {
                 label 1280x720
-                tooltip {Base resolution 1280x720 (16:9).} xywh {149 156 90 22} type Radio down_box ROUND_DOWN_BOX
+                xywh {149 156 90 22} type Radio down_box ROUND_DOWN_BOX
               }
               Fl_Round_Button baseResolutionRadio1 {
                 label 1366x768
-                tooltip {Base resolution 1366x768 (about 16:9).} xywh {244 156 90 22} type Radio down_box ROUND_DOWN_BOX
+                xywh {244 156 90 22} type Radio down_box ROUND_DOWN_BOX
+              }
+              Fl_Round_Button {} {
+                label 1920x1080
+                comment {Placeholder for a future base resolution: inactive, not used by the code}
+                xywh {339 156 90 22} type Radio down_box ROUND_DOWN_BOX deactivate
               }
               Fl_Box baseResolutionHint0 {
                 comment {Shows the reason as a tooltip while baseResolutionRadio0 is inactive (inactive widgets show no tooltip)}
@@ -164,11 +169,11 @@ class StracciatellaLauncher {open
             }
             Fl_Box resolutionModeLabel {
               label {UI Resolution Mode:}
-              xywh {17 135 125 22} align 20
+              tooltip {Selects how the base interface resolution is chosen: automatic adjustment for the best 16:9 match or manual selection.} xywh {17 135 125 22} align 20
             }
             Fl_Box baseResolutionLabel {
               label {UI Base Resolution:}
-              xywh {17 156 125 22} align 20
+              tooltip {Base interface resolution used for scaling in the game.} xywh {17 156 125 22} align 20
             }
             Fl_Check_Button stretchCheckbox {
               label {Stretch to Your Screen}
@@ -209,11 +214,11 @@ class StracciatellaLauncher {open
           }
           Fl_Button settingsEditorButton {
             label {Start Map Editor}
-            xywh {165 318 200 25}
+            xywh {165 311 200 25}
           }
           Fl_Button settingsPlayButton {
             label {Play Ja2 Stracciatella}
-            xywh {165 252 200 55}
+            xywh {165 245 200 55}
           }
         }
         Fl_Group logsTab {
