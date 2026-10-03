@@ -20,11 +20,11 @@
 TILE_IMAGERY				*gTileSurfaceArray[ NUMBEROFTILETYPES ];
 
 
-TILE_IMAGERY* LoadTileSurface(ST::string const& cFilename)
+TILE_IMAGERY* LoadTileSurface(ST::string const& cFilename, bool const pngAnimation, bool const needsPalette, bool const colourMask)
 try
 {
 	// Add tile surface
-	AutoSGPImage   hImage(CreateImage(cFilename, IMAGE_ALLDATA));
+	AutoSGPImage   hImage(CreateImage(cFilename, IMAGE_ALLDATA | (pngAnimation ? IMAGE_ANIMATION_METADATA : 0) | (needsPalette ? IMAGE_NEEDS_PALETTE : 0) | (colourMask ? IMAGE_COLOUR_MASK : 0)));
 	AutoSGPVObject hVObject(AddVideoObjectFromHImage(hImage.get()));
 
 	// Load structure data, if any.

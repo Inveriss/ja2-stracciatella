@@ -1,0 +1,31 @@
+{
+  "frameDuration": 70,
+  "frames": [
+    {
+      "x": 0,
+      "y": 0,
+      "w": 6,
+      "h": 4,
+      "offsetX": -1,
+      "offsetY": 2,
+      "duration": 50
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "w": 3,
+      "h": 5,
+      "offsetX": 4,
+      "offsetY": -3,
+      "duration": 100
+    },
+    {
+      "x": 0,
+      "y": 6,
+      "w": 8,
+      "h": 2,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ]
+}

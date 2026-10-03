@@ -3154,9 +3154,18 @@ void RenderItemDescriptionBox(void)
 			if (GetMercPreviewFrame(*gpItemDescSoldier, &previewFrame))
 			{
 				SGPVSurface::Lock l(guiSAVEBUFFER);
-				Blt8BPPDataTo16BPPBufferTransShadow(l.Buffer<UINT16>(), l.Pitch(), hMercVObject,
-					MERC_PREVIEW_X, MERC_PREVIEW_Y, previewFrame.usImageIndex,
-					gpItemDescSoldier->pShades[DEFAULT_SHADE_LEVEL]);
+				if (hMercVObject->IsRGBA())
+				{
+					Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), NULL, 0, hMercVObject,
+						MERC_PREVIEW_X, MERC_PREVIEW_Y, previewFrame.usImageIndex, NULL,
+						gpItemDescSoldier->rgbaShades[DEFAULT_SHADE_LEVEL], &gpItemDescSoldier->rgbaRecolour, false, false, false);
+				}
+				else
+				{
+					Blt8BPPDataTo16BPPBufferTransShadow(l.Buffer<UINT16>(), l.Pitch(), hMercVObject,
+						MERC_PREVIEW_X, MERC_PREVIEW_Y, previewFrame.usImageIndex,
+						gpItemDescSoldier->pShades[DEFAULT_SHADE_LEVEL]);
+				}
 			}
 		}
 	}

@@ -339,7 +339,7 @@ static void RenderVoiceSilhouette(INT16 const x, INT16 const y, UINT8 const ubSl
 
 	// Already used by a completed slot -- load a private copy so we can
 	// shade it without touching any other cached copy of this sti.
-	AutoSGPVObject vo{ AddVideoObjectFromFile(LAPTOPDIR "/IMP_Voices.sti") };
+	AutoSGPVObject vo{ AddVideoObjectFromFile(LAPTOPDIR "/IMP_Voices.sti", true) }; // shaded with its palette
 	BOOLEAN const fDead = IsImpSlotDead(ubSlot);
 	if (fDead)
 	{

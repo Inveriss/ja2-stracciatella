@@ -10,6 +10,8 @@
 #include "Handle_Items.h"
 #include "WorldDef.h"
 #include "Rotting_Corpses.h"
+#include "HImage.h"
+#include "STCI.h"
 #include "Tile_Cache.h"
 #include "Isometric_Utils.h"
 #include "Animation_Control.h"
@@ -42,6 +44,9 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "policy/GamePolicy.h"
+
+#include <algorithm>
+#include <iterator>
 
 // If you change MAX_ROTTING_CORPSES you MUST also adjust
 // INVALID_STRUCTURE_ID in Structure.h!
@@ -482,6 +487,9 @@ try
 	{
 		AniParams.zCachedFile = zCorpseFilenames[c->def.ubType];
 	}
+	AnimationColours const colours = GetCorpseImageColours(c->def);
+	AniParams.needsPalette = colours == AnimationColours::Palette;
+	AniParams.colourMask   = colours == AnimationColours::ColourMask;
 
 	ANITILE* const ani = CreateAnimationTile(&AniParams);
 	c->pAniTile = ani;
@@ -576,19 +584,63 @@ static void RemoveCorpse(ROTTING_CORPSE* const c)
 }
 
 
+static char const* CorpsePaletteSubstitution(ROTTING_CORPSE_DEFINITION const& def)
+{
+	return
+		def.ubType == ROTTING_STAGE2                  ? ""                   :
+		def.usFlags & ROTTING_CORPSE_USE_CAMO_PALETTE ? ANIMSDIR "/camo.COL" :
+		GetBodyTypePaletteSubstitution(0, def.ubBodyType);
+}
+
+
+AnimationColours GetCorpseImageColours(ROTTING_CORPSE_DEFINITION const& def)
+{
+	char const* const substitution = CorpsePaletteSubstitution(def);
+	if (substitution && substitution[0] == '\0') return AnimationColours::FullColour;
+
+	// people: clothing, hair and skin colours, or camouflage
+	if (def.usFlags & ROTTING_CORPSE_USE_CAMO_PALETTE) return AnimationColours::ColourMask;
+	if (substitution) return AnimationColours::Palette; // the adult creatures' .COL palettes
+
+	switch (def.ubBodyType)
+	{
+		// their palette colour changes touch no pixel of their images
+		case LARVAE_MONSTER:
+		case INFANT_MONSTER:
+			return AnimationColours::FullColour;
+
+		default:
+			return AnimationColours::ColourMask;
+	}
+}
+
+
+// The palette of the corpse image; a full colour PNG has none, then the
+// palette of the image it replaces.
+static void GetCorpseImagePalette(ROTTING_CORPSE const* const c, SGPPaletteEntry pal[256])
+{
+	TILE_CACHE_ELEMENT const& t = gpTileCache[c->pAniTile->sCachedTileID];
+	if (!t.pImagery->vo->IsRGBA())
+	{
+		std::copy_n(t.pImagery->vo->Palette(), 256, pal);
+		return;
+	}
+	// the STI itself: CreateImage() would try the PNG again
+	AutoSGPImage const original(LoadSTCIFileToImage(t.zName, IMAGE_PALETTE));
+	std::copy_n(static_cast<SGPPaletteEntry const*>(original->pPalette), 256, pal);
+}
+
+
 static void CreateCorpsePalette(ROTTING_CORPSE* const c)
 {
-	char const* const substitution =
-		c->def.ubType == ROTTING_STAGE2                  ? ""                   :
-		c->def.usFlags & ROTTING_CORPSE_USE_CAMO_PALETTE ? ANIMSDIR "/camo.COL" :
-		GetBodyTypePaletteSubstitution(0, c->def.ubBodyType);
+	char const* const substitution = CorpsePaletteSubstitution(c->def);
 
 	const SGPPaletteEntry* pal;
 	SGPPaletteEntry        tmp_pal[256];
 	if (!substitution)
 	{
 		// Use palette from HVOBJECT, then use substitution for pants, etc
-		memcpy(tmp_pal, gpTileCache[c->pAniTile->sCachedTileID].pImagery->vo->Palette(), sizeof(tmp_pal));
+		GetCorpseImagePalette(c, tmp_pal);
 		SetPaletteReplacement(tmp_pal, c->def.HeadPal);
 		SetPaletteReplacement(tmp_pal, c->def.VestPal);
 		SetPaletteReplacement(tmp_pal, c->def.PantsPal);
@@ -602,10 +654,20 @@ static void CreateCorpsePalette(ROTTING_CORPSE* const c)
 	else
 	{
 		// Use palette from hvobject
-		pal = gpTileCache[c->pAniTile->sCachedTileID].pImagery->vo->Palette();
+		GetCorpseImagePalette(c, tmp_pal);
+		pal = tmp_pal;
 	}
 
 	CreateBiasedShadedPalettes(c->pShades, pal);
+
+	// The colours of a full colour corpse with a colour mask
+	SGPPaletteEntry original[256];
+	GetCorpseImagePalette(c, original);
+	BuildCharacterRecolour(c->rgbaRecolour, original, pal);
+
+	// The same shades for a full colour corpse, which has no palette
+	std::fill(std::begin(c->rgbaShades), std::end(c->rgbaShades), RGBA_SHADE_NONE);
+	CreateBiasedRGBAShades(c->rgbaShades);
 }
 
 

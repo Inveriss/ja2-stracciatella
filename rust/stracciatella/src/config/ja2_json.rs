@@ -46,6 +46,7 @@ pub struct Ja2JsonContent {
     stretch_laptop: Option<bool>,
     debug: Option<bool>,
     nosound: Option<bool>,
+    image_png_override: Option<bool>,
 }
 
 /// Struct to handle interactions with the JSON configuration file
@@ -110,6 +111,10 @@ impl Ja2Json {
         copy_to!(content.stretch_laptop, engine_options.stretch_laptop);
         copy_to!(content.debug, engine_options.start_in_debug_mode);
         copy_to!(content.nosound, engine_options.start_without_sound);
+        copy_to!(
+            content.image_png_override,
+            engine_options.image_png_override
+        );
 
         Ok(())
     }
@@ -136,6 +141,7 @@ impl Ja2Json {
             stretch_laptop: None,
             debug: None,
             nosound: None,
+            image_png_override: None,
         };
 
         copy_to!(engine_options.vanilla_game_dir, content.game_dir);
@@ -150,6 +156,10 @@ impl Ja2Json {
         copy_to!(engine_options.stretch_laptop, content.stretch_laptop);
         copy_to!(engine_options.start_in_debug_mode, content.debug);
         copy_to!(engine_options.start_without_sound, content.nosound);
+        copy_to!(
+            engine_options.image_png_override,
+            content.image_png_override
+        );
 
         let json = json::ser::to_string(&content)
             .map_err(|x| format!("Error creating contents of ja2.json config file: {}", x))?;
@@ -381,6 +391,20 @@ mod tests {
             .unwrap();
 
         assert!(!engine_options.stretch_laptop);
+    }
+
+    #[test]
+    fn apply_to_engine_options_should_be_able_to_disable_image_png_override() {
+        let mut engine_options = EngineOptions::default();
+        assert!(engine_options.image_png_override);
+        let temp_dir = write_temp_folder_with_ja2_json(b"{ \"image_png_override\": false }");
+        let ja2json = Ja2Json::from_stracciatella_home(temp_dir.path().join(".ja2"));
+
+        ja2json
+            .apply_to_engine_options(&mut engine_options)
+            .unwrap();
+
+        assert!(!engine_options.image_png_override);
     }
 
     #[test]

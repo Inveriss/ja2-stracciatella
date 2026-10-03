@@ -220,6 +220,144 @@ class ImageTests(unittest.TestCase):
                         if opaque:
                             self.assertEqual((r, g, b), s.palette[idx])
 
+    def test_export_indexed_sheet_keeps_indices_and_frames(self):
+        s = make_file(width=6, height=5, frames=3)
+        s.frames[1].offset_x, s.frames[1].offset_y = -4, 7
+        s.frames[2].set(0, 0, 0)                       # opaque index 0 -> warning
+        s.frames[2].set(1, 0, 254)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "sheet.png")
+            json_path, warnings = s.export_indexed_sheet(out, max_width=13)
+            self.assertEqual(json_path, out + ".json")
+            self.assertEqual(len(warnings), 1)
+            self.assertIn("frame 2", warnings[0])
+
+            import json
+            with open(json_path, encoding="utf-8") as fh:
+                frames = json.load(fh)["frames"]
+            # two frames fit into 13 pixels (6 + 1 + 6), the third wraps
+            self.assertEqual([(f["x"], f["y"]) for f in frames], [(0, 0), (7, 0), (0, 6)])
+            self.assertEqual((frames[1]["offsetX"], frames[1]["offsetY"]), (-4, 7))
+
+            img = Image.open(out)
+            self.assertEqual(img.mode, "P")
+            self.assertEqual(img.size, (13, 11))
+            self.assertEqual(img.info.get("transparency"), 0)
+            pal = img.getpalette()
+            self.assertEqual([tuple(pal[i * 3:i * 3 + 3]) for i in range(256)], s.palette)
+            for f, meta in zip(s.frames, frames):
+                for y in range(f.height):
+                    for x in range(f.width):
+                        idx, opaque = f.get(x, y)
+                        self.assertEqual(img.getpixel((meta["x"] + x, meta["y"] + y)), idx if opaque else 0)
+
+    def test_export_indexed_sheet_single_frame_has_no_metadata(self):
+        s = make_file(width=4, height=3, frames=1)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "one.png")
+            json_path, _ = s.export_indexed_sheet(out)
+            self.assertIsNone(json_path)
+            self.assertFalse(os.path.exists(out + ".json"))
+            self.assertEqual(Image.open(out).size, (4, 3))
+
+    def test_export_indexed_sheet_frame_duration(self):
+        import json
+        s = make_file(width=4, height=3, frames=1)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "one.png")
+            json_path, _ = s.export_indexed_sheet(out, frame_duration=120)
+            with open(json_path, encoding="utf-8") as fh:
+                meta = json.load(fh)
+            self.assertEqual(meta["frameDuration"], 120)
+            self.assertEqual(len(meta["frames"]), 1)
+
+    def test_export_animated_sheet(self):
+        import json
+        # 2 directions of 3 frames, aux as in the game's animation files
+        s = make_file(width=4, height=3, frames=6)
+        for i, f in enumerate(s.frames):
+            f.aux = sti.AuxData(number_of_frames=3, flags=sti.AUX_ANIMATED_TILE) if i % 3 == 0 else sti.AuxData()
+        self.assertEqual(s.animation_frames_per_direction(), 3)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "anim.png")
+            json_path, warnings = s.export_indexed_sheet(out)
+            self.assertEqual(warnings, [])
+            with open(json_path, encoding="utf-8") as fh:
+                meta = json.load(fh)
+            self.assertEqual(meta["animation"], {"framesPerDirection": 3})
+            # one row per direction
+            self.assertEqual([(f["x"], f["y"]) for f in meta["frames"]],
+                             [(0, 0), (5, 0), (10, 0), (0, 4), (5, 4), (10, 4)])
+
+    def test_export_sheet_with_other_aux_warns(self):
+        import json
+        # tileset-like aux (tile location data): not reproducible from a PNG
+        s = make_file(width=4, height=3, frames=2, aux=True)
+        self.assertIsNone(s.animation_frames_per_direction())
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "tiles.png")
+            json_path, warnings = s.export_indexed_sheet(out)
+            self.assertTrue(any("application data" in w for w in warnings))
+            with open(json_path, encoding="utf-8") as fh:
+                self.assertNotIn("animation", json.load(fh))
+
+    def test_assemble_palettised_frames(self):
+        import json
+        pal = [i % 256 for i in range(768)]
+        with tempfile.TemporaryDirectory() as tmp:
+            frame_dir = os.path.join(tmp, "explosion")
+            os.makedirs(frame_dir)
+            for n, (w, h) in enumerate([(5, 4), (3, 6), (7, 2)]):
+                img = Image.new("P", (w, h), 0)
+                img.putpalette(pal)
+                img.putdata([(n * 20 + i) % 250 + 1 if i % 3 else 0 for i in range(w * h)])
+                img.save(os.path.join(frame_dir, f"{n:03d}.png"))
+            out = os.path.join(tmp, "explosion.png")
+            rc = sti_tool.main(["png-assemble", frame_dir, "--out", out, "--duration", "80", "--durations", "50,0,200"])
+            self.assertEqual(rc, 0)
+
+            sheet = Image.open(out)
+            self.assertEqual(sheet.mode, "P")
+            self.assertEqual(sheet.info.get("transparency"), 0)
+            with open(out + ".json", encoding="utf-8") as fh:
+                meta = json.load(fh)
+            self.assertEqual(meta["frameDuration"], 80)
+            frames = meta["frames"]
+            self.assertEqual([(f["w"], f["h"]) for f in frames], [(5, 4), (3, 6), (7, 2)])
+            self.assertEqual([f.get("duration") for f in frames], [50, None, 200])
+            # pixels (palette indices) are where the metadata says
+            for n, f in enumerate(frames):
+                src = Image.open(os.path.join(frame_dir, f"{n:03d}.png"))
+                crop = sheet.crop((f["x"], f["y"], f["x"] + f["w"], f["y"] + f["h"]))
+                self.assertEqual(crop.tobytes(), src.tobytes())
+
+    def test_assemble_mixed_frames_gives_rgba(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "a.png")
+            b = os.path.join(tmp, "b.png")
+            Image.new("RGBA", (2, 2), (255, 0, 0, 128)).save(a)
+            img = Image.new("P", (3, 1), 1)
+            img.putpalette([0, 0, 0, 0, 255, 0] + [0] * 762)
+            img.save(b)
+            out = os.path.join(tmp, "sheet.png")
+            _, kind = sti.assemble_png_sheet([a, b], out)
+            self.assertEqual(kind, "RGBA")
+            sheet = Image.open(out)
+            self.assertEqual(sheet.mode, "RGBA")
+            self.assertEqual(sheet.getpixel((0, 0)), (255, 0, 0, 128))
+
+    def test_assemble_rejects_bad_durations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "a.png")
+            Image.new("RGBA", (2, 2)).save(a)
+            out = os.path.join(tmp, "sheet.png")
+            with self.assertRaises(sti.STIError):
+                sti.assemble_png_sheet([a], out, durations=[1, 2])
+            with self.assertRaises(sti.STIError):
+                sti.assemble_png_sheet([a], out, frame_duration=70000)
+            with self.assertRaises(sti.STIError):
+                sti.assemble_png_sheet([], out)
+
     def test_new_from_palette_image_keeps_indices(self):
         img = Image.new("P", (3, 1))
         img.putpalette([0, 0, 0, 10, 20, 30, 40, 50, 60] + [0] * (768 - 9))

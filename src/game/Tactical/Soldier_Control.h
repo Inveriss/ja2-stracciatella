@@ -10,6 +10,7 @@
 #include "JA2Types.h"
 #include "Keys.h"
 #include "Overhead_Types.h"
+#include "Shading.h"
 #include "Item_Types.h"
 #include "Timer_Control.h"
 
@@ -520,6 +521,12 @@ struct SOLDIERTYPE
 
 	UINT16 *pShades[ NUM_SOLDIER_SHADES ]; // Shading tables
 	UINT16 *pGlowShades[20];
+	// The same shades for full colour animations (docs/png-images.md)
+	RGBAShade rgbaShades[NUM_SOLDIER_SHADES];
+	RGBAShade rgbaGlowShades[20];
+	RGBAShade rgbaEffectShade;
+	// The colours of full colour animations with a colour mask
+	RGBARecolour rgbaRecolour;
 	INT8 bMedical;
 	BOOLEAN fBeginFade;
 	UINT8 ubFadeLevel;
@@ -987,6 +994,11 @@ void ReviveSoldier( SOLDIERTYPE *pSoldier );
 void  CreateSoldierPalettes(SOLDIERTYPE&);
 std::optional<UINT8> GetPaletteRepIndexFromID(const ST::string& pal_rep);
 void SetPaletteReplacement(SGPPaletteEntry* p8BPPPalette, const ST::string& aPalRep);
+
+// The colours of a character for full colour animations with a colour mask:
+// original is the palette of the animations, changed the character's palette
+// (palette ranges from binarydata/ja2pal.dat; see RGBARecolour).
+void BuildCharacterRecolour(RGBARecolour&, SGPPaletteEntry const original[256], SGPPaletteEntry const changed[256]);
 void  LoadPaletteData(void);
 void  DeletePaletteData(void);
 

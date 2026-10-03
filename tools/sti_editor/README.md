@@ -40,11 +40,37 @@ py -3 tools/sti_editor/sti_tool.py export    plik.sti KATALOG [--frame N] [--mas
 py -3 tools/sti_editor/sti_tool.py roundtrip plik1.sti [plik2.sti ...]
 py -3 tools/sti_editor/sti_tool.py palette-export plik.sti paleta.pal [--format jasc|riff|act|gpl|png]
 py -3 tools/sti_editor/sti_tool.py palette-import plik.sti paleta.pal wynik.sti
+py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti wynik.png [--max-width N] [--duration MS] [--mask]
+py -3 tools/sti_editor/sti_tool.py png-assemble KATALOG_KLATEK --out wynik.png [--max-width N] [--duration MS] [--durations MS,MS,...]
 ```
 
 `roundtrip` niczego nie zapisuje na dysk: serializuje plik w pamięci i
 sprawdza, czy bajty są identyczne, a następnie wymusza ponowną kompresję
 wszystkich klatek i porównuje każdy piksel, maskę, pozycję, paletę i dane aux.
+
+`png-sheet` zapisuje wszystkie klatki STI z paletą jako jeden PNG z paletą,
+który gra wczytuje zamiast STI (`src/sgp/PNG.cc`). Indeksy palety zostają bez
+zmian, a piksele przezroczyste dostają indeks 0, który gra zawsze traktuje
+jako przezroczysty. Klatki układane są w wierszach o szerokości
+`--max-width` (domyślnie 1024) z odstępem 1 piksela. Pozycje i przesunięcia
+klatek trafiają do `wynik.png.json`; przy jednej klatce bez przesunięcia ten
+plik nie powstaje. Nieprzezroczyste piksele o indeksie 0 są zgłaszane jako
+ostrzeżenie, bo w grze stałyby się przezroczyste. `--duration` zapisuje czas
+klatek animacji w milisekundach (`frameDuration`, opis w `docs/png-images.md`).
+Dla animowanych STI (dane aux to tylko liczby klatek animacji: postacie,
+eksplozje, kursory) zapisywana jest sekcja `"animation": { "framesPerDirection":
+N }`, a każdy kierunek trafia do osobnego rzędu arkusza. Inne dane aux (np.
+tilesetów) nie są eksportowane – wtedy pojawia się ostrzeżenie. `--mask`
+zapisuje też maskę kolorów `wynik.mask.png` (ten sam układ, indeksy pikseli z
+zakresów podmiany kolorów ludzi, 0 gdzie indziej), potrzebną wersji postaci w
+pełnym kolorze (`docs/png-images.md`).
+
+`png-assemble` składa osobne pliki klatek (katalog z plikami PNG w kolejności
+nazw albo lista plików) w jeden arkusz `wynik.png` z `wynik.png.json`. Gdy
+wszystkie klatki są PNG z tą samą paletą, arkusz też ma paletę (indeksy bez
+zmian, indeks 0 przezroczysty), a w przeciwnym razie jest RGBA. `--duration`
+to czas wszystkich klatek, `--durations` czasy kolejnych klatek (0 = domyślny).
+Przesunięcia klatek są równe 0.
 
 Testy:
 

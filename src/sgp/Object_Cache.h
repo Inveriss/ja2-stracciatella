@@ -10,8 +10,9 @@
 using cache_key_t = const char *;
 
 // Returns a pointer to an already cached vobject if possible, otherwise
-// tries to load the vobject.
-SGPVObject * GetVObject(cache_key_t filename);
+// tries to load the vobject. needsPalette: see AddVideoObjectFromFile(); it
+// only matters for the call that loads the vobject.
+SGPVObject * GetVObject(cache_key_t filename, bool needsPalette = false);
 
 // Remove the vobject from the cache. It is safe to use this function for
 // a vobject that was already removed or never added to the cache.

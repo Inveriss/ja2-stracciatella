@@ -4,6 +4,7 @@
 #include "Buffer.h"
 #include "Types.h"
 #include <memory>
+#include <vector>
 
 // The HIMAGE module provides a common interface for managing image data. This module
 // includes:
@@ -26,6 +27,48 @@
 #define IMAGE_APPDATA						0x0010
 #define IMAGE_ALLIMAGEDATA			0x000C
 #define IMAGE_ALLDATA						0x001C
+
+// Additional content flag for CreateImage(): the image becomes a video
+// surface, so it needs plain (not ETRLE compressed) pixels. Only loaders that
+// can produce either form (PNG) look at it.
+#define IMAGE_FOR_SURFACE				0x0020
+
+// Additional content flag for CreateImage(): the caller uses the palette of
+// the image (palette shading, palette colours, pixel values), so it must be an
+// 8 bit palettised image; a full colour PNG is not loaded (and a PNG
+// replacement of that kind is skipped).
+#define IMAGE_NEEDS_PALETTE			0x0040
+
+// Additional content flag for CreateImage() together with IMAGE_APPDATA: the
+// caller only uses the animation part of the application data (the number of
+// frames per direction, AuxObjectData::ubNumberOfFrames), so a palettised PNG
+// with an "animation" section in its metadata may replace the image (the PNG
+// loader builds the AuxObjectData from it). Without this flag no PNG replaces
+// an image loaded with IMAGE_APPDATA (tilesets, which need the full data).
+#define IMAGE_ANIMATION_METADATA		0x0080
+
+// Additional content flag for CreateImage(): the caller recolours a full
+// colour image by its colour mask (characters whose clothing, hair and skin
+// colours change, see SGPVObject::ColourMask()), so a full colour PNG is only
+// loaded together with its mask, <name>.mask.png; without one the image is
+// loaded as with IMAGE_NEEDS_PALETTE. (Kept clear of IMAGE_RGBA and
+// IMAGE_NO_OUTLINE.)
+#define IMAGE_COLOUR_MASK				0x0400
+
+// SGPImage flag: the bitmap data holds the frames as 32 bit RGBA (8 bits per
+// channel, in this byte order), one after the other; ubBitDepth is 32 and
+// the ETRLEObjects give the byte offset, size and drawing offset of each frame.
+// (Kept clear of the content flags above, which the PCX loader copies into
+// fFlags.)
+#define IMAGE_RGBA							0x0100
+
+// SGPImage flag for IMAGE_RGBA images: no outline is drawn around the image
+// (see SGPVObject::OutlineMask()).
+#define IMAGE_NO_OUTLINE				0x0200
+
+// This is the color substituted to keep a 24bpp -> 16bpp color
+// from going transparent (0x0000) -- DB
+#define BLACK_SUBSTITUTE	0x0001
 
 #define AUX_FULL_TILE					0x01
 #define AUX_ANIMATED_TILE			0x02
@@ -89,6 +132,13 @@ struct SGPImage
 	UINT32                       uiSizePixData;
 	SGP::Buffer<ETRLEObject>     pETRLEObject;
 	UINT16                       usNumberOfObjects;
+	// PNG images only: how long each frame is shown in milliseconds (0 = not
+	// given), one entry per frame; empty if no frame has a duration.
+	std::vector<UINT16>          frameDurations;
+	// IMAGE_RGBA images loaded with IMAGE_COLOUR_MASK: one palette index per
+	// pixel, the frames one after the other like the RGBA data (frame data at
+	// uiDataOffset / 4); empty otherwise.
+	std::vector<UINT8>           colourMask;
 };
 
 

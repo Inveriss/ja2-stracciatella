@@ -3,6 +3,7 @@
 
 #include "Types.h"
 #include <memory>
+#include <vector>
 
 
 // Defines for HVOBJECT limits
@@ -33,7 +34,15 @@ class SGPVObject
 
 		UINT8 BPP() const { return bit_depth_; }
 
-		SGPPaletteEntry const* Palette() const { return palette_.get(); }
+		// A full colour (32 bit RGBA) video object, loaded from a PNG. It has no
+		// palette and no shade tables: Palette(), PixData() and
+		// GetETRLEPixelValue() throw, CurrentShade(idx) does nothing and
+		// CurrentShade() is null. It is drawn by BltVideoObject(),
+		// BltVideoObjectOutline(), BltVideoObjectOutlineShadow() and
+		// Blt8BPPDataTo16BPPBufferTransparent[Clip]().
+		bool IsRGBA() const { return bit_depth_ == 32; }
+
+		SGPPaletteEntry const* Palette() const;
 
 		UINT16 const* Palette16() const { return palette16_; }
 
@@ -44,12 +53,46 @@ class SGPVObject
 
 		UINT16 SubregionCount() const { return subregion_count_; }
 
+		// How long a subimage is shown in milliseconds, from the metadata of a
+		// PNG ("duration"); 0 if not given, always 0 for STI files. Animations
+		// that support it use it instead of their own delay.
+		UINT16 FrameDuration(size_t idx) const
+		{
+			return idx < frame_durations_.size() ? frame_durations_[idx] : 0;
+		}
+		bool HasFrameDurations() const { return !frame_durations_.empty(); }
+
+		// FrameDuration(idx), or the animation's own delay if it is not given.
+		UINT32 FrameDurationOr(size_t const idx, UINT32 const ownDelay) const
+		{
+			UINT16 const ms = FrameDuration(idx);
+			return ms != 0 ? ms : ownDelay;
+		}
+
 		ETRLEObject const& SubregionProperties(size_t idx) const;
 
+		// ETRLE data of a subimage (8 bit objects only)
 		UINT8 const* PixData(ETRLEObject const&) const;
+
+		// RGBA rows of a subimage (32 bit objects only)
+		UINT8 const* RGBAData(ETRLEObject const&) const;
+
+		// Outline of a subimage of a 32 bit object, one byte per pixel: non-zero
+		// for the transparent pixels next to an opaque one (left, right, above
+		// or below). It replaces the outline colour pixels (index 254) of
+		// palettised images. Null if the image has no outline ("outline": false
+		// in its .png.json).
+		UINT8 const* OutlineMask(ETRLEObject const&) const;
+
+		// Colour mask of a subimage of a 32 bit object, one palette index per
+		// pixel: 0 for the colour of the pixel itself, otherwise the palette
+		// index whose colour the character gets there (clothing, hair, skin;
+		// docs/png-images.md). Null if the image has no colour mask.
+		UINT8 const* ColourMask(ETRLEObject const&) const;
 
 		/* Given a ETRLE image index, retrieves the value of the pixel located at
 		 * the given image coordinates. The value returned is an 8-bit palette index
+		 * (0 for transparent pixels)
 		 */
 		UINT8 GetETRLEPixelValue(UINT16 usETLREIndex, UINT16 usX, UINT16 usY) const;
 
@@ -65,12 +108,16 @@ class SGPVObject
 		};
 
 	private:
+		void BuildOutlineMask();
+
 		Flags                        flags_;                         // Special flags
 		std::unique_ptr<SGPPaletteEntry const []> palette_;          // 8BPP Palette
 		UINT16*                      palette16_;                     // A 16BPP palette used for 8->16 blits
 
-		std::unique_ptr<UINT8 const []> pix_data_;                   // ETRLE pixel data
+		std::unique_ptr<UINT8 const []> pix_data_;                   // ETRLE pixel data, or RGBA rows
 		std::unique_ptr<ETRLEObject const []> etrle_object_;         // Object offset data etc
+		std::unique_ptr<UINT8 []>    outline_mask_;                  // 32 bit objects: see OutlineMask()
+		std::vector<UINT8>           colour_mask_;                   // 32 bit objects: see ColourMask()
 	public:
 		UINT16*                      pShades[HVOBJECT_SHADE_TABLES]; // Shading tables
 	private:
@@ -81,6 +128,7 @@ class SGPVObject
 
 	private:
 		UINT16                       subregion_count_;               // Total number of objects
+		std::vector<UINT16>          frame_durations_;               // see FrameDuration()
 		UINT8                        bit_depth_;                     // BPP
 
 	public:
@@ -97,7 +145,10 @@ void ShutdownVideoObjectManager(void);
 
 // Creates and adds a video object to list
 SGPVObject* AddVideoObjectFromHImage(SGPImage*);
-SGPVObject* AddVideoObjectFromFile(const ST::string& ImageFile);
+// needsPalette: the caller uses the palette of the object (shades it with
+// Create16BPPPaletteShaded(), reads palette colours or pixel values), so a full
+// colour image is not loaded (see IMAGE_NEEDS_PALETTE).
+SGPVObject* AddVideoObjectFromFile(const ST::string& ImageFile, bool needsPalette = false);
 
 // Removes a video object
 static inline void DeleteVideoObject(SGPVObject* const vo)

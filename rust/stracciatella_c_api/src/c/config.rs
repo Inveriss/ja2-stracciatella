@@ -339,6 +339,20 @@ pub extern "C" fn EngineOptions_setStartWithoutSound(ptr: *mut EngineOptions, va
     engine_options.start_without_sound = val
 }
 
+/// Gets `EngineOptions.image_png_override`.
+#[no_mangle]
+pub extern "C" fn EngineOptions_shouldOverrideImagesWithPNG(ptr: *const EngineOptions) -> bool {
+    let engine_options = unsafe_ref(ptr);
+    engine_options.image_png_override
+}
+
+/// Sets `EngineOptions.image_png_override`.
+#[no_mangle]
+pub extern "C" fn EngineOptions_setOverrideImagesWithPNG(ptr: *mut EngineOptions, val: bool) {
+    let engine_options = unsafe_mut(ptr);
+    engine_options.image_png_override = val
+}
+
 /// Gets `EngineOptions.run_enum_gen`.
 #[no_mangle]
 pub extern "C" fn EngineOptions_shouldRunEnumGen(ptr: *const EngineOptions) -> bool {
@@ -431,7 +445,8 @@ mod tests {
   "stretch": true,
   "stretch_laptop": true,
   "debug": false,
-  "nosound": false
+  "nosound": false,
+  "image_png_override": true
 }"##
         );
     }

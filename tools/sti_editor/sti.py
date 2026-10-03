@@ -69,6 +69,10 @@ AUX_FLAG_NAMES = [
 STCI_ID = b"STCI"
 PALETTE_SIZE = 256
 
+# The palette ranges whose colours the game changes for people (hair, pants,
+# skin, vest; binarydata/ja2pal.dat), as (first, last) index.
+CHARACTER_PALETTE_RANGES = [(245, 250), (205, 219), (235, 244), (220, 234)]
+
 # STCIHeader: cID, uiOriginalSize, uiStoredSize, uiTransparentValue, fFlags,
 # usHeight, usWidth, <20-byte union>, ubDepth, <3 padding bytes>,
 # uiAppDataSize, cUnused[12]. The padding bytes are kept verbatim.
@@ -414,6 +418,14 @@ class RGBImage:
         return Image.frombytes("RGBA", (w, h), bytes(out))
 
 
+def colour_mask_path(path) -> str:
+    """<name>.mask.png for <name>.png: the colour mask the game reads next to
+    a full colour PNG (src/sgp/PNG.cc, ColourMaskFileName())."""
+    path = str(path)
+    stem = path[:-4] if path.lower().endswith(".png") else path
+    return stem + ".mask.png"
+
+
 class STIFile:
     def __init__(self):
         self.original_size = 0
@@ -702,6 +714,97 @@ class STIFile:
             paths.append(p)
         return paths
 
+    def export_indexed_sheet(self, path, max_width: int = 1024, frame_duration: int = 0,
+                             mask_ranges: Optional[Sequence[Tuple[int, int]]] = None) -> Tuple[Optional[str], List[str]]:
+        """Write all frames of an indexed STI as one palettised PNG that the
+        game loads instead of the STI (src/sgp/PNG.cc): palette indices are
+        kept as they are, transparent pixels get index 0 (which the game always
+        treats as transparent, tRNS marks it in other programs too). The frames
+        are placed on rows, left to right, with a 1 pixel gap.
+
+        Unless the file is a single frame without offset (and no
+        frame_duration), the frame positions and offsets go to <path>.json,
+        frame_duration (milliseconds) as "frameDuration". Returns (json path or
+        None, warnings); opaque index 0 pixels are reported, as the game would
+        not draw them.
+
+        An animated STI (see animation_frames_per_direction()) gets the
+        "animation" section the game needs for animations in the game world
+        and one row per direction on the sheet.
+
+        With mask_ranges, the colour mask of the sheet is written too, to
+        <name>.mask.png for <name>.png: the palette indices of the pixels in
+        those ranges, 0 elsewhere (what a full colour version of a character
+        needs, see docs/png-images.md)."""
+        from PIL import Image
+        if not self.is_indexed or self.is_rgb or not self.frames:
+            raise STIError("only indexed STI files with frames can be exported as a PNG sheet")
+
+        warnings = []
+        per_direction = self.animation_frames_per_direction()
+        if self.has_aux and not per_direction:
+            warnings.append("the application data (AuxObjectData) is more than animation frame counts "
+                            "(e.g. a tileset): it is not exported, the game cannot use such a PNG instead")
+
+        places, sheet_w, sheet_h = sheet_layout([(f.width, f.height) for f in self.frames], max_width,
+                                                per_direction or 0)
+
+        sheet = bytearray(sheet_w * sheet_h)
+        for i, (f, (fx, fy)) in enumerate(zip(self.frames, places)):
+            px, mask = f.pixels, f.mask
+            index0 = 0
+            for j in range(f.height):
+                for k in range(f.width):
+                    n = j * f.width + k
+                    if mask[n]:
+                        sheet[(fy + j) * sheet_w + fx + k] = px[n]
+                        index0 += px[n] == 0
+            if index0:
+                warnings.append(f"frame {i}: {index0} opaque index 0 pixel(s) become transparent")
+
+        img = Image.frombytes("P", (sheet_w, sheet_h), bytes(sheet))
+        pal = [c for rgb in self.palette[:PALETTE_SIZE] for c in rgb]
+        img.putpalette(pal + [0] * (PALETTE_SIZE * 3 - len(pal)))
+        img.info["transparency"] = 0
+        img.save(path, "PNG", transparency=0)
+
+        if mask_ranges:
+            in_range = [any(a <= i <= b for a, b in mask_ranges) for i in range(PALETTE_SIZE)]
+            mask = bytes(i if in_range[i] else 0 for i in sheet)
+            mask_img = Image.frombytes("P", (sheet_w, sheet_h), mask)
+            mask_img.putpalette(pal + [0] * (PALETTE_SIZE * 3 - len(pal)))
+            mask_img.save(colour_mask_path(path), "PNG", transparency=0)
+
+        json_path = None
+        f0 = self.frames[0]
+        if len(self.frames) > 1 or f0.offset_x or f0.offset_y or frame_duration or per_direction:
+            json_path = str(path) + ".json"
+            frames = [{"x": fx, "y": fy, "w": f.width, "h": f.height,
+                       "offsetX": f.offset_x, "offsetY": f.offset_y}
+                      for f, (fx, fy) in zip(self.frames, places)]
+            write_sheet_metadata(json_path, frames, frame_duration, per_direction or 0)
+        return json_path, warnings
+
+    def animation_frames_per_direction(self) -> Optional[int]:
+        """N if the AuxObjectData of the frames is only the animation data the
+        game builds from a PNG's "animation": { "framesPerDirection": N }: the
+        first frame of each direction (every N-th) with number_of_frames N
+        and AUX_ANIMATED_TILE, everything else 0; None otherwise."""
+        if not self.has_aux or not self.frames:
+            return None
+        first = self.frames[0].aux
+        if first is None or not first.flags & AUX_ANIMATED_TILE:
+            return None
+        n = first.number_of_frames
+        if n < 1 or n > len(self.frames):
+            return None
+        for i, f in enumerate(self.frames):
+            a = f.aux or AuxData()
+            want = AuxData(number_of_frames=n, flags=AUX_ANIMATED_TILE) if i % n == 0 else AuxData()
+            if a.pack() != want.pack():
+                return None
+        return n
+
     def describe(self) -> str:
         lines = [
             f"flags          : {flag_names(self.flags)} ({self.flags:#06x})",
@@ -718,6 +821,92 @@ class STIFile:
         for w in self.warnings:
             lines.append(f"warning        : {w}")
         return "\n".join(lines)
+
+
+def sheet_layout(sizes: Sequence[Tuple[int, int]], max_width: int = 1024,
+        row_length: int = 0) -> Tuple[List[Tuple[int, int]], int, int]:
+    """Places frames of the given (width, height) on rows, left to right, with
+    a 1 pixel gap, rows at most max_width wide (or as wide as the widest
+    frame); with row_length, a new row also starts every row_length frames
+    (e.g. one row per animation direction). Returns (positions, sheet width,
+    sheet height)."""
+    places = []
+    x = y = row_h = sheet_w = 0
+    limit = max(max_width, max(w for w, _ in sizes))
+    for i, (w, h) in enumerate(sizes):
+        if x and (x + w > limit or (row_length and i % row_length == 0)):
+            x, y, row_h = 0, y + row_h + 1, 0
+        places.append((x, y))
+        x += w + 1
+        row_h = max(row_h, h)
+        sheet_w = max(sheet_w, x - 1)
+    return places, sheet_w, y + row_h
+
+
+def write_sheet_metadata(json_path, frames: Sequence[dict], frame_duration: int = 0,
+        frames_per_direction: int = 0) -> None:
+    """Writes <image>.png.json: one frame per line, "frameDuration" and the
+    "animation" section if given."""
+    import json
+    with open(json_path, "w", encoding="utf-8") as fh:
+        fh.write("{\n")
+        if frames_per_direction:
+            fh.write(f'  "animation": {{ "framesPerDirection": {int(frames_per_direction)} }},\n')
+        if frame_duration:
+            fh.write(f'  "frameDuration": {int(frame_duration)},\n')
+        fh.write('  "frames": [\n')
+        fh.write(",\n".join("    " + json.dumps(fr) for fr in frames))
+        fh.write("\n  ]\n}\n")
+
+
+def assemble_png_sheet(frame_paths: Sequence, out_path, max_width: int = 1024,
+        frame_duration: int = 0, durations: Optional[Sequence[int]] = None) -> Tuple[str, str]:
+    """Puts separate frame images (e.g. 000.png, 001.png, ...) in this order
+    into one sheet for the game's PNG loader, with <out_path>.json listing
+    the frames (offset 0) and their durations in milliseconds.
+
+    If every frame is palettised with the same palette, the sheet is
+    palettised too (indices kept, index 0 transparent); otherwise it is RGBA.
+    Returns (json path, "palettised" or "RGBA")."""
+    from PIL import Image
+    if not frame_paths:
+        raise STIError("no frames to assemble")
+    if durations is not None and len(durations) != len(frame_paths):
+        raise STIError(f"{len(durations)} durations for {len(frame_paths)} frames")
+    if any(d < 0 or d > 65535 for d in (durations or [])) or not 0 <= frame_duration <= 65535:
+        raise STIError("durations must be from 0 to 65535 milliseconds")
+
+    images = []
+    for p in frame_paths:
+        img = Image.open(p)
+        img.load()
+        images.append(img)
+
+    palette = images[0].getpalette() if images[0].mode == "P" else None
+    indexed = palette is not None and all(i.mode == "P" and i.getpalette() == palette for i in images)
+
+    places, sheet_w, sheet_h = sheet_layout([i.size for i in images], max_width)
+    if indexed:
+        sheet = Image.new("P", (sheet_w, sheet_h), 0)
+        sheet.putpalette(palette)
+        for img, pos in zip(images, places):
+            sheet.paste(img, pos)
+        sheet.save(out_path, "PNG", transparency=0)
+    else:
+        sheet = Image.new("RGBA", (sheet_w, sheet_h), (0, 0, 0, 0))
+        for img, pos in zip(images, places):
+            sheet.paste(img.convert("RGBA"), pos)
+        sheet.save(out_path, "PNG")
+
+    frames = []
+    for n, (img, (x, y)) in enumerate(zip(images, places)):
+        fr = {"x": x, "y": y, "w": img.width, "h": img.height, "offsetX": 0, "offsetY": 0}
+        if durations is not None and durations[n]:
+            fr["duration"] = int(durations[n])
+        frames.append(fr)
+    json_path = str(out_path) + ".json"
+    write_sheet_metadata(json_path, frames, frame_duration)
+    return json_path, "palettised" if indexed else "RGBA"
 
 
 def nearest_palette_index(palette: Sequence[Tuple[int, int, int]], rgb: Tuple[int, int, int],

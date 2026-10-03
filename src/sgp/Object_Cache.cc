@@ -15,7 +15,7 @@ void ClearObjectCache()
 }
 
 
-SGPVObject * GetVObject(cache_key_t const filename)
+SGPVObject * GetVObject(cache_key_t const filename, bool const needsPalette)
 {
 	// First, try to look up an already cached vobject.
 	auto const cachePos{ gObjectCache.find(filename) };
@@ -25,7 +25,7 @@ SGPVObject * GetVObject(cache_key_t const filename)
 	}
 
 	// Not found: load it and add it to the cache.
-	AutoSGPImage image{ CreateImage(filename, IMAGE_ALLIMAGEDATA) };
+	AutoSGPImage image{ CreateImage(filename, IMAGE_ALLIMAGEDATA | (needsPalette ? IMAGE_NEEDS_PALETTE : 0)) };
 	auto const newPos{ gObjectCache.emplace(filename, image.get()) };
 	return &newPos.first->second;
 }

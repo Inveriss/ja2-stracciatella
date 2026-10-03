@@ -1485,7 +1485,7 @@ static void CreateAutoResolveInterface(void)
 	ar->iButtonImage[DONELOSE_BUTTON] = UseLoadedButtonImage(btn_pics, 16, 17);
 
 	// Load the generic faces for civs and enemies
-	SGPVObject* const faces = AddVideoObjectFromFile(INTERFACEDIR "/smfaces.sti");
+	SGPVObject* const faces = AddVideoObjectFromFile(INTERFACEDIR "/smfaces.sti", true); // shaded with its palette
 	ar->iFaces = faces;
 	SGPPaletteEntry const* const pal = faces->Palette();
 	faces->pShades[0] = Create16BPPPaletteShaded(pal, 255, 255, 255, FALSE);

@@ -480,7 +480,7 @@ static void IMPMainPageNotSelectableBtnCallback(MOUSE_REGION* pRegion, UINT32 iR
 SGPVObject* LoadIMPPortait()
 {
 	ST::string filename = ImpPortraitFilePath("", iPortraitNumber);
-	return AddVideoObjectFromFile(filename);
+	return AddVideoObjectFromFile(filename, true); // shaded with its palette
 }
 
 

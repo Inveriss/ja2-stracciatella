@@ -2070,6 +2070,19 @@ void CreateBiasedShadedPalettes(UINT16* Shades[16], const SGPPaletteEntry ShadeP
 }
 
 
+void CreateBiasedRGBAShades(RGBAShade Shades[16])
+{
+	for (UINT i = 0; i < 16; i++)
+	{
+		const UINT16* sl = gusShadeLevels[i];
+		Shades[i] = MakeRGBAShade(sl[0], sl[1], sl[2], i == 0);
+		Shades[i].biasR = g_light_color.r;
+		Shades[i].biasG = g_light_color.g;
+		Shades[i].biasB = g_light_color.b;
+	}
+}
+
+
 /**********************************************************************************************
 CreateObjectPaletteTables
 

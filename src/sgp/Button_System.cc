@@ -277,7 +277,8 @@ static void InitializeButtonImageManager(void)
 		GenericButtonIcons[x] = NULL;
 
 	// Load the default generic button images
-	GenericButtonOffNormal = AddVideoObjectFromFile(DEFAULT_GENERIC_BUTTON_OFF);
+	// its palette index at 0,0 of subimage 8 gives the generic button text colour
+	GenericButtonOffNormal = AddVideoObjectFromFile(DEFAULT_GENERIC_BUTTON_OFF, true);
 	GenericButtonOnNormal  = AddVideoObjectFromFile(DEFAULT_GENERIC_BUTTON_ON);
 
 	/* Load up the off hilite and on hilite images. We won't check for errors

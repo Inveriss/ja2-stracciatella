@@ -22,6 +22,11 @@ DefaultContentManagerUT* DefaultContentManagerUT::createDefaultCMForTesting()
 	return new DefaultContentManagerUT(std::move(engineOptions));
 }
 
+void DefaultContentManagerUT::setImagePNGOverride(bool const value)
+{
+	EngineOptions_setOverrideImagesWithPNG(m_engineOptions.get(), value);
+}
+
 bool DefaultContentManagerUT::loadGameData()
 {
 	return DefaultContentManager::loadGameData(BinaryData{});

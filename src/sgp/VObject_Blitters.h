@@ -3,6 +3,9 @@
 
 #include "Types.h"
 
+struct RGBAShade;
+struct RGBARecolour;
+
 inline SGPRect		ClippingRect;
 extern UINT32			guiTranslucentMask;
 
@@ -12,6 +15,38 @@ SGPRect GetClippingRect();
 
 
 BOOLEAN BltIsClipped(const SGPVObject* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, const SGPRect* clipregion);
+
+// Full colour (32 bit RGBA) video objects. Both clip to clipregion
+// (ClippingRect if null).
+// Alpha blends a subimage onto a 16 bit buffer; with an outline colour other
+// than SGP_TRANSPARENT, the outline pixels of the subimage (see
+// SGPVObject::OutlineMask()) are drawn in that colour.
+void Blt32BPPDataTo16BPPBufferAlpha(UINT16* buf, UINT32 uiDestPitchBYTES, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, INT16 outline);
+// Shades the buffer (ShadeTable) where the subimage is opaque (alpha >= 128).
+void Blt32BPPDataTo16BPPBufferShadow(UINT16* buf, UINT32 uiDestPitchBYTES, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion);
+// Alpha blending with the Z-buffer, like the TransZ blitters of palettised
+// objects: a pixel is drawn where the Z-buffer value is <= usZValue; with
+// writeZ the Z-buffer gets usZValue where the pixel is opaque (alpha >= 128);
+// translucent halves the alpha (the 50% translucency of the 8 bit blitters).
+// The Z-buffer has the same pitch as the buffer.
+void Blt32BPPDataTo16BPPBufferAlphaZ(UINT16* buf, UINT32 uiDestPitchBYTES, UINT16* pZBuffer, UINT16 usZValue, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, bool writeZ, bool translucent);
+// Full colour characters, like the TransShadow blitters of palettised ones:
+// alpha blending of the colours changed by shade (lighting, glow; see
+// RGBAShade), except for black partly transparent pixels, which are shadow.
+// With a Z-buffer the same as Blt32BPPDataTo16BPPBufferAlphaZ(); obscured also
+// draws every other pixel (a checkerboard) where the Z test fails. Without a
+// Z-buffer (null) every pixel is drawn. With recolour, the pixels named by
+// the colour mask of the object get the colours of the character first (see
+// RGBARecolour).
+void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* buf, UINT32 uiDestPitchBYTES, UINT16* pZBuffer, UINT16 usZValue, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, RGBAShade const& shade, RGBARecolour const* recolour, bool writeZ, bool obscured, bool translucent);
+// Full colour characters and corpses on several tiles, like
+// Blt8BPPDataTo16BPPBufferTransZTransShadowIncClip() and
+// Blt8BPPDataTo16BPPBufferTransZTransShadowIncObscureClip() in RenderWorld.cc:
+// the Z value changes from strip to strip of the subimage as the Z strip info
+// sZIndex of the object says, with the same steps (zSublayers is
+// Z_SUBLAYERS); the Z-buffer is tested with <= (obscured: < or every other
+// pixel) and gets the Z value where the pixel is opaque (alpha >= 128).
+void Blt32BPPDataTo16BPPBufferShadeZStrips(UINT16* buf, UINT32 uiDestPitchBYTES, UINT16* pZBuffer, UINT16 usZValue, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, INT16 sZIndex, UINT16 zSublayers, RGBAShade const& shade, RGBARecolour const* recolour, bool obscured);
 CHAR8 BltIsClippedOrOffScreen( HVOBJECT hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect *clipregion );
 
 

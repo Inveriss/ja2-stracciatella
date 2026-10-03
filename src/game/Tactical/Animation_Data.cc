@@ -1,6 +1,7 @@
 #include "Directories.h"
 #include "HImage.h"
 #include "Overhead.h"
+#include "STCI.h"
 #include "Structure.h"
 #include "VObject.h"
 #include "WCheck.h"
@@ -655,6 +656,107 @@ STRUCTURE_FILE_REF* GetAnimationStructureRef(const SOLDIERTYPE* const s, const U
 }
 
 
+AnimationColours GetAnimationSurfaceColours(UINT16 const usSurfaceIndex)
+{
+	switch (usSurfaceIndex)
+	{
+		// the adult creatures (GetBodyTypePaletteSubstitution(): .COL palettes)
+		case AFMONSTERSTANDING:
+		case AFMONSTERWALKING:
+		case AFMONSTERATTACK:
+		case AFMONSTERCLOSEATTACK:
+		case AFMONSTERSPITATTACK:
+		case AFMONSTEREATING:
+		case AFMONSTERDIE:
+		case AFMUP:
+		case AFMJUMP:
+		case AFMMELT:
+			return AnimationColours::Palette;
+
+		// infant and larva creatures: their palette colour changes touch no
+		// pixel of their animations
+		case LVBREATH:
+		case LVDIE:
+		case LVWALK:
+		case IBREATH:
+		case IWALK:
+		case IDIE:
+		case IEAT:
+		case IATTACK:
+
+		// GetBodyTypePaletteSubstitution() gives these body types the palette
+		// of the animation.
+		case QUEENMONSTERSTANDING:
+		case QUEENMONSTERREADY:
+		case QUEENMONSTERSPIT_SW:
+		case QUEENMONSTERSPIT_E:
+		case QUEENMONSTERSPIT_NE:
+		case QUEENMONSTERSPIT_S:
+		case QUEENMONSTERSPIT_SE:
+		case QUEENMONSTERDEATH:
+		case QUEENMONSTERSWIPE:
+		case COWSTANDING:
+		case COWWALKING:
+		case COWDIE:
+		case COWEAT:
+		case CROWWALKING:
+		case CROWFLYING:
+		case CROWEATING:
+		case CROWDYING:
+		case CATBREATH:
+		case CATWALK:
+		case CATRUN:
+		case CATREADY:
+		case CATHIT:
+		case CATDIE:
+		case CATSWIPE:
+		case CATBITE:
+		case ROBOTNWBREATH:
+		case ROBOTNWWALK:
+		case ROBOTNWHIT:
+		case ROBOTNWDIE:
+		case ROBOTNWSHOOT:
+		case HUMVEE_BASIC:
+		case HUMVEE_DIE:
+		case TANKNW_READY:
+		case TANKNW_SHOOT:
+		case TANKNW_DIE:
+		case TANKNE_READY:
+		case TANKNE_SHOOT:
+		case TANKNE_DIE:
+		case ELDORADO_BASIC:
+		case ELDORADO_DIE:
+		case ICECREAMTRUCK_BASIC:
+		case ICECREAMTRUCK_DIE:
+		case JEEP_BASIC:
+		case JEEP_DIE:
+			return AnimationColours::FullColour;
+
+		default:
+			return AnimationColours::ColourMask;
+	}
+}
+
+
+void GetAnimationSurfacePalette(UINT16 const usSurfaceIndex, SGPPaletteEntry pal[256])
+{
+	AnimationSurfaceType const& a = gAnimSurfaceDatabase[usSurfaceIndex];
+	SGPPaletteEntry const* src;
+	AutoSGPImage original;
+	if (!a.hVideoObject->IsRGBA())
+	{
+		src = a.hVideoObject->Palette();
+	}
+	else
+	{
+		// the STI itself: CreateImage() would try the PNG again
+		original.reset(LoadSTCIFileToImage(a.Filename, IMAGE_PALETTE));
+		src = original->pPalette;
+	}
+	std::copy_n(src, 256, pal);
+}
+
+
 // Surface mamagement functions
 void LoadAnimationSurface(UINT16 const usSoldierID, UINT16 const usSurfaceIndex, UINT16 const usAnimState)
 {
@@ -678,7 +780,21 @@ void LoadAnimationSurface(UINT16 const usSoldierID, UINT16 const usSurfaceIndex,
 			// Load into memory
 			SLOGD("Surface Database: Loading {}", usSurfaceIndex);
 
-			AutoSGPImage   hImage(CreateImage(a->Filename, IMAGE_ALLDATA));
+			// Only the number of frames per direction is used from the aux data,
+			// so a palettised PNG with an "animation" section may replace the file
+			// (docs/png-images.md).
+			// Full colour PNGs where the colours of the animation do not depend on
+			// the palette, or with a colour mask where they do.
+			UINT16 fullColour = 0;
+			switch (GetAnimationSurfaceColours(usSurfaceIndex))
+			{
+				case AnimationColours::Palette:    fullColour = IMAGE_NEEDS_PALETTE; break;
+				case AnimationColours::FullColour: fullColour = 0;                   break;
+				case AnimationColours::ColourMask: fullColour = IMAGE_COLOUR_MASK;   break;
+			}
+			AutoSGPImage hImage(CreateImage(a->Filename, IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA | fullColour));
+			// Characters are never outlined
+			hImage->fFlags |= IMAGE_NO_OUTLINE;
 			AutoSGPVObject hVObject(AddVideoObjectFromHImage(hImage.get()));
 
 			// Get aux data

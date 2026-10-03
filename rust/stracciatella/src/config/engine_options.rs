@@ -85,6 +85,9 @@ pub struct EngineOptions {
     pub start_in_debug_mode: bool,
     /// Whether to enable sound
     pub start_without_sound: bool,
+    /// Whether a PNG next to an image of another format (the same path with
+    /// the extension .png) is loaded instead of that image
+    pub image_png_override: bool,
     /// Whether to enum-gen for Lua
     pub run_enum_gen: bool,
 }
@@ -110,6 +113,7 @@ impl Default for EngineOptions {
             stretch_laptop: true,
             start_in_debug_mode: false,
             start_without_sound: false,
+            image_png_override: true,
             run_enum_gen: false,
         }
     }

@@ -18,6 +18,9 @@ public:
 
 	bool loadGameData() override;
 
+	/** Sets the "image_png_override" engine option. */
+	void setImagePNGOverride(bool value);
+
 #ifdef WITH_UNITTESTS
 
 // Helper class to ease writing unit test that use the

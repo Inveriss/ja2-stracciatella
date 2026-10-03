@@ -4,15 +4,14 @@
 #include "Debug.h"
 #include "HImage.h"
 #include "ImpTGA.h"
+#include "Logger.h"
 #include "PCX.h"
+#include "PNG.h"
 #include "STCI.h"
 #include "VObject.h"
 
-
-// This is the color substituted to keep a 24bpp -> 16bpp color
-// from going transparent (0x0000) -- DB
-
-#define BLACK_SUBSTITUTE	0x0001
+#include "ContentManager.h"
+#include "GameInstance.h"
 
 
 UINT16 gusRedMask = 0;
@@ -33,11 +32,36 @@ SGPImage* CreateImage(const ST::string& filename, const UINT16 fContents)
 		throw std::logic_error(errorMessage.c_str());
 	}
 
+	// A PNG next to the file replaces it (see ContentManager::getPNGReplacement()),
+	// except where the caller needs application data: PNG files only have its
+	// animation part, from their metadata, for callers that allow it with
+	// IMAGE_ANIMATION_METADATA (tile cache animations, cursors), not tilesets.
+	// If the PNG cannot be used, the original is loaded.
+	bool const appDataOK = !(fContents & IMAGE_APPDATA) || (fContents & IMAGE_ANIMATION_METADATA);
+	if (ext.compare_i("PNG") != 0 && appDataOK)
+	{
+		ST::string const png = GCM->getPNGReplacement(filename);
+		if (!png.empty())
+		{
+			try
+			{
+				return LoadPNGFileToImage(png, fContents);
+			}
+			catch (std::exception const& e)
+			{
+				SLOGE("Cannot use {} instead of {}, loading the original: {}", png, filename, e.what());
+			}
+		}
+	}
+
 	if (ext.compare_i("STI") == 0) {
 		return  LoadSTCIFileToImage(filename, fContents);
 	}
 	if (ext.compare_i("PCX") == 0) {
 		return LoadPCXFileToImage( filename, fContents);
+	}
+	if (ext.compare_i("PNG") == 0) {
+		return LoadPNGFileToImage(filename, fContents);
 	}
 	if (ext.compare_i("TGA") == 0) {
 		return LoadTGAFileToImage( filename, fContents);

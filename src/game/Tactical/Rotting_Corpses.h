@@ -1,6 +1,8 @@
 #ifndef _ROTTING_CORPSES_H
 #define _ROTTING_CORPSES_H
 
+#include "Animation_Data.h"
+#include "Shading.h"
 #include "Tile_Animation.h"
 
 #include <string_theory/string>
@@ -120,10 +122,20 @@ struct ROTTING_CORPSE
 	ANITILE *pAniTile;
 
 	UINT16  *pShades[ NUM_CORPSE_SHADES ];
+	// The same shades for full colour corpses (docs/png-images.md)
+	RGBAShade rgbaShades[ NUM_CORPSE_SHADES ];
+	// The colours of a full colour corpse with a colour mask
+	RGBARecolour rgbaRecolour;
 };
 
 
 ROTTING_CORPSE* AddRottingCorpse(ROTTING_CORPSE_DEFINITION* pCorpseDef);
+
+// Whether a full colour PNG may replace the image of the corpse, as for the
+// animations (GetAnimationSurfaceColours()): people (also in camouflage) with
+// a colour mask, corpses without palette colour changes as they are, adult
+// creatures not at all.
+AnimationColours GetCorpseImageColours(ROTTING_CORPSE_DEFINITION const&);
 
 void RemoveCorpses(void);
 

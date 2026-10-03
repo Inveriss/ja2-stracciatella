@@ -103,6 +103,8 @@ struct ANITILE_PARAMS
 
 	LEVELNODE      *pGivenLevelNode; // Levelnode for existing tile ( optional )
 	const char     *zCachedFile; // Filename for cached tile name ( optional )
+	bool           needsPalette; // the cached tile is shaded with its palette (corpses): no full colour PNG
+	bool           colourMask;   // a full colour PNG only with a colour mask (corpses of people)
 
 	UINT8          ubKeyFrame1; // Key frame 1
 	UINT32         uiKeyFrame1Code; // Key frame code
@@ -128,6 +130,11 @@ ANITILE* CreateAnimationTile(const ANITILE_PARAMS*);
 
 void DeleteAniTile( ANITILE *pAniTile );
 void UpdateAniTiles(void);
+
+// How long the current frame of an animation tile stays on screen: its
+// duration from a PNG (tile cache animations such as explosions, see
+// docs/png-images.md), else sDelay.
+UINT32 GetAniTileFrameDelay(ANITILE const&);
 void DeleteAniTiles(void);
 
 void HideAniTile( ANITILE *pAniTile, BOOLEAN fHide );

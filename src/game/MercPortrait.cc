@@ -41,7 +41,8 @@ static SGPVObject* LoadPortrait(MERCPROFILESTRUCT const& p, char const* const su
 	{
 		filename = PortraitFilePath(static_cast<ProfileID>(&p - gMercProfiles), subdir);
 	}
-	return AddVideoObjectFromFile(filename);
+	// shaded with its palette (dead mercs, flashing portraits)
+	return AddVideoObjectFromFile(filename, true);
 }
 
 

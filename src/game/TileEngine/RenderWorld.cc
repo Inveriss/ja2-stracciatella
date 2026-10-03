@@ -354,6 +354,8 @@ private: void Render(RenderTilesFlags const uiFlags, size_t const ubNumLevels, R
 	INT16           sZLevel      = 0;
 	BackgroundFlags uiDirtyFlags = BGND_FLAG_NONE;
 	UINT16 const*   pShadeTable  = 0;
+	RGBAShade const* pRGBAShade  = 0; // the same shade for full colour soldiers
+	RGBARecolour const* pRGBARecolour = 0; // their colours, see RGBARecolour
 
 	INT32 iAnchorPosX_M = iStartPointX_M;
 	INT32 iAnchorPosY_M = iStartPointY_M;
@@ -610,6 +612,8 @@ private: void Render(RenderTilesFlags const uiFlags, size_t const ubNumLevels, R
 									{
 										pCorpse     = ROTTING_CORPSE::FromID(a.v.user.uiData);
 										pShadeTable = pCorpse->pShades[pNode->ubShadeLevel];
+										pRGBAShade  = &pCorpse->rgbaShades[pNode->ubShadeLevel];
+										pRGBARecolour = &pCorpse->rgbaRecolour;
 
 										// OK, if this is a corpse.... stop if not visible
 										if (pCorpse->def.bVisible != 1 && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS)) goto next_prev_node;
@@ -975,6 +979,8 @@ zlevel_topmost:
 									ubShadeLevel |= pNode->ubShadeLevel & 0x30;
 								}
 								pShadeTable = s.pShades[ubShadeLevel];
+								pRGBAShade  = &s.rgbaShades[ubShadeLevel];
+								pRGBARecolour = &s.rgbaRecolour;
 
 								// Position guy based on guy's position
 								float const dOffsetX = s.dXPos - gsRenderCenterX;
@@ -1024,6 +1030,8 @@ zlevel_topmost:
 
 										UINT16* const* pShadeStart =
 											s.bLevel == 0 ? &s.pGlowShades[0] : &s.pShades[20];
+										RGBAShade const* const pRGBAShadeStart =
+											s.bLevel == 0 ? &s.rgbaGlowShades[0] : &s.rgbaShades[20];
 
 										// Set shade
 										// If a bad guy is highlighted
@@ -1032,6 +1040,7 @@ zlevel_topmost:
 											if (gSelectedGuy == &s)
 											{
 												pShadeTable = pShadeStart[gsGlowFrames[gsCurrentGlowFrame] + bGlowShadeOffset];
+												pRGBAShade  = &pRGBAShadeStart[gsGlowFrames[gsCurrentGlowFrame] + bGlowShadeOffset];
 												gsForceSoldierZLevel = TOPMOST_Z_LEVEL;
 											}
 											else
@@ -1040,6 +1049,7 @@ zlevel_topmost:
 												if (bGlowShadeOffset == 10)
 												{
 													pShadeTable = s.effect_shade;
+													pRGBAShade  = &s.rgbaEffectShade;
 												}
 											}
 										}
@@ -1050,6 +1060,7 @@ zlevel_topmost:
 													s.uiStatusFlags & SOLDIER_UNDERAICONTROL) // Does he have baton?
 											{
 												pShadeTable = pShadeStart[gsGlowFrames[gsCurrentGlowFrame] + bGlowShadeOffset];
+												pRGBAShade  = &pRGBAShadeStart[gsGlowFrames[gsCurrentGlowFrame] + bGlowShadeOffset];
 												if (gsGlowFrames[gsCurrentGlowFrame] >= 7)
 												{
 													gsForceSoldierZLevel = TOPMOST_Z_LEVEL;
@@ -1102,6 +1113,8 @@ zlevel_topmost:
 								if (!(uiFlags & TILES_DIRTY) && s.fForceShade)
 								{
 									pShadeTable = s.pForcedShade;
+									// the only forced shade is the white flash
+									pRGBAShade  = s.pForcedShade == White16BPPPalette ? &RGBA_SHADE_WHITE : &s.rgbaShades[DEFAULT_SHADE_LEVEL];
 								}
 
 								hVObject = gAnimSurfaceDatabase[usAnimSurface].hVideoObject;
@@ -1266,7 +1279,73 @@ zlevel_topmost:
 						}
 						else
 						{
-							if (fMultiTransShadowZBlitter)
+							if (hVObject->IsRGBA() && fMerc)
+							{
+								// Full colour soldiers and corpses (GetAnimationSurfaceColours(),
+								// corpses without palette colour changes). The same choices as
+								// for the palettised ones below, with the shade and colours of
+								// the soldier or corpse and alpha blending.
+								SGPRect const* const clip  = &gClippingRect;
+								RGBAShade const&     shade = pRGBAShade ? *pRGBAShade : RGBA_SHADE_NONE;
+								if (fMultiTransShadowZBlitter)
+								{
+									if (fZBlitter)
+									{
+										Blt32BPPDataTo16BPPBufferShadeZStrips(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, sMultiTransShadowZBlitterIndex, Z_SUBLAYERS, shade, pRGBARecolour, fObscuredBlitter);
+									}
+								}
+								else if (fPixelate)
+								{
+									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, shade, pRGBARecolour, false, false, true);
+								}
+								else if (fZBlitter)
+								{
+									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, shade, pRGBARecolour, fZWrite, !fZWrite && fObscuredBlitter, false);
+
+									if (uiLevelNodeFlags & LEVELNODE_UPDATESAVEBUFFERONCE)
+									{
+										SGPVSurface::Lock l(guiSAVEBUFFER);
+										Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), NULL, 0, hVObject, sXPos, sYPos, usImageIndex, clip, shade, pRGBARecolour, false, false, false);
+										pNode->uiFlags &= ~LEVELNODE_UPDATESAVEBUFFERONCE;
+									}
+								}
+								else
+								{
+									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, NULL, 0, hVObject, sXPos, sYPos, usImageIndex, clip, shade, pRGBARecolour, false, false, false);
+								}
+							}
+							else if (hVObject->IsRGBA())
+							{
+								// Full colour objects: tile cache animations, without
+								// corpses (docs/png-images.md). The same choices as for the
+								// palettised objects below, with alpha blending; they are not
+								// lit, like the palettised tile cache animations.
+								SGPRect const* const clip = &gClippingRect;
+								if (fPixelate)
+								{
+									Blt32BPPDataTo16BPPBufferAlphaZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, fZWrite, true);
+								}
+								else if (fShadowBlitter)
+								{
+									Blt32BPPDataTo16BPPBufferShadow(pDestBuf, uiDestPitchBYTES, hVObject, sXPos, sYPos, usImageIndex, clip);
+								}
+								else if (fZBlitter)
+								{
+									Blt32BPPDataTo16BPPBufferAlphaZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, fZWrite, false);
+								}
+								else
+								{
+									Blt32BPPDataTo16BPPBufferAlpha(pDestBuf, uiDestPitchBYTES, hVObject, sXPos, sYPos, usImageIndex, clip, SGP_TRANSPARENT);
+								}
+
+								if (uiLevelNodeFlags & LEVELNODE_UPDATESAVEBUFFERONCE)
+								{
+									SGPVSurface::Lock l(guiSAVEBUFFER);
+									Blt32BPPDataTo16BPPBufferAlphaZ(l.Buffer<UINT16>(), l.Pitch(), gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, true, false);
+									pNode->uiFlags &= ~LEVELNODE_UPDATESAVEBUFFERONCE;
+								}
+							}
+							else if (fMultiTransShadowZBlitter)
 							{
 								if (fZBlitter)
 								{

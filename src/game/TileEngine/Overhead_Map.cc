@@ -388,7 +388,7 @@ void GoIntoOverheadMap( )
 	MSYS_DefineRegion(&OverheadRegion, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 320, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary));
 
 	// Add shades to persons....
-	SGPVObject*            const vo  = GetVObject(uiPERSONS);
+	SGPVObject*            const vo  = GetVObject(uiPERSONS, true); // shaded with its palette
 	SGPPaletteEntry const* const pal = vo->Palette();
 	vo->pShades[0] = Create16BPPPaletteShaded(pal, 256, 256, 256, FALSE);
 	vo->pShades[1] = Create16BPPPaletteShaded(pal, 310, 310, 310, FALSE);

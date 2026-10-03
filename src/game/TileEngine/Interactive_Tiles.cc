@@ -577,6 +577,15 @@ BOOLEAN CheckVideoObjectScreenCoordinateInData(HVOBJECT hSrcVObject, UINT16 usIn
 	iTestPos	= ( ( usHeight - iTestY ) * usWidth ) + iTestX;
 	iStartPos	= 0;
 
+	if (hSrcVObject->IsRGBA())
+	{
+		// The pixel the ETRLE search below finds: number iTestPos - 1,
+		// counted from the top left; opaque with alpha >= 128.
+		INT32 const n = iTestPos - 1;
+		if (n < 0 || n >= static_cast<INT32>(usWidth * usHeight)) return FALSE;
+		return hSrcVObject->RGBAData(pTrav)[static_cast<size_t>(n) * 4 + 3] >= 128;
+	}
+
 	UINT8 const* SrcPtr = hSrcVObject->PixData(pTrav);
 
 	do

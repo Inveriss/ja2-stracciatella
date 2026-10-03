@@ -84,6 +84,7 @@
 #include <array>
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 #include <string_theory/string>
 
 #define PALETTEFILENAME			BINARYDATADIR "/ja2pal.dat"
@@ -4636,6 +4637,8 @@ static const UINT8 gOrangeGlowG[]=
 
 static UINT16* CreateEnemyGlow16BPPPalette(const SGPPaletteEntry* pPalette, UINT32 rscale, UINT32 gscale);
 static UINT16* CreateEnemyGreyGlow16BPPPalette(const SGPPaletteEntry* pPalette, UINT32 rscale, UINT32 gscale);
+static RGBAShade MakeEnemyGlowRGBAShade(UINT32 rscale, UINT32 gscale);
+static RGBAShade MakeEnemyGreyGlowRGBAShade(UINT32 rscale, UINT32 gscale);
 
 
 void CreateSoldierPalettes(SOLDIERTYPE& s)
@@ -4649,6 +4652,10 @@ void CreateSoldierPalettes(SOLDIERTYPE& s)
 
 	SGPPaletteEntry tmp_pal[256];
 	std::fill_n(tmp_pal, 256, SGPPaletteEntry{});
+	// the palette of the animations before the changes, for full colour
+	// animations with a colour mask
+	SGPPaletteEntry original[256];
+	std::fill_n(original, 256, SGPPaletteEntry{});
 
 	SGPPaletteEntry const*       pal;
 	char            const* const substitution = GetBodyTypePaletteSubstitution(&s, s.ubBodyType);
@@ -4659,7 +4666,8 @@ void CreateSoldierPalettes(SOLDIERTYPE& s)
 		if (palette_anim_surface != INVALID_ANIMATION_SURFACE)
 		{
 			// Use palette from HVOBJECT, then use substitution for pants, etc
-			memcpy(tmp_pal, gAnimSurfaceDatabase[palette_anim_surface].hVideoObject->Palette(), sizeof(*tmp_pal) * 256);
+			GetAnimationSurfacePalette(palette_anim_surface, tmp_pal);
+			std::copy_n(tmp_pal, 256, original);
 
 			// Substitute based on head, etc
 			SetPaletteReplacement(tmp_pal, s.HeadPal);
@@ -4671,13 +4679,17 @@ void CreateSoldierPalettes(SOLDIERTYPE& s)
 	}
 	else if (substitution[0] != '\0' && CreateSGPPaletteFromCOLFile(tmp_pal, substitution))
 	{
+		GetAnimationSurfacePalette(anim_surface, original);
 		pal = tmp_pal;
 	}
 	else
 	{
 		// Use palette from hvobject
-		pal = gAnimSurfaceDatabase[anim_surface].hVideoObject->Palette();
+		GetAnimationSurfacePalette(anim_surface, tmp_pal);
+		std::copy_n(tmp_pal, 256, original);
+		pal = tmp_pal;
 	}
+	BuildCharacterRecolour(s.rgbaRecolour, original, pal);
 
 
 	for (INT32 i = 0; i < NUM_SOLDIER_SHADES; ++i)
@@ -4741,6 +4753,33 @@ void CreateSoldierPalettes(SOLDIERTYPE& s)
 		s.pShades[i] = CreateEnemyGreyGlow16BPPPalette(pal, gOrangeGlowR[i - 20], gOrangeGlowG[i - 20]);
 	}
 	s.pShades[39] = CreateEnemyGreyGlow16BPPPalette(pal, gOrangeGlowR[18], gOrangeGlowG[18]);
+
+	// The same shades for full colour animations, which have no palette
+	std::fill(std::begin(s.rgbaShades), std::end(s.rgbaShades), RGBA_SHADE_NONE);
+	CreateBiasedRGBAShades(s.rgbaShades);
+	s.rgbaEffectShade = MakeRGBAShade(100, 100, 100, true);
+	s.rgbaGlowShades[0] = MakeRGBAShade(255, 255, 255, false);
+	for (INT32 i = 1; i < 10; ++i)
+	{
+		s.rgbaGlowShades[i] = MakeEnemyGlowRGBAShade(gRedGlowR[i], 0);
+	}
+	s.rgbaGlowShades[10] = MakeRGBAShade(100, 100, 100, true);
+	for (INT32 i = 11; i < 19; ++i)
+	{
+		s.rgbaGlowShades[i] = MakeEnemyGreyGlowRGBAShade(gRedGlowR[i], 0);
+	}
+	s.rgbaGlowShades[19] = MakeEnemyGreyGlowRGBAShade(gRedGlowR[18], 0);
+	s.rgbaShades[20] = MakeRGBAShade(255, 255, 255, false);
+	for (INT32 i = 21; i < 30; ++i)
+	{
+		s.rgbaShades[i] = MakeEnemyGlowRGBAShade(gOrangeGlowR[i - 20], gOrangeGlowG[i - 20]);
+	}
+	s.rgbaShades[30] = MakeRGBAShade(100, 100, 100, true);
+	for (INT32 i = 31; i < 39; ++i)
+	{
+		s.rgbaShades[i] = MakeEnemyGreyGlowRGBAShade(gOrangeGlowR[i - 20], gOrangeGlowG[i - 20]);
+	}
+	s.rgbaShades[39] = MakeEnemyGreyGlowRGBAShade(gOrangeGlowR[18], gOrangeGlowG[18]);
 }
 
 
@@ -4966,6 +5005,17 @@ void SetSoldierAniSpeed(SOLDIERTYPE* pSoldier)
 ///////////////////////////////////////////////////////
 //PALETTE REPLACEMENT FUNCTIONS
 ///////////////////////////////////////////////////////
+void BuildCharacterRecolour(RGBARecolour& rc, SGPPaletteEntry const original[256], SGPPaletteEntry const changed[256])
+{
+	std::vector<PaletteRange> ranges;
+	for (UINT32 i = 0; i != guiNumPaletteSubRanges; ++i)
+	{
+		ranges.push_back(PaletteRange{ gpPaletteSubRanges[i].ubStart, gpPaletteSubRanges[i].ubEnd });
+	}
+	BuildRGBARecolour(rc, original, changed, ranges.data(), ranges.size());
+}
+
+
 void LoadPaletteData()
 {
 	UINT32 cnt, cnt2;
@@ -7502,6 +7552,26 @@ static UINT16* CreateEnemyGlow16BPPPalette(const SGPPaletteEntry* pPalette, UINT
 		p16BPPPalette[cnt] = Get16BPPColor(FROMRGB(r, g, b));
 	}
 	return p16BPPPalette;
+}
+
+
+// The same as CreateEnemyGlow16BPPPalette() for full colour animations
+static RGBAShade MakeEnemyGlowRGBAShade(UINT32 const rscale, UINT32 const gscale)
+{
+	RGBAShade shade = RGBA_SHADE_NONE;
+	shade.minR = static_cast<UINT8>(rscale);
+	shade.minG = static_cast<UINT8>(gscale);
+	return shade;
+}
+
+
+// The same as CreateEnemyGreyGlow16BPPPalette() for full colour animations
+static RGBAShade MakeEnemyGreyGlowRGBAShade(UINT32 const rscale, UINT32 const gscale)
+{
+	RGBAShade shade = MakeRGBAShade(100, 100, 100, true);
+	shade.minR = static_cast<UINT8>(std::min(rscale, 255U));
+	shade.minG = static_cast<UINT8>(std::min(gscale, 255U));
+	return shade;
 }
 
 

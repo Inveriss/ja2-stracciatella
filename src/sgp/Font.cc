@@ -84,7 +84,7 @@ void SetFontBackground(UINT8 ubBackground)
 /* Loads a font from an ETRLE file */
 SGPFont LoadFontFile(const char *filename)
 {
-	SGPFont const font = AddVideoObjectFromFile(filename);
+	SGPFont const font = AddVideoObjectFromFile(filename, true); // palette colours and shades
 	if (!FontDefault) FontDefault = font;
 	return font;
 }
