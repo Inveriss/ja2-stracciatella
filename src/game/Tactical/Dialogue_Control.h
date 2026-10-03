@@ -226,6 +226,9 @@ void SetStopTimeQuoteCallback( MODAL_HOOK pCallBack );
 
 BOOLEAN DialogueActive(void);
 
+// The screen box of the tactical subtitle text box, if one is shown.
+bool GetTacticalTextBox(SGPBox& box);
+
 extern INT32 giNPCReferenceCount;
 
 

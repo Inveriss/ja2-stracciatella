@@ -43,6 +43,11 @@ SGPPoint GetCursorPos()
 	return gManualCursorPos ? *gManualCursorPos : GetMousePos();
 }
 
+SGPPoint GetCursorScreenPos()
+{
+	return gManualCursorPos ? VideoZoomFrameToScreen(gManualCursorPos->iX, gManualCursorPos->iY) : GetPhysicalMousePos();
+}
+
 void SetManualCursorPos(SGPPoint point) {
 	gManualCursorPos = std::make_optional(point);
 }

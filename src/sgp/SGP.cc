@@ -11,6 +11,7 @@
 #include "SoundMan.h"
 #include "VObject.h"
 #include "Video.h"
+#include "Viewport_Zoom.h"
 #include <SDL.h>
 #include "UILayout.h"
 #include "GameRes.h"
@@ -494,6 +495,7 @@ int main(int argc, char* argv[])
 		SLOGD("Initializing Video Manager");
 		InitializeVideoManager(scalingQuality, stretchToFill, GCM->getGamePolicy()->target_fps);
 		InitStretchRegion(stretchLaptop);
+		InitViewportZoom();
 		VideoSetBrightness(brightness);
 
 		SLOGD("Initializing Video Object Manager");

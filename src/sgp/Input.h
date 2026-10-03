@@ -60,6 +60,12 @@ void FingerDown(const SDL_TouchFingerEvent*);
 void FingerUp(const SDL_TouchFingerEvent*);
 
 SGPPoint GetMousePos();
+// The mouse position on the screen. Differs from GetMousePos() (the frame
+// position under the mouse) while the viewport is zoomed, see
+// VideoSetZoomProvider() -- e.g. scrolling at the screen edges uses this one.
+SGPPoint GetPhysicalMousePos();
+// Maps the unmoved mouse again, after the viewport zoom changed.
+void RefreshMousePosition();
 // TRUE = specified mouse button is down, FALSE = specified mouse button is up
 bool IsMouseButtonDown(UINT32 mouseButton);
 // TRUE = Main finger is down. Multitouch gesture is not detected, FALSE = Main finger is up or multitouch gesture is in progress
@@ -84,6 +90,8 @@ void SimulateMouseMovement( UINT32 uiNewXPos, UINT32 uiNewYPos );
 extern BOOLEAN 	 gfIsUsingTouch;
 extern UINT16    gusMouseXPos;       // X position of the mouse on screen
 extern UINT16    gusMouseYPos;       // y position of the mouse on screen
+extern UINT16    gusPhysMouseXPos;   // X position of the mouse on screen, not mapped through the viewport zoom
+extern UINT16    gusPhysMouseYPos;   // y position of the mouse on screen, not mapped through the viewport zoom
 
 void HandleSingleClicksAndButtonRepeats();
 

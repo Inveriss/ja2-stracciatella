@@ -108,6 +108,28 @@ static void BlitString(VIDEO_OVERLAY* pBlitter)
 }
 
 
+UINT8 GetTacticalMessageBoxes(SGPBox* const boxes, UINT8 const max)
+{
+	if (fScrollMessagesHidden) return 0;
+
+	UINT8 n = 0;
+	for (UINT32 cnt = 0; cnt < MAX_LINE_COUNT && n < max; cnt++)
+	{
+		ScrollStringSt const* const s = gpDisplayList[cnt];
+		if (s == NULL || s->video_overlay == NULL || s->video_overlay->fDisabled) continue;
+
+		VIDEO_OVERLAY const& v = *s->video_overlay;
+		// + 1: the text's shadow
+		boxes[n++] = {
+			(UINT16)v.sX, (UINT16)v.sY,
+			(UINT16)(StringPixLength(v.codepoints, v.uiFontID) + 1),
+			(UINT16)(GetFontHeight(v.uiFontID) + 1)
+		};
+	}
+	return n;
+}
+
+
 // this function will go through list of display strings and clear them all out
 void ClearDisplayedListOfTacticalStrings(void)
 {

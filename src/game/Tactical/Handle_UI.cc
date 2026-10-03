@@ -70,6 +70,7 @@
 #include "Video.h"
 #include "Screens.h"
 #include "UILayout.h"
+#include "Viewport_Zoom.h"
 
 #include "ContentManager.h"
 #include "GameInstance.h"
@@ -654,6 +655,13 @@ void TacticalViewPortMovementCallback(MOUSE_REGION* region, UINT32 reason) {
 }
 
 void TacticalViewPortTouchCallback(MOUSE_REGION* region, UINT32 reason) {
+	// The mouse wheel zooms the viewport.
+	if (reason & (MSYS_CALLBACK_REASON_WHEEL_UP | MSYS_CALLBACK_REASON_WHEEL_DOWN))
+	{
+		ViewportZoomHandleWheel(reason & MSYS_CALLBACK_REASON_WHEEL_UP);
+		return;
+	}
+
 	UpdateCurrentCursorTarget();
 
 	if (!(gTacticalStatus.uiFlags & INCOMBAT))
@@ -688,7 +696,9 @@ static void SetUIMouseCursor(void)
 		}
 
 
-		if ( gfScrolledToRight && gusMouseXPos >= SCREEN_WIDTH - NO_PX_SHOW_EXIT_CURS )
+		// The screen edges: the real mouse position, and while the viewport is
+		// zoomed, the zoomed part has to show that edge of the map too.
+		if ( gfScrolledToRight && ViewportZoomCropAtEdge(SCROLL_RIGHT) && gusPhysMouseXPos >= SCREEN_WIDTH - NO_PX_SHOW_EXIT_CURS )
 		{
 			gfUIDisplayActionPoints = FALSE;
 			ErasePath();
@@ -710,7 +720,7 @@ static void SetUIMouseCursor(void)
 			}
 		}
 
-		if ( gfScrolledToLeft && gusMouseXPos < NO_PX_SHOW_EXIT_CURS )
+		if ( gfScrolledToLeft && ViewportZoomCropAtEdge(SCROLL_LEFT) && gusPhysMouseXPos < NO_PX_SHOW_EXIT_CURS )
 		{
 			gfUIDisplayActionPoints = FALSE;
 			ErasePath();
@@ -732,7 +742,7 @@ static void SetUIMouseCursor(void)
 			}
 		}
 
-		if ( gfScrolledToTop && gusMouseYPos <  NO_PX_SHOW_EXIT_CURS )
+		if ( gfScrolledToTop && ViewportZoomCropAtEdge(SCROLL_UP) && gusPhysMouseYPos <  NO_PX_SHOW_EXIT_CURS )
 		{
 			gfUIDisplayActionPoints = FALSE;
 			ErasePath();
@@ -756,7 +766,7 @@ static void SetUIMouseCursor(void)
 
 
 		auto comp = !gfIsUsingTouch ? SCREEN_HEIGHT : gViewportRegion.RegionBottomRightY;
-		if ( gfScrolledToBottom && gusMouseYPos >= comp - NO_PX_SHOW_EXIT_CURS )
+		if ( gfScrolledToBottom && ViewportZoomCropAtEdge(SCROLL_DOWN) && gusPhysMouseYPos >= comp - NO_PX_SHOW_EXIT_CURS )
 		{
 			gfUIDisplayActionPoints = FALSE;
 			ErasePath();
@@ -777,7 +787,7 @@ static void SetUIMouseCursor(void)
 				guiNewUICursor = NOEXIT_SOUTH_UICURSOR;
 			}
 
-			if (gusMouseYPos < comp - NO_PX_SHOW_EXIT_CURS)
+			if (gusPhysMouseYPos < comp - NO_PX_SHOW_EXIT_CURS)
 			{
 				// Define region for viewport
 				MSYS_RemoveRegion( &gViewportRegion );

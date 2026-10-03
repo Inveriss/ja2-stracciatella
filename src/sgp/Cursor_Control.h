@@ -70,6 +70,9 @@ extern UINT16 gsCurMouseHeight;
 extern UINT16 gsCurMouseWidth;
 
 SGPPoint GetCursorPos();
+// Where the cursor is drawn on the screen: differs from GetCursorPos() (a
+// frame position) while the viewport is zoomed, see VideoSetZoomProvider().
+SGPPoint GetCursorScreenPos();
 
 // Sets an override for the cursor position
 void SetManualCursorPos(SGPPoint Point);

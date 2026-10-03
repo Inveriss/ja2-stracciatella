@@ -28,9 +28,11 @@
 #include "Sys_Globals.h"
 #include "TileDef.h"
 #include "Tile_Cache.h"
+#include "Timer.h"
 #include "Timer_Control.h"
 #include "UILayout.h"
 #include "Video.h"
+#include "Viewport_Zoom.h"
 #include "VObject.h"
 #include "VObject_Blitters.h"
 #include "VSurface.h"
@@ -2064,6 +2066,32 @@ static UINT ScrollSpeed(void)
 }
 
 
+// While the viewport is zoomed, scrolling where the world cannot move any
+// further (the map's edge) moves the zoomed part of the frame instead, so
+// every edge of the map can be reached. Same speed as scrolling the world:
+// ScrollSpeed() pixels per NEXTSCROLL (20 ms), half of it vertically.
+static void PanZoomedViewport(UINT32 const ScrollFlags)
+{
+	static UINT32 uiLastPanTime = 0;
+	UINT32 const now = GetClock();
+	UINT32 const dt  = std::min<UINT32>(now - uiLastPanTime, 50);
+	uiLastPanTime = now;
+
+	if (ScrollFlags == 0 || !ViewportZoomIsActive()) return;
+
+	INT16 const speed = ScrollSpeed();
+	INT32 const step  = std::max<INT32>(1, speed * dt / 20);
+
+	INT32 dx = 0;
+	INT32 dy = 0;
+	if (ScrollFlags & SCROLL_LEFT  && !HandleScrollDirections(SCROLL_LEFT,  speed, speed / 2, TRUE)) dx -= step;
+	if (ScrollFlags & SCROLL_RIGHT && !HandleScrollDirections(SCROLL_RIGHT, speed, speed / 2, TRUE)) dx += step;
+	if (ScrollFlags & SCROLL_UP    && !HandleScrollDirections(SCROLL_UP,    speed, speed / 2, TRUE)) dy -= std::max<INT32>(1, step / 2);
+	if (ScrollFlags & SCROLL_DOWN  && !HandleScrollDirections(SCROLL_DOWN,  speed, speed / 2, TRUE)) dy += std::max<INT32>(1, step / 2);
+	ViewportZoomPan(dx, dy);
+}
+
+
 void ScrollWorld(void)
 {
 	static UINT8   ubOldScrollSpeed        = 0;
@@ -2099,6 +2127,10 @@ void ScrollWorld(void)
 			{
 				ubOldScrollSpeed = gubCurScrollSpeedID;
 				fFirstTimeInSlideToMode = FALSE;
+
+				// The slide brings the target to the render center: it has to
+				// end up in the zoomed part of the viewport too.
+				ViewportZoomCenterCrop();
 			}
 
 			ScrollFlags = 0;
@@ -2153,14 +2185,17 @@ void ScrollWorld(void)
 			}
 
 			if (!gfIsUsingTouch && !fIsScrollingByOffset) {
-				if (gusMouseYPos <  NO_PX_SHOW_EXIT_CURS)                       ScrollFlags |= SCROLL_UP;
-				if (gusMouseYPos >= SCREEN_HEIGHT - NO_PX_SCROLL_DOWN_TRIGGER)  ScrollFlags |= SCROLL_DOWN;
-				if (gusMouseXPos >= SCREEN_WIDTH  - NO_PX_SHOW_EXIT_CURS) ScrollFlags |= SCROLL_RIGHT;
-				if (gusMouseXPos <  NO_PX_SHOW_EXIT_CURS)                 ScrollFlags |= SCROLL_LEFT;
+				// The screen edges: the real mouse position, not the zoomed one.
+				if (gusPhysMouseYPos <  NO_PX_SHOW_EXIT_CURS)                       ScrollFlags |= SCROLL_UP;
+				if (gusPhysMouseYPos >= SCREEN_HEIGHT - NO_PX_SCROLL_DOWN_TRIGGER)  ScrollFlags |= SCROLL_DOWN;
+				if (gusPhysMouseXPos >= SCREEN_WIDTH  - NO_PX_SHOW_EXIT_CURS) ScrollFlags |= SCROLL_RIGHT;
+				if (gusPhysMouseXPos <  NO_PX_SHOW_EXIT_CURS)                 ScrollFlags |= SCROLL_LEFT;
 			}
 		}
 	}
 	while (FALSE);
+
+	PanZoomedViewport(ScrollFlags);
 
 	BOOLEAN fAGoodMove   = FALSE;
 	INT16   sScrollXStep = -1;
@@ -2281,6 +2316,9 @@ void InitRenderParams(UINT8 ubRestrictionID)
 
 		default: abort(); // HACK000E
 	}
+
+	// A new map (sector change, basement, loaded game): back to no zoom.
+	ViewportZoomReset();
 
 	// Convert Bounding box into screen coords
 	FromCellToScreenCoordinates(gTopLeftWorldLimitX,     gTopLeftWorldLimitY,     &gsLeftX, &gsTopY);
@@ -4357,6 +4395,10 @@ void SetRenderCenter(INT16 sNewX, INT16 sNewY)
 
 	// Apply these new coordinates to the renderer!
 	ApplyScrolling(sNewX, sNewY, TRUE, FALSE);
+
+	// What is put in the render center has to be in the middle of the zoomed
+	// part of the viewport too.
+	ViewportZoomCenterCrop();
 
 	// Set flag to ignore scrolling this frame
 	gfIgnoreScrollDueToCenterAdjust = TRUE;
