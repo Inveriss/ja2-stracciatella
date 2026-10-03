@@ -3,7 +3,9 @@
 #include "VObject.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <iterator>
+#include <vector>
 
 UINT16 IntensityTable[65536];
 UINT16 ShadeTable[65536];
@@ -59,6 +61,97 @@ void ApplyRGBAShade(RGBAShade const& s, UINT8& r, UINT8& g, UINT8& b)
 	r = static_cast<UINT8>(std::min(std::max<UINT32>(s.scaleR * vr / 256, s.minR), 255U));
 	g = static_cast<UINT8>(std::min(std::max<UINT32>(s.scaleG * vg / 256, s.minG), 255U));
 	b = static_cast<UINT8>(std::min(std::max<UINT32>(s.scaleB * vb / 256, s.minB), 255U));
+}
+
+
+static UINT32 Brightness(UINT32 const r, UINT32 const g, UINT32 const b)
+{
+	// as Create16BPPPaletteShaded()
+	return (r * 299 + g * 587 + b * 114) / 1000;
+}
+
+
+void BuildRGBARecolour(RGBARecolour& rc, SGPPaletteEntry const original[256], SGPPaletteEntry const changed[256], PaletteRange const* const ranges, size_t const rangeCount)
+{
+	std::copy_n(changed, 256, rc.palette);
+	std::fill(std::begin(rc.range), std::end(rc.range), RGBARecolour::NO_RANGE);
+
+	for (size_t i = 0; i != rangeCount && i != RGBARecolour::MAX_RANGES; ++i)
+	{
+		PaletteRange const& pr = ranges[i];
+		if (pr.end < pr.start) continue;
+		for (UINT32 idx = pr.start; idx <= pr.end; ++idx) rc.range[idx] = static_cast<UINT8>(i);
+
+		// the brightness of the original colours of the range
+		size_t const n = pr.end - pr.start + 1U;
+		std::vector<INT32> lum(n);
+		for (size_t k = 0; k != n; ++k)
+		{
+			SGPPaletteEntry const& c = original[pr.start + k];
+			lum[k] = static_cast<INT32>(Brightness(c.r, c.g, c.b));
+		}
+
+		for (INT32 v = 0; v != 256; ++v)
+		{
+			UINT8* const out = rc.ramp[i][v];
+			// between two neighbouring colours of the range: interpolated
+			bool found = false;
+			for (size_t k = 0; k + 1 < n && !found; ++k)
+			{
+				INT32 const a = lum[k];
+				INT32 const b = lum[k + 1];
+				if (v < std::min(a, b) || v > std::max(a, b)) continue;
+				SGPPaletteEntry const& c0 = changed[pr.start + k];
+				SGPPaletteEntry const& c1 = changed[pr.start + k + 1];
+				// v is num/den of the way from colour k to colour k + 1
+				INT32 const den = std::abs(b - a);
+				INT32 const num = std::abs(v - a);
+				auto const lerp = [&](INT32 const x0, INT32 const x1)
+				{
+					if (den == 0) return static_cast<UINT8>(x0);
+					INT32 const d = (x1 - x0) * num;
+					INT32 const step = (std::abs(d) * 2 + den) / (den * 2);
+					return static_cast<UINT8>(d < 0 ? x0 - step : x0 + step);
+				};
+				out[0] = lerp(c0.r, c1.r);
+				out[1] = lerp(c0.g, c1.g);
+				out[2] = lerp(c0.b, c1.b);
+				found = true;
+			}
+			if (found) continue;
+
+			// outside the range: the nearest colour
+			size_t best = 0;
+			for (size_t k = 1; k != n; ++k)
+			{
+				if (std::abs(lum[k] - v) < std::abs(lum[best] - v)) best = k;
+			}
+			SGPPaletteEntry const& c = changed[pr.start + best];
+			out[0] = c.r;
+			out[1] = c.g;
+			out[2] = c.b;
+		}
+	}
+}
+
+
+void ApplyRGBARecolour(RGBARecolour const& rc, UINT8 const maskIndex, UINT8& r, UINT8& g, UINT8& b)
+{
+	UINT8 const range = rc.range[maskIndex];
+	if (range != RGBARecolour::NO_RANGE)
+	{
+		UINT8 const* const c = rc.ramp[range][Brightness(r, g, b)];
+		r = c[0];
+		g = c[1];
+		b = c[2];
+	}
+	else
+	{
+		SGPPaletteEntry const& c = rc.palette[maskIndex];
+		r = c.r;
+		g = c.g;
+		b = c.b;
+	}
 }
 
 

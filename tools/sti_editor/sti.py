@@ -69,6 +69,10 @@ AUX_FLAG_NAMES = [
 STCI_ID = b"STCI"
 PALETTE_SIZE = 256
 
+# The palette ranges whose colours the game changes for people (hair, pants,
+# skin, vest; binarydata/ja2pal.dat), as (first, last) index.
+CHARACTER_PALETTE_RANGES = [(245, 250), (205, 219), (235, 244), (220, 234)]
+
 # STCIHeader: cID, uiOriginalSize, uiStoredSize, uiTransparentValue, fFlags,
 # usHeight, usWidth, <20-byte union>, ubDepth, <3 padding bytes>,
 # uiAppDataSize, cUnused[12]. The padding bytes are kept verbatim.
@@ -414,6 +418,14 @@ class RGBImage:
         return Image.frombytes("RGBA", (w, h), bytes(out))
 
 
+def colour_mask_path(path) -> str:
+    """<name>.mask.png for <name>.png: the colour mask the game reads next to
+    a full colour PNG (src/sgp/PNG.cc, ColourMaskFileName())."""
+    path = str(path)
+    stem = path[:-4] if path.lower().endswith(".png") else path
+    return stem + ".mask.png"
+
+
 class STIFile:
     def __init__(self):
         self.original_size = 0
@@ -702,7 +714,8 @@ class STIFile:
             paths.append(p)
         return paths
 
-    def export_indexed_sheet(self, path, max_width: int = 1024, frame_duration: int = 0) -> Tuple[Optional[str], List[str]]:
+    def export_indexed_sheet(self, path, max_width: int = 1024, frame_duration: int = 0,
+                             mask_ranges: Optional[Sequence[Tuple[int, int]]] = None) -> Tuple[Optional[str], List[str]]:
         """Write all frames of an indexed STI as one palettised PNG that the
         game loads instead of the STI (src/sgp/PNG.cc): palette indices are
         kept as they are, transparent pixels get index 0 (which the game always
@@ -717,7 +730,12 @@ class STIFile:
 
         An animated STI (see animation_frames_per_direction()) gets the
         "animation" section the game needs for animations in the game world
-        and one row per direction on the sheet."""
+        and one row per direction on the sheet.
+
+        With mask_ranges, the colour mask of the sheet is written too, to
+        <name>.mask.png for <name>.png: the palette indices of the pixels in
+        those ranges, 0 elsewhere (what a full colour version of a character
+        needs, see docs/png-images.md)."""
         from PIL import Image
         if not self.is_indexed or self.is_rgb or not self.frames:
             raise STIError("only indexed STI files with frames can be exported as a PNG sheet")
@@ -749,6 +767,13 @@ class STIFile:
         img.putpalette(pal + [0] * (PALETTE_SIZE * 3 - len(pal)))
         img.info["transparency"] = 0
         img.save(path, "PNG", transparency=0)
+
+        if mask_ranges:
+            in_range = [any(a <= i <= b for a, b in mask_ranges) for i in range(PALETTE_SIZE)]
+            mask = bytes(i if in_range[i] else 0 for i in sheet)
+            mask_img = Image.frombytes("P", (sheet_w, sheet_h), mask)
+            mask_img.putpalette(pal + [0] * (PALETTE_SIZE * 3 - len(pal)))
+            mask_img.save(colour_mask_path(path), "PNG", transparency=0)
 
         json_path = None
         f0 = self.frames[0]

@@ -136,9 +136,18 @@ SGPImage* ConvertRGBAPNGToImage(DecodedPNG const& png, std::vector<PNGFrame> con
 // fContents selects what is filled in (IMAGE_PALETTE, IMAGE_BITMAPDATA).
 SGPImage* ConvertPNGToSurfaceImage(DecodedPNG const& png, UINT16 fContents);
 
+// Adds the colour mask of a full colour image made by ConvertRGBAPNGToImage()
+// from the same frames: mask is a palettised PNG of the same size, whose
+// palette indices become SGPImage::colourMask. name is only used in messages.
+void AddColourMask(SGPImage& img, DecodedPNG const& mask, std::vector<PNGFrame> const& frames, ST::string const& name);
+
+// The colour mask of a full colour PNG: <name>.mask.png for <name>.png.
+ST::string ColourMaskFileName(ST::string const& filename);
+
 // Loads a PNG game resource as an SGPImage. With IMAGE_FOR_SURFACE in
 // fContents, see ConvertPNGToSurfaceImage(). Otherwise the metadata is read
 // from <filename>.json if that exists (else the whole image is one frame) and
 // the image is converted by ConvertIndexedPNGToImage() or, for full colour
-// PNGs, ConvertRGBAPNGToImage() (not with IMAGE_NEEDS_PALETTE).
+// PNGs, ConvertRGBAPNGToImage() (not with IMAGE_NEEDS_PALETTE; with
+// IMAGE_COLOUR_MASK only if the colour mask exists, see AddColourMask()).
 SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 fContents);

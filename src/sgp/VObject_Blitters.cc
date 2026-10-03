@@ -5720,7 +5720,7 @@ void Blt32BPPDataTo16BPPBufferAlphaZ(UINT16* const buf, UINT32 const uiDestPitch
 }
 
 
-void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* const buf, UINT32 const uiDestPitchBYTES, UINT16* const pZBuffer, UINT16 const usZValue, SGPVObject const* const hSrcVObject, INT32 const iX, INT32 const iY, UINT16 const usIndex, SGPRect const* const clipregion, RGBAShade const& shade, bool const writeZ, bool const obscured, bool const translucent)
+void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* const buf, UINT32 const uiDestPitchBYTES, UINT16* const pZBuffer, UINT16 const usZValue, SGPVObject const* const hSrcVObject, INT32 const iX, INT32 const iY, UINT16 const usIndex, SGPRect const* const clipregion, RGBAShade const& shade, RGBARecolour const* const recolour, bool const writeZ, bool const obscured, bool const translucent)
 {
 	Assert(hSrcVObject);
 	Assert(buf);
@@ -5730,6 +5730,7 @@ void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* const buf, UINT32 const uiDestPitch
 	if (c.empty) return;
 
 	UINT8  const* const rgba  = hSrcVObject->RGBAData(e);
+	UINT8  const* const cmask = recolour ? hSrcVObject->ColourMask(e) : nullptr;
 	UINT32        const pitch = uiDestPitchBYTES / 2;
 	Format16      const f;
 
@@ -5738,6 +5739,7 @@ void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* const buf, UINT32 const uiDestPitch
 		size_t const  row = static_cast<size_t>(c.top + y) * pitch + c.left + c.x0;
 		UINT16*       dst = buf + row;
 		UINT16*       z   = pZBuffer ? pZBuffer + row : nullptr;
+		UINT8  const* m   = cmask ? cmask + static_cast<size_t>(y) * e.usWidth : nullptr;
 		UINT8  const* src = rgba + (static_cast<size_t>(y) * e.usWidth + c.x0) * 4;
 		// the checkerboard of the obscured 8 bit blitters
 		bool          odd = ((c.top + y) & 1) != ((c.left + c.x0) & 1);
@@ -5757,7 +5759,11 @@ void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* const buf, UINT32 const uiDestPitch
 			UINT8 g = src[1];
 			UINT8 b = src[2];
 			bool const shadow = r == 0 && g == 0 && b == 0 && src[3] != 255;
-			if (!shadow) ApplyRGBAShade(shade, r, g, b);
+			if (!shadow)
+			{
+				if (m && m[x] != 0) ApplyRGBARecolour(*recolour, m[x], r, g, b);
+				ApplyRGBAShade(shade, r, g, b);
+			}
 
 			if (alpha == 255)
 			{
@@ -5777,7 +5783,7 @@ void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* const buf, UINT32 const uiDestPitch
 }
 
 
-void Blt32BPPDataTo16BPPBufferShadeZStrips(UINT16* const buf, UINT32 const uiDestPitchBYTES, UINT16* const pZBuffer, UINT16 const usZValue, SGPVObject const* const hSrcVObject, INT32 const iX, INT32 const iY, UINT16 const usIndex, SGPRect const* const clipregion, INT16 const sZIndex, UINT16 const zSublayers, RGBAShade const& shade, bool const obscured)
+void Blt32BPPDataTo16BPPBufferShadeZStrips(UINT16* const buf, UINT32 const uiDestPitchBYTES, UINT16* const pZBuffer, UINT16 const usZValue, SGPVObject const* const hSrcVObject, INT32 const iX, INT32 const iY, UINT16 const usIndex, SGPRect const* const clipregion, INT16 const sZIndex, UINT16 const zSublayers, RGBAShade const& shade, RGBARecolour const* const recolour, bool const obscured)
 {
 	Assert(hSrcVObject);
 	Assert(buf);
@@ -5827,11 +5833,13 @@ void Blt32BPPDataTo16BPPBufferShadeZStrips(UINT16* const buf, UINT32 const uiDes
 	}
 
 	UINT8  const* const rgba  = hSrcVObject->RGBAData(e);
+	UINT8  const* const cmask = recolour ? hSrcVObject->ColourMask(e) : nullptr;
 	UINT32        const pitch = uiDestPitchBYTES / 2;
 	Format16      const f;
 
 	for (INT32 y = c.y0; y != c.y1; ++y)
 	{
+		UINT8  const* m       = cmask ? cmask + static_cast<size_t>(y) * e.usWidth : nullptr;
 		size_t const  row     = static_cast<size_t>(c.top + y) * pitch + c.left + c.x0;
 		UINT16*       dst     = buf + row;
 		UINT16*       z       = pZBuffer + row;
@@ -5849,7 +5857,11 @@ void Blt32BPPDataTo16BPPBufferShadeZStrips(UINT16* const buf, UINT32 const uiDes
 				UINT8 g = src[1];
 				UINT8 b = src[2];
 				bool const shadow = r == 0 && g == 0 && b == 0 && src[3] != 255;
-				if (!shadow) ApplyRGBAShade(shade, r, g, b);
+				if (!shadow)
+				{
+					if (m && m[x] != 0) ApplyRGBARecolour(*recolour, m[x], r, g, b);
+					ApplyRGBAShade(shade, r, g, b);
+				}
 
 				UINT32 const alpha = src[3];
 				if (alpha == 255)

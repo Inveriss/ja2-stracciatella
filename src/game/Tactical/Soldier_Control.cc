@@ -84,6 +84,7 @@
 #include <array>
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 #include <string_theory/string>
 
 #define PALETTEFILENAME			BINARYDATADIR "/ja2pal.dat"
@@ -4651,6 +4652,10 @@ void CreateSoldierPalettes(SOLDIERTYPE& s)
 
 	SGPPaletteEntry tmp_pal[256];
 	std::fill_n(tmp_pal, 256, SGPPaletteEntry{});
+	// the palette of the animations before the changes, for full colour
+	// animations with a colour mask
+	SGPPaletteEntry original[256];
+	std::fill_n(original, 256, SGPPaletteEntry{});
 
 	SGPPaletteEntry const*       pal;
 	char            const* const substitution = GetBodyTypePaletteSubstitution(&s, s.ubBodyType);
@@ -4662,6 +4667,7 @@ void CreateSoldierPalettes(SOLDIERTYPE& s)
 		{
 			// Use palette from HVOBJECT, then use substitution for pants, etc
 			GetAnimationSurfacePalette(palette_anim_surface, tmp_pal);
+			std::copy_n(tmp_pal, 256, original);
 
 			// Substitute based on head, etc
 			SetPaletteReplacement(tmp_pal, s.HeadPal);
@@ -4673,14 +4679,17 @@ void CreateSoldierPalettes(SOLDIERTYPE& s)
 	}
 	else if (substitution[0] != '\0' && CreateSGPPaletteFromCOLFile(tmp_pal, substitution))
 	{
+		GetAnimationSurfacePalette(anim_surface, original);
 		pal = tmp_pal;
 	}
 	else
 	{
 		// Use palette from hvobject
 		GetAnimationSurfacePalette(anim_surface, tmp_pal);
+		std::copy_n(tmp_pal, 256, original);
 		pal = tmp_pal;
 	}
+	BuildCharacterRecolour(s.rgbaRecolour, original, pal);
 
 
 	for (INT32 i = 0; i < NUM_SOLDIER_SHADES; ++i)
@@ -4996,6 +5005,17 @@ void SetSoldierAniSpeed(SOLDIERTYPE* pSoldier)
 ///////////////////////////////////////////////////////
 //PALETTE REPLACEMENT FUNCTIONS
 ///////////////////////////////////////////////////////
+void BuildCharacterRecolour(RGBARecolour& rc, SGPPaletteEntry const original[256], SGPPaletteEntry const changed[256])
+{
+	std::vector<PaletteRange> ranges;
+	for (UINT32 i = 0; i != guiNumPaletteSubRanges; ++i)
+	{
+		ranges.push_back(PaletteRange{ gpPaletteSubRanges[i].ubStart, gpPaletteSubRanges[i].ubEnd });
+	}
+	BuildRGBARecolour(rc, original, changed, ranges.data(), ranges.size());
+}
+
+
 void LoadPaletteData()
 {
 	UINT32 cnt, cnt2;

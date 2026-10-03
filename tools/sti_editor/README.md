@@ -40,7 +40,7 @@ py -3 tools/sti_editor/sti_tool.py export    plik.sti KATALOG [--frame N] [--mas
 py -3 tools/sti_editor/sti_tool.py roundtrip plik1.sti [plik2.sti ...]
 py -3 tools/sti_editor/sti_tool.py palette-export plik.sti paleta.pal [--format jasc|riff|act|gpl|png]
 py -3 tools/sti_editor/sti_tool.py palette-import plik.sti paleta.pal wynik.sti
-py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti wynik.png [--max-width N] [--duration MS]
+py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti wynik.png [--max-width N] [--duration MS] [--mask]
 py -3 tools/sti_editor/sti_tool.py png-assemble KATALOG_KLATEK --out wynik.png [--max-width N] [--duration MS] [--durations MS,MS,...]
 ```
 
@@ -60,7 +60,10 @@ klatek animacji w milisekundach (`frameDuration`, opis w `docs/png-images.md`).
 Dla animowanych STI (dane aux to tylko liczby klatek animacji: postacie,
 eksplozje, kursory) zapisywana jest sekcja `"animation": { "framesPerDirection":
 N }`, a każdy kierunek trafia do osobnego rzędu arkusza. Inne dane aux (np.
-tilesetów) nie są eksportowane – wtedy pojawia się ostrzeżenie.
+tilesetów) nie są eksportowane – wtedy pojawia się ostrzeżenie. `--mask`
+zapisuje też maskę kolorów `wynik.mask.png` (ten sam układ, indeksy pikseli z
+zakresów podmiany kolorów ludzi, 0 gdzie indziej), potrzebną wersji postaci w
+pełnym kolorze (`docs/png-images.md`).
 
 `png-assemble` składa osobne pliki klatek (katalog z plikami PNG w kolejności
 nazw albo lista plików) w jeden arkusz `wynik.png` z `wynik.png.json`. Gdy

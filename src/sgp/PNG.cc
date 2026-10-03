@@ -787,6 +787,42 @@ SGPImage* ConvertPNGToSurfaceImage(DecodedPNG const& png, UINT16 const fContents
 }
 
 
+void AddColourMask(SGPImage& img, DecodedPNG const& mask, std::vector<PNGFrame> const& frames, ST::string const& name)
+{
+	if (mask.kind != DecodedPNG::Kind::Indexed)
+	{
+		Fail(ST::format("{}: the colour mask must be a palettised PNG", name));
+	}
+	if (!(img.fFlags & IMAGE_RGBA) || mask.width != img.usWidth || mask.height != img.usHeight ||
+		frames.size() != img.usNumberOfObjects)
+	{
+		Fail(ST::format("{}: the colour mask must have the size of the image ({}x{})", name, img.usWidth, img.usHeight));
+	}
+
+	std::vector<UINT8> data(img.uiSizePixData / 4);
+	for (size_t i = 0; i != frames.size(); ++i)
+	{
+		PNGFrame    const& f = frames[i];
+		ETRLEObject const& o = img.pETRLEObject[i];
+		for (UINT16 y = 0; y != f.height; ++y)
+		{
+			UINT8 const* const src = mask.pixels.data() + (size_t{f.y} + y) * mask.width + f.x;
+			std::copy(src, src + f.width, data.begin() + o.uiDataOffset / 4 + size_t{y} * f.width);
+		}
+	}
+	img.colourMask = std::move(data);
+}
+
+
+ST::string ColourMaskFileName(ST::string const& filename)
+{
+	ST::string const stem =
+		filename.size() >= 4 && filename.substr(filename.size() - 4).compare_i(".png") == 0 ?
+		filename.substr(0, filename.size() - 4) : filename;
+	return stem + ".mask.png";
+}
+
+
 SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 const fContents)
 {
 	DecodedPNG const png = DecodePNGFile(filename);
@@ -832,5 +868,21 @@ SGPImage* LoadPNGFileToImage(ST::string const& filename, UINT16 const fContents)
 	{
 		Fail(ST::format("{}: this image is used with its palette, so it must be a palettised PNG", filename));
 	}
-	return ConvertRGBAPNGToImage(png, frames, fContents, filename, meta.outline, meta.framesPerDirection);
+	if (!(fContents & IMAGE_COLOUR_MASK))
+	{
+		return ConvertRGBAPNGToImage(png, frames, fContents, filename, meta.outline, meta.framesPerDirection);
+	}
+
+	// Recoloured by the game: only with the colour mask
+	ST::string const maskName = ColourMaskFileName(filename);
+	if (!GCM->doesGameResExists(maskName))
+	{
+		Fail(ST::format("{}: the game changes the colours of this image, so a full colour PNG needs its colour mask {}", filename, maskName));
+	}
+	AutoSGPImage img(ConvertRGBAPNGToImage(png, frames, fContents, filename, meta.outline, meta.framesPerDirection));
+	if (fContents & IMAGE_BITMAPDATA)
+	{
+		AddColourMask(*img, DecodePNGFile(maskName), frames, maskName);
+	}
+	return img.release();
 }

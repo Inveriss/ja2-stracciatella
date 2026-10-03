@@ -37,4 +37,38 @@ RGBAShade MakeRGBAShade(UINT32 rscale, UINT32 gscale, UINT32 bscale, bool mono);
 // Changes the colour in place.
 void ApplyRGBAShade(RGBAShade const&, UINT8& r, UINT8& g, UINT8& b);
 
+
+// A range of palette indices whose colours the game changes together (the
+// hair, skin, vest and pants of characters, binarydata/ja2pal.dat).
+struct PaletteRange
+{
+	UINT8 start;
+	UINT8 end; // inclusive
+};
+
+// The colours of a character for the pixels of a full colour image that its
+// colour mask names (SGPVObject::ColourMask(), docs/png-images.md):
+// - a palette index in one of the ranges: the brightness of the pixel is
+//   found on the colours of that range in the original palette (they go from
+//   light to dark), and the pixel gets the colour at the same place of the
+//   range in the character's palette;
+// - any other index: the colour of that index in the character's palette.
+struct RGBARecolour
+{
+	static constexpr size_t MAX_RANGES = 8;
+	static constexpr UINT8  NO_RANGE   = 0xFF;
+
+	SGPPaletteEntry palette[256];          // the character's palette
+	UINT8           range[256];            // the range of each index, or NO_RANGE
+	UINT8           ramp[MAX_RANGES][256][3]; // colour by brightness, for each range
+};
+
+// original: the palette of the image (as the artist used it); changed: the
+// palette of the character. Ranges beyond MAX_RANGES get the colours of the
+// character's palette.
+void BuildRGBARecolour(RGBARecolour&, SGPPaletteEntry const original[256], SGPPaletteEntry const changed[256], PaletteRange const* ranges, size_t rangeCount);
+
+// Changes the colour of a pixel whose colour mask index is maskIndex (not 0).
+void ApplyRGBARecolour(RGBARecolour const&, UINT8 maskIndex, UINT8& r, UINT8& g, UINT8& b);
+
 #endif

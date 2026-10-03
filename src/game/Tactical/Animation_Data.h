@@ -542,10 +542,16 @@ void DeInitAnimationSystem(void);
 void LoadAnimationSurface(UINT16 usSoldierID, UINT16 usSurfaceIndex, UINT16 usAnimState);
 void UnLoadAnimationSurface(UINT16 usSoldierID, UINT16 usSurfaceIndex);
 
-// Whether a full colour PNG may replace the animation: only animations
-// without palette colour changes (animals, robot, vehicles, the queen
-// creature; docs/png-images.md).
-bool AnimationSurfaceAllowsFullColour(UINT16 usSurfaceIndex);
+// Whether a full colour PNG may replace the animation (docs/png-images.md).
+enum class AnimationColours
+{
+	Palette,    // palettised only: creatures whose colours come from .COL files
+	FullColour, // also full colour: no palette colour changes (animals, robot,
+	            // vehicles, the queen, infant and larva creatures)
+	ColourMask  // also full colour with a colour mask: people, whose clothing,
+	            // hair and skin colours change
+};
+AnimationColours GetAnimationSurfaceColours(UINT16 usSurfaceIndex);
 
 // The palette of a loaded animation surface. A full colour PNG has none: then
 // the palette of the image it replaces.

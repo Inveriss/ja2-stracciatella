@@ -84,6 +84,12 @@ class SGPVObject
 		// in its .png.json).
 		UINT8 const* OutlineMask(ETRLEObject const&) const;
 
+		// Colour mask of a subimage of a 32 bit object, one palette index per
+		// pixel: 0 for the colour of the pixel itself, otherwise the palette
+		// index whose colour the character gets there (clothing, hair, skin;
+		// docs/png-images.md). Null if the image has no colour mask.
+		UINT8 const* ColourMask(ETRLEObject const&) const;
+
 		/* Given a ETRLE image index, retrieves the value of the pixel located at
 		 * the given image coordinates. The value returned is an 8-bit palette index
 		 */
@@ -110,6 +116,7 @@ class SGPVObject
 		std::unique_ptr<UINT8 const []> pix_data_;                   // ETRLE pixel data, or RGBA rows
 		std::unique_ptr<ETRLEObject const []> etrle_object_;         // Object offset data etc
 		std::unique_ptr<UINT8 []>    outline_mask_;                  // 32 bit objects: see OutlineMask()
+		std::vector<UINT8>           colour_mask_;                   // 32 bit objects: see ColourMask()
 	public:
 		UINT16*                      pShades[HVOBJECT_SHADE_TABLES]; // Shading tables
 	private:

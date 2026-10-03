@@ -50,6 +50,7 @@ SGPVObject::SGPVObject(SGPImage * const img) :
 			throw std::runtime_error("RGBA image for video object creation must be 32 bit");
 		}
 		if (!(img->fFlags & IMAGE_NO_OUTLINE)) BuildOutlineMask();
+		colour_mask_ = std::move(img->colourMask);
 	}
 	else
 	{
@@ -181,6 +182,16 @@ UINT8 const* SGPVObject::OutlineMask(ETRLEObject const& e) const
 		throw std::logic_error("Tried to read the outline mask of a palettised video object");
 	}
 	return outline_mask_ ? &outline_mask_[e.uiDataOffset / 4] : nullptr;
+}
+
+
+UINT8 const* SGPVObject::ColourMask(ETRLEObject const& e) const
+{
+	if (!IsRGBA())
+	{
+		throw std::logic_error("Tried to read the colour mask of a palettised video object");
+	}
+	return colour_mask_.empty() ? nullptr : &colour_mask_[e.uiDataOffset / 4];
 }
 
 

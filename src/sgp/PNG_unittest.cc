@@ -1876,7 +1876,7 @@ void BlitShaded(ZTarget& t, SGPVObject const* const vo, INT32 const x, INT32 con
 {
 	SGPRect const clip{ 0, 0, t.surface.Width(), t.surface.Height() };
 	SGPVSurface::Lock l(&t.surface);
-	Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), useZ ? t.zbuf.data() : nullptr, z, vo, x, y, 0, &clip, shade, writeZ, obscured, translucent);
+	Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), useZ ? t.zbuf.data() : nullptr, z, vo, x, y, 0, &clip, shade, nullptr, writeZ, obscured, translucent);
 }
 
 }
@@ -1942,20 +1942,24 @@ TEST(PNG, rgbaShadeBlitterZObscuredAndNoZ)
 
 TEST(PNG, fullColourCharacterAnimations)
 {
-	// only animations without palette colour changes
-	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(CROWWALKING));
-	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(CROWFLYING));
-	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(ROBOTNWBREATH));
-	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(COWSTANDING));
-	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(CATBREATH));
-	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(QUEENMONSTERSTANDING));
-	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(HUMVEE_BASIC));
-	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(TANKNE_DIE));
-	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(RGMSTANDING));
-	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(AFMONSTERSTANDING));
-	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(LVBREATH));
-	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(KIDCIVSTANDING));
-	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(BODYEXPLODE));
+	using C = AnimationColours;
+	// no palette colour changes: full colour
+	EXPECT_EQ(GetAnimationSurfaceColours(CROWWALKING),          C::FullColour);
+	EXPECT_EQ(GetAnimationSurfaceColours(ROBOTNWBREATH),        C::FullColour);
+	EXPECT_EQ(GetAnimationSurfaceColours(COWSTANDING),          C::FullColour);
+	EXPECT_EQ(GetAnimationSurfaceColours(CATBREATH),            C::FullColour);
+	EXPECT_EQ(GetAnimationSurfaceColours(QUEENMONSTERSTANDING), C::FullColour);
+	EXPECT_EQ(GetAnimationSurfaceColours(HUMVEE_BASIC),         C::FullColour);
+	EXPECT_EQ(GetAnimationSurfaceColours(TANKNE_DIE),           C::FullColour);
+	EXPECT_EQ(GetAnimationSurfaceColours(LVBREATH),             C::FullColour);
+	EXPECT_EQ(GetAnimationSurfaceColours(IATTACK),              C::FullColour);
+	// people: with a colour mask
+	EXPECT_EQ(GetAnimationSurfaceColours(RGMSTANDING),          C::ColourMask);
+	EXPECT_EQ(GetAnimationSurfaceColours(KIDCIVSTANDING),       C::ColourMask);
+	EXPECT_EQ(GetAnimationSurfaceColours(BODYEXPLODE),          C::ColourMask);
+	// adult creatures (.COL palettes): palettised only
+	EXPECT_EQ(GetAnimationSurfaceColours(AFMONSTERSTANDING),    C::Palette);
+	EXPECT_EQ(GetAnimationSurfaceColours(AFMMELT),              C::Palette);
 }
 
 
@@ -1994,7 +1998,7 @@ std::unique_ptr<SGPVObject> StripRGBAObject(size_t const transparentColumn = SIZ
 void BlitStrips(ZTarget& t, SGPVObject const* const vo, SGPRect const& clip, bool const obscured)
 {
 	SGPVSurface::Lock l(&t.surface);
-	Blt32BPPDataTo16BPPBufferShadeZStrips(l.Buffer<UINT16>(), l.Pitch(), t.zbuf.data(), 100, vo, 0, 0, 0, &clip, 0, Z_SUBLAYERS, RGBA_SHADE_NONE, obscured);
+	Blt32BPPDataTo16BPPBufferShadeZStrips(l.Buffer<UINT16>(), l.Pitch(), t.zbuf.data(), 100, vo, 0, 0, 0, &clip, 0, Z_SUBLAYERS, RGBA_SHADE_NONE, nullptr, obscured);
 }
 
 }
@@ -2059,4 +2063,221 @@ TEST(PNG, rgbaZStripsObscured)
 	BlitStrips(f, vo.get(), SGPRect{ 0, 0, 45, 1 }, true);
 	EXPECT_EQ(Pixel(f.surface, 1, 0), 0xF800);
 	EXPECT_EQ(f.Z(1, 0), 100);
+}
+
+
+// ---------------------------------------------------------------------------
+// Full colour people: colour masks
+
+namespace
+{
+
+// Palette with a grey range 10..13 going from light to dark (brightness 200,
+// 150, 100, 50) and other colours elsewhere.
+std::vector<SGPPaletteEntry> RecolourOriginal()
+{
+	std::vector<SGPPaletteEntry> pal(256, SGPPaletteEntry{ 1, 2, 3, 0 });
+	UINT8 const greys[] = { 200, 150, 100, 50 };
+	for (size_t k = 0; k != 4; ++k) pal[10 + k] = SGPPaletteEntry{ greys[k], greys[k], greys[k], 0 };
+	pal[40] = SGPPaletteEntry{ 9, 8, 7, 0 };
+	return pal;
+}
+
+// The same with the range in reds and index 40 changed
+std::vector<SGPPaletteEntry> RecolourChanged()
+{
+	std::vector<SGPPaletteEntry> pal = RecolourOriginal();
+	UINT8 const reds[] = { 240, 180, 120, 60 };
+	for (size_t k = 0; k != 4; ++k) pal[10 + k] = SGPPaletteEntry{ reds[k], 0, 0, 0 };
+	pal[40] = SGPPaletteEntry{ 70, 80, 90, 0 };
+	return pal;
+}
+
+std::unique_ptr<RGBARecolour> MakeTestRecolour()
+{
+	auto rc = std::make_unique<RGBARecolour>();
+	PaletteRange const range{ 10, 13 };
+	std::vector<SGPPaletteEntry> const original = RecolourOriginal();
+	std::vector<SGPPaletteEntry> const changed  = RecolourChanged();
+	BuildRGBARecolour(*rc, original.data(), changed.data(), &range, 1);
+	return rc;
+}
+
+void Recolour(RGBARecolour const& rc, UINT8 const index, UINT8 const r, UINT8 const g, UINT8 const b, UINT8 const er, UINT8 const eg, UINT8 const eb)
+{
+	UINT8 rr = r, gg = g, bb = b;
+	ApplyRGBARecolour(rc, index, rr, gg, bb);
+	EXPECT_EQ(rr, er) << "index " << int(index) << " from " << int(r) << "," << int(g) << "," << int(b);
+	EXPECT_EQ(gg, eg);
+	EXPECT_EQ(bb, eb);
+}
+
+}
+
+
+TEST(PNG, recolourFollowsBrightnessOnTheRange)
+{
+	std::unique_ptr<RGBARecolour> const rc = MakeTestRecolour();
+
+	// the original colours of the range become the changed ones, whichever
+	// index of the range the mask names
+	Recolour(*rc, 10, 200, 200, 200, 240, 0, 0);
+	Recolour(*rc, 12, 150, 150, 150, 180, 0, 0);
+	Recolour(*rc, 13, 50, 50, 50, 60, 0, 0);
+	// in between: interpolated
+	Recolour(*rc, 11, 125, 125, 125, 150, 0, 0);
+	Recolour(*rc, 11, 175, 175, 175, 210, 0, 0);
+	// a coloured pixel: by its brightness (0.299 * 255 = 76)
+	Recolour(*rc, 11, 255, 0, 0, 91, 0, 0);
+	// lighter or darker than the range: its lightest or darkest colour
+	Recolour(*rc, 10, 255, 255, 255, 240, 0, 0);
+	Recolour(*rc, 10, 0, 0, 0, 60, 0, 0);
+	// outside the ranges: the colour of the index in the changed palette
+	Recolour(*rc, 40, 1, 2, 3, 70, 80, 90);
+	Recolour(*rc, 41, 1, 2, 3, 1, 2, 3);
+}
+
+
+TEST(PNG, recolourUnchangedPaletteKeepsTheRange)
+{
+	auto rc = std::make_unique<RGBARecolour>();
+	PaletteRange const range{ 10, 13 };
+	std::vector<SGPPaletteEntry> const original = RecolourOriginal();
+	BuildRGBARecolour(*rc, original.data(), original.data(), &range, 1);
+	Recolour(*rc, 10, 150, 150, 150, 150, 150, 150);
+	Recolour(*rc, 12, 120, 120, 120, 120, 120, 120);
+	EXPECT_EQ(rc->range[9], RGBARecolour::NO_RANGE);
+	EXPECT_EQ(rc->range[13], 0);
+}
+
+
+TEST(PNG, colourMaskFileName)
+{
+	EXPECT_EQ(ColourMaskFileName("anims/s_merc/s_r_std.png"), "anims/s_merc/s_r_std.mask.png");
+	EXPECT_EQ(ColourMaskFileName("A/B.PNG"), "A/B.mask.png");
+}
+
+
+namespace
+{
+
+// A 4x1 character: grey 150, shadow (black at alpha 128), opaque black,
+// transparent; its colour mask names range 10..13 for the first two pixels,
+// none for the black one and index 40 for the transparent one.
+std::unique_ptr<SGPVObject> MaskedCharacterObject()
+{
+	DecodedPNG png;
+	png.kind             = DecodedPNG::Kind::RGBA;
+	png.width            = 4;
+	png.height           = 1;
+	png.sourceColourType = 6;
+	png.sourceBitDepth   = 8;
+	png.pixels = { 150, 150, 150, 255,   0, 0, 0, 128,   0, 0, 0, 255,   0, 0, 0, 0 };
+	std::vector<PNGFrame> const frames{ PNGFrame{ 0, 0, 4, 1, 0, 0 } };
+	AutoSGPImage img(ConvertRGBAPNGToImage(png, frames, IMAGE_ALLIMAGEDATA, "test"));
+
+	DecodedPNG mask;
+	mask.kind   = DecodedPNG::Kind::Indexed;
+	mask.width  = 4;
+	mask.height = 1;
+	mask.palette.assign(256, SGPPaletteEntry{});
+	mask.pixels = { 12, 12, 0, 40 };
+	AddColourMask(*img, mask, frames, "test mask");
+	return std::unique_ptr<SGPVObject>(AddVideoObjectFromHImage(img.get()));
+}
+
+}
+
+
+TEST(PNG, colourMaskOfFrames)
+{
+	DecodedPNG const png = SmallRGBAPNG();
+	std::vector<PNGFrame> const frames{ { 1, 1, 2, 2, 0, 0 }, { 0, 0, 3, 1, 0, 0 } };
+	AutoSGPImage img(ConvertRGBAPNGToImage(png, frames, IMAGE_ALLIMAGEDATA, "test"));
+
+	DecodedPNG mask;
+	mask.kind   = DecodedPNG::Kind::Indexed;
+	mask.width  = 3;
+	mask.height = 3;
+	mask.palette.assign(256, SGPPaletteEntry{});
+	mask.pixels = { 1, 2, 3,  4, 5, 6,  7, 8, 9 };
+	AddColourMask(*img, mask, frames, "test");
+	EXPECT_EQ(img->colourMask, (std::vector<UINT8>{ 5, 6, 8, 9,  1, 2, 3 }));
+
+	// the colour mask must be palettised and of the same size
+	DecodedPNG wrongSize = mask;
+	wrongSize.width = 2;
+	EXPECT_THROW(AddColourMask(*img, wrongSize, frames, "test"), std::runtime_error);
+	EXPECT_THROW(AddColourMask(*img, png, frames, "test"), std::runtime_error);
+
+	std::unique_ptr<SGPVObject> const vo(AddVideoObjectFromHImage(img.get()));
+	UINT8 const* const m1 = vo->ColourMask(vo->SubregionProperties(1));
+	ASSERT_TRUE(m1 != nullptr);
+	EXPECT_EQ(m1[0], 1);
+	std::unique_ptr<SGPVObject> const plain = SmallRGBAObject();
+	EXPECT_TRUE(plain->ColourMask(plain->SubregionProperties(0)) == nullptr);
+}
+
+
+TEST(PNG, rgbaShadeBlitterRecolours)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = MaskedCharacterObject();
+	std::unique_ptr<RGBARecolour> const rc = MakeTestRecolour();
+	SGPRect const clip{ 0, 0, 4, 1 };
+
+	// grey 150 on the range becomes red 180, then halved by the shade; the
+	// shadow stays a shadow; mask 0 keeps the pixel's colour
+	ZTarget t(4, 1, BLUE_565, 0);
+	{
+		SGPVSurface::Lock l(&t.surface);
+		Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), t.zbuf.data(), 5, vo.get(), 0, 0, 0, &clip, MakeRGBAShade(128, 128, 128, false), rc.get(), false, false, false);
+	}
+	EXPECT_EQ(Pixel(t.surface, 0, 0), 0x5800); // 90 >> 3 = 11
+	EXPECT_EQ(Pixel(t.surface, 1, 0), 0x000F);
+	EXPECT_EQ(Pixel(t.surface, 2, 0), BLACK_SUBSTITUTE);
+	EXPECT_EQ(Pixel(t.surface, 3, 0), BLUE_565);
+
+	// without recolouring: the pixel's own colour
+	ZTarget n(4, 1, BLUE_565, 0);
+	{
+		SGPVSurface::Lock l(&n.surface);
+		Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), n.zbuf.data(), 5, vo.get(), 0, 0, 0, &clip, RGBA_SHADE_NONE, nullptr, false, false, false);
+	}
+	EXPECT_EQ(Pixel(n.surface, 0, 0), 0x94B2); // 150, 150, 150
+}
+
+
+TEST_F(PNGLoadTest, characterNeedsColourMask)
+{
+	UINT16 const flags = IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA | IMAGE_COLOUR_MASK;
+
+	// with its colour mask: full colour, the mask from <name>.mask.png
+	AutoSGPImage const masked(CreateImage("pngtest/anim_tile_rgba.sti", flags));
+	ASSERT_EQ(masked->ubBitDepth, 32);
+	ASSERT_EQ(masked->colourMask.size(), masked->uiSizePixData / 4);
+	// the mask of frame 2 is the part of the mask PNG at its place on the
+	// sheet (x = 14, see the generator)
+	DecodedPNG const maskPNG = DecodePNGFile("pngtest/anim_tile_rgba.mask.png");
+	ETRLEObject const& e = masked->pETRLEObject[2];
+	int nonZero = 0;
+	for (UINT16 y = 0; y != e.usHeight; ++y)
+	{
+		for (UINT16 x = 0; x != e.usWidth; ++x)
+		{
+			UINT8 const m = masked->colourMask[e.uiDataOffset / 4 + y * e.usWidth + x];
+			EXPECT_EQ(m, maskPNG.pixels[y * maskPNG.width + 14 + x]) << x << "," << y;
+			nonZero += m != 0;
+		}
+	}
+	EXPECT_GT(nonZero, 0);
+
+	// without one: the STI
+	AutoSGPImage const unmasked(CreateImage("pngtest/anim_tile_rgba_nomask.sti", flags));
+	EXPECT_EQ(unmasked->ubBitDepth, 8);
+	EXPECT_THROW(CreateImage("pngtest/anim_tile_rgba_nomask.png", flags), std::runtime_error);
+
+	// tile cache animations do not use the mask
+	AutoSGPImage const effect(CreateImage("pngtest/anim_tile_rgba.sti", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
+	EXPECT_TRUE(effect->colourMask.empty());
 }

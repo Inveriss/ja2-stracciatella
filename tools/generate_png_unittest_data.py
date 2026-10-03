@@ -330,6 +330,26 @@ def write_world_animations(palette):
         json.dump({"animation": {"framesPerDirection": 3}, "frames": frame_meta}, f, indent=2)
         f.write("\n")
 
+    # its colour mask: the palette index of every pixel (where characters
+    # loaded with IMAGE_COLOUR_MASK need one)
+    sheet = [0] * (sheet_w * sheet_h)
+    for x, y, w, h, _, _, pixels in frames:
+        for j in range(h):
+            for i in range(w):
+                sheet[(y + j) * sheet_w + x + i] = pixels[j * w + i] or 0
+    mask_rows = [bytes(sheet[r * sheet_w:(r + 1) * sheet_w]) for r in range(sheet_h)]
+    plte_chunk = chunk(b"PLTE", b"".join(bytes(c) for c in palette))
+    write_png("anim_tile_rgba.mask.png", ihdr(sheet_w, sheet_h, 8, 3), [plte_chunk],
+              filtered_image(mask_rows, 1, lambda r: 0), PAIR_DIR)
+
+    # the same RGBA PNG without a colour mask
+    aux_sti("anim_tile_rgba_nomask")
+    write_png("anim_tile_rgba_nomask.png", ihdr(sheet_w, sheet_h, 8, 6), [],
+              filtered_image(rows, 4, lambda r: r % 5), PAIR_DIR)
+    with open(os.path.join(PAIR_DIR, "anim_tile_rgba_nomask.png.json"), "w", encoding="utf-8") as f:
+        json.dump({"animation": {"framesPerDirection": 3}, "frames": frame_meta}, f, indent=2)
+        f.write("\n")
+
 
 # --- animations: frames with durations -----------------------------------------
 

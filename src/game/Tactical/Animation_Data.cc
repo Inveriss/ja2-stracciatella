@@ -656,10 +656,34 @@ STRUCTURE_FILE_REF* GetAnimationStructureRef(const SOLDIERTYPE* const s, const U
 }
 
 
-bool AnimationSurfaceAllowsFullColour(UINT16 const usSurfaceIndex)
+AnimationColours GetAnimationSurfaceColours(UINT16 const usSurfaceIndex)
 {
 	switch (usSurfaceIndex)
 	{
+		// the adult creatures (GetBodyTypePaletteSubstitution(): .COL palettes)
+		case AFMONSTERSTANDING:
+		case AFMONSTERWALKING:
+		case AFMONSTERATTACK:
+		case AFMONSTERCLOSEATTACK:
+		case AFMONSTERSPITATTACK:
+		case AFMONSTEREATING:
+		case AFMONSTERDIE:
+		case AFMUP:
+		case AFMJUMP:
+		case AFMMELT:
+			return AnimationColours::Palette;
+
+		// infant and larva creatures: their palette colour changes touch no
+		// pixel of their animations
+		case LVBREATH:
+		case LVDIE:
+		case LVWALK:
+		case IBREATH:
+		case IWALK:
+		case IDIE:
+		case IEAT:
+		case IATTACK:
+
 		// GetBodyTypePaletteSubstitution() gives these body types the palette
 		// of the animation.
 		case QUEENMONSTERSTANDING:
@@ -706,10 +730,10 @@ bool AnimationSurfaceAllowsFullColour(UINT16 const usSurfaceIndex)
 		case ICECREAMTRUCK_DIE:
 		case JEEP_BASIC:
 		case JEEP_DIE:
-			return true;
+			return AnimationColours::FullColour;
 
 		default:
-			return false;
+			return AnimationColours::ColourMask;
 	}
 }
 
@@ -759,9 +783,15 @@ void LoadAnimationSurface(UINT16 const usSoldierID, UINT16 const usSurfaceIndex,
 			// Only the number of frames per direction is used from the aux data,
 			// so a palettised PNG with an "animation" section may replace the file
 			// (docs/png-images.md).
-			// Most characters get their clothing colours from palette changes: no
-			// full colour PNG for them.
-			UINT16 const fullColour = AnimationSurfaceAllowsFullColour(usSurfaceIndex) ? 0 : IMAGE_NEEDS_PALETTE;
+			// Full colour PNGs where the colours of the animation do not depend on
+			// the palette, or with a colour mask where they do.
+			UINT16 fullColour = 0;
+			switch (GetAnimationSurfaceColours(usSurfaceIndex))
+			{
+				case AnimationColours::Palette:    fullColour = IMAGE_NEEDS_PALETTE; break;
+				case AnimationColours::FullColour: fullColour = 0;                   break;
+				case AnimationColours::ColourMask: fullColour = IMAGE_COLOUR_MASK;   break;
+			}
 			AutoSGPImage hImage(CreateImage(a->Filename, IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA | fullColour));
 			// Characters are never outlined
 			hImage->fFlags |= IMAGE_NO_OUTLINE;

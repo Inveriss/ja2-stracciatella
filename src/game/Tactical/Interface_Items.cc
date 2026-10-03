@@ -3158,7 +3158,7 @@ void RenderItemDescriptionBox(void)
 				{
 					Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), NULL, 0, hMercVObject,
 						MERC_PREVIEW_X, MERC_PREVIEW_Y, previewFrame.usImageIndex, NULL,
-						gpItemDescSoldier->rgbaShades[DEFAULT_SHADE_LEVEL], false, false, false);
+						gpItemDescSoldier->rgbaShades[DEFAULT_SHADE_LEVEL], &gpItemDescSoldier->rgbaRecolour, false, false, false);
 				}
 				else
 				{

@@ -214,10 +214,10 @@ Animacje postaci (`anims/`, np. `anims/s_merc/s_r_std` – najemnik stojący),
 animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
 potrzebują danych dodatkowych: liczby klatek animacji. PNG może je zastąpić, gdy:
 
-- jest **PNG z paletą**, a dla efektów z pamięci podręcznej kafli, zwierząt,
-  robota, pojazdów, królowej i części zwłok także PNG w pełnym kolorze (niżej);
-  pozostałe postacie i zwłoki oraz kursory muszą mieć paletę, bo gra podmienia
-  ich kolory przez paletę,
+- jest **PNG z paletą**, a dla efektów z pamięci podręcznej kafli, postaci
+  (ludzi z maską kolorów) i części zwłok także PNG w pełnym kolorze (niżej);
+  dorosłe potwory, pozostałe zwłoki i kursory muszą mieć paletę, bo gra
+  podmienia ich kolory przez paletę,
 - jego metadane mają sekcję `animation`:
 
 ```json
@@ -252,8 +252,8 @@ Postacie:
   korzystają z palety;
 - cień postaci jest częścią jej klatek: piksele o indeksie 254 przyciemniają tło.
 
-Postacie w pełnym kolorze (RGBA) są możliwe tylko tam, gdzie gra nie
-podmienia kolorów:
+Postacie w pełnym kolorze (RGBA) bez niczego więcej są możliwe tam, gdzie gra
+nie podmienia kolorów:
 
 | Postać | Animacje |
 |---|---|
@@ -263,9 +263,30 @@ podmienia kolorów:
 | robot | `anims/civs/j_r_bret`, `j_r_walk`, `j_r_hit`, `j_r_die`, `j_r_shot` |
 | pojazdy | `anims/vehicles/hummer`, `hummer2`, `icecrm`, `hm_wrek`, `tank_rot`, `tank_sht`, `tk_wrek`, `tnk2_rot`, `tnk2_sht`, `tk2_wrek` |
 | królowa | `anims/monsters/qmn_breat`, `q_ready`, `q_spit_sw`, `q_spit_e`, `q_spit_ne`, `q_spit_s`, `q_spit_se`, `q_die`, `q_swipe` |
+| larwy i młode potwory | `anims/monsters/l_breath`, `l_die`, `l_walk`, `i_breath`, `i_walk`, `i_die`, `i_eat`, `i_attack` |
 
-Dla pozostałych postaci (ludzie, cywile, pozostałe potwory) PNG w pełnym kolorze
-jest pomijany i gra wczytuje oryginał (z wpisem w logu). Postać RGBA:
+**Ludzie** (najemnicy, wojsko, milicja, cywile: `anims/s_merc/`, `m_merc/`,
+`f_merc/`, `civs/` i pozostałe animacje ludzi) mogą być w pełnym kolorze tylko
+z **maską kolorów**, bo gra zmienia kolory ich włosów, skóry, kamizelki i spodni
+(oraz kamuflaż). Maska to plik `nazwa.mask.png` obok `nazwa.png`:
+
+- PNG z paletą, o tym samym rozmiarze co arkusz (te same klatki z `png.json`);
+  paleta maski nie ma znaczenia, liczą się indeksy;
+- indeks **0**: piksel ma kolor z PNG w pełnym kolorze;
+- indeks z zakresu podmiany (włosy 245–250, spodnie 205–219, skóra 235–244,
+  kamizelka 220–234, według `binarydata/ja2pal.dat`): gra szuka jasności piksela
+  na kolorach tego zakresu w palecie oryginału (od jasnego do ciemnego) i daje
+  pikselowi kolor z tego samego miejsca zakresu w palecie postaci, płynnie między
+  sąsiednimi kolorami; maluj więc te części w kolorach oryginału, a gra zamieni je
+  na kolory postaci z zachowaniem jasności i detalu;
+- inny indeks: piksel dostaje dokładny kolor tego indeksu z palety postaci;
+- czarne piksele cienia (alfa poniżej 255) nie są zmieniane.
+
+Bez maski gra pomija PNG w pełnym kolorze człowieka i wczytuje oryginał (z wpisem
+w logu). Maskę zgodną z oryginałem zapisuje `png-sheet --mask` (niżej). Dorosłe
+potwory (paleta z plików `.COL`) mają tylko PNG z paletą.
+
+Postać RGBA:
 
 - jest oświetlana i podświetlana tak samo jak z paletą (poziomy światła i jego
   kolor, czerwone podświetlenie wroga, szarość niewidocznego wroga, biały błysk):
@@ -279,6 +300,7 @@ jest pomijany i gra wczytuje oryginał (z wpisem w logu). Postać RGBA:
   kaflach (krowa, krwawy kot, pojazdy, królowa) mają w kolejnych pionowych
   pasach klatki wartości Z z danych struktury, tak samo jak z paletą;
 - nie ma obrysu (gra nie tworzy dla postaci maski obrysu);
+- maska kolorów zajmuje 1 bajt na piksel (razem z RGBA 5 bajtów);
 - może być mieszana z animacjami STI tej samej postaci (np. tylko `cr_fly` w
   RGBA): palety cieniowania dla STI gra bierze wtedy z oryginału, który PNG
   zastępuje.
@@ -315,14 +337,16 @@ rzędzie arkusza.
 Eksport STI do PNG z paletą z zachowaniem indeksów, klatek i przesunięć:
 
 ```
-py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti plik.png [--max-width N] [--duration MS]
+py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti plik.png [--max-width N] [--duration MS] [--mask]
 ```
 
 Tworzy `plik.png` i, przy wielu klatkach, przesunięciach lub `--duration`,
 `plik.png.json` (`--duration` zapisuje `frameDuration`). Dla animowanych STI
 (postacie, eksplozje, kursory) zapisuje też sekcję `animation` i układa każdy
 kierunek w osobnym rzędzie. STI z innymi danymi dodatkowymi (tilesety) dają
-ostrzeżenie, bo takiego PNG gra nie może użyć.
+ostrzeżenie, bo takiego PNG gra nie może użyć. `--mask` zapisuje też maskę
+kolorów `plik.mask.png` dla wersji ludzi w pełnym kolorze: indeksy pikseli z
+zakresów podmiany kolorów, 0 gdzie indziej.
 
 Złożenie osobnych plików klatek (np. `explosion/000.png`, `001.png`, … w
 kolejności nazw) w jeden arkusz z metadanymi:

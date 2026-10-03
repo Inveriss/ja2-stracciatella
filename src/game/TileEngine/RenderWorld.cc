@@ -355,6 +355,7 @@ private: void Render(RenderTilesFlags const uiFlags, size_t const ubNumLevels, R
 	BackgroundFlags uiDirtyFlags = BGND_FLAG_NONE;
 	UINT16 const*   pShadeTable  = 0;
 	RGBAShade const* pRGBAShade  = 0; // the same shade for full colour soldiers
+	RGBARecolour const* pRGBARecolour = 0; // their colours, see RGBARecolour
 
 	INT32 iAnchorPosX_M = iStartPointX_M;
 	INT32 iAnchorPosY_M = iStartPointY_M;
@@ -612,6 +613,7 @@ private: void Render(RenderTilesFlags const uiFlags, size_t const ubNumLevels, R
 										pCorpse     = ROTTING_CORPSE::FromID(a.v.user.uiData);
 										pShadeTable = pCorpse->pShades[pNode->ubShadeLevel];
 										pRGBAShade  = &pCorpse->rgbaShades[pNode->ubShadeLevel];
+										pRGBARecolour = 0;
 
 										// OK, if this is a corpse.... stop if not visible
 										if (pCorpse->def.bVisible != 1 && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS)) goto next_prev_node;
@@ -978,6 +980,7 @@ zlevel_topmost:
 								}
 								pShadeTable = s.pShades[ubShadeLevel];
 								pRGBAShade  = &s.rgbaShades[ubShadeLevel];
+								pRGBARecolour = &s.rgbaRecolour;
 
 								// Position guy based on guy's position
 								float const dOffsetX = s.dXPos - gsRenderCenterX;
@@ -1278,38 +1281,37 @@ zlevel_topmost:
 						{
 							if (hVObject->IsRGBA() && fMerc)
 							{
-								// Full colour soldiers and corpses: only those without palette
-								// colour changes (AnimationSurfaceAllowsFullColour(), corpses of
-								// those body types). The same choices as for the palettised
-								// ones below, with the shade of the soldier or corpse and alpha
-								// blending.
+								// Full colour soldiers and corpses (GetAnimationSurfaceColours(),
+								// corpses without palette colour changes). The same choices as
+								// for the palettised ones below, with the shade and colours of
+								// the soldier or corpse and alpha blending.
 								SGPRect const* const clip  = &gClippingRect;
 								RGBAShade const&     shade = pRGBAShade ? *pRGBAShade : RGBA_SHADE_NONE;
 								if (fMultiTransShadowZBlitter)
 								{
 									if (fZBlitter)
 									{
-										Blt32BPPDataTo16BPPBufferShadeZStrips(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, sMultiTransShadowZBlitterIndex, Z_SUBLAYERS, shade, fObscuredBlitter);
+										Blt32BPPDataTo16BPPBufferShadeZStrips(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, sMultiTransShadowZBlitterIndex, Z_SUBLAYERS, shade, pRGBARecolour, fObscuredBlitter);
 									}
 								}
 								else if (fPixelate)
 								{
-									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, shade, false, false, true);
+									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, shade, pRGBARecolour, false, false, true);
 								}
 								else if (fZBlitter)
 								{
-									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, shade, fZWrite, !fZWrite && fObscuredBlitter, false);
+									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, shade, pRGBARecolour, fZWrite, !fZWrite && fObscuredBlitter, false);
 
 									if (uiLevelNodeFlags & LEVELNODE_UPDATESAVEBUFFERONCE)
 									{
 										SGPVSurface::Lock l(guiSAVEBUFFER);
-										Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), NULL, 0, hVObject, sXPos, sYPos, usImageIndex, clip, shade, false, false, false);
+										Blt32BPPDataTo16BPPBufferShadeZ(l.Buffer<UINT16>(), l.Pitch(), NULL, 0, hVObject, sXPos, sYPos, usImageIndex, clip, shade, pRGBARecolour, false, false, false);
 										pNode->uiFlags &= ~LEVELNODE_UPDATESAVEBUFFERONCE;
 									}
 								}
 								else
 								{
-									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, NULL, 0, hVObject, sXPos, sYPos, usImageIndex, clip, shade, false, false, false);
+									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, NULL, 0, hVObject, sXPos, sYPos, usImageIndex, clip, shade, pRGBARecolour, false, false, false);
 								}
 							}
 							else if (hVObject->IsRGBA())

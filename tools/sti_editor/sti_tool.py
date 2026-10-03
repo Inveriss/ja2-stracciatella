@@ -7,7 +7,7 @@
     py -3 tools/sti_editor/sti_tool.py roundtrip FILE.sti [...]
     py -3 tools/sti_editor/sti_tool.py palette-export FILE.sti OUT.pal [--format jasc|riff|act|gpl|png]
     py -3 tools/sti_editor/sti_tool.py palette-import FILE.sti PALETTE OUT.sti
-    py -3 tools/sti_editor/sti_tool.py png-sheet FILE.sti OUT.png [--max-width N] [--duration MS]
+    py -3 tools/sti_editor/sti_tool.py png-sheet FILE.sti OUT.png [--max-width N] [--duration MS] [--mask]
     py -3 tools/sti_editor/sti_tool.py png-assemble FRAME_DIR --out OUT.png [--duration MS] [--durations MS,MS,...]
 
 `roundtrip` never writes to disk: it re-serialises in memory, checks the
@@ -106,8 +106,10 @@ def cmd_palette_import(args):
 
 def cmd_png_sheet(args):
     s = sti.STIFile.load(args.file)
-    json_path, warnings = s.export_indexed_sheet(args.out, args.max_width, args.duration)
-    print(args.out + (f" + {json_path}" if json_path else ""))
+    ranges = sti.CHARACTER_PALETTE_RANGES if args.mask else None
+    json_path, warnings = s.export_indexed_sheet(args.out, args.max_width, args.duration, ranges)
+    print(args.out + (f" + {json_path}" if json_path else "") +
+          (f" + {sti.colour_mask_path(args.out)}" if args.mask else ""))
     for w in warnings:
         print(f"warning: {w}")
 
@@ -198,6 +200,8 @@ def main(argv=None):
     p.add_argument("out")
     p.add_argument("--max-width", type=int, default=1024, help="wrap frames to rows of this width")
     p.add_argument("--duration", type=int, default=0, help="frame duration in milliseconds (\"frameDuration\")")
+    p.add_argument("--mask", action="store_true",
+                   help="also write the colour mask (<name>.mask.png) for a full colour version")
     p.set_defaults(func=cmd_png_sheet)
     p = sub.add_parser("png-assemble", help="one PNG sheet (+ frame metadata) from separate frame images")
     p.add_argument("frames", nargs="+", help="a directory of frame PNGs (in name order) or the frame files")
