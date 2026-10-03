@@ -11,9 +11,15 @@ cmake_minimum_required(VERSION 3.18...3.25)
 project(getter NONE)
 
 find_program(PATCH_PROGRAM "patch")
+find_package(Git QUIET)
 
 # doing it with generator expressions had strange problems
-if( PATCH_PROGRAM )
+if( WIN32 AND GIT_FOUND )
+    # The sol2 archive has CRLF line endings and our patches LF ones: Git for
+    # Windows' patch.exe rejects such hunks ("different line endings"), git
+    # apply --ignore-whitespace applies them.
+    set( PATCH_CMD "${GIT_EXECUTABLE}" apply --ignore-whitespace )
+elseif( PATCH_PROGRAM )
     # The full path found above: on Windows, "patch" (e.g. Git for Windows'
     # usr/bin/patch.exe) is typically NOT on PATH for the process running this
     # custom build step (MSBuild/devenv only add Git's cmd/ dir to PATH, not
