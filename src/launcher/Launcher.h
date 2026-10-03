@@ -6,10 +6,12 @@
 
 #include <string_theory/string>
 
+#include <cstdint>
 #include <iostream>
 #include <iterator>
 #include <set>
 #include <optional>
+#include <string>
 
 struct sortMods {
     bool operator() (ST::string a, ST::string b) const {
@@ -38,9 +40,26 @@ private:
 
 	void populateChoices();
 	void startExecutable(bool asEditor);
-	bool resolutionIsInvalid();
-	void showInvalidResolutionAlert();
-	std::pair<int, int> lastWarnedResolution{ 0, 0 };
+	// Desktop resolution of the primary monitor, read once at startup (see
+	// detectDesktopResolution()); 0x0 if it couldn't be read.
+	uint16_t desktopWidth = 0;
+	uint16_t desktopHeight = 0;
+	bool desktopKnown() const { return desktopWidth != 0 && desktopHeight != 0; }
+	bool baseResolutionFits(size_t index) const;
+	Fl_Round_Button* baseResolutionRadio(size_t index) const;
+	Fl_Box* baseResolutionHint(size_t index) const;
+	// Index of the selected base resolution radio, or -1 for none (the
+	// MANUAL mode with a "res" from ja2.json that is no base resolution).
+	int selectedBaseResolution() const;
+	// The MANUAL mode's own selection, kept while AUTO shows its pick instead.
+	int manualBaseResolution = -1;
+	void selectBaseResolution(int index);
+	void updateResolutionWidgets();
+	// Texts the widgets' tooltip() and label() point to.
+	std::string invalidResolutionTooltip;
+	std::string baseResolutionHintTooltip[2];
+	std::string desktopInfoText;
+	std::string desktopInfoTooltip;
 	// "Stretch In-Game Laptop"'s own value while its checkbox is inactive
 	// (shown empty) -- see update().
 	bool stretchLaptopValue = true;
@@ -55,9 +74,8 @@ private:
 	static void startGame(Fl_Widget* btn, void* userdata);
 	static void startEditor(Fl_Widget* btn, void* userdata);
 	static void guessVersion(Fl_Widget* btn, void* userdata);
-	static void setPredefinedResolution(Fl_Widget* btn, void* userdata);
 	static void widgetChanged(Fl_Widget* widget, void* userdata);
-	static void resolutionChanged(Fl_Widget* widget, void* userdata);
+	static void resolutionModeChanged(Fl_Widget* widget, void* userdata);
 	static void reloadJa2Json(Fl_Widget* widget, void* userdata);
 	static void saveJa2Json(Fl_Widget* widget, void* userdata);
 	static void selectEnabledMods(Fl_Widget* widget, void* userdata);

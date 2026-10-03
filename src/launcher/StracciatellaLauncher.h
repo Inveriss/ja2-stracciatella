@@ -13,8 +13,7 @@
 #include <FL/Fl_Text_Display.H>
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Output.H>
-#include <FL/Fl_Value_Input.H>
-#include <FL/Fl_Menu_Button.H>
+#include <FL/Fl_Round_Button.H>
 #include <FL/Fl_Check_Button.H>
 
 class StracciatellaLauncher {
@@ -38,10 +37,14 @@ public:
   Fl_Browser *availableModsBrowser;
   Fl_Text_Display *modDetails;
   Fl_Output *gameSettingsOutput;
-  Fl_Value_Input *resolutionXInput;
-  Fl_Value_Input *resolutionYInput;
-  Fl_Menu_Button *predefinedResolutionMenuButton;
-  Fl_Menu_Button *highResResolutionMenuButton;
+  Fl_Box *resolutionLabel;
+  Fl_Round_Button *autoModeRadio;
+  Fl_Round_Button *manualModeRadio;
+  Fl_Round_Button *baseResolutionRadio0;
+  Fl_Round_Button *baseResolutionRadio1;
+  Fl_Box *baseResolutionHint0;
+  Fl_Box *baseResolutionHint1;
+  Fl_Box *desktopInfoLabel;
   Fl_Check_Button *stretchCheckbox;
   Fl_Check_Button *stretchLaptopCheckbox;
   Fl_Box *invalidResolutionLabel;

@@ -110,30 +110,48 @@ on their features.");
           o->end();
         } // Fl_Group* o
         { Fl_Group* o = new Fl_Group(10, 105, 500, 75);
-          o->tooltip("Specify the resolution for tactical screen rendering. Texts and sprites becom\
-e very small at higher internal resolutions. Note that menus and the strategic\
- map screen are always rendered at 640x480.");
-          { resolutionXInput = new Fl_Value_Input(20, 130, 75, 30, "Internal Resolution:");
-            resolutionXInput->minimum(1024);
-            resolutionXInput->maximum(0);
-            resolutionXInput->value(1024);
-            resolutionXInput->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-          } // Fl_Value_Input* resolutionXInput
-          { new Fl_Box(95, 130, 20, 30, "x");
-          } // Fl_Box* o
-          { resolutionYInput = new Fl_Value_Input(115, 130, 75, 30);
-            resolutionYInput->labeltype(FL_NO_LABEL);
-            resolutionYInput->minimum(720);
-            resolutionYInput->maximum(0);
-            resolutionYInput->value(720);
-            resolutionYInput->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-          } // Fl_Value_Input* resolutionYInput
-          { predefinedResolutionMenuButton = new Fl_Menu_Button(205, 111, 133, 30, "Preset: Standard");
-            predefinedResolutionMenuButton->tooltip("Select a legacy resolution up to Full HD (1920x1080). Ideal for older monitors and classic setups.");
-          } // Fl_Menu_Button* predefinedResolutionMenuButton
-          { highResResolutionMenuButton = new Fl_Menu_Button(205, 147, 133, 30, "Preset: High Res");
-            highResResolutionMenuButton->tooltip("Select a modern high-definition, Ultrawide, or 4K/8K resolution. Designed for high-end gaming monitors and crisp image scaling.");
-          } // Fl_Menu_Button* highResResolutionMenuButton
+          o->tooltip("The resolution the game runs in.");
+          { resolutionLabel = new Fl_Box(17, 111, 85, 18, "Resolution:");
+            resolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+          } // Fl_Box* resolutionLabel
+          { Fl_Group* o = new Fl_Group(20, 130, 140, 22);
+            { autoModeRadio = new Fl_Round_Button(20, 130, 60, 22, "Auto");
+              autoModeRadio->tooltip("Pick the base resolution for your desktop on every start: 1366x768 if it fi\
+ts, otherwise 1280x720.");
+              autoModeRadio->type(102);
+              autoModeRadio->down_box(FL_ROUND_DOWN_BOX);
+            } // Fl_Round_Button* autoModeRadio
+            { manualModeRadio = new Fl_Round_Button(85, 130, 75, 22, "Manual");
+              manualModeRadio->tooltip("Choose the base resolution yourself.");
+              manualModeRadio->type(102);
+              manualModeRadio->down_box(FL_ROUND_DOWN_BOX);
+            } // Fl_Round_Button* manualModeRadio
+            o->end();
+          } // Fl_Group* o
+          { Fl_Group* o = new Fl_Group(20, 154, 185, 22);
+            { baseResolutionRadio0 = new Fl_Round_Button(20, 154, 90, 22, "1280x720");
+              baseResolutionRadio0->tooltip("Base resolution 1280x720 (16:9).");
+              baseResolutionRadio0->type(102);
+              baseResolutionRadio0->down_box(FL_ROUND_DOWN_BOX);
+            } // Fl_Round_Button* baseResolutionRadio0
+            { baseResolutionRadio1 = new Fl_Round_Button(115, 154, 90, 22, "1366x768");
+              baseResolutionRadio1->tooltip("Base resolution 1366x768 (about 16:9).");
+              baseResolutionRadio1->type(102);
+              baseResolutionRadio1->down_box(FL_ROUND_DOWN_BOX);
+            } // Fl_Round_Button* baseResolutionRadio1
+            { // Shows the reason as a tooltip while baseResolutionRadio0 is inactive (inactive widgets show no tooltip)
+              baseResolutionHint0 = new Fl_Box(20, 154, 90, 22);
+              baseResolutionHint0->hide();
+            } // Fl_Box* baseResolutionHint0
+            { // Shows the reason as a tooltip while baseResolutionRadio1 is inactive (inactive widgets show no tooltip)
+              baseResolutionHint1 = new Fl_Box(115, 154, 90, 22);
+              baseResolutionHint1->hide();
+            } // Fl_Box* baseResolutionHint1
+            o->end();
+          } // Fl_Group* o
+          { desktopInfoLabel = new Fl_Box(165, 130, 175, 22);
+            desktopInfoLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+          } // Fl_Box* desktopInfoLabel
           { stretchCheckbox = new Fl_Check_Button(346, 119, 165, 30, "Stretch to Your Screen");
             stretchCheckbox->tooltip("Stretch the game image to fill the whole screen, ignoring its aspect ratio (no\
  black bars).");
@@ -152,7 +170,6 @@ nitors. Requires \"Stretch to Your Screen\".");
             Fl_Group::current()->resizable(o);
           } // Fl_Group* o
           { invalidResolutionLabel = new Fl_Box(240, 166, 110, 14, "invalid!");
-            invalidResolutionLabel->tooltip("the resolution must be at least 1024x720, the smallest one JA2 Stracciatella supports");
             invalidResolutionLabel->labelfont(1);
             invalidResolutionLabel->labelcolor((Fl_Color)1);
             invalidResolutionLabel->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));

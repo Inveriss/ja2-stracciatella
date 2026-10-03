@@ -33,14 +33,58 @@
 #pragma comment(lib, "advapi32.lib")
 #else
 #include <unistd.h>
+#include <SDL.h>
 #endif
 
-#define RESOLUTION_SEPARATOR "x"
-// The game's own minimum -- UILayout::setScreenSize() refuses anything smaller.
-#define MIN_RESOLUTION_X 1024
-#define MIN_RESOLUTION_Y 720
-
 const double checkGameRunningIntervalSeconds = 1.0;
+
+// The Settings tab has one radio per base resolution (baseResolutionRadio0/1).
+static size_t NumBaseResolutionRadios()
+{
+	return std::min<size_t>(BaseResolution_getCount(), 2);
+}
+
+// Desktop resolution of the primary monitor in real pixels, 0x0 if unknown.
+// On Windows read from the display settings: the launcher isn't DPI aware
+// (FLTK 1.3 doesn't scale its UI), so SDL would get a DPI-virtualised size
+// there (e.g. 1280x720 for 1920x1080 at 150%) -- unlike the game, which is.
+static void detectDesktopResolution(uint16_t& width, uint16_t& height)
+{
+	int w = 0;
+	int h = 0;
+#ifdef _WIN32
+	DISPLAY_DEVICEW device = {};
+	device.cb = sizeof(device);
+	for (DWORD i = 0; EnumDisplayDevicesW(nullptr, i, &device, 0); ++i) {
+		if (!(device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE)) continue;
+		DEVMODEW mode = {};
+		mode.dmSize = sizeof(mode);
+		if (EnumDisplaySettingsW(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
+			w = (int)mode.dmPelsWidth;
+			h = (int)mode.dmPelsHeight;
+		}
+		break;
+	}
+#else
+	if (SDL_InitSubSystem(SDL_INIT_VIDEO) == 0) {
+		SDL_DisplayMode mode;
+		if (SDL_GetDesktopDisplayMode(0, &mode) == 0) {
+			w = mode.w;
+			h = mode.h;
+		}
+		SDL_QuitSubSystem(SDL_INIT_VIDEO);
+	}
+#endif
+	if (w > 0 && h > 0) {
+		width  = (uint16_t)std::min(w, 0xFFFF);
+		height = (uint16_t)std::min(h, 0xFFFF);
+		SLOGI("Desktop resolution: {}x{}", width, height);
+	} else {
+		width  = 0;
+		height = 0;
+		SLOGW("Failed to detect the desktop resolution");
+	}
+}
 
 const Fl_Text_Display::Style_Table_Entry styleTable[] = {
 	{  FL_BLACK,		FL_COURIER_BOLD,	14 }, // A - Header
@@ -60,38 +104,6 @@ const std::vector<GameVersion> predefinedVersions = {
 	GameVersion::RUSSIAN,
 	GameVersion::RUSSIAN_GOLD,
 	GameVersion::SIMPLIFIED_CHINESE
-};
-const std::vector< std::pair<int, int> > predefinedResolutions = {
-	std::make_pair(1024, 720),
-	std::make_pair(1024, 768),
-	std::make_pair(1280, 720),
-	std::make_pair(1280, 768),
-	std::make_pair(1280, 800),
-	std::make_pair(1280, 960),
-	std::make_pair(1280, 1024),
-	std::make_pair(1360, 720),
-	std::make_pair(1360, 768),
-	std::make_pair(1366, 720),
-	std::make_pair(1366, 768),
-	std::make_pair(1440, 900),
-	std::make_pair(1440, 1080),
-	std::make_pair(1600, 900),
-	std::make_pair(1600, 1024),
-	std::make_pair(1680, 1050),
-	std::make_pair(1920, 1080)
-};
-// "Preset: High Res" menu. Each label starts with WIDTHxHEIGHT, which
-// setPredefinedResolution() parses; the description after it is ignored.
-const std::vector<const char*> predefinedHighResolutions = {
-	"2560x1080  (Ultrawide 21:9 - Ultrawide FHD)",
-	"2560x1440  (Standard 16:9 - 2K QHD)",
-	"2560x1600  (Productivity 16:10 - WQXGA)",
-	"3440x1440  (Ultrawide 21:9 - Ultrawide QHD)",
-	"3840x1600  (Ultrawide 21:9 - Ultrawide QHD+)",
-	"3840x2160  (Standard 16:9 - 4K UHD)",
-	"5120x1440  (Super Ultrawide 32:9 - Dual QHD)",
-	"5120x2880  (Standard 16:9 - 5K)",
-	"7680x4320  (Standard 16:9 - 8K UHD)"
 };
 const std::vector<VideoScaleQuality> scalingModes = {
 	VideoScaleQuality::LINEAR,
@@ -376,17 +388,11 @@ void Launcher::show() {
 	gameVersionInput->callback( (Fl_Callback*)selectGameVersion, (void*)(this) );
 	guessVersionButton->callback( (Fl_Callback*)guessVersion, (void*)(this) );
 	scalingModeChoice->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
-	// Besides every keystroke (FL_WHEN_CHANGED), also call back when the value
-	// is committed -- Enter, or leaving the field -- even if it didn't change
-	// then, so resolutionChanged() can warn about an unsupported resolution
-	// at that point instead of on every keystroke (typing 1080 passes through
-	// 1, 10 and 108).
-	for (Fl_Value_Input* input : { resolutionXInput, resolutionYInput })
-	{
-		input->callback( (Fl_Callback*)resolutionChanged, (void*)(this) );
-		input->when(FL_WHEN_CHANGED | FL_WHEN_NOT_CHANGED);
-		input->input.when(FL_WHEN_CHANGED | FL_WHEN_RELEASE_ALWAYS | FL_WHEN_ENTER_KEY_ALWAYS);
-	}
+	autoModeRadio->callback( (Fl_Callback*)resolutionModeChanged, (void*)(this) );
+	manualModeRadio->callback( (Fl_Callback*)resolutionModeChanged, (void*)(this) );
+	baseResolutionRadio0->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
+	baseResolutionRadio1->callback( (Fl_Callback*)widgetChanged, (void*)(this) );
+	detectDesktopResolution(desktopWidth, desktopHeight);
 	RustPointer<char> game_json_path(findPathFromAssetsDir("externalized/game.json", true, true));
 	if (game_json_path) {
 		gameSettingsOutput->value(game_json_path.get());
@@ -429,23 +435,21 @@ void Launcher::show() {
 	stracciatellaLauncher->icon(&icon);
 	stracciatellaLauncher->show();
 
-	// "invalid!" goes 3px right of the "Internal Resolution:" label, on its
-	// line (1px lower). That label is drawn above resolutionXInput (FL_ALIGN_TOP_LEFT),
-	// starting at its x; the "invalid!" box's own text is inset 3px
-	// (FL_ALIGN_LEFT|FL_ALIGN_INSIDE). Measured after show(), once the display
-	// is open; init_sizes() so a later window resize starts from here. The box
-	// is only as wide as its own text, so it doesn't overlap (and steal hover
-	// from) the "Preset: Standard" button next to it.
-	fl_font(resolutionXInput->labelfont(), resolutionXInput->labelsize());
+	// "invalid!" goes 3px right of the "Resolution:" label, on its line (1px
+	// lower). Both boxes' text is inset 3px (FL_ALIGN_LEFT|FL_ALIGN_INSIDE).
+	// Measured after show(), once the display is open; init_sizes() so a later
+	// window resize starts from here. The box is only as wide as its own text,
+	// so it doesn't overlap (and steal hover from) anything next to it.
+	fl_font(resolutionLabel->labelfont(), resolutionLabel->labelsize());
 	int labelW = 0;
 	int labelH = 0;
-	fl_measure(resolutionXInput->label(), labelW, labelH, 0);
+	fl_measure(resolutionLabel->label(), labelW, labelH, 0);
 	fl_font(invalidResolutionLabel->labelfont(), invalidResolutionLabel->labelsize());
 	int invalidW = 0;
 	int invalidH = 0;
 	fl_measure(invalidResolutionLabel->label(), invalidW, invalidH, 0);
-	invalidResolutionLabel->resize(resolutionXInput->x() + labelW + 3 - 3,
-		resolutionXInput->y() - labelH + 1, invalidW + 6, labelH);
+	invalidResolutionLabel->resize(resolutionLabel->x() + 3 + labelW + 3 - 3,
+		resolutionLabel->y() + 1, invalidW + 6, resolutionLabel->h());
 	invalidResolutionLabel->parent()->init_sizes();
 
 	logsDisplay->buffer(logsBuffer);
@@ -498,11 +502,18 @@ void Launcher::initializeInputsFromDefaults() {
 	}
 	gameVersionInput->value(resourceVersionIndex);
 
-	int x = EngineOptions_getResolutionX(this->engineOptions.get());
-	int y = EngineOptions_getResolutionY(this->engineOptions.get());
-
-	resolutionXInput->value(x);
-	resolutionYInput->value(y);
+	// The MANUAL choice is the base resolution radio matching "res" (none if
+	// "res" is no base resolution); AUTO shows the one the game will pick
+	// instead (see updateResolutionWidgets(), called by update() below).
+	uint16_t const resX = EngineOptions_getResolutionX(this->engineOptions.get());
+	uint16_t const resY = EngineOptions_getResolutionY(this->engineOptions.get());
+	manualBaseResolution = -1;
+	for (size_t i = 0; i < NumBaseResolutionRadios(); ++i) {
+		if (BaseResolution_getWidth(i) == resX && BaseResolution_getHeight(i) == resY) manualBaseResolution = (int)i;
+	}
+	bool const manual = EngineOptions_getResolutionMode(this->engineOptions.get()) == ResolutionMode::MANUAL;
+	(manual ? manualModeRadio : autoModeRadio)->setonly();
+	selectBaseResolution(manualBaseResolution);
 
 	VideoScaleQuality quality = EngineOptions_getScalingQuality(this->engineOptions.get());
 	int scalingModeIndex = 0;
@@ -543,9 +554,14 @@ int Launcher::writeJsonFile() {
 		EngineOptions_pushMod(this->engineOptions.get(), modId);
 	}
 
-	int x = (int)resolutionXInput->value();
-	int y = (int)resolutionYInput->value();
-	EngineOptions_setResolution(this->engineOptions.get(), x, y);
+	// "res" only changes for a base resolution picked in the MANUAL mode; the
+	// AUTO mode picks on every start, and a custom "res" stays as it is.
+	bool const manual = manualModeRadio->value() != 0;
+	EngineOptions_setResolutionMode(this->engineOptions.get(), manual ? ResolutionMode::MANUAL : ResolutionMode::AUTO);
+	int const base = selectedBaseResolution();
+	if (manual && base >= 0) {
+		EngineOptions_setResolution(this->engineOptions.get(), BaseResolution_getWidth(base), BaseResolution_getHeight(base));
+	}
 	EngineOptions_setBrightness(this->engineOptions.get(), -1.0f);
 
 	int currentResourceVersionIndex = gameVersionInput->value();
@@ -570,13 +586,6 @@ void Launcher::populateChoices() {
 	for(GameVersion version : predefinedVersions) {
 		RustPointer<char> resourceVersionString(VanillaVersion_toString(version));
 		gameVersionInput->add(resourceVersionString.get());
-	}
-	for (std::pair<int,int> res : predefinedResolutions) {
-		ST::string resolutionString = ST::format("{d}x{d}", res.first, res.second);
-		predefinedResolutionMenuButton->insert(-1, resolutionString.c_str(), 0, setPredefinedResolution, this, 0);
-	}
-	for (const char* res : predefinedHighResolutions) {
-		highResResolutionMenuButton->insert(-1, res, 0, setPredefinedResolution, this, 0);
 	}
 
 	for (VideoScaleQuality scalingMode : scalingModes) {
@@ -670,12 +679,6 @@ void Launcher::startExecutable(bool asEditor) {
 	if (gameIsRunning()) {
 		return;
 	}
-	// check minimal resolution:
-	if (resolutionIsInvalid()) {
-		showInvalidResolutionAlert();
-		return;
-	}
-
 	auto nenabled = this->enabledModsBrowser->size();
 	std::vector<ST::string> invalidMods;
 	for (auto i = 1; i <= nenabled; i++) {
@@ -812,43 +815,100 @@ void Launcher::maintainSubProcessState(void* userdata) {
 	}
 }
 
-bool Launcher::resolutionIsInvalid() {
-	return resolutionXInput->value() < MIN_RESOLUTION_X || resolutionYInput->value() < MIN_RESOLUTION_Y;
+bool Launcher::baseResolutionFits(size_t const index) const {
+	// An unknown desktop rules nothing out.
+	return !desktopKnown() || BaseResolution_fitsDesktop(index, desktopWidth, desktopHeight);
 }
 
-void Launcher::showInvalidResolutionAlert() {
-	fl_message_title("Invalid resolution");
-	fl_alert("Resolution %dx%d is not supported.\nResolutions below %dx%d (width below %d or height below %d) are not supported.",
-		(int) resolutionXInput->value(),
-		(int) resolutionYInput->value(),
-		MIN_RESOLUTION_X, MIN_RESOLUTION_Y, MIN_RESOLUTION_X, MIN_RESOLUTION_Y);
+Fl_Round_Button* Launcher::baseResolutionRadio(size_t const index) const {
+	return index == 0 ? baseResolutionRadio0 : baseResolutionRadio1;
 }
 
-void Launcher::resolutionChanged(Fl_Widget* widget, void* userdata) {
-	Launcher* window = static_cast< Launcher* >( userdata );
-	// changed() is only set while this runs if the value actually changed
-	// (Fl_Value_Input::input_cb()), not on a mere commit of the same value.
-	if (widget->changed()) window->update(true);
+Fl_Box* Launcher::baseResolutionHint(size_t const index) const {
+	return index == 0 ? baseResolutionHint0 : baseResolutionHint1;
+}
 
-	bool const committed =
-		Fl::event() == FL_UNFOCUS ||
-		(Fl::event() == FL_KEYBOARD && (Fl::event_key() == FL_Enter || Fl::event_key() == FL_KP_Enter));
-	if (!committed) return;
-
-	int const x = (int) window->resolutionXInput->value();
-	int const y = (int) window->resolutionYInput->value();
-	if (!window->resolutionIsInvalid()) {
-		window->lastWarnedResolution = { 0, 0 };
-		return;
+int Launcher::selectedBaseResolution() const {
+	for (size_t i = 0; i < NumBaseResolutionRadios(); ++i) {
+		if (baseResolutionRadio(i)->value()) return (int)i;
 	}
-	// Warn once per invalid value (not again when merely moving between the
-	// X and Y fields), and not from inside the focus change itself -- defer
-	// the modal alert until the current event is done.
-	if (window->lastWarnedResolution == std::make_pair(x, y)) return;
-	window->lastWarnedResolution = { x, y };
-	Fl::add_timeout(0.0, [](void* data) {
-		static_cast< Launcher* >( data )->showInvalidResolutionAlert();
-	}, window);
+	return -1;
+}
+
+void Launcher::selectBaseResolution(int const index) {
+	for (size_t i = 0; i < NumBaseResolutionRadios(); ++i) {
+		baseResolutionRadio(i)->value((int)i == index ? 1 : 0);
+	}
+}
+
+// AUTO: the base resolution radios show (inactive) the one the game will
+// pick. MANUAL: a base resolution that doesn't fit on the desktop is inactive
+// -- except the smallest one, which the game uses anyway on a desktop below
+// it -- but stays selected if it was, with "invalid!". Inactive widgets show
+// no tooltip, so baseResolutionHint* (on top of them) tell why instead.
+void Launcher::updateResolutionWidgets() {
+	bool const manual = manualModeRadio->value() != 0;
+	if (manual) {
+		manualBaseResolution = selectedBaseResolution();
+	} else {
+		selectBaseResolution((int)BaseResolution_getAutoIndex(desktopWidth, desktopHeight));
+	}
+	int const selected = selectedBaseResolution();
+	auto const resolutionText = [](uint16_t const w, uint16_t const h) {
+		return ST::format("{}x{}", w, h).to_std_string();
+	};
+	std::string const desktopText = desktopKnown() ? resolutionText(desktopWidth, desktopHeight) : "unknown";
+	bool const desktopBelowMinimum = !baseResolutionFits(0);
+
+	for (size_t i = 0; i < NumBaseResolutionRadios(); ++i) {
+		Fl_Round_Button* const radio = baseResolutionRadio(i);
+		Fl_Box* const hint = baseResolutionHint(i);
+		bool const fits = baseResolutionFits(i) || i == 0;
+		if (manual && fits) {
+			radio->activate();
+			hint->hide();
+			continue;
+		}
+		radio->deactivate();
+		baseResolutionHintTooltip[i] = !fits
+			? "Requires a desktop resolution of at least " + resolutionText(BaseResolution_getWidth(i), BaseResolution_getHeight(i)) + " (current: " + desktopText + ")."
+			: "Auto picks the base resolution for your desktop. Select Manual to choose it yourself.";
+		hint->tooltip(baseResolutionHintTooltip[i].c_str());
+		hint->show();
+	}
+
+	if (desktopBelowMinimum) {
+		std::string const minimum = resolutionText(BaseResolution_getWidth(0), BaseResolution_getHeight(0));
+		invalidResolutionTooltip = "Desktop resolution " + desktopText + " is below the supported minimum " + minimum + ". The game will still start in " + minimum + ".";
+	} else if (manual && selected >= 0 && !baseResolutionFits(selected)) {
+		invalidResolutionTooltip = resolutionText(BaseResolution_getWidth(selected), BaseResolution_getHeight(selected)) + " does not fit on the desktop (" + desktopText + "). The game will still start in it.";
+	} else {
+		invalidResolutionTooltip.clear();
+	}
+	if (invalidResolutionTooltip.empty()) {
+		invalidResolutionLabel->hide();
+	} else {
+		invalidResolutionLabel->tooltip(invalidResolutionTooltip.c_str());
+		invalidResolutionLabel->show();
+	}
+
+	if (manual && selected < 0) {
+		desktopInfoText = "Custom: " + resolutionText(EngineOptions_getResolutionX(engineOptions.get()), EngineOptions_getResolutionY(engineOptions.get()));
+		desktopInfoTooltip = "Resolution from ja2.json, not one of the base resolutions. Select one to replace it. Desktop: " + desktopText + ".";
+	} else {
+		desktopInfoText = "Desktop: " + desktopText;
+		desktopInfoTooltip = "Desktop resolution of the primary monitor.";
+	}
+	desktopInfoLabel->label(desktopInfoText.c_str());
+	desktopInfoLabel->tooltip(desktopInfoTooltip.c_str());
+	desktopInfoLabel->redraw_label();
+}
+
+void Launcher::resolutionModeChanged(Fl_Widget* widget, void* userdata) {
+	Launcher* window = static_cast< Launcher* >( userdata );
+	// Back in MANUAL: the player's own choice again, not what AUTO showed.
+	if (window->manualModeRadio->value()) window->selectBaseResolution(window->manualBaseResolution);
+	window->update(true);
 }
 
 bool Launcher::gameIsRunning() {
@@ -856,12 +916,7 @@ bool Launcher::gameIsRunning() {
 }
 
 void Launcher::update(bool changed) {
-	// invalid resolution warning
-	if (resolutionIsInvalid()) {
-		invalidResolutionLabel->show();
-	} else {
-		invalidResolutionLabel->hide();
-	}
+	updateResolutionWidgets();
 
 	// "Stretch In-Game Laptop" only applies together with "Stretch to Your
 	// Screen". While inactive it's shown empty (grey, no checkmark), but its own
@@ -968,18 +1023,6 @@ void Launcher::guessVersion(Fl_Widget* btn, void* userdata) {
 		fl_message_title(window->guessVersionButton->label());
 		fl_alert("Failure!");
 	}
-}
-
-void Launcher::setPredefinedResolution(Fl_Widget* btn, void* userdata) {
-	Fl_Menu_Button* menuBtn = static_cast< Fl_Menu_Button* >( btn );
-	Launcher* window = static_cast< Launcher* >( userdata );
-	ST::string res = menuBtn->mvalue()->label();
-	int x = 0;
-	int y = 0;
-	(void)sscanf(res.c_str(), "%d" RESOLUTION_SEPARATOR "%d", &x, &y);
-	window->resolutionXInput->value(x);
-	window->resolutionYInput->value(y);
-	window->update(true);
 }
 
 void Launcher::widgetChanged(Fl_Widget* widget, void* userdata) {
