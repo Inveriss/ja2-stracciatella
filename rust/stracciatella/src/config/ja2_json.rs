@@ -363,7 +363,6 @@ mod tests {
         assert!(engine_options.start_without_sound);
     }
 
-    #[test]
     // stretch/stretch_laptop default to true, so these check that an explicit
     // false in ja2.json is honoured.
     #[test]

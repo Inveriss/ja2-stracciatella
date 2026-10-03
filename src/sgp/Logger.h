@@ -32,8 +32,10 @@ template <size_t p> constexpr const char* ToRelativePath(const char* filename)
 void CrashHandlerAssertFailed(const char* file, const char* message);
 #endif
 
+// Not constexpr: the assert branch defines an ST::string, which a constexpr
+// function may only do from C++23 on (clang refuses it before).
 template<typename... Args>
-constexpr void LogMessageST([[maybe_unused]] bool isAssert, LogLevel level, const char* file, Args && ... args)
+void LogMessageST([[maybe_unused]] bool isAssert, LogLevel level, const char* file, Args && ... args)
 {
 	#ifdef ENABLE_ASSERTS
 	if (isAssert)

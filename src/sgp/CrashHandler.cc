@@ -1322,6 +1322,10 @@ void ReportFatal(const char* reason, const std::string& details, unsigned skipFr
 	info.reason = reason;
 	info.details = details;
 
+#if defined(__ANDROID__) && __ANDROID_API__ < 33
+	// Android's libc has backtrace() only from API level 33 on: no stack
+	(void)skipFrames;
+#else
 	void* frames[64];
 	int const n = backtrace(frames, 64);
 	char** const symbols = backtrace_symbols(frames, n);
@@ -1330,6 +1334,7 @@ void ReportFatal(const char* reason, const std::string& details, unsigned skipFr
 		info.stack.push_back("  #" + std::to_string(i - (int)skipFrames) + "  " + (symbols ? symbols[i] : "?"));
 	}
 	std::free(symbols);
+#endif
 
 	WriteReportSet(info, nullptr, 0);
 }
