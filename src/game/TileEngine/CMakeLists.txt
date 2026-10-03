@@ -37,6 +37,7 @@ set(LOCAL_JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Tile_Animation.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Tile_Cache.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Tile_Surface.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Viewport_Zoom.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/WorldDat.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/WorldDef.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/WorldMan.cc

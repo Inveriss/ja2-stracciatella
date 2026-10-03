@@ -62,6 +62,8 @@ void SetGameMinutesPerSecond( UINT32 uiGameMinutesPerSecond );
 //Allows access to the current time rate.
 UINT32 GetGameSecondsPerFrame(void);
 void RenderPausedGameBox( void );
+// The screen box of the "game paused" popup, if it is shown.
+bool GetPausedGameBox(SGPBox& box);
 
 
 void StopTimeCompression( void );

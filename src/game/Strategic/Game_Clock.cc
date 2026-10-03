@@ -890,6 +890,15 @@ static void ScreenMaskForGamePauseBtnCallBack(MOUSE_REGION* pRegion, UINT32 iRea
 	}
 }
 
+bool GetPausedGameBox(SGPBox& box)
+{
+	if (!(gfPauseDueToPlayerGamePause && gfGamePaused && g_paused_popup_box)) return false;
+
+	box = { (UINT16)((SCREEN_WIDTH - usPausedActualWidth) / 2), (UINT16)(200 - usPausedActualHeight / 2), usPausedActualWidth, usPausedActualHeight };
+	return true;
+}
+
+
 void RenderPausedGameBox( void )
 {
 	if (gfPauseDueToPlayerGamePause && gfGamePaused && g_paused_popup_box)

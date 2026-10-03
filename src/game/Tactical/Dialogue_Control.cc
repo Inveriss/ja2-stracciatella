@@ -1302,6 +1302,15 @@ static void RenderFaceOverlay(VIDEO_OVERLAY* const blt)
 }
 
 
+bool GetTacticalTextBox(SGPBox& box)
+{
+	if (g_text_box_overlay == NULL || g_text_box_overlay->fDisabled) return false;
+
+	box = { (UINT16)g_text_box_overlay->sX, (UINT16)g_text_box_overlay->sY, gusSubtitleBoxWidth, gusSubtitleBoxHeight };
+	return true;
+}
+
+
 static void RenderSubtitleBoxOverlay(VIDEO_OVERLAY* pBlitter)
 {
 	if (g_text_box_overlay == NULL) return;

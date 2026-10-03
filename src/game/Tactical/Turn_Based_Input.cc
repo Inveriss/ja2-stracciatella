@@ -54,6 +54,7 @@
 #include "Random.h"
 #include "Map_Screen_Interface.h"
 #include "RenderWorld.h"
+#include "Viewport_Zoom.h"
 #include "Quest_Debug_System.h"
 #include "GameSettings.h"
 #include "Vehicles.h"
@@ -172,7 +173,7 @@ static void QueryTBLeftButton(UIEventKind* const puiNewEvent)
 	if ( gViewportRegion.uiFlags & MSYS_MOUSE_IN_AREA )
 	{
 		const GridNo usMapPos = guiCurrentCursorGridNo;
-		if (usMapPos == NOWHERE && !(gfScrolledToBottom && gusMouseYPos >= SCREEN_HEIGHT - NO_PX_SHOW_EXIT_CURS)) return;
+		if (usMapPos == NOWHERE && !(gfScrolledToBottom && ViewportZoomCropAtEdge(SCROLL_DOWN) && gusPhysMouseYPos >= SCREEN_HEIGHT - NO_PX_SHOW_EXIT_CURS)) return;
 
 		if ( gViewportRegion.ButtonState & MSYS_LEFT_BUTTON )
 		{

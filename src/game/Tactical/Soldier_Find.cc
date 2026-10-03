@@ -16,6 +16,7 @@
 #include "GameSettings.h"
 #include "UI_Cursors.h"
 #include "UILayout.h"
+#include "Viewport_Zoom.h"
 
 
 // This value is used to keep a small static array of uBID's which are stacked
@@ -376,10 +377,13 @@ bool GridNoOnScreen(GridNo const gridno)
 	INT16 world_y;
 	GetAbsoluteScreenXYFromMapPos(gridno, &world_x, &world_y);
 	INT16 const allowance = gsVIEWPORT_WINDOW_START_Y == 20 ? 40 : 20;
+	// The part of the world shown on the screen (smaller while zoomed).
+	INT16 left, top, right, bottom;
+	ViewportZoomGetVisibleWorldRect(left, top, right, bottom);
 	// ATE: Adjust the top value so that it's a tile and a bit over, because of
 	// our mercs.
-	return gsTopLeftWorldX <= world_x && world_x <= gsBottomRightWorldX &&
-		gsTopLeftWorldY + allowance <= world_y && world_y <= gsBottomRightWorldY + 20;
+	return left <= world_x && world_x <= right &&
+		top + allowance <= world_y && world_y <= bottom + 20;
 }
 
 
@@ -440,8 +444,10 @@ BOOLEAN SoldierLocationRelativeToScreen(const INT16 sGridNo, INT8* const pbDirec
 
 
 	// If we are on screen, stop
-	if (sWorldX >= gsTopLeftWorldX && sWorldX <= gsBottomRightWorldX &&
-		sWorldY >= gsTopLeftWorldY && sWorldY <= (gsBottomRightWorldY + 20))
+	INT16 sVisibleLeft, sVisibleTop, sVisibleRight, sVisibleBottom;
+	ViewportZoomGetVisibleWorldRect(sVisibleLeft, sVisibleTop, sVisibleRight, sVisibleBottom);
+	if (sWorldX >= sVisibleLeft && sWorldX <= sVisibleRight &&
+		sWorldY >= sVisibleTop && sWorldY <= (sVisibleBottom + 20))
 	{
 		// CHECK IF WE ARE DONE...
 		if ( fCountdown > gScrollSlideInertiaDirection[ *pbDirection ] )
