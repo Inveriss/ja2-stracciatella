@@ -79,6 +79,8 @@ static ButtonState<5, 0, TOUCH_FINGER_DOWN, TOUCH_FINGER_UP, TOUCH_FINGER_REPEAT
 
 UINT16  gusMouseXPos;       // X position of the mouse on screen
 UINT16  gusMouseYPos;       // y position of the mouse on screen
+UINT16  gusPhysMouseXPos;
+UINT16  gusPhysMouseYPos;
 
 BOOLEAN gfIsUsingTouch;
 SDL_FingerID gMainFingerId;
@@ -130,8 +132,24 @@ void SetSafeMousePosition(int x, int y) {
 	if (x > SCREEN_WIDTH) x = SCREEN_WIDTH;
 	if (y > SCREEN_HEIGHT) y = SCREEN_HEIGHT;
 
-	gusMouseXPos = x;
-	gusMouseYPos = y;
+	gusPhysMouseXPos = x;
+	gusPhysMouseYPos = y;
+
+	// While the viewport is zoomed, the game sees the frame position shown
+	// under the mouse.
+	SGPPoint const frame = VideoZoomScreenToFrame(x, y);
+	gusMouseXPos = frame.iX;
+	gusMouseYPos = frame.iY;
+}
+
+void RefreshMousePosition()
+{
+	SetSafeMousePosition(gusPhysMouseXPos, gusPhysMouseYPos);
+}
+
+SGPPoint GetPhysicalMousePos()
+{
+	return { gusPhysMouseXPos, gusPhysMouseYPos };
 }
 
 void HandleSingleClicksAndButtonRepeats();
@@ -581,6 +599,11 @@ void SimulateMouseMovement( UINT32 uiNewXPos, UINT32 uiNewYPos )
 	if (gfIsUsingTouch) {
 		return;
 	}
+
+	// A frame position: where it is shown on the screen while zoomed.
+	SGPPoint const screenPos = VideoZoomFrameToScreen(uiNewXPos, uiNewYPos);
+	uiNewXPos = screenPos.iX;
+	uiNewYPos = screenPos.iY;
 
 	int windowWidth, windowHeight;
 	SDL_GetWindowSize(GAME_WINDOW, &windowWidth, &windowHeight);

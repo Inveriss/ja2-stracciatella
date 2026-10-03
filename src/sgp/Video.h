@@ -28,6 +28,29 @@ void         VideoSetStretchRegionProvider(SGPBox (*provider)());
 // The part of the frame currently filling the screen while stretching (the
 // whole frame when not zoomed).
 SGPBox       VideoGetStretchRegion();
+
+// Viewport zoom (tactical screen, mouse wheel): the frame is still rendered
+// 1:1, then at refresh time its `src` part is shown scaled onto the screen
+// box `dst`. The rest of the frame stays 1:1, and so do the `keep` boxes
+// inside `dst` (fixed-position HUD drawn over the world, e.g. the message
+// log). Mouse positions inside `dst` (outside `keep`) are mapped back into
+// `src`, so the game keeps working in frame coordinates.
+#define VIDEO_ZOOM_MAX_KEEP 8
+struct VideoZoom
+{
+	bool   active;
+	SGPBox src;
+	SGPBox dst;
+	UINT8  numKeep;
+	SGPBox keep[VIDEO_ZOOM_MAX_KEEP];
+};
+// `provider` is asked on every screen refresh for the zoom to show.
+void             VideoSetZoomProvider(void (*provider)(VideoZoom&));
+VideoZoom const& VideoGetZoom();
+// Screen position -> frame position through the current zoom, and back
+// (identity while not zoomed and outside the zoomed part).
+SGPPoint         VideoZoomScreenToFrame(int x, int y);
+SGPPoint         VideoZoomFrameToScreen(int x, int y);
 void         ShutdownVideoManager(void);
 void         InvalidateRegion(INT32 iLeft, INT32 iTop, INT32 iRight, INT32 iBottom);
 void         InvalidateScreen(void);

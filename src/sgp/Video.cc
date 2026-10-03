@@ -13,9 +13,11 @@
 #include "Video.h"
 #include "UILayout.h"
 #include "Icon.h"
+#include "Input.h"
 #include <algorithm>
 #include <chrono>
 #include <stdexcept>
+#include <string>
 
 #define MAX_CURSOR_WIDTH  64
 #define MAX_CURSOR_HEIGHT 64
@@ -57,6 +59,9 @@ SDL_Window* g_game_window;
 static SDL_Surface* ScreenBuffer;
 static SDL_Texture* ScreenTexture;
 static SDL_Texture* ScaledScreenTexture;
+static SDL_Texture* ZoomTexture;
+static int          ZoomTextureWidth;
+static int          ZoomTextureHeight;
 static Uint32       g_window_flags = 0;
 static VideoScaleQuality ScaleQuality = VideoScaleQuality::LINEAR;
 static bool g_stretch_to_fill = false;
@@ -196,6 +201,197 @@ static int SDLCALL StretchToFillEventWatch(void*, SDL_Event* const event)
 		ApplyStretchToFill();
 	}
 	return 0;
+}
+
+
+static void (*g_zoom_provider)(VideoZoom&) = nullptr;
+static VideoZoom g_zoom{};
+
+void VideoSetZoomProvider(void (*const provider)(VideoZoom&))
+{
+	g_zoom_provider = provider;
+}
+
+VideoZoom const& VideoGetZoom()
+{
+	return g_zoom;
+}
+
+
+static bool ZoomBoxContains(SGPBox const& b, int const x, int const y)
+{
+	return b.x <= x && x < b.x + b.w && b.y <= y && y < b.y + b.h;
+}
+
+
+static bool ZoomKeepsPoint(int const x, int const y)
+{
+	for (UINT8 i = 0; i != g_zoom.numKeep; ++i)
+	{
+		if (ZoomBoxContains(g_zoom.keep[i], x, y)) return true;
+	}
+	return false;
+}
+
+
+SGPPoint VideoZoomScreenToFrame(int const x, int const y)
+{
+	VideoZoom const& z = g_zoom;
+	if (!z.active || !ZoomBoxContains(z.dst, x, y) || ZoomKeepsPoint(x, y))
+	{
+		return { (UINT16)x, (UINT16)y };
+	}
+	return {
+		(UINT16)(z.src.x + (x - z.dst.x) * z.src.w / z.dst.w),
+		(UINT16)(z.src.y + (y - z.dst.y) * z.src.h / z.dst.h)
+	};
+}
+
+
+SGPPoint VideoZoomFrameToScreen(int const x, int const y)
+{
+	VideoZoom const& z = g_zoom;
+	if (!z.active || !ZoomBoxContains(z.src, x, y))
+	{
+		return { (UINT16)x, (UINT16)y };
+	}
+	// The middle of the screen pixels showing frame pixel (x, y).
+	return {
+		(UINT16)(z.dst.x + (2 * (x - z.src.x) + 1) * z.dst.w / (2 * z.src.w)),
+		(UINT16)(z.dst.y + (2 * (y - z.src.y) + 1) * z.dst.h / (2 * z.src.h))
+	};
+}
+
+
+static bool SameZoomBox(SGPBox const& a, SGPBox const& b)
+{
+	return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
+}
+
+
+static bool SameZoom(VideoZoom const& a, VideoZoom const& b)
+{
+	if (a.active != b.active || a.numKeep != b.numKeep) return false;
+	if (!SameZoomBox(a.src, b.src) || !SameZoomBox(a.dst, b.dst)) return false;
+	for (UINT8 i = 0; i != a.numKeep; ++i)
+	{
+		if (!SameZoomBox(a.keep[i], b.keep[i])) return false;
+	}
+	return true;
+}
+
+
+// Asks the game for the zoom to show now. When it changed, the frame position
+// of a mouse that did not move changed too.
+static void UpdateZoom()
+{
+	VideoZoom zoom{};
+	if (g_zoom_provider) g_zoom_provider(zoom);
+	if (!zoom.active || zoom.src.w == 0 || zoom.src.h == 0 || zoom.dst.w == 0 || zoom.dst.h == 0)
+	{
+		zoom = VideoZoom{};
+	}
+	zoom.numKeep = std::min<UINT8>(zoom.numKeep, VIDEO_ZOOM_MAX_KEEP);
+
+	if (SameZoom(zoom, g_zoom)) return;
+	g_zoom = zoom;
+	RefreshMousePosition();
+}
+
+
+static SDL_Rect ZoomBoxToRect(SGPBox const& b, int const scale = 1)
+{
+	return { b.x * scale, b.y * scale, b.w * scale, b.h * scale };
+}
+
+
+// Intermediate render target for the zoomed part, see RenderZoom().
+static bool EnsureZoomTexture(int const w, int const h)
+{
+	if (ZoomTexture && w <= ZoomTextureWidth && h <= ZoomTextureHeight) return true;
+
+	// Failed before: zoom without it (not smoothed) instead of trying again
+	// on every frame.
+	static bool failed = false;
+	if (failed) return false;
+
+	if (ZoomTexture) SDL_DestroyTexture(ZoomTexture);
+
+	// The scale quality hint is read when a texture is created: this one is
+	// always scaled down smoothly onto the screen.
+	char const* const hint    = SDL_GetHint(SDL_HINT_RENDER_SCALE_QUALITY);
+	std::string const oldHint = hint ? hint : "";
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+	ZoomTexture = SDL_CreateTexture(GameRenderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_TARGET, w, h);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, oldHint.c_str());
+
+	if (!ZoomTexture)
+	{
+		SLOGE("SDL_CreateTexture for ZoomTexture failed: {}\n", SDL_GetError());
+		failed            = true;
+		ZoomTextureWidth  = 0;
+		ZoomTextureHeight = 0;
+		return false;
+	}
+	ZoomTextureWidth  = w;
+	ZoomTextureHeight = h;
+	return true;
+}
+
+
+// Draws the zoomed part of the frame, the boxes kept 1:1 inside it, and the
+// mouse cursor (not zoomed, at the real mouse position) over the frame
+// already drawn 1:1 onto the current render target. `scale` is that target's
+// size relative to the frame (OVERSAMPLING_SCALE for ScaledScreenTexture).
+//
+// Pixel art enlarged by 125% or 150% has to be smoothed, or every 4th/2nd
+// pixel would be doubled: the zoomed part is first enlarged with no
+// filtering by OVERSAMPLING_SCALE, then scaled smoothly onto the screen --
+// the same as VideoScaleQuality::NEAR_PERFECT does for the whole frame.
+static void RenderZoom(int const scale, SDL_Rect const& cursorSrc, SGPPoint const cursorDst)
+{
+	SDL_Rect const src = ZoomBoxToRect(g_zoom.src);
+	SDL_Rect const dst = ZoomBoxToRect(g_zoom.dst, scale);
+
+	if (scale != 1)
+	{
+		// The target is oversampled already, and is scaled smoothly itself.
+		SDL_RenderCopy(GameRenderer, ScreenTexture, &src, &dst);
+	}
+	else if (EnsureZoomTexture(src.w * OVERSAMPLING_SCALE, src.h * OVERSAMPLING_SCALE))
+	{
+		SDL_Rect const big = { 0, 0, src.w * OVERSAMPLING_SCALE, src.h * OVERSAMPLING_SCALE };
+		SDL_SetRenderTarget(GameRenderer, ZoomTexture);
+		SDL_RenderCopy(GameRenderer, ScreenTexture, &src, &big);
+		SDL_SetRenderTarget(GameRenderer, nullptr);
+		SDL_RenderCopy(GameRenderer, ZoomTexture, &big, &dst);
+	}
+	else
+	{
+		SDL_RenderCopy(GameRenderer, ScreenTexture, &src, &dst);
+	}
+
+	for (UINT8 i = 0; i != g_zoom.numKeep; ++i)
+	{
+		SDL_Rect const keepSrc = ZoomBoxToRect(g_zoom.keep[i]);
+		SDL_Rect const keepDst = ZoomBoxToRect(g_zoom.keep[i], scale);
+		SDL_RenderCopy(GameRenderer, ScreenTexture, &keepSrc, &keepDst);
+	}
+
+	if (cursorSrc.w > 0 && cursorSrc.h > 0)
+	{
+		SDL_Texture* const cursor = SDL_CreateTextureFromSurface(GameRenderer, MouseCursor);
+		if (cursor)
+		{
+			SDL_Rect const d = {
+				(cursorDst.iX - gsMouseCursorXOffset) * scale,
+				(cursorDst.iY - gsMouseCursorYOffset) * scale,
+				cursorSrc.w * scale, cursorSrc.h * scale
+			};
+			SDL_RenderCopy(GameRenderer, cursor, &cursorSrc, &d);
+			SDL_DestroyTexture(cursor);
+		}
+	}
 }
 
 
@@ -347,6 +543,11 @@ void ShutdownVideoManager(void)
 	if (ScaledScreenTexture != NULL) {
 		SDL_DestroyTexture(ScaledScreenTexture);
 		ScaledScreenTexture = NULL;
+	}
+
+	if (ZoomTexture != NULL) {
+		SDL_DestroyTexture(ZoomTexture);
+		ZoomTexture = NULL;
 	}
 
 	if (GameRenderer != NULL) {
@@ -615,24 +816,43 @@ void RefreshScreen(void)
 		gfIgnoreScrollDueToCenterAdjust = FALSE;
 	}
 
-	auto const cursorPos{ GetCursorPos() };
+	// Every refresh, like the stretch region below.
+	UpdateZoom();
+
 	SDL_Rect src;
 	src.x = 0;
 	src.y = 0;
 	src.w = gusMouseCursorWidth;
 	src.h = gusMouseCursorHeight + gsMouseSizeYModifier;
-	SDL_Rect dst;
-	dst.x = cursorPos.iX - gsMouseCursorXOffset;
-	dst.y = cursorPos.iY - gsMouseCursorYOffset;
-	SDL_BlitSurface(MouseCursor, &src, ScreenBuffer, &dst);
-	ScreenTextureUpdateRect += dst;
-	MouseBackground = dst;
+	SGPPoint cursorScreenPos{ 0, 0 };
+	if (!g_zoom.active)
+	{
+		auto const cursorPos{ GetCursorPos() };
+		SDL_Rect dst;
+		dst.x = cursorPos.iX - gsMouseCursorXOffset;
+		dst.y = cursorPos.iY - gsMouseCursorYOffset;
+		SDL_BlitSurface(MouseCursor, &src, ScreenBuffer, &dst);
+		ScreenTextureUpdateRect += dst;
+		MouseBackground = dst;
+	}
+	else
+	{
+		// Zoomed: the cursor is not part of the frame (it would be zoomed with
+		// it), RenderZoom() draws it over the screen at the real mouse position.
+		cursorScreenPos = GetCursorScreenPos();
+		src.w = std::min(src.w, MouseCursor->w);
+		src.h = std::min(src.h, MouseCursor->h);
+		MouseBackground = { 0, 0, 0, 0 };
+	}
 
-	uint8_t const * SrcPixels = static_cast<uint8_t *>(ScreenBuffer->pixels)
-		+ ScreenTextureUpdateRect.y * ScreenBuffer->pitch
-		+ ScreenTextureUpdateRect.x * ScreenBuffer->format->BytesPerPixel;
-	SDL_UpdateTexture(ScreenTexture, &ScreenTextureUpdateRect,
-	                  SrcPixels, ScreenBuffer->pitch);
+	if (!SDL_RectEmpty(&ScreenTextureUpdateRect))
+	{
+		uint8_t const * SrcPixels = static_cast<uint8_t *>(ScreenBuffer->pixels)
+			+ ScreenTextureUpdateRect.y * ScreenBuffer->pitch
+			+ ScreenTextureUpdateRect.x * ScreenBuffer->format->BytesPerPixel;
+		SDL_UpdateTexture(ScreenTexture, &ScreenTextureUpdateRect,
+		                  SrcPixels, ScreenBuffer->pitch);
+	}
 
 	// Every refresh, not just the per-frame one from the game loop -- some
 	// screens (e.g. the laptop opening) call RefreshScreen() directly.
@@ -643,12 +863,14 @@ void RefreshScreen(void)
 	if (ScaleQuality == VideoScaleQuality::NEAR_PERFECT) {
 		SDL_SetRenderTarget(GameRenderer, ScaledScreenTexture);
 		SDL_RenderCopy(GameRenderer, ScreenTexture, nullptr, nullptr);
+		if (g_zoom.active) RenderZoom(OVERSAMPLING_SCALE, src, cursorScreenPos);
 
 		SDL_SetRenderTarget(GameRenderer, nullptr);
 		SDL_RenderCopy(GameRenderer, ScaledScreenTexture, nullptr, nullptr);
 	}
 	else {
 		SDL_RenderCopy(GameRenderer, ScreenTexture, NULL, NULL);
+		if (g_zoom.active) RenderZoom(1, src, cursorScreenPos);
 	}
 
 	FPS::RenderPresentPtr(GameRenderer);
