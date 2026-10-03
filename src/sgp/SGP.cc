@@ -43,6 +43,7 @@
 
 #include <string_theory/format>
 
+#include <algorithm>
 #include <chrono>
 #include <exception>
 #include <locale>
@@ -282,6 +283,73 @@ std::vector<ST::string> InitGlobalLocale()
 // Defined in game/CrashStateProviders.cc
 void RegisterGameCrashStateProviders();
 
+
+// Windows: without this, on a desktop with display scaling (125%, 150%) SDL
+// gets a smaller, DPI-virtualised desktop size (e.g. 1280x720 for 1920x1080
+// at 150%) and Windows blows the game window up on its own, blurring it. Must
+// run before SDL creates any window. Looked up at runtime, so the build
+// doesn't depend on the Windows SDK version.
+static void DeclareDpiAwareness()
+{
+#ifdef _WIN32
+	using SetProcessDPIAwareFn = BOOL (WINAPI *)();
+	HMODULE const user32 = GetModuleHandleW(L"user32.dll");
+	auto const setProcessDPIAware = user32
+		? reinterpret_cast<SetProcessDPIAwareFn>(GetProcAddress(user32, "SetProcessDPIAware"))
+		: nullptr;
+	if (!setProcessDPIAware || !setProcessDPIAware())
+	{
+		SLOGW("Failed to declare DPI awareness; with display scaling the desktop resolution may be detected too small");
+	}
+#endif
+}
+
+
+// Sets the screen size once SDL can tell the desktop size: in the AUTO
+// resolution mode the base resolution for the desktop (the smallest one if
+// the desktop is below it), in the MANUAL mode the player's own resolution
+// (already set), only warning when it is larger than the desktop.
+static void ApplyResolutionMode(ResolutionMode const mode, uint16_t const manualWidth, uint16_t const manualHeight)
+{
+	SDL_DisplayMode desktop;
+	bool const desktopKnown = SDL_GetDesktopDisplayMode(0, &desktop) == 0;
+	uint16_t desktopWidth  = 0;
+	uint16_t desktopHeight = 0;
+	if (desktopKnown)
+	{
+		desktopWidth  = (uint16_t)std::clamp(desktop.w, 0, 0xFFFF);
+		desktopHeight = (uint16_t)std::clamp(desktop.h, 0, 0xFFFF);
+	}
+	else
+	{
+		SLOGW("Failed to get the desktop resolution: {}", SDL_GetError());
+	}
+
+	uint16_t width  = manualWidth;
+	uint16_t height = manualHeight;
+	if (mode == ResolutionMode::AUTO)
+	{
+		size_t const base = desktopKnown ? BaseResolution_getAutoIndex(desktopWidth, desktopHeight) : 0;
+		width  = BaseResolution_getWidth(base);
+		height = BaseResolution_getHeight(base);
+		if (desktopKnown && !BaseResolution_fitsDesktop(0, desktopWidth, desktopHeight))
+		{
+			SLOGW("Desktop resolution {}x{} is below the supported minimum {}x{}, using {}x{} anyway",
+				desktopWidth, desktopHeight, BaseResolution_getWidth(0), BaseResolution_getHeight(0), width, height);
+		}
+		g_ui.setScreenSize(width, height);
+	}
+	else if (desktopKnown && (width > desktopWidth || height > desktopHeight))
+	{
+		SLOGW("Resolution {}x{} is larger than the desktop resolution {}x{}, using it anyway",
+			width, height, desktopWidth, desktopHeight);
+	}
+
+	SLOGI("Resolution: {} mode, game {}x{}, desktop {}",
+		mode == ResolutionMode::AUTO ? "auto" : "manual", width, height,
+		desktopKnown ? ST::format("{}x{}", desktopWidth, desktopHeight) : ST::string("unknown"));
+}
+
 int main(int argc, char* argv[])
 {
     try {
@@ -353,8 +421,18 @@ int main(int argc, char* argv[])
 			GameMode::getInstance()->setEditorMode(false);
 		}
 
-		uint16_t width = EngineOptions_getResolutionX(params.get());
-		uint16_t height = EngineOptions_getResolutionY(params.get());
+		// The AUTO resolution mode picks the resolution after SDL_Init() below
+		// (ApplyResolutionMode()), the smallest base resolution until then;
+		// "res" from ja2.json is only used in the MANUAL mode.
+	#ifdef __ANDROID__
+		// The Android launcher only knows "res" (it never writes
+		// "resolution_mode", which then defaults to AUTO), so keep using it.
+		ResolutionMode const resolutionMode = ResolutionMode::MANUAL;
+	#else
+		ResolutionMode const resolutionMode = EngineOptions_getResolutionMode(params.get());
+	#endif
+		uint16_t const width  = resolutionMode == ResolutionMode::AUTO ? BaseResolution_getWidth(0)  : EngineOptions_getResolutionX(params.get());
+		uint16_t const height = resolutionMode == ResolutionMode::AUTO ? BaseResolution_getHeight(0) : EngineOptions_getResolutionY(params.get());
 		g_ui.setScreenSize(width, height);
 
 		if (EngineOptions_shouldRunUnittests(params.get())) {
@@ -378,7 +456,9 @@ int main(int argc, char* argv[])
 
 		////////////////////////////////////////////////////////////
 
+		DeclareDpiAwareness();
 		SDL_Init(SDL_INIT_VIDEO);
+		ApplyResolutionMode(resolutionMode, width, height);
 
 		// restore output to the console (on windows when built with MINGW)
 	#ifdef __MINGW32__
