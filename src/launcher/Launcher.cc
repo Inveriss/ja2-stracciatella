@@ -38,10 +38,23 @@
 
 const double checkGameRunningIntervalSeconds = 1.0;
 
-// The Settings tab has one radio per base resolution (baseResolutionRadio0/1).
+// The Settings tab has one radio per base resolution (baseResolutionRadio0/1)
+// TEMP-1920: plus a test-only Manual 1920x1080 (baseResolutionRadio2), not a
+// base resolution of the game -- AUTO never picks it.
+static size_t const TestResolutionRadio = 2;
 static size_t NumBaseResolutionRadios()
 {
-	return std::min<size_t>(BaseResolution_getCount(), 2);
+	return TestResolutionRadio + 1;
+}
+
+static uint16_t RadioResolutionWidth(size_t const index)
+{
+	return index == TestResolutionRadio ? 1920 : BaseResolution_getWidth(index);
+}
+
+static uint16_t RadioResolutionHeight(size_t const index)
+{
+	return index == TestResolutionRadio ? 1080 : BaseResolution_getHeight(index);
 }
 
 // Desktop resolution of the primary monitor in real pixels, 0x0 if unknown.
@@ -513,7 +526,7 @@ void Launcher::initializeInputsFromDefaults() {
 	uint16_t const resY = EngineOptions_getResolutionY(this->engineOptions.get());
 	manualBaseResolution = -1;
 	for (size_t i = 0; i < NumBaseResolutionRadios(); ++i) {
-		if (BaseResolution_getWidth(i) == resX && BaseResolution_getHeight(i) == resY) manualBaseResolution = (int)i;
+		if (RadioResolutionWidth(i) == resX && RadioResolutionHeight(i) == resY) manualBaseResolution = (int)i;
 	}
 	bool const manual = EngineOptions_getResolutionMode(this->engineOptions.get()) == ResolutionMode::MANUAL;
 	(manual ? manualModeRadio : autoModeRadio)->setonly();
@@ -564,7 +577,7 @@ int Launcher::writeJsonFile() {
 	EngineOptions_setResolutionMode(this->engineOptions.get(), manual ? ResolutionMode::MANUAL : ResolutionMode::AUTO);
 	int const base = selectedBaseResolution();
 	if (manual && base >= 0) {
-		EngineOptions_setResolution(this->engineOptions.get(), BaseResolution_getWidth(base), BaseResolution_getHeight(base));
+		EngineOptions_setResolution(this->engineOptions.get(), RadioResolutionWidth(base), RadioResolutionHeight(base));
 	}
 	EngineOptions_setBrightness(this->engineOptions.get(), -1.0f);
 
@@ -821,15 +834,23 @@ void Launcher::maintainSubProcessState(void* userdata) {
 
 bool Launcher::baseResolutionFits(size_t const index) const {
 	// An unknown desktop rules nothing out.
-	return !desktopKnown() || BaseResolution_fitsDesktop(index, desktopWidth, desktopHeight);
+	return !desktopKnown() || (RadioResolutionWidth(index) <= desktopWidth && RadioResolutionHeight(index) <= desktopHeight);
 }
 
 Fl_Round_Button* Launcher::baseResolutionRadio(size_t const index) const {
-	return index == 0 ? baseResolutionRadio0 : baseResolutionRadio1;
+	switch (index) {
+		case 0:  return baseResolutionRadio0;
+		case 1:  return baseResolutionRadio1;
+		default: return baseResolutionRadio2;
+	}
 }
 
 Fl_Box* Launcher::baseResolutionHint(size_t const index) const {
-	return index == 0 ? baseResolutionHint0 : baseResolutionHint1;
+	switch (index) {
+		case 0:  return baseResolutionHint0;
+		case 1:  return baseResolutionHint1;
+		default: return baseResolutionHint2;
+	}
 }
 
 int Launcher::selectedBaseResolution() const {
@@ -879,7 +900,7 @@ void Launcher::updateResolutionWidgets() {
 			continue;
 		}
 		baseResolutionHintTooltip[i] = "Requires a desktop resolution of at least "
-			+ resolutionText(BaseResolution_getWidth(i), BaseResolution_getHeight(i)) + " (current: " + desktopText + ").";
+			+ resolutionText(RadioResolutionWidth(i), RadioResolutionHeight(i)) + " (current: " + desktopText + ").";
 		hint->tooltip(baseResolutionHintTooltip[i].c_str());
 		hint->show();
 	}
@@ -888,7 +909,7 @@ void Launcher::updateResolutionWidgets() {
 		std::string const minimum = resolutionText(BaseResolution_getWidth(0), BaseResolution_getHeight(0));
 		invalidResolutionTooltip = "Desktop resolution " + desktopText + " is below the supported minimum " + minimum + ". The game will still start in " + minimum + ".";
 	} else if (manual && selected >= 0 && !baseResolutionFits(selected)) {
-		invalidResolutionTooltip = resolutionText(BaseResolution_getWidth(selected), BaseResolution_getHeight(selected)) + " does not fit on the desktop (" + desktopText + "). The game will still start in it.";
+		invalidResolutionTooltip = resolutionText(RadioResolutionWidth(selected), RadioResolutionHeight(selected)) + " does not fit on the desktop (" + desktopText + "). The game will still start in it.";
 	} else {
 		invalidResolutionTooltip.clear();
 	}

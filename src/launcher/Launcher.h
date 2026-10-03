@@ -57,7 +57,7 @@ private:
 	void updateResolutionWidgets();
 	// Texts the widgets' tooltip() and label() point to.
 	std::string invalidResolutionTooltip;
-	std::string baseResolutionHintTooltip[2];
+	std::string baseResolutionHintTooltip[3]; // TEMP-1920: 3 radios
 	std::string resolutionLabelText;
 	std::string baseResolutionLabelTooltip;
 	// "Stretch In-Game Laptop"'s own value while its checkbox is inactive
