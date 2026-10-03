@@ -380,11 +380,15 @@ the separate frame files. Details in `tools/sti_editor/README.md`.
 
 - Image dimensions up to 65535 pixels in each direction and up to 2^26 pixels
   in total.
-- Tileset tiles still need STI; character animations, tile cache effects and
-  cursors – palettised PNGs only (full colour in the game world is not
-  supported yet).
+- Tileset tiles still need STI.
+- In the game world, full colour PNGs are possible for tile cache effects,
+  characters and corpses whose colours the game doesn't change, and people and
+  their corpses with a colour mask (see "Animations in the game world").
+  Cursors, adult creatures (palettes from `.COL` files) and their corpses need
+  palettised PNGs.
 - A palettised PNG image takes as much memory as an STI, a full colour image
-  about 5 bytes per pixel (RGBA and the outline mask).
+  about 5 bytes per pixel (RGBA and the outline mask; for characters RGBA and
+  the colour mask, if any).
 
 ## Performance
 
