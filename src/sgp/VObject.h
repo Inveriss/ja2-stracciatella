@@ -92,6 +92,7 @@ class SGPVObject
 
 		/* Given a ETRLE image index, retrieves the value of the pixel located at
 		 * the given image coordinates. The value returned is an 8-bit palette index
+		 * (0 for transparent pixels)
 		 */
 		UINT8 GetETRLEPixelValue(UINT16 usETLREIndex, UINT16 usX, UINT16 usY) const;
 

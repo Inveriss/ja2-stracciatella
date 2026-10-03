@@ -2281,3 +2281,66 @@ TEST_F(PNGLoadTest, characterNeedsColourMask)
 	AutoSGPImage const effect(CreateImage("pngtest/anim_tile_rgba.sti", IMAGE_ALLDATA | IMAGE_ANIMATION_METADATA));
 	EXPECT_TRUE(effect->colourMask.empty());
 }
+
+
+// ---------------------------------------------------------------------------
+// SGPVObject::GetETRLEPixelValue()
+
+TEST(PNG, etrlePixelValueOfEveryPixel)
+{
+	// 300x4 indices with transparent and opaque runs longer than an ETRLE run
+	// (127), short runs and single pixels; index 0 is transparent
+	DecodedPNG png;
+	png.kind   = DecodedPNG::Kind::Indexed;
+	png.width  = 300;
+	png.height = 4;
+	png.palette.assign(256, SGPPaletteEntry{ 0, 0, 0, 255 });
+	for (UINT16 y = 0; y != png.height; ++y)
+	{
+		for (UINT16 x = 0; x != png.width; ++x)
+		{
+			UINT8 v;
+			switch (y)
+			{
+				case 0:  v = x < 200 ? 0 : 1 + x % 7;          break; // long transparent run
+				case 1:  v = x < 150 ? 1 + x % 250 : 0;        break; // long opaque run, transparent end
+				case 2:  v = (x / 3) % 2 ? 0 : 1 + (x + y) % 9; break; // short runs
+				default: v = x % 2 ? 0 : 200;                  break; // single pixels
+			}
+			png.pixels.push_back(v);
+		}
+	}
+	AutoSGPImage img(ConvertIndexedPNGToImage(png, { PNGFrame{ 0, 0, png.width, png.height, 0, 0 } }, IMAGE_ALLIMAGEDATA, "test"));
+	std::unique_ptr<SGPVObject> const vo(AddVideoObjectFromHImage(img.get()));
+
+	for (UINT16 y = 0; y != png.height; ++y)
+	{
+		for (UINT16 x = 0; x != png.width; ++x)
+		{
+			EXPECT_EQ(vo->GetETRLEPixelValue(0, x, y), png.pixels[y * png.width + x]) << x << "," << y;
+		}
+	}
+	EXPECT_THROW(vo->GetETRLEPixelValue(0, png.width, 0), std::logic_error);
+	EXPECT_THROW(vo->GetETRLEPixelValue(0, 0, png.height), std::logic_error);
+}
+
+
+TEST_F(PNGLoadTest, etrlePixelValueOfSTIFrames)
+{
+	// the frames of anim_tile_rgba.sti have the palette indices of its colour
+	// mask (frame n at x = 7 * n on the sheet, see the generator)
+	AutoSGPImage const sti(LoadSTCIFileToImage("pngtest/anim_tile_rgba.sti", IMAGE_ALLDATA));
+	std::unique_ptr<SGPVObject> const vo(AddVideoObjectFromHImage(sti.get()));
+	DecodedPNG const mask = DecodePNGFile("pngtest/anim_tile_rgba.mask.png");
+	for (UINT16 n = 0; n != vo->SubregionCount(); ++n)
+	{
+		ETRLEObject const& e = vo->SubregionProperties(n);
+		for (UINT16 y = 0; y != e.usHeight; ++y)
+		{
+			for (UINT16 x = 0; x != e.usWidth; ++x)
+			{
+				EXPECT_EQ(vo->GetETRLEPixelValue(n, x, y), mask.pixels[y * mask.width + 7 * n + x]) << "frame " << n << " " << x << "," << y;
+			}
+		}
+	}
+}

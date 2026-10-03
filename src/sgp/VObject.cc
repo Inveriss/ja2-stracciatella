@@ -213,54 +213,36 @@ UINT8 SGPVObject::GetETRLEPixelValue(UINT16 const usETRLEIndex, UINT16 const usX
 		throw std::logic_error("Tried to get pixel from invalid coordinate");
 	}
 
-	// Assuming everything's okay, go ahead and look...
+	// Each row is a list of runs ending with 0: a byte with COMPRESS_TRANSPARENT
+	// is a run of that many transparent pixels, any other byte is the number
+	// of palette indices that follow it.
 	UINT8 const* pCurrent = PixData(pETRLEObject);
 
-	// Skip past all uninteresting scanlines
+	// Skip the rows above
 	for (UINT16 usLoopY = 0; usLoopY < usY; usLoopY++)
 	{
-		while (*pCurrent != 0)
+		for (;;)
 		{
-			if (*pCurrent & COMPRESS_TRANSPARENT)
-			{
-				pCurrent++;
-			}
-			else
-			{
-				pCurrent += *pCurrent & COMPRESS_RUN_MASK;
-			}
+			UINT8 const code = *pCurrent++;
+			if (code == 0) break;
+			if (!(code & COMPRESS_TRANSPARENT)) pCurrent += code;
 		}
 	}
 
-	// Now look in this scanline for the appropriate byte
-	UINT16 usLoopX = 0;
-	do
+	// Find the run with the pixel in this row
+	for (UINT32 usLoopX = 0;;)
 	{
-		UINT16 ubRunLength = *pCurrent & COMPRESS_RUN_MASK;
+		UINT8 const code = *pCurrent++;
+		if (code == 0) return 0; // the rest of the row is transparent
 
-		if (*pCurrent & COMPRESS_TRANSPARENT)
+		UINT32 const ubRunLength = code & COMPRESS_RUN_MASK;
+		if (usX < usLoopX + ubRunLength)
 		{
-			if (usLoopX + ubRunLength >= usX) return 0;
-			pCurrent++;
+			return code & COMPRESS_TRANSPARENT ? 0 : pCurrent[usX - usLoopX];
 		}
-		else
-		{
-			if (usLoopX + ubRunLength >= usX)
-			{
-				// skip to the correct byte; skip at least 1 to get past the byte defining the run
-				pCurrent += (usX - usLoopX) + 1;
-				return *pCurrent;
-			}
-			else
-			{
-				pCurrent += ubRunLength + 1;
-			}
-		}
+		if (!(code & COMPRESS_TRANSPARENT)) pCurrent += ubRunLength;
 		usLoopX += ubRunLength;
 	}
-	while (usLoopX < usX);
-
-	throw std::logic_error("Inconsistent video object data");
 }
 
 
