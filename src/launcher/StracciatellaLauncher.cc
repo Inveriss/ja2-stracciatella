@@ -133,12 +133,11 @@ on their features.");
               baseResolutionRadio1->type(102);
               baseResolutionRadio1->down_box(FL_ROUND_DOWN_BOX);
             } // Fl_Round_Button* baseResolutionRadio1
-            { // Placeholder for a future base resolution: inactive, not used by the code
-              Fl_Round_Button* o = new Fl_Round_Button(339, 156, 90, 22, "1920x1080");
-              o->type(102);
-              o->down_box(FL_ROUND_DOWN_BOX);
-              o->deactivate();
-            } // Fl_Round_Button* o
+            { // TEMP-1920: test-only Manual resolution, not a base resolution of the game
+              baseResolutionRadio2 = new Fl_Round_Button(339, 156, 90, 22, "1920x1080");
+              baseResolutionRadio2->type(102);
+              baseResolutionRadio2->down_box(FL_ROUND_DOWN_BOX);
+            } // Fl_Round_Button* baseResolutionRadio2
             { // Shows the reason as a tooltip while baseResolutionRadio0 is inactive (inactive widgets show no tooltip)
               baseResolutionHint0 = new Fl_Box(149, 156, 90, 22);
               baseResolutionHint0->hide();
@@ -147,6 +146,10 @@ on their features.");
               baseResolutionHint1 = new Fl_Box(244, 156, 90, 22);
               baseResolutionHint1->hide();
             } // Fl_Box* baseResolutionHint1
+            { // TEMP-1920: shows the reason as a tooltip while baseResolutionRadio2 is inactive
+              baseResolutionHint2 = new Fl_Box(339, 156, 90, 22);
+              baseResolutionHint2->hide();
+            } // Fl_Box* baseResolutionHint2
             o->end();
           } // Fl_Group* o
           { resolutionModeLabel = new Fl_Box(17, 135, 125, 22, "UI Resolution Mode:");

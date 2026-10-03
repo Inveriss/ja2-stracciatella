@@ -153,10 +153,10 @@ class StracciatellaLauncher {open
                 label 1366x768
                 xywh {244 156 90 22} type Radio down_box ROUND_DOWN_BOX
               }
-              Fl_Round_Button {} {
+              Fl_Round_Button baseResolutionRadio2 {
                 label 1920x1080
-                comment {Placeholder for a future base resolution: inactive, not used by the code}
-                xywh {339 156 90 22} type Radio down_box ROUND_DOWN_BOX deactivate
+                comment {TEMP-1920: test-only Manual resolution, not a base resolution of the game}
+                xywh {339 156 90 22} type Radio down_box ROUND_DOWN_BOX
               }
               Fl_Box baseResolutionHint0 {
                 comment {Shows the reason as a tooltip while baseResolutionRadio0 is inactive (inactive widgets show no tooltip)}
@@ -165,6 +165,10 @@ class StracciatellaLauncher {open
               Fl_Box baseResolutionHint1 {
                 comment {Shows the reason as a tooltip while baseResolutionRadio1 is inactive (inactive widgets show no tooltip)}
                 xywh {244 156 90 22} hide
+              }
+              Fl_Box baseResolutionHint2 {
+                comment {TEMP-1920: shows the reason as a tooltip while baseResolutionRadio2 is inactive}
+                xywh {339 156 90 22} hide
               }
             }
             Fl_Box resolutionModeLabel {

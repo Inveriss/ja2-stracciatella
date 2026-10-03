@@ -42,8 +42,10 @@ public:
   Fl_Round_Button *manualModeRadio;
   Fl_Round_Button *baseResolutionRadio0;
   Fl_Round_Button *baseResolutionRadio1;
+  Fl_Round_Button *baseResolutionRadio2;
   Fl_Box *baseResolutionHint0;
   Fl_Box *baseResolutionHint1;
+  Fl_Box *baseResolutionHint2;
   Fl_Box *resolutionModeLabel;
   Fl_Box *baseResolutionLabel;
   Fl_Check_Button *stretchCheckbox;
