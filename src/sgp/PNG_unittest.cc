@@ -17,6 +17,7 @@
 #include "VSurface.h"
 #include "Animation_Data.h"
 #include "Lighting.h"
+#include "RenderWorld.h"
 
 #include <string_theory/format>
 
@@ -1941,13 +1942,121 @@ TEST(PNG, rgbaShadeBlitterZObscuredAndNoZ)
 
 TEST(PNG, fullColourCharacterAnimations)
 {
-	// only one tile animations without palette colour changes
+	// only animations without palette colour changes
 	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(CROWWALKING));
 	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(CROWFLYING));
 	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(ROBOTNWBREATH));
+	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(COWSTANDING));
+	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(CATBREATH));
+	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(QUEENMONSTERSTANDING));
+	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(HUMVEE_BASIC));
+	EXPECT_TRUE(AnimationSurfaceAllowsFullColour(TANKNE_DIE));
 	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(RGMSTANDING));
-	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(COWSTANDING));
-	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(CATBREATH));
-	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(QUEENMONSTERSTANDING));
-	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(HUMVEE_BASIC));
+	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(AFMONSTERSTANDING));
+	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(LVBREATH));
+	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(KIDCIVSTANDING));
+	EXPECT_FALSE(AnimationSurfaceAllowsFullColour(BODYEXPLODE));
+}
+
+
+namespace
+{
+
+// 45x1, opaque red, with Z strips: the first 5 columns wide, then 20 wide;
+// the Z value goes up after the first strip and down after the second.
+std::unique_ptr<SGPVObject> StripRGBAObject(size_t const transparentColumn = SIZE_MAX)
+{
+	DecodedPNG png;
+	png.kind             = DecodedPNG::Kind::RGBA;
+	png.width            = 45;
+	png.height           = 1;
+	png.sourceColourType = 6;
+	png.sourceBitDepth   = 8;
+	for (size_t x = 0; x != 45; ++x)
+	{
+		UINT8 const a = x == transparentColumn ? 0 : 255;
+		png.pixels.insert(png.pixels.end(), { 255, 0, 0, a });
+	}
+	AutoSGPImage img(ConvertRGBAPNGToImage(png, { PNGFrame{ 0, 0, 45, 1, 0, 0 } }, IMAGE_ALLIMAGEDATA, "test"));
+	std::unique_ptr<SGPVObject> vo(AddVideoObjectFromHImage(img.get()));
+
+	auto z = std::make_unique<ZStripInfo>();
+	z->pbZChange[0]       = 1;
+	z->pbZChange[1]       = -1;
+	z->bInitialZChange    = 0;
+	z->ubFirstZStripWidth = 5;
+	z->ubNumberOfZChanges = 2;
+	vo->ppZStripInfo = std::make_unique<std::unique_ptr<ZStripInfo>[]>(1);
+	vo->ppZStripInfo[0] = std::move(z);
+	return vo;
+}
+
+void BlitStrips(ZTarget& t, SGPVObject const* const vo, SGPRect const& clip, bool const obscured)
+{
+	SGPVSurface::Lock l(&t.surface);
+	Blt32BPPDataTo16BPPBufferShadeZStrips(l.Buffer<UINT16>(), l.Pitch(), t.zbuf.data(), 100, vo, 0, 0, 0, &clip, 0, Z_SUBLAYERS, RGBA_SHADE_NONE, obscured);
+}
+
+}
+
+
+TEST(PNG, rgbaZStripsStepAsThe8BitBlitter)
+{
+	RGB565Format const format;
+	SGPRect const all{ 0, 0, 45, 1 };
+
+	// crossing into the next strip on an opaque pixel: Z_SUBLAYERS
+	std::unique_ptr<SGPVObject> const vo = StripRGBAObject();
+	ZTarget t(45, 1, BLUE_565, 0);
+	BlitStrips(t, vo.get(), all, false);
+	EXPECT_EQ(t.Z(0, 0),  100);
+	EXPECT_EQ(t.Z(4, 0),  100);
+	EXPECT_EQ(t.Z(5, 0),  100 + Z_SUBLAYERS);
+	EXPECT_EQ(t.Z(24, 0), 100 + Z_SUBLAYERS);
+	EXPECT_EQ(t.Z(25, 0), 100);
+	EXPECT_EQ(Pixel(t.surface, 30, 0), 0xF800);
+
+	// on a transparent pixel: ten times that
+	std::unique_ptr<SGPVObject> const gap = StripRGBAObject(4);
+	ZTarget g(45, 1, BLUE_565, 0);
+	BlitStrips(g, gap.get(), all, false);
+	EXPECT_EQ(g.Z(4, 0),  0);
+	EXPECT_EQ(Pixel(g.surface, 4, 0), BLUE_565);
+	EXPECT_EQ(g.Z(5, 0),  100 + 10 * Z_SUBLAYERS);
+	EXPECT_EQ(g.Z(25, 0), 100 + 9 * Z_SUBLAYERS);
+
+	// hidden where the Z-buffer is in front
+	ZTarget h(45, 1, BLUE_565, 0);
+	h.Z(10, 0) = 100 + Z_SUBLAYERS + 1;
+	BlitStrips(h, vo.get(), all, false);
+	EXPECT_EQ(Pixel(h.surface, 10, 0), BLUE_565);
+	EXPECT_EQ(Pixel(h.surface, 11, 0), 0xF800);
+
+	// left clipped into the third strip: the same Z value
+	ZTarget c(45, 1, BLUE_565, 0);
+	BlitStrips(c, vo.get(), SGPRect{ 30, 0, 45, 1 }, false);
+	EXPECT_EQ(c.Z(29, 0), 0);
+	EXPECT_EQ(c.Z(30, 0), 100);
+}
+
+
+TEST(PNG, rgbaZStripsObscured)
+{
+	RGB565Format const format;
+	std::unique_ptr<SGPVObject> const vo = StripRGBAObject();
+
+	// all behind: only the checkerboard, steps of ten times Z_SUBLAYERS
+	ZTarget t(45, 2, BLUE_565, 1000);
+	BlitStrips(t, vo.get(), SGPRect{ 0, 0, 45, 1 }, true);
+	EXPECT_EQ(Pixel(t.surface, 0, 0), 0xF800);
+	EXPECT_EQ(Pixel(t.surface, 1, 0), BLUE_565);
+	EXPECT_EQ(t.Z(0, 0), 100);
+	EXPECT_EQ(t.Z(1, 0), 1000);
+	EXPECT_EQ(t.Z(6, 0), 100 + 10 * Z_SUBLAYERS);
+
+	// in front: drawn where the Z-buffer is below
+	ZTarget f(45, 1, BLUE_565, 0);
+	BlitStrips(f, vo.get(), SGPRect{ 0, 0, 45, 1 }, true);
+	EXPECT_EQ(Pixel(f.surface, 1, 0), 0xF800);
+	EXPECT_EQ(f.Z(1, 0), 100);
 }

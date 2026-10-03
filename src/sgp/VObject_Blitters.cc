@@ -6,6 +6,7 @@
 #include "VObject_Blitters.h"
 #include "VSurface.h"
 #include "WCheck.h"
+#include "Logger.h"
 #include <algorithm>
 #include <utility>
 
@@ -5771,6 +5772,110 @@ void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* const buf, UINT32 const uiDestPitch
 					Blend(b, f.b.Unpack(d), alpha));
 			}
 			if (z && zPass && writeZ && src[3] >= 128) z[x - c.x0] = usZValue;
+		}
+	}
+}
+
+
+void Blt32BPPDataTo16BPPBufferShadeZStrips(UINT16* const buf, UINT32 const uiDestPitchBYTES, UINT16* const pZBuffer, UINT16 const usZValue, SGPVObject const* const hSrcVObject, INT32 const iX, INT32 const iY, UINT16 const usIndex, SGPRect const* const clipregion, INT16 const sZIndex, UINT16 const zSublayers, RGBAShade const& shade, bool const obscured)
+{
+	Assert(hSrcVObject);
+	Assert(buf);
+	Assert(pZBuffer);
+
+	ETRLEObject const& e = hSrcVObject->SubregionProperties(usIndex);
+	ClippedFrame const c = ClipFrame(e, iX, iY, clipregion);
+	if (c.empty) return;
+
+	if (!hSrcVObject->ppZStripInfo || !hSrcVObject->ppZStripInfo[sZIndex])
+	{
+		SLOGW("Missing Z-Strip info on multi-Z object");
+		return;
+	}
+	ZStripInfo const& zi = *hSrcVObject->ppZStripInfo[sZIndex];
+
+	// The Z value of the first drawn column, worked out as the 8 bit blitters
+	// do after the left clipping (with their steps: zSublayers here, ten
+	// times that from strip to strip, except when the 8 bit blitter without
+	// obscuring crosses into the next strip on an opaque pixel)
+	INT32  const leftSkip   = c.x0;
+	INT32  const firstWidth = zi.ubFirstZStripWidth;
+	UINT16 const stripStep  = zSublayers * 10;
+	UINT16 startLevel = usZValue + zi.bInitialZChange * stripStep;
+	UINT16 startCols;
+	if (leftSkip > firstWidth)
+	{
+		startCols = 20 - (leftSkip - firstWidth) % 20;
+	}
+	else if (leftSkip < firstWidth)
+	{
+		startCols = firstWidth - leftSkip;
+	}
+	else
+	{
+		startCols = 20;
+	}
+	UINT16 startIndex = 0;
+	if (leftSkip >= startCols)
+	{
+		startIndex = 1 + (leftSkip - firstWidth) / 20;
+		for (UINT16 i = 0; i < startIndex && i < lengthof(zi.pbZChange); ++i)
+		{
+			if (zi.pbZChange[i] < 0) startLevel -= zSublayers;
+			if (zi.pbZChange[i] > 0) startLevel += zSublayers;
+		}
+	}
+
+	UINT8  const* const rgba  = hSrcVObject->RGBAData(e);
+	UINT32        const pitch = uiDestPitchBYTES / 2;
+	Format16      const f;
+
+	for (INT32 y = c.y0; y != c.y1; ++y)
+	{
+		size_t const  row     = static_cast<size_t>(c.top + y) * pitch + c.left + c.x0;
+		UINT16*       dst     = buf + row;
+		UINT16*       z       = pZBuffer + row;
+		UINT8  const* src     = rgba + (static_cast<size_t>(y) * e.usWidth + c.x0) * 4;
+		bool          odd     = ((c.top + y) & 1) != ((c.left + c.x0) & 1);
+		UINT16        level   = startLevel;
+		UINT16        index   = startIndex;
+		UINT16        colsToGo = startCols;
+		for (INT32 x = c.x0; x != c.x1; ++x, ++dst, ++z, src += 4, odd = !odd)
+		{
+			bool const transparent = src[3] == 0;
+			if (!transparent && (obscured ? *z < level || !odd : *z <= level))
+			{
+				UINT8 r = src[0];
+				UINT8 g = src[1];
+				UINT8 b = src[2];
+				bool const shadow = r == 0 && g == 0 && b == 0 && src[3] != 255;
+				if (!shadow) ApplyRGBAShade(shade, r, g, b);
+
+				UINT32 const alpha = src[3];
+				if (alpha == 255)
+				{
+					*dst = f.Pack(r, g, b);
+				}
+				else
+				{
+					UINT16 const d = *dst;
+					*dst = f.Pack(
+						Blend(r, f.r.Unpack(d), alpha),
+						Blend(g, f.g.Unpack(d), alpha),
+						Blend(b, f.b.Unpack(d), alpha));
+				}
+				if (alpha >= 128) *z = level;
+			}
+
+			if (--colsToGo == 0)
+			{
+				colsToGo = 20;
+				INT8   const delta = index < lengthof(zi.pbZChange) ? zi.pbZChange[index] : 0;
+				UINT16 const step  = obscured || transparent ? stripStep : zSublayers;
+				++index;
+				if (delta < 0) level -= step;
+				if (delta > 0) level += step;
+			}
 		}
 	}
 }

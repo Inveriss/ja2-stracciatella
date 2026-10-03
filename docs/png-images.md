@@ -214,9 +214,10 @@ Animacje postaci (`anims/`, np. `anims/s_merc/s_r_std` – najemnik stojący),
 animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
 potrzebują danych dodatkowych: liczby klatek animacji. PNG może je zastąpić, gdy:
 
-- jest **PNG z paletą**, a dla efektów z pamięci podręcznej kafli, wrony i
-  robota także PNG w pełnym kolorze (niżej); pozostałe postacie, zwłoki i
-  kursory muszą mieć paletę, bo gra podmienia ich kolory przez paletę,
+- jest **PNG z paletą**, a dla efektów z pamięci podręcznej kafli, zwierząt,
+  robota, pojazdów, królowej i części zwłok także PNG w pełnym kolorze (niżej);
+  pozostałe postacie i zwłoki oraz kursory muszą mieć paletę, bo gra podmienia
+  ich kolory przez paletę,
 - jego metadane mają sekcję `animation`:
 
 ```json
@@ -251,12 +252,20 @@ Postacie:
   korzystają z palety;
 - cień postaci jest częścią jej klatek: piksele o indeksie 254 przyciemniają tło.
 
-Postacie w pełnym kolorze (RGBA) są możliwe tylko dla **wrony**
-(`anims/animals/cr_walk`, `cr_fly`, `cr_eat`, `cr_die`) i **robota**
-(`anims/civs/j_r_bret`, `j_r_walk`, `j_r_hit`, `j_r_die`, `j_r_shot`): gra
-nie podmienia ich kolorów, a ich struktury zajmują jeden kafel. Dla pozostałych
-postaci PNG w pełnym kolorze jest pomijany i gra wczytuje oryginał (z wpisem w
-logu). Postać RGBA:
+Postacie w pełnym kolorze (RGBA) są możliwe tylko tam, gdzie gra nie
+podmienia kolorów:
+
+| Postać | Animacje |
+|---|---|
+| krowa | `anims/animals/c_breath`, `c_walk`, `c_die`, `c_eat` |
+| wrona | `anims/animals/cr_walk`, `cr_fly`, `cr_eat`, `cr_die` |
+| krwawy kot | `anims/animals/ct_breath`, `ct_walk`, `ct_run`, `ct_ready`, `ct_hit`, `ct_die`, `ct_swipe`, `ct_bite` |
+| robot | `anims/civs/j_r_bret`, `j_r_walk`, `j_r_hit`, `j_r_die`, `j_r_shot` |
+| pojazdy | `anims/vehicles/hummer`, `hummer2`, `icecrm`, `hm_wrek`, `tank_rot`, `tank_sht`, `tk_wrek`, `tnk2_rot`, `tnk2_sht`, `tk2_wrek` |
+| królowa | `anims/monsters/qmn_breat`, `q_ready`, `q_spit_sw`, `q_spit_e`, `q_spit_ne`, `q_spit_s`, `q_spit_se`, `q_die`, `q_swipe` |
+
+Dla pozostałych postaci (ludzie, cywile, pozostałe potwory) PNG w pełnym kolorze
+jest pomijany i gra wczytuje oryginał (z wpisem w logu). Postać RGBA:
 
 - jest oświetlana i podświetlana tak samo jak z paletą (poziomy światła i jego
   kolor, czerwone podświetlenie wroga, szarość niewidocznego wroga, biały błysk):
@@ -266,7 +275,9 @@ logu). Postać RGBA:
   255): przyciemnia tło przez mieszanie i nie jest oświetlany ani podświetlany;
   zalecana alfa to około 100–127, bo piksele z alfą co najmniej 128 zapisują Z;
 - Z-bufor działa jak w STI; piksele z alfą co najmniej 128 zapisują Z; postać za
-  konstrukcją jest rysowana w szachownicę jak z paletą;
+  konstrukcją jest rysowana w szachownicę jak z paletą; postacie na kilku
+  kaflach (krowa, krwawy kot, pojazdy, królowa) mają w kolejnych pionowych
+  pasach klatki wartości Z z danych struktury, tak samo jak z paletą;
 - nie ma obrysu (gra nie tworzy dla postaci maski obrysu);
 - może być mieszana z animacjami STI tej samej postaci (np. tylko `cr_fly` w
   RGBA): palety cieniowania dla STI gra bierze wtedy z oryginału, który PNG
@@ -286,9 +297,13 @@ inne) mogą być **PNG w pełnym kolorze** (RGBA):
   wprost;
 - zalecane `"outline": false`, bo efekty nie używają obrysu, a maska obrysu
   zajmuje pamięć;
-- **zwłoki** (`anims/corpses/`), choć też rysowane jak te efekty, zostają z
-  paletą: gra cieniuje je paletą zwłok; PNG w pełnym kolorze zwłok jest
-  pomijany i gra wczytuje oryginał.
+- **zwłoki** (`anims/corpses/`) są rysowane jak postacie na kilku kaflach, z
+  oświetleniem. Mogą być PNG w pełnym kolorze, gdy gra nie podmienia ich
+  kolorów: zwłoki zwierząt (`ct_dead`, `cw_dead1`), wraki pojazdów (`tk_wrek`,
+  `tk2_wrek`, `hm_wrek`, `ic_wrek`), królowej (`qn_dead`), robota (`j_dead`) i
+  zwłoki w późnym stadium rozkładu (`p_decomp2`). Zwłoki ludzi i pozostałych
+  potworów mają paletę: PNG w pełnym kolorze jest pomijany i gra wczytuje
+  oryginał.
 
 Czasy klatek (`duration`) nie dotyczą postaci ani kursorów: ich tempo ustala gra.
 Najprościej zacząć od eksportu oryginału komendą `png-sheet` (niżej), która dla

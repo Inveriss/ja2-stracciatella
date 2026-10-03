@@ -36,6 +36,14 @@ void Blt32BPPDataTo16BPPBufferAlphaZ(UINT16* buf, UINT32 uiDestPitchBYTES, UINT1
 // draws every other pixel (a checkerboard) where the Z test fails. Without a
 // Z-buffer (null) every pixel is drawn.
 void Blt32BPPDataTo16BPPBufferShadeZ(UINT16* buf, UINT32 uiDestPitchBYTES, UINT16* pZBuffer, UINT16 usZValue, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, RGBAShade const& shade, bool writeZ, bool obscured, bool translucent);
+// Full colour characters and corpses on several tiles, like
+// Blt8BPPDataTo16BPPBufferTransZTransShadowIncClip() and
+// Blt8BPPDataTo16BPPBufferTransZTransShadowIncObscureClip() in RenderWorld.cc:
+// the Z value changes from strip to strip of the subimage as the Z strip info
+// sZIndex of the object says, with the same steps (zSublayers is
+// Z_SUBLAYERS); the Z-buffer is tested with <= (obscured: < or every other
+// pixel) and gets the Z value where the pixel is opaque (alpha >= 128).
+void Blt32BPPDataTo16BPPBufferShadeZStrips(UINT16* buf, UINT32 uiDestPitchBYTES, UINT16* pZBuffer, UINT16 usZValue, SGPVObject const* hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect const* clipregion, INT16 sZIndex, UINT16 zSublayers, RGBAShade const& shade, bool obscured);
 CHAR8 BltIsClippedOrOffScreen( HVOBJECT hSrcVObject, INT32 iX, INT32 iY, UINT16 usIndex, SGPRect *clipregion );
 
 

@@ -1,6 +1,7 @@
 #ifndef _ROTTING_CORPSES_H
 #define _ROTTING_CORPSES_H
 
+#include "Shading.h"
 #include "Tile_Animation.h"
 
 #include <string_theory/string>
@@ -120,6 +121,8 @@ struct ROTTING_CORPSE
 	ANITILE *pAniTile;
 
 	UINT16  *pShades[ NUM_CORPSE_SHADES ];
+	// The same shades for full colour corpses (docs/png-images.md)
+	RGBAShade rgbaShades[ NUM_CORPSE_SHADES ];
 };
 
 

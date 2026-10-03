@@ -543,8 +543,8 @@ void LoadAnimationSurface(UINT16 usSoldierID, UINT16 usSurfaceIndex, UINT16 usAn
 void UnLoadAnimationSurface(UINT16 usSoldierID, UINT16 usSurfaceIndex);
 
 // Whether a full colour PNG may replace the animation: only animations
-// without palette colour changes (crow, robot) drawn on one tile
-// (docs/png-images.md).
+// without palette colour changes (animals, robot, vehicles, the queen
+// creature; docs/png-images.md).
 bool AnimationSurfaceAllowsFullColour(UINT16 usSurfaceIndex);
 
 // The palette of a loaded animation surface. A full colour PNG has none: then

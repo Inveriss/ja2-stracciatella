@@ -661,16 +661,51 @@ bool AnimationSurfaceAllowsFullColour(UINT16 const usSurfaceIndex)
 	switch (usSurfaceIndex)
 	{
 		// GetBodyTypePaletteSubstitution() gives these body types the palette
-		// of the animation; their structures (.jsd) take one tile.
+		// of the animation.
+		case QUEENMONSTERSTANDING:
+		case QUEENMONSTERREADY:
+		case QUEENMONSTERSPIT_SW:
+		case QUEENMONSTERSPIT_E:
+		case QUEENMONSTERSPIT_NE:
+		case QUEENMONSTERSPIT_S:
+		case QUEENMONSTERSPIT_SE:
+		case QUEENMONSTERDEATH:
+		case QUEENMONSTERSWIPE:
+		case COWSTANDING:
+		case COWWALKING:
+		case COWDIE:
+		case COWEAT:
 		case CROWWALKING:
 		case CROWFLYING:
 		case CROWEATING:
 		case CROWDYING:
+		case CATBREATH:
+		case CATWALK:
+		case CATRUN:
+		case CATREADY:
+		case CATHIT:
+		case CATDIE:
+		case CATSWIPE:
+		case CATBITE:
 		case ROBOTNWBREATH:
 		case ROBOTNWWALK:
 		case ROBOTNWHIT:
 		case ROBOTNWDIE:
 		case ROBOTNWSHOOT:
+		case HUMVEE_BASIC:
+		case HUMVEE_DIE:
+		case TANKNW_READY:
+		case TANKNW_SHOOT:
+		case TANKNW_DIE:
+		case TANKNE_READY:
+		case TANKNE_SHOOT:
+		case TANKNE_DIE:
+		case ELDORADO_BASIC:
+		case ELDORADO_DIE:
+		case ICECREAMTRUCK_BASIC:
+		case ICECREAMTRUCK_DIE:
+		case JEEP_BASIC:
+		case JEEP_DIE:
 			return true;
 
 		default:

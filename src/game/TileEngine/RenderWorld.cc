@@ -611,6 +611,7 @@ private: void Render(RenderTilesFlags const uiFlags, size_t const ubNumLevels, R
 									{
 										pCorpse     = ROTTING_CORPSE::FromID(a.v.user.uiData);
 										pShadeTable = pCorpse->pShades[pNode->ubShadeLevel];
+										pRGBAShade  = &pCorpse->rgbaShades[pNode->ubShadeLevel];
 
 										// OK, if this is a corpse.... stop if not visible
 										if (pCorpse->def.bVisible != 1 && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS)) goto next_prev_node;
@@ -1275,15 +1276,23 @@ zlevel_topmost:
 						}
 						else
 						{
-							if (hVObject->IsRGBA() && fMerc && !(uiLevelNodeFlags & LEVELNODE_ROTTINGCORPSE))
+							if (hVObject->IsRGBA() && fMerc)
 							{
-								// Full colour soldiers: only those on one tile, without palette
-								// colour changes (AnimationSurfaceAllowsFullColour()). The same
-								// choices as for the palettised soldiers below, with the shade of
-								// the soldier and alpha blending.
+								// Full colour soldiers and corpses: only those without palette
+								// colour changes (AnimationSurfaceAllowsFullColour(), corpses of
+								// those body types). The same choices as for the palettised
+								// ones below, with the shade of the soldier or corpse and alpha
+								// blending.
 								SGPRect const* const clip  = &gClippingRect;
 								RGBAShade const&     shade = pRGBAShade ? *pRGBAShade : RGBA_SHADE_NONE;
-								if (fPixelate)
+								if (fMultiTransShadowZBlitter)
+								{
+									if (fZBlitter)
+									{
+										Blt32BPPDataTo16BPPBufferShadeZStrips(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, sMultiTransShadowZBlitterIndex, Z_SUBLAYERS, shade, fObscuredBlitter);
+									}
+								}
+								else if (fPixelate)
 								{
 									Blt32BPPDataTo16BPPBufferShadeZ(pDestBuf, uiDestPitchBYTES, gpZBuffer, sZLevel, hVObject, sXPos, sYPos, usImageIndex, clip, shade, false, false, true);
 								}
