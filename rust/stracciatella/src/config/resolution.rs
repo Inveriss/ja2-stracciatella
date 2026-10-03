@@ -51,6 +51,7 @@ impl<'de> Deserialize<'de> for Resolution {
 
 impl Default for Resolution {
     fn default() -> Self {
-        Resolution(1024, 768)
+        // The smallest base resolution, see `BASE_RESOLUTIONS`.
+        Resolution(1280, 720)
     }
 }

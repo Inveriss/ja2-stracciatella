@@ -124,34 +124,64 @@ class StracciatellaLauncher {open
             }
           }
           Fl_Group {} {open
-            tooltip {Specify the resolution for tactical screen rendering. Texts and sprites become very small at higher internal resolutions. Note that menus and the strategic map screen are always rendered at 640x480.} xywh {10 105 500 75}
+            xywh {10 105 500 75}
           } {
-            Fl_Value_Input resolutionXInput {
-              label {Internal Resolution:}
-              xywh {20 130 75 30} align 5 minimum 1024 maximum 0 value 1024
+            Fl_Box resolutionLabel {
+              label {Current Screen Resolution:}
+              xywh {17 113 300 18} align 20
             }
-            Fl_Box {} {
-              label x
-              xywh {95 130 20 30}
+            Fl_Group {} {open
+              xywh {149 135 140 22}
+            } {
+              Fl_Round_Button autoModeRadio {
+                label Auto
+                xywh {149 135 60 22} type Radio down_box ROUND_DOWN_BOX
+              }
+              Fl_Round_Button manualModeRadio {
+                label Manual
+                xywh {214 135 75 22} type Radio down_box ROUND_DOWN_BOX
+              }
             }
-            Fl_Value_Input resolutionYInput {
-              xywh {115 130 75 30} labeltype NO_LABEL align 5 minimum 720 maximum 0 value 720
+            Fl_Group {} {open
+              xywh {149 156 280 22}
+            } {
+              Fl_Round_Button baseResolutionRadio0 {
+                label 1280x720
+                xywh {149 156 90 22} type Radio down_box ROUND_DOWN_BOX
+              }
+              Fl_Round_Button baseResolutionRadio1 {
+                label 1366x768
+                xywh {244 156 90 22} type Radio down_box ROUND_DOWN_BOX
+              }
+              Fl_Round_Button {} {
+                label 1920x1080
+                comment {Placeholder for a future base resolution: inactive, not used by the code}
+                xywh {339 156 90 22} type Radio down_box ROUND_DOWN_BOX deactivate
+              }
+              Fl_Box baseResolutionHint0 {
+                comment {Shows the reason as a tooltip while baseResolutionRadio0 is inactive (inactive widgets show no tooltip)}
+                xywh {149 156 90 22} hide
+              }
+              Fl_Box baseResolutionHint1 {
+                comment {Shows the reason as a tooltip while baseResolutionRadio1 is inactive (inactive widgets show no tooltip)}
+                xywh {244 156 90 22} hide
+              }
             }
-            Fl_Menu_Button predefinedResolutionMenuButton {
-              label {Preset: Standard} open
-              tooltip {Select a legacy resolution up to Full HD (1920x1080). Ideal for older monitors and classic setups.} xywh {205 111 133 30}
-            } {}
-            Fl_Menu_Button highResResolutionMenuButton {
-              label {Preset: High Res} open
-              tooltip {Select a modern high-definition, Ultrawide, or 4K/8K resolution. Designed for high-end gaming monitors and crisp image scaling.} xywh {205 147 133 30}
-            } {}
+            Fl_Box resolutionModeLabel {
+              label {UI Resolution Mode:}
+              tooltip {Selects how the base interface resolution is chosen: automatic adjustment for the best 16:9 match or manual selection.} xywh {17 135 125 22} align 20
+            }
+            Fl_Box baseResolutionLabel {
+              label {UI Base Resolution:}
+              tooltip {Base interface resolution used for scaling in the game.} xywh {17 156 125 22} align 20
+            }
             Fl_Check_Button stretchCheckbox {
               label {Stretch to Your Screen}
-              tooltip {Stretch the game image to fill the whole screen, ignoring its aspect ratio (no black bars).} xywh {346 119 165 30} down_box DOWN_BOX
+              tooltip {Stretch the game image to fill the whole screen, ignoring its aspect ratio (no black bars).} xywh {336 108 165 30} down_box DOWN_BOX
             }
             Fl_Check_Button stretchLaptopCheckbox {
               label {Stretch In-Game Laptop}
-              tooltip {Also stretch the In-Game Laptop (640x480) to fill the whole screen. Ignores its aspect ratio, so the In-Game Laptop looks noticeably wider on widescreen monitors. Requires "Stretch to Your Screen".} xywh {346 146 165 18} down_box DOWN_BOX
+              tooltip {Also stretch the In-Game Laptop (640x480) to fill the whole screen. Ignores its aspect ratio, so the In-Game Laptop looks noticeably wider on widescreen monitors. Requires "Stretch to Your Screen".} xywh {336 135 165 18} down_box DOWN_BOX
             }
             Fl_Group {} {
               label resizable open
@@ -159,36 +189,36 @@ class StracciatellaLauncher {open
             } {}
             Fl_Box invalidResolutionLabel {
               label {invalid!}
-              tooltip {the resolution must be at least 1024x720, the smallest one JA2 Stracciatella supports} xywh {240 166 110 14} labelfont 1 labelcolor 1 align 20
+              xywh {240 166 110 14} labelfont 1 labelcolor 1 align 20
             }
           }
           Fl_Group {} {open
-            tooltip {Choose a scaling mode to stretch the game video to fit the screen. Linear and Near-Perfect modes stretch the video to match any window sizes, but the image may look blurred. Pixel-Perfect can only scale up by integer (1x, 2x and so on) but gives sharp images.} xywh {10 170 500 55}
+            tooltip {Choose a scaling mode to stretch the game video to fit the screen. Linear and Near-Perfect modes stretch the video to match any window sizes, but the image may look blurred. Pixel-Perfect can only scale up by integer (1x, 2x and so on) but gives sharp images.} xywh {10 190 500 55}
           } {
             Fl_Choice scalingModeChoice {
               label {Scaling Mode:} open
-              xywh {20 185 480 30} down_box BORDER_BOX align 5 resizable
+              xywh {20 205 480 30} down_box BORDER_BOX align 5 resizable
             } {}
           }
           Fl_Group {} {open
-            xywh {10 220 500 65}
+            xywh {10 240 500 65}
           } {
             Fl_Check_Button fullscreenCheckbox {
               label Fullscreen
-              tooltip {Check to run in a borderless full-screen window} xywh {20 225 95 30} down_box DOWN_BOX
+              tooltip {Check to run in a borderless full-screen window} xywh {20 245 95 30} down_box DOWN_BOX
             }
             Fl_Check_Button playSoundsCheckbox {
               label {Play Sounds}
-              xywh {20 255 109 30} down_box DOWN_BOX value 1
+              xywh {20 275 109 30} down_box DOWN_BOX value 1
             }
           }
           Fl_Button settingsEditorButton {
             label {Start Map Editor}
-            xywh {165 236 200 25}
+            xywh {165 311 200 25}
           }
           Fl_Button settingsPlayButton {
             label {Play Ja2 Stracciatella}
-            xywh {165 271 200 55}
+            xywh {165 245 200 55}
           }
         }
         Fl_Group logsTab {

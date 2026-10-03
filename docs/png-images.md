@@ -1,139 +1,141 @@
-# Grafiki PNG
+# PNG images
 
-Gra wczytuje grafiki także z plików PNG, obok STI i PCX. Ten dokument opisuje,
-jak przygotować takie pliki i gdzie je umieścić. Kod: `src/sgp/PNG.cc`,
+The game also loads images from PNG files, next to STI and PCX. This document
+describes how to prepare such files and where to put them. Code: `src/sgp/PNG.cc`,
 `src/sgp/HImage.cc` (`CreateImage()`), `src/sgp/VObject*.cc`.
 
-## Jak podmienić grafikę
+## How to replace an image
 
-**Plik obok oryginału.** Plik `nazwa.png` w tym samym katalogu co
-`nazwa.sti` lub `nazwa.pcx` jest wczytywany zamiast niego. Nie trzeba zmieniać
-JSON ani kodu. PNG może leżeć w katalogu moda (`mods/<mod>/data/...`), luźno w
-katalogu `Data` gry albo w SLF.
+**A file next to the original.** A file `name.png` in the same directory as
+`name.sti` or `name.pcx` is loaded instead of it. No JSON or code changes are
+needed. The PNG can be in a mod directory (`mods/<mod>/data/...`), loose in the
+game's `Data` directory or in an SLF.
 
-PNG wygrywa tylko wtedy, gdy leży w tej samej albo wyższej warstwie VFS niż
-oryginał. Kolejność warstw (od najwyższej): katalog domowy, mody, `externalized`,
-`Data`, pliki SLF. Przykłady:
+The PNG wins only when it is in the same or a higher VFS layer than the
+original. Layer order (highest first): home directory, mods, `externalized`,
+`Data`, SLF files. Examples:
 
-- PNG w modzie zastępuje STI z `Interface.slf`;
-- luźny PNG w `Data/Interface` zastępuje STI z `Interface.slf`;
-- PNG w `Data` **nie** zastępuje STI dostarczonego przez mod.
+- a PNG in a mod replaces an STI from `Interface.slf`;
+- a loose PNG in `Data/Interface` replaces an STI from `Interface.slf`;
+- a PNG in `Data` does **not** replace an STI provided by a mod.
 
-**Ścieżka w JSON.** Tam, gdzie grafika jest wskazana w danych
-(`items.json`, `weapons.json`, `loading-screens.json` itd.), można wpisać ścieżkę
-do pliku `.png`.
+**A path in JSON.** Where an image is named in the data (`items.json`,
+`weapons.json`, `loading-screens.json` etc.), a path to a `.png` file can be
+used.
 
-Animacje postaci (`anims/`), animacje z pamięci podręcznej kafli (`tilecache/`,
-np. eksplozje) i kursory można podmienić PNG z paletą z sekcją `animation` w
-metadanych (opis niżej, „Animacje w świecie gry”). Kafli tilesetów PNG nie
-podmienia.
+Character animations (`anims/`), tile cache animations (`tilecache/`, e.g.
+explosions) and cursors can be replaced by palettised PNGs with an `animation`
+section in the metadata (see "Animations in the game world" below). Tileset
+tiles are not replaced by PNGs.
 
-### Gdy PNG nie da się użyć
+### When a PNG can't be used
 
-Jeśli plik PNG obok oryginału jest uszkodzony albo nie pasuje do miejsca
-użycia, w logu gry pojawia się wpis
-`Cannot use <plik>.png instead of <plik>.sti, loading the original: <powód>`
-i gra wczytuje oryginał. PNG wskazany wprost w JSON nie ma oryginału, więc
-błąd zatrzymuje wczytanie tej grafiki.
+If a PNG next to the original is broken or doesn't fit the place it is used
+in, the game log gets the entry
+`Cannot use <file>.png instead of <file>.sti, loading the original: <reason>`
+and the game loads the original. A PNG named directly in JSON has no original,
+so the error stops loading that image.
 
-### Wyłączenie podmian
+### Turning the replacement off
 
-W `ja2.json` (np. `%APPDATA%\JA2\ja2.json`):
+In `ja2.json` (e.g. `%APPDATA%\JA2\ja2.json`):
 
 ```json
 "image_png_override": false
 ```
 
-wyłącza wczytywanie PNG obok oryginałów. Gra wygląda wtedy dokładnie jak
-bez plików PNG. Pliki `.png` wskazane wprost w JSON są nadal wczytywane.
+turns off loading PNGs next to the originals. The game then looks exactly as
+without the PNG files. `.png` files named directly in JSON are still loaded.
 
-## Rodzaje PNG
+## Kinds of PNG
 
-### PNG z paletą (zalecany dla grafik gry)
+### Palettised PNG (recommended for game images)
 
-Odpowiada STI z paletą 1:1. Indeksy palety są zachowane, więc działają wszystkie
-efekty gry: cieniowanie, oświetlenie, szare twarze poległych, kolory czcionek.
+Equivalent to a palettised STI, 1:1. The palette indices are kept, so all of
+the game's effects work: shading, lighting, the grey faces of the dead, font
+colours.
 
-- **Indeks 0 jest zawsze przezroczysty**, tak jak w STI.
-- Indeks z alfą poniżej 128 w chunku `tRNS` też jest przezroczysty. Alfa od 128
-  do 254 jest rysowana jako pełna, z ostrzeżeniem w logu.
-- **Indeks 254** ma takie znaczenie jak w STI: w grafikach przedmiotów to piksele
-  obrysu (np. amunicji kompatybilnej), w kaflach i postaciach cień.
-- Głębia 1, 2, 4 lub 8 bitów, z przeplotem lub bez. Paleta może mieć mniej niż 256
-  wpisów (reszta jest czarna).
-- Program graficzny **nie może przestawiać ani usuwać wpisów palety**
-  (wiele programów to robi przy zapisie, np. przy „optymalizacji palety”).
-  Najbezpieczniej eksportować z STI narzędziem
-  `tools/sti_editor/sti_tool.py png-sheet`.
+- **Index 0 is always transparent**, as in STI.
+- An index with alpha below 128 in the `tRNS` chunk is transparent too. Alpha
+  from 128 to 254 is drawn as opaque, with a warning in the log.
+- **Index 254** means the same as in STI: in item images the outline pixels
+  (e.g. of compatible ammo), in tiles and characters the shadow.
+- Depth of 1, 2, 4 or 8 bits, interlaced or not. The palette can have fewer
+  than 256 entries (the rest is black).
+- The image editor **must not reorder or remove palette entries** (many
+  editors do that when saving, e.g. when "optimising the palette"). The safest
+  way is to export from the STI with `tools/sti_editor/sti_tool.py png-sheet`.
 
-### PNG w pełnym kolorze (RGBA, RGB, szarości)
+### Full colour PNG (RGBA, RGB, greyscale)
 
-- Jako **obiekt** (ikony, elementy interfejsu): rysowany z mieszaniem alfy.
-  Alfa 0 jest pomijana, 255 rysowana wprost, wartości pośrednie mieszane z tłem.
-  Czysta czerń pozostaje widoczna.
-- **Obrys** (np. przedmiotu kompatybilnego) jest rysowany automatycznie wokół
-  nieprzezroczystych pikseli (alfa co najmniej 128): na przezroczystych pikselach
-  stykających się z nimi z lewej, prawej, góry lub dołu. Obrys musi zmieścić się w
-  klatce, więc zostaw 1 piksel przezroczystego marginesu. Wyłączenie obrysu:
-  `"outline": false` w metadanych (niżej).
-- Nie ma palety, więc nie działają efekty oparte na palecie. W tych miejscach
-  gra używa oryginału zamiast PNG RGBA (z wpisem w logu):
-  - portrety najemników i postaci IMP (cieniowanie, szare twarze poległych),
-  - czcionki,
-  - radar i znaczniki osób na mapie taktycznej,
-  - grafika przycisku ogólnego `DEFAULT_GENERIC_BUTTON_OFF` (kolor tekstu
-    przycisków).
+- As an **object** (icons, interface elements): drawn with alpha blending.
+  Alpha 0 is skipped, 255 drawn as is, values in between blended with the
+  background. Pure black stays visible.
+- The **outline** (e.g. of a compatible item) is drawn automatically around the
+  opaque pixels (alpha at least 128): on the transparent pixels touching them
+  on the left, right, top or bottom. The outline must fit in the frame, so
+  leave a 1 pixel transparent margin. Turning the outline off:
+  `"outline": false` in the metadata (below).
+- There is no palette, so effects based on the palette don't work. In these
+  places the game uses the original instead of an RGBA PNG (with a log entry):
+  - portraits of mercs and IMP characters (shading, grey faces of the dead),
+  - fonts,
+  - the radar and the person markers on the tactical map,
+  - the generic button graphic `DEFAULT_GENERIC_BUTTON_OFF` (button text
+    colour).
 
-  W tych miejscach można używać PNG z paletą.
-- 16 bitów na kanał jest obcinane do 8 bitów. Ekran gry ma 16 bitów (RGB565), więc
-  gładkie przejścia kolorów mogą mieć widoczne pasma.
+  Palettised PNGs can be used in these places.
+- 16 bits per channel are cut down to 8 bits. The game screen has 16 bits
+  (RGB565), so smooth colour gradients can show visible banding.
 
-### Tła (ekrany ładowania, pulpit laptopa, mapa strategiczna, tła okienek)
+### Backgrounds (loading screens, laptop desktop, strategic map, window backgrounds)
 
-- PNG z paletą daje tło 8-bitowe z tymi samymi indeksami (`tRNS` jest pomijany,
-  jak w PCX).
-- PNG w pełnym kolorze daje tło 16-bitowe. Piksele z alfą poniżej 128 są
-  przezroczyste tam, gdzie gra używa przezroczystości tła; czarne piksele
-  pozostają widoczne.
-- **Mapa strategiczna** (`interface/b_map_*.pcx`) musi być PNG z paletą, bo gra
-  rysuje ją pomniejszoną i cieniowaną przez paletę. PNG w pełnym kolorze kończy
-  się czytelnym błędem.
+- A palettised PNG gives an 8 bit background with the same indices (`tRNS` is
+  ignored, as in PCX).
+- A full colour PNG gives a 16 bit background. Pixels with alpha below 128 are
+  transparent where the game uses background transparency; black pixels stay
+  visible.
+- The **strategic map** (`interface/b_map_*.pcx`) must be a palettised PNG,
+  since the game draws it scaled down and shaded through the palette. A full
+  colour PNG ends with a clear error.
 
-### Tła menu głównego i opcji początkowych w rozdzielczości gry
+### Main menu and initial options backgrounds in the game resolution
 
-Oryginalne tła tych ekranów mają 640×480 i są rysowane na środku ekranu.
-Tło na cały ekran dla bieżącej rozdzielczości gry to plik w tym samym
-katalogu, z rozdzielczością w nazwie:
+The original backgrounds of these screens are 640×480 and drawn in the middle
+of the screen. A full screen background for the current game resolution is a
+file in the same directory, with the resolution in its name:
 
-| Ekran | Oryginał | Tło dla 1366×768 |
-|---|---|---|
-| menu główne | `loadscreens/mainmenubackground.sti` (`Loadscreens.slf`) | `loadscreens/mainmenubackground_1366x768.png` |
-| opcje początkowe (nowa gra) | `interface/optionsscreenbackground.sti` (`Interface.slf`) | `interface/optionsscreenbackground_1366x768.png` |
+| Screen | Original | Background for 1280×720 | Background for 1366×768 |
+|---|---|---|---|
+| main menu | `loadscreens/mainmenubackground.sti` (`Loadscreens.slf`) | `loadscreens/mainmenubackground_1280x720.png` | `loadscreens/mainmenubackground_1366x768.png` |
+| initial options (new game) | `interface/optionsscreenbackground.sti` (`Interface.slf`) | `interface/optionsscreenbackground_1280x720.png` | `interface/optionsscreenbackground_1366x768.png` |
 
-- Nazwa powstaje z bieżącej rozdzielczości, więc działa dla każdej rozdzielczości
-  z presetów Standard i High Res, a także dla własnych. Wielkość liter nie ma
-  znaczenia. Plik może leżeć w modzie albo luźno w `Data`.
-- Szukane są kolejno `.png`, `.sti` i `.pcx` (STI musi być 16-bitowe RGB albo
-  8-bitowe bez ETRLE).
-- Obraz o innym rozmiarze niż ekran jest rozciągany do pełnego ekranu (najbliższy
-  piksel, proporcje mogą się zmienić), z ostrzeżeniem w logu.
-- Bez pliku dla bieżącej rozdzielczości (albo gdy nie da się go wczytać, z błędem w
-  logu) ekran rysuje oryginał 640×480 jak dotąd.
-- Przyciski, logo, napisy i przyciemniony prostokąt na ekranie opcji zostają w
-  obszarze 640×480 na środku ekranu: przy rozdzielczości W×H zaczyna się on w
-  punkcie ((W-640)/2, (H-480)/2). Tło trzeba projektować z myślą o tym.
-- Tło jest 16-bitowe jak cały ekran gry, więc pełny kolor PNG jest wyświetlany w
-  65 536 kolorach. Przezroczystość nie ma tu znaczenia (piksele z alfą poniżej 128
-  są czarne).
-- Pamięć: 2 bajty na piksel ekranu (np. 1366×768: 2 MB, 3840×2160: 16 MB,
-  7680×4320: 66 MB), na czas pobytu na danym ekranie.
+- The name is made from the current resolution. The launcher offers two base
+  resolutions, 1280×720 and 1366×768 (the Auto mode picks one of them), so one
+  background per base resolution covers every player. A custom resolution set
+  with `res` in `ja2.json` (Manual mode) or with `--res` works the same way.
+  Letter case doesn't matter. The file can be in a mod or loose in `Data`.
+- `.png`, `.sti` and `.pcx` are looked for, in this order (the STI must be 16
+  bit RGB or 8 bit without ETRLE).
+- An image of another size than the screen is stretched to the full screen
+  (nearest pixel, the aspect ratio can change), with a warning in the log.
+- Without a file for the current resolution (or when it can't be loaded, with
+  an error in the log) the screen draws the original 640×480 as before.
+- The buttons, logo, texts and the darkened rectangle of the options screen
+  stay in the 640×480 area in the middle of the screen: at resolution W×H it
+  starts at ((W-640)/2, (H-480)/2). Design the background with that in mind.
+- The background is 16 bit like the whole game screen, so a full colour PNG is
+  shown in 65,536 colours. Transparency doesn't matter here (pixels with alpha
+  below 128 are black).
+- Memory: 2 bytes per screen pixel (e.g. 1280×720: 1.8 MB, 1366×768: 2 MB),
+  while the screen is shown.
 
-## Metadane: `nazwa.png.json`
+## Metadata: `name.png.json`
 
-Opcjonalny plik obok PNG. Bez niego cały obraz jest jedną klatką bez
-przesunięcia i z obrysem.
+An optional file next to the PNG. Without it the whole image is one frame with
+no offset and with an outline.
 
-Lista klatek (jak podobrazy STI, z przesunięciem rysowania):
+A list of frames (like STI subimages, with a drawing offset):
 
 ```json
 {
@@ -144,7 +146,7 @@ Lista klatek (jak podobrazy STI, z przesunięciem rysowania):
 }
 ```
 
-Siatka jednakowych komórek, od lewej do prawej i z góry na dół:
+A grid of equal cells, left to right and top to bottom:
 
 ```json
 {
@@ -153,18 +155,18 @@ Siatka jednakowych komórek, od lewej do prawej i z góry na dół:
 }
 ```
 
-- `offsetX`/`offsetY` są opcjonalne (domyślnie 0).
-- `count` jest opcjonalne (domyślnie wszystkie komórki).
-- `offsets` jest opcjonalne, a jeśli jest, musi mieć jeden wpis na klatkę.
-- `"outline": false` wyłącza obrys grafiki w pełnym kolorze (dla PNG z paletą
-  nie ma znaczenia). Może stać sam: `{ "outline": false }`.
+- `offsetX`/`offsetY` are optional (0 by default).
+- `count` is optional (all cells by default).
+- `offsets` is optional, and if present must have one entry per frame.
+- `"outline": false` turns off the outline of a full colour image (no effect
+  on palettised PNGs). It can stand on its own: `{ "outline": false }`.
 
-Kolejność klatek musi odpowiadać kolejności podobrazów w STI, które PNG zastępuje
-(gra odwołuje się do nich po numerze).
+The frame order must match the order of the subimages in the STI the PNG
+replaces (the game refers to them by number).
 
-### Czas klatek animacji
+### Animation frame durations
 
-Czas wyświetlania klatki w milisekundach (liczba całkowita 0–65535):
+How long a frame is shown, in milliseconds (an integer 0–65535):
 
 ```json
 {
@@ -180,45 +182,46 @@ Czas wyświetlania klatki w milisekundach (liczba całkowita 0–65535):
 { "grid": { "w": 64, "h": 64, "count": 4 }, "durations": [80, 80, 120, 200] }
 ```
 
-- `duration` w klatce z listy `frames`, `durations` (jeden wpis na klatkę) obok
-  `grid`;
-- `frameDuration` dotyczy klatek bez własnego czasu (także pojedynczej klatki
-  bez `frames`/`grid`);
-- `0` albo brak oznacza „bez zmiany”: animacja używa swojego dotychczasowego
-  czasu z gry.
+- `duration` in a frame of the `frames` list, `durations` (one entry per
+  frame) next to `grid`;
+- `frameDuration` applies to frames without their own duration (also to a
+  single frame without `frames`/`grid`);
+- `0` or nothing means "no change": the animation uses its usual duration from
+  the game.
 
-Czasy działają tylko w animacjach, które je obsługują. Gdzie indziej są pomijane i
-animacja zachowuje tempo z gry (tak jak przy STI, które nie mają czasów klatek).
-Animacje obsługujące czasy z PNG:
+Durations only work in animations that support them. Elsewhere they are
+ignored and the animation keeps the game's pace (as with STIs, which have no
+frame durations). Animations supporting durations from PNG:
 
-| Animacja | Plik | Uwagi |
+| Animation | File | Notes |
 |---|---|---|
-| reklama kwiaciarni (AIM) | `laptop/flowerad_16.png` | 16 klatek; czas klatki określa, jak długo jest widoczna przed następną (domyślnie 150 ms); końcowe wyświetlenie klatki 0 z tekstem trwa jak dotąd |
-| reklama „Twoja reklama” (AIM) | `laptop/yourad_13.png` | 13 klatek, domyślnie 150 ms |
-| reklama ubezpieczeń (AIM) | `laptop/insurancead_10.png` | 10 klatek, domyślnie 150 ms |
-| reklama zakładu pogrzebowego (AIM) | `laptop/funeralad_9.png` | 9 klatek, domyślnie 250 ms |
-| reklama Bobby Ray's (AIM) | `laptop/bobbyrayad_21.png` | 21 klatek, odtwarzane jako 0–6, 0–6, 7–20; domyślnie 300 ms |
-| animacje z pamięci podręcznej kafli (eksplozje, dym i inne efekty) | np. `tilecache/zgrav_d.png` | czas klatki zastępuje opóźnienie animacji (dla eksplozji `blastSpeed` z `explosion-animations.json`); klatki bez czasu trwają jak dotąd |
+| florist ad (AIM) | `laptop/flowerad_16.png` | 16 frames; the frame duration sets how long it is shown before the next one (150 ms by default); the final display of frame 0 with the text lasts as before |
+| "Your ad here" ad (AIM) | `laptop/yourad_13.png` | 13 frames, 150 ms by default |
+| insurance ad (AIM) | `laptop/insurancead_10.png` | 10 frames, 150 ms by default |
+| funeral home ad (AIM) | `laptop/funeralad_9.png` | 9 frames, 250 ms by default |
+| Bobby Ray's ad (AIM) | `laptop/bobbyrayad_21.png` | 21 frames, played as 0–6, 0–6, 7–20; 300 ms by default |
+| tile cache animations (explosions, smoke and other effects) | e.g. `tilecache/zgrav_d.png` | the frame duration replaces the animation delay (for explosions `blastSpeed` from `explosion-animations.json`); frames without a duration last as before |
 
-W reklamach AIM z czasami klatek każda klatka jest rysowana na tle strony
-zapamiętanym przy jej rysowaniu, a nie na poprzedniej klatce, więc klatki mogą
-mieć przezroczystość i półprzezroczystość. Klatka bez własnego czasu trwa
-domyślny czas reklamy z tabeli. Bez czasów w PNG (i dla STI) reklamy działają
-dokładnie jak dotąd, także z dłużej wyświetlaną pierwszą i ostatnią klatką;
-z czasami o długości każdej klatki decyduje tylko `png.json`. Pliki reklam w
-innych wersjach językowych mają inne nazwy (np. `german/yourad_13_german`).
+In AIM ads with frame durations every frame is drawn on the page background
+saved when it was drawn, not on the previous frame, so frames can have
+transparency and translucency. A frame without its own duration lasts the
+ad's default duration from the table. Without durations in the PNG (and for
+STI) the ads work exactly as before, including the longer shown first and last
+frames; with durations only `png.json` decides how long each frame lasts. The
+ad files of other language versions have other names (e.g.
+`german/yourad_13_german`).
 
-### Animacje w świecie gry (postacie, eksplozje, kursory)
+### Animations in the game world (characters, explosions, cursors)
 
-Animacje postaci (`anims/`, np. `anims/s_merc/s_r_std` – najemnik stojący),
-animacje z pamięci podręcznej kafli (`tilecache/`, np. eksplozje) i kursory
-potrzebują danych dodatkowych: liczby klatek animacji. PNG może je zastąpić, gdy:
+Character animations (`anims/`, e.g. `anims/s_merc/s_r_std` – a standing merc),
+tile cache animations (`tilecache/`, e.g. explosions) and cursors need
+auxiliary data: the number of animation frames. A PNG can replace them when:
 
-- jest **PNG z paletą**, a dla efektów z pamięci podręcznej kafli, postaci
-  (ludzi z maską kolorów) i zwłok także PNG w pełnym kolorze (niżej); dorosłe
-  potwory, ich zwłoki i kursory muszą mieć paletę, bo gra podmienia ich kolory
-  przez paletę,
-- jego metadane mają sekcję `animation`:
+- it is a **palettised PNG** – and for tile cache effects, characters (people
+  with a colour mask) and corpses also a full colour PNG (below); adult
+  creatures, their corpses and cursors must have a palette, since the game
+  changes their colours through the palette,
+- its metadata has an `animation` section:
 
 ```json
 {
@@ -228,185 +231,199 @@ potrzebują danych dodatkowych: liczby klatek animacji. PNG może je zastąpić,
 }
 ```
 
-`framesPerDirection` (1–255) to liczba klatek jednej animacji; przy kilku
-kierunkach klatki kolejnych kierunków następują po sobie (kierunek 0: klatki
-0…N−1, kierunek 1: N…2N−1, …). Gra tworzy z tego te same dane, które mają
-oryginalne STI: pierwsza klatka każdego kierunku dostaje liczbę klatek i
-znacznik animacji. Statyczny kursor ma `"framesPerDirection": 1`.
+`framesPerDirection` (1–255) is the number of frames of one animation; with
+several directions the frames of the next directions follow one another
+(direction 0: frames 0…N−1, direction 1: N…2N−1, …). The game builds from this
+the same data the original STIs have: the first frame of every direction gets
+the number of frames and the animation flag. A static cursor has
+`"framesPerDirection": 1`.
 
-Bez sekcji `animation` albo dla PNG w pełnym kolorze tam, gdzie potrzebna jest
-paleta, gra wczytuje oryginał i zapisuje błąd w logu. Liczba klatek i ich rozmiary muszą pasować do pliku
-`.jsd` o tej samej nazwie, jeśli taki istnieje. Kafle tilesetów nie są
-podmieniane.
+Without the `animation` section, or for a full colour PNG where a palette is
+needed, the game loads the original and logs an error. The number of frames and
+their sizes must match the `.jsd` file of the same name, if there is one.
+Tileset tiles are not replaced.
 
-Postacie:
+Characters:
 
-- klatki są ułożone kierunkami: liczba kierunków animacji (1, 2, 3, 4, 8 albo
-  32, zależnie od animacji) × `framesPerDirection` musi być równa liczbie
-  klatek oryginału, inaczej gra zgłasza w logu niezgodność;
-- kolejność i rozmiary klatek muszą odpowiadać oryginałowi, bo skrypty animacji
-  (`binarydata/ja2bin.dat`) wskazują klatki po numerze, a dane struktur
-  (`anims/structdata/*.jsd`) dotyczą ich rozmiarów;
-- **paleta musi zostać bez zmian**: gra podmienia kolory włosów, skóry, kamizelki
-  i spodni przez wpisy palety (palety postaci), a oświetlenie i cień również
-  korzystają z palety;
-- cień postaci jest częścią jej klatek: piksele o indeksie 254 przyciemniają tło.
+- the frames are ordered by direction: the number of directions of the
+  animation (1, 2, 3, 4, 8 or 32, depending on the animation) ×
+  `framesPerDirection` must equal the number of frames of the original,
+  otherwise the game logs a mismatch;
+- the order and sizes of the frames must match the original, since the
+  animation scripts (`binarydata/ja2bin.dat`) refer to frames by number, and
+  the structure data (`anims/structdata/*.jsd`) relates to their sizes;
+- **the palette must stay unchanged**: the game changes the hair, skin, vest
+  and pants colours through palette entries (character palettes), and lighting
+  and shadow use the palette as well;
+- the character's shadow is part of its frames: pixels with index 254 darken
+  the background.
 
-Postacie w pełnym kolorze (RGBA) bez niczego więcej są możliwe tam, gdzie gra
-nie podmienia kolorów:
+Full colour (RGBA) characters with nothing else are possible where the game
+doesn't change colours:
 
-| Postać | Animacje |
+| Character | Animations |
 |---|---|
-| krowa | `anims/animals/c_breath`, `c_walk`, `c_die`, `c_eat` |
-| wrona | `anims/animals/cr_walk`, `cr_fly`, `cr_eat`, `cr_die` |
-| krwawy kot | `anims/animals/ct_breath`, `ct_walk`, `ct_run`, `ct_ready`, `ct_hit`, `ct_die`, `ct_swipe`, `ct_bite` |
+| cow | `anims/animals/c_breath`, `c_walk`, `c_die`, `c_eat` |
+| crow | `anims/animals/cr_walk`, `cr_fly`, `cr_eat`, `cr_die` |
+| bloodcat | `anims/animals/ct_breath`, `ct_walk`, `ct_run`, `ct_ready`, `ct_hit`, `ct_die`, `ct_swipe`, `ct_bite` |
 | robot | `anims/civs/j_r_bret`, `j_r_walk`, `j_r_hit`, `j_r_die`, `j_r_shot` |
-| pojazdy | `anims/vehicles/hummer`, `hummer2`, `icecrm`, `hm_wrek`, `tank_rot`, `tank_sht`, `tk_wrek`, `tnk2_rot`, `tnk2_sht`, `tk2_wrek` |
-| królowa | `anims/monsters/qmn_breat`, `q_ready`, `q_spit_sw`, `q_spit_e`, `q_spit_ne`, `q_spit_s`, `q_spit_se`, `q_die`, `q_swipe` |
-| larwy i młode potwory | `anims/monsters/l_breath`, `l_die`, `l_walk`, `i_breath`, `i_walk`, `i_die`, `i_eat`, `i_attack` |
+| vehicles | `anims/vehicles/hummer`, `hummer2`, `icecrm`, `hm_wrek`, `tank_rot`, `tank_sht`, `tk_wrek`, `tnk2_rot`, `tnk2_sht`, `tk2_wrek` |
+| queen | `anims/monsters/qmn_breat`, `q_ready`, `q_spit_sw`, `q_spit_e`, `q_spit_ne`, `q_spit_s`, `q_spit_se`, `q_die`, `q_swipe` |
+| larvae and young creatures | `anims/monsters/l_breath`, `l_die`, `l_walk`, `i_breath`, `i_walk`, `i_die`, `i_eat`, `i_attack` |
 
-**Ludzie** (najemnicy, wojsko, milicja, cywile: `anims/s_merc/`, `m_merc/`,
-`f_merc/`, `civs/` i pozostałe animacje ludzi) mogą być w pełnym kolorze tylko
-z **maską kolorów**, bo gra zmienia kolory ich włosów, skóry, kamizelki i spodni
-(oraz kamuflaż). Maska to plik `nazwa.mask.png` obok `nazwa.png`:
+**People** (mercs, army, militia, civilians: `anims/s_merc/`, `m_merc/`,
+`f_merc/`, `civs/` and the other people animations) can be full colour only
+with a **colour mask**, since the game changes the colours of their hair,
+skin, vest and pants (and camouflage). The mask is a file `name.mask.png` next
+to `name.png`:
 
-- PNG z paletą, o tym samym rozmiarze co arkusz (te same klatki z `png.json`);
-  paleta maski nie ma znaczenia, liczą się indeksy;
-- indeks **0**: piksel ma kolor z PNG w pełnym kolorze;
-- indeks z zakresu podmiany (włosy 245–250, spodnie 205–219, skóra 235–244,
-  kamizelka 220–234, według `binarydata/ja2pal.dat`): gra szuka jasności piksela
-  na kolorach tego zakresu w palecie oryginału (od jasnego do ciemnego) i daje
-  pikselowi kolor z tego samego miejsca zakresu w palecie postaci, płynnie między
-  sąsiednimi kolorami; maluj więc te części w kolorach oryginału, a gra zamieni je
-  na kolory postaci z zachowaniem jasności i detalu;
-- inny indeks: piksel dostaje dokładny kolor tego indeksu z palety postaci;
-- czarne piksele cienia (alfa poniżej 255) nie są zmieniane.
+- a palettised PNG of the same size as the sheet (the same frames from
+  `png.json`); the mask's palette doesn't matter, the indices do;
+- index **0**: the pixel has the colour from the full colour PNG;
+- an index from a replacement range (hair 245–250, pants 205–219, skin
+  235–244, vest 220–234, according to `binarydata/ja2pal.dat`): the game finds
+  the pixel's brightness on the colours of that range in the original's
+  palette (from light to dark) and gives the pixel the colour from the same
+  place of the range in the character's palette, smoothly between neighbouring
+  colours; so paint these parts in the original's colours, and the game turns
+  them into the character's colours keeping brightness and detail;
+- any other index: the pixel gets the exact colour of that index from the
+  character's palette;
+- black shadow pixels (alpha below 255) are not changed.
 
-Bez maski gra pomija PNG w pełnym kolorze człowieka i wczytuje oryginał (z wpisem
-w logu). Maskę zgodną z oryginałem zapisuje `png-sheet --mask` (niżej). Dorosłe
-potwory (paleta z plików `.COL`) mają tylko PNG z paletą.
+Without a mask the game skips a person's full colour PNG and loads the original
+(with a log entry). A mask matching the original is written by
+`png-sheet --mask` (below). Adult creatures (palette from `.COL` files) only
+have palettised PNGs.
 
-Postać RGBA:
+An RGBA character:
 
-- jest oświetlana i podświetlana tak samo jak z paletą (poziomy światła i jego
-  kolor, czerwone podświetlenie wroga, szarość niewidocznego wroga, biały błysk):
-  gra zmienia kolory pikseli tymi samymi wzorami, którymi tworzy palety
-  cieniowania;
-- **cień** w klatce to czarny piksel z częściową przezroczystością (alfa poniżej
-  255): przyciemnia tło przez mieszanie i nie jest oświetlany ani podświetlany;
-  zalecana alfa to około 100–127, bo piksele z alfą co najmniej 128 zapisują Z;
-- Z-bufor działa jak w STI; piksele z alfą co najmniej 128 zapisują Z; postać za
-  konstrukcją jest rysowana w szachownicę jak z paletą; postacie na kilku
-  kaflach (krowa, krwawy kot, pojazdy, królowa) mają w kolejnych pionowych
-  pasach klatki wartości Z z danych struktury, tak samo jak z paletą;
-- nie ma obrysu (gra nie tworzy dla postaci maski obrysu);
-- maska kolorów zajmuje 1 bajt na piksel (razem z RGBA 5 bajtów);
-- może być mieszana z animacjami STI tej samej postaci (np. tylko `cr_fly` w
-  RGBA): palety cieniowania dla STI gra bierze wtedy z oryginału, który PNG
-  zastępuje.
+- is lit and highlighted the same way as with a palette (light levels and
+  their colour, the red highlight of an enemy, the grey of an unseen enemy, the
+  white flash): the game changes the pixel colours with the same formulas it
+  builds the shading palettes with;
+- the **shadow** in a frame is a black pixel with partial transparency (alpha
+  below 255): it darkens the background through blending and is neither lit
+  nor highlighted; an alpha of about 100–127 is recommended, since pixels with
+  alpha at least 128 write Z;
+- the Z buffer works as in STI; pixels with alpha at least 128 write Z; a
+  character behind a structure is drawn as a checkerboard as with a palette;
+  characters on several tiles (cow, bloodcat, vehicles, queen) have Z values
+  from the structure data in the successive vertical strips of the frame, the
+  same as with a palette;
+- has no outline (the game doesn't build an outline mask for characters);
+- the colour mask takes 1 byte per pixel (5 bytes together with RGBA);
+- can be mixed with STI animations of the same character (e.g. only `cr_fly`
+  in RGBA): the game then takes the shading palettes for the STIs from the
+  original the PNG replaces.
 
-Efekty z pamięci podręcznej kafli (`tilecache/`: eksplozje, dym, rozbryzgi i
-inne) mogą być **PNG w pełnym kolorze** (RGBA):
+Tile cache effects (`tilecache/`: explosions, smoke, splashes and others) can
+be **full colour PNGs** (RGBA):
 
-- alfa jest mieszana z tłem jak w obiektach RGBA, więc dym i ogień mogą mieć
-  miękkie, półprzezroczyste krawędzie;
-- Z-bufor działa jak w STI: efekt chowa się za ścianami i postaciami przed nim;
-  efekty zapisujące Z robią to tylko dla pikseli z alfą co najmniej 128;
-- efekty półprzezroczyste w grze (np. dym, koniec eksplozji) rysują PNG z alfą
-  zmniejszoną o połowę zamiast siatki pikseli STI;
-- warstwa cienia rysuje piksele z alfą co najmniej 128 jako cień;
-- efekty nie są oświetlane (jak STI tych efektów); kolory PNG są wyświetlane
-  wprost;
-- zalecane `"outline": false`, bo efekty nie używają obrysu, a maska obrysu
-  zajmuje pamięć;
-- **zwłoki** (`anims/corpses/`) są rysowane jak postacie na kilku kaflach, z
-  oświetleniem. Mogą być PNG w pełnym kolorze, gdy gra nie podmienia ich
-  kolorów: zwłoki zwierząt (`ct_dead`, `cw_dead1`), wraki pojazdów (`tk_wrek`,
-  `tk2_wrek`, `hm_wrek`, `ic_wrek`), królowej (`qn_dead`), robota (`j_dead`) i
-  zwłoki w późnym stadium rozkładu (`p_decomp2`), a także larw i młodych potworów
-  (`l_dead1`, `i_dead1`). **Zwłoki ludzi** (także w kamuflażu; `s_d_*`, `m_d_*`,
-  `f_d_*`, zwłoki cywilów i ich wersje `_nb` bez krwi) mogą być w pełnym kolorze
-  tylko z **maską kolorów** `nazwa.mask.png`, tak jak animacje ludzi: zwłoki
-  zachowują kolory postaci, z której powstały. Zwłoki dorosłych potworów mają
-  paletę: PNG w pełnym kolorze jest pomijany i gra wczytuje oryginał.
+- alpha is blended with the background as in RGBA objects, so smoke and fire
+  can have soft, translucent edges;
+- the Z buffer works as in STI: the effect hides behind walls and characters in
+  front of it; effects writing Z do so only for pixels with alpha at least 128;
+- translucent effects in the game (e.g. smoke, the end of an explosion) draw
+  the PNG with its alpha halved instead of the STI's pixel grid;
+- the shadow layer draws pixels with alpha at least 128 as shadow;
+- effects are not lit (like the STIs of these effects); the PNG colours are
+  shown as they are;
+- `"outline": false` is recommended, since effects don't use the outline, and
+  the outline mask takes memory;
+- **corpses** (`anims/corpses/`) are drawn like characters on several tiles,
+  with lighting. They can be full colour PNGs when the game doesn't change
+  their colours: animal corpses (`ct_dead`, `cw_dead1`), vehicle wrecks
+  (`tk_wrek`, `tk2_wrek`, `hm_wrek`, `ic_wrek`), the queen (`qn_dead`), the
+  robot (`j_dead`) and corpses in the late stage of decay (`p_decomp2`), as well
+  as larvae and young creatures (`l_dead1`, `i_dead1`). **Corpses of people**
+  (also camouflaged; `s_d_*`, `m_d_*`, `f_d_*`, civilian corpses and their
+  bloodless `_nb` versions) can be full colour only with a **colour mask**
+  `name.mask.png`, like the people animations: corpses keep the colours of the
+  character they come from. Corpses of adult creatures have a palette: a full
+  colour PNG is skipped and the game loads the original.
 
-Czasy klatek (`duration`) nie dotyczą postaci ani kursorów: ich tempo ustala gra.
-Najprościej zacząć od eksportu oryginału komendą `png-sheet` (niżej), która dla
-animacji sama zapisuje sekcję `animation` i układa każdy kierunek w osobnym
-rzędzie arkusza.
+Frame durations (`duration`) don't apply to characters or cursors: the game
+sets their pace. The easiest start is exporting the original with the
+`png-sheet` command (below), which writes the `animation` section for
+animations itself and puts every direction in its own row of the sheet.
 
-## Narzędzia
+## Tools
 
-Eksport STI do PNG z paletą z zachowaniem indeksów, klatek i przesunięć:
+Export of an STI to a palettised PNG, keeping indices, frames and offsets:
 
 ```
-py -3 tools/sti_editor/sti_tool.py png-sheet plik.sti plik.png [--max-width N] [--duration MS] [--mask]
+py -3 tools/sti_editor/sti_tool.py png-sheet file.sti file.png [--max-width N] [--duration MS] [--mask]
 ```
 
-Tworzy `plik.png` i, przy wielu klatkach, przesunięciach lub `--duration`,
-`plik.png.json` (`--duration` zapisuje `frameDuration`). Dla animowanych STI
-(postacie, eksplozje, kursory) zapisuje też sekcję `animation` i układa każdy
-kierunek w osobnym rzędzie. STI z innymi danymi dodatkowymi (tilesety) dają
-ostrzeżenie, bo takiego PNG gra nie może użyć. `--mask` zapisuje też maskę
-kolorów `plik.mask.png` dla wersji ludzi w pełnym kolorze: indeksy pikseli z
-zakresów podmiany kolorów, 0 gdzie indziej.
+Creates `file.png` and, with several frames, offsets or `--duration`,
+`file.png.json` (`--duration` writes `frameDuration`). For animated STIs
+(characters, explosions, cursors) it also writes the `animation` section and
+puts every direction in its own row. STIs with other auxiliary data
+(tilesets) give a warning, since the game can't use such a PNG. `--mask` also
+writes the colour mask `file.mask.png` for full colour versions of people: the
+indices of pixels from the colour replacement ranges, 0 elsewhere.
 
-Złożenie osobnych plików klatek (np. `explosion/000.png`, `001.png`, … w
-kolejności nazw) w jeden arkusz z metadanymi:
+Assembling separate frame files (e.g. `explosion/000.png`, `001.png`, … in name
+order) into one sheet with metadata:
 
 ```
 py -3 tools/sti_editor/sti_tool.py png-assemble explosion --out explosion.png [--duration MS] [--durations 80,80,120]
 ```
 
-Jeśli wszystkie klatki są PNG z tą samą paletą, arkusz też ma paletę (indeksy bez
-zmian); w przeciwnym razie jest RGBA. Przesunięcia klatek są równe 0 i można je
-potem zmienić w `explosion.png.json`. Gra zawsze wczytuje arkusz, nie osobne pliki
-klatek. Szczegóły w `tools/sti_editor/README.md`.
+If all frames are PNGs with the same palette, the sheet has a palette too
+(indices unchanged); otherwise it is RGBA. The frame offsets are 0 and can be
+changed later in `explosion.png.json`. The game always loads the sheet, not
+the separate frame files. Details in `tools/sti_editor/README.md`.
 
-## Ograniczenia
+## Limitations
 
-- Wymiary obrazu do 65535 pikseli w każdym kierunku i do 2^26 pikseli łącznie.
-- Kafle tilesetów nadal wymagają STI; animacje postaci, efekty z pamięci
-  podręcznej kafli i kursory – PNG tylko z paletą (pełny kolor w świecie gry nie
-  jest jeszcze obsługiwany).
-- Grafika PNG z paletą zajmuje w pamięci tyle samo co STI, grafika w pełnym
-  kolorze około 5 bajtów na piksel (RGBA i maska obrysu).
+- Image dimensions up to 65535 pixels in each direction and up to 2^26 pixels
+  in total.
+- Tileset tiles still need STI.
+- In the game world, full colour PNGs are possible for tile cache effects,
+  characters and corpses whose colours the game doesn't change, and people and
+  their corpses with a colour mask (see "Animations in the game world").
+  Cursors, adult creatures (palettes from `.COL` files) and their corpses need
+  palettised PNGs.
+- A palettised PNG image takes as much memory as an STI, a full colour image
+  about 5 bytes per pixel (RGBA and the outline mask; for characters RGBA and
+  the colour mask, if any).
 
-## Wydajność
+## Performance
 
-Pomiar (build RelWithDebInfo, jedno wczytanie z pamięci podręcznej plików,
-2026-10-02) na grafikach gry, test `PNGLoadTest.DISABLED_benchmark`:
+Measurement (RelWithDebInfo build, one load from the file cache, 2026-10-02)
+on game images, test `PNGLoadTest.DISABLED_benchmark`:
 
-| Grafika | Użycie | Oryginał | PNG | Pamięć oryginał | Pamięć PNG |
+| Image | Use | Original | PNG | Memory original | Memory PNG |
 |---|---|---:|---:|---:|---:|
-| `b_map_1024` (1460×1190, z paletą) | tło 8 bpp | 9,0 ms | 20,2 ms | 1697 KiB | 1697 KiB |
-| `ls_dayomerta` (640×480, RGB) | tło 16 bpp | 0,2 ms | 10,7 ms | 600 KiB | 600 KiB |
-| `gun01` (1 klatka, z paletą) | obiekt | 0,13 ms | 0,45 ms | 1,3 KiB | 1,3 KiB |
-| `mdguns` (50 klatek, z paletą) | obiekt | 0,14 ms | 1,35 ms | 25 KiB | 25 KiB |
-| `mdguns` (50 klatek, RGBA) | obiekt RGBA | 0,14 ms | 1,87 ms | 25 KiB | 207 KiB |
+| `b_map_1024` (1460×1190, palettised) | 8 bpp background | 9.0 ms | 20.2 ms | 1697 KiB | 1697 KiB |
+| `ls_dayomerta` (640×480, RGB) | 16 bpp background | 0.2 ms | 10.7 ms | 600 KiB | 600 KiB |
+| `gun01` (1 frame, palettised) | object | 0.13 ms | 0.45 ms | 1.3 KiB | 1.3 KiB |
+| `mdguns` (50 frames, palettised) | object | 0.14 ms | 1.35 ms | 25 KiB | 25 KiB |
+| `mdguns` (50 frames, RGBA) | RGBA object | 0.14 ms | 1.87 ms | 25 KiB | 207 KiB |
 
-Sprawdzenie, czy obok grafiki leży PNG: około 7 µs przy pierwszym wczytaniu danej
-ścieżki (przegląd warstw VFS), potem 0,5 µs (wynik jest zapamiętywany).
+Checking whether a PNG lies next to an image: about 7 µs on the first load of
+a given path (walking the VFS layers), then 0.5 µs (the result is remembered).
 
-Wnioski:
+Conclusions:
 
-- PNG wczytuje się wolniej niż STI/PCX (rozpakowanie zlib, kodowanie ETRLE
-  albo konwersja do 16 bitów), ale to milisekundy na grafikę, płacone przy
-  wczytaniu ekranu, nie przy każdej klatce rysowania.
-- Rysowanie grafik z paletą jest identyczne jak STI. Grafiki RGBA są mieszane
-  piksel po pikselu, co ma znaczenie tylko przy dużych grafikach rysowanych
-  co klatkę.
-- PNG z paletą zajmuje tyle samo pamięci co STI; RGBA około 8 razy więcej
-  niż ETRLE.
-- Gdy PNG nie ma, koszt to sprawdzenie raz na ścieżkę: przy kilkuset grafikach
-  na ekranie to ułamki milisekundy przy pierwszym wczytaniu.
+- A PNG loads slower than an STI/PCX (zlib decompression, ETRLE encoding or
+  conversion to 16 bits), but that is milliseconds per image, paid when a
+  screen is loaded, not on every drawn frame.
+- Drawing palettised images is identical to STI. RGBA images are blended pixel
+  by pixel, which only matters for large images drawn every frame.
+- A palettised PNG takes as much memory as an STI; RGBA about 8 times more
+  than ETRLE.
+- When there is no PNG, the cost is one check per path: with a few hundred
+  images on a screen that is fractions of a millisecond on the first load.
 
-## Testy
+## Tests
 
-- Testy jednostkowe: `ja2 -unittests` (grupy `PNG`, `ETRLE`, `PNGLoadTest`).
-  Pliki testowe tworzy `tools/generate_png_unittest_data.py`.
-- Pomiar czasu i pamięci (domyślnie wyłączony): pary `nazwa.png` i
-  `nazwa.sti`/`nazwa.pcx` w `<katalog buildu>/unittests/data/pngbench/`, potem
+- Unit tests: `ja2 -unittests` (groups `PNG`, `ETRLE`, `PNGLoadTest`). The test
+  files are created by `tools/generate_png_unittest_data.py`.
+- Time and memory measurement (off by default): pairs of `name.png` and
+  `name.sti`/`name.pcx` in `<build directory>/unittests/data/pngbench/`, then
 
   ```
   GTEST_ALSO_RUN_DISABLED_TESTS=1 GTEST_FILTER=PNGLoadTest.DISABLED_benchmark ja2 -unittests
