@@ -11,6 +11,7 @@ set(MINGW_CORE_DLLS
     "bcrypt.dll"
     "comctl32.dll"
     "comdlg32.dll"
+    "dbghelp.dll"
     "gdi32.dll"
     "imm32.dll"
     "kernel32.dll"

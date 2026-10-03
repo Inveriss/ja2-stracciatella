@@ -93,6 +93,10 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       if: matrix.cfg.target == 'android'
+      with:
+        # the default also installs "tools", which current sdkmanager versions
+        # no longer have; the NDK comes from ci-setup.sh, the rest from Gradle
+        packages: platform-tools
 
     - name: Set up environment
       shell: bash
