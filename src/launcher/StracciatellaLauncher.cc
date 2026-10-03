@@ -202,9 +202,9 @@ n) but gives sharp images.");
           } // Fl_Check_Button* playSoundsCheckbox
           o->end();
         } // Fl_Group* o
-        { settingsEditorButton = new Fl_Button(165, 256, 200, 25, "Start Map Editor");
+        { settingsEditorButton = new Fl_Button(165, 318, 200, 25, "Start Map Editor");
         } // Fl_Button* settingsEditorButton
-        { settingsPlayButton = new Fl_Button(165, 291, 200, 55, "Play Ja2 Stracciatella");
+        { settingsPlayButton = new Fl_Button(165, 252, 200, 55, "Play Ja2 Stracciatella");
         } // Fl_Button* settingsPlayButton
         settingsTab->end();
       } // Fl_Group* settingsTab
