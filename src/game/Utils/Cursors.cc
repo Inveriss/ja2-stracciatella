@@ -1296,7 +1296,7 @@ static void DrawMouseText(void)
 		// Set dest for gprintf to be different
 		SetFontDestBuffer(MOUSE_BUFFER);
 
-		FindFontCenterCoordinates(0, 0, gsCurMouseWidth, gsCurMouseHeight, gzLocation, TINYFONT1, &sX, &sY);
+		FindFontCenterCoordinates(0, gsCurMouseTopMargin, gsCurMouseWidth, gsCurMouseHeight, gzLocation, TINYFONT1, &sX, &sY);
 		SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
 		MPrint(sX, sY + 12, gzLocation); // Below cursor
 		// reset
@@ -1308,7 +1308,7 @@ static void DrawMouseText(void)
 		// Set dest for gprintf to be different
 		SetFontDestBuffer(MOUSE_BUFFER);
 
-		FindFontCenterCoordinates(0, 0, gsCurMouseWidth, gsCurMouseHeight, gzIntTileLocation, TINYFONT1, &sX, &sY);
+		FindFontCenterCoordinates(0, gsCurMouseTopMargin, gsCurMouseWidth, gsCurMouseHeight, gzIntTileLocation, TINYFONT1, &sX, &sY);
 		SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
 		MPrint(sX, sY + 6, gzIntTileLocation);
 		// reset
@@ -1320,7 +1320,7 @@ static void DrawMouseText(void)
 		// Set dest for gprintf to be different
 		SetFontDestBuffer(MOUSE_BUFFER);
 
-		FindFontCenterCoordinates(0, 0, gsCurMouseWidth, gsCurMouseHeight, gzIntTileLocation2, TINYFONT1, &sX, &sY);
+		FindFontCenterCoordinates(0, gsCurMouseTopMargin, gsCurMouseWidth, gsCurMouseHeight, gzIntTileLocation2, TINYFONT1, &sX, &sY);
 		SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
 		MPrint(sX, sY - 2, gzIntTileLocation2);
 		// reset
@@ -1331,7 +1331,7 @@ static void DrawMouseText(void)
 	{
 		// Set dest for gprintf to be different
 		SetFontDestBuffer(MOUSE_BUFFER);
-		FindFontCenterCoordinates(0, 0, gsCurMouseWidth, gsCurMouseHeight, gzHitChance, TINYFONT1, &sX, &sY);
+		FindFontCenterCoordinates(0, gsCurMouseTopMargin, gsCurMouseWidth, gsCurMouseHeight, gzHitChance, TINYFONT1, &sX, &sY);
 		SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
 		if(gzLocation.empty())
 			MPrint(sX, sY + 12, gzHitChance); // Below cursor
@@ -1349,11 +1349,11 @@ static void DrawMouseText(void)
 	{
 		// Set dest for gprintf to be different
 		SetFontDestBuffer(MOUSE_BUFFER);
-		FindFontCenterCoordinates(0, 0, gsCurMouseWidth, gsCurMouseHeight, gzBurstMode, TINYFONT1, &sX, &sY);
+		FindFontCenterCoordinates(0, gsCurMouseTopMargin, gsCurMouseWidth, gsCurMouseHeight, gzBurstMode, TINYFONT1, &sX, &sY);
 		SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
-		// Above cursor, the mirror of the chance to hit below it. The cursor is
-		// blitted from the top of the mouse buffer, nothing above it can be shown.
-		MPrint(sX, std::max(sY - 12, 0), gzBurstMode);
+		// Above the burst cursor image, in the empty rows of gsCurMouseTopMargin
+		// (nothing above the top of the mouse buffer can be shown)
+		MPrint(sX, std::max(sY - 27, 0), gzBurstMode);
 
 		// reset
 		SetFontDestBuffer(FRAME_BUFFER);
@@ -1401,11 +1401,11 @@ static void DrawMouseText(void)
 
 			if (gfUIDisplayActionPointsCenter)
 			{
-				FindFontCenterCoordinates(0, 0, gsCurMouseWidth, gsCurMouseHeight, pStr, TINYFONT1, &sX, &sY);
+				FindFontCenterCoordinates(0, gsCurMouseTopMargin, gsCurMouseWidth, gsCurMouseHeight, pStr, TINYFONT1, &sX, &sY);
 			}
 			else
 			{
-				FindFontCenterCoordinates(gUIDisplayActionPointsOffX, gUIDisplayActionPointsOffY, 1, 1, pStr, TINYFONT1, &sX, &sY);
+				FindFontCenterCoordinates(gUIDisplayActionPointsOffX, gUIDisplayActionPointsOffY + gsCurMouseTopMargin, 1, 1, pStr, TINYFONT1, &sX, &sY);
 			}
 
 			SetFont(TINYFONT1);
@@ -1445,7 +1445,7 @@ static void DrawMouseText(void)
 
 			ST::string pStr = ST::format("x{}", gpItemPointer->ubNumberOfObjects);
 
-			FindFontCenterCoordinates(0, 0, gsCurMouseWidth, gsCurMouseHeight, pStr, TINYFONT1, &sX, &sY);
+			FindFontCenterCoordinates(0, gsCurMouseTopMargin, gsCurMouseWidth, gsCurMouseHeight, pStr, TINYFONT1, &sX, &sY);
 
 			SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
 			MPrint(sX + 10, sY - 10, pStr);
