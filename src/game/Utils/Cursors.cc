@@ -1294,10 +1294,10 @@ static void DrawMouseText(void)
 	gsMouseSizeYModifier = 0;
 
 	// With the burst cursor (it has the burst mode label) the hit location goes
-	// one pixel below the burst image, centred on the cursor, and the chance to
+	// 9 pixels below the burst image, centred on the cursor, and the chance to
 	// hit below it.
 	bool  const burst_cursor     = !gzBurstMode.empty();
-	INT16 const burst_location_y = static_cast<INT16>(gsCurMouseTopMargin + gsCurMouseHeight / 2 + BURST_CURSOR_IMAGE_HEIGHT / 2 + 2);
+	INT16 const burst_location_y = static_cast<INT16>(gsCurMouseTopMargin + gsCurMouseHeight / 2 + BURST_CURSOR_IMAGE_HEIGHT / 2 + 10);
 	// Make the rows below the cursor image visible down to y (exclusive)
 	auto const showDownTo = [](int const y)
 	{
