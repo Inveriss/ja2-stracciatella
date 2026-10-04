@@ -13,6 +13,7 @@
 
 #include <string_theory/format>
 #include <string_theory/string>
+#include <algorithm>
 
 
 #define SCURSOR(name)         { name, NULL, 0,                   0 }
@@ -1237,6 +1238,7 @@ static ST::string gzLocation;
 static ST::string gzIntTileLocation;
 static ST::string gzIntTileLocation2;
 static ST::string gzHitChance;
+static ST::string gzBurstMode;
 
 
 void SetHitLocationText(const ST::string& str)
@@ -1271,6 +1273,12 @@ const ST::string& GetIntTileLocation2Text(void)
 void SetChanceToHitText(const ST::string& str)
 {
 	gzHitChance = str;
+}
+
+// The burst mode label above the burst cursor, see docs/burst-modes.md.
+void SetBurstModeText(const ST::string& str)
+{
+	gzBurstMode = str;
 }
 
 static void DrawMouseText(void)
@@ -1332,6 +1340,20 @@ static void DrawMouseText(void)
 			MPrint(sX, sY + 20, gzHitChance); // Below hit location text
 			gsMouseSizeYModifier = 8 + GetFontHeight(TINYFONT1);
 		}
+
+		// reset
+		SetFontDestBuffer(FRAME_BUFFER);
+	}
+
+	if (!gzBurstMode.empty())
+	{
+		// Set dest for gprintf to be different
+		SetFontDestBuffer(MOUSE_BUFFER);
+		FindFontCenterCoordinates(0, 0, gsCurMouseWidth, gsCurMouseHeight, gzBurstMode, TINYFONT1, &sX, &sY);
+		SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
+		// Above cursor, the mirror of the chance to hit below it. The cursor is
+		// blitted from the top of the mouse buffer, nothing above it can be shown.
+		MPrint(sX, std::max(sY - 12, 0), gzBurstMode);
 
 		// reset
 		SetFontDestBuffer(FRAME_BUFFER);

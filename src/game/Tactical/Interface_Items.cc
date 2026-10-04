@@ -1065,7 +1065,7 @@ static void GenerateProsString(ST::string& zItemPros, const OBJECTTYPE& o, UINT3
 		}
 	}
 
-	if (GCM->getWeapon(usItem)->ubShotsPerBurst >= EXCEPTIONAL_BURST_SIZE || usItem == G11)
+	if (GCM->getWeapon(usItem)->ubShotsPerShortBurst >= EXCEPTIONAL_BURST_SIZE || usItem == G11)
 	{
 		zTemp = g_langRes->Message[STR_FAST_BURST];
 		if ( ! AttemptToAddSubstring( zItemPros, zTemp, &uiStringLength, uiPixLimit ) )
@@ -1164,7 +1164,7 @@ static void GenerateConsString(ST::string& zItemCons, const OBJECTTYPE& o, UINT3
 		}
 	}
 
-	if (GCM->getWeapon(usItem)->ubShotsPerBurst == 0)
+	if (!GCM->getWeapon(usItem)->canBurst())
 	{
 		zTemp = g_langRes->Message[STR_NO_BURST];
 		if ( ! AttemptToAddSubstring( zItemCons, zTemp, &uiStringLength, uiPixLimit ) )
@@ -2333,7 +2333,7 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 		{
 			SetFontForeground(FONT_DKRED);
 
-			ST::string mode_marker = s->bWeaponMode == WM_BURST ? "*" : "+";
+			ST::string mode_marker = IsBurstMode(s->bWeaponMode) ? "*" : "+";
 			UINT16         const uiStringLength = StringPixLength(mode_marker, ITEM_FONT);
 			INT16          const sNewX          = sX + sWidth - uiStringLength - 4;
 			INT16          const sNewY          = sY + 13; // rather arbitrary
@@ -3260,18 +3260,19 @@ void RenderItemDescriptionBox(void)
 		}
 
 		const WeaponModel * w = GCM->getWeapon(obj.usItem);
-		if (w->ubShotsPerBurst > 0)
+		if (w->ubShotsPerShortBurst > 0)
 		{
 			INT32       x = in_map ? MAP_BULLET_BURST_X : BULLET_BURST_X;
 			INT32 const y = in_map ? MAP_BULLET_BURST_Y : BULLET_BURST_Y;
-			for (INT32 i = GunShotsPerBurst(obj); i != 0; --i)
+			// the item description shows the short burst, see docs/burst-modes.md
+			for (INT32 i = GunShotsPerBurst(obj, WM_BURST_SHORT); i != 0; --i)
 			{
 				BltVideoObject(guiSAVEBUFFER, guiBullet, 0, x, y);
 				x += BULLET_WIDTH + 1;
 			}
 		}
 
-		if (!in_map && w->ubShotsPerBurst > 0)
+		if (!in_map && w->ubShotsPerShortBurst > 0)
 		{
 			// Purely decorative: always exactly 3 bullet icons, regardless of
 			// the weapon's actual burst size — cosmetic only. Shown under the
@@ -3414,7 +3415,7 @@ void RenderItemDescriptionBox(void)
 		MPrint(dx + ids[1].sX, dy + ids[1].sY, gWeaponStatsDesc[1]); // status
 
 		const WeaponModel * w = GCM->getWeapon(obj.usItem);
-		if (w->ubShotsPerBurst > 0)
+		if (w->ubShotsPerShortBurst > 0)
 		{
 			MPrint(dx + ids[7].sX, dy + ids[7].sY, gWeaponStatsDesc[6]); // = (sic)
 		}
@@ -3458,10 +3459,10 @@ void RenderItemDescriptionBox(void)
 		FindFontRightCoordinates(dx + ids[4].sX + ids[4].sValDx, dy + ids[4].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 		MPrint(usX, usY, pStr);
 
-		if (w->ubShotsPerBurst > 0)
+		if (w->ubShotsPerShortBurst > 0)
 		{
-			HighlightIf(GunShotsPerBurst(obj) >= EXCEPTIONAL_BURST_SIZE || obj.usItem == G11);
-			pStr = ST::format("{2d}", ubAttackAPs + CalcAPsToBurst(DEFAULT_APS, obj));
+			HighlightIf(GunShotsPerBurst(obj, WM_BURST_SHORT) >= EXCEPTIONAL_BURST_SIZE || obj.usItem == G11);
+			pStr = ST::format("{2d}", ubAttackAPs + CalcAPsToBurst(DEFAULT_APS, DEFAULT_AIMSKILL, obj, WM_BURST_SHORT));
 			FindFontRightCoordinates(dx + ids[5].sX + ids[5].sValDx, dy + ids[5].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
@@ -3477,7 +3478,7 @@ void RenderItemDescriptionBox(void)
 			MPrint(dx + ids[8].sX,  dy + ids[8].sY,  gWeaponStatsDesc[7]);  // Ready time
 			MPrint(dx + ids[16].sX, dy + ids[16].sY, gWeaponStatsDesc[6]);  // = (Ready time)
 			MPrint(dx + ids[9].sX,  dy + ids[9].sY,  gWeaponStatsDesc[8]);  // Reliability
-			if (w->ubShotsPerBurst > 0)
+			if (w->ubShotsPerShortBurst > 0)
 			{
 				MPrint(dx + ids[10].sX, dy + ids[10].sY, gWeaponStatsDesc[9]); // Burst penalty
 			}
@@ -3495,7 +3496,7 @@ void RenderItemDescriptionBox(void)
 			// not tied to any real stat (unlike every label above). Shown
 			// under the same condition as the real burst stats: only for
 			// weapons that have a burst mode at all.
-			if (w->ubShotsPerBurst > 0)
+			if (w->ubShotsPerShortBurst > 0)
 			{
 				MPrint(dx + ids[18].sX, dy + ids[18].sY, gWeaponStatsDesc[15]); // "AP:" (decorative)
 				MPrint(dx + ids[19].sX, dy + ids[19].sY, gWeaponStatsDesc[16]); // "Rounds" (decorative)
@@ -3527,7 +3528,7 @@ void RenderItemDescriptionBox(void)
 			MPrint(usX, usY, pStr);
 
 			// Burst penalty: % accuracy penalty per shot after the first, in a burst
-			if (w->ubShotsPerBurst > 0)
+			if (w->ubShotsPerShortBurst > 0)
 			{
 				pStr = ST::format("{2d}%", w->ubBurstPenalty);
 				FindFontRightCoordinates(dx + ids[10].sX + ids[10].sValDx, dy + ids[10].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);

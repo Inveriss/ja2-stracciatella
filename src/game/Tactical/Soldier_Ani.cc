@@ -90,6 +90,18 @@ static BOOLEAN CheckForImproperFireGunEnd(SOLDIERTYPE* pSoldier);
 static BOOLEAN HandleUnjamAnimation(SOLDIERTYPE* pSoldier);
 
 
+// Shots of the burst in progress, taken when it started (EVENT_FireSoldierWeapon()).
+static UINT8 CurrentBurstLength(SOLDIERTYPE* const pSoldier)
+{
+	if (pSoldier->ubBurstLength == 0)
+	{
+		// not set (shouldn't happen), take it now
+		pSoldier->ubBurstLength = CalcBurstLength(*pSoldier, pSoldier->inv[pSoldier->ubAttackingHand]);
+	}
+	return pSoldier->ubBurstLength;
+}
+
+
 BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 {
 	UINT16 sNewAniFrame, anAniFrame;
@@ -640,13 +652,14 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 					// FIRST CHECK IF WE'VE REACHED MAX FOR GUN
 					fStop = FALSE;
 
-					if ( pSoldier->bDoBurst > GunShotsPerBurst( pSoldier->inv[ pSoldier->ubAttackingHand ] ) )
+					if ( pSoldier->bDoBurst > CurrentBurstLength( pSoldier ) )
 					{
 						fStop = TRUE;
 					}
-
 					// CHECK IF WE HAVE AMMO LEFT, IF NOT, END ANIMATION!
-					if ( !EnoughAmmo( pSoldier, FALSE, pSoldier->ubAttackingHand ) )
+					// (not when the burst is complete anyway: a Full burst always
+					// empties the magazine, that's no reason for the message)
+					else if ( !EnoughAmmo( pSoldier, FALSE, pSoldier->ubAttackingHand ) )
 					{
 						fStop = TRUE;
 						if (pSoldier->bTeam == OUR_TEAM)
@@ -694,6 +707,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 						pSoldier->fDoSpread = FALSE;
 						pSoldier->bDoBurst = 1;
 						pSoldier->usBurstFireAniCodeAnchor = 0xFFFF;
+						pSoldier->ubBurstLength = 0;
 
 						// ATE; Reduce it due to animation being stopped...
 						SLOGD("Freeing up attacker - Burst animation ended");
@@ -755,7 +769,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 
 					//CODE: FINISH BURST
 
-					// If this weapon's burst isn't done yet (GunShotsPerBurst() asks for
+					// If this weapon's burst isn't done yet (the burst length asks for
 					// more shots than the loaded animation table's own 430/448 repeats
 					// provide -- observed: 6) and there's still ammo, loop the whole
 					// natural sequence again instead of ending the burst here. Rewinding
@@ -766,7 +780,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 					// deactivate.
 					if ( ENABLE_EXTENDED_BURST_FIRE &&
 					     pSoldier->usBurstFireAniCodeAnchor != 0xFFFF &&
-					     pSoldier->bDoBurst <= GunShotsPerBurst( pSoldier->inv[ pSoldier->ubAttackingHand ] ) &&
+					     pSoldier->bDoBurst <= CurrentBurstLength( pSoldier ) &&
 					     EnoughAmmo( pSoldier, FALSE, pSoldier->ubAttackingHand ) )
 					{
 						pSoldier->usAniCode = (UINT16)( pSoldier->usBurstFireAniCodeAnchor - 1 );
@@ -776,6 +790,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 					pSoldier->fDoSpread = FALSE;
 					pSoldier->bDoBurst = 1;
 					pSoldier->usBurstFireAniCodeAnchor = 0xFFFF;
+					pSoldier->ubBurstLength = 0;
 					break;
 
 				case 450:

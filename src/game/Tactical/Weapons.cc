@@ -48,6 +48,7 @@
 #include "WeaponModels.h"
 #include "Logger.h"
 #include "GamePolicy.h"
+#include <initializer_list>
 
 // NB this is arbitrary, chances in DG ranged from 1 in 6 to 1 in 20
 #define BASIC_DEPRECIATE_CHANCE	15
@@ -125,25 +126,55 @@ UINT16 GunRange(OBJECTTYPE const& o)
 }
 
 
-#define BURST_EXTENDER_BONUS_SHOTS			1
+bool IsBurstMode(WeaponModes const mode)
+{
+	return mode == WM_BURST_SHORT || mode == WM_BURST_LONG || mode == WM_BURST_FULL;
+}
 
-UINT8 GunShotsPerBurst(OBJECTTYPE const& o)
+
+// The burst mode used when the soldier bursts. Soldiers without a burst mode
+// of their own (enemy AI, which only sets bDoBurst) fire long bursts, or what
+// the gun in hand has if it can't fire long bursts.
+WeaponModes GetActiveBurstMode(SOLDIERTYPE const& s)
+{
+	if (IsBurstMode(s.bWeaponMode)) return s.bWeaponMode;
+
+	for (WeaponModes const mode : { WM_BURST_LONG, WM_BURST_SHORT, WM_BURST_FULL })
+	{
+		if (GunShotsPerBurst(s.inv[HANDPOS], mode) > 0) return mode;
+	}
+	return WM_BURST_LONG;
+}
+
+
+// Shots of one burst in the given burst mode, ignoring the ammo in the gun.
+// See docs/burst-modes.md. The Burst Extender attachment has no effect for now.
+UINT8 GunShotsPerBurst(OBJECTTYPE const& o, WeaponModes const mode)
 {
 	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
 
-	UINT8 shots = GCM->getWeapon(o.usItem)->ubShotsPerBurst;
-	// a weapon that can't burst at all doesn't gain burst capability from the attachment
-	if (shots == 0) return 0;
-
-	INT8 attach_pos = FindAttachment(&o, BURST_EXTENDER_ATTACHMENT);
-	if (attach_pos != ITEM_NOT_FOUND)
+	WeaponModel const* const w = GCM->getWeapon(o.usItem);
+	UINT8 shots;
+	switch (mode)
 	{
-		// same 85%-condition rule as every other attachment bonus (WEAPON_STATUS_MOD):
-		// integer division means this only rounds up to +1 once condition is >= 85
-		shots += BURST_EXTENDER_BONUS_SHOTS * WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]) / 100;
+		case WM_BURST_SHORT: shots = w->ubShotsPerShortBurst; break;
+		case WM_BURST_LONG:  shots = w->ubShotsPerLongBurst;  break;
+		case WM_BURST_FULL:  shots = w->ubShotsPerFullBurst;  break;
+		default:             return 0;
 	}
 	// a burst is at most as long as the spread locations of a soldier (SOLDIERTYPE::sSpreadLocations)
 	return std::min<UINT8>(shots, 100);
+}
+
+
+// Shots of the burst the soldier would fire now. A Full burst fires what is in
+// the magazine, up to the factory magazine size. A Short or Long burst that
+// runs out of bullets ends early (with the "depleted clip" message).
+UINT8 CalcBurstLength(SOLDIERTYPE const& s, OBJECTTYPE const& o)
+{
+	WeaponModes const mode  = GetActiveBurstMode(s);
+	UINT8       const shots = GunShotsPerBurst(o, mode);
+	return mode == WM_BURST_FULL ? std::min(shots, o.ubGunShotsLeft) : shots;
 }
 
 
@@ -3633,9 +3664,10 @@ void ReloadWeapon(SOLDIERTYPE* const s, UINT8 const inv_pos)
 
 bool IsGunBurstCapable(SOLDIERTYPE const* const s, UINT8 const inv_pos)
 {
-	UINT16 const item = s->inv[inv_pos].usItem;
-	return GCM->getItem(item)->isWeapon() &&
-		GCM->getWeapon(item)->ubShotsPerBurst > 0;
+	OBJECTTYPE const& o = s->inv[inv_pos];
+	return GunShotsPerBurst(o, WM_BURST_SHORT) > 0 ||
+		GunShotsPerBurst(o, WM_BURST_LONG) > 0 ||
+		GunShotsPerBurst(o, WM_BURST_FULL) > 0;
 }
 
 
@@ -3860,48 +3892,76 @@ bool HasLauncher(const SOLDIERTYPE* const s)
 }
 
 
+// Can the main hand item be used in this weapon mode?
+static bool IsWeaponModeAvailable(SOLDIERTYPE const* const s, WeaponModes const mode)
+{
+	switch (mode)
+	{
+		case WM_NORMAL:   return true;
+		case WM_ATTACHED: return HasLauncher(s);
+		default:          return GunShotsPerBurst(s->inv[HANDPOS], mode) > 0;
+	}
+}
+
+
 // Ensure the main hand item is in sync with the soldier's weapon mode.
 void EnsureConsistentWeaponMode(SOLDIERTYPE* const s)
 {
-	if (s->bWeaponMode == WM_BURST)
+	if (!IsWeaponModeAvailable(s, s->bWeaponMode))
 	{
-		if (!IsGunBurstCapable(s, HANDPOS))
-		{
-			s->bWeaponMode = WM_NORMAL;
-		}
-	}
-	else if (s->bWeaponMode == WM_ATTACHED)
-	{
-		if (!HasLauncher(s))
-		{
-			s->bWeaponMode = WM_NORMAL;
-		}
+		s->bWeaponMode = WM_NORMAL;
 	}
 
-	s->bDoBurst = s->bWeaponMode == WM_BURST;
+	s->bDoBurst = IsBurstMode(s->bWeaponMode);
+}
+
+
+void SetWeaponMode(SOLDIERTYPE* const s, WeaponModes const mode)
+{
+	s->bWeaponMode = mode;
+	EnsureConsistentWeaponMode(s);
+
+	DirtyMercPanelInterface(s, DIRTYLEVEL2);
+	gfUIForceReExamineCursorData = TRUE;
+}
+
+
+// The cycle of the B key and the burst button. The enum values are not in
+// this order, they keep the values of older saved games.
+static WeaponModes NextWeaponMode(WeaponModes const mode)
+{
+	switch (mode)
+	{
+		case WM_NORMAL:      return WM_BURST_SHORT;
+		case WM_BURST_SHORT: return WM_BURST_LONG;
+		case WM_BURST_LONG:  return WM_BURST_FULL;
+		case WM_BURST_FULL:  return WM_ATTACHED;
+		default:             return WM_NORMAL;
+	}
 }
 
 
 // Change the soldier's weapon mode to the next possible in
-// the cycle NORMAL ➔ BURST ➔ ATTACHED
+// the cycle NORMAL ➔ SHORT ➔ LONG ➔ FULL ➔ ATTACHED
 void ChangeWeaponMode(SOLDIERTYPE* const s)
 {
 	// ATE: Don't do this if in a fire amimation.....
 	if (gAnimControl[s->usAnimState].uiFlags & ANIM_FIRE) return;
 
-	WeaponModes& mode = s->bWeaponMode;
-	WeaponModes previousMode = mode;
-	mode = mode == WM_ATTACHED ? WM_NORMAL : static_cast<WeaponModes>(mode + 1);
-
-	EnsureConsistentWeaponMode(s);
+	WeaponModes const previousMode = s->bWeaponMode;
+	WeaponModes mode = previousMode;
+	do
+	{
+		mode = NextWeaponMode(mode);
+	}
+	while (!IsWeaponModeAvailable(s, mode)); // ends at WM_NORMAL at the latest
 
 	if (previousMode == mode)
 	{
 		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, st_format_printf(g_langRes->Message[STR_NOT_BURST_CAPABLE], s->name));
 	}
 
-	DirtyMercPanelInterface(s, DIRTYLEVEL2);
-	gfUIForceReExamineCursorData = TRUE;
+	SetWeaponMode(s, mode);
 }
 
 

@@ -5548,9 +5548,9 @@ BOOLEAN ProcessImplicationsOfPCAttack(SOLDIERTYPE* const pSoldier, SOLDIERTYPE* 
 					// Toggle burst capable...
 					if ( !pTarget->bDoBurst )
 					{
-						if (IsGunBurstCapable(pTarget, HANDPOS))
+						if (GunShotsPerBurst(pTarget->inv[HANDPOS], WM_BURST_SHORT) > 0)
 						{
-							ChangeWeaponMode( pTarget );
+							SetWeaponMode( pTarget, WM_BURST_SHORT );
 						}
 					}
 

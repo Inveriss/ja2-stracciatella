@@ -609,6 +609,9 @@ enum
 	DOOR_IS_BUSY,
 	VEHICLE_VITAL_STATS_POPUPTEXT,
 	NO_LOS_TO_TALK_TARGET,
+	BURST_MODE_SHORT_STR, // the label above the burst cursor, in the order of the burst modes
+	BURST_MODE_LONG_STR,
+	BURST_MODE_FULL_STR,
 };
 
 enum{

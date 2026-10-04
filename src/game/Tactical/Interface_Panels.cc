@@ -1218,7 +1218,10 @@ void CreateSMPanelButtons(void)
 	iSMPanelImages[OPTIONS_IMAGES]    = UseLoadedButtonImage(iSMPanelImages[STANCEUP_IMAGES],    24, 25);
 
 	iBurstButtonImages[WM_NORMAL]     = UseLoadedButtonImage(iSMPanelImages[STANCEUP_IMAGES],     7,  7);
-	iBurstButtonImages[WM_BURST]      = UseLoadedButtonImage(iSMPanelImages[STANCEUP_IMAGES],    17, 17);
+	// all three burst modes share the burst icon, the cursor label tells them apart
+	iBurstButtonImages[WM_BURST_SHORT] = UseLoadedButtonImage(iSMPanelImages[STANCEUP_IMAGES],    17, 17);
+	iBurstButtonImages[WM_BURST_LONG]  = UseLoadedButtonImage(iSMPanelImages[STANCEUP_IMAGES],    17, 17);
+	iBurstButtonImages[WM_BURST_FULL]  = UseLoadedButtonImage(iSMPanelImages[STANCEUP_IMAGES],    17, 17);
 	iBurstButtonImages[WM_ATTACHED]   = UseLoadedButtonImage(iSMPanelImages[STANCEUP_IMAGES],    26, 26);
 
 	iSMPanelImages[STANCE_IMAGES]     = LoadButtonImage(INTERFACEDIR "/invadd-ons.sti", 0, 0, -1, 2, -1);
@@ -1313,7 +1316,9 @@ void RemoveSMPanelButtons(void)
 	if (giSMHideEmptySlotsCheckbox) RemoveButton(giSMHideEmptySlotsCheckbox);
 
 	UnloadButtonImage(iBurstButtonImages[WM_NORMAL]);
-	UnloadButtonImage(iBurstButtonImages[WM_BURST]);
+	UnloadButtonImage(iBurstButtonImages[WM_BURST_SHORT]);
+	UnloadButtonImage(iBurstButtonImages[WM_BURST_LONG]);
+	UnloadButtonImage(iBurstButtonImages[WM_BURST_FULL]);
 	UnloadButtonImage(iBurstButtonImages[WM_ATTACHED]);
 }
 

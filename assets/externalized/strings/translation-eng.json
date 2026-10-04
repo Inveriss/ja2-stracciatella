@@ -460,7 +460,10 @@
         "Lock destroyed",
         "Somebody else is trying to use this door.",
         "Health: %d/%d\nFuel: %d/%d",
-        "%s cannot see %s."
+        "%s cannot see %s.",
+        "Short",
+        "Long",
+        "Full"
     ],
     "TeamTurnString": [
         "Player's Turn",

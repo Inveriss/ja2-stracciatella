@@ -8,6 +8,7 @@
 #include "Points.h"
 #include "Sound_Control.h"
 #include "Weapons.h"
+#include <algorithm>
 #include <utility>
 
 WeaponModel::WeaponModel(uint32_t itemClass, uint8_t weaponType, uint8_t cursor, uint16_t itemIndex, ST::string&& internalName_)
@@ -30,7 +31,12 @@ WeaponModel::WeaponModel(uint32_t itemClass, uint8_t weaponType, uint8_t cursor,
 	calibre              = CalibreModel::getNoCalibreObject();
 	ubReadyTime          = 0;
 	ubShotsPer4Turns     = 0;
-	ubShotsPerBurst      = 0;
+	ubAPsPerShortBurst = 0;
+	ubAPsPerLongBurst  = 0;
+	ubAPsPerFullBurst  = 0;
+	ubShotsPerShortBurst = 0;
+	ubShotsPerLongBurst  = 0;
+	ubShotsPerFullBurst  = 0;
 	ubBurstPenalty       = 0;
 	ubBulletSpeed        = 0;
 	ubImpact             = 0;
@@ -93,6 +99,50 @@ void WeaponModel::serializeAttachments(JsonObject &obj) const
 	addOptionalBool(obj, "attachment_SpringAndBoltUpgrade",     attachSpringAndBoltUpgrade);
 	addOptionalBool(obj, "attachment_GunBarrelExtender",        attachGunBarrelExtender);
 	addOptionalBool(obj, "attachment_BurstExtenderAttachment",  attachBurstExtenderAttachment);
+}
+
+void WeaponModel::serializeBurstModes(JsonObject &obj) const
+{
+	obj.set("ubShotsPerShortBurst", ubShotsPerShortBurst);
+	obj.set("ubShotsPerLongBurst",  ubShotsPerLongBurst);
+	obj.set("ubShotsPerFullBurst",  ubShotsPerFullBurst);
+	if (ubAPsPerShortBurst) obj.set("ubAPsPerShortBurst", ubAPsPerShortBurst);
+	if (ubAPsPerLongBurst)  obj.set("ubAPsPerLongBurst",  ubAPsPerLongBurst);
+	if (ubAPsPerFullBurst)  obj.set("ubAPsPerFullBurst",  ubAPsPerFullBurst);
+}
+
+// Burst lengths and the optional firing rates for their AP costs, see
+// docs/burst-modes.md. Needs ubMagSize to be set already.
+void WeaponModel::deserializeBurstModes(JsonObject const& obj)
+{
+	bool const hasBurstFields =
+		obj.has("ubShotsPerShortBurst") ||
+		obj.has("ubShotsPerLongBurst")  ||
+		obj.has("ubShotsPerFullBurst");
+	// deprecated: a single burst length, any value above 0 means the defaults
+	if (!hasBurstFields && obj.getOptionalInt("ubShotsPerBurst") == 0) return;
+
+	auto const readShots = [&](char const* key, int defaultValue) -> UINT8
+	{
+		return static_cast<UINT8>(std::clamp(obj.getOptionalInt(key, defaultValue), 0, 255));
+	};
+	ubShotsPerShortBurst = readShots("ubShotsPerShortBurst", 3);
+	ubShotsPerLongBurst  = readShots("ubShotsPerLongBurst",  6);
+	ubShotsPerFullBurst  = readShots("ubShotsPerFullBurst",  ubMagSize);
+
+	// Not an AP cost: shots per 4 turns of the burst mode, a parameter of the
+	// original AP formula like ubShotsPer4Turns, see CalcAPsToBurst().
+	// null or missing = 0 = the original burst cost.
+	auto const readRate = [&](char const* key) -> UINT8
+	{
+		if (!obj.has(key)) return 0;
+		JsonValue const value = obj.GetValue(key);
+		if (!value.isInt()) return 0; // null
+		return static_cast<UINT8>(std::clamp(value.toInt(), 0, 255));
+	};
+	ubAPsPerShortBurst = readRate("ubAPsPerShortBurst");
+	ubAPsPerLongBurst  = readRate("ubAPsPerLongBurst");
+	ubAPsPerFullBurst  = readRate("ubAPsPerFullBurst");
 }
 
 ST::string readOptionalString(JsonObject &obj, const char* key, const ST::string &default_value) {
@@ -187,7 +237,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
 		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
-		uint8_t  ShotsPerBurst   = obj.GetInt("ubShotsPerBurst");
+		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
@@ -210,7 +260,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					Impact,
 					ReadyTime,
 					ShotsPer4Turns,
-					ShotsPerBurst,
+					ShotsPerShortBurst,
 					BurstPenalty,
 					Deadliness,
 					MagSize,
@@ -227,7 +277,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
 		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
-		uint8_t  ShotsPerBurst   = obj.GetInt("ubShotsPerBurst");
+		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
@@ -250,7 +300,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 				Impact,
 				ReadyTime,
 				ShotsPer4Turns,
-				ShotsPerBurst,
+				ShotsPerShortBurst,
 				BurstPenalty,
 				Deadliness,
 				MagSize,
@@ -335,7 +385,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
 		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
-		uint8_t  ShotsPerBurst   = obj.GetInt("ubShotsPerBurst");
+		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
@@ -358,7 +408,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					Impact,
 					ReadyTime,
 					ShotsPer4Turns,
-					ShotsPerBurst,
+					ShotsPerShortBurst,
 					BurstPenalty,
 					Deadliness,
 					MagSize,
@@ -375,7 +425,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
 		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
-		uint8_t  ShotsPerBurst   = obj.GetInt("ubShotsPerBurst");
+		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
@@ -398,7 +448,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					Impact,
 					ReadyTime,
 					ShotsPer4Turns,
-					ShotsPerBurst,
+					ShotsPerShortBurst,
 					BurstPenalty,
 					Deadliness,
 					MagSize,
@@ -415,7 +465,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
 		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
-		uint8_t  ShotsPerBurst   = obj.GetInt("ubShotsPerBurst");
+		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
@@ -437,7 +487,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 				Impact,
 				ReadyTime,
 				ShotsPer4Turns,
-				ShotsPerBurst,
+				ShotsPerShortBurst,
 				BurstPenalty,
 				Deadliness,
 				MagSize,
@@ -596,6 +646,13 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		return wep;
 	}
 
+	// the weapon types that can fire bursts
+	if (internalType == "M_PISTOL" || internalType == "SMG" || internalType == "ASRIFLE" ||
+		internalType == "SHOTGUN" || internalType == "LMG")
+	{
+		wep->deserializeBurstModes(obj);
+	}
+
 	wep->shortName    = ItemModel::deserializeShortName(initData);
 	wep->name         = ItemModel::deserializeName(initData);
 	wep->description  = ItemModel::deserializeDescription(initData);
@@ -692,6 +749,11 @@ int WeaponModel::getRateOfFire() const
 	return m_rateOfFire;
 }
 
+bool WeaponModel::canBurst() const
+{
+	return ubShotsPerShortBurst > 0 || ubShotsPerLongBurst > 0 || ubShotsPerFullBurst > 0;
+}
+
 ////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////
@@ -779,7 +841,7 @@ MPistol::MPistol(uint16_t itemIndex,
 			uint8_t Impact,
 			uint8_t ReadyTime,
 			uint8_t ShotsPer4Turns,
-			uint8_t ShotsPerBurst,
+			uint8_t ShotsPerShortBurst,
 			uint8_t BurstPenalty,
 			uint8_t Deadliness,
 			uint8_t MagSize,
@@ -796,7 +858,7 @@ MPistol::MPistol(uint16_t itemIndex,
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
 	ubShotsPer4Turns     = ShotsPer4Turns;
-	ubShotsPerBurst      = ShotsPerBurst;
+	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = Impact;
@@ -821,7 +883,7 @@ JsonValue MPistol::serialize() const
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
 	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
-	obj.set("ubShotsPerBurst",      ubShotsPerBurst);
+	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubImpact",             ubImpact);
@@ -845,7 +907,7 @@ SMG::SMG(uint16_t itemIndex, ST::string&& internalName,
 		uint8_t Impact,
 		uint8_t ReadyTime,
 		uint8_t ShotsPer4Turns,
-		uint8_t ShotsPerBurst,
+		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
 		uint8_t MagSize,
@@ -862,7 +924,7 @@ SMG::SMG(uint16_t itemIndex, ST::string&& internalName,
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
 	ubShotsPer4Turns     = ShotsPer4Turns;
-	ubShotsPerBurst      = ShotsPerBurst;
+	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = Impact;
@@ -887,7 +949,7 @@ JsonValue SMG::serialize() const
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
 	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
-	obj.set("ubShotsPerBurst",      ubShotsPerBurst);
+	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubImpact",             ubImpact);
@@ -1019,7 +1081,7 @@ AssaultRifle::AssaultRifle(uint16_t itemIndex, ST::string&& internalName,
 				uint8_t Impact,
 				uint8_t ReadyTime,
 				uint8_t ShotsPer4Turns,
-				uint8_t ShotsPerBurst,
+				uint8_t ShotsPerShortBurst,
 				uint8_t BurstPenalty,
 				uint8_t Deadliness,
 				uint8_t MagSize,
@@ -1036,7 +1098,7 @@ AssaultRifle::AssaultRifle(uint16_t itemIndex, ST::string&& internalName,
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
 	ubShotsPer4Turns     = ShotsPer4Turns;
-	ubShotsPerBurst      = ShotsPerBurst;
+	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = Impact;
@@ -1061,7 +1123,7 @@ JsonValue AssaultRifle::serialize() const
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
 	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
-	obj.set("ubShotsPerBurst",      ubShotsPerBurst);
+	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubImpact",             ubImpact);
@@ -1085,7 +1147,7 @@ Shotgun::Shotgun(uint16_t itemIndex, ST::string&& internalName,
 			uint8_t Impact,
 			uint8_t ReadyTime,
 			uint8_t ShotsPer4Turns,
-			uint8_t ShotsPerBurst,
+			uint8_t ShotsPerShortBurst,
 			uint8_t BurstPenalty,
 			uint8_t Deadliness,
 			uint8_t MagSize,
@@ -1102,7 +1164,7 @@ Shotgun::Shotgun(uint16_t itemIndex, ST::string&& internalName,
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
 	ubShotsPer4Turns     = ShotsPer4Turns;
-	ubShotsPerBurst      = ShotsPerBurst;
+	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = Impact;
@@ -1127,7 +1189,7 @@ JsonValue Shotgun::serialize() const
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
 	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
-	obj.set("ubShotsPerBurst",      ubShotsPerBurst);
+	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubImpact",             ubImpact);
@@ -1151,7 +1213,7 @@ LMG::LMG(uint16_t itemIndex, ST::string&& internalName,
 		uint8_t Impact,
 		uint8_t ReadyTime,
 		uint8_t ShotsPer4Turns,
-		uint8_t ShotsPerBurst,
+		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
 		uint8_t MagSize,
@@ -1168,7 +1230,7 @@ LMG::LMG(uint16_t itemIndex, ST::string&& internalName,
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
 	ubShotsPer4Turns     = ShotsPer4Turns;
-	ubShotsPerBurst      = ShotsPerBurst;
+	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = Impact;
@@ -1193,7 +1255,7 @@ JsonValue LMG::serialize() const
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
 	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
-	obj.set("ubShotsPerBurst",      ubShotsPerBurst);
+	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubImpact",             ubImpact);

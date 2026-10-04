@@ -455,7 +455,10 @@
         "Serratura distrutta",
         "Qualcun altro sta provando a utilizzare questa porta.",
         "Salute: %d/%d\nCarburante: %d/%d",
-        "%s non riesce a vedere %s."
+        "%s non riesce a vedere %s.",
+        "Short",
+        "Long",
+        "Full"
     ],
     "TeamTurnString": [
         "Turno del giocatore",

@@ -455,7 +455,10 @@
         "Schloss zerstört",
         "Noch jemand an der Tür.",
         "Gesundh.: %d/%d\nTank: %d/%d",
-        "%s kann %s nicht sehen."
+        "%s kann %s nicht sehen.",
+        "Short",
+        "Long",
+        "Full"
     ],
     "TeamTurnString": [
         "Spielzug Spieler",

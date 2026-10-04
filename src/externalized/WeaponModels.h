@@ -68,6 +68,9 @@ struct WeaponModel : ItemModel
 
 	int getRateOfFire() const;
 
+	/** Has the weapon at least one burst mode? */
+	bool canBurst() const;
+
 	ST::string sound;
 	ST::string burstSound;
 	ST::string silencedSound;
@@ -91,7 +94,13 @@ struct WeaponModel : ItemModel
 	const ExplosiveCalibreModel *explosiveCalibre;  // type of ammunition needed
 	UINT8    ubReadyTime;      // APs to ready/unready weapon
 	UINT8    ubShotsPer4Turns; // maximum (mechanical) firing rate
-	UINT8    ubShotsPerBurst;
+	UINT8    ubAPsPerShortBurst; // not an AP cost: shots per 4 turns of the burst mode for the
+	                             // original AP formula, 0 = original burst cost
+	UINT8    ubAPsPerLongBurst;
+	UINT8    ubAPsPerFullBurst;
+	UINT8    ubShotsPerShortBurst; // 0 = no such burst mode
+	UINT8    ubShotsPerLongBurst;
+	UINT8    ubShotsPerFullBurst;  // factory magazine, a larger magazine doesn't lengthen it
 	UINT8    ubBurstPenalty;   // % penalty per shot after first
 	UINT8    ubBulletSpeed;    // bullet's travelling speed
 	UINT8    ubImpact;         // weapon's max damage impact (size & speed)
@@ -107,6 +116,8 @@ struct WeaponModel : ItemModel
 
 protected:
 	void serializeAttachments(JsonObject &obj) const;
+	void serializeBurstModes(JsonObject &obj) const;
+	void deserializeBurstModes(JsonObject const& obj);
 };
 
 struct NoWeapon : WeaponModel
@@ -149,7 +160,7 @@ struct MPistol : WeaponModel
 		uint8_t Impact,
 		uint8_t ReadyTime,
 		uint8_t ShotsPer4Turns,
-		uint8_t ShotsPerBurst,
+		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
 		uint8_t MagSize,
@@ -175,7 +186,7 @@ struct SMG : WeaponModel
 		uint8_t Impact,
 		uint8_t ReadyTime,
 		uint8_t ShotsPer4Turns,
-		uint8_t ShotsPerBurst,
+		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
 		uint8_t MagSize,
@@ -242,7 +253,7 @@ struct AssaultRifle : WeaponModel
 		uint8_t Impact,
 		uint8_t ReadyTime,
 		uint8_t ShotsPer4Turns,
-		uint8_t ShotsPerBurst,
+		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
 		uint8_t MagSize,
@@ -267,7 +278,7 @@ struct Shotgun : WeaponModel
 		uint8_t Impact,
 		uint8_t ReadyTime,
 		uint8_t ShotsPer4Turns,
-		uint8_t ShotsPerBurst,
+		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
 		uint8_t MagSize,
@@ -292,7 +303,7 @@ struct LMG : WeaponModel
 		uint8_t Impact,
 		uint8_t ReadyTime,
 		uint8_t ShotsPer4Turns,
-		uint8_t ShotsPerBurst,
+		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
 		uint8_t MagSize,

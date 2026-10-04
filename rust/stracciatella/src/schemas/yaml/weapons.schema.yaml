@@ -100,8 +100,39 @@ items:
         standardReplacement:
           title: Standard replacement
           $ref: types/id.schema.yaml
+        ubShotsPerShortBurst:
+          title: Shots per short burst
+          description: Default 3 for weapons that can burst, 0 = no short burst.
+          $ref: types/uint8.schema.yaml
+        ubShotsPerLongBurst:
+          title: Shots per long burst
+          description: Default 6 for weapons that can burst, 0 = no long burst.
+          $ref: types/uint8.schema.yaml
+        ubShotsPerFullBurst:
+          title: Shots per full burst
+          description: The factory magazine size (default `ubMagSize`), a larger magazine doesn't make the full burst longer. 0 = no full burst.
+          $ref: types/uint8.schema.yaml
+        ubAPsPerShortBurst:
+          title: Shots per 4 turns of the short burst
+          description: Not an AP cost. A parameter of the original AP formula, used instead of `ubShotsPer4Turns` for the short burst's cost. null or missing = the original burst cost.
+          anyOf:
+            - $ref: types/uint8.schema.yaml
+            - type: 'null'
+        ubAPsPerLongBurst:
+          title: Shots per 4 turns of the long burst
+          description: See `ubAPsPerShortBurst`.
+          anyOf:
+            - $ref: types/uint8.schema.yaml
+            - type: 'null'
+        ubAPsPerFullBurst:
+          title: Shots per 4 turns of the full burst
+          description: See `ubAPsPerShortBurst`.
+          anyOf:
+            - $ref: types/uint8.schema.yaml
+            - type: 'null'
         ubShotsPerBurst:
-          title: Shots per burst
+          title: Shots per burst (deprecated)
+          description: Used only when the burst fields above are missing, any value above 0 gives their defaults.
           $ref: types/uint8.schema.yaml
         ubBurstPenalty:
           title: Burst penalty

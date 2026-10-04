@@ -455,7 +455,10 @@
         "Verrou détruit",
         "Quelqu'un d'autre veut essayer sur cette porte.",
         "Etat : %d/%d\nCarburant : %d/%d",
-        "%s ne peut pas voir %s."
+        "%s ne peut pas voir %s.",
+        "Short",
+        "Long",
+        "Full"
     ],
     "TeamTurnString": [
         "Tour du joueur",

@@ -355,11 +355,15 @@ enum
 };
 
 
+// Stored in saved games: new modes go to the end, the B key cycle order is in
+// NextWeaponMode() (Weapons.cc).
 enum WeaponModes : INT8
 {
 	WM_NORMAL = 0,
-	WM_BURST,
+	WM_BURST_SHORT, // the only burst mode of older saved games
 	WM_ATTACHED,
+	WM_BURST_LONG,
+	WM_BURST_FULL,
 	NUM_WEAPON_MODES
 };
 
@@ -651,9 +655,12 @@ struct SOLDIERTYPE
 	// usAniCode value at the moment the "SHOOT GUN" (430) burst-fire frame last
 	// fired; used by the "HANDLE BURST" (448) frame to loop back for another
 	// shot instead of being limited by however many 430/448 repeats happen to
-	// be baked into the loaded animation instruction table (see GunShotsPerBurst()).
+	// be baked into the loaded animation instruction table (see ubBurstLength).
 	// 0xFFFF means "not set this burst".
 	UINT16 usBurstFireAniCodeAnchor;
+	// Shots of the current burst, taken when it starts (CalcBurstLength()), so
+	// a Full burst doesn't shrink while the magazine empties. Not saved.
+	UINT8 ubBurstLength;
 	INT16 usUIMovementMode;
 	BOOLEAN fUIMovementFast;
 
