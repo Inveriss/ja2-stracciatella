@@ -28,6 +28,10 @@ static CursorData*     gpCursorDatabase;
 INT16  gsGlobalCursorYOffset = 0;
 UINT16 gsCurMouseHeight = 0;
 UINT16 gsCurMouseWidth = 0;
+UINT16 gsCurMouseTopMargin = 0;
+// see gsCurMouseTopMargin, fits the mouse buffer (MAX_CURSOR_HEIGHT) with the
+// highest cursor (57)
+static UINT16 const DATABASE_CURSOR_TOP_MARGIN = 16;
 static UINT16 gusNumDataFiles = 0;
 static SGPVObject const* guiExternVo;
 static UINT16            gusExternVoSubIndex;
@@ -73,7 +77,7 @@ static void BltToMouseCursorFromVObjectWithOutline(HVOBJECT hVObject, UINT16 usV
 	// Center and adjust for offsets
 	ETRLEObject const& pTrav = hVObject->SubregionProperties(usVideoObjectSubIndex);
 	INT16       const  sXPos = (gsCurMouseWidth  - pTrav.usWidth)  / 2 - pTrav.sOffsetX;
-	INT16       const  sYPos = (gsCurMouseHeight - pTrav.usHeight) / 2 - pTrav.sOffsetY;
+	INT16       const  sYPos = (gsCurMouseHeight - pTrav.usHeight) / 2 - pTrav.sOffsetY + gsCurMouseTopMargin;
 	BltVideoObjectOutline(MOUSE_BUFFER, hVObject, usVideoObjectSubIndex, sXPos, sYPos, Get16BPPColor(FROMRGB(0, 255, 0)));
 }
 
@@ -231,6 +235,7 @@ BOOLEAN SetCurrentCursorFromDatabase(UINT32 uiCursorIndex)
 		{
 			// Erase old cursor
 			EraseMouseCursor();
+			gsCurMouseTopMargin = 0;
 
 			ETRLEObject const& pTrav       = guiExternVo->SubregionProperties(gusExternVoSubIndex);
 			UINT16      const  usEffHeight = pTrav.usHeight + pTrav.sOffsetY;
@@ -282,6 +287,7 @@ BOOLEAN SetCurrentCursorFromDatabase(UINT32 uiCursorIndex)
 
 			// Erase old cursor
 			EraseMouseCursor();
+			gsCurMouseTopMargin = DATABASE_CURSOR_TOP_MARGIN;
 			// NOW ACCOMODATE COMPOSITE CURSORS
 			pCurData = &gpCursorDatabase[uiCursorIndex];
 
@@ -339,7 +345,7 @@ BOOLEAN SetCurrentCursorFromDatabase(UINT32 uiCursorIndex)
 					}
 					else
 					{
-						BltToMouseCursorFromVObject(CFData->hVObject, usSubIndex, pCurImage->usPosX, pCurImage->usPosY);
+						BltToMouseCursorFromVObject(CFData->hVObject, usSubIndex, pCurImage->usPosX, pCurImage->usPosY + gsCurMouseTopMargin);
 					}
 				}
 			}
@@ -349,7 +355,7 @@ BOOLEAN SetCurrentCursorFromDatabase(UINT32 uiCursorIndex)
 
 			INT16 sCenterValX = pCurData->sOffsetX;
 			INT16 sCenterValY = pCurData->sOffsetY;
-			SetMouseCursorProperties(sCenterValX, sCenterValY + gsGlobalCursorYOffset, pCurData->usHeight, pCurData->usWidth);
+			SetMouseCursorProperties(sCenterValX, sCenterValY + gsGlobalCursorYOffset + gsCurMouseTopMargin, pCurData->usHeight + gsCurMouseTopMargin, pCurData->usWidth);
 		}
 	}
 

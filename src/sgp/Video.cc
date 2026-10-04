@@ -20,7 +20,7 @@
 #include <string>
 
 #define MAX_CURSOR_WIDTH  64
-#define MAX_CURSOR_HEIGHT 64
+#define MAX_CURSOR_HEIGHT 96 // the highest cursor (57) + gsCurMouseTopMargin + text below it
 
 #define MAX_DIRTY_REGIONS 128
 

@@ -68,6 +68,10 @@ extern INT16 gsGlobalCursorYOffset;
 // Globals for cursor database offset values
 extern UINT16 gsCurMouseHeight;
 extern UINT16 gsCurMouseWidth;
+// Empty rows above a database cursor in the mouse buffer, room for text above
+// the cursor image (the burst mode label). Text drawn relative to the cursor
+// adds it to its y. 0 for extern cursors.
+extern UINT16 gsCurMouseTopMargin;
 
 SGPPoint GetCursorPos();
 // Where the cursor is drawn on the screen: differs from GetCursorPos() (a

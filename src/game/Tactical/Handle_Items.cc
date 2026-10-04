@@ -360,18 +360,21 @@ ItemHandleResult HandleItem(SOLDIERTYPE* const s, INT16 usGridNo, const INT8 bLe
 		// If this is a player guy, show message about no APS
 		if (!EnoughPoints(s, sAPCost, 0, fFromUI)) return ITEM_HANDLE_NOAPS;
 
-		// Psychos might possibly switch to burst if they can
+		// Psychos might possibly switch to a full burst if they can
 		if (s->ubProfile != NO_PROFILE &&
 			gMercProfiles[s->ubProfile].bPersonalityTrait == PSYCHO &&
 			!s->bDoBurst &&
-			IsGunBurstCapable(s, HANDPOS))
+			GunShotsPerBurst(s->inv[HANDPOS], WM_BURST_FULL) > 0)
 		{
 			// chance of firing burst if we have points... chance decreasing when ordered to do aimed shot
 
-			// temporarily set burst to true to calculate action points
+			// temporarily set full burst to calculate action points
+			WeaponModes const old_mode = s->bWeaponMode;
+			s->bWeaponMode = WM_BURST_FULL;
 			s->bDoBurst = TRUE;
 			const INT16 sAPCost = CalcTotalAPsToAttack(s, sTargetGridNo, TRUE, 0);
 			// reset burst mode to false (which is what it was at originally)
+			s->bWeaponMode = old_mode;
 			s->bDoBurst = FALSE;
 
 			// we have enough points to do this burst, roll the dice and see if we want to change
@@ -379,7 +382,7 @@ ItemHandleResult HandleItem(SOLDIERTYPE* const s, INT16 usGridNo, const INT8 bLe
 			{
 				DoMercBattleSound(s, BATTLE_SOUND_LAUGH1);
 				s->bDoBurst    = TRUE;
-				s->bWeaponMode = WM_BURST;
+				s->bWeaponMode = WM_BURST_FULL;
 				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(gzLateLocalizedString[STR_LATE_26], s->name));
 			}
 		}

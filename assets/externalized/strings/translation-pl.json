@@ -455,7 +455,10 @@
         "Zamek został zniszczony",
         "Ktoś inny majstruje przy tych drzwiach.",
         "Stan: %d/%d\nPaliwo: %d/%d",
-        "%s nie widzi - %s."
+        "%s nie widzi - %s.",
+        "Short",
+        "Long",
+        "Full"
     ],
     "TeamTurnString": [
         "Tura gracza",

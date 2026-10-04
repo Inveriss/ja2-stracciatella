@@ -390,6 +390,7 @@ ScreenID HandleTacticalUI(void)
 	SetIntTileLocationText({});
 	SetIntTileLocation2Text({});
 	SetChanceToHitText({});
+	SetBurstModeText({});
 	//gfUIForceReExamineCursorData = FALSE;
 	gfUINewStateForIntTile = FALSE;
 	gfUIShowExitExitGrid = FALSE;

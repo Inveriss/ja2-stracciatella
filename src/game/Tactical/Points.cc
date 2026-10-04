@@ -12,6 +12,7 @@
 #include "Animation_Control.h"
 #include "Dialogue_Control.h"
 #include "Items.h"
+#include "Weapons.h"
 #include "RT_Time_Defines.h"
 #include "AI.h"
 #include "Handle_UI.h"
@@ -840,26 +841,51 @@ static INT16 GetBreathPerAP(SOLDIERTYPE* pSoldier, UINT16 usAnimState)
 }
 
 
-UINT8 CalcAPsToBurst(INT8 const bBaseActionPoints, OBJECTTYPE const& o)
+static INT8 CalcAimSkill(SOLDIERTYPE const&, UINT16 weapon);
+
+
+// AP a burst costs on top of a single shot, see docs/burst-modes.md.
+// bBaseActionPoints is what you'd get from CalcActionPoints().
+UINT8 CalcAPsToBurst(INT8 const bBaseActionPoints, INT8 const bAimSkill, OBJECTTYPE const& o, WeaponModes const mode)
 {
-	// base APs is what you'd get from CalcActionPoints();
-	if (o.usItem == G11)
+	if (!GCM->getItem(o.usItem)->isWeapon()) return 0;
+
+	// A burst mode with its own shots per 4 turns costs what the original
+	// formula gives for them instead of the single shot's.
+	WeaponModel const* const w = GCM->getWeapon(o.usItem);
+	UINT8 burst_shots_per_4_turns;
+	switch (mode)
 	{
-		return( 1 );
+		case WM_BURST_SHORT: burst_shots_per_4_turns = w->ubAPsPerShortBurst; break;
+		case WM_BURST_LONG:  burst_shots_per_4_turns = w->ubAPsPerLongBurst;  break;
+		case WM_BURST_FULL:  burst_shots_per_4_turns = w->ubAPsPerFullBurst;  break;
+		default:             return 0;
+	}
+	if (burst_shots_per_4_turns != 0)
+	{
+		UINT8 const single_aps = BaseAPsToShootOrStab(bBaseActionPoints, bAimSkill, o);
+		UINT8 const burst_aps  = BaseAPsToShootOrStab(bBaseActionPoints, bAimSkill, o, burst_shots_per_4_turns);
+		return burst_aps > single_aps ? burst_aps - single_aps : 0;
+	}
+
+	// Otherwise the original burst cost, the same for every burst mode (no
+	// special case for the G11 any more)
+	// NB round UP, so 21-25 APs pay full
+	INT8 const bAttachPos = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE );
+	if ( bAttachPos != -1 )
+	{
+		return (std::max(3, (AP_BURST * bBaseActionPoints + (AP_MAXIMUM - 1)) / AP_MAXIMUM) * 100) / (100 + o.bAttachStatus[bAttachPos] / 5);
 	}
 	else
 	{
-		// NB round UP, so 21-25 APs pay full
-		INT8 const bAttachPos = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE );
-		if ( bAttachPos != -1 )
-		{
-			return (std::max(3, (AP_BURST * bBaseActionPoints + (AP_MAXIMUM - 1)) / AP_MAXIMUM) * 100) / (100 + o.bAttachStatus[bAttachPos] / 5);
-		}
-		else
-		{
-			return std::max(3, (AP_BURST * bBaseActionPoints + (AP_MAXIMUM - 1)) / AP_MAXIMUM);
-		}
+		return std::max(3, (AP_BURST * bBaseActionPoints + (AP_MAXIMUM - 1)) / AP_MAXIMUM);
 	}
+}
+
+
+UINT8 CalcAPsToBurst(SOLDIERTYPE const& s, OBJECTTYPE const& o, WeaponModes const mode)
+{
+	return CalcAPsToBurst(CalcActionPoints(&s), CalcAimSkill(s, o.usItem), o, mode);
 }
 
 
@@ -874,7 +900,7 @@ UINT8 CalcTotalAPsToAttack(SOLDIERTYPE * const s, GridNo const grid_no, bool con
 		case IC_TENTACLES:
 		case IC_THROWING_KNIFE:
 			return MinAPsToAttack(s, grid_no, add_turning_cost) +
-				(s->bDoBurst ? CalcAPsToBurst(CalcActionPoints(s), in_hand) :
+				(s->bDoBurst ? CalcAPsToBurst(*s, in_hand, GetActiveBurstMode(*s)) :
 				// WM_ATTACHED is already handled by MinAPsToAttack and the
 				// aim time cannot be refined further.
 				s->bWeaponMode == WM_ATTACHED ? 0 : aim_time);
@@ -1003,6 +1029,14 @@ static INT8 CalcAimSkill(SOLDIERTYPE const& s, UINT16 const weapon)
 
 UINT8 BaseAPsToShootOrStab(INT8 const bAPs, INT8 const bAimSkill, OBJECTTYPE const& o)
 {
+	return BaseAPsToShootOrStab(bAPs, bAimSkill, o, GCM->getWeapon(o.usItem)->ubShotsPer4Turns);
+}
+
+
+// The original formula, only the shots per 4 turns are passed in (a burst mode
+// can have its own, see CalcAPsToBurst()).
+UINT8 BaseAPsToShootOrStab(INT8 const bAPs, INT8 const bAimSkill, OBJECTTYPE const& o, UINT8 const ubShotsPer4Turns)
+{
 	INT16 sTop, sBottom;
 
 	// Calculate default top & bottom of the magic "aiming" formula!
@@ -1014,7 +1048,7 @@ UINT8 BaseAPsToShootOrStab(INT8 const bAPs, INT8 const bAimSkill, OBJECTTYPE con
 	// Shots per turn rating is for max. aimSkill(100), drops down to 1/2 at = 0
 	// DIVIDE BY 4 AT THE END HERE BECAUSE THE SHOTS PER TURN IS NOW QUADRUPLED!
 	// NB need to define shots per turn for ALL Weapons then.
-	sBottom = ( ( 50 + (bAimSkill / 2) ) * GCM->getWeapon(o.usItem )->ubShotsPer4Turns ) / 4;
+	sBottom = ( ( 50 + (bAimSkill / 2) ) * ubShotsPer4Turns ) / 4;
 
 	INT8 const bAttachPos = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE);
 	if ( bAttachPos != -1 )

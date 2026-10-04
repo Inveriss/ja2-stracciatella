@@ -6,6 +6,7 @@
 #include "Sound_Control.h"
 
 struct CalibreModel;
+enum WeaponModes : INT8; // Soldier_Control.h
 
 
 #define MAXCHANCETOHIT					(gamepolicy(chance_to_hit_maximum))
@@ -153,6 +154,10 @@ extern UINT32 CalcChanceToStab(SOLDIERTYPE * pAttacker,SOLDIERTYPE *pDefender, U
 void ReloadWeapon(SOLDIERTYPE*, UINT8 inv_pos);
 bool IsGunBurstCapable(SOLDIERTYPE const*, UINT8 inv_pos);
 void EnsureConsistentWeaponMode(SOLDIERTYPE*);
+void SetWeaponMode(SOLDIERTYPE*, WeaponModes);
+bool IsBurstMode(WeaponModes);
+WeaponModes GetActiveBurstMode(SOLDIERTYPE const&);
+UINT8 CalcBurstLength(SOLDIERTYPE const&, OBJECTTYPE const&);
 bool HasLauncher(SOLDIERTYPE const*);
 extern INT32 CalcBodyImpactReduction( UINT8 ubAmmoType, UINT8 ubHitLocation );
 INT32 TotalArmourProtection(SOLDIERTYPE&, UINT8 ubHitLocation, INT32 iImpact, UINT8 ubAmmoType);
@@ -175,7 +180,7 @@ void DishoutQueenSwipeDamage( SOLDIERTYPE *pQueenSoldier );
 INT32 HTHImpact(const SOLDIERTYPE* pSoldier, const SOLDIERTYPE* pTarget, INT32 iHitBy, BOOLEAN fBladeAttack);
 
 UINT16 GunRange(OBJECTTYPE const&);
-UINT8  GunShotsPerBurst(OBJECTTYPE const&);
+UINT8  GunShotsPerBurst(OBJECTTYPE const&, WeaponModes);
 UINT8  GunAttackVolume(OBJECTTYPE const&);
 bool   HasLaserScope(OBJECTTYPE const&);
 INT8   GunLaserScopeBonus(OBJECTTYPE const&);

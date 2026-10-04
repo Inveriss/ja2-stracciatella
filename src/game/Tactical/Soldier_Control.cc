@@ -2155,7 +2155,8 @@ void EVENT_FireSoldierWeapon( SOLDIERTYPE *pSoldier, INT16 sTargetGridNo )
 		{
 			// Set the TOTAL number of bullets to be fired
 			// Can't shoot more bullets than we have in our magazine!
-			pSoldier->bBulletsLeft = std::min(GunShotsPerBurst(pSoldier->inv[ pSoldier->ubAttackingHand]), pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunShotsLeft);
+			pSoldier->ubBurstLength = CalcBurstLength(*pSoldier, pSoldier->inv[ pSoldier->ubAttackingHand ]);
+			pSoldier->bBulletsLeft = std::min(pSoldier->ubBurstLength, pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunShotsLeft);
 		}
 		else if ( IsValidSecondHandShot( pSoldier ) )
 		{
@@ -7493,7 +7494,7 @@ void ReLoadSoldierAnimationDueToHandItemChange(SOLDIERTYPE* const s, UINT16 cons
 
 	// Shutoff burst....
 	// ( we could be on, then change gun that does not have burst )
-	if (GCM->getItem(usNewItem)->isWeapon() && GCM->getWeapon(usNewItem)->ubShotsPerBurst == 0)
+	if (GCM->getItem(usNewItem)->isWeapon() && !GCM->getWeapon(usNewItem)->canBurst())
 	{
 		s->bDoBurst    = FALSE;
 		s->bWeaponMode = WM_NORMAL;

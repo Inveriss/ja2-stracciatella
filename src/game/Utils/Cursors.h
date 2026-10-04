@@ -251,6 +251,7 @@ void SetHitLocationText(const ST::string& str);
 void SetIntTileLocationText(const ST::string& str);
 void SetIntTileLocation2Text(const ST::string& str);
 void SetChanceToHitText(const ST::string& str);
+void SetBurstModeText(const ST::string& str);
 
 const ST::string& GetIntTileLocationText(void);
 const ST::string& GetIntTileLocation2Text(void);

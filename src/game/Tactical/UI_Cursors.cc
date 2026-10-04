@@ -139,6 +139,29 @@ UICursorID GetProperItemCursor(SOLDIERTYPE* const s, GridNo const map_pos, BOOLE
 			{
 				guiPendingOverrideEvent = A_CHANGE_TO_CONFIM_ACTION;
 			}
+
+			// Label the burst cursor with the burst mode
+			switch (cursor)
+			{
+				case ACTION_TARGETBURST_UICURSOR:
+				case ACTION_TARGETREDBURST_UICURSOR:
+				case ACTION_TARGETCONFIRMBURST_UICURSOR:
+				case ACTION_NOCHANCE_BURST_UICURSOR:
+				case ACTION_FLASH_BURST_UICURSOR:
+				{
+					UINT8 str;
+					switch (GetActiveBurstMode(*s))
+					{
+						case WM_BURST_SHORT: str = BURST_MODE_SHORT_STR; break;
+						case WM_BURST_FULL:  str = BURST_MODE_FULL_STR;  break;
+						default:             str = BURST_MODE_LONG_STR;  break;
+					}
+					SetBurstModeText(TacticalStr[str]);
+					break;
+				}
+
+				default: break;
+			}
 			break;
 
 		case TOSSCURS:
@@ -559,7 +582,6 @@ static void DetermineCursorBodyLocation(SOLDIERTYPE* const s, BOOLEAN const disp
 	}
 
 	if (!display)    return;
-	if (s->bDoBurst) return;
 
 	SOLDIERTYPE* const tgt = gUIFullTarget;
 	if (!tgt) return;

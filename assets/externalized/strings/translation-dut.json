@@ -455,7 +455,10 @@
         "Slot vernielt",
         "Iemand anders probeert deze deur te gebruiken.",
         "Gezondheid: %d/%d\nBrandstof: %d/%d",
-        "%s kan %s niet zien."
+        "%s kan %s niet zien.",
+        "Short",
+        "Long",
+        "Full"
     ],
     "TeamTurnString": [
         "Beurt speler",

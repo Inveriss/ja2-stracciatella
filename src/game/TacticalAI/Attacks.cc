@@ -101,7 +101,7 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 
 	pSoldier->usAttackingWeapon = pSoldier->inv[HANDPOS].usItem;
 
-	UINT8 const ubBurstAPs = CalcAPsToBurst(CalcActionPoints(pSoldier), pSoldier->inv[HANDPOS]);
+	UINT8 const ubBurstAPs = CalcAPsToBurst(*pSoldier, pSoldier->inv[HANDPOS], GetActiveBurstMode(*pSoldier));
 
 	InitAttackType(pBestShot);      // set all structure fields to defaults
 
