@@ -1239,6 +1239,8 @@ static ST::string gzIntTileLocation;
 static ST::string gzIntTileLocation2;
 static ST::string gzHitChance;
 static ST::string gzBurstMode;
+// height of the burst cursor image (cur_bst.sti, cur_rbst.sti, burstblk.sti)
+static INT16 const BURST_CURSOR_IMAGE_HEIGHT = 21;
 
 
 void SetHitLocationText(const ST::string& str)
@@ -1291,6 +1293,18 @@ static void DrawMouseText(void)
 
 	gsMouseSizeYModifier = 0;
 
+	// With the burst cursor (it has the burst mode label) the hit location goes
+	// one pixel below the burst image, centred on the cursor, and the chance to
+	// hit below it.
+	bool  const burst_cursor     = !gzBurstMode.empty();
+	INT16 const burst_location_y = static_cast<INT16>(gsCurMouseTopMargin + gsCurMouseHeight / 2 + BURST_CURSOR_IMAGE_HEIGHT / 2 + 2);
+	// Make the rows below the cursor image visible down to y (exclusive)
+	auto const showDownTo = [](int const y)
+	{
+		INT16 const below = static_cast<INT16>(y - (gsCurMouseTopMargin + gsCurMouseHeight));
+		if (below > gsMouseSizeYModifier) gsMouseSizeYModifier = below;
+	};
+
 	if (!gzLocation.empty())
 	{
 		// Set dest for gprintf to be different
@@ -1298,7 +1312,15 @@ static void DrawMouseText(void)
 
 		FindFontCenterCoordinates(0, gsCurMouseTopMargin, gsCurMouseWidth, gsCurMouseHeight, gzLocation, TINYFONT1, &sX, &sY);
 		SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
-		MPrint(sX, sY + 12, gzLocation); // Below cursor
+		if (burst_cursor)
+		{
+			MPrint(sX, burst_location_y, gzLocation);
+			showDownTo(burst_location_y + GetFontHeight(TINYFONT1));
+		}
+		else
+		{
+			MPrint(sX, sY + 12, gzLocation); // Below cursor
+		}
 		// reset
 		SetFontDestBuffer(FRAME_BUFFER);
 	}
@@ -1335,6 +1357,11 @@ static void DrawMouseText(void)
 		SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
 		if(gzLocation.empty())
 			MPrint(sX, sY + 12, gzHitChance); // Below cursor
+		else if (burst_cursor)
+		{
+			MPrint(sX, burst_location_y + 8, gzHitChance); // Below hit location text
+			showDownTo(burst_location_y + 8 + GetFontHeight(TINYFONT1));
+		}
 		else
 		{
 			MPrint(sX, sY + 20, gzHitChance); // Below hit location text

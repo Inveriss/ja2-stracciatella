@@ -24,6 +24,11 @@ When the burst cursor is shown, a label above it names the mode: `Short`,
 language for now). The cursor graphics and the panel button icon are the same
 for all three burst modes.
 
+Aiming at an enemy, the burst cursor also names the body part under it (head,
+torso, legs) one pixel below the burst image, with the chance to hit below
+that, like the single shot cursor. Bursts always aimed at that body part, only
+the label was missing.
+
 ## Burst length
 
 | Mode  | JSON field             | Default          |

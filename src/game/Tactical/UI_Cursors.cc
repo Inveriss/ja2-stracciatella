@@ -582,7 +582,6 @@ static void DetermineCursorBodyLocation(SOLDIERTYPE* const s, BOOLEAN const disp
 	}
 
 	if (!display)    return;
-	if (s->bDoBurst) return;
 
 	SOLDIERTYPE* const tgt = gUIFullTarget;
 	if (!tgt) return;
