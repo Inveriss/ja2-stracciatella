@@ -267,6 +267,12 @@ static SGPFont GetCharInfoFont()
 #define CHARINFO_PORTRAIT_Y         (TOWN_INFO_Y + 5)
 #define CHARINFO_PORTRAIT_WIDTH     106
 #define CHARINFO_PORTRAIT_HEIGHT    122
+// ... and two 21x21 windows below-right of the bars for the previous/next
+// merc arrows (CreateDestroyMapCharacterScrollButtons()).
+#define CHARINFO_ARROW_X            (TOWN_INFO_X + 168)
+#define CHARINFO_ARROW_UP_Y         (TOWN_INFO_Y + 87)
+#define CHARINFO_ARROW_DOWN_Y       (TOWN_INFO_Y + 109)
+#define CHARINFO_ARROW_SIZE         21
 
 // Click region of the face -- on the 1366x768 interface the portrait window.
 #define PLAYER_INFO_FACE_START_X    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_X : MAP_SCREEN_X + 9)
@@ -5587,13 +5593,18 @@ static void RenderCharacterInfoBackground(void)
 
 	RenderMapMiddleBackground(0, 107);
 
-	// The 1366x768 panel's bar windows are see-through: black under them, so
-	// the bars (drawn over the saved background every frame) erase to black.
+	// The 1366x768 panel's bar and arrow windows are see-through: black under
+	// them, so the bars (drawn over the saved background every frame) erase
+	// to black, and so do hidden arrows.
 	if (g_ui.isExtraWideStrategicScreen())
 	{
 		for (INT16 const x : { BAR_TALL_LIFE_X, BAR_TALL_BREATH_X, BAR_TALL_MORALE_X })
 		{
 			ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, BAR_TALL_TOP_Y, x + BAR_TALL_WIDTH, BAR_TALL_TOP_Y + BAR_TALL_HEIGHT, 0);
+		}
+		for (INT16 const y : { CHARINFO_ARROW_UP_Y, CHARINFO_ARROW_DOWN_Y })
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, CHARINFO_ARROW_X, y, CHARINFO_ARROW_X + CHARINFO_ARROW_SIZE, y + CHARINFO_ARROW_SIZE, 0);
 		}
 	}
 
@@ -6974,8 +6985,20 @@ static void CreateDestroyMapCharacterScrollButtons(void)
 	{
 		const INT16 prio = MSYS_PRIORITY_HIGHEST - 5;
 
-		giCharInfoButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 11, 4, -1, 6, -1, MAP_SCREEN_X + 67, MAP_SCREEN_Y + 69, prio, PrevInventoryMapBtnCallback);
-		giCharInfoButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 12, 5, -1, 7, -1, MAP_SCREEN_X + 67, MAP_SCREEN_Y + 87, prio, NextInventoryMapBtnCallback);
+		// 1366x768: the panel's two 21x21 arrow windows, with the arrows of
+		// mapinv_done_buttons.sti (4/5 up ready/pressed, 6/7 down) -- the
+		// old arrows if that file has no such sub-images.
+		if (g_ui.isExtraWideStrategicScreen() &&
+			GetVObject(INTERFACEDIR "/mapinv_done_buttons.sti")->SubregionCount() >= 8)
+		{
+			giCharInfoButton[0] = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", 4, 5, CHARINFO_ARROW_X, CHARINFO_ARROW_UP_Y,   prio, PrevInventoryMapBtnCallback);
+			giCharInfoButton[1] = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", 6, 7, CHARINFO_ARROW_X, CHARINFO_ARROW_DOWN_Y, prio, NextInventoryMapBtnCallback);
+		}
+		else
+		{
+			giCharInfoButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 11, 4, -1, 6, -1, MAP_SCREEN_X + 67, MAP_SCREEN_Y + 69, prio, PrevInventoryMapBtnCallback);
+			giCharInfoButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 12, 5, -1, 7, -1, MAP_SCREEN_X + 67, MAP_SCREEN_Y + 87, prio, NextInventoryMapBtnCallback);
+		}
 
 		giCharInfoButton[0]->SetFastHelpText(pMapScreenPrevNextCharButtonHelpText[0]);
 		giCharInfoButton[1]->SetFastHelpText(pMapScreenPrevNextCharButtonHelpText[1]);
