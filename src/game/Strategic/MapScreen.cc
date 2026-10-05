@@ -345,23 +345,41 @@ static SGPFont GetCharInfoFont()
 #define CHAR_NAME_Y (MAP_SCREEN_Y + 2 + 3)
 #define CHAR_NAME_WID (MAP_SCREEN_X + 164 - CHAR_NAME_X)
 #define CHAR_NAME_HEI (MAP_SCREEN_Y + 11 - CHAR_NAME_Y)
-#define CHAR_TIME_REMAINING_X (MAP_SCREEN_X + 207)
-#define CHAR_TIME_REMAINING_Y (MAP_SCREEN_Y + 65)
-#define CHAR_TIME_REMAINING_WID (MAP_SCREEN_X + 258 - CHAR_TIME_REMAINING_X)
-#define CHAR_TIME_REMAINING_HEI GetFontHeight(CHAR_FONT)
+// 1366x768 interface (isExtraWideStrategicScreen()): the two tables at the
+// right end of the character info panel -- Assignment (x 322-396) and
+// Contract (x 405-479): a 14 px wooden header at y 5 and three black value
+// rows (y 27/47/67, 19 px). The contract rows start with a 12x12 icon
+// square (CHAR_ICON_X/CONTRACT_Y, Map_Screen_Interface.h); their text goes
+// right of it. The third assignment row stays empty.
+#define CHARINFO_TABLE_HEADER_Y         (TOWN_INFO_Y + 5)
+#define CHARINFO_TABLE_HEADER_HEIGHT    14
+#define CHARINFO_TABLE_ROW_Y(row)       (TOWN_INFO_Y + 27 + (row) * 20)
+#define CHARINFO_TABLE_ROW_HEIGHT       19
+#define CHARINFO_ASSIGN_HEADER_X        (TOWN_INFO_X + 322)
+#define CHARINFO_CONTRACT_HEADER_X      (TOWN_INFO_X + 405)
+#define CHARINFO_TABLE_HEADER_WIDTH     75
+#define CHARINFO_ASSIGN_BOX_X           (TOWN_INFO_X + 324)
+#define CHARINFO_ASSIGN_BOX_WIDTH       73
+#define CHARINFO_CONTRACT_TEXT_X        (TOWN_INFO_X + 423)
+#define CHARINFO_CONTRACT_TEXT_WIDTH    56
+
+#define CHAR_TIME_REMAINING_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_CONTRACT_TEXT_X : MAP_SCREEN_X + 207)
+#define CHAR_TIME_REMAINING_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_Y(0) : MAP_SCREEN_Y + 65)
+#define CHAR_TIME_REMAINING_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_CONTRACT_TEXT_WIDTH : MAP_SCREEN_X + 258 - CHAR_TIME_REMAINING_X)
+#define CHAR_TIME_REMAINING_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_HEIGHT : GetFontHeight(CHAR_FONT))
 #define CHAR_SALARY_X					CHAR_TIME_REMAINING_X
-#define CHAR_SALARY_Y					(MAP_SCREEN_Y + 79)
-#define CHAR_SALARY_WID					CHAR_TIME_REMAINING_WID - 8		// for right justify
+#define CHAR_SALARY_Y					(g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_Y(1) : MAP_SCREEN_Y + 79)
+#define CHAR_SALARY_WID					(CHAR_TIME_REMAINING_WID - 8)		// for right justify
 #define CHAR_SALARY_HEI					CHAR_TIME_REMAINING_HEI
 #define CHAR_MEDICAL_X					CHAR_TIME_REMAINING_X
-#define CHAR_MEDICAL_Y					(MAP_SCREEN_Y + 93)
-#define CHAR_MEDICAL_WID				CHAR_TIME_REMAINING_WID - 8		// for right justify
+#define CHAR_MEDICAL_Y					(g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_Y(2) : MAP_SCREEN_Y + 93)
+#define CHAR_MEDICAL_WID				(CHAR_TIME_REMAINING_WID - 8)		// for right justify
 #define CHAR_MEDICAL_HEI				CHAR_TIME_REMAINING_HEI
-#define CHAR_ASSIGN_X (MAP_SCREEN_X + 182)
-#define CHAR_ASSIGN1_Y (MAP_SCREEN_Y + 18)
-#define CHAR_ASSIGN2_Y (MAP_SCREEN_Y + 31)
-#define CHAR_ASSIGN_WID 257 - 178
-#define CHAR_ASSIGN_HEI 39 - 29
+#define CHAR_ASSIGN_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_ASSIGN_BOX_X : MAP_SCREEN_X + 182)
+#define CHAR_ASSIGN1_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_Y(0) : MAP_SCREEN_Y + 18)
+#define CHAR_ASSIGN2_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_Y(1) : MAP_SCREEN_Y + 31)
+#define CHAR_ASSIGN_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_ASSIGN_BOX_WIDTH : 257 - 178)
+#define CHAR_ASSIGN_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_HEIGHT : 39 - 29)
 // 1366x768 interface (isExtraWideStrategicScreen()): right of the arrows the
 // character info panel has a label area (x 190-252) and two black value
 // boxes, one row each for health and morale.
@@ -1327,13 +1345,27 @@ static void DrawCharacterInfo(SOLDIERTYPE const& s)
 		daily_cost = p.sSalary;
 	}
 	buf = SPrintMoney(daily_cost);
-	DrawStringRight(buf, CHAR_SALARY_X, CHAR_SALARY_Y, CHAR_SALARY_WID, CHAR_SALARY_HEI, CHAR_FONT);
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		DrawStringCentered(buf, CHAR_SALARY_X, CHAR_SALARY_Y, CHAR_TIME_REMAINING_WID, CHAR_SALARY_HEI, CHAR_FONT);
+	}
+	else
+	{
+		DrawStringRight(buf, CHAR_SALARY_X, CHAR_SALARY_Y, CHAR_SALARY_WID, CHAR_SALARY_HEI, CHAR_FONT);
+	}
 
 	// Medical deposit
 	if (p.sMedicalDepositAmount > 0)
 	{
 		buf = SPrintMoney(p.sMedicalDepositAmount);
-		DrawStringRight(buf, CHAR_MEDICAL_X, CHAR_MEDICAL_Y, CHAR_MEDICAL_WID, CHAR_MEDICAL_HEI, CHAR_FONT);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawStringCentered(buf, CHAR_MEDICAL_X, CHAR_MEDICAL_Y, CHAR_TIME_REMAINING_WID, CHAR_MEDICAL_HEI, CHAR_FONT);
+		}
+		else
+		{
+			DrawStringRight(buf, CHAR_MEDICAL_X, CHAR_MEDICAL_Y, CHAR_MEDICAL_WID, CHAR_MEDICAL_HEI, CHAR_FONT);
+		}
 	}
 
 	ST::string morale =
@@ -1985,10 +2017,19 @@ ScreenID MapScreenHandle(void)
 		// init the timer menus
 		InitTimersForMoveMenuMouseRegions( );
 
-		giMapContractButton = QuickCreateButtonImg(INTERFACEDIR "/contractbutton.sti", 0, 1, CONTRACT_X + 5, CONTRACT_Y - 1, MSYS_PRIORITY_HIGHEST - 5, ContractButtonCallback);
-		giMapContractButton->SpecifyGeneralTextAttributes(pContractButtonString, CHAR_FONT, CHAR_TEXT_FONT_COLOR, FONT_BLACK);
-		giMapContractButton->SpecifyTextSubOffsets(0, 0, TRUE);
-		giMapContractButton->SpecifyHilitedTextColors(FONT_MCOLOR_WHITE, DEFAULT_SHADOW);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			// 1366x768: an invisible hot spot over the Contract table header,
+			// whose text RenderAttributeStringsForUpperLeftHandCorner() draws
+			giMapContractButton = CreateHotSpot(CHARINFO_CONTRACT_HEADER_X, CHARINFO_TABLE_HEADER_Y, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, MSYS_PRIORITY_HIGHEST - 5, ContractButtonCallback);
+		}
+		else
+		{
+			giMapContractButton = QuickCreateButtonImg(INTERFACEDIR "/contractbutton.sti", 0, 1, CONTRACT_X + 5, CONTRACT_Y - 1, MSYS_PRIORITY_HIGHEST - 5, ContractButtonCallback);
+			giMapContractButton->SpecifyGeneralTextAttributes(pContractButtonString, CHAR_FONT, CHAR_TEXT_FONT_COLOR, FONT_BLACK);
+			giMapContractButton->SpecifyTextSubOffsets(0, 0, TRUE);
+			giMapContractButton->SpecifyHilitedTextColors(FONT_MCOLOR_WHITE, DEFAULT_SHADOW);
+		}
 		giMapContractButton->SetFastHelpText(pMapScreenMouseRegionHelpText[3]);
 
 		CreateMouseRegionForPauseOfClock();
@@ -4440,7 +4481,21 @@ static void RenderAttributeStringsForUpperLeftHandCorner(SGPVSurface* const uiBu
 	SetFontDestBuffer(uiBufferToRenderTo);
 
 	// assignment strings
-	DrawString(pUpperLeftMapScreenStrings[0], MAP_SCREEN_X + 220 - StringPixLength(pUpperLeftMapScreenStrings[0], CHAR_FONT) / 2, MAP_SCREEN_Y + 6, CHAR_FONT);
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		// 1366x768: the Assignment and Contract table headers. The Contract
+		// one is also the contract button (an invisible hot spot over it, see
+		// giMapContractButton), so it greys out with that button.
+		DrawStringCentered(pUpperLeftMapScreenStrings[0], CHARINFO_ASSIGN_HEADER_X, CHARINFO_TABLE_HEADER_Y, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
+		bool const contract_enabled = giMapContractButton && giMapContractButton->Enabled();
+		SetFontForeground(contract_enabled ? CHAR_TEXT_FONT_COLOR : FONT_GRAY4);
+		DrawStringCentered(pContractButtonString, CHARINFO_CONTRACT_HEADER_X, CHARINFO_TABLE_HEADER_Y, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
+		SetFontForeground(CHAR_TITLE_FONT_COLOR);
+	}
+	else
+	{
+		DrawString(pUpperLeftMapScreenStrings[0], MAP_SCREEN_X + 220 - StringPixLength(pUpperLeftMapScreenStrings[0], CHAR_FONT) / 2, MAP_SCREEN_Y + 6, CHAR_FONT);
+	}
 
 	// vehicles and robot don't have attributes, contracts, or morale
 	const SOLDIERTYPE* const pSoldier = GetSelectedInfoChar();

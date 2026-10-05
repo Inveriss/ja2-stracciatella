@@ -1332,7 +1332,14 @@ void UpdateCharRegionHelpText(void)
 	gMapStatusBarsRegion.SetFastHelpText(status);
 
 	// update contract button help text
-	EnableButton(giMapContractButton, s && CanExtendContractForSoldier(s));
+	bool const can_extend = s && CanExtendContractForSoldier(s);
+	// 1366x768: the button is an invisible hot spot over the Contract header,
+	// whose text (drawn with the panel) greys out with it -- repaint on change
+	if (g_ui.isExtraWideStrategicScreen() && giMapContractButton && giMapContractButton->Enabled() != can_extend)
+	{
+		fCharacterInfoPanelDirty = TRUE;
+	}
+	EnableButton(giMapContractButton, can_extend);
 }
 
 

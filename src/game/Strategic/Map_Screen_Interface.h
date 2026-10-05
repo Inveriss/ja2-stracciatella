@@ -25,12 +25,14 @@
 #define BAR_TALL_WIDTH    6
 #define BAR_TALL_HEIGHT   122
 
-// merc icon position
-#define CHAR_ICON_CONTRACT_Y (MAP_SCREEN_Y + 64)
-#define CHAR_ICON_X (MAP_SCREEN_X + 187)
+// merc icon position -- on the 1366x768 interface (charinfo_1366x768 at the
+// canvas' 0,0) centred in the contract table's three 12x12 icon squares
+// (x 410, y 29/49/69)
+#define CHAR_ICON_CONTRACT_Y (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_Y + 30 : MAP_SCREEN_Y + 64)
+#define CHAR_ICON_X (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_X + 411 : MAP_SCREEN_X + 187)
 #define CHAR_ICON_WIDTH 10
 #define CHAR_ICON_HEIGHT 10
-#define CHAR_ICON_SPACING 13
+#define CHAR_ICON_SPACING (g_ui.isExtraWideStrategicScreen() ? 20 : 13)
 
 // max number of characters
 //Character List Length
