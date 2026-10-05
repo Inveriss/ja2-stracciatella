@@ -1264,6 +1264,14 @@ void CreateMapStatusBarsRegion( void )
 {
 
 	// create the status region over the bSelectedCharacter info region, to get quick rundown of merc's status
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		// over the three tall bars of the 1366x768 interface
+		MSYS_DefineRegion(&gMapStatusBarsRegion, BAR_TALL_LIFE_X, BAR_TALL_TOP_Y,
+			BAR_TALL_MORALE_X + BAR_TALL_WIDTH, BAR_TALL_TOP_Y + BAR_TALL_HEIGHT, MSYS_PRIORITY_HIGH + 5,
+			MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+		return;
+	}
 	MSYS_DefineRegion( &gMapStatusBarsRegion, BAR_INFO_X - 3, BAR_INFO_Y - 42,(INT16)( BAR_INFO_X + 17), (INT16)(BAR_INFO_Y ), MSYS_PRIORITY_HIGH + 5,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK );
 }

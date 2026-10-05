@@ -14,6 +14,17 @@
 #define BAR_INFO_X (MAP_SCREEN_X + 66)
 #define BAR_INFO_Y (MAP_SCREEN_Y + 61)
 
+// 1366x768 interface (UILayout::isExtraWideStrategicScreen()): the character
+// info panel (charinfo_1366x768, drawn at the canvas' 0,0) has three 6x122
+// windows right of the portrait for the life, breath and morale bars --
+// see DrawSoldierUIBarsTall() (Interface_Utils.h).
+#define BAR_TALL_LIFE_X   (MAP_SCREEN_X + 122)
+#define BAR_TALL_BREATH_X (MAP_SCREEN_X + 139)
+#define BAR_TALL_MORALE_X (MAP_SCREEN_X + 156)
+#define BAR_TALL_TOP_Y    (MAP_SCREEN_Y + 5)
+#define BAR_TALL_WIDTH    6
+#define BAR_TALL_HEIGHT   122
+
 // merc icon position
 #define CHAR_ICON_CONTRACT_Y (MAP_SCREEN_Y + 64)
 #define CHAR_ICON_X (MAP_SCREEN_X + 187)

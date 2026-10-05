@@ -5587,6 +5587,16 @@ static void RenderCharacterInfoBackground(void)
 
 	RenderMapMiddleBackground(0, 107);
 
+	// The 1366x768 panel's bar windows are see-through: black under them, so
+	// the bars (drawn over the saved background every frame) erase to black.
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		for (INT16 const x : { BAR_TALL_LIFE_X, BAR_TALL_BREATH_X, BAR_TALL_MORALE_X })
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, BAR_TALL_TOP_Y, x + BAR_TALL_WIDTH, BAR_TALL_TOP_Y + BAR_TALL_HEIGHT, 0);
+		}
+	}
+
 	// the upleft hand corner character info panel
 	BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
 
@@ -6362,7 +6372,14 @@ static void HandleCharBarRender(void)
 			s->bAssignment != ASSIGNMENT_DEAD &&
 			s->bAssignment != ASSIGNMENT_POW)
 	{
-		DrawSoldierUIBars(*s, BAR_INFO_X, BAR_INFO_Y, TRUE, FRAME_BUFFER);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawSoldierUIBarsTall(*s, BAR_TALL_LIFE_X, BAR_TALL_BREATH_X, BAR_TALL_MORALE_X, BAR_TALL_TOP_Y, BAR_TALL_HEIGHT, FRAME_BUFFER);
+		}
+		else
+		{
+			DrawSoldierUIBars(*s, BAR_INFO_X, BAR_INFO_Y, TRUE, FRAME_BUFFER);
+		}
 	}
 
 	UpdateCharRegionHelpText();
