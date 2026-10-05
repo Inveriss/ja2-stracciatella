@@ -27,12 +27,12 @@
 
 // merc icon position -- on the 1366x768 interface (charinfo_1366x768 at the
 // canvas' 0,0) centred in the contract table's three 12x12 icon squares
-// (x 410, y 29/49/69)
-#define CHAR_ICON_CONTRACT_Y (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_Y + 30 : MAP_SCREEN_Y + 64)
-#define CHAR_ICON_X (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_X + 411 : MAP_SCREEN_X + 187)
+// (x 328, y 105/128/151)
+#define CHAR_ICON_CONTRACT_Y (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_Y + 106 : MAP_SCREEN_Y + 64)
+#define CHAR_ICON_X (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_X + 329 : MAP_SCREEN_X + 187)
 #define CHAR_ICON_WIDTH 10
 #define CHAR_ICON_HEIGHT 10
-#define CHAR_ICON_SPACING (g_ui.isExtraWideStrategicScreen() ? 20 : 13)
+#define CHAR_ICON_SPACING (g_ui.isExtraWideStrategicScreen() ? 23 : 13)
 
 // max number of characters
 //Character List Length
@@ -43,11 +43,12 @@
 
 // characterlist regions
 // The team list (newgoldpiece3_*) starts at MAP_SCREEN_Y + 107; on the
-// 1366x768 interface (UILayout::isExtraWideStrategicScreen()) at + 133,
-// right below the 132 px tall character info panel (charinfo_1366x768) --
+// 1366x768 interface (UILayout::isExtraWideStrategicScreen()) at + 171,
+// right below the 170 px tall character info panel (charinfo_1366x768) --
 // everything drawn on it (sort buttons, rows, highlights, regions) moves
-// down by TEAM_LIST_SHIFT_Y with it.
-#define TEAM_LIST_SHIFT_Y     (g_ui.isExtraWideStrategicScreen() ? 26 : 0)
+// down by TEAM_LIST_SHIFT_Y with it. From there 476 px are left above the
+// bottom strip.
+#define TEAM_LIST_SHIFT_Y     (g_ui.isExtraWideStrategicScreen() ? 64 : 0)
 #define TEAM_LIST_Y           (MAP_SCREEN_Y + 107 + TEAM_LIST_SHIFT_Y)
 #define Y_START               (MAP_SCREEN_Y + 146 + TEAM_LIST_SHIFT_Y)
 #define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107)
