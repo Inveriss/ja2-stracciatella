@@ -337,14 +337,26 @@ static SGPFont GetCharInfoFont()
 #define STAT_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_WIDTH : 15)
 #define STAT_HEI GetFontHeight(CHAR_FONT)
 
-#define PIC_NAME_X (MAP_SCREEN_X + 8)
-#define PIC_NAME_Y (MAP_SCREEN_Y + 66 + 3)
-#define PIC_NAME_WID (MAP_SCREEN_X + 60 - PIC_NAME_X)
-#define PIC_NAME_HEI (MAP_SCREEN_Y + 75 - PIC_NAME_Y)
-#define CHAR_NAME_X (MAP_SCREEN_X + 14)
-#define CHAR_NAME_Y (MAP_SCREEN_Y + 2 + 3)
-#define CHAR_NAME_WID (MAP_SCREEN_X + 164 - CHAR_NAME_X)
-#define CHAR_NAME_HEI (MAP_SCREEN_Y + 11 - CHAR_NAME_Y)
+// 1366x768 interface (isExtraWideStrategicScreen()): the full name goes in
+// the upper of the two long black boxes in the character info panel's
+// bottom right corner, the nickname (empty if there is none) in the lower.
+#define CHARINFO_NAME_BOX_X         (TOWN_INFO_X + 323)
+#define CHARINFO_NAME_BOX_Y         (TOWN_INFO_Y + 93)
+#define CHARINFO_NAME_BOX_WIDTH     158
+#define CHARINFO_NAME_BOX_HEIGHT    16
+#define CHARINFO_NICK_BOX_X         (TOWN_INFO_X + 324)
+#define CHARINFO_NICK_BOX_Y         (TOWN_INFO_Y + 112)
+#define CHARINFO_NICK_BOX_WIDTH     156
+#define CHARINFO_NICK_BOX_HEIGHT    17
+
+#define PIC_NAME_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NICK_BOX_X : MAP_SCREEN_X + 8)
+#define PIC_NAME_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NICK_BOX_Y : MAP_SCREEN_Y + 66 + 3)
+#define PIC_NAME_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NICK_BOX_WIDTH : MAP_SCREEN_X + 60 - PIC_NAME_X)
+#define PIC_NAME_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NICK_BOX_HEIGHT : MAP_SCREEN_Y + 75 - PIC_NAME_Y)
+#define CHAR_NAME_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NAME_BOX_X : MAP_SCREEN_X + 14)
+#define CHAR_NAME_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NAME_BOX_Y : MAP_SCREEN_Y + 2 + 3)
+#define CHAR_NAME_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NAME_BOX_WIDTH : MAP_SCREEN_X + 164 - CHAR_NAME_X)
+#define CHAR_NAME_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NAME_BOX_HEIGHT : MAP_SCREEN_Y + 11 - CHAR_NAME_Y)
 // 1366x768 interface (isExtraWideStrategicScreen()): the two tables at the
 // right end of the character info panel -- Assignment (x 322-396) and
 // Contract (x 405-479): a 14 px wooden header at y 5 and three black value
@@ -1214,8 +1226,8 @@ static void DrawCharacterInfo(SOLDIERTYPE const& s)
 	// Draw particular info about a character that are neither attributes nor skills
 	SetFontAttributes(CHAR_FONT, CHAR_TEXT_FONT_COLOR);
 
-	ST::string nickname; // Nickname (beneath picture)
-	ST::string name;     // Full name (top box)
+	ST::string nickname; // Nickname (beneath picture; 1366x768: lower long box)
+	ST::string name;     // Full name (top box; 1366x768: upper long box)
 	if (s.uiStatusFlags & SOLDIER_VEHICLE)
 	{
 		VEHICLETYPE const& v = GetVehicle(s.bVehicleID);
