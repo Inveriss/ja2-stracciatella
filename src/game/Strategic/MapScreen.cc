@@ -33,6 +33,7 @@
 #include "ItemModel.h"
 #include "Items.h"
 #include "JAScreens.h"
+#include "Laptop.h"
 #include "LaptopSave.h"
 #include "Line.h"
 #include "Logger.h"
@@ -43,6 +44,7 @@
 #include "Map_Screen_Interface_Map.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface_TownMine_Info.h"
+#include "MercPortrait.h"
 #include "Meanwhile.h"
 #include "Merc_Contract.h"
 #include "Merc_Hiring.h"
@@ -255,10 +257,20 @@ static SGPFont GetCharInfoFont()
 // (black) shadow, every other value is drawn in this colour.
 #define MAP_INV_STATS_FONT_COLOR_BIG   126
 
-#define PLAYER_INFO_FACE_START_X    (MAP_SCREEN_X + 9)
-#define PLAYER_INFO_FACE_START_Y    (MAP_SCREEN_Y + 17)
-#define PLAYER_INFO_FACE_END_X			(MAP_SCREEN_X + 60)
-#define PLAYER_INFO_FACE_END_Y			(MAP_SCREEN_Y + 76)
+// 1366x768 interface (isExtraWideStrategicScreen()): the character info
+// panel (charinfo_1366x768) has a 106x122 portrait window 5 px in from its
+// top left corner, showing the merc's static big portrait (faces/bigfaces/,
+// the same size) instead of the animated face -- see DrawFace().
+#define CHARINFO_PORTRAIT_X         (TOWN_INFO_X + 5)
+#define CHARINFO_PORTRAIT_Y         (TOWN_INFO_Y + 5)
+#define CHARINFO_PORTRAIT_WIDTH     106
+#define CHARINFO_PORTRAIT_HEIGHT    122
+
+// Click region of the face -- on the 1366x768 interface the portrait window.
+#define PLAYER_INFO_FACE_START_X    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_X : MAP_SCREEN_X + 9)
+#define PLAYER_INFO_FACE_START_Y    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_Y : MAP_SCREEN_Y + 17)
+#define PLAYER_INFO_FACE_END_X      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_X + CHARINFO_PORTRAIT_WIDTH  : MAP_SCREEN_X + 60)
+#define PLAYER_INFO_FACE_END_Y      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_Y + CHARINFO_PORTRAIT_HEIGHT : MAP_SCREEN_Y + 76)
 
 #define PLAYER_INFO_HAND_START_X    (MAP_SCREEN_X + 4)
 #define PLAYER_INFO_HAND_START_Y    (MAP_SCREEN_Y + 81)
@@ -899,6 +911,47 @@ static void GlowTrashCan(void)
 }
 
 
+// 1366x768 interface: the static big portrait (faces/bigfaces/) of the
+// selected merc in the character info panel's portrait window, instead of the
+// animated face (no blinking or talking mouth; dialogues still run). Dead
+// mercs get the same red shade as in the laptop's personnel files. Vehicles
+// show their small portrait centered; the rest of the window, or all of it
+// if the portrait can't be loaded, is black.
+static void RenderCharInfoPortrait(SOLDIERTYPE const& s)
+{
+	INT16 const x = CHARINFO_PORTRAIT_X;
+	INT16 const y = CHARINFO_PORTRAIT_Y;
+	INT16 const w = CHARINFO_PORTRAIT_WIDTH;
+	INT16 const h = CHARINFO_PORTRAIT_HEIGHT;
+	ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, y, x + w, y + h, 0);
+
+	if (s.uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		// 48x43 small vehicle portrait (FACE_WIDTH/HEIGHT, Interface_Utils.cc)
+		RenderSoldierFace(s, x + (w - 48) / 2, y + (h - 43) / 2);
+	}
+	else if (s.ubProfile != NO_PROFILE)
+	{
+		try
+		{
+			AutoSGPVObject const face{ LoadBigPortrait(GetProfile(s.ubProfile)) };
+			if (s.bLife == 0)
+			{
+				face->pShades[0] = Create16BPPPaletteShaded(face->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
+				face->CurrentShade(0);
+			}
+			BltVideoObject(guiSAVEBUFFER, face.get(), 0, x, y);
+		}
+		catch (std::exception const& e)
+		{
+			SLOGE("Cannot show the big portrait of profile {}: {}", s.ubProfile, e.what());
+		}
+	}
+
+	RestoreExternBackgroundRect(x, y, w, h);
+}
+
+
 void DrawFace(void)
 {
 	static const SOLDIERTYPE* old_merc = NULL;
@@ -924,7 +977,14 @@ void DrawFace(void)
 	fReDrawFace = FALSE;
 
 	// render their face
-	RenderSoldierFace(*pSoldier, SOLDIER_PIC_X, SOLDIER_PIC_Y);
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		RenderCharInfoPortrait(*pSoldier);
+	}
+	else
+	{
+		RenderSoldierFace(*pSoldier, SOLDIER_PIC_X, SOLDIER_PIC_Y);
+	}
 }
 
 
