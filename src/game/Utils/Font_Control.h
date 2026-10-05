@@ -21,6 +21,7 @@ extern SGPFont gpSectorInvFont;
 extern SGPFont gpMapInvBigFont;
 extern SGPFont gpMapInvBigCountFont;
 extern SGPFont gpSecInvBigCountFont;
+extern SGPFont gpCharInfoFont;
 extern SGPFont gpLargeFontType1;
 extern SGPFont gpSmallFontType1;
 extern SGPFont gpTinyFontType1;
@@ -57,6 +58,9 @@ extern SGPFont gpHugeFont;
 #define FONTMAPINVBIGCOUNT	gpMapInvBigCountFont
 // ammo left / stack count in the sector inventory's FIRST and STACK windows, "big images" mode
 #define FONTSECINVBIGCOUNT	gpSecInvBigCountFont
+// texts of the strategic screen's character info panel on the 1366x768 interface
+// (charinfo_1366x768) -- optional, nullptr when font_charinfo.sti can't be loaded
+#define FONTCHARINFO		gpCharInfoFont
 #define FONT12ARIALFIXEDWIDTH	gp12PointArialFixedFont
 #define FONT16ARIAL		gp16PointArial
 #define BLOCKFONTNARROW	gpBlockFontNarrow

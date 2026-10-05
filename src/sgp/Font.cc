@@ -174,6 +174,18 @@ static GlyphIdx GetGlyphIndex(char32_t c)
 }
 
 
+/* Same, for a given font: a codepoint whose glyph the font lacks (it has fewer
+ * glyphs than the translation table expects) gets '?' instead of an invalid
+ * subregion. */
+static GlyphIdx GetGlyphIndex(SGPFont const font, char32_t const c)
+{
+	GlyphIdx const glyph = GetGlyphIndex(c);
+	if (glyph < font->SubregionCount()) return glyph;
+	GlyphIdx const questionMark = GetGlyphIndex(U'?');
+	return questionMark < font->SubregionCount() ? questionMark : 0;
+}
+
+
 bool FontHasGlyphsFor(SGPFont const font, const ST::string& str)
 {
 	for (char32_t const c : str.to_utf32())
@@ -186,7 +198,7 @@ bool FontHasGlyphsFor(SGPFont const font, const ST::string& str)
 
 UINT32 GetCharWidth(SGPFont SGPFont, char32_t c)
 {
-	return GetWidth(SGPFont, GetGlyphIndex(c));
+	return GetWidth(SGPFont, GetGlyphIndex(SGPFont, c));
 }
 
 
@@ -252,7 +264,7 @@ void GPrint(INT32 x, INT32 y, const ST::utf32_buffer& codepoints)
 	SGPFont const font  = FontDefault;
 	for (char32_t c : codepoints)
 	{
-		GlyphIdx const glyph = GetGlyphIndex(c);
+		GlyphIdx const glyph = GetGlyphIndex(font, c);
 		Blt8BPPDataTo16BPPBufferTransparentClip(buf, pitch, font, x, y, glyph, &FontDestRegion);
 		x += GetWidth(font, glyph);
 	}
@@ -261,8 +273,8 @@ void GPrint(INT32 x, INT32 y, const ST::utf32_buffer& codepoints)
 
 UINT32 MPrintChar(INT32 x, INT32 y, char32_t c)
 {
-	GlyphIdx const glyph = GetGlyphIndex(c);
 	SGPFont  const font  = FontDefault;
+	GlyphIdx const glyph = GetGlyphIndex(font, c);
 	{ SGPVSurface::Lock l(FontDestBuffer);
 		Blt8BPPDataTo16BPPBufferMonoShadowClip(l.Buffer<UINT16>(), l.Pitch(), font, x, y, glyph, &FontDestRegion, FontForeground16, FontBackground16, FontShadow16);
 	}
@@ -275,7 +287,7 @@ void MPrintBuffer(UINT16* pDestBuf, UINT32 uiDestPitchBYTES, INT32 x, INT32 y, c
 	SGPFont const font = FontDefault;
 	for (char32_t c : codepoints)
 	{
-		GlyphIdx const glyph = GetGlyphIndex(c);
+		GlyphIdx const glyph = GetGlyphIndex(font, c);
 		Blt8BPPDataTo16BPPBufferMonoShadowClip(pDestBuf, uiDestPitchBYTES, font, x, y, glyph, &FontDestRegion, FontForeground16, FontBackground16, FontShadow16);
 		x += GetWidth(font, glyph);
 	}

@@ -91,7 +91,14 @@
 #define MAX_SORT_METHODS					6
 
 // Fonts
-#define CHAR_FONT BLOCKFONT2 // COMPFONT
+// Every text of the character info panel (and its CONTRACT button): FONTCHARINFO
+// (font_charinfo.sti) on the 1366x768 interface (isExtraWideStrategicScreen()),
+// when it could be loaded -- see InitializeFonts(); BLOCKFONT2 otherwise.
+static SGPFont GetCharInfoFont()
+{
+	return g_ui.isExtraWideStrategicScreen() && FONTCHARINFO ? FONTCHARINFO : BLOCKFONT2;
+}
+#define CHAR_FONT GetCharInfoFont() // COMPFONT
 // Ground-travel "ETA: <time>" text (DisplayGroundEta()) -- part of the
 // strategic-map font group, so it uses the same dedicated FONTMAP as
 // MAP_FONT (Map_Screen_Interface_Map.cc), not BLOCKFONT2.
@@ -1867,7 +1874,7 @@ ScreenID MapScreenHandle(void)
 		InitTimersForMoveMenuMouseRegions( );
 
 		giMapContractButton = QuickCreateButtonImg(INTERFACEDIR "/contractbutton.sti", 0, 1, CONTRACT_X + 5, CONTRACT_Y - 1, MSYS_PRIORITY_HIGHEST - 5, ContractButtonCallback);
-		giMapContractButton->SpecifyGeneralTextAttributes(pContractButtonString, MAP_SCREEN_FONT, CHAR_TEXT_FONT_COLOR, FONT_BLACK);
+		giMapContractButton->SpecifyGeneralTextAttributes(pContractButtonString, CHAR_FONT, CHAR_TEXT_FONT_COLOR, FONT_BLACK);
 		giMapContractButton->SpecifyTextSubOffsets(0, 0, TRUE);
 		giMapContractButton->SpecifyHilitedTextColors(FONT_MCOLOR_WHITE, DEFAULT_SHADOW);
 		giMapContractButton->SetFastHelpText(pMapScreenMouseRegionHelpText[3]);

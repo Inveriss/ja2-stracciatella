@@ -271,6 +271,27 @@ void SGPVObject::DestroyPalettes()
 }
 
 
+void SGPVObject::ReplacePalette(SGPPaletteEntry const* const pal)
+{
+	if (!palette_)
+	{
+		throw std::logic_error("Tried to replace the palette of a video object without one");
+	}
+	for (UINT16 const* const shade : pShades)
+	{
+		if (shade) throw std::logic_error("Tried to replace the palette of a video object with shade tables");
+	}
+
+	auto copy = std::make_unique<SGPPaletteEntry []>(256);
+	std::copy(pal, pal + 256, copy.get());
+	palette_ = std::move(copy);
+
+	delete[] palette16_;
+	palette16_     = Create16BPPPalette(palette_.get());
+	current_shade_ = palette16_;
+}
+
+
 void SGPVObject::ShareShadetables(SGPVObject* const other)
 {
 	flags_ |= SHADETABLE_SHARED;
