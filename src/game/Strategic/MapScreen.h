@@ -5,6 +5,7 @@
 #include "MessageBoxScreen.h"
 #include "ScreenIDs.h"
 #include "JA2Types.h"
+#include <initializer_list>
 #include <string_theory/string>
 
 
@@ -133,10 +134,16 @@ extern SGPSector    gsHighlightSector;
 void CreateDestroyMapInvButton(void);
 
 // On the wide strategic screen (UILayout::isWideStrategicScreen()) returns
-// `wide` if that file exists, otherwise -- and always on the legacy 1024
+// `wide` if it can be drawn -- its PNG (named directly or next to it) loads,
+// or the file itself exists -- otherwise -- and always on the legacy 1024
 // canvas -- `legacy`, so the game keeps working before the _wide assets are
 // delivered. Both must be string literals (cache_key_t).
 char const* GetWideStrategicAsset(char const* wide, char const* legacy);
+
+// The first of `files` that can be drawn (same test as GetWideStrategicAsset()),
+// or the last one -- the original, always present -- if none can. String
+// literals (cache_key_t).
+char const* FirstUsableInterfaceAsset(std::initializer_list<char const*> files);
 
 void     MapScreenInit(void);
 ScreenID MapScreenHandle(void);

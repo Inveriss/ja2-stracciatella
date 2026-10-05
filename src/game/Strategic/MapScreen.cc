@@ -35,6 +35,7 @@
 #include "JAScreens.h"
 #include "LaptopSave.h"
 #include "Line.h"
+#include "Logger.h"
 #include "Map_Screen_Helicopter.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Border.h"
@@ -493,11 +494,22 @@ cache_key_t GetCharListGraphicsFilename()
 		: INTERFACEDIR "/newgoldpiece3_1024.sti";
 }
 
+// The 1366 canvas (isExtraWideStrategicScreen(), large tier only) has its own
+// charinfo_1366x768.sti/.png. Each tier takes the first usable of its files
+// (see FirstUsableInterfaceAsset()), ending with the original charinfo.sti
+// (Interface.slf, same 261x106 layout).
 cache_key_t GetCharInfoGraphicsFilename()
 {
-	return g_ui.isCompactStrategicScreen()
-		? INTERFACEDIR "/charinfo_1280.sti"
-		: INTERFACEDIR "/charinfo_1024.sti";
+	cache_key_t const original = INTERFACEDIR "/charinfo.sti";
+	if (g_ui.isCompactStrategicScreen())
+	{
+		return FirstUsableInterfaceAsset({ INTERFACEDIR "/charinfo_1280.sti", original });
+	}
+	if (!g_ui.isExtraWideStrategicScreen())
+	{
+		return FirstUsableInterfaceAsset({ INTERFACEDIR "/charinfo_1024.sti", original });
+	}
+	return FirstUsableInterfaceAsset({ INTERFACEDIR "/charinfo_1366x768.sti", INTERFACEDIR "/charinfo_1024.sti", original });
 }
 
 // Merc inventory panel background, by screen width (and, for the
@@ -586,15 +598,60 @@ void LoadMapInvBigImagesFromSaveGameFile(void)
 }
 
 
+// Whether `file` can really be drawn: a .png named directly must exist and
+// load; any other file is usable when the PNG next to it (see
+// ContentManager::getPNGReplacement()) loads, or else when the file itself
+// exists -- a broken PNG with the original beside it is fine, CreateImage()
+// then loads the original. A PNG is loaded once here as a test, so a broken
+// one only makes the caller move on to its next candidate (logged).
+// Checked once per file -- the callers run every time the asset is drawn.
+static bool IsInterfaceAssetUsable(cache_key_t const file)
+{
+	static std::map<std::string, bool> usable;
+	auto it = usable.find(file);
+	if (it != usable.end()) return it->second;
+
+	auto const loads = [](ST::string const& png)
+	{
+		try
+		{
+			AutoSGPVObject const test{ AddVideoObjectFromFile(png) };
+			return true;
+		}
+		catch (std::exception const& e)
+		{
+			SLOGE("Cannot use {}, trying the next graphic: {}", png, e.what());
+			return false;
+		}
+	};
+
+	ST::string const name{ file };
+	bool ok;
+	if (name.after_last(".").compare_i("PNG") == 0)
+	{
+		ok = GCM->doesGameResExists(name) && loads(name);
+	}
+	else
+	{
+		ST::string const png = GCM->getPNGReplacement(name);
+		ok = (!png.empty() && loads(png)) || GCM->doesGameResExists(name);
+	}
+	return usable.emplace(file, ok).first->second;
+}
+
 cache_key_t GetWideStrategicAsset(cache_key_t const wide, cache_key_t const legacy)
 {
 	if (!g_ui.isWideStrategicScreen()) return legacy;
+	return IsInterfaceAssetUsable(wide) ? wide : legacy;
+}
 
-	// Checked once per file -- this runs every time the asset is drawn.
-	static std::map<std::string, bool> exists;
-	auto it = exists.find(wide);
-	if (it == exists.end()) it = exists.emplace(wide, GCM->doesGameResExists(wide)).first;
-	return it->second ? wide : legacy;
+cache_key_t FirstUsableInterfaceAsset(std::initializer_list<cache_key_t> const files)
+{
+	for (cache_key_t const file : files)
+	{
+		if (IsInterfaceAssetUsable(file)) return file;
+	}
+	return *(files.end() - 1);
 }
 
 // misc mouse regions
@@ -5376,7 +5433,10 @@ static void RenderMapMiddleBackground(INT16 const top, INT16 const bottom)
 	// Rows above the background graphic (MAP_MIDDLE_BACKGROUND_TOP): black.
 	INT16 const bg_top = MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_TOP;
 	INT16 const fill_bottom = std::min(y2, bg_top);
-	if (y1 < fill_bottom) ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, y1, x2, fill_bottom, 0);
+	// Starts 1 px further left, under the left column's last column: the
+	// character info panel drawn right after it (RenderCharacterInfoBackground())
+	// may be 1 px narrower (charinfo_1366x768.sti is 261 px wide, the others 262).
+	if (y1 < fill_bottom) ColorFillVideoSurfaceArea(guiSAVEBUFFER, MAP_MIDDLE_BACKGROUND_X, y1, x2, fill_bottom, 0);
 
 	INT16 const img_top = std::max(y1, bg_top);
 	if (img_top >= y2) return;
