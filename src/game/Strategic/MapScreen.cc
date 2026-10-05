@@ -298,18 +298,32 @@ static SGPFont GetCharInfoFont()
 #define Y_OFFSET 2
 
 
+// 1366x768 interface (isExtraWideStrategicScreen()): the character info
+// panel has two vertical stat panels above the Health/Morale rows, each a
+// label area and a black value box (attributes left, skills right). Five
+// rows each: the first 6 px below the panel's top, then every 15 px -- the
+// 13 px tall letters of FONT_CHARINFO plus a 2 px gap (user's choice,
+// pending a final fit of the whole panel).
+#define CHARINFO_STAT_ROW_Y(row)        (TOWN_INFO_Y + 6 + (row) * 15)
+#define CHARINFO_STAT_LEFT_LABEL_X      (TOWN_INFO_X + 171)
+#define CHARINFO_STAT_LEFT_VALUE_X      (TOWN_INFO_X + 204)
+#define CHARINFO_STAT_RIGHT_LABEL_X     (TOWN_INFO_X + 246)
+#define CHARINFO_STAT_RIGHT_VALUE_X     (TOWN_INFO_X + 279)
+#define CHARINFO_STAT_WIDTH             30   // of each label area and value box
+
 // char stat positions
-#define STR_X (MAP_SCREEN_X + 112)
-#define STR_Y (MAP_SCREEN_Y + 42)
+#define STAT_ROW_Y(row, legacy_y) (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_ROW_Y(row) : (legacy_y))
+#define STR_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_LEFT_VALUE_X : MAP_SCREEN_X + 112)
+#define STR_Y STAT_ROW_Y(2, MAP_SCREEN_Y + 42)
 #define DEX_X STR_X
-#define DEX_Y (MAP_SCREEN_Y + 32)
+#define DEX_Y STAT_ROW_Y(1, MAP_SCREEN_Y + 32)
 #define AGL_X STR_X
-#define AGL_Y (MAP_SCREEN_Y + 22)
+#define AGL_Y STAT_ROW_Y(0, MAP_SCREEN_Y + 22)
 #define LDR_X STR_X
-#define LDR_Y (MAP_SCREEN_Y + 52)
+#define LDR_Y STAT_ROW_Y(3, MAP_SCREEN_Y + 52)
 #define WIS_X STR_X
-#define WIS_Y (MAP_SCREEN_Y + 62)
-#define LVL_X (MAP_SCREEN_X + 159)
+#define WIS_Y STAT_ROW_Y(4, MAP_SCREEN_Y + 62)
+#define LVL_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_RIGHT_VALUE_X : MAP_SCREEN_X + 159)
 #define LVL_Y AGL_Y
 #define MRK_X LVL_X
 #define MRK_Y DEX_Y
@@ -320,7 +334,7 @@ static SGPFont GetCharInfoFont()
 #define MED_X LVL_X
 #define MED_Y WIS_Y
 
-#define STAT_WID 15
+#define STAT_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_WIDTH : 15)
 #define STAT_HEI GetFontHeight(CHAR_FONT)
 
 #define PIC_NAME_X (MAP_SCREEN_X + 8)
@@ -1050,6 +1064,8 @@ static void RenderIconsForUpperLeftCornerPiece(const SOLDIERTYPE* const s)
 	}
 }
 
+static void DrawStringCentered(const ST::string& str, UINT16 x, UINT16 y, UINT16 w, UINT16 h, SGPFont);
+
 static void PrintStat(UINT32 change_time, UINT16 const stat_gone_up_bit, INT8 stat_val, INT16 x, INT16 y, INT16 w, INT32 progress)
 {
 	UINT8 const colour =
@@ -1059,6 +1075,18 @@ static void PrintStat(UINT32 change_time, UINT16 const stat_gone_up_bit, INT8 st
 		FONT_RED;
 
 	SetFontForeground(colour);
+
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		// 1366x768: centred in its value box; the progress background covers
+		// the text's row
+		if (gamepolicy(gui_extras))
+		{
+			ProgressBarBackgroundRect(x + 1, y - 1, (w - 2) * progress / 100, STAT_HEI, 0x514A05, progress);
+		}
+		DrawStringCentered(ST::format("{}", stat_val), x, y, w, STAT_HEI, CHAR_FONT);
+		return;
+	}
 
 	ST::string str = ST::format("{3d}", stat_val);
 	if (gamepolicy(gui_extras))
@@ -4430,6 +4458,14 @@ static void RenderAttributeStringsForUpperLeftHandCorner(SGPVSurface* const uiBu
 
 		for( iCounter = 0; iCounter < 5; iCounter++ )
 		{
+			if (g_ui.isExtraWideStrategicScreen())
+			{
+				// centred in the stat panels' label areas, same rows as the values
+				INT16 const y = CHARINFO_STAT_ROW_Y(iCounter);
+				DrawStringCentered(pShortAttributeStrings[iCounter],     CHARINFO_STAT_LEFT_LABEL_X,  y, CHARINFO_STAT_WIDTH, STAT_HEI, CHAR_FONT);
+				DrawStringCentered(pShortAttributeStrings[iCounter + 5], CHARINFO_STAT_RIGHT_LABEL_X, y, CHARINFO_STAT_WIDTH, STAT_HEI, CHAR_FONT);
+				continue;
+			}
 			DrawString(pShortAttributeStrings[iCounter],     MAP_SCREEN_X +  88, MAP_SCREEN_Y + 22 + iCounter * 10, CHAR_FONT);
 			DrawString(pShortAttributeStrings[iCounter + 5], MAP_SCREEN_X + 133, MAP_SCREEN_Y + 22 + iCounter * 10, CHAR_FONT);
 		}
