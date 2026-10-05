@@ -42,7 +42,14 @@
 #define MAP_SCREEN_FONT BLOCKFONT2
 
 // characterlist regions
-#define Y_START               (MAP_SCREEN_Y + 146)
+// The team list (newgoldpiece3_*) starts at MAP_SCREEN_Y + 107; on the
+// 1366x768 interface (UILayout::isExtraWideStrategicScreen()) at + 133,
+// right below the 132 px tall character info panel (charinfo_1366x768) --
+// everything drawn on it (sort buttons, rows, highlights, regions) moves
+// down by TEAM_LIST_SHIFT_Y with it.
+#define TEAM_LIST_SHIFT_Y     (g_ui.isExtraWideStrategicScreen() ? 26 : 0)
+#define TEAM_LIST_Y           (MAP_SCREEN_Y + 107 + TEAM_LIST_SHIFT_Y)
+#define Y_START               (MAP_SCREEN_Y + 146 + TEAM_LIST_SHIFT_Y)
 #define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107)
 #define Y_SIZE                GetFontHeight(MAP_SCREEN_FONT)
 

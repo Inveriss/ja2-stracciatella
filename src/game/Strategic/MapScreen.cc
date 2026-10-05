@@ -164,7 +164,7 @@ static SGPFont GetCharInfoFont()
 // i.e. MAP_SCREEN_Y + 107); the matching _1024/_1280 files are picked by the
 // same height tier (isCompactStrategicScreen()). The free space above it
 // (next to the character info panel) is filled with black.
-#define MAP_MIDDLE_BACKGROUND_TOP    107
+#define MAP_MIDDLE_BACKGROUND_TOP    (TEAM_LIST_Y - MAP_SCREEN_Y)   // 107; 133 on the 1366x768 interface
 // Horizontal shift of background_middle_wide_*.sti relative to
 // MAP_MIDDLE_BACKGROUND_X (positive = right).
 #define MAP_MIDDLE_BACKGROUND_SHIFT_X  1
@@ -574,8 +574,16 @@ cache_key_t const guiNewMailIcons{ INTERFACEDIR "/newemail.sti" };
 // (height 768+) -- matching the resolution each tier's assets were authored
 // for, not the map canvas' own MAP_SCREEN_WIDTH (1024, or 1280 on the wide
 // strategic screen -- see isWideStrategicScreen()).
+// The 1366 canvas (isExtraWideStrategicScreen(), large tier only) has its
+// own team list, newgoldpiece3_1366x768.png (262x515, at TEAM_LIST_Y);
+// without it the large tier's one, then the original newgoldpiece3.sti
+// (see FirstUsableInterfaceAsset()).
 cache_key_t GetCharListGraphicsFilename()
 {
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		return FirstUsableInterfaceAsset({ INTERFACEDIR "/newgoldpiece3_1366x768.png", INTERFACEDIR "/newgoldpiece3_1024.sti", INTERFACEDIR "/newgoldpiece3.sti" });
+	}
 	return g_ui.isCompactStrategicScreen()
 		? INTERFACEDIR "/newgoldpiece3_1280.sti"
 		: INTERFACEDIR "/newgoldpiece3_1024.sti";
@@ -5691,12 +5699,12 @@ static void RenderTeamRegionBackground()
 	// Render to save buffer when dirty flag set
 	if (!fTeamPanelDirty) return;
 
-	RenderMapMiddleBackground(107, MAP_SCREEN_HEIGHT);
+	RenderMapMiddleBackground(MAP_MIDDLE_BACKGROUND_TOP, MAP_SCREEN_HEIGHT);
 
 	// Show inventory or the team list?
 	if (!fShowInventoryFlag)
 	{
-		BltVideoObject(guiSAVEBUFFER, GetCharListGraphicsFilename(), 0, PLAYER_INFO_X, PLAYER_INFO_Y);
+		BltVideoObject(guiSAVEBUFFER, GetCharListGraphicsFilename(), 0, PLAYER_INFO_X, TEAM_LIST_Y);
 		HandleHighLightingOfLinesInTeamPanel();
 		DisplayCharacterList();
 		DisplayIconsForMercsAsleep();
@@ -5731,7 +5739,18 @@ static void RenderCharacterInfoBackground(void)
 		return;
 	}
 
-	RenderMapMiddleBackground(0, 107);
+	RenderMapMiddleBackground(0, MAP_MIDDLE_BACKGROUND_TOP);
+
+	// 1366x768: black between the character info panel's bottom and the
+	// team list's top, under the left column (the free space gets it above)
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		INT16 const panel_bottom = TOWN_INFO_Y + GetVObject(GetCharInfoGraphicsFilename())->SubregionProperties(0).usHeight;
+		if (panel_bottom < TEAM_LIST_Y)
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, MAP_SCREEN_X, panel_bottom, MAP_MIDDLE_BACKGROUND_X + 1, TEAM_LIST_Y, 0);
+		}
+	}
 
 	// The 1366x768 panel's bar and arrow windows are see-through: black under
 	// them, so the bars (drawn over the saved background every frame) erase
@@ -5771,7 +5790,7 @@ static void RenderCharacterInfoBackground(void)
 	MarkAllBoxesAsAltered( );
 
 	// restore background for area
-	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, LEFT_COLUMN_BG_WIDTH, 107 );
+	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, LEFT_COLUMN_BG_WIDTH, MAP_MIDDLE_BACKGROUND_TOP );
 
 }
 
@@ -7257,7 +7276,7 @@ static void AddTeamPanelSortButtonsForMapScreen(void)
 
 	for (INT32 i = 0; i < MAX_SORT_METHODS; ++i)
 	{
-		giMapSortButton[i] = QuickCreateButtonImg(filename, iImageIndex[i], iImageIndex[i] + 6, MAP_SCREEN_X + gMapSortButtons[i].iX, MAP_SCREEN_Y + gMapSortButtons[i].iY, MSYS_PRIORITY_HIGHEST - 5, MapSortBtnCallback);
+		giMapSortButton[i] = QuickCreateButtonImg(filename, iImageIndex[i], iImageIndex[i] + 6, MAP_SCREEN_X + gMapSortButtons[i].iX, MAP_SCREEN_Y + gMapSortButtons[i].iY + TEAM_LIST_SHIFT_Y, MSYS_PRIORITY_HIGHEST - 5, MapSortBtnCallback);
 		giMapSortButton[i]->SetUserData(i);
 		giMapSortButton[i]->SetFastHelpText(wMapScreenSortButtonHelpText[i]);
 	}
