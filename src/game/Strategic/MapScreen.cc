@@ -348,14 +348,30 @@ static SGPFont GetCharInfoFont()
 #define CHAR_ASSIGN2_Y (MAP_SCREEN_Y + 31)
 #define CHAR_ASSIGN_WID 257 - 178
 #define CHAR_ASSIGN_HEI 39 - 29
-#define CHAR_HP_X (MAP_SCREEN_X + 133)
-#define CHAR_HP_Y (MAP_SCREEN_Y + 77 + 3)
-#define CHAR_HP_WID  (MAP_SCREEN_X + 175 - CHAR_HP_X)
-#define CHAR_HP_HEI  (MAP_SCREEN_Y + 90 - CHAR_HP_Y)
-#define CHAR_MORALE_X (MAP_SCREEN_X + 133)
-#define CHAR_MORALE_Y (MAP_SCREEN_Y + 91 + 3)
-#define CHAR_MORALE_WID (MAP_SCREEN_X + 175 - CHAR_MORALE_X)
-#define CHAR_MORALE_HEI (MAP_SCREEN_Y + 101 - CHAR_MORALE_Y)
+// 1366x768 interface (isExtraWideStrategicScreen()): right of the arrows the
+// character info panel has a label area (x 190-252) and two black value
+// boxes, one row each for health and morale.
+#define CHARINFO_LABEL_X            (TOWN_INFO_X + 190)
+#define CHARINFO_LABEL_WIDTH        63
+#define CHARINFO_HEALTH_ROW_Y       (TOWN_INFO_Y + 92)
+#define CHARINFO_MORALE_ROW_Y       (TOWN_INFO_Y + 112)
+#define CHARINFO_ROW_HEIGHT         19
+#define CHARINFO_HEALTH_BOX_X       (TOWN_INFO_X + 254)
+#define CHARINFO_HEALTH_BOX_WIDTH   60
+#define CHARINFO_MORALE_BOX_X       (TOWN_INFO_X + 255)
+#define CHARINFO_MORALE_BOX_WIDTH   58
+
+// Health is centred horizontally only and drawn from CHAR_HP_Y down, so on
+// the 1366x768 interface CHAR_HP_Y is already the text's top row inside its
+// box; morale is centred in its box both ways.
+#define CHAR_HP_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HEALTH_BOX_X : MAP_SCREEN_X + 133)
+#define CHAR_HP_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HEALTH_ROW_Y + (CHARINFO_ROW_HEIGHT - GetFontHeight(CHAR_FONT)) / 2 : MAP_SCREEN_Y + 77 + 3)
+#define CHAR_HP_WID  (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HEALTH_BOX_WIDTH : MAP_SCREEN_X + 175 - CHAR_HP_X)
+#define CHAR_HP_HEI  (g_ui.isExtraWideStrategicScreen() ? GetFontHeight(CHAR_FONT) : MAP_SCREEN_Y + 90 - CHAR_HP_Y)
+#define CHAR_MORALE_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_MORALE_BOX_X : MAP_SCREEN_X + 133)
+#define CHAR_MORALE_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_MORALE_ROW_Y : MAP_SCREEN_Y + 91 + 3)
+#define CHAR_MORALE_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_MORALE_BOX_WIDTH : MAP_SCREEN_X + 175 - CHAR_MORALE_X)
+#define CHAR_MORALE_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_ROW_HEIGHT : MAP_SCREEN_Y + 101 - CHAR_MORALE_Y)
 
 #define SOLDIER_PIC_X (MAP_SCREEN_X + 9)
 #define SOLDIER_PIC_Y (MAP_SCREEN_Y + 20)
@@ -4403,7 +4419,14 @@ static void RenderAttributeStringsForUpperLeftHandCorner(SGPVSurface* const uiBu
 	if (!pSoldier || !IsMechanical(*pSoldier))
 	{
 		// health
-		DrawString(pUpperLeftMapScreenStrings[1], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 80, CHAR_FONT);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawStringCentered(pUpperLeftMapScreenStrings[1], CHARINFO_LABEL_X, CHARINFO_HEALTH_ROW_Y, CHARINFO_LABEL_WIDTH, CHARINFO_ROW_HEIGHT, CHAR_FONT);
+		}
+		else
+		{
+			DrawString(pUpperLeftMapScreenStrings[1], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 80, CHAR_FONT);
+		}
 
 		for( iCounter = 0; iCounter < 5; iCounter++ )
 		{
@@ -4412,12 +4435,26 @@ static void RenderAttributeStringsForUpperLeftHandCorner(SGPVSurface* const uiBu
 		}
 
 		// morale
-		DrawString(pUpperLeftMapScreenStrings[2], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 94,  CHAR_FONT);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawStringCentered(pUpperLeftMapScreenStrings[2], CHARINFO_LABEL_X, CHARINFO_MORALE_ROW_Y, CHARINFO_LABEL_WIDTH, CHARINFO_ROW_HEIGHT, CHAR_FONT);
+		}
+		else
+		{
+			DrawString(pUpperLeftMapScreenStrings[2], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 94,  CHAR_FONT);
+		}
 	}
 	else
 	{
-		// condition
-		DrawString(pUpperLeftMapScreenStrings[3], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 80, CHAR_FONT);
+		// condition -- in the health row
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawStringCentered(pUpperLeftMapScreenStrings[3], CHARINFO_LABEL_X, CHARINFO_HEALTH_ROW_Y, CHARINFO_LABEL_WIDTH, CHARINFO_ROW_HEIGHT, CHAR_FONT);
+		}
+		else
+		{
+			DrawString(pUpperLeftMapScreenStrings[3], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 80, CHAR_FONT);
+		}
 	}
 
 
