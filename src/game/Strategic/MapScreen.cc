@@ -126,7 +126,9 @@ static SGPFont GetCharInfoFont()
 // Coordinate defines
 
 #define TOWN_INFO_X           (MAP_SCREEN_X + 0)
-#define TOWN_INFO_Y           (MAP_SCREEN_Y + 1)
+// The 1366x768 interface (isExtraWideStrategicScreen()) draws the character
+// info panel (charinfo_1366x768) at the canvas' very top left corner, 0,0.
+#define TOWN_INFO_Y           (MAP_SCREEN_Y + (g_ui.isExtraWideStrategicScreen() ? 0 : 1))
 
 #define PLAYER_INFO_X         (MAP_SCREEN_X + 0)
 #define PLAYER_INFO_Y         (MAP_SCREEN_Y + 107)
