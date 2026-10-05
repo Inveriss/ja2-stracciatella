@@ -343,7 +343,7 @@ static SGPFont GetCharInfoFont()
 // long black box, the nickname in quotes (empty if there is none) in the
 // lower one.
 #define CHARINFO_NAME_BOX_X         (TOWN_INFO_X + 14)
-#define CHARINFO_NAME_BOX_Y         (TOWN_INFO_Y + 134)
+#define CHARINFO_NAME_BOX_Y         (TOWN_INFO_Y + 134 + 1)   // text 1 px lower (user's fine tuning)
 #define CHARINFO_NAME_BOX_WIDTH     153
 #define CHARINFO_NAME_BOX_HEIGHT    17
 #define CHARINFO_NICK_BOX_X         (TOWN_INFO_X + 14)
@@ -371,8 +371,13 @@ static SGPFont GetCharInfoFont()
 #define CHARINFO_ASSIGN_HEADER_Y        (TOWN_INFO_Y + 5)
 #define CHARINFO_CONTRACT_HEADER_Y      (TOWN_INFO_Y + 79)
 #define CHARINFO_TABLE_ROW_HEIGHT       20
-#define CHARINFO_ASSIGN_ROW_Y(row)      (TOWN_INFO_Y + 27 + (row) * 23)
-#define CHARINFO_CONTRACT_ROW_Y(row)    (TOWN_INFO_Y + 101 + (row) * 23)
+// user's fine tuning of the texts against the graphic: header words 2 px
+// higher than centred in their header (the Contract hot spot stays on the
+// header), values 2 px lower than centred in their row
+#define CHARINFO_TABLE_HEADER_TEXT_DY   (-2)
+#define CHARINFO_TABLE_VALUE_TEXT_DY    2
+#define CHARINFO_ASSIGN_ROW_Y(row)      (TOWN_INFO_Y + 27 + (row) * 23 + CHARINFO_TABLE_VALUE_TEXT_DY)
+#define CHARINFO_CONTRACT_ROW_Y(row)    (TOWN_INFO_Y + 101 + (row) * 23 + CHARINFO_TABLE_VALUE_TEXT_DY)
 #define CHARINFO_ASSIGN_BOX_X           (TOWN_INFO_X + 324)
 #define CHARINFO_ASSIGN_BOX_WIDTH       123
 #define CHARINFO_CONTRACT_TEXT_X        (TOWN_INFO_X + 341)
@@ -400,8 +405,9 @@ static SGPFont GetCharInfoFont()
 // boxes (x 255-313), one row each for health and morale.
 #define CHARINFO_LABEL_X            (TOWN_INFO_X + 190)
 #define CHARINFO_LABEL_WIDTH        61
-#define CHARINFO_HEALTH_ROW_Y       (TOWN_INFO_Y + 124)
-#define CHARINFO_MORALE_ROW_Y       (TOWN_INFO_Y + 147)
+// rows of the boxes at y 124 / 147; texts 1 px lower (user's fine tuning)
+#define CHARINFO_HEALTH_ROW_Y       (TOWN_INFO_Y + 124 + 1)
+#define CHARINFO_MORALE_ROW_Y       (TOWN_INFO_Y + 147 + 1)
 #define CHARINFO_ROW_HEIGHT         22
 #define CHARINFO_HEALTH_BOX_X       (TOWN_INFO_X + 255)
 #define CHARINFO_HEALTH_BOX_WIDTH   59
@@ -4535,10 +4541,10 @@ static void RenderAttributeStringsForUpperLeftHandCorner(SGPVSurface* const uiBu
 		// 1366x768: the Assignment and Contract table headers. The Contract
 		// one is also the contract button (an invisible hot spot over it, see
 		// giMapContractButton), so it greys out with that button.
-		DrawStringCentered(pUpperLeftMapScreenStrings[0], CHARINFO_TABLE_HEADER_X, CHARINFO_ASSIGN_HEADER_Y, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
+		DrawStringCentered(pUpperLeftMapScreenStrings[0], CHARINFO_TABLE_HEADER_X, CHARINFO_ASSIGN_HEADER_Y + CHARINFO_TABLE_HEADER_TEXT_DY, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
 		bool const contract_enabled = giMapContractButton && giMapContractButton->Enabled();
 		SetFontForeground(contract_enabled ? CHAR_TEXT_FONT_COLOR : FONT_GRAY4);
-		DrawStringCentered(pContractButtonString, CHARINFO_TABLE_HEADER_X, CHARINFO_CONTRACT_HEADER_Y, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
+		DrawStringCentered(pContractButtonString, CHARINFO_TABLE_HEADER_X, CHARINFO_CONTRACT_HEADER_Y + CHARINFO_TABLE_HEADER_TEXT_DY, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
 		SetFontForeground(CHAR_TITLE_FONT_COLOR);
 	}
 	else
