@@ -48,11 +48,13 @@ extern BOOLEAN   fRenderRadarScreen;
 #define RADAR_WINDOW_BIG_Y			(g_ui.isCompactStrategicScreen() ? 591 : 639)
 // Wide strategic screen (UILayout::isWideStrategicScreen()): the minimap
 // and its frame's opening move right by RADAR_WINDOW_BIG_WIDE_SHIFT (Y
-// unchanged, both height tiers). Its frame is SECTOR_INVENTORY_MINIMAP_wide.sti
+// unchanged, both height tiers) -- with the sector inventory window it sits
+// in, i.e. the right block's shift less 2 px (254 on the 1280 canvas, 340 on
+// the 1366 one). Its frame is SECTOR_INVENTORY_MINIMAP_wide.sti
 // -- same opening as the legacy frame, only its sides are wider, the left one
 // by RADAR_WINDOW_BIG_WIDE_FRAME_EXTRA_LEFT px, so the frame image itself is
 // drawn that much further left to keep the opening around the minimap.
-#define RADAR_WINDOW_BIG_WIDE_SHIFT				254
+#define RADAR_WINDOW_BIG_WIDE_SHIFT				(MAP_RIGHT_BLOCK_SHIFT - 2)
 #define RADAR_WINDOW_BIG_WIDE_FRAME_EXTRA_LEFT	3
 
 void LoadBigRadarScreenBitmap(const ST::string&);

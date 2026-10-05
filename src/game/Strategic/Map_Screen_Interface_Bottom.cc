@@ -11,6 +11,7 @@
 #include "Object_Cache.h"
 #include "Timer_Control.h"
 #include "Types.h"
+#include "HImage.h"
 #include "VObject.h"
 #include "VObject_Blitters.h"
 #include "VSurface.h"
@@ -56,6 +57,7 @@
 #include "ScreenIDs.h"
 #include "UILayout.h"
 
+#include <algorithm>
 #include <string_theory/string>
 
 
@@ -186,12 +188,58 @@ cache_key_t const guiSliderBar{ INTERFACEDIR "/map_screen_bottom_arrows.sti" };
 // the same distance from the right edge as today's graphics: everything
 // there (clock, radar, balance, time compression, exit buttons) is anchored
 // to MAP_SCREEN_RIGHT, their left part to MAP_SCREEN_X.
+// The 1366 canvas (isExtraWideStrategicScreen(), large tier only) has its
+// own 1366px-wide map_screen_bottom_1366x768.png; without it the large
+// tier's 1280px one is used, stretched by BltMapScreenBottomGraphic().
 cache_key_t GetMapScreenBottomGraphicsFilename()
 {
-	return g_ui.isCompactStrategicScreen()
-		? GetWideStrategicAsset(INTERFACEDIR "/map_screen_bottom_wide_1280.sti", INTERFACEDIR "/map_screen_bottom_1280.sti")
-		: GetWideStrategicAsset(INTERFACEDIR "/map_screen_bottom_wide_1024.sti", INTERFACEDIR "/map_screen_bottom_1024.sti");
+	if (g_ui.isCompactStrategicScreen())
+	{
+		return GetWideStrategicAsset(INTERFACEDIR "/map_screen_bottom_wide_1280.sti", INTERFACEDIR "/map_screen_bottom_1280.sti");
+	}
+	cache_key_t const large = GetWideStrategicAsset(INTERFACEDIR "/map_screen_bottom_wide_1024.sti", INTERFACEDIR "/map_screen_bottom_1024.sti");
+	if (!g_ui.isExtraWideStrategicScreen()) return large;
+	return GetWideStrategicAsset(INTERFACEDIR "/map_screen_bottom_1366x768.png", large);
 }
+}
+
+
+// Column (relative to MAP_BOTTOM_X) where BltMapScreenBottomGraphic() joins
+// its two copies -- inside the middle box of map_screen_bottom_wide_1024.sti
+// (x 370..975), whose frame is plain horizontal there, so the join is
+// invisible.
+#define MAP_BOTTOM_STRETCH_SPLIT_X 700
+
+// Draws map_screen_bottom into guiSAVEBUFFER, within the current clipping
+// rect. On the 1366 canvas a graphic narrower than the canvas (the 1280
+// one, when map_screen_bottom_1366x768.png is missing) is drawn twice:
+// left of MAP_BOTTOM_STRETCH_SPLIT_X anchored to MAP_SCREEN_X (message log,
+// laptop shortcuts), right of it anchored to MAP_SCREEN_RIGHT (clock,
+// radar, balance, exit buttons), stretching its middle box over the gap.
+static void BltMapScreenBottomGraphic(void)
+{
+	cache_key_t const file = GetMapScreenBottomGraphicsFilename();
+	INT16       const w    = GetVObject(file)->SubregionProperties(0).usWidth;
+	if (!g_ui.isExtraWideStrategicScreen() || MAP_BOTTOM_X + w >= MAP_SCREEN_RIGHT)
+	{
+		BltVideoObject(guiSAVEBUFFER, file, 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
+		return;
+	}
+
+	SGPRect const cur   = GetClippingRect();
+	UINT16  const split = std::clamp<UINT16>(MAP_BOTTOM_X + MAP_BOTTOM_STRETCH_SPLIT_X, cur.iLeft, cur.iRight);
+
+	SGPRect left = cur;
+	left.iRight = split;
+	SetClippingRect(left);
+	BltVideoObject(guiSAVEBUFFER, file, 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
+
+	SGPRect right = cur;
+	right.iLeft = split;
+	SetClippingRect(right);
+	BltVideoObject(guiSAVEBUFFER, file, 0, MAP_SCREEN_RIGHT - w, MAP_BOTTOM_Y);
+
+	SetClippingRect(cur);
 }
 
 // buttons
@@ -294,7 +342,7 @@ static void RestoreBottomStripUnderBigInvPanel(void)
 		(UINT16)MAP_BOTTOM_X, (UINT16)MAP_BOTTOM_Y,
 		(UINT16)(MAP_SCREEN_X + MAP_INV_BIG_PANEL_WIDTH), (UINT16)SCREEN_HEIGHT };
 	SGPRect const old_clip = SetClippingRect(covered);
-	BltVideoObject(guiSAVEBUFFER, GetMapScreenBottomGraphicsFilename(), 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
+	BltMapScreenBottomGraphic();
 	SetClippingRect(old_clip);
 
 	DisplayScrollBarSlider();
@@ -383,7 +431,7 @@ void RenderMapScreenInterfaceBottom( void )
 					(UINT16)MAP_BOTTOM_X, (UINT16)MAP_BOTTOM_Y,
 					(UINT16)sector_panel_left, (UINT16)SCREEN_HEIGHT };
 				SGPRect const old_clip = SetClippingRect(left_part);
-				BltVideoObject(guiSAVEBUFFER, GetMapScreenBottomGraphicsFilename(), 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
+				BltMapScreenBottomGraphic();
 				SetClippingRect(old_clip);
 				RestoreExternBackgroundRect(left_part.iLeft, left_part.iTop, left_part.iRight - left_part.iLeft, left_part.iBottom - left_part.iTop);
 				MarkButtonsDirty();
@@ -435,7 +483,7 @@ void RenderMapScreenInterfaceBottom( void )
 	// render whole panel
 	if (fMapScreenBottomDirty)
 	{
-		BltVideoObject(guiSAVEBUFFER, GetMapScreenBottomGraphicsFilename(), 0, MAP_BOTTOM_X, MAP_BOTTOM_Y);
+		BltMapScreenBottomGraphic();
 		auto const& sMap{ sSelMap };
 
 		if (GetSectorFlagStatus(sMap, SF_ALREADY_VISITED))

@@ -157,7 +157,8 @@
 // MAP_MIDDLE_BACKGROUND_X (positive = right).
 #define MAP_MIDDLE_BACKGROUND_SHIFT_X  1
 // Right edge (exclusive) of the free space the background may paint:
-// MAP_SCREEN_X + 518, i.e. up to x 517 -- 1 px over MBS's first column
+// MAP_SCREEN_X + 518 on the 1280 canvas (604 on the 1366 one), i.e. up to
+// x 517 (603) -- 1 px over MBS's first column
 // (fully transparent in MBS_1024/1280.sti), like mapinv_big_1280_*.sti.
 #define MAP_MIDDLE_BACKGROUND_RIGHT    (MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_WIDTH + 1)
 // Width of the left column (plus, on the wide strategic screen, the free
@@ -525,11 +526,16 @@ cache_key_t GetMapInvGraphicsFilename()
 // wide strategic screen (MAP_MIDDLE_BACKGROUND_X/WIDTH). Suffix follows the
 // height tier, same as the files above: 256x599 for the compact tier,
 // 256x647 for the large one (canvas height minus map_screen_bottom's 121).
+// The 1366 canvas (isExtraWideStrategicScreen(), large tier only) has a
+// 340 px free space and its own background_middle_1366x768.png (without it
+// the large tier's one). Either is drawn twice when narrower than the free
+// space, and black fills the rows below it (see RenderMapMiddleBackground()).
 cache_key_t GetMapMiddleBackgroundGraphicsFilename()
 {
-	return g_ui.isCompactStrategicScreen()
-		? INTERFACEDIR "/background_middle_wide_1280.sti"
-		: INTERFACEDIR "/background_middle_wide_1024.sti";
+	if (g_ui.isCompactStrategicScreen()) return INTERFACEDIR "/background_middle_wide_1280.sti";
+	cache_key_t const large = INTERFACEDIR "/background_middle_wide_1024.sti";
+	if (!g_ui.isExtraWideStrategicScreen()) return large;
+	return GetWideStrategicAsset(INTERFACEDIR "/background_middle_1366x768.png", large);
 }
 }
 
@@ -1729,8 +1735,10 @@ ScreenID MapScreenHandle(void)
 		fInMapMode = TRUE;
 
 		// Refreshing the whole screen, otherwise user could see remnants of
-		// the tactical screen.
-		if(g_ui.isBigScreen())
+		// the tactical screen. The second test keeps this on at 1366+ widths,
+		// where the 1366 canvas may fill the screen (isBigScreen() false) --
+		// as it was with the 1280 canvas.
+		if (g_ui.isBigScreen() || SCREEN_WIDTH > WIDE_STRATEGIC_SCREEN_WIDTH)
 		{
 			InvalidateRegion(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		}
@@ -4443,7 +4451,7 @@ static void BlitBackgroundToSaveBuffer(void)
 	{
 		// background_middle_wide_*.sti reaches 1 px over the first column of
 		// what the right block draws there -- MBS, or the sector-inventory
-		// window (MAP_MIDDLE_BACKGROUND_RIGHT, x 517) -- and stays on top of
+		// window (MAP_MIDDLE_BACKGROUND_RIGHT, x 517 / 603) -- and stays on top of
 		// either: whenever the right block was just redrawn, redraw the left
 		// column (middle background, then whatever panel sits on it) after it.
 		if (fMapRedrawn && g_ui.isWideStrategicScreen())
@@ -5378,8 +5386,22 @@ static void RenderMapMiddleBackground(INT16 const top, INT16 const bottom)
 	{
 		SGPRect const clip = { (UINT16)x1, (UINT16)img_top, (UINT16)x2, (UINT16)y2 };
 		SGPRect const old  = SetClippingRect(clip);
-		BltVideoObject(guiSAVEBUFFER, bg, 0, MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_SHIFT_X, bg_top);
+		INT16   const bg_x = MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_SHIFT_X;
+		BltVideoObject(guiSAVEBUFFER, bg, 0, bg_x, bg_top);
+		// A graphic narrower than the free space (on the 1366 canvas, where
+		// it is 340 px wide): draw it once more, right-aligned, so both edges
+		// keep their frame (its last column clipped off by x2, same as the
+		// first copy's on the 1280 canvas).
+		ETRLEObject const& props = GetVObject(bg)->SubregionProperties(0);
+		INT16 const bg_w = props.usWidth;
+		if (bg_x + bg_w < x2 + 1) BltVideoObject(guiSAVEBUFFER, bg, 0, x2 + 1 - bg_w, bg_top);
 		SetClippingRect(old);
+
+		// A graphic shorter than the free space: black below it, down to the
+		// bottom strip.
+		INT16 const img_bottom = std::max<INT16>(img_top, bg_top + props.usHeight);
+		INT16 const fill_y2    = std::min<INT16>(y2, MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT);
+		if (img_bottom < fill_y2) ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, img_bottom, x2, fill_y2, 0);
 	}
 	else
 	{
