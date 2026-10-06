@@ -301,16 +301,16 @@ static SGPFont GetCharInfoFont()
 // 1366x768 interface (isExtraWideStrategicScreen()): the character info
 // panel (charinfo_1366x768, 452x170) has two vertical stat panels above the
 // Health/Morale rows, each a label area (wall at x 168 / 243) and a black
-// value box (x 204-237 / 279-312; attributes left, skills right). Five
-// rows each: the first 10 px below the panel's top, then every 19 px -- the
-// 13 px tall letters of FONT_CHARINFO plus a 6 px gap. Labels are left
-// aligned 3 px from their area's wall, values centred in their box.
-#define CHARINFO_STAT_ROW_Y(row)        (TOWN_INFO_Y + 10 + (row) * 19)
-#define CHARINFO_STAT_LEFT_LABEL_X      (TOWN_INFO_X + 168 + 3)
-#define CHARINFO_STAT_LEFT_VALUE_X      (TOWN_INFO_X + 204)
-#define CHARINFO_STAT_RIGHT_LABEL_X     (TOWN_INFO_X + 243 + 3)
-#define CHARINFO_STAT_RIGHT_VALUE_X     (TOWN_INFO_X + 279)
-#define CHARINFO_STAT_WIDTH             34   // of each value box
+// value box (x 209-237 / 284-312; attributes left, skills right). Five
+// rows each: the first 14 px below the panel's top, then every 20 px -- the
+// 13 px tall letters of FONT_CHARINFO plus a 7 px gap. Labels are left
+// aligned 5 px from their area's wall, values centred in their box.
+#define CHARINFO_STAT_ROW_Y(row)        (TOWN_INFO_Y + 14 + (row) * 20)
+#define CHARINFO_STAT_LEFT_LABEL_X      (TOWN_INFO_X + 168 + 5)
+#define CHARINFO_STAT_LEFT_VALUE_X      (TOWN_INFO_X + 209)
+#define CHARINFO_STAT_RIGHT_LABEL_X     (TOWN_INFO_X + 243 + 5)
+#define CHARINFO_STAT_RIGHT_VALUE_X     (TOWN_INFO_X + 284)
+#define CHARINFO_STAT_WIDTH             29   // of each value box
 
 // char stat positions
 #define STAT_ROW_Y(row, legacy_y) (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_ROW_Y(row) : (legacy_y))
