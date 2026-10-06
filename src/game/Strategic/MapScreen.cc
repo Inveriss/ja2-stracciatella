@@ -344,7 +344,7 @@ static SGPFont GetCharInfoFont()
 // quotes included ("Keith \"Blood\" Hanson" -- the default, unsplit mode);
 // there is no separate nickname box (PIC_NAME_* unused there).
 #define CHARINFO_NAME_BOX_X         (TOWN_INFO_X + 235)
-#define CHARINFO_NAME_BOX_Y         (TOWN_INFO_Y + 104)
+#define CHARINFO_NAME_BOX_Y         (TOWN_INFO_Y + 104 + 1)   // text 1 px lower (user's fine tuning)
 #define CHARINFO_NAME_BOX_WIDTH     202
 #define CHARINFO_NAME_BOX_HEIGHT    25
 #define CHARINFO_NICK_BOX_X         CHARINFO_NAME_BOX_X
@@ -373,10 +373,10 @@ static SGPFont GetCharInfoFont()
 #define CHARINFO_ASSIGN_HEADER_Y        (TOWN_INFO_Y + 3)
 #define CHARINFO_CONTRACT_HEADER_Y      (TOWN_INFO_Y + 3)
 #define CHARINFO_TABLE_ROW_HEIGHT       20
-// user's fine tuning of the texts against the graphic: header words 2 px
-// higher than centred in their header (the Contract hot spot stays on the
-// header), values 2 px lower than centred in their row
-#define CHARINFO_TABLE_HEADER_TEXT_DY   (-2)
+// user's fine tuning of the texts against the graphic: header words centred
+// in their header (the Contract hot spot stays on the header), values 2 px
+// lower than centred in their row
+#define CHARINFO_TABLE_HEADER_TEXT_DY   0
 #define CHARINFO_TABLE_VALUE_TEXT_DY    2
 #define CHARINFO_ASSIGN_ROW_Y(row)      (TOWN_INFO_Y + 28 + (row) * 24 + CHARINFO_TABLE_VALUE_TEXT_DY)
 #define CHARINFO_CONTRACT_ROW_Y(row)    (TOWN_INFO_Y + 28 + (row) * 24 + CHARINFO_TABLE_VALUE_TEXT_DY)
@@ -407,9 +407,9 @@ static SGPFont GetCharInfoFont()
 // value boxes (x 511-578), one row each for health and morale.
 #define CHARINFO_LABEL_X            (TOWN_INFO_X + 454 + 2)   // labels 2 px further right (user's fine tuning)
 #define CHARINFO_LABEL_WIDTH        55
-// rows of the boxes at y 82 / 107; texts 1 px lower (user's fine tuning)
-#define CHARINFO_HEALTH_ROW_Y       (TOWN_INFO_Y + 82 + 1)
-#define CHARINFO_MORALE_ROW_Y       (TOWN_INFO_Y + 107 + 1)
+// rows of the boxes at y 82 / 107; texts 2 px lower (user's fine tuning)
+#define CHARINFO_HEALTH_ROW_Y       (TOWN_INFO_Y + 82 + 2)
+#define CHARINFO_MORALE_ROW_Y       (TOWN_INFO_Y + 107 + 2)
 #define CHARINFO_ROW_HEIGHT         20
 #define CHARINFO_HEALTH_BOX_X       (TOWN_INFO_X + 511)
 #define CHARINFO_HEALTH_BOX_WIDTH   68
