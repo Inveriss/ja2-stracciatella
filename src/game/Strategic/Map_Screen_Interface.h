@@ -39,7 +39,9 @@
 #define MAX_CHARACTER_COUNT 20
 
 // map screen font
-#define MAP_SCREEN_FONT BLOCKFONT2
+// (team list, green popup menus and their placement): FONT_STRATEGIC_GENERAL
+// on the 1366x768 interface, BLOCKFONT2 otherwise -- see StrategicGeneralFont()
+#define MAP_SCREEN_FONT StrategicGeneralFont()
 
 // characterlist regions
 // The team list (newgoldpiece3_*) starts at MAP_SCREEN_Y + 107; on the

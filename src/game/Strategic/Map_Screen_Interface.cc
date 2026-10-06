@@ -3428,7 +3428,7 @@ void DisplaySoldierUpdateBox( )
 		BltVideoObject( guiSAVEBUFFER , hBackGroundHandle, 19, iX - 4 + TACT_UPDATE_MERC_FACE_X_WIDTH,  iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y+3);
 
 		// ATE: Display string for time compression
-		DisplayWrappedString(iX, iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + 5 + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y + 3, iUpdatePanelWidth, 0, MAP_SCREEN_FONT, FONT_WHITE, gzLateLocalizedString[STR_LATE_49], FONT_BLACK, CENTER_JUSTIFIED);
+		DisplayWrappedString(iX, iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + 5 + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y + 3, iUpdatePanelWidth, 0, BLOCKFONT2, FONT_WHITE, gzLateLocalizedString[STR_LATE_49], FONT_BLACK, CENTER_JUSTIFIED);
 	}
 	else
 	{
@@ -3436,7 +3436,7 @@ void DisplaySoldierUpdateBox( )
 		BltVideoObject( guiSAVEBUFFER , hBackGroundHandle, 19, iX - 4 , iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y+3);
 
 		// ATE: Display string for time compression
-		DisplayWrappedString(iX, iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + 5 + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y + 3, iUpdatePanelWidth, 0, MAP_SCREEN_FONT, FONT_WHITE, gzLateLocalizedString[STR_LATE_49], FONT_BLACK, CENTER_JUSTIFIED);
+		DisplayWrappedString(iX, iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + 5 + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y + 3, iUpdatePanelWidth, 0, BLOCKFONT2, FONT_WHITE, gzLateLocalizedString[STR_LATE_49], FONT_BLACK, CENTER_JUSTIFIED);
 	}
 
 	// now wrap the border
@@ -3456,7 +3456,7 @@ void DisplaySoldierUpdateBox( )
 	}
 
 	//Display the reason for the update box
-	DisplayWrappedString(iX, iY + (fFourWideMode ? 6 : 3), iUpdatePanelWidth, 0, MAP_SCREEN_FONT, FONT_WHITE, pUpdateMercStrings[iReasonForSoldierUpDate], FONT_BLACK, CENTER_JUSTIFIED);
+	DisplayWrappedString(iX, iY + (fFourWideMode ? 6 : 3), iUpdatePanelWidth, 0, BLOCKFONT2, FONT_WHITE, pUpdateMercStrings[iReasonForSoldierUpDate], FONT_BLACK, CENTER_JUSTIFIED);
 
 	SetFontDestBuffer(FRAME_BUFFER);
 
@@ -3473,7 +3473,7 @@ static void MakeButton(UINT idx, INT16 x, INT16 y, GUI_CALLBACK click, const ST:
 {
 	GUIButtonRef const btn = QuickCreateButtonImg(INTERFACEDIR "/group_confirm_tactical.sti", 7, 8, x, y, MSYS_PRIORITY_HIGHEST - 1, click);
 	guiUpdatePanelButtons[idx] = btn;
-	btn->SpecifyGeneralTextAttributes(text, MAP_SCREEN_FONT, FONT_MCOLOR_BLACK, FONT_BLACK);
+	btn->SpecifyGeneralTextAttributes(text, BLOCKFONT2, FONT_MCOLOR_BLACK, FONT_BLACK);
 	btn->SetFastHelpText(help_text);
 }
 

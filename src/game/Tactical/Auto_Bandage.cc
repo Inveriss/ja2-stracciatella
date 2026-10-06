@@ -766,7 +766,7 @@ static void MakeButton(UINT idx, INT16 x, INT16 y, const ST::string& text)
 	GUIButtonRef const btn = QuickCreateButtonImg(INTERFACEDIR "/group_confirm_tactical.sti", 7, 8, x, y,
 							MSYS_PRIORITY_HIGHEST - 1, StopAutoBandageButtonCallback);
 	iEndAutoBandageButton[idx] = btn;
-	btn->SpecifyGeneralTextAttributes(text, MAP_SCREEN_FONT, FONT_MCOLOR_BLACK, FONT_BLACK);
+	btn->SpecifyGeneralTextAttributes(text, BLOCKFONT2, FONT_MCOLOR_BLACK, FONT_BLACK);
 }
 
 

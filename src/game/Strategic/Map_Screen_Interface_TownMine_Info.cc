@@ -130,7 +130,7 @@ no_mine:
 
 		AddItemsInSectorToBox(box);
 
-		SetBoxFont(                     box, BLOCKFONT2);
+		SetBoxFont(                     box, StrategicGeneralFont());
 		SetBoxHighLight(                box, FONT_WHITE);
 		SetBoxSecondColumnForeground(   box, FONT_WHITE);
 		SetBoxSecondColumnBackground(   box, FONT_BLACK);
@@ -476,7 +476,7 @@ static void MakeButton(UINT idx, const ST::string& text, INT16 x, INT16 y, GUI_C
 {
 	BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/mapinvbtns.sti", idx, idx + 2);
 	guiMapButtonInventoryImage[idx] = img;
-	GUIButtonRef const btn = CreateIconAndTextButton(img, text, BLOCKFONT2, FONT_WHITE, FONT_BLACK, FONT_WHITE, FONT_BLACK, x, y, MSYS_PRIORITY_HIGHEST - 1, click);
+	GUIButtonRef const btn = CreateIconAndTextButton(img, text, StrategicGeneralFont(), FONT_WHITE, FONT_BLACK, FONT_WHITE, FONT_BLACK, x, y, MSYS_PRIORITY_HIGHEST - 1, click);
 	guiMapButtonInventory[idx] = btn;
 }
 

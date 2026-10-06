@@ -9,6 +9,7 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "Logger.h"
+#include "UILayout.h"
 
 
 SGPFont gp10PointArial;
@@ -29,6 +30,7 @@ SGPFont gpMapInvBigFont;
 SGPFont gpMapInvBigCountFont;
 SGPFont gpSecInvBigCountFont;
 SGPFont gpCharInfoFont;
+SGPFont gpStrategicGeneralFont;
 SGPFont gpCompFont;
 SGPFont gpLargeFontType1;
 SGPFont gpSmallCompFont;
@@ -41,6 +43,33 @@ SGPFont gpHugeFont;
 
 
 static void CreateFontPaletteTables(SGPFont);
+
+
+// An optional font drawn in BLOCKFONT2's colours (see InitializeFonts()):
+// nullptr, logged, when the file (or the PNG next to it) is missing or
+// broken. BLOCKFONT2 must be loaded already.
+static SGPFont LoadOptionalFontInBlockFont2Colours(char const* const file)
+{
+	if (GCM->getPNGReplacement(file).empty() && !GCM->doesGameResExists(file)) return nullptr;
+	try
+	{
+		SGPFont const font = LoadFontFile(file);
+		font->ReplacePalette(gpBlockyFont2->Palette());
+		CreateFontPaletteTables(font);
+		return font;
+	}
+	catch (std::exception const& e)
+	{
+		SLOGE("Cannot use {}, keeping blockfont2: {}", file, e.what());
+		return nullptr;
+	}
+}
+
+
+SGPFont StrategicGeneralFont()
+{
+	return g_ui.isExtraWideStrategicScreen() && gpStrategicGeneralFont ? gpStrategicGeneralFont : gpBlockyFont2;
+}
 
 
 void InitializeFonts(void)
@@ -71,29 +100,13 @@ void InitializeFonts(void)
 	M(gpSmallFontType1,        FONTSDIR "/smallfont1.sti");
 	M(gpTinyFontType1,         FONTSDIR "/tinyfont1.sti");
 
-	// Optional: only the 1366x768 interface uses it, and it keeps BLOCKFONT2
+	// Optional: only the 1366x768 interface uses them, and it keeps BLOCKFONT2
 	// when the file (or the PNG next to it) is missing or broken. Drawn in
 	// BLOCKFONT2's colours: the text colours are indices into the font's own
 	// palette, so its palette is replaced with BLOCKFONT2's -- only the glyph
 	// shapes come from the file.
-	gpCharInfoFont = nullptr;
-	{
-		char const* const file = FONTSDIR "/font_charinfo.sti";
-		if (!GCM->getPNGReplacement(file).empty() || GCM->doesGameResExists(file))
-		{
-			try
-			{
-				gpCharInfoFont = LoadFontFile(file);
-				gpCharInfoFont->ReplacePalette(gpBlockyFont2->Palette());
-				CreateFontPaletteTables(gpCharInfoFont);
-			}
-			catch (std::exception const& e)
-			{
-				SLOGE("Cannot use {}, the character info panel keeps blockfont2: {}", file, e.what());
-				gpCharInfoFont = nullptr;
-			}
-		}
-	}
+	gpCharInfoFont         = LoadOptionalFontInBlockFont2Colours(FONTSDIR "/font_charinfo.sti");
+	gpStrategicGeneralFont = LoadOptionalFontInBlockFont2Colours(FONTSDIR "/font_strategic_general.sti");
 
 	if(GameMode::getInstance()->isEditorMode() && isEnglishVersion())
 	{

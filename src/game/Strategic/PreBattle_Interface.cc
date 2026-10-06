@@ -863,7 +863,7 @@ void RenderPreBattleInterface()
 		MPrintCentered(227, 36, 27, str);
 		SetFontShadow(FONT_NEARBLACK);
 
-		SetFont(BLOCKFONT2);
+		SetFont(StrategicGeneralFont());
 
 		// Print the participants of the battle
 		// |  NAME  | ASSIGN |  COND  |   HP   |   BP   |

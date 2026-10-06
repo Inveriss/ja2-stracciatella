@@ -1380,11 +1380,11 @@ static void RenderAutoResolve(void)
 					break;
 			}
 			//Render the results of the battle.
-			SetFont( BLOCKFONT2 );
+			SetFont( StrategicGeneralFont() );
 			xp = gpAR->sCenterStartX + 12;
 			yp = MAP_SCREEN_Y + 218 + gpAR->bVerticalOffset;
 			BltVideoObject( FRAME_BUFFER, gpAR->iIndent, 0, xp, yp);
-			xp = gpAR->sCenterStartX + 70 - StringPixLength(BattleResult, BLOCKFONT2) / 2;
+			xp = gpAR->sCenterStartX + 70 - StringPixLength(BattleResult, StrategicGeneralFont()) / 2;
 			yp = MAP_SCREEN_Y + 227 + gpAR->bVerticalOffset;
 			MPrint(xp, yp, BattleResult);
 
@@ -1411,7 +1411,7 @@ static void MakeButton(UINT idx, INT16 x, INT16 y, GUI_CALLBACK click, BOOLEAN h
 {
 	GUIButtonRef const btn = QuickCreateButton(gpAR->iButtonImage[idx], x, y, MSYS_PRIORITY_HIGH, std::move(click));
 	gpAR->iButton[idx] = btn;
-	if (!text.empty()) btn->SpecifyGeneralTextAttributes(text, BLOCKFONT2, 169, FONT_NEARBLACK);
+	if (!text.empty()) btn->SpecifyGeneralTextAttributes(text, StrategicGeneralFont(), 169, FONT_NEARBLACK);
 	if (hide) btn->Hide();
 }
 
