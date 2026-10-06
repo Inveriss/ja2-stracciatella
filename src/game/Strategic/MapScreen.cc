@@ -267,12 +267,12 @@ static SGPFont GetCharInfoFont()
 #define CHARINFO_PORTRAIT_Y         (TOWN_INFO_Y + 5)
 #define CHARINFO_PORTRAIT_WIDTH     106
 #define CHARINFO_PORTRAIT_HEIGHT    122
-// ... and two 21x21 windows below-right of the bars for the previous/next
+// ... and two 23x23 windows below-right of the bars for the previous/next
 // merc arrows (CreateDestroyMapCharacterScrollButtons()).
 #define CHARINFO_ARROW_X            (TOWN_INFO_X + 168)
-#define CHARINFO_ARROW_UP_Y         (TOWN_INFO_Y + 122)
-#define CHARINFO_ARROW_DOWN_Y       (TOWN_INFO_Y + 147)
-#define CHARINFO_ARROW_SIZE         21
+#define CHARINFO_ARROW_UP_Y         (TOWN_INFO_Y + 121)
+#define CHARINFO_ARROW_DOWN_Y       (TOWN_INFO_Y + 146)
+#define CHARINFO_ARROW_SIZE         23
 
 // Click region of the face -- on the 1366x768 interface the portrait window.
 #define PLAYER_INFO_FACE_START_X    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_X : MAP_SCREEN_X + 9)
@@ -403,7 +403,7 @@ static SGPFont GetCharInfoFont()
 // 1366x768 interface (isExtraWideStrategicScreen()): right of the arrows the
 // character info panel has a label area (x 190-250) and two black value
 // boxes (x 255-313), one row each for health and morale.
-#define CHARINFO_LABEL_X            (TOWN_INFO_X + 190)
+#define CHARINFO_LABEL_X            (TOWN_INFO_X + 190 + 2)   // labels 2 px further right (user's fine tuning)
 #define CHARINFO_LABEL_WIDTH        61
 // rows of the boxes at y 124 / 147; texts 1 px lower (user's fine tuning)
 #define CHARINFO_HEALTH_ROW_Y       (TOWN_INFO_Y + 124 + 1)
@@ -7194,7 +7194,7 @@ static void CreateDestroyMapCharacterScrollButtons(void)
 	{
 		const INT16 prio = MSYS_PRIORITY_HIGHEST - 5;
 
-		// 1366x768: the panel's two 21x21 arrow windows, with the arrows of
+		// 1366x768: the panel's two 23x23 arrow windows, with the arrows of
 		// mapinv_done_buttons.sti (4/5 up ready/pressed, 6/7 down) -- the
 		// old arrows if that file has no such sub-images.
 		if (g_ui.isExtraWideStrategicScreen() &&
