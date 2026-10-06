@@ -15,24 +15,24 @@
 #define BAR_INFO_Y (MAP_SCREEN_Y + 61)
 
 // 1366x768 interface (UILayout::isExtraWideStrategicScreen()): the character
-// info panel (charinfo_1366x768, drawn at the canvas' 0,0) has three 6x122
+// info panel (charinfo_1366x768, drawn at the canvas' 0,0) has three 5x122
 // windows right of the portrait for the life, breath and morale bars --
 // see DrawSoldierUIBarsTall() (Interface_Utils.h).
 #define BAR_TALL_LIFE_X   (MAP_SCREEN_X + 122)
-#define BAR_TALL_BREATH_X (MAP_SCREEN_X + 139)
-#define BAR_TALL_MORALE_X (MAP_SCREEN_X + 156)
+#define BAR_TALL_BREATH_X (MAP_SCREEN_X + 138)
+#define BAR_TALL_MORALE_X (MAP_SCREEN_X + 154)
 #define BAR_TALL_TOP_Y    (MAP_SCREEN_Y + 5)
-#define BAR_TALL_WIDTH    6
+#define BAR_TALL_WIDTH    5
 #define BAR_TALL_HEIGHT   122
 
 // merc icon position -- on the 1366x768 interface (charinfo_1366x768 at the
 // canvas' 0,0) centred in the contract table's three 12x12 icon squares
-// (x 328, y 105/128/151)
-#define CHAR_ICON_CONTRACT_Y (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_Y + 106 : MAP_SCREEN_Y + 64)
-#define CHAR_ICON_X (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_X + 329 : MAP_SCREEN_X + 187)
+// (x 325, y 32/56/80)
+#define CHAR_ICON_CONTRACT_Y (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_Y + 33 : MAP_SCREEN_Y + 64)
+#define CHAR_ICON_X (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_X + 326 : MAP_SCREEN_X + 187)
 #define CHAR_ICON_WIDTH 10
 #define CHAR_ICON_HEIGHT 10
-#define CHAR_ICON_SPACING (g_ui.isExtraWideStrategicScreen() ? 23 : 13)
+#define CHAR_ICON_SPACING (g_ui.isExtraWideStrategicScreen() ? 24 : 13)
 
 // max number of characters
 //Character List Length

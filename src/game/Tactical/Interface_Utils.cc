@@ -17,6 +17,7 @@
 #include "Video.h"
 #include "VObject.h"
 #include "VSurface.h"
+#include <algorithm>
 #include <stdexcept>
 #include <string_theory/format>
 #include <string_theory/string>
@@ -178,40 +179,44 @@ void DrawSoldierUIBars(SOLDIERTYPE const& s, INT16 const sXPos, INT16 const sYPo
 }
 
 
-// Tall 6 px bars (1366x768 character info panel): one colour per column,
+// Tall 5 px bars (1366x768 character info panel): one colour per column,
 // left to right; the life, breath and morale ones are the user's design
-// (bars image, columns dark-mid-light-light-mid-dark), the others are made
-// the same way from the 3 px bars' shadow and colour above.
-static UINT32 const TALL_LIFE_BAR[6]     = { FROMRGB(175,   0,   0), FROMRGB(186,   0,   0), FROMRGB(205,   0,   0), FROMRGB(205,   0,   0), FROMRGB(186,   0,   0), FROMRGB(175,   0,   0) };
-static UINT32 const TALL_BANDAGE_BAR[6]  = { BANDAGE_BAR_SHADOW, FROMRGB(189,  96,  96), BANDAGE_BAR, BANDAGE_BAR, FROMRGB(189,  96,  96), BANDAGE_BAR_SHADOW };
-static UINT32 const TALL_BLEEDING_BAR[6] = { BLEEDING_BAR_SHADOW, FROMRGB(184, 184,  40), BLEEDING_BAR, BLEEDING_BAR, FROMRGB(184, 184,  40), BLEEDING_BAR_SHADOW };
-static UINT32 const TALL_BREATH_BAR[6]   = { FROMRGB(  8,  12, 110), FROMRGB(  8,  12, 128), FROMRGB(  8,  12, 159), FROMRGB(  8,  12, 159), FROMRGB(  8,  12, 128), FROMRGB(  8,  12, 110) };
-static UINT32 const TALL_MAX_BREATH[6]   = { CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH };
-static UINT32 const TALL_BREATH_BACK[6]  = { BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK };
-static UINT32 const TALL_MORALE_BAR[6]   = { FROMRGB(  8, 134,   8), FROMRGB(  8, 154,   8), FROMRGB(  8, 174,   8), FROMRGB(  8, 174,   8), FROMRGB(  8, 154,   8), FROMRGB(  8, 134,   8) };
+// (bars image, columns dark-mid-light-mid-dark), the others are made the
+// same way from the 3 px bars' shadow and colour above.
+static UINT32 const TALL_LIFE_BAR[5]     = { FROMRGB(175,   0,   0), FROMRGB(186,   0,   0), FROMRGB(205,   0,   0), FROMRGB(186,   0,   0), FROMRGB(175,   0,   0) };
+static UINT32 const TALL_BANDAGE_BAR[5]  = { BANDAGE_BAR_SHADOW, FROMRGB(189,  96,  96), BANDAGE_BAR, FROMRGB(189,  96,  96), BANDAGE_BAR_SHADOW };
+static UINT32 const TALL_BLEEDING_BAR[5] = { BLEEDING_BAR_SHADOW, FROMRGB(184, 184,  40), BLEEDING_BAR, FROMRGB(184, 184,  40), BLEEDING_BAR_SHADOW };
+static UINT32 const TALL_BREATH_BAR[5]   = { FROMRGB(  8,  12, 110), FROMRGB(  8,  12, 128), FROMRGB(  8,  12, 159), FROMRGB(  8,  12, 128), FROMRGB(  8,  12, 110) };
+static UINT32 const TALL_MAX_BREATH[5]   = { CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH };
+static UINT32 const TALL_BREATH_BACK[5]  = { BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK };
+static UINT32 const TALL_MORALE_BAR[5]   = { FROMRGB(  8, 134,   8), FROMRGB(  8, 154,   8), FROMRGB(  8, 174,   8), FROMRGB(  8, 154,   8), FROMRGB(  8, 134,   8) };
 
 
 // One segment of a tall bar: `height` rows ending at row `bottom`
-// (inclusive), 6 columns from `x`. Returns the row above it, where the next
-// segment starts.
-static INT16 DrawTallBarSegment(SGPVSurface* const buffer, INT16 const x, INT16 const bottom, INT16 const height, UINT32 const (&colours)[6])
+// (inclusive), `width` columns from `x`, coloured with the middle `width`
+// of the 5 column colours (all 5 for a 5 px bar; a 3 px one drops the two
+// outer ones). Returns the row above it, where the next segment starts.
+static INT16 DrawTallBarSegment(SGPVSurface* const buffer, INT16 const x, INT16 const bottom, INT16 const width, INT16 const height, UINT32 const (&colours)[5])
 {
 	if (height <= 0) return bottom;
-	INT16 const top = bottom - height + 1;
-	for (INT16 i = 0; i != 6; ++i)
+	INT16 const top   = bottom - height + 1;
+	INT16 const first = (5 - width) / 2;
+	for (INT16 i = 0; i != width; ++i)
 	{
-		ColorFillVideoSurfaceArea(buffer, x + i, top, x + i + 1, bottom + 1, Get16BPPColor(colours[i]));
+		ColorFillVideoSurfaceArea(buffer, x + i, top, x + i + 1, bottom + 1, Get16BPPColor(colours[first + i]));
 	}
 	return top - 1;
 }
 
 
-void DrawSoldierUIBarsTall(SOLDIERTYPE const& s, INT16 const life_x, INT16 const breath_x, INT16 const morale_x, INT16 const top_y, INT16 const height, SGPVSurface* const buffer)
+void DrawSoldierUIBarsTall(SOLDIERTYPE const& s, INT16 const life_x, INT16 const breath_x, INT16 const morale_x, INT16 const top_y, INT16 const width_in, INT16 const height, SGPVSurface* const buffer)
 {
+	INT16 const width = std::clamp<INT16>(width_in, 1, 5);
+
 	// Erase what was there: the windows are black in the saved background.
 	for (INT16 const x : { life_x, breath_x, morale_x })
 	{
-		RestoreExternBackgroundRect(x, top_y, 6, height);
+		RestoreExternBackgroundRect(x, top_y, width, height);
 	}
 
 	if (s.bLife == 0) return;
@@ -220,24 +225,24 @@ void DrawSoldierUIBarsTall(SOLDIERTYPE const& s, INT16 const life_x, INT16 const
 	auto const rows = [height](INT32 const percent) { return static_cast<INT16>(height * percent / 100); };
 
 	// life, then bandaged and bleeding above it -- as DrawLifeUIBar()
-	INT16 y = DrawTallBarSegment(buffer, life_x, bottom, rows(s.bLife), TALL_LIFE_BAR);
+	INT16 y = DrawTallBarSegment(buffer, life_x, bottom, width, rows(s.bLife), TALL_LIFE_BAR);
 	INT32 const bandage = s.bLifeMax - s.bLife - s.bBleeding;
-	y = DrawTallBarSegment(buffer, life_x, y, rows(bandage), TALL_BANDAGE_BAR);
-	DrawTallBarSegment(buffer, life_x, y, rows(s.bBleeding), TALL_BLEEDING_BAR);
+	y = DrawTallBarSegment(buffer, life_x, y, width, rows(bandage), TALL_BANDAGE_BAR);
+	DrawTallBarSegment(buffer, life_x, y, width, rows(s.bBleeding), TALL_BLEEDING_BAR);
 
 	if (s.uiStatusFlags & SOLDIER_ROBOT) return;
 
 	// breath -- as DrawBreathUIBar(): the old max, the current max, then breath
 	if (s.bBreathMax <= 97)
 	{
-		DrawTallBarSegment(buffer, breath_x, bottom, rows(s.bBreathMax + 3), TALL_BREATH_BACK);
+		DrawTallBarSegment(buffer, breath_x, bottom, width, rows(s.bBreathMax + 3), TALL_BREATH_BACK);
 	}
-	DrawTallBarSegment(buffer, breath_x, bottom, rows(s.bBreathMax), TALL_MAX_BREATH);
-	DrawTallBarSegment(buffer, breath_x, bottom, rows(s.bBreath), TALL_BREATH_BAR);
+	DrawTallBarSegment(buffer, breath_x, bottom, width, rows(s.bBreathMax), TALL_MAX_BREATH);
+	DrawTallBarSegment(buffer, breath_x, bottom, width, rows(s.bBreath), TALL_BREATH_BAR);
 
 	if (s.uiStatusFlags & SOLDIER_VEHICLE) return;
 
-	DrawTallBarSegment(buffer, morale_x, bottom, rows(s.bMorale), TALL_MORALE_BAR);
+	DrawTallBarSegment(buffer, morale_x, bottom, width, rows(s.bMorale), TALL_MORALE_BAR);
 }
 
 
