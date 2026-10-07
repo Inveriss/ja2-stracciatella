@@ -179,28 +179,28 @@ void DrawSoldierUIBars(SOLDIERTYPE const& s, INT16 const sXPos, INT16 const sYPo
 }
 
 
-// Tall 5 px bars (1366x768 character info panel): one colour per column,
+// Tall 6 px bars (1366x768 character info panel): one colour per column,
 // left to right; the life, breath and morale ones are the user's design
-// (bars image, columns dark-mid-light-mid-dark), the others are made the
-// same way from the 3 px bars' shadow and colour above.
-static UINT32 const TALL_LIFE_BAR[5]     = { FROMRGB(175,   0,   0), FROMRGB(186,   0,   0), FROMRGB(205,   0,   0), FROMRGB(186,   0,   0), FROMRGB(175,   0,   0) };
-static UINT32 const TALL_BANDAGE_BAR[5]  = { BANDAGE_BAR_SHADOW, FROMRGB(189,  96,  96), BANDAGE_BAR, FROMRGB(189,  96,  96), BANDAGE_BAR_SHADOW };
-static UINT32 const TALL_BLEEDING_BAR[5] = { BLEEDING_BAR_SHADOW, FROMRGB(184, 184,  40), BLEEDING_BAR, FROMRGB(184, 184,  40), BLEEDING_BAR_SHADOW };
-static UINT32 const TALL_BREATH_BAR[5]   = { FROMRGB(  8,  12, 110), FROMRGB(  8,  12, 128), FROMRGB(  8,  12, 159), FROMRGB(  8,  12, 128), FROMRGB(  8,  12, 110) };
-static UINT32 const TALL_MAX_BREATH[5]   = { CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH };
-static UINT32 const TALL_BREATH_BACK[5]  = { BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK };
-static UINT32 const TALL_MORALE_BAR[5]   = { FROMRGB(  8, 134,   8), FROMRGB(  8, 154,   8), FROMRGB(  8, 174,   8), FROMRGB(  8, 154,   8), FROMRGB(  8, 134,   8) };
+// (bars image, columns dark-mid-light-light-mid-dark), the others are made
+// the same way from the 3 px bars' shadow and colour above.
+static UINT32 const TALL_LIFE_BAR[6]     = { FROMRGB(175,   0,   0), FROMRGB(186,   0,   0), FROMRGB(205,   0,   0), FROMRGB(205,   0,   0), FROMRGB(186,   0,   0), FROMRGB(175,   0,   0) };
+static UINT32 const TALL_BANDAGE_BAR[6]  = { BANDAGE_BAR_SHADOW, FROMRGB(189,  96,  96), BANDAGE_BAR, BANDAGE_BAR, FROMRGB(189,  96,  96), BANDAGE_BAR_SHADOW };
+static UINT32 const TALL_BLEEDING_BAR[6] = { BLEEDING_BAR_SHADOW, FROMRGB(184, 184,  40), BLEEDING_BAR, BLEEDING_BAR, FROMRGB(184, 184,  40), BLEEDING_BAR_SHADOW };
+static UINT32 const TALL_BREATH_BAR[6]   = { FROMRGB(  8,  12, 110), FROMRGB(  8,  12, 128), FROMRGB(  8,  12, 159), FROMRGB(  8,  12, 159), FROMRGB(  8,  12, 128), FROMRGB(  8,  12, 110) };
+static UINT32 const TALL_MAX_BREATH[6]   = { CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH, CURR_MAX_BREATH };
+static UINT32 const TALL_BREATH_BACK[6]  = { BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK, BREATH_BAR_SHAD_BACK };
+static UINT32 const TALL_MORALE_BAR[6]   = { FROMRGB(  8, 134,   8), FROMRGB(  8, 154,   8), FROMRGB(  8, 174,   8), FROMRGB(  8, 174,   8), FROMRGB(  8, 154,   8), FROMRGB(  8, 134,   8) };
 
 
 // One segment of a tall bar: `height` rows ending at row `bottom`
 // (inclusive), `width` columns from `x`, coloured with the middle `width`
-// of the 5 column colours (all 5 for a 5 px bar; a 3 px one drops the two
+// of the 6 column colours (all 6 for a 6 px bar; a 4 px one drops the two
 // outer ones). Returns the row above it, where the next segment starts.
-static INT16 DrawTallBarSegment(SGPVSurface* const buffer, INT16 const x, INT16 const bottom, INT16 const width, INT16 const height, UINT32 const (&colours)[5])
+static INT16 DrawTallBarSegment(SGPVSurface* const buffer, INT16 const x, INT16 const bottom, INT16 const width, INT16 const height, UINT32 const (&colours)[6])
 {
 	if (height <= 0) return bottom;
 	INT16 const top   = bottom - height + 1;
-	INT16 const first = (5 - width) / 2;
+	INT16 const first = (6 - width) / 2;
 	for (INT16 i = 0; i != width; ++i)
 	{
 		ColorFillVideoSurfaceArea(buffer, x + i, top, x + i + 1, bottom + 1, Get16BPPColor(colours[first + i]));
@@ -211,7 +211,7 @@ static INT16 DrawTallBarSegment(SGPVSurface* const buffer, INT16 const x, INT16 
 
 void DrawSoldierUIBarsTall(SOLDIERTYPE const& s, INT16 const life_x, INT16 const breath_x, INT16 const morale_x, INT16 const top_y, INT16 const width_in, INT16 const height, SGPVSurface* const buffer)
 {
-	INT16 const width = std::clamp<INT16>(width_in, 1, 5);
+	INT16 const width = std::clamp<INT16>(width_in, 1, 6);
 
 	// Erase what was there: the windows are black in the saved background.
 	for (INT16 const x : { life_x, breath_x, morale_x })

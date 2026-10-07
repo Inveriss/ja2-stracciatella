@@ -269,8 +269,8 @@ static SGPFont GetCharInfoFont()
 #define CHARINFO_PORTRAIT_HEIGHT    122
 // ... and two 27x30 windows side by side below the stat panels for the previous/next
 // merc arrows (CreateDestroyMapCharacterScrollButtons()).
-#define CHARINFO_ARROW_UP_X         (TOWN_INFO_X + 165)
-#define CHARINFO_ARROW_DOWN_X       (TOWN_INFO_X + 193)
+#define CHARINFO_ARROW_UP_X         (TOWN_INFO_X + 168)
+#define CHARINFO_ARROW_DOWN_X       (TOWN_INFO_X + 196)
 #define CHARINFO_ARROW_Y            (TOWN_INFO_Y + 101)
 #define CHARINFO_ARROW_WIDTH        27
 #define CHARINFO_ARROW_HEIGHT       30
@@ -300,17 +300,17 @@ static SGPFont GetCharInfoFont()
 
 
 // 1366x768 interface (isExtraWideStrategicScreen()): the character info
-// panel (charinfo_1366x768, 583x132) has two vertical stat panels above the
-// arrows, each a label area (wall at x 165 / 240) and a black value box
-// (x 206-234 / 281-309; attributes left, skills right). Five rows each: the
+// panel (charinfo_1366x768, 604x132) has two vertical stat panels above the
+// arrows, each a label area (wall at x 168 / 243) and a black value box
+// (x 209-237 / 284-312; attributes left, skills right). Five rows each: the
 // first 8 px below the panel's top, then every 18 px -- the 13 px tall
 // letters of FONT_CHARINFO plus a 5 px gap. Labels are left aligned 5 px
 // from their area's wall, values centred in their box.
 #define CHARINFO_STAT_ROW_Y(row)        (TOWN_INFO_Y + 8 + (row) * 18)
-#define CHARINFO_STAT_LEFT_LABEL_X      (TOWN_INFO_X + 165 + 5)
-#define CHARINFO_STAT_LEFT_VALUE_X      (TOWN_INFO_X + 206)
-#define CHARINFO_STAT_RIGHT_LABEL_X     (TOWN_INFO_X + 240 + 5)
-#define CHARINFO_STAT_RIGHT_VALUE_X     (TOWN_INFO_X + 281)
+#define CHARINFO_STAT_LEFT_LABEL_X      (TOWN_INFO_X + 168 + 5 + 1)   // 1 px further right (user's fine tuning)
+#define CHARINFO_STAT_LEFT_VALUE_X      (TOWN_INFO_X + 209)
+#define CHARINFO_STAT_RIGHT_LABEL_X     (TOWN_INFO_X + 243 + 5 + 1)
+#define CHARINFO_STAT_RIGHT_VALUE_X     (TOWN_INFO_X + 284)
 #define CHARINFO_STAT_WIDTH             29   // of each value box
 
 // char stat positions
@@ -343,9 +343,9 @@ static SGPFont GetCharInfoFont()
 // the bottom centre holds the full name as the profile has it, nickname in
 // quotes included ("Keith \"Blood\" Hanson" -- the default, unsplit mode);
 // there is no separate nickname box (PIC_NAME_* unused there).
-#define CHARINFO_NAME_BOX_X         (TOWN_INFO_X + 235)
+#define CHARINFO_NAME_BOX_X         (TOWN_INFO_X + 238)
 #define CHARINFO_NAME_BOX_Y         (TOWN_INFO_Y + 104 + 1)   // text 1 px lower (user's fine tuning)
-#define CHARINFO_NAME_BOX_WIDTH     202
+#define CHARINFO_NAME_BOX_WIDTH     207
 #define CHARINFO_NAME_BOX_HEIGHT    25
 #define CHARINFO_NICK_BOX_X         CHARINFO_NAME_BOX_X
 #define CHARINFO_NICK_BOX_Y         CHARINFO_NAME_BOX_Y
@@ -363,12 +363,13 @@ static SGPFont GetCharInfoFont()
 // 1366x768 interface (isExtraWideStrategicScreen()): the two tables side
 // by side at the character info panel's right end, each a 20 px wooden
 // header at y 3 and black value rows (y 28/52/76, 20 px) -- Contract left
-// (x 320-444, three rows that start with a 12x12 icon square, CHAR_ICON_X/
-// CONTRACT_Y in Map_Screen_Interface.h, their text right of it, x 338-443),
-// Assignment right (x 454-578, two rows).
-#define CHARINFO_CONTRACT_HEADER_X      (TOWN_INFO_X + 320)
-#define CHARINFO_ASSIGN_HEADER_X        (TOWN_INFO_X + 454)
-#define CHARINFO_TABLE_HEADER_WIDTH     125
+// (header x 319-451, three rows that start with a 12x12 icon square,
+// CHAR_ICON_X/CONTRACT_Y in Map_Screen_Interface.h, their text right of it,
+// x 341-451), Assignment right (header x 458-598, two rows x 463-598).
+#define CHARINFO_CONTRACT_HEADER_X      (TOWN_INFO_X + 319)
+#define CHARINFO_CONTRACT_HEADER_WIDTH  133
+#define CHARINFO_ASSIGN_HEADER_X        (TOWN_INFO_X + 458)
+#define CHARINFO_ASSIGN_HEADER_WIDTH    141
 #define CHARINFO_TABLE_HEADER_HEIGHT    20
 #define CHARINFO_ASSIGN_HEADER_Y        (TOWN_INFO_Y + 3)
 #define CHARINFO_CONTRACT_HEADER_Y      (TOWN_INFO_Y + 3)
@@ -380,10 +381,10 @@ static SGPFont GetCharInfoFont()
 #define CHARINFO_TABLE_VALUE_TEXT_DY    2
 #define CHARINFO_ASSIGN_ROW_Y(row)      (TOWN_INFO_Y + 28 + (row) * 24 + CHARINFO_TABLE_VALUE_TEXT_DY)
 #define CHARINFO_CONTRACT_ROW_Y(row)    (TOWN_INFO_Y + 28 + (row) * 24 + CHARINFO_TABLE_VALUE_TEXT_DY)
-#define CHARINFO_ASSIGN_BOX_X           (TOWN_INFO_X + 455)
-#define CHARINFO_ASSIGN_BOX_WIDTH       123
-#define CHARINFO_CONTRACT_TEXT_X        (TOWN_INFO_X + 338)
-#define CHARINFO_CONTRACT_TEXT_WIDTH    106
+#define CHARINFO_ASSIGN_BOX_X           (TOWN_INFO_X + 463)
+#define CHARINFO_ASSIGN_BOX_WIDTH       136
+#define CHARINFO_CONTRACT_TEXT_X        (TOWN_INFO_X + 341)
+#define CHARINFO_CONTRACT_TEXT_WIDTH    111
 
 #define CHAR_TIME_REMAINING_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_CONTRACT_TEXT_X : MAP_SCREEN_X + 207)
 #define CHAR_TIME_REMAINING_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_CONTRACT_ROW_Y(0) : MAP_SCREEN_Y + 65)
@@ -403,18 +404,19 @@ static SGPFont GetCharInfoFont()
 #define CHAR_ASSIGN_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_ASSIGN_BOX_WIDTH : 257 - 178)
 #define CHAR_ASSIGN_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_HEIGHT : 39 - 29)
 // 1366x768 interface (isExtraWideStrategicScreen()): below the Assignment
-// table the character info panel has a label area (x 454-508) and two black
-// value boxes (x 511-578), one row each for health and morale.
-#define CHARINFO_LABEL_X            (TOWN_INFO_X + 454 + 2)   // labels 2 px further right (user's fine tuning)
-#define CHARINFO_LABEL_WIDTH        55
+// table the character info panel has a label area (x 461-521) and two black
+// value boxes (x 524-599), one row each for health and energy (on this
+// interface energy replaces morale, see DrawCharacterInfo()).
+#define CHARINFO_LABEL_X            (TOWN_INFO_X + 461 + 2)   // labels 2 px further right (user's fine tuning)
+#define CHARINFO_LABEL_WIDTH        61
 // rows of the boxes at y 82 / 107; texts 2 px lower (user's fine tuning)
 #define CHARINFO_HEALTH_ROW_Y       (TOWN_INFO_Y + 82 + 2)
 #define CHARINFO_MORALE_ROW_Y       (TOWN_INFO_Y + 107 + 2)
 #define CHARINFO_ROW_HEIGHT         20
-#define CHARINFO_HEALTH_BOX_X       (TOWN_INFO_X + 511)
-#define CHARINFO_HEALTH_BOX_WIDTH   68
-#define CHARINFO_MORALE_BOX_X       (TOWN_INFO_X + 511)
-#define CHARINFO_MORALE_BOX_WIDTH   68
+#define CHARINFO_HEALTH_BOX_X       (TOWN_INFO_X + 524)
+#define CHARINFO_HEALTH_BOX_WIDTH   76
+#define CHARINFO_MORALE_BOX_X       (TOWN_INFO_X + 524)
+#define CHARINFO_MORALE_BOX_WIDTH   76
 
 // Health is centred horizontally only and drawn from CHAR_HP_Y down, so on
 // the 1366x768 interface CHAR_HP_Y is already the text's top row inside its
@@ -1424,10 +1426,14 @@ static void DrawCharacterInfo(SOLDIERTYPE const& s)
 		}
 	}
 
+	// 1366x768: energy (current/max breath, like health) instead of morale,
+	// kept up to date by HandleCharBarRender()
 	ST::string morale =
-		s.bAssignment == ASSIGNMENT_POW ? pPOWStrings[1] : // POW - morale unknown
-		s.bLife == 0                    ? ST::string() :
-		GetMoraleString(s);
+		s.bAssignment == ASSIGNMENT_POW                                  ? pPOWStrings[1] : // POW - morale/energy unknown
+		s.bLife == 0                                                     ? ST::string() :
+		!g_ui.isExtraWideStrategicScreen()                               ? GetMoraleString(s) :
+		IsMechanical(s)                                                  ? ST::string() :
+		ST::format("{}/{}", s.bBreath, s.bBreathMax);
 	DrawStringCentered(morale, CHAR_MORALE_X, CHAR_MORALE_Y, CHAR_MORALE_WID, CHAR_MORALE_HEI, CHAR_FONT);
 }
 
@@ -2077,7 +2083,7 @@ ScreenID MapScreenHandle(void)
 		{
 			// 1366x768: an invisible hot spot over the Contract table header,
 			// whose text RenderAttributeStringsForUpperLeftHandCorner() draws
-			giMapContractButton = CreateHotSpot(CHARINFO_CONTRACT_HEADER_X, CHARINFO_CONTRACT_HEADER_Y, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, MSYS_PRIORITY_HIGHEST - 5, ContractButtonCallback);
+			giMapContractButton = CreateHotSpot(CHARINFO_CONTRACT_HEADER_X, CHARINFO_CONTRACT_HEADER_Y, CHARINFO_CONTRACT_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, MSYS_PRIORITY_HIGHEST - 5, ContractButtonCallback);
 		}
 		else
 		{
@@ -4542,10 +4548,10 @@ static void RenderAttributeStringsForUpperLeftHandCorner(SGPVSurface* const uiBu
 		// 1366x768: the Assignment and Contract table headers. The Contract
 		// one is also the contract button (an invisible hot spot over it, see
 		// giMapContractButton), so it greys out with that button.
-		DrawStringCentered(pUpperLeftMapScreenStrings[0], CHARINFO_ASSIGN_HEADER_X, CHARINFO_ASSIGN_HEADER_Y + CHARINFO_TABLE_HEADER_TEXT_DY, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
+		DrawStringCentered(pUpperLeftMapScreenStrings[0], CHARINFO_ASSIGN_HEADER_X, CHARINFO_ASSIGN_HEADER_Y + CHARINFO_TABLE_HEADER_TEXT_DY, CHARINFO_ASSIGN_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
 		bool const contract_enabled = giMapContractButton && giMapContractButton->Enabled();
 		SetFontForeground(contract_enabled ? CHAR_TEXT_FONT_COLOR : FONT_GRAY4);
-		DrawStringCentered(pContractButtonString, CHARINFO_CONTRACT_HEADER_X, CHARINFO_CONTRACT_HEADER_Y + CHARINFO_TABLE_HEADER_TEXT_DY, CHARINFO_TABLE_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
+		DrawStringCentered(pContractButtonString, CHARINFO_CONTRACT_HEADER_X, CHARINFO_CONTRACT_HEADER_Y + CHARINFO_TABLE_HEADER_TEXT_DY, CHARINFO_CONTRACT_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
 		SetFontForeground(CHAR_TITLE_FONT_COLOR);
 	}
 	else
@@ -4581,10 +4587,10 @@ static void RenderAttributeStringsForUpperLeftHandCorner(SGPVSurface* const uiBu
 			DrawString(pShortAttributeStrings[iCounter + 5], MAP_SCREEN_X + 133, MAP_SCREEN_Y + 22 + iCounter * 10, CHAR_FONT);
 		}
 
-		// morale
+		// morale -- 1366x768: energy
 		if (g_ui.isExtraWideStrategicScreen())
 		{
-			DrawStringCentered(pUpperLeftMapScreenStrings[2], CHARINFO_LABEL_X, CHARINFO_MORALE_ROW_Y, CHARINFO_LABEL_WIDTH, CHARINFO_ROW_HEIGHT, CHAR_FONT);
+			DrawStringCentered(pMapScreenStatusStrings[1], CHARINFO_LABEL_X, CHARINFO_MORALE_ROW_Y, CHARINFO_LABEL_WIDTH, CHARINFO_ROW_HEIGHT, CHAR_FONT);
 		}
 		else
 		{
@@ -4773,6 +4779,8 @@ static void BlitBackgroundToSaveBuffer(void)
 		if (fMapRedrawn && g_ui.isWideStrategicScreen())
 		{
 			fTeamPanelDirty = TRUE;
+			// the 1366x768 character info panel also reaches 1 px over MBS
+			if (g_ui.isExtraWideStrategicScreen()) fCharacterInfoPanelDirty = TRUE;
 		}
 
 		// render team
@@ -5841,7 +5849,14 @@ static void RenderCharacterInfoBackground(void)
 	MarkAllBoxesAsAltered( );
 
 	// restore background for area
-	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, LEFT_COLUMN_BG_WIDTH, MAP_MIDDLE_BACKGROUND_TOP );
+	// The 1366x768 panel may be wider than the left column plus the free space
+	// (charinfo_1366x768 reaches 1 px over MBS on purpose): copy all of it.
+	UINT16 restore_w = LEFT_COLUMN_BG_WIDTH;
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		restore_w = std::max<UINT16>(restore_w, GetVObject(GetCharInfoGraphicsFilename())->SubregionProperties(0).usWidth);
+	}
+	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, restore_w, MAP_MIDDLE_BACKGROUND_TOP );
 
 }
 
@@ -6588,6 +6603,23 @@ static void HandleCharBarRender(void)
 
 	const SOLDIERTYPE* const s = GetSelectedInfoChar();
 	if (s == NULL) return;
+
+	// 1366x768: the character info panel shows the energy value (see
+	// DrawCharacterInfo()) -- redraw the panel whenever it changes, so it
+	// follows the merc's breath in real time like the bar does.
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		static SOLDIERTYPE const* shown_merc = nullptr;
+		static INT8 shown_breath     = -1;
+		static INT8 shown_breath_max = -1;
+		if (s != shown_merc || s->bBreath != shown_breath || s->bBreathMax != shown_breath_max)
+		{
+			shown_merc       = s;
+			shown_breath     = s->bBreath;
+			shown_breath_max = s->bBreathMax;
+			fCharacterInfoPanelDirty = TRUE;
+		}
+	}
 
 	if (s->bLife       != 0               &&
 			s->bAssignment != ASSIGNMENT_DEAD &&

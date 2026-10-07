@@ -12,7 +12,7 @@
 void DrawSoldierUIBars(SOLDIERTYPE const&, INT16 sXPos, INT16 sYPos, BOOLEAN fErase, SGPVSurface* buffer);
 
 // The 1366x768 character info panel's tall bars: life, breath and morale,
-// `width` (1-5) px wide and `height` px tall each, in their own windows
+// `width` (1-6) px wide and `height` px tall each, in their own windows
 // (left columns life_x/breath_x/morale_x, top row top_y), which are black in
 // the saved background -- erased from it, then drawn into `buffer`.
 void DrawSoldierUIBarsTall(SOLDIERTYPE const&, INT16 life_x, INT16 breath_x, INT16 morale_x, INT16 top_y, INT16 width, INT16 height, SGPVSurface* buffer);
