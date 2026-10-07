@@ -131,7 +131,8 @@ static SGPFont GetCharInfoFont()
 #define TOWN_INFO_Y           (MAP_SCREEN_Y + (g_ui.isExtraWideStrategicScreen() ? 0 : 1))
 
 #define PLAYER_INFO_X         (MAP_SCREEN_X + 0)
-#define PLAYER_INFO_Y         (MAP_SCREEN_Y + 107)
+// the merc inventory's top -- MAP_INV_SHIFT_Y lower on the 1366x768 interface
+#define PLAYER_INFO_Y         (MAP_SCREEN_Y + 107 + MAP_INV_SHIFT_Y)
 
 // item description
 #define MAP_ITEMDESC_START_X PLAYER_INFO_X
@@ -191,40 +192,40 @@ static SGPFont GetCharInfoFont()
 // mode (..._BIG, mapinv_big_1280_720/768.sti, starts equal to the normal one); the
 // plain names pick the current mode's (IsMapInvBigImages()).
 #define MAP_ARMOR_LABEL_X_NORMAL (MAP_SCREEN_X + 216)
-#define MAP_ARMOR_LABEL_Y_NORMAL (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_LABEL_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 195)
 #define MAP_ARMOR_X_NORMAL (MAP_SCREEN_X + 201)
-#define MAP_ARMOR_Y_NORMAL (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 195)
 #define MAP_ARMOR_W_NORMAL 45
 #define MAP_ARMOR_H_NORMAL 29
 #define MAP_WEIGHT_LABEL_X_NORMAL (MAP_SCREEN_X + 13)
-#define MAP_WEIGHT_LABEL_Y_NORMAL (MAP_SCREEN_Y + 194)
+#define MAP_WEIGHT_LABEL_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 194)
 #define MAP_WEIGHT_X_NORMAL (MAP_SCREEN_X + -3)
-#define MAP_WEIGHT_Y_NORMAL (MAP_SCREEN_Y + 196)
+#define MAP_WEIGHT_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 196)
 #define MAP_WEIGHT_W_NORMAL 45
 #define MAP_WEIGHT_H_NORMAL 29
 #define MAP_CAMO_LABEL_X_NORMAL (MAP_SCREEN_X + 17)
-#define MAP_CAMO_LABEL_Y_NORMAL (MAP_SCREEN_Y + 232)
+#define MAP_CAMO_LABEL_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 232)
 #define MAP_CAMO_X_NORMAL (MAP_SCREEN_X + -3)
-#define MAP_CAMO_Y_NORMAL (MAP_SCREEN_Y + 234)
+#define MAP_CAMO_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 234)
 #define MAP_CAMO_W_NORMAL 45
 #define MAP_CAMO_H_NORMAL 29
 
 #define MAP_ARMOR_LABEL_X_BIG (MAP_SCREEN_X + 300)
-#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 261)
+#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 261)
 #define MAP_ARMOR_X_BIG (MAP_SCREEN_X + 264)
-#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 265)
+#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 265)
 #define MAP_ARMOR_W_BIG 66
 #define MAP_ARMOR_H_BIG 36
 #define MAP_WEIGHT_LABEL_X_BIG (MAP_SCREEN_X + 40)
-#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 261)
+#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 261)
 #define MAP_WEIGHT_X_BIG (MAP_SCREEN_X + 7)
-#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 265)
+#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 265)
 #define MAP_WEIGHT_W_BIG 66
 #define MAP_WEIGHT_H_BIG 36
 #define MAP_CAMO_LABEL_X_BIG (MAP_SCREEN_X + 43)
-#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 316)
+#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 316)
 #define MAP_CAMO_X_BIG (MAP_SCREEN_X + 6)
-#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 319)
+#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 319)
 #define MAP_CAMO_W_BIG 66
 #define MAP_CAMO_H_BIG 36
 
@@ -315,9 +316,9 @@ static SGPFont GetCharInfoFont()
 // Body/camo figure (BODYINV) of the merc inventory panel -- normal mode and
 // an independent "Show Large Icons" mode (starts equal to the normal one).
 #define INV_BODY_X_NORMAL (MAP_SCREEN_X + 109)
-#define INV_BODY_Y_NORMAL (MAP_SCREEN_Y + 113)
+#define INV_BODY_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 113)
 #define INV_BODY_X_BIG    (MAP_SCREEN_X + 181)
-#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + 173)
+#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 173)
 #define INV_BODY_X (UINT16)(IsMapInvBigImages() ? INV_BODY_X_BIG : INV_BODY_X_NORMAL)
 #define INV_BODY_Y (UINT16)(IsMapInvBigImages() ? INV_BODY_Y_BIG : INV_BODY_Y_NORMAL)
 
@@ -586,7 +587,7 @@ static GUIButtonRef giMapInvBigImagesButton;
 #define MAP_INV_BIG_IMAGES_BTN_X_NORMAL (g_ui.m_invSlotPositionMap[SMALLPOCK13POS].uX + SM_INV_SLOT_WIDTH + MAP_INV_BIG_IMAGES_BTN_GAP)
 #define MAP_INV_BIG_IMAGES_BTN_Y_NORMAL (g_ui.m_invSlotPositionMap[LEGPOS].uY + LEGS_INV_SLOT_HEIGHT + MAP_INV_BIG_IMAGES_BTN_GAP)
 #define MAP_INV_BIG_IMAGES_BTN_X_BIG    (MAP_SCREEN_X + 442)
-#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + 130)
+#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 130)
 #define MAP_INV_BIG_IMAGES_BTN_X   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_X_BIG : MAP_INV_BIG_IMAGES_BTN_X_NORMAL)
 #define MAP_INV_BIG_IMAGES_BTN_Y   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_Y_BIG : MAP_INV_BIG_IMAGES_BTN_Y_NORMAL)
 
@@ -657,6 +658,14 @@ cache_key_t GetCharInfoGraphicsFilename()
 // IsMapInvBigImages(); the height split is isCompactStrategicScreen()).
 cache_key_t GetMapInvGraphicsFilename()
 {
+	// 1366x768: its own panels, same slot layouts as mapinv_big_1280_720.sti
+	// and mapinv_1280.sti (fallbacks); drawn at PLAYER_INFO_Y (y 133)
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		return IsMapInvBigImages()
+			? FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_1366x768.png", INTERFACEDIR "/mapinv_big_1280_720.sti" })
+			: FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_small_1366x768.png", INTERFACEDIR "/mapinv_1280.sti" });
+	}
 	if (IsMapInvBigImages())
 	{
 		return g_ui.isCompactStrategicScreen()
@@ -714,7 +723,7 @@ BOOLEAN MapInvBigPanelCoversBottomStrip(void)
 	// map_screen_bottom's strip starts at MAP_SCREEN_BOTTOM - 121 (MAP_BOTTOM_Y,
 	// Map_Screen_Interface_Bottom.cc).
 	return fShowInventoryFlag && IsMapInvBigImages() &&
-		MAP_SCREEN_Y + 107 + MAP_INV_BIG_PANEL_HEIGHT > MAP_SCREEN_BOTTOM - 121;
+		PLAYER_INFO_Y + MAP_INV_BIG_PANEL_HEIGHT > MAP_SCREEN_BOTTOM - 121;
 }
 
 void InitMapInvBigImagesForNewGame(void)
@@ -5951,6 +5960,21 @@ static void RenderCharacterInfoBackground(void)
 		SGPRect const old  = SetClippingRect(clip);
 		BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
 		SetClippingRect(old);
+
+		// black where the panel's equipment row was and the inventory isn't:
+		// between the panel's top part and the inventory, and right of the
+		// inventory down to the team list's top
+		INT16 const panel_right = TOWN_INFO_X + GetVObject(GetCharInfoGraphicsFilename())->SubregionProperties(0).usWidth;
+		INT16 const inv_right   = PLAYER_INFO_X + GetVObject(GetMapInvGraphicsFilename())->SubregionProperties(0).usWidth;
+		INT16 const top_bottom  = TOWN_INFO_Y + CHARINFO_PANEL_TOP_HEIGHT;
+		if (top_bottom < PLAYER_INFO_Y)
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, TOWN_INFO_X, top_bottom, panel_right, PLAYER_INFO_Y, 0);
+		}
+		if (inv_right < panel_right)
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, inv_right, PLAYER_INFO_Y, panel_right, TEAM_LIST_Y, 0);
+		}
 	}
 	else
 	{
@@ -7269,6 +7293,8 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(INTERFACEDIR "/mapinv_1280.sti");
 	RemoveVObject(INTERFACEDIR "/mapinv_big_1280_720.sti");
 	RemoveVObject(INTERFACEDIR "/mapinv_big_1280_768.sti");
+	RemoveVObject(INTERFACEDIR "/mapinv_1366x768.png");
+	RemoveVObject(INTERFACEDIR "/mapinv_small_1366x768.png");
 	RemoveVObject(GetMapMiddleBackgroundGraphicsFilename());
 	RemoveVObject(guiULICONS);
 

@@ -746,7 +746,7 @@ static void BtnLaptopKeyboardShortcutsFromMapScreenCallback(GUI_BUTTON *btn, UIN
 // Interface_Items.cc/MapScreen.cc) -- kept as a literal copy rather than an
 // extern/include, since those are local #defines in that other file's .cc.
 #define MAP_STATS_SKILLS_POPUP_X      (MAP_SCREEN_X + 0)
-#define MAP_STATS_SKILLS_POPUP_Y      (MAP_SCREEN_Y + 107)
+#define MAP_STATS_SKILLS_POPUP_Y      (MAP_SCREEN_Y + 107 + MAP_INV_SHIFT_Y)
 #define MAP_STATS_SKILLS_POPUP_WIDTH  272
 #define MAP_STATS_SKILLS_POPUP_HEIGHT 268
 

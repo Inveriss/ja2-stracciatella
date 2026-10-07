@@ -78,7 +78,8 @@ BOOLEAN IsMapInvBigImages(void);
 // mapinv_big_1280_768.sti 518x661 (768+).
 #define MAP_INV_BIG_PANEL_HEIGHT_720  613
 #define MAP_INV_BIG_PANEL_HEIGHT_768  661
-#define MAP_INV_BIG_PANEL_HEIGHT  (g_ui.isCompactStrategicScreen() ? MAP_INV_BIG_PANEL_HEIGHT_720 : MAP_INV_BIG_PANEL_HEIGHT_768)
+// 1366x768: mapinv_1366x768.png, 518x613 like the 720 one (at y 133)
+#define MAP_INV_BIG_PANEL_HEIGHT  (g_ui.isCompactStrategicScreen() || g_ui.isExtraWideStrategicScreen() ? MAP_INV_BIG_PANEL_HEIGHT_720 : MAP_INV_BIG_PANEL_HEIGHT_768)
 
 // TRUE while that panel is showing and reaches into the bottom strip: the
 // strip then leaves its covered part (message list, scroll bar/buttons,
@@ -205,7 +206,7 @@ void SetMapCursorItem();
 #define MAP_INV_ICON_SIZE             32
 #define MAP_INV_ICON_GAP              3
 #define MAP_INV_DONE_BTN_X_NORMAL     (MAP_SCREEN_X + 221)
-#define MAP_INV_DONE_BTN_Y_NORMAL     (MAP_SCREEN_Y + 107 + 453)
+#define MAP_INV_DONE_BTN_Y_NORMAL     (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 453)
 #define TRASH_CAN_X_NORMAL            (MAP_INV_DONE_BTN_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
 #define TRASH_CAN_Y_NORMAL            (MAP_INV_DONE_BTN_Y_NORMAL)
 #define MAP_INV_KEYRING_X_NORMAL      (TRASH_CAN_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
@@ -217,17 +218,17 @@ void SetMapCursorItem();
 // to it (X/Y relative to MAP_SCREEN_X/MAP_SCREEN_Y) -- tune to
 // mapinv_big_1280_720/768.sti.
 #define TRASH_CAN_X_BIG               (MAP_SCREEN_X + 245)
-#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + 107 + 24)
+#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 24)
 #define MAP_INV_KEYRING_X_BIG         (MAP_SCREEN_X + 208)
-#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + 107 + 24)
+#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 24)
 #define MAP_INV_MONEY_X_BIG           (MAP_SCREEN_X + 171)
-#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + 107 + 24)
+#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 24)
 
 // Done button on both "Show Large Icons" panels (mapinv_big_1280_720.sti and
 // mapinv_big_1280_768.sti -- one set): its own graphic (mapinv_done_buttons.sti
 // sub-images 2 = ready, 3 = pressed, MAP_INV_DONE_BTN_W/H_BIG) and position.
 #define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 444)
-#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 88)
+#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 88)
 #define MAP_INV_DONE_BTN_W_BIG        50
 #define MAP_INV_DONE_BTN_H_BIG        50
 
@@ -261,7 +262,7 @@ void SetMapCursorItem();
 // relative to the popup's origin; the boxes then run MAP_KEY_RING_ROW_WIDTH
 // per row (Interface_Items.cc).
 #define MAP_KEYRING_POPUP_X             (MAP_SCREEN_X + 0)
-#define MAP_KEYRING_POPUP_Y             (MAP_SCREEN_Y + 107)
+#define MAP_KEYRING_POPUP_Y             (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107)
 #define MAP_KEYRING_POPUP_WIDTH         261
 #define MAP_KEYRING_POPUP_HEIGHT        (359 - 107)
 #define MAP_KEYRING_POPUP_BOX_OFFSET_X  40

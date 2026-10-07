@@ -1392,14 +1392,14 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 			if (in_map && IsMapInvBigImages() && big_cover_exists)
 			{
 				INT32 const x = MAP_SCREEN_X + MAP_INV_2ND_GUN_COVER_BIG_X;
-				INT32 const y = MAP_SCREEN_Y + MAP_INV_2ND_GUN_COVER_BIG_Y;
+				INT32 const y = MAP_SCREEN_Y + MAP_INV_SHIFT_Y + MAP_INV_2ND_GUN_COVER_BIG_Y;
 				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockoutBig, 0, x, y);
 				RestoreExternBackgroundRect(x, y, MAP_INV_2ND_GUN_COVER_BIG_WIDTH, MAP_INV_2ND_GUN_COVER_BIG_HEIGHT);
 			}
 			else if (in_map)
 			{
 				INT32 const x = MAP_SCREEN_X + MAP_INV_2ND_GUN_COVER_X;
-				INT32 const y = MAP_SCREEN_Y + MAP_INV_2ND_GUN_COVER_Y;
+				INT32 const y = MAP_SCREEN_Y + MAP_INV_SHIFT_Y + MAP_INV_2ND_GUN_COVER_Y;
 				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockout, 0, x, y);
 				RestoreExternBackgroundRect(x, y, MAP_INV_2ND_GUN_COVER_WIDTH, MAP_INV_2ND_GUN_COVER_HEIGHT);
 			}

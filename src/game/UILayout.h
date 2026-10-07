@@ -91,6 +91,12 @@
 #define MAP_MIDDLE_BACKGROUND_X         (MAP_SCREEN_X + 261)
 #define MAP_MIDDLE_BACKGROUND_WIDTH     (MAP_RIGHT_BLOCK_SHIFT)
 
+// The strategic screen's merc inventory panel (mapinv) is laid out for
+// MAP_SCREEN_Y + 107; on the 1366x768 interface (isExtraWideStrategicScreen())
+// it and everything on it sit MAP_INV_SHIFT_Y lower (y 133, below the
+// character info panel's top part).
+#define MAP_INV_SHIFT_Y                 (g_ui.isExtraWideStrategicScreen() ? 26 : 0)
+
 #define SM_BODYINV_X                    (INTERFACE_START_X + 324)
 #define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
 #define SM_INVINTERFACE_WIDTH           (920)    // width of the single-merc inventory panel excluding the right-side buttons and minimap

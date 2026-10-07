@@ -64,7 +64,7 @@
 #define TEAM_LIST_ROWS_HEIGHT   (g_ui.isExtraWideStrategicScreen() \
 	? (TEAM_LIST_Y + 446) - (Y_START - 1) \
 	: (MAX_CHARACTER_COUNT + 1) * (Y_SIZE + 2) + 1)
-#define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107)
+#define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107 + MAP_INV_SHIFT_Y)
 #define Y_SIZE                GetFontHeight(MAP_SCREEN_FONT)
 
 
