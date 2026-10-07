@@ -332,7 +332,9 @@ void UILayout::recalculatePositions()
 	m_trainPosition.set(          m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
 	m_vehiclePosition.set(        m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
 	m_repairPosition.set(         m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
-	m_assignmentPosition.set(     m_mapScreenOffsetX + 120, m_mapScreenOffsetY + 150);
+	// right of the team list's assignment column, 2 px from it like on the
+	// original panel (67-118 -> 120): 1366x768 column 117-218 -> 221
+	m_assignmentPosition.set(     m_mapScreenOffsetX + (isExtraWideStrategicScreen() ? 221 : 120), m_mapScreenOffsetY + 150);
 	m_squadPosition.set(          m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
 	m_versionPosition.set(        10, m_screenHeight - 15);
 }
