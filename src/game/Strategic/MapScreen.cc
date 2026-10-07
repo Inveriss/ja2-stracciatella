@@ -296,20 +296,20 @@ static SGPFont GetCharInfoFont()
 // The panel (604x647) has them in a column at its right edge, below its
 // top part: first and second hand (frames x 475-598), then face items 1 and
 // 2, helmet, vest and leggings (x 505-568), then the stats box (interior
-// x 491-582, y 571-630). Y values below are the slots' interior tops.
-#define CHARINFO_EQUIP_Y            (TOWN_INFO_Y + 143)   // first hand
+// x 491-582, y 572-631). Y values below are the slots' interior tops.
+#define CHARINFO_EQUIP_Y            (TOWN_INFO_Y + 144)   // first hand
 #define CHARINFO_EQUIP_HEIGHT       50
 #define CHARINFO_HAND_SLOT_X        (TOWN_INFO_X + 476 + 1)
 #define CHARINFO_HAND_SLOT_WIDTH    122
 #define CHARINFO_SMALL_SLOT_X       (TOWN_INFO_X + 506 + 1)
 #define CHARINFO_SMALL_SLOT_WIDTH   62
 #define CHARINFO_EQUIP_STATS_X      (TOWN_INFO_X + 491)
-#define CHARINFO_EQUIP_STATS_Y      (TOWN_INFO_Y + 571)
+#define CHARINFO_EQUIP_STATS_Y      (TOWN_INFO_Y + 572)
 #define CHARINFO_EQUIP_STATS_WIDTH  92
 #define CHARINFO_EQUIP_STATS_HEIGHT 60
 // top left corner of the second hand slot's frame
 #define CHARINFO_SECOND_HAND_HIDE_X (TOWN_INFO_X + 475)
-#define CHARINFO_SECOND_HAND_HIDE_Y (TOWN_INFO_Y + 197)
+#define CHARINFO_SECOND_HAND_HIDE_Y (TOWN_INFO_Y + 198)
 
 // The first hand item's click region and glow -- on the 1366x768 interface
 // over the equipment row's first hand slot, but disabled there (preview only).
@@ -1140,13 +1140,13 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	struct EquipSlot { INT8 pocket; INT16 x; INT16 y; INT16 w; };
 	EquipSlot const slots[] =
 	{
-		{ HANDPOS,       CHARINFO_HAND_SLOT_X,  TOWN_INFO_Y + 143, CHARINFO_HAND_SLOT_WIDTH  },
-		{ SECONDHANDPOS, CHARINFO_HAND_SLOT_X,  TOWN_INFO_Y + 198, CHARINFO_HAND_SLOT_WIDTH  },
-		{ HEAD1POS,      CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 267, CHARINFO_SMALL_SLOT_WIDTH },
-		{ HEAD2POS,      CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 322, CHARINFO_SMALL_SLOT_WIDTH },
-		{ HELMETPOS,     CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 391, CHARINFO_SMALL_SLOT_WIDTH },
-		{ VESTPOS,       CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 446, CHARINFO_SMALL_SLOT_WIDTH },
-		{ LEGPOS,        CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 501, CHARINFO_SMALL_SLOT_WIDTH },
+		{ HANDPOS,       CHARINFO_HAND_SLOT_X,  TOWN_INFO_Y + 144, CHARINFO_HAND_SLOT_WIDTH  },
+		{ SECONDHANDPOS, CHARINFO_HAND_SLOT_X,  TOWN_INFO_Y + 199, CHARINFO_HAND_SLOT_WIDTH  },
+		{ HEAD1POS,      CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 268, CHARINFO_SMALL_SLOT_WIDTH },
+		{ HEAD2POS,      CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 323, CHARINFO_SMALL_SLOT_WIDTH },
+		{ HELMETPOS,     CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 392, CHARINFO_SMALL_SLOT_WIDTH },
+		{ VESTPOS,       CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 447, CHARINFO_SMALL_SLOT_WIDTH },
+		{ LEGPOS,        CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 502, CHARINFO_SMALL_SLOT_WIDTH },
 	};
 	// items and their ammo counts go to the saved background, like the panel;
 	// counts in the big merc inventory's own font and positions
