@@ -293,13 +293,20 @@ static SGPFont GetCharInfoFont()
 // armour and camouflage. Over the merc inventory only the panel's top
 // CHARINFO_PANEL_TOP_HEIGHT rows are drawn.
 #define CHARINFO_PANEL_TOP_HEIGHT   132
-#define CHARINFO_EQUIP_Y            (TOWN_INFO_Y + 134)
+// The panel (604x647) has them in a column at its right edge, below its
+// top part: first and second hand (frames x 475-598), then face items 1 and
+// 2, helmet, vest and leggings (x 505-568), then the stats box (interior
+// x 491-582, y 571-630). Y values below are the slots' interior tops.
+#define CHARINFO_EQUIP_Y            (TOWN_INFO_Y + 143)   // first hand
 #define CHARINFO_EQUIP_HEIGHT       50
-#define CHARINFO_HAND_SLOT_X        (TOWN_INFO_X + 7 + 1)
+#define CHARINFO_HAND_SLOT_X        (TOWN_INFO_X + 476 + 1)
 #define CHARINFO_HAND_SLOT_WIDTH    122
+#define CHARINFO_SMALL_SLOT_X       (TOWN_INFO_X + 506 + 1)
 #define CHARINFO_SMALL_SLOT_WIDTH   62
-#define CHARINFO_EQUIP_STATS_X      (TOWN_INFO_X + 505)
+#define CHARINFO_EQUIP_STATS_X      (TOWN_INFO_X + 491)
+#define CHARINFO_EQUIP_STATS_Y      (TOWN_INFO_Y + 571)
 #define CHARINFO_EQUIP_STATS_WIDTH  92
+#define CHARINFO_EQUIP_STATS_HEIGHT 60
 
 // The first hand item's click region and glow -- on the 1366x768 interface
 // over the equipment row's first hand slot, but disabled there (preview only).
@@ -929,7 +936,7 @@ static void ContractListRegionBoxGlow(UINT16 usCount)
 	}
 
 	// y start position of box
-	usY=(Y_OFFSET*usCount-1)+(Y_START+(usCount*Y_SIZE) + sYAdd );
+	usY = Y_START - 1 + usCount * TEAM_LIST_ROW_PITCH + sYAdd;
 
 	// glow contract box
 	UINT16 usColor = GlowColor(iColorNum);
@@ -1118,23 +1125,25 @@ void DrawFace(void)
 }
 
 
-// 1366x768: the character info panel's equipment row -- first hand, face
-// items 1 and 3, helmet, vest and leggings with their big pictures (no
-// status bars, ammo left shown), then weight, armour and camouflage.
+// 1366x768: the character info panel's equipment column -- first and second
+// hand, face items 1 and 2, helmet, vest and leggings with their big
+// pictures (no status bars, ammo left shown), then weight, armour and
+// camouflage.
 // Called by RenderHandPosItem(), i.e. only while the merc inventory is closed.
 static void DrawString(const ST::string& str, UINT16 uiX, UINT16 uiY, SGPFont);
 
 static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 {
-	struct EquipSlot { INT8 pocket; INT16 x; INT16 w; };
+	struct EquipSlot { INT8 pocket; INT16 x; INT16 y; INT16 w; };
 	EquipSlot const slots[] =
 	{
-		{ HANDPOS,   CHARINFO_HAND_SLOT_X,     CHARINFO_HAND_SLOT_WIDTH  },
-		{ HEAD1POS,  TOWN_INFO_X + 146 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
-		{ HEAD3POS,  TOWN_INFO_X + 213 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
-		{ HELMETPOS, TOWN_INFO_X + 292 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
-		{ VESTPOS,   TOWN_INFO_X + 359 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
-		{ LEGPOS,    TOWN_INFO_X + 426 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
+		{ HANDPOS,       CHARINFO_HAND_SLOT_X,  TOWN_INFO_Y + 143, CHARINFO_HAND_SLOT_WIDTH  },
+		{ SECONDHANDPOS, CHARINFO_HAND_SLOT_X,  TOWN_INFO_Y + 198, CHARINFO_HAND_SLOT_WIDTH  },
+		{ HEAD1POS,      CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 267, CHARINFO_SMALL_SLOT_WIDTH },
+		{ HEAD2POS,      CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 322, CHARINFO_SMALL_SLOT_WIDTH },
+		{ HELMETPOS,     CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 391, CHARINFO_SMALL_SLOT_WIDTH },
+		{ VESTPOS,       CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 446, CHARINFO_SMALL_SLOT_WIDTH },
+		{ LEGPOS,        CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 501, CHARINFO_SMALL_SLOT_WIDTH },
 	};
 	// items and their ammo counts go to the saved background, like the panel;
 	// counts in the big merc inventory's own font and positions
@@ -1142,7 +1151,7 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	InvItemTextLayout const big_text = GetMapInvBigItemTextLayout();
 	for (EquipSlot const& slot : slots)
 	{
-		INVRenderItem(guiSAVEBUFFER, &s, s.inv[slot.pocket], slot.x, CHARINFO_EQUIP_Y, slot.w, CHARINFO_EQUIP_HEIGHT, DIRTYLEVEL2, 0, SGP_TRANSPARENT, TRUE, &big_text);
+		INVRenderItem(guiSAVEBUFFER, &s, s.inv[slot.pocket], slot.x, slot.y, slot.w, CHARINFO_EQUIP_HEIGHT, DIRTYLEVEL2, 0, SGP_TRANSPARENT, TRUE, &big_text);
 	}
 
 	if (IsMechanical(s))
@@ -1166,16 +1175,16 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 		{ pInvPanelTitleStrings[2], ST::format("{}%", s.bCamo) },
 	};
 	// user's fine tuning: labels (with a colon) 1 px right, values 1 px
-	// left, both 2 px down
-	INT16 y = CHARINFO_EQUIP_Y + 3 + 2;
+	// left, both 2 px down; rows 5 px further apart (15 + 5)
+	INT16 y = CHARINFO_EQUIP_STATS_Y + 3 + 2;
 	for (StatLine const& line : lines)
 	{
 		SetFontAttributes(font, big_font ? MAP_INV_STATS_FONT_COLOR_BIG : MAP_INV_STATS_TITLE_FONT_COLOR);
 		DrawString(ST::format("{}:", line.label), x + 4 + 1, y, font);
 		DrawStringRight(line.value, x, y, w - 4 - 1, GetFontHeight(font), font);
-		y += 15;
+		y += 15 + 5;
 	}
-	RestoreExternBackgroundRect(x, CHARINFO_EQUIP_Y, w, CHARINFO_EQUIP_HEIGHT);
+	RestoreExternBackgroundRect(x, CHARINFO_EQUIP_STATS_Y, w, CHARINFO_EQUIP_STATS_HEIGHT);
 	SetFontDestBuffer(FRAME_BUFFER);
 }
 
@@ -1761,7 +1770,7 @@ static void HighLightSelection(HighLightState& state, INT32 const line, UINT16 c
 	UINT16* const pDestBuf = l.Buffer<UINT16>();
 
 	UINT16 const colour = GlowColor(state.colour_idx);
-	INT32  const h      = Y_SIZE + Y_OFFSET;
+	INT32  const h      = TEAM_LIST_ROW_PITCH;
 	for (INT16 i = 0; i != MAX_CHARACTER_COUNT; ++i)
 	{
 		if (!predicate(i)) continue;
@@ -1894,7 +1903,7 @@ static void DisplayCharacterList(void)
 			FONT_MAP_DKYELLOW;
 		SetFontForeground(foreground);
 
-		UINT16 y = Y_START + i * (Y_SIZE + Y_OFFSET) + 1;
+		UINT16 y = Y_START + i * TEAM_LIST_ROW_PITCH + 1;
 		if (i >= FIRST_VEHICLE) y += TEAM_LIST_VEHICLE_DY(i);
 
 		// Name
@@ -4945,7 +4954,7 @@ static void BlitBackgroundToSaveBuffer(void)
 
 static void MakeRegion(MOUSE_REGION* r, UINT idx, UINT16 x, UINT16 y, UINT16 w, MOUSE_CALLBACK move, MOUSE_CALLBACK click, const ST::string& help)
 {
-	MSYS_DefineRegion(r, x, y, x + w, y + Y_SIZE + 1, MSYS_PRIORITY_NORMAL + 1,
+	MSYS_DefineRegion(r, x, y, x + w, y + TEAM_LIST_ROW_PITCH - 1, MSYS_PRIORITY_NORMAL + 1,
 		MSYS_NO_CURSOR, std::move(move), std::move(click));
 	MSYS_SetRegionUserData(r, 0, idx);
 	r->SetFastHelpText(help);
@@ -4976,7 +4985,7 @@ static void CreateMouseRegionsForTeamList(void)
 	// the info region...is the background for the list itself
 	for (UINT i = 0; i < MAX_CHARACTER_COUNT; ++i)
 	{
-		const UINT16 y = Y_START + i * (Y_SIZE + 2) + (i >= FIRST_VEHICLE ? TEAM_LIST_VEHICLE_DY(i) : 0);
+		const UINT16 y = Y_START + i * TEAM_LIST_ROW_PITCH + (i >= FIRST_VEHICLE ? TEAM_LIST_VEHICLE_DY(i) : 0);
 
 		const UINT16 w = NAME_WIDTH;
 		CharacterRegions& r = g_character_regions[i];
@@ -5862,6 +5871,10 @@ static void RenderTeamRegionBackground()
 	if (!fTeamPanelDirty) return;
 
 	RenderMapMiddleBackground(MAP_MIDDLE_BACKGROUND_TOP, MAP_SCREEN_HEIGHT);
+
+	// 1366x768: the character info panel's slot column reaches down beside
+	// the team list -- redraw the panel after it, so it stays on top
+	if (g_ui.isExtraWideStrategicScreen()) fCharacterInfoPanelDirty = TRUE;
 
 	// Show inventory or the team list?
 	if (!fShowInventoryFlag)
@@ -6772,7 +6785,7 @@ static void HandleCharBarRender(void)
 		// and whether it is covered by the merc inventory
 		static UINT32 shown_equipment = 0;
 		UINT32 equipment = fShowInventoryFlag ? 1 : 0;
-		for (INT8 const pocket : { HANDPOS, HEAD1POS, HEAD3POS, HELMETPOS, VESTPOS, LEGPOS })
+		for (INT8 const pocket : { HANDPOS, SECONDHANDPOS, HEAD1POS, HEAD2POS, HELMETPOS, VESTPOS, LEGPOS })
 		{
 			OBJECTTYPE const& o = s->inv[pocket];
 			equipment = equipment * 31 + o.usItem;
@@ -7816,7 +7829,7 @@ static void DisplayIconsForMercsAsleep(void)
 			INT16 const sleep_x = g_ui.isExtraWideStrategicScreen()
 				? SLEEP_X + (SLEEP_WIDTH - GetVObject(guiSleepIcon)->SubregionProperties(0).usWidth) / 2
 				: MAP_SCREEN_X + 125;
-			BltVideoObject(guiSAVEBUFFER, guiSleepIcon, 0, sleep_x, Y_START + iCounter * (Y_SIZE + 2));
+			BltVideoObject(guiSAVEBUFFER, guiSleepIcon, 0, sleep_x, Y_START + iCounter * TEAM_LIST_ROW_PITCH);
 		}
 	}
 }

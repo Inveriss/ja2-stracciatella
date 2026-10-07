@@ -963,7 +963,7 @@ void HandleDisplayOfSelectedMercArrows()
 	if (fShowInventoryFlag)     return;
 
 	{ // Blit one by the selected merc
-		INT16 y = Y_START + bSelectedInfoChar * (Y_SIZE + 2) - 1;
+		INT16 y = Y_START + bSelectedInfoChar * TEAM_LIST_ROW_PITCH - 1;
 		if (bSelectedInfoChar >= FIRST_VEHICLE) y += TEAM_LIST_VEHICLE_DY(bSelectedInfoChar);
 		BltVideoObject(guiSAVEBUFFER, guiSelectedCharArrow, 0,SELECTED_CHAR_ARROW_X, y);
 	}
@@ -978,7 +978,7 @@ void HandleDisplayOfSelectedMercArrows()
 		// Is he in the selected list or in the same mvt group as this guy?
 		if (!IsEntryInSelectedListSet(i) && (s->ubGroupID == 0 || s->ubGroupID != dest_group)) continue;
 
-		INT16 y = Y_START + i * (Y_SIZE + 2) - 1;
+		INT16 y = Y_START + i * TEAM_LIST_ROW_PITCH - 1;
 		if (i >= FIRST_VEHICLE) y += TEAM_LIST_VEHICLE_DY(i);
 		BltVideoObject(guiSAVEBUFFER, guiSelectedCharArrow, 0, SELECTED_CHAR_ARROW_X, y);
 	}
@@ -1399,7 +1399,7 @@ void UpdateMapScreenAssignmentPositions( void )
 	}
 	else
 	{
-		giBoxY = ( Y_START + ( bSelectedAssignChar ) * ( Y_SIZE + 2 ) );
+		giBoxY = ( Y_START + ( bSelectedAssignChar ) * TEAM_LIST_ROW_PITCH );
 
 /* ARM: Removed this - refreshes fine without it, apparently
 		// make sure the menus don't overlap the map screen bottom panel (but where did 102 come from?)

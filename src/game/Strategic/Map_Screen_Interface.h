@@ -52,13 +52,13 @@
 // its top (39 on the original one).
 #define TEAM_LIST_SHIFT_Y     (g_ui.isExtraWideStrategicScreen() ? 85 : 0)
 #define TEAM_LIST_Y           (MAP_SCREEN_Y + 107 + TEAM_LIST_SHIFT_Y)
-#define Y_START               (TEAM_LIST_Y + (g_ui.isExtraWideStrategicScreen() ? 55 : 39))
+#define Y_START               (TEAM_LIST_Y + (g_ui.isExtraWideStrategicScreen() ? 55 + 4 : 39))
 // Extra y of list entry `i` (a vehicle, i >= FIRST_VEHICLE) on top of
-// i * (Y_SIZE + 2): 6 px -- on the 1366x768 interface each vehicle gets its
+// i * TEAM_LIST_ROW_PITCH: 6 px -- on the 1366x768 interface each vehicle gets its
 // own row at the bottom of newgoldpiece3_1366x768.png (22 px tall at y 399
 // and 424 of it), its text centred there.
 #define TEAM_LIST_VEHICLE_DY(i) (g_ui.isExtraWideStrategicScreen() \
-	? (TEAM_LIST_Y + 399 + ((i) - FIRST_VEHICLE) * 25 + (22 - Y_SIZE) / 2) - (Y_START + (i) * (Y_SIZE + 2) + 1) \
+	? (TEAM_LIST_Y + 399 + ((i) - FIRST_VEHICLE) * 25 + (22 - Y_SIZE) / 2) - (Y_START + (i) * TEAM_LIST_ROW_PITCH + 1) \
 	: 6)
 // Height of the team list's rows, vehicles included (from Y_START - 1).
 #define TEAM_LIST_ROWS_HEIGHT   (g_ui.isExtraWideStrategicScreen() \
@@ -66,6 +66,9 @@
 	: (MAX_CHARACTER_COUNT + 1) * (Y_SIZE + 2) + 1)
 #define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107 + MAP_INV_SHIFT_Y)
 #define Y_SIZE                GetFontHeight(MAP_SCREEN_FONT)
+// Distance between two team list rows: the font's height plus 2 px -- 4 px
+// on the 1366x768 interface.
+#define TEAM_LIST_ROW_PITCH   (Y_SIZE + (g_ui.isExtraWideStrategicScreen() ? 4 : 2))
 
 
 // attribute menu defines (must match NUM_TRAINABLE_STATS defines, and pAttributeMenuStrings )
