@@ -45,14 +45,25 @@
 
 // characterlist regions
 // The team list (newgoldpiece3_*) starts at MAP_SCREEN_Y + 107; on the
-// 1366x768 interface (UILayout::isExtraWideStrategicScreen()) at + 171,
-// right below the 170 px tall character info panel (charinfo_1366x768) --
-// everything drawn on it (sort buttons, rows, highlights, regions) moves
-// down by TEAM_LIST_SHIFT_Y with it. From there 476 px are left above the
-// bottom strip.
-#define TEAM_LIST_SHIFT_Y     (g_ui.isExtraWideStrategicScreen() ? 64 : 0)
+// 1366x768 interface (UILayout::isExtraWideStrategicScreen()) at + 192,
+// right below the 191 px tall character info panel (charinfo_1366x768),
+// with its own graphic (newgoldpiece3_1366x768.png, 604x455, reaching the
+// bottom strip) and 32 px tall header buttons -- its rows start 55 px below
+// its top (39 on the original one).
+#define TEAM_LIST_SHIFT_Y     (g_ui.isExtraWideStrategicScreen() ? 85 : 0)
 #define TEAM_LIST_Y           (MAP_SCREEN_Y + 107 + TEAM_LIST_SHIFT_Y)
-#define Y_START               (MAP_SCREEN_Y + 146 + TEAM_LIST_SHIFT_Y)
+#define Y_START               (TEAM_LIST_Y + (g_ui.isExtraWideStrategicScreen() ? 55 : 39))
+// Extra y of list entry `i` (a vehicle, i >= FIRST_VEHICLE) on top of
+// i * (Y_SIZE + 2): 6 px -- on the 1366x768 interface each vehicle gets its
+// own row at the bottom of newgoldpiece3_1366x768.png (22 px tall at y 399
+// and 424 of it), its text centred there.
+#define TEAM_LIST_VEHICLE_DY(i) (g_ui.isExtraWideStrategicScreen() \
+	? (TEAM_LIST_Y + 399 + ((i) - FIRST_VEHICLE) * 25 + (22 - Y_SIZE) / 2) - (Y_START + (i) * (Y_SIZE + 2) + 1) \
+	: 6)
+// Height of the team list's rows, vehicles included (from Y_START - 1).
+#define TEAM_LIST_ROWS_HEIGHT   (g_ui.isExtraWideStrategicScreen() \
+	? (TEAM_LIST_Y + 446) - (Y_START - 1) \
+	: (MAX_CHARACTER_COUNT + 1) * (Y_SIZE + 2) + 1)
 #define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107)
 #define Y_SIZE                GetFontHeight(MAP_SCREEN_FONT)
 

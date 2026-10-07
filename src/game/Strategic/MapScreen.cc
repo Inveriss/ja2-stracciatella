@@ -679,6 +679,9 @@ cache_key_t GetMapInvGraphicsFilename()
 // space, and black fills the rows below it (see RenderMapMiddleBackground()).
 cache_key_t GetMapMiddleBackgroundGraphicsFilename()
 {
+	// 1366x768: no middle background -- the team list graphic
+	// (newgoldpiece3_1366x768.png, 604 px) covers the free space itself
+	if (g_ui.isExtraWideStrategicScreen()) return nullptr;
 	if (g_ui.isCompactStrategicScreen()) return INTERFACEDIR "/background_middle_wide_1280.sti";
 	cache_key_t const large = INTERFACEDIR "/background_middle_wide_1024.sti";
 	if (!g_ui.isExtraWideStrategicScreen()) return large;
@@ -742,6 +745,8 @@ void LoadMapInvBigImagesFromSaveGameFile(void)
 // Checked once per file -- the callers run every time the asset is drawn.
 static bool IsInterfaceAssetUsable(cache_key_t const file)
 {
+	if (!file) return false;
+
 	static std::map<std::string, bool> usable;
 	auto it = usable.find(file);
 	if (it != usable.end()) return it->second;
@@ -907,7 +912,7 @@ static void ContractListRegionBoxGlow(UINT16 usCount)
 
 	if( usCount >= FIRST_VEHICLE )
 	{
-		sYAdd = 6;
+		sYAdd = TEAM_LIST_VEHICLE_DY(usCount);
 	}
 	else
 	{
@@ -1753,13 +1758,15 @@ static void HighLightSelection(HighLightState& state, INT32 const line, UINT16 c
 		if (!predicate(i)) continue;
 
 		UINT16 y = Y_START - 1 + i * h;
-		if (i >= FIRST_VEHICLE) y += 6;
+		if (i >= FIRST_VEHICLE) y += TEAM_LIST_VEHICLE_DY(i);
 
-		if (i == 0 || !predicate(i - 1) || i == FIRST_VEHICLE)
+		// 1366x768: every vehicle row stands alone
+		bool const own_row = g_ui.isExtraWideStrategicScreen() && i >= FIRST_VEHICLE;
+		if (i == 0 || !predicate(i - 1) || i == FIRST_VEHICLE || own_row)
 		{
 			LineDraw(TRUE, x, y, x + w, y, colour, pDestBuf);
 		}
-		if (i == MAX_CHARACTER_COUNT - 1 || !predicate(i + 1) || i == FIRST_VEHICLE - 1)
+		if (i == MAX_CHARACTER_COUNT - 1 || !predicate(i + 1) || i == FIRST_VEHICLE - 1 || own_row)
 		{
 			LineDraw(TRUE, x, y + h, x + w, y + h, colour, pDestBuf);
 		}
@@ -1879,7 +1886,7 @@ static void DisplayCharacterList(void)
 		SetFontForeground(foreground);
 
 		UINT16 y = Y_START + i * (Y_SIZE + Y_OFFSET) + 1;
-		if (i >= FIRST_VEHICLE) y += 6;
+		if (i >= FIRST_VEHICLE) y += TEAM_LIST_VEHICLE_DY(i);
 
 		// Name
 		DrawStringCentered(s.name, NAME_X + 1, y, NAME_WIDTH, Y_SIZE, MAP_SCREEN_FONT);
@@ -4960,7 +4967,7 @@ static void CreateMouseRegionsForTeamList(void)
 	// the info region...is the background for the list itself
 	for (UINT i = 0; i < MAX_CHARACTER_COUNT; ++i)
 	{
-		const UINT16 y = Y_START + i * (Y_SIZE + 2) + (i >= FIRST_VEHICLE ? 6 : 0);
+		const UINT16 y = Y_START + i * (Y_SIZE + 2) + (i >= FIRST_VEHICLE ? TEAM_LIST_VEHICLE_DY(i) : 0);
 
 		const UINT16 w = NAME_WIDTH;
 		CharacterRegions& r = g_character_regions[i];
@@ -5809,7 +5816,8 @@ static void RenderMapMiddleBackground(INT16 const top, INT16 const bottom)
 	INT16 const img_top = std::max(y1, bg_top);
 	if (img_top >= y2) return;
 
-	cache_key_t const bg = GetWideStrategicAsset(GetMapMiddleBackgroundGraphicsFilename(), nullptr);
+	cache_key_t const bg_file = GetMapMiddleBackgroundGraphicsFilename(); // none on 1366x768
+	cache_key_t const bg      = bg_file ? GetWideStrategicAsset(bg_file, nullptr) : nullptr;
 	if (bg)
 	{
 		SGPRect const clip = { (UINT16)x1, (UINT16)img_top, (UINT16)x2, (UINT16)y2 };
@@ -5851,8 +5859,16 @@ static void RenderTeamRegionBackground()
 	{
 		if (g_ui.isExtraWideStrategicScreen())
 		{
-			// cut off at the bottom strip's top, if taller than the 476 px left there
-			SGPRect const clip = { (UINT16)PLAYER_INFO_X, (UINT16)TEAM_LIST_Y, (UINT16)(PLAYER_INFO_X + 262), (UINT16)(MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT) };
+			// its header windows are see-through: black under them
+			static const INT16 header_x[] = { 12, 118, 224, 266, 334, 404 };
+			static const INT16 header_w[] = { 100, 100, 36,  62,  64,  54 };
+			for (size_t i = 0; i != lengthof(header_x); ++i)
+			{
+				INT16 const hx = PLAYER_INFO_X + header_x[i];
+				ColorFillVideoSurfaceArea(guiSAVEBUFFER, hx, TEAM_LIST_Y + 18, hx + header_w[i], TEAM_LIST_Y + 18 + 32, 0);
+			}
+			// cut off at the bottom strip's top, if taller than the space left there
+			SGPRect const clip = { (UINT16)PLAYER_INFO_X, (UINT16)TEAM_LIST_Y, (UINT16)(PLAYER_INFO_X + 640), (UINT16)(MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT) };
 			SGPRect const old  = SetClippingRect(clip);
 			BltVideoObject(guiSAVEBUFFER, GetCharListGraphicsFilename(), 0, PLAYER_INFO_X, TEAM_LIST_Y);
 			SetClippingRect(old);
@@ -7486,11 +7502,22 @@ static void AddTeamPanelSortButtonsForMapScreen(void)
 {
 	INT32 iImageIndex[ MAX_SORT_METHODS ] = { 0, 1, 5, 2, 3, 4 };		// sleep image is out or order (last)
 
-	const char* const filename = GetMLGFilename(MLG_GOLDPIECEBUTTONS);
+	// 1366x768: goldpiecebuttons_1366x768.png (32 px tall, ready 0-5, pressed
+	// 6-11 like the original) in the header windows of the team list's own
+	// graphic, 18 px below its top; the original buttons without it.
+	bool const wide = g_ui.isExtraWideStrategicScreen();
+	const char* const filename = wide
+		? FirstUsableInterfaceAsset({ INTERFACEDIR "/goldpiecebuttons_1366x768.png", GetMLGFilename(MLG_GOLDPIECEBUTTONS) })
+		: GetMLGFilename(MLG_GOLDPIECEBUTTONS);
+	// same order as gMapSortButtons: name, assignment, sleep, location,
+	// destination, departure
+	static const INT16 header_x_1366[MAX_SORT_METHODS] = { 12, 118, 224, 266, 334, 404 };
 
 	for (INT32 i = 0; i < MAX_SORT_METHODS; ++i)
 	{
-		giMapSortButton[i] = QuickCreateButtonImg(filename, iImageIndex[i], iImageIndex[i] + 6, MAP_SCREEN_X + gMapSortButtons[i].iX, MAP_SCREEN_Y + gMapSortButtons[i].iY + TEAM_LIST_SHIFT_Y, MSYS_PRIORITY_HIGHEST - 5, MapSortBtnCallback);
+		INT16 const x = MAP_SCREEN_X + (wide ? header_x_1366[i] : gMapSortButtons[i].iX);
+		INT16 const y = wide ? TEAM_LIST_Y + 18 : MAP_SCREEN_Y + gMapSortButtons[i].iY;
+		giMapSortButton[i] = QuickCreateButtonImg(filename, iImageIndex[i], iImageIndex[i] + 6, x, y, MSYS_PRIORITY_HIGHEST - 5, MapSortBtnCallback);
 		giMapSortButton[i]->SetUserData(i);
 		giMapSortButton[i]->SetFastHelpText(wMapScreenSortButtonHelpText[i]);
 	}
@@ -7760,7 +7787,10 @@ static void DisplayIconsForMercsAsleep(void)
 
 		if (pSoldier->bActive && pSoldier->fMercAsleep && CanChangeSleepStatusForSoldier(pSoldier))
 		{
-			BltVideoObject(guiSAVEBUFFER, guiSleepIcon, 0, MAP_SCREEN_X + 125, Y_START + iCounter * (Y_SIZE + 2));
+			INT16 const sleep_x = g_ui.isExtraWideStrategicScreen()
+				? SLEEP_X + (SLEEP_WIDTH - GetVObject(guiSleepIcon)->SubregionProperties(0).usWidth) / 2
+				: MAP_SCREEN_X + 125;
+			BltVideoObject(guiSAVEBUFFER, guiSleepIcon, 0, sleep_x, Y_START + iCounter * (Y_SIZE + 2));
 		}
 	}
 }

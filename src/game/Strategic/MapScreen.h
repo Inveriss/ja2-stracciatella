@@ -154,18 +154,24 @@ void MakeDialogueEventEnterMapScreen();
 
 void SetMapCursorItem();
 
-#define NAME_X                (MAP_SCREEN_X + 11)
-#define NAME_WIDTH            (MAP_SCREEN_X + 62 - NAME_X)
-#define ASSIGN_X              (MAP_SCREEN_X + 67)
-#define ASSIGN_WIDTH          (MAP_SCREEN_X + 118 - ASSIGN_X)
-#define SLEEP_X               (MAP_SCREEN_X + 123)
-#define SLEEP_WIDTH           (MAP_SCREEN_X + 142 - SLEEP_X)
-#define LOC_X                 (MAP_SCREEN_X + 147)
-#define LOC_WIDTH             (MAP_SCREEN_X + 179 - LOC_X)
-#define DEST_ETA_X            (MAP_SCREEN_X + 184)
-#define DEST_ETA_WIDTH        (MAP_SCREEN_X + 217 - DEST_ETA_X)
-#define TIME_REMAINING_X      (MAP_SCREEN_X + 222)
-#define TIME_REMAINING_WIDTH  (MAP_SCREEN_X + 250 - TIME_REMAINING_X)
+// Team list columns. The 1366x768 interface (isExtraWideStrategicScreen())
+// has its own, wider ones -- the columns of newgoldpiece3_1366x768.png
+// (604x455, at TEAM_LIST_Y): name 11-112, assignment 117-218, sleep
+// 223-260, location 265-328, destination 333-398, departure 403-458.
+#define TEAM_LIST_COLUMN(x_1366, x_legacy)  (MAP_SCREEN_X + (g_ui.isExtraWideStrategicScreen() ? (x_1366) : (x_legacy)))
+#define TEAM_LIST_WIDTH(w_1366, w_legacy)   (g_ui.isExtraWideStrategicScreen() ? (w_1366) : (w_legacy))
+#define NAME_X                TEAM_LIST_COLUMN( 11,  11)
+#define NAME_WIDTH            TEAM_LIST_WIDTH(102,  51)
+#define ASSIGN_X              TEAM_LIST_COLUMN(117,  67)
+#define ASSIGN_WIDTH          TEAM_LIST_WIDTH(102,  51)
+#define SLEEP_X               TEAM_LIST_COLUMN(223, 123)
+#define SLEEP_WIDTH           TEAM_LIST_WIDTH( 38,  19)
+#define LOC_X                 TEAM_LIST_COLUMN(265, 147)
+#define LOC_WIDTH             TEAM_LIST_WIDTH( 64,  32)
+#define DEST_ETA_X            TEAM_LIST_COLUMN(333, 184)
+#define DEST_ETA_WIDTH        TEAM_LIST_WIDTH( 66,  33)
+#define TIME_REMAINING_X      TEAM_LIST_COLUMN(403, 222)
+#define TIME_REMAINING_WIDTH  TEAM_LIST_WIDTH( 56,  28)
 // Bottom-anchored per user request: 480-298=182, same distance from the old
 // 640x480 canvas' bottom edge as before. Used only by DisplayGroundEta().
 #define CLOCK_Y_START         (MAP_SCREEN_BOTTOM - 182)
