@@ -45,12 +45,13 @@
 
 // characterlist regions
 // The team list (newgoldpiece3_*) starts at MAP_SCREEN_Y + 107; on the
-// 1366x768 interface (UILayout::isExtraWideStrategicScreen()) at + 192,
-// right below the 191 px tall character info panel (charinfo_1366x768),
-// with its own graphic (newgoldpiece3_1366x768.png, 604x455, reaching the
-// bottom strip) and 32 px tall header buttons -- its rows start 55 px below
-// its top (39 on the original one).
-#define TEAM_LIST_SHIFT_Y     (g_ui.isExtraWideStrategicScreen() ? 85 : 0)
+// 1366x768 interface (UILayout::isExtraWideStrategicScreen()) at + 133,
+// right below the 132 px tall top part of the character info panel
+// (charinfo_1366x768, its slot column is drawn over the list's right part),
+// with its own graphic (newgoldpiece3_1366x768.png, 604x455) and 32 px
+// tall header buttons -- its rows start 55 px below its top (39 on the
+// original one).
+#define TEAM_LIST_SHIFT_Y     (g_ui.isExtraWideStrategicScreen() ? 26 : 0)
 #define TEAM_LIST_Y           (MAP_SCREEN_Y + 107 + TEAM_LIST_SHIFT_Y)
 #define Y_START               (TEAM_LIST_Y + (g_ui.isExtraWideStrategicScreen() ? 55 + 4 : 39))
 // Extra y of list entry `i` (a vehicle, i >= FIRST_VEHICLE) on top of

@@ -165,7 +165,7 @@ static SGPFont GetCharInfoFont()
 // i.e. MAP_SCREEN_Y + 107); the matching _1024/_1280 files are picked by the
 // same height tier (isCompactStrategicScreen()). The free space above it
 // (next to the character info panel) is filled with black.
-#define MAP_MIDDLE_BACKGROUND_TOP    (TEAM_LIST_Y - MAP_SCREEN_Y)   // 107; 171 on the 1366x768 interface
+#define MAP_MIDDLE_BACKGROUND_TOP    (TEAM_LIST_Y - MAP_SCREEN_Y)   // 107; 133 on the 1366x768 interface
 // Horizontal shift of background_middle_wide_*.sti relative to
 // MAP_MIDDLE_BACKGROUND_X (positive = right).
 #define MAP_MIDDLE_BACKGROUND_SHIFT_X  1
