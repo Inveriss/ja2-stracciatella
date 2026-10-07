@@ -286,20 +286,22 @@ static SGPFont GetCharInfoFont()
 // the merc inventory (mapinv) is closed -- a preview only, big item
 // pictures, no status bars, ammo left shown (RenderCharInfoEquipment()).
 // Slot interiors are the big inventory's sizes (mapinv_big_1280_768.sti):
-// first hand 122x50, face items and armour 62x50; then a box with weight,
+// first hand 122x50, face items and armour 62x50 -- and, like there, each
+// slot's rectangle starts 1 px right of its frame's interior (so item
+// pictures and ammo counts sit the same); then a box with weight,
 // armour and camouflage. Over the merc inventory only the panel's top
 // CHARINFO_PANEL_TOP_HEIGHT rows are drawn.
 #define CHARINFO_PANEL_TOP_HEIGHT   132
 #define CHARINFO_EQUIP_Y            (TOWN_INFO_Y + 134)
 #define CHARINFO_EQUIP_HEIGHT       50
-#define CHARINFO_HAND_SLOT_X        (TOWN_INFO_X + 7)
+#define CHARINFO_HAND_SLOT_X        (TOWN_INFO_X + 7 + 1)
 #define CHARINFO_HAND_SLOT_WIDTH    122
 #define CHARINFO_SMALL_SLOT_WIDTH   62
 #define CHARINFO_EQUIP_STATS_X      (TOWN_INFO_X + 505)
 #define CHARINFO_EQUIP_STATS_WIDTH  92
 
 // The first hand item's click region and glow -- on the 1366x768 interface
-// the equipment row's first hand slot.
+// over the equipment row's first hand slot, but disabled there (preview only).
 #define PLAYER_INFO_HAND_START_X    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X : MAP_SCREEN_X + 4)
 #define PLAYER_INFO_HAND_START_Y    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_EQUIP_Y : MAP_SCREEN_Y + 81)
 #define PLAYER_INFO_HAND_END_X      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X + CHARINFO_HAND_SLOT_WIDTH : MAP_SCREEN_X + 62)
@@ -1114,11 +1116,11 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	EquipSlot const slots[] =
 	{
 		{ HANDPOS,   CHARINFO_HAND_SLOT_X,     CHARINFO_HAND_SLOT_WIDTH  },
-		{ HEAD1POS,  TOWN_INFO_X + 146,        CHARINFO_SMALL_SLOT_WIDTH },
-		{ HEAD3POS,  TOWN_INFO_X + 213,        CHARINFO_SMALL_SLOT_WIDTH },
-		{ HELMETPOS, TOWN_INFO_X + 292,        CHARINFO_SMALL_SLOT_WIDTH },
-		{ VESTPOS,   TOWN_INFO_X + 359,        CHARINFO_SMALL_SLOT_WIDTH },
-		{ LEGPOS,    TOWN_INFO_X + 426,        CHARINFO_SMALL_SLOT_WIDTH },
+		{ HEAD1POS,  TOWN_INFO_X + 146 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
+		{ HEAD3POS,  TOWN_INFO_X + 213 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
+		{ HELMETPOS, TOWN_INFO_X + 292 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
+		{ VESTPOS,   TOWN_INFO_X + 359 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
+		{ LEGPOS,    TOWN_INFO_X + 426 + 1,    CHARINFO_SMALL_SLOT_WIDTH },
 	};
 	// items and their ammo counts go to the saved background, like the panel;
 	// counts in the big merc inventory's own font and positions
@@ -1138,7 +1140,7 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	// weight, armour, camouflage: labels left, values right, one per row, in
 	// the big merc inventory's stats font and colour (BLOCKFONT2 if it lacks
 	// a character, like there)
-	bool const big_font = FontHasGlyphsFor(MAP_INV_STATS_FONT_BIG, pInvPanelTitleStrings[0] + pInvPanelTitleStrings[1] + pInvPanelTitleStrings[2] + "0123456789% ");
+	bool const big_font = FontHasGlyphsFor(MAP_INV_STATS_FONT_BIG, pInvPanelTitleStrings[0] + pInvPanelTitleStrings[1] + pInvPanelTitleStrings[2] + "0123456789%: ");
 	SGPFont const font = big_font ? MAP_INV_STATS_FONT_BIG : BLOCKFONT2;
 	INT16 const x = CHARINFO_EQUIP_STATS_X;
 	INT16 const w = CHARINFO_EQUIP_STATS_WIDTH;
@@ -1149,12 +1151,14 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 		{ pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)) },
 		{ pInvPanelTitleStrings[2], ST::format("{}%", s.bCamo) },
 	};
-	INT16 y = CHARINFO_EQUIP_Y + 3;
+	// user's fine tuning: labels (with a colon) 1 px right, values 1 px
+	// left, both 2 px down
+	INT16 y = CHARINFO_EQUIP_Y + 3 + 2;
 	for (StatLine const& line : lines)
 	{
 		SetFontAttributes(font, big_font ? MAP_INV_STATS_FONT_COLOR_BIG : MAP_INV_STATS_TITLE_FONT_COLOR);
-		DrawString(line.label, x + 4, y, font);
-		DrawStringRight(line.value, x, y, w - 4, GetFontHeight(font), font);
+		DrawString(ST::format("{}:", line.label), x + 4 + 1, y, font);
+		DrawStringRight(line.value, x, y, w - 4 - 1, GetFontHeight(font), font);
 		y += 15;
 	}
 	RestoreExternBackgroundRect(x, CHARINFO_EQUIP_Y, w, CHARINFO_EQUIP_HEIGHT);
@@ -2155,6 +2159,9 @@ ScreenID MapScreenHandle(void)
 					PLAYER_INFO_HAND_END_X, PLAYER_INFO_HAND_END_Y,
 					MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR,
 					ItemRegionMvtCallback , ItemRegionBtnCallback );
+		// 1366x768: the first hand slot is a preview only, like the rest of
+		// the equipment row -- no click to open the inventory, no glow
+		if (g_ui.isExtraWideStrategicScreen()) gCharInfoHandRegion.Disable();
 
 		MSYS_DefineRegion( &gCharInfoFaceRegion, (INT16) PLAYER_INFO_FACE_START_X, (INT16) PLAYER_INFO_FACE_START_Y, (INT16) PLAYER_INFO_FACE_END_X, (INT16) PLAYER_INFO_FACE_END_Y, MSYS_PRIORITY_HIGH,
 					MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(FaceRegionBtnCallbackPrimary, FaceRegionBtnCallbackSecondary) );
