@@ -281,10 +281,34 @@ static SGPFont GetCharInfoFont()
 #define PLAYER_INFO_FACE_END_X      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_X + CHARINFO_PORTRAIT_WIDTH  : MAP_SCREEN_X + 60)
 #define PLAYER_INFO_FACE_END_Y      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_Y + CHARINFO_PORTRAIT_HEIGHT : MAP_SCREEN_Y + 76)
 
-#define PLAYER_INFO_HAND_START_X    (MAP_SCREEN_X + 4)
-#define PLAYER_INFO_HAND_START_Y    (MAP_SCREEN_Y + 81)
-#define PLAYER_INFO_HAND_END_X      (MAP_SCREEN_X + 62)
-#define PLAYER_INFO_HAND_END_Y      (MAP_SCREEN_Y + 103)
+// 1366x768 interface (isExtraWideStrategicScreen()): the character info
+// panel (604x191) has a row of equipment slots at its bottom, shown while
+// the merc inventory (mapinv) is closed -- a preview only, big item
+// pictures, no status bars, ammo left shown (RenderCharInfoEquipment()).
+// Slot interiors are the big inventory's sizes (mapinv_big_1280_768.sti):
+// first hand 122x50, face items and armour 62x50; then a box with weight,
+// armour and camouflage. Over the merc inventory only the panel's top
+// CHARINFO_PANEL_TOP_HEIGHT rows are drawn.
+#define CHARINFO_PANEL_TOP_HEIGHT   132
+#define CHARINFO_EQUIP_Y            (TOWN_INFO_Y + 134)
+#define CHARINFO_EQUIP_HEIGHT       50
+#define CHARINFO_HAND_SLOT_X        (TOWN_INFO_X + 7)
+#define CHARINFO_HAND_SLOT_WIDTH    122
+#define CHARINFO_SMALL_SLOT_WIDTH   62
+#define CHARINFO_EQUIP_STATS_X      (TOWN_INFO_X + 505)
+#define CHARINFO_EQUIP_STATS_WIDTH  92
+
+// The first hand item's click region and glow -- on the 1366x768 interface
+// the equipment row's first hand slot.
+#define PLAYER_INFO_HAND_START_X    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X : MAP_SCREEN_X + 4)
+#define PLAYER_INFO_HAND_START_Y    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_EQUIP_Y : MAP_SCREEN_Y + 81)
+#define PLAYER_INFO_HAND_END_X      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X + CHARINFO_HAND_SLOT_WIDTH : MAP_SCREEN_X + 62)
+#define PLAYER_INFO_HAND_END_Y      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_EQUIP_Y + CHARINFO_EQUIP_HEIGHT : MAP_SCREEN_Y + 103)
+// glow rectangle (inclusive corners) around the first hand item
+#define HAND_GLOW_X1 (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X - 1 : MAP_SCREEN_X + 3)
+#define HAND_GLOW_Y1 (g_ui.isExtraWideStrategicScreen() ? CHARINFO_EQUIP_Y - 1 : MAP_SCREEN_Y + 80)
+#define HAND_GLOW_X2 (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X + CHARINFO_HAND_SLOT_WIDTH : MAP_SCREEN_X + 64)
+#define HAND_GLOW_Y2 (g_ui.isExtraWideStrategicScreen() ? CHARINFO_EQUIP_Y + CHARINFO_EQUIP_HEIGHT : MAP_SCREEN_Y + 104)
 
 // Body/camo figure (BODYINV) of the merc inventory panel -- normal mode and
 // an independent "Show Large Icons" mode (starts equal to the normal one).
@@ -917,7 +941,7 @@ static void GlowItem(void)
 
 		if (fOldItemGlow)
 		{
-			RestoreExternBackgroundRect( MAP_SCREEN_X + 3, MAP_SCREEN_Y + 80, ( UINT16 )( 65 - 3 ), ( UINT16 )( 105 - 80 ) );
+			RestoreExternBackgroundRect(HAND_GLOW_X1, HAND_GLOW_Y1, HAND_GLOW_X2 - HAND_GLOW_X1 + 2, HAND_GLOW_Y2 - HAND_GLOW_Y1 + 1);
 		}
 
 		fOldItemGlow = FALSE;
@@ -946,7 +970,7 @@ static void GlowItem(void)
 	// restore background
 	if((iColorNum==0)||(iColorNum==1))
 	{
-		RestoreExternBackgroundRect( MAP_SCREEN_X + 3, MAP_SCREEN_Y + 80, ( UINT16 )( 65 - 3 ), ( UINT16 )( 105 - 80 ) );
+		RestoreExternBackgroundRect(HAND_GLOW_X1, HAND_GLOW_Y1, HAND_GLOW_X2 - HAND_GLOW_X1 + 2, HAND_GLOW_Y2 - HAND_GLOW_Y1 + 1);
 		RenderHandPosItem();
 	}
 
@@ -954,8 +978,8 @@ static void GlowItem(void)
 	UINT16 usColor = GlowColor(iColorNum);
 	SGPVSurface::Lock l(FRAME_BUFFER);
 	SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	RectangleDraw(TRUE, MAP_SCREEN_X + 3, MAP_SCREEN_Y + 80, MAP_SCREEN_X + 64, MAP_SCREEN_Y + 104, usColor, l.Buffer<UINT16>());
-	InvalidateRegion( MAP_SCREEN_X + 3, MAP_SCREEN_Y + 80, MAP_SCREEN_X + 65, MAP_SCREEN_Y + 105 );
+	RectangleDraw(TRUE, HAND_GLOW_X1, HAND_GLOW_Y1, HAND_GLOW_X2, HAND_GLOW_Y2, usColor, l.Buffer<UINT16>());
+	InvalidateRegion(HAND_GLOW_X1, HAND_GLOW_Y1, HAND_GLOW_X2 + 1, HAND_GLOW_Y2 + 1);
 }
 
 
@@ -1078,6 +1102,66 @@ void DrawFace(void)
 }
 
 
+// 1366x768: the character info panel's equipment row -- first hand, face
+// items 1 and 3, helmet, vest and leggings with their big pictures (no
+// status bars, ammo left shown), then weight, armour and camouflage.
+// Called by RenderHandPosItem(), i.e. only while the merc inventory is closed.
+static void DrawString(const ST::string& str, UINT16 uiX, UINT16 uiY, SGPFont);
+
+static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
+{
+	struct EquipSlot { INT8 pocket; INT16 x; INT16 w; };
+	EquipSlot const slots[] =
+	{
+		{ HANDPOS,   CHARINFO_HAND_SLOT_X,     CHARINFO_HAND_SLOT_WIDTH  },
+		{ HEAD1POS,  TOWN_INFO_X + 146,        CHARINFO_SMALL_SLOT_WIDTH },
+		{ HEAD3POS,  TOWN_INFO_X + 213,        CHARINFO_SMALL_SLOT_WIDTH },
+		{ HELMETPOS, TOWN_INFO_X + 292,        CHARINFO_SMALL_SLOT_WIDTH },
+		{ VESTPOS,   TOWN_INFO_X + 359,        CHARINFO_SMALL_SLOT_WIDTH },
+		{ LEGPOS,    TOWN_INFO_X + 426,        CHARINFO_SMALL_SLOT_WIDTH },
+	};
+	// items and their ammo counts go to the saved background, like the panel;
+	// counts in the big merc inventory's own font and positions
+	SetFontDestBuffer(guiSAVEBUFFER);
+	InvItemTextLayout const big_text = GetMapInvBigItemTextLayout();
+	for (EquipSlot const& slot : slots)
+	{
+		INVRenderItem(guiSAVEBUFFER, &s, s.inv[slot.pocket], slot.x, CHARINFO_EQUIP_Y, slot.w, CHARINFO_EQUIP_HEIGHT, DIRTYLEVEL2, 0, SGP_TRANSPARENT, TRUE, &big_text);
+	}
+
+	if (IsMechanical(s))
+	{
+		SetFontDestBuffer(FRAME_BUFFER);
+		return;
+	}
+
+	// weight, armour, camouflage: labels left, values right, one per row, in
+	// the big merc inventory's stats font and colour (BLOCKFONT2 if it lacks
+	// a character, like there)
+	bool const big_font = FontHasGlyphsFor(MAP_INV_STATS_FONT_BIG, pInvPanelTitleStrings[0] + pInvPanelTitleStrings[1] + pInvPanelTitleStrings[2] + "0123456789% ");
+	SGPFont const font = big_font ? MAP_INV_STATS_FONT_BIG : BLOCKFONT2;
+	INT16 const x = CHARINFO_EQUIP_STATS_X;
+	INT16 const w = CHARINFO_EQUIP_STATS_WIDTH;
+	struct StatLine { ST::string const& label; ST::string value; };
+	StatLine const lines[] =
+	{
+		{ pInvPanelTitleStrings[1], ST::format("{}%", CalculateCarriedWeight(&s)) },
+		{ pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)) },
+		{ pInvPanelTitleStrings[2], ST::format("{}%", s.bCamo) },
+	};
+	INT16 y = CHARINFO_EQUIP_Y + 3;
+	for (StatLine const& line : lines)
+	{
+		SetFontAttributes(font, big_font ? MAP_INV_STATS_FONT_COLOR_BIG : MAP_INV_STATS_TITLE_FONT_COLOR);
+		DrawString(line.label, x + 4, y, font);
+		DrawStringRight(line.value, x, y, w - 4, GetFontHeight(font), font);
+		y += 15;
+	}
+	RestoreExternBackgroundRect(x, CHARINFO_EQUIP_Y, w, CHARINFO_EQUIP_HEIGHT);
+	SetFontDestBuffer(FRAME_BUFFER);
+}
+
+
 // Render the inventory item in char's main hand
 static void RenderHandPosItem()
 {
@@ -1087,6 +1171,12 @@ static void RenderHandPosItem()
 
 	SOLDIERTYPE const* const s = GetSelectedInfoChar();
 	if (!s || s->bLife == 0) return;
+
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		RenderCharInfoEquipment(*s);
+		return;
+	}
 
 	INVRenderItem(guiSAVEBUFFER, s, s->inv[HANDPOS], SOLDIER_HAND_X, SOLDIER_HAND_Y, 58, 23, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
 }
@@ -5798,11 +5888,14 @@ static void RenderCharacterInfoBackground(void)
 		return;
 	}
 
-	RenderMapMiddleBackground(0, MAP_MIDDLE_BACKGROUND_TOP);
+	// The open merc inventory starts at PLAYER_INFO_Y: the free space only
+	// down to there then, so it isn't painted over.
+	bool const inv_open = g_ui.isExtraWideStrategicScreen() && fShowInventoryFlag;
+	RenderMapMiddleBackground(0, inv_open ? PLAYER_INFO_Y - MAP_SCREEN_Y : MAP_MIDDLE_BACKGROUND_TOP);
 
 	// 1366x768: black between the character info panel's bottom and the
 	// team list's top, under the left column (the free space gets it above)
-	if (g_ui.isExtraWideStrategicScreen())
+	if (g_ui.isExtraWideStrategicScreen() && !inv_open)
 	{
 		INT16 const panel_bottom = TOWN_INFO_Y + GetVObject(GetCharInfoGraphicsFilename())->SubregionProperties(0).usHeight;
 		if (panel_bottom < TEAM_LIST_Y)
@@ -5826,8 +5919,20 @@ static void RenderCharacterInfoBackground(void)
 		}
 	}
 
-	// the upleft hand corner character info panel
-	BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
+	// the upleft hand corner character info panel -- on the 1366x768
+	// interface only its top part over the open merc inventory (its
+	// equipment row is shown while the inventory is closed)
+	if (g_ui.isExtraWideStrategicScreen() && fShowInventoryFlag)
+	{
+		SGPRect const clip = { (UINT16)TOWN_INFO_X, (UINT16)TOWN_INFO_Y, (UINT16)(TOWN_INFO_X + 640), (UINT16)(TOWN_INFO_Y + CHARINFO_PANEL_TOP_HEIGHT) };
+		SGPRect const old  = SetClippingRect(clip);
+		BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
+		SetClippingRect(old);
+	}
+	else
+	{
+		BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
+	}
 
 	UpdateHelpTextForMapScreenMercIcons( );
 
@@ -5852,11 +5957,15 @@ static void RenderCharacterInfoBackground(void)
 	// The 1366x768 panel may be wider than the left column plus the free space
 	// (charinfo_1366x768 reaches 1 px over MBS on purpose): copy all of it.
 	UINT16 restore_w = LEFT_COLUMN_BG_WIDTH;
+	UINT16 restore_h = MAP_MIDDLE_BACKGROUND_TOP;
 	if (g_ui.isExtraWideStrategicScreen())
 	{
-		restore_w = std::max<UINT16>(restore_w, GetVObject(GetCharInfoGraphicsFilename())->SubregionProperties(0).usWidth);
+		ETRLEObject const& panel = GetVObject(GetCharInfoGraphicsFilename())->SubregionProperties(0);
+		restore_w = std::max<UINT16>(restore_w, panel.usWidth);
+		// its equipment row may reach below the team list's top
+		restore_h = std::max<UINT16>(restore_h, inv_open ? CHARINFO_PANEL_TOP_HEIGHT : panel.usHeight);
 	}
-	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, restore_w, MAP_MIDDLE_BACKGROUND_TOP );
+	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, restore_w, restore_h );
 
 }
 
@@ -6612,11 +6721,26 @@ static void HandleCharBarRender(void)
 		static SOLDIERTYPE const* shown_merc = nullptr;
 		static INT8 shown_breath     = -1;
 		static INT8 shown_breath_max = -1;
-		if (s != shown_merc || s->bBreath != shown_breath || s->bBreathMax != shown_breath_max)
+		// ... and the equipment row (items, ammo left, weight, armour, camo),
+		// and whether it is covered by the merc inventory
+		static UINT32 shown_equipment = 0;
+		UINT32 equipment = fShowInventoryFlag ? 1 : 0;
+		for (INT8 const pocket : { HANDPOS, HEAD1POS, HEAD3POS, HELMETPOS, VESTPOS, LEGPOS })
+		{
+			OBJECTTYPE const& o = s->inv[pocket];
+			equipment = equipment * 31 + o.usItem;
+			equipment = equipment * 31 + o.ubGunShotsLeft;
+			equipment = equipment * 31 + o.ubNumberOfObjects;
+		}
+		equipment = equipment * 31 + CalculateCarriedWeight(s);
+		equipment = equipment * 31 + ArmourPercent(s);
+		equipment = equipment * 31 + s->bCamo;
+		if (s != shown_merc || s->bBreath != shown_breath || s->bBreathMax != shown_breath_max || equipment != shown_equipment)
 		{
 			shown_merc       = s;
 			shown_breath     = s->bBreath;
 			shown_breath_max = s->bBreathMax;
+			shown_equipment  = equipment;
 			fCharacterInfoPanelDirty = TRUE;
 		}
 	}
