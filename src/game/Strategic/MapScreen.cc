@@ -307,6 +307,9 @@ static SGPFont GetCharInfoFont()
 #define CHARINFO_EQUIP_STATS_Y      (TOWN_INFO_Y + 571)
 #define CHARINFO_EQUIP_STATS_WIDTH  92
 #define CHARINFO_EQUIP_STATS_HEIGHT 60
+// top left corner of the second hand slot's frame
+#define CHARINFO_SECOND_HAND_HIDE_X (TOWN_INFO_X + 475)
+#define CHARINFO_SECOND_HAND_HIDE_Y (TOWN_INFO_Y + 197)
 
 // The first hand item's click region and glow -- on the 1366x768 interface
 // over the equipment row's first hand slot, but disabled there (preview only).
@@ -1152,6 +1155,19 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	for (EquipSlot const& slot : slots)
 	{
 		INVRenderItem(guiSAVEBUFFER, &s, s.inv[slot.pocket], slot.x, slot.y, slot.w, CHARINFO_EQUIP_HEIGHT, DIRTYLEVEL2, 0, SGP_TRANSPARENT, TRUE, &big_text);
+	}
+
+	// A two-handed item in the first hand leaves no room for the second one:
+	// cover the second hand's slot (its whole 124x52 frame) like the merc
+	// inventory does -- charinfo_second_hand_hide_1366x768.png is optional.
+	static cache_key_t const second_hand_hide = INTERFACEDIR "/charinfo_second_hand_hide_1366x768.png";
+	if (GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded() && IsInterfaceAssetUsable(second_hand_hide))
+	{
+		INT16 const x = CHARINFO_SECOND_HAND_HIDE_X;
+		INT16 const y = CHARINFO_SECOND_HAND_HIDE_Y;
+		BltVideoObject(guiSAVEBUFFER, second_hand_hide, 0, x, y);
+		ETRLEObject const& props = GetVObject(second_hand_hide)->SubregionProperties(0);
+		RestoreExternBackgroundRect(x, y, props.usWidth, props.usHeight);
 	}
 
 	if (IsMechanical(s))
