@@ -731,6 +731,10 @@ void LoadSavedGame(const ST::string &saveName)
 	// missing content, never a binary layout mismatch.
 	if (version < 103) throw std::runtime_error("Savegame too old (pre-item-resize)");
 
+	// 108: the player's team grew from 20 to 100 slots (PLAYER_TEAM_SIZE),
+	// moving every other team's soldier IDs -- no conversion, by design.
+	if (version < 108) throw std::runtime_error("Savegame too old (pre-100-mercs team)");
+
 	//Store the loading screenID that was saved
 	gubLastLoadingScreenID = static_cast<LoadingScreenID>(SaveGameHeader.ubLoadScreenID);
 
@@ -1376,8 +1380,8 @@ static void SaveSoldierStructure(HWFILE const f)
 		// when MAX_OBJECTS_PER_SLOT went from 8 to 100 -- SAVE_GAME_VERSION
 		// was bumped for this too (GameVersion.h), so an old save is refused
 		// before it can reach this mismatched buffer size.
-		BYTE data[8580];
-		std::fill_n(data, 8580, 0);
+		BYTE data[SOLDIER_TYPE_SAVED_SIZE];
+		std::fill_n(data, SOLDIER_TYPE_SAVED_SIZE, 0);
 		InjectSoldierType(data, &s);
 		NewJA2EncryptedFileWrite(f, data, sizeof(data));
 
@@ -1416,13 +1420,13 @@ static void LoadSoldierStructure(HWFILE const f, UINT32 savegame_version, bool s
 		SOLDIERTYPE SavedSoldierInfo;
 		if(stracLinuxFormat)
 		{
-			BYTE Data[8604]; // see InjectSoldierType()'s Assert comment for how this was derived
+			BYTE Data[SOLDIER_TYPE_SAVED_SIZE_STRAC_LINUX]; // see InjectSoldierType()'s Assert comment for how this was derived
 			reader(f, Data, sizeof(Data));
 			ExtractSoldierType(Data, &SavedSoldierInfo, stracLinuxFormat, savegame_version);
 		}
 		else
 		{
-			BYTE Data[8580]; // see InjectSoldierType()'s Assert comment for how this was derived
+			BYTE Data[SOLDIER_TYPE_SAVED_SIZE]; // see InjectSoldierType()'s Assert comment for how this was derived
 			reader(f, Data, sizeof(Data));
 			ExtractSoldierType(Data, &SavedSoldierInfo, stracLinuxFormat, savegame_version);
 		}

@@ -71,7 +71,7 @@
 
 #define SELECTED_CHAR_ARROW_X (MAP_SCREEN_X + 8)
 
-#define SIZE_OF_UPDATE_BOX 20
+#define SIZE_OF_UPDATE_BOX PLAYER_TEAM_SIZE
 
 // as deep as the map goes
 #define MAX_DEPTH_OF_MAP 3
@@ -960,14 +960,35 @@ void CheckAndUpdateBasedOnContractTimes( void )
 }
 
 
+INT32 TeamListRowOfEntry(INT32 const i)
+{
+	if (i < 0) return -1;
+	if (i < FIRST_VEHICLE) return i < TEAM_LIST_PEOPLE_ROWS ? i : -1;
+	INT32 const v = i - FIRST_VEHICLE;
+	return v < TEAM_LIST_VEHICLE_ROWS ? TEAM_LIST_PEOPLE_ROWS + v : -1;
+}
+
+
+INT16 TeamListRowY(INT32 const row)
+{
+	return Y_START + row * TEAM_LIST_ROW_PITCH + (row >= TEAM_LIST_PEOPLE_ROWS ? TEAM_LIST_VEHICLE_DY(row) : 0);
+}
+
+
+INT16 TeamListEntryY(INT32 const i)
+{
+	return TeamListRowY(TeamListRowOfEntry(i));
+}
+
+
 void HandleDisplayOfSelectedMercArrows()
 {
 	if (!GetSelectedInfoChar()) return;
 	if (fShowInventoryFlag)     return;
 
+	if (TeamListRowOfEntry(bSelectedInfoChar) != -1)
 	{ // Blit one by the selected merc
-		INT16 y = Y_START + bSelectedInfoChar * TEAM_LIST_ROW_PITCH - 1;
-		if (bSelectedInfoChar >= FIRST_VEHICLE) y += TEAM_LIST_VEHICLE_DY(bSelectedInfoChar);
+		INT16 const y = TeamListEntryY(bSelectedInfoChar) - 1;
 		BltVideoObject(guiSAVEBUFFER, guiSelectedCharArrow, 0,SELECTED_CHAR_ARROW_X, y);
 	}
 
@@ -980,9 +1001,9 @@ void HandleDisplayOfSelectedMercArrows()
 
 		// Is he in the selected list or in the same mvt group as this guy?
 		if (!IsEntryInSelectedListSet(i) && (s->ubGroupID == 0 || s->ubGroupID != dest_group)) continue;
+		if (TeamListRowOfEntry(i) == -1) continue;
 
-		INT16 y = Y_START + i * TEAM_LIST_ROW_PITCH - 1;
-		if (i >= FIRST_VEHICLE) y += TEAM_LIST_VEHICLE_DY(i);
+		INT16 const y = TeamListEntryY(i) - 1;
 		BltVideoObject(guiSAVEBUFFER, guiSelectedCharArrow, 0, SELECTED_CHAR_ARROW_X, y);
 	}
 }
@@ -1402,7 +1423,7 @@ void UpdateMapScreenAssignmentPositions( void )
 	}
 	else
 	{
-		giBoxY = ( Y_START + ( bSelectedAssignChar ) * TEAM_LIST_ROW_PITCH );
+		giBoxY = TeamListRowOfEntry(bSelectedAssignChar) != -1 ? TeamListEntryY(bSelectedAssignChar) : Y_START;
 
 /* ARM: Removed this - refreshes fine without it, apparently
 		// make sure the menus don't overlap the map screen bottom panel (but where did 102 come from?)
@@ -1448,7 +1469,7 @@ void RandomMercInGroupSaysQuote(GROUP const& g, UINT16 const quote_num)
 	}
 
 	// Choose somebody in group
-	SOLDIERTYPE* mercs_in_group[20];
+	SOLDIERTYPE* mercs_in_group[PLAYER_TEAM_SIZE];
 	UINT8        n_mercs = 0;
 	CFOR_EACH_PLAYER_IN_GROUP(i, &g)
 	{

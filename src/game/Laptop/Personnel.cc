@@ -932,6 +932,9 @@ try
 	INT32 i = 0;
 	CFOR_EACH_PERSONNEL(s)
 	{
+		// the grid's 20 portraits (more team members: pages, to come)
+		if (i == PERSONNEL_PORTRAIT_NUMBER) break;
+
 		// found the next actual guy
 		INT32 const x = SMALL_PORTRAIT_START_X + i % PERSONNEL_PORTRAIT_NUMBER_WIDTH * SMALL_PORT_WIDTH;
 		INT32 const y = SMALL_PORTRAIT_START_Y + i / PERSONNEL_PORTRAIT_NUMBER_WIDTH * SMALL_PORT_HEIGHT;

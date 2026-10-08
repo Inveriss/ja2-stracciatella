@@ -30,7 +30,7 @@
 #include "ContentManager.h"
 
 
-#define MAX_MERC_IN_HELI		20
+#define MAX_MERC_IN_HELI		PLAYER_TEAM_SIZE
 #define MAX_HELI_SCRIPT		30
 #define ME_SCRIPT_DELAY		100
 #define NUM_PER_HELI_RUN		6

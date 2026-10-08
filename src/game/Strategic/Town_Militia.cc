@@ -33,7 +33,7 @@
 #include <algorithm>
 #include <iterator>
 
-#define SIZE_OF_MILITIA_COMPLETED_TRAINING_LIST 50
+#define SIZE_OF_MILITIA_COMPLETED_TRAINING_LIST PLAYER_TEAM_SIZE
 
 // temporary local global variables
 UINT8 gubTownSectorServerTownId = BLANK_SECTOR;

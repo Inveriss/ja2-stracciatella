@@ -167,8 +167,10 @@ try
 	else
 	{
 		TacticalTeamType const& team = gTacticalStatus.Team[team_id];
-		id = team.bFirstID;
-		// ATE: If we are a vehicle, and a player, start at a different slot (2 - max)
+		// ATE: If we are a vehicle, and a player, start at a different slot --
+		// the player's vehicles take the team's slots from its last one down,
+		// everybody else from its first one up
+		bool vehicle = false;
 		if (team_id == OUR_TEAM)
 		{
 			switch (profile != NO_PROFILE ? GetProfile(profile).ubBodyType : c.bBodyType)
@@ -177,17 +179,26 @@ try
 				case HUMVEE:
 				case ICECREAMTRUCK:
 				case JEEP:
-					id = team.bLastID - 1;
+					vehicle = true;
 					break;
 			}
 		}
 
-		UINT8 const last_id = team.bLastID;
+		id = vehicle ? team.bLastID : team.bFirstID;
 		for (;;)
 		{
 			s = &GetMan(id);
 			if (!s->bActive) break;
-			if (++id > last_id) return 0;
+			if (vehicle)
+			{
+				if (id == team.bFirstID) return 0;
+				--id;
+			}
+			else
+			{
+				if (id == team.bLastID) return 0;
+				++id;
+			}
 		}
 	}
 

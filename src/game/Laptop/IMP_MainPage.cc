@@ -259,7 +259,7 @@ static void BtnIMPMainPageBeginCallback(GUI_BUTTON *btn, UINT32 reason)
 			{
 				DoLapTopMessageBox(MSG_BOX_IMP_STYLE, pImpPopUpStrings[3], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, BeginMessageBoxCallBack);
 			}
-			else if (NumberOfMercsOnPlayerTeam() >= 18)
+			else if (PlayerTeamFull())
 			{
 				DoLapTopMessageBox(MSG_BOX_IMP_STYLE, pImpPopUpStrings[5], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, BeginMessageBoxCallBack);
 			}

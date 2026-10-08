@@ -229,9 +229,18 @@ enum WorldDirections
 
 
 // ENUMERATION OF SOLDIER POSIITONS IN GLOBAL SOLDIER LIST
-#define MAX_NUM_SOLDIERS				148
+// The player's team: 100 slots for everybody under his command -- mercs,
+// IMPs, recruited NPCs, escorted characters, the robot and the vehicles
+// (originally 20: 18 people, 2 slots kept for the vehicles).
+#define PLAYER_TEAM_SIZE				100
+// the player's team, then 32 each for the enemies, creatures, rebels and
+// civilians (g_default_team_info, Overhead.cc)
+#define MAX_NUM_SOLDIERS				( PLAYER_TEAM_SIZE + 4 * 32 )
 #define NUM_PLANNING_MERCS				8 // XXX this is a remnant of the planning mode, see issue #902
 #define TOTAL_SOLDIERS					( NUM_PLANNING_MERCS + MAX_NUM_SOLDIERS )
+// Soldier IDs are UINT8 (SoldierID): every ID and NO_SOLDIER (== TOTAL_SOLDIERS)
+// must fit, and 255 is the ID of auto resolve's own temporary soldiers.
+static_assert(TOTAL_SOLDIERS < 255, "soldier IDs are UINT8");
 
 // DEFINE TEAMS
 enum Team

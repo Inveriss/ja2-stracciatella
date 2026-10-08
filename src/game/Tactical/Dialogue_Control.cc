@@ -1348,7 +1348,7 @@ void SayQuoteFromAnyBodyInSector(UINT16 const quote_id)
 {
 	// Loop through all our guys and randomly say one from someone in our sector
 	INT32       n_mercs = 0;
-	SOLDIERTYPE* mercs_in_sector[20];
+	SOLDIERTYPE* mercs_in_sector[PLAYER_TEAM_SIZE];
 	FOR_EACH_IN_TEAM(i, OUR_TEAM)
 	{
 		// Add guy if he's a candidate
@@ -1401,7 +1401,7 @@ void SayQuoteFromNearbyMercInSector(GridNo const gridno, INT8 const distance, UI
 {
 	// Loop through all our guys and randomly say one from someone in our sector
 	INT32       n_mercs = 0;
-	SOLDIERTYPE* mercs_in_sector[20];
+	SOLDIERTYPE* mercs_in_sector[PLAYER_TEAM_SIZE];
 	FOR_EACH_IN_TEAM(i, OUR_TEAM)
 	{
 		// Add guy if he's a candidate
@@ -1441,7 +1441,7 @@ void SayQuote58FromNearbyMercInSector(GridNo const gridno, INT8 const distance, 
 {
 	// Loop through all our guys and randomly say one from someone in our sector
 	INT32       n_mercs = 0;
-	SOLDIERTYPE* mercs_in_sector[20];
+	SOLDIERTYPE* mercs_in_sector[PLAYER_TEAM_SIZE];
 	FOR_EACH_IN_TEAM(i, OUR_TEAM)
 	{
 		// Add guy if he's a candidate

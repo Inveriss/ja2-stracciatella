@@ -845,6 +845,8 @@ struct CharacterRegions
 };
 
 static CharacterRegions g_character_regions[MAX_CHARACTER_COUNT];
+// which entries have their regions now (CreateMouseRegionsForTeamList())
+static bool g_character_region_made[MAX_CHARACTER_COUNT];
 
 
 static PathSt* g_prev_path;
@@ -929,17 +931,12 @@ static void ContractListRegionBoxGlow(UINT16 usCount)
 		iColorNum--;
 
 
-	if( usCount >= FIRST_VEHICLE )
-	{
-		sYAdd = TEAM_LIST_VEHICLE_DY(usCount);
-	}
-	else
-	{
-		sYAdd = 0;
-	}
+	// not on screen?
+	if (TeamListRowOfEntry(usCount) == -1) return;
+	sYAdd = 0;
 
 	// y start position of box
-	usY = Y_START - 1 + usCount * TEAM_LIST_ROW_PITCH + sYAdd;
+	usY = TeamListEntryY(usCount) - 1 + sYAdd;
 
 	// glow contract box
 	UINT16 usColor = GlowColor(iColorNum);
@@ -1790,17 +1787,20 @@ static void HighLightSelection(HighLightState& state, INT32 const line, UINT16 c
 	for (INT16 i = 0; i != MAX_CHARACTER_COUNT; ++i)
 	{
 		if (!predicate(i)) continue;
+		INT32 const row = TeamListRowOfEntry(i);
+		if (row == -1) continue;
 
-		UINT16 y = Y_START - 1 + i * h;
-		if (i >= FIRST_VEHICLE) y += TEAM_LIST_VEHICLE_DY(i);
+		UINT16 const y = TeamListRowY(row) - 1;
 
-		// 1366x768: every vehicle row stands alone
-		bool const own_row = g_ui.isExtraWideStrategicScreen() && i >= FIRST_VEHICLE;
-		if (i == 0 || !predicate(i - 1) || i == FIRST_VEHICLE || own_row)
+		// 1366x768: every vehicle row stands alone; the box closes at the
+		// first and last row of the people and of the vehicles
+		bool const own_row = g_ui.isExtraWideStrategicScreen() && row >= TEAM_LIST_PEOPLE_ROWS;
+		if (row == 0 || row == TEAM_LIST_PEOPLE_ROWS || own_row || !predicate(i - 1))
 		{
 			LineDraw(TRUE, x, y, x + w, y, colour, pDestBuf);
 		}
-		if (i == MAX_CHARACTER_COUNT - 1 || !predicate(i + 1) || i == FIRST_VEHICLE - 1 || own_row)
+		if (row == TEAM_LIST_PEOPLE_ROWS - 1 || row == TEAM_LIST_ROWS - 1 || own_row ||
+			i == MAX_CHARACTER_COUNT - 1 || !predicate(i + 1))
 		{
 			LineDraw(TRUE, x, y + h, x + w, y + h, colour, pDestBuf);
 		}
@@ -1919,8 +1919,8 @@ static void DisplayCharacterList(void)
 			FONT_MAP_DKYELLOW;
 		SetFontForeground(foreground);
 
-		UINT16 y = Y_START + i * TEAM_LIST_ROW_PITCH + 1;
-		if (i >= FIRST_VEHICLE) y += TEAM_LIST_VEHICLE_DY(i);
+		if (TeamListRowOfEntry(i) == -1) continue;
+		UINT16 const y = TeamListEntryY(i) + 1;
 
 		// Name
 		DrawStringCentered(s.name, NAME_X + 1, y, NAME_WIDTH, Y_SIZE, MAP_SCREEN_FONT);
@@ -5007,7 +5007,10 @@ static void CreateMouseRegionsForTeamList(void)
 	// the info region...is the background for the list itself
 	for (UINT i = 0; i < MAX_CHARACTER_COUNT; ++i)
 	{
-		const UINT16 y = Y_START + i * TEAM_LIST_ROW_PITCH + (i >= FIRST_VEHICLE ? TEAM_LIST_VEHICLE_DY(i) : 0);
+		// only the entries shown (TeamListRowOfEntry())
+		g_character_region_made[i] = TeamListRowOfEntry(i) != -1;
+		if (!g_character_region_made[i]) continue;
+		const UINT16 y = TeamListEntryY(i);
 
 		const UINT16 w = NAME_WIDTH;
 		CharacterRegions& r = g_character_regions[i];
@@ -5027,6 +5030,8 @@ static void DestroyMouseRegionsForTeamList(void)
 	// will destroy mouse regions overlaying the team list area
 	for (UINT i = 0; i < MAX_CHARACTER_COUNT; ++i)
 	{
+		if (!g_character_region_made[i]) continue;
+		g_character_region_made[i] = false;
 		CharacterRegions& r = g_character_regions[i];
 		MSYS_RemoveRegion(&r.name);
 		MSYS_RemoveRegion(&r.assignment);
@@ -7851,7 +7856,8 @@ static void DisplayIconsForMercsAsleep(void)
 			INT16 const sleep_x = g_ui.isExtraWideStrategicScreen()
 				? SLEEP_X + (SLEEP_WIDTH - GetVObject(guiSleepIcon)->SubregionProperties(0).usWidth) / 2
 				: MAP_SCREEN_X + 125;
-			BltVideoObject(guiSAVEBUFFER, guiSleepIcon, 0, sleep_x, Y_START + iCounter * TEAM_LIST_ROW_PITCH);
+			if (TeamListRowOfEntry(iCounter) == -1) continue;
+			BltVideoObject(guiSAVEBUFFER, guiSleepIcon, 0, sleep_x, TeamListEntryY(iCounter));
 		}
 	}
 }
@@ -8650,8 +8656,8 @@ static void HandleNewDestConfirmation(const SGPSector& sMap)
 static void RandomAwakeSelectedMercConfirmsStrategicMove(void)
 {
 	INT32 iCounter;
-	SOLDIERTYPE* selected_merc[20];
-	UINT8	ubSelectedMercIndex[ 20 ];
+	SOLDIERTYPE* selected_merc[MAX_CHARACTER_COUNT];
+	UINT8	ubSelectedMercIndex[ MAX_CHARACTER_COUNT ];
 	UINT8	ubNumMercs = 0;
 	UINT8	ubChosenMerc;
 

@@ -621,7 +621,7 @@ static void PrepareForPreBattleInterface(GROUP* pPlayerDialogGroup, GROUP* pInit
 
 	AssertMsg(pPlayerDialogGroup->pPlayerList, ST::format("Player group {} doesn't have *any* players in it!  (Finding dialog group)", pPlayerDialogGroup->ubGroupID));
 
-	SOLDIERTYPE* mercs_in_group[20];
+	SOLDIERTYPE* mercs_in_group[PLAYER_TEAM_SIZE];
 	CFOR_EACH_PLAYER_IN_GROUP(pPlayer, pPlayerDialogGroup)
 	{
 		SOLDIERTYPE* const pSoldier = pPlayer->pSoldier;

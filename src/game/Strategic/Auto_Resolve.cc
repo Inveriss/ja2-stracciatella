@@ -107,7 +107,7 @@ struct AUTORESOLVE_STRUCT
 	GUIButtonRef iButton[NUM_AR_BUTTONS];
 	BUTTON_PICS* iButtonImage[NUM_AR_BUTTONS];
 	SGPVObject* iFaces; //for generic civs and enemies
-	INT32 iMercFaces[20]; //for each merc face
+	INT32 iMercFaces[PLAYER_TEAM_SIZE]; //for each merc face
 	SGPVObject* iIndent;
 	SGPVSurface* iInterfaceBuffer;
 	UINT32 uiTimeSlice;
@@ -155,7 +155,7 @@ struct AUTORESOLVE_STRUCT
 
 	MOUSE_REGION AutoResolveRegion;
 
-	std::array<SOLDIERCELL, 20> mercs;
+	std::array<SOLDIERCELL, PLAYER_TEAM_SIZE> mercs;
 	//Militia -- MAX_ALLOWABLE_MILITIA_PER_SECTOR max
 	std::array<SOLDIERCELL, MAX_ALLOWABLE_MILITIA_PER_SECTOR> civs;
 	//Enemies -- 32 max
@@ -2145,9 +2145,9 @@ static void CalculateRowsAndColumns(void)
 		gpAR->ubMercRows = (gpAR->ubMercs+2)/3;
 	}
 	else
-	{ //16-MAX_STRATEGIC_TEAM_SIZE
-		gpAR->ubMercCols = 4;
-		gpAR->ubMercRows = (gpAR->ubMercs+3)/4;
+	{ //16-20; more mercs (up to PLAYER_TEAM_SIZE): more columns, at most 10 rows
+		gpAR->ubMercCols = std::max(4, (gpAR->ubMercs + 9) / 10);
+		gpAR->ubMercRows = (gpAR->ubMercs + gpAR->ubMercCols - 1) / gpAR->ubMercCols;
 	}
 
 	if( !gpAR->ubCivs )
