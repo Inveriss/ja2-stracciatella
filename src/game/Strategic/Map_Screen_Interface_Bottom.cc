@@ -116,6 +116,13 @@
 
 #define MAP_BOTTOM_FONT_COLOR ( 32 * 4 - 9 )
 
+// 1366x768 interface fine tuning: current balance and daily income (labels
+// and values) 5 px up; time compression arrows and text 1 px up, the "less"
+// arrow and the text 8 px left.
+#define MAP_BOTTOM_MONEY_UP       (g_ui.isExtraWideStrategicScreen() ? 5 : 0)
+#define MAP_BOTTOM_TIME_UP        (g_ui.isExtraWideStrategicScreen() ? 1 : 0)
+#define MAP_BOTTOM_TIME_LEFT      (g_ui.isExtraWideStrategicScreen() ? 8 : 0)
+
 // button enums
 enum{
 	MAP_SCROLL_MESSAGE_UP =0,
@@ -588,8 +595,8 @@ static void CreateButtonsForMapScreenInterfaceBottom(void)
 	guiMapBottomExitButtons[MAP_EXIT_TO_OPTIONS]  = MakeExitButton(18, 19, MAP_SCREEN_RIGHT - 182, MAP_SCREEN_BOTTOM - 108, BtnOptionsFromMapScreenCallback, pMapScreenBottomFastHelp[2]);
 
 	// time compression buttons
-	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE] = MakeArrowButton(10, 1, 3, MAP_SCREEN_RIGHT - 112, MAP_SCREEN_BOTTOM - 24, BtnTimeCompressMoreMapScreenCallback, pMapScreenBottomFastHelp[3]);
-	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS] = MakeArrowButton( 9, 0, 2, MAP_SCREEN_RIGHT - 174, MAP_SCREEN_BOTTOM - 24, BtnTimeCompressLessMapScreenCallback, pMapScreenBottomFastHelp[4]);
+	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE] = MakeArrowButton(10, 1, 3, MAP_SCREEN_RIGHT - 112, MAP_SCREEN_BOTTOM - 24 - MAP_BOTTOM_TIME_UP, BtnTimeCompressMoreMapScreenCallback, pMapScreenBottomFastHelp[3]);
+	guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS] = MakeArrowButton( 9, 0, 2, MAP_SCREEN_RIGHT - 174 - MAP_BOTTOM_TIME_LEFT, MAP_SCREEN_BOTTOM - 24 - MAP_BOTTOM_TIME_UP, BtnTimeCompressLessMapScreenCallback, pMapScreenBottomFastHelp[4]);
 
 	// scroll buttons -- part of the message box (bottom only, X unchanged)
 	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]   = MakeArrowButton(11, 4, 6, MAP_SCREEN_X + 331, MAP_SCREEN_BOTTOM - 109, BtnMessageUpMapScreenCallback,   pMapScreenBottomFastHelp[5]);
@@ -982,7 +989,7 @@ static void DisplayCompressMode(void)
 	// Bottom+right-anchored: 640-489=151, 480-457=23 -- same distance from the
 	// old 640x480 canvas' edges as before. Rect size (33x13) is unrelated to
 	// position, kept as-is.
-	RestoreExternBackgroundRect( MAP_SCREEN_RIGHT - 151, MAP_SCREEN_BOTTOM - 23, 522 - 489, 467 - 454 );
+	RestoreExternBackgroundRect( MAP_SCREEN_RIGHT - 151 - MAP_BOTTOM_TIME_LEFT, MAP_SCREEN_BOTTOM - 23 - MAP_BOTTOM_TIME_UP, 522 - 489, 467 - 454 );
 	SetFontDestBuffer(FRAME_BUFFER);
 
 	if( GetJA2Clock() - guiCompressionStringBaseTime >= PAUSE_GAME_TIMER )
@@ -1005,7 +1012,7 @@ static void DisplayCompressMode(void)
 	}
 
 	SetFontAttributes(StrategicTooltipFontAs(COMPFONT), usColor);
-	MPrint(MAP_SCREEN_RIGHT - 151, MAP_SCREEN_BOTTOM - 23, Time,
+	MPrint(MAP_SCREEN_RIGHT - 151 - MAP_BOTTOM_TIME_LEFT, MAP_SCREEN_BOTTOM - 23 - MAP_BOTTOM_TIME_UP, Time,
 		HCenterVCenterAlign(522 - 489, 467 - 454));
 }
 
@@ -1014,7 +1021,9 @@ static void CreateCompressModePause(void)
 {
 	// Bottom+right-anchored: 640-487=153, 480-456=24; second corner keeps its
 	// original offset from the first (522-487=35, 467-456=11).
-	MSYS_DefineRegion( &gMapPauseRegion, MAP_SCREEN_RIGHT - 153, MAP_SCREEN_BOTTOM - 24, MAP_SCREEN_RIGHT - 153 + 35, MAP_SCREEN_BOTTOM - 24 + 11, MSYS_PRIORITY_HIGH,
+	INT16 const x = MAP_SCREEN_RIGHT - 153 - MAP_BOTTOM_TIME_LEFT;
+	INT16 const y = MAP_SCREEN_BOTTOM - 24 - MAP_BOTTOM_TIME_UP;
+	MSYS_DefineRegion( &gMapPauseRegion, x, y, x + 35, y + 11, MSYS_PRIORITY_HIGH,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressModeClickCallback );
 	gMapPauseRegion.SetFastHelpText(pMapScreenBottomFastHelp[7]);
 }
@@ -1335,8 +1344,8 @@ static void DisplayCurrentBalanceTitleForMapBottom(void)
 	// Bottom+right-anchored: X shared by balance/income (640-359=281); Y kept
 	// at each label's original distance from the old canvas' bottom edge
 	// (480-373=107, 480-419=61).
-	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 107, pMapScreenBottomText, alignment);
-	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 61,  zMarksMapScreenText[2], alignment);
+	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 107 - MAP_BOTTOM_MONEY_UP, pMapScreenBottomText, alignment);
+	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 61 - MAP_BOTTOM_MONEY_UP,  zMarksMapScreenText[2], alignment);
 
 	SetFontDestBuffer(FRAME_BUFFER);
 }
@@ -1348,7 +1357,7 @@ static void DisplayCurrentBalanceForMapBottom(void)
 	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontAttributes(StrategicTooltipFontAs(COMPFONT), 183);
 	// Bottom+right-anchored: 640-359=281, 480-389=91.
-	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 91,
+	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 91 - MAP_BOTTOM_MONEY_UP,
 		SPrintMoney(LaptopSaveInfo.iCurrentBalance),
 		HCenterVCenterAlign(437 - 359, 10));
 }
@@ -1372,9 +1381,9 @@ void CreateDestroyMouseRegionMasksForTimeCompressionButtons()
 		// the MAP_SCREEN_X/Y prefix (worked only by coincidence when those
 		// offsets were 0, i.e. screen size == old map canvas size) -- fixed
 		// here to stay anchored the same way as the first corner.
-		MSYS_DefineRegion(&gTimeCompressionMask[0], MAP_SCREEN_RIGHT - 112, MAP_SCREEN_BOTTOM - 23, MAP_SCREEN_RIGHT - 112 + 13, MAP_SCREEN_BOTTOM - 23 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
-		MSYS_DefineRegion(&gTimeCompressionMask[1], MAP_SCREEN_RIGHT - 174, MAP_SCREEN_BOTTOM - 23, MAP_SCREEN_RIGHT - 174 + 13, MAP_SCREEN_BOTTOM - 23 + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
-		MSYS_DefineRegion(&gTimeCompressionMask[2], MAP_SCREEN_RIGHT - 153, MAP_SCREEN_BOTTOM - 23, MAP_SCREEN_RIGHT - 153 + 35, MAP_SCREEN_BOTTOM - 23 + 11, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
+		MSYS_DefineRegion(&gTimeCompressionMask[0], MAP_SCREEN_RIGHT - 112, MAP_SCREEN_BOTTOM - 23 - MAP_BOTTOM_TIME_UP, MAP_SCREEN_RIGHT - 112 + 13, MAP_SCREEN_BOTTOM - 23 - MAP_BOTTOM_TIME_UP + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
+		MSYS_DefineRegion(&gTimeCompressionMask[1], MAP_SCREEN_RIGHT - 174 - MAP_BOTTOM_TIME_LEFT, MAP_SCREEN_BOTTOM - 23 - MAP_BOTTOM_TIME_UP, MAP_SCREEN_RIGHT - 174 - MAP_BOTTOM_TIME_LEFT + 13, MAP_SCREEN_BOTTOM - 23 - MAP_BOTTOM_TIME_UP + 14, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
+		MSYS_DefineRegion(&gTimeCompressionMask[2], MAP_SCREEN_RIGHT - 153 - MAP_BOTTOM_TIME_LEFT, MAP_SCREEN_BOTTOM - 23 - MAP_BOTTOM_TIME_UP, MAP_SCREEN_RIGHT - 153 - MAP_BOTTOM_TIME_LEFT + 35, MAP_SCREEN_BOTTOM - 23 - MAP_BOTTOM_TIME_UP + 11, MSYS_PRIORITY_HIGHEST - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback);
 		created = true;
 	}
 	else if (!disabled && created)
@@ -1414,7 +1423,7 @@ static void DisplayProjectedDailyMineIncome(void)
 	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontAttributes(StrategicTooltipFontAs(COMPFONT), 183);
 	// Bottom+right-anchored: 640-359=281, 480-435=45.
-	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 45,
+	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 45 - MAP_BOTTOM_MONEY_UP,
 		SPrintMoney(iRate), HCenterVCenterAlign(437 - 359, 10));
 }
 
