@@ -349,6 +349,7 @@ BOOLEAN IsBigRadarScreenVisible(void)
 {
 	return
 		fShowMapInventoryPool &&
+		!IsStackSplitViewStandalone() && // a merc's stack: no sector items to locate
 		!IsSectorInventoryBigMinimapHidden() && // the window's own checkbox
 		IsCursorOverSectorInventoryWindow() &&
 		gpItemPointer == NULL;

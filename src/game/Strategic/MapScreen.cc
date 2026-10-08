@@ -4559,7 +4559,13 @@ static void MAPInvClickCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
 	// Check for # of slots in item
 	if ( ( pSoldier->inv[ uiHandPos ].ubNumberOfObjects > 1 ) && ( ItemSlotLimit( pSoldier->inv[ uiHandPos ].usItem, (UINT8)uiHandPos ) > 0 ) )
 	{
-		if ( !InItemStackPopup( ) )
+		// 1366x768 interface: the stack in the sector inventory's "stack
+		// split" view instead of the small popup (extra_inventory.sti)
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			OpenMercStackView(*pSoldier, (INT8)uiHandPos);
+		}
+		else if ( !InItemStackPopup( ) )
 		{
 			InitItemStackPopup( pSoldier, (UINT8)uiHandPos, INV_REGION_X, INV_REGION_Y, 261, 248 );
 			fTeamPanelDirty=TRUE;

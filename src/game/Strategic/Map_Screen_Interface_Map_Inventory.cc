@@ -630,6 +630,18 @@ static std::vector<OBJECTTYPE> gStackSplitItems;
 // Index into pInventoryPoolList (absolute -- already includes the page
 // offset) of the stack currently split open here, or -1 when closed.
 static INT32 gStackSplitSourceIndex = -1;
+// gStackSplitSourceIndex while the view shows a stack from a merc's own
+// inventory instead (right click on a stack in the merc inventory panel on
+// the 1366x768 interface -- OpenMercStackView()): the merc and the pocket
+// the stack came from, and back into which CloseStackSplitView() merges it.
+#define STACK_SPLIT_MERC_SOURCE (-2)
+static SOLDIERTYPE* gStackSplitSoldier = nullptr;
+static INT8         gStackSplitPocket  = -1;
+// The merc's stack was opened while the Sector Inventory panel was closed:
+// the view stands alone. fShowMapInventoryPool is set, so the map screen
+// treats the map as covered (same as for the panel), but the panel itself
+// -- stash, grid, buttons -- is not built; only this view is.
+static BOOLEAN gfStackSplitStandalone = FALSE;
 // This window's own, independent page state -- reset to 0 every time it
 // opens (OpenStackSplitView()). gLastStackSplitPage is recomputed there
 // too, from gStackSplitItems.size() (fixed for as long as the view stays
@@ -732,6 +744,15 @@ void MPrintCenteredInBox(int x, int y, ST::string const& text, SGPBox const& box
 // blit the background panel for the inventory
 void BlitInventoryPoolGraphic( void )
 {
+	// a stand-alone stack split view: just the view, no panel underneath
+	if (gfStackSplitStandalone)
+	{
+		RenderStackSplitItems();
+		MarkButtonsDirty();
+		HandleButtonStatesWhileMapInventoryActive();
+		return;
+	}
+
 	const SGPBox* const box = &g_sector_inv_box;
 	BltVideoObject(guiSAVEBUFFER, GetMapInventoryPoolBackgroundFilename(), 0, MAP_SCREEN_RIGHT_BLOCK_X + box->x, MAP_SCREEN_Y + box->y);
 
@@ -904,7 +925,7 @@ static void GroupSectorInventoryItems(void);
 static void ApplySectorInventoryFilter(void);
 static void HandleMapSectorInventory(void);
 static void OpenStackSplitView(INT32 sourceIndex);
-static void CloseStackSplitView(void);
+static void CloseStackSplitView(BOOLEAN fExitFromMapScreen = FALSE);
 static void StackSplitSlotPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void StackSplitSlotSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void StackSplitSlotMove(MOUSE_REGION* pRegion, UINT32 iReason);
@@ -923,6 +944,26 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 		fShowMapInventoryPool = FALSE;
 	}
 */
+	// A merc's stack split open here goes back to him once his inventory
+	// panel is no longer showing him (closed, another merc selected, gone).
+	if (gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE)
+	{
+		SOLDIERTYPE const* const s = gStackSplitSoldier;
+		if (!fShowInventoryFlag || GetSelectedInfoChar() != s || !s->bActive || s->bLife == 0)
+		{
+			CloseStackSplitView(fExitFromMapScreen);
+		}
+	}
+
+	// A stand-alone stack split view has no panel to build or tear down --
+	// closing the "panel" (fShowMapInventoryPool off: Esc, leaving the map
+	// screen, ...) closes the view.
+	if (gfStackSplitStandalone)
+	{
+		if (!fShowMapInventoryPool) CloseStackSplitView(fExitFromMapScreen);
+		return;
+	}
+
 	auto const& sector{ sSelMap };
 	if (fShowMapInventoryPool && !fCreated)
 	{
@@ -1606,15 +1647,14 @@ static void RenderStackSplitItems(void)
 }
 
 
-static void OpenStackSplitView(INT32 const sourceIndex)
+// Pulls the whole stack `o` out into gStackSplitItems, one unit each.
+static void SplitStackIntoStackSplitItems(OBJECTTYPE& o)
 {
-	WORLDITEM& src = pInventoryPoolList[sourceIndex];
-
 	// Best unit first, worst last -- per user request. See
 	// SortItemStackByStatus() (Items.cc) for why; GetObjFrom() below always
 	// drains from index 0, so sorting the source stack first is what
 	// determines gStackSplitItems' resulting order.
-	SortItemStackByStatus(&src.o);
+	SortItemStackByStatus(&o);
 
 	// Physically pull every unit of the stack out into its own 1-count
 	// OBJECTTYPE -- same primitive ItemPopupRegionCallbackPrimary()
@@ -1622,13 +1662,19 @@ static void OpenStackSplitView(INT32 const sourceIndex)
 	// onto the cursor. Repeating it at index 0 drains the whole stack, down
 	// to usItem == NOTHING/ubNumberOfObjects == 0.
 	gStackSplitItems.clear();
-	gStackSplitItems.reserve(src.o.ubNumberOfObjects);
-	while (src.o.ubNumberOfObjects > 0)
+	gStackSplitItems.reserve(o.ubNumberOfObjects);
+	while (o.ubNumberOfObjects > 0)
 	{
 		OBJECTTYPE single{};
-		GetObjFrom(&src.o, 0, &single);
+		GetObjFrom(&o, 0, &single);
 		gStackSplitItems.push_back(single);
 	}
+}
+
+
+static void OpenStackSplitView(INT32 const sourceIndex)
+{
+	SplitStackIntoStackSplitItems(pInventoryPoolList[sourceIndex].o);
 
 	gStackSplitSourceIndex = sourceIndex;
 
@@ -1645,9 +1691,93 @@ static void OpenStackSplitView(INT32 const sourceIndex)
 }
 
 
-static void CloseStackSplitView(void)
+// An item that can't go back into the merc's stack: into his other
+// pockets, else onto the cursor, else onto the ground of his sector --
+// never lost.
+static void GiveBackToMerc(SOLDIERTYPE& s, OBJECTTYPE& o)
+{
+	if (o.usItem == NOTHING || o.ubNumberOfObjects == 0) return;
+	if (AutoPlaceObject(&s, &o, FALSE)) return;
+	if (o.usItem == NOTHING || o.ubNumberOfObjects == 0) return;
+
+	if (gpItemPointer == NULL)
+	{
+		gItemPointer = o;
+		o            = OBJECTTYPE{};
+		InternalMAPBeginItemPointer(&s);
+		return;
+	}
+
+	if (s.sSector == gWorldSector)
+	{
+		AddItemToPool(s.sGridNo, &o, VISIBLE, s.bLevel, 0, -1);
+	}
+	else
+	{
+		AddItemsToUnLoadedSector(s.sSector, s.sGridNo, 1, &o, s.bLevel, WORLD_ITEM_REACHABLE, 0, VISIBLE);
+	}
+	o = OBJECTTYPE{};
+}
+
+
+void OpenMercStackView(SOLDIERTYPE& s, INT8 const pocket)
+{
+	if (gpItemPointer != NULL) return;
+	if (s.inv[pocket].ubNumberOfObjects <= 1) return;
+
+	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+
+	// another stack already split open here (from the sector or a merc):
+	// merge it back first, then show this one
+	if (gStackSplitSourceIndex != -1) CloseStackSplitView();
+
+	if (!fShowMapInventoryPool)
+	{
+		// stand-alone: cover the map like the Sector Inventory panel does,
+		// without building the panel (see gfStackSplitStandalone)
+		gfStackSplitStandalone = TRUE;
+		fShowMapInventoryPool  = TRUE;
+		DeleteMapBorderButtons();
+		CheckAndUnDateSlotAllocation();
+		fMapScreenBottomDirty = TRUE;
+	}
+
+	SplitStackIntoStackSplitItems(s.inv[pocket]);
+
+	gStackSplitSourceIndex = STACK_SPLIT_MERC_SOURCE;
+	gStackSplitSoldier     = &s;
+	gStackSplitPocket      = pocket;
+
+	gCurrentStackSplitPage = 0;
+	gLastStackSplitPage    = static_cast<INT32>(gStackSplitItems.empty() ? 0 : (gStackSplitItems.size() - 1) / GetStackSplitPageSize());
+
+	CreateStackSplitSlots();
+	CreateStackSplitDoneButton();
+	CreateStackSplitPageButtons();
+
+	fMapPanelDirty  = TRUE;
+	fTeamPanelDirty = TRUE;
+}
+
+
+static void CloseStackSplitView(BOOLEAN const fExitFromMapScreen)
 {
 	if (gStackSplitSourceIndex == -1) return;
+	bool const from_merc = gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE;
+
+	// Whatever can't go back into the stack: to the stash, or for a merc's
+	// stack to the merc (see GiveBackToMerc()).
+	auto const give_back = [from_merc](OBJECTTYPE& o)
+	{
+		if (from_merc)
+		{
+			GiveBackToMerc(*gStackSplitSoldier, o);
+		}
+		else
+		{
+			AutoPlaceObjectInInventoryStash(&o);
+		}
+	};
 
 	// A dangling gpItemDescObject risk identical to the one guarded against
 	// for the whole Sector Inventory panel in
@@ -1687,7 +1817,7 @@ static void CloseStackSplitView(void)
 			// longer necessarily matches the rest of the original stack.
 			// Can't merge it into `merged`; hand it back to the stash
 			// directly instead of losing it.
-			AutoPlaceObjectInInventoryStash(&src);
+			give_back(src);
 			continue;
 		}
 
@@ -1713,14 +1843,25 @@ static void CloseStackSplitView(void)
 		// Should never trigger -- nothing in this window can grow a stack
 		// past its own original size -- but if it somehow did, don't drop
 		// the remainder on the floor.
-		if (src.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&src);
+		if (src.ubNumberOfObjects > 0) give_back(src);
 	}
 
 	// Write back into the source slot -- unless every item was picked up
 	// out of this window already (fHaveBase == FALSE), in which case
 	// there's nothing left to put back; the whole stack was manually
 	// handed out one by one.
-	if (fHaveBase)
+	if (fHaveBase && from_merc)
+	{
+		// Back into the pocket it came from -- PlaceObject() merges with or
+		// swaps out whatever was put there in the meantime; anything left
+		// over goes to the merc's other pockets.
+		SOLDIERTYPE& s = *gStackSplitSoldier;
+		if (!PlaceObject(&s, gStackSplitPocket, &merged) || merged.ubNumberOfObjects > 0)
+		{
+			give_back(merged);
+		}
+	}
+	else if (fHaveBase)
 	{
 		// PlaceObjectInInventoryStash() covers both the expected case (slot
 		// still empty, exactly as OpenStackSplitView() left it) and the edge
@@ -1742,8 +1883,44 @@ static void CloseStackSplitView(void)
 	DestroyStackSplitPageButtons();
 	gStackSplitItems.clear();
 	gStackSplitSourceIndex = -1;
+	gStackSplitSoldier     = nullptr;
+	gStackSplitPocket      = -1;
+
+	if (from_merc)
+	{
+		fTeamPanelDirty          = TRUE;
+		fCharacterInfoPanelDirty = TRUE;
+	}
+
+	// A stand-alone view takes the covered map screen state down with it --
+	// what closing the Sector Inventory panel does, minus the panel itself
+	// (CreateDestroyMapInventoryPoolButtons()).
+	if (gfStackSplitStandalone)
+	{
+		gfStackSplitStandalone = FALSE;
+		fShowMapInventoryPool  = FALSE;
+		pInventoryPoolList.clear();
+		if (!fExitFromMapScreen) CreateButtonsForMapBorder();
+		fTeamPanelDirty          = TRUE;
+		fCharacterInfoPanelDirty = TRUE;
+		fMapScreenBottomDirty    = TRUE;
+		iCurrentlyHighLightedItem = -1;
+		RenderRadarScreen();
+	}
 
 	fMapPanelDirty = TRUE;
+}
+
+
+void CloseStackSplitViewIfOpen(void)
+{
+	CloseStackSplitView();
+}
+
+
+BOOLEAN IsStackSplitViewStandalone(void)
+{
+	return gfStackSplitStandalone;
 }
 
 
@@ -1757,24 +1934,31 @@ static void StackSplitSlotPrimary(MOUSE_REGION* const pRegion, const UINT32 iRea
 	// Nothing to pick up and nothing in hand to place here -- no-op.
 	if (gpItemPointer == NULL && slot.usItem == NOTHING) return;
 
+	bool const from_merc = gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE;
+
 	// Same soldier/sector/battle gate as the main grid's own left-click
 	// (MapInvenPoolSlotsPrimary()) -- an item already sitting in the stash
 	// could still fail these mid-view (selected merc moved out of the
-	// sector, or a battle started, while this window was open).
+	// sector, or a battle started, while this window was open). Not for a
+	// merc's own stack: those items are his, wherever he is.
 	const SOLDIERTYPE* const s = GetSelectedInfoChar();
-	if (s == NULL)
+	if (from_merc)
+	{
+		// no gate
+	}
+	else if (s == NULL)
 	{
 		DoMapMessageBox(MSG_BOX_BASIC_STYLE, pMapInventoryErrorString[0], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
 		return;
 	}
-	if (s->sSector.x != sSelMap.x || s->sSector.y != sSelMap.y || s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors)
+	else if (s->sSector.x != sSelMap.x || s->sSector.y != sSelMap.y || s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors)
 	{
 		ST::string const msg = (gpItemPointer == NULL ? pMapInventoryErrorString[1] : pMapInventoryErrorString[4]);
 		ST::string const buf = st_format_printf(msg, s->name);
 		DoMapMessageBox(MSG_BOX_BASIC_STYLE, buf, MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
 		return;
 	}
-	if (!CanPlayerUseSectorInventory())
+	else if (!CanPlayerUseSectorInventory())
 	{
 		ST::string const msg = (gpItemPointer == NULL ? pMapInventoryErrorString[2] : pMapInventoryErrorString[3]);
 		DoMapMessageBox(MSG_BOX_BASIC_STYLE, msg, MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
@@ -1797,8 +1981,16 @@ static void StackSplitSlotPrimary(MOUSE_REGION* const pRegion, const UINT32 iRea
 		gItemPointer = slot;
 		slot         = OBJECTTYPE{};
 
-		SetItemPointer(&gItemPointer, 0);
-		SetMapCursorItem();
+		if (from_merc)
+		{
+			// picked up from the merc, as from his own inventory panel
+			InternalMAPBeginItemPointer(gStackSplitSoldier);
+		}
+		else
+		{
+			SetItemPointer(&gItemPointer, 0);
+			SetMapCursorItem();
+		}
 	}
 	else
 	{
@@ -1881,7 +2073,7 @@ BOOLEAN IsStackSplitViewOpen(void)
 // currently hovered).
 WORLDITEM const* GetHighlightedStackSplitSourceItem(void)
 {
-	if (gStackSplitSourceIndex == -1 || !fCursorOverStackSplitItem) return nullptr;
+	if (gStackSplitSourceIndex < 0 || !fCursorOverStackSplitItem) return nullptr;
 	return &pInventoryPoolList[gStackSplitSourceIndex];
 }
 
@@ -2846,6 +3038,7 @@ static void MapInventoryPoolMoveToMercBtn(GUI_BUTTON* btn, UINT32 reason)
 
 	SOLDIERTYPE* const s = GetSoldierForInventoryTransfer();
 	if (s == NULL) return;
+	if (gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE) return;
 
 	// Pull from the stack split window's own items while it's open, per
 	// user request -- otherwise from the main grid's current page as before.
@@ -3263,6 +3456,15 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// are we even showing the amp inventory pool graphic?
 	if (!fShowMapInventoryPool) return;
 
+	// a stand-alone stack split view: only its own buttons exist
+	if (gfStackSplitStandalone)
+	{
+		EnableButton(gStackSplitDoneButton, !fMapInventoryItem);
+		EnableButton(gStackSplitPrevBtn, gCurrentStackSplitPage != 0);
+		EnableButton(gStackSplitNextBtn, gCurrentStackSplitPage != gLastStackSplitPage);
+		return;
+	}
+
 	// Stack split view (Wariant B) open -- changing page or re-grouping
 	// while a stack is physically split out into gStackSplitItems would
 	// strand it away from its (about to change) source slot;
@@ -3332,7 +3534,8 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// to arbitrate.
 	BOOLEAN const fSoldierValid = GetSoldierForInventoryTransfer() != NULL;
 	EnableButton(guiMapInvenButton[11], fSoldierValid && !fStackSplitOpen);
-	EnableButton(guiMapInvenButton[12], fSoldierValid);
+	// not into the merc a stack split open here came from
+	EnableButton(guiMapInvenButton[12], fSoldierValid && gStackSplitSourceIndex != STACK_SPLIT_MERC_SOURCE);
 
 	// Stack split view's own Done button -- disabled while holding an item
 	// on the cursor (picked up from here via StackSplitSlotPrimary(), or

@@ -267,6 +267,10 @@ Observable<> OnGameLoaded;
 
 BOOLEAN SaveGame(const ST::string& saveName, const ST::string& gameDesc)
 {
+	// a stack split open on the map screen holds its items outside their
+	// owner -- put them back first
+	CloseStackSplitViewIfOpen();
+
 	BeforeGameSaved();
 
 	BOOLEAN	fPausedStateBeforeSaving    = gfGamePaused;
