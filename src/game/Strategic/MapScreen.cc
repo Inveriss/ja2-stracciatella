@@ -4974,6 +4974,27 @@ static void BlitBackgroundToSaveBuffer(void)
 }
 
 
+// Mouse wheel over a team list row: scroll the people, or over a vehicle
+// row the vehicles.
+static void TeamListWheelCallback(MOUSE_REGION* const r, UINT32 const reason)
+{
+	INT32 const rows =
+		reason & MSYS_CALLBACK_REASON_WHEEL_UP   ? -1 :
+		reason & MSYS_CALLBACK_REASON_WHEEL_DOWN ? +1 :
+		0;
+	if (rows == 0) return;
+
+	if (static_cast<INT32>(MSYS_GetRegionUserData(r, 0)) >= FIRST_VEHICLE)
+	{
+		ScrollTeamListVehicles(rows);
+	}
+	else
+	{
+		ScrollTeamList(rows);
+	}
+}
+
+
 static void MakeRegion(MOUSE_REGION* r, UINT idx, UINT16 x, UINT16 y, UINT16 w, MOUSE_CALLBACK move, MOUSE_CALLBACK click, const ST::string& help)
 {
 	MSYS_DefineRegion(r, x, y, x + w, y + TEAM_LIST_ROW_PITCH - 1, MSYS_PRIORITY_NORMAL + 1,
@@ -5000,9 +5021,13 @@ static void TeamListSleepRegionBtnCallBackSecondary(MOUSE_REGION* pRegion, UINT3
 static void TeamListSleepRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
+// whether the team list's regions exist now (map screen set up)
+static bool g_team_list_regions_created = false;
+
 static void CreateMouseRegionsForTeamList(void)
 {
 	// will create mouse regions for assignments, path plotting, character info selection
+	g_team_list_regions_created = true;
 
 	// the info region...is the background for the list itself
 	for (UINT i = 0; i < MAX_CHARACTER_COUNT; ++i)
@@ -5014,13 +5039,13 @@ static void CreateMouseRegionsForTeamList(void)
 
 		const UINT16 w = NAME_WIDTH;
 		CharacterRegions& r = g_character_regions[i];
-		MakeRegion(&r.name,        i, NAME_X,           y, w,                    TeamListInfoRegionMvtCallBack,        MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary),        pMapScreenMouseRegionHelpText[0]); // name region
-		MakeRegion(&r.assignment,  i, ASSIGN_X,         y, ASSIGN_WIDTH,         TeamListAssignmentRegionMvtCallBack,  MouseCallbackPrimarySecondary(TeamListAssignmentRegionBtnCallBackPrimary, TeamListAssignmentRegionBtnCallBackSecondary),  pMapScreenMouseRegionHelpText[1]); // assignment region
-		MakeRegion(&r.sleep,       i, SLEEP_X,          y, SLEEP_WIDTH,          TeamListSleepRegionMvtCallBack,       MouseCallbackPrimarySecondary(TeamListSleepRegionBtnCallBackPrimary, TeamListSleepRegionBtnCallBackSecondary),       pMapScreenMouseRegionHelpText[5]); // sleep region
+		MakeRegion(&r.name,        i, NAME_X,           y, w,                    TeamListInfoRegionMvtCallBack,        MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary, TeamListWheelCallback),        pMapScreenMouseRegionHelpText[0]); // name region
+		MakeRegion(&r.assignment,  i, ASSIGN_X,         y, ASSIGN_WIDTH,         TeamListAssignmentRegionMvtCallBack,  MouseCallbackPrimarySecondary(TeamListAssignmentRegionBtnCallBackPrimary, TeamListAssignmentRegionBtnCallBackSecondary, TeamListWheelCallback),  pMapScreenMouseRegionHelpText[1]); // assignment region
+		MakeRegion(&r.sleep,       i, SLEEP_X,          y, SLEEP_WIDTH,          TeamListSleepRegionMvtCallBack,       MouseCallbackPrimarySecondary(TeamListSleepRegionBtnCallBackPrimary, TeamListSleepRegionBtnCallBackSecondary, TeamListWheelCallback),       pMapScreenMouseRegionHelpText[5]); // sleep region
 		// same function as name regions, so uses the same callbacks
-		MakeRegion(&r.location,    i, LOC_X,            y, LOC_WIDTH,            TeamListInfoRegionMvtCallBack,        MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary),        pMapScreenMouseRegionHelpText[0]); // location region
-		MakeRegion(&r.destination, i, DEST_ETA_X,       y, DEST_ETA_WIDTH,       TeamListDestinationRegionMvtCallBack, MouseCallbackPrimarySecondary(TeamListDestinationRegionBtnCallBackPrimary, TeamListDestinationRegionBtnCallBackSecondary), pMapScreenMouseRegionHelpText[2]); // destination region
-		MakeRegion(&r.contract,    i, TIME_REMAINING_X, y, TIME_REMAINING_WIDTH, TeamListContractRegionMvtCallBack,    MouseCallbackPrimarySecondary(TeamListContractRegionBtnCallBackPrimary, TeamListContractRegionBtnCallBackSecondary),    pMapScreenMouseRegionHelpText[3]); // contract region
+		MakeRegion(&r.location,    i, LOC_X,            y, LOC_WIDTH,            TeamListInfoRegionMvtCallBack,        MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary, TeamListWheelCallback),        pMapScreenMouseRegionHelpText[0]); // location region
+		MakeRegion(&r.destination, i, DEST_ETA_X,       y, DEST_ETA_WIDTH,       TeamListDestinationRegionMvtCallBack, MouseCallbackPrimarySecondary(TeamListDestinationRegionBtnCallBackPrimary, TeamListDestinationRegionBtnCallBackSecondary, TeamListWheelCallback), pMapScreenMouseRegionHelpText[2]); // destination region
+		MakeRegion(&r.contract,    i, TIME_REMAINING_X, y, TIME_REMAINING_WIDTH, TeamListContractRegionMvtCallBack,    MouseCallbackPrimarySecondary(TeamListContractRegionBtnCallBackPrimary, TeamListContractRegionBtnCallBackSecondary, TeamListWheelCallback),    pMapScreenMouseRegionHelpText[3]); // contract region
 	}
 }
 
@@ -5028,6 +5053,7 @@ static void CreateMouseRegionsForTeamList(void)
 static void DestroyMouseRegionsForTeamList(void)
 {
 	// will destroy mouse regions overlaying the team list area
+	g_team_list_regions_created = false;
 	for (UINT i = 0; i < MAX_CHARACTER_COUNT; ++i)
 	{
 		if (!g_character_region_made[i]) continue;
@@ -6211,6 +6237,80 @@ static void HandleShadingOfLinesForContractMenu(void)
 static void SortListOfMercsInTeamPanel(BOOLEAN fRetainSelectedMercs);
 
 
+// Team list scrolling (giTeamListFirstPerson/Vehicle, TeamListRowOfEntry()).
+// People fill gCharactersList from entry 0 and vehicles from FIRST_VEHICLE
+// without gaps (ReBuildCharactersList()).
+static INT32 CountTeamListEntries(INT32 const first, INT32 const end)
+{
+	INT32 n = 0;
+	for (INT32 i = first; i != end && gCharactersList[i].merc; ++i) ++n;
+	return n;
+}
+
+
+static void SetTeamListScroll(INT32 people, INT32 vehicles)
+{
+	INT32 const n_people   = CountTeamListEntries(0, FIRST_VEHICLE);
+	INT32 const n_vehicles = CountTeamListEntries(FIRST_VEHICLE, MAX_CHARACTER_COUNT);
+	people   = std::clamp(people,   0, std::max(0, n_people   - TEAM_LIST_PEOPLE_ROWS));
+	vehicles = std::clamp(vehicles, 0, std::max(0, n_vehicles - TEAM_LIST_VEHICLE_ROWS));
+	if (people == giTeamListFirstPerson && vehicles == giTeamListFirstVehicle) return;
+
+	// the rows' regions belong to the entries shown -- make them anew
+	bool const regions = g_team_list_regions_created;
+	if (regions) DestroyMouseRegionsForTeamList();
+	giTeamListFirstPerson  = people;
+	giTeamListFirstVehicle = vehicles;
+	if (regions) CreateMouseRegionsForTeamList();
+
+	// the glowing highlights follow the rows
+	giHighLine         = -1;
+	giAssignHighLine   = -1;
+	giDestHighLine     = -1;
+	giContractHighLine = -1;
+	giSleepHighLine    = -1;
+
+	fTeamPanelDirty          = TRUE;
+	fCharacterInfoPanelDirty = TRUE;
+}
+
+
+void ScrollTeamList(INT32 const rows)
+{
+	SetTeamListScroll(giTeamListFirstPerson + rows, giTeamListFirstVehicle);
+}
+
+
+void ScrollTeamListVehicles(INT32 const rows)
+{
+	SetTeamListScroll(giTeamListFirstPerson, giTeamListFirstVehicle + rows);
+}
+
+
+BOOLEAN CanScrollTeamList(INT32 const dir)
+{
+	if (dir < 0) return giTeamListFirstPerson > 0;
+	return giTeamListFirstPerson + TEAM_LIST_PEOPLE_ROWS < CountTeamListEntries(0, FIRST_VEHICLE);
+}
+
+
+void MakeTeamListEntryVisible(INT32 const i)
+{
+	if (i < 0 || i >= MAX_CHARACTER_COUNT || TeamListRowOfEntry(i) != -1) return;
+	if (i < FIRST_VEHICLE)
+	{
+		INT32 const first = i < giTeamListFirstPerson ? i : i - TEAM_LIST_PEOPLE_ROWS + 1;
+		SetTeamListScroll(first, giTeamListFirstVehicle);
+	}
+	else
+	{
+		INT32 const v     = i - FIRST_VEHICLE;
+		INT32 const first = v < giTeamListFirstVehicle ? v : v - TEAM_LIST_VEHICLE_ROWS + 1;
+		SetTeamListScroll(giTeamListFirstPerson, first);
+	}
+}
+
+
 void ReBuildCharactersList( void )
 {
 	// rebuild character's list
@@ -6229,6 +6329,10 @@ void ReBuildCharactersList( void )
 
 	// sort them according to current sorting method
 	SortListOfMercsInTeamPanel( FALSE );
+
+	// the list may have shrunk: keep the scroll in range
+	ScrollTeamList(0);
+	ScrollTeamListVehicles(0);
 
 
 	// if nobody is selected, or the selected merc has somehow become invalid
@@ -6296,6 +6400,8 @@ static void EnableDisableTeamListRegionsAndHelpText(void)
 
 	for( bCharNum = 0; bCharNum < MAX_CHARACTER_COUNT; bCharNum++ )
 	{
+		if (!g_character_region_made[bCharNum]) continue; // scrolled away
+
 		SOLDIERTYPE const* const s = gCharactersList[bCharNum].merc;
 		CharacterRegions&        r = g_character_regions[bCharNum];
 		if (s == NULL)
@@ -8277,6 +8383,9 @@ void ChangeSelectedInfoChar( INT8 bCharNumber, BOOLEAN fResetSelectedList )
 		{
 			// the selected guy must always be ON in the list of selected chars
 			SetEntryInSelectedCharacterList( bCharNumber );
+
+			// and shown in the team list
+			MakeTeamListEntryVisible(bCharNumber);
 		}
 
 		// if we're in the inventory panel

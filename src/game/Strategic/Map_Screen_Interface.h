@@ -214,8 +214,14 @@ enum UpdateBoxReason
 // the first vehicle slot int he list
 #define FIRST_VEHICLE PLAYER_TEAM_SIZE
 
+// The team list scrolls (ScrollTeamList(), MapScreen.h): the first person and
+// the first vehicle shown in the top people / vehicle row.
+extern INT32 giTeamListFirstPerson;
+extern INT32 giTeamListFirstVehicle;
+
 // The on-screen row of team list entry `i` (gCharactersList): a people row
-// for a person, a vehicle row for a vehicle -- or -1 when it isn't shown.
+// for a person, a vehicle row for a vehicle -- or -1 when it isn't shown
+// (scrolled away).
 INT32 TeamListRowOfEntry(INT32 i);
 // Top y of team list row `row` (Y_START based; the text sits 1 px lower).
 INT16 TeamListRowY(INT32 row);

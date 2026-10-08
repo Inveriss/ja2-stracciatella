@@ -253,6 +253,11 @@ static void BltMapScreenBottomGraphic(void)
 GUIButtonRef        guiMapBottomExitButtons[3];
 static GUIButtonRef guiMapBottomTimeButtons[2];
 static GUIButtonRef guiMapMessageScrollButtons[2];
+// 1366x768 interface: the team list's scroll arrows, in the strip's second
+// pair of arrow windows, 49 px right of the message log's
+static GUIButtonRef guiMapTeamListScrollButtons[2];
+#define TEAM_LIST_SCROLL_ARROWS_X (MAP_SCREEN_X + 331 + 49)
+static void ShowTeamListScrollButtons(bool show);
 static GUIButtonRef guiMapBottomLaptopShortcutButtons[NUM_MAP_LAPTOP_SHORTCUTS];
 
 // mouse regions
@@ -411,11 +416,13 @@ void RenderMapScreenInterfaceBottom( void )
 		{
 			ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
 			ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+			ShowTeamListScrollButtons(true);
 		}
 		else
 		{
 			HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
 			HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+			ShowTeamListScrollButtons(false);
 		}
 
 		// The large merc inventory panel was just closed/switched off while
@@ -469,6 +476,7 @@ void RenderMapScreenInterfaceBottom( void )
 	ShowButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_LESS]);
 	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
 	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+	ShowTeamListScrollButtons(true);
 	for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons) ShowButton(btn);
 
 	// The "Show Large Icons" merc inventory panel (mapinv_big_1280_720/768.sti,
@@ -481,6 +489,7 @@ void RenderMapScreenInterfaceBottom( void )
 		INT16 const panel_right = MAP_SCREEN_X + MAP_INV_BIG_PANEL_WIDTH;
 		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
 		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
+		ShowTeamListScrollButtons(false);
 		for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons)
 		{
 			if (btn->X() < panel_right) HideButton(btn);
@@ -585,6 +594,35 @@ static GUIButtonRef MakeLaptopShortcutButton(INT32 off, INT32 on, INT16 x, INT16
 }
 
 
+static void BtnTeamListUpCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ScrollTeamList(-1);
+}
+
+
+static void BtnTeamListDownCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ScrollTeamList(+1);
+}
+
+
+static void ShowTeamListScrollButtons(bool const show)
+{
+	for (GUIButtonRef& b : guiMapTeamListScrollButtons)
+	{
+		if (!b) continue;
+		if (show)
+		{
+			ShowButton(b);
+		}
+		else
+		{
+			HideButton(b);
+		}
+	}
+}
+
+
 static void CreateButtonsForMapScreenInterfaceBottom(void)
 {
 	// Bottom+right-anchored (see MAP_SCREEN_RIGHT/MAP_SCREEN_BOTTOM), preserving
@@ -601,6 +639,12 @@ static void CreateButtonsForMapScreenInterfaceBottom(void)
 	// scroll buttons -- part of the message box (bottom only, X unchanged)
 	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]   = MakeArrowButton(11, 4, 6, MAP_SCREEN_X + 331, MAP_SCREEN_BOTTOM - 109, BtnMessageUpMapScreenCallback,   pMapScreenBottomFastHelp[5]);
 	guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN] = MakeArrowButton(12, 5, 7, MAP_SCREEN_X + 331, MAP_SCREEN_BOTTOM - 28,  BtnMessageDownMapScreenCallback, pMapScreenBottomFastHelp[6]);
+
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		guiMapTeamListScrollButtons[MAP_SCROLL_MESSAGE_UP]   = MakeArrowButton(11, 4, 6, TEAM_LIST_SCROLL_ARROWS_X, MAP_SCREEN_BOTTOM - 109, BtnTeamListUpCallback,   "Scroll the team list up");
+		guiMapTeamListScrollButtons[MAP_SCROLL_MESSAGE_DOWN] = MakeArrowButton(12, 5, 7, TEAM_LIST_SCROLL_ARROWS_X, MAP_SCREEN_BOTTOM - 28,  BtnTeamListDownCallback, "Scroll the team list down");
+	}
 
 	// Laptop shortcut buttons -- top-left anchored, one row, a fixed 3px apart; see
 	// MAP_LAPTOP_SHORTCUT_X_1280/_1024 above for why the two tiers are resolved
@@ -636,6 +680,10 @@ static void DestroyButtonsForMapScreenInterfaceBottom()
 	FOR_EACH(GUIButtonRef, i, guiMapBottomExitButtons)             RemoveButton(*i);
 	FOR_EACH(GUIButtonRef, i, guiMapBottomTimeButtons)             RemoveButton(*i);
 	FOR_EACH(GUIButtonRef, i, guiMapMessageScrollButtons)          RemoveButton(*i);
+	for (GUIButtonRef& b : guiMapTeamListScrollButtons)
+	{
+		if (b) RemoveButton(b);
+	}
 	FOR_EACH(GUIButtonRef, i, guiMapBottomLaptopShortcutButtons)   RemoveButton(*i);
 	fMapScreenBottomDirty = TRUE;
 }
@@ -938,6 +986,23 @@ static void BtnMessageUpMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
 static void EnableDisableMessageScrollButtonsAndRegions(void)
 {
 	UINT8 ubNumMessages;
+
+	// the team list's arrows (1366x768): only while there's more to show
+	// that way, and the list is showing (not the merc inventory)
+	for (INT32 dir : { -1, +1 })
+	{
+		GUIButtonRef const b = guiMapTeamListScrollButtons[dir < 0 ? MAP_SCROLL_MESSAGE_UP : MAP_SCROLL_MESSAGE_DOWN];
+		if (!b) continue;
+		if (!fShowInventoryFlag && CanScrollTeamList(dir))
+		{
+			EnableButton(b);
+		}
+		else
+		{
+			DisableButton(b);
+			b->uiFlags &= ~BUTTON_CLICKED_ON;
+		}
+	}
 
 	ubNumMessages = GetRangeOfMapScreenMessages();
 

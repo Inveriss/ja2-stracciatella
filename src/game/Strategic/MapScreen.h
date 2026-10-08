@@ -62,6 +62,13 @@ extern INT8 bSelectedInfoChar;
 SOLDIERTYPE* GetSelectedInfoChar(void);
 void ChangeSelectedInfoChar( INT8 bCharNumber, BOOLEAN fResetSelectedList );
 
+// Team list scrolling: by `rows` people rows (negative: up), or vehicle rows;
+// whether it can scroll that way (-1 up, +1 down); scroll so entry `i` shows.
+void    ScrollTeamList(INT32 rows);
+void    ScrollTeamListVehicles(INT32 rows);
+BOOLEAN CanScrollTeamList(INT32 dir);
+void    MakeTeamListEntryVisible(INT32 i);
+
 void MAPEndItemPointer(void);
 
 // "Show Large Icons" toggle of the merc inventory panel (mapinv.sti) --

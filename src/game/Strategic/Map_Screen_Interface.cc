@@ -960,12 +960,20 @@ void CheckAndUpdateBasedOnContractTimes( void )
 }
 
 
+INT32 giTeamListFirstPerson  = 0;
+INT32 giTeamListFirstVehicle = 0;
+
+
 INT32 TeamListRowOfEntry(INT32 const i)
 {
-	if (i < 0) return -1;
-	if (i < FIRST_VEHICLE) return i < TEAM_LIST_PEOPLE_ROWS ? i : -1;
-	INT32 const v = i - FIRST_VEHICLE;
-	return v < TEAM_LIST_VEHICLE_ROWS ? TEAM_LIST_PEOPLE_ROWS + v : -1;
+	if (i < 0 || i >= MAX_CHARACTER_COUNT) return -1;
+	if (i < FIRST_VEHICLE)
+	{
+		INT32 const r = i - giTeamListFirstPerson;
+		return 0 <= r && r < TEAM_LIST_PEOPLE_ROWS ? r : -1;
+	}
+	INT32 const v = i - FIRST_VEHICLE - giTeamListFirstVehicle;
+	return 0 <= v && v < TEAM_LIST_VEHICLE_ROWS ? TEAM_LIST_PEOPLE_ROWS + v : -1;
 }
 
 
