@@ -6,7 +6,10 @@
 #include <string_theory/string>
 
 
-#define MAX_POPUP_BOX_STRING_COUNT 50		// worst case = 45: move menu with 20 soldiers, each on different squad + overhead
+// Worst case: the move menu -- a line for every soldier in the sector, every
+// squad and vehicle, and overhead (45 with the original 20 soldiers); room
+// for the player's team of PLAYER_TEAM_SIZE (100) now.
+#define MAX_POPUP_BOX_STRING_COUNT 150
 
 // PopUpBox Flags
 #define POPUP_BOX_FLAG_CENTER_TEXT 2

@@ -144,8 +144,9 @@ static void TacticalCopySoldierFromCreateStruct(SOLDIERTYPE&, SOLDIERCREATE_STRU
 static void TacticalCopySoldierFromProfile(SOLDIERTYPE&, SOLDIERCREATE_STRUCT const&);
 
 
-SOLDIERTYPE* TacticalCreateSoldier(SOLDIERCREATE_STRUCT const& c)
-try
+// TacticalCreateSoldier()'s work; `s` is the soldier taken as soon as it is,
+// so a failure can give it back.
+static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOLDIERTYPE*& s)
 {
 	// Kris: Huge no no! See the header file for description of static detailed
 	// placements. If this expression ever evaluates to true, then it will expose
@@ -156,7 +157,6 @@ try
 	INT8      const team_id = c.bTeam;
 
 	// Given team, get an ID for this guy!
-	SOLDIERTYPE* s;
 	SoldierID    id;
 	if (guiCurrentScreen == AUTORESOLVE_SCREEN)
 	{
@@ -483,7 +483,35 @@ try
 	AddManToTeam(team_id);
 	return s;
 }
-catch (...) { return 0; }
+
+
+SOLDIERTYPE* TacticalCreateSoldier(SOLDIERCREATE_STRUCT const& c)
+{
+	SOLDIERTYPE* s = nullptr;
+	try
+	{
+		return TacticalCreateSoldierImpl(c, s);
+	}
+	catch (...)
+	{
+		// Don't leave a half made soldier behind: its slot was already taken
+		// (InitSoldierStruct() marks it active), and an active soldier with
+		// half its data shows up everywhere (the team list, the sector checks).
+		if (s)
+		{
+			if (s->face) DeleteSoldierFace(s);
+			if (guiCurrentScreen == AUTORESOLVE_SCREEN)
+			{
+				delete s;
+			}
+			else
+			{
+				s->bActive = FALSE;
+			}
+		}
+		return 0;
+	}
+}
 
 
 SOLDIERTYPE* TacticalCreateSoldierFromExisting(const SOLDIERTYPE* const existing)
