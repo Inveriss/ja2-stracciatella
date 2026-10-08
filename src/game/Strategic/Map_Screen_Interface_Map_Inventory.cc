@@ -359,6 +359,13 @@ BOOLEAN fShowMapInventoryPool = FALSE;
 // for the same pattern.
 static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
 {
+	// 1366x768 interface: its own 762x768 panels, the 1024 ones as fallback
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		return gfSectorInventoryBigImages
+			? FirstUsableInterfaceAsset({ INTERFACEDIR "/SECTOR_INVENTORY_FIRST_BIG_1366x768.sti", INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1024_BIG.sti" })
+			: FirstUsableInterfaceAsset({ INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1366x768.sti",     INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1024.sti" });
+	}
 	if (gfSectorInventoryBigImages)
 	{
 		return g_ui.isCompactStrategicScreen()
@@ -535,6 +542,13 @@ static BOOLEAN gfCheckForCursorOverMapSectorInventoryItem = FALSE;
 // 768+).
 static cache_key_t GetStackSplitBackgroundFilename(void)
 {
+	// 1366x768 interface: its own 762x768 panels, the 1024 ones as fallback
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		return gfSectorInventoryBigImages
+			? FirstUsableInterfaceAsset({ INTERFACEDIR "/SECTOR_INVENTORY_STACK_BIG_1366x768.sti", INTERFACEDIR "/SECTOR_INVENTORY_STACK_1024_BIG.sti" })
+			: FirstUsableInterfaceAsset({ INTERFACEDIR "/SECTOR_INVENTORY_STACK_1366x768.sti",     INTERFACEDIR "/SECTOR_INVENTORY_STACK_1024.sti" });
+	}
 	if (gfSectorInventoryBigImages)
 	{
 		return g_ui.isCompactStrategicScreen()
@@ -1720,6 +1734,34 @@ static void GiveBackToMerc(SOLDIERTYPE& s, OBJECTTYPE& o)
 }
 
 
+// The Sector Inventory panel's top bar (grouping, filters, large icons,
+// the two checkboxes, the transfer buttons) on a stand-alone stack split
+// view -- same buttons, same places; HandleButtonStatesWhileMapInventoryActive()
+// leaves on only what works for a merc's stack.
+static void CreateStackSplitStandaloneTopBar(void)
+{
+	gubSectorInventoryActiveFilters = SECTOR_INV_FILTER_ALL;
+	CreateMapInventoryGroupButton();
+	CreateMapInventoryFilterButtons();
+	CreateMapInventoryBigImagesButton();
+	if (gfSectorInventoryBigImages) guiMapInvenButton[13]->uiFlags |= BUTTON_CLICKED_ON;
+	CreateMapInventoryFilterModeCheckbox();
+	CreateMapInventoryMinimapCheckbox();
+	CreateMapInventoryTransferButtons();
+}
+
+
+static void DestroyStackSplitStandaloneTopBar(void)
+{
+	DestroyMapInventoryGroupButton();
+	DestroyMapInventoryFilterButtons();
+	DestroyMapInventoryBigImagesButton();
+	DestroyMapInventoryFilterModeCheckbox();
+	DestroyMapInventoryMinimapCheckbox();
+	DestroyMapInventoryTransferButtons();
+}
+
+
 void OpenMercStackView(SOLDIERTYPE& s, INT8 const pocket)
 {
 	if (gpItemPointer != NULL) return;
@@ -1739,6 +1781,7 @@ void OpenMercStackView(SOLDIERTYPE& s, INT8 const pocket)
 		fShowMapInventoryPool  = TRUE;
 		DeleteMapBorderButtons();
 		CheckAndUnDateSlotAllocation();
+		CreateStackSplitStandaloneTopBar();
 		fMapScreenBottomDirty = TRUE;
 	}
 
@@ -1754,6 +1797,9 @@ void OpenMercStackView(SOLDIERTYPE& s, INT8 const pocket)
 	CreateStackSplitSlots();
 	CreateStackSplitDoneButton();
 	CreateStackSplitPageButtons();
+
+	// "merc -> sector" moves just this stack (MoveStackSplitItemsToSector())
+	if (guiMapInvenButton[11]) guiMapInvenButton[11]->SetFastHelpText("Drop the entire stack into the sector inventory.");
 
 	fMapPanelDirty  = TRUE;
 	fTeamPanelDirty = TRUE;
@@ -1890,6 +1936,8 @@ static void CloseStackSplitView(BOOLEAN const fExitFromMapScreen)
 	{
 		fTeamPanelDirty          = TRUE;
 		fCharacterInfoPanelDirty = TRUE;
+		// the Sector Inventory panel's own "merc -> sector" again
+		if (!gfStackSplitStandalone && guiMapInvenButton[11]) guiMapInvenButton[11]->SetFastHelpText("Move all items from mercenary to sector inventory.");
 	}
 
 	// A stand-alone view takes the covered map screen state down with it --
@@ -1897,6 +1945,7 @@ static void CloseStackSplitView(BOOLEAN const fExitFromMapScreen)
 	// (CreateDestroyMapInventoryPoolButtons()).
 	if (gfStackSplitStandalone)
 	{
+		DestroyStackSplitStandaloneTopBar();
 		gfStackSplitStandalone = FALSE;
 		fShowMapInventoryPool  = FALSE;
 		pInventoryPoolList.clear();
@@ -2780,6 +2829,20 @@ static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
 
+	// a stand-alone stack split view: re-lay just the view, from its first
+	// page
+	if (gfStackSplitStandalone)
+	{
+		DestroyStackSplitSlots();
+		gfSectorInventoryBigImages = !gfSectorInventoryBigImages;
+		CheckAndUnDateSlotAllocation();
+		gCurrentStackSplitPage = 0;
+		gLastStackSplitPage    = static_cast<INT32>(gStackSplitItems.empty() ? 0 : (gStackSplitItems.size() - 1) / GetStackSplitPageSize());
+		CreateStackSplitSlots();
+		fMapPanelDirty = TRUE;
+		return;
+	}
+
 	DestroyMapInventoryPoolSlots();
 
 	gfSectorInventoryBigImages = !gfSectorInventoryBigImages;
@@ -3009,9 +3072,62 @@ static SOLDIERTYPE* GetSoldierForInventoryTransfer(void)
 }
 
 
+// The merc whose stack is split open here, when it may go to his sector's
+// inventory: he is in a sector (not travelling), no battle there, and with
+// the Sector Inventory panel open, it shows that sector.
+static SOLDIERTYPE* GetSoldierForStackSplitToSector(void)
+{
+	if (gStackSplitSourceIndex != STACK_SPLIT_MERC_SOURCE) return NULL;
+	SOLDIERTYPE* const s = gStackSplitSoldier;
+	if (s->fBetweenSectors) return NULL;
+
+	SGPSector battle;
+	if (GetCurrentBattleSectorXYZAndReturnTRUEIfThereIsABattle(battle) && battle == s->sSector) return NULL;
+
+	if (!gfStackSplitStandalone && GetSoldierForInventoryTransfer() != s) return NULL;
+	return s;
+}
+
+
+// Every item of the merc's stack split open here into his sector's
+// inventory -- the open panel's stash, else straight into the sector, at
+// his feet -- then the view closes (nothing left to merge back).
+static void MoveStackSplitItemsToSector(SOLDIERTYPE& s)
+{
+	for (OBJECTTYPE& o : gStackSplitItems)
+	{
+		if (o.usItem == NOTHING || o.ubNumberOfObjects == 0) continue;
+
+		if (!gfStackSplitStandalone)
+		{
+			while (o.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&o);
+		}
+		else if (s.sSector == gWorldSector)
+		{
+			AddItemToPool(s.sGridNo, &o, VISIBLE, s.bLevel, 0, -1);
+		}
+		else
+		{
+			AddItemsToUnLoadedSector(s.sSector, s.sGridNo, 1, &o, s.bLevel, WORLD_ITEM_REACHABLE, 0, VISIBLE);
+		}
+		o = OBJECTTYPE{};
+	}
+	CloseStackSplitView();
+}
+
+
 static void MapInventoryPoolMoveToSectorBtn(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	// a merc's stack split open here: just that stack
+	if (gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE)
+	{
+		SOLDIERTYPE* const merc = GetSoldierForStackSplitToSector();
+		if (merc) MoveStackSplitItemsToSector(*merc);
+		fMapPanelDirty = TRUE;
+		return;
+	}
 
 	SOLDIERTYPE* const s = GetSoldierForInventoryTransfer();
 	if (s == NULL) return;
@@ -3456,12 +3572,21 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// are we even showing the amp inventory pool graphic?
 	if (!fShowMapInventoryPool) return;
 
-	// a stand-alone stack split view: only its own buttons exist
+	// a stand-alone stack split view: its own buttons and the panel's top
+	// bar (CreateStackSplitStandaloneTopBar()), of which only the large
+	// icons toggle and "merc -> sector" (this stack into his sector) work
 	if (gfStackSplitStandalone)
 	{
 		EnableButton(gStackSplitDoneButton, !fMapInventoryItem);
 		EnableButton(gStackSplitPrevBtn, gCurrentStackSplitPage != 0);
 		EnableButton(gStackSplitNextBtn, gCurrentStackSplitPage != gLastStackSplitPage);
+		EnableButton(guiMapInvenButton[3], FALSE);
+		for (UINT32 i = 4; i <= 10; ++i) EnableButton(guiMapInvenButton[i], FALSE);
+		EnableButton(guiMapInvenButton[11], !fMapInventoryItem && GetSoldierForStackSplitToSector() != NULL);
+		EnableButton(guiMapInvenButton[12], FALSE);
+		EnableButton(guiMapInvenButton[13], !fMapInventoryItem);
+		EnableButton(guiMapInvenButton[14], FALSE);
+		EnableButton(guiMapInvenButton[15], FALSE);
 		return;
 	}
 
@@ -3533,7 +3658,11 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	// creating a conflict CloseStackSplitView()'s own re-merge isn't meant
 	// to arbitrate.
 	BOOLEAN const fSoldierValid = GetSoldierForInventoryTransfer() != NULL;
-	EnableButton(guiMapInvenButton[11], fSoldierValid && !fStackSplitOpen);
+	// a merc's stack split open here may go to the sector shown
+	// (MoveStackSplitItemsToSector()) -- the stash isn't lent out then
+	EnableButton(guiMapInvenButton[11], gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE
+		? GetSoldierForStackSplitToSector() != NULL
+		: fSoldierValid && !fStackSplitOpen);
 	// not into the merc a stack split open here came from
 	EnableButton(guiMapInvenButton[12], fSoldierValid && gStackSplitSourceIndex != STACK_SPLIT_MERC_SOURCE);
 
