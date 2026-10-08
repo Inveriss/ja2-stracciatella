@@ -2936,8 +2936,16 @@ static void CreateMapInventoryMinimapCheckbox(void)
 		MAP_SCREEN_BOTTOM - MINIMAP_CHECKBOX_FROM_BOTTOM,
 		MSYS_PRIORITY_HIGHEST, ToggleSectorInventoryMinimapCallback);
 	guiMapInvenButton[15]->uiFlags |= BUTTON_SELFDELETE_IMAGE;
-	if (gfSectorInventoryHideBigMinimap) guiMapInvenButton[15]->uiFlags |= BUTTON_CLICKED_ON;
-	guiMapInvenButton[15]->SetFastHelpText("Hide Big Minimap");
+	// 1366x768 interface: the other way round -- "Show Large Minimap",
+	// checked (white check mark) while the minimap is shown. Same flag and
+	// save key, so a click still just flips gfSectorInventoryHideBigMinimap;
+	// new game: shown, i.e. checked.
+	bool const checked_when_shown = g_ui.isExtraWideStrategicScreen();
+	if (checked_when_shown ? !gfSectorInventoryHideBigMinimap : gfSectorInventoryHideBigMinimap)
+	{
+		guiMapInvenButton[15]->uiFlags |= BUTTON_CLICKED_ON;
+	}
+	guiMapInvenButton[15]->SetFastHelpText(checked_when_shown ? "Show Large Minimap" : "Hide Big Minimap");
 }
 
 
