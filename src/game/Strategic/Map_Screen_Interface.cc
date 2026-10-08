@@ -1808,7 +1808,8 @@ static void DisplayUserDefineHelpTextRegions(FASTHELPREGION* pRegion)
 	iY = pRegion->iY;
 	// get the width and height of the string
 	iW = (INT32)( pRegion->iW ) + 14;
-	iH = IanWrappedStringHeight(pRegion->iW, 0, FONT10ARIAL, pRegion->FastHelpText);
+	SGPFont const font = GetTooltipFonts().normal;
+	iH = IanWrappedStringHeight(pRegion->iW, 0, font, pRegion->FastHelpText);
 
 	// tack on the outer border
 	iH += 14;
@@ -1844,7 +1845,7 @@ static void DisplayUserDefineHelpTextRegions(FASTHELPREGION* pRegion)
 	FRAME_BUFFER->ShadowRect(iX + 2, iY + 2, iX + iW - 3, iY + iH - 3);
 	FRAME_BUFFER->ShadowRect(iX + 2, iY + 2, iX + iW - 3, iY + iH - 3);
 
-	iH = DisplayWrappedString(iX + 10, iY + 6, pRegion->iW, 0, FONT10ARIAL, FONT_BEIGE, pRegion->FastHelpText, FONT_NEARBLACK, MARK_DIRTY);
+	iH = DisplayWrappedString(iX + 10, iY + 6, pRegion->iW, 0, font, FONT_BEIGE, pRegion->FastHelpText, FONT_NEARBLACK, MARK_DIRTY);
 
 	InvalidateRegion(  iX, iY, (iX + iW) , (iY + iH + 20 ) );
 }

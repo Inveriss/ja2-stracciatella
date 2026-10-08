@@ -797,16 +797,60 @@ static UINT32 GetNumberOfLinesInHeight(const ST::utf32_buffer& codepoints)
 }
 
 
-static UINT32 GetWidthOfString(const ST::utf32_buffer& codepoints);
-static void DisplayHelpTokenizedString(const ST::utf32_buffer& codepoints, INT16 sx, INT16 sy);
+// Height of a tooltip line: the taller of its two fonts.
+static INT32 GetTooltipLineHeight(TooltipFonts const& fonts)
+{
+	return std::max(GetFontHeight(fonts.normal), GetFontHeight(fonts.shortcut));
+}
+
+// `text` without the brackets around its keyboard shortcuts: "Tactical
+// (|E|s|c)" -> "Tactical |E|s|c", "( |S|h|i|f|t |S|p|a|c|e )" -> "|S|h|i|f|t
+// |S|p|a|c|e". Only a bracket pair on one line with a '|' inside counts --
+// "Pick up(Right Click)" stays as it is.
+static ST::utf32_buffer WithoutShortcutBrackets(const ST::utf32_buffer& text)
+{
+	std::u32string out;
+	const char32_t* const s = text.c_str();
+	size_t const n = text.size();
+	for (size_t i = 0; i < n; ++i)
+	{
+		if (s[i] == U'(')
+		{
+			size_t j = i + 1;
+			bool shortcut = false;
+			while (j < n && s[j] != U')' && s[j] != U'(' && s[j] != U'\n')
+			{
+				if (s[j] == U'|') shortcut = true;
+				++j;
+			}
+			if (shortcut && j < n && s[j] == U')')
+			{
+				size_t b = i + 1;
+				size_t e = j;
+				while (b < e && s[b] == U' ') ++b;
+				while (e > b && s[e - 1] == U' ') --e;
+				out.append(s + b, e - b);
+				i = j;
+				continue;
+			}
+		}
+		out += s[i];
+	}
+	return ST::utf32_buffer(out.data(), out.size());
+}
+
+static UINT32 GetWidthOfString(const ST::utf32_buffer& codepoints, TooltipFonts const& fonts);
+static void DisplayHelpTokenizedString(const ST::utf32_buffer& codepoints, INT16 sx, INT16 sy, TooltipFonts const& fonts);
 
 
 static void DisplayFastHelp(MOUSE_REGION* const r)
 {
 	if (!(r->uiFlags & MSYS_FASTHELP)) return;
 
-	INT32 const w = GetWidthOfString(r->FastHelpText) + 10;
-	INT32 const h = GetNumberOfLinesInHeight(r->FastHelpText) * (GetFontHeight(FONT10ARIAL) + 1) + 8;
+	TooltipFonts const fonts = GetTooltipFonts();
+	ST::utf32_buffer const text = fonts.noShortcutBrackets ? WithoutShortcutBrackets(r->FastHelpText) : r->FastHelpText;
+	INT32 const w = GetWidthOfString(text, fonts) + 10;
+	INT32 const h = GetNumberOfLinesInHeight(text) * (GetTooltipLineHeight(fonts) + 1) + 8;
 
 	INT32 x = r->RegionTopLeftX + 10;
 	if (x <  0)                x = 0;
@@ -831,16 +875,16 @@ static void DisplayFastHelp(MOUSE_REGION* const r)
 		FRAME_BUFFER->ShadowRect(x + 2, y + 2, x + w - 3, y + h - 3);
 		FRAME_BUFFER->ShadowRect(x + 2, y + 2, x + w - 3, y + h - 3);
 
-		DisplayHelpTokenizedString(r->FastHelpText, x + 5, y + 5);
+		DisplayHelpTokenizedString(text, x + 5, y + 5, fonts);
 		InvalidateRegion(x, y, x + w, y + h);
 	}
 }
 
 
-static UINT32 GetWidthOfString(const ST::utf32_buffer& codepoints)
+static UINT32 GetWidthOfString(const ST::utf32_buffer& codepoints, TooltipFonts const& fonts)
 {
-	SGPFont const bold_font   = FONT10ARIALBOLD;
-	SGPFont const normal_font = FONT10ARIAL;
+	SGPFont const bold_font   = fonts.shortcut;
+	SGPFont const normal_font = fonts.normal;
 	UINT32     max_w       = 0;
 	UINT32     w           = 0;
 	for (const char32_t* i = codepoints.c_str();; ++i)
@@ -871,11 +915,12 @@ static UINT32 GetWidthOfString(const ST::utf32_buffer& codepoints)
 }
 
 
-static void DisplayHelpTokenizedString(const ST::utf32_buffer& codepoints, INT16 const sx, INT16 const sy)
+static void DisplayHelpTokenizedString(const ST::utf32_buffer& codepoints, INT16 const sx, INT16 const sy, TooltipFonts const& fonts)
 {
-	SGPFont const bold_font   = FONT10ARIALBOLD;
-	SGPFont const normal_font = FONT10ARIAL;
-	INT32   const h           = GetFontHeight(normal_font) + 1;
+	SGPFont const bold_font   = fonts.shortcut;
+	SGPFont const normal_font = fonts.normal;
+	INT32   const line_h      = GetTooltipLineHeight(fonts);
+	INT32   const h           = line_h + 1;
 	INT32         x           = sx;
 	INT32         y           = sy;
 	for (const char32_t* i = codepoints.c_str();; ++i)
@@ -904,7 +949,8 @@ static void DisplayHelpTokenizedString(const ST::utf32_buffer& codepoints, INT16
 				break;
 		}
 		SetFontAttributes(font, foreground);
-		x += MPrintChar(x, y, c);
+		// fonts of different heights share the line's bottom
+		x += MPrintChar(x, y + line_h - GetFontHeight(font), c);
 	}
 }
 
