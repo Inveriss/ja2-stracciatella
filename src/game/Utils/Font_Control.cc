@@ -34,6 +34,10 @@ SGPFont gpSecInvBigCountFont;
 SGPFont gpCharInfoFont;
 SGPFont gpStrategicGeneralFont;
 SGPFont gpStrategicTooltipFont;
+// FONT_STRATEGIC_TOOLTIP in the colours of COMPFONT and TINYFONT1 -- see
+// StrategicTooltipFontAs()
+static SGPFont gpStrategicTooltipCompFont;
+static SGPFont gpStrategicTooltipTinyFont;
 SGPFont gpCompFont;
 SGPFont gpLargeFontType1;
 SGPFont gpSmallCompFont;
@@ -86,6 +90,17 @@ TooltipFonts GetTooltipFonts()
 }
 
 
+SGPFont StrategicTooltipFontAs(SGPFont const original)
+{
+	if (!g_ui.isExtraWideStrategicScreen()) return original;
+	SGPFont const font =
+		original == gpCompFont      ? gpStrategicTooltipCompFont :
+		original == gpTinyFontType1 ? gpStrategicTooltipTinyFont :
+		nullptr;
+	return font ? font : original;
+}
+
+
 void InitializeFonts(void)
 {
 #define M(var, file) (CreateFontPaletteTables((var) = LoadFontFile((file))))
@@ -123,6 +138,8 @@ void InitializeFonts(void)
 	gpCharInfoFont         = LoadOptionalFontInColoursOf(FONTSDIR "/font_charinfo.sti",          gpBlockyFont2);
 	gpStrategicGeneralFont = LoadOptionalFontInColoursOf(FONTSDIR "/font_strategic_general.sti", gpBlockyFont2);
 	gpStrategicTooltipFont = LoadOptionalFontInColoursOf(FONTSDIR "/font_strategic_tooltip.sti", gp10PointArial);
+	gpStrategicTooltipCompFont = LoadOptionalFontInColoursOf(FONTSDIR "/font_strategic_tooltip.sti", gpCompFont);
+	gpStrategicTooltipTinyFont = LoadOptionalFontInColoursOf(FONTSDIR "/font_strategic_tooltip.sti", gpTinyFontType1);
 
 	if(GameMode::getInstance()->isEditorMode() && isEnglishVersion())
 	{

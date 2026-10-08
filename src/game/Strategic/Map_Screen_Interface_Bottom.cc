@@ -792,7 +792,7 @@ static void BtnSkillsFromMapScreenCallback(GUI_BUTTON *btn, UINT32 reason)
 static void DrawNameOfLoadedSector()
 {
 	SetFontDestBuffer(FRAME_BUFFER);
-	SGPFont const font = COMPFONT;
+	SGPFont const font = StrategicTooltipFontAs(COMPFONT);
 	SetFontAttributes(font, 183);
 
 	ST::string buf = GetSectorIDString(sSelMap, TRUE);
@@ -1004,7 +1004,7 @@ static void DisplayCompressMode(void)
 		usColor = FONT_LTGREEN;
 	}
 
-	SetFontAttributes(COMPFONT, usColor);
+	SetFontAttributes(StrategicTooltipFontAs(COMPFONT), usColor);
 	MPrint(MAP_SCREEN_RIGHT - 151, MAP_SCREEN_BOTTOM - 23, Time,
 		HCenterVCenterAlign(522 - 489, 467 - 454));
 }
@@ -1329,7 +1329,7 @@ BOOLEAN AllowedToTimeCompress( void )
 static void DisplayCurrentBalanceTitleForMapBottom(void)
 {
 	SetFontDestBuffer(guiSAVEBUFFER);
-	SetFontAttributes(COMPFONT, MAP_BOTTOM_FONT_COLOR);
+	SetFontAttributes(StrategicTooltipFontAs(COMPFONT), MAP_BOTTOM_FONT_COLOR);
 	HCenterVCenterAlign const alignment{ 437 - 359, 10 };
 
 	// Bottom+right-anchored: X shared by balance/income (640-359=281); Y kept
@@ -1346,7 +1346,7 @@ static void DisplayCurrentBalanceForMapBottom(void)
 {
 	// show the current balance for the player on the map panel bottom
 	SetFontDestBuffer(FRAME_BUFFER);
-	SetFontAttributes(COMPFONT, 183);
+	SetFontAttributes(StrategicTooltipFontAs(COMPFONT), 183);
 	// Bottom+right-anchored: 640-359=281, 480-389=91.
 	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 91,
 		SPrintMoney(LaptopSaveInfo.iCurrentBalance),
@@ -1412,7 +1412,7 @@ static void DisplayProjectedDailyMineIncome(void)
 	}
 
 	SetFontDestBuffer(FRAME_BUFFER);
-	SetFontAttributes(COMPFONT, 183);
+	SetFontAttributes(StrategicTooltipFontAs(COMPFONT), 183);
 	// Bottom+right-anchored: 640-359=281, 480-435=45.
 	MPrint(MAP_SCREEN_RIGHT - 281, MAP_SCREEN_BOTTOM - 45,
 		SPrintMoney(iRate), HCenterVCenterAlign(437 - 359, 10));

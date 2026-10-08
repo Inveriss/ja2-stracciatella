@@ -254,7 +254,9 @@ void RenderClock(void)
 	// Are we in combat?
 	UINT8 const foreground = gTacticalStatus.uiFlags & INCOMBAT ?
 		FONT_FCOLOR_NICERED : FONT_LTGREEN;
-	SetFontAttributes(CLOCK_FONT, foreground);
+	// the strategic screen's own font on the 1366x768 interface
+	SGPFont const font = guiCurrentScreen == MAP_SCREEN ? StrategicTooltipFontAs(CLOCK_FONT) : CLOCK_FONT;
+	SetFontAttributes(font, foreground);
 
 	// Erase first!
 	INT16 x = CLOCK_X;

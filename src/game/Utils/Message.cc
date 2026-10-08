@@ -49,7 +49,8 @@ struct ScrollStringSt
 #define DIALOGUE_COLOR FONT_WHITE
 #define INTERFACE_COLOR FONT_YELLOW
 
-#define MAP_SCREEN_MESSAGE_FONT TINYFONT1
+// the strategic screen's own font on the 1366x768 interface
+#define MAP_SCREEN_MESSAGE_FONT StrategicTooltipFontAs(TINYFONT1)
 
 UINT8 gubStartOfMapScreenMessageList = 0;
 static UINT8 gubEndOfMapScreenMessageList = 0;
@@ -461,7 +462,8 @@ void DisplayStringsInMapScreenMessageList(void)
 	UINT8 ubCurrentStringIndex = gubCurrentMapMessageString;
 
 	INT16 sY = MAP_SCREEN_BOTTOM - 103;
-	UINT16 usSpacing = GetFontHeight(MAP_SCREEN_MESSAGE_FONT);
+	// 3 px more between the rows on the 1366x768 interface
+	UINT16 usSpacing = GetFontHeight(MAP_SCREEN_MESSAGE_FONT) + (g_ui.isExtraWideStrategicScreen() ? 3 : 0);
 
 	for (UINT8 ubLinesPrinted = 0; ubLinesPrinted < MAX_MESSAGES_ON_MAP_BOTTOM; ubLinesPrinted++)
 	{

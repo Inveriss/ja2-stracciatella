@@ -86,6 +86,12 @@ SGPFont StrategicGeneralFont();
 // brackets around keyboard shortcuts are left out (`noShortcutBrackets`).
 struct TooltipFonts { SGPFont normal; SGPFont shortcut; bool noShortcutBrackets; };
 TooltipFonts GetTooltipFonts();
+
+// FONTSTRATEGICTOOLTIP in the colours of `original` (COMPFONT or TINYFONT1)
+// on the 1366x768 interface when it could be loaded, `original` otherwise.
+// For the strategic screen's bottom panel: current balance, daily income,
+// time compression, sector name, clock and the message list.
+SGPFont StrategicTooltipFontAs(SGPFont original);
 #define FONT12ARIALFIXEDWIDTH	gp12PointArialFixedFont
 #define FONT16ARIAL		gp16PointArial
 #define BLOCKFONTNARROW	gpBlockFontNarrow
