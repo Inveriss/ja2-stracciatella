@@ -257,6 +257,14 @@ INT16 gsCiviliansEatenByMonsters = -1;
 //Dynamic globals -- to conserve memory, all global variables are allocated upon entry
 //and deleted before we leave.
 static AUTORESOLVE_STRUCT* gpAR;
+
+// The window's vertical middle (it is centred on the screen, 40 px higher
+// when there is room: bVerticalOffset) -- the texts drawn at fixed rows of
+// the 480 px screen (its middle: 240) are placed from it.
+static INT16 ARMiddleY()
+{
+	return SCREEN_HEIGHT / 2 + gpAR->bVerticalOffset;
+}
 static SOLDIERCELL*        gpMercs;
 static SOLDIERCELL*        gpCivs;
 static SOLDIERCELL*        gpEnemies;
@@ -1265,7 +1273,7 @@ static void RenderAutoResolve(void)
 
 	if( gpAR->fPendingSurrender )
 	{
-		DisplayWrappedString(gpAR->sCenterStartX + 16, 230 + gpAR->bVerticalOffset, 108, 2, FONT10ARIAL, FONT_YELLOW, gpStrategicString[STR_ENEMY_SURRENDER_OFFER], FONT_BLACK, LEFT_JUSTIFIED);
+		DisplayWrappedString(gpAR->sCenterStartX + 16, ARMiddleY() - 10, 108, 2, FONT10ARIAL, FONT_YELLOW, gpStrategicString[STR_ENEMY_SURRENDER_OFFER], FONT_BLACK, LEFT_JUSTIFIED);
 	}
 
 	if( gpAR->ubBattleStatus != BATTLE_IN_PROGRESS )
@@ -1365,7 +1373,7 @@ static void RenderAutoResolve(void)
 					}
 					else
 					{
-						DisplayWrappedString(gpAR->sCenterStartX + 16, 310, 108, 2, FONT10ARIAL, FONT_YELLOW, gpStrategicString[STR_ENEMY_CAPTURED], FONT_BLACK, LEFT_JUSTIFIED);
+						DisplayWrappedString(gpAR->sCenterStartX + 16, ARMiddleY() + 70, 108, 2, FONT10ARIAL, FONT_YELLOW, gpStrategicString[STR_ENEMY_CAPTURED], FONT_BLACK, LEFT_JUSTIFIED);
 						BattleResult = gpStrategicString[STR_AR_OVER_CAPTURED];
 					}
 					SetFontForeground( FONT_RED );
@@ -1382,10 +1390,10 @@ static void RenderAutoResolve(void)
 			//Render the results of the battle.
 			SetFont( StrategicGeneralFont() );
 			xp = gpAR->sCenterStartX + 12;
-			yp = MAP_SCREEN_Y + 218 + gpAR->bVerticalOffset;
+			yp = ARMiddleY() - 22;
 			BltVideoObject( FRAME_BUFFER, gpAR->iIndent, 0, xp, yp);
 			xp = gpAR->sCenterStartX + 70 - StringPixLength(BattleResult, StrategicGeneralFont()) / 2;
-			yp = MAP_SCREEN_Y + 227 + gpAR->bVerticalOffset;
+			yp = ARMiddleY() - 13;
 			MPrint(xp, yp, BattleResult);
 
 			//Render the total battle time elapsed.
@@ -1397,7 +1405,7 @@ static void RenderAutoResolve(void)
 				gpAR->uiTotalElapsedBattleTimeInMilliseconds % 60000 / 1000,
 				gsTimeStrings[2]);
 			xp = gpAR->sCenterStartX + 70 - StringPixLength( str, FONT10ARIAL )/2;
-			yp = MAP_SCREEN_Y + 290 + gpAR->bVerticalOffset;
+			yp = ARMiddleY() + 50;
 			SetFontForeground( FONT_YELLOW );
 			MPrint(xp, yp, str);
 	}
@@ -2248,12 +2256,13 @@ static void CalculateRowsAndColumns(void)
 		}
 	}
 
-	if( gpAR->ubMercCols + gpAR->ubEnemyCols == 9 )
-		gpAR->rect.w = SCREEN_WIDTH;
-	else
-		gpAR->rect.w = 146 + 55 * (std::max(int(std::max(gpAR->ubMercCols, gpAR->ubCivCols)), 2) + std::max(int(gpAR->ubEnemyCols), 2));
+	// At most the screen's width (9 columns: 641 px on a 640 px screen); not
+	// the whole screen on a wider one.
+	gpAR->rect.w = std::min(int(SCREEN_WIDTH), 146 + 55 * (std::max(int(std::max(gpAR->ubMercCols, gpAR->ubCivCols)), 2) + std::max(int(gpAR->ubEnemyCols), 2)));
 
-	gpAR->sCenterStartX = MAP_SCREEN_X + 323 - gpAR->rect.w / 2 + std::max(std::max(int(gpAR->ubMercCols), 2), std::max(int(gpAR->ubCivCols), 2)) * 55;
+	// The window is centred on the screen (BuildInterfaceBuffer()); its
+	// contents with it (was MAP_SCREEN_X + 323: the 640 px screen's middle + 3).
+	gpAR->sCenterStartX = SCREEN_WIDTH / 2 + 3 - gpAR->rect.w / 2 + std::max(std::max(int(gpAR->ubMercCols), 2), std::max(int(gpAR->ubCivCols), 2)) * 55;
 
 	//Anywhere from 48*3 to 48*10
 	gpAR->rect.h = 48 * std::max(3, std::max(gpAR->ubMercRows + gpAR->ubCivRows, int(gpAR->ubEnemyRows)));
