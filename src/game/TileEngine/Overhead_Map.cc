@@ -397,7 +397,8 @@ static void ClickOverheadRegionCallbackSecondary(MOUSE_REGION* reg, UINT32 reaso
 // the tactical placement's 1:1 view: the mouse wheel zooms like in the game
 static void OverheadRegionWheelCallback(MOUSE_REGION*, UINT32 const reason)
 {
-	if (reason & (MSYS_CALLBACK_REASON_WHEEL_UP | MSYS_CALLBACK_REASON_WHEEL_DOWN))
+	if (reason & (MSYS_CALLBACK_REASON_WHEEL_UP | MSYS_CALLBACK_REASON_WHEEL_DOWN) &&
+			!TacticalPlacementMouseOverPanel()) // the region is under a narrower panel too
 	{
 		ViewportZoomHandleWheel(reason & MSYS_CALLBACK_REASON_WHEEL_UP);
 	}
@@ -413,8 +414,10 @@ void GoIntoOverheadMap( )
 		// the whole screen; the 1:1 view beside the placement panel
 		INT16 const view_top    = TacticalPlacementViewTop();
 		INT16 const view_bottom = TacticalPlacementViewBottom();
-		MSYS_DefineRegion(&OverheadBackgroundRegion, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
-		MSYS_DefineRegion(&OverheadRegion, 0, view_top, SCREEN_WIDTH, view_bottom, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary, OverheadRegionWheelCallback));
+		// below the panel's buttons and regions (MSYS_PRIORITY_HIGH and up): the
+		// map's region is under the narrower west / east panel too
+		MSYS_DefineRegion(&OverheadBackgroundRegion, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_HIGH - 2, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+		MSYS_DefineRegion(&OverheadRegion, 0, view_top, SCREEN_WIDTH, view_bottom, MSYS_PRIORITY_HIGH - 1, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary, OverheadRegionWheelCallback));
 	}
 	else
 	{

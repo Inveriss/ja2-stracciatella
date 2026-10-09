@@ -176,6 +176,8 @@ static void ProvideViewportZoom(VideoZoom& zoom)
 	UINT8 n = GetTacticalMessageBoxes(boxes, VIDEO_ZOOM_MAX_KEEP - 2);
 	if (GetTacticalTextBox(boxes[n])) ++n;
 	if (GetPausedGameBox(boxes[n]))   ++n;
+	// the tactical placement's panel beside the world (west / east entry)
+	if (n < VIDEO_ZOOM_MAX_KEEP && TacticalPlacementPanelBox(boxes[n])) ++n;
 
 	zoom.numKeep = 0;
 	for (UINT8 i = 0; i != n; ++i)
