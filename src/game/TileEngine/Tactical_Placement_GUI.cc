@@ -13,6 +13,7 @@
 #include "Video.h"
 #include "VObject_Blitters.h"
 #include "Line.h"
+#include "Viewport_Zoom.h"
 #include "Tactical_Placement_GUI.h"
 #include "Overhead_Map.h"
 #include "Interface.h"
@@ -49,6 +50,7 @@
 #include <string_theory/format>
 #include <string_theory/string>
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <stdexcept>
 
@@ -216,6 +218,38 @@ bool TacticalPlacementMouseOverPanel()
 }
 
 
+// The part of the map shown, a green rectangle on the minimap at (mx, my) --
+// as RenderRadarScreen() on the tactical radar, without the part of the view
+// under the panel.
+static void DrawPlacementMinimapView(SGPVSurface* const buf, INT32 const mx, INT32 const my)
+{
+	INT32 const w = 352;
+	INT32 const h = 176;
+	double const scale_x = double(w) / (gsRightX  - gsLeftX);
+	double const scale_y = double(h) / (gsBottomY - gsTopY);
+
+	INT16 left;
+	INT16 top;
+	INT16 right;
+	INT16 bottom;
+	ViewportZoomGetVisibleWorldRect(left, top, right, bottom);
+	if (!ViewportZoomIsActive())
+	{
+		top    = gsTopLeftWorldY + TacticalPlacementViewTop();
+		bottom = gsTopLeftWorldY + TacticalPlacementViewBottom();
+	}
+
+	SGPVSurface::Lock l(buf);
+	SetClippingRegionAndImageWidth(l.Pitch(), mx, my, w, h);
+	RectangleDraw(TRUE,
+		mx + std::max(0.0, std::round((left - SCROLL_LEFT_PADDING) * scale_x)),
+		my + std::max(0.0, std::round((top  - SCROLL_TOP_PADDING)  * scale_y)),
+		mx + std::min(std::round((right  - SCROLL_RIGHT_PADDING  - SCROLL_LEFT_PADDING) * scale_x - 1.0), double(w - 1)),
+		my + std::min(std::round((bottom - SCROLL_BOTTOM_PADDING - SCROLL_TOP_PADDING)  * scale_y - 1.0), double(h - 1)),
+		Get16BPPColor(FROMRGB(0, 255, 0)), l.Buffer<UINT16>());
+}
+
+
 // The panel graphic: the panel at PanelY(), the minimap's box above it, or
 // below it when the panel is at the top (drawn in two parts, clipped).
 static void DrawPlacementPanel(SGPVSurface* const buf)
@@ -237,7 +271,10 @@ static void DrawPlacementPanel(SGPVSurface* const buf)
 	SGPBox box;
 	if (g_placement_minimap && TacticalPlacementMapBox(box))
 	{
-		BltVideoObject(buf, g_placement_minimap, 0, box.x + FV_MAP_DX, box.y + FV_MAP_DY);
+		INT32 const mx = box.x + FV_MAP_DX;
+		INT32 const my = box.y + FV_MAP_DY;
+		BltVideoObject(buf, g_placement_minimap, 0, mx, my);
+		DrawPlacementMinimapView(buf, mx, my);
 	}
 }
 
@@ -505,6 +542,13 @@ void InitTacticalPlacementGUI()
 		}
 	}
 	if (g_placement_panel != PANEL_BOTTOM) ExtendViewportToScreenBottom();
+	if (gfPlacementFullView)
+	{
+		// the world scrolls out from under the panel: every edge of the map
+		// can be brought into the free part of the view
+		gsScrollTopExtra    = TacticalPlacementViewTop();
+		gsScrollBottomExtra = std::max(0, gsVIEWPORT_END_Y - TacticalPlacementViewBottom());
+	}
 
 	GoIntoOverheadMap();
 
@@ -1059,6 +1103,8 @@ static void KillTacticalPlacementGUI(void)
 {
 	// before the tactical panel sets its viewport again
 	RestoreViewport();
+	gsScrollTopExtra    = 0;
+	gsScrollBottomExtra = 0;
 
 	gbHilightedMercID = -1;
 	gbSelectedMercID = -1;

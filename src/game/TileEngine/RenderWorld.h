@@ -83,6 +83,10 @@ extern BOOLEAN gfScrolledToTop;
 extern BOOLEAN gfScrolledToBottom;
 
 extern INT16 gsScrollXIncrement;
+// Pixels the world may scroll beyond the map's top / bottom (SCROLL_TOP/
+// BOTTOM_PADDING): the parts of the view a panel covers (tactical placement).
+extern INT16 gsScrollTopExtra;
+extern INT16 gsScrollBottomExtra;
 extern INT16 gsScrollYIncrement;
 extern INT16 gsRenderHeight;
 
