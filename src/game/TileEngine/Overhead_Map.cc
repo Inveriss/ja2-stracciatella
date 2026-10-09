@@ -45,6 +45,7 @@
 #include "VObject.h"
 #include "VObject_Blitters.h"
 #include "VSurface.h"
+#include "Viewport_Zoom.h"
 #include "World_Items.h"
 #include "WorldDef.h"
 #include <string_theory/string>
@@ -393,6 +394,16 @@ static void ClickOverheadRegionCallbackPrimary(MOUSE_REGION* reg, UINT32 reason)
 static void ClickOverheadRegionCallbackSecondary(MOUSE_REGION* reg, UINT32 reason);
 
 
+// the tactical placement's 1:1 view: the mouse wheel zooms like in the game
+static void OverheadRegionWheelCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	if (reason & (MSYS_CALLBACK_REASON_WHEEL_UP | MSYS_CALLBACK_REASON_WHEEL_DOWN))
+	{
+		ViewportZoomHandleWheel(reason & MSYS_CALLBACK_REASON_WHEEL_UP);
+	}
+}
+
+
 void GoIntoOverheadMap( )
 {
 	gfInOverheadMap = TRUE;
@@ -402,7 +413,7 @@ void GoIntoOverheadMap( )
 		// the whole screen; the 1:1 view above the placement panel
 		INT16 const view_bottom = SCREEN_HEIGHT - TACTICAL_PLACEMENT_PANEL_HEIGHT;
 		MSYS_DefineRegion(&OverheadBackgroundRegion, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
-		MSYS_DefineRegion(&OverheadRegion, 0, 0, SCREEN_WIDTH, view_bottom, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary));
+		MSYS_DefineRegion(&OverheadRegion, 0, 0, SCREEN_WIDTH, view_bottom, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary, OverheadRegionWheelCallback));
 	}
 	else
 	{

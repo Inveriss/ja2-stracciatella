@@ -11,4 +11,7 @@ INT8    HandleMoveModeInteractiveClick(UINT16 usMapPos);
 BOOLEAN HandleUIReloading(SOLDIERTYPE* pSoldier);
 void TacticalViewPortTouchCallbackTB(MOUSE_REGION* region, UINT32 reason);
 
+// the T key: show / hide the tree tops
+void ToggleTreeTops();
+
 #endif

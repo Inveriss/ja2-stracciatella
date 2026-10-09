@@ -36,6 +36,7 @@
 #include "Text.h"
 #include "Game_Clock.h"
 #include "JAScreens.h"
+#include "Turn_Based_Input.h"
 #include "UILayout.h"
 #include "MapScreen.h"
 #include "RenderWorld.h"
@@ -524,6 +525,10 @@ void TacticalPlacementHandle()
 					break;
 				case 's':
 					SpreadPlacementsCallback(iTPButtons[SPREAD_BUTTON], MSYS_CALLBACK_REASON_POINTER_UP);
+					break;
+				case 't':
+					// the 1:1 view shows the tree tops, as in the game
+					if (gfPlacementFullView) ToggleTreeTops();
 					break;
 				case 'x':
 					if( InputEvent.usKeyState & ALT_DOWN )
