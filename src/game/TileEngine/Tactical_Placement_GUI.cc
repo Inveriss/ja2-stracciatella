@@ -311,13 +311,20 @@ static void ShadeFullViewInvalidArea()
 	if (top >= bottom || left >= right) return;
 
 	UINT16 const hatch_colour = PlacementHatchColour();
-	SGPRect clip = { (UINT16)left, (UINT16)top, (UINT16)right, (UINT16)bottom };
-	SGPVSurface::Lock l(FRAME_BUFFER);
-	UINT16* const pDestBuf         = l.Buffer<UINT16>();
-	UINT32  const uiDestPitchBYTES = l.Pitch();
-	Blt16BPPBufferLooseHatchRectWithColor(pDestBuf, uiDestPitchBYTES, &clip, hatch_colour);
-	SetClippingRegionAndImageWidth(uiDestPitchBYTES, 0, 0, SCREEN_WIDTH, view_bottom);
-	RectangleDraw(TRUE, left, top, right, bottom, hatch_colour, pDestBuf);
+	{
+		SGPRect clip = { (UINT16)left, (UINT16)top, (UINT16)right, (UINT16)bottom };
+		SGPVSurface::Lock l(FRAME_BUFFER);
+		Blt16BPPBufferLooseHatchRectWithColor(l.Buffer<UINT16>(), l.Pitch(), &clip, hatch_colour);
+	}
+
+	// the edge of the entry area: a 5 px line on the hatched side of each
+	// edge inside the view
+	INT16 const w = 5;
+	SGPVSurface* const buf = FRAME_BUFFER;
+	if (top    > 0)            ColorFillVideoSurfaceArea(buf, left,      top,        right,    std::min<INT16>(top + w, bottom), hatch_colour);
+	if (bottom < view_bottom)  ColorFillVideoSurfaceArea(buf, left,      std::max<INT16>(bottom - w, top), right, bottom, hatch_colour);
+	if (left   > 0)            ColorFillVideoSurfaceArea(buf, left,      top,        std::min<INT16>(left + w, right), bottom, hatch_colour);
+	if (right  < SCREEN_WIDTH) ColorFillVideoSurfaceArea(buf, std::max<INT16>(right - w, left), top, right, bottom, hatch_colour);
 }
 
 
