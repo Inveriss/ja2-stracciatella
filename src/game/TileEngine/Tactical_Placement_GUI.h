@@ -13,7 +13,7 @@ void HandleTacticalPlacementClicksInOverheadMap(INT32 reason);
 // 1:1 tactical view (scrollable) above a full width panel instead of on the
 // overhead map. Only meaningful while gfTacticalPlacementGUIActive.
 bool TacticalPlacementFullView();
-#define TACTICAL_PLACEMENT_PANEL_HEIGHT 160
+#define TACTICAL_PLACEMENT_PANEL_HEIGHT 200
 
 extern BOOLEAN gfTacticalPlacementGUIActive;
 extern BOOLEAN gfEnterTacticalPlacementGUI;

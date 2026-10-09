@@ -37,6 +37,8 @@
 #include "Game_Clock.h"
 #include "JAScreens.h"
 #include "Turn_Based_Input.h"
+#include "Interface_Utils.h"
+#include "Object_Cache.h"
 #include "UILayout.h"
 #include "MapScreen.h"
 #include "RenderWorld.h"
@@ -106,13 +108,45 @@ bool TacticalPlacementFullView()
 	return gfPlacementFullView;
 }
 
-// top left corner of the bottom panel (640x160 or 1366x160)
+// top left corner of the bottom panel (640x160 or 1366x200)
 static INT32 PanelX() { return gfPlacementFullView ? 0 : STD_SCREEN_X; }
 static INT32 PanelY() { return gfPlacementFullView ? SCREEN_HEIGHT - TACTICAL_PLACEMENT_PANEL_HEIGHT : STD_SCREEN_Y + 320; }
 
-// a merc's portrait in the panel
-static INT32 MercRegionX(INT32 const i)   { return PanelX() + 91 + i / 2 * 54; }
-static INT32 MercRegionY(INT32 const i)   { return PanelY() + 41 + i % 2 * 51; }
+// The 1366x768 panel (panel coordinates): the big portraits, 9 a row, one
+// row shown at a time, scrolled by the mouse wheel and the arrows. A block
+// is a 2 px black frame around the 106x122 portrait and the 3 bars (3 px).
+#define FV_BUTTONS_DY    40 // the buttons are lower than on the old panel
+#define FV_BLOCK_X      144
+#define FV_BLOCK_Y       47
+#define FV_BLOCK_W      123
+#define FV_BLOCK_H      126
+#define FV_BLOCK_STEP   133 // 10 px between the blocks
+#define FV_PER_ROW        9
+#define FV_PORTRAIT_W   106
+#define FV_PORTRAIT_H   122
+#define FV_BAR_DX       110 // life, breath, morale every 4 px
+#define FV_NAME_Y       175
+#define FV_NAME_H        13
+#define FV_ARROW_X      101
+#define FV_ARROW_UP_Y    49
+#define FV_ARROW_DOWN_Y 158
+#define FV_TRACK_Y       76 // the slider's track, down to y 157
+#define FV_TRACK_H       82
+
+static char const* const g_full_view_arrows = INTERFACEDIR "/mapinv_done_buttons.sti";
+static GUIButtonRef g_placement_arrows[2];
+static MOUSE_REGION g_placement_panel_region; // the mouse wheel over the portraits
+static INT32        giPlacementRow = 0;       // the row shown
+
+static INT32 PlacementRows() { return std::max<INT32>(1, (giPlacements + FV_PER_ROW - 1) / FV_PER_ROW); }
+static bool  MercShown(INT32 const i) { return !gfPlacementFullView || i / FV_PER_ROW == giPlacementRow; }
+
+// a merc's region in the panel (portrait and name)
+static INT32 MercRegionX(INT32 const i) { return gfPlacementFullView ? PanelX() + FV_BLOCK_X + i % FV_PER_ROW * FV_BLOCK_STEP : PanelX() + 91 + i / 2 * 54; }
+static INT32 MercRegionY(INT32 const i) { return gfPlacementFullView ? PanelY() + FV_BLOCK_Y : PanelY() + 41 + i % 2 * 51; }
+static INT32 MercRegionW() { return gfPlacementFullView ? FV_BLOCK_W : 54; }
+static INT32 MercRegionH() { return gfPlacementFullView ? FV_NAME_Y + FV_NAME_H - FV_BLOCK_Y : 62; }
+// the old panel's portrait
 static INT32 MercPortraitX(INT32 const i) { return PanelX() + 95 + i / 2 * 54; }
 static INT32 MercPortraitY(INT32 const i) { return PanelY() + 51 + i % 2 * 51; }
 
@@ -124,7 +158,8 @@ static bool gfWest;
 
 static void MakeButton(UINT idx, INT16 y, GUI_CALLBACK click, const ST::string& text, const ST::string& help)
 {
-	GUIButtonRef const btn = QuickCreateButton(giOverheadButtonImages[idx], PanelX() + 11, PanelY() + y, MSYS_PRIORITY_HIGH, click);
+	INT16 const dy = gfPlacementFullView ? FV_BUTTONS_DY : 0;
+	GUIButtonRef const btn = QuickCreateButton(giOverheadButtonImages[idx], PanelX() + 11, PanelY() + y + dy, MSYS_PRIORITY_HIGH, click);
 	iTPButtons[idx] = btn;
 	btn->SpecifyGeneralTextAttributes(text, BLOCKFONT, FONT_BEIGE, 141);
 	btn->SetFastHelpText(help);
@@ -140,6 +175,120 @@ static void MercMoveCallback(MOUSE_REGION* reg, UINT32 reason);
 static void PlaceMercs(void);
 static void SetCursorMerc(INT8 placement);
 static void SpreadPlacementsCallback(GUI_BUTTON* btn, UINT32 reason);
+
+
+// 1366x768: shows the row `row` of the portraits (clamped)
+static void SetPlacementRow(INT32 row)
+{
+	if (!gfPlacementFullView) return;
+	row = std::clamp<INT32>(row, 0, PlacementRows() - 1);
+	giPlacementRow = row;
+	for (INT32 i = 0; i != giPlacements; ++i)
+	{
+		MOUSE_REGION& r = gMercPlacement[i].region;
+		if (MercShown(i)) r.Enable(); else r.Disable();
+	}
+	if (g_placement_arrows[0])
+	{
+		EnableButton(g_placement_arrows[0], row > 0);
+		EnableButton(g_placement_arrows[1], row < PlacementRows() - 1);
+	}
+	// the highlighted merc may be gone from the panel
+	gbHilightedMercID   = -1;
+	gubHilightedGroupID =  0;
+	gpTacticalPlacementHilightedSoldier = 0;
+	gfTacticalPlacementGUIDirty = TRUE;
+}
+
+
+// 1366x768: the row of this merc is shown
+static void ShowPlacementMerc(INT32 const i)
+{
+	if (gfPlacementFullView && i >= 0 && !MercShown(i)) SetPlacementRow(i / FV_PER_ROW);
+}
+
+
+static void PlacementWheel(UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   SetPlacementRow(giPlacementRow - 1);
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) SetPlacementRow(giPlacementRow + 1);
+}
+
+
+static void PlacementPanelRegionCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	PlacementWheel(reason);
+}
+
+
+static void PlacementArrowCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	SetPlacementRow(giPlacementRow + (btn == g_placement_arrows[0] ? -1 : +1));
+}
+
+
+// 1366x768: the arrows (mapinv_done_buttons.sti 8/9 up, 10/11 down, 12 the
+// slider) and the mouse wheel over the portraits
+static void CreateFullViewScrolling()
+{
+	giPlacementRow = 0;
+	g_placement_arrows[0] = GUIButtonRef();
+	g_placement_arrows[1] = GUIButtonRef();
+	bool arrows = false;
+	try
+	{
+		arrows = GetVObject(g_full_view_arrows)->SubregionCount() >= 13;
+	}
+	catch (std::exception const& e)
+	{
+		SLOGE("No placement arrows: {}", e.what());
+	}
+	if (arrows)
+	{
+		INT16 const x = PanelX() + FV_ARROW_X;
+		g_placement_arrows[0] = QuickCreateButtonImg(g_full_view_arrows,  8,  9, x, PanelY() + FV_ARROW_UP_Y,   MSYS_PRIORITY_HIGH, PlacementArrowCallback);
+		g_placement_arrows[1] = QuickCreateButtonImg(g_full_view_arrows, 10, 11, x, PanelY() + FV_ARROW_DOWN_Y, MSYS_PRIORITY_HIGH, PlacementArrowCallback);
+	}
+	else
+	{
+		SLOGW("{} has no sub-images 8-12, the portraits scroll by the mouse wheel only", g_full_view_arrows);
+	}
+
+	INT16 const x = PanelX() + FV_BLOCK_X - 4;
+	INT16 const y = PanelY() + FV_BLOCK_Y - 4;
+	MSYS_DefineRegion(&g_placement_panel_region, x, y, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_HIGH + 1, 0, MSYS_NO_CALLBACK, PlacementPanelRegionCallback);
+	SetPlacementRow(0);
+}
+
+
+static void RemoveFullViewScrolling()
+{
+	for (GUIButtonRef& b : g_placement_arrows)
+	{
+		if (b) RemoveButton(b);
+		b = GUIButtonRef();
+	}
+	MSYS_RemoveRegion(&g_placement_panel_region);
+}
+
+
+// a merc's big portrait (the 65 one if there is none)
+static SGPVObject* LoadPlacementPortrait(MERCPROFILESTRUCT const& p)
+{
+	if (gfPlacementFullView)
+	{
+		try
+		{
+			return LoadBigPortrait(p);
+		}
+		catch (std::exception const& e)
+		{
+			SLOGE("No big portrait, using the small one: {}", e.what());
+		}
+	}
+	return Load65Portrait(p);
+}
 
 
 void InitTacticalPlacementGUI()
@@ -222,10 +371,12 @@ void InitTacticalPlacementGUI()
 		m.pSoldier                 = s;
 		m.ubStrategicInsertionCode = s->ubStrategicInsertionCode;
 		m.fPlaced                  = FALSE;
-		m.uiVObjectID              = Load65Portrait(GetProfile(m.pSoldier->ubProfile));
+		m.uiVObjectID              = LoadPlacementPortrait(GetProfile(m.pSoldier->ubProfile));
 		INT32 const x = MercRegionX(i);
 		INT32 const y = MercRegionY(i);
-		MSYS_DefineRegion(&m.region, x, y, x + 54, y + 62, MSYS_PRIORITY_HIGH, 0, MercMoveCallback, MercClickCallback);
+		// 1366x768: above the panel's wheel region
+		INT16 const priority = gfPlacementFullView ? MSYS_PRIORITY_HIGH + 2 : MSYS_PRIORITY_HIGH;
+		MSYS_DefineRegion(&m.region, x, y, x + MercRegionW(), y + MercRegionH(), priority, 0, MercMoveCallback, MercClickCallback);
 
 		switch (s->ubStrategicInsertionCode)
 		{
@@ -235,6 +386,8 @@ void InitTacticalPlacementGUI()
 			case INSERTION_CODE_WEST:  gfWest  = true; break;
 		}
 	}
+
+	if (gfPlacementFullView) CreateFullViewScrolling();
 
 	PlaceMercs();
 
@@ -250,6 +403,7 @@ void InitTacticalPlacementGUI()
 			gubSelectedGroupID                 = m.pSoldier->ubGroupID;
 			gpTacticalPlacementSelectedSoldier = m.pSoldier;
 			SetCursorMerc(i);
+			ShowPlacementMerc(i);
 			break;
 		}
 	}
@@ -329,6 +483,41 @@ static void ShadeFullViewInvalidArea()
 }
 
 
+// 1366x768: the portraits of the row shown, their bars and the slider
+static void RenderFullViewMercs(SGPVSurface* const buf)
+{
+	for (INT32 i = 0; i != giPlacements; ++i)
+	{
+		if (!MercShown(i)) continue;
+		INT32 const x = MercRegionX(i);
+		INT32 const y = MercRegionY(i);
+		ColorFillVideoSurfaceArea(buf, x, y, x + FV_BLOCK_W, y + FV_BLOCK_H, 0);
+		BltVideoObject(buf, gMercPlacement[i].uiVObjectID, 0, x + 2, y + 2);
+	}
+
+	// DrawSoldierUIBarsTall() erases its windows from the saved background
+	BlitBufferToBuffer(buf, guiSAVEBUFFER, PanelX(), PanelY(), SCREEN_WIDTH - PanelX(), TACTICAL_PLACEMENT_PANEL_HEIGHT);
+	for (INT32 i = 0; i != giPlacements; ++i)
+	{
+		if (!MercShown(i)) continue;
+		INT16 const x = MercRegionX(i) + FV_BAR_DX;
+		INT16 const y = MercRegionY(i) + 2;
+		DrawSoldierUIBarsTall(*gMercPlacement[i].pSoldier, x, x + 4, x + 8, y, 3, FV_PORTRAIT_H, buf);
+	}
+
+	if (g_placement_arrows[0])
+	{
+		SGPVObject* const vo = GetVObject(g_full_view_arrows);
+		ETRLEObject const& thumb = vo->SubregionProperties(12);
+		INT32 const rows   = PlacementRows();
+		INT32 const travel = FV_TRACK_H - thumb.usHeight;
+		INT32 const y      = PanelY() + FV_TRACK_Y + (rows > 1 ? travel * giPlacementRow / (rows - 1) : 0);
+		INT32 const x      = PanelX() + FV_ARROW_X + (27 - thumb.usWidth) / 2;
+		BltVideoObject(buf, vo, 12, x, y);
+	}
+}
+
+
 static void RenderTacticalPlacementGUI()
 {
 	if (gfTacticalPlacementFirstTime)
@@ -344,8 +533,8 @@ static void RenderTacticalPlacementGUI()
 	{
 		INT32 const x = MercRegionX(gbHilightedMercID);
 		INT32 const y = MercRegionY(gbHilightedMercID);
-		if (gusMouseXPos < x || x + 54 < gusMouseXPos ||
-				gusMouseYPos < y || y + 62 < gusMouseYPos)
+		if (gusMouseXPos < x || x + MercRegionW() < gusMouseXPos ||
+				gusMouseYPos < y || y + MercRegionH() < gusMouseYPos)
 		{
 			gbHilightedMercID   = -1;
 			gubHilightedGroupID =  0;
@@ -369,7 +558,8 @@ static void RenderTacticalPlacementGUI()
 		InvalidateRegion(STD_SCREEN_X + 0, STD_SCREEN_Y + 0, STD_SCREEN_X + 320, STD_SCREEN_Y + 480);
 		gfTacticalPlacementGUIDirty = FALSE;
 		MarkButtonsDirty();
-		for (INT32 i = 0; i != giPlacements; ++i)
+		if (gfPlacementFullView) RenderFullViewMercs(buf);
+		else for (INT32 i = 0; i != giPlacements; ++i)
 		{ // Render the mercs
 			MERCPLACEMENT const& m = gMercPlacement[i];
 			INT32         const  x = MercPortraitX(i);
@@ -437,8 +627,9 @@ static void RenderTacticalPlacementGUI()
 	bool const is_group = gubDefaultButton == GROUP_BUTTON;
 	for (INT32 i = 0; i != giPlacements; ++i)
 	{ // Render the merc's names
-		INT32 const x = MercPortraitX(i);
-		INT32 const y = MercPortraitY(i);
+		if (!MercShown(i)) continue;
+		INT32 const x = gfPlacementFullView ? MercRegionX(i) : MercPortraitX(i);
+		INT32 const y = gfPlacementFullView ? MercRegionY(i) : MercPortraitY(i);
 
 		MERCPLACEMENT const& m     = gMercPlacement[i];
 		SOLDIERTYPE   const& s     = *m.pSoldier;
@@ -446,16 +637,17 @@ static void RenderTacticalPlacementGUI()
 			(is_group ? s.ubGroupID == gubSelectedGroupID  : i == gbSelectedMercID)  ? FONT_YELLOW :
 			(is_group ? s.ubGroupID == gubHilightedGroupID : i == gbHilightedMercID) ? FONT_WHITE  :
 			FONT_GRAY3;
-		SetFontAttributes(BLOCKFONT, colour);
-		INT32 const w  = StringPixLength(s.name, BLOCKFONT);
-		INT32 const nx = x + (48 - w) / 2;
-		INT32 const ny = y + 33;
+		SGPFont const font = gfPlacementFullView ? StrategicGeneralFont() : BLOCKFONT;
+		SetFontAttributes(font, colour);
+		INT32 const w  = StringPixLength(s.name, font);
+		INT32 const nx = gfPlacementFullView ? x + (FV_BLOCK_W - w) / 2 : x + (48 - w) / 2;
+		INT32 const ny = gfPlacementFullView ? PanelY() + FV_NAME_Y : y + 33;
 		MPrint(nx, ny, s.name);
 		InvalidateRegion(nx, ny, nx + w, ny + w);
 
 		// Render a question mark over the face, if the merc hasn't yet been placed.
-		INT32 const qx = x + 16;
-		INT32 const qy = y + 14;
+		INT32 const qx = gfPlacementFullView ? x + 2 + FV_PORTRAIT_W / 2 - 4 : x + 16;
+		INT32 const qy = gfPlacementFullView ? y + 2 + FV_PORTRAIT_H / 2 - 4 : y + 14;
 		if (m.fPlaced)
 		{
 			RegisterBackgroundRect(BGND_FLAG_SINGLE, qx, qy, 8, 8);
@@ -633,6 +825,7 @@ static void KillTacticalPlacementGUI(void)
 		UnloadButtonImage( giOverheadButtonImages[ i ] );
 		RemoveButton( iTPButtons[ i ] );
 	}
+	if (gfPlacementFullView) RemoveFullViewScrolling();
 	//Delete faces and regions
 	FOR_EACH_MERC_PLACEMENT(i)
 	{
@@ -804,6 +997,8 @@ static void MercMoveCallback(MOUSE_REGION* reg, UINT32 reason)
 
 static void MercClickCallback(MOUSE_REGION* reg, UINT32 reason)
 {
+	PlacementWheel(reason);
+
 	if( reason & MSYS_CALLBACK_REASON_POINTER_DWN )
 	{
 		INT8 i;
@@ -842,6 +1037,7 @@ static void SelectNextUnplacedUnit(void)
 			gfTacticalPlacementGUIDirty = TRUE;
 			SetCursorMerc( (INT8)i );
 			gpTacticalPlacementSelectedSoldier = gMercPlacement[ i ].pSoldier;
+			ShowPlacementMerc(i);
 			return;
 		}
 	}
@@ -855,6 +1051,7 @@ static void SelectNextUnplacedUnit(void)
 			gfTacticalPlacementGUIDirty = TRUE;
 			SetCursorMerc( (INT8)i );
 			gpTacticalPlacementSelectedSoldier = gMercPlacement[ i ].pSoldier;
+			ShowPlacementMerc(i);
 			return;
 		}
 	}
