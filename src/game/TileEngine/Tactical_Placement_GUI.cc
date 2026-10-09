@@ -103,6 +103,40 @@ static BOOLEAN gfPlacementOldVideoScroll;
 // the panel at the top of the screen: the south edge stays free
 static bool gfPlacementPanelTop = false;
 
+// The tactical viewport ends above the game's bottom panel; with the
+// placement panel at the top the world is shown down to the screen's bottom.
+struct SavedViewport
+{
+	UINT16  end_y;
+	UINT16  window_end_y;
+	UINT16  center_y;
+	SGPRect clip;
+};
+static SavedViewport g_saved_viewport;
+static bool          g_viewport_extended = false;
+
+static void ExtendViewportToScreenBottom()
+{
+	g_saved_viewport = { g_ui.m_VIEWPORT_END_Y, g_ui.m_VIEWPORT_WINDOW_END_Y, g_ui.m_tacticalMapCenterY, g_ui.m_worldClippingRect };
+	g_ui.m_VIEWPORT_END_Y            = SCREEN_HEIGHT;
+	g_ui.m_VIEWPORT_WINDOW_END_Y     = SCREEN_HEIGHT;
+	g_ui.m_tacticalMapCenterY        = (SCREEN_HEIGHT - g_ui.m_VIEWPORT_START_Y) / 2;
+	g_ui.m_worldClippingRect.iBottom = SCREEN_HEIGHT;
+	g_viewport_extended = true;
+	SetRenderFlags(RENDER_FLAG_FULL);
+}
+
+static void RestoreViewport()
+{
+	if (!g_viewport_extended) return;
+	g_ui.m_VIEWPORT_END_Y        = g_saved_viewport.end_y;
+	g_ui.m_VIEWPORT_WINDOW_END_Y = g_saved_viewport.window_end_y;
+	g_ui.m_tacticalMapCenterY    = g_saved_viewport.center_y;
+	g_ui.m_worldClippingRect     = g_saved_viewport.clip;
+	g_viewport_extended = false;
+	SetRenderFlags(RENDER_FLAG_FULL);
+}
+
 static char const* const g_full_view_panel = INTERFACEDIR "/overheadinterface_1366x768.png";
 
 bool TacticalPlacementFullView()
@@ -273,7 +307,8 @@ static void CreateFullViewScrolling()
 
 	INT16 const x = PanelX() + FV_BLOCK_X - 4;
 	INT16 const y = PanelY() + FV_BLOCK_Y - 4;
-	MSYS_DefineRegion(&g_placement_panel_region, x, y, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_HIGH + 1, 0, MSYS_NO_CALLBACK, PlacementPanelRegionCallback);
+	INT16 const bottom = PanelY() + TACTICAL_PLACEMENT_PANEL_HEIGHT; // the map is not covered
+	MSYS_DefineRegion(&g_placement_panel_region, x, y, SCREEN_WIDTH, bottom, MSYS_PRIORITY_HIGH + 1, 0, MSYS_NO_CALLBACK, PlacementPanelRegionCallback);
 	SetPlacementRow(0);
 }
 
@@ -348,6 +383,7 @@ void InitTacticalPlacementGUI()
 			if (code == INSERTION_CODE_SOUTH) gfPlacementPanelTop = true;
 		}
 	}
+	if (gfPlacementPanelTop) ExtendViewportToScreenBottom();
 
 	GoIntoOverheadMap();
 
@@ -845,6 +881,9 @@ static void PickUpMercPiece(MERCPLACEMENT&);
 
 static void KillTacticalPlacementGUI(void)
 {
+	// before the tactical panel sets its viewport again
+	RestoreViewport();
+
 	gbHilightedMercID = -1;
 	gbSelectedMercID = -1;
 	gubSelectedGroupID = 0;
