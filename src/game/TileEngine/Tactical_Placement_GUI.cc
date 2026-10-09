@@ -237,7 +237,9 @@ static void MakeButton(UINT idx, INT16 y, GUI_CALLBACK click, const ST::string& 
 	INT16 const dy = gfPlacementFullView ? FV_BUTTONS_DY : 0;
 	GUIButtonRef const btn = QuickCreateButton(giOverheadButtonImages[idx], PanelX() + 11, PanelY() + y + dy, MSYS_PRIORITY_HIGH, click);
 	iTPButtons[idx] = btn;
-	btn->SpecifyGeneralTextAttributes(text, BLOCKFONT, FONT_BEIGE, 141);
+	// the 1366x768 panels: FONT_STRATEGIC_GENERAL (StrategicGeneralFont())
+	SGPFont const font = gfPlacementFullView ? StrategicGeneralFont() : BLOCKFONT;
+	btn->SpecifyGeneralTextAttributes(text, font, FONT_BEIGE, 141);
 	btn->SetFastHelpText(help);
 	btn->SpecifyHilitedTextColors(FONT_WHITE, FONT_NEARBLACK);
 }
