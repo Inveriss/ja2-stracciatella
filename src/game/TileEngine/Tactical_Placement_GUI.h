@@ -9,6 +9,12 @@ void TacticalPlacementHandle(void);
 
 void HandleTacticalPlacementClicksInOverheadMap(INT32 reason);
 
+// 1366x768 with overheadinterface_1366x768.png: the mercs are placed in the
+// 1:1 tactical view (scrollable) above a full width panel instead of on the
+// overhead map. Only meaningful while gfTacticalPlacementGUIActive.
+bool TacticalPlacementFullView();
+#define TACTICAL_PLACEMENT_PANEL_HEIGHT 160
+
 extern BOOLEAN gfTacticalPlacementGUIActive;
 extern BOOLEAN gfEnterTacticalPlacementGUI;
 

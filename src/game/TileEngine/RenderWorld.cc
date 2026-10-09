@@ -26,6 +26,7 @@
 #include "Structure.h"
 #include "SysUtil.h"
 #include "Sys_Globals.h"
+#include "Tactical_Placement_GUI.h"
 #include "TileDef.h"
 #include "Tile_Cache.h"
 #include "Timer.h"
@@ -1982,7 +1983,9 @@ static void RenderDynamicWorld(void)
 		RENDER_DYNAMIC_ONROOF,
 		RENDER_DYNAMIC_TOPMOST);
 
-	if (!GameMode::getInstance()->isEditorMode() || !gfEditMode)
+	// The tactical placement (1:1 view) has no tactical panel: its own panel
+	// is drawn over the world afterwards.
+	if ((!GameMode::getInstance()->isEditorMode() || !gfEditMode) && !gfTacticalPlacementGUIActive)
 	{
 		RenderTacticalInterface();
 	}
