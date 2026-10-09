@@ -14,6 +14,10 @@ void HandleTacticalPlacementClicksInOverheadMap(INT32 reason);
 // overhead map. Only meaningful while gfTacticalPlacementGUIActive.
 bool TacticalPlacementFullView();
 #define TACTICAL_PLACEMENT_PANEL_HEIGHT 200
+// The rows of the screen showing the world in the 1:1 view: below the
+// panel when it is at the top (mercs entering from the south), else above it.
+INT16 TacticalPlacementViewTop();
+INT16 TacticalPlacementViewBottom();
 
 extern BOOLEAN gfTacticalPlacementGUIActive;
 extern BOOLEAN gfEnterTacticalPlacementGUI;

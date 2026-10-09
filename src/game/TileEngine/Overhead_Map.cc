@@ -410,10 +410,11 @@ void GoIntoOverheadMap( )
 
 	if (!gfEditMode && gfTacticalPlacementGUIActive && TacticalPlacementFullView())
 	{
-		// the whole screen; the 1:1 view above the placement panel
-		INT16 const view_bottom = SCREEN_HEIGHT - TACTICAL_PLACEMENT_PANEL_HEIGHT;
+		// the whole screen; the 1:1 view beside the placement panel
+		INT16 const view_top    = TacticalPlacementViewTop();
+		INT16 const view_bottom = TacticalPlacementViewBottom();
 		MSYS_DefineRegion(&OverheadBackgroundRegion, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
-		MSYS_DefineRegion(&OverheadRegion, 0, 0, SCREEN_WIDTH, view_bottom, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary, OverheadRegionWheelCallback));
+		MSYS_DefineRegion(&OverheadRegion, 0, view_top, SCREEN_WIDTH, view_bottom, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary, OverheadRegionWheelCallback));
 	}
 	else
 	{

@@ -114,7 +114,9 @@ static void GetZoomZone(UINT16& top, UINT16& bottom)
 	if (gsCurInterfacePanel == SM_PANEL) bottom = std::min(bottom, INV_INTERFACE_START_Y);
 	if (gfTacticalPlacementGUIActive && TacticalPlacementFullView())
 	{
-		bottom = SCREEN_HEIGHT - TACTICAL_PLACEMENT_PANEL_HEIGHT; // above the placement panel
+		// beside the placement panel
+		top    = TacticalPlacementViewTop();
+		bottom = TacticalPlacementViewBottom();
 	}
 }
 

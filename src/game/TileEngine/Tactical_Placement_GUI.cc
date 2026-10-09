@@ -100,6 +100,8 @@ SOLDIERTYPE *gpTacticalPlacementHilightedSoldier = NULL;
 // 1366x768: placement in the 1:1 tactical view above a full width panel
 static bool gfPlacementFullView = false;
 static BOOLEAN gfPlacementOldVideoScroll;
+// the panel at the top of the screen: the south edge stays free
+static bool gfPlacementPanelTop = false;
 
 static char const* const g_full_view_panel = INTERFACEDIR "/overheadinterface_1366x768.png";
 
@@ -110,7 +112,21 @@ bool TacticalPlacementFullView()
 
 // top left corner of the bottom panel (640x160 or 1366x200)
 static INT32 PanelX() { return gfPlacementFullView ? 0 : STD_SCREEN_X; }
-static INT32 PanelY() { return gfPlacementFullView ? SCREEN_HEIGHT - TACTICAL_PLACEMENT_PANEL_HEIGHT : STD_SCREEN_Y + 320; }
+static INT32 PanelY()
+{
+	if (!gfPlacementFullView) return STD_SCREEN_Y + 320;
+	return gfPlacementPanelTop ? 0 : SCREEN_HEIGHT - TACTICAL_PLACEMENT_PANEL_HEIGHT;
+}
+
+INT16 TacticalPlacementViewTop()
+{
+	return gfPlacementPanelTop ? TACTICAL_PLACEMENT_PANEL_HEIGHT : 0;
+}
+
+INT16 TacticalPlacementViewBottom()
+{
+	return gfPlacementPanelTop ? SCREEN_HEIGHT : SCREEN_HEIGHT - TACTICAL_PLACEMENT_PANEL_HEIGHT;
+}
 
 // The 1366x768 panel (panel coordinates): the big portraits, 9 a row, one
 // row shown at a time, scrolled by the mouse wheel and the arrows. A block
@@ -309,6 +325,30 @@ void InitTacticalPlacementGUI()
 		gfDoVideoScroll           = FALSE;
 	}
 
+	// Mercs entering from the south: the panel goes to the top of the screen,
+	// over the north edge, else it would cover most of their entry area.
+	gfPlacementPanelTop = false;
+	if (gfPlacementFullView)
+	{
+		GROUP const& bg = *gpBattleGroup;
+		CFOR_EACH_IN_TEAM(s, OUR_TEAM)
+		{
+			if (s->bLife == 0)                      continue;
+			if (s->fBetweenSectors)                 continue;
+			if (s->sSector != bg.ubSector)          continue;
+			if (s->uiStatusFlags & SOLDIER_VEHICLE) continue;
+			if (s->bAssignment == ASSIGNMENT_POW)   continue;
+			if (s->bAssignment == IN_TRANSIT)       continue;
+			if (s->sSector.z != 0)                  continue;
+			// as the insertion code is taken below
+			UINT8 const code =
+				s->ubStrategicInsertionCode == INSERTION_CODE_PRIMARY_EDGEINDEX ||
+				s->ubStrategicInsertionCode == INSERTION_CODE_SECONDARY_EDGEINDEX ?
+				(UINT8)s->usStrategicInsertionData : s->ubStrategicInsertionCode;
+			if (code == INSERTION_CODE_SOUTH) gfPlacementPanelTop = true;
+		}
+	}
+
 	GoIntoOverheadMap();
 
 	giOverheadPanelImage = AddVideoObjectFromFile(panel);
@@ -430,8 +470,9 @@ static UINT16 PlacementHatchColour()
 // the mercs may enter gets the hatch.
 static void ShadeFullViewInvalidArea()
 {
-	INT16 const view_bottom = PanelY();
-	INT16 top    = 0;
+	INT16 const view_top    = TacticalPlacementViewTop();
+	INT16 const view_bottom = TacticalPlacementViewBottom();
+	INT16 top    = view_top;
 	INT16 left   = 0;
 	INT16 bottom = view_bottom;
 	INT16 right  = SCREEN_WIDTH;
@@ -476,7 +517,7 @@ static void ShadeFullViewInvalidArea()
 	// edge inside the view
 	INT16 const w = 5;
 	SGPVSurface* const buf = FRAME_BUFFER;
-	if (top    > 0)            ColorFillVideoSurfaceArea(buf, left,      top,        right,    std::min<INT16>(top + w, bottom), hatch_colour);
+	if (top    > view_top)     ColorFillVideoSurfaceArea(buf, left,      top,        right,    std::min<INT16>(top + w, bottom), hatch_colour);
 	if (bottom < view_bottom)  ColorFillVideoSurfaceArea(buf, left,      std::max<INT16>(bottom - w, top), right, bottom, hatch_colour);
 	if (left   > 0)            ColorFillVideoSurfaceArea(buf, left,      top,        std::min<INT16>(left + w, right), bottom, hatch_colour);
 	if (right  < SCREEN_WIDTH) ColorFillVideoSurfaceArea(buf, std::max<INT16>(right - w, left), top, right, bottom, hatch_colour);
@@ -733,7 +774,7 @@ void TacticalPlacementHandle()
 	}
 	gfValidCursor = FALSE;
 	bool const mouse_in_map = gfPlacementFullView ?
-		gusMouseYPos < PanelY() :
+		TacticalPlacementViewTop() <= gusMouseYPos && gusMouseYPos < TacticalPlacementViewBottom() :
 		(gusMouseYPos >= STD_SCREEN_Y) && (gusMouseYPos < STD_SCREEN_Y + 320) &&
 		(gusMouseXPos >= STD_SCREEN_X) && (gusMouseXPos < STD_SCREEN_X + 640);
 	if (gbSelectedMercID != -1 && mouse_in_map)
@@ -1077,7 +1118,7 @@ static SGPBox PlacementMessageBoxRect()
 {
 	if (gfPlacementFullView)
 	{
-		return SGPBox{ (UINT16)((SCREEN_WIDTH - 200) / 2), (UINT16)((PanelY() - 80) / 2), 200, 80 };
+		return SGPBox{ (UINT16)((SCREEN_WIDTH - 200) / 2), (UINT16)((TacticalPlacementViewTop() + TacticalPlacementViewBottom() - 80) / 2), 200, 80 };
 	}
 	return SGPBox{ (UINT16)(STD_SCREEN_X + 220), (UINT16)(STD_SCREEN_Y + 120), 200, 80 };
 }
