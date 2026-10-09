@@ -933,31 +933,6 @@ static void GetRenderCenterAbsoluteScreenXY(INT32* const x, INT32* const y)
 }
 
 
-// inverse of GetOverheadScreenXYFromGridNo(), without the land height
-void OverheadToViewportXY(INT16 const ox, INT16 const oy, INT16* const vx, INT16* const vy)
-{
-	INT32 rx;
-	INT32 ry;
-	GetRenderCenterAbsoluteScreenXY(&rx, &ry);
-	INT32 const ax = (ox - gsStartRestrictedX - 5) * 5;
-	INT32 const ay = (oy - gsStartRestrictedY - 5) * 5 - gsRenderHeight;
-	*vx = (INT16)(ax - rx + g_ui.m_tacticalMapCenterX);
-	*vy = (INT16)(ay - ry + g_ui.m_tacticalMapCenterY);
-}
-
-
-void ViewportToOverheadXY(INT16 const vx, INT16 const vy, INT16* const ox, INT16* const oy)
-{
-	INT32 rx;
-	INT32 ry;
-	GetRenderCenterAbsoluteScreenXY(&rx, &ry);
-	INT32 const ax = vx - g_ui.m_tacticalMapCenterX + rx;
-	INT32 const ay = vy - g_ui.m_tacticalMapCenterY + ry;
-	*ox = (INT16)(ax / 5 + gsStartRestrictedX + 5);
-	*oy = (INT16)((ay + gsRenderHeight) / 5 + gsStartRestrictedY + 5);
-}
-
-
 static GridNo InternalGetOverheadMouseGridNo(const INT dy)
 {
 	if (!(OverheadRegion.uiFlags & MSYS_MOUSE_IN_AREA)) return NOWHERE;

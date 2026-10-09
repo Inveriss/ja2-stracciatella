@@ -21,12 +21,6 @@ void TrashOverheadMap(void);
 
 GridNo GetOverheadMouseGridNo(void);
 
-// Tactical placement in the 1:1 view: the overhead map's own coordinates
-// (from its top left corner, the placement rules are written in them) to
-// the tactical viewport's screen coordinates and back.
-void OverheadToViewportXY(INT16 ox, INT16 oy, INT16* vx, INT16* vy);
-void ViewportToOverheadXY(INT16 vx, INT16 vy, INT16* ox, INT16* oy);
-
 extern BOOLEAN gfOverheadMapDirty;
 
 #endif

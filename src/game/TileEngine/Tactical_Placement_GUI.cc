@@ -546,6 +546,34 @@ static void DrawBar(SGPVSurface* const buf, INT32 const x, INT32 const y, INT32 
 }
 
 
+// The entry areas in the 1:1 view: 166 px wide bands along the map's
+// visible edges (where the scrolling stops, SCROLL_*_PADDING), the same
+// for every edge (the screen's width beside the west / east panel + 7). Their
+// inner edges in frame coordinates, from the render center as ApplyScrolling()
+// places the view.
+#define FV_ENTRY_BAND 166
+
+struct FullViewEntryEdges
+{
+	INT16 north; // the north area ends above this row
+	INT16 east;  // the east area starts at this column
+	INT16 south; // the south area starts at this row
+	INT16 west;  // the west area ends left of this column
+};
+
+static FullViewEntryEdges GetFullViewEntryEdges()
+{
+	INT32 const left = 2 * gsRenderCenterX - 2 * gsRenderCenterY - g_ui.m_tacticalMapCenterX; // the view's top left corner
+	INT32 const top  = gsRenderCenterX + gsRenderCenterY - 10   - g_ui.m_tacticalMapCenterY;
+	FullViewEntryEdges e;
+	e.north = (INT16)(gsTopY    + SCROLL_TOP_PADDING    + FV_ENTRY_BAND - top);
+	e.east  = (INT16)(gsRightX  + SCROLL_RIGHT_PADDING  - FV_ENTRY_BAND - left);
+	e.south = (INT16)(gsBottomY + SCROLL_BOTTOM_PADDING - FV_ENTRY_BAND - top);
+	e.west  = (INT16)(gsLeftX   + SCROLL_LEFT_PADDING   + FV_ENTRY_BAND - left);
+	return e;
+}
+
+
 static UINT16 PlacementHatchColour()
 {
 	return
@@ -554,9 +582,8 @@ static UINT16 PlacementHatchColour()
 }
 
 
-// The overhead map's placement edges (its own coordinates, as in the overhead
-// branch below) carried over to the 1:1 view: everything but the edges where
-// the mercs may enter gets the hatch.
+// The 1:1 view: everything but the 166 px bands along the edges where the
+// mercs may enter gets the hatch.
 static void ShadeFullViewInvalidArea()
 {
 	INT16 const view_top    = TacticalPlacementViewTop();
@@ -585,14 +612,11 @@ static void ShadeFullViewInvalidArea()
 		case INSERTION_CODE_WEST:  west  = true; break;
 	}
 
-	INT16 x;
-	INT16 y;
-	OverheadToViewportXY(30, 30, &x, &y);
-	if (north) top  = std::max(top,  y);
-	if (west)  left = std::max(left, x);
-	OverheadToViewportXY(610, 290, &x, &y);
-	if (south) bottom = std::min(bottom, y);
-	if (east)  right  = std::min(right,  x);
+	FullViewEntryEdges const e = GetFullViewEntryEdges();
+	if (north) top    = std::max(top,    e.north);
+	if (west)  left   = std::max(left,   e.west);
+	if (south) bottom = std::min(bottom, e.south);
+	if (east)  right  = std::min(right,  e.east);
 	if (top >= bottom || left >= right) return;
 
 	UINT16 const hatch_colour = PlacementHatchColour();
@@ -874,10 +898,22 @@ void TacticalPlacementHandle()
 	if (gbSelectedMercID != -1 && mouse_in_map)
 	{
 		// the mouse in the overhead map's own coordinates
-		INT16 mx = gusMouseXPos - STD_SCREEN_X;
-		INT16 my = gusMouseYPos - STD_SCREEN_Y;
-		if (gfPlacementFullView) ViewportToOverheadXY(gusMouseXPos, gusMouseYPos, &mx, &my);
-		switch( gMercPlacement[ gbCursorMercID ].ubStrategicInsertionCode )
+		INT16 const mx = gusMouseXPos - STD_SCREEN_X;
+		INT16 const my = gusMouseYPos - STD_SCREEN_Y;
+		UINT8 const code = gMercPlacement[gbCursorMercID].ubStrategicInsertionCode;
+		if (gfPlacementFullView)
+		{
+			// the 166 px bands (see GetFullViewEntryEdges())
+			FullViewEntryEdges const e = GetFullViewEntryEdges();
+			switch (code)
+			{
+				case INSERTION_CODE_NORTH: gfValidCursor = gusMouseYPos <  e.north; break;
+				case INSERTION_CODE_EAST:  gfValidCursor = gusMouseXPos >= e.east;  break;
+				case INSERTION_CODE_SOUTH: gfValidCursor = gusMouseYPos >= e.south; break;
+				case INSERTION_CODE_WEST:  gfValidCursor = gusMouseXPos <  e.west;  break;
+			}
+		}
+		else switch (code)
 		{
 			case INSERTION_CODE_NORTH:
 				if (my <= 40)
