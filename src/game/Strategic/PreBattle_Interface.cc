@@ -794,6 +794,11 @@ void RenderPreBattleInterface()
 		BltVideoObject(dst, vo, MAINPANEL, MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0);
 		// Main title
 		RenderPBHeader(&x, &width);
+
+		// Of prebattlepanel.sti only the main panel (sub-image 0) is drawn, per
+		// user request: not the title bar pieces (1), the participants' and the
+		// uninvolved list's column lines (2, 3) and the "uninvolved" header (4).
+#if 0
 		// Draw the title bars up to the text
 		for (INT32 i = x - 12; i > 20; i -= 10)
 		{
@@ -807,6 +812,7 @@ void RenderPreBattleInterface()
 		{ INT32 const y = BOTTOM_Y - ACTUAL_HEIGHT - ROW_HEIGHT * std::max(guiNumUninvolved, 1U);
 			BltVideoObject(dst, vo, UNINVOLVED_HEADER, MAP_SCREEN_X + 8, y);
 		}
+#endif
 
 		SetFontForeground(FONT_BEIGE);
 		PrintConfined(65, 17, 64, gpStrategicString[STR_PB_LOCATION]);
@@ -820,6 +826,7 @@ void RenderPreBattleInterface()
 		PrintConfined(139, 38, 52, gpStrategicString[STR_PB_MERCS]);
 		PrintConfined(224, 38, 52, gpStrategicString[STR_PB_MILITIA]);
 
+#if 0 // sub-images 2 and 3, see above
 		// Draw the bottom columns
 		for (INT32 i = 0; i < (INT32)std::max(guiNumUninvolved, 1U); ++i)
 		{
@@ -832,6 +839,7 @@ void RenderPreBattleInterface()
 			INT32 const y = TOP_Y + ROW_HEIGHT * i;
 			BltVideoObject(dst, vo, TOP_COLUMN, MAP_SCREEN_X + 186, y);
 		}
+#endif
 
 		// Location
 		SetFontAttributes(FONT10ARIAL, FONT_YELLOW);
