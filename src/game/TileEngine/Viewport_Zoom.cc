@@ -178,6 +178,7 @@ static void ProvideViewportZoom(VideoZoom& zoom)
 	if (GetPausedGameBox(boxes[n]))   ++n;
 	// the tactical placement's panel beside the world (west / east entry)
 	if (n < VIDEO_ZOOM_MAX_KEEP && TacticalPlacementPanelBox(boxes[n])) ++n;
+	if (n < VIDEO_ZOOM_MAX_KEEP && TacticalPlacementMapBox(boxes[n]))   ++n; // its minimap
 
 	zoom.numKeep = 0;
 	for (UINT8 i = 0; i != n; ++i)

@@ -23,6 +23,8 @@ INT16 TacticalPlacementViewBottom();
 // The placement panel's place in the 1:1 view (false without the view); the
 // narrower west / east panel leaves the world visible beside it.
 bool TacticalPlacementPanelBox(SGPBox& box);
+// the minimap's box with the panel (above it, below it at the top)
+bool TacticalPlacementMapBox(SGPBox& box);
 bool TacticalPlacementMouseOverPanel();
 
 extern BOOLEAN gfTacticalPlacementGUIActive;

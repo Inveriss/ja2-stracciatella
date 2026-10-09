@@ -85,6 +85,7 @@
 #define MAPSDIR        "maps"
 #define RADARMAPSDIR   "radarmaps"
 #define RADARMAPSBIGDIR "radarmaps_big"
+#define RADARMAPSOVERHEADDIR "radarmaps_overhead"
 #define TILESETSDIR    "tilesets"
 
 #define DIALOGUESIZE 240
@@ -291,6 +292,16 @@ ST::string DefaultContentManager::getRadarMapResourceName(const ST::string &mapN
 ST::string DefaultContentManager::getRadarMapBigResourceName(const ST::string &mapName) const
 {
 	ST::string result = RADARMAPSBIGDIR "/" + mapName;
+
+	SLOGD("map file {}", result);
+
+	return result;
+}
+
+/** Get overhead (352x176) radar map resource name, for the tactical placement's minimap. */
+ST::string DefaultContentManager::getRadarMapOverheadResourceName(const ST::string &mapName) const
+{
+	ST::string result = RADARMAPSOVERHEADDIR "/" + mapName;
 
 	SLOGD("map file {}", result);
 

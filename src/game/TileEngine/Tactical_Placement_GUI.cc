@@ -25,6 +25,9 @@
 #include "Map_Edgepoints.h"
 #include "Strategic.h"
 #include "StrategicMap.h"
+#include "ContentManager.h"
+#include "FileMan.h"
+#include "GameInstance.h"
 #include "GameLoop.h"
 #include "Message.h"
 #include "Map_Information.h"
@@ -107,6 +110,14 @@ static BOOLEAN gfPlacementOldVideoScroll;
 enum PlacementPanelSide { PANEL_BOTTOM, PANEL_TOP, PANEL_WEST, PANEL_EAST };
 static PlacementPanelSide g_placement_panel   = PANEL_BOTTOM;
 static INT16              g_placement_panel_w = 1366;
+// The panel graphics have the minimap's box above the 200 px panel (rows
+// 0..g_map_box_h - 1): 362 px wide, centred, its 354x178 window at (4, 6),
+// the 352x176 minimap (Data/RadarMaps_Overhead) 1 px inside it. 0: no box.
+static INT16              g_map_box_h = 0;
+static SGPVObject*        g_placement_minimap = 0;
+#define FV_MAP_BOX_W  362
+#define FV_MAP_DX       5
+#define FV_MAP_DY       7
 
 // The tactical viewport ends above the game's bottom panel; with the
 // placement panel at the top the world is shown down to the screen's bottom.
@@ -180,11 +191,70 @@ bool TacticalPlacementPanelBox(SGPBox& box)
 	return true;
 }
 
+// The minimap's box: above the panel, below it when the panel is at the top
+// of the screen.
+bool TacticalPlacementMapBox(SGPBox& box)
+{
+	if (!gfPlacementFullView || g_map_box_h == 0) return false;
+	INT32 const x = PanelX() + (g_placement_panel_w - FV_MAP_BOX_W) / 2;
+	INT32 const y = g_placement_panel == PANEL_TOP ? TACTICAL_PLACEMENT_PANEL_HEIGHT : PanelY() - g_map_box_h;
+	box = { (UINT16)x, (UINT16)y, (UINT16)FV_MAP_BOX_W, (UINT16)g_map_box_h };
+	return true;
+}
+
+static bool MouseInBox(SGPBox const& b)
+{
+	return b.x <= gusMouseXPos && gusMouseXPos < b.x + b.w && b.y <= gusMouseYPos && gusMouseYPos < b.y + b.h;
+}
+
 bool TacticalPlacementMouseOverPanel()
 {
 	SGPBox b;
-	if (!TacticalPlacementPanelBox(b)) return false;
-	return b.x <= gusMouseXPos && gusMouseXPos < b.x + b.w && b.y <= gusMouseYPos && gusMouseYPos < b.y + b.h;
+	if (TacticalPlacementPanelBox(b) && MouseInBox(b)) return true;
+	if (TacticalPlacementMapBox(b)   && MouseInBox(b)) return true;
+	return false;
+}
+
+
+// The panel graphic: the panel at PanelY(), the minimap's box above it, or
+// below it when the panel is at the top (drawn in two parts, clipped).
+static void DrawPlacementPanel(SGPVSurface* const buf)
+{
+	if (g_map_box_h == 0 || g_placement_panel != PANEL_TOP)
+	{
+		BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY() - g_map_box_h);
+	}
+	else
+	{
+		INT32 const h = TACTICAL_PLACEMENT_PANEL_HEIGHT;
+		SGPRect const old = SetClippingRect(SGPRect{ 0, 0, (UINT16)SCREEN_WIDTH, (UINT16)h });
+		BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY() - g_map_box_h);
+		SetClippingRect(SGPRect{ 0, (UINT16)h, (UINT16)SCREEN_WIDTH, (UINT16)(h + g_map_box_h) });
+		BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), h);
+		SetClippingRect(old);
+	}
+
+	SGPBox box;
+	if (g_placement_minimap && TacticalPlacementMapBox(box))
+	{
+		BltVideoObject(buf, g_placement_minimap, 0, box.x + FV_MAP_DX, box.y + FV_MAP_DY);
+	}
+}
+
+
+// the 352x176 minimap of the sector, none if it is missing
+static SGPVObject* LoadPlacementMinimap()
+{
+	ST::string const name = FileMan::replaceExtension(FileMan::getFileName(GetMapFileName(gWorldSector, TRUE)), "sti");
+	try
+	{
+		return AddVideoObjectFromFile(GCM->getRadarMapOverheadResourceName(name));
+	}
+	catch (std::exception const& e)
+	{
+		SLOGW("No placement minimap: {}", e.what());
+		return 0;
+	}
 }
 
 // The 1366x768 panel (panel coordinates): the big portraits, 9 a row (8 on
@@ -439,8 +509,19 @@ void InitTacticalPlacementGUI()
 	GoIntoOverheadMap();
 
 	giOverheadPanelImage = AddVideoObjectFromFile(panel);
-	// 1366, the west / east one 1207
-	if (gfPlacementFullView) g_placement_panel_w = giOverheadPanelImage->SubregionProperties(0).usWidth;
+	// 1366, the west / east one 1207; taller with the minimap's box above
+	g_map_box_h         = 0;
+	g_placement_minimap = 0;
+	if (gfPlacementFullView)
+	{
+		ETRLEObject const& panel_size = giOverheadPanelImage->SubregionProperties(0);
+		g_placement_panel_w = panel_size.usWidth;
+		if (panel_size.usHeight > TACTICAL_PLACEMENT_PANEL_HEIGHT)
+		{
+			g_map_box_h         = panel_size.usHeight - TACTICAL_PLACEMENT_PANEL_HEIGHT;
+			g_placement_minimap = LoadPlacementMinimap();
+		}
+	}
 	giMercPanelImage     = AddVideoObjectFromFile(INTERFACEDIR "/panels.sti");
 
 	BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/overheaduibuttons.sti", 0, 1);
@@ -710,7 +791,8 @@ static void RenderTacticalPlacementGUI()
 	// If the display is dirty render the entire panel.
 	if (gfTacticalPlacementGUIDirty)
 	{
-		BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY());
+		if (gfPlacementFullView) DrawPlacementPanel(buf);
+		else BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY());
 		InvalidateRegion(STD_SCREEN_X + 0, STD_SCREEN_Y + 0, STD_SCREEN_X + 320, STD_SCREEN_Y + 480);
 		gfTacticalPlacementGUIDirty = FALSE;
 		MarkButtonsDirty();
@@ -992,6 +1074,11 @@ static void KillTacticalPlacementGUI(void)
 	gfKillTacticalGUI = FALSE;
 	//Delete video objects
 	DeleteVideoObject(giOverheadPanelImage);
+	if (g_placement_minimap)
+	{
+		DeleteVideoObject(g_placement_minimap);
+		g_placement_minimap = 0;
+	}
 	DeleteVideoObject(giMercPanelImage);
 	//Delete buttons
 	for (INT32 i = 0; i < NUM_TP_BUTTONS; ++i)
