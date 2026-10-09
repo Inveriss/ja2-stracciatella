@@ -1833,6 +1833,58 @@ static void HighLightSleepLine(void)
 }
 
 
+// the name and location columns glow on the line under the mouse only
+static INT32 giNameHighLine = -1;
+static INT32 giLocHighLine  = -1;
+
+
+static BOOLEAN IsCharacterNameHighLighted(INT16 const sCharNumber)
+{
+	return sCharNumber == giNameHighLine && gCharactersList[sCharNumber].merc != NULL;
+}
+
+
+static BOOLEAN IsCharacterLocHighLighted(INT16 const sCharNumber)
+{
+	return sCharNumber == giLocHighLine && gCharactersList[sCharNumber].merc != NULL;
+}
+
+
+static void HighLightNameLine(void)
+{
+	static HighLightState state = { STARTING_COLOR_NUM, false, MAX_CHARACTER_COUNT + 1 };
+	HighLightSelection(state, giNameHighLine, NAME_X, NAME_WIDTH, IsCharacterNameHighLighted);
+}
+
+
+static void HighLightLocLine(void)
+{
+	static HighLightState state = { STARTING_COLOR_NUM, false, MAX_CHARACTER_COUNT + 1 };
+	HighLightSelection(state, giLocHighLine, LOC_X, LOC_WIDTH, IsCharacterLocHighLighted);
+}
+
+
+// restores the column's background after its glow has ceased
+static void RestoreBackgroundForInfoGlowColumn(INT32 const line, INT32& old_line, UINT16 const x, UINT16 const w)
+{
+	if (fDisableDueToBattleRoster) return;
+	if (old_line == line) return;
+
+	RestoreExternBackgroundRect(x, Y_START - 1, w, (INT16)TEAM_LIST_ROWS_HEIGHT);
+	fTeamPanelDirty = TRUE;
+	old_line = line;
+}
+
+
+static void RestoreBackgroundForNameAndLocGlowRegionList(void)
+{
+	static INT32 iOldNameLine = -1;
+	static INT32 iOldLocLine  = -1;
+	RestoreBackgroundForInfoGlowColumn(giNameHighLine, iOldNameLine, NAME_X, NAME_WIDTH);
+	RestoreBackgroundForInfoGlowColumn(giLocHighLine,  iOldLocLine,  LOC_X,  LOC_WIDTH);
+}
+
+
 static void AddCharacter(SOLDIERTYPE* const s)
 {
 	Assert(s != NULL);
@@ -5016,6 +5068,7 @@ static void TeamListDestinationRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 i
 static void TeamListInfoRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListInfoRegionBtnCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListInfoRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
+static void TeamListLocationRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListSleepRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListSleepRegionBtnCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListSleepRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
@@ -5042,8 +5095,8 @@ static void CreateMouseRegionsForTeamList(void)
 		MakeRegion(&r.name,        i, NAME_X,           y, w,                    TeamListInfoRegionMvtCallBack,        MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary, TeamListWheelCallback),        pMapScreenMouseRegionHelpText[0]); // name region
 		MakeRegion(&r.assignment,  i, ASSIGN_X,         y, ASSIGN_WIDTH,         TeamListAssignmentRegionMvtCallBack,  MouseCallbackPrimarySecondary(TeamListAssignmentRegionBtnCallBackPrimary, TeamListAssignmentRegionBtnCallBackSecondary, TeamListWheelCallback),  pMapScreenMouseRegionHelpText[1]); // assignment region
 		MakeRegion(&r.sleep,       i, SLEEP_X,          y, SLEEP_WIDTH,          TeamListSleepRegionMvtCallBack,       MouseCallbackPrimarySecondary(TeamListSleepRegionBtnCallBackPrimary, TeamListSleepRegionBtnCallBackSecondary, TeamListWheelCallback),       pMapScreenMouseRegionHelpText[5]); // sleep region
-		// same function as name regions, so uses the same callbacks
-		MakeRegion(&r.location,    i, LOC_X,            y, LOC_WIDTH,            TeamListInfoRegionMvtCallBack,        MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary, TeamListWheelCallback),        pMapScreenMouseRegionHelpText[0]); // location region
+		// same function as name regions, so uses the same click callbacks
+		MakeRegion(&r.location,    i, LOC_X,            y, LOC_WIDTH,            TeamListLocationRegionMvtCallBack,       MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary, TeamListWheelCallback),        pMapScreenMouseRegionHelpText[0]); // location region
 		MakeRegion(&r.destination, i, DEST_ETA_X,       y, DEST_ETA_WIDTH,       TeamListDestinationRegionMvtCallBack, MouseCallbackPrimarySecondary(TeamListDestinationRegionBtnCallBackPrimary, TeamListDestinationRegionBtnCallBackSecondary, TeamListWheelCallback), pMapScreenMouseRegionHelpText[2]); // destination region
 		MakeRegion(&r.contract,    i, TIME_REMAINING_X, y, TIME_REMAINING_WIDTH, TeamListContractRegionMvtCallBack,    MouseCallbackPrimarySecondary(TeamListContractRegionBtnCallBackPrimary, TeamListContractRegionBtnCallBackSecondary, TeamListWheelCallback),    pMapScreenMouseRegionHelpText[3]); // contract region
 	}
@@ -5176,26 +5229,42 @@ static void TeamListInfoRegionBtnCallBackSecondary(MOUSE_REGION* pRegion, UINT32
 }
 
 
-static void TeamListInfoRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+// name and location columns: highlight the line, glow the column's box
+static void TeamListInfoRegionMvt(MOUSE_REGION* const pRegion, UINT32 const iReason, INT32& column_line)
 {
-	INT32 iValue = 0;
-
-
 	if( fLockOutMapScreenInterface || gfPreBattleInterfaceActive )
 	{
 		return;
 	}
 
-	iValue = MSYS_GetRegionUserData( pRegion, 0 );
+	INT32 const iValue = MSYS_GetRegionUserData( pRegion, 0 );
 
 	if (iReason & MSYS_CALLBACK_REASON_MOVE)
 	{
-		giHighLine = (gCharactersList[iValue].merc != NULL ? iValue : -1);
+		giHighLine  = (gCharactersList[iValue].merc != NULL ? iValue : -1);
+		column_line = giHighLine;
 	}
 	else if( iReason & MSYS_CALLBACK_REASON_LOST_MOUSE )
 	{
-		giHighLine = -1;
+		giHighLine  = -1;
+		column_line = -1;
 	}
+	else if (iReason & MSYS_CALLBACK_REASON_GAIN_MOUSE)
+	{
+		if (gCharactersList[iValue].merc != NULL) PlayGlowRegionSound();
+	}
+}
+
+
+static void TeamListInfoRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	TeamListInfoRegionMvt(pRegion, iReason, giNameHighLine);
+}
+
+
+static void TeamListLocationRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	TeamListInfoRegionMvt(pRegion, iReason, giLocHighLine);
 }
 
 
@@ -5713,10 +5782,13 @@ static void HandleHighLightingOfLinesInTeamPanel(void)
 	RestoreBackgroundForDestinationGlowRegionList( );
 	RestoreBackgroundForContractGlowRegionList( );
 	RestoreBackgroundForSleepGlowRegionList( );
+	RestoreBackgroundForNameAndLocGlowRegionList();
 
 	HighLightAssignLine();
 	HighLightDestLine();
 	HighLightSleepLine();
+	HighLightNameLine();
+	HighLightLocLine();
 
 	// contracts?
 	if( giContractHighLine != -1 )
@@ -6269,6 +6341,8 @@ static void SetTeamListScroll(INT32 people, INT32 vehicles)
 	giDestHighLine     = -1;
 	giContractHighLine = -1;
 	giSleepHighLine    = -1;
+	giNameHighLine     = -1;
+	giLocHighLine      = -1;
 
 	fTeamPanelDirty          = TRUE;
 	fCharacterInfoPanelDirty = TRUE;
@@ -6885,7 +6959,8 @@ static void HandleChangeOfHighLightedLine(void)
 			giSleepHighLine = -1;
 			giAssignHighLine = -1;
 			giContractHighLine = -1;
-			giSleepHighLine = -1;
+			giNameHighLine = -1;
+			giLocHighLine = -1;
 
 			// don't do during plotting, allowing selected character to remain highlighted and their destination column to glow!
 			if (bSelectedDestChar == -1 && !fPlotForHelicopter)
