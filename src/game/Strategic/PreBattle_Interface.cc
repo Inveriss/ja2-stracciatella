@@ -100,9 +100,10 @@ enum //GraphicIDs for the panel
 bool gfDisplayPotentialRetreatPaths = false;
 
 // The panel's layout (panel coordinates): the original 261x359 one and the
-// 392x539 prebattlepanel.png (the original x1.5: no uninvolved list, the
-// participants' table down to the bottom, 98x45 buttons), chosen by the
-// panel graphic's width when the interface comes up.
+// big prebattlepanel.png (the original x1.5 in its left 392 px: no
+// uninvolved list, the participants' table down to the bottom, 98x45
+// buttons), chosen by the panel graphic's width when the interface comes up.
+// The big graphic's size is taken from the file (392x539, 604x647).
 struct PBLayout
 {
 	INT16 w, h;                   // the panel
@@ -136,14 +137,39 @@ static PBLayout const g_pb_layout_big =
 	97, 105, 25, 13,
 	{ 81, 208, 336 }, 57,
 	{ 86, 214, 344 }, { 40, 39, 37 }, 47, 29,
-	{ 40, 147, 253 }, 81, 98, 45, 8, 11, 82,
-	169, 525, 15,
+	{ 40, 147, 253 }, 81, 98, 45, 8, 9, 82,
+	169, 525, 17,
 	{ 25, 110, 193, 287, 329 }, { 77, 77, 86, 34, 34 },
 	false
 };
 
+static PBLayout        g_pb_layout_big_file; // g_pb_layout_big at the graphic's size
 static PBLayout const* g_pb = &g_pb_layout_small;
-static bool PBBig() { return g_pb == &g_pb_layout_big; }
+static bool PBBig() { return g_pb != &g_pb_layout_small; }
+
+// The participants' rows shown and the first one of them (the big panel's
+// list scrolls by the mouse wheel when there are more).
+static INT32        giPBFirstRow = 0;
+static MOUSE_REGION gPBListRegion;
+static bool         gfPBListRegion = false;
+
+static INT32 PBVisibleRows()
+{
+	return (g_pb->rows_bottom - g_pb->rows_top) / g_pb->row_h;
+}
+
+static INT32 PBMaxFirstRow(); // guiNumInvolved, below
+
+static void PBListWheelCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	INT32 row = giPBFirstRow;
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   --row;
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ++row;
+	row = std::clamp<INT32>(row, 0, PBMaxFirstRow());
+	if (row == giPBFirstRow) return;
+	giPBFirstRow        = row;
+	gfRenderPBInterface = TRUE;
+}
 
 GROUP *gpBattleGroup = NULL;
 
@@ -161,6 +187,11 @@ static BOOLEAN gfBlinkHeader;
 
 static UINT32 guiNumInvolved;
 static UINT32 guiNumUninvolved;
+
+static INT32 PBMaxFirstRow()
+{
+	return std::max<INT32>(0, (INT32)guiNumInvolved - PBVisibleRows());
+}
 
 //SAVE START
 
@@ -333,8 +364,20 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 	// canvas bottom so clicks can't leak through the gap below the old boundary.
 	// Create the panel; its size picks the layout
 	uiInterfaceImages = AddVideoObjectFromFile(MLG_PREBATTLEPANEL);
-	g_pb = uiInterfaceImages->SubregionProperties(MAINPANEL).usWidth >= g_pb_layout_big.w ?
-		&g_pb_layout_big : &g_pb_layout_small;
+	{
+		ETRLEObject const& panel = uiInterfaceImages->SubregionProperties(MAINPANEL);
+		g_pb = &g_pb_layout_small;
+		if (panel.usWidth >= g_pb_layout_big.w)
+		{
+			g_pb_layout_big_file   = g_pb_layout_big;
+			g_pb_layout_big_file.w = panel.usWidth;
+			g_pb_layout_big_file.h = panel.usHeight;
+			// the taller graphic's table ends 10 px above its bottom (y 637 of 647)
+			if (panel.usHeight > g_pb_layout_big.h) g_pb_layout_big_file.rows_bottom = panel.usHeight - 10;
+			g_pb = &g_pb_layout_big_file;
+		}
+	}
+	giPBFirstRow = 0;
 
 	MSYS_DefineRegion(&PBInterfaceBlanket, MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, MAP_SCREEN_X + g_pb->w, MAP_SCREEN_BOTTOM, MSYS_PRIORITY_HIGHEST - 5, 0, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 
@@ -345,6 +388,16 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 	MakeButton(0, gpStrategicString[STR_PB_AUTORESOLVE_BTN],  AutoResolveBattleCallback);
 	MakeButton(1, gpStrategicString[STR_PB_GOTOSECTOR_BTN],   GoToSectorCallback);
 	MakeButton(2, gpStrategicString[STR_PB_RETREATMERCS_BTN], RetreatMercsCallback);
+
+	// big panel: the mouse wheel over the participants' table scrolls it
+	gfPBListRegion = PBBig();
+	if (gfPBListRegion)
+	{
+		MSYS_DefineRegion(&gPBListRegion,
+			MAP_SCREEN_X + g_pb->col_x[0] - 8, MAP_SCREEN_Y + g_pb->rows_top,
+			MAP_SCREEN_X + g_pb->col_x[4] + g_pb->col_w[4] + 8, MAP_SCREEN_Y + g_pb->rows_bottom,
+			MSYS_PRIORITY_HIGHEST - 4, 0, MSYS_NO_CALLBACK, PBListWheelCallback);
+	}
 
 	gfPBButtonsHidden = TRUE;
 
@@ -693,6 +746,11 @@ void KillPreBattleInterface()
 
 	fDisableMapInterfaceDueToBattle = FALSE;
 	MSYS_RemoveRegion( &PBInterfaceBlanket );
+	if (gfPBListRegion)
+	{
+		MSYS_RemoveRegion(&gPBListRegion);
+		gfPBListRegion = false;
+	}
 
 	//The panel
 	DeleteVideoObject(uiInterfaceImages);
@@ -948,14 +1006,19 @@ void RenderPreBattleInterface()
 		// |  NAME  | ASSIGN |  COND  |   HP   |   BP   |
 		{ // big panel: the text middled in its 15 px row
 			INT32 y = L.rows_top + 1 + (PBBig() ? (L.row_h - GetFontHeight(StrategicGeneralFont())) / 2 : 0);
+			// big panel: PBVisibleRows() rows from giPBFirstRow (mouse wheel)
+			INT32 const first = PBBig() ? std::min(giPBFirstRow, PBMaxFirstRow()) : 0;
+			INT32 row   = 0;
+			INT32 shown = 0;
 			CFOR_EACH_IN_TEAM(i, OUR_TEAM)
 			{
 				SOLDIERTYPE const& s = *i;
 				if (s.bLife == 0)                       continue;
 				if (s.uiStatusFlags & SOLDIER_VEHICLE)  continue;
 				if (!PlayerMercInvolvedInThisCombat(s)) continue;
-				// the big panel's table ends at its bottom
-				if (PBBig() && y + L.row_h > L.rows_bottom) break;
+				if (row++ < first) continue;
+				if (PBBig() && shown == PBVisibleRows()) break;
+				++shown;
 
 				// Name
 				MPrintCentered(L.col_x[0], y, L.col_w[0], s.name);
