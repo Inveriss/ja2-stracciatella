@@ -239,7 +239,8 @@ static void MakeButton(UINT idx, INT16 y, GUI_CALLBACK click, const ST::string& 
 	iTPButtons[idx] = btn;
 	// the 1366x768 panels: FONT_STRATEGIC_GENERAL (StrategicGeneralFont())
 	SGPFont const font = gfPlacementFullView ? StrategicGeneralFont() : BLOCKFONT;
-	btn->SpecifyGeneralTextAttributes(text, font, FONT_BEIGE, 141);
+	UINT8 const colour = gfPlacementFullView ? FONT_WHITE : FONT_BEIGE;
+	btn->SpecifyGeneralTextAttributes(text, font, colour, 141);
 	btn->SetFastHelpText(help);
 	btn->SpecifyHilitedTextColors(FONT_WHITE, FONT_NEARBLACK);
 }
@@ -709,7 +710,9 @@ static void RenderTacticalPlacementGUI()
 			DrawBar(buf, x + 42, y + 29, s.bMorale    * 27 / 100, FROMRGB(  8, 156,   8), FROMRGB(  8, 107,   8)); // Morale bar
 		}
 
-		SetFontAttributes(BLOCKFONT, FONT_BEIGE);
+		// the 1366x768 panels: FONT_STRATEGIC_GENERAL, white
+		if (gfPlacementFullView) SetFontAttributes(StrategicGeneralFont(), FONT_WHITE);
+		else                     SetFontAttributes(BLOCKFONT, FONT_BEIGE);
 		ST::string str = GetSectorIDString(gubPBSector, TRUE);
 		MPrint(PanelX() + 120, PanelY() + 15, ST::format("{} {} -- {}...", gpStrategicString[STR_TP_SECTOR], str, gpStrategicString[STR_TP_CHOOSEENTRYPOSITIONS]));
 
@@ -767,7 +770,7 @@ static void RenderTacticalPlacementGUI()
 		UINT8         const colour =
 			(is_group ? s.ubGroupID == gubSelectedGroupID  : i == gbSelectedMercID)  ? FONT_YELLOW :
 			(is_group ? s.ubGroupID == gubHilightedGroupID : i == gbHilightedMercID) ? FONT_WHITE  :
-			FONT_GRAY3;
+			gfPlacementFullView ? FONT_WHITE : FONT_GRAY3; // the 1366x768 panels: white
 		SGPFont const font = gfPlacementFullView ? StrategicGeneralFont() : BLOCKFONT;
 		SetFontAttributes(font, colour);
 		INT32 const w  = StringPixLength(s.name, font);
