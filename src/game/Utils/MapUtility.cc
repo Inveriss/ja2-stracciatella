@@ -49,8 +49,11 @@
 
 // Third set, for the tactical placement's minimap (1366x768 panels,
 // Data/RadarMaps_Overhead) -- "<mapname>.overhead.sti", made the same way.
-#define RADAR_OVERHEAD_X_SIZE	352
-#define RADAR_OVERHEAD_Y_SIZE	176
+// 640x320 per user request (was 352x176): the overhead map's own size, so
+// every pixel is copied as it is -- no scaling, no averaging (window 0 in
+// the resampling pass below).
+#define RADAR_OVERHEAD_X_SIZE	640
+#define RADAR_OVERHEAD_Y_SIZE	320
 
 // The overhead map's own natural render width -- a fixed, classic-engine
 // constant (see RenderOverheadMap()'s other caller, Overhead_Map.cc's own
@@ -146,7 +149,7 @@ static PromptResult RadarMapSizePrompt()
 	{
 		{ "88x44   <map>.sti   (tactical radar)" },
 		{ "580x290   <map>.big.sti" },
-		{ "352x176   <map>.overhead.sti   (tactical placement)" }
+		{ "640x320   <map>.overhead.sti   (tactical placement)" }
 	};
 
 	INT32 const x      = 60;
@@ -496,7 +499,7 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 	// so they're reused as-is from the first pass above.
 	auto const write_resampled = [&](INT32 const w, INT32 const h, SGPPaletteEntry* const values,
 		SGPVSurface* const surf16, SGPVSurface* const surf8, char const* const extension, INT16 const text_y,
-		INT32 const window) // the averaging window reaches this far from the sample: 2 -> 4x4 px, 1 -> 2x2 px
+		INT32 const window) // the averaging window reaches this far from the sample: 2 -> 4x4 px, 1 -> 2x2 px, 0 -> the pixel itself
 	{
 		float const gdXStepBig = (gMapInformation.ubRestrictedScrollID != 0)
 			? (float)(sRight - sLeft) / (float)w
@@ -527,9 +530,9 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 					UINT32 bAvRBig = 0, bAvGBig = 0, bAvBBig = 0;
 
 					INT32 const iSubX1 = (INT32)dXBig - window;
-					INT32 const iSubX2 = (INT32)dXBig + window;
+					INT32 const iSubX2 = (INT32)dXBig + std::max(window, 1);
 					INT32 const iSubY1 = (INT32)dYBig - window;
-					INT32 const iSubY2 = (INT32)dYBig + window;
+					INT32 const iSubY2 = (INT32)dYBig + std::max(window, 1);
 
 					INT32 iCountBig = 0;
 					UINT32 bRBig = 0, bGBig = 0, bBBig = 0;
@@ -595,7 +598,7 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 	// 580x290 is close to the source's size (a sample every 1.1 px): a 2x2 px
 	// window keeps it sharp, the 4x4 one blurred it.
 	if (g_write_size[SIZE_BIG])      write_resampled(RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, p24BitValuesBig.get(), giMiniMapBig, gi8BitMiniMapBig, "big.sti", 330, 1);
-	if (g_write_size[SIZE_OVERHEAD]) write_resampled(RADAR_OVERHEAD_X_SIZE, RADAR_OVERHEAD_Y_SIZE, p24BitValuesOverhead.get(), giMiniMapOverhead, gi8BitMiniMapOverhead, "overhead.sti", 320, WINDOW_SIZE);
+	if (g_write_size[SIZE_OVERHEAD]) write_resampled(RADAR_OVERHEAD_X_SIZE, RADAR_OVERHEAD_Y_SIZE, p24BitValuesOverhead.get(), giMiniMapOverhead, gi8BitMiniMapOverhead, "overhead.sti", 320, 0);
 
 	SetFontAttributes(TINYFONT1, FONT_MCOLOR_DKGRAY);
 	if (g_write_size[SIZE_SMALL]) MPrint(10, 340, ST::format("Writing radar image {}", zFilename2));

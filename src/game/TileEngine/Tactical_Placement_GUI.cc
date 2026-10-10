@@ -113,13 +113,22 @@ enum PlacementPanelSide { PANEL_BOTTOM, PANEL_TOP, PANEL_WEST, PANEL_EAST };
 static PlacementPanelSide g_placement_panel   = PANEL_BOTTOM;
 static INT16              g_placement_panel_w = 1366;
 // The panel graphics have the minimap's box above the 200 px panel (rows
-// 0..g_map_box_h - 1): 362 px wide, centred, its 354x178 window at (4, 6),
-// the 352x176 minimap (Data/RadarMaps_Overhead) 1 px inside it. 0: no box.
+// 0..g_map_box_h - 1), centred: the minimap (Data/RadarMaps_Overhead, twice
+// as wide as tall) at (5, 7) in it, 1 px inside its window, 8 px of frame
+// below -- a 191 px box holds a 352x176 map, a 335 px one a 640x320 map.
+// 0: no box.
 static INT16              g_map_box_h = 0;
 static SGPVObject*        g_placement_minimap = 0;
-#define FV_MAP_BOX_W  362
 #define FV_MAP_DX       5
 #define FV_MAP_DY       7
+// the minimap's place in the box, by the panel graphic
+static INT32 MinimapPlaceH() { return g_map_box_h - 15; }
+static INT32 MinimapPlaceW() { return MinimapPlaceH() * 2; }
+#define FV_MAP_BOX_W  (MinimapPlaceW() + 10)
+// The minimap graphic's own size: the scale of the view's rectangle and of
+// the clicks. Normally the place's size; a map of another size is cut to it.
+static INT32 g_minimap_w = 352;
+static INT32 g_minimap_h = 176;
 
 // The tactical viewport ends above the game's bottom panel; with the
 // placement panel at the top the world is shown down to the screen's bottom.
@@ -223,8 +232,8 @@ bool TacticalPlacementMouseOverPanel()
 // under the panel.
 static void DrawPlacementMinimapView(SGPVSurface* const buf, INT32 const mx, INT32 const my)
 {
-	INT32 const w = 352;
-	INT32 const h = 176;
+	INT32 const w = g_minimap_w;
+	INT32 const h = g_minimap_h;
 	double const scale_x = double(w) / (gsRightX  - gsLeftX);
 	double const scale_y = double(h) / (gsBottomY - gsTopY);
 
@@ -240,7 +249,7 @@ static void DrawPlacementMinimapView(SGPVSurface* const buf, INT32 const mx, INT
 	}
 
 	SGPVSurface::Lock l(buf);
-	SetClippingRegionAndImageWidth(l.Pitch(), mx, my, w, h);
+	SetClippingRegionAndImageWidth(l.Pitch(), mx, my, std::min(w, MinimapPlaceW()), std::min(h, MinimapPlaceH()));
 	RectangleDraw(TRUE,
 		mx + std::max(0.0, std::round((left - SCROLL_LEFT_PADDING) * scale_x)),
 		my + std::max(0.0, std::round((top  - SCROLL_TOP_PADDING)  * scale_y)),
@@ -257,12 +266,12 @@ static bool         g_placement_minimap_region_made = false;
 
 static void MovePlacementViewFromMinimap(MOUSE_REGION const& r)
 {
-	double const scale_x = 352.0 / (gsRightX  - gsLeftX);
-	double const scale_y = 176.0 / (gsBottomY - gsTopY);
+	double const scale_x = double(g_minimap_w) / (gsRightX  - gsLeftX);
+	double const scale_y = double(g_minimap_h) / (gsBottomY - gsTopY);
 
 	// from the minimap's middle to screen coordinates from the map's middle
-	INT32 x = (INT32)((r.RelativeXPos - 352 / 2) / scale_x);
-	INT32 y = (INT32)((r.RelativeYPos - 176 / 2) / scale_y);
+	INT32 x = (INT32)((r.RelativeXPos - g_minimap_w / 2) / scale_x);
+	INT32 y = (INT32)((r.RelativeYPos - g_minimap_h / 2) / scale_y);
 	// the render centre is the whole viewport's middle, the panel covers a part of it
 	y += g_ui.m_tacticalMapCenterY - (TacticalPlacementViewTop() + TacticalPlacementViewBottom()) / 2;
 
@@ -293,7 +302,7 @@ static void CreatePlacementMinimapRegion()
 	if (!g_placement_minimap || !TacticalPlacementMapBox(box)) return;
 	INT16 const x = box.x + FV_MAP_DX;
 	INT16 const y = box.y + FV_MAP_DY;
-	MSYS_DefineRegion(&g_placement_minimap_region, x, y, x + 352, y + 176, MSYS_PRIORITY_HIGH + 3, 0, PlacementMinimapMoveCallback, PlacementMinimapClickCallback);
+	MSYS_DefineRegion(&g_placement_minimap_region, x, y, x + std::min(g_minimap_w, MinimapPlaceW()), y + std::min(g_minimap_h, MinimapPlaceH()), MSYS_PRIORITY_HIGH + 3, 0, PlacementMinimapMoveCallback, PlacementMinimapClickCallback);
 	g_placement_minimap_region_made = true;
 }
 
@@ -328,13 +337,16 @@ static void DrawPlacementPanel(SGPVSurface* const buf)
 	{
 		INT32 const mx = box.x + FV_MAP_DX;
 		INT32 const my = box.y + FV_MAP_DY;
+		// cut to its place: a map bigger than the panel graphic's box stays inside
+		SGPRect const old = SetClippingRect(SGPRect{ (UINT16)mx, (UINT16)my, (UINT16)(mx + MinimapPlaceW()), (UINT16)(my + MinimapPlaceH()) });
 		BltVideoObject(buf, g_placement_minimap, 0, mx, my);
+		SetClippingRect(old);
 		DrawPlacementMinimapView(buf, mx, my);
 	}
 }
 
 
-// the 352x176 minimap of the sector, none if it is missing
+// the minimap of the sector (352x176, 640x320), none if it is missing
 static SGPVObject* LoadPlacementMinimap()
 {
 	ST::string const name = FileMan::replaceExtension(FileMan::getFileName(GetMapFileName(gWorldSector, TRUE)), "sti");
@@ -619,6 +631,16 @@ void InitTacticalPlacementGUI()
 		{
 			g_map_box_h         = panel_size.usHeight - TACTICAL_PLACEMENT_PANEL_HEIGHT;
 			g_placement_minimap = LoadPlacementMinimap();
+			if (g_placement_minimap)
+			{
+				ETRLEObject const& map = g_placement_minimap->SubregionProperties(0);
+				g_minimap_w = map.usWidth;
+				g_minimap_h = map.usHeight;
+				if (g_minimap_w != MinimapPlaceW() || g_minimap_h != MinimapPlaceH())
+				{
+					SLOGW("The placement minimap is {}x{}, the panel's box holds {}x{}: cut to it", g_minimap_w, g_minimap_h, MinimapPlaceW(), MinimapPlaceH());
+				}
+			}
 		}
 	}
 	giMercPanelImage     = AddVideoObjectFromFile(INTERFACEDIR "/panels.sti");
