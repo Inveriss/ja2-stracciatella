@@ -137,11 +137,18 @@ void WaitForKeyOnLoadScreen()
 	if (g_load_screen_box.w == 0) g_load_screen_box = { (UINT16)STD_SCREEN_X, (UINT16)STD_SCREEN_Y, 640, 480 };
 	INT32 const right  = std::min<INT32>(g_load_screen_box.x + g_load_screen_box.w, SCREEN_WIDTH);
 	INT32 const bottom = std::min<INT32>(g_load_screen_box.y + g_load_screen_box.h, SCREEN_HEIGHT);
-	SetFontDestBuffer(FRAME_BUFFER);
-	SetFontAttributes(font, FONT_WHITE);
-	MPrint(right - 10 - StringPixLength(text, font), bottom - 10 - GetFontHeight(font), text);
-	InvalidateScreen();
-	RefreshScreen();
+	// blinks white / green, as the item's mark on the radar map does, at half its pace (400 ms)
+	bool green = false;
+	auto const print = [&]
+	{
+		SetFontDestBuffer(FRAME_BUFFER);
+		SetFontAttributes(font, green ? FONT_LTGREEN : FONT_WHITE);
+		MPrint(right - 10 - StringPixLength(text, font), bottom - 10 - GetFontHeight(font), text);
+		InvalidateScreen();
+		RefreshScreen();
+	};
+	print();
+	UINT32 blink_time = SDL_GetTicks();
 
 	/* Wait for a key or a mouse button: pressed, then released, so that the
 	 * release does not reach the screen that comes next. Blocked on purpose:
@@ -150,13 +157,14 @@ void WaitForKeyOnLoadScreen()
 	enum { NOTHING, KEY, BUTTON } pressed = NOTHING;
 	for (bool done = false; !done;)
 	{
-		SDL_Event event;
-		if (!SDL_WaitEventTimeout(&event, 50))
-		{ // keeps the window drawn
-			InvalidateScreen();
-			RefreshScreen();
-			continue;
+		if (SDL_GetTicks() - blink_time >= 400)
+		{
+			blink_time = SDL_GetTicks();
+			green      = !green;
+			print();
 		}
+		SDL_Event event;
+		if (!SDL_WaitEventTimeout(&event, 20)) continue;
 		switch (event.type)
 		{
 			case SDL_QUIT: // for the main loop
