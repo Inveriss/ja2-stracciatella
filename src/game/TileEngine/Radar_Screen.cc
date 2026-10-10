@@ -345,6 +345,15 @@ void RenderRadarScreen()
 // those panels' own dirty-flag timing -- see its call site in
 // MapScreen.cc's BlitBackgroundToSaveBuffer(), called right after
 // RenderMapScreenInterfaceBottom() every frame.
+static char const* const g_big_radar_panel_1366 = INTERFACEDIR "/sector_inventory_radarmap_1366x768.png";
+
+bool BigRadarUsesPanel1366()
+{
+	return g_ui.isExtraWideStrategicScreen() &&
+		FirstUsableInterfaceAsset({ g_big_radar_panel_1366, INTERFACEDIR "/SECTOR_INVENTORY_MINIMAP.sti" }) == g_big_radar_panel_1366;
+}
+
+
 BOOLEAN IsBigRadarScreenVisible(void)
 {
 	return
@@ -376,28 +385,33 @@ void RenderBigRadarScreenIfVisible(void)
 	// On the wide strategic screen, SECTOR_INVENTORY_MINIMAP_wide.sti (falls
 	// back to the legacy frame until delivered -- see GetWideStrategicAsset()).
 	static bool frame_is_wide = false;
+	bool const panel_1366 = BigRadarUsesPanel1366();
 	if (!gusBigRadarFrameImage)
 	{
 		char const* const wide_file   = INTERFACEDIR "/SECTOR_INVENTORY_MINIMAP_wide.sti";
-		char const* const frame_file  = GetWideStrategicAsset(wide_file, INTERFACEDIR "/SECTOR_INVENTORY_MINIMAP.sti");
+		char const* const frame_file  = panel_1366 ? g_big_radar_panel_1366 :
+			GetWideStrategicAsset(wide_file, INTERFACEDIR "/SECTOR_INVENTORY_MINIMAP.sti");
 		frame_is_wide         = frame_file == wide_file;
 		gusBigRadarFrameImage = AddVideoObjectFromFile(frame_file);
 	}
 
 	INT16 const shift   = g_ui.isWideStrategicScreen() ? RADAR_WINDOW_BIG_WIDE_SHIFT : 0;
-	INT16 const map_x   = MAP_SCREEN_X + RADAR_WINDOW_BIG_X + shift;
-	INT16 const map_y   = MAP_SCREEN_Y + RADAR_WINDOW_BIG_Y;
-	INT16 const frame_x = MAP_SCREEN_X + RADAR_WINDOW_BIG_FRAME_X + shift - (frame_is_wide ? RADAR_WINDOW_BIG_WIDE_FRAME_EXTRA_LEFT : 0);
-	INT16 const frame_y = MAP_SCREEN_Y + RADAR_WINDOW_BIG_FRAME_Y;
+	ETRLEObject const& frame = gusBigRadarFrameImage->SubregionProperties(0);
+	// The 1366x768 panel: at the screen's left and bottom edges, its window at (11, 17).
+	INT16 const frame_x = panel_1366 ? 0 :
+		MAP_SCREEN_X + RADAR_WINDOW_BIG_FRAME_X + shift - (frame_is_wide ? RADAR_WINDOW_BIG_WIDE_FRAME_EXTRA_LEFT : 0);
+	INT16 const frame_y = panel_1366 ? SCREEN_HEIGHT - frame.usHeight : MAP_SCREEN_Y + RADAR_WINDOW_BIG_FRAME_Y;
+	INT16 const map_x   = panel_1366 ? frame_x + 11 : MAP_SCREEN_X + RADAR_WINDOW_BIG_X + shift;
+	INT16 const map_y   = panel_1366 ? frame_y + 17 : MAP_SCREEN_Y + RADAR_WINDOW_BIG_Y;
 	// The frame graphic starts RADAR_WINDOW_BIG_X/Y - RADAR_WINDOW_BIG_FRAME_X/Y
 	// pixels before the minimap bitmap itself and is always at least as big
 	// as the minimap plus that border on every side, so this rect
 	// (used for both restoring and erasing) covers both -- widened to the
 	// frame graphic's own width if that's bigger (the _wide frame).
-	INT16 const rect_w  = std::max<INT16>(
+	INT16 const rect_w  = panel_1366 ? frame.usWidth : std::max<INT16>(
 		(RADAR_WINDOW_BIG_X - RADAR_WINDOW_BIG_FRAME_X) * 2 + RADAR_WINDOW_BIG_WIDTH,
-		gusBigRadarFrameImage->SubregionProperties(0).usWidth);
-	INT16 const rect_h  = (RADAR_WINDOW_BIG_Y - RADAR_WINDOW_BIG_FRAME_Y) * 2 + RADAR_WINDOW_BIG_HEIGHT;
+		frame.usWidth);
+	INT16 const rect_h  = panel_1366 ? frame.usHeight : (RADAR_WINDOW_BIG_Y - RADAR_WINDOW_BIG_FRAME_Y) * 2 + RADAR_WINDOW_BIG_HEIGHT;
 	restore_rect = { (UINT16)frame_x, (UINT16)frame_y, (UINT16)rect_w, (UINT16)rect_h };
 
 	// First delete what's there (same idiom as RenderRadarScreen() above).

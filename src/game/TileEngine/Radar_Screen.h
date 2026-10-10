@@ -40,8 +40,12 @@ extern BOOLEAN   fRenderRadarScreen;
 // runtime scaling, same convention as RADAR_WINDOW_WIDTH/HEIGHT above.
 // Position/frame per user request -- one shared frame graphic for both
 // screen-height tiers (g_ui.isCompactStrategicScreen()), only Y differs.
-#define RADAR_WINDOW_BIG_WIDTH		238
-#define RADAR_WINDOW_BIG_HEIGHT		119
+// 1366x768 with SECTOR_INVENTORY_RADARMAP_1366x768.png (604x316, its window
+// 580x290 at (11, 17)): that panel at the screen's left and bottom edges and
+// the 580x290 maps (see BigRadarUsesPanel1366()); else the 238x119 ones.
+bool BigRadarUsesPanel1366();
+#define RADAR_WINDOW_BIG_WIDTH		(BigRadarUsesPanel1366() ? 580 : 238)
+#define RADAR_WINDOW_BIG_HEIGHT		(BigRadarUsesPanel1366() ? 290 : 119)
 #define RADAR_WINDOW_BIG_FRAME_X	0
 #define RADAR_WINDOW_BIG_FRAME_Y	(g_ui.isCompactStrategicScreen() ? 573 : 621)
 #define RADAR_WINDOW_BIG_X			12
