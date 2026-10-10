@@ -677,9 +677,7 @@ static void RenderAutoResolve(void);
 
 static void DoTransitionFromPreBattleInterfaceToAutoResolve(void)
 {
-	UINT32 uiStartTime = GetClock();
-	UINT32 uiEndTime = uiStartTime + 1000;
-
+	// The panel is shown at once: no growing from the corner, no sound.
 	PauseTime( FALSE );
 
 	gpAR->fShowInterface = TRUE;
@@ -701,27 +699,6 @@ static void DoTransitionFromPreBattleInterfaceToAutoResolve(void)
 
 	//hide the autoresolve
 	BlitBufferToBuffer(guiEXTRABUFFER, FRAME_BUFFER, x, y, w, h);
-
-	PlayJA2SampleFromFile(SOUNDSDIR "/laptop power up (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
-	while( GetClock() <= uiEndTime )
-	{
-		double fEasingProgress = EaseInCubic(uiStartTime, uiEndTime, GetClock());
-
-		SGPBox const DstRect =
-		{
-			(UINT16)(x * fEasingProgress),
-			(UINT16)(y * fEasingProgress),
-			(UINT16)(std::max(w * fEasingProgress, 1.0)),
-			(UINT16)(std::max(h * fEasingProgress, 1.0))
-		};
-
-		BltStretchVideoSurface(FRAME_BUFFER, guiSAVEBUFFER, &gpAR->rect, &DstRect);
-		InvalidateScreen();
-		RefreshScreen();
-
-		//Restore the previous rect.
-		BlitBufferToBuffer(guiEXTRABUFFER, FRAME_BUFFER, DstRect.x, DstRect.y, DstRect.w, DstRect.h);
-	}
 }
 
 void EnterAutoResolveMode(const SGPSector& ubSector)

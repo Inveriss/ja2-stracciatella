@@ -195,50 +195,10 @@ static UINT32 UndergroundTacticalTraversalTime(INT8 const exit_direction)
 
 void BeginLoadScreen( )
 {
-	UINT32 uiStartTime, uiCurrTime;
-	INT32 iPercentage, iFactor;
-	UINT32 uiTimeRange;
-
 	SetCurrentCursorFromDatabase( VIDEO_NO_CURSOR );
 
-	if( guiCurrentScreen == MAP_SCREEN && !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME) && !AreInMeanwhile() )
-	{
-		SGPBox const DstRect = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
-		uiTimeRange = 2000;
-		iPercentage = 0;
-		uiStartTime = GetClock();
-		BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER, 0, 0, NULL);
-		PlayJA2SampleFromFile(SOUNDSDIR "/final psionic blast 01 (16-44).wav", HIGHVOLUME, 1, MIDDLEPAN);
-		while( iPercentage < 100  )
-		{
-			uiCurrTime = GetClock();
-			iPercentage = (uiCurrTime-uiStartTime) * 100 / uiTimeRange;
-			iPercentage = std::min(iPercentage, 100);
-
-			//Factor the percentage so that it is modified by a gravity falling acceleration effect.
-			iFactor = (iPercentage - 50) * 2;
-			if( iPercentage < 50 )
-				iPercentage = (UINT32)(iPercentage + iPercentage * iFactor * 0.01 + 0.5);
-			else
-				iPercentage = (UINT32)(iPercentage + (100-iPercentage) * iFactor * 0.01 + 0.05);
-
-			if( iPercentage > 50 )
-			{
-				guiSAVEBUFFER->ShadowRectUsingLowPercentTable(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-			}
-
-			SGPBox const SrcRect =
-			{
-				(UINT16) (536 * iPercentage / 100),
-				(UINT16) (367 * iPercentage / 100),
-				(UINT16) (SCREEN_WIDTH  - 541 * iPercentage / 100),
-				(UINT16) (SCREEN_HEIGHT - 406 * iPercentage / 100)
-			};
-			BltStretchVideoSurface(FRAME_BUFFER, guiSAVEBUFFER, &SrcRect, &DstRect);
-			InvalidateScreen();
-			RefreshScreen();
-		}
-	}
+	// The loading screen comes at once: no zooming into the map screen (2 s,
+	// with its sound) before it.
 	FRAME_BUFFER->Fill(Get16BPPColor(FROMRGB(0, 0, 0)));
 	InvalidateScreen( );
 	RefreshScreen();
@@ -1671,7 +1631,7 @@ void AllMercsWalkedToExitGrid()
 		SetGroupSectorValue(gsAdjacentSector, *gpAdjacentGroup);
 
 		gFadeOutDoneCallback = DoneFadeOutExitGridSector;
-		FadeOutGameScreen( );
+		FadeOutGameScreenInstantly();
 	}
 	if (!PlayerMercsInSector(gsAdjacentSector))
 	{
@@ -1825,7 +1785,7 @@ void AllMercsHaveWalkedOffSector( )
 			//to bring up the prebattle interface when we arrive if there are enemies there.  This flag
 			//ignores the initialization of the prebattle interface and clears the flag.
 			gFadeOutDoneCallback = DoneFadeOutAdjacentSector;
-			FadeOutGameScreen( );
+			FadeOutGameScreenInstantly();
 		}
 		else
 		{ //Case 3:  Going directly to mapscreen

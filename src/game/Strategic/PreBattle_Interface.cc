@@ -636,29 +636,10 @@ set_help:
 
 static void DoTransitionFromMapscreenToPreBattleInterface(void)
 {
-	UINT32 uiStartTime, uiCurrTime;
-	INT32 iPercentage, iFactor;
-	UINT32 uiTimeRange;
-	INT16 sStartLeft, sEndLeft, sStartTop, sEndTop;
-	INT32 iLeft, iTop, iWidth, iHeight;
+	// The panel is shown at once: no growing out of the sector, no sound.
 	BOOLEAN fEnterAutoResolveMode = FALSE;
 
 	PauseTime( FALSE );
-
-	iWidth  = g_pb->w;
-	iHeight = g_pb->h;
-
-	uiTimeRange = 1000;
-	iPercentage = 0;
-	uiStartTime = GetClock();
-
-	GetScreenXYFromMapXY(gubPBSector, &sStartLeft, &sStartTop);
-	sStartLeft += MAP_GRID_X / 2;
-	sStartTop += MAP_GRID_Y / 2;
-	// The last frame ends at sEnd - 1 (see iLeft / iTop below): size / 2 + 1
-	// puts it at the panel's corner (130 + 1, 179 + 1 for the 261x359 panel).
-	sEndLeft = MAP_SCREEN_X + iWidth  / 2 + 1;
-	sEndTop  = MAP_SCREEN_Y + iHeight / 2 + 1;
 
 	//save the mapscreen buffer
 	BltVideoSurface(guiEXTRABUFFER, FRAME_BUFFER, 0, 0, NULL);
@@ -691,51 +672,7 @@ static void DoTransitionFromMapscreenToPreBattleInterface(void)
 	}
 	gfRenderPBInterface = TRUE;
 
-	//hide the prebattle interface
-	BlitBufferToBuffer( guiEXTRABUFFER, FRAME_BUFFER, MAP_SCREEN_X, MAP_SCREEN_Y, iWidth, iHeight );
-	PlayJA2SampleFromFile(SOUNDSDIR "/laptop power up (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
 	InvalidateScreen();
-
-	SGPBox const PBIRect = { MAP_SCREEN_X, MAP_SCREEN_Y, (UINT16)iWidth, (UINT16)iHeight };
-	while( iPercentage < 100  )
-	{
-		uiCurrTime = GetClock();
-		iPercentage = (uiCurrTime-uiStartTime) * 100 / uiTimeRange;
-		iPercentage = std::min(iPercentage, 100);
-
-		//Factor the percentage so that it is modified by a gravity falling acceleration effect.
-		iFactor = (iPercentage - 50) * 2;
-		if( iPercentage < 50 )
-			iPercentage = (UINT32)(iPercentage + iPercentage * iFactor * 0.01 + 0.5);
-		else
-			iPercentage = (UINT32)(iPercentage + (100-iPercentage) * iFactor * 0.01 + 0.05);
-
-		//Calculate the center point.
-		iLeft = sStartLeft - (sStartLeft-sEndLeft+1) * iPercentage / 100;
-		if( sStartTop > sEndTop )
-			iTop = sStartTop - (sStartTop-sEndTop+1) * iPercentage / 100;
-		else
-			iTop = sStartTop + (sEndTop-sStartTop+1) * iPercentage / 100;
-
-		// Never left of / above the screen: BltStretchVideoSurface() does not
-		// clip, a negative x wrapped to 65535 drew the panel across the rows
-		// (and the restore below skipped it, leaving a copy behind).
-		SGPBox const DstRect =
-		{
-			(UINT16)(std::max(0, iLeft - iWidth  * iPercentage / 200)),
-			(UINT16)(std::max(0, iTop  - iHeight * iPercentage / 200)),
-			(UINT16)(std::max(1, iWidth  * iPercentage / 100)),
-			(UINT16)(std::max(1, iHeight * iPercentage / 100))
-		};
-
-		BltStretchVideoSurface(FRAME_BUFFER, guiSAVEBUFFER, &PBIRect, &DstRect);
-
-		InvalidateScreen();
-		RefreshScreen();
-
-		//Restore the previous rect.
-		BlitBufferToBuffer(guiEXTRABUFFER, FRAME_BUFFER, DstRect.x, DstRect.y, DstRect.w + 1, DstRect.h + 1);
-	}
 	BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER, 0, 0, NULL);
 }
 

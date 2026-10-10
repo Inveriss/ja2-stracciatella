@@ -1647,7 +1647,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 				gFadeOutDoneCallback = DoneFadeOutActionBasement;
 
-				FadeOutGameScreen( );
+				FadeOutGameScreenInstantly();
 				break;
 			}
 
@@ -1929,7 +1929,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 				gFadeOutDoneCallback = DoneFadeOutActionLeaveBasement;
 
-				FadeOutGameScreen( );
+				FadeOutGameScreenInstantly();
 
 				// turn off engaged in conv stuff
 				gTacticalStatus.uiFlags &= ~ENGAGED_IN_CONV;
