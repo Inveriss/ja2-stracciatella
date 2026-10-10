@@ -3504,11 +3504,13 @@ static void HandleModNone(UINT32 const key)
 
 		case SDLK_PAUSE: HandlePlayerPauseUnPauseOfGame(); break;
 
-		case SDLK_LEFT:  GoToPrevCharacterInList(); break;
-		case SDLK_RIGHT: GoToNextCharacterInList(); break;
+		// up / down: the team list, left / right: the message log (swapped per
+		// user request: the list runs up and down)
+		case SDLK_UP:   GoToPrevCharacterInList(); break;
+		case SDLK_DOWN: GoToNextCharacterInList(); break;
 
-		case SDLK_UP:   MapScreenMsgScrollUp(1);   break;
-		case SDLK_DOWN: MapScreenMsgScrollDown(1); break;
+		case SDLK_LEFT:  MapScreenMsgScrollUp(1);   break;
+		case SDLK_RIGHT: MapScreenMsgScrollDown(1); break;
 
 		case SDLK_PAGEUP:   MapScreenMsgScrollUp(MAX_MESSAGES_ON_MAP_BOTTOM);   break;
 		case SDLK_PAGEDOWN: MapScreenMsgScrollDown(MAX_MESSAGES_ON_MAP_BOTTOM); break;
@@ -3797,11 +3799,11 @@ static void GetMapKeyboardInput()
 		{
 			switch (InputEvent.usParam)
 			{
-				case SDLK_LEFT:  GoToPrevCharacterInList(); break;
-				case SDLK_RIGHT: GoToNextCharacterInList(); break;
+				case SDLK_UP:   GoToPrevCharacterInList(); break;
+				case SDLK_DOWN: GoToNextCharacterInList(); break;
 
-				case SDLK_UP:   MapScreenMsgScrollUp(1);   break;
-				case SDLK_DOWN: MapScreenMsgScrollDown(1); break;
+				case SDLK_LEFT:  MapScreenMsgScrollUp(1);   break;
+				case SDLK_RIGHT: MapScreenMsgScrollDown(1); break;
 
 				case SDLK_PAGEUP:   MapScreenMsgScrollUp(MAX_MESSAGES_ON_MAP_BOTTOM);   break;
 				case SDLK_PAGEDOWN: MapScreenMsgScrollDown(MAX_MESSAGES_ON_MAP_BOTTOM); break;
