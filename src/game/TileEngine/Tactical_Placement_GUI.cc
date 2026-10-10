@@ -112,19 +112,29 @@ static BOOLEAN gfPlacementOldVideoScroll;
 enum PlacementPanelSide { PANEL_BOTTOM, PANEL_TOP, PANEL_WEST, PANEL_EAST };
 static PlacementPanelSide g_placement_panel   = PANEL_BOTTOM;
 static INT16              g_placement_panel_w = 1366;
-// The panel graphics have the minimap's box above the 200 px panel (rows
-// 0..g_map_box_h - 1), centred: the minimap (Data/RadarMaps_Overhead, twice
-// as wide as tall) at (5, 7) in it, 1 px inside its window, 8 px of frame
-// below -- a 191 px box holds a 352x176 map, a 335 px one a 640x320 map.
-// 0: no box.
-static INT16              g_map_box_h = 0;
-static SGPVObject*        g_placement_minimap = 0;
-#define FV_MAP_DX       5
-#define FV_MAP_DY       7
+// How the panel graphic in use is built (image coordinates): the 200 px
+// panel and the box of the minimap (Data/RadarMaps_Overhead).
+//   overheadinterface_north / west / east_1366x768.png (533 px tall): the box
+//     (648x333, its 640x320 window at (4, 6)) above the panel, at the image's
+//     right edge -- the east one's at the left edge;
+//   overheadinterface_south_1366x768.png: the panel at the top, the box below
+//     it at the right edge, its window at (4, 7);
+//   the older north_south / west_east ones (391 px tall): a centred box for a
+//     352x176 minimap above the panel, drawn below it when the panel is at the
+//     top of the screen (two_parts).
+struct PanelGfx
+{
+	INT16 panel_y;                    // the panel's first row
+	INT16 box_x, box_y, box_w, box_h; // the minimap's box; box_h 0: none
+	INT16 map_dx, map_dy;             // the minimap in the box
+	INT16 map_w, map_h;               // and its place's size
+	bool  two_parts;
+};
+static PanelGfx    g_gfx;
+static SGPVObject* g_placement_minimap = 0;
 // the minimap's place in the box, by the panel graphic
-static INT32 MinimapPlaceH() { return g_map_box_h - 15; }
-static INT32 MinimapPlaceW() { return MinimapPlaceH() * 2; }
-#define FV_MAP_BOX_W  (MinimapPlaceW() + 10)
+static INT32 MinimapPlaceH() { return g_gfx.map_h; }
+static INT32 MinimapPlaceW() { return g_gfx.map_w; }
 // The minimap graphic's own size: the scale of the view's rectangle and of
 // the clicks. Normally the place's size; a map of another size is cut to it.
 static INT32 g_minimap_w = 352;
@@ -164,8 +174,26 @@ static void RestoreViewport()
 	SetRenderFlags(RENDER_FLAG_FULL);
 }
 
+// by the entry edge; the older two as fallbacks
+static char const* const g_panel_north = INTERFACEDIR "/overheadinterface_north_1366x768.png";
+static char const* const g_panel_south = INTERFACEDIR "/overheadinterface_south_1366x768.png";
+static char const* const g_panel_west  = INTERFACEDIR "/overheadinterface_west_1366x768.png";
+static char const* const g_panel_east  = INTERFACEDIR "/overheadinterface_east_1366x768.png";
 static char const* const g_full_view_panel      = INTERFACEDIR "/overheadinterface_north_south_1366x768.png";
 static char const* const g_full_view_panel_side = INTERFACEDIR "/overheadinterface_west_east_1366x768.png";
+
+// The first of the two panel graphics that can be used, none: 0.
+static char const* UsablePanel(char const* const first, char const* const second)
+{
+	char const* const original = INTERFACEDIR "/overheadinterface.sti";
+	char const* const file     = FirstUsableInterfaceAsset({ first, second, original });
+	return file == original ? 0 : file;
+}
+
+static bool IsNewPanel(char const* const file)
+{
+	return file == g_panel_north || file == g_panel_south || file == g_panel_west || file == g_panel_east;
+}
 
 bool TacticalPlacementFullView()
 {
@@ -206,10 +234,12 @@ bool TacticalPlacementPanelBox(SGPBox& box)
 // of the screen.
 bool TacticalPlacementMapBox(SGPBox& box)
 {
-	if (!gfPlacementFullView || g_map_box_h == 0) return false;
-	INT32 const x = PanelX() + (g_placement_panel_w - FV_MAP_BOX_W) / 2;
-	INT32 const y = g_placement_panel == PANEL_TOP ? TACTICAL_PLACEMENT_PANEL_HEIGHT : PanelY() - g_map_box_h;
-	box = { (UINT16)x, (UINT16)y, (UINT16)FV_MAP_BOX_W, (UINT16)g_map_box_h };
+	if (!gfPlacementFullView || g_gfx.box_h == 0) return false;
+	INT32 const x = PanelX() + g_gfx.box_x;
+	INT32 const y = g_gfx.two_parts && g_placement_panel == PANEL_TOP ?
+		TACTICAL_PLACEMENT_PANEL_HEIGHT :
+		PanelY() - g_gfx.panel_y + g_gfx.box_y;
+	box = { (UINT16)x, (UINT16)y, (UINT16)g_gfx.box_w, (UINT16)g_gfx.box_h };
 	return true;
 }
 
@@ -300,8 +330,8 @@ static void CreatePlacementMinimapRegion()
 {
 	SGPBox box;
 	if (!g_placement_minimap || !TacticalPlacementMapBox(box)) return;
-	INT16 const x = box.x + FV_MAP_DX;
-	INT16 const y = box.y + FV_MAP_DY;
+	INT16 const x = box.x + g_gfx.map_dx;
+	INT16 const y = box.y + g_gfx.map_dy;
 	MSYS_DefineRegion(&g_placement_minimap_region, x, y, x + std::min(g_minimap_w, MinimapPlaceW()), y + std::min(g_minimap_h, MinimapPlaceH()), MSYS_PRIORITY_HIGH + 3, 0, PlacementMinimapMoveCallback, PlacementMinimapClickCallback);
 	g_placement_minimap_region_made = true;
 }
@@ -314,20 +344,21 @@ static void RemovePlacementMinimapRegion()
 }
 
 
-// The panel graphic: the panel at PanelY(), the minimap's box above it, or
-// below it when the panel is at the top (drawn in two parts, clipped).
+// The panel graphic: its panel at PanelY(), the minimap's box where the
+// graphic has it. An older graphic (the box above the panel) with the panel
+// at the top of the screen: in two parts, clipped, the box below the panel.
 static void DrawPlacementPanel(SGPVSurface* const buf)
 {
-	if (g_map_box_h == 0 || g_placement_panel != PANEL_TOP)
+	if (!g_gfx.two_parts || g_placement_panel != PANEL_TOP)
 	{
-		BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY() - g_map_box_h);
+		BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY() - g_gfx.panel_y);
 	}
 	else
 	{
 		INT32 const h = TACTICAL_PLACEMENT_PANEL_HEIGHT;
 		SGPRect const old = SetClippingRect(SGPRect{ 0, 0, (UINT16)SCREEN_WIDTH, (UINT16)h });
-		BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY() - g_map_box_h);
-		SetClippingRect(SGPRect{ 0, (UINT16)h, (UINT16)SCREEN_WIDTH, (UINT16)(h + g_map_box_h) });
+		BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY() - g_gfx.panel_y);
+		SetClippingRect(SGPRect{ 0, (UINT16)h, (UINT16)SCREEN_WIDTH, (UINT16)(h + g_gfx.box_h) });
 		BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), h);
 		SetClippingRect(old);
 	}
@@ -335,8 +366,8 @@ static void DrawPlacementPanel(SGPVSurface* const buf)
 	SGPBox box;
 	if (g_placement_minimap && TacticalPlacementMapBox(box))
 	{
-		INT32 const mx = box.x + FV_MAP_DX;
-		INT32 const my = box.y + FV_MAP_DY;
+		INT32 const mx = box.x + g_gfx.map_dx;
+		INT32 const my = box.y + g_gfx.map_dy;
 		// cut to its place: a map bigger than the panel graphic's box stays inside
 		SGPRect const old = SetClippingRect(SGPRect{ (UINT16)mx, (UINT16)my, (UINT16)(mx + MinimapPlaceW()), (UINT16)(my + MinimapPlaceH()) });
 		BltVideoObject(buf, g_placement_minimap, 0, mx, my);
@@ -552,10 +583,9 @@ void InitTacticalPlacementGUI()
 	gfValidLocationsChanged      = TRUE;
 	gfTacticalPlacementFirstTime = TRUE;
 
-	char const* panel = g_ui.isExtraWideStrategicScreen() ?
-		FirstUsableInterfaceAsset({ g_full_view_panel, INTERFACEDIR "/overheadinterface.sti" }) :
-		INTERFACEDIR "/overheadinterface.sti";
-	gfPlacementFullView = panel == g_full_view_panel;
+	char const* panel = g_ui.isExtraWideStrategicScreen() ? UsablePanel(g_panel_north, g_full_view_panel) : 0;
+	gfPlacementFullView = panel != 0;
+	if (!panel) panel = INTERFACEDIR "/overheadinterface.sti";
 	if (gfPlacementFullView)
 	{
 		// scrolling renders the whole world again (shading drawn over it)
@@ -598,14 +628,16 @@ void InitTacticalPlacementGUI()
 			}
 		}
 
+		char const* const side_panel = west != east ? UsablePanel(west ? g_panel_west : g_panel_east, g_full_view_panel_side) : 0;
 		if (south)
 		{
 			g_placement_panel = PANEL_TOP;
+			if (char const* const top = UsablePanel(g_panel_south, g_full_view_panel)) panel = top;
 		}
-		else if (west != east && FirstUsableInterfaceAsset({ g_full_view_panel_side, g_full_view_panel }) == g_full_view_panel_side)
+		else if (side_panel && side_panel != g_full_view_panel)
 		{
 			g_placement_panel = west ? PANEL_WEST : PANEL_EAST;
-			panel             = g_full_view_panel_side;
+			panel             = side_panel;
 		}
 	}
 	if (g_placement_panel != PANEL_BOTTOM) ExtendViewportToScreenBottom();
@@ -620,16 +652,41 @@ void InitTacticalPlacementGUI()
 	GoIntoOverheadMap();
 
 	giOverheadPanelImage = AddVideoObjectFromFile(panel);
-	// 1366, the west / east one 1207; taller with the minimap's box above
-	g_map_box_h         = 0;
+	// 1366, the west / east ones 1207; taller with the minimap's box
+	g_gfx               = PanelGfx{};
 	g_placement_minimap = 0;
 	if (gfPlacementFullView)
 	{
 		ETRLEObject const& panel_size = giOverheadPanelImage->SubregionProperties(0);
+		INT16 const box_rows = panel_size.usHeight - TACTICAL_PLACEMENT_PANEL_HEIGHT;
 		g_placement_panel_w = panel_size.usWidth;
-		if (panel_size.usHeight > TACTICAL_PLACEMENT_PANEL_HEIGHT)
+		if (IsNewPanel(panel))
+		{ // see PanelGfx
+			bool const top = panel == g_panel_south;
+			g_gfx.panel_y = top ? 0 : box_rows;
+			g_gfx.box_w   = 648;
+			g_gfx.box_h   = box_rows;
+			g_gfx.box_x   = panel == g_panel_east ? 0 : panel_size.usWidth - g_gfx.box_w;
+			g_gfx.box_y   = top ? TACTICAL_PLACEMENT_PANEL_HEIGHT : 0;
+			g_gfx.map_dx  = 4;
+			g_gfx.map_dy  = top ? 7 : 6;
+			g_gfx.map_w   = 640;
+			g_gfx.map_h   = 320;
+		}
+		else if (box_rows > 15)
+		{ // an older one: the map 1 px inside its window at (4, 6), 8 px of frame below
+			g_gfx.two_parts = true;
+			g_gfx.panel_y   = box_rows;
+			g_gfx.box_h     = box_rows;
+			g_gfx.map_h     = box_rows - 15;
+			g_gfx.map_w     = g_gfx.map_h * 2;
+			g_gfx.box_w     = g_gfx.map_w + 10;
+			g_gfx.box_x     = (panel_size.usWidth - g_gfx.box_w) / 2;
+			g_gfx.map_dx    = 5;
+			g_gfx.map_dy    = 7;
+		}
+		if (g_gfx.box_h != 0)
 		{
-			g_map_box_h         = panel_size.usHeight - TACTICAL_PLACEMENT_PANEL_HEIGHT;
 			g_placement_minimap = LoadPlacementMinimap();
 			if (g_placement_minimap)
 			{
