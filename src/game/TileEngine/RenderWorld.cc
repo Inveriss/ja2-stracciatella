@@ -4399,6 +4399,14 @@ static BOOLEAN IsTileRedundant(UINT16* pZBuffer, UINT16 usZValue, HVOBJECT hSrcV
 }
 
 
+void RenderWorldForSnapshot(INT16 const sCellX, INT16 const sCellY)
+{
+	ApplyScrolling(sCellX, sCellY, TRUE, FALSE);
+	std::fill_n(gpZBuffer, gsVIEWPORT_END_Y * SCREEN_WIDTH, LAND_Z_LEVEL);
+	RenderStaticWorldRect(gsVIEWPORT_START_X, gsVIEWPORT_START_Y, gsVIEWPORT_END_X, gsVIEWPORT_END_Y, TRUE);
+}
+
+
 void SetRenderCenter(INT16 sNewX, INT16 sNewY)
 {
 	if (gfIgnoreScrolling) return;

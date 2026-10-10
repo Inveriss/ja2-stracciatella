@@ -147,6 +147,12 @@ void InvalidateWorldRedundency(void);
 
 void SetRenderCenter(INT16 sNewX, INT16 sNewY);
 
+// The whole viewport drawn into the frame buffer around this cell -- as near
+// to it as the renderer centres (gsRenderCenterX/Y tell where) and the scroll
+// limits allow --, nothing but the world: no interface, no dirty rectangles.
+// For the map utility's 1:1 pictures of a sector.
+void RenderWorldForSnapshot(INT16 sCellX, INT16 sCellY);
+
 #if defined _DEBUG
 void RenderFOVDebug(void);
 void RenderCoverDebug(void);
