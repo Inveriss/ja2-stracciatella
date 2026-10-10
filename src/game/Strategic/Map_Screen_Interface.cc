@@ -69,7 +69,10 @@
 // number of LINKED LISTS for sets of leave items (each slot holds an unlimited # of items)
 #define NUM_LEAVE_LIST_SLOTS 20
 
-#define SELECTED_CHAR_ARROW_X (MAP_SCREEN_X + 8)
+// 1366x768 (the 14x24 selectedchararrow.sti): 6 px further right and 3 px
+// higher, per user request.
+#define SELECTED_CHAR_ARROW_X  (MAP_SCREEN_X + 8 + (g_ui.isExtraWideStrategicScreen() ? 6 : 0))
+#define SELECTED_CHAR_ARROW_DY (g_ui.isExtraWideStrategicScreen() ? -3 : 0)
 
 #define SIZE_OF_UPDATE_BOX PLAYER_TEAM_SIZE
 
@@ -996,7 +999,7 @@ void HandleDisplayOfSelectedMercArrows()
 
 	if (TeamListRowOfEntry(bSelectedInfoChar) != -1)
 	{ // Blit one by the selected merc
-		INT16 const y = TeamListEntryY(bSelectedInfoChar) - 1;
+		INT16 const y = TeamListEntryY(bSelectedInfoChar) - 1 + SELECTED_CHAR_ARROW_DY;
 		BltVideoObject(guiSAVEBUFFER, guiSelectedCharArrow, 0,SELECTED_CHAR_ARROW_X, y);
 	}
 
@@ -1011,7 +1014,7 @@ void HandleDisplayOfSelectedMercArrows()
 		if (!IsEntryInSelectedListSet(i) && (s->ubGroupID == 0 || s->ubGroupID != dest_group)) continue;
 		if (TeamListRowOfEntry(i) == -1) continue;
 
-		INT16 const y = TeamListEntryY(i) - 1;
+		INT16 const y = TeamListEntryY(i) - 1 + SELECTED_CHAR_ARROW_DY;
 		BltVideoObject(guiSAVEBUFFER, guiSelectedCharArrow, 0, SELECTED_CHAR_ARROW_X, y);
 	}
 }
