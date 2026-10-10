@@ -2,6 +2,7 @@
 
 #include "Campaign_Types.h"
 #include "ContentManager.h"
+#include "CrashHandler.h"
 #include "Debug.h"
 #include "Directories.h"
 #include "Font.h"
@@ -16,10 +17,15 @@
 #include "Video.h"
 #include "UILayout.h"
 
+#include <SDL.h>
 #include <string_theory/format>
+#include <memory>
 
 
 UINT8 gubLastLoadingScreenID = LOADINGSCREEN_NOTHING;
+
+// the load screen picture on the screen, for the "press any key" line
+static SGPBox g_load_screen_box;
 
 
 UINT8 GetLoadScreenID(const SGPSector& sector)
@@ -102,9 +108,13 @@ void DisplayLoadScreenWithID(UINT8 const id)
 	const LoadingScreen* screen = GCM->getLoadingScreen(id);
 	ST::string filename = LOADSCREENSDIR + screen->filename;
 
+	g_load_screen_box = { (UINT16)STD_SCREEN_X, (UINT16)STD_SCREEN_Y, 640, 480 };
 	try
 	{ // Blit the background image.
-		BltVideoSurfaceOnce(FRAME_BUFFER, filename.c_str(), STD_SCREEN_X, STD_SCREEN_Y);
+		std::unique_ptr<SGPVSurface> src(AddVideoSurfaceFromFile(filename.c_str()));
+		BltVideoSurface(FRAME_BUFFER, src.get(), STD_SCREEN_X, STD_SCREEN_Y, NULL);
+		g_load_screen_box.w = src->Width();
+		g_load_screen_box.h = src->Height();
 	}
 	catch (...)
 	{ // Failed to load the file, so use a black screen and print out message.
@@ -116,4 +126,49 @@ void DisplayLoadScreenWithID(UINT8 const id)
 	gubLastLoadingScreenID = id;
 	InvalidateScreen();
 	RefreshScreen();
+}
+
+
+void WaitForKeyOnLoadScreen()
+{
+	// the line in the picture's bottom right corner
+	ST::string const text = "Press Any Key to Continue";
+	SGPFont const font = FONT14ARIAL;
+	if (g_load_screen_box.w == 0) g_load_screen_box = { (UINT16)STD_SCREEN_X, (UINT16)STD_SCREEN_Y, 640, 480 };
+	INT32 const right  = std::min<INT32>(g_load_screen_box.x + g_load_screen_box.w, SCREEN_WIDTH);
+	INT32 const bottom = std::min<INT32>(g_load_screen_box.y + g_load_screen_box.h, SCREEN_HEIGHT);
+	SetFontDestBuffer(FRAME_BUFFER);
+	SetFontAttributes(font, FONT_WHITE);
+	MPrint(right - 10 - StringPixLength(text, font), bottom - 10 - GetFontHeight(font), text);
+	InvalidateScreen();
+	RefreshScreen();
+
+	/* Wait for a key or a mouse button: pressed, then released, so that the
+	 * release does not reach the screen that comes next. Blocked on purpose:
+	 * not a hang. */
+	CrashHandlerPauseWatchdog(true);
+	enum { NOTHING, KEY, BUTTON } pressed = NOTHING;
+	for (bool done = false; !done;)
+	{
+		SDL_Event event;
+		if (!SDL_WaitEventTimeout(&event, 50))
+		{ // keeps the window drawn
+			InvalidateScreen();
+			RefreshScreen();
+			continue;
+		}
+		switch (event.type)
+		{
+			case SDL_QUIT: // for the main loop
+				SDL_PushEvent(&event);
+				done = true;
+				break;
+
+			case SDL_KEYDOWN:         if (pressed == NOTHING) pressed = KEY;    break;
+			case SDL_MOUSEBUTTONDOWN: if (pressed == NOTHING) pressed = BUTTON; break;
+			case SDL_KEYUP:           done = pressed == KEY;    break;
+			case SDL_MOUSEBUTTONUP:   done = pressed == BUTTON; break;
+		}
+	}
+	CrashHandlerPauseWatchdog(false);
 }

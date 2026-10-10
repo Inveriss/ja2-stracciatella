@@ -47,4 +47,8 @@ UINT8 GetLoadScreenID(const SGPSector& sector);
  * refresh the screen with it. */
 void DisplayLoadScreenWithID(UINT8);
 
+/* The loading is done: prints "Press Any Key to Continue" in the bottom right
+ * corner of the load screen and waits for a key or a mouse button. */
+void WaitForKeyOnLoadScreen();
+
 #endif

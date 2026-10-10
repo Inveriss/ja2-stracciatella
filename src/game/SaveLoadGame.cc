@@ -1218,6 +1218,8 @@ void LoadSavedGame(const ST::string &saveName)
 
 	RemoveLoadingScreenProgressBar();
 
+	WaitForKeyOnLoadScreen();
+
 	SetMusicMode(gMusicModeToPlay);
 
 	// reset once-per-convo records for everyone in the loaded sector

@@ -844,6 +844,13 @@ static void EnterSector(const SGPSector& sector)
 
 	RemoveLoadingScreenProgressBar();
 
+	// a saved game being loaded waits once, at its end; the meanwhile scenes
+	// run by themselves
+	if (!(gTacticalStatus.uiFlags & LOADING_SAVED_GAME) && !AreInMeanwhile())
+	{
+		WaitForKeyOnLoadScreen();
+	}
+
 	if (gfEnterTacticalPlacementGUI)
 	{
 		SetPendingNewScreen(GAME_SCREEN);
