@@ -21,6 +21,9 @@
 #include "Video.h"
 #include "Quantize.h"
 #include "UILayout.h"
+#include "Cursors.h"
+#include "EditorDefines.h"
+#include "Cursor_Control.h"
 
 #include <memory>
 #include <string_theory/format>
@@ -39,8 +42,10 @@
 // "<mapname>.big.sti" next to each map's own "<mapname>.sti", same
 // directory, same per-map loop, sampled from the same already-rendered
 // overhead-map framebuffer content (see the second pass below).
-#define RADAR_BIG_X_SIZE	238
-#define RADAR_BIG_Y_SIZE	119
+// 580x290 per user request (was 238x119, the size the game's big minimap --
+// RADAR_WINDOW_BIG_WIDTH/HEIGHT -- still shows).
+#define RADAR_BIG_X_SIZE	580
+#define RADAR_BIG_Y_SIZE	290
 
 // Third set, for the tactical placement's minimap (1366x768 panels,
 // Data/RadarMaps_Overhead) -- "<mapname>.overhead.sti", made the same way.
@@ -122,8 +127,111 @@ static float     gdYStep;
 // quantizes it into an 8-bit image ans writes it to an sti file in radarmaps.
 
 
+// The sizes to write, chosen in a prompt before the first map: any of them,
+// at least one.
+enum { SIZE_SMALL, SIZE_BIG, SIZE_OVERHEAD, NUM_RADAR_SIZES };
+static bool g_write_size[NUM_RADAR_SIZES] = { true, true, true };
+static bool g_sizes_chosen = false;
+
+enum PromptResult { PROMPT_OPEN, PROMPT_START, PROMPT_CANCEL };
+
+// Draws the prompt and handles its input: the keys 1-3 or a click on a line
+// toggle a size, A takes all, Enter or a click on Start begins, Esc or a click
+// on Cancel goes back to the editor.
+static PromptResult RadarMapSizePrompt()
+{
+	static bool button_was_down = true; // the click that started the utility is not one of ours
+
+	struct { char const* text; } const sizes[NUM_RADAR_SIZES] =
+	{
+		{ "88x44   <map>.sti   (tactical radar)" },
+		{ "580x290   <map>.big.sti" },
+		{ "352x176   <map>.overhead.sti   (tactical placement)" }
+	};
+
+	INT32 const x      = 60;
+	INT32 const y      = 80;
+	INT32 const line_h = 26;
+	INT32 const w      = 520;
+	auto const line_y  = [&](INT32 const i) { return y + 50 + i * line_h; };
+	INT32 const start_y  = line_y(NUM_RADAR_SIZES) + 20;
+	INT32 const cancel_y = start_y + line_h;
+
+	bool any = false;
+	for (bool const b : g_write_size) any |= b;
+
+	PromptResult result = PROMPT_OPEN;
+
+	InputAtom e;
+	while (DequeueEvent(&e))
+	{
+		if (e.usEvent != KEY_DOWN) continue;
+		switch (e.usParam)
+		{
+			case '1': g_write_size[SIZE_SMALL]    = !g_write_size[SIZE_SMALL];    break;
+			case '2': g_write_size[SIZE_BIG]      = !g_write_size[SIZE_BIG];      break;
+			case '3': g_write_size[SIZE_OVERHEAD] = !g_write_size[SIZE_OVERHEAD]; break;
+			case 'a': for (bool& b : g_write_size) b = true;                      break;
+			case SDLK_RETURN: if (any) result = PROMPT_START;                     break;
+			case SDLK_ESCAPE: result = PROMPT_CANCEL;                             break;
+		}
+	}
+
+	// a click: the button going down over a line
+	bool const down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+	if (down && !button_was_down && x <= gusMouseXPos && gusMouseXPos < x + w)
+	{
+		for (INT32 i = 0; i != NUM_RADAR_SIZES; ++i)
+		{
+			if (line_y(i) <= gusMouseYPos && gusMouseYPos < line_y(i) + line_h) g_write_size[i] = !g_write_size[i];
+		}
+		if (start_y  <= gusMouseYPos && gusMouseYPos < start_y  + line_h && any) result = PROMPT_START;
+		if (cancel_y <= gusMouseYPos && gusMouseYPos < cancel_y + line_h)        result = PROMPT_CANCEL;
+	}
+	button_was_down = down;
+
+	FRAME_BUFFER->Fill(Get16BPPColor(FROMRGB(0, 0, 0)));
+	SetFontDestBuffer(FRAME_BUFFER);
+	SetFontAttributes(FONT14ARIAL, FONT_WHITE);
+	MPrint(x, y,      "Radar maps: which sizes to create for every map?");
+	MPrint(x, y + 20, "Click a line or press its key; A = all.");
+	for (INT32 i = 0; i != NUM_RADAR_SIZES; ++i)
+	{
+		SetFontForeground(g_write_size[i] ? FONT_YELLOW : FONT_GRAY2);
+		MPrint(x, line_y(i), ST::format("{}   [{}]   {}", i + 1, g_write_size[i] ? "X" : "  ", sizes[i].text));
+	}
+	any = false;
+	for (bool const b : g_write_size) any |= b;
+	SetFontForeground(any ? FONT_LTGREEN : FONT_GRAY2);
+	MPrint(x, start_y,  "Enter   Start");
+	SetFontForeground(FONT_WHITE);
+	MPrint(x, cancel_y, "Esc   Cancel (back to the editor)");
+
+	SetCurrentCursorFromDatabase(CURSOR_NORMAL);
+	InvalidateScreen();
+	RefreshScreen();
+
+	if (result != PROMPT_OPEN) button_was_down = true; // for the next time
+	return result;
+}
+
+
 template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 {
+	if (!g_sizes_chosen)
+	{
+		switch (RadarMapSizePrompt())
+		{
+			case PROMPT_OPEN:   return MAPUTILITY_SCREEN;
+			case PROMPT_CANCEL:
+				// the prompt painted over the editor: everything again
+				gfRenderWorld   = TRUE;
+				gfRenderTaskbar = TRUE;
+				return EDIT_SCREEN;
+			case PROMPT_START:  g_sizes_chosen = true; break;
+		}
+	}
+
 	static auto p24BitValues{ std::make_unique<SGPPaletteEntry[]>(MINIMAP_X_SIZE * MINIMAP_Y_SIZE) };
 
 	static SGPVSurface* giMiniMap{ AddVideoSurface(MINIMAP_X_SIZE, MINIMAP_Y_SIZE, PIXEL_DEPTH) };
@@ -369,8 +477,11 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 			}
 		}
 
-		zFilename2 = FileMan::replaceExtension(*currentFile, "sti");
-		WriteSTIFile(pDataPtr, pPalette, MINIMAP_X_SIZE, MINIMAP_Y_SIZE, zFilename2, CONVERT_ETRLE_COMPRESS, 0);
+		if (g_write_size[SIZE_SMALL])
+		{
+			zFilename2 = FileMan::replaceExtension(*currentFile, "sti");
+			WriteSTIFile(pDataPtr, pPalette, MINIMAP_X_SIZE, MINIMAP_Y_SIZE, zFilename2, CONVERT_ETRLE_COMPRESS, 0);
+		}
 	}
 
 	// Second and third passes: same already-rendered overhead-map framebuffer content
@@ -384,7 +495,8 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 	// sRight/sTop/sBottom are resolution-independent source-space bounds,
 	// so they're reused as-is from the first pass above.
 	auto const write_resampled = [&](INT32 const w, INT32 const h, SGPPaletteEntry* const values,
-		SGPVSurface* const surf16, SGPVSurface* const surf8, char const* const extension, INT16 const text_y)
+		SGPVSurface* const surf16, SGPVSurface* const surf8, char const* const extension, INT16 const text_y,
+		INT32 const window) // the averaging window reaches this far from the sample: 2 -> 4x4 px, 1 -> 2x2 px
 	{
 		float const gdXStepBig = (gMapInformation.ubRestrictedScrollID != 0)
 			? (float)(sRight - sLeft) / (float)w
@@ -414,10 +526,10 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 					INT16 sDestBig = Get16BPPColor(FROMRGB(0, 0, 0));
 					UINT32 bAvRBig = 0, bAvGBig = 0, bAvBBig = 0;
 
-					INT32 const iSubX1 = (INT32)dXBig - WINDOW_SIZE;
-					INT32 const iSubX2 = (INT32)dXBig + WINDOW_SIZE;
-					INT32 const iSubY1 = (INT32)dYBig - WINDOW_SIZE;
-					INT32 const iSubY2 = (INT32)dYBig + WINDOW_SIZE;
+					INT32 const iSubX1 = (INT32)dXBig - window;
+					INT32 const iSubX2 = (INT32)dXBig + window;
+					INT32 const iSubY1 = (INT32)dYBig - window;
+					INT32 const iSubY2 = (INT32)dYBig + window;
 
 					INT32 iCountBig = 0;
 					UINT32 bRBig = 0, bGBig = 0, bBBig = 0;
@@ -480,11 +592,13 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 		SetFontAttributes(TINYFONT1, FONT_MCOLOR_DKGRAY);
 		MPrint(10, text_y, ST::format("Writing {}x{} radar image {}", w, h, zFilenameBig));
 	};
-	write_resampled(RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, p24BitValuesBig.get(), giMiniMapBig, gi8BitMiniMapBig, "big.sti", 330);
-	write_resampled(RADAR_OVERHEAD_X_SIZE, RADAR_OVERHEAD_Y_SIZE, p24BitValuesOverhead.get(), giMiniMapOverhead, gi8BitMiniMapOverhead, "overhead.sti", 320);
+	// 580x290 is close to the source's size (a sample every 1.1 px): a 2x2 px
+	// window keeps it sharp, the 4x4 one blurred it.
+	if (g_write_size[SIZE_BIG])      write_resampled(RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, p24BitValuesBig.get(), giMiniMapBig, gi8BitMiniMapBig, "big.sti", 330, 1);
+	if (g_write_size[SIZE_OVERHEAD]) write_resampled(RADAR_OVERHEAD_X_SIZE, RADAR_OVERHEAD_Y_SIZE, p24BitValuesOverhead.get(), giMiniMapOverhead, gi8BitMiniMapOverhead, "overhead.sti", 320, WINDOW_SIZE);
 
 	SetFontAttributes(TINYFONT1, FONT_MCOLOR_DKGRAY);
-	MPrint(10, 340, ST::format("Writing radar image {}", zFilename2));
+	if (g_write_size[SIZE_SMALL]) MPrint(10, 340, ST::format("Writing radar image {}", zFilename2));
 	MPrint(10, 350, ST::format("Using tileset {}", gTilesets[giCurrentTilesetID].zName));
 
 	InvalidateScreen();
