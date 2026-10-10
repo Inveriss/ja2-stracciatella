@@ -60,7 +60,9 @@
 // (entries 0 to FIRST_VEHICLE - 1 of gCharactersList), then
 // TEAM_LIST_VEHICLE_ROWS for the vehicles (from FIRST_VEHICLE) -- see
 // TeamListRowOfEntry() for which entry shows in which row.
-#define TEAM_LIST_PEOPLE_ROWS   18
+// 20 people on the 1366x768 interface (newgoldpiece3_1366x768.png has room
+// for them above its vehicle rows), 18 on the original graphics.
+#define TEAM_LIST_PEOPLE_ROWS   (g_ui.isExtraWideStrategicScreen() ? 20 : 18)
 #define TEAM_LIST_VEHICLE_ROWS  2
 #define TEAM_LIST_ROWS          (TEAM_LIST_PEOPLE_ROWS + TEAM_LIST_VEHICLE_ROWS)
 // Extra y of row `r` (a vehicle row, r >= TEAM_LIST_PEOPLE_ROWS) on top of
@@ -76,9 +78,9 @@
 	: (TEAM_LIST_ROWS + 1) * (Y_SIZE + 2) + 1)
 #define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107 + MAP_INV_SHIFT_Y)
 #define Y_SIZE                GetFontHeight(MAP_SCREEN_FONT)
-// Distance between two team list rows: the font's height plus 2 px -- 4 px
+// Distance between two team list rows: the font's height plus 2 px -- 3 px
 // on the 1366x768 interface.
-#define TEAM_LIST_ROW_PITCH   (Y_SIZE + (g_ui.isExtraWideStrategicScreen() ? 4 : 2))
+#define TEAM_LIST_ROW_PITCH   (Y_SIZE + (g_ui.isExtraWideStrategicScreen() ? 3 : 2))
 
 
 // attribute menu defines (must match NUM_TRAINABLE_STATS defines, and pAttributeMenuStrings )
