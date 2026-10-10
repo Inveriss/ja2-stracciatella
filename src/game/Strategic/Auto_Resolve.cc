@@ -23,6 +23,8 @@
 #include "MapScreen.h"
 #include "Meanwhile.h"
 #include "MercPortrait.h"
+#include "HImage.h"
+#include "Object_Cache.h"
 #include "Morale.h"
 #include "Music_Control.h"
 #include "Overhead.h"
@@ -54,9 +56,11 @@
 #include "WeaponModels.h"
 #include "Weapons.h"
 #include "WordWrap.h"
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 #include <string_theory/format>
 #include <string_theory/string>
 
@@ -189,6 +193,8 @@ struct AUTORESOLVE_STRUCT
 #define CELL_ASSIGNED		0x00080000
 #define CELL_EPC		0x00100000
 #define CELL_ROBOT		0x00200000
+//1366x768 (big cells): scrolled out of the rows shown
+#define CELL_HIDDEN		0x00400000
 
 //Combined flags
 #define CELL_PLAYER		( CELL_MERC | CELL_MILITIA )
@@ -278,6 +284,277 @@ static SOLDIERCELL*        gpEnemies;
 
 #define FOR_EACH_AR_ENEMY(iter) \
 	for (SOLDIERCELL* iter = gpEnemies, *const iter##__end = &gpEnemies[gpAR->ubEnemies]; iter != iter##__end; ++iter)
+
+
+/* 1366x768 and up: big cells. The mercs' big portraits (faces/bigfaces,
+ * 106x122) in a 2 px black frame with their bars under it, the others' small
+ * faces middled in the same frame; up to 5 columns and 5 rows a side, 10 px
+ * apart, the centre strip as before. Each side is sorted (the mercs, then the
+ * militia in their own block below; the enemies): the militia and the enemies
+ * by rank, the ranks kept together, and everybody by the state of health --
+ * the best first; the retreated and the dead go below all. More rows scroll
+ * by the mouse wheel and the arrows in the centre strip. */
+static bool ARBig()
+{
+	return SCREEN_WIDTH >= 1366 && SCREEN_HEIGHT >= 768;
+}
+
+enum
+{
+	AR_BIG_PORTRAIT_W = 106,
+	AR_BIG_PORTRAIT_H = 122,
+	AR_BIG_CELL_W     = AR_BIG_PORTRAIT_W + 4, // the frame
+	AR_BIG_FRAME_H    = AR_BIG_PORTRAIT_H + 4,
+	AR_BIG_BARS_H     = 9,                     // life, breath, morale: 2 px each
+	AR_BIG_CELL_H     = AR_BIG_FRAME_H + AR_BIG_BARS_H,
+	AR_BIG_GAP        = 10,
+	AR_BIG_PITCH_X    = AR_BIG_CELL_W + AR_BIG_GAP,
+	AR_BIG_PITCH_Y    = AR_BIG_CELL_H + AR_BIG_GAP,
+	AR_BIG_COLS       = 5,
+	AR_BIG_ROWS       = 5
+};
+
+enum { AR_LEFT, AR_RIGHT, AR_SIDES };
+enum { AR_ORDER_MERCS, AR_ORDER_CIVS, AR_ORDER_ENEMIES, AR_ORDERS };
+
+static INT32                     g_ar_visible_rows = 1;
+static INT32                     g_ar_first_row[AR_SIDES];
+static bool                      g_ar_relayout = false;  // scrolled: place the cells again
+static std::vector<SOLDIERCELL*> g_ar_order[AR_ORDERS];  // the cells as shown
+static MOUSE_REGION              g_ar_wheel_region[AR_SIDES];
+static bool                      g_ar_wheel_regions = false;
+static GUIButtonRef              g_ar_scroll_button[AR_SIDES][2]; // up, down
+static char const* const         g_ar_scroll_gfx = INTERFACEDIR "/mapinv_done_buttons.sti"; // 8/9 up, 10/11 down
+
+static INT32 ARSideRows(INT32 const side)
+{
+	return side == AR_LEFT ? gpAR->ubMercRows + gpAR->ubCivRows : gpAR->ubEnemyRows;
+}
+
+static INT32 ARMaxFirstRow(INT32 const side)
+{
+	return std::max(0, ARSideRows(side) - g_ar_visible_rows);
+}
+
+static void ARScroll(INT32 const side, INT32 const rows)
+{
+	INT32 const row = std::clamp(g_ar_first_row[side] + rows, 0, ARMaxFirstRow(side));
+	if (row == g_ar_first_row[side]) return;
+	g_ar_first_row[side] = row;
+	g_ar_relayout        = true; // not here: this may be a callback of a region that moves
+}
+
+static void ARWheel(INT32 const side, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   ARScroll(side, -1);
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ARScroll(side, +1);
+}
+
+// The state of health as RenderSoldierCellHealth() names it, the better the
+// higher (0 dying ... 6 excellent); the retreated and the dead below all.
+static INT32 ARHealthCategory(SOLDIERCELL const& c)
+{
+	SOLDIERTYPE const& s = *c.pSoldier;
+	if (s.bLife == 0)               return -2;
+	if (c.uiFlags & CELL_RETREATED) return -1;
+	UINT8 cnt = s.bLife == s.bLifeMax ? 4 : 0;
+	for (; cnt < 6; ++cnt)
+	{
+		if (s.bLife < bHealthStrRanges[cnt]) break;
+	}
+	return cnt;
+}
+
+// Veterans first: elite, regular, green militia / elite, troop, administrator;
+// the adult creatures before the young ones. The mercs keep their order.
+static INT32 ARRank(SOLDIERCELL const& c)
+{
+	if (c.uiFlags & CELL_MERC) return 0;
+	switch (c.pSoldier->ubSoldierClass)
+	{
+		case SOLDIER_CLASS_ELITE:
+		case SOLDIER_CLASS_ELITE_MILITIA: return 0;
+		case SOLDIER_CLASS_ARMY:
+		case SOLDIER_CLASS_REG_MILITIA:   return 1;
+		case SOLDIER_CLASS_ADMINISTRATOR:
+		case SOLDIER_CLASS_GREEN_MILITIA: return 2;
+	}
+	if (c.uiFlags & CELL_AF_CREATURE) return 0;
+	if (c.uiFlags & CELL_AM_CREATURE) return 1;
+	if (c.uiFlags & CELL_YF_CREATURE) return 2;
+	return 3;
+}
+
+// Sorts one list of cells; true if their order changed. Not while one of
+// them shows a hit (the portraits would jump under the flash).
+static bool ARSort(std::vector<SOLDIERCELL*>& order, SOLDIERCELL* const cells, size_t const n)
+{
+	bool changed = false;
+	if (order.size() != n)
+	{
+		order.clear();
+		for (size_t i = 0; i != n; ++i) order.push_back(&cells[i]);
+		changed = true;
+	}
+	else
+	{
+		for (SOLDIERCELL const* const c : order)
+		{
+			if (c->uiFlags & (CELL_HITBYATTACKER | CELL_HITLASTFRAME)) return false;
+		}
+	}
+
+	std::vector<SOLDIERCELL*> sorted = order;
+	std::stable_sort(sorted.begin(), sorted.end(), [](SOLDIERCELL const* const a, SOLDIERCELL const* const b)
+	{
+		// The retreated and the dead below everybody; the militia and the
+		// enemies stay together by rank (the mercs have one), each rank by
+		// the state of health.
+		INT32 const health_a = ARHealthCategory(*a);
+		INT32 const health_b = ARHealthCategory(*b);
+		INT32 const out_a    = std::min(health_a, 0); // -2 dead, -1 retreated, 0 fighting
+		INT32 const out_b    = std::min(health_b, 0);
+		if (out_a != out_b) return out_a > out_b;
+		INT32 const rank_a = ARRank(*a);
+		INT32 const rank_b = ARRank(*b);
+		if (rank_a != rank_b) return rank_a < rank_b;
+		return health_a > health_b;
+	});
+	if (sorted != order)
+	{
+		order   = sorted;
+		changed = true;
+	}
+	return changed;
+}
+
+static void ARPlaceCell(SOLDIERCELL& c, INT32 const side, INT32 const row, INT32 const col)
+{
+	AUTORESOLVE_STRUCT const& ar = *gpAR;
+	INT32 const first     = g_ar_first_row[side];
+	bool  const shown     = first <= row && row < first + g_ar_visible_rows;
+	INT32 const content_h = g_ar_visible_rows * AR_BIG_CELL_H + (g_ar_visible_rows - 1) * AR_BIG_GAP;
+	INT32 const top       = ar.rect.y + (ar.rect.h - content_h) / 2;
+
+	// the left side ends 2 px before the centre strip, the right one starts 1 px after it
+	c.xp = side == AR_LEFT ?
+		ar.sCenterStartX + 8 - AR_BIG_PITCH_X * (ar.ubMercCols - col) :
+		ar.sCenterStartX + 141 + AR_BIG_PITCH_X * col;
+	c.yp = top + (row - first) * AR_BIG_PITCH_Y;
+	if (shown) c.uiFlags &= ~CELL_HIDDEN; else c.uiFlags |= CELL_HIDDEN;
+	c.uiFlags |= CELL_DIRTY;
+
+	if (c.pRegion)
+	{ // the merc's region (retreat) goes with his cell
+		c.pRegion->RegionTopLeftX     = c.xp;
+		c.pRegion->RegionTopLeftY     = c.yp;
+		c.pRegion->RegionBottomRightX = c.xp + AR_BIG_CELL_W;
+		c.pRegion->RegionBottomRightY = c.yp + AR_BIG_CELL_H;
+		if (shown && ar.ubBattleStatus == BATTLE_IN_PROGRESS) c.pRegion->Enable(); else c.pRegion->Disable();
+	}
+}
+
+// Places the cells in their sorted order, the rows scrolled.
+static void ARLayout()
+{
+	AUTORESOLVE_STRUCT& ar = *gpAR;
+	for (INT32 side = 0; side != AR_SIDES; ++side)
+	{
+		g_ar_first_row[side] = std::clamp(g_ar_first_row[side], 0, ARMaxFirstRow(side));
+		if (!g_ar_scroll_button[side][0]) continue;
+		EnableButton(g_ar_scroll_button[side][0], g_ar_first_row[side] > 0);
+		EnableButton(g_ar_scroll_button[side][1], g_ar_first_row[side] < ARMaxFirstRow(side));
+	}
+
+	INT32 const lc = ar.ubMercCols;
+	INT32 const rc = ar.ubEnemyCols;
+	INT32 k = 0;
+	for (SOLDIERCELL* const c : g_ar_order[AR_ORDER_MERCS])   { ARPlaceCell(*c, AR_LEFT, k / lc, k % lc); ++k; }
+	k = 0;
+	for (SOLDIERCELL* const c : g_ar_order[AR_ORDER_CIVS])    { ARPlaceCell(*c, AR_LEFT, ar.ubMercRows + k / lc, k % lc); ++k; }
+	k = 0;
+	for (SOLDIERCELL* const c : g_ar_order[AR_ORDER_ENEMIES]) { ARPlaceCell(*c, AR_RIGHT, k / rc, k % rc); ++k; }
+
+	ar.fRenderAutoResolve = TRUE;
+}
+
+// Every frame: the sides sorted again, the cells placed when something changed.
+static void ARUpdate()
+{
+	bool changed = g_ar_relayout;
+	changed |= ARSort(g_ar_order[AR_ORDER_MERCS],   gpMercs,   gpAR->ubMercs);
+	changed |= ARSort(g_ar_order[AR_ORDER_CIVS],    gpCivs,    gpAR->ubCivs);
+	changed |= ARSort(g_ar_order[AR_ORDER_ENEMIES], gpEnemies, gpAR->ubEnemies);
+	if (!changed) return;
+	g_ar_relayout = false;
+	ARLayout();
+}
+
+static void ARWheelRegionCallback(MOUSE_REGION* const r, UINT32 const reason)
+{
+	ARWheel(r == &g_ar_wheel_region[AR_LEFT] ? AR_LEFT : AR_RIGHT, reason);
+}
+
+static void ARScrollButtonCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	for (INT32 side = 0; side != AR_SIDES; ++side)
+	{
+		if (btn == g_ar_scroll_button[side][0]) ARScroll(side, -1);
+		if (btn == g_ar_scroll_button[side][1]) ARScroll(side, +1);
+	}
+}
+
+// The wheel regions over the two sides and, for a side with more rows than
+// shown, its arrows at the bottom of the centre strip.
+static void ARCreateScrolling()
+{
+	AUTORESOLVE_STRUCT const& ar = *gpAR;
+	INT16 const top    = ar.rect.y;
+	INT16 const bottom = ar.rect.y + ar.rect.h;
+	MSYS_DefineRegion(&g_ar_wheel_region[AR_LEFT],  ar.rect.x, top, ar.sCenterStartX, bottom, MSYS_PRIORITY_HIGH, 0, MSYS_NO_CALLBACK, ARWheelRegionCallback);
+	MSYS_DefineRegion(&g_ar_wheel_region[AR_RIGHT], ar.sCenterStartX + 140, top, ar.rect.x + ar.rect.w, bottom, MSYS_PRIORITY_HIGH, 0, MSYS_NO_CALLBACK, ARWheelRegionCallback);
+	g_ar_wheel_regions = true;
+
+	bool arrows = false;
+	try
+	{
+		arrows = GetVObject(g_ar_scroll_gfx)->SubregionCount() >= 12;
+	}
+	catch (std::exception const& e)
+	{
+		SLOGW("No auto resolve scroll arrows: {}", e.what());
+	}
+	for (INT32 side = 0; side != AR_SIDES; ++side)
+	{
+		g_ar_scroll_button[side][0] = GUIButtonRef();
+		g_ar_scroll_button[side][1] = GUIButtonRef();
+		if (!arrows || ARMaxFirstRow(side) == 0) continue;
+		INT16 const x = ar.sCenterStartX + (side == AR_LEFT ? 6 : 140 - 27 - 6);
+		INT16 const y = bottom - 12 - 2 * 27 - 2;
+		g_ar_scroll_button[side][0] = QuickCreateButtonImg(g_ar_scroll_gfx,  8,  9, x, y,      MSYS_PRIORITY_HIGH, ARScrollButtonCallback);
+		g_ar_scroll_button[side][1] = QuickCreateButtonImg(g_ar_scroll_gfx, 10, 11, x, y + 29, MSYS_PRIORITY_HIGH, ARScrollButtonCallback);
+	}
+}
+
+static void ARRemoveScrolling()
+{
+	if (g_ar_wheel_regions)
+	{
+		MSYS_RemoveRegion(&g_ar_wheel_region[AR_LEFT]);
+		MSYS_RemoveRegion(&g_ar_wheel_region[AR_RIGHT]);
+		g_ar_wheel_regions = false;
+	}
+	for (auto& side : g_ar_scroll_button)
+	{
+		for (GUIButtonRef& b : side)
+		{
+			if (b) RemoveButton(b);
+			b = GUIButtonRef();
+		}
+	}
+	for (auto& order : g_ar_order) order.clear();
+}
 
 
 //Simple wrappers for autoresolve sounds that are played.
@@ -517,6 +794,7 @@ ScreenID AutoResolveScreenHandle()
 		ProcessBattleFrame();
 	}
 	HandleAutoResolveInput();
+	if (ARBig()) ARUpdate();
 	RenderAutoResolve();
 
 
@@ -643,6 +921,53 @@ static void CalculateSoldierCells()
 	}
 	gpAR->uiTimeSlice = gpAR->uiTimeSlice * gpAR->ubTimeModifierPercentage / 100;
 
+	if (ARBig())
+	{ // The big cells are placed by ARLayout(), once the soldiers are there.
+		for (index = 0; index != gpAR->ubMercs; ++index)
+		{
+			SOLDIERCELL& c = gpMercs[index];
+			c.xp      = 0;
+			c.yp      = 0;
+			c.uiFlags = CELL_MERC | CELL_HIDDEN;
+			if (AM_AN_EPC(c.pSoldier))
+			{ // treat robot as a merc for the purpose of combat.
+				c.uiFlags |= AM_A_ROBOT(c.pSoldier) ? CELL_ROBOT : CELL_EPC;
+			}
+			// above the sides' wheel regions
+			c.pRegion = std::make_unique<MouseRegion>(0, 0, AR_BIG_CELL_W, AR_BIG_CELL_H,
+				MSYS_PRIORITY_HIGH + 1, CURSOR_NORMAL,
+				MercCellMouseMoveCallback, MercCellMouseClickCallback);
+			c.pRegion->SetUserPtr(&c);
+			c.pRegion->Disable();
+			if (!c.pSoldier->bLife) gpAR->ubAliveMercs--;
+		}
+		for (index = 0; index != gpAR->ubCivs; ++index)
+		{
+			gpCivs[index].uiFlags |= CELL_MILITIA | CELL_HIDDEN;
+		}
+		for (index = 0; index != gpAR->ubEnemies; ++index)
+		{
+			UINT32 flags;
+			if (gubEnemyEncounterCode != CREATURE_ATTACK_CODE)
+			{
+				flags =
+					index < gpAR->ubElites                  ? CELL_ELITE :
+					index < gpAR->ubElites + gpAR->ubTroops ? CELL_TROOP :
+					CELL_ADMIN;
+			}
+			else
+			{
+				flags =
+					index < gpAR->ubAFCreatures                                             ? CELL_AF_CREATURE :
+					index < gpAR->ubAMCreatures + gpAR->ubAFCreatures                       ? CELL_AM_CREATURE :
+					index < gpAR->ubYFCreatures + gpAR->ubAMCreatures + gpAR->ubAFCreatures ? CELL_YF_CREATURE :
+					CELL_YM_CREATURE;
+			}
+			gpEnemies[index].uiFlags = flags | CELL_HIDDEN;
+		}
+		return;
+	}
+
 	iTop = (SCREEN_HEIGHT - gpAR->rect.h) / 2;
 	if( iTop > 120 )
 		iTop -= 40;
@@ -746,8 +1071,118 @@ static void RenderSoldierCellBars(SOLDIERCELL* pCell);
 static void RenderSoldierCellHealth(SOLDIERCELL* pCell);
 
 
+// The hit flash's steps, after a cell was drawn (or not: hidden).
+static void AdjustCellFlagsAfterRender(SOLDIERCELL* const c)
+{
+	if (c->uiFlags & CELL_HITBYATTACKER)
+	{
+		c->uiFlashTime  = GetJA2Clock() + 150;
+		c->uiFlags     &= ~CELL_HITBYATTACKER;
+		c->uiFlags     |= CELL_HITLASTFRAME | CELL_DIRTY;
+	}
+	else if (c->uiFlags & CELL_HITLASTFRAME)
+	{
+		if (c->uiFlashTime < GetJA2Clock()) c->uiFlags &= ~CELL_HITLASTFRAME;
+		c->uiFlags |= CELL_DIRTY;
+	}
+	else if (!(c->uiFlags & CELL_RETREATING))
+	{
+		c->uiFlags &= ~CELL_DIRTY;
+	}
+}
+
+
+// 1366x768: life (bandaged and bleeding under it), breath and morale as 2 px
+// lines under the portrait.
+static void RenderBigCellBars(SOLDIERCELL const* const c)
+{
+	SGPVSurface* const buf = FRAME_BUFFER;
+	INT32 const x = c->xp + 2;
+	INT32 const y = c->yp + AR_BIG_FRAME_H;
+	ColorFillVideoSurfaceArea(buf, c->xp, y, c->xp + AR_BIG_CELL_W, y + AR_BIG_BARS_H, 0);
+
+	SOLDIERTYPE const& s = *c->pSoldier;
+	if (s.bLife == 0) return;
+
+	auto const bar = [&](INT32 const row, INT32 const value, UINT32 const colour1, UINT32 const colour2)
+	{
+		INT32 const len = AR_BIG_PORTRAIT_W * std::clamp(value, 0, 100) / 100;
+		if (len == 0) return;
+		INT32 const by = y + 1 + row * 3;
+		ColorFillVideoSurfaceArea(buf, x, by,     x + len, by + 1, Get16BPPColor(colour1));
+		ColorFillVideoSurfaceArea(buf, x, by + 1, x + len, by + 2, Get16BPPColor(colour2));
+	};
+	bar(0, s.bLifeMax,               FROMRGB(107, 107,  57), FROMRGB(222, 181, 115)); // yellow one for bleeding
+	bar(0, s.bLifeMax - s.bBleeding, FROMRGB(156,  57,  57), FROMRGB(222, 132, 132)); // pink one for bandaged
+	bar(0, s.bLife,                  FROMRGB(107,   8,   8), FROMRGB(206,   0,   0)); // red one for actual health
+	bar(1, s.bBreathMax,             FROMRGB(  8,   8, 132), FROMRGB(  8,   8, 107));
+	bar(2, s.bMorale,                FROMRGB(  8, 156,   8), FROMRGB(  8, 107,   8));
+}
+
+
+static void RenderSoldierCellHealth(SOLDIERCELL* pCell);
+static void DrawDebugText(SOLDIERCELL* pCell);
+
+
+// 1366x768: the big cell (see ARBig()).
+static void RenderBigSoldierCell(SOLDIERCELL* const c)
+{
+	SGPVSurface* const buf = FRAME_BUFFER;
+	INT16        const dx  = c->xp;
+	INT16        const dy  = c->yp;
+	INT16        const px  = dx + 2;
+	INT16        const py  = dy + 2;
+
+	// the frame and the portrait's window
+	ColorFillVideoSurfaceArea(buf, dx, dy, dx + AR_BIG_CELL_W, dy + AR_BIG_FRAME_H, 0);
+	if (c->uiFlags & CELL_MERC) RenderBigCellBars(c);
+
+	// a smaller picture (the generic faces, the skulls) in the window's middle
+	auto const middled = [&](SGPVObject* const vo, UINT16 const idx)
+	{
+		ETRLEObject const& e = vo->SubregionProperties(idx);
+		BltVideoObject(buf, vo, idx, px + (AR_BIG_PORTRAIT_W - e.usWidth) / 2, py + (AR_BIG_PORTRAIT_H - e.usHeight) / 2);
+	};
+
+	if (c->pSoldier->bLife == 0)
+	{
+		middled(gpAR->iFaces, c->uiFlags & CELL_CREATURE ? CREATURE_SKULL : HUMAN_SKULL);
+	}
+	else
+	{
+		if (c->uiFlags & CELL_HITBYATTACKER)
+		{
+			ColorFillVideoSurfaceArea(buf, px, py, px + AR_BIG_PORTRAIT_W, py + AR_BIG_PORTRAIT_H, 65535);
+		}
+		else
+		{
+			SGPVObject* const vo = c->uiVObjectID;
+			vo->CurrentShade(c->uiFlags & CELL_HITLASTFRAME ? 1 : 0);
+			middled(vo, c->usIndex);
+		}
+
+		if (c->pSoldier->bLife < OKLIFE && !(c->uiFlags & (CELL_HITBYATTACKER | CELL_HITLASTFRAME | CELL_CREATURE)))
+		{ // Merc is unconcious (and not taking damage), so darken his portrait.
+			buf->ShadowRect(px, py, px + AR_BIG_PORTRAIT_W, py + AR_BIG_PORTRAIT_H);
+		}
+	}
+
+	RenderSoldierCellHealth(c);
+	DrawDebugText(c);
+
+	InvalidateRegion(dx, dy, dx + AR_BIG_CELL_W, dy + AR_BIG_CELL_H);
+}
+
+
 static void RenderSoldierCell(SOLDIERCELL* const c)
 {
+	if (ARBig())
+	{
+		if (!(c->uiFlags & CELL_HIDDEN)) RenderBigSoldierCell(c);
+		AdjustCellFlagsAfterRender(c);
+		return;
+	}
+
 	SGPVSurface* const buf = FRAME_BUFFER;
 	INT16        const dx  = c->xp;
 	INT16        const dy  = c->yp;
@@ -802,21 +1237,7 @@ static void RenderSoldierCell(SOLDIERCELL* const c)
 	InvalidateRegion(dx, dy, dx + 50, dy + 44);
 
 	// Adjust flags accordingly
-	if (c->uiFlags & CELL_HITBYATTACKER)
-	{
-		c->uiFlashTime  = GetJA2Clock() + 150;
-		c->uiFlags     &= ~CELL_HITBYATTACKER;
-		c->uiFlags     |= CELL_HITLASTFRAME | CELL_DIRTY;
-	}
-	else if (c->uiFlags & CELL_HITLASTFRAME)
-	{
-		if (c->uiFlashTime < GetJA2Clock()) c->uiFlags &= ~CELL_HITLASTFRAME;
-		c->uiFlags |= CELL_DIRTY;
-	}
-	else if (!(c->uiFlags & CELL_RETREATING))
-	{
-		c->uiFlags &= ~CELL_DIRTY;
-	}
+	AdjustCellFlagsAfterRender(c);
 }
 
 
@@ -1506,11 +1927,27 @@ static void CreateAutoResolveInterface(void)
 	FOR_EACH_AR_MERC(cell)
 	{
 		//Load the face
-		SGPVObject* const face = Load65Portrait(GetProfile(cell->pSoldier->ubProfile));
+		MERCPROFILESTRUCT const& profile = GetProfile(cell->pSoldier->ubProfile);
+		SGPVObject* face = 0;
+		if (ARBig())
+		{ // the big portrait; the small one (middled) if there is none
+			try
+			{
+				face = LoadBigPortrait(profile);
+			}
+			catch (std::exception const& e)
+			{
+				SLOGW("No big portrait for the auto resolve: {}", e.what());
+			}
+		}
+		if (!face) face = Load65Portrait(profile);
 		cell->uiVObjectID = face;
-		SGPPaletteEntry const* const pal = face->Palette();
-		face->pShades[0] = Create16BPPPaletteShaded(pal, 255, 255, 255, FALSE);
-		face->pShades[1] = Create16BPPPaletteShaded(pal, 250,  25,  25, TRUE);
+		if (!face->IsRGBA())
+		{ // a full colour PNG has no palette to shade
+			SGPPaletteEntry const* const pal = face->Palette();
+			face->pShades[0] = Create16BPPPaletteShaded(pal, 255, 255, 255, FALSE);
+			face->pShades[1] = Create16BPPPaletteShaded(pal, 250,  25,  25, TRUE);
+		}
 	}
 
 	UINT8 n_militia_elite = MilitiaInSectorOfRank(ar->ubSector, ELITE_MILITIA);
@@ -1615,6 +2052,13 @@ static void CreateAutoResolveInterface(void)
 	MakeButton(YES_BUTTON,      dx + 21, dy + 17, AcceptSurrenderCallback, TRUE,  {});
 	MakeButton(NO_BUTTON,       dx + 81, dy + 17, RejectSurrenderCallback, TRUE,  {});
 	ar->iButton[PLAY_BUTTON]->uiFlags |= BUTTON_CLICKED_ON;
+
+	if (ARBig())
+	{ // the soldiers and the window are there: sort and place the big cells
+		ARCreateScrolling();
+		g_ar_relayout = true;
+		ARUpdate();
+	}
 }
 
 
@@ -1644,6 +2088,7 @@ static void RemoveAutoResolveInterface()
 	AUTORESOLVE_STRUCT& ar = *gpAR;
 
 	MSYS_RemoveRegion(&ar.AutoResolveRegion);
+	ARRemoveScrolling();
 	DeleteVideoObject(ar.iPanelImages);
 	DeleteVideoObject(ar.iFaces);
 	DeleteVideoObject(ar.iIndent);
@@ -2015,6 +2460,8 @@ static void MercCellMouseMoveCallback(MOUSE_REGION* reg, UINT32 reason)
 
 static void MercCellMouseClickCallback(MOUSE_REGION* reg, UINT32 reason)
 {
+	if (ARBig()) ARWheel(AR_LEFT, reason); // the cell is over the side's wheel region
+
 	if( reason & MSYS_CALLBACK_REASON_POINTER_UP )
 	{
 		if( gpAR->fPendingSurrender )
@@ -2131,6 +2578,35 @@ static void CalculateAutoResolveInfo(void)
 
 static void CalculateRowsAndColumns(void)
 {
+	if (ARBig())
+	{ // Up to 5 columns a side (the militia under the mercs, in their columns), 5 rows shown.
+		AUTORESOLVE_STRUCT& ar = *gpAR;
+		INT32 const lc = std::clamp<INT32>(std::max(ar.ubMercs, ar.ubCivs), 2, AR_BIG_COLS);
+		INT32 const rc = std::clamp<INT32>(ar.ubEnemies, 2, AR_BIG_COLS);
+		ar.ubMercCols  = lc;
+		ar.ubCivCols   = lc;
+		ar.ubEnemyCols = rc;
+		ar.ubMercRows  = (ar.ubMercs   + lc - 1) / lc;
+		ar.ubCivRows   = (ar.ubCivs    + lc - 1) / lc;
+		ar.ubEnemyRows = (ar.ubEnemies + rc - 1) / rc;
+
+		g_ar_visible_rows = std::clamp<INT32>(std::max(ar.ubMercRows + ar.ubCivRows, int(ar.ubEnemyRows)), 1, AR_BIG_ROWS);
+		g_ar_first_row[AR_LEFT]  = 0;
+		g_ar_first_row[AR_RIGHT] = 0;
+		g_ar_relayout            = false;
+		for (auto& order : g_ar_order) order.clear();
+
+		// 6 px before the first cell, the cells (the last one's gap is the 2 px
+		// to the strip), the 140 px strip, 1 px, the cells, 7 px
+		ar.rect.w        = 136 + AR_BIG_PITCH_X * (lc + rc);
+		ar.sCenterStartX = SCREEN_WIDTH / 2 - ar.rect.w / 2 - 2 + AR_BIG_PITCH_X * lc;
+
+		// the rows and 7 px above and below, an even multiple of 40 (rounding up)
+		ar.rect.h = g_ar_visible_rows * AR_BIG_CELL_H + (g_ar_visible_rows - 1) * AR_BIG_GAP + 14;
+		ar.rect.h = std::max(160, (ar.rect.h + 39) / 40 * 40);
+		return;
+	}
+
 	//now that we have the number on each team, calculate the number of rows and columns to be used on
 	//the player's sides.  NOTE:  Militia won't appear on the same row as mercs.
 	if( !gpAR->ubMercs )
@@ -2317,14 +2793,27 @@ static void RenderSoldierCellHealth(SOLDIERCELL* pCell)
 	ST::string str;
 	UINT16 usColor;
 
-	SetFont( SMALLCOMPFONT );
-	//Restore the background before drawing text.
-	xp = pCell->xp +  2;
-	yp = pCell->yp + 32;
-	SGPBox const r = {  (UINT16)(xp - gpAR->rect.x),
-											(UINT16)(yp - gpAR->rect.y),
-											46, 10 };
-	BltVideoSurface(FRAME_BUFFER, gpAR->iInterfaceBuffer, xp, yp, &r);
+	// 1366x768: on a black strip over the big portrait's bottom
+	bool    const big        = ARBig();
+	SGPFont const font       = big ? StrategicGeneralFont() : SMALLCOMPFONT;
+	INT16   const centre     = pCell->xp + (big ? AR_BIG_CELL_W / 2 : 25);
+	INT16   const text_y     = pCell->yp + (big ? 2 + AR_BIG_PORTRAIT_H - 12 : 33);
+	INT16   const retreat_y  = pCell->yp + (big ? 2 + AR_BIG_PORTRAIT_H / 2 : 12);
+	SetFont(font);
+	if (big)
+	{
+		ColorFillVideoSurfaceArea(FRAME_BUFFER, pCell->xp + 2, text_y - 1, pCell->xp + 2 + AR_BIG_PORTRAIT_W, pCell->yp + 2 + AR_BIG_PORTRAIT_H, 0);
+	}
+	else
+	{
+		//Restore the background before drawing text.
+		xp = pCell->xp +  2;
+		yp = pCell->yp + 32;
+		SGPBox const r = {  (UINT16)(xp - gpAR->rect.x),
+												(UINT16)(yp - gpAR->rect.y),
+												46, 10 };
+		BltVideoSurface(FRAME_BUFFER, gpAR->iInterfaceBuffer, xp, yp, &r);
+	}
 
 	if( pCell->pSoldier->bLife )
 	{
@@ -2373,7 +2862,7 @@ static void RenderSoldierCellHealth(SOLDIERCELL* pCell)
 		#else
 		pStr = str;
 		#endif
-		usColor = FONT_BLACK;
+		usColor = big ? FONT_GRAY2 : FONT_BLACK; // black on the big cell's black strip
 	}
 
 	//Draw the retreating text, if applicable
@@ -2400,14 +2889,14 @@ static void RenderSoldierCellHealth(SOLDIERCELL* pCell)
 		{
 			SetFontForeground( FONT_YELLOW );
 			ST::string Retreat = gpStrategicString[STR_AR_MERC_RETREAT];
-			xp = pCell->xp + 25 - StringPixLength(Retreat, SMALLCOMPFONT) / 2;
-			yp = pCell->yp + 12;
+			xp = centre - StringPixLength(Retreat, font) / 2;
+			yp = retreat_y;
 			MPrint(xp, yp, Retreat);
 		}
 	}
 	SetFontForeground( (UINT8)usColor );
-	xp = pCell->xp + 25 - StringPixLength( pStr, SMALLCOMPFONT ) / 2;
-	yp = pCell->yp + 33;
+	xp = centre - StringPixLength( pStr, font ) / 2;
+	yp = text_y;
 	MPrint(xp, yp, pStr);
 }
 
