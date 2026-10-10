@@ -314,10 +314,10 @@ struct ARPanel
 
 // 12: 107x134, the window 94x110 at (3, 3) -- the big portrait loses 6 px at
 // every edge --, the bar's slot x 99..104, the text's strip y 115..131
-static ARPanel const g_ar_merc_panel  = { 107, 134,  3, 3,  94, 110, 99, 6, 116 };
+static ARPanel const g_ar_merc_panel  = { 107, 134,  3, 3,  94, 110, 99, 6, 118 };
 // 13: 99x134, the same window and strip, no bar (the small generic faces
 // and the skulls stand in the window's middle)
-static ARPanel const g_ar_other_panel = {  99, 134,  3, 3,  94, 110,  0, 0, 116 };
+static ARPanel const g_ar_other_panel = {  99, 134,  3, 3,  94, 110,  0, 0, 118 };
 
 enum { AR_BIG_GAP = 10 };
 
@@ -555,8 +555,8 @@ static void ARCreateScrolling()
 		g_ar_scroll_button[side][0] = GUIButtonRef();
 		g_ar_scroll_button[side][1] = GUIButtonRef();
 		if (!arrows || ARMaxFirstRow(side) == 0) continue;
-		INT16 const x = ar.sCenterStartX + (side == AR_LEFT ? 6 : 140 - 27 - 6);
-		INT16 const y = bottom - 12 - 2 * 27 - 2;
+		INT16 const x = ar.sCenterStartX + (side == AR_LEFT ? 11 : 140 - 27 - 1);
+		INT16 const y = bottom - 12 - 2 * 27;
 		g_ar_scroll_button[side][0] = QuickCreateButtonImg(g_ar_scroll_gfx,  8,  9, x, y,      MSYS_PRIORITY_HIGH, ARScrollButtonCallback);
 		g_ar_scroll_button[side][1] = QuickCreateButtonImg(g_ar_scroll_gfx, 10, 11, x, y + 29, MSYS_PRIORITY_HIGH, ARScrollButtonCallback);
 	}
@@ -1865,7 +1865,7 @@ static void RenderAutoResolve(void)
 			yp = ARMiddleY() - 22;
 			BltVideoObject( FRAME_BUFFER, gpAR->iIndent, 0, xp, yp);
 			xp = gpAR->sCenterStartX + 70 - StringPixLength(BattleResult, result_font) / 2;
-			yp = ARMiddleY() - 13;
+			yp = ARMiddleY() - (ARBig() ? 15 : 13); // the big font: 2 px higher
 			MPrint(xp, yp, BattleResult);
 
 			//Render the total battle time elapsed.
@@ -1907,7 +1907,11 @@ static void MakeButton(UINT idx, INT16 x, INT16 y, GUI_CALLBACK click, BOOLEAN h
 {
 	GUIButtonRef const btn = QuickCreateButton(gpAR->iButtonImage[idx], x, y, MSYS_PRIORITY_HIGH, std::move(click));
 	gpAR->iButton[idx] = btn;
-	if (!text.empty()) btn->SpecifyGeneralTextAttributes(text, ARFont(StrategicGeneralFont()), 169, FONT_NEARBLACK);
+	if (!text.empty())
+	{
+		btn->SpecifyGeneralTextAttributes(text, ARFont(StrategicGeneralFont()), 169, FONT_NEARBLACK);
+		if (ARBig()) btn->SpecifyTextSubOffsets(0, 1, TRUE); // the big font: 1 px lower
+	}
 	if (hide) btn->Hide();
 }
 
