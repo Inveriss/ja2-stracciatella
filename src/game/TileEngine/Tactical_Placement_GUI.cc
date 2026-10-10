@@ -250,6 +250,61 @@ static void DrawPlacementMinimapView(SGPVSurface* const buf, INT32 const mx, INT
 }
 
 
+// The mouse on the minimap: the view goes there, as on the tactical radar --
+// the clicked place in the middle of the free part of the view.
+static MOUSE_REGION g_placement_minimap_region;
+static bool         g_placement_minimap_region_made = false;
+
+static void MovePlacementViewFromMinimap(MOUSE_REGION const& r)
+{
+	double const scale_x = 352.0 / (gsRightX  - gsLeftX);
+	double const scale_y = 176.0 / (gsBottomY - gsTopY);
+
+	// from the minimap's middle to screen coordinates from the map's middle
+	INT32 x = (INT32)((r.RelativeXPos - 352 / 2) / scale_x);
+	INT32 y = (INT32)((r.RelativeYPos - 176 / 2) / scale_y);
+	// the render centre is the whole viewport's middle, the panel covers a part of it
+	y += g_ui.m_tacticalMapCenterY - (TacticalPlacementViewTop() + TacticalPlacementViewBottom()) / 2;
+
+	// multiples of the scroll steps, as AdjustWorldCenterFromRadarCoords()
+	x = x / WORLD_TILE_X * WORLD_TILE_X;
+	y = y / (WORLD_TILE_Y * 2) * (WORLD_TILE_Y * 2);
+
+	INT16 cell_x;
+	INT16 cell_y;
+	FromScreenToCellCoordinates((INT16)x, (INT16)y, &cell_x, &cell_y);
+	SetRenderCenter(gCenterWorldX + cell_x, gCenterWorldY + cell_y);
+	SetRenderFlags(RENDER_FLAG_FULL);
+}
+
+static void PlacementMinimapMoveCallback(MOUSE_REGION* const r, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_MOVE && r->ButtonState & MSYS_LEFT_BUTTON) MovePlacementViewFromMinimap(*r);
+}
+
+static void PlacementMinimapClickCallback(MOUSE_REGION* const r, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_DWN) MovePlacementViewFromMinimap(*r);
+}
+
+static void CreatePlacementMinimapRegion()
+{
+	SGPBox box;
+	if (!g_placement_minimap || !TacticalPlacementMapBox(box)) return;
+	INT16 const x = box.x + FV_MAP_DX;
+	INT16 const y = box.y + FV_MAP_DY;
+	MSYS_DefineRegion(&g_placement_minimap_region, x, y, x + 352, y + 176, MSYS_PRIORITY_HIGH + 3, 0, PlacementMinimapMoveCallback, PlacementMinimapClickCallback);
+	g_placement_minimap_region_made = true;
+}
+
+static void RemovePlacementMinimapRegion()
+{
+	if (!g_placement_minimap_region_made) return;
+	MSYS_RemoveRegion(&g_placement_minimap_region);
+	g_placement_minimap_region_made = false;
+}
+
+
 // The panel graphic: the panel at PanelY(), the minimap's box above it, or
 // below it when the panel is at the top (drawn in two parts, clipped).
 static void DrawPlacementPanel(SGPVSurface* const buf)
@@ -344,8 +399,8 @@ static void MakeButton(UINT idx, INT16 y, GUI_CALLBACK click, const ST::string& 
 	INT16 const dy = gfPlacementFullView ? FV_BUTTONS_DY : 0;
 	GUIButtonRef const btn = QuickCreateButton(giOverheadButtonImages[idx], PanelX() + 11, PanelY() + y + dy, MSYS_PRIORITY_HIGH, click);
 	iTPButtons[idx] = btn;
-	// the 1366x768 panels: FONT_STRATEGIC_GENERAL (StrategicGeneralFont())
-	SGPFont const font = gfPlacementFullView ? StrategicGeneralFont() : BLOCKFONT;
+	// the 1366x768 panels: every text in FONT14ARIAL
+	SGPFont const font = gfPlacementFullView ? FONT14ARIAL : BLOCKFONT;
 	UINT8 const colour = gfPlacementFullView ? FONT_WHITE : FONT_BEIGE;
 	btn->SpecifyGeneralTextAttributes(text, font, colour, 141);
 	btn->SetFastHelpText(help);
@@ -641,7 +696,11 @@ void InitTacticalPlacementGUI()
 		}
 	}
 
-	if (gfPlacementFullView) CreateFullViewScrolling();
+	if (gfPlacementFullView)
+	{
+		CreateFullViewScrolling();
+		CreatePlacementMinimapRegion();
+	}
 
 	PlaceMercs();
 
@@ -860,8 +919,8 @@ static void RenderTacticalPlacementGUI()
 			DrawBar(buf, x + 42, y + 29, s.bMorale    * 27 / 100, FROMRGB(  8, 156,   8), FROMRGB(  8, 107,   8)); // Morale bar
 		}
 
-		// the 1366x768 panels: FONT_STRATEGIC_GENERAL, white
-		if (gfPlacementFullView) SetFontAttributes(StrategicGeneralFont(), FONT_WHITE);
+		// the 1366x768 panels: FONT14ARIAL, white
+		if (gfPlacementFullView) SetFontAttributes(FONT14ARIAL, FONT_WHITE);
 		else                     SetFontAttributes(BLOCKFONT, FONT_BEIGE);
 		ST::string str = GetSectorIDString(gubPBSector, TRUE);
 		MPrint(PanelX() + 120, PanelY() + 15, ST::format("{} {} -- {}...", gpStrategicString[STR_TP_SECTOR], str, gpStrategicString[STR_TP_CHOOSEENTRYPOSITIONS]));
@@ -921,7 +980,7 @@ static void RenderTacticalPlacementGUI()
 			(is_group ? s.ubGroupID == gubSelectedGroupID  : i == gbSelectedMercID)  ? FONT_YELLOW :
 			(is_group ? s.ubGroupID == gubHilightedGroupID : i == gbHilightedMercID) ? FONT_WHITE  :
 			gfPlacementFullView ? FONT_WHITE : FONT_GRAY3; // the 1366x768 panels: white
-		SGPFont const font = gfPlacementFullView ? StrategicGeneralFont() : BLOCKFONT;
+		SGPFont const font = gfPlacementFullView ? FONT14ARIAL : BLOCKFONT;
 		SetFontAttributes(font, colour);
 		INT32 const w  = StringPixLength(s.name, font);
 		INT32 const nx = gfPlacementFullView ? x + (FV_BLOCK_W - w) / 2 : x + (48 - w) / 2;
@@ -938,9 +997,20 @@ static void RenderTacticalPlacementGUI()
 		}
 		else
 		{
-			SetFont(FONT10ARIALBOLD);
-			MPrint(qx, qy, "?");
-			InvalidateRegion(qx, qy, qx + 8, qy + 8);
+			if (gfPlacementFullView)
+			{ // FONT14ARIAL like the other texts, in the portrait's middle
+				SetFont(FONT14ARIAL);
+				INT32 const fx = x + 2 + (FV_PORTRAIT_W - StringPixLength("?", FONT14ARIAL)) / 2;
+				INT32 const fy = y + 2 + (FV_PORTRAIT_H - GetFontHeight(FONT14ARIAL)) / 2;
+				MPrint(fx, fy, "?");
+				InvalidateRegion(fx, fy, fx + 12, fy + 16);
+			}
+			else
+			{
+				SetFont(FONT10ARIALBOLD);
+				MPrint(qx, qy, "?");
+				InvalidateRegion(qx, qy, qx + 8, qy + 8);
+			}
 		}
 	}
 }
@@ -1133,6 +1203,7 @@ static void KillTacticalPlacementGUI(void)
 		RemoveButton( iTPButtons[ i ] );
 	}
 	if (gfPlacementFullView) RemoveFullViewScrolling();
+	RemovePlacementMinimapRegion();
 	//Delete faces and regions
 	FOR_EACH_MERC_PLACEMENT(i)
 	{
