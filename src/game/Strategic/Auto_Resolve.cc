@@ -439,7 +439,11 @@ static bool ARSort(std::vector<SOLDIERCELL*>& order, SOLDIERCELL* const cells, s
 		INT32 const rank_a = ARRank(*a);
 		INT32 const rank_b = ARRank(*b);
 		if (rank_a != rank_b) return rank_a < rank_b;
-		return health_a > health_b;
+		if (health_a != health_b) return health_a > health_b;
+		// the same state: the ones who took damage (their text turns yellow) after the unhurt
+		bool const hurt_a = a->pSoldier->bLife != a->pSoldier->bLifeMax;
+		bool const hurt_b = b->pSoldier->bLife != b->pSoldier->bLifeMax;
+		return !hurt_a && hurt_b;
 	});
 	if (sorted != order)
 	{
