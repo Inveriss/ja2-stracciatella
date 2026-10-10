@@ -1315,7 +1315,6 @@ static void SetBurstMode(void);
 static void TeleportSelectedSoldier(void);
 static void TestCapture();
 static void ToggleCliffDebug();
-static void ToggleTreeTops(void);
 static void ToggleViewAllItems(void);
 static void ToggleViewAllMercs(void);
 static void ToggleWireFrame(void);
@@ -2787,7 +2786,7 @@ static void TeleportSelectedSoldier(void)
 }
 
 
-static void ToggleTreeTops(void)
+void ToggleTreeTops()
 {
 	UINT8& show_trees = gGameSettings.fOptions[TOPTION_TOGGLE_TREE_TOPS];
 	show_trees = !show_trees;

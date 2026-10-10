@@ -54,7 +54,7 @@ static UINT8        gubContractLength  = 0; // Used when extending a mercs insur
 static SOLDIERTYPE* gpInsuranceSoldier = 0;
 
 // The values need to be saved!
-static CONTRACT_NEWAL_LIST_NODE ContractRenewalList[20];
+static CONTRACT_NEWAL_LIST_NODE ContractRenewalList[PLAYER_TEAM_SIZE];
 static UINT8                    ubNumContractRenewals              = 0;
 // end
 static UINT8                    ubCurrentContractRenewal           = 0;
@@ -868,7 +868,7 @@ void FindOutIfAnyMercAboutToLeaveIsGonnaRenew(void)
 	 * only display that quote if they are the only one here */
 	SOLDIERTYPE* soldier_who_will_quit = 0;
 	UINT8        n_mercs               = 0;
-	SOLDIERTYPE* potential_mercs[20];
+	SOLDIERTYPE* potential_mercs[PLAYER_TEAM_SIZE];
 	FOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
 		if (s->bLife               == 0)                   continue;

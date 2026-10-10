@@ -55,6 +55,8 @@ static MOUSE_REGION gClockScreenMaskMouseRegion;
 
 #define CLOCK_X      (g_ui.get_CLOCK_X())
 #define CLOCK_Y      (g_ui.get_CLOCK_Y())
+// 1 px higher on the strategic screen of the 1366x768 interface
+#define CLOCK_MAP_Y  (CLOCK_Y - (g_ui.isExtraWideStrategicScreen() && guiCurrentScreen == MAP_SCREEN ? 1 : 0))
 #define CLOCK_HEIGHT  13
 #define CLOCK_WIDTH   66
 #define CLOCK_FONT   COMPFONT
@@ -254,11 +256,13 @@ void RenderClock(void)
 	// Are we in combat?
 	UINT8 const foreground = gTacticalStatus.uiFlags & INCOMBAT ?
 		FONT_FCOLOR_NICERED : FONT_LTGREEN;
-	SetFontAttributes(CLOCK_FONT, foreground);
+	// the strategic screen's own font on the 1366x768 interface
+	SGPFont const font = guiCurrentScreen == MAP_SCREEN ? StrategicTooltipFontAs(CLOCK_FONT) : CLOCK_FONT;
+	SetFontAttributes(font, foreground);
 
 	// Erase first!
 	INT16 x = CLOCK_X;
-	INT16 y = CLOCK_Y;
+	INT16 y = CLOCK_MAP_Y;
 	RestoreExternBackgroundRect(x, y, CLOCK_WIDTH, CLOCK_HEIGHT);
 
 	MPrint(x, y, gfPauseDueToPlayerGamePause ? pPausedGameText[0] : WORLDTIMESTR,

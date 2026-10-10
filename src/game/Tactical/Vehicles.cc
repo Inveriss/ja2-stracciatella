@@ -986,7 +986,7 @@ SOLDIERTYPE* PickRandomPassengerFromVehicle(SOLDIERTYPE* const pSoldier)
 	VEHICLETYPE const& v = pVehicleList[pSoldier->bVehicleID];
 
 	INT32       n_mercs = 0;
-	SOLDIERTYPE* mercs_in_vehicle[20];
+	SOLDIERTYPE* mercs_in_vehicle[PLAYER_TEAM_SIZE];
 	CFOR_EACH_PASSENGER(v, i) mercs_in_vehicle[n_mercs++] = *i;
 
 	return n_mercs == 0 ? NULL : mercs_in_vehicle[Random(n_mercs)];

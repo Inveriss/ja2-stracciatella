@@ -21,8 +21,15 @@
 #include "Video.h"
 #include "Quantize.h"
 #include "UILayout.h"
+#include "Cursors.h"
+#include "EditorDefines.h"
+#include "Cursor_Control.h"
 
+#include "RenderWorld.h"
+
+#include <algorithm>
 #include <memory>
+#include <vector>
 #include <string_theory/format>
 
 
@@ -39,8 +46,30 @@
 // "<mapname>.big.sti" next to each map's own "<mapname>.sti", same
 // directory, same per-map loop, sampled from the same already-rendered
 // overhead-map framebuffer content (see the second pass below).
-#define RADAR_BIG_X_SIZE	238
-#define RADAR_BIG_Y_SIZE	119
+// 580x290 per user request (was 238x119, the size the game's big minimap --
+// RADAR_WINDOW_BIG_WIDTH/HEIGHT -- still shows).
+#define RADAR_BIG_X_SIZE	580
+#define RADAR_BIG_Y_SIZE	290
+
+// Third set, for the tactical placement's minimap (1366x768 panels,
+// Data/RadarMaps_Overhead) -- "<mapname>.overhead.sti", made the same way.
+// 800x400 per user request (was 640x320, the overhead map's own size, before
+// that 352x176): bigger than the overhead map, so it is not made from it but
+// from a picture of the sector drawn 1:1 with the real tiles (3200x1600, see
+// CaptureWorldPicture()), each pixel the average of a 4x4 block of it.
+#define RADAR_OVERHEAD_X_SIZE	800
+#define RADAR_OVERHEAD_Y_SIZE	400
+
+// The part of the world the overhead map shows, in the renderer's screen
+// coordinates (FromCellToScreenCoordinates() of a cell is the top corner of
+// its tile's diamond): the overhead map starts with the tile at map position
+// (0, WORLD_ROWS / 2), its 8x4 picture at (0, 0) -- the 40x20 one's left edge
+// is 20 px left of that corner -- and is the world scaled 5:1.
+#define WORLD_PICTURE_X	(-(WORLD_ROWS / 2) * (WORLD_TILE_X / 2) - WORLD_TILE_X / 2)     // -1620
+#define WORLD_PICTURE_Y	((WORLD_ROWS / 2) * CELL_Y_SIZE)                               // 800
+#define WORLD_PICTURE_W	(OVERHEAD_MAP_RENDER_WIDTH * 5)                                // 3200
+#define WORLD_PICTURE_H	(320 * 5)                                                      // 1600
+static_assert(WORLD_PICTURE_X == -1620 && WORLD_PICTURE_Y == 800, "the overhead map's origin in the world");
 
 // The overhead map's own natural render width -- a fixed, classic-engine
 // constant (see RenderOverheadMap()'s other caller, Overhead_Map.cc's own
@@ -117,8 +146,184 @@ static float     gdYStep;
 // quantizes it into an 8-bit image ans writes it to an sti file in radarmaps.
 
 
+/* Draws the world's rectangle (x, y, w, h) -- renderer's screen coordinates,
+ * see WORLD_PICTURE_X -- 1:1 into the top left corner of `picture`: one
+ * viewport after the other, each copied to its place. A frame pixel (px, py)
+ * shows the world's screen point
+ *   (Sx + px - centre x, Sy + py - centre y + 10),
+ * (Sx, Sy) being the render centre's (the +10 as in GetMouseWorldCoords());
+ * the renderer snaps the centre to a tile, so the place of every viewport is
+ * taken from where it really went, and they overlap by more than a snap. The
+ * scroll limits are moved out of the way meanwhile: the picture reaches the
+ * map's very edges. */
+static void CaptureWorldPicture(SGPVSurface* const picture, INT32 const x, INT32 const y, INT32 const w, INT32 const h)
+{
+	INT16 const old_left   = gsLeftX;
+	INT16 const old_top    = gsTopY;
+	INT16 const old_right  = gsRightX;
+	INT16 const old_bottom = gsBottomY;
+	gsLeftX   -= 200;
+	gsTopY    -= 200;
+	gsRightX  += 200;
+	gsBottomY += 200;
+
+	INT32 const centre_x = g_ui.m_tacticalMapCenterX;
+	INT32 const centre_y = g_ui.m_tacticalMapCenterY;
+	INT32 const vx0      = gsVIEWPORT_START_X;
+	INT32 const vx1      = gsVIEWPORT_END_X;
+	INT32 const vy0      = std::max<INT32>(gsVIEWPORT_START_Y, gsVIEWPORT_WINDOW_START_Y);
+	INT32 const vy1      = std::min<INT32>(gsVIEWPORT_END_Y,   gsVIEWPORT_WINDOW_END_Y);
+	INT32 const overlap  = 80;
+	INT32 const margin   = 30;
+	INT32 const step_x   = std::max<INT32>(40, vx1 - vx0 - overlap);
+	INT32 const step_y   = std::max<INT32>(20, vy1 - vy0 - overlap);
+
+	picture->Fill(0);
+	for (INT32 wy = y - margin; wy < y + h; wy += step_y)
+	{
+		for (INT32 wx = x - margin; wx < x + w; wx += step_x)
+		{
+			// the centre that shows (wx, wy) in the viewport's top left corner
+			INT32 const sx = wx - vx0 + centre_x;
+			INT32 const sy = wy - vy0 + centre_y - 10;
+			FRAME_BUFFER->Fill(0);
+			RenderWorldForSnapshot((INT16)((sx + 2 * sy) / 4), (INT16)((2 * sy - sx) / 4));
+
+			// the world's point in the frame's top left corner, as it was drawn
+			INT32 const ax = 2 * gsRenderCenterX - 2 * gsRenderCenterY - centre_x;
+			INT32 const ay = gsRenderCenterX + gsRenderCenterY - centre_y + 10;
+
+			INT32 const px0 = std::max(vx0, x - ax);
+			INT32 const px1 = std::min(vx1, x + w - ax);
+			if (px0 >= px1) continue;
+
+			SGPVSurface::Lock lsrc(FRAME_BUFFER);
+			SGPVSurface::Lock ldst(picture);
+			UINT16 const* const src       = lsrc.Buffer<UINT16>();
+			UINT16*       const dst       = ldst.Buffer<UINT16>();
+			UINT32        const src_pitch = lsrc.Pitch() / 2;
+			UINT32        const dst_pitch = ldst.Pitch() / 2;
+			for (INT32 py = vy0; py != vy1; ++py)
+			{
+				INT32 const dy = ay + py - y;
+				if (dy < 0 || h <= dy) continue;
+				std::copy_n(src + py * src_pitch + px0, px1 - px0, dst + dy * dst_pitch + (ax + px0 - x));
+			}
+		}
+	}
+
+	gsLeftX   = old_left;
+	gsTopY    = old_top;
+	gsRightX  = old_right;
+	gsBottomY = old_bottom;
+}
+
+
+// The sizes to write, chosen in a prompt before the first map: any of them,
+// at least one.
+enum { SIZE_SMALL, SIZE_BIG, SIZE_OVERHEAD, NUM_RADAR_SIZES };
+static bool g_write_size[NUM_RADAR_SIZES] = { true, true, true };
+static bool g_sizes_chosen = false;
+
+enum PromptResult { PROMPT_OPEN, PROMPT_START, PROMPT_CANCEL };
+
+// Draws the prompt and handles its input: the keys 1-3 or a click on a line
+// toggle a size, A takes all, Enter or a click on Start begins, Esc or a click
+// on Cancel goes back to the editor.
+static PromptResult RadarMapSizePrompt()
+{
+	static bool button_was_down = true; // the click that started the utility is not one of ours
+
+	struct { char const* text; } const sizes[NUM_RADAR_SIZES] =
+	{
+		{ "88x44   <map>.sti   (tactical radar)" },
+		{ "580x290   <map>.big.sti" },
+		{ "800x400   <map>.overhead.sti   (tactical placement)" }
+	};
+
+	INT32 const x      = 60;
+	INT32 const y      = 80;
+	INT32 const line_h = 26;
+	INT32 const w      = 520;
+	auto const line_y  = [&](INT32 const i) { return y + 50 + i * line_h; };
+	INT32 const start_y  = line_y(NUM_RADAR_SIZES) + 20;
+	INT32 const cancel_y = start_y + line_h;
+
+	bool any = false;
+	for (bool const b : g_write_size) any |= b;
+
+	PromptResult result = PROMPT_OPEN;
+
+	InputAtom e;
+	while (DequeueEvent(&e))
+	{
+		if (e.usEvent != KEY_DOWN) continue;
+		switch (e.usParam)
+		{
+			case '1': g_write_size[SIZE_SMALL]    = !g_write_size[SIZE_SMALL];    break;
+			case '2': g_write_size[SIZE_BIG]      = !g_write_size[SIZE_BIG];      break;
+			case '3': g_write_size[SIZE_OVERHEAD] = !g_write_size[SIZE_OVERHEAD]; break;
+			case 'a': for (bool& b : g_write_size) b = true;                      break;
+			case SDLK_RETURN: if (any) result = PROMPT_START;                     break;
+			case SDLK_ESCAPE: result = PROMPT_CANCEL;                             break;
+		}
+	}
+
+	// a click: the button going down over a line
+	bool const down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+	if (down && !button_was_down && x <= gusMouseXPos && gusMouseXPos < x + w)
+	{
+		for (INT32 i = 0; i != NUM_RADAR_SIZES; ++i)
+		{
+			if (line_y(i) <= gusMouseYPos && gusMouseYPos < line_y(i) + line_h) g_write_size[i] = !g_write_size[i];
+		}
+		if (start_y  <= gusMouseYPos && gusMouseYPos < start_y  + line_h && any) result = PROMPT_START;
+		if (cancel_y <= gusMouseYPos && gusMouseYPos < cancel_y + line_h)        result = PROMPT_CANCEL;
+	}
+	button_was_down = down;
+
+	FRAME_BUFFER->Fill(Get16BPPColor(FROMRGB(0, 0, 0)));
+	SetFontDestBuffer(FRAME_BUFFER);
+	SetFontAttributes(FONT14ARIAL, FONT_WHITE);
+	MPrint(x, y,      "Radar maps: which sizes to create for every map?");
+	MPrint(x, y + 20, "Click a line or press its key; A = all.");
+	for (INT32 i = 0; i != NUM_RADAR_SIZES; ++i)
+	{
+		SetFontForeground(g_write_size[i] ? FONT_YELLOW : FONT_GRAY2);
+		MPrint(x, line_y(i), ST::format("{}   [{}]   {}", i + 1, g_write_size[i] ? "X" : "  ", sizes[i].text));
+	}
+	any = false;
+	for (bool const b : g_write_size) any |= b;
+	SetFontForeground(any ? FONT_LTGREEN : FONT_GRAY2);
+	MPrint(x, start_y,  "Enter   Start");
+	SetFontForeground(FONT_WHITE);
+	MPrint(x, cancel_y, "Esc   Cancel (back to the editor)");
+
+	SetCurrentCursorFromDatabase(CURSOR_NORMAL);
+	InvalidateScreen();
+	RefreshScreen();
+
+	if (result != PROMPT_OPEN) button_was_down = true; // for the next time
+	return result;
+}
+
+
 template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 {
+	if (!g_sizes_chosen)
+	{
+		switch (RadarMapSizePrompt())
+		{
+			case PROMPT_OPEN:   return MAPUTILITY_SCREEN;
+			case PROMPT_CANCEL:
+				// the prompt painted over the editor: everything again
+				gfRenderWorld   = TRUE;
+				gfRenderTaskbar = TRUE;
+				return EDIT_SCREEN;
+			case PROMPT_START:  g_sizes_chosen = true; break;
+		}
+	}
+
 	static auto p24BitValues{ std::make_unique<SGPPaletteEntry[]>(MINIMAP_X_SIZE * MINIMAP_Y_SIZE) };
 
 	static SGPVSurface* giMiniMap{ AddVideoSurface(MINIMAP_X_SIZE, MINIMAP_Y_SIZE, PIXEL_DEPTH) };
@@ -129,6 +334,14 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 
 	static SGPVSurface* giMiniMapBig{ AddVideoSurface(RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, PIXEL_DEPTH) };
 	static SGPVSurface* gi8BitMiniMapBig{ AddVideoSurface(RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, 8) };
+
+	// Overhead minimap set -- see RADAR_OVERHEAD_X_SIZE/Y_SIZE above.
+	static auto p24BitValuesOverhead{ std::make_unique<SGPPaletteEntry[]>(RADAR_OVERHEAD_X_SIZE * RADAR_OVERHEAD_Y_SIZE) };
+
+	static SGPVSurface* giMiniMapOverhead{ AddVideoSurface(RADAR_OVERHEAD_X_SIZE, RADAR_OVERHEAD_Y_SIZE, PIXEL_DEPTH) };
+	static SGPVSurface* gi8BitMiniMapOverhead{ AddVideoSurface(RADAR_OVERHEAD_X_SIZE, RADAR_OVERHEAD_Y_SIZE, 8) };
+	// the sector 1:1, its source
+	static SGPVSurface* giWorldPicture{ AddVideoSurface(WORLD_PICTURE_W, WORLD_PICTURE_H, PIXEL_DEPTH) };
 
 	// Get the names (full path) of all map files in the user's home directory.
 	// recursive=true (6th arg) -- per user report: map .dat files live in a
@@ -358,53 +571,60 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 			}
 		}
 
-		zFilename2 = FileMan::replaceExtension(*currentFile, "sti");
-		WriteSTIFile(pDataPtr, pPalette, MINIMAP_X_SIZE, MINIMAP_Y_SIZE, zFilename2, CONVERT_ETRLE_COMPRESS, 0);
+		if (g_write_size[SIZE_SMALL])
+		{
+			zFilename2 = FileMan::replaceExtension(*currentFile, "sti");
+			WriteSTIFile(pDataPtr, pPalette, MINIMAP_X_SIZE, MINIMAP_Y_SIZE, zFilename2, CONVERT_ETRLE_COMPRESS, 0);
+		}
 	}
 
-	// Second pass: same already-rendered overhead-map framebuffer content
+	// Second and third passes: same already-rendered overhead-map framebuffer content
 	// (RenderOverheadMap() above, still intact -- TrashOverheadMap() only
 	// frees the overhead-map's own working data, not the pixels it already
-	// blitted to FRAME_BUFFER), just resampled at RADAR_BIG_X_SIZE/Y_SIZE
-	// instead of MINIMAP_X_SIZE/Y_SIZE. Mirrors the first pass's sampling
+	// blitted to FRAME_BUFFER), just resampled at RADAR_BIG_X_SIZE/Y_SIZE and
+	// RADAR_OVERHEAD_X_SIZE/Y_SIZE instead of MINIMAP_X_SIZE/Y_SIZE. Mirrors the first pass's sampling
 	// loop exactly (same averaging window, same per-pixel reset, same tight
 	// p24BitValuesBig packing) -- see that pass's own comments above for why
 	// each of those matters. dStartX/dStartY and, when restricted, sLeft/
 	// sRight/sTop/sBottom are resolution-independent source-space bounds,
 	// so they're reused as-is from the first pass above.
+	std::vector<ST::string> written; // printed at the end
+	auto const write_resampled = [&](INT32 const w, INT32 const h, SGPPaletteEntry* const values,
+		SGPVSurface* const surf16, SGPVSurface* const surf8, char const* const extension, INT16 const text_y,
+		INT32 const window) // the averaging window reaches this far from the sample: 2 -> 4x4 px, 1 -> 2x2 px, 0 -> the pixel itself
 	{
 		float const gdXStepBig = (gMapInformation.ubRestrictedScrollID != 0)
-			? (float)(sRight - sLeft) / (float)RADAR_BIG_X_SIZE
-			: OVERHEAD_MAP_RENDER_WIDTH / (float)RADAR_BIG_X_SIZE;
+			? (float)(sRight - sLeft) / (float)w
+			: OVERHEAD_MAP_RENDER_WIDTH / (float)w;
 		float const gdYStepBig = (gMapInformation.ubRestrictedScrollID != 0)
-			? (float)(sBottom - sTop) / (float)RADAR_BIG_Y_SIZE
-			: 320 / (float)RADAR_BIG_Y_SIZE;
+			? (float)(sBottom - sTop) / (float)h
+			: 320 / (float)h;
 
 		FLOAT dXBig = dStartX;
 		FLOAT dYBig;
 
 		{ SGPVSurface::Lock lsrc(FRAME_BUFFER);
-			SGPVSurface::Lock ldst(giMiniMapBig);
+			SGPVSurface::Lock ldst(surf16);
 			UINT16* const pSrcBuf          = lsrc.Buffer<UINT16>();
 			UINT32  const uiSrcPitchBYTES  = lsrc.Pitch();
 			UINT16* const pDestBuf         = ldst.Buffer<UINT16>();
 			UINT32  const uiDestPitchBYTES = ldst.Pitch();
 
-			for (INT32 iXBig = 0; iXBig < RADAR_BIG_X_SIZE; iXBig++)
+			for (INT32 iXBig = 0; iXBig < w; iXBig++)
 			{
 				dYBig = dStartY;
 
-				for (INT32 iYBig = 0; iYBig < RADAR_BIG_Y_SIZE; iYBig++)
+				for (INT32 iYBig = 0; iYBig < h; iYBig++)
 				{
 					// Black fallback, matching the small pass above -- see its
 					// own comment for why (reverted from blue).
 					INT16 sDestBig = Get16BPPColor(FROMRGB(0, 0, 0));
 					UINT32 bAvRBig = 0, bAvGBig = 0, bAvBBig = 0;
 
-					INT32 const iSubX1 = (INT32)dXBig - WINDOW_SIZE;
-					INT32 const iSubX2 = (INT32)dXBig + WINDOW_SIZE;
-					INT32 const iSubY1 = (INT32)dYBig - WINDOW_SIZE;
-					INT32 const iSubY2 = (INT32)dYBig + WINDOW_SIZE;
+					INT32 const iSubX1 = (INT32)dXBig - window;
+					INT32 const iSubX2 = (INT32)dXBig + std::max(window, 1);
+					INT32 const iSubY1 = (INT32)dYBig - window;
+					INT32 const iSubY2 = (INT32)dYBig + std::max(window, 1);
 
 					INT32 iCountBig = 0;
 					UINT32 bRBig = 0, bGBig = 0, bBBig = 0;
@@ -439,7 +659,7 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 
 					pDestBuf[(iYBig * (uiDestPitchBYTES / 2)) + iXBig] = sDestBig;
 
-					SGPPaletteEntry* const dstBig = &p24BitValuesBig[iYBig * RADAR_BIG_X_SIZE + iXBig];
+					SGPPaletteEntry* const dstBig = &values[iYBig * w + iXBig];
 					dstBig->r = bAvRBig;
 					dstBig->g = bAvGBig;
 					dstBig->b = bAvBBig;
@@ -453,24 +673,109 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 
 		SGPPaletteEntry pPaletteBig[256];
 		ST::string zFilenameBig;
-		{ SGPVSurface::Lock lsrc(gi8BitMiniMapBig);
+		{ SGPVSurface::Lock lsrc(surf8);
 			UINT8* const pDataPtrBig = lsrc.Buffer<UINT8>();
 			// sMaxColors capped to 254 -- see the small pass's own comment above.
-			QuantizeImage(pDataPtrBig, p24BitValuesBig.get(), RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, pPaletteBig, 254);
-			ReserveTransparentPaletteIndex(pDataPtrBig, pPaletteBig, RADAR_BIG_X_SIZE * RADAR_BIG_Y_SIZE);
-			gi8BitMiniMapBig->SetPalette(pPaletteBig);
+			QuantizeImage(pDataPtrBig, values, w, h, pPaletteBig, 254);
+			ReserveTransparentPaletteIndex(pDataPtrBig, pPaletteBig, w * h);
+			surf8->SetPalette(pPaletteBig);
 
-			zFilenameBig = FileMan::replaceExtension(*currentFile, "big.sti");
-			WriteSTIFile(pDataPtrBig, pPaletteBig, RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, zFilenameBig, CONVERT_ETRLE_COMPRESS, 0);
+			zFilenameBig = FileMan::replaceExtension(*currentFile, extension);
+			WriteSTIFile(pDataPtrBig, pPaletteBig, w, h, zFilenameBig, CONVERT_ETRLE_COMPRESS, 0);
 		}
 
-		SetFontAttributes(TINYFONT1, FONT_MCOLOR_DKGRAY);
-		MPrint(10, 330, ST::format("Writing big radar image {}", zFilenameBig));
+		(void)text_y;
+		written.push_back(ST::format("Writing {}x{} radar image {}", w, h, zFilenameBig));
+	};
+	// 580x290 is close to the source's size (a sample every 1.1 px): a 2x2 px
+	// window keeps it sharp, the 4x4 one blurred it.
+	if (g_write_size[SIZE_BIG])      write_resampled(RADAR_BIG_X_SIZE, RADAR_BIG_Y_SIZE, p24BitValuesBig.get(), giMiniMapBig, gi8BitMiniMapBig, "big.sti", 330, 1);
+
+	INT16 text_y = 330;
+	if (g_write_size[SIZE_OVERHEAD])
+	{
+		/* The 800x400 map: from the sector drawn 1:1 -- the part the overhead
+		 * map shows, its restricted part for a restricted map (the bounds above
+		 * are overhead map pixels, 5 world pixels each) --, every pixel the
+		 * average of its block of the picture (4x4 for a whole sector). */
+		bool  const restricted = gMapInformation.ubRestrictedScrollID != 0;
+		INT32 const wx = WORLD_PICTURE_X + (restricted ? sLeft * 5 : 0);
+		INT32 const wy = WORLD_PICTURE_Y + (restricted ? sTop  * 5 : 0);
+		INT32 const ww = restricted ? std::clamp((sRight  - sLeft) * 5, 5, int(WORLD_PICTURE_W)) : WORLD_PICTURE_W;
+		INT32 const wh = restricted ? std::clamp((sBottom - sTop)  * 5, 5, int(WORLD_PICTURE_H)) : WORLD_PICTURE_H;
+		CaptureWorldPicture(giWorldPicture, wx, wy, ww, wh);
+
+		INT32 const w = RADAR_OVERHEAD_X_SIZE;
+		INT32 const h = RADAR_OVERHEAD_Y_SIZE;
+		{ SGPVSurface::Lock lsrc(giWorldPicture);
+			SGPVSurface::Lock ldst(giMiniMapOverhead);
+			UINT16 const* const src       = lsrc.Buffer<UINT16>();
+			UINT16*       const dst       = ldst.Buffer<UINT16>();
+			UINT32        const src_pitch = lsrc.Pitch() / 2;
+			UINT32        const dst_pitch = ldst.Pitch() / 2;
+			for (INT32 oy = 0; oy != h; ++oy)
+			{
+				INT32 const y0 = oy * wh / h;
+				INT32 const y1 = std::max(y0 + 1, (oy + 1) * wh / h);
+				for (INT32 ox = 0; ox != w; ++ox)
+				{
+					INT32 const x0 = ox * ww / w;
+					INT32 const x1 = std::max(x0 + 1, (ox + 1) * ww / w);
+					UINT32 r = 0;
+					UINT32 g = 0;
+					UINT32 b = 0;
+					for (INT32 py = y0; py != y1; ++py)
+					{
+						for (INT32 px = x0; px != x1; ++px)
+						{
+							UINT32 const rgb = GetRGBColor(src[py * src_pitch + px]);
+							r += SGPGetRValue(rgb);
+							g += SGPGetGValue(rgb);
+							b += SGPGetBValue(rgb);
+						}
+					}
+					UINT32 const n = (y1 - y0) * (x1 - x0);
+					SGPPaletteEntry& value = p24BitValuesOverhead[oy * w + ox];
+					value.r = (UINT8)(r / n);
+					value.g = (UINT8)(g / n);
+					value.b = (UINT8)(b / n);
+					dst[oy * dst_pitch + ox] = Get16BPPColor(FROMRGB(value.r, value.g, value.b));
+				}
+			}
+		}
+
+		SGPPaletteEntry palette[256];
+		ST::string      filename;
+		{ SGPVSurface::Lock l(gi8BitMiniMapOverhead);
+			UINT8* const data = l.Buffer<UINT8>();
+			// sMaxColors capped to 254 -- see the small pass's own comment above.
+			QuantizeImage(data, p24BitValuesOverhead.get(), w, h, palette, 254);
+			ReserveTransparentPaletteIndex(data, palette, w * h);
+			gi8BitMiniMapOverhead->SetPalette(palette);
+			filename = FileMan::replaceExtension(*currentFile, "overhead.sti");
+			WriteSTIFile(data, palette, w, h, filename, CONVERT_ETRLE_COMPRESS, 0);
+		}
+		written.push_back(ST::format("Writing {}x{} radar image {}", w, h, filename));
+
+		// The viewports were drawn over the frame: show the result instead.
+		FRAME_BUFFER->Fill(Get16BPPColor(FROMRGB(0, 0, 0)));
+		BltVideoSurface(FRAME_BUFFER, giMiniMapOverhead, 10, 10, NULL);
+		text_y = 10 + h + 10;
 	}
 
+	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontAttributes(TINYFONT1, FONT_MCOLOR_DKGRAY);
-	MPrint(10, 340, ST::format("Writing radar image {}", zFilename2));
-	MPrint(10, 350, ST::format("Using tileset {}", gTilesets[giCurrentTilesetID].zName));
+	for (ST::string const& line : written)
+	{
+		MPrint(10, text_y, line);
+		text_y += 10;
+	}
+	if (g_write_size[SIZE_SMALL])
+	{
+		MPrint(10, text_y, ST::format("Writing radar image {}", zFilename2));
+		text_y += 10;
+	}
+	MPrint(10, text_y, ST::format("Using tileset {}", gTilesets[giCurrentTilesetID].zName));
 
 	InvalidateScreen();
 	RefreshScreen();

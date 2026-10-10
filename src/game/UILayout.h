@@ -54,7 +54,7 @@
 #define STD_SCREEN_WIDTH                (640)
 #define STD_SCREEN_HEIGHT               (480)
 // MAP_SCREEN_X/Y centers the strategic map's own, larger canvas
-// (MAP_SCREEN_WIDTH x MAP_SCREEN_HEIGHT, 1024 or 1280 x 768/720) -- use this (not
+// (MAP_SCREEN_WIDTH x MAP_SCREEN_HEIGHT, 1024, 1280 or 1366 x 768/720) -- use this (not
 // STD_SCREEN_X/Y) for anything drawn as part of the strategic map screen
 // itself.
 #define MAP_SCREEN_X                    (g_ui.m_mapScreenOffsetX)
@@ -69,23 +69,33 @@
 #define MAP_SCREEN_BOTTOM               (MAP_SCREEN_Y + MAP_SCREEN_HEIGHT)
 
 // Wide strategic screen (screen width >= WIDE_STRATEGIC_SCREEN_WIDTH): the
-// map canvas is a fixed 1280px wide (centered on anything wider). The left
+// map canvas is 1280px wide, or 1366px wide on the 1366x768 base (screen at
+// least EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH wide and LARGE tier tall -- see
+// isExtraWideStrategicScreen()); centered on anything wider. The left
 // column (charinfo/newgoldpiece3/mapinv/iteminfoc, pre-battle panel) and
 // the left part of map_screen_bottom stay on MAP_SCREEN_X; the map itself,
 // MBS and everything drawn on it (border buttons of the large tier, ETA,
 // map view, sector inventory, map popups) use MAP_SCREEN_RIGHT_BLOCK_X,
-// which is shifted right by MAP_RIGHT_BLOCK_SHIFT, leaving a free space
+// which is shifted right by MAP_RIGHT_BLOCK_SHIFT (canvas width - 1024:
+// 256 on the 1280 canvas, 342 on the 1366 one), leaving a free space
 // between the two (filled with background_middle_wide_*.sti). On the legacy
 // 1024px canvas MAP_SCREEN_RIGHT_BLOCK_X == MAP_SCREEN_X.
-#define WIDE_STRATEGIC_SCREEN_WIDTH     (1280)
-#define MAP_LEGACY_CANVAS_WIDTH         (1024)   // width the right block's own coordinates were laid out for
-#define MAP_RIGHT_BLOCK_SHIFT           (WIDE_STRATEGIC_SCREEN_WIDTH - MAP_LEGACY_CANVAS_WIDTH)   // 256
-#define MAP_SCREEN_RIGHT_BLOCK_X        (g_ui.m_mapRightBlockOffsetX)
+#define WIDE_STRATEGIC_SCREEN_WIDTH       (1280)
+#define EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH (1366)
+#define MAP_LEGACY_CANVAS_WIDTH           (1024)   // width the right block's own coordinates were laid out for
+#define MAP_RIGHT_BLOCK_SHIFT             (g_ui.m_mapRightBlockShift)   // 0, 256 or 342
+#define MAP_SCREEN_RIGHT_BLOCK_X          (g_ui.m_mapRightBlockOffsetX)
 // The free space's own column (X relative to MAP_SCREEN_X) -- starts under
 // the left column's last pixel column, the same 1px overlap MBS has always
 // had with it; the left column is drawn on top.
 #define MAP_MIDDLE_BACKGROUND_X         (MAP_SCREEN_X + 261)
 #define MAP_MIDDLE_BACKGROUND_WIDTH     (MAP_RIGHT_BLOCK_SHIFT)
+
+// The strategic screen's merc inventory panel (mapinv) is laid out for
+// MAP_SCREEN_Y + 107; on the 1366x768 interface (isExtraWideStrategicScreen())
+// it and everything on it sit MAP_INV_SHIFT_Y lower (y 133, below the
+// character info panel's top part).
+#define MAP_INV_SHIFT_Y                 (g_ui.isExtraWideStrategicScreen() ? 26 : 0)
 
 #define SM_BODYINV_X                    (INTERFACE_START_X + 324)
 #define SM_BODYINV_Y                    (INV_INTERFACE_START_Y + 6)
@@ -201,6 +211,7 @@ public:
 	UINT16                m_mapScreenOffsetX;             /** Offset of the strategic map's own canvas (m_mapScreenWidth x m_mapScreenHeight) -- see MAP_SCREEN_X/Y */
 	UINT16                m_mapScreenOffsetY;             /** Offset of the strategic map's own canvas (m_mapScreenWidth x m_mapScreenHeight) -- see MAP_SCREEN_X/Y */
 	UINT16                m_mapRightBlockOffsetX;         /** Offset of the strategic map's right block (MBS, map, sector inventory) -- see MAP_SCREEN_RIGHT_BLOCK_X */
+	UINT16                m_mapRightBlockShift;           /** How far the right block sits right of where the legacy 1024 canvas had it (m_mapScreenWidth - 1024 on the wide strategic screen, else 0) -- see MAP_RIGHT_BLOCK_SHIFT */
 
 	/** Constructor.
 	 * @param screenWidth Screen width
@@ -218,6 +229,9 @@ public:
 
 	/** True when the active resolution uses the wide (1280px) strategic screen canvas, i.e. screen width >= WIDE_STRATEGIC_SCREEN_WIDTH. */
 	bool isWideStrategicScreen() const;
+
+	/** True when the active resolution uses the 1366px wide strategic screen canvas (the 1366x768 base): screen at least EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH wide and not compact. Implies isWideStrategicScreen(). */
+	bool isExtraWideStrategicScreen() const;
 
 	UINT16 currentHeight() const;
 	UINT16 get_CLOCK_X() const;

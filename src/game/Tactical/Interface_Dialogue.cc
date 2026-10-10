@@ -1647,7 +1647,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 				gFadeOutDoneCallback = DoneFadeOutActionBasement;
 
-				FadeOutGameScreen( );
+				FadeOutGameScreenInstantly();
 				break;
 			}
 
@@ -1929,7 +1929,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 				gFadeOutDoneCallback = DoneFadeOutActionLeaveBasement;
 
-				FadeOutGameScreen( );
+				FadeOutGameScreenInstantly();
 
 				// turn off engaged in conv stuff
 				gTacticalStatus.uiFlags &= ~ENGAGED_IN_CONV;
@@ -4263,7 +4263,7 @@ static void DialogueMessageBoxCallBack(MessageBoxReturnValue const ubExitValue)
 						// Mary might be alive, and if so we need to ensure two places
 						pSoldier = FindSoldierByProfileID(MARY);
 						if (pSoldier != NULL &&
-								NumberOfMercsOnPlayerTeam() > gTacticalStatus.Team[OUR_TEAM].bLastID - 3u)
+								NumberOfPlayerTeamSlotsUsed() + 2 > PLAYER_TEAM_SIZE)
 						{
 							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, TacticalStr[ CANNOT_RECRUIT_TEAM_FULL ] );
 							break;

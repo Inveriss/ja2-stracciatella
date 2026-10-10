@@ -295,6 +295,8 @@ BOOLEAN CheckForEndOfCombatMode( BOOLEAN fIncrementTurnsNotSeen );
 
 SOLDIERTYPE* FreeUpAttacker(SOLDIERTYPE* attacker);
 
+// Slots of the player's team taken, vehicles included (PLAYER_TEAM_SIZE at most).
+UINT NumberOfPlayerTeamSlotsUsed(void);
 BOOLEAN PlayerTeamFull(void);
 
 void SetActionToDoOnceMercsGetToLocation(UINT8 ubActionCode, INT8 bNumMercsWaiting);

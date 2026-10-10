@@ -26,6 +26,8 @@ extern const char g_version_number[16];
 // 8 -> 100, Item_Types.h) -- old saves have a different byte layout for
 // every stored item and must not be loaded against this build.
 // Bumped again for sSpreadLocations going from 10 to 100 entries (+180 bytes per soldier).
-constexpr UINT32 SAVE_GAME_VERSION = 107;
+// 108: the player's team has 100 slots instead of 20 (PLAYER_TEAM_SIZE) -- every
+// soldier ID from the enemy team on moved, older saves can't be loaded.
+constexpr UINT32 SAVE_GAME_VERSION = 108;
 
 #endif

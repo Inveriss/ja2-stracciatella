@@ -26,6 +26,7 @@
 #include "Structure.h"
 #include "SysUtil.h"
 #include "Sys_Globals.h"
+#include "Tactical_Placement_GUI.h"
 #include "TileDef.h"
 #include "Tile_Cache.h"
 #include "Timer.h"
@@ -176,6 +177,8 @@ static INT16 gsLEndYS;
 INT16 gsScrollXOffset = 0;
 INT16 gsScrollYOffset = 0;
 INT16 gsScrollXIncrement;
+INT16 gsScrollTopExtra    = 0;
+INT16 gsScrollBottomExtra = 0;
 INT16 gsScrollYIncrement;
 
 BOOLEAN gfScrolledToLeft;
@@ -1982,7 +1985,9 @@ static void RenderDynamicWorld(void)
 		RENDER_DYNAMIC_ONROOF,
 		RENDER_DYNAMIC_TOPMOST);
 
-	if (!GameMode::getInstance()->isEditorMode() || !gfEditMode)
+	// The tactical placement (1:1 view) has no tactical panel: its own panel
+	// is drawn over the world afterwards.
+	if ((!GameMode::getInstance()->isEditorMode() || !gfEditMode) && !gfTacticalPlacementGUIActive)
 	{
 		RenderTacticalInterface();
 	}
@@ -2373,6 +2378,11 @@ static BOOLEAN ApplyScrolling(INT16 sTempRenderCenterX, INT16 sTempRenderCenterY
 	const INT16 sX_S = g_ui.m_tacticalMapCenterX;
 	const INT16 sY_S = g_ui.m_tacticalMapCenterY;
 
+	// The tactical placement's panel covers a part of the view: the world may
+	// go that much further, so the map's edge can be brought out from under it.
+	const INT16 top_padding    = SCROLL_TOP_PADDING    - gsScrollTopExtra;
+	const INT16 bottom_padding = SCROLL_BOTTOM_PADDING + gsScrollBottomExtra;
+
 	// Get corners in screen coords
 	const INT16 sTopLeftWorldX = sScreenCenterX - sX_S;
 	const INT16 sTopLeftWorldY = sScreenCenterY - sY_S;
@@ -2383,10 +2393,10 @@ static BOOLEAN ApplyScrolling(INT16 sTempRenderCenterX, INT16 sTempRenderCenterY
 	// Checking if screen shows areas outside of the map
 	const BOOLEAN fOutLeft   = (gsLeftX + SCROLL_LEFT_PADDING > sTopLeftWorldX);
 	const BOOLEAN fOutRight  = (gsRightX + SCROLL_RIGHT_PADDING < sBottomRightWorldX);
-	const BOOLEAN fOutTop    = (gsTopY + SCROLL_TOP_PADDING >= sTopLeftWorldY);            /* top of the screen is above top of the map */
-	const BOOLEAN fOutBottom = (gsBottomY + SCROLL_BOTTOM_PADDING < sBottomRightWorldY);          /* bottom of the screen is below bottom if the map */
+	const BOOLEAN fOutTop    = (gsTopY + top_padding >= sTopLeftWorldY);            /* top of the screen is above top of the map */
+	const BOOLEAN fOutBottom = (gsBottomY + bottom_padding < sBottomRightWorldY);          /* bottom of the screen is below bottom if the map */
 
-	const int mapHeight = (gsBottomY + SCROLL_BOTTOM_PADDING) - (gsTopY + SCROLL_TOP_PADDING);
+	const int mapHeight = (gsBottomY + bottom_padding) - (gsTopY + top_padding);
 	const int screenHeight = gsVIEWPORT_END_Y - gsVIEWPORT_START_Y;
 
 	const int mapWidth = (gsRightX + SCROLL_RIGHT_PADDING) - (gsLeftX + SCROLL_LEFT_PADDING);
@@ -2435,15 +2445,15 @@ static BOOLEAN ApplyScrolling(INT16 sTempRenderCenterX, INT16 sTempRenderCenterY
 			if (screenHeight > mapHeight)
 			{
 				// printf("screen height is bigger than map height\n");
-				newScreenCenterY = gsCY + (SCROLL_TOP_PADDING + SCROLL_BOTTOM_PADDING) / 2;
+				newScreenCenterY = gsCY + (top_padding + bottom_padding) / 2;
 			}
 			else if (fOutTop)
 			{
-				newScreenCenterY = gsTopY + SCROLL_TOP_PADDING + sY_S;
+				newScreenCenterY = gsTopY + top_padding + sY_S;
 			}
 			else if (fOutBottom)
 			{
-				newScreenCenterY = gsBottomY + SCROLL_BOTTOM_PADDING - sY_S;
+				newScreenCenterY = gsBottomY + bottom_padding - sY_S;
 			}
 
 			if (screenWidth > mapWidth)
@@ -2483,8 +2493,8 @@ static BOOLEAN ApplyScrolling(INT16 sTempRenderCenterX, INT16 sTempRenderCenterY
 
 		gfScrolledToLeft   = std::abs(sTopLeftWorldX  - gsLeftX) <= std::abs(SCROLL_LEFT_PADDING);
 		gfScrolledToRight  = std::abs(sBottomRightWorldX  - gsRightX) <= std::abs(SCROLL_RIGHT_PADDING) + CELL_X_SIZE;
-		gfScrolledToTop    = std::abs(sTopLeftWorldY  - gsTopY) <= std::abs(SCROLL_TOP_PADDING);
-		gfScrolledToBottom = std::abs(sBottomRightWorldY  - gsBottomY) <= std::abs(SCROLL_BOTTOM_PADDING) + CELL_Y_SIZE * 2;
+		gfScrolledToTop    = std::abs(sTopLeftWorldY  - gsTopY) <= std::abs(top_padding);
+		gfScrolledToBottom = std::abs(sBottomRightWorldY  - gsBottomY) <= std::abs(bottom_padding) + CELL_Y_SIZE * 2;
 
 		SetPositionSndsVolumeAndPanning();
 	}
@@ -4386,6 +4396,14 @@ static BOOLEAN IsTileRedundant(UINT16* pZBuffer, UINT16 usZValue, HVOBJECT hSrcV
 	}
 	while (--usHeight > 0);
 	return fHidden;
+}
+
+
+void RenderWorldForSnapshot(INT16 const sCellX, INT16 const sCellY)
+{
+	ApplyScrolling(sCellX, sCellY, TRUE, FALSE);
+	std::fill_n(gpZBuffer, gsVIEWPORT_END_Y * SCREEN_WIDTH, LAND_Z_LEVEL);
+	RenderStaticWorldRect(gsVIEWPORT_START_X, gsVIEWPORT_START_Y, gsVIEWPORT_END_X, gsVIEWPORT_END_Y, TRUE);
 }
 
 

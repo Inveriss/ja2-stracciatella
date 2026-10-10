@@ -1392,14 +1392,14 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 			if (in_map && IsMapInvBigImages() && big_cover_exists)
 			{
 				INT32 const x = MAP_SCREEN_X + MAP_INV_2ND_GUN_COVER_BIG_X;
-				INT32 const y = MAP_SCREEN_Y + MAP_INV_2ND_GUN_COVER_BIG_Y;
+				INT32 const y = MAP_SCREEN_Y + MAP_INV_SHIFT_Y + MAP_INV_2ND_GUN_COVER_BIG_Y;
 				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockoutBig, 0, x, y);
 				RestoreExternBackgroundRect(x, y, MAP_INV_2ND_GUN_COVER_BIG_WIDTH, MAP_INV_2ND_GUN_COVER_BIG_HEIGHT);
 			}
 			else if (in_map)
 			{
 				INT32 const x = MAP_SCREEN_X + MAP_INV_2ND_GUN_COVER_X;
-				INT32 const y = MAP_SCREEN_Y + MAP_INV_2ND_GUN_COVER_Y;
+				INT32 const y = MAP_SCREEN_Y + MAP_INV_SHIFT_Y + MAP_INV_2ND_GUN_COVER_Y;
 				BltVideoObject(guiSAVEBUFFER, guiMapInvSecondHandBlockout, 0, x, y);
 				RestoreExternBackgroundRect(x, y, MAP_INV_2ND_GUN_COVER_WIDTH, MAP_INV_2ND_GUN_COVER_HEIGHT);
 			}
@@ -1429,20 +1429,7 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 	// sector inventory's big mode (IsMapInvBigImages(), MapScreen.cc).
 	BOOLEAN const big = in_map && IsMapInvBigImages();
 	InvItemTextLayout big_text{};
-	if (big)
-	{
-		// Falls back to ITEM_FONT if the dedicated font lacks a glyph the
-		// counts or the (localized) "JAMMED" strings need.
-		bool const has_glyphs = FontHasGlyphsFor(MAP_BIG_COUNT_FONT,
-			ST::string("0123456789") + TacticalStr[JAMMED_ITEM_STR] + TacticalStr[SHORT_JAMMED_GUN]);
-		big_text = InvItemTextLayout{
-			has_glyphs ? MAP_BIG_COUNT_FONT : ITEM_FONT,
-			MAP_BIG_AMMO_TEXT_X, MAP_BIG_AMMO_TEXT_FROM_BOTTOM,
-			MAP_BIG_STACK_TEXT_FROM_RIGHT, MAP_BIG_STACK_TEXT_FROM_BOTTOM,
-			MAP_BIG_COUNT_COL_AP, MAP_BIG_COUNT_COL_HP, MAP_BIG_COUNT_COL_BUCKSHOT,
-			MAP_BIG_COUNT_COL_HE, MAP_BIG_COUNT_COL_HEAP, MAP_BIG_COUNT_COL_AMMO,
-			MAP_BIG_COUNT_COL_STACK, MAP_BIG_COUNT_COL_JAMMED };
-	}
+	if (big) big_text = GetMapInvBigItemTextLayout();
 	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline, big, big ? &big_text : NULL);
 
 	if (gbInvalidPlacementSlot[pocket])
@@ -2172,6 +2159,22 @@ void DegradeNewlyAddedItems( )
 
 UINT8 GetAttachmentHintColor(const OBJECTTYPE* o) {
 	return FindAttachmentByClass(o, IC_LAUNCHER) == NO_SLOT ? FONT_GREEN : FONT_YELLOW;
+}
+
+
+InvItemTextLayout GetMapInvBigItemTextLayout()
+{
+	// Falls back to ITEM_FONT if the dedicated font lacks a glyph the
+	// counts or the (localized) "JAMMED" strings need.
+	bool const has_glyphs = FontHasGlyphsFor(MAP_BIG_COUNT_FONT,
+		ST::string("0123456789") + TacticalStr[JAMMED_ITEM_STR] + TacticalStr[SHORT_JAMMED_GUN]);
+	return InvItemTextLayout{
+		has_glyphs ? MAP_BIG_COUNT_FONT : ITEM_FONT,
+		MAP_BIG_AMMO_TEXT_X, MAP_BIG_AMMO_TEXT_FROM_BOTTOM,
+		MAP_BIG_STACK_TEXT_FROM_RIGHT, MAP_BIG_STACK_TEXT_FROM_BOTTOM,
+		MAP_BIG_COUNT_COL_AP, MAP_BIG_COUNT_COL_HP, MAP_BIG_COUNT_COL_BUCKSHOT,
+		MAP_BIG_COUNT_COL_HE, MAP_BIG_COUNT_COL_HEAP, MAP_BIG_COUNT_COL_AMMO,
+		MAP_BIG_COUNT_COL_STACK, MAP_BIG_COUNT_COL_JAMMED };
 }
 
 

@@ -114,7 +114,7 @@ static UINT8 gubNumberofDisplayedInsuranceGrids;
 
 static BOOLEAN gfChangeInsuranceFormButtons = FALSE;
 
-static SOLDIERTYPE* g_insurance_merc_array[20];
+static SOLDIERTYPE* g_insurance_merc_array[PLAYER_TEAM_SIZE];
 static UINT         g_n_insurable_mercs;
 UINT16              gusCurrentInsuranceMercIndex;
 

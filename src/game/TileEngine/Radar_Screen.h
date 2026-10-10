@@ -40,19 +40,25 @@ extern BOOLEAN   fRenderRadarScreen;
 // runtime scaling, same convention as RADAR_WINDOW_WIDTH/HEIGHT above.
 // Position/frame per user request -- one shared frame graphic for both
 // screen-height tiers (g_ui.isCompactStrategicScreen()), only Y differs.
-#define RADAR_WINDOW_BIG_WIDTH		238
-#define RADAR_WINDOW_BIG_HEIGHT		119
+// 1366x768 with SECTOR_INVENTORY_RADARMAP_1366x768.png (604x316, its window
+// 580x290 at (11, 17)): that panel at the screen's left and bottom edges and
+// the 580x290 maps (see BigRadarUsesPanel1366()); else the 238x119 ones.
+bool BigRadarUsesPanel1366();
+#define RADAR_WINDOW_BIG_WIDTH		(BigRadarUsesPanel1366() ? 580 : 238)
+#define RADAR_WINDOW_BIG_HEIGHT		(BigRadarUsesPanel1366() ? 290 : 119)
 #define RADAR_WINDOW_BIG_FRAME_X	0
 #define RADAR_WINDOW_BIG_FRAME_Y	(g_ui.isCompactStrategicScreen() ? 573 : 621)
 #define RADAR_WINDOW_BIG_X			12
 #define RADAR_WINDOW_BIG_Y			(g_ui.isCompactStrategicScreen() ? 591 : 639)
 // Wide strategic screen (UILayout::isWideStrategicScreen()): the minimap
 // and its frame's opening move right by RADAR_WINDOW_BIG_WIDE_SHIFT (Y
-// unchanged, both height tiers). Its frame is SECTOR_INVENTORY_MINIMAP_wide.sti
+// unchanged, both height tiers) -- with the sector inventory window it sits
+// in, i.e. the right block's shift less 2 px (254 on the 1280 canvas, 340 on
+// the 1366 one). Its frame is SECTOR_INVENTORY_MINIMAP_wide.sti
 // -- same opening as the legacy frame, only its sides are wider, the left one
 // by RADAR_WINDOW_BIG_WIDE_FRAME_EXTRA_LEFT px, so the frame image itself is
 // drawn that much further left to keep the opening around the minimap.
-#define RADAR_WINDOW_BIG_WIDE_SHIFT				254
+#define RADAR_WINDOW_BIG_WIDE_SHIFT				(MAP_RIGHT_BLOCK_SHIFT - 2)
 #define RADAR_WINDOW_BIG_WIDE_FRAME_EXTRA_LEFT	3
 
 void LoadBigRadarScreenBitmap(const ST::string&);

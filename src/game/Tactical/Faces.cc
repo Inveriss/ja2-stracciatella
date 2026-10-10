@@ -51,9 +51,6 @@
 
 
 
-// Defines
-#define NUM_FACE_SLOTS 50
-
 
 // GLOBAL FOR FACES LISTING
 static FACETYPE gFacesData[NUM_FACE_SLOTS];

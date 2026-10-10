@@ -25,6 +25,8 @@
 #include "Map_Screen_Interface_Border.h"
 #include "Map_Screen_Interface_Bottom.h"
 #include "Map_Screen_Interface_Map.h"
+#include "Interface_Utils.h"
+#include "VObject_Blitters.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "MapScreen.h"
 #include "MercPortrait.h"
@@ -60,15 +62,19 @@
 #include "WordWrap.h"
 #include <algorithm>
 #include <iterator>
+#include <vector>
 #include <string_theory/format>
 #include <string_theory/string>
 
 // number of LINKED LISTS for sets of leave items (each slot holds an unlimited # of items)
 #define NUM_LEAVE_LIST_SLOTS 20
 
-#define SELECTED_CHAR_ARROW_X (MAP_SCREEN_X + 8)
+// 1366x768 (the 14x24 selectedchararrow.sti): 6 px further right and 3 px
+// higher, per user request.
+#define SELECTED_CHAR_ARROW_X  (MAP_SCREEN_X + 8 + (g_ui.isExtraWideStrategicScreen() ? 6 : 0))
+#define SELECTED_CHAR_ARROW_DY (g_ui.isExtraWideStrategicScreen() ? -3 : 0)
 
-#define SIZE_OF_UPDATE_BOX 20
+#define SIZE_OF_UPDATE_BOX PLAYER_TEAM_SIZE
 
 // as deep as the map goes
 #define MAX_DEPTH_OF_MAP 3
@@ -576,7 +582,7 @@ void RestoreBackgroundForAssignmentGlowRegionList( void )
 	if( iOldAssignmentLine != giAssignHighLine )
 	{
 		// restore background
-		RestoreExternBackgroundRect( ASSIGN_X, Y_START - 1, ASSIGN_WIDTH, ( INT16 )( ( ( MAX_CHARACTER_COUNT + 1 ) * ( Y_SIZE + 2 ) ) + 1 ) );
+		RestoreExternBackgroundRect( ASSIGN_X, Y_START - 1, ASSIGN_WIDTH, ( INT16 )TEAM_LIST_ROWS_HEIGHT );
 
 		// ARM: not good enough! must reblit the whole panel to erase glow chunk restored by help text disappearing!!!
 		fTeamPanelDirty = TRUE;
@@ -601,7 +607,7 @@ void RestoreBackgroundForDestinationGlowRegionList( void )
 	if( iOldDestinationLine != giDestHighLine )
 	{
 		// restore background
-		RestoreExternBackgroundRect( DEST_ETA_X, Y_START - 1, DEST_ETA_WIDTH, ( INT16 )( ( ( MAX_CHARACTER_COUNT + 1 ) * ( Y_SIZE + 2 ) ) + 1 ) );
+		RestoreExternBackgroundRect( DEST_ETA_X, Y_START - 1, DEST_ETA_WIDTH, ( INT16 )TEAM_LIST_ROWS_HEIGHT );
 
 		// ARM: not good enough! must reblit the whole panel to erase glow chunk restored by help text disappearing!!!
 		fTeamPanelDirty = TRUE;
@@ -626,7 +632,7 @@ void RestoreBackgroundForContractGlowRegionList( void )
 	if( iOldContractLine != giContractHighLine )
 	{
 		// restore background
-		RestoreExternBackgroundRect( TIME_REMAINING_X, Y_START - 1, TIME_REMAINING_WIDTH, ( INT16 )( ( ( MAX_CHARACTER_COUNT + 1 ) * ( Y_SIZE + 2 ) ) + 1 ) ) ;
+		RestoreExternBackgroundRect( TIME_REMAINING_X, Y_START - 1, TIME_REMAINING_WIDTH, ( INT16 )TEAM_LIST_ROWS_HEIGHT ) ;
 
 		// ARM: not good enough! must reblit the whole panel to erase glow chunk restored by help text disappearing!!!
 		fTeamPanelDirty = TRUE;
@@ -652,7 +658,7 @@ void RestoreBackgroundForSleepGlowRegionList( void )
 	if( iOldSleepHighLine != giSleepHighLine )
 	{
 		// restore background
-		RestoreExternBackgroundRect( SLEEP_X, Y_START - 1, SLEEP_WIDTH, ( INT16 )( ( ( MAX_CHARACTER_COUNT + 1 ) * ( Y_SIZE + 2 ) ) + 1 ) ) ;
+		RestoreExternBackgroundRect( SLEEP_X, Y_START - 1, SLEEP_WIDTH, ( INT16 )TEAM_LIST_ROWS_HEIGHT ) ;
 
 		// ARM: not good enough! must reblit the whole panel to erase glow chunk restored by help text disappearing!!!
 		fTeamPanelDirty = TRUE;
@@ -957,14 +963,43 @@ void CheckAndUpdateBasedOnContractTimes( void )
 }
 
 
+INT32 giTeamListFirstPerson  = 0;
+INT32 giTeamListFirstVehicle = 0;
+
+
+INT32 TeamListRowOfEntry(INT32 const i)
+{
+	if (i < 0 || i >= MAX_CHARACTER_COUNT) return -1;
+	if (i < FIRST_VEHICLE)
+	{
+		INT32 const r = i - giTeamListFirstPerson;
+		return 0 <= r && r < TEAM_LIST_PEOPLE_ROWS ? r : -1;
+	}
+	INT32 const v = i - FIRST_VEHICLE - giTeamListFirstVehicle;
+	return 0 <= v && v < TEAM_LIST_VEHICLE_ROWS ? TEAM_LIST_PEOPLE_ROWS + v : -1;
+}
+
+
+INT16 TeamListRowY(INT32 const row)
+{
+	return Y_START + row * TEAM_LIST_ROW_PITCH + (row >= TEAM_LIST_PEOPLE_ROWS ? TEAM_LIST_VEHICLE_DY(row) : 0);
+}
+
+
+INT16 TeamListEntryY(INT32 const i)
+{
+	return TeamListRowY(TeamListRowOfEntry(i));
+}
+
+
 void HandleDisplayOfSelectedMercArrows()
 {
 	if (!GetSelectedInfoChar()) return;
 	if (fShowInventoryFlag)     return;
 
+	if (TeamListRowOfEntry(bSelectedInfoChar) != -1)
 	{ // Blit one by the selected merc
-		INT16 y = Y_START + bSelectedInfoChar * (Y_SIZE + 2) - 1;
-		if (bSelectedInfoChar >= FIRST_VEHICLE) y += 6;
+		INT16 const y = TeamListEntryY(bSelectedInfoChar) - 1 + SELECTED_CHAR_ARROW_DY;
 		BltVideoObject(guiSAVEBUFFER, guiSelectedCharArrow, 0,SELECTED_CHAR_ARROW_X, y);
 	}
 
@@ -977,9 +1012,9 @@ void HandleDisplayOfSelectedMercArrows()
 
 		// Is he in the selected list or in the same mvt group as this guy?
 		if (!IsEntryInSelectedListSet(i) && (s->ubGroupID == 0 || s->ubGroupID != dest_group)) continue;
+		if (TeamListRowOfEntry(i) == -1) continue;
 
-		INT16 y = Y_START + i * (Y_SIZE + 2) - 1;
-		if (i >= FIRST_VEHICLE) y += 6;
+		INT16 const y = TeamListEntryY(i) - 1 + SELECTED_CHAR_ARROW_DY;
 		BltVideoObject(guiSAVEBUFFER, guiSelectedCharArrow, 0, SELECTED_CHAR_ARROW_X, y);
 	}
 }
@@ -1264,6 +1299,14 @@ void CreateMapStatusBarsRegion( void )
 {
 
 	// create the status region over the bSelectedCharacter info region, to get quick rundown of merc's status
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		// over the three tall bars of the 1366x768 interface
+		MSYS_DefineRegion(&gMapStatusBarsRegion, BAR_TALL_LIFE_X, BAR_TALL_TOP_Y,
+			BAR_TALL_MORALE_X + BAR_TALL_WIDTH, BAR_TALL_TOP_Y + BAR_TALL_HEIGHT, MSYS_PRIORITY_HIGH + 5,
+			MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+		return;
+	}
 	MSYS_DefineRegion( &gMapStatusBarsRegion, BAR_INFO_X - 3, BAR_INFO_Y - 42,(INT16)( BAR_INFO_X + 17), (INT16)(BAR_INFO_Y ), MSYS_PRIORITY_HIGH + 5,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK );
 }
@@ -1324,7 +1367,14 @@ void UpdateCharRegionHelpText(void)
 	gMapStatusBarsRegion.SetFastHelpText(status);
 
 	// update contract button help text
-	EnableButton(giMapContractButton, s && CanExtendContractForSoldier(s));
+	bool const can_extend = s && CanExtendContractForSoldier(s);
+	// 1366x768: the button is an invisible hot spot over the Contract header,
+	// whose text (drawn with the panel) greys out with it -- repaint on change
+	if (g_ui.isExtraWideStrategicScreen() && giMapContractButton && giMapContractButton->Enabled() != can_extend)
+	{
+		fCharacterInfoPanelDirty = TRUE;
+	}
+	EnableButton(giMapContractButton, can_extend);
 }
 
 
@@ -1384,7 +1434,7 @@ void UpdateMapScreenAssignmentPositions( void )
 	}
 	else
 	{
-		giBoxY = ( Y_START + ( bSelectedAssignChar ) * ( Y_SIZE + 2 ) );
+		giBoxY = TeamListRowOfEntry(bSelectedAssignChar) != -1 ? TeamListEntryY(bSelectedAssignChar) : Y_START;
 
 /* ARM: Removed this - refreshes fine without it, apparently
 		// make sure the menus don't overlap the map screen bottom panel (but where did 102 come from?)
@@ -1430,7 +1480,7 @@ void RandomMercInGroupSaysQuote(GROUP const& g, UINT16 const quote_num)
 	}
 
 	// Choose somebody in group
-	SOLDIERTYPE* mercs_in_group[20];
+	SOLDIERTYPE* mercs_in_group[PLAYER_TEAM_SIZE];
 	UINT8        n_mercs = 0;
 	CFOR_EACH_PLAYER_IN_GROUP(i, &g)
 	{
@@ -1793,7 +1843,8 @@ static void DisplayUserDefineHelpTextRegions(FASTHELPREGION* pRegion)
 	iY = pRegion->iY;
 	// get the width and height of the string
 	iW = (INT32)( pRegion->iW ) + 14;
-	iH = IanWrappedStringHeight(pRegion->iW, 0, FONT10ARIAL, pRegion->FastHelpText);
+	SGPFont const font = GetTooltipFonts().normal;
+	iH = IanWrappedStringHeight(pRegion->iW, 0, font, pRegion->FastHelpText);
 
 	// tack on the outer border
 	iH += 14;
@@ -1829,7 +1880,7 @@ static void DisplayUserDefineHelpTextRegions(FASTHELPREGION* pRegion)
 	FRAME_BUFFER->ShadowRect(iX + 2, iY + 2, iX + iW - 3, iY + iH - 3);
 	FRAME_BUFFER->ShadowRect(iX + 2, iY + 2, iX + iW - 3, iY + iH - 3);
 
-	iH = DisplayWrappedString(iX + 10, iY + 6, pRegion->iW, 0, FONT10ARIAL, FONT_BEIGE, pRegion->FastHelpText, FONT_NEARBLACK, MARK_DIRTY);
+	iH = DisplayWrappedString(iX + 10, iY + 6, pRegion->iW, 0, font, FONT_BEIGE, pRegion->FastHelpText, FONT_NEARBLACK, MARK_DIRTY);
 
 	InvalidateRegion(  iX, iY, (iX + iW) , (iY + iH + 20 ) );
 }
@@ -3225,7 +3276,9 @@ static void AddSoldierToUpdateBox(SOLDIERTYPE* const pSoldier)
 		{
 			// add to box
 			pUpdateSoldierBox[ iCounter ] = pSoldier;
-			giUpdateSoldierFaces[iCounter] = Load65Portrait(GetProfile(pSoldier->ubProfile));
+			// 1366x768 interface: the big portrait (faces/bigfaces/, 106x122)
+			MERCPROFILESTRUCT const& p = GetProfile(pSoldier->ubProfile);
+			giUpdateSoldierFaces[iCounter] = g_ui.isExtraWideStrategicScreen() ? LoadBigPortrait(p) : Load65Portrait(p);
 			return;
 		}
 	}
@@ -3234,6 +3287,190 @@ static void AddSoldierToUpdateBox(SOLDIERTYPE* const pSoldier)
 
 static void CreateDestroyUpdatePanelButtons(INT32 iX, INT32 iY, BOOLEAN fFourWideMode);
 static void RenderSoldierSmallFaceForUpdatePanel(INT32 iIndex, INT32 iX, INT32 iY);
+
+
+// 1366x768 interface: the update box laid out around the big portraits
+// (faces/bigfaces/, 106x122) -- see DisplayBigSoldierUpdateBox().
+// One merc's cell: 140x147 px, i.e. 2x3 tiles of the box's background
+// (group_confirm_tactical.sti #20, 70x49), so the background stays seamless.
+#define BIG_UPDATE_CELL_W      140
+#define BIG_UPDATE_CELL_H      147
+// the reason line above the cells
+#define BIG_UPDATE_HEADER_H    20
+// Below the cells: the time compression strip (group_confirm_tactical.sti
+// #19, stretched to fit), its text above the buttons (#7 and #8, any size):
+// 4 px, the text, 3 px, the buttons, 3 px of the strip's bottom border.
+#define BIG_UPDATE_STRIP_H     (GetFontHeight(StrategicGeneralFont()) + 4 + 3 + BigUpdateButtonHeight() + 3)
+#define BIG_UPDATE_FOOTER_H    (3 + BIG_UPDATE_STRIP_H)
+// the portrait's black frame inside a cell: the face (2 px border), then the
+// health, energy and morale bars (3 px wide, 1 px apart) right of it
+#define BIG_UPDATE_FRAME_W     123
+#define BIG_UPDATE_FRAME_H     126
+#define BIG_UPDATE_FRAME_X     ((BIG_UPDATE_CELL_W - BIG_UPDATE_FRAME_W) / 2)
+#define BIG_UPDATE_FRAME_Y     6
+#define BIG_UPDATE_FACE_W      106
+#define BIG_UPDATE_FACE_H      122
+#define BIG_UPDATE_BAR_W       3
+
+
+// Frame `frame` of `vo` repeated over (x, y, w, h) of the saved background,
+// clipped to it.
+static void BltTiledToSaveBuffer(SGPVObject const* const vo, UINT16 const frame, INT32 const x, INT32 const y, INT32 const w, INT32 const h)
+{
+	if (w <= 0 || h <= 0) return;
+	ETRLEObject const& e = vo->SubregionProperties(frame);
+	SGPRect const clip = { (UINT16)x, (UINT16)y, (UINT16)(x + w), (UINT16)(y + h) };
+	SGPRect const old  = SetClippingRect(clip);
+	for (INT32 ty = y; ty < y + h; ty += e.usHeight)
+	{
+		for (INT32 tx = x; tx < x + w; tx += e.usWidth)
+		{
+			BltVideoObject(guiSAVEBUFFER, vo, frame, tx, ty);
+		}
+	}
+	SetClippingRect(old);
+}
+
+// Frame `frame` of `vo` stretched to (x, y, w, h) of the saved background
+// without scaling: its four quarters stay in the corners, the band between
+// them (its middle half, horizontally and vertically) is repeated to fill
+// the rest -- for frames with plain middles, like a bordered box.
+static void BltStretchedToSaveBuffer(SGPVObject const* const vo, UINT16 const frame, INT32 const x, INT32 const y, INT32 const w, INT32 const h)
+{
+	ETRLEObject const& e = vo->SubregionProperties(frame);
+	INT32 const fw = e.usWidth;
+	INT32 const fh = e.usHeight;
+
+	// one axis: (screen start, screen end, frame offset blitted at the start)
+	struct Piece { INT32 from, to, src; };
+	auto const pieces = [](INT32 const pos, INT32 const len, INT32 const size)
+	{
+		std::vector<Piece> out;
+		INT32 const head = std::min(size / 2, len);
+		INT32 const tail = std::min(size - size / 2, len - head);
+		out.push_back({ pos, pos + head, 0 });
+		INT32 const band_from = size / 4;
+		INT32 const band_len  = std::max(1, size / 2);
+		for (INT32 p = pos + head; p < pos + len - tail; p += band_len)
+		{
+			out.push_back({ p, std::min(p + band_len, pos + len - tail), band_from });
+		}
+		out.push_back({ pos + len - tail, pos + len, size - tail });
+		return out;
+	};
+
+	for (Piece const& py : pieces(y, h, fh))
+	{
+		for (Piece const& px : pieces(x, w, fw))
+		{
+			if (px.from >= px.to || py.from >= py.to) continue;
+			SGPRect const clip = { (UINT16)px.from, (UINT16)py.from, (UINT16)px.to, (UINT16)py.to };
+			SGPRect const old  = SetClippingRect(clip);
+			BltVideoObject(guiSAVEBUFFER, vo, frame, px.from - px.src, py.from - py.src);
+			SetClippingRect(old);
+		}
+	}
+}
+
+
+// Width and height of the update box's buttons (group_confirm_tactical.sti #7).
+static INT32 BigUpdateButtonWidth()
+{
+	return guiUpdatePanelTactical->SubregionProperties(7).usWidth;
+}
+
+static INT32 BigUpdateButtonHeight()
+{
+	return guiUpdatePanelTactical->SubregionProperties(7).usHeight;
+}
+
+
+// One merc of the big update box: black frame, portrait, bars, name below.
+static void RenderSoldierBigFaceForUpdatePanel(INT32 const idx, INT32 const cell_x, INT32 const cell_y)
+{
+	SOLDIERTYPE const& s = *pUpdateSoldierBox[idx];
+	INT32 const x = cell_x + BIG_UPDATE_FRAME_X;
+	INT32 const y = cell_y + BIG_UPDATE_FRAME_Y;
+	ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, y, x + BIG_UPDATE_FRAME_W, y + BIG_UPDATE_FRAME_H, 0);
+	BltVideoObject(guiSAVEBUFFER, giUpdateSoldierFaces[idx], 0, x + 2, y + 2);
+
+	INT16 const bar_x = x + 2 + BIG_UPDATE_FACE_W + 2;
+	DrawSoldierUIBarsTall(s, bar_x, bar_x + BIG_UPDATE_BAR_W + 1, bar_x + 2 * (BIG_UPDATE_BAR_W + 1),
+		y + 2, BIG_UPDATE_BAR_W, BIG_UPDATE_FACE_H, guiSAVEBUFFER);
+
+	SGPFont const font = StrategicGeneralFont();
+	DrawTextToScreen(s.name, cell_x, y + BIG_UPDATE_FRAME_H + 3, BIG_UPDATE_CELL_W, font, FONT_LTRED, FONT_BLACK, CENTER_JUSTIFIED);
+}
+
+
+// The update box on the 1366x768 interface: cells sized for the big
+// portraits, two columns (four for more than four mercs), more when the rows
+// would not fit the map's height; background and border tiled to any size.
+static void DisplayBigSoldierUpdateBox(INT32 const n_mercs)
+{
+	INT32 cols = n_mercs > NUMBER_OF_MERCS_FOR_FOUR_WIDTH_UPDATE_PANEL ? NUMBER_OF_MERC_COLUMNS_FOR_FOUR_WIDE_MODE : NUMBER_OF_MERC_COLUMNS_FOR_TWO_WIDE_MODE;
+	auto const rows_for = [n_mercs](INT32 const c) { return (n_mercs + c - 1) / c; };
+	INT32 const max_cols = (SCREEN_WIDTH - 16) / BIG_UPDATE_CELL_W;
+	while (cols < max_cols && BIG_UPDATE_HEADER_H + rows_for(cols) * BIG_UPDATE_CELL_H + BIG_UPDATE_FOOTER_H > MAP_VIEW_HEIGHT)
+	{
+		++cols;
+	}
+	INT32 const rows = rows_for(cols);
+	INT32 const w    = cols * BIG_UPDATE_CELL_W;
+	INT32 const h    = BIG_UPDATE_HEADER_H + rows * BIG_UPDATE_CELL_H + BIG_UPDATE_FOOTER_H;
+
+	// placed like the original box (centred over the map, its bottom a set
+	// distance above the map's bottom), but kept on the screen
+	INT32 x = MAP_VIEW_START_X + 20 + (MAP_VIEW_WIDTH - w) / 2 + 24;
+	INT32 y = MAP_VIEW_START_Y + MAP_VIEW_HEIGHT - 28 - h - 168;
+	x = std::clamp<INT32>(x, MAP_SCREEN_X + 5, std::max<INT32>(MAP_SCREEN_X + 5, SCREEN_WIDTH - 5 - w));
+	y = std::max<INT32>(y, MAP_VIEW_START_Y + 5);
+
+	SGPVObject const* const vo = guiUpdatePanelTactical;
+
+	// background, then the portraits
+	BltTiledToSaveBuffer(vo, 20, x, y, w, h);
+
+	SetFontDestBuffer(guiSAVEBUFFER);
+	INT32 pos = 0;
+	for (INT32 i = 0; i < SIZE_OF_UPDATE_BOX; ++i)
+	{
+		if (!pUpdateSoldierBox[i]) continue;
+		INT32 const cell_x = x + (pos % cols) * BIG_UPDATE_CELL_W;
+		INT32 const cell_y = y + BIG_UPDATE_HEADER_H + (pos / cols) * BIG_UPDATE_CELL_H;
+		RenderSoldierBigFaceForUpdatePanel(i, cell_x, cell_y);
+		++pos;
+	}
+
+	// the time compression strip (group_confirm_tactical.sti #19, border
+	// included), stretched around its text and the buttons below it, centred
+	INT32 const buttons_x = x + (w - 2 * BigUpdateButtonWidth()) / 2;
+	INT32 const strip_y   = y + BIG_UPDATE_HEADER_H + rows * BIG_UPDATE_CELL_H + 3;
+	BltStretchedToSaveBuffer(vo, 19, buttons_x - 4, strip_y, 2 * BigUpdateButtonWidth() + 8, BIG_UPDATE_STRIP_H);
+	DisplayWrappedString(x, strip_y + 4, w, 0, StrategicGeneralFont(), FONT_WHITE, gzLateLocalizedString[STR_LATE_49], FONT_BLACK, CENTER_JUSTIFIED);
+	INT32 const buttons_y = strip_y + 4 + GetFontHeight(StrategicGeneralFont()) + 3;
+
+	// the border: sides, top and bottom lines, corners
+	BltTiledToSaveBuffer(vo, 3, x - 4, y, 4, h - 3);
+	BltTiledToSaveBuffer(vo, 5, x + w, y, 4, h - 3);
+	BltTiledToSaveBuffer(vo, 1, x, y - 4, w, 4);
+	BltTiledToSaveBuffer(vo, 1, x, y + h - 3, w, 4);
+	BltVideoObject(guiSAVEBUFFER, vo, 0, x - 4, y - 4);
+	BltVideoObject(guiSAVEBUFFER, vo, 2, x + w, y - 4);
+	BltVideoObject(guiSAVEBUFFER, vo, 0, x - 4, y + h - 3);
+	BltVideoObject(guiSAVEBUFFER, vo, 2, x + w, y + h - 3);
+
+	// the reason for the update box
+	DisplayWrappedString(x, y + 4, w, 0, StrategicGeneralFont(), FONT_WHITE, pUpdateMercStrings[iReasonForSoldierUpDate], FONT_BLACK, CENTER_JUSTIFIED);
+
+	SetFontDestBuffer(FRAME_BUFFER);
+
+	RestoreExternBackgroundRect(x - 5, y - 5, w + 10, h + 6);
+
+	CreateDestroyUpdatePanelButtons(buttons_x, buttons_y, FALSE);
+	MarkAButtonDirty(guiUpdatePanelButtons[0]);
+	MarkAButtonDirty(guiUpdatePanelButtons[1]);
+}
 
 
 void DisplaySoldierUpdateBox( )
@@ -3272,6 +3509,12 @@ void DisplaySoldierUpdateBox( )
 	LockPauseState(LOCK_PAUSE_DISPLAY_SOLDIER_UPDATE);
 
 	PauseDialogueQueue( );
+
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		DisplayBigSoldierUpdateBox(iNumberOfMercsOnUpdatePanel);
+		return;
+	}
 
 	// do we have enough for 4 wide, or just 2 wide?
 	if( iNumberOfMercsOnUpdatePanel > NUMBER_OF_MERCS_FOR_FOUR_WIDTH_UPDATE_PANEL )
@@ -3413,7 +3656,7 @@ void DisplaySoldierUpdateBox( )
 		BltVideoObject( guiSAVEBUFFER , hBackGroundHandle, 19, iX - 4 + TACT_UPDATE_MERC_FACE_X_WIDTH,  iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y+3);
 
 		// ATE: Display string for time compression
-		DisplayWrappedString(iX, iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + 5 + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y + 3, iUpdatePanelWidth, 0, MAP_SCREEN_FONT, FONT_WHITE, gzLateLocalizedString[STR_LATE_49], FONT_BLACK, CENTER_JUSTIFIED);
+		DisplayWrappedString(iX, iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + 5 + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y + 3, iUpdatePanelWidth, 0, StrategicGeneralFont(), FONT_WHITE, gzLateLocalizedString[STR_LATE_49], FONT_BLACK, CENTER_JUSTIFIED);
 	}
 	else
 	{
@@ -3421,7 +3664,7 @@ void DisplaySoldierUpdateBox( )
 		BltVideoObject( guiSAVEBUFFER , hBackGroundHandle, 19, iX - 4 , iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y+3);
 
 		// ATE: Display string for time compression
-		DisplayWrappedString(iX, iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + 5 + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y + 3, iUpdatePanelWidth, 0, MAP_SCREEN_FONT, FONT_WHITE, gzLateLocalizedString[STR_LATE_49], FONT_BLACK, CENTER_JUSTIFIED);
+		DisplayWrappedString(iX, iY + iNumberHigh * TACT_UPDATE_MERC_FACE_X_HEIGHT + 5 + REASON_FOR_SOLDIER_UPDATE_OFFSET_Y + 3, iUpdatePanelWidth, 0, StrategicGeneralFont(), FONT_WHITE, gzLateLocalizedString[STR_LATE_49], FONT_BLACK, CENTER_JUSTIFIED);
 	}
 
 	// now wrap the border
@@ -3441,7 +3684,7 @@ void DisplaySoldierUpdateBox( )
 	}
 
 	//Display the reason for the update box
-	DisplayWrappedString(iX, iY + (fFourWideMode ? 6 : 3), iUpdatePanelWidth, 0, MAP_SCREEN_FONT, FONT_WHITE, pUpdateMercStrings[iReasonForSoldierUpDate], FONT_BLACK, CENTER_JUSTIFIED);
+	DisplayWrappedString(iX, iY + (fFourWideMode ? 6 : 3), iUpdatePanelWidth, 0, StrategicGeneralFont(), FONT_WHITE, pUpdateMercStrings[iReasonForSoldierUpDate], FONT_BLACK, CENTER_JUSTIFIED);
 
 	SetFontDestBuffer(FRAME_BUFFER);
 
@@ -3458,7 +3701,9 @@ static void MakeButton(UINT idx, INT16 x, INT16 y, GUI_CALLBACK click, const ST:
 {
 	GUIButtonRef const btn = QuickCreateButtonImg(INTERFACEDIR "/group_confirm_tactical.sti", 7, 8, x, y, MSYS_PRIORITY_HIGHEST - 1, click);
 	guiUpdatePanelButtons[idx] = btn;
-	btn->SpecifyGeneralTextAttributes(text, MAP_SCREEN_FONT, FONT_MCOLOR_BLACK, FONT_BLACK);
+	// 1366x768: white like the "Time Compression" text above them
+	UINT8 const colour = g_ui.isExtraWideStrategicScreen() ? FONT_WHITE : FONT_MCOLOR_BLACK;
+	btn->SpecifyGeneralTextAttributes(text, StrategicGeneralFont(), colour, FONT_BLACK);
 	btn->SetFastHelpText(help_text);
 }
 
@@ -3481,8 +3726,10 @@ static void CreateDestroyUpdatePanelButtons(INT32 iX, INT32 iY, BOOLEAN fFourWid
 
 		INT16 x = iX;
 		if (fFourWideMode) x += TACT_UPDATE_MERC_FACE_X_WIDTH;
-		MakeButton(0, x,                                 iY, ContinueUpdateButtonCallback, pUpdatePanelButtons[0], gzLateLocalizedString[STR_LATE_51]);
-		MakeButton(1, x + TACT_UPDATE_MERC_FACE_X_WIDTH, iY, StopUpdateButtonCallback,     pUpdatePanelButtons[1], gzLateLocalizedString[STR_LATE_52]);
+		// 1366x768: side by side whatever their width (see DisplayBigSoldierUpdateBox())
+		INT16 const step = g_ui.isExtraWideStrategicScreen() ? BigUpdateButtonWidth() : TACT_UPDATE_MERC_FACE_X_WIDTH;
+		MakeButton(0, x,        iY, ContinueUpdateButtonCallback, pUpdatePanelButtons[0], gzLateLocalizedString[STR_LATE_51]);
+		MakeButton(1, x + step, iY, StopUpdateButtonCallback,     pUpdatePanelButtons[1], gzLateLocalizedString[STR_LATE_52]);
 	}
 	else if (!fShowUpdateBox && fCreated)
 	{

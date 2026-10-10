@@ -13,6 +13,7 @@
 #include "Video.h"
 #include "VObject_Blitters.h"
 #include "Line.h"
+#include "Viewport_Zoom.h"
 #include "Tactical_Placement_GUI.h"
 #include "Overhead_Map.h"
 #include "Interface.h"
@@ -25,6 +26,9 @@
 #include "Map_Edgepoints.h"
 #include "Strategic.h"
 #include "StrategicMap.h"
+#include "ContentManager.h"
+#include "FileMan.h"
+#include "GameInstance.h"
 #include "GameLoop.h"
 #include "Message.h"
 #include "Map_Information.h"
@@ -36,10 +40,17 @@
 #include "Text.h"
 #include "Game_Clock.h"
 #include "JAScreens.h"
+#include "Turn_Based_Input.h"
+#include "Interface_Utils.h"
+#include "Object_Cache.h"
 #include "UILayout.h"
+#include "MapScreen.h"
+#include "RenderWorld.h"
 
 #include <string_theory/format>
 #include <string_theory/string>
+#include <algorithm>
+#include <cmath>
 #include <memory>
 #include <stdexcept>
 
@@ -91,6 +102,346 @@ INT8  gbCursorMercID = -1;
 SOLDIERTYPE *gpTacticalPlacementSelectedSoldier = NULL;
 SOLDIERTYPE *gpTacticalPlacementHilightedSoldier = NULL;
 
+// 1366x768: placement in the 1:1 tactical view above a full width panel
+static bool gfPlacementFullView = false;
+static BOOLEAN gfPlacementOldVideoScroll;
+// Where the 1366x768 panel is, by the entry edges (see InitTacticalPlacementGUI()):
+// at the bottom; at the top (the south edge stays free); at the bottom and
+// right (west entry) or left (east entry) aligned, narrower, the west / east
+// edge's bottom free.
+enum PlacementPanelSide { PANEL_BOTTOM, PANEL_TOP, PANEL_WEST, PANEL_EAST };
+static PlacementPanelSide g_placement_panel   = PANEL_BOTTOM;
+static INT16              g_placement_panel_w = 1366;
+// The radar map has its own panel, overheadinterface_radarmap_1366x768.png
+// (808x408, its 800x400 window at (4, 4)), over the middle of the placement
+// panel: right above it, below it when the panel is at the top of the
+// screen. The "Radar Map" button at the top of the placement panel opens and
+// closes it; it is closed at first and stays as the player left it.
+static SGPVObject*  g_radar_panel       = 0; // 0: none (the graphic is missing)
+static SGPVObject*  g_placement_minimap = 0; // Data/RadarMaps_Overhead
+static bool         g_radar_shown       = false;
+static GUIButtonRef g_radar_button;
+static BUTTON_PICS* g_radar_button_image = 0;
+#define FV_MAP_DX 4
+#define FV_MAP_DY 4
+static INT32 RadarPanelW()   { return g_radar_panel->SubregionProperties(0).usWidth; }
+static INT32 RadarPanelH()   { return g_radar_panel->SubregionProperties(0).usHeight; }
+// the minimap's place in the radar panel
+static INT32 MinimapPlaceW() { return RadarPanelW() - 2 * FV_MAP_DX; }
+static INT32 MinimapPlaceH() { return RadarPanelH() - 2 * FV_MAP_DY; }
+// The minimap graphic's own size: the scale of the view's rectangle and of
+// the clicks. Normally the place's size; a map of another size is cut to it.
+static INT32 g_minimap_w = 352;
+static INT32 g_minimap_h = 176;
+
+// The tactical viewport ends above the game's bottom panel; with the
+// placement panel at the top the world is shown down to the screen's bottom.
+struct SavedViewport
+{
+	UINT16  end_y;
+	UINT16  window_end_y;
+	UINT16  center_y;
+	SGPRect clip;
+};
+static SavedViewport g_saved_viewport;
+static bool          g_viewport_extended = false;
+
+static void ExtendViewportToScreenBottom()
+{
+	g_saved_viewport = { g_ui.m_VIEWPORT_END_Y, g_ui.m_VIEWPORT_WINDOW_END_Y, g_ui.m_tacticalMapCenterY, g_ui.m_worldClippingRect };
+	g_ui.m_VIEWPORT_END_Y            = SCREEN_HEIGHT;
+	g_ui.m_VIEWPORT_WINDOW_END_Y     = SCREEN_HEIGHT;
+	g_ui.m_tacticalMapCenterY        = (SCREEN_HEIGHT - g_ui.m_VIEWPORT_START_Y) / 2;
+	g_ui.m_worldClippingRect.iBottom = SCREEN_HEIGHT;
+	g_viewport_extended = true;
+	SetRenderFlags(RENDER_FLAG_FULL);
+}
+
+static void RestoreViewport()
+{
+	if (!g_viewport_extended) return;
+	g_ui.m_VIEWPORT_END_Y        = g_saved_viewport.end_y;
+	g_ui.m_VIEWPORT_WINDOW_END_Y = g_saved_viewport.window_end_y;
+	g_ui.m_tacticalMapCenterY    = g_saved_viewport.center_y;
+	g_ui.m_worldClippingRect     = g_saved_viewport.clip;
+	g_viewport_extended = false;
+	SetRenderFlags(RENDER_FLAG_FULL);
+}
+
+static char const* const g_full_view_panel      = INTERFACEDIR "/overheadinterface_north_south_1366x768.png";
+static char const* const g_full_view_panel_side = INTERFACEDIR "/overheadinterface_west_east_1366x768.png";
+static char const* const g_radar_panel_file     = INTERFACEDIR "/overheadinterface_radarmap_1366x768.png";
+
+bool TacticalPlacementFullView()
+{
+	return gfPlacementFullView;
+}
+
+// top left corner of the panel (640x160, 1366x200 or 1207x200)
+static INT32 PanelX()
+{
+	if (!gfPlacementFullView) return STD_SCREEN_X;
+	return g_placement_panel == PANEL_WEST ? SCREEN_WIDTH - g_placement_panel_w : 0;
+}
+static INT32 PanelY()
+{
+	if (!gfPlacementFullView) return STD_SCREEN_Y + 320;
+	return g_placement_panel == PANEL_TOP ? 0 : SCREEN_HEIGHT - TACTICAL_PLACEMENT_PANEL_HEIGHT;
+}
+
+INT16 TacticalPlacementViewTop()
+{
+	return g_placement_panel == PANEL_TOP ? TACTICAL_PLACEMENT_PANEL_HEIGHT : 0;
+}
+
+INT16 TacticalPlacementViewBottom()
+{
+	// beside a narrower panel the world is shown down to the screen's bottom
+	return g_placement_panel == PANEL_BOTTOM ? SCREEN_HEIGHT - TACTICAL_PLACEMENT_PANEL_HEIGHT : SCREEN_HEIGHT;
+}
+
+bool TacticalPlacementPanelBox(SGPBox& box)
+{
+	if (!gfPlacementFullView) return false;
+	box = { (UINT16)PanelX(), (UINT16)PanelY(), (UINT16)g_placement_panel_w, (UINT16)TACTICAL_PLACEMENT_PANEL_HEIGHT };
+	return true;
+}
+
+// The radar map's panel, shown or not.
+static bool RadarPanelBox(SGPBox& box)
+{
+	if (!gfPlacementFullView || !g_radar_panel) return false;
+	INT32 const x = PanelX() + (g_placement_panel_w - RadarPanelW()) / 2;
+	INT32 const y = g_placement_panel == PANEL_TOP ? TACTICAL_PLACEMENT_PANEL_HEIGHT : PanelY() - RadarPanelH();
+	box = { (UINT16)x, (UINT16)y, (UINT16)RadarPanelW(), (UINT16)RadarPanelH() };
+	return true;
+}
+
+bool TacticalPlacementMapBox(SGPBox& box)
+{
+	return g_radar_shown && RadarPanelBox(box);
+}
+
+static bool MouseInBox(SGPBox const& b)
+{
+	return b.x <= gusMouseXPos && gusMouseXPos < b.x + b.w && b.y <= gusMouseYPos && gusMouseYPos < b.y + b.h;
+}
+
+bool TacticalPlacementMouseOverPanel()
+{
+	SGPBox b;
+	if (TacticalPlacementPanelBox(b) && MouseInBox(b)) return true;
+	if (TacticalPlacementMapBox(b)   && MouseInBox(b)) return true;
+	return false;
+}
+
+
+// The part of the map shown, a green rectangle on the minimap at (mx, my) --
+// as RenderRadarScreen() on the tactical radar, without the part of the view
+// under the panel.
+static void DrawPlacementMinimapView(SGPVSurface* const buf, INT32 const mx, INT32 const my)
+{
+	INT32 const w = g_minimap_w;
+	INT32 const h = g_minimap_h;
+	double const scale_x = double(w) / (gsRightX  - gsLeftX);
+	double const scale_y = double(h) / (gsBottomY - gsTopY);
+
+	INT16 left;
+	INT16 top;
+	INT16 right;
+	INT16 bottom;
+	ViewportZoomGetVisibleWorldRect(left, top, right, bottom);
+	if (!ViewportZoomIsActive())
+	{
+		top    = gsTopLeftWorldY + TacticalPlacementViewTop();
+		bottom = gsTopLeftWorldY + TacticalPlacementViewBottom();
+	}
+
+	SGPVSurface::Lock l(buf);
+	SetClippingRegionAndImageWidth(l.Pitch(), mx, my, std::min(w, MinimapPlaceW()), std::min(h, MinimapPlaceH()));
+	RectangleDraw(TRUE,
+		mx + std::max(0.0, std::round((left - SCROLL_LEFT_PADDING) * scale_x)),
+		my + std::max(0.0, std::round((top  - SCROLL_TOP_PADDING)  * scale_y)),
+		mx + std::min(std::round((right  - SCROLL_RIGHT_PADDING  - SCROLL_LEFT_PADDING) * scale_x - 1.0), double(w - 1)),
+		my + std::min(std::round((bottom - SCROLL_BOTTOM_PADDING - SCROLL_TOP_PADDING)  * scale_y - 1.0), double(h - 1)),
+		Get16BPPColor(FROMRGB(0, 255, 0)), l.Buffer<UINT16>());
+}
+
+
+// The mouse on the minimap: the view goes there, as on the tactical radar --
+// the clicked place in the middle of the free part of the view.
+static MOUSE_REGION g_placement_minimap_region;
+static bool         g_placement_minimap_region_made = false;
+
+static void MovePlacementViewFromMinimap(MOUSE_REGION const& r)
+{
+	double const scale_x = double(g_minimap_w) / (gsRightX  - gsLeftX);
+	double const scale_y = double(g_minimap_h) / (gsBottomY - gsTopY);
+
+	// from the minimap's middle to screen coordinates from the map's middle
+	INT32 x = (INT32)((r.RelativeXPos - g_minimap_w / 2) / scale_x);
+	INT32 y = (INT32)((r.RelativeYPos - g_minimap_h / 2) / scale_y);
+	// the render centre is the whole viewport's middle, the panel covers a part of it
+	y += g_ui.m_tacticalMapCenterY - (TacticalPlacementViewTop() + TacticalPlacementViewBottom()) / 2;
+
+	// multiples of the scroll steps, as AdjustWorldCenterFromRadarCoords()
+	x = x / WORLD_TILE_X * WORLD_TILE_X;
+	y = y / (WORLD_TILE_Y * 2) * (WORLD_TILE_Y * 2);
+
+	INT16 cell_x;
+	INT16 cell_y;
+	FromScreenToCellCoordinates((INT16)x, (INT16)y, &cell_x, &cell_y);
+	SetRenderCenter(gCenterWorldX + cell_x, gCenterWorldY + cell_y);
+	SetRenderFlags(RENDER_FLAG_FULL);
+}
+
+static void PlacementMinimapMoveCallback(MOUSE_REGION* const r, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_MOVE && r->ButtonState & MSYS_LEFT_BUTTON) MovePlacementViewFromMinimap(*r);
+}
+
+static void PlacementMinimapClickCallback(MOUSE_REGION* const r, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_DWN) MovePlacementViewFromMinimap(*r);
+}
+
+static void CreatePlacementMinimapRegion()
+{
+	SGPBox box;
+	if (!g_placement_minimap || !RadarPanelBox(box)) return;
+	INT16 const x = box.x + FV_MAP_DX;
+	INT16 const y = box.y + FV_MAP_DY;
+	MSYS_DefineRegion(&g_placement_minimap_region, x, y, x + std::min(g_minimap_w, MinimapPlaceW()), y + std::min(g_minimap_h, MinimapPlaceH()), MSYS_PRIORITY_HIGH + 3, 0, PlacementMinimapMoveCallback, PlacementMinimapClickCallback);
+	g_placement_minimap_region_made = true;
+	if (!g_radar_shown) g_placement_minimap_region.Disable();
+}
+
+static void RemovePlacementMinimapRegion()
+{
+	if (!g_placement_minimap_region_made) return;
+	MSYS_RemoveRegion(&g_placement_minimap_region);
+	g_placement_minimap_region_made = false;
+}
+
+
+// The "Radar Map" button: opens / closes the radar map's panel.
+static void RadarButtonCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	g_radar_shown = !g_radar_shown;
+	if (g_radar_shown) btn->uiFlags |= BUTTON_CLICKED_ON; else btn->uiFlags &= ~BUTTON_CLICKED_ON;
+	btn->uiFlags |= BUTTON_DIRTY;
+	if (g_placement_minimap_region_made)
+	{
+		if (g_radar_shown) g_placement_minimap_region.Enable(); else g_placement_minimap_region.Disable();
+	}
+	gfTacticalPlacementGUIDirty = TRUE;
+}
+
+// in the middle of the panel's top strip
+static void CreateRadarButton()
+{
+	if (!g_radar_panel) return;
+	// overheaduibuttons.sti: 2 / 3 the wider button (90x27), an older file has
+	// the 69x27 ones (0 / 1) only
+	char const* const file = INTERFACEDIR "/overheaduibuttons.sti";
+	bool const wide = GetVObject(file)->SubregionCount() >= 4;
+	g_radar_button_image = wide ? LoadButtonImage(file, 2, 3) : LoadButtonImage(file, 0, 1);
+	INT16 const w = GetVObject(file)->SubregionProperties(wide ? 2 : 0).usWidth;
+	GUIButtonRef const btn = QuickCreateButton(g_radar_button_image, PanelX() + (g_placement_panel_w - w) / 2, PanelY() + 1, MSYS_PRIORITY_HIGH, RadarButtonCallback);
+	btn->SpecifyGeneralTextAttributes("RADAR MAP", FONT14ARIAL, FONT_WHITE, 141);
+	// 1 px right and down of the default place (sub offsets -1, -1)
+	btn->SpecifyTextSubOffsets(0, 0, TRUE);
+	btn->SpecifyHilitedTextColors(FONT_WHITE, FONT_NEARBLACK);
+	if (g_radar_shown) btn->uiFlags |= BUTTON_CLICKED_ON;
+	g_radar_button = btn;
+}
+
+static void RemoveRadarButton()
+{
+	if (!g_radar_button) return;
+	RemoveButton(g_radar_button);
+	g_radar_button = GUIButtonRef();
+	UnloadButtonImage(g_radar_button_image);
+	g_radar_button_image = 0;
+}
+
+
+// The placement panel and, when it is open, the radar map's panel with the
+// minimap and the view's rectangle on it.
+static void DrawPlacementPanel(SGPVSurface* const buf)
+{
+	BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY());
+
+	SGPBox box;
+	if (!TacticalPlacementMapBox(box)) return;
+	BltVideoObject(buf, g_radar_panel, 0, box.x, box.y);
+	if (!g_placement_minimap) return;
+
+	INT32 const mx = box.x + FV_MAP_DX;
+	INT32 const my = box.y + FV_MAP_DY;
+	// cut to its place: a map bigger than the window stays inside
+	SGPRect const old = SetClippingRect(SGPRect{ (UINT16)mx, (UINT16)my, (UINT16)(mx + MinimapPlaceW()), (UINT16)(my + MinimapPlaceH()) });
+	BltVideoObject(buf, g_placement_minimap, 0, mx, my);
+	SetClippingRect(old);
+	DrawPlacementMinimapView(buf, mx, my);
+}
+
+
+// the minimap of the sector (800x400), none if it is missing
+static SGPVObject* LoadPlacementMinimap()
+{
+	ST::string const name = FileMan::replaceExtension(FileMan::getFileName(GetMapFileName(gWorldSector, TRUE)), "sti");
+	try
+	{
+		return AddVideoObjectFromFile(GCM->getRadarMapOverheadResourceName(name));
+	}
+	catch (std::exception const& e)
+	{
+		SLOGW("No placement minimap: {}", e.what());
+		return 0;
+	}
+}
+
+// The 1366x768 panel (panel coordinates): the big portraits, 9 a row (8 on
+// the narrower west / east panel), one row shown at a time, scrolled by the
+// mouse wheel and the arrows. A block is a 2 px black frame around the
+// 106x122 portrait and the 3 bars (3 px).
+#define FV_BUTTONS_DY    40 // the buttons are lower than on the old panel
+#define FV_BLOCK_X      144
+#define FV_BLOCK_Y       47
+#define FV_BLOCK_W      123
+#define FV_BLOCK_H      126
+#define FV_BLOCK_STEP   133 // 10 px between the blocks
+#define FV_PORTRAIT_W   106
+#define FV_PORTRAIT_H   122
+#define FV_BAR_DX       110 // life, breath, morale every 4 px
+#define FV_NAME_Y       175
+#define FV_NAME_H        13
+#define FV_ARROW_X      101
+#define FV_ARROW_UP_Y    49
+#define FV_ARROW_DOWN_Y 158
+#define FV_TRACK_Y       76 // the slider's track, down to y 157
+#define FV_TRACK_H       82
+
+static char const* const g_full_view_arrows = INTERFACEDIR "/mapinv_done_buttons.sti";
+static GUIButtonRef g_placement_arrows[2];
+static MOUSE_REGION g_placement_panel_region; // the mouse wheel over the portraits
+static INT32        giPlacementRow = 0;       // the row shown
+
+static INT32 PlacementPerRow() { return g_placement_panel == PANEL_WEST || g_placement_panel == PANEL_EAST ? 8 : 9; }
+static INT32 PlacementRows() { return std::max<INT32>(1, (giPlacements + PlacementPerRow() - 1) / PlacementPerRow()); }
+static bool  MercShown(INT32 const i) { return !gfPlacementFullView || i / PlacementPerRow() == giPlacementRow; }
+
+// a merc's region in the panel (portrait and name)
+static INT32 MercRegionX(INT32 const i) { return gfPlacementFullView ? PanelX() + FV_BLOCK_X + i % PlacementPerRow() * FV_BLOCK_STEP : PanelX() + 91 + i / 2 * 54; }
+static INT32 MercRegionY(INT32 const i) { return gfPlacementFullView ? PanelY() + FV_BLOCK_Y : PanelY() + 41 + i % 2 * 51; }
+static INT32 MercRegionW() { return gfPlacementFullView ? FV_BLOCK_W : 54; }
+static INT32 MercRegionH() { return gfPlacementFullView ? FV_NAME_Y + FV_NAME_H - FV_BLOCK_Y : 62; }
+// the old panel's portrait
+static INT32 MercPortraitX(INT32 const i) { return PanelX() + 95 + i / 2 * 54; }
+static INT32 MercPortraitY(INT32 const i) { return PanelY() + 51 + i % 2 * 51; }
+
 static bool gfNorth;
 static bool gfEast;
 static bool gfSouth;
@@ -99,9 +450,13 @@ static bool gfWest;
 
 static void MakeButton(UINT idx, INT16 y, GUI_CALLBACK click, const ST::string& text, const ST::string& help)
 {
-	GUIButtonRef const btn = QuickCreateButton(giOverheadButtonImages[idx], STD_SCREEN_X + 11, STD_SCREEN_Y + y, MSYS_PRIORITY_HIGH, click);
+	INT16 const dy = gfPlacementFullView ? FV_BUTTONS_DY : 0;
+	GUIButtonRef const btn = QuickCreateButton(giOverheadButtonImages[idx], PanelX() + 11, PanelY() + y + dy, MSYS_PRIORITY_HIGH, click);
 	iTPButtons[idx] = btn;
-	btn->SpecifyGeneralTextAttributes(text, BLOCKFONT, FONT_BEIGE, 141);
+	// the 1366x768 panels: every text in FONT14ARIAL
+	SGPFont const font = gfPlacementFullView ? FONT14ARIAL : BLOCKFONT;
+	UINT8 const colour = gfPlacementFullView ? FONT_WHITE : FONT_BEIGE;
+	btn->SpecifyGeneralTextAttributes(text, font, colour, 141);
 	btn->SetFastHelpText(help);
 	btn->SpecifyHilitedTextColors(FONT_WHITE, FONT_NEARBLACK);
 }
@@ -117,6 +472,121 @@ static void SetCursorMerc(INT8 placement);
 static void SpreadPlacementsCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
+// 1366x768: shows the row `row` of the portraits (clamped)
+static void SetPlacementRow(INT32 row)
+{
+	if (!gfPlacementFullView) return;
+	row = std::clamp<INT32>(row, 0, PlacementRows() - 1);
+	giPlacementRow = row;
+	for (INT32 i = 0; i != giPlacements; ++i)
+	{
+		MOUSE_REGION& r = gMercPlacement[i].region;
+		if (MercShown(i)) r.Enable(); else r.Disable();
+	}
+	if (g_placement_arrows[0])
+	{
+		EnableButton(g_placement_arrows[0], row > 0);
+		EnableButton(g_placement_arrows[1], row < PlacementRows() - 1);
+	}
+	// the highlighted merc may be gone from the panel
+	gbHilightedMercID   = -1;
+	gubHilightedGroupID =  0;
+	gpTacticalPlacementHilightedSoldier = 0;
+	gfTacticalPlacementGUIDirty = TRUE;
+}
+
+
+// 1366x768: the row of this merc is shown
+static void ShowPlacementMerc(INT32 const i)
+{
+	if (gfPlacementFullView && i >= 0 && !MercShown(i)) SetPlacementRow(i / PlacementPerRow());
+}
+
+
+static void PlacementWheel(UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   SetPlacementRow(giPlacementRow - 1);
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) SetPlacementRow(giPlacementRow + 1);
+}
+
+
+static void PlacementPanelRegionCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	PlacementWheel(reason);
+}
+
+
+static void PlacementArrowCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	SetPlacementRow(giPlacementRow + (btn == g_placement_arrows[0] ? -1 : +1));
+}
+
+
+// 1366x768: the arrows (mapinv_done_buttons.sti 8/9 up, 10/11 down, 12 the
+// slider) and the mouse wheel over the portraits
+static void CreateFullViewScrolling()
+{
+	giPlacementRow = 0;
+	g_placement_arrows[0] = GUIButtonRef();
+	g_placement_arrows[1] = GUIButtonRef();
+	bool arrows = false;
+	try
+	{
+		arrows = GetVObject(g_full_view_arrows)->SubregionCount() >= 13;
+	}
+	catch (std::exception const& e)
+	{
+		SLOGE("No placement arrows: {}", e.what());
+	}
+	if (arrows)
+	{
+		INT16 const x = PanelX() + FV_ARROW_X;
+		g_placement_arrows[0] = QuickCreateButtonImg(g_full_view_arrows,  8,  9, x, PanelY() + FV_ARROW_UP_Y,   MSYS_PRIORITY_HIGH, PlacementArrowCallback);
+		g_placement_arrows[1] = QuickCreateButtonImg(g_full_view_arrows, 10, 11, x, PanelY() + FV_ARROW_DOWN_Y, MSYS_PRIORITY_HIGH, PlacementArrowCallback);
+	}
+	else
+	{
+		SLOGW("{} has no sub-images 8-12, the portraits scroll by the mouse wheel only", g_full_view_arrows);
+	}
+
+	INT16 const x = PanelX() + FV_BLOCK_X - 4;
+	INT16 const y = PanelY() + FV_BLOCK_Y - 4;
+	INT16 const bottom = PanelY() + TACTICAL_PLACEMENT_PANEL_HEIGHT; // the map is not covered
+	MSYS_DefineRegion(&g_placement_panel_region, x, y, PanelX() + g_placement_panel_w, bottom, MSYS_PRIORITY_HIGH + 1, 0, MSYS_NO_CALLBACK, PlacementPanelRegionCallback);
+	SetPlacementRow(0);
+}
+
+
+static void RemoveFullViewScrolling()
+{
+	for (GUIButtonRef& b : g_placement_arrows)
+	{
+		if (b) RemoveButton(b);
+		b = GUIButtonRef();
+	}
+	MSYS_RemoveRegion(&g_placement_panel_region);
+}
+
+
+// a merc's big portrait (the 65 one if there is none)
+static SGPVObject* LoadPlacementPortrait(MERCPROFILESTRUCT const& p)
+{
+	if (gfPlacementFullView)
+	{
+		try
+		{
+			return LoadBigPortrait(p);
+		}
+		catch (std::exception const& e)
+		{
+			SLOGE("No big portrait, using the small one: {}", e.what());
+		}
+	}
+	return Load65Portrait(p);
+}
+
+
 void InitTacticalPlacementGUI()
 {
 	gfTacticalPlacementGUIActive = TRUE;
@@ -124,9 +594,96 @@ void InitTacticalPlacementGUI()
 	gfValidLocationsChanged      = TRUE;
 	gfTacticalPlacementFirstTime = TRUE;
 
+	char const* panel = g_ui.isExtraWideStrategicScreen() ?
+		FirstUsableInterfaceAsset({ g_full_view_panel, INTERFACEDIR "/overheadinterface.sti" }) :
+		INTERFACEDIR "/overheadinterface.sti";
+	gfPlacementFullView = panel == g_full_view_panel;
+	if (gfPlacementFullView)
+	{
+		// scrolling renders the whole world again (shading drawn over it)
+		gfPlacementOldVideoScroll = gfDoVideoScroll;
+		gfDoVideoScroll           = FALSE;
+	}
+
+	// The panel by the entry edges. Mercs entering from the south: the panel
+	// goes to the top of the screen, over the north edge, else it would cover
+	// most of their entry area. Only from the west (and the north) / only from
+	// the east (and the north): the narrower panel, right / left aligned, keeps
+	// that edge's bottom free. Else (north only, west and east) at the bottom.
+	g_placement_panel   = PANEL_BOTTOM;
+	g_placement_panel_w = 1366;
+	bool east  = false;
+	bool south = false;
+	bool west  = false;
+	if (gfPlacementFullView)
+	{
+		GROUP const& bg = *gpBattleGroup;
+		CFOR_EACH_IN_TEAM(s, OUR_TEAM)
+		{
+			if (s->bLife == 0)                      continue;
+			if (s->fBetweenSectors)                 continue;
+			if (s->sSector != bg.ubSector)          continue;
+			if (s->uiStatusFlags & SOLDIER_VEHICLE) continue;
+			if (s->bAssignment == ASSIGNMENT_POW)   continue;
+			if (s->bAssignment == IN_TRANSIT)       continue;
+			if (s->sSector.z != 0)                  continue;
+			// as the insertion code is taken below
+			UINT8 const code =
+				s->ubStrategicInsertionCode == INSERTION_CODE_PRIMARY_EDGEINDEX ||
+				s->ubStrategicInsertionCode == INSERTION_CODE_SECONDARY_EDGEINDEX ?
+				(UINT8)s->usStrategicInsertionData : s->ubStrategicInsertionCode;
+			switch (code)
+			{
+				case INSERTION_CODE_EAST:  east  = true; break;
+				case INSERTION_CODE_SOUTH: south = true; break;
+				case INSERTION_CODE_WEST:  west  = true; break;
+			}
+		}
+
+		if (south)
+		{
+			g_placement_panel = PANEL_TOP;
+		}
+		else if (west != east && FirstUsableInterfaceAsset({ g_full_view_panel_side, g_full_view_panel }) == g_full_view_panel_side)
+		{
+			g_placement_panel = west ? PANEL_WEST : PANEL_EAST;
+			panel             = g_full_view_panel_side;
+		}
+	}
+	if (g_placement_panel != PANEL_BOTTOM) ExtendViewportToScreenBottom();
+	if (gfPlacementFullView)
+	{
+		// the world scrolls out from under the panel: every edge of the map
+		// can be brought into the free part of the view
+		gsScrollTopExtra    = TacticalPlacementViewTop();
+		gsScrollBottomExtra = std::max(0, gsVIEWPORT_END_Y - TacticalPlacementViewBottom());
+	}
+
 	GoIntoOverheadMap();
 
-	giOverheadPanelImage = AddVideoObjectFromFile(INTERFACEDIR "/overheadinterface.sti");
+	giOverheadPanelImage = AddVideoObjectFromFile(panel);
+	// 1366, the west / east one 1207
+	g_radar_panel       = 0;
+	g_placement_minimap = 0;
+	if (gfPlacementFullView)
+	{
+		g_placement_panel_w = giOverheadPanelImage->SubregionProperties(0).usWidth;
+		if (FirstUsableInterfaceAsset({ g_radar_panel_file, g_full_view_panel }) == g_radar_panel_file)
+		{
+			g_radar_panel       = AddVideoObjectFromFile(g_radar_panel_file);
+			g_placement_minimap = LoadPlacementMinimap();
+			if (g_placement_minimap)
+			{
+				ETRLEObject const& map = g_placement_minimap->SubregionProperties(0);
+				g_minimap_w = map.usWidth;
+				g_minimap_h = map.usHeight;
+				if (g_minimap_w != MinimapPlaceW() || g_minimap_h != MinimapPlaceH())
+				{
+					SLOGW("The placement minimap is {}x{}, the radar panel's window {}x{}: cut to it", g_minimap_w, g_minimap_h, MinimapPlaceW(), MinimapPlaceH());
+				}
+			}
+		}
+	}
 	giMercPanelImage     = AddVideoObjectFromFile(INTERFACEDIR "/panels.sti");
 
 	BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/overheaduibuttons.sti", 0, 1);
@@ -136,10 +693,10 @@ void InitTacticalPlacementGUI()
 	giOverheadButtonImages[CLEAR_BUTTON]  = UseLoadedButtonImage(img, 0, 1);
 
 	// Create the buttons which provide automatic placements.
-	MakeButton(CLEAR_BUTTON,  332, ClearPlacementsCallback,            gpStrategicString[STR_TP_CLEAR],  gpStrategicString[STR_TP_CLEARHELP]);
-	MakeButton(SPREAD_BUTTON, 367, SpreadPlacementsCallback,           gpStrategicString[STR_TP_SPREAD], gpStrategicString[STR_TP_SPREADHELP]);
-	MakeButton(GROUP_BUTTON,  402, GroupPlacementsCallback,            gpStrategicString[STR_TP_GROUP],  gpStrategicString[STR_TP_GROUPHELP]);
-	MakeButton(DONE_BUTTON,   437, DoneOverheadPlacementClickCallback, gpStrategicString[STR_TP_DONE],   gpStrategicString[STR_TP_DONEHELP]);
+	MakeButton(CLEAR_BUTTON,   12, ClearPlacementsCallback,            gpStrategicString[STR_TP_CLEAR],  gpStrategicString[STR_TP_CLEARHELP]);
+	MakeButton(SPREAD_BUTTON,  47, SpreadPlacementsCallback,           gpStrategicString[STR_TP_SPREAD], gpStrategicString[STR_TP_SPREADHELP]);
+	MakeButton(GROUP_BUTTON,   82, GroupPlacementsCallback,            gpStrategicString[STR_TP_GROUP],  gpStrategicString[STR_TP_GROUPHELP]);
+	MakeButton(DONE_BUTTON,   117, DoneOverheadPlacementClickCallback, gpStrategicString[STR_TP_DONE],   gpStrategicString[STR_TP_DONEHELP]);
 	iTPButtons[DONE_BUTTON]->AllowDisabledFastHelp();
 
 	GROUP const& bg = *gpBattleGroup;
@@ -186,10 +743,12 @@ void InitTacticalPlacementGUI()
 		m.pSoldier                 = s;
 		m.ubStrategicInsertionCode = s->ubStrategicInsertionCode;
 		m.fPlaced                  = FALSE;
-		m.uiVObjectID              = Load65Portrait(GetProfile(m.pSoldier->ubProfile));
-		INT32 const x = STD_SCREEN_X +  91 + i / 2 * 54;
-		INT32 const y = STD_SCREEN_Y + 361 + i % 2 * 51;
-		MSYS_DefineRegion(&m.region, x, y, x + 54, y + 62, MSYS_PRIORITY_HIGH, 0, MercMoveCallback, MercClickCallback);
+		m.uiVObjectID              = LoadPlacementPortrait(GetProfile(m.pSoldier->ubProfile));
+		INT32 const x = MercRegionX(i);
+		INT32 const y = MercRegionY(i);
+		// 1366x768: above the panel's wheel region
+		INT16 const priority = gfPlacementFullView ? MSYS_PRIORITY_HIGH + 2 : MSYS_PRIORITY_HIGH;
+		MSYS_DefineRegion(&m.region, x, y, x + MercRegionW(), y + MercRegionH(), priority, 0, MercMoveCallback, MercClickCallback);
 
 		switch (s->ubStrategicInsertionCode)
 		{
@@ -198,6 +757,13 @@ void InitTacticalPlacementGUI()
 			case INSERTION_CODE_SOUTH: gfSouth = true; break;
 			case INSERTION_CODE_WEST:  gfWest  = true; break;
 		}
+	}
+
+	if (gfPlacementFullView)
+	{
+		CreateFullViewScrolling();
+		CreatePlacementMinimapRegion();
+		CreateRadarButton();
 	}
 
 	PlaceMercs();
@@ -214,6 +780,7 @@ void InitTacticalPlacementGUI()
 			gubSelectedGroupID                 = m.pSoldier->ubGroupID;
 			gpTacticalPlacementSelectedSoldier = m.pSoldier;
 			SetCursorMerc(i);
+			ShowPlacementMerc(i);
 			break;
 		}
 	}
@@ -224,6 +791,132 @@ static void DrawBar(SGPVSurface* const buf, INT32 const x, INT32 const y, INT32 
 {
 	ColorFillVideoSurfaceArea(buf, x,     y - h, x + 1, y, Get16BPPColor(colour1));
 	ColorFillVideoSurfaceArea(buf, x + 1, y - h, x + 2, y, Get16BPPColor(colour2));
+}
+
+
+// The entry areas in the 1:1 view: 166 px wide bands along the map's
+// visible edges (where the scrolling stops, SCROLL_*_PADDING), the same
+// for every edge (the screen's width beside the west / east panel + 7). Their
+// inner edges in frame coordinates, from the render center as ApplyScrolling()
+// places the view.
+#define FV_ENTRY_BAND 166
+
+struct FullViewEntryEdges
+{
+	INT16 north; // the north area ends above this row
+	INT16 east;  // the east area starts at this column
+	INT16 south; // the south area starts at this row
+	INT16 west;  // the west area ends left of this column
+};
+
+static FullViewEntryEdges GetFullViewEntryEdges()
+{
+	INT32 const left = 2 * gsRenderCenterX - 2 * gsRenderCenterY - g_ui.m_tacticalMapCenterX; // the view's top left corner
+	INT32 const top  = gsRenderCenterX + gsRenderCenterY - 10   - g_ui.m_tacticalMapCenterY;
+	FullViewEntryEdges e;
+	e.north = (INT16)(gsTopY    + SCROLL_TOP_PADDING    + FV_ENTRY_BAND - top);
+	e.east  = (INT16)(gsRightX  + SCROLL_RIGHT_PADDING  - FV_ENTRY_BAND - left);
+	e.south = (INT16)(gsBottomY + SCROLL_BOTTOM_PADDING - FV_ENTRY_BAND - top);
+	e.west  = (INT16)(gsLeftX   + SCROLL_LEFT_PADDING   + FV_ENTRY_BAND - left);
+	return e;
+}
+
+
+static UINT16 PlacementHatchColour()
+{
+	return
+		DayTime() ? 0 :                     // 6AM to 9PM is black
+		Get16BPPColor(FROMRGB(63, 31, 31)); // 9PM to 6AM is gray (black is too dark to distinguish)
+}
+
+
+// The 1:1 view: everything but the 166 px bands along the edges where the
+// mercs may enter gets the hatch.
+static void ShadeFullViewInvalidArea()
+{
+	INT16 const view_top    = TacticalPlacementViewTop();
+	INT16 const view_bottom = TacticalPlacementViewBottom();
+	INT16 top    = view_top;
+	INT16 left   = 0;
+	INT16 bottom = view_bottom;
+	INT16 right  = SCREEN_WIDTH;
+
+	bool north = false;
+	bool east  = false;
+	bool south = false;
+	bool west  = false;
+	if (gbCursorMercID == -1)
+	{
+		north = gfNorth;
+		east  = gfEast;
+		south = gfSouth;
+		west  = gfWest;
+	}
+	else switch (gMercPlacement[gbCursorMercID].ubStrategicInsertionCode)
+	{
+		case INSERTION_CODE_NORTH: north = true; break;
+		case INSERTION_CODE_EAST:  east  = true; break;
+		case INSERTION_CODE_SOUTH: south = true; break;
+		case INSERTION_CODE_WEST:  west  = true; break;
+	}
+
+	FullViewEntryEdges const e = GetFullViewEntryEdges();
+	if (north) top    = std::max(top,    e.north);
+	if (west)  left   = std::max(left,   e.west);
+	if (south) bottom = std::min(bottom, e.south);
+	if (east)  right  = std::min(right,  e.east);
+	if (top >= bottom || left >= right) return;
+
+	UINT16 const hatch_colour = PlacementHatchColour();
+	{
+		SGPRect clip = { (UINT16)left, (UINT16)top, (UINT16)right, (UINT16)bottom };
+		SGPVSurface::Lock l(FRAME_BUFFER);
+		Blt16BPPBufferLooseHatchRectWithColor(l.Buffer<UINT16>(), l.Pitch(), &clip, hatch_colour);
+	}
+
+	// the edge of the entry area: a 5 px line on the hatched side of each
+	// edge inside the view
+	INT16 const w = 5;
+	SGPVSurface* const buf = FRAME_BUFFER;
+	if (top    > view_top)     ColorFillVideoSurfaceArea(buf, left,      top,        right,    std::min<INT16>(top + w, bottom), hatch_colour);
+	if (bottom < view_bottom)  ColorFillVideoSurfaceArea(buf, left,      std::max<INT16>(bottom - w, top), right, bottom, hatch_colour);
+	if (left   > 0)            ColorFillVideoSurfaceArea(buf, left,      top,        std::min<INT16>(left + w, right), bottom, hatch_colour);
+	if (right  < SCREEN_WIDTH) ColorFillVideoSurfaceArea(buf, std::max<INT16>(right - w, left), top, right, bottom, hatch_colour);
+}
+
+
+// 1366x768: the portraits of the row shown, their bars and the slider
+static void RenderFullViewMercs(SGPVSurface* const buf)
+{
+	for (INT32 i = 0; i != giPlacements; ++i)
+	{
+		if (!MercShown(i)) continue;
+		INT32 const x = MercRegionX(i);
+		INT32 const y = MercRegionY(i);
+		ColorFillVideoSurfaceArea(buf, x, y, x + FV_BLOCK_W, y + FV_BLOCK_H, 0);
+		BltVideoObject(buf, gMercPlacement[i].uiVObjectID, 0, x + 2, y + 2);
+	}
+
+	// DrawSoldierUIBarsTall() erases its windows from the saved background
+	BlitBufferToBuffer(buf, guiSAVEBUFFER, PanelX(), PanelY(), g_placement_panel_w, TACTICAL_PLACEMENT_PANEL_HEIGHT);
+	for (INT32 i = 0; i != giPlacements; ++i)
+	{
+		if (!MercShown(i)) continue;
+		INT16 const x = MercRegionX(i) + FV_BAR_DX;
+		INT16 const y = MercRegionY(i) + 2;
+		DrawSoldierUIBarsTall(*gMercPlacement[i].pSoldier, x, x + 4, x + 8, y, 3, FV_PORTRAIT_H, buf);
+	}
+
+	if (g_placement_arrows[0])
+	{
+		SGPVObject* const vo = GetVObject(g_full_view_arrows);
+		ETRLEObject const& thumb = vo->SubregionProperties(12);
+		INT32 const rows   = PlacementRows();
+		INT32 const travel = FV_TRACK_H - thumb.usHeight;
+		INT32 const y      = PanelY() + FV_TRACK_Y + (rows > 1 ? travel * giPlacementRow / (rows - 1) : 0);
+		INT32 const x      = PanelX() + FV_ARROW_X + (27 - thumb.usWidth) / 2;
+		BltVideoObject(buf, vo, 12, x, y);
+	}
 }
 
 
@@ -240,10 +933,10 @@ static void RenderTacticalPlacementGUI()
 	 * refresh the display. */
 	if (!gfTacticalPlacementGUIDirty && gbHilightedMercID != -1)
 	{
-		INT32 const x = STD_SCREEN_X +  91 + gbHilightedMercID / 2 * 54;
-		INT32 const y = STD_SCREEN_Y + 361 + gbHilightedMercID % 2 * 51;
-		if (gusMouseXPos < x || x + 54 < gusMouseXPos ||
-				gusMouseYPos < y || y + 62 < gusMouseYPos)
+		INT32 const x = MercRegionX(gbHilightedMercID);
+		INT32 const y = MercRegionY(gbHilightedMercID);
+		if (gusMouseXPos < x || x + MercRegionW() < gusMouseXPos ||
+				gusMouseYPos < y || y + MercRegionH() < gusMouseYPos)
 		{
 			gbHilightedMercID   = -1;
 			gubHilightedGroupID =  0;
@@ -252,19 +945,30 @@ static void RenderTacticalPlacementGUI()
 		}
 	}
 
+	if (gfPlacementFullView)
+	{
+		// the world was rendered again this frame: everything over it again,
+		// the shading first, under the panel
+		gfTacticalPlacementGUIDirty = TRUE;
+		gfValidLocationsChanged     = FALSE;
+		ShadeFullViewInvalidArea();
+	}
+
 	SGPVSurface* const buf = FRAME_BUFFER;
 	// If the display is dirty render the entire panel.
 	if (gfTacticalPlacementGUIDirty)
 	{
-		BltVideoObject(buf, giOverheadPanelImage, 0, STD_SCREEN_X + 0, STD_SCREEN_Y + 320);
+		if (gfPlacementFullView) DrawPlacementPanel(buf);
+		else BltVideoObject(buf, giOverheadPanelImage, 0, PanelX(), PanelY());
 		InvalidateRegion(STD_SCREEN_X + 0, STD_SCREEN_Y + 0, STD_SCREEN_X + 320, STD_SCREEN_Y + 480);
 		gfTacticalPlacementGUIDirty = FALSE;
 		MarkButtonsDirty();
-		for (INT32 i = 0; i != giPlacements; ++i)
+		if (gfPlacementFullView) RenderFullViewMercs(buf);
+		else for (INT32 i = 0; i != giPlacements; ++i)
 		{ // Render the mercs
 			MERCPLACEMENT const& m = gMercPlacement[i];
-			INT32         const  x = STD_SCREEN_X +  95 + i / 2 * 54;
-			INT32         const  y = STD_SCREEN_Y + 371 + i % 2 * 51;
+			INT32         const  x = MercPortraitX(i);
+			INT32         const  y = MercPortraitY(i);
 			ColorFillVideoSurfaceArea(buf, x + 36, y + 2, x + 44, y + 30, 0);
 			BltVideoObject(buf, giMercPanelImage, 0, x,     y);
 			BltVideoObject(buf, m.uiVObjectID,    0, x + 2, y + 2);
@@ -279,23 +983,28 @@ static void RenderTacticalPlacementGUI()
 			DrawBar(buf, x + 42, y + 29, s.bMorale    * 27 / 100, FROMRGB(  8, 156,   8), FROMRGB(  8, 107,   8)); // Morale bar
 		}
 
-		SetFontAttributes(BLOCKFONT, FONT_BEIGE);
+		// the 1366x768 panels: FONT14ARIAL, white
+		if (gfPlacementFullView) SetFontAttributes(FONT14ARIAL, FONT_WHITE);
+		else                     SetFontAttributes(BLOCKFONT, FONT_BEIGE);
 		ST::string str = GetSectorIDString(gubPBSector, TRUE);
-		MPrint(STD_SCREEN_X + 120, STD_SCREEN_Y + 335, ST::format("{} {} -- {}...", gpStrategicString[STR_TP_SECTOR], str, gpStrategicString[STR_TP_CHOOSEENTRYPOSITIONS]));
+		MPrint(PanelX() + 120, PanelY() + 15, ST::format("{} {} -- {}...", gpStrategicString[STR_TP_SECTOR], str, gpStrategicString[STR_TP_CHOOSEENTRYPOSITIONS]));
 
 		// Shade out the part of the tactical map that isn't considered placable.
-		BlitBufferToBuffer(buf, guiSAVEBUFFER, STD_SCREEN_X + 0, STD_SCREEN_Y + 320, 640, 160);
+		if (!gfPlacementFullView) BlitBufferToBuffer(buf, guiSAVEBUFFER, STD_SCREEN_X + 0, STD_SCREEN_Y + 320, 640, 160);
 	}
 
-	if (gfValidLocationsChanged)
+	if (gfValidLocationsChanged && gfPlacementFullView)
+	{
+		gfValidLocationsChanged = FALSE;
+		ShadeFullViewInvalidArea();
+	}
+	else if (gfValidLocationsChanged)
 	{
 		gfValidLocationsChanged = FALSE;
 		BlitBufferToBuffer(guiSAVEBUFFER, buf, STD_SCREEN_X + 4, STD_SCREEN_Y + 4, 636, 320);
 		InvalidateRegion(STD_SCREEN_X + 4, STD_SCREEN_Y + 4, STD_SCREEN_X + 636, STD_SCREEN_Y + 320);
 
-		UINT16 const hatch_colour =
-			DayTime() ? 0 :                     // 6AM to 9PM is black
-			Get16BPPColor(FROMRGB(63, 31, 31)); // 9PM to 6AM is gray (black is too dark to distinguish)
+		UINT16 const hatch_colour = PlacementHatchColour();
 		SGPRect clip = { (UINT16)(STD_SCREEN_X + 4), (UINT16)(STD_SCREEN_Y + 4), (UINT16)(STD_SCREEN_X + 636), (UINT16)(STD_SCREEN_Y + 320) };
 		if (gbCursorMercID == -1)
 		{
@@ -325,34 +1034,47 @@ static void RenderTacticalPlacementGUI()
 	bool const is_group = gubDefaultButton == GROUP_BUTTON;
 	for (INT32 i = 0; i != giPlacements; ++i)
 	{ // Render the merc's names
-		INT32 const x = STD_SCREEN_X +  95 + i / 2 * 54;
-		INT32 const y = STD_SCREEN_Y + 371 + i % 2 * 51;
+		if (!MercShown(i)) continue;
+		INT32 const x = gfPlacementFullView ? MercRegionX(i) : MercPortraitX(i);
+		INT32 const y = gfPlacementFullView ? MercRegionY(i) : MercPortraitY(i);
 
 		MERCPLACEMENT const& m     = gMercPlacement[i];
 		SOLDIERTYPE   const& s     = *m.pSoldier;
 		UINT8         const colour =
 			(is_group ? s.ubGroupID == gubSelectedGroupID  : i == gbSelectedMercID)  ? FONT_YELLOW :
 			(is_group ? s.ubGroupID == gubHilightedGroupID : i == gbHilightedMercID) ? FONT_WHITE  :
-			FONT_GRAY3;
-		SetFontAttributes(BLOCKFONT, colour);
-		INT32 const w  = StringPixLength(s.name, BLOCKFONT);
-		INT32 const nx = x + (48 - w) / 2;
-		INT32 const ny = y + 33;
+			gfPlacementFullView ? FONT_WHITE : FONT_GRAY3; // the 1366x768 panels: white
+		SGPFont const font = gfPlacementFullView ? FONT14ARIAL : BLOCKFONT;
+		SetFontAttributes(font, colour);
+		INT32 const w  = StringPixLength(s.name, font);
+		INT32 const nx = gfPlacementFullView ? x + (FV_BLOCK_W - w) / 2 : x + (48 - w) / 2;
+		INT32 const ny = gfPlacementFullView ? PanelY() + FV_NAME_Y : y + 33;
 		MPrint(nx, ny, s.name);
 		InvalidateRegion(nx, ny, nx + w, ny + w);
 
 		// Render a question mark over the face, if the merc hasn't yet been placed.
-		INT32 const qx = x + 16;
-		INT32 const qy = y + 14;
+		INT32 const qx = gfPlacementFullView ? x + 2 + FV_PORTRAIT_W / 2 - 4 : x + 16;
+		INT32 const qy = gfPlacementFullView ? y + 2 + FV_PORTRAIT_H / 2 - 4 : y + 14;
 		if (m.fPlaced)
 		{
 			RegisterBackgroundRect(BGND_FLAG_SINGLE, qx, qy, 8, 8);
 		}
 		else
 		{
-			SetFont(FONT10ARIALBOLD);
-			MPrint(qx, qy, "?");
-			InvalidateRegion(qx, qy, qx + 8, qy + 8);
+			if (gfPlacementFullView)
+			{ // FONT14ARIAL like the other texts, in the portrait's middle
+				SetFont(FONT14ARIAL);
+				INT32 const fx = x + 2 + (FV_PORTRAIT_W - StringPixLength("?", FONT14ARIAL)) / 2;
+				INT32 const fy = y + 2 + (FV_PORTRAIT_H - GetFontHeight(FONT14ARIAL)) / 2;
+				MPrint(fx, fy, "?");
+				InvalidateRegion(fx, fy, fx + 12, fy + 16);
+			}
+			else
+			{
+				SetFont(FONT10ARIALBOLD);
+				MPrint(qx, qy, "?");
+				InvalidateRegion(qx, qy, qx + 8, qy + 8);
+			}
 		}
 	}
 }
@@ -414,6 +1136,10 @@ void TacticalPlacementHandle()
 				case 's':
 					SpreadPlacementsCallback(iTPButtons[SPREAD_BUTTON], MSYS_CALLBACK_REASON_POINTER_UP);
 					break;
+				case 't':
+					// the 1:1 view shows the tree tops, as in the game
+					if (gfPlacementFullView) ToggleTreeTops();
+					break;
 				case 'x':
 					if( InputEvent.usKeyState & ALT_DOWN )
 					{
@@ -424,26 +1150,45 @@ void TacticalPlacementHandle()
 		}
 	}
 	gfValidCursor = FALSE;
-	if( gbSelectedMercID != -1
-		&& (gusMouseYPos >= STD_SCREEN_Y) && (gusMouseYPos < STD_SCREEN_Y + 320)
-		&& (gusMouseXPos >= STD_SCREEN_X) && (gusMouseXPos < STD_SCREEN_X + 640) )
+	bool const mouse_in_map = gfPlacementFullView ?
+		TacticalPlacementViewTop() <= gusMouseYPos && gusMouseYPos < TacticalPlacementViewBottom() &&
+		!TacticalPlacementMouseOverPanel() :
+		(gusMouseYPos >= STD_SCREEN_Y) && (gusMouseYPos < STD_SCREEN_Y + 320) &&
+		(gusMouseXPos >= STD_SCREEN_X) && (gusMouseXPos < STD_SCREEN_X + 640);
+	if (gbSelectedMercID != -1 && mouse_in_map)
 	{
-		switch( gMercPlacement[ gbCursorMercID ].ubStrategicInsertionCode )
+		// the mouse in the overhead map's own coordinates
+		INT16 const mx = gusMouseXPos - STD_SCREEN_X;
+		INT16 const my = gusMouseYPos - STD_SCREEN_Y;
+		UINT8 const code = gMercPlacement[gbCursorMercID].ubStrategicInsertionCode;
+		if (gfPlacementFullView)
+		{
+			// the 166 px bands (see GetFullViewEntryEdges())
+			FullViewEntryEdges const e = GetFullViewEntryEdges();
+			switch (code)
+			{
+				case INSERTION_CODE_NORTH: gfValidCursor = gusMouseYPos <  e.north; break;
+				case INSERTION_CODE_EAST:  gfValidCursor = gusMouseXPos >= e.east;  break;
+				case INSERTION_CODE_SOUTH: gfValidCursor = gusMouseYPos >= e.south; break;
+				case INSERTION_CODE_WEST:  gfValidCursor = gusMouseXPos <  e.west;  break;
+			}
+		}
+		else switch (code)
 		{
 			case INSERTION_CODE_NORTH:
-				if( gusMouseYPos <= (STD_SCREEN_Y + 40) )
+				if (my <= 40)
 					gfValidCursor = TRUE;
 				break;
 			case INSERTION_CODE_EAST:
-				if( gusMouseXPos >= (STD_SCREEN_X + 600) )
+				if (mx >= 600)
 					gfValidCursor = TRUE;
 				break;
 			case INSERTION_CODE_SOUTH:
-				if( gusMouseYPos >= (STD_SCREEN_Y + 280) )
+				if (my >= 280)
 					gfValidCursor = TRUE;
 				break;
 			case INSERTION_CODE_WEST:
-				if( gusMouseXPos <= (STD_SCREEN_X + 40) )
+				if (mx <= 40)
 					gfValidCursor = TRUE;
 				break;
 		}
@@ -490,6 +1235,11 @@ static void PickUpMercPiece(MERCPLACEMENT&);
 
 static void KillTacticalPlacementGUI(void)
 {
+	// before the tactical panel sets its viewport again
+	RestoreViewport();
+	gsScrollTopExtra    = 0;
+	gsScrollBottomExtra = 0;
+
 	gbHilightedMercID = -1;
 	gbSelectedMercID = -1;
 	gubSelectedGroupID = 0;
@@ -504,12 +1254,25 @@ static void KillTacticalPlacementGUI(void)
 	gfKillTacticalGUI = FALSE;
 	//Delete video objects
 	DeleteVideoObject(giOverheadPanelImage);
+	if (g_placement_minimap)
+	{
+		DeleteVideoObject(g_placement_minimap);
+		g_placement_minimap = 0;
+	}
 	DeleteVideoObject(giMercPanelImage);
 	//Delete buttons
 	for (INT32 i = 0; i < NUM_TP_BUTTONS; ++i)
 	{
 		UnloadButtonImage( giOverheadButtonImages[ i ] );
 		RemoveButton( iTPButtons[ i ] );
+	}
+	if (gfPlacementFullView) RemoveFullViewScrolling();
+	RemovePlacementMinimapRegion();
+	RemoveRadarButton();
+	if (g_radar_panel)
+	{
+		DeleteVideoObject(g_radar_panel);
+		g_radar_panel = 0;
 	}
 	//Delete faces and regions
 	FOR_EACH_MERC_PLACEMENT(i)
@@ -525,6 +1288,11 @@ static void KillTacticalPlacementGUI(void)
 	SetCurrentInterfacePanel(gsCurInterfacePanel);
 
 	//Leave the overhead map.
+	if (gfPlacementFullView)
+	{
+		gfDoVideoScroll     = gfPlacementOldVideoScroll;
+		gfPlacementFullView = false;
+	}
 	KillOverheadMap();
 	//Recreate the tactical panel.
 	gRadarRegion.Enable();
@@ -677,6 +1445,8 @@ static void MercMoveCallback(MOUSE_REGION* reg, UINT32 reason)
 
 static void MercClickCallback(MOUSE_REGION* reg, UINT32 reason)
 {
+	PlacementWheel(reason);
+
 	if( reason & MSYS_CALLBACK_REASON_POINTER_DWN )
 	{
 		INT8 i;
@@ -715,6 +1485,7 @@ static void SelectNextUnplacedUnit(void)
 			gfTacticalPlacementGUIDirty = TRUE;
 			SetCursorMerc( (INT8)i );
 			gpTacticalPlacementSelectedSoldier = gMercPlacement[ i ].pSoldier;
+			ShowPlacementMerc(i);
 			return;
 		}
 	}
@@ -728,6 +1499,7 @@ static void SelectNextUnplacedUnit(void)
 			gfTacticalPlacementGUIDirty = TRUE;
 			SetCursorMerc( (INT8)i );
 			gpTacticalPlacementSelectedSoldier = gMercPlacement[ i ].pSoldier;
+			ShowPlacementMerc(i);
 			return;
 		}
 	}
@@ -748,8 +1520,22 @@ static void SelectNextUnplacedUnit(void)
 static void DialogRemoved(MessageBoxReturnValue);
 
 
+// the middle of the map area
+static SGPBox PlacementMessageBoxRect()
+{
+	if (gfPlacementFullView)
+	{
+		return SGPBox{ (UINT16)((SCREEN_WIDTH - 200) / 2), (UINT16)((TacticalPlacementViewTop() + TacticalPlacementViewBottom() - 80) / 2), 200, 80 };
+	}
+	return SGPBox{ (UINT16)(STD_SCREEN_X + 220), (UINT16)(STD_SCREEN_Y + 120), 200, 80 };
+}
+
+
 void HandleTacticalPlacementClicksInOverheadMap(INT32 reason)
 {
+	// beside a narrower panel the map's region is under the panel too
+	if (TacticalPlacementMouseOverPanel()) return;
+
 	BOOLEAN fInvalidArea = FALSE;
 	if( reason & MSYS_CALLBACK_REASON_POINTER_UP )
 	{ //if we have a selected merc, move him to the new closest map edgepoint of his side.
@@ -818,7 +1604,7 @@ void HandleTacticalPlacementClicksInOverheadMap(INT32 reason)
 
 					if( fInvalidArea )
 					{ //Report error due to invalid placement.
-						SGPBox const CenterRect = { (UINT16) (STD_SCREEN_X + 220), (UINT16) (STD_SCREEN_Y + 120), 200, 80 };
+						SGPBox const CenterRect = PlacementMessageBoxRect();
 						DoMessageBox(MSG_BOX_BASIC_STYLE, gpStrategicString[STR_TP_INACCESSIBLE_MESSAGE], guiCurrentScreen, MSG_BOX_FLAG_OK, DialogRemoved, &CenterRect);
 					}
 					else
@@ -832,7 +1618,7 @@ void HandleTacticalPlacementClicksInOverheadMap(INT32 reason)
 		{ //not a valid cursor location...
 			if( gbCursorMercID != - 1 )
 			{
-				SGPBox const CenterRect = { (UINT16) (STD_SCREEN_X + 220), (UINT16) (STD_SCREEN_Y + 120), 200, 80 };
+				SGPBox const CenterRect = PlacementMessageBoxRect();
 				DoMessageBox(MSG_BOX_BASIC_STYLE, gpStrategicString[STR_TP_INVALID_MESSAGE], guiCurrentScreen, MSG_BOX_FLAG_OK, DialogRemoved, &CenterRect);
 			}
 		}

@@ -772,7 +772,7 @@ static void OurTeamRadiosRandomlyAbout(SOLDIERTYPE* const about)
 {
 	// make a list of all of our team's mercs
 	UINT radio_cnt = 0;
-	SOLDIERTYPE* radio_men[20];
+	SOLDIERTYPE* radio_men[PLAYER_TEAM_SIZE];
 	FOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
 		// if this merc is in this sector, and well enough to look, then put him on

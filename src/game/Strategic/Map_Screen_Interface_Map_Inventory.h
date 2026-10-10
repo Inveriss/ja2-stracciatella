@@ -68,6 +68,18 @@ BOOLEAN IsCursorOverSectorInventoryWindow(void);
 // events at all.
 BOOLEAN IsStackSplitViewOpen(void);
 
+// 1366x768 interface: a merc's stack (right click on it in his inventory
+// panel) in the "stack split" view -- stand-alone over the map when the
+// Sector Inventory panel is closed, else in place of the panel's own
+// stack. Merged back into his pocket when the view closes.
+struct SOLDIERTYPE;
+void OpenMercStackView(SOLDIERTYPE& s, INT8 pocket);
+// Merges whatever stack is split open back where it came from (before
+// saving the game, for one).
+void CloseStackSplitViewIfOpen(void);
+// Is the view open stand-alone (no Sector Inventory panel under it)?
+BOOLEAN IsStackSplitViewStandalone(void);
+
 // The WORLDITEM every slot in the "stack split" popup was split out of,
 // while the cursor is hovering one of those slots -- else nullptr. See its
 // own comment (Map_Screen_Interface_Map_Inventory.cc) for details.

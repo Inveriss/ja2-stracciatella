@@ -19,6 +19,7 @@ typedef void (*FADE_FUNCTION)( void );
 
 extern BOOLEAN       gfFadeInitialized;
 extern BOOLEAN       gfFadeIn;
+extern BOOLEAN       gfFadeOutInstantly; // the next fade out: black at once
 extern FADE_FUNCTION gFadeFunction;
 extern BOOLEAN       gfFadeInVideo;
 

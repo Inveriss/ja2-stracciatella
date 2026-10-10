@@ -5,6 +5,7 @@
 #include "MessageBoxScreen.h"
 #include "ScreenIDs.h"
 #include "JA2Types.h"
+#include <initializer_list>
 #include <string_theory/string>
 
 
@@ -61,6 +62,13 @@ extern INT8 bSelectedInfoChar;
 SOLDIERTYPE* GetSelectedInfoChar(void);
 void ChangeSelectedInfoChar( INT8 bCharNumber, BOOLEAN fResetSelectedList );
 
+// Team list scrolling: by `rows` people rows (negative: up), or vehicle rows;
+// whether it can scroll that way (-1 up, +1 down); scroll so entry `i` shows.
+void    ScrollTeamList(INT32 rows);
+void    ScrollTeamListVehicles(INT32 rows);
+BOOLEAN CanScrollTeamList(INT32 dir);
+void    MakeTeamListEntryVisible(INT32 i);
+
 void MAPEndItemPointer(void);
 
 // "Show Large Icons" toggle of the merc inventory panel (mapinv.sti) --
@@ -77,7 +85,8 @@ BOOLEAN IsMapInvBigImages(void);
 // mapinv_big_1280_768.sti 518x661 (768+).
 #define MAP_INV_BIG_PANEL_HEIGHT_720  613
 #define MAP_INV_BIG_PANEL_HEIGHT_768  661
-#define MAP_INV_BIG_PANEL_HEIGHT  (g_ui.isCompactStrategicScreen() ? MAP_INV_BIG_PANEL_HEIGHT_720 : MAP_INV_BIG_PANEL_HEIGHT_768)
+// 1366x768: mapinv_1366x768.png, 518x613 like the 720 one (at y 133)
+#define MAP_INV_BIG_PANEL_HEIGHT  (g_ui.isCompactStrategicScreen() || g_ui.isExtraWideStrategicScreen() ? MAP_INV_BIG_PANEL_HEIGHT_720 : MAP_INV_BIG_PANEL_HEIGHT_768)
 
 // TRUE while that panel is showing and reaches into the bottom strip: the
 // strip then leaves its covered part (message list, scroll bar/buttons,
@@ -133,10 +142,16 @@ extern SGPSector    gsHighlightSector;
 void CreateDestroyMapInvButton(void);
 
 // On the wide strategic screen (UILayout::isWideStrategicScreen()) returns
-// `wide` if that file exists, otherwise -- and always on the legacy 1024
+// `wide` if it can be drawn -- its PNG (named directly or next to it) loads,
+// or the file itself exists -- otherwise -- and always on the legacy 1024
 // canvas -- `legacy`, so the game keeps working before the _wide assets are
 // delivered. Both must be string literals (cache_key_t).
 char const* GetWideStrategicAsset(char const* wide, char const* legacy);
+
+// The first of `files` that can be drawn (same test as GetWideStrategicAsset()),
+// or the last one -- the original, always present -- if none can. String
+// literals (cache_key_t).
+char const* FirstUsableInterfaceAsset(std::initializer_list<char const*> files);
 
 void     MapScreenInit(void);
 ScreenID MapScreenHandle(void);
@@ -147,18 +162,24 @@ void MakeDialogueEventEnterMapScreen();
 
 void SetMapCursorItem();
 
-#define NAME_X                (MAP_SCREEN_X + 11)
-#define NAME_WIDTH            (MAP_SCREEN_X + 62 - NAME_X)
-#define ASSIGN_X              (MAP_SCREEN_X + 67)
-#define ASSIGN_WIDTH          (MAP_SCREEN_X + 118 - ASSIGN_X)
-#define SLEEP_X               (MAP_SCREEN_X + 123)
-#define SLEEP_WIDTH           (MAP_SCREEN_X + 142 - SLEEP_X)
-#define LOC_X                 (MAP_SCREEN_X + 147)
-#define LOC_WIDTH             (MAP_SCREEN_X + 179 - LOC_X)
-#define DEST_ETA_X            (MAP_SCREEN_X + 184)
-#define DEST_ETA_WIDTH        (MAP_SCREEN_X + 217 - DEST_ETA_X)
-#define TIME_REMAINING_X      (MAP_SCREEN_X + 222)
-#define TIME_REMAINING_WIDTH  (MAP_SCREEN_X + 250 - TIME_REMAINING_X)
+// Team list columns. The 1366x768 interface (isExtraWideStrategicScreen())
+// has its own, wider ones -- the columns of newgoldpiece3_1366x768.png
+// (604x455, at TEAM_LIST_Y): name 11-112, assignment 117-218, sleep
+// 223-260, location 265-328, destination 333-398, departure 403-458.
+#define TEAM_LIST_COLUMN(x_1366, x_legacy)  (MAP_SCREEN_X + (g_ui.isExtraWideStrategicScreen() ? (x_1366) : (x_legacy)))
+#define TEAM_LIST_WIDTH(w_1366, w_legacy)   (g_ui.isExtraWideStrategicScreen() ? (w_1366) : (w_legacy))
+#define NAME_X                TEAM_LIST_COLUMN( 11,  11)
+#define NAME_WIDTH            TEAM_LIST_WIDTH(102,  51)
+#define ASSIGN_X              TEAM_LIST_COLUMN(117,  67)
+#define ASSIGN_WIDTH          TEAM_LIST_WIDTH(102,  51)
+#define SLEEP_X               TEAM_LIST_COLUMN(223, 123)
+#define SLEEP_WIDTH           TEAM_LIST_WIDTH( 38,  19)
+#define LOC_X                 TEAM_LIST_COLUMN(265, 147)
+#define LOC_WIDTH             TEAM_LIST_WIDTH( 64,  32)
+#define DEST_ETA_X            TEAM_LIST_COLUMN(333, 184)
+#define DEST_ETA_WIDTH        TEAM_LIST_WIDTH( 66,  33)
+#define TIME_REMAINING_X      TEAM_LIST_COLUMN(403, 222)
+#define TIME_REMAINING_WIDTH  TEAM_LIST_WIDTH( 56,  28)
 // Bottom-anchored per user request: 480-298=182, same distance from the old
 // 640x480 canvas' bottom edge as before. Used only by DisplayGroundEta().
 #define CLOCK_Y_START         (MAP_SCREEN_BOTTOM - 182)
@@ -192,7 +213,7 @@ void SetMapCursorItem();
 #define MAP_INV_ICON_SIZE             32
 #define MAP_INV_ICON_GAP              3
 #define MAP_INV_DONE_BTN_X_NORMAL     (MAP_SCREEN_X + 221)
-#define MAP_INV_DONE_BTN_Y_NORMAL     (MAP_SCREEN_Y + 107 + 453)
+#define MAP_INV_DONE_BTN_Y_NORMAL     (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 453)
 #define TRASH_CAN_X_NORMAL            (MAP_INV_DONE_BTN_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
 #define TRASH_CAN_Y_NORMAL            (MAP_INV_DONE_BTN_Y_NORMAL)
 #define MAP_INV_KEYRING_X_NORMAL      (TRASH_CAN_X_NORMAL - MAP_INV_ICON_GAP - MAP_INV_ICON_SIZE)
@@ -204,17 +225,17 @@ void SetMapCursorItem();
 // to it (X/Y relative to MAP_SCREEN_X/MAP_SCREEN_Y) -- tune to
 // mapinv_big_1280_720/768.sti.
 #define TRASH_CAN_X_BIG               (MAP_SCREEN_X + 245)
-#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + 107 + 24)
+#define TRASH_CAN_Y_BIG               (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 24)
 #define MAP_INV_KEYRING_X_BIG         (MAP_SCREEN_X + 208)
-#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + 107 + 24)
+#define MAP_INV_KEYRING_Y_BIG         (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 24)
 #define MAP_INV_MONEY_X_BIG           (MAP_SCREEN_X + 171)
-#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + 107 + 24)
+#define MAP_INV_MONEY_Y_BIG           (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 24)
 
 // Done button on both "Show Large Icons" panels (mapinv_big_1280_720.sti and
 // mapinv_big_1280_768.sti -- one set): its own graphic (mapinv_done_buttons.sti
 // sub-images 2 = ready, 3 = pressed, MAP_INV_DONE_BTN_W/H_BIG) and position.
 #define MAP_INV_DONE_BTN_X_BIG        (MAP_SCREEN_X + 444)
-#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + 107 + 88)
+#define MAP_INV_DONE_BTN_Y_BIG        (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107 + 88)
 #define MAP_INV_DONE_BTN_W_BIG        50
 #define MAP_INV_DONE_BTN_H_BIG        50
 
@@ -248,7 +269,7 @@ void SetMapCursorItem();
 // relative to the popup's origin; the boxes then run MAP_KEY_RING_ROW_WIDTH
 // per row (Interface_Items.cc).
 #define MAP_KEYRING_POPUP_X             (MAP_SCREEN_X + 0)
-#define MAP_KEYRING_POPUP_Y             (MAP_SCREEN_Y + 107)
+#define MAP_KEYRING_POPUP_Y             (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 107)
 #define MAP_KEYRING_POPUP_WIDTH         261
 #define MAP_KEYRING_POPUP_HEIGHT        (359 - 107)
 #define MAP_KEYRING_POPUP_BOX_OFFSET_X  40

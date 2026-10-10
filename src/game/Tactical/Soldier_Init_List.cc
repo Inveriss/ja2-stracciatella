@@ -112,7 +112,7 @@ void RemoveSoldierNodeFromInitList( SOLDIERINITNODE *pNode )
 	}
 	if( pNode->pSoldier )
 	{
-		if( pNode->pSoldier->ubID >= 20 )
+		if( pNode->pSoldier->ubID > gTacticalStatus.Team[OUR_TEAM].bLastID )
 		{
 			TacticalRemoveSoldier(*pNode->pSoldier);
 		}

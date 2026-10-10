@@ -2225,7 +2225,7 @@ static void TriggerClosestMercWhoCanSeeNPC(UINT8 ubNPC, NPCQuoteInfo* pQuotePtr)
 	if (!pSoldier) return;
 
 	// Loop through all our guys and randomly say one from someone in our sector
-	SOLDIERTYPE* mercs_in_sector[40];
+	SOLDIERTYPE* mercs_in_sector[PLAYER_TEAM_SIZE];
 	FOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
 		// Add guy if he's a candidate...

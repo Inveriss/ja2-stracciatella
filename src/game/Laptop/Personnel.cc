@@ -264,6 +264,12 @@ static INT32 iCurrentPersonSelectedId = -1;
 
 static INT32 giCurrentUpperLeftPortraitNumber = 0;
 
+// Current team mode: the team member in the grid's top left portrait --
+// the grid scrolls by rows (PERSONNEL_PORTRAIT_NUMBER_WIDTH) over a team of
+// up to PLAYER_TEAM_SIZE. iCurrentPersonSelectedId stays the team member's
+// own number (not the portrait's).
+static INT32 giCurrentTeamFirstPortrait = 0;
+
 // which mode are we showing?..current team?...or deadly departed?
 static BOOLEAN fCurrentTeamMode = TRUE;
 
@@ -485,6 +491,35 @@ static INT32 GetNumberOfMercsDeadOrAliveOnPlayersTeam(void);
 static INT32 GetNumberOfPastMercsOnPlayersTeam(void);
 
 
+// Current team mode: scroll the grid to row-aligned `first`, kept in range.
+static void SetCurrentTeamFirstPortrait(INT32 first)
+{
+	INT32 const w    = PERSONNEL_PORTRAIT_NUMBER_WIDTH;
+	INT32 const rows = (GetNumberOfMercsDeadOrAliveOnPlayersTeam() + w - 1) / w;
+	INT32 const max  = std::max(0, rows * w - PERSONNEL_PORTRAIT_NUMBER);
+	first = std::clamp(first - first % w, 0, max);
+	if (first == giCurrentTeamFirstPortrait) return;
+	giCurrentTeamFirstPortrait = first;
+	fReDrawScreenFlag = TRUE;
+}
+
+
+// Current team mode: scroll the grid so the selected team member shows.
+static void MakeSelectedPortraitVisible(void)
+{
+	INT32 const sel = iCurrentPersonSelectedId;
+	if (sel < 0) return;
+	if (sel < giCurrentTeamFirstPortrait)
+	{
+		SetCurrentTeamFirstPortrait(sel);
+	}
+	else if (sel >= giCurrentTeamFirstPortrait + PERSONNEL_PORTRAIT_NUMBER)
+	{
+		SetCurrentTeamFirstPortrait(sel - PERSONNEL_PORTRAIT_NUMBER + PERSONNEL_PORTRAIT_NUMBER_WIDTH);
+	}
+}
+
+
 static void NextPersonnelFace(void)
 {
 	if (iCurrentPersonSelectedId == -1) return;
@@ -500,6 +535,7 @@ static void NextPersonnelFace(void)
 		{
 			iCurrentPersonSelectedId++;
 		}
+		MakeSelectedPortraitVisible();
 	}
 	else
 	{
@@ -538,6 +574,7 @@ static void PrevPersonnelFace(void)
 		{
 			iCurrentPersonSelectedId--;
 		}
+		MakeSelectedPortraitVisible();
 	}
 	else
 	{
@@ -890,6 +927,35 @@ static void PersonnelPortraitCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReas
 static void PersonnelPortraitCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
+static void DepartedDownCallBack(GUI_BUTTON* btn, UINT32 reason);
+static void DepartedUpCallBack(GUI_BUTTON* btn, UINT32 reason);
+
+
+// Mouse wheel over the portraits: the current team by a row, the departed
+// by a page (as their up/down buttons).
+static void PersonnelPortraitWheelCallback(MOUSE_REGION* const r, UINT32 const reason)
+{
+	INT32 const dir =
+		reason & MSYS_CALLBACK_REASON_WHEEL_UP   ? -1 :
+		reason & MSYS_CALLBACK_REASON_WHEEL_DOWN ? +1 :
+		0;
+	if (dir == 0) return;
+
+	if (fCurrentTeamMode)
+	{
+		SetCurrentTeamFirstPortrait(giCurrentTeamFirstPortrait + dir * PERSONNEL_PORTRAIT_NUMBER_WIDTH);
+	}
+	else if (dir < 0)
+	{
+		DepartedUpCallBack(nullptr, MSYS_CALLBACK_REASON_POINTER_UP);
+	}
+	else
+	{
+		DepartedDownCallBack(nullptr, MSYS_CALLBACK_REASON_POINTER_UP);
+	}
+}
+
+
 static void CreateDestroyMouseRegionsForPersonnelPortraits(BOOLEAN create)
 {
 	// creates/destroys mouse regions for portraits
@@ -904,7 +970,7 @@ static void CreateDestroyMouseRegionsForPersonnelPortraits(BOOLEAN create)
 			const UINT16 tly = SMALL_PORTRAIT_START_Y + i / PERSONNEL_PORTRAIT_NUMBER_WIDTH * SMALL_PORT_HEIGHT;
 			const UINT16 brx = tlx + SMALL_PORTRAIT_WIDTH;
 			const UINT16 bry = tly + SMALL_PORTRAIT_HEIGHT;
-			MSYS_DefineRegion(&gPortraitMouseRegions[i], tlx, tly, brx, bry, MSYS_PRIORITY_HIGHEST, CURSOR_LAPTOP_SCREEN, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(PersonnelPortraitCallbackPrimary, PersonnelPortraitCallbackSecondary));
+			MSYS_DefineRegion(&gPortraitMouseRegions[i], tlx, tly, brx, bry, MSYS_PRIORITY_HIGHEST, CURSOR_LAPTOP_SCREEN, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(PersonnelPortraitCallbackPrimary, PersonnelPortraitCallbackSecondary, PersonnelPortraitWheelCallback));
 			MSYS_SetRegionUserData(&gPortraitMouseRegions[i], 0, i);
 		}
 
@@ -929,9 +995,14 @@ try
 	// will display the small portraits of the current team
 	if (!fCurrentTeamMode) return;
 
-	INT32 i = 0;
+	INT32 i   = 0;
+	INT32 pos = 0;
 	CFOR_EACH_PERSONNEL(s)
 	{
+		// only the grid's portraits, from the scrolled position
+		if (pos++ < giCurrentTeamFirstPortrait) continue;
+		if (i == PERSONNEL_PORTRAIT_NUMBER) break;
+
 		// found the next actual guy
 		INT32 const x = SMALL_PORTRAIT_START_X + i % PERSONNEL_PORTRAIT_NUMBER_WIDTH * SMALL_PORT_WIDTH;
 		INT32 const y = SMALL_PORTRAIT_START_Y + i / PERSONNEL_PORTRAIT_NUMBER_WIDTH * SMALL_PORT_HEIGHT;
@@ -967,6 +1038,8 @@ static void PersonnelPortraitCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReas
 
 	if (fCurrentTeamMode)
 	{
+		iPortraitId += giCurrentTeamFirstPortrait;
+
 		// valid portrait, set up id
 		if (iPortraitId >= GetNumberOfMercsDeadOrAliveOnPlayersTeam())
 		{
@@ -1007,6 +1080,8 @@ static void PersonnelPortraitCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iRe
 
 	if (fCurrentTeamMode)
 	{
+		iPortraitId += giCurrentTeamFirstPortrait;
+
 		// valid portrait, set up id
 		if (iPortraitId >= GetNumberOfMercsDeadOrAliveOnPlayersTeam())
 		{
@@ -1065,8 +1140,16 @@ static void DisplayFaceOfDisplayedMerc(void)
 	// valid person?, display
 	if (iCurrentPersonSelectedId == -1) return;
 
-	// highlight it
-	DisplayHighLightBox(iCurrentPersonSelectedId);
+	// highlight it -- in current team mode where its portrait is, if shown
+	if (!fCurrentTeamMode)
+	{
+		DisplayHighLightBox(iCurrentPersonSelectedId);
+	}
+	else
+	{
+		INT32 const pos = iCurrentPersonSelectedId - giCurrentTeamFirstPortrait;
+		if (0 <= pos && pos < PERSONNEL_PORTRAIT_NUMBER) DisplayHighLightBox(pos);
+	}
 
 	// if showing inventory, leave
 	if (fCurrentTeamMode)
@@ -2042,6 +2125,7 @@ static void SelectFirstDisplayedMerc(void)
 	// set current soldier
 	if (fCurrentTeamMode)
 	{
+		giCurrentTeamFirstPortrait = 0;
 		CFOR_EACH_PERSONNEL(s)
 		{
 			iCurrentPersonSelectedId = 0;

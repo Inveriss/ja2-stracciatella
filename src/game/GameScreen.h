@@ -11,6 +11,8 @@
 
 void FadeInGameScreen(void);
 void FadeOutGameScreen(void);
+// to black in one frame: before a sector is loaded
+void FadeOutGameScreenInstantly();
 
 typedef void (*MODAL_HOOK)( void );
 

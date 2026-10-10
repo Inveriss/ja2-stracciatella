@@ -14,24 +14,73 @@
 #define BAR_INFO_X (MAP_SCREEN_X + 66)
 #define BAR_INFO_Y (MAP_SCREEN_Y + 61)
 
-// merc icon position
-#define CHAR_ICON_CONTRACT_Y (MAP_SCREEN_Y + 64)
-#define CHAR_ICON_X (MAP_SCREEN_X + 187)
+// 1366x768 interface (UILayout::isExtraWideStrategicScreen()): the character
+// info panel (charinfo_1366x768, drawn at the canvas' 0,0) has three 6x122
+// windows right of the portrait for the life, breath and morale bars --
+// see DrawSoldierUIBarsTall() (Interface_Utils.h).
+#define BAR_TALL_LIFE_X   (MAP_SCREEN_X + 122)
+#define BAR_TALL_BREATH_X (MAP_SCREEN_X + 139)
+#define BAR_TALL_MORALE_X (MAP_SCREEN_X + 156)
+#define BAR_TALL_TOP_Y    (MAP_SCREEN_Y + 5)
+#define BAR_TALL_WIDTH    6
+#define BAR_TALL_HEIGHT   122
+
+// merc icon position -- on the 1366x768 interface (charinfo_1366x768 at the
+// canvas' 0,0) centred in the contract table's three 12x12 icon squares
+// (x 328, y 32/56/80)
+#define CHAR_ICON_CONTRACT_Y (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_Y + 33 : MAP_SCREEN_Y + 64)
+#define CHAR_ICON_X (g_ui.isExtraWideStrategicScreen() ? MAP_SCREEN_X + 329 : MAP_SCREEN_X + 187)
 #define CHAR_ICON_WIDTH 10
 #define CHAR_ICON_HEIGHT 10
-#define CHAR_ICON_SPACING 13
+#define CHAR_ICON_SPACING (g_ui.isExtraWideStrategicScreen() ? 24 : 13)
 
 // max number of characters
-//Character List Length
-#define MAX_CHARACTER_COUNT 20
+//Character List Length: the player's team (PLAYER_TEAM_SIZE) -- people from
+// entry 0, vehicles from FIRST_VEHICLE (at most MAX_VEHICLES = 10 of them)
+#define MAX_CHARACTER_COUNT (PLAYER_TEAM_SIZE + 10)
 
 // map screen font
-#define MAP_SCREEN_FONT BLOCKFONT2
+// (team list, green popup menus and their placement): FONT_STRATEGIC_GENERAL
+// on the 1366x768 interface, BLOCKFONT2 otherwise -- see StrategicGeneralFont()
+#define MAP_SCREEN_FONT StrategicGeneralFont()
 
 // characterlist regions
-#define Y_START               (MAP_SCREEN_Y + 146)
-#define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107)
+// The team list (newgoldpiece3_*) starts at MAP_SCREEN_Y + 107; on the
+// 1366x768 interface (UILayout::isExtraWideStrategicScreen()) at + 133,
+// right below the 132 px tall top part of the character info panel
+// (charinfo_1366x768, its slot column is drawn over the list's right part),
+// with its own graphic (newgoldpiece3_1366x768.png, 604x514, reaching the
+// bottom strip) and 32 px
+// tall header buttons -- its rows start 55 px below its top (39 on the
+// original one).
+#define TEAM_LIST_SHIFT_Y     (g_ui.isExtraWideStrategicScreen() ? 26 : 0)
+#define TEAM_LIST_Y           (MAP_SCREEN_Y + 107 + TEAM_LIST_SHIFT_Y)
+#define Y_START               (TEAM_LIST_Y + (g_ui.isExtraWideStrategicScreen() ? 55 + 4 : 39))
+// The team list's rows on screen: TEAM_LIST_PEOPLE_ROWS for the people
+// (entries 0 to FIRST_VEHICLE - 1 of gCharactersList), then
+// TEAM_LIST_VEHICLE_ROWS for the vehicles (from FIRST_VEHICLE) -- see
+// TeamListRowOfEntry() for which entry shows in which row.
+// 20 people on the 1366x768 interface (newgoldpiece3_1366x768.png has room
+// for them above its vehicle rows), 18 on the original graphics.
+#define TEAM_LIST_PEOPLE_ROWS   (g_ui.isExtraWideStrategicScreen() ? 20 : 18)
+#define TEAM_LIST_VEHICLE_ROWS  2
+#define TEAM_LIST_ROWS          (TEAM_LIST_PEOPLE_ROWS + TEAM_LIST_VEHICLE_ROWS)
+// Extra y of row `r` (a vehicle row, r >= TEAM_LIST_PEOPLE_ROWS) on top of
+// r * TEAM_LIST_ROW_PITCH: 6 px -- on the 1366x768 interface each vehicle gets its
+// own row at the bottom of newgoldpiece3_1366x768.png (22 px tall at y 458
+// and 483 of it), its text centred there.
+#define TEAM_LIST_VEHICLE_DY(r) (g_ui.isExtraWideStrategicScreen() \
+	? (TEAM_LIST_Y + 458 + ((r) - TEAM_LIST_PEOPLE_ROWS) * 25 + (22 - Y_SIZE) / 2) - (Y_START + (r) * TEAM_LIST_ROW_PITCH + 1) \
+	: 6)
+// Height of the team list's rows, vehicles included (from Y_START - 1).
+#define TEAM_LIST_ROWS_HEIGHT   (g_ui.isExtraWideStrategicScreen() \
+	? (TEAM_LIST_Y + 505) - (Y_START - 1) \
+	: (TEAM_LIST_ROWS + 1) * (Y_SIZE + 2) + 1)
+#define MAP_START_KEYRING_Y   (MAP_SCREEN_Y + 107 + MAP_INV_SHIFT_Y)
 #define Y_SIZE                GetFontHeight(MAP_SCREEN_FONT)
+// Distance between two team list rows: the font's height plus 2 px -- 3 px
+// on the 1366x768 interface.
+#define TEAM_LIST_ROW_PITCH   (Y_SIZE + (g_ui.isExtraWideStrategicScreen() ? 3 : 2))
 
 
 // attribute menu defines (must match NUM_TRAINABLE_STATS defines, and pAttributeMenuStrings )
@@ -165,7 +214,21 @@ enum UpdateBoxReason
 
 
 // the first vehicle slot int he list
-#define FIRST_VEHICLE 18
+#define FIRST_VEHICLE PLAYER_TEAM_SIZE
+
+// The team list scrolls (ScrollTeamList(), MapScreen.h): the first person and
+// the first vehicle shown in the top people / vehicle row.
+extern INT32 giTeamListFirstPerson;
+extern INT32 giTeamListFirstVehicle;
+
+// The on-screen row of team list entry `i` (gCharactersList): a people row
+// for a person, a vehicle row for a vehicle -- or -1 when it isn't shown
+// (scrolled away).
+INT32 TeamListRowOfEntry(INT32 i);
+// Top y of team list row `row` (Y_START based; the text sits 1 px lower).
+INT16 TeamListRowY(INT32 row);
+// Top y of the row showing entry `i`, which must be shown.
+INT16 TeamListEntryY(INT32 i);
 
 
 extern BOOLEAN fShowAssignmentMenu;

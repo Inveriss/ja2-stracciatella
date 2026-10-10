@@ -6,6 +6,12 @@
 #include "Font_Control.h"
 #include "GameRes.h"
 #include "GameMode.h"
+#include "ContentManager.h"
+#include "GameInstance.h"
+#include "Logger.h"
+#include "UILayout.h"
+#include "JAScreens.h"
+#include "ScreenIDs.h"
 
 
 SGPFont gp10PointArial;
@@ -25,6 +31,13 @@ SGPFont gpSectorInvFont;
 SGPFont gpMapInvBigFont;
 SGPFont gpMapInvBigCountFont;
 SGPFont gpSecInvBigCountFont;
+SGPFont gpCharInfoFont;
+SGPFont gpStrategicGeneralFont;
+SGPFont gpStrategicTooltipFont;
+// FONT_STRATEGIC_TOOLTIP in the colours of COMPFONT and TINYFONT1 -- see
+// StrategicTooltipFontAs()
+static SGPFont gpStrategicTooltipCompFont;
+static SGPFont gpStrategicTooltipTinyFont;
 SGPFont gpCompFont;
 SGPFont gpLargeFontType1;
 SGPFont gpSmallCompFont;
@@ -37,6 +50,55 @@ SGPFont gpHugeFont;
 
 
 static void CreateFontPaletteTables(SGPFont);
+
+
+// An optional font drawn in the colours of `colours` (see InitializeFonts()):
+// nullptr, logged, when the file (or the PNG next to it) is missing or
+// broken. `colours` must be loaded already.
+static SGPFont LoadOptionalFontInColoursOf(char const* const file, SGPFont const colours)
+{
+	if (GCM->getPNGReplacement(file).empty() && !GCM->doesGameResExists(file)) return nullptr;
+	try
+	{
+		SGPFont const font = LoadFontFile(file);
+		font->ReplacePalette(colours->Palette());
+		CreateFontPaletteTables(font);
+		return font;
+	}
+	catch (std::exception const& e)
+	{
+		SLOGE("Cannot use {}, keeping the original font: {}", file, e.what());
+		return nullptr;
+	}
+}
+
+
+SGPFont StrategicGeneralFont()
+{
+	return g_ui.isExtraWideStrategicScreen() && gpStrategicGeneralFont ? gpStrategicGeneralFont : gpBlockyFont2;
+}
+
+
+TooltipFonts GetTooltipFonts()
+{
+	bool const strategic = guiCurrentScreen == MAP_SCREEN || guiCurrentScreen == AUTORESOLVE_SCREEN;
+	if (g_ui.isExtraWideStrategicScreen() && strategic && gpStrategicTooltipFont)
+	{
+		return { gpStrategicTooltipFont, gp14PointArial, true };
+	}
+	return { gp10PointArial, gp10PointArialBold, false };
+}
+
+
+SGPFont StrategicTooltipFontAs(SGPFont const original)
+{
+	if (!g_ui.isExtraWideStrategicScreen()) return original;
+	SGPFont const font =
+		original == gpCompFont      ? gpStrategicTooltipCompFont :
+		original == gpTinyFontType1 ? gpStrategicTooltipTinyFont :
+		nullptr;
+	return font ? font : original;
+}
 
 
 void InitializeFonts(void)
@@ -66,6 +128,18 @@ void InitializeFonts(void)
 	M(gpValueInventoryFont,    FONTSDIR "/FONT_VALUE_Inventory.STI");
 	M(gpSmallFontType1,        FONTSDIR "/smallfont1.sti");
 	M(gpTinyFontType1,         FONTSDIR "/tinyfont1.sti");
+
+	// Optional: only the 1366x768 interface uses them, and it keeps the
+	// original font (BLOCKFONT2, FONT10ARIAL for the tooltips) when the file
+	// (or the PNG next to it) is missing or broken. Drawn in the original
+	// font's colours: the text colours are indices into the font's own
+	// palette, so its palette is replaced with the original's -- only the
+	// glyph shapes come from the file.
+	gpCharInfoFont         = LoadOptionalFontInColoursOf(FONTSDIR "/font_charinfo.sti",          gpBlockyFont2);
+	gpStrategicGeneralFont = LoadOptionalFontInColoursOf(FONTSDIR "/font_strategic_general.sti", gpBlockyFont2);
+	gpStrategicTooltipFont = LoadOptionalFontInColoursOf(FONTSDIR "/font_strategic_tooltip.sti", gp10PointArial);
+	gpStrategicTooltipCompFont = LoadOptionalFontInColoursOf(FONTSDIR "/font_strategic_tooltip.sti", gpCompFont);
+	gpStrategicTooltipTinyFont = LoadOptionalFontInColoursOf(FONTSDIR "/font_strategic_tooltip.sti", gpTinyFontType1);
 
 	if(GameMode::getInstance()->isEditorMode() && isEnglishVersion())
 	{

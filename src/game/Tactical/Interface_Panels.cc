@@ -1017,7 +1017,10 @@ static void RenderSMMoneyAndTrashIcons();
 /** Fill empty space at the bottom of the screen. */
 static void FillEmptySpaceAtBottom()
 {
-	if(g_ui.isBigScreen())
+	// isBigScreen() compares with the strategic canvas, which on the 1366x768
+	// base became 1366 wide; the second test keeps this true at 1366+ widths,
+	// as it was with the 1280 canvas.
+	if (g_ui.isBigScreen() || g_ui.m_screenWidth > WIDE_STRATEGIC_SCREEN_WIDTH)
 	{
 		ColorFillVideoSurfaceArea(guiSAVEBUFFER, 0, g_ui.get_INV_INTERFACE_START_Y(),
 						INTERFACE_START_X, g_ui.m_screenHeight, 0);

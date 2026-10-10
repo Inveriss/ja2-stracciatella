@@ -108,6 +108,12 @@ void FadeOutGameScreen( )
 	FadeOutNextFrame( );
 }
 
+void FadeOutGameScreenInstantly()
+{
+	FadeOutNextFrame();
+	gfFadeOutInstantly = TRUE;
+}
+
 
 void EnterTacticalScreen(void)
 {

@@ -33,8 +33,10 @@
 #include "ItemModel.h"
 #include "Items.h"
 #include "JAScreens.h"
+#include "Laptop.h"
 #include "LaptopSave.h"
 #include "Line.h"
+#include "Logger.h"
 #include "Map_Screen_Helicopter.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Border.h"
@@ -42,6 +44,7 @@
 #include "Map_Screen_Interface_Map.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface_TownMine_Info.h"
+#include "MercPortrait.h"
 #include "Meanwhile.h"
 #include "Merc_Contract.h"
 #include "Merc_Hiring.h"
@@ -90,7 +93,14 @@
 #define MAX_SORT_METHODS					6
 
 // Fonts
-#define CHAR_FONT BLOCKFONT2 // COMPFONT
+// Every text of the character info panel (and its CONTRACT button): FONTCHARINFO
+// (font_charinfo.sti) on the 1366x768 interface (isExtraWideStrategicScreen()),
+// when it could be loaded -- see InitializeFonts(); BLOCKFONT2 otherwise.
+static SGPFont GetCharInfoFont()
+{
+	return g_ui.isExtraWideStrategicScreen() && FONTCHARINFO ? FONTCHARINFO : BLOCKFONT2;
+}
+#define CHAR_FONT GetCharInfoFont() // COMPFONT
 // Ground-travel "ETA: <time>" text (DisplayGroundEta()) -- part of the
 // strategic-map font group, so it uses the same dedicated FONTMAP as
 // MAP_FONT (Map_Screen_Interface_Map.cc), not BLOCKFONT2.
@@ -116,10 +126,13 @@
 // Coordinate defines
 
 #define TOWN_INFO_X           (MAP_SCREEN_X + 0)
-#define TOWN_INFO_Y           (MAP_SCREEN_Y + 1)
+// The 1366x768 interface (isExtraWideStrategicScreen()) draws the character
+// info panel (charinfo_1366x768) at the canvas' very top left corner, 0,0.
+#define TOWN_INFO_Y           (MAP_SCREEN_Y + (g_ui.isExtraWideStrategicScreen() ? 0 : 1))
 
 #define PLAYER_INFO_X         (MAP_SCREEN_X + 0)
-#define PLAYER_INFO_Y         (MAP_SCREEN_Y + 107)
+// the merc inventory's top -- MAP_INV_SHIFT_Y lower on the 1366x768 interface
+#define PLAYER_INFO_Y         (MAP_SCREEN_Y + 107 + MAP_INV_SHIFT_Y)
 
 // item description
 #define MAP_ITEMDESC_START_X PLAYER_INFO_X
@@ -152,12 +165,13 @@
 // i.e. MAP_SCREEN_Y + 107); the matching _1024/_1280 files are picked by the
 // same height tier (isCompactStrategicScreen()). The free space above it
 // (next to the character info panel) is filled with black.
-#define MAP_MIDDLE_BACKGROUND_TOP    107
+#define MAP_MIDDLE_BACKGROUND_TOP    (TEAM_LIST_Y - MAP_SCREEN_Y)   // 107; 133 on the 1366x768 interface
 // Horizontal shift of background_middle_wide_*.sti relative to
 // MAP_MIDDLE_BACKGROUND_X (positive = right).
 #define MAP_MIDDLE_BACKGROUND_SHIFT_X  1
 // Right edge (exclusive) of the free space the background may paint:
-// MAP_SCREEN_X + 518, i.e. up to x 517 -- 1 px over MBS's first column
+// MAP_SCREEN_X + 518 on the 1280 canvas (604 on the 1366 one), i.e. up to
+// x 517 (603) -- 1 px over MBS's first column
 // (fully transparent in MBS_1024/1280.sti), like mapinv_big_1280_*.sti.
 #define MAP_MIDDLE_BACKGROUND_RIGHT    (MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_WIDTH + 1)
 // Width of the left column (plus, on the wide strategic screen, the free
@@ -178,40 +192,40 @@
 // mode (..._BIG, mapinv_big_1280_720/768.sti, starts equal to the normal one); the
 // plain names pick the current mode's (IsMapInvBigImages()).
 #define MAP_ARMOR_LABEL_X_NORMAL (MAP_SCREEN_X + 216)
-#define MAP_ARMOR_LABEL_Y_NORMAL (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_LABEL_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 195)
 #define MAP_ARMOR_X_NORMAL (MAP_SCREEN_X + 201)
-#define MAP_ARMOR_Y_NORMAL (MAP_SCREEN_Y + 195)
+#define MAP_ARMOR_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 195)
 #define MAP_ARMOR_W_NORMAL 45
 #define MAP_ARMOR_H_NORMAL 29
 #define MAP_WEIGHT_LABEL_X_NORMAL (MAP_SCREEN_X + 13)
-#define MAP_WEIGHT_LABEL_Y_NORMAL (MAP_SCREEN_Y + 194)
+#define MAP_WEIGHT_LABEL_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 194)
 #define MAP_WEIGHT_X_NORMAL (MAP_SCREEN_X + -3)
-#define MAP_WEIGHT_Y_NORMAL (MAP_SCREEN_Y + 196)
+#define MAP_WEIGHT_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 196)
 #define MAP_WEIGHT_W_NORMAL 45
 #define MAP_WEIGHT_H_NORMAL 29
 #define MAP_CAMO_LABEL_X_NORMAL (MAP_SCREEN_X + 17)
-#define MAP_CAMO_LABEL_Y_NORMAL (MAP_SCREEN_Y + 232)
+#define MAP_CAMO_LABEL_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 232)
 #define MAP_CAMO_X_NORMAL (MAP_SCREEN_X + -3)
-#define MAP_CAMO_Y_NORMAL (MAP_SCREEN_Y + 234)
+#define MAP_CAMO_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 234)
 #define MAP_CAMO_W_NORMAL 45
 #define MAP_CAMO_H_NORMAL 29
 
 #define MAP_ARMOR_LABEL_X_BIG (MAP_SCREEN_X + 300)
-#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + 261)
+#define MAP_ARMOR_LABEL_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 261)
 #define MAP_ARMOR_X_BIG (MAP_SCREEN_X + 264)
-#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + 265)
+#define MAP_ARMOR_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 265)
 #define MAP_ARMOR_W_BIG 66
 #define MAP_ARMOR_H_BIG 36
 #define MAP_WEIGHT_LABEL_X_BIG (MAP_SCREEN_X + 40)
-#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + 261)
+#define MAP_WEIGHT_LABEL_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 261)
 #define MAP_WEIGHT_X_BIG (MAP_SCREEN_X + 7)
-#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + 265)
+#define MAP_WEIGHT_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 265)
 #define MAP_WEIGHT_W_BIG 66
 #define MAP_WEIGHT_H_BIG 36
 #define MAP_CAMO_LABEL_X_BIG (MAP_SCREEN_X + 43)
-#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + 316)
+#define MAP_CAMO_LABEL_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 316)
 #define MAP_CAMO_X_BIG (MAP_SCREEN_X + 6)
-#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + 319)
+#define MAP_CAMO_Y_BIG (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 319)
 #define MAP_CAMO_W_BIG 66
 #define MAP_CAMO_H_BIG 36
 
@@ -246,22 +260,75 @@
 // (black) shadow, every other value is drawn in this colour.
 #define MAP_INV_STATS_FONT_COLOR_BIG   126
 
-#define PLAYER_INFO_FACE_START_X    (MAP_SCREEN_X + 9)
-#define PLAYER_INFO_FACE_START_Y    (MAP_SCREEN_Y + 17)
-#define PLAYER_INFO_FACE_END_X			(MAP_SCREEN_X + 60)
-#define PLAYER_INFO_FACE_END_Y			(MAP_SCREEN_Y + 76)
+// 1366x768 interface (isExtraWideStrategicScreen()): the character info
+// panel (charinfo_1366x768) has a 106x122 portrait window 5 px in from its
+// top left corner, showing the merc's static big portrait (faces/bigfaces/,
+// the same size) instead of the animated face -- see DrawFace().
+#define CHARINFO_PORTRAIT_X         (TOWN_INFO_X + 5)
+#define CHARINFO_PORTRAIT_Y         (TOWN_INFO_Y + 5)
+#define CHARINFO_PORTRAIT_WIDTH     106
+#define CHARINFO_PORTRAIT_HEIGHT    122
+// ... and two 27x30 windows side by side below the stat panels for the previous/next
+// merc arrows (CreateDestroyMapCharacterScrollButtons()).
+#define CHARINFO_ARROW_UP_X         (TOWN_INFO_X + 168)
+#define CHARINFO_ARROW_DOWN_X       (TOWN_INFO_X + 196)
+#define CHARINFO_ARROW_Y            (TOWN_INFO_Y + 101)
+#define CHARINFO_ARROW_WIDTH        27
+#define CHARINFO_ARROW_HEIGHT       30
 
-#define PLAYER_INFO_HAND_START_X    (MAP_SCREEN_X + 4)
-#define PLAYER_INFO_HAND_START_Y    (MAP_SCREEN_Y + 81)
-#define PLAYER_INFO_HAND_END_X      (MAP_SCREEN_X + 62)
-#define PLAYER_INFO_HAND_END_Y      (MAP_SCREEN_Y + 103)
+// Click region of the face -- on the 1366x768 interface the portrait window.
+#define PLAYER_INFO_FACE_START_X    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_X : MAP_SCREEN_X + 9)
+#define PLAYER_INFO_FACE_START_Y    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_Y : MAP_SCREEN_Y + 17)
+#define PLAYER_INFO_FACE_END_X      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_X + CHARINFO_PORTRAIT_WIDTH  : MAP_SCREEN_X + 60)
+#define PLAYER_INFO_FACE_END_Y      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_PORTRAIT_Y + CHARINFO_PORTRAIT_HEIGHT : MAP_SCREEN_Y + 76)
+
+// 1366x768 interface (isExtraWideStrategicScreen()): the character info
+// panel (604x191) has a row of equipment slots at its bottom, shown while
+// the merc inventory (mapinv) is closed -- a preview only, big item
+// pictures, no status bars, ammo left shown (RenderCharInfoEquipment()).
+// Slot interiors are the big inventory's sizes (mapinv_big_1280_768.sti):
+// first hand 122x50, face items and armour 62x50 -- and, like there, each
+// slot's rectangle starts 1 px right of its frame's interior (so item
+// pictures and ammo counts sit the same); then a box with weight,
+// armour and camouflage. Over the merc inventory only the panel's top
+// CHARINFO_PANEL_TOP_HEIGHT rows are drawn.
+#define CHARINFO_PANEL_TOP_HEIGHT   132
+// The panel (604x647) has them in a column at its right edge, below its
+// top part: first and second hand (frames x 475-598), then face items 1 and
+// 2, helmet, vest and leggings (x 505-568), then the stats box (interior
+// x 491-582, y 572-631). Y values below are the slots' interior tops.
+#define CHARINFO_EQUIP_Y            (TOWN_INFO_Y + 144)   // first hand
+#define CHARINFO_EQUIP_HEIGHT       50
+#define CHARINFO_HAND_SLOT_X        (TOWN_INFO_X + 476 + 1)
+#define CHARINFO_HAND_SLOT_WIDTH    122
+#define CHARINFO_SMALL_SLOT_X       (TOWN_INFO_X + 506 + 1)
+#define CHARINFO_SMALL_SLOT_WIDTH   62
+#define CHARINFO_EQUIP_STATS_X      (TOWN_INFO_X + 491)
+#define CHARINFO_EQUIP_STATS_Y      (TOWN_INFO_Y + 572)
+#define CHARINFO_EQUIP_STATS_WIDTH  92
+#define CHARINFO_EQUIP_STATS_HEIGHT 60
+// top left corner of the second hand slot's frame
+#define CHARINFO_SECOND_HAND_HIDE_X (TOWN_INFO_X + 475)
+#define CHARINFO_SECOND_HAND_HIDE_Y (TOWN_INFO_Y + 198)
+
+// The first hand item's click region and glow -- on the 1366x768 interface
+// over the equipment row's first hand slot, but disabled there (preview only).
+#define PLAYER_INFO_HAND_START_X    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X : MAP_SCREEN_X + 4)
+#define PLAYER_INFO_HAND_START_Y    (g_ui.isExtraWideStrategicScreen() ? CHARINFO_EQUIP_Y : MAP_SCREEN_Y + 81)
+#define PLAYER_INFO_HAND_END_X      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X + CHARINFO_HAND_SLOT_WIDTH : MAP_SCREEN_X + 62)
+#define PLAYER_INFO_HAND_END_Y      (g_ui.isExtraWideStrategicScreen() ? CHARINFO_EQUIP_Y + CHARINFO_EQUIP_HEIGHT : MAP_SCREEN_Y + 103)
+// glow rectangle (inclusive corners) around the first hand item
+#define HAND_GLOW_X1 (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X - 1 : MAP_SCREEN_X + 3)
+#define HAND_GLOW_Y1 (g_ui.isExtraWideStrategicScreen() ? CHARINFO_EQUIP_Y - 1 : MAP_SCREEN_Y + 80)
+#define HAND_GLOW_X2 (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HAND_SLOT_X + CHARINFO_HAND_SLOT_WIDTH : MAP_SCREEN_X + 64)
+#define HAND_GLOW_Y2 (g_ui.isExtraWideStrategicScreen() ? CHARINFO_EQUIP_Y + CHARINFO_EQUIP_HEIGHT : MAP_SCREEN_Y + 104)
 
 // Body/camo figure (BODYINV) of the merc inventory panel -- normal mode and
 // an independent "Show Large Icons" mode (starts equal to the normal one).
 #define INV_BODY_X_NORMAL (MAP_SCREEN_X + 109)
-#define INV_BODY_Y_NORMAL (MAP_SCREEN_Y + 113)
+#define INV_BODY_Y_NORMAL (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 113)
 #define INV_BODY_X_BIG    (MAP_SCREEN_X + 181)
-#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + 173)
+#define INV_BODY_Y_BIG    (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 173)
 #define INV_BODY_X (UINT16)(IsMapInvBigImages() ? INV_BODY_X_BIG : INV_BODY_X_NORMAL)
 #define INV_BODY_Y (UINT16)(IsMapInvBigImages() ? INV_BODY_Y_BIG : INV_BODY_Y_NORMAL)
 
@@ -269,18 +336,33 @@
 #define Y_OFFSET 2
 
 
+// 1366x768 interface (isExtraWideStrategicScreen()): the character info
+// panel (charinfo_1366x768, 604x132) has two vertical stat panels above the
+// arrows, each a label area (wall at x 168 / 243) and a black value box
+// (x 209-237 / 284-312; attributes left, skills right). Five rows each: the
+// first 8 px below the panel's top, then every 18 px -- the 13 px tall
+// letters of FONT_CHARINFO plus a 5 px gap. Labels are left aligned 5 px
+// from their area's wall, values centred in their box.
+#define CHARINFO_STAT_ROW_Y(row)        (TOWN_INFO_Y + 8 + (row) * 18)
+#define CHARINFO_STAT_LEFT_LABEL_X      (TOWN_INFO_X + 168 + 5 + 1)   // 1 px further right (user's fine tuning)
+#define CHARINFO_STAT_LEFT_VALUE_X      (TOWN_INFO_X + 209)
+#define CHARINFO_STAT_RIGHT_LABEL_X     (TOWN_INFO_X + 243 + 5 + 1)
+#define CHARINFO_STAT_RIGHT_VALUE_X     (TOWN_INFO_X + 284)
+#define CHARINFO_STAT_WIDTH             29   // of each value box
+
 // char stat positions
-#define STR_X (MAP_SCREEN_X + 112)
-#define STR_Y (MAP_SCREEN_Y + 42)
+#define STAT_ROW_Y(row, legacy_y) (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_ROW_Y(row) : (legacy_y))
+#define STR_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_LEFT_VALUE_X : MAP_SCREEN_X + 112)
+#define STR_Y STAT_ROW_Y(2, MAP_SCREEN_Y + 42)
 #define DEX_X STR_X
-#define DEX_Y (MAP_SCREEN_Y + 32)
+#define DEX_Y STAT_ROW_Y(1, MAP_SCREEN_Y + 32)
 #define AGL_X STR_X
-#define AGL_Y (MAP_SCREEN_Y + 22)
+#define AGL_Y STAT_ROW_Y(0, MAP_SCREEN_Y + 22)
 #define LDR_X STR_X
-#define LDR_Y (MAP_SCREEN_Y + 52)
+#define LDR_Y STAT_ROW_Y(3, MAP_SCREEN_Y + 52)
 #define WIS_X STR_X
-#define WIS_Y (MAP_SCREEN_Y + 62)
-#define LVL_X (MAP_SCREEN_X + 159)
+#define WIS_Y STAT_ROW_Y(4, MAP_SCREEN_Y + 62)
+#define LVL_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_RIGHT_VALUE_X : MAP_SCREEN_X + 159)
 #define LVL_Y AGL_Y
 #define MRK_X LVL_X
 #define MRK_Y DEX_Y
@@ -291,42 +373,99 @@
 #define MED_X LVL_X
 #define MED_Y WIS_Y
 
-#define STAT_WID 15
+#define STAT_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_STAT_WIDTH : 15)
 #define STAT_HEI GetFontHeight(CHAR_FONT)
 
-#define PIC_NAME_X (MAP_SCREEN_X + 8)
-#define PIC_NAME_Y (MAP_SCREEN_Y + 66 + 3)
-#define PIC_NAME_WID (MAP_SCREEN_X + 60 - PIC_NAME_X)
-#define PIC_NAME_HEI (MAP_SCREEN_Y + 75 - PIC_NAME_Y)
-#define CHAR_NAME_X (MAP_SCREEN_X + 14)
-#define CHAR_NAME_Y (MAP_SCREEN_Y + 2 + 3)
-#define CHAR_NAME_WID (MAP_SCREEN_X + 164 - CHAR_NAME_X)
-#define CHAR_NAME_HEI (MAP_SCREEN_Y + 11 - CHAR_NAME_Y)
-#define CHAR_TIME_REMAINING_X (MAP_SCREEN_X + 207)
-#define CHAR_TIME_REMAINING_Y (MAP_SCREEN_Y + 65)
-#define CHAR_TIME_REMAINING_WID (MAP_SCREEN_X + 258 - CHAR_TIME_REMAINING_X)
-#define CHAR_TIME_REMAINING_HEI GetFontHeight(CHAR_FONT)
+// 1366x768 interface (isExtraWideStrategicScreen()): the long black box at
+// the bottom centre holds the full name as the profile has it, nickname in
+// quotes included ("Keith \"Blood\" Hanson" -- the default, unsplit mode);
+// there is no separate nickname box (PIC_NAME_* unused there).
+#define CHARINFO_NAME_BOX_X         (TOWN_INFO_X + 238)
+#define CHARINFO_NAME_BOX_Y         (TOWN_INFO_Y + 104 + 1)   // text 1 px lower (user's fine tuning)
+#define CHARINFO_NAME_BOX_WIDTH     207
+#define CHARINFO_NAME_BOX_HEIGHT    25
+#define CHARINFO_NICK_BOX_X         CHARINFO_NAME_BOX_X
+#define CHARINFO_NICK_BOX_Y         CHARINFO_NAME_BOX_Y
+#define CHARINFO_NICK_BOX_WIDTH     CHARINFO_NAME_BOX_WIDTH
+#define CHARINFO_NICK_BOX_HEIGHT    CHARINFO_NAME_BOX_HEIGHT
+
+#define PIC_NAME_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NICK_BOX_X : MAP_SCREEN_X + 8)
+#define PIC_NAME_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NICK_BOX_Y : MAP_SCREEN_Y + 66 + 3)
+#define PIC_NAME_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NICK_BOX_WIDTH : MAP_SCREEN_X + 60 - PIC_NAME_X)
+#define PIC_NAME_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NICK_BOX_HEIGHT : MAP_SCREEN_Y + 75 - PIC_NAME_Y)
+#define CHAR_NAME_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NAME_BOX_X : MAP_SCREEN_X + 14)
+#define CHAR_NAME_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NAME_BOX_Y : MAP_SCREEN_Y + 2 + 3)
+#define CHAR_NAME_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NAME_BOX_WIDTH : MAP_SCREEN_X + 164 - CHAR_NAME_X)
+#define CHAR_NAME_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_NAME_BOX_HEIGHT : MAP_SCREEN_Y + 11 - CHAR_NAME_Y)
+// 1366x768 interface (isExtraWideStrategicScreen()): the two tables side
+// by side at the character info panel's right end, each a 20 px wooden
+// header at y 3 and black value rows (y 28/52/76, 20 px) -- Contract left
+// (header x 319-451, three rows that start with a 12x12 icon square,
+// CHAR_ICON_X/CONTRACT_Y in Map_Screen_Interface.h, their text right of it,
+// x 341-451), Assignment right (header x 458-598, two rows x 463-598).
+#define CHARINFO_CONTRACT_HEADER_X      (TOWN_INFO_X + 319)
+#define CHARINFO_CONTRACT_HEADER_WIDTH  133
+#define CHARINFO_ASSIGN_HEADER_X        (TOWN_INFO_X + 458)
+#define CHARINFO_ASSIGN_HEADER_WIDTH    141
+#define CHARINFO_TABLE_HEADER_HEIGHT    20
+#define CHARINFO_ASSIGN_HEADER_Y        (TOWN_INFO_Y + 3)
+#define CHARINFO_CONTRACT_HEADER_Y      (TOWN_INFO_Y + 3)
+#define CHARINFO_TABLE_ROW_HEIGHT       20
+// user's fine tuning of the texts against the graphic: header words centred
+// in their header (the Contract hot spot stays on the header), values 2 px
+// lower than centred in their row
+#define CHARINFO_TABLE_HEADER_TEXT_DY   0
+#define CHARINFO_TABLE_VALUE_TEXT_DY    2
+#define CHARINFO_ASSIGN_ROW_Y(row)      (TOWN_INFO_Y + 28 + (row) * 24 + CHARINFO_TABLE_VALUE_TEXT_DY)
+#define CHARINFO_CONTRACT_ROW_Y(row)    (TOWN_INFO_Y + 28 + (row) * 24 + CHARINFO_TABLE_VALUE_TEXT_DY)
+#define CHARINFO_ASSIGN_BOX_X           (TOWN_INFO_X + 463)
+#define CHARINFO_ASSIGN_BOX_WIDTH       136
+#define CHARINFO_CONTRACT_TEXT_X        (TOWN_INFO_X + 341)
+#define CHARINFO_CONTRACT_TEXT_WIDTH    111
+
+#define CHAR_TIME_REMAINING_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_CONTRACT_TEXT_X : MAP_SCREEN_X + 207)
+#define CHAR_TIME_REMAINING_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_CONTRACT_ROW_Y(0) : MAP_SCREEN_Y + 65)
+#define CHAR_TIME_REMAINING_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_CONTRACT_TEXT_WIDTH : MAP_SCREEN_X + 258 - CHAR_TIME_REMAINING_X)
+#define CHAR_TIME_REMAINING_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_HEIGHT : GetFontHeight(CHAR_FONT))
 #define CHAR_SALARY_X					CHAR_TIME_REMAINING_X
-#define CHAR_SALARY_Y					(MAP_SCREEN_Y + 79)
-#define CHAR_SALARY_WID					CHAR_TIME_REMAINING_WID - 8		// for right justify
+#define CHAR_SALARY_Y					(g_ui.isExtraWideStrategicScreen() ? CHARINFO_CONTRACT_ROW_Y(1) : MAP_SCREEN_Y + 79)
+#define CHAR_SALARY_WID					(CHAR_TIME_REMAINING_WID - 8)		// for right justify
 #define CHAR_SALARY_HEI					CHAR_TIME_REMAINING_HEI
 #define CHAR_MEDICAL_X					CHAR_TIME_REMAINING_X
-#define CHAR_MEDICAL_Y					(MAP_SCREEN_Y + 93)
-#define CHAR_MEDICAL_WID				CHAR_TIME_REMAINING_WID - 8		// for right justify
+#define CHAR_MEDICAL_Y					(g_ui.isExtraWideStrategicScreen() ? CHARINFO_CONTRACT_ROW_Y(2) : MAP_SCREEN_Y + 93)
+#define CHAR_MEDICAL_WID				(CHAR_TIME_REMAINING_WID - 8)		// for right justify
 #define CHAR_MEDICAL_HEI				CHAR_TIME_REMAINING_HEI
-#define CHAR_ASSIGN_X (MAP_SCREEN_X + 182)
-#define CHAR_ASSIGN1_Y (MAP_SCREEN_Y + 18)
-#define CHAR_ASSIGN2_Y (MAP_SCREEN_Y + 31)
-#define CHAR_ASSIGN_WID 257 - 178
-#define CHAR_ASSIGN_HEI 39 - 29
-#define CHAR_HP_X (MAP_SCREEN_X + 133)
-#define CHAR_HP_Y (MAP_SCREEN_Y + 77 + 3)
-#define CHAR_HP_WID  (MAP_SCREEN_X + 175 - CHAR_HP_X)
-#define CHAR_HP_HEI  (MAP_SCREEN_Y + 90 - CHAR_HP_Y)
-#define CHAR_MORALE_X (MAP_SCREEN_X + 133)
-#define CHAR_MORALE_Y (MAP_SCREEN_Y + 91 + 3)
-#define CHAR_MORALE_WID (MAP_SCREEN_X + 175 - CHAR_MORALE_X)
-#define CHAR_MORALE_HEI (MAP_SCREEN_Y + 101 - CHAR_MORALE_Y)
+#define CHAR_ASSIGN_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_ASSIGN_BOX_X : MAP_SCREEN_X + 182)
+#define CHAR_ASSIGN1_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_ASSIGN_ROW_Y(0) : MAP_SCREEN_Y + 18)
+#define CHAR_ASSIGN2_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_ASSIGN_ROW_Y(1) : MAP_SCREEN_Y + 31)
+#define CHAR_ASSIGN_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_ASSIGN_BOX_WIDTH : 257 - 178)
+#define CHAR_ASSIGN_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_TABLE_ROW_HEIGHT : 39 - 29)
+// 1366x768 interface (isExtraWideStrategicScreen()): below the Assignment
+// table the character info panel has a label area (x 461-521) and two black
+// value boxes (x 524-599), one row each for health and energy (on this
+// interface energy replaces morale, see DrawCharacterInfo()).
+#define CHARINFO_LABEL_X            (TOWN_INFO_X + 461 + 2)   // labels 2 px further right (user's fine tuning)
+#define CHARINFO_LABEL_WIDTH        61
+// rows of the boxes at y 82 / 107; texts 2 px lower (user's fine tuning)
+#define CHARINFO_HEALTH_ROW_Y       (TOWN_INFO_Y + 82 + 2)
+#define CHARINFO_MORALE_ROW_Y       (TOWN_INFO_Y + 107 + 2)
+#define CHARINFO_ROW_HEIGHT         20
+#define CHARINFO_HEALTH_BOX_X       (TOWN_INFO_X + 524)
+#define CHARINFO_HEALTH_BOX_WIDTH   76
+#define CHARINFO_MORALE_BOX_X       (TOWN_INFO_X + 524)
+#define CHARINFO_MORALE_BOX_WIDTH   76
+
+// Health is centred horizontally only and drawn from CHAR_HP_Y down, so on
+// the 1366x768 interface CHAR_HP_Y is already the text's top row inside its
+// box; morale is centred in its box both ways.
+#define CHAR_HP_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HEALTH_BOX_X : MAP_SCREEN_X + 133)
+#define CHAR_HP_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HEALTH_ROW_Y + (CHARINFO_ROW_HEIGHT - GetFontHeight(CHAR_FONT)) / 2 : MAP_SCREEN_Y + 77 + 3)
+#define CHAR_HP_WID  (g_ui.isExtraWideStrategicScreen() ? CHARINFO_HEALTH_BOX_WIDTH : MAP_SCREEN_X + 175 - CHAR_HP_X)
+#define CHAR_HP_HEI  (g_ui.isExtraWideStrategicScreen() ? GetFontHeight(CHAR_FONT) : MAP_SCREEN_Y + 90 - CHAR_HP_Y)
+#define CHAR_MORALE_X (g_ui.isExtraWideStrategicScreen() ? CHARINFO_MORALE_BOX_X : MAP_SCREEN_X + 133)
+#define CHAR_MORALE_Y (g_ui.isExtraWideStrategicScreen() ? CHARINFO_MORALE_ROW_Y : MAP_SCREEN_Y + 91 + 3)
+#define CHAR_MORALE_WID (g_ui.isExtraWideStrategicScreen() ? CHARINFO_MORALE_BOX_WIDTH : MAP_SCREEN_X + 175 - CHAR_MORALE_X)
+#define CHAR_MORALE_HEI (g_ui.isExtraWideStrategicScreen() ? CHARINFO_ROW_HEIGHT : MAP_SCREEN_Y + 101 - CHAR_MORALE_Y)
 
 #define SOLDIER_PIC_X (MAP_SCREEN_X + 9)
 #define SOLDIER_PIC_Y (MAP_SCREEN_Y + 20)
@@ -458,7 +597,7 @@ static GUIButtonRef giMapInvBigImagesButton;
 #define MAP_INV_BIG_IMAGES_BTN_X_NORMAL (g_ui.m_invSlotPositionMap[SMALLPOCK13POS].uX + SM_INV_SLOT_WIDTH + MAP_INV_BIG_IMAGES_BTN_GAP)
 #define MAP_INV_BIG_IMAGES_BTN_Y_NORMAL (g_ui.m_invSlotPositionMap[LEGPOS].uY + LEGS_INV_SLOT_HEIGHT + MAP_INV_BIG_IMAGES_BTN_GAP)
 #define MAP_INV_BIG_IMAGES_BTN_X_BIG    (MAP_SCREEN_X + 442)
-#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + 130)
+#define MAP_INV_BIG_IMAGES_BTN_Y_BIG    (MAP_SCREEN_Y + MAP_INV_SHIFT_Y + 130)
 #define MAP_INV_BIG_IMAGES_BTN_X   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_X_BIG : MAP_INV_BIG_IMAGES_BTN_X_NORMAL)
 #define MAP_INV_BIG_IMAGES_BTN_Y   (IsMapInvBigImages() ? MAP_INV_BIG_IMAGES_BTN_Y_BIG : MAP_INV_BIG_IMAGES_BTN_Y_NORMAL)
 
@@ -485,18 +624,38 @@ cache_key_t const guiNewMailIcons{ INTERFACEDIR "/newemail.sti" };
 // (height 768+) -- matching the resolution each tier's assets were authored
 // for, not the map canvas' own MAP_SCREEN_WIDTH (1024, or 1280 on the wide
 // strategic screen -- see isWideStrategicScreen()).
+// The 1366 canvas (isExtraWideStrategicScreen(), large tier only) has its
+// own team list, newgoldpiece3_1366x768.png (262 px wide, at TEAM_LIST_Y;
+// 476 px fit above the bottom strip, a taller one is cut off there);
+// without it the large tier's one, then the original newgoldpiece3.sti
+// (see FirstUsableInterfaceAsset()).
 cache_key_t GetCharListGraphicsFilename()
 {
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		return FirstUsableInterfaceAsset({ INTERFACEDIR "/newgoldpiece3_1366x768.png", INTERFACEDIR "/newgoldpiece3_1024.sti", INTERFACEDIR "/newgoldpiece3.sti" });
+	}
 	return g_ui.isCompactStrategicScreen()
 		? INTERFACEDIR "/newgoldpiece3_1280.sti"
 		: INTERFACEDIR "/newgoldpiece3_1024.sti";
 }
 
+// The 1366 canvas (isExtraWideStrategicScreen(), large tier only) has its own
+// charinfo_1366x768.sti/.png. Each tier takes the first usable of its files
+// (see FirstUsableInterfaceAsset()), ending with the original charinfo.sti
+// (Interface.slf, same 261x106 layout).
 cache_key_t GetCharInfoGraphicsFilename()
 {
-	return g_ui.isCompactStrategicScreen()
-		? INTERFACEDIR "/charinfo_1280.sti"
-		: INTERFACEDIR "/charinfo_1024.sti";
+	cache_key_t const original = INTERFACEDIR "/charinfo.sti";
+	if (g_ui.isCompactStrategicScreen())
+	{
+		return FirstUsableInterfaceAsset({ INTERFACEDIR "/charinfo_1280.sti", original });
+	}
+	if (!g_ui.isExtraWideStrategicScreen())
+	{
+		return FirstUsableInterfaceAsset({ INTERFACEDIR "/charinfo_1024.sti", original });
+	}
+	return FirstUsableInterfaceAsset({ INTERFACEDIR "/charinfo_1366x768.sti", INTERFACEDIR "/charinfo_1024.sti", original });
 }
 
 // Merc inventory panel background, by screen width (and, for the
@@ -509,6 +668,14 @@ cache_key_t GetCharInfoGraphicsFilename()
 // IsMapInvBigImages(); the height split is isCompactStrategicScreen()).
 cache_key_t GetMapInvGraphicsFilename()
 {
+	// 1366x768: its own panels, same slot layouts as mapinv_big_1280_720.sti
+	// and mapinv_1280.sti (fallbacks); drawn at PLAYER_INFO_Y (y 133)
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		return IsMapInvBigImages()
+			? FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_1366x768.png", INTERFACEDIR "/mapinv_big_1280_720.sti" })
+			: FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_small_1366x768.png", INTERFACEDIR "/mapinv_1280.sti" });
+	}
 	if (IsMapInvBigImages())
 	{
 		return g_ui.isCompactStrategicScreen()
@@ -525,11 +692,19 @@ cache_key_t GetMapInvGraphicsFilename()
 // wide strategic screen (MAP_MIDDLE_BACKGROUND_X/WIDTH). Suffix follows the
 // height tier, same as the files above: 256x599 for the compact tier,
 // 256x647 for the large one (canvas height minus map_screen_bottom's 121).
+// The 1366 canvas (isExtraWideStrategicScreen(), large tier only) has a
+// 340 px free space and its own background_middle_1366x768.png (without it
+// the large tier's one). Either is drawn twice when narrower than the free
+// space, and black fills the rows below it (see RenderMapMiddleBackground()).
 cache_key_t GetMapMiddleBackgroundGraphicsFilename()
 {
-	return g_ui.isCompactStrategicScreen()
-		? INTERFACEDIR "/background_middle_wide_1280.sti"
-		: INTERFACEDIR "/background_middle_wide_1024.sti";
+	// 1366x768: no middle background -- the team list graphic
+	// (newgoldpiece3_1366x768.png, 604 px) covers the free space itself
+	if (g_ui.isExtraWideStrategicScreen()) return nullptr;
+	if (g_ui.isCompactStrategicScreen()) return INTERFACEDIR "/background_middle_wide_1280.sti";
+	cache_key_t const large = INTERFACEDIR "/background_middle_wide_1024.sti";
+	if (!g_ui.isExtraWideStrategicScreen()) return large;
+	return GetWideStrategicAsset(INTERFACEDIR "/background_middle_1366x768.png", large);
 }
 }
 
@@ -558,7 +733,7 @@ BOOLEAN MapInvBigPanelCoversBottomStrip(void)
 	// map_screen_bottom's strip starts at MAP_SCREEN_BOTTOM - 121 (MAP_BOTTOM_Y,
 	// Map_Screen_Interface_Bottom.cc).
 	return fShowInventoryFlag && IsMapInvBigImages() &&
-		MAP_SCREEN_Y + 107 + MAP_INV_BIG_PANEL_HEIGHT > MAP_SCREEN_BOTTOM - 121;
+		PLAYER_INFO_Y + MAP_INV_BIG_PANEL_HEIGHT > MAP_SCREEN_BOTTOM - 121;
 }
 
 void InitMapInvBigImagesForNewGame(void)
@@ -580,15 +755,62 @@ void LoadMapInvBigImagesFromSaveGameFile(void)
 }
 
 
+// Whether `file` can really be drawn: a .png named directly must exist and
+// load; any other file is usable when the PNG next to it (see
+// ContentManager::getPNGReplacement()) loads, or else when the file itself
+// exists -- a broken PNG with the original beside it is fine, CreateImage()
+// then loads the original. A PNG is loaded once here as a test, so a broken
+// one only makes the caller move on to its next candidate (logged).
+// Checked once per file -- the callers run every time the asset is drawn.
+static bool IsInterfaceAssetUsable(cache_key_t const file)
+{
+	if (!file) return false;
+
+	static std::map<std::string, bool> usable;
+	auto it = usable.find(file);
+	if (it != usable.end()) return it->second;
+
+	auto const loads = [](ST::string const& png)
+	{
+		try
+		{
+			AutoSGPVObject const test{ AddVideoObjectFromFile(png) };
+			return true;
+		}
+		catch (std::exception const& e)
+		{
+			SLOGE("Cannot use {}, trying the next graphic: {}", png, e.what());
+			return false;
+		}
+	};
+
+	ST::string const name{ file };
+	bool ok;
+	if (name.after_last(".").compare_i("PNG") == 0)
+	{
+		ok = GCM->doesGameResExists(name) && loads(name);
+	}
+	else
+	{
+		ST::string const png = GCM->getPNGReplacement(name);
+		ok = (!png.empty() && loads(png)) || GCM->doesGameResExists(name);
+	}
+	return usable.emplace(file, ok).first->second;
+}
+
 cache_key_t GetWideStrategicAsset(cache_key_t const wide, cache_key_t const legacy)
 {
 	if (!g_ui.isWideStrategicScreen()) return legacy;
+	return IsInterfaceAssetUsable(wide) ? wide : legacy;
+}
 
-	// Checked once per file -- this runs every time the asset is drawn.
-	static std::map<std::string, bool> exists;
-	auto it = exists.find(wide);
-	if (it == exists.end()) it = exists.emplace(wide, GCM->doesGameResExists(wide)).first;
-	return it->second ? wide : legacy;
+cache_key_t FirstUsableInterfaceAsset(std::initializer_list<cache_key_t> const files)
+{
+	for (cache_key_t const file : files)
+	{
+		if (IsInterfaceAssetUsable(file)) return file;
+	}
+	return *(files.end() - 1);
 }
 
 // misc mouse regions
@@ -623,6 +845,8 @@ struct CharacterRegions
 };
 
 static CharacterRegions g_character_regions[MAX_CHARACTER_COUNT];
+// which entries have their regions now (CreateMouseRegionsForTeamList())
+static bool g_character_region_made[MAX_CHARACTER_COUNT];
 
 
 static PathSt* g_prev_path;
@@ -707,17 +931,12 @@ static void ContractListRegionBoxGlow(UINT16 usCount)
 		iColorNum--;
 
 
-	if( usCount >= FIRST_VEHICLE )
-	{
-		sYAdd = 6;
-	}
-	else
-	{
-		sYAdd = 0;
-	}
+	// not on screen?
+	if (TeamListRowOfEntry(usCount) == -1) return;
+	sYAdd = 0;
 
 	// y start position of box
-	usY=(Y_OFFSET*usCount-1)+(Y_START+(usCount*Y_SIZE) + sYAdd );
+	usY = TeamListEntryY(usCount) - 1 + sYAdd;
 
 	// glow contract box
 	UINT16 usColor = GlowColor(iColorNum);
@@ -745,7 +964,7 @@ static void GlowItem(void)
 
 		if (fOldItemGlow)
 		{
-			RestoreExternBackgroundRect( MAP_SCREEN_X + 3, MAP_SCREEN_Y + 80, ( UINT16 )( 65 - 3 ), ( UINT16 )( 105 - 80 ) );
+			RestoreExternBackgroundRect(HAND_GLOW_X1, HAND_GLOW_Y1, HAND_GLOW_X2 - HAND_GLOW_X1 + 2, HAND_GLOW_Y2 - HAND_GLOW_Y1 + 1);
 		}
 
 		fOldItemGlow = FALSE;
@@ -774,7 +993,7 @@ static void GlowItem(void)
 	// restore background
 	if((iColorNum==0)||(iColorNum==1))
 	{
-		RestoreExternBackgroundRect( MAP_SCREEN_X + 3, MAP_SCREEN_Y + 80, ( UINT16 )( 65 - 3 ), ( UINT16 )( 105 - 80 ) );
+		RestoreExternBackgroundRect(HAND_GLOW_X1, HAND_GLOW_Y1, HAND_GLOW_X2 - HAND_GLOW_X1 + 2, HAND_GLOW_Y2 - HAND_GLOW_Y1 + 1);
 		RenderHandPosItem();
 	}
 
@@ -782,8 +1001,8 @@ static void GlowItem(void)
 	UINT16 usColor = GlowColor(iColorNum);
 	SGPVSurface::Lock l(FRAME_BUFFER);
 	SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	RectangleDraw(TRUE, MAP_SCREEN_X + 3, MAP_SCREEN_Y + 80, MAP_SCREEN_X + 64, MAP_SCREEN_Y + 104, usColor, l.Buffer<UINT16>());
-	InvalidateRegion( MAP_SCREEN_X + 3, MAP_SCREEN_Y + 80, MAP_SCREEN_X + 65, MAP_SCREEN_Y + 105 );
+	RectangleDraw(TRUE, HAND_GLOW_X1, HAND_GLOW_Y1, HAND_GLOW_X2, HAND_GLOW_Y2, usColor, l.Buffer<UINT16>());
+	InvalidateRegion(HAND_GLOW_X1, HAND_GLOW_Y1, HAND_GLOW_X2 + 1, HAND_GLOW_Y2 + 1);
 }
 
 
@@ -829,6 +1048,47 @@ static void GlowTrashCan(void)
 }
 
 
+// 1366x768 interface: the static big portrait (faces/bigfaces/) of the
+// selected merc in the character info panel's portrait window, instead of the
+// animated face (no blinking or talking mouth; dialogues still run). Dead
+// mercs get the same red shade as in the laptop's personnel files. Vehicles
+// show their small portrait centered; the rest of the window, or all of it
+// if the portrait can't be loaded, is black.
+static void RenderCharInfoPortrait(SOLDIERTYPE const& s)
+{
+	INT16 const x = CHARINFO_PORTRAIT_X;
+	INT16 const y = CHARINFO_PORTRAIT_Y;
+	INT16 const w = CHARINFO_PORTRAIT_WIDTH;
+	INT16 const h = CHARINFO_PORTRAIT_HEIGHT;
+	ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, y, x + w, y + h, 0);
+
+	if (s.uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		// 48x43 small vehicle portrait (FACE_WIDTH/HEIGHT, Interface_Utils.cc)
+		RenderSoldierFace(s, x + (w - 48) / 2, y + (h - 43) / 2);
+	}
+	else if (s.ubProfile != NO_PROFILE)
+	{
+		try
+		{
+			AutoSGPVObject const face{ LoadBigPortrait(GetProfile(s.ubProfile)) };
+			if (s.bLife == 0)
+			{
+				face->pShades[0] = Create16BPPPaletteShaded(face->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
+				face->CurrentShade(0);
+			}
+			BltVideoObject(guiSAVEBUFFER, face.get(), 0, x, y);
+		}
+		catch (std::exception const& e)
+		{
+			SLOGE("Cannot show the big portrait of profile {}: {}", s.ubProfile, e.what());
+		}
+	}
+
+	RestoreExternBackgroundRect(x, y, w, h);
+}
+
+
 void DrawFace(void)
 {
 	static const SOLDIERTYPE* old_merc = NULL;
@@ -854,7 +1114,91 @@ void DrawFace(void)
 	fReDrawFace = FALSE;
 
 	// render their face
-	RenderSoldierFace(*pSoldier, SOLDIER_PIC_X, SOLDIER_PIC_Y);
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		RenderCharInfoPortrait(*pSoldier);
+	}
+	else
+	{
+		RenderSoldierFace(*pSoldier, SOLDIER_PIC_X, SOLDIER_PIC_Y);
+	}
+}
+
+
+// 1366x768: the character info panel's equipment column -- first and second
+// hand, face items 1 and 2, helmet, vest and leggings with their big
+// pictures (no status bars, ammo left shown), then weight, armour and
+// camouflage.
+// Called by RenderHandPosItem(), i.e. only while the merc inventory is closed.
+static void DrawString(const ST::string& str, UINT16 uiX, UINT16 uiY, SGPFont);
+
+static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
+{
+	struct EquipSlot { INT8 pocket; INT16 x; INT16 y; INT16 w; };
+	EquipSlot const slots[] =
+	{
+		{ HANDPOS,       CHARINFO_HAND_SLOT_X,  TOWN_INFO_Y + 144, CHARINFO_HAND_SLOT_WIDTH  },
+		{ SECONDHANDPOS, CHARINFO_HAND_SLOT_X,  TOWN_INFO_Y + 199, CHARINFO_HAND_SLOT_WIDTH  },
+		{ HEAD1POS,      CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 268, CHARINFO_SMALL_SLOT_WIDTH },
+		{ HEAD2POS,      CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 323, CHARINFO_SMALL_SLOT_WIDTH },
+		{ HELMETPOS,     CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 392, CHARINFO_SMALL_SLOT_WIDTH },
+		{ VESTPOS,       CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 447, CHARINFO_SMALL_SLOT_WIDTH },
+		{ LEGPOS,        CHARINFO_SMALL_SLOT_X, TOWN_INFO_Y + 502, CHARINFO_SMALL_SLOT_WIDTH },
+	};
+	// items and their ammo counts go to the saved background, like the panel;
+	// counts in the big merc inventory's own font and positions
+	SetFontDestBuffer(guiSAVEBUFFER);
+	InvItemTextLayout const big_text = GetMapInvBigItemTextLayout();
+	for (EquipSlot const& slot : slots)
+	{
+		INVRenderItem(guiSAVEBUFFER, &s, s.inv[slot.pocket], slot.x, slot.y, slot.w, CHARINFO_EQUIP_HEIGHT, DIRTYLEVEL2, 0, SGP_TRANSPARENT, TRUE, &big_text);
+	}
+
+	// A two-handed item in the first hand leaves no room for the second one:
+	// cover the second hand's slot (its whole 124x52 frame) like the merc
+	// inventory does -- charinfo_second_hand_hide_1366x768.png is optional.
+	static cache_key_t const second_hand_hide = INTERFACEDIR "/charinfo_second_hand_hide_1366x768.png";
+	if (GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded() && IsInterfaceAssetUsable(second_hand_hide))
+	{
+		INT16 const x = CHARINFO_SECOND_HAND_HIDE_X;
+		INT16 const y = CHARINFO_SECOND_HAND_HIDE_Y;
+		BltVideoObject(guiSAVEBUFFER, second_hand_hide, 0, x, y);
+		ETRLEObject const& props = GetVObject(second_hand_hide)->SubregionProperties(0);
+		RestoreExternBackgroundRect(x, y, props.usWidth, props.usHeight);
+	}
+
+	if (IsMechanical(s))
+	{
+		SetFontDestBuffer(FRAME_BUFFER);
+		return;
+	}
+
+	// weight, armour, camouflage: labels left, values right, one per row, in
+	// the big merc inventory's stats font and colour (BLOCKFONT2 if it lacks
+	// a character, like there)
+	bool const big_font = FontHasGlyphsFor(MAP_INV_STATS_FONT_BIG, pInvPanelTitleStrings[0] + pInvPanelTitleStrings[1] + pInvPanelTitleStrings[2] + "0123456789%: ");
+	SGPFont const font = big_font ? MAP_INV_STATS_FONT_BIG : BLOCKFONT2;
+	INT16 const x = CHARINFO_EQUIP_STATS_X;
+	INT16 const w = CHARINFO_EQUIP_STATS_WIDTH;
+	struct StatLine { ST::string const& label; ST::string value; };
+	StatLine const lines[] =
+	{
+		{ pInvPanelTitleStrings[1], ST::format("{}%", CalculateCarriedWeight(&s)) },
+		{ pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)) },
+		{ pInvPanelTitleStrings[2], ST::format("{}%", s.bCamo) },
+	};
+	// user's fine tuning: labels (with a colon) 1 px right, values 1 px
+	// left, both 2 px down; rows 5 px further apart (15 + 5)
+	INT16 y = CHARINFO_EQUIP_STATS_Y + 3 + 2;
+	for (StatLine const& line : lines)
+	{
+		SetFontAttributes(font, big_font ? MAP_INV_STATS_FONT_COLOR_BIG : MAP_INV_STATS_TITLE_FONT_COLOR);
+		DrawString(ST::format("{}:", line.label), x + 4 + 1, y, font);
+		DrawStringRight(line.value, x, y, w - 4 - 1, GetFontHeight(font), font);
+		y += 15 + 5;
+	}
+	RestoreExternBackgroundRect(x, CHARINFO_EQUIP_STATS_Y, w, CHARINFO_EQUIP_STATS_HEIGHT);
+	SetFontDestBuffer(FRAME_BUFFER);
 }
 
 
@@ -867,6 +1211,12 @@ static void RenderHandPosItem()
 
 	SOLDIERTYPE const* const s = GetSelectedInfoChar();
 	if (!s || s->bLife == 0) return;
+
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		RenderCharInfoEquipment(*s);
+		return;
+	}
 
 	INVRenderItem(guiSAVEBUFFER, s, s->inv[HANDPOS], SOLDIER_HAND_X, SOLDIER_HAND_Y, 58, 23, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
 }
@@ -896,6 +1246,8 @@ static void RenderIconsForUpperLeftCornerPiece(const SOLDIERTYPE* const s)
 	}
 }
 
+static void DrawStringCentered(const ST::string& str, UINT16 x, UINT16 y, UINT16 w, UINT16 h, SGPFont);
+
 static void PrintStat(UINT32 change_time, UINT16 const stat_gone_up_bit, INT8 stat_val, INT16 x, INT16 y, INT16 w, INT32 progress)
 {
 	UINT8 const colour =
@@ -905,6 +1257,18 @@ static void PrintStat(UINT32 change_time, UINT16 const stat_gone_up_bit, INT8 st
 		FONT_RED;
 
 	SetFontForeground(colour);
+
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		// 1366x768: centred in its value box; the progress background covers
+		// the text's row
+		if (gamepolicy(gui_extras))
+		{
+			ProgressBarBackgroundRect(x + 1, y - 1, (w - 2) * progress / 100, STAT_HEI, 0x514A05, progress);
+		}
+		DrawStringCentered(ST::format("{}", stat_val), x, y, w, STAT_HEI, CHAR_FONT);
+		return;
+	}
 
 	ST::string str = ST::format("{3d}", stat_val);
 	if (gamepolicy(gui_extras))
@@ -1003,6 +1367,25 @@ static ST::string ConvertMinTimeToETADayHourMinString(UINT32 uiTimeInMin);
 
 
 // "character" refers to hired people AND vehicles
+// The full name without a nickname in quotes in it ("Keith \"Blood\" Hanson"
+// -> "Keith Hanson") -- for a split name/nickname mode of the 1366x768
+// character info panel; unused in the default mode, which shows the full name.
+[[maybe_unused]] static ST::string GetCharInfoName(ST::string const& full_name)
+{
+	ST::string name;
+	bool quoted = false;
+	for (char32_t const c : full_name.to_utf32())
+	{
+		if (c == U'"') { quoted = !quoted; continue; }
+		if (quoted) continue;
+		// one space between words
+		if (c == U' ' && (name.empty() || name.ends_with(" "))) continue;
+		name += c;
+	}
+	return name.ends_with(" ") ? name.substr(0, name.size() - 1) : name;
+}
+
+
 static void DrawCharacterInfo(SOLDIERTYPE const& s)
 {
 	ST::string buf;
@@ -1014,8 +1397,8 @@ static void DrawCharacterInfo(SOLDIERTYPE const& s)
 	// Draw particular info about a character that are neither attributes nor skills
 	SetFontAttributes(CHAR_FONT, CHAR_TEXT_FONT_COLOR);
 
-	ST::string nickname; // Nickname (beneath picture)
-	ST::string name;     // Full name (top box)
+	ST::string nickname; // Nickname (beneath picture; 1366x768: lower long box)
+	ST::string name;     // Full name (top box; 1366x768: upper long box)
 	if (s.uiStatusFlags & SOLDIER_VEHICLE)
 	{
 		VEHICLETYPE const& v = GetVehicle(s.bVehicleID);
@@ -1027,7 +1410,12 @@ static void DrawCharacterInfo(SOLDIERTYPE const& s)
 		nickname = p.zNickname;
 		name     = p.zName;
 	}
-	DrawStringCentered(nickname, PIC_NAME_X,  PIC_NAME_Y,  PIC_NAME_WID,  PIC_NAME_HEI,  CHAR_FONT);
+	// 1366x768: only the full name, as the profile has it (default mode; the
+	// nickname is in it already, see CHARINFO_NAME_BOX_X)
+	if (!g_ui.isExtraWideStrategicScreen())
+	{
+		DrawStringCentered(nickname, PIC_NAME_X,  PIC_NAME_Y,  PIC_NAME_WID,  PIC_NAME_HEI,  CHAR_FONT);
+	}
 	DrawStringCentered(name,     CHAR_NAME_X, CHAR_NAME_Y, CHAR_NAME_WID, CHAR_NAME_HEI, CHAR_FONT);
 
 	auto const assignment = GetMapscreenMercAssignmentString(s);
@@ -1145,19 +1533,37 @@ static void DrawCharacterInfo(SOLDIERTYPE const& s)
 		daily_cost = p.sSalary;
 	}
 	buf = SPrintMoney(daily_cost);
-	DrawStringRight(buf, CHAR_SALARY_X, CHAR_SALARY_Y, CHAR_SALARY_WID, CHAR_SALARY_HEI, CHAR_FONT);
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		DrawStringCentered(buf, CHAR_SALARY_X, CHAR_SALARY_Y, CHAR_TIME_REMAINING_WID, CHAR_SALARY_HEI, CHAR_FONT);
+	}
+	else
+	{
+		DrawStringRight(buf, CHAR_SALARY_X, CHAR_SALARY_Y, CHAR_SALARY_WID, CHAR_SALARY_HEI, CHAR_FONT);
+	}
 
 	// Medical deposit
 	if (p.sMedicalDepositAmount > 0)
 	{
 		buf = SPrintMoney(p.sMedicalDepositAmount);
-		DrawStringRight(buf, CHAR_MEDICAL_X, CHAR_MEDICAL_Y, CHAR_MEDICAL_WID, CHAR_MEDICAL_HEI, CHAR_FONT);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawStringCentered(buf, CHAR_MEDICAL_X, CHAR_MEDICAL_Y, CHAR_TIME_REMAINING_WID, CHAR_MEDICAL_HEI, CHAR_FONT);
+		}
+		else
+		{
+			DrawStringRight(buf, CHAR_MEDICAL_X, CHAR_MEDICAL_Y, CHAR_MEDICAL_WID, CHAR_MEDICAL_HEI, CHAR_FONT);
+		}
 	}
 
+	// 1366x768: energy (current/max breath, like health) instead of morale,
+	// kept up to date by HandleCharBarRender()
 	ST::string morale =
-		s.bAssignment == ASSIGNMENT_POW ? pPOWStrings[1] : // POW - morale unknown
-		s.bLife == 0                    ? ST::string() :
-		GetMoraleString(s);
+		s.bAssignment == ASSIGNMENT_POW                                  ? pPOWStrings[1] : // POW - morale/energy unknown
+		s.bLife == 0                                                     ? ST::string() :
+		!g_ui.isExtraWideStrategicScreen()                               ? GetMoraleString(s) :
+		IsMechanical(s)                                                  ? ST::string() :
+		ST::format("{}/{}", s.bBreath, s.bBreathMax);
 	DrawStringCentered(morale, CHAR_MORALE_X, CHAR_MORALE_Y, CHAR_MORALE_WID, CHAR_MORALE_HEI, CHAR_FONT);
 }
 
@@ -1377,19 +1783,24 @@ static void HighLightSelection(HighLightState& state, INT32 const line, UINT16 c
 	UINT16* const pDestBuf = l.Buffer<UINT16>();
 
 	UINT16 const colour = GlowColor(state.colour_idx);
-	INT32  const h      = Y_SIZE + Y_OFFSET;
+	INT32  const h      = TEAM_LIST_ROW_PITCH;
 	for (INT16 i = 0; i != MAX_CHARACTER_COUNT; ++i)
 	{
 		if (!predicate(i)) continue;
+		INT32 const row = TeamListRowOfEntry(i);
+		if (row == -1) continue;
 
-		UINT16 y = Y_START - 1 + i * h;
-		if (i >= FIRST_VEHICLE) y += 6;
+		UINT16 const y = TeamListRowY(row) - 1;
 
-		if (i == 0 || !predicate(i - 1) || i == FIRST_VEHICLE)
+		// 1366x768: every vehicle row stands alone; the box closes at the
+		// first and last row of the people and of the vehicles
+		bool const own_row = g_ui.isExtraWideStrategicScreen() && row >= TEAM_LIST_PEOPLE_ROWS;
+		if (row == 0 || row == TEAM_LIST_PEOPLE_ROWS || own_row || !predicate(i - 1))
 		{
 			LineDraw(TRUE, x, y, x + w, y, colour, pDestBuf);
 		}
-		if (i == MAX_CHARACTER_COUNT - 1 || !predicate(i + 1) || i == FIRST_VEHICLE - 1)
+		if (row == TEAM_LIST_PEOPLE_ROWS - 1 || row == TEAM_LIST_ROWS - 1 || own_row ||
+			i == MAX_CHARACTER_COUNT - 1 || !predicate(i + 1))
 		{
 			LineDraw(TRUE, x, y + h, x + w, y + h, colour, pDestBuf);
 		}
@@ -1419,6 +1830,58 @@ static void HighLightSleepLine(void)
 {
 	static HighLightState state = { STARTING_COLOR_NUM, false, MAX_CHARACTER_COUNT + 1 };
 	HighLightSelection(state, giSleepHighLine, SLEEP_X, SLEEP_WIDTH, IsCharacterSelectedForSleep);
+}
+
+
+// the name and location columns glow on the line under the mouse only
+static INT32 giNameHighLine = -1;
+static INT32 giLocHighLine  = -1;
+
+
+static BOOLEAN IsCharacterNameHighLighted(INT16 const sCharNumber)
+{
+	return sCharNumber == giNameHighLine && gCharactersList[sCharNumber].merc != NULL;
+}
+
+
+static BOOLEAN IsCharacterLocHighLighted(INT16 const sCharNumber)
+{
+	return sCharNumber == giLocHighLine && gCharactersList[sCharNumber].merc != NULL;
+}
+
+
+static void HighLightNameLine(void)
+{
+	static HighLightState state = { STARTING_COLOR_NUM, false, MAX_CHARACTER_COUNT + 1 };
+	HighLightSelection(state, giNameHighLine, NAME_X, NAME_WIDTH, IsCharacterNameHighLighted);
+}
+
+
+static void HighLightLocLine(void)
+{
+	static HighLightState state = { STARTING_COLOR_NUM, false, MAX_CHARACTER_COUNT + 1 };
+	HighLightSelection(state, giLocHighLine, LOC_X, LOC_WIDTH, IsCharacterLocHighLighted);
+}
+
+
+// restores the column's background after its glow has ceased
+static void RestoreBackgroundForInfoGlowColumn(INT32 const line, INT32& old_line, UINT16 const x, UINT16 const w)
+{
+	if (fDisableDueToBattleRoster) return;
+	if (old_line == line) return;
+
+	RestoreExternBackgroundRect(x, Y_START - 1, w, (INT16)TEAM_LIST_ROWS_HEIGHT);
+	fTeamPanelDirty = TRUE;
+	old_line = line;
+}
+
+
+static void RestoreBackgroundForNameAndLocGlowRegionList(void)
+{
+	static INT32 iOldNameLine = -1;
+	static INT32 iOldLocLine  = -1;
+	RestoreBackgroundForInfoGlowColumn(giNameHighLine, iOldNameLine, NAME_X, NAME_WIDTH);
+	RestoreBackgroundForInfoGlowColumn(giLocHighLine,  iOldLocLine,  LOC_X,  LOC_WIDTH);
 }
 
 
@@ -1508,8 +1971,8 @@ static void DisplayCharacterList(void)
 			FONT_MAP_DKYELLOW;
 		SetFontForeground(foreground);
 
-		UINT16 y = Y_START + i * (Y_SIZE + Y_OFFSET) + 1;
-		if (i >= FIRST_VEHICLE) y += 6;
+		if (TeamListRowOfEntry(i) == -1) continue;
+		UINT16 const y = TeamListEntryY(i) + 1;
 
 		// Name
 		DrawStringCentered(s.name, NAME_X + 1, y, NAME_WIDTH, Y_SIZE, MAP_SCREEN_FONT);
@@ -1729,8 +2192,10 @@ ScreenID MapScreenHandle(void)
 		fInMapMode = TRUE;
 
 		// Refreshing the whole screen, otherwise user could see remnants of
-		// the tactical screen.
-		if(g_ui.isBigScreen())
+		// the tactical screen. The second test keeps this on at 1366+ widths,
+		// where the 1366 canvas may fill the screen (isBigScreen() false) --
+		// as it was with the 1280 canvas.
+		if (g_ui.isBigScreen() || SCREEN_WIDTH > WIDE_STRATEGIC_SCREEN_WIDTH)
 		{
 			InvalidateRegion(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		}
@@ -1787,6 +2252,9 @@ ScreenID MapScreenHandle(void)
 					PLAYER_INFO_HAND_END_X, PLAYER_INFO_HAND_END_Y,
 					MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR,
 					ItemRegionMvtCallback , ItemRegionBtnCallback );
+		// 1366x768: the first hand slot is a preview only, like the rest of
+		// the equipment row -- no click to open the inventory, no glow
+		if (g_ui.isExtraWideStrategicScreen()) gCharInfoHandRegion.Disable();
 
 		MSYS_DefineRegion( &gCharInfoFaceRegion, (INT16) PLAYER_INFO_FACE_START_X, (INT16) PLAYER_INFO_FACE_START_Y, (INT16) PLAYER_INFO_FACE_END_X, (INT16) PLAYER_INFO_FACE_END_Y, MSYS_PRIORITY_HIGH,
 					MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(FaceRegionBtnCallbackPrimary, FaceRegionBtnCallbackSecondary) );
@@ -1801,10 +2269,19 @@ ScreenID MapScreenHandle(void)
 		// init the timer menus
 		InitTimersForMoveMenuMouseRegions( );
 
-		giMapContractButton = QuickCreateButtonImg(INTERFACEDIR "/contractbutton.sti", 0, 1, CONTRACT_X + 5, CONTRACT_Y - 1, MSYS_PRIORITY_HIGHEST - 5, ContractButtonCallback);
-		giMapContractButton->SpecifyGeneralTextAttributes(pContractButtonString, MAP_SCREEN_FONT, CHAR_TEXT_FONT_COLOR, FONT_BLACK);
-		giMapContractButton->SpecifyTextSubOffsets(0, 0, TRUE);
-		giMapContractButton->SpecifyHilitedTextColors(FONT_MCOLOR_WHITE, DEFAULT_SHADOW);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			// 1366x768: an invisible hot spot over the Contract table header,
+			// whose text RenderAttributeStringsForUpperLeftHandCorner() draws
+			giMapContractButton = CreateHotSpot(CHARINFO_CONTRACT_HEADER_X, CHARINFO_CONTRACT_HEADER_Y, CHARINFO_CONTRACT_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, MSYS_PRIORITY_HIGHEST - 5, ContractButtonCallback);
+		}
+		else
+		{
+			giMapContractButton = QuickCreateButtonImg(INTERFACEDIR "/contractbutton.sti", 0, 1, CONTRACT_X + 5, CONTRACT_Y - 1, MSYS_PRIORITY_HIGHEST - 5, ContractButtonCallback);
+			giMapContractButton->SpecifyGeneralTextAttributes(pContractButtonString, CHAR_FONT, CHAR_TEXT_FONT_COLOR, FONT_BLACK);
+			giMapContractButton->SpecifyTextSubOffsets(0, 0, TRUE);
+			giMapContractButton->SpecifyHilitedTextColors(FONT_MCOLOR_WHITE, DEFAULT_SHADOW);
+		}
 		giMapContractButton->SetFastHelpText(pMapScreenMouseRegionHelpText[3]);
 
 		CreateMouseRegionForPauseOfClock();
@@ -3027,11 +3504,13 @@ static void HandleModNone(UINT32 const key)
 
 		case SDLK_PAUSE: HandlePlayerPauseUnPauseOfGame(); break;
 
-		case SDLK_LEFT:  GoToPrevCharacterInList(); break;
-		case SDLK_RIGHT: GoToNextCharacterInList(); break;
+		// up / down: the team list, left / right: the message log (swapped per
+		// user request: the list runs up and down)
+		case SDLK_UP:   GoToPrevCharacterInList(); break;
+		case SDLK_DOWN: GoToNextCharacterInList(); break;
 
-		case SDLK_UP:   MapScreenMsgScrollUp(1);   break;
-		case SDLK_DOWN: MapScreenMsgScrollDown(1); break;
+		case SDLK_LEFT:  MapScreenMsgScrollUp(1);   break;
+		case SDLK_RIGHT: MapScreenMsgScrollDown(1); break;
 
 		case SDLK_PAGEUP:   MapScreenMsgScrollUp(MAX_MESSAGES_ON_MAP_BOTTOM);   break;
 		case SDLK_PAGEDOWN: MapScreenMsgScrollDown(MAX_MESSAGES_ON_MAP_BOTTOM); break;
@@ -3320,11 +3799,11 @@ static void GetMapKeyboardInput()
 		{
 			switch (InputEvent.usParam)
 			{
-				case SDLK_LEFT:  GoToPrevCharacterInList(); break;
-				case SDLK_RIGHT: GoToNextCharacterInList(); break;
+				case SDLK_UP:   GoToPrevCharacterInList(); break;
+				case SDLK_DOWN: GoToNextCharacterInList(); break;
 
-				case SDLK_UP:   MapScreenMsgScrollUp(1);   break;
-				case SDLK_DOWN: MapScreenMsgScrollDown(1); break;
+				case SDLK_LEFT:  MapScreenMsgScrollUp(1);   break;
+				case SDLK_RIGHT: MapScreenMsgScrollDown(1); break;
 
 				case SDLK_PAGEUP:   MapScreenMsgScrollUp(MAX_MESSAGES_ON_MAP_BOTTOM);   break;
 				case SDLK_PAGEDOWN: MapScreenMsgScrollDown(MAX_MESSAGES_ON_MAP_BOTTOM); break;
@@ -4134,7 +4613,13 @@ static void MAPInvClickCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
 	// Check for # of slots in item
 	if ( ( pSoldier->inv[ uiHandPos ].ubNumberOfObjects > 1 ) && ( ItemSlotLimit( pSoldier->inv[ uiHandPos ].usItem, (UINT8)uiHandPos ) > 0 ) )
 	{
-		if ( !InItemStackPopup( ) )
+		// 1366x768 interface: the stack in the sector inventory's "stack
+		// split" view instead of the small popup (extra_inventory.sti)
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			OpenMercStackView(*pSoldier, (INT8)uiHandPos);
+		}
+		else if ( !InItemStackPopup( ) )
 		{
 			InitItemStackPopup( pSoldier, (UINT8)uiHandPos, INV_REGION_X, INV_REGION_Y, 261, 248 );
 			fTeamPanelDirty=TRUE;
@@ -4256,28 +4741,71 @@ static void RenderAttributeStringsForUpperLeftHandCorner(SGPVSurface* const uiBu
 	SetFontDestBuffer(uiBufferToRenderTo);
 
 	// assignment strings
-	DrawString(pUpperLeftMapScreenStrings[0], MAP_SCREEN_X + 220 - StringPixLength(pUpperLeftMapScreenStrings[0], CHAR_FONT) / 2, MAP_SCREEN_Y + 6, CHAR_FONT);
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		// 1366x768: the Assignment and Contract table headers. The Contract
+		// one is also the contract button (an invisible hot spot over it, see
+		// giMapContractButton), so it greys out with that button.
+		DrawStringCentered(pUpperLeftMapScreenStrings[0], CHARINFO_ASSIGN_HEADER_X, CHARINFO_ASSIGN_HEADER_Y + CHARINFO_TABLE_HEADER_TEXT_DY, CHARINFO_ASSIGN_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
+		bool const contract_enabled = giMapContractButton && giMapContractButton->Enabled();
+		SetFontForeground(contract_enabled ? CHAR_TEXT_FONT_COLOR : FONT_GRAY4);
+		DrawStringCentered(pContractButtonString, CHARINFO_CONTRACT_HEADER_X, CHARINFO_CONTRACT_HEADER_Y + CHARINFO_TABLE_HEADER_TEXT_DY, CHARINFO_CONTRACT_HEADER_WIDTH, CHARINFO_TABLE_HEADER_HEIGHT, CHAR_FONT);
+		SetFontForeground(CHAR_TITLE_FONT_COLOR);
+	}
+	else
+	{
+		DrawString(pUpperLeftMapScreenStrings[0], MAP_SCREEN_X + 220 - StringPixLength(pUpperLeftMapScreenStrings[0], CHAR_FONT) / 2, MAP_SCREEN_Y + 6, CHAR_FONT);
+	}
 
 	// vehicles and robot don't have attributes, contracts, or morale
 	const SOLDIERTYPE* const pSoldier = GetSelectedInfoChar();
 	if (!pSoldier || !IsMechanical(*pSoldier))
 	{
 		// health
-		DrawString(pUpperLeftMapScreenStrings[1], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 80, CHAR_FONT);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawStringCentered(pUpperLeftMapScreenStrings[1], CHARINFO_LABEL_X, CHARINFO_HEALTH_ROW_Y, CHARINFO_LABEL_WIDTH, CHARINFO_ROW_HEIGHT, CHAR_FONT);
+		}
+		else
+		{
+			DrawString(pUpperLeftMapScreenStrings[1], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 80, CHAR_FONT);
+		}
 
 		for( iCounter = 0; iCounter < 5; iCounter++ )
 		{
+			if (g_ui.isExtraWideStrategicScreen())
+			{
+				// left aligned in the stat panels' label areas, same rows as the values
+				INT16 const y = CHARINFO_STAT_ROW_Y(iCounter);
+				DrawString(pShortAttributeStrings[iCounter],     CHARINFO_STAT_LEFT_LABEL_X,  y, CHAR_FONT);
+				DrawString(pShortAttributeStrings[iCounter + 5], CHARINFO_STAT_RIGHT_LABEL_X, y, CHAR_FONT);
+				continue;
+			}
 			DrawString(pShortAttributeStrings[iCounter],     MAP_SCREEN_X +  88, MAP_SCREEN_Y + 22 + iCounter * 10, CHAR_FONT);
 			DrawString(pShortAttributeStrings[iCounter + 5], MAP_SCREEN_X + 133, MAP_SCREEN_Y + 22 + iCounter * 10, CHAR_FONT);
 		}
 
-		// morale
-		DrawString(pUpperLeftMapScreenStrings[2], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 94,  CHAR_FONT);
+		// morale -- 1366x768: energy
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawStringCentered(pMapScreenStatusStrings[1], CHARINFO_LABEL_X, CHARINFO_MORALE_ROW_Y, CHARINFO_LABEL_WIDTH, CHARINFO_ROW_HEIGHT, CHAR_FONT);
+		}
+		else
+		{
+			DrawString(pUpperLeftMapScreenStrings[2], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 94,  CHAR_FONT);
+		}
 	}
 	else
 	{
-		// condition
-		DrawString(pUpperLeftMapScreenStrings[3], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 80, CHAR_FONT);
+		// condition -- in the health row
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawStringCentered(pUpperLeftMapScreenStrings[3], CHARINFO_LABEL_X, CHARINFO_HEALTH_ROW_Y, CHARINFO_LABEL_WIDTH, CHARINFO_ROW_HEIGHT, CHAR_FONT);
+		}
+		else
+		{
+			DrawString(pUpperLeftMapScreenStrings[3], MAP_SCREEN_X + 87, MAP_SCREEN_Y + 80, CHAR_FONT);
+		}
 	}
 
 
@@ -4443,12 +4971,14 @@ static void BlitBackgroundToSaveBuffer(void)
 	{
 		// background_middle_wide_*.sti reaches 1 px over the first column of
 		// what the right block draws there -- MBS, or the sector-inventory
-		// window (MAP_MIDDLE_BACKGROUND_RIGHT, x 517) -- and stays on top of
+		// window (MAP_MIDDLE_BACKGROUND_RIGHT, x 517 / 603) -- and stays on top of
 		// either: whenever the right block was just redrawn, redraw the left
 		// column (middle background, then whatever panel sits on it) after it.
 		if (fMapRedrawn && g_ui.isWideStrategicScreen())
 		{
 			fTeamPanelDirty = TRUE;
+			// the 1366x768 character info panel also reaches 1 px over MBS
+			if (g_ui.isExtraWideStrategicScreen()) fCharacterInfoPanelDirty = TRUE;
 		}
 
 		// render team
@@ -4498,9 +5028,30 @@ static void BlitBackgroundToSaveBuffer(void)
 }
 
 
+// Mouse wheel over a team list row: scroll the people, or over a vehicle
+// row the vehicles.
+static void TeamListWheelCallback(MOUSE_REGION* const r, UINT32 const reason)
+{
+	INT32 const rows =
+		reason & MSYS_CALLBACK_REASON_WHEEL_UP   ? -1 :
+		reason & MSYS_CALLBACK_REASON_WHEEL_DOWN ? +1 :
+		0;
+	if (rows == 0) return;
+
+	if (static_cast<INT32>(MSYS_GetRegionUserData(r, 0)) >= FIRST_VEHICLE)
+	{
+		ScrollTeamListVehicles(rows);
+	}
+	else
+	{
+		ScrollTeamList(rows);
+	}
+}
+
+
 static void MakeRegion(MOUSE_REGION* r, UINT idx, UINT16 x, UINT16 y, UINT16 w, MOUSE_CALLBACK move, MOUSE_CALLBACK click, const ST::string& help)
 {
-	MSYS_DefineRegion(r, x, y, x + w, y + Y_SIZE + 1, MSYS_PRIORITY_NORMAL + 1,
+	MSYS_DefineRegion(r, x, y, x + w, y + TEAM_LIST_ROW_PITCH - 1, MSYS_PRIORITY_NORMAL + 1,
 		MSYS_NO_CURSOR, std::move(move), std::move(click));
 	MSYS_SetRegionUserData(r, 0, idx);
 	r->SetFastHelpText(help);
@@ -4519,29 +5070,37 @@ static void TeamListDestinationRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 i
 static void TeamListInfoRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListInfoRegionBtnCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListInfoRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
+static void TeamListLocationRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListSleepRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListSleepRegionBtnCallBackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void TeamListSleepRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
+// whether the team list's regions exist now (map screen set up)
+static bool g_team_list_regions_created = false;
+
 static void CreateMouseRegionsForTeamList(void)
 {
 	// will create mouse regions for assignments, path plotting, character info selection
+	g_team_list_regions_created = true;
 
 	// the info region...is the background for the list itself
 	for (UINT i = 0; i < MAX_CHARACTER_COUNT; ++i)
 	{
-		const UINT16 y = Y_START + i * (Y_SIZE + 2) + (i >= FIRST_VEHICLE ? 6 : 0);
+		// only the entries shown (TeamListRowOfEntry())
+		g_character_region_made[i] = TeamListRowOfEntry(i) != -1;
+		if (!g_character_region_made[i]) continue;
+		const UINT16 y = TeamListEntryY(i);
 
 		const UINT16 w = NAME_WIDTH;
 		CharacterRegions& r = g_character_regions[i];
-		MakeRegion(&r.name,        i, NAME_X,           y, w,                    TeamListInfoRegionMvtCallBack,        MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary),        pMapScreenMouseRegionHelpText[0]); // name region
-		MakeRegion(&r.assignment,  i, ASSIGN_X,         y, ASSIGN_WIDTH,         TeamListAssignmentRegionMvtCallBack,  MouseCallbackPrimarySecondary(TeamListAssignmentRegionBtnCallBackPrimary, TeamListAssignmentRegionBtnCallBackSecondary),  pMapScreenMouseRegionHelpText[1]); // assignment region
-		MakeRegion(&r.sleep,       i, SLEEP_X,          y, SLEEP_WIDTH,          TeamListSleepRegionMvtCallBack,       MouseCallbackPrimarySecondary(TeamListSleepRegionBtnCallBackPrimary, TeamListSleepRegionBtnCallBackSecondary),       pMapScreenMouseRegionHelpText[5]); // sleep region
-		// same function as name regions, so uses the same callbacks
-		MakeRegion(&r.location,    i, LOC_X,            y, LOC_WIDTH,            TeamListInfoRegionMvtCallBack,        MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary),        pMapScreenMouseRegionHelpText[0]); // location region
-		MakeRegion(&r.destination, i, DEST_ETA_X,       y, DEST_ETA_WIDTH,       TeamListDestinationRegionMvtCallBack, MouseCallbackPrimarySecondary(TeamListDestinationRegionBtnCallBackPrimary, TeamListDestinationRegionBtnCallBackSecondary), pMapScreenMouseRegionHelpText[2]); // destination region
-		MakeRegion(&r.contract,    i, TIME_REMAINING_X, y, TIME_REMAINING_WIDTH, TeamListContractRegionMvtCallBack,    MouseCallbackPrimarySecondary(TeamListContractRegionBtnCallBackPrimary, TeamListContractRegionBtnCallBackSecondary),    pMapScreenMouseRegionHelpText[3]); // contract region
+		MakeRegion(&r.name,        i, NAME_X,           y, w,                    TeamListInfoRegionMvtCallBack,        MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary, TeamListWheelCallback),        pMapScreenMouseRegionHelpText[0]); // name region
+		MakeRegion(&r.assignment,  i, ASSIGN_X,         y, ASSIGN_WIDTH,         TeamListAssignmentRegionMvtCallBack,  MouseCallbackPrimarySecondary(TeamListAssignmentRegionBtnCallBackPrimary, TeamListAssignmentRegionBtnCallBackSecondary, TeamListWheelCallback),  pMapScreenMouseRegionHelpText[1]); // assignment region
+		MakeRegion(&r.sleep,       i, SLEEP_X,          y, SLEEP_WIDTH,          TeamListSleepRegionMvtCallBack,       MouseCallbackPrimarySecondary(TeamListSleepRegionBtnCallBackPrimary, TeamListSleepRegionBtnCallBackSecondary, TeamListWheelCallback),       pMapScreenMouseRegionHelpText[5]); // sleep region
+		// same function as name regions, so uses the same click callbacks
+		MakeRegion(&r.location,    i, LOC_X,            y, LOC_WIDTH,            TeamListLocationRegionMvtCallBack,       MouseCallbackPrimarySecondary(TeamListInfoRegionBtnCallBackPrimary, TeamListInfoRegionBtnCallBackSecondary, TeamListWheelCallback),        pMapScreenMouseRegionHelpText[0]); // location region
+		MakeRegion(&r.destination, i, DEST_ETA_X,       y, DEST_ETA_WIDTH,       TeamListDestinationRegionMvtCallBack, MouseCallbackPrimarySecondary(TeamListDestinationRegionBtnCallBackPrimary, TeamListDestinationRegionBtnCallBackSecondary, TeamListWheelCallback), pMapScreenMouseRegionHelpText[2]); // destination region
+		MakeRegion(&r.contract,    i, TIME_REMAINING_X, y, TIME_REMAINING_WIDTH, TeamListContractRegionMvtCallBack,    MouseCallbackPrimarySecondary(TeamListContractRegionBtnCallBackPrimary, TeamListContractRegionBtnCallBackSecondary, TeamListWheelCallback),    pMapScreenMouseRegionHelpText[3]); // contract region
 	}
 }
 
@@ -4549,8 +5108,11 @@ static void CreateMouseRegionsForTeamList(void)
 static void DestroyMouseRegionsForTeamList(void)
 {
 	// will destroy mouse regions overlaying the team list area
+	g_team_list_regions_created = false;
 	for (UINT i = 0; i < MAX_CHARACTER_COUNT; ++i)
 	{
+		if (!g_character_region_made[i]) continue;
+		g_character_region_made[i] = false;
 		CharacterRegions& r = g_character_regions[i];
 		MSYS_RemoveRegion(&r.name);
 		MSYS_RemoveRegion(&r.assignment);
@@ -4669,26 +5231,42 @@ static void TeamListInfoRegionBtnCallBackSecondary(MOUSE_REGION* pRegion, UINT32
 }
 
 
-static void TeamListInfoRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+// name and location columns: highlight the line, glow the column's box
+static void TeamListInfoRegionMvt(MOUSE_REGION* const pRegion, UINT32 const iReason, INT32& column_line)
 {
-	INT32 iValue = 0;
-
-
 	if( fLockOutMapScreenInterface || gfPreBattleInterfaceActive )
 	{
 		return;
 	}
 
-	iValue = MSYS_GetRegionUserData( pRegion, 0 );
+	INT32 const iValue = MSYS_GetRegionUserData( pRegion, 0 );
 
 	if (iReason & MSYS_CALLBACK_REASON_MOVE)
 	{
-		giHighLine = (gCharactersList[iValue].merc != NULL ? iValue : -1);
+		giHighLine  = (gCharactersList[iValue].merc != NULL ? iValue : -1);
+		column_line = giHighLine;
 	}
 	else if( iReason & MSYS_CALLBACK_REASON_LOST_MOUSE )
 	{
-		giHighLine = -1;
+		giHighLine  = -1;
+		column_line = -1;
 	}
+	else if (iReason & MSYS_CALLBACK_REASON_GAIN_MOUSE)
+	{
+		if (gCharactersList[iValue].merc != NULL) PlayGlowRegionSound();
+	}
+}
+
+
+static void TeamListInfoRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	TeamListInfoRegionMvt(pRegion, iReason, giNameHighLine);
+}
+
+
+static void TeamListLocationRegionMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason)
+{
+	TeamListInfoRegionMvt(pRegion, iReason, giLocHighLine);
 }
 
 
@@ -5206,10 +5784,13 @@ static void HandleHighLightingOfLinesInTeamPanel(void)
 	RestoreBackgroundForDestinationGlowRegionList( );
 	RestoreBackgroundForContractGlowRegionList( );
 	RestoreBackgroundForSleepGlowRegionList( );
+	RestoreBackgroundForNameAndLocGlowRegionList();
 
 	HighLightAssignLine();
 	HighLightDestLine();
 	HighLightSleepLine();
+	HighLightNameLine();
+	HighLightLocLine();
 
 	// contracts?
 	if( giContractHighLine != -1 )
@@ -5358,8 +5939,12 @@ static void RenderMapMiddleBackground(INT16 const top, INT16 const bottom)
 	// the graphic may reach down into map_screen_bottom's strip, whose top
 	// rows are transparent, and is drawn on top of it -- see
 	// BlitBackgroundToSaveBuffer(). Only the black fallback stays above it.
+	// On the 1366x768 interface it stops at the strip's top: there the
+	// graphic starts low enough (TEAM_LIST_Y) that a taller one would cover
+	// a good part of the strip.
+	INT16 const max_bottom = g_ui.isExtraWideStrategicScreen() ? MAP_MIDDLE_BACKGROUND_HEIGHT : MAP_SCREEN_HEIGHT;
 	INT16 const y1 = MAP_SCREEN_Y + top;
-	INT16 const y2 = MAP_SCREEN_Y + std::min<INT16>(bottom, MAP_SCREEN_HEIGHT);
+	INT16 const y2 = MAP_SCREEN_Y + std::min<INT16>(bottom, max_bottom);
 	if (y1 >= y2) return;
 
 	INT16 const x1 = MAP_MIDDLE_BACKGROUND_X + 1;
@@ -5368,18 +5953,36 @@ static void RenderMapMiddleBackground(INT16 const top, INT16 const bottom)
 	// Rows above the background graphic (MAP_MIDDLE_BACKGROUND_TOP): black.
 	INT16 const bg_top = MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_TOP;
 	INT16 const fill_bottom = std::min(y2, bg_top);
-	if (y1 < fill_bottom) ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, y1, x2, fill_bottom, 0);
+	// Starts 1 px further left, under the left column's last column: the
+	// character info panel drawn right after it (RenderCharacterInfoBackground())
+	// may be 1 px narrower (charinfo_1366x768.sti is 261 px wide, the others 262).
+	if (y1 < fill_bottom) ColorFillVideoSurfaceArea(guiSAVEBUFFER, MAP_MIDDLE_BACKGROUND_X, y1, x2, fill_bottom, 0);
 
 	INT16 const img_top = std::max(y1, bg_top);
 	if (img_top >= y2) return;
 
-	cache_key_t const bg = GetWideStrategicAsset(GetMapMiddleBackgroundGraphicsFilename(), nullptr);
+	cache_key_t const bg_file = GetMapMiddleBackgroundGraphicsFilename(); // none on 1366x768
+	cache_key_t const bg      = bg_file ? GetWideStrategicAsset(bg_file, nullptr) : nullptr;
 	if (bg)
 	{
 		SGPRect const clip = { (UINT16)x1, (UINT16)img_top, (UINT16)x2, (UINT16)y2 };
 		SGPRect const old  = SetClippingRect(clip);
-		BltVideoObject(guiSAVEBUFFER, bg, 0, MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_SHIFT_X, bg_top);
+		INT16   const bg_x = MAP_MIDDLE_BACKGROUND_X + MAP_MIDDLE_BACKGROUND_SHIFT_X;
+		BltVideoObject(guiSAVEBUFFER, bg, 0, bg_x, bg_top);
+		// A graphic narrower than the free space (on the 1366 canvas, where
+		// it is 340 px wide): draw it once more, right-aligned, so both edges
+		// keep their frame (its last column clipped off by x2, same as the
+		// first copy's on the 1280 canvas).
+		ETRLEObject const& props = GetVObject(bg)->SubregionProperties(0);
+		INT16 const bg_w = props.usWidth;
+		if (bg_x + bg_w < x2 + 1) BltVideoObject(guiSAVEBUFFER, bg, 0, x2 + 1 - bg_w, bg_top);
 		SetClippingRect(old);
+
+		// A graphic shorter than the free space: black below it, down to the
+		// bottom strip.
+		INT16 const img_bottom = std::max<INT16>(img_top, bg_top + props.usHeight);
+		INT16 const fill_y2    = std::min<INT16>(y2, MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT);
+		if (img_bottom < fill_y2) ColorFillVideoSurfaceArea(guiSAVEBUFFER, x1, img_bottom, x2, fill_y2, 0);
 	}
 	else
 	{
@@ -5394,12 +5997,35 @@ static void RenderTeamRegionBackground()
 	// Render to save buffer when dirty flag set
 	if (!fTeamPanelDirty) return;
 
-	RenderMapMiddleBackground(107, MAP_SCREEN_HEIGHT);
+	RenderMapMiddleBackground(MAP_MIDDLE_BACKGROUND_TOP, MAP_SCREEN_HEIGHT);
+
+	// 1366x768: the character info panel's slot column reaches down beside
+	// the team list -- redraw the panel after it, so it stays on top
+	if (g_ui.isExtraWideStrategicScreen()) fCharacterInfoPanelDirty = TRUE;
 
 	// Show inventory or the team list?
 	if (!fShowInventoryFlag)
 	{
-		BltVideoObject(guiSAVEBUFFER, GetCharListGraphicsFilename(), 0, PLAYER_INFO_X, PLAYER_INFO_Y);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			// its header windows are see-through: black under them
+			static const INT16 header_x[] = { 12, 118, 224, 266, 334, 404 };
+			static const INT16 header_w[] = { 100, 100, 36,  62,  64,  54 };
+			for (size_t i = 0; i != lengthof(header_x); ++i)
+			{
+				INT16 const hx = PLAYER_INFO_X + header_x[i];
+				ColorFillVideoSurfaceArea(guiSAVEBUFFER, hx, TEAM_LIST_Y + 18, hx + header_w[i], TEAM_LIST_Y + 18 + 32, 0);
+			}
+			// cut off at the bottom strip's top, if taller than the space left there
+			SGPRect const clip = { (UINT16)PLAYER_INFO_X, (UINT16)TEAM_LIST_Y, (UINT16)(PLAYER_INFO_X + 640), (UINT16)(MAP_SCREEN_Y + MAP_MIDDLE_BACKGROUND_HEIGHT) };
+			SGPRect const old  = SetClippingRect(clip);
+			BltVideoObject(guiSAVEBUFFER, GetCharListGraphicsFilename(), 0, PLAYER_INFO_X, TEAM_LIST_Y);
+			SetClippingRect(old);
+		}
+		else
+		{
+			BltVideoObject(guiSAVEBUFFER, GetCharListGraphicsFilename(), 0, PLAYER_INFO_X, PLAYER_INFO_Y);
+		}
 		HandleHighLightingOfLinesInTeamPanel();
 		DisplayCharacterList();
 		DisplayIconsForMercsAsleep();
@@ -5434,10 +6060,66 @@ static void RenderCharacterInfoBackground(void)
 		return;
 	}
 
-	RenderMapMiddleBackground(0, 107);
+	// The open merc inventory starts at PLAYER_INFO_Y: the free space only
+	// down to there then, so it isn't painted over.
+	bool const inv_open = g_ui.isExtraWideStrategicScreen() && fShowInventoryFlag;
+	RenderMapMiddleBackground(0, inv_open ? PLAYER_INFO_Y - MAP_SCREEN_Y : MAP_MIDDLE_BACKGROUND_TOP);
 
-	// the upleft hand corner character info panel
-	BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
+	// 1366x768: black between the character info panel's bottom and the
+	// team list's top, under the left column (the free space gets it above)
+	if (g_ui.isExtraWideStrategicScreen() && !inv_open)
+	{
+		INT16 const panel_bottom = TOWN_INFO_Y + GetVObject(GetCharInfoGraphicsFilename())->SubregionProperties(0).usHeight;
+		if (panel_bottom < TEAM_LIST_Y)
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, MAP_SCREEN_X, panel_bottom, MAP_MIDDLE_BACKGROUND_X + 1, TEAM_LIST_Y, 0);
+		}
+	}
+
+	// The 1366x768 panel's bar and arrow windows are see-through: black under
+	// them, so the bars (drawn over the saved background every frame) erase
+	// to black, and so do hidden arrows.
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		for (INT16 const x : { BAR_TALL_LIFE_X, BAR_TALL_BREATH_X, BAR_TALL_MORALE_X })
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, BAR_TALL_TOP_Y, x + BAR_TALL_WIDTH, BAR_TALL_TOP_Y + BAR_TALL_HEIGHT, 0);
+		}
+		for (INT16 const x : { CHARINFO_ARROW_UP_X, CHARINFO_ARROW_DOWN_X })
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, CHARINFO_ARROW_Y, x + CHARINFO_ARROW_WIDTH, CHARINFO_ARROW_Y + CHARINFO_ARROW_HEIGHT, 0);
+		}
+	}
+
+	// the upleft hand corner character info panel -- on the 1366x768
+	// interface only its top part over the open merc inventory (its
+	// equipment row is shown while the inventory is closed)
+	if (g_ui.isExtraWideStrategicScreen() && fShowInventoryFlag)
+	{
+		SGPRect const clip = { (UINT16)TOWN_INFO_X, (UINT16)TOWN_INFO_Y, (UINT16)(TOWN_INFO_X + 640), (UINT16)(TOWN_INFO_Y + CHARINFO_PANEL_TOP_HEIGHT) };
+		SGPRect const old  = SetClippingRect(clip);
+		BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
+		SetClippingRect(old);
+
+		// black where the panel's equipment row was and the inventory isn't:
+		// between the panel's top part and the inventory, and right of the
+		// inventory down to the team list's top
+		INT16 const panel_right = TOWN_INFO_X + GetVObject(GetCharInfoGraphicsFilename())->SubregionProperties(0).usWidth;
+		INT16 const inv_right   = PLAYER_INFO_X + GetVObject(GetMapInvGraphicsFilename())->SubregionProperties(0).usWidth;
+		INT16 const top_bottom  = TOWN_INFO_Y + CHARINFO_PANEL_TOP_HEIGHT;
+		if (top_bottom < PLAYER_INFO_Y)
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, TOWN_INFO_X, top_bottom, panel_right, PLAYER_INFO_Y, 0);
+		}
+		if (inv_right < panel_right)
+		{
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, inv_right, PLAYER_INFO_Y, panel_right, TEAM_LIST_Y, 0);
+		}
+	}
+	else
+	{
+		BltVideoObject(guiSAVEBUFFER, GetCharInfoGraphicsFilename(), 0, TOWN_INFO_X, TOWN_INFO_Y);
+	}
 
 	UpdateHelpTextForMapScreenMercIcons( );
 
@@ -5459,7 +6141,18 @@ static void RenderCharacterInfoBackground(void)
 	MarkAllBoxesAsAltered( );
 
 	// restore background for area
-	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, LEFT_COLUMN_BG_WIDTH, 107 );
+	// The 1366x768 panel may be wider than the left column plus the free space
+	// (charinfo_1366x768 reaches 1 px over MBS on purpose): copy all of it.
+	UINT16 restore_w = LEFT_COLUMN_BG_WIDTH;
+	UINT16 restore_h = MAP_MIDDLE_BACKGROUND_TOP;
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		ETRLEObject const& panel = GetVObject(GetCharInfoGraphicsFilename())->SubregionProperties(0);
+		restore_w = std::max<UINT16>(restore_w, panel.usWidth);
+		// its equipment row may reach below the team list's top
+		restore_h = std::max<UINT16>(restore_h, inv_open ? CHARINFO_PANEL_TOP_HEIGHT : panel.usHeight);
+	}
+	RestoreExternBackgroundRect( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, restore_w, restore_h );
 
 }
 
@@ -5618,6 +6311,82 @@ static void HandleShadingOfLinesForContractMenu(void)
 static void SortListOfMercsInTeamPanel(BOOLEAN fRetainSelectedMercs);
 
 
+// Team list scrolling (giTeamListFirstPerson/Vehicle, TeamListRowOfEntry()).
+// People fill gCharactersList from entry 0 and vehicles from FIRST_VEHICLE
+// without gaps (ReBuildCharactersList()).
+static INT32 CountTeamListEntries(INT32 const first, INT32 const end)
+{
+	INT32 n = 0;
+	for (INT32 i = first; i != end && gCharactersList[i].merc; ++i) ++n;
+	return n;
+}
+
+
+static void SetTeamListScroll(INT32 people, INT32 vehicles)
+{
+	INT32 const n_people   = CountTeamListEntries(0, FIRST_VEHICLE);
+	INT32 const n_vehicles = CountTeamListEntries(FIRST_VEHICLE, MAX_CHARACTER_COUNT);
+	people   = std::clamp(people,   0, std::max(0, n_people   - TEAM_LIST_PEOPLE_ROWS));
+	vehicles = std::clamp(vehicles, 0, std::max(0, n_vehicles - TEAM_LIST_VEHICLE_ROWS));
+	if (people == giTeamListFirstPerson && vehicles == giTeamListFirstVehicle) return;
+
+	// the rows' regions belong to the entries shown -- make them anew
+	bool const regions = g_team_list_regions_created;
+	if (regions) DestroyMouseRegionsForTeamList();
+	giTeamListFirstPerson  = people;
+	giTeamListFirstVehicle = vehicles;
+	if (regions) CreateMouseRegionsForTeamList();
+
+	// the glowing highlights follow the rows
+	giHighLine         = -1;
+	giAssignHighLine   = -1;
+	giDestHighLine     = -1;
+	giContractHighLine = -1;
+	giSleepHighLine    = -1;
+	giNameHighLine     = -1;
+	giLocHighLine      = -1;
+
+	fTeamPanelDirty          = TRUE;
+	fCharacterInfoPanelDirty = TRUE;
+}
+
+
+void ScrollTeamList(INT32 const rows)
+{
+	SetTeamListScroll(giTeamListFirstPerson + rows, giTeamListFirstVehicle);
+}
+
+
+void ScrollTeamListVehicles(INT32 const rows)
+{
+	SetTeamListScroll(giTeamListFirstPerson, giTeamListFirstVehicle + rows);
+}
+
+
+BOOLEAN CanScrollTeamList(INT32 const dir)
+{
+	if (dir < 0) return giTeamListFirstPerson > 0;
+	return giTeamListFirstPerson + TEAM_LIST_PEOPLE_ROWS < CountTeamListEntries(0, FIRST_VEHICLE);
+}
+
+
+void MakeTeamListEntryVisible(INT32 const i)
+{
+	if (i < 0 || i >= MAX_CHARACTER_COUNT || TeamListRowOfEntry(i) != -1) return;
+	if (i < FIRST_VEHICLE)
+	{
+		INT32 const first = i < giTeamListFirstPerson ? i : i - TEAM_LIST_PEOPLE_ROWS + 1;
+		SetTeamListScroll(first, giTeamListFirstVehicle);
+	}
+	else
+	{
+		INT32 const v     = i - FIRST_VEHICLE;
+		INT32 const first = v < giTeamListFirstVehicle ? v : v - TEAM_LIST_VEHICLE_ROWS + 1;
+		SetTeamListScroll(giTeamListFirstPerson, first);
+	}
+}
+
+
 void ReBuildCharactersList( void )
 {
 	// rebuild character's list
@@ -5636,6 +6405,10 @@ void ReBuildCharactersList( void )
 
 	// sort them according to current sorting method
 	SortListOfMercsInTeamPanel( FALSE );
+
+	// the list may have shrunk: keep the scroll in range
+	ScrollTeamList(0);
+	ScrollTeamListVehicles(0);
 
 
 	// if nobody is selected, or the selected merc has somehow become invalid
@@ -5703,6 +6476,8 @@ static void EnableDisableTeamListRegionsAndHelpText(void)
 
 	for( bCharNum = 0; bCharNum < MAX_CHARACTER_COUNT; bCharNum++ )
 	{
+		if (!g_character_region_made[bCharNum]) continue; // scrolled away
+
 		SOLDIERTYPE const* const s = gCharactersList[bCharNum].merc;
 		CharacterRegions&        r = g_character_regions[bCharNum];
 		if (s == NULL)
@@ -6186,7 +6961,8 @@ static void HandleChangeOfHighLightedLine(void)
 			giSleepHighLine = -1;
 			giAssignHighLine = -1;
 			giContractHighLine = -1;
-			giSleepHighLine = -1;
+			giNameHighLine = -1;
+			giLocHighLine = -1;
 
 			// don't do during plotting, allowing selected character to remain highlighted and their destination column to glow!
 			if (bSelectedDestChar == -1 && !fPlotForHelicopter)
@@ -6207,11 +6983,50 @@ static void HandleCharBarRender(void)
 	const SOLDIERTYPE* const s = GetSelectedInfoChar();
 	if (s == NULL) return;
 
+	// 1366x768: the character info panel shows the energy value (see
+	// DrawCharacterInfo()) -- redraw the panel whenever it changes, so it
+	// follows the merc's breath in real time like the bar does.
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		static SOLDIERTYPE const* shown_merc = nullptr;
+		static INT8 shown_breath     = -1;
+		static INT8 shown_breath_max = -1;
+		// ... and the equipment row (items, ammo left, weight, armour, camo),
+		// and whether it is covered by the merc inventory
+		static UINT32 shown_equipment = 0;
+		UINT32 equipment = fShowInventoryFlag ? 1 : 0;
+		for (INT8 const pocket : { HANDPOS, SECONDHANDPOS, HEAD1POS, HEAD2POS, HELMETPOS, VESTPOS, LEGPOS })
+		{
+			OBJECTTYPE const& o = s->inv[pocket];
+			equipment = equipment * 31 + o.usItem;
+			equipment = equipment * 31 + o.ubGunShotsLeft;
+			equipment = equipment * 31 + o.ubNumberOfObjects;
+		}
+		equipment = equipment * 31 + CalculateCarriedWeight(s);
+		equipment = equipment * 31 + ArmourPercent(s);
+		equipment = equipment * 31 + s->bCamo;
+		if (s != shown_merc || s->bBreath != shown_breath || s->bBreathMax != shown_breath_max || equipment != shown_equipment)
+		{
+			shown_merc       = s;
+			shown_breath     = s->bBreath;
+			shown_breath_max = s->bBreathMax;
+			shown_equipment  = equipment;
+			fCharacterInfoPanelDirty = TRUE;
+		}
+	}
+
 	if (s->bLife       != 0               &&
 			s->bAssignment != ASSIGNMENT_DEAD &&
 			s->bAssignment != ASSIGNMENT_POW)
 	{
-		DrawSoldierUIBars(*s, BAR_INFO_X, BAR_INFO_Y, TRUE, FRAME_BUFFER);
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			DrawSoldierUIBarsTall(*s, BAR_TALL_LIFE_X, BAR_TALL_BREATH_X, BAR_TALL_MORALE_X, BAR_TALL_TOP_Y, BAR_TALL_WIDTH, BAR_TALL_HEIGHT, FRAME_BUFFER);
+		}
+		else
+		{
+			DrawSoldierUIBars(*s, BAR_INFO_X, BAR_INFO_Y, TRUE, FRAME_BUFFER);
+		}
 	}
 
 	UpdateCharRegionHelpText();
@@ -6701,6 +7516,8 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(INTERFACEDIR "/mapinv_1280.sti");
 	RemoveVObject(INTERFACEDIR "/mapinv_big_1280_720.sti");
 	RemoveVObject(INTERFACEDIR "/mapinv_big_1280_768.sti");
+	RemoveVObject(INTERFACEDIR "/mapinv_1366x768.png");
+	RemoveVObject(INTERFACEDIR "/mapinv_small_1366x768.png");
 	RemoveVObject(GetMapMiddleBackgroundGraphicsFilename());
 	RemoveVObject(guiULICONS);
 
@@ -6806,8 +7623,20 @@ static void CreateDestroyMapCharacterScrollButtons(void)
 	{
 		const INT16 prio = MSYS_PRIORITY_HIGHEST - 5;
 
-		giCharInfoButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 11, 4, -1, 6, -1, MAP_SCREEN_X + 67, MAP_SCREEN_Y + 69, prio, PrevInventoryMapBtnCallback);
-		giCharInfoButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 12, 5, -1, 7, -1, MAP_SCREEN_X + 67, MAP_SCREEN_Y + 87, prio, NextInventoryMapBtnCallback);
+		// 1366x768: the panel's two 27x30 arrow windows, with the arrows of
+		// mapinv_done_buttons.sti (4/5 up ready/pressed, 6/7 down) -- the
+		// old arrows if that file has no such sub-images.
+		if (g_ui.isExtraWideStrategicScreen() &&
+			GetVObject(INTERFACEDIR "/mapinv_done_buttons.sti")->SubregionCount() >= 8)
+		{
+			giCharInfoButton[0] = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", 4, 5, CHARINFO_ARROW_UP_X,   CHARINFO_ARROW_Y, prio, PrevInventoryMapBtnCallback);
+			giCharInfoButton[1] = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", 6, 7, CHARINFO_ARROW_DOWN_X, CHARINFO_ARROW_Y, prio, NextInventoryMapBtnCallback);
+		}
+		else
+		{
+			giCharInfoButton[0] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 11, 4, -1, 6, -1, MAP_SCREEN_X + 67, MAP_SCREEN_Y + 69, prio, PrevInventoryMapBtnCallback);
+			giCharInfoButton[1] = QuickCreateButtonImg(INTERFACEDIR "/map_screen_bottom_arrows.sti", 12, 5, -1, 7, -1, MAP_SCREEN_X + 67, MAP_SCREEN_Y + 87, prio, NextInventoryMapBtnCallback);
+		}
 
 		giCharInfoButton[0]->SetFastHelpText(pMapScreenPrevNextCharButtonHelpText[0]);
 		giCharInfoButton[1]->SetFastHelpText(pMapScreenPrevNextCharButtonHelpText[1]);
@@ -6922,11 +7751,22 @@ static void AddTeamPanelSortButtonsForMapScreen(void)
 {
 	INT32 iImageIndex[ MAX_SORT_METHODS ] = { 0, 1, 5, 2, 3, 4 };		// sleep image is out or order (last)
 
-	const char* const filename = GetMLGFilename(MLG_GOLDPIECEBUTTONS);
+	// 1366x768: goldpiecebuttons_1366x768.png (32 px tall, ready 0-5, pressed
+	// 6-11 like the original) in the header windows of the team list's own
+	// graphic, 18 px below its top; the original buttons without it.
+	bool const wide = g_ui.isExtraWideStrategicScreen();
+	const char* const filename = wide
+		? FirstUsableInterfaceAsset({ INTERFACEDIR "/goldpiecebuttons_1366x768.png", GetMLGFilename(MLG_GOLDPIECEBUTTONS) })
+		: GetMLGFilename(MLG_GOLDPIECEBUTTONS);
+	// same order as gMapSortButtons: name, assignment, sleep, location,
+	// destination, departure
+	static const INT16 header_x_1366[MAX_SORT_METHODS] = { 12, 118, 224, 266, 334, 404 };
 
 	for (INT32 i = 0; i < MAX_SORT_METHODS; ++i)
 	{
-		giMapSortButton[i] = QuickCreateButtonImg(filename, iImageIndex[i], iImageIndex[i] + 6, MAP_SCREEN_X + gMapSortButtons[i].iX, MAP_SCREEN_Y + gMapSortButtons[i].iY, MSYS_PRIORITY_HIGHEST - 5, MapSortBtnCallback);
+		INT16 const x = MAP_SCREEN_X + (wide ? header_x_1366[i] : gMapSortButtons[i].iX);
+		INT16 const y = wide ? TEAM_LIST_Y + 18 : MAP_SCREEN_Y + gMapSortButtons[i].iY;
+		giMapSortButton[i] = QuickCreateButtonImg(filename, iImageIndex[i], iImageIndex[i] + 6, x, y, MSYS_PRIORITY_HIGHEST - 5, MapSortBtnCallback);
 		giMapSortButton[i]->SetUserData(i);
 		giMapSortButton[i]->SetFastHelpText(wMapScreenSortButtonHelpText[i]);
 	}
@@ -7196,7 +8036,11 @@ static void DisplayIconsForMercsAsleep(void)
 
 		if (pSoldier->bActive && pSoldier->fMercAsleep && CanChangeSleepStatusForSoldier(pSoldier))
 		{
-			BltVideoObject(guiSAVEBUFFER, guiSleepIcon, 0, MAP_SCREEN_X + 125, Y_START + iCounter * (Y_SIZE + 2));
+			INT16 const sleep_x = g_ui.isExtraWideStrategicScreen()
+				? SLEEP_X + (SLEEP_WIDTH - GetVObject(guiSleepIcon)->SubregionProperties(0).usWidth) / 2
+				: MAP_SCREEN_X + 125;
+			if (TeamListRowOfEntry(iCounter) == -1) continue;
+			BltVideoObject(guiSAVEBUFFER, guiSleepIcon, 0, sleep_x, TeamListEntryY(iCounter));
 		}
 	}
 }
@@ -7616,6 +8460,9 @@ void ChangeSelectedInfoChar( INT8 bCharNumber, BOOLEAN fResetSelectedList )
 		{
 			// the selected guy must always be ON in the list of selected chars
 			SetEntryInSelectedCharacterList( bCharNumber );
+
+			// and shown in the team list
+			MakeTeamListEntryVisible(bCharNumber);
 		}
 
 		// if we're in the inventory panel
@@ -7995,8 +8842,8 @@ static void HandleNewDestConfirmation(const SGPSector& sMap)
 static void RandomAwakeSelectedMercConfirmsStrategicMove(void)
 {
 	INT32 iCounter;
-	SOLDIERTYPE* selected_merc[20];
-	UINT8	ubSelectedMercIndex[ 20 ];
+	SOLDIERTYPE* selected_merc[MAX_CHARACTER_COUNT];
+	UINT8	ubSelectedMercIndex[ MAX_CHARACTER_COUNT ];
 	UINT8	ubNumMercs = 0;
 	UINT8	ubChosenMerc;
 

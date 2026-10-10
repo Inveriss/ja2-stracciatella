@@ -83,6 +83,10 @@ extern BOOLEAN gfScrolledToTop;
 extern BOOLEAN gfScrolledToBottom;
 
 extern INT16 gsScrollXIncrement;
+// Pixels the world may scroll beyond the map's top / bottom (SCROLL_TOP/
+// BOTTOM_PADDING): the parts of the view a panel covers (tactical placement).
+extern INT16 gsScrollTopExtra;
+extern INT16 gsScrollBottomExtra;
 extern INT16 gsScrollYIncrement;
 extern INT16 gsRenderHeight;
 
@@ -142,6 +146,12 @@ void RenderStaticWorldRect(INT16 sLeft, INT16 sTop, INT16 sRight, INT16 sBottom,
 void InvalidateWorldRedundency(void);
 
 void SetRenderCenter(INT16 sNewX, INT16 sNewY);
+
+// The whole viewport drawn into the frame buffer around this cell -- as near
+// to it as the renderer centres (gsRenderCenterX/Y tell where) and the scroll
+// limits allow --, nothing but the world: no interface, no dirty rectangles.
+// For the map utility's 1:1 pictures of a sector.
+void RenderWorldForSnapshot(INT16 sCellX, INT16 sCellY);
 
 #if defined _DEBUG
 void RenderFOVDebug(void);

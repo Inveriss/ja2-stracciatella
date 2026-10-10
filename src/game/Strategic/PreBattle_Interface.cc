@@ -1,3 +1,4 @@
+#include "HImage.h"
 #include "Cursors.h"
 #include "Directories.h"
 #include "Font.h"
@@ -98,6 +99,78 @@ enum //GraphicIDs for the panel
 
 bool gfDisplayPotentialRetreatPaths = false;
 
+// The panel's layout (panel coordinates): the original 261x359 one and the
+// big prebattlepanel.png (the original x1.5 in its left 392 px: no
+// uninvolved list, the participants' table down to the bottom, 98x45
+// buttons), chosen by the panel graphic's width when the interface comes up.
+// The big graphic's size is taken from the file (392x539, 604x647).
+struct PBLayout
+{
+	INT16 w, h;                   // the panel
+	INT16 title_centre, title_y;
+	INT16 location_label_right, location_x, location_top, location_h;
+	INT16 count_label_right[3], count_label_y;
+	INT16 count_x[3], count_w[3], count_top, count_h;
+	INT16 button_x[3], button_y, button_w, button_h, button_text_x, button_text_y, button_text_w;
+	INT16 rows_top, rows_bottom, row_h; // the participants' table
+	INT16 col_x[5], col_w[5];           // name, assignment, condition, HP, EP
+	bool  uninvolved;                   // the uninvolved list at the bottom
+};
+
+static PBLayout const g_pb_layout_small =
+{
+	261, 359,
+	130, 4,
+	65, 70, 17, 0,
+	{ 54, 139, 224 }, 38,
+	{ 57, 142, 227 }, { 27, 27, 27 }, 36, 0,
+	{ 27, 98, 169 }, 54, 65, 30, 8, 7, 51,
+	113, 349, 10,
+	{ 17, 72, 129, 189, 217 }, { 52, 45, 58, 25, 25 },
+	true
+};
+
+static PBLayout const g_pb_layout_big =
+{
+	392, 539,
+	196, 6,
+	97, 105, 25, 13,
+	{ 81, 208, 336 }, 57,
+	{ 86, 214, 344 }, { 40, 39, 37 }, 47, 29,
+	{ 40, 147, 253 }, 81, 98, 45, 8, 9, 82,
+	169, 525, 17,
+	{ 25, 110, 193, 287, 329 }, { 77, 77, 86, 34, 34 },
+	false
+};
+
+static PBLayout        g_pb_layout_big_file; // g_pb_layout_big at the graphic's size
+static PBLayout const* g_pb = &g_pb_layout_small;
+static bool PBBig() { return g_pb != &g_pb_layout_small; }
+
+// The participants' rows shown and the first one of them (the big panel's
+// list scrolls by the mouse wheel when there are more).
+static INT32        giPBFirstRow = 0;
+static MOUSE_REGION gPBListRegion;
+static bool         gfPBListRegion = false;
+
+static INT32 PBVisibleRows()
+{
+	return (g_pb->rows_bottom - g_pb->rows_top) / g_pb->row_h;
+}
+
+static INT32 PBMaxFirstRow(); // guiNumInvolved, below
+
+static void PBListWheelCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	INT32 row = giPBFirstRow;
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   --row;
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ++row;
+	row = std::clamp<INT32>(row, 0, PBMaxFirstRow());
+	if (row == giPBFirstRow) return;
+	giPBFirstRow        = row;
+	gfRenderPBInterface = TRUE;
+}
+
 GROUP *gpBattleGroup = NULL;
 
 
@@ -114,6 +187,11 @@ static BOOLEAN gfBlinkHeader;
 
 static UINT32 guiNumInvolved;
 static UINT32 guiNumUninvolved;
+
+static INT32 PBMaxFirstRow()
+{
+	return std::max<INT32>(0, (INT32)guiNumInvolved - PBVisibleRows());
+}
 
 //SAVE START
 
@@ -144,16 +222,17 @@ BOOLEAN gfCantRetreatInPBI = FALSE;
 
 BOOLEAN gfUsePersistantPBI;
 
-static void MakeButton(UINT idx, INT16 x, const ST::string& text, GUI_CALLBACK click)
+static void MakeButton(UINT idx, const ST::string& text, GUI_CALLBACK click)
 {
-	GUIButtonRef const btn = QuickCreateButton(iPBButtonImage[idx], x,
-		MAP_SCREEN_Y + 54, MSYS_PRIORITY_HIGHEST - 2, std::move(click));
+	GUIButtonRef const btn = QuickCreateButton(iPBButtonImage[idx], MAP_SCREEN_X + g_pb->button_x[idx],
+		MAP_SCREEN_Y + g_pb->button_y, MSYS_PRIORITY_HIGHEST - 2, std::move(click));
 	iPBButton[idx] = btn;
 
-	btn->SpecifyGeneralTextAttributes(text, BLOCKFONT, FONT_BEIGE, 141);
+	SGPFont const font = PBBig() ? StrategicGeneralFont() : BLOCKFONT;
+	btn->SpecifyGeneralTextAttributes(text, font, FONT_BEIGE, 141);
 	btn->SpecifyHilitedTextColors(FONT_WHITE, FONT_NEARBLACK);
-	btn->SpecifyTextOffsets(8, 7, TRUE);
-	btn->SpecifyTextWrappedWidth(51);
+	btn->SpecifyTextOffsets(g_pb->button_text_x, g_pb->button_text_y, TRUE);
+	btn->SpecifyTextWrappedWidth(g_pb->button_text_w);
 	btn->AllowDisabledFastHelp();
 	btn->Hide();
 }
@@ -283,18 +362,42 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 	// -- same bug as the RestoreExternBackgroundRect calls above, just for
 	// click-blocking instead of rendering. Extend to the real (now bigger)
 	// canvas bottom so clicks can't leak through the gap below the old boundary.
-	MSYS_DefineRegion(&PBInterfaceBlanket, MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, MAP_SCREEN_X + 261, MAP_SCREEN_BOTTOM, MSYS_PRIORITY_HIGHEST - 5, 0, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
-
-	// Create the panel
+	// Create the panel; its size picks the layout
 	uiInterfaceImages = AddVideoObjectFromFile(MLG_PREBATTLEPANEL);
+	{
+		ETRLEObject const& panel = uiInterfaceImages->SubregionProperties(MAINPANEL);
+		g_pb = &g_pb_layout_small;
+		if (panel.usWidth >= g_pb_layout_big.w)
+		{
+			g_pb_layout_big_file   = g_pb_layout_big;
+			g_pb_layout_big_file.w = panel.usWidth;
+			g_pb_layout_big_file.h = panel.usHeight;
+			// the taller graphic's table ends 10 px above its bottom (y 637 of 647)
+			if (panel.usHeight > g_pb_layout_big.h) g_pb_layout_big_file.rows_bottom = panel.usHeight - 10;
+			g_pb = &g_pb_layout_big_file;
+		}
+	}
+	giPBFirstRow = 0;
+
+	MSYS_DefineRegion(&PBInterfaceBlanket, MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, MAP_SCREEN_X + g_pb->w, MAP_SCREEN_BOTTOM, MSYS_PRIORITY_HIGHEST - 5, 0, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 
 	// Create the 3 buttons
 	iPBButtonImage[0] = LoadButtonImage(INTERFACEDIR "/prebattlebutton.sti", 0, 1);
 	iPBButtonImage[1] = UseLoadedButtonImage(iPBButtonImage[0], 0, 1);
 	iPBButtonImage[2] = UseLoadedButtonImage(iPBButtonImage[0], 0, 1);
-	MakeButton(0, MAP_SCREEN_X +  27, gpStrategicString[STR_PB_AUTORESOLVE_BTN],  AutoResolveBattleCallback);
-	MakeButton(1, MAP_SCREEN_X +  98, gpStrategicString[STR_PB_GOTOSECTOR_BTN],   GoToSectorCallback);
-	MakeButton(2, MAP_SCREEN_X + 169, gpStrategicString[STR_PB_RETREATMERCS_BTN], RetreatMercsCallback);
+	MakeButton(0, gpStrategicString[STR_PB_AUTORESOLVE_BTN],  AutoResolveBattleCallback);
+	MakeButton(1, gpStrategicString[STR_PB_GOTOSECTOR_BTN],   GoToSectorCallback);
+	MakeButton(2, gpStrategicString[STR_PB_RETREATMERCS_BTN], RetreatMercsCallback);
+
+	// big panel: the mouse wheel over the participants' table scrolls it
+	gfPBListRegion = PBBig();
+	if (gfPBListRegion)
+	{
+		MSYS_DefineRegion(&gPBListRegion,
+			MAP_SCREEN_X + g_pb->col_x[0] - 8, MAP_SCREEN_Y + g_pb->rows_top,
+			MAP_SCREEN_X + g_pb->col_x[4] + g_pb->col_w[4] + 8, MAP_SCREEN_Y + g_pb->rows_bottom,
+			MSYS_PRIORITY_HIGHEST - 4, 0, MSYS_NO_CALLBACK, PBListWheelCallback);
+	}
 
 	gfPBButtonsHidden = TRUE;
 
@@ -533,27 +636,10 @@ set_help:
 
 static void DoTransitionFromMapscreenToPreBattleInterface(void)
 {
-	UINT32 uiStartTime, uiCurrTime;
-	INT32 iPercentage, iFactor;
-	UINT32 uiTimeRange;
-	INT16 sStartLeft, sEndLeft, sStartTop, sEndTop;
-	INT32 iLeft, iTop, iWidth, iHeight;
+	// The panel is shown at once: no growing out of the sector, no sound.
 	BOOLEAN fEnterAutoResolveMode = FALSE;
 
 	PauseTime( FALSE );
-
-	iWidth = 261;
-	iHeight = 359;
-
-	uiTimeRange = 1000;
-	iPercentage = 0;
-	uiStartTime = GetClock();
-
-	GetScreenXYFromMapXY(gubPBSector, &sStartLeft, &sStartTop);
-	sStartLeft += MAP_GRID_X / 2;
-	sStartTop += MAP_GRID_Y / 2;
-	sEndLeft = MAP_SCREEN_X + 131;
-	sEndTop = MAP_SCREEN_Y + 180;
 
 	//save the mapscreen buffer
 	BltVideoSurface(guiEXTRABUFFER, FRAME_BUFFER, 0, 0, NULL);
@@ -575,53 +661,18 @@ static void DoTransitionFromMapscreenToPreBattleInterface(void)
 		gfEnterAutoResolveMode = TRUE;
 	}
 
-	BlitBufferToBuffer( guiSAVEBUFFER, FRAME_BUFFER, MAP_SCREEN_X + 27, MAP_SCREEN_Y + 54, 209, 32 );
-	RenderButtons();
-	BlitBufferToBuffer( FRAME_BUFFER, guiSAVEBUFFER, MAP_SCREEN_X + 27, MAP_SCREEN_Y + 54, 209, 32 );
+	{ // the buttons' row
+		INT16 const bx = MAP_SCREEN_X + g_pb->button_x[0];
+		INT16 const by = MAP_SCREEN_Y + g_pb->button_y;
+		INT16 const bw = g_pb->button_x[2] + g_pb->button_w - g_pb->button_x[0];
+		INT16 const bh = g_pb->button_h + 2;
+		BlitBufferToBuffer( guiSAVEBUFFER, FRAME_BUFFER, bx, by, bw, bh );
+		RenderButtons();
+		BlitBufferToBuffer( FRAME_BUFFER, guiSAVEBUFFER, bx, by, bw, bh );
+	}
 	gfRenderPBInterface = TRUE;
 
-	//hide the prebattle interface
-	BlitBufferToBuffer( guiEXTRABUFFER, FRAME_BUFFER, MAP_SCREEN_X, MAP_SCREEN_Y, 261, 359 );
-	PlayJA2SampleFromFile(SOUNDSDIR "/laptop power up (8-11).wav", HIGHVOLUME, 1, MIDDLEPAN);
 	InvalidateScreen();
-
-	SGPBox const PBIRect = { MAP_SCREEN_X, MAP_SCREEN_Y, 261, 359 };
-	while( iPercentage < 100  )
-	{
-		uiCurrTime = GetClock();
-		iPercentage = (uiCurrTime-uiStartTime) * 100 / uiTimeRange;
-		iPercentage = std::min(iPercentage, 100);
-
-		//Factor the percentage so that it is modified by a gravity falling acceleration effect.
-		iFactor = (iPercentage - 50) * 2;
-		if( iPercentage < 50 )
-			iPercentage = (UINT32)(iPercentage + iPercentage * iFactor * 0.01 + 0.5);
-		else
-			iPercentage = (UINT32)(iPercentage + (100-iPercentage) * iFactor * 0.01 + 0.05);
-
-		//Calculate the center point.
-		iLeft = sStartLeft - (sStartLeft-sEndLeft+1) * iPercentage / 100;
-		if( sStartTop > sEndTop )
-			iTop = sStartTop - (sStartTop-sEndTop+1) * iPercentage / 100;
-		else
-			iTop = sStartTop + (sEndTop-sStartTop+1) * iPercentage / 100;
-
-		SGPBox const DstRect =
-		{
-			(UINT16)(iLeft - iWidth  * iPercentage / 200),
-			(UINT16)(iTop  - iHeight * iPercentage / 200),
-			(UINT16)(std::max(1, iWidth  * iPercentage / 100)),
-			(UINT16)(std::max(1, iHeight * iPercentage / 100))
-		};
-
-		BltStretchVideoSurface(FRAME_BUFFER, guiSAVEBUFFER, &PBIRect, &DstRect);
-
-		InvalidateScreen();
-		RefreshScreen();
-
-		//Restore the previous rect.
-		BlitBufferToBuffer(guiEXTRABUFFER, FRAME_BUFFER, DstRect.x, DstRect.y, DstRect.w + 1, DstRect.h + 1);
-	}
 	BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER, 0, 0, NULL);
 }
 
@@ -632,6 +683,11 @@ void KillPreBattleInterface()
 
 	fDisableMapInterfaceDueToBattle = FALSE;
 	MSYS_RemoveRegion( &PBInterfaceBlanket );
+	if (gfPBListRegion)
+	{
+		MSYS_RemoveRegion(&gPBListRegion);
+		gfPBListRegion = false;
+	}
 
 	//The panel
 	DeleteVideoObject(uiInterfaceImages);
@@ -664,7 +720,7 @@ void KillPreBattleInterface()
 	//Enable the options button when the auto resolve  screen comes up
 	EnableDisAbleMapScreenOptionsButton( TRUE );
 
-	ColorFillVideoSurfaceArea( guiSAVEBUFFER, 0, 0, 261, 359, 0 );
+	ColorFillVideoSurfaceArea( guiSAVEBUFFER, 0, 0, g_pb->w, g_pb->h, 0 );
 
 	EnableTeamInfoPanels();
 	if (giMapContractButton) giMapContractButton->Show();
@@ -680,7 +736,8 @@ static void RenderPBHeader(INT32* piX, INT32* piWidth)
 		!gfBlinkHeader             ? FONT_BEIGE :
 		GetJA2Clock() % 1000 < 667 ? FONT_WHITE :
 		FONT_LTRED;
-	SetFontAttributes(FONT10ARIALBOLD, foreground);
+	SGPFont const font = PBBig() ? FONT14ARIAL : FONT10ARIALBOLD;
+	SetFontAttributes(font, foreground);
 	ST::string str;
 	if( !gfPersistantPBI )
 	{
@@ -713,10 +770,10 @@ static void RenderPBHeader(INT32* piX, INT32* piWidth)
 			str = gpStrategicString[STR_PB_ENTERINGBLOODCATLAIR_HEADER];
 			break;
 	}
-	width = StringPixLength( str, FONT10ARIALBOLD );
-	x = 130 - width / 2;
-	MPrint(MAP_SCREEN_X + x, MAP_SCREEN_Y + 4, str);
-	InvalidateRegion( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, MAP_SCREEN_X + 231, MAP_SCREEN_Y + 12 );
+	width = StringPixLength( str, font );
+	x = g_pb->title_centre - width / 2;
+	MPrint(MAP_SCREEN_X + x, MAP_SCREEN_Y + g_pb->title_y, str);
+	InvalidateRegion( MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0, MAP_SCREEN_X + g_pb->w, MAP_SCREEN_Y + g_pb->title_y + GetFontHeight(font) + 2 );
 	*piX = x;
 	*piWidth = width;
 }
@@ -724,9 +781,9 @@ static void RenderPBHeader(INT32* piX, INT32* piWidth)
 
 static void PrintConfined(INT32 x, INT32 y, INT32 max_w, const ST::string& str)
 {
-	SGPFont  font  = BLOCKFONT;
+	SGPFont  font  = PBBig() ? StrategicGeneralFont() : BLOCKFONT;
 	INT32 w     = StringPixLength(str, font);
-	if (w >= max_w)
+	if (w >= max_w && !PBBig())
 	{
 		font = BLOCKFONTNARROW;
 		w    = StringPixLength(str, font);
@@ -792,8 +849,14 @@ void RenderPreBattleInterface()
 		SGPVObject const* const vo = uiInterfaceImages;
 		// Main panel
 		BltVideoObject(dst, vo, MAINPANEL, MAP_SCREEN_X + 0, MAP_SCREEN_Y + 0);
+		PBLayout const& L = *g_pb;
 		// Main title
 		RenderPBHeader(&x, &width);
+
+		// Of prebattlepanel.sti only the main panel (sub-image 0) is drawn, per
+		// user request: not the title bar pieces (1), the participants' and the
+		// uninvolved list's column lines (2, 3) and the "uninvolved" header (4).
+#if 0
 		// Draw the title bars up to the text
 		for (INT32 i = x - 12; i > 20; i -= 10)
 		{
@@ -807,19 +870,25 @@ void RenderPreBattleInterface()
 		{ INT32 const y = BOTTOM_Y - ACTUAL_HEIGHT - ROW_HEIGHT * std::max(guiNumUninvolved, 1U);
 			BltVideoObject(dst, vo, UNINVOLVED_HEADER, MAP_SCREEN_X + 8, y);
 		}
+#endif
 
 		SetFontForeground(FONT_BEIGE);
-		PrintConfined(65, 17, 64, gpStrategicString[STR_PB_LOCATION]);
+		// big panel: the labels middled on the location bar / the counters
+		INT16 const location_y = L.location_h ? L.location_top + (L.location_h - GetFontHeight(StrategicGeneralFont())) / 2 : L.location_top;
+		PrintConfined(L.location_label_right, location_y, L.location_label_right - 1, gpStrategicString[STR_PB_LOCATION]);
 
 		ST::string encounter =
 			gubEnemyEncounterCode != CREATURE_ATTACK_CODE        ? gpStrategicString[STR_PB_ENEMIES] :
 			gubEnemyEncounterCode == BLOODCAT_AMBUSH_CODE || // XXX case is unreachable, because of != above
 			gubEnemyEncounterCode == ENTERING_BLOODCAT_LAIR_CODE ? gpStrategicString[STR_PB_BLOODCATS] :
 			gpStrategicString[STR_PB_CREATURES];
-		PrintConfined( 54, 38, 52, encounter);
-		PrintConfined(139, 38, 52, gpStrategicString[STR_PB_MERCS]);
-		PrintConfined(224, 38, 52, gpStrategicString[STR_PB_MILITIA]);
+		INT16 const label_y = L.count_h ? L.count_top + (L.count_h - GetFontHeight(StrategicGeneralFont())) / 2 : L.count_label_y;
+		INT16 const label_w = PBBig() ? 78 : 52;
+		PrintConfined(L.count_label_right[0], label_y, label_w, encounter);
+		PrintConfined(L.count_label_right[1], label_y, label_w, gpStrategicString[STR_PB_MERCS]);
+		PrintConfined(L.count_label_right[2], label_y, label_w, gpStrategicString[STR_PB_MILITIA]);
 
+#if 0 // sub-images 2 and 3, see above
 		// Draw the bottom columns
 		for (INT32 i = 0; i < (INT32)std::max(guiNumUninvolved, 1U); ++i)
 		{
@@ -832,13 +901,18 @@ void RenderPreBattleInterface()
 			INT32 const y = TOP_Y + ROW_HEIGHT * i;
 			BltVideoObject(dst, vo, TOP_COLUMN, MAP_SCREEN_X + 186, y);
 		}
+#endif
 
 		// Location
-		SetFontAttributes(FONT10ARIAL, FONT_YELLOW);
+		SGPFont const location_font = PBBig() ? FONT12ARIAL : FONT10ARIAL;
+		SetFontAttributes(location_font, FONT_YELLOW);
 		ST::string sector_name = GetSectorIDString(gubPBSector, TRUE);
-		MPrint(MAP_SCREEN_X + 70, MAP_SCREEN_Y + 17, ST::format("{} {}", gpStrategicString[STR_PB_SECTOR], sector_name));
+		INT16 const sector_y = L.location_h ? L.location_top + (L.location_h - GetFontHeight(location_font)) / 2 : L.location_top;
+		MPrint(MAP_SCREEN_X + L.location_x, MAP_SCREEN_Y + sector_y, ST::format("{} {}", gpStrategicString[STR_PB_SECTOR], sector_name));
 
-		SetFont(FONT14ARIAL);
+		SGPFont const count_font = PBBig() ? FONT16ARIAL : FONT14ARIAL;
+		SetFont(count_font);
+		INT16 const count_y = L.count_h ? L.count_top + (L.count_h - GetFontHeight(count_font)) / 2 : L.count_top;
 		// Enemy
 		ST::string enemies;
 		if (gubEnemyEncounterCode == CREATURE_ATTACK_CODE        ||
@@ -854,48 +928,59 @@ void RenderPreBattleInterface()
 			str = ST::format("{}", n);
 			enemies = str;
 		}
-		MPrintCentered(57, 36, 27, enemies);
+		MPrintCentered(L.count_x[0], count_y, L.count_w[0], enemies);
 		// Player
 		str = ST::format("{}", guiNumInvolved);
-		MPrintCentered(142, 36, 27, str);
+		MPrintCentered(L.count_x[1], count_y, L.count_w[1], str);
 		// Militia
 		str = ST::format("{}", CountAllMilitiaInSector(gubPBSector));
-		MPrintCentered(227, 36, 27, str);
+		MPrintCentered(L.count_x[2], count_y, L.count_w[2], str);
 		SetFontShadow(FONT_NEARBLACK);
 
-		SetFont(BLOCKFONT2);
+		SetFont(StrategicGeneralFont());
 
 		// Print the participants of the battle
 		// |  NAME  | ASSIGN |  COND  |   HP   |   BP   |
-		{ INT32 y = TOP_Y + 1 - MAP_SCREEN_Y;
+		{ // big panel: the text middled in its 15 px row
+			INT32 y = L.rows_top + 1 + (PBBig() ? (L.row_h - GetFontHeight(StrategicGeneralFont())) / 2 : 0);
+			// big panel: PBVisibleRows() rows from giPBFirstRow (mouse wheel)
+			INT32 const first = PBBig() ? std::min(giPBFirstRow, PBMaxFirstRow()) : 0;
+			INT32 row   = 0;
+			INT32 shown = 0;
 			CFOR_EACH_IN_TEAM(i, OUR_TEAM)
 			{
 				SOLDIERTYPE const& s = *i;
 				if (s.bLife == 0)                       continue;
 				if (s.uiStatusFlags & SOLDIER_VEHICLE)  continue;
 				if (!PlayerMercInvolvedInThisCombat(s)) continue;
+				if (row++ < first) continue;
+				if (PBBig() && shown == PBVisibleRows()) break;
+				++shown;
 
 				// Name
-				MPrintCentered( 17, y, 52, s.name);
+				MPrintCentered(L.col_x[0], y, L.col_w[0], s.name);
 				// Assignment
 				str = GetMapscreenMercAssignmentString(s);
-				MPrintCentered( 72, y, 45, str);
+				MPrintCentered(L.col_x[1], y, L.col_w[1], str);
 				// Condition
-				MPrintCentered(129, y, 58, GetSoldierConditionInfo(s));
+				MPrintCentered(L.col_x[2], y, L.col_w[2], GetSoldierConditionInfo(s));
 				// HP
 				str = ST::format("{}%", s.bLife * 100 / s.bLifeMax);
-				MPrintCentered(189, y, 25, str);
+				MPrintCentered(L.col_x[3], y, L.col_w[3], str);
 				// BP
 				str = ST::format("{}%", s.bBreath);
-				MPrintCentered(217, y, 25, str);
+				MPrintCentered(L.col_x[4], y, L.col_w[4], str);
 
-				y += ROW_HEIGHT;
+				y += L.row_h;
 			}
 		}
 
-		// Print the uninvolved members of the battle
+		// Print the uninvolved members of the battle (not on the big panel)
 		// |  NAME  | ASSIGN |  LOC   |  DEST  |  DEP   |
-		if (guiNumUninvolved == 0)
+		if (!L.uninvolved)
+		{
+		}
+		else if (guiNumUninvolved == 0)
 		{
 			MPrintCentered(17, BOTTOM_Y - MAP_SCREEN_Y - ROW_HEIGHT + 2, 52, gpStrategicString[STR_PB_NONE]);
 		}
@@ -933,7 +1018,7 @@ void RenderPreBattleInterface()
 		// MapScreen.cc, clipping the restore before it reached the bottom of the
 		// now-taller left column (mbs.sti / newgoldpiece3.sti). Restore the full
 		// remaining canvas height instead.
-		RestoreExternBackgroundRect(MAP_SCREEN_X, MAP_SCREEN_Y, 261, MAP_SCREEN_HEIGHT);
+		RestoreExternBackgroundRect(MAP_SCREEN_X, MAP_SCREEN_Y, L.w, MAP_SCREEN_HEIGHT);
 
 		// Restore font destinanation buffer to the frame buffer
 		SetFontDestBuffer(FRAME_BUFFER);

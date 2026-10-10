@@ -99,6 +99,11 @@ class SGPVObject
 		// Deletes the 16-bit palette tables
 		void DestroyPalettes();
 
+		// 8 bit objects only, before any shade table is made: replaces the
+		// palette with a copy of `pal` (256 entries), e.g. a font drawn in the
+		// colours of another font (the text colours are palette indices).
+		void ReplacePalette(SGPPaletteEntry const* pal);
+
 		void ShareShadetables(SGPVObject*);
 
 		enum Flags

@@ -1675,9 +1675,13 @@ void ResolveInterruptsVs( SOLDIERTYPE * pSoldier, UINT8 ubInterruptType)
 }
 
 
+// Bytes of the saved team turns: an ID for every soldier (gOutOfTurnOrder,
+// 148 originally -- MAXMERCS grows with PLAYER_TEAM_SIZE), then 26 more.
+#define TEAM_TURNS_SAVED_SIZE (lengthof(gOutOfTurnOrder) + 26)
+
 void SaveTeamTurnsToTheSaveGameFile(HWFILE const f)
 {
-	BYTE  data[174];
+	BYTE  data[TEAM_TURNS_SAVED_SIZE];
 	DataWriter d{data};
 	for (size_t i = 0; i != lengthof(gOutOfTurnOrder); ++i)
 	{
@@ -1698,7 +1702,7 @@ void SaveTeamTurnsToTheSaveGameFile(HWFILE const f)
 
 void LoadTeamTurnsFromTheSavedGameFile(HWFILE const f)
 {
-	BYTE data[174];
+	BYTE data[TEAM_TURNS_SAVED_SIZE];
 	f->read(data, sizeof(data));
 
 	DataReader d{data};

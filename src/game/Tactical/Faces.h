@@ -2,6 +2,7 @@
 #define __TALKING_H_
 
 #include "JA2Types.h"
+#include "Overhead_Types.h"
 #include "Types.h"
 #include <string_theory/string>
 
@@ -12,7 +13,10 @@
 #define SURPRISED				3
 
 // Defines
-#define NUM_FACE_SLOTS				50
+// A face for every member of the player's team (PLAYER_TEAM_SIZE) and 50 more
+// for the NPCs talking -- 50 in all originally, so with a bigger team the
+// slots ran out ("Out of face slots") at about 45 mercs.
+#define NUM_FACE_SLOTS				(PLAYER_TEAM_SIZE + 50)
 
 #define FACE_AUTO_DISPLAY_BUFFER		0
 #define FACE_AUTO_RESTORE_BUFFER		0

@@ -32,6 +32,7 @@ FADE_HOOK gFadeOutDoneCallback = NULL;
 
 
 BOOLEAN gfFadeIn      = FALSE;
+BOOLEAN gfFadeOutInstantly = FALSE;
 BOOLEAN gfFadeOut     = FALSE;
 BOOLEAN gfFadeOutDone = FALSE;
 BOOLEAN gfFadeInDone  = FALSE;
@@ -154,7 +155,8 @@ static void BeginFade(ScreenID const uiExitScreen, INT8 const bFadeValue, INT8 c
 
 		case FADE_OUT_REALFADE:
 			gsFadeRealCount = -1;
-			gsFadeLimit			= 10;
+			gsFadeLimit			= gfFadeOutInstantly ? 0 : 10;
+			gfFadeOutInstantly = FALSE;
 			gFadeFunction = FadeFrameBufferRealFade;
 			gfFadeInVideo   = FALSE;
 			break;

@@ -85,6 +85,10 @@ struct InvItemTextLayout
 };
 void INVRenderItem(SGPVSurface* uiBuffer, SOLDIERTYPE const* pSoldier, OBJECTTYPE const&, INT16 sX, INT16 sY, INT16 sWidth, INT16 sHeight, DirtyLevel, UINT8 ubStatusIndex, INT16 sOutlineColor, BOOLEAN fUseSectorInventoryBigGraphic = FALSE, InvItemTextLayout const* layout = NULL);
 
+// The ammo/stack count layout of the map's "Show Large Icons" merc inventory
+// slots (mapinv_big_1280_720/768.sti): its own font and positions.
+InvItemTextLayout GetMapInvBigItemTextLayout();
+
 
 extern BOOLEAN gfInItemDescBox;
 // The item currently shown in the description box (ItemInfoC.sti/tactical

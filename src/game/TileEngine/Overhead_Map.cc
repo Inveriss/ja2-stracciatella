@@ -45,6 +45,7 @@
 #include "VObject.h"
 #include "VObject_Blitters.h"
 #include "VSurface.h"
+#include "Viewport_Zoom.h"
 #include "World_Items.h"
 #include "WorldDef.h"
 #include <string_theory/string>
@@ -282,7 +283,20 @@ void HandleOverheadMap(void)
 		DecayLightEffects(GetWorldTotalSeconds(), false);
 	}
 
-	RenderOverheadMap(0, WORLD_COLS / 2, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 320, FALSE);
+	bool const full_view = !gfEditMode && gfTacticalPlacementGUIActive && TacticalPlacementFullView();
+	if (full_view)
+	{
+		// The 1:1 world, scrolled by the screen edges and the arrow keys; drawn
+		// whole every frame so the shading and the panel go on a clean world.
+		ScrollWorld();
+		SetRenderFlags(RENDER_FLAG_FULL);
+		RenderWorld();
+		InvalidateScreen();
+	}
+	else
+	{
+		RenderOverheadMap(0, WORLD_COLS / 2, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 320, FALSE);
+	}
 
 	HandleTalkingAutoFaces();
 
@@ -342,7 +356,8 @@ void HandleOverheadMap(void)
 		}
 	}
 
-	RenderOverheadOverlays();
+	// the 1:1 view shows the mercs themselves
+	if (!full_view) RenderOverheadOverlays();
 
 	if (!gfEditMode && !gfTacticalPlacementGUIActive)
 	{
@@ -379,13 +394,36 @@ static void ClickOverheadRegionCallbackPrimary(MOUSE_REGION* reg, UINT32 reason)
 static void ClickOverheadRegionCallbackSecondary(MOUSE_REGION* reg, UINT32 reason);
 
 
+// the tactical placement's 1:1 view: the mouse wheel zooms like in the game
+static void OverheadRegionWheelCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	if (reason & (MSYS_CALLBACK_REASON_WHEEL_UP | MSYS_CALLBACK_REASON_WHEEL_DOWN) &&
+			!TacticalPlacementMouseOverPanel()) // the region is under a narrower panel too
+	{
+		ViewportZoomHandleWheel(reason & MSYS_CALLBACK_REASON_WHEEL_UP);
+	}
+}
+
+
 void GoIntoOverheadMap( )
 {
 	gfInOverheadMap = TRUE;
 
-	MSYS_DefineRegion(&OverheadBackgroundRegion, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 360, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
-
-	MSYS_DefineRegion(&OverheadRegion, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 320, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary));
+	if (!gfEditMode && gfTacticalPlacementGUIActive && TacticalPlacementFullView())
+	{
+		// the whole screen; the 1:1 view beside the placement panel
+		INT16 const view_top    = TacticalPlacementViewTop();
+		INT16 const view_bottom = TacticalPlacementViewBottom();
+		// below the panel's buttons and regions (MSYS_PRIORITY_HIGH and up): the
+		// map's region is under the narrower west / east panel too
+		MSYS_DefineRegion(&OverheadBackgroundRegion, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_HIGH - 2, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+		MSYS_DefineRegion(&OverheadRegion, 0, view_top, SCREEN_WIDTH, view_bottom, MSYS_PRIORITY_HIGH - 1, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary, OverheadRegionWheelCallback));
+	}
+	else
+	{
+		MSYS_DefineRegion(&OverheadBackgroundRegion, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 360, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+		MSYS_DefineRegion(&OverheadRegion, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 320, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary));
+	}
 
 	// Add shades to persons....
 	SGPVObject*            const vo  = GetVObject(uiPERSONS, true); // shaded with its palette
@@ -884,9 +922,38 @@ static void ClickOverheadRegionCallbackSecondary(MOUSE_REGION* reg, UINT32 reaso
 }
 
 
+// The render center in the absolute world screen coordinates of
+// GetAbsoluteScreenXYFromMapPos(); it is at the tactical map center.
+static void GetRenderCenterAbsoluteScreenXY(INT32* const x, INT32* const y)
+{
+	INT32 const dx = gsRenderCenterX - gCenterWorldX;
+	INT32 const dy = gsRenderCenterY - gCenterWorldY;
+	*x = 2 * dx - 2 * dy + gsCX - gsLeftX;
+	*y = dx + dy + gsCY - gsTopY;
+}
+
+
 static GridNo InternalGetOverheadMouseGridNo(const INT dy)
 {
 	if (!(OverheadRegion.uiFlags & MSYS_MOUSE_IN_AREA)) return NOWHERE;
+
+	if (gfTacticalPlacementGUIActive && TacticalPlacementFullView())
+	{
+		// the tile under the mouse in the 1:1 view (+10 like GetMouseWorldCoords())
+		INT32 rx;
+		INT32 ry;
+		GetRenderCenterAbsoluteScreenXY(&rx, &ry);
+		INT32 const ax = gusMouseXPos - g_ui.m_tacticalMapCenterX + rx;
+		INT32 const ay = gusMouseYPos - g_ui.m_tacticalMapCenterY + ry + 10;
+		// as GetMapPosFromAbsoluteScreenXY(), but off the map is NOWHERE
+		INT32 const sx = ax - gsCX + gsLeftX;
+		INT32 const sy = ay - gsCY + gsTopY;
+		INT32 const cell_x = (sx + 2 * sy) / 4 + gCenterWorldX;
+		INT32 const cell_y = (2 * sy - sx) / 4 + gCenterWorldY;
+		if (cell_x < 0 || WORLD_COORD_COLS <= cell_x) return NOWHERE;
+		if (cell_y < 0 || WORLD_COORD_ROWS <= cell_y) return NOWHERE;
+		return GETWORLDINDEXFROMWORLDCOORDS(cell_y, cell_x);
+	}
 
 	// ATE: Adjust alogrithm values a tad to reflect map positioning
 	INT16 const sWorldScreenX = (gusMouseXPos - STD_SCREEN_X - gsStartRestrictedX -  5) * 5;

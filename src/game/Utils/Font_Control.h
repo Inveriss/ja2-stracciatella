@@ -21,6 +21,9 @@ extern SGPFont gpSectorInvFont;
 extern SGPFont gpMapInvBigFont;
 extern SGPFont gpMapInvBigCountFont;
 extern SGPFont gpSecInvBigCountFont;
+extern SGPFont gpCharInfoFont;
+extern SGPFont gpStrategicGeneralFont;
+extern SGPFont gpStrategicTooltipFont;
 extern SGPFont gpLargeFontType1;
 extern SGPFont gpSmallFontType1;
 extern SGPFont gpTinyFontType1;
@@ -57,6 +60,38 @@ extern SGPFont gpHugeFont;
 #define FONTMAPINVBIGCOUNT	gpMapInvBigCountFont
 // ammo left / stack count in the sector inventory's FIRST and STACK windows, "big images" mode
 #define FONTSECINVBIGCOUNT	gpSecInvBigCountFont
+// texts of the strategic screen's character info panel on the 1366x768 interface
+// (charinfo_1366x768) -- optional, nullptr when font_charinfo.sti can't be loaded
+#define FONTCHARINFO		gpCharInfoFont
+// general texts of the strategic screen on the 1366x768 interface (team list,
+// green popup menus, sector info box, pre-battle list, auto resolve) --
+// optional, nullptr when font_strategic_general.sti can't be loaded; use
+// StrategicGeneralFont(), which falls back to BLOCKFONT2
+#define FONTSTRATEGICGENERAL	gpStrategicGeneralFont
+
+// FONTSTRATEGICGENERAL on the 1366x768 interface
+// (UILayout::isExtraWideStrategicScreen()) when it could be loaded,
+// BLOCKFONT2 otherwise.
+SGPFont StrategicGeneralFont();
+// tooltips of the strategic screen on the 1366x768 interface -- optional,
+// nullptr when font_strategic_tooltip.sti can't be loaded; use
+// GetTooltipFonts()
+#define FONTSTRATEGICTOOLTIP	gpStrategicTooltipFont
+
+// Fonts of the tooltips (mouse region fast help): `normal` for the text,
+// `shortcut` for the characters marked with '|' (keyboard shortcuts).
+// FONTSTRATEGICTOOLTIP and FONT14ARIAL on the strategic screen (map screen,
+// auto resolve) of the 1366x768 interface when FONTSTRATEGICTOOLTIP could be
+// loaded, FONT10ARIAL and FONT10ARIALBOLD otherwise. With the former the
+// brackets around keyboard shortcuts are left out (`noShortcutBrackets`).
+struct TooltipFonts { SGPFont normal; SGPFont shortcut; bool noShortcutBrackets; };
+TooltipFonts GetTooltipFonts();
+
+// FONTSTRATEGICTOOLTIP in the colours of `original` (COMPFONT or TINYFONT1)
+// on the 1366x768 interface when it could be loaded, `original` otherwise.
+// For the strategic screen's bottom panel: current balance, daily income,
+// time compression, sector name, clock and the message list.
+SGPFont StrategicTooltipFontAs(SGPFont original);
 #define FONT12ARIALFIXEDWIDTH	gp12PointArialFixedFont
 #define FONT16ARIAL		gp16PointArial
 #define BLOCKFONTNARROW	gpBlockFontNarrow

@@ -216,7 +216,7 @@ struct TeamInfo
 // Rest hostile (enemies, or civilians; civs are potentially hostile but neutral)
 static TeamInfo const g_default_team_info[] =
 {
-	{ 20,                 0, true,  FROMRGB(255, 255,   0) }, // Us
+	{ PLAYER_TEAM_SIZE,   0, true,  FROMRGB(255, 255,   0) }, // Us
 	{ 32,                 1, false, FROMRGB(255,   0,   0) }, // Enemy
 	{ 32,                 3, false, FROMRGB(255,   0, 255) }, // Creature
 	{ 32,                 0, false, FROMRGB(  0, 255,   0) }, // Rebels (our guys)
@@ -4278,7 +4278,7 @@ static void SayBattleSoundFromAnyBodyInSector(BattleSound const iBattleSnd)
 	UINT8	ubNumMercs = 0;
 
 	// Loop through all our guys and randomly say one from someone in our sector
-	SOLDIERTYPE* mercs_in_sector[20];
+	SOLDIERTYPE* mercs_in_sector[PLAYER_TEAM_SIZE];
 	FOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
 		// Add guy if he's a candidate...
@@ -4870,7 +4870,7 @@ void CycleVisibleEnemies( SOLDIERTYPE *pSrcSoldier )
 
 UINT NumberOfMercsOnPlayerTeam(void)
 {
-	INT8 bNumber = 0;
+	UINT bNumber = 0;
 	CFOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
 		if (!(s->uiStatusFlags & SOLDIER_VEHICLE)) bNumber++;
@@ -4879,15 +4879,18 @@ UINT NumberOfMercsOnPlayerTeam(void)
 }
 
 
+UINT NumberOfPlayerTeamSlotsUsed(void)
+{
+	UINT n = 0;
+	CFOR_EACH_IN_TEAM(s, OUR_TEAM) ++n;
+	return n;
+}
+
+
 BOOLEAN PlayerTeamFull( )
 {
-	// last ID for the player team is 19, so long as we have at most 17 non-vehicles...
-	if (NumberOfMercsOnPlayerTeam() <= gTacticalStatus.Team[OUR_TEAM].bLastID - 2u)
-	{
-		return( FALSE );
-	}
-
-	return( TRUE );
+	// every slot of the player's team taken -- people and vehicles alike
+	return NumberOfPlayerTeamSlotsUsed() >= PLAYER_TEAM_SIZE;
 }
 
 
@@ -6172,7 +6175,7 @@ static void HandleCreatureTenseQuote(void)
 
 		// run through list
 		UINT8	ubNumMercs = 0;
-		SOLDIERTYPE* mercs_in_sector[20];
+		SOLDIERTYPE* mercs_in_sector[PLAYER_TEAM_SIZE];
 		FOR_EACH_IN_TEAM(s, OUR_TEAM)
 		{
 			// Add guy if he's a candidate...

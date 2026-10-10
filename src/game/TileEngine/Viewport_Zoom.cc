@@ -77,6 +77,9 @@ UINT16 ViewportZoomPercent()
 // from what they belong to: back to 100% while they are open.
 static bool ZoomSuppressed()
 {
+	// the tactical placement's 1:1 view zooms like the game
+	if (!gfEditMode && gfTacticalPlacementGUIActive && TacticalPlacementFullView()) return false;
+
 	return
 		gfEditMode                   ||
 		InOverheadMap()              ||
@@ -109,6 +112,12 @@ static void GetZoomZone(UINT16& top, UINT16& bottom)
 	top    = gsVIEWPORT_WINDOW_START_Y;
 	bottom = gsVIEWPORT_WINDOW_END_Y;
 	if (gsCurInterfacePanel == SM_PANEL) bottom = std::min(bottom, INV_INTERFACE_START_Y);
+	if (gfTacticalPlacementGUIActive && TacticalPlacementFullView())
+	{
+		// beside the placement panel
+		top    = TacticalPlacementViewTop();
+		bottom = TacticalPlacementViewBottom();
+	}
 }
 
 
@@ -167,6 +176,9 @@ static void ProvideViewportZoom(VideoZoom& zoom)
 	UINT8 n = GetTacticalMessageBoxes(boxes, VIDEO_ZOOM_MAX_KEEP - 2);
 	if (GetTacticalTextBox(boxes[n])) ++n;
 	if (GetPausedGameBox(boxes[n]))   ++n;
+	// the tactical placement's panel beside the world (west / east entry)
+	if (n < VIDEO_ZOOM_MAX_KEEP && TacticalPlacementPanelBox(boxes[n])) ++n;
+	if (n < VIDEO_ZOOM_MAX_KEEP && TacticalPlacementMapBox(boxes[n]))   ++n; // its minimap
 
 	zoom.numKeep = 0;
 	for (UINT8 i = 0; i != n; ++i)

@@ -2614,14 +2614,14 @@ static BOOLEAN ShouldMercSayHappyWithGunQuote(SOLDIERTYPE* pSoldier)
 
 static void SayBuddyWitnessedQuoteFromKill(SOLDIERTYPE* pKillerSoldier, INT16 sGridNo, INT8 bLevel)
 {
-	BuddySlot  bBuddyIndex[ 20 ] = { BUDDY_NOT_FOUND };
+	BuddySlot  bBuddyIndex[ PLAYER_TEAM_SIZE ] = { BUDDY_NOT_FOUND };
 	BuddySlot  bTempBuddyIndex;
 	UINT8 ubNumMercs = 0;
 	UINT8 ubChosenMerc;
 	INT16 sDistVisible = FALSE;
 
 	// Loop through all our guys and randomly say one from someone in our sector
-	SOLDIERTYPE* mercs_in_sector[20];
+	SOLDIERTYPE* mercs_in_sector[PLAYER_TEAM_SIZE];
 	FOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
 		// Add guy if he's a candidate...
@@ -2786,7 +2786,7 @@ void HandleKilledQuote(SOLDIERTYPE* pKilledSoldier, SOLDIERTYPE* pKillerSoldier,
 			if ( fDoSomeoneElse )
 			{
 				// Check if a person is here that has this quote....
-				SOLDIERTYPE* mercs_in_sector[20];
+				SOLDIERTYPE* mercs_in_sector[PLAYER_TEAM_SIZE];
 				FOR_EACH_IN_TEAM(s, OUR_TEAM)
 				{
 					if (s != pKillerSoldier &&

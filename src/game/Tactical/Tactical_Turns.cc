@@ -50,7 +50,7 @@ void HandleRPCDescription()
 
 	// Count how many RPC guys we have
 	UINT8        n_mercs = 0;
-	SOLDIERTYPE* mercs_in_sector[20];
+	SOLDIERTYPE* mercs_in_sector[PLAYER_TEAM_SIZE];
 	FOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
 		// Add guy if he's a candidate

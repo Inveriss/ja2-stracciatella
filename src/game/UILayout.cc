@@ -15,8 +15,9 @@
 #define MIN_INTERFACE_WIDTH             1024  // absolute minimum width, both strategic-screen asset variants
 #define MIN_INTERFACE_HEIGHT            720   // absolute minimum height == height of the compact strategic-screen asset variant
 #define LARGE_STRATEGIC_SCREEN_HEIGHT   768   // screens at/above this height use the large strategic-screen asset variant instead of the compact one
-// WIDE_STRATEGIC_SCREEN_WIDTH / MAP_LEGACY_CANVAS_WIDTH / MAP_RIGHT_BLOCK_SHIFT
-// live in UILayout.h, since the strategic screen code needs them too.
+// WIDE_STRATEGIC_SCREEN_WIDTH / EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH /
+// MAP_LEGACY_CANVAS_WIDTH live in UILayout.h, since the strategic screen
+// code needs them too.
 
 /**
  * Default screen layout.
@@ -62,6 +63,13 @@ bool UILayout::isCompactStrategicScreen() const
 bool UILayout::isWideStrategicScreen() const
 {
 	return m_mapScreenWidth >= WIDE_STRATEGIC_SCREEN_WIDTH;
+}
+
+
+/** True when the active resolution uses the 1366px wide strategic screen canvas (the 1366x768 base). */
+bool UILayout::isExtraWideStrategicScreen() const
+{
+	return m_mapScreenWidth >= EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH;
 }
 
 
@@ -128,15 +136,24 @@ void UILayout::recalculatePositions()
 	// Resolve which strategic-screen asset variant is active for the current
 	// resolution -- see isCompactStrategicScreen() / LARGE_STRATEGIC_SCREEN_HEIGHT.
 	// Width is its own, independent axis: screens at least
-	// WIDE_STRATEGIC_SCREEN_WIDTH wide get the fixed 1280px wide canvas (the
-	// same one for every width from 1280 up -- centered, like the 1024 one),
-	// everything narrower keeps the legacy 1024px canvas.
-	m_mapScreenWidth              = (m_screenWidth >= WIDE_STRATEGIC_SCREEN_WIDTH)
-	                                     ? WIDE_STRATEGIC_SCREEN_WIDTH
-	                                     : MAP_LEGACY_CANVAS_WIDTH;
+	// WIDE_STRATEGIC_SCREEN_WIDTH wide get the 1280px wide canvas, and those
+	// at least EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH wide on the large height tier
+	// (the 1366x768 base) the 1366px wide one -- centered on anything wider,
+	// like the 1024 one; everything narrower keeps the legacy 1024px canvas.
+	// The compact tier (the 1280x720 base) stays on 1280 at any width.
 	m_mapScreenHeight            = (m_screenHeight >= LARGE_STRATEGIC_SCREEN_HEIGHT)
 	                                     ? LARGE_STRATEGIC_SCREEN_HEIGHT
 	                                     : MIN_INTERFACE_HEIGHT;
+	if (m_screenWidth >= EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH && !isCompactStrategicScreen())
+	{
+		m_mapScreenWidth = EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH;
+	}
+	else
+	{
+		m_mapScreenWidth = (m_screenWidth >= WIDE_STRATEGIC_SCREEN_WIDTH)
+		                       ? WIDE_STRATEGIC_SCREEN_WIDTH
+		                       : MAP_LEGACY_CANVAS_WIDTH;
+	}
 
 	// STD_SCREEN_X/Y centers the legacy 640x480 window (everything except the
 	// strategic map -- see STD_SCREEN_X/Y / STD_SCREEN_WIDTH/HEIGHT in UILayout.h).
@@ -147,8 +164,10 @@ void UILayout::recalculatePositions()
 	m_mapScreenOffsetY            = (m_screenHeight - m_mapScreenHeight) / 2;
 	// MAP_SCREEN_RIGHT_BLOCK_X: the map/MBS/sector-inventory block. Same as
 	// MAP_SCREEN_X on the legacy 1024 canvas; shifted right on the wide one,
-	// opening the free space between the left column and MBS.
-	m_mapRightBlockOffsetX        = m_mapScreenOffsetX + (isWideStrategicScreen() ? MAP_RIGHT_BLOCK_SHIFT : 0);
+	// opening the free space between the left column and MBS: 256 px on the
+	// 1280 canvas, 340 px (1366 - 262 - 764) on the 1366 one.
+	m_mapRightBlockShift          = isWideStrategicScreen() ? m_mapScreenWidth - MAP_LEGACY_CANVAS_WIDTH : 0;
+	m_mapRightBlockOffsetX        = m_mapScreenOffsetX + m_mapRightBlockShift;
 
 	// tactical screen inventory position
 	m_invSlotPositionTac[HELMETPOS           ].set(startX + 431, startInvY +   8);
@@ -195,92 +214,94 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionTac[SMALLPOCK19POS      ].set(startX + 726, startInvY +  8);
 	m_invSlotPositionTac[SMALLPOCK20POS      ].set(startX + 726, startInvY +  44);
 
-	// map screen inventory position
-	m_invSlotPositionMap[HELMETPOS           ].set(m_mapScreenOffsetX + 216, m_mapScreenOffsetY + 115);
-	m_invSlotPositionMap[VESTPOS             ].set(m_mapScreenOffsetX + 216, m_mapScreenOffsetY + 154);
-	m_invSlotPositionMap[LEGPOS              ].set(m_mapScreenOffsetX + 216, m_mapScreenOffsetY + 223);
-	m_invSlotPositionMap[HEAD1POS            ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 115);
-	m_invSlotPositionMap[HEAD2POS            ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 150);
-	m_invSlotPositionMap[HANDPOS             ].set(m_mapScreenOffsetX +  88, m_mapScreenOffsetY + 190);
-	m_invSlotPositionMap[SECONDHANDPOS       ].set(m_mapScreenOffsetX +  88, m_mapScreenOffsetY + 225);
-	m_invSlotPositionMap[BIGPOCK1POS         ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 486);
-	m_invSlotPositionMap[BIGPOCK2POS         ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 522);
-	m_invSlotPositionMap[BIGPOCK3POS         ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 414);
-	m_invSlotPositionMap[BIGPOCK4POS         ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 450);
-	m_invSlotPositionMap[SMALLPOCK1POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 270);
-	m_invSlotPositionMap[SMALLPOCK2POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 306);
-	m_invSlotPositionMap[SMALLPOCK3POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 342);
-	m_invSlotPositionMap[SMALLPOCK4POS       ].set(m_mapScreenOffsetX +  15, m_mapScreenOffsetY + 378);
-	m_invSlotPositionMap[SMALLPOCK5POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 270);
-	m_invSlotPositionMap[SMALLPOCK6POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 306);
-	m_invSlotPositionMap[SMALLPOCK7POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 342);
-	m_invSlotPositionMap[SMALLPOCK8POS       ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 378);
+	// map screen inventory position -- MAP_INV_SHIFT_Y lower on the 1366x768
+	// interface (see UILayout.h)
+	UINT16 const invY = m_mapScreenOffsetY + MAP_INV_SHIFT_Y;
+	m_invSlotPositionMap[HELMETPOS           ].set(m_mapScreenOffsetX + 216, invY + 115);
+	m_invSlotPositionMap[VESTPOS             ].set(m_mapScreenOffsetX + 216, invY + 154);
+	m_invSlotPositionMap[LEGPOS              ].set(m_mapScreenOffsetX + 216, invY + 223);
+	m_invSlotPositionMap[HEAD1POS            ].set(m_mapScreenOffsetX +  15, invY + 115);
+	m_invSlotPositionMap[HEAD2POS            ].set(m_mapScreenOffsetX +  15, invY + 150);
+	m_invSlotPositionMap[HANDPOS             ].set(m_mapScreenOffsetX +  88, invY + 190);
+	m_invSlotPositionMap[SECONDHANDPOS       ].set(m_mapScreenOffsetX +  88, invY + 225);
+	m_invSlotPositionMap[BIGPOCK1POS         ].set(m_mapScreenOffsetX +  15, invY + 486);
+	m_invSlotPositionMap[BIGPOCK2POS         ].set(m_mapScreenOffsetX +  15, invY + 522);
+	m_invSlotPositionMap[BIGPOCK3POS         ].set(m_mapScreenOffsetX +  109, invY + 414);
+	m_invSlotPositionMap[BIGPOCK4POS         ].set(m_mapScreenOffsetX +  109, invY + 450);
+	m_invSlotPositionMap[SMALLPOCK1POS       ].set(m_mapScreenOffsetX +  15, invY + 270);
+	m_invSlotPositionMap[SMALLPOCK2POS       ].set(m_mapScreenOffsetX +  15, invY + 306);
+	m_invSlotPositionMap[SMALLPOCK3POS       ].set(m_mapScreenOffsetX +  15, invY + 342);
+	m_invSlotPositionMap[SMALLPOCK4POS       ].set(m_mapScreenOffsetX +  15, invY + 378);
+	m_invSlotPositionMap[SMALLPOCK5POS       ].set(m_mapScreenOffsetX +  62, invY + 270);
+	m_invSlotPositionMap[SMALLPOCK6POS       ].set(m_mapScreenOffsetX +  62, invY + 306);
+	m_invSlotPositionMap[SMALLPOCK7POS       ].set(m_mapScreenOffsetX +  62, invY + 342);
+	m_invSlotPositionMap[SMALLPOCK8POS       ].set(m_mapScreenOffsetX +  62, invY + 378);
 
-	m_invSlotPositionMap[HEAD3POS            ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 115);
-	m_invSlotPositionMap[HEAD4POS            ].set(m_mapScreenOffsetX +  62, m_mapScreenOffsetY + 150);
-	m_invSlotPositionMap[BIGPOCK5POS         ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 486);
-	m_invSlotPositionMap[BIGPOCK6POS         ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 522);
-	m_invSlotPositionMap[BIGPOCK7POS         ].set(m_mapScreenOffsetX +  185, m_mapScreenOffsetY + 414);
-	m_invSlotPositionMap[BIGPOCK8POS         ].set(m_mapScreenOffsetX +  185, m_mapScreenOffsetY + 450);
-	m_invSlotPositionMap[BIGPOCK9POS         ].set(m_mapScreenOffsetX +  185, m_mapScreenOffsetY + 486);
-	m_invSlotPositionMap[BIGPOCK10POS        ].set(m_mapScreenOffsetX +  185, m_mapScreenOffsetY + 522);
-	m_invSlotPositionMap[SMALLPOCK9POS       ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 270);
-	m_invSlotPositionMap[SMALLPOCK10POS      ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 306);
-	m_invSlotPositionMap[SMALLPOCK11POS      ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 342);
-	m_invSlotPositionMap[SMALLPOCK12POS      ].set(m_mapScreenOffsetX +  109, m_mapScreenOffsetY + 378);
-	m_invSlotPositionMap[SMALLPOCK13POS      ].set(m_mapScreenOffsetX + 156, m_mapScreenOffsetY + 270);
-	m_invSlotPositionMap[SMALLPOCK14POS      ].set(m_mapScreenOffsetX + 156, m_mapScreenOffsetY + 306);
-	m_invSlotPositionMap[SMALLPOCK15POS      ].set(m_mapScreenOffsetX + 156, m_mapScreenOffsetY + 342);
-	m_invSlotPositionMap[SMALLPOCK16POS      ].set(m_mapScreenOffsetX + 156, m_mapScreenOffsetY + 378);
-	m_invSlotPositionMap[SMALLPOCK17POS      ].set(m_mapScreenOffsetX + 15, m_mapScreenOffsetY + 414);
-	m_invSlotPositionMap[SMALLPOCK18POS      ].set(m_mapScreenOffsetX + 15, m_mapScreenOffsetY + 450);
-	m_invSlotPositionMap[SMALLPOCK19POS      ].set(m_mapScreenOffsetX + 62, m_mapScreenOffsetY + 414);
-	m_invSlotPositionMap[SMALLPOCK20POS      ].set(m_mapScreenOffsetX + 62, m_mapScreenOffsetY + 450);
+	m_invSlotPositionMap[HEAD3POS            ].set(m_mapScreenOffsetX +  62, invY + 115);
+	m_invSlotPositionMap[HEAD4POS            ].set(m_mapScreenOffsetX +  62, invY + 150);
+	m_invSlotPositionMap[BIGPOCK5POS         ].set(m_mapScreenOffsetX +  109, invY + 486);
+	m_invSlotPositionMap[BIGPOCK6POS         ].set(m_mapScreenOffsetX +  109, invY + 522);
+	m_invSlotPositionMap[BIGPOCK7POS         ].set(m_mapScreenOffsetX +  185, invY + 414);
+	m_invSlotPositionMap[BIGPOCK8POS         ].set(m_mapScreenOffsetX +  185, invY + 450);
+	m_invSlotPositionMap[BIGPOCK9POS         ].set(m_mapScreenOffsetX +  185, invY + 486);
+	m_invSlotPositionMap[BIGPOCK10POS        ].set(m_mapScreenOffsetX +  185, invY + 522);
+	m_invSlotPositionMap[SMALLPOCK9POS       ].set(m_mapScreenOffsetX +  109, invY + 270);
+	m_invSlotPositionMap[SMALLPOCK10POS      ].set(m_mapScreenOffsetX +  109, invY + 306);
+	m_invSlotPositionMap[SMALLPOCK11POS      ].set(m_mapScreenOffsetX +  109, invY + 342);
+	m_invSlotPositionMap[SMALLPOCK12POS      ].set(m_mapScreenOffsetX +  109, invY + 378);
+	m_invSlotPositionMap[SMALLPOCK13POS      ].set(m_mapScreenOffsetX + 156, invY + 270);
+	m_invSlotPositionMap[SMALLPOCK14POS      ].set(m_mapScreenOffsetX + 156, invY + 306);
+	m_invSlotPositionMap[SMALLPOCK15POS      ].set(m_mapScreenOffsetX + 156, invY + 342);
+	m_invSlotPositionMap[SMALLPOCK16POS      ].set(m_mapScreenOffsetX + 156, invY + 378);
+	m_invSlotPositionMap[SMALLPOCK17POS      ].set(m_mapScreenOffsetX + 15, invY + 414);
+	m_invSlotPositionMap[SMALLPOCK18POS      ].set(m_mapScreenOffsetX + 15, invY + 450);
+	m_invSlotPositionMap[SMALLPOCK19POS      ].set(m_mapScreenOffsetX + 62, invY + 414);
+	m_invSlotPositionMap[SMALLPOCK20POS      ].set(m_mapScreenOffsetX + 62, invY + 450);
 
 	// map screen inventory position -- "Show Large Icons" mode
 	// (MapInvBigImagesBtnCallback(), MapScreen.cc; background
 	// mapinv_big_1280_720/768.sti, wide strategic screen only). Independent of the
 	// table above; starts as a copy of it -- tune to the big graphic's slots.
 	// Slot sizes for this mode: gSMInvDataMapBig[] in Interface_Items.cc.
-	m_invSlotPositionMapBig[HELMETPOS           ].set(m_mapScreenOffsetX + 290, m_mapScreenOffsetY + 132);
-	m_invSlotPositionMapBig[VESTPOS             ].set(m_mapScreenOffsetX + 290, m_mapScreenOffsetY + 194);
-	m_invSlotPositionMapBig[LEGPOS              ].set(m_mapScreenOffsetX + 290, m_mapScreenOffsetY + 304);
-	m_invSlotPositionMapBig[HEAD1POS            ].set(m_mapScreenOffsetX +  31, m_mapScreenOffsetY + 132);
-	m_invSlotPositionMapBig[HEAD2POS            ].set(m_mapScreenOffsetX +  31, m_mapScreenOffsetY + 187);
-	m_invSlotPositionMapBig[HANDPOS             ].set(m_mapScreenOffsetX +  104, m_mapScreenOffsetY + 249);
-	m_invSlotPositionMapBig[SECONDHANDPOS       ].set(m_mapScreenOffsetX +  104, m_mapScreenOffsetY + 304);
-	m_invSlotPositionMapBig[BIGPOCK1POS         ].set(m_mapScreenOffsetX +  197, m_mapScreenOffsetY + 595);
-	m_invSlotPositionMapBig[BIGPOCK2POS         ].set(m_mapScreenOffsetX +  197, m_mapScreenOffsetY + 650);
-	m_invSlotPositionMapBig[BIGPOCK3POS         ].set(m_mapScreenOffsetX +  372, m_mapScreenOffsetY + 256);
-	m_invSlotPositionMapBig[BIGPOCK4POS         ].set(m_mapScreenOffsetX +  372, m_mapScreenOffsetY + 311);
-	m_invSlotPositionMapBig[SMALLPOCK1POS       ].set(m_mapScreenOffsetX +  31, m_mapScreenOffsetY + 366);
-	m_invSlotPositionMapBig[SMALLPOCK2POS       ].set(m_mapScreenOffsetX +  31, m_mapScreenOffsetY + 421);
-	m_invSlotPositionMapBig[SMALLPOCK3POS       ].set(m_mapScreenOffsetX +  31, m_mapScreenOffsetY + 476);
-	m_invSlotPositionMapBig[SMALLPOCK4POS       ].set(m_mapScreenOffsetX +  31, m_mapScreenOffsetY + 531);
-	m_invSlotPositionMapBig[SMALLPOCK5POS       ].set(m_mapScreenOffsetX +  114, m_mapScreenOffsetY + 366);
-	m_invSlotPositionMapBig[SMALLPOCK6POS       ].set(m_mapScreenOffsetX +  114, m_mapScreenOffsetY + 421);
-	m_invSlotPositionMapBig[SMALLPOCK7POS       ].set(m_mapScreenOffsetX +  114, m_mapScreenOffsetY + 476);
-	m_invSlotPositionMapBig[SMALLPOCK8POS       ].set(m_mapScreenOffsetX +  114, m_mapScreenOffsetY + 531);
-	m_invSlotPositionMapBig[HEAD3POS            ].set(m_mapScreenOffsetX +  104, m_mapScreenOffsetY + 132);
-	m_invSlotPositionMapBig[HEAD4POS            ].set(m_mapScreenOffsetX +  104, m_mapScreenOffsetY + 187);
-	m_invSlotPositionMapBig[BIGPOCK5POS         ].set(m_mapScreenOffsetX +  372, m_mapScreenOffsetY + 366);
-	m_invSlotPositionMapBig[BIGPOCK6POS         ].set(m_mapScreenOffsetX +  372, m_mapScreenOffsetY + 421);
-	m_invSlotPositionMapBig[BIGPOCK7POS         ].set(m_mapScreenOffsetX +  372, m_mapScreenOffsetY + 485);
-	m_invSlotPositionMapBig[BIGPOCK8POS         ].set(m_mapScreenOffsetX +  372, m_mapScreenOffsetY + 540);
-	m_invSlotPositionMapBig[BIGPOCK9POS         ].set(m_mapScreenOffsetX +  372, m_mapScreenOffsetY + 595);
-	m_invSlotPositionMapBig[BIGPOCK10POS        ].set(m_mapScreenOffsetX +  372, m_mapScreenOffsetY + 650);
-	m_invSlotPositionMapBig[SMALLPOCK9POS       ].set(m_mapScreenOffsetX +  197, m_mapScreenOffsetY + 366);
-	m_invSlotPositionMapBig[SMALLPOCK10POS      ].set(m_mapScreenOffsetX +  197, m_mapScreenOffsetY + 421);
-	m_invSlotPositionMapBig[SMALLPOCK11POS      ].set(m_mapScreenOffsetX +  197, m_mapScreenOffsetY + 476);
-	m_invSlotPositionMapBig[SMALLPOCK12POS      ].set(m_mapScreenOffsetX +  197, m_mapScreenOffsetY + 531);
-	m_invSlotPositionMapBig[SMALLPOCK13POS      ].set(m_mapScreenOffsetX + 280, m_mapScreenOffsetY + 366);
-	m_invSlotPositionMapBig[SMALLPOCK14POS      ].set(m_mapScreenOffsetX + 280, m_mapScreenOffsetY + 421);
-	m_invSlotPositionMapBig[SMALLPOCK15POS      ].set(m_mapScreenOffsetX + 280, m_mapScreenOffsetY + 476);
-	m_invSlotPositionMapBig[SMALLPOCK16POS      ].set(m_mapScreenOffsetX + 280, m_mapScreenOffsetY + 531);
-	m_invSlotPositionMapBig[SMALLPOCK17POS      ].set(m_mapScreenOffsetX + 31, m_mapScreenOffsetY + 595);
-	m_invSlotPositionMapBig[SMALLPOCK18POS      ].set(m_mapScreenOffsetX + 31, m_mapScreenOffsetY + 650);
-	m_invSlotPositionMapBig[SMALLPOCK19POS      ].set(m_mapScreenOffsetX + 114, m_mapScreenOffsetY + 595);
-	m_invSlotPositionMapBig[SMALLPOCK20POS      ].set(m_mapScreenOffsetX + 114, m_mapScreenOffsetY + 650);
+	m_invSlotPositionMapBig[HELMETPOS           ].set(m_mapScreenOffsetX + 290, invY + 132);
+	m_invSlotPositionMapBig[VESTPOS             ].set(m_mapScreenOffsetX + 290, invY + 194);
+	m_invSlotPositionMapBig[LEGPOS              ].set(m_mapScreenOffsetX + 290, invY + 304);
+	m_invSlotPositionMapBig[HEAD1POS            ].set(m_mapScreenOffsetX +  31, invY + 132);
+	m_invSlotPositionMapBig[HEAD2POS            ].set(m_mapScreenOffsetX +  31, invY + 187);
+	m_invSlotPositionMapBig[HANDPOS             ].set(m_mapScreenOffsetX +  104, invY + 249);
+	m_invSlotPositionMapBig[SECONDHANDPOS       ].set(m_mapScreenOffsetX +  104, invY + 304);
+	m_invSlotPositionMapBig[BIGPOCK1POS         ].set(m_mapScreenOffsetX +  197, invY + 595);
+	m_invSlotPositionMapBig[BIGPOCK2POS         ].set(m_mapScreenOffsetX +  197, invY + 650);
+	m_invSlotPositionMapBig[BIGPOCK3POS         ].set(m_mapScreenOffsetX +  372, invY + 256);
+	m_invSlotPositionMapBig[BIGPOCK4POS         ].set(m_mapScreenOffsetX +  372, invY + 311);
+	m_invSlotPositionMapBig[SMALLPOCK1POS       ].set(m_mapScreenOffsetX +  31, invY + 366);
+	m_invSlotPositionMapBig[SMALLPOCK2POS       ].set(m_mapScreenOffsetX +  31, invY + 421);
+	m_invSlotPositionMapBig[SMALLPOCK3POS       ].set(m_mapScreenOffsetX +  31, invY + 476);
+	m_invSlotPositionMapBig[SMALLPOCK4POS       ].set(m_mapScreenOffsetX +  31, invY + 531);
+	m_invSlotPositionMapBig[SMALLPOCK5POS       ].set(m_mapScreenOffsetX +  114, invY + 366);
+	m_invSlotPositionMapBig[SMALLPOCK6POS       ].set(m_mapScreenOffsetX +  114, invY + 421);
+	m_invSlotPositionMapBig[SMALLPOCK7POS       ].set(m_mapScreenOffsetX +  114, invY + 476);
+	m_invSlotPositionMapBig[SMALLPOCK8POS       ].set(m_mapScreenOffsetX +  114, invY + 531);
+	m_invSlotPositionMapBig[HEAD3POS            ].set(m_mapScreenOffsetX +  104, invY + 132);
+	m_invSlotPositionMapBig[HEAD4POS            ].set(m_mapScreenOffsetX +  104, invY + 187);
+	m_invSlotPositionMapBig[BIGPOCK5POS         ].set(m_mapScreenOffsetX +  372, invY + 366);
+	m_invSlotPositionMapBig[BIGPOCK6POS         ].set(m_mapScreenOffsetX +  372, invY + 421);
+	m_invSlotPositionMapBig[BIGPOCK7POS         ].set(m_mapScreenOffsetX +  372, invY + 485);
+	m_invSlotPositionMapBig[BIGPOCK8POS         ].set(m_mapScreenOffsetX +  372, invY + 540);
+	m_invSlotPositionMapBig[BIGPOCK9POS         ].set(m_mapScreenOffsetX +  372, invY + 595);
+	m_invSlotPositionMapBig[BIGPOCK10POS        ].set(m_mapScreenOffsetX +  372, invY + 650);
+	m_invSlotPositionMapBig[SMALLPOCK9POS       ].set(m_mapScreenOffsetX +  197, invY + 366);
+	m_invSlotPositionMapBig[SMALLPOCK10POS      ].set(m_mapScreenOffsetX +  197, invY + 421);
+	m_invSlotPositionMapBig[SMALLPOCK11POS      ].set(m_mapScreenOffsetX +  197, invY + 476);
+	m_invSlotPositionMapBig[SMALLPOCK12POS      ].set(m_mapScreenOffsetX +  197, invY + 531);
+	m_invSlotPositionMapBig[SMALLPOCK13POS      ].set(m_mapScreenOffsetX + 280, invY + 366);
+	m_invSlotPositionMapBig[SMALLPOCK14POS      ].set(m_mapScreenOffsetX + 280, invY + 421);
+	m_invSlotPositionMapBig[SMALLPOCK15POS      ].set(m_mapScreenOffsetX + 280, invY + 476);
+	m_invSlotPositionMapBig[SMALLPOCK16POS      ].set(m_mapScreenOffsetX + 280, invY + 531);
+	m_invSlotPositionMapBig[SMALLPOCK17POS      ].set(m_mapScreenOffsetX + 31, invY + 595);
+	m_invSlotPositionMapBig[SMALLPOCK18POS      ].set(m_mapScreenOffsetX + 31, invY + 650);
+	m_invSlotPositionMapBig[SMALLPOCK19POS      ].set(m_mapScreenOffsetX + 114, invY + 595);
+	m_invSlotPositionMapBig[SMALLPOCK20POS      ].set(m_mapScreenOffsetX + 114, invY + 650);
 
 	m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);
 
@@ -293,7 +314,7 @@ void UILayout::recalculatePositions()
 	// UILayout.h. Anchoring this to the wrong one (or the wrong panel's
 	// height) leaves the buttons offset from wherever the popup actually is.
 	m_moneyButtonLoc.set(startX + 343, get_ITEMDESC_PANEL_START_Y_MONEY() + 11);
-	m_MoneyButtonLocMap.set(m_mapScreenOffsetX + 174, m_mapScreenOffsetY + 115);
+	m_MoneyButtonLocMap.set(m_mapScreenOffsetX + 174, m_mapScreenOffsetY + MAP_INV_SHIFT_Y + 115);
 
 	m_VIEWPORT_START_X            = 0;
 	m_VIEWPORT_START_Y            = 0;
@@ -311,7 +332,9 @@ void UILayout::recalculatePositions()
 	m_trainPosition.set(          m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
 	m_vehiclePosition.set(        m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
 	m_repairPosition.set(         m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
-	m_assignmentPosition.set(     m_mapScreenOffsetX + 120, m_mapScreenOffsetY + 150);
+	// right of the team list's assignment column, 2 px from it like on the
+	// original panel (67-118 -> 120): 1366x768 column 117-218 -> 221
+	m_assignmentPosition.set(     m_mapScreenOffsetX + (isExtraWideStrategicScreen() ? 221 : 120), m_mapScreenOffsetY + 150);
 	m_squadPosition.set(          m_mapScreenOffsetX + 160, m_mapScreenOffsetY + 150);
 	m_versionPosition.set(        10, m_screenHeight - 15);
 }
