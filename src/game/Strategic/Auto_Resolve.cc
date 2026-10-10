@@ -288,11 +288,12 @@ static SOLDIERCELL*        gpEnemies;
 
 
 /* 1366x768 and up: big cells. The cell panels of autoresolve.sti (12: the
- * mercs', 123x148, 13: the others', 126x141) have a 108x124 window for the
- * big portrait (faces/bigfaces, 106x122; the others' small faces middled in
+ * mercs', 13: the others') have a window for the big portrait (faces/bigfaces,
+ * 106x122, its edges cut to the window; the others' small faces middled in
  * it), the mercs' one a slot for the life bar right of it, both a strip for
- * the state text below. Up to 4 columns and 4 rows a side, 10 px apart, the
- * centre strip as before. Each side is sorted (the mercs, then the
+ * the state text below. As many columns and rows as the screen holds for the
+ * panels in use (see CalculateRowsAndColumns()), 10 px apart, the centre strip
+ * as before. Each side is sorted (the mercs, then the
  * militia in their own block below; the enemies): the militia and the enemies
  * by rank, the ranks kept together, and everybody by the state of health --
  * the best first; the retreated and the dead go below all. More rows scroll
@@ -302,31 +303,29 @@ static bool ARBig()
 	return SCREEN_WIDTH >= 1366 && SCREEN_HEIGHT >= 768;
 }
 
-enum
+// A cell panel of autoresolve.sti (panel coordinates).
+struct ARPanel
 {
-	AR_BIG_PORTRAIT_W = 106,
-	AR_BIG_PORTRAIT_H = 122,
-	AR_BIG_CELL_W     = 126, // the wider panel (13); the mercs' one (12) is 123
-	AR_BIG_MERC_W     = 123,
-	AR_BIG_CELL_H     = 148, // the taller panel (12); the others' one (13) is 141
-	AR_BIG_MERC_PX    = 4,   // the portrait in the panels, 1 px inside the window
-	AR_BIG_OTHER_PX   = 10,
-	AR_BIG_PY         = 4,
-	AR_BIG_BAR_X      = 114, // the life bar's slot (6 px wide, as tall as the window)
-	AR_BIG_BAR_W      = 6,
-	AR_BIG_MERC_TEXT_Y  = 130, // the strip below the window: y 129..145
-	AR_BIG_OTHER_TEXT_Y = 127, // y 129..138: the 14 px font reaches below the panel
-	AR_BIG_OTHER_H      = 141, // the others' panel
-	AR_BIG_GAP        = 10,
-	AR_BIG_PITCH_X    = AR_BIG_CELL_W + AR_BIG_GAP,
-	AR_BIG_PITCH_Y    = AR_BIG_CELL_H + AR_BIG_GAP,
-	AR_BIG_COLS       = 4,
-	AR_BIG_ROWS       = 4    // 5 rows of 148 px panels 10 px apart are 780 px
+	INT16 w, h;
+	INT16 wx, wy, ww, wh; // the portrait's place in the window
+	INT16 bar_x, bar_w;   // the life bar's slot, as tall as the portrait's place
+	INT16 text_y;         // the state text
 };
+
+// 12: 107x134, the window 94x110 at (3, 3) -- the big portrait loses 6 px at
+// every edge --, the bar's slot x 99..104, the text's strip y 115..131
+static ARPanel const g_ar_merc_panel  = { 107, 134,  3, 3,  94, 110, 99, 6, 116 };
+// 13: 126x141, the window 108x124 at (9, 3) -- the portrait 1 px inside it --,
+// the text's strip y 129..138 (the 14 px font reaches the panel's bottom)
+static ARPanel const g_ar_other_panel = { 126, 141, 10, 4, 106, 122,  0, 0, 127 };
+
+enum { AR_BIG_GAP = 10 };
 
 enum { AR_LEFT, AR_RIGHT, AR_SIDES };
 enum { AR_ORDER_MERCS, AR_ORDER_CIVS, AR_ORDER_ENEMIES, AR_ORDERS };
 
+static INT32                     g_ar_col_w[2];          // the columns of the two sides: their widest panel
+static INT32                     g_ar_row_h = 1;         // the rows: the tallest panel
 static INT32                     g_ar_visible_rows = 1;
 static INT32                     g_ar_first_row[AR_SIDES];
 static bool                      g_ar_relayout = false;  // scrolled: place the cells again
@@ -343,10 +342,9 @@ static SGPFont ARFont(SGPFont const old)
 	return ARBig() ? FONT14ARIAL : old;
 }
 
-// the portrait's left edge in the cell's panel
-static INT32 ARPortraitDX(SOLDIERCELL const& c)
+static ARPanel const& ARPanelOf(SOLDIERCELL const& c)
 {
-	return c.uiFlags & CELL_MERC ? AR_BIG_MERC_PX : AR_BIG_OTHER_PX;
+	return c.uiFlags & CELL_MERC ? g_ar_merc_panel : g_ar_other_panel;
 }
 
 static INT32 ARSideRows(INT32 const side)
@@ -456,15 +454,18 @@ static void ARPlaceCell(SOLDIERCELL& c, INT32 const side, INT32 const row, INT32
 	AUTORESOLVE_STRUCT const& ar = *gpAR;
 	INT32 const first     = g_ar_first_row[side];
 	bool  const shown     = first <= row && row < first + g_ar_visible_rows;
-	INT32 const content_h = g_ar_visible_rows * AR_BIG_CELL_H + (g_ar_visible_rows - 1) * AR_BIG_GAP;
+	INT32 const content_h = g_ar_visible_rows * g_ar_row_h + (g_ar_visible_rows - 1) * AR_BIG_GAP;
 	INT32 const top       = ar.rect.y + (ar.rect.h - content_h) / 2;
+	ARPanel const& panel  = ARPanelOf(c);
+	INT32 const col_w     = g_ar_col_w[side];
+	INT32 const pitch     = col_w + AR_BIG_GAP;
 
 	// the left side ends 2 px before the centre strip, the right one starts 1 px after it
 	c.xp = side == AR_LEFT ?
-		ar.sCenterStartX + 8 - AR_BIG_PITCH_X * (ar.ubMercCols - col) :
-		ar.sCenterStartX + 141 + AR_BIG_PITCH_X * col;
-	if (c.uiFlags & CELL_MERC) c.xp += (AR_BIG_CELL_W - AR_BIG_MERC_W) / 2; // the narrower panel in its column
-	c.yp = top + (row - first) * AR_BIG_PITCH_Y;
+		ar.sCenterStartX - 2 - col_w - pitch * (ar.ubMercCols - 1 - col) :
+		ar.sCenterStartX + 141 + pitch * col;
+	c.xp += (col_w - panel.w) / 2; // a narrower panel in its column
+	c.yp = top + (row - first) * (g_ar_row_h + AR_BIG_GAP);
 	if (shown) c.uiFlags &= ~CELL_HIDDEN; else c.uiFlags |= CELL_HIDDEN;
 	c.uiFlags |= CELL_DIRTY;
 
@@ -472,8 +473,8 @@ static void ARPlaceCell(SOLDIERCELL& c, INT32 const side, INT32 const row, INT32
 	{ // the merc's region (retreat) goes with his cell
 		c.pRegion->RegionTopLeftX     = c.xp;
 		c.pRegion->RegionTopLeftY     = c.yp;
-		c.pRegion->RegionBottomRightX = c.xp + AR_BIG_MERC_W;
-		c.pRegion->RegionBottomRightY = c.yp + AR_BIG_CELL_H;
+		c.pRegion->RegionBottomRightX = c.xp + panel.w;
+		c.pRegion->RegionBottomRightY = c.yp + panel.h;
 		if (shown && ar.ubBattleStatus == BATTLE_IN_PROGRESS) c.pRegion->Enable(); else c.pRegion->Disable();
 	}
 }
@@ -958,7 +959,7 @@ static void CalculateSoldierCells()
 				c.uiFlags |= AM_A_ROBOT(c.pSoldier) ? CELL_ROBOT : CELL_EPC;
 			}
 			// above the sides' wheel regions
-			c.pRegion = std::make_unique<MouseRegion>(0, 0, AR_BIG_MERC_W, AR_BIG_CELL_H,
+			c.pRegion = std::make_unique<MouseRegion>(0, 0, g_ar_merc_panel.w, g_ar_merc_panel.h,
 				MSYS_PRIORITY_HIGH + 1, CURSOR_NORMAL,
 				MercCellMouseMoveCallback, MercCellMouseClickCallback);
 			c.pRegion->SetUserPtr(&c);
@@ -1118,10 +1119,13 @@ static void AdjustCellFlagsAfterRender(SOLDIERCELL* const c)
 
 // 1366x768: the life bar (bandaged and bleeding above the life, the strategic
 // screen's tall bar) in the merc panel's slot right of the portrait, as tall
-// as the portrait. No breath and morale bars: not needed in a resolved battle.
+// as the portrait's place. No breath and morale bars: not needed in a resolved
+// battle.
 static void RenderBigCellBars(SOLDIERCELL const* const c)
 {
-	DrawSoldierLifeBarTall(*c->pSoldier, c->xp + AR_BIG_BAR_X, c->yp + AR_BIG_PY, AR_BIG_BAR_W, AR_BIG_PORTRAIT_H, FRAME_BUFFER);
+	ARPanel const& panel = ARPanelOf(*c);
+	if (panel.bar_w == 0) return;
+	DrawSoldierLifeBarTall(*c->pSoldier, c->xp + panel.bar_x, c->yp + panel.wy, panel.bar_w, panel.wh, FRAME_BUFFER);
 }
 
 
@@ -1132,38 +1136,43 @@ static void DrawDebugText(SOLDIERCELL* pCell);
 // 1366x768: the big cell (see ARBig()).
 static void RenderBigSoldierCell(SOLDIERCELL* const c)
 {
-	SGPVSurface* const buf = FRAME_BUFFER;
-	INT16        const dx  = c->xp;
-	INT16        const dy  = c->yp;
-	INT16        const px  = dx + ARPortraitDX(*c);
-	INT16        const py  = dy + AR_BIG_PY;
-	bool         const merc = (c->uiFlags & CELL_MERC) != 0;
+	SGPVSurface* const buf   = FRAME_BUFFER;
+	ARPanel const&     panel = ARPanelOf(*c);
+	INT16        const dx    = c->xp;
+	INT16        const dy    = c->yp;
+	INT16        const px    = dx + panel.wx;
+	INT16        const py    = dy + panel.wy;
+	bool         const merc  = (c->uiFlags & CELL_MERC) != 0;
+
+	// A shorter panel in its row: the background under it back first (the
+	// state text may reach below the panel).
+	if (panel.h < g_ar_row_h)
+	{
+		SGPBox const r = { (UINT16)(dx - gpAR->rect.x), (UINT16)(dy + panel.h - gpAR->rect.y), (UINT16)panel.w, (UINT16)(g_ar_row_h - panel.h) };
+		BltVideoSurface(buf, gpAR->iInterfaceBuffer, dx, dy + panel.h, &r);
+	}
 
 	// The panel; an autoresolve.sti with the old small panels: a black box.
-	UINT16 const panel = merc ? MERC_PANEL : OTHER_PANEL;
-	if (gpAR->iPanelImages->SubregionProperties(panel).usHeight >= AR_BIG_PY + AR_BIG_PORTRAIT_H)
+	UINT16 const panel_gfx = merc ? MERC_PANEL : OTHER_PANEL;
+	if (gpAR->iPanelImages->SubregionProperties(panel_gfx).usHeight >= panel.wy + panel.wh)
 	{
-		BltVideoObject(buf, gpAR->iPanelImages, panel, dx, dy);
+		BltVideoObject(buf, gpAR->iPanelImages, panel_gfx, dx, dy);
 	}
 	else
 	{
-		ColorFillVideoSurfaceArea(buf, dx, dy, dx + (merc ? AR_BIG_MERC_W : AR_BIG_CELL_W), dy + AR_BIG_CELL_H, 0);
+		ColorFillVideoSurfaceArea(buf, dx, dy, dx + panel.w, dy + panel.h, 0);
 	}
-	if (merc)
-	{
-		RenderBigCellBars(c);
-	}
-	else
-	{ // the state text reaches below the shorter panel: the background back first
-		SGPBox const r = { (UINT16)(dx - gpAR->rect.x), (UINT16)(dy + AR_BIG_OTHER_H - gpAR->rect.y), AR_BIG_CELL_W, AR_BIG_CELL_H - AR_BIG_OTHER_H };
-		BltVideoSurface(buf, gpAR->iInterfaceBuffer, dx, dy + AR_BIG_OTHER_H, &r);
-	}
+	RenderBigCellBars(c);
 
-	// a smaller picture (the generic faces, the skulls) in the window's middle
+	// A picture in the middle of the portrait's place, cut to it: the big
+	// portrait is bigger than the mercs' window, the generic faces and the
+	// skulls are smaller.
 	auto const middled = [&](SGPVObject* const vo, UINT16 const idx)
 	{
-		ETRLEObject const& e = vo->SubregionProperties(idx);
-		BltVideoObject(buf, vo, idx, px + (AR_BIG_PORTRAIT_W - e.usWidth) / 2, py + (AR_BIG_PORTRAIT_H - e.usHeight) / 2);
+		ETRLEObject const& e   = vo->SubregionProperties(idx);
+		SGPRect     const  old = SetClippingRect(SGPRect{ (UINT16)px, (UINT16)py, (UINT16)(px + panel.ww), (UINT16)(py + panel.wh) });
+		BltVideoObject(buf, vo, idx, px + (panel.ww - e.usWidth) / 2, py + (panel.wh - e.usHeight) / 2);
+		SetClippingRect(old);
 	};
 
 	if (c->pSoldier->bLife == 0)
@@ -1174,7 +1183,7 @@ static void RenderBigSoldierCell(SOLDIERCELL* const c)
 	{
 		if (c->uiFlags & CELL_HITBYATTACKER)
 		{
-			ColorFillVideoSurfaceArea(buf, px, py, px + AR_BIG_PORTRAIT_W, py + AR_BIG_PORTRAIT_H, 65535);
+			ColorFillVideoSurfaceArea(buf, px, py, px + panel.ww, py + panel.wh, 65535);
 		}
 		else
 		{
@@ -1185,14 +1194,14 @@ static void RenderBigSoldierCell(SOLDIERCELL* const c)
 
 		if (c->pSoldier->bLife < OKLIFE && !(c->uiFlags & (CELL_HITBYATTACKER | CELL_HITLASTFRAME | CELL_CREATURE)))
 		{ // Merc is unconcious (and not taking damage), so darken his portrait.
-			buf->ShadowRect(px, py, px + AR_BIG_PORTRAIT_W, py + AR_BIG_PORTRAIT_H);
+			buf->ShadowRect(px, py, px + panel.ww, py + panel.wh);
 		}
 	}
 
 	RenderSoldierCellHealth(c);
 	DrawDebugText(c);
 
-	InvalidateRegion(dx, dy, dx + AR_BIG_CELL_W, dy + AR_BIG_CELL_H);
+	InvalidateRegion(dx, dy, dx + panel.w, dy + g_ar_row_h);
 }
 
 
@@ -2637,10 +2646,27 @@ static void CalculateAutoResolveInfo(void)
 static void CalculateRowsAndColumns(void)
 {
 	if (ARBig())
-	{ // Up to AR_BIG_COLS columns a side (the militia under the mercs, in their columns), AR_BIG_ROWS rows shown.
+	{ /* The militia stand under the mercs, in their columns. A side's columns
+		 * are as wide as its widest panel, the rows as tall as the tallest panel
+		 * in the battle; as many of them as fit beside the 140 px centre strip
+		 * and into the screen's height (the window is a multiple of 40 px). */
 		AUTORESOLVE_STRUCT& ar = *gpAR;
-		INT32 const lc = std::clamp<INT32>(std::max(ar.ubMercs, ar.ubCivs), 2, AR_BIG_COLS);
-		INT32 const rc = std::clamp<INT32>(ar.ubEnemies, 2, AR_BIG_COLS);
+		ARPanel const& merc  = g_ar_merc_panel;
+		ARPanel const& other = g_ar_other_panel;
+
+		g_ar_col_w[AR_LEFT]  = std::max<INT32>(ar.ubMercs || !ar.ubCivs ? merc.w : 0, ar.ubCivs ? other.w : 0);
+		g_ar_col_w[AR_RIGHT] = other.w;
+		g_ar_row_h           = std::max<INT32>(ar.ubMercs ? merc.h : 0, ar.ubCivs || ar.ubEnemies || !ar.ubMercs ? other.h : 0);
+
+		// 6 px, the left cells, 2 px, the 140 px strip, 1 px, the right cells, 7 px
+		INT32 const side_w   = (SCREEN_WIDTH - 156) / 2;
+		INT32 const max_lc   = std::max<INT32>(2, (side_w + AR_BIG_GAP) / (g_ar_col_w[AR_LEFT]  + AR_BIG_GAP));
+		INT32 const max_rc   = std::max<INT32>(2, (side_w + AR_BIG_GAP) / (g_ar_col_w[AR_RIGHT] + AR_BIG_GAP));
+		INT32 const max_h    = SCREEN_HEIGHT / 40 * 40 - 14; // 7 px above and below the rows
+		INT32 const max_rows = std::max<INT32>(1, (max_h + AR_BIG_GAP) / (g_ar_row_h + AR_BIG_GAP));
+
+		INT32 const lc = std::clamp<INT32>(std::max(ar.ubMercs, ar.ubCivs), 2, max_lc);
+		INT32 const rc = std::clamp<INT32>(ar.ubEnemies, 2, max_rc);
 		ar.ubMercCols  = lc;
 		ar.ubCivCols   = lc;
 		ar.ubEnemyCols = rc;
@@ -2648,19 +2674,18 @@ static void CalculateRowsAndColumns(void)
 		ar.ubCivRows   = (ar.ubCivs    + lc - 1) / lc;
 		ar.ubEnemyRows = (ar.ubEnemies + rc - 1) / rc;
 
-		g_ar_visible_rows = std::clamp<INT32>(std::max(ar.ubMercRows + ar.ubCivRows, int(ar.ubEnemyRows)), 1, AR_BIG_ROWS);
+		g_ar_visible_rows = std::clamp<INT32>(std::max(ar.ubMercRows + ar.ubCivRows, int(ar.ubEnemyRows)), 1, max_rows);
 		g_ar_first_row[AR_LEFT]  = 0;
 		g_ar_first_row[AR_RIGHT] = 0;
 		g_ar_relayout            = false;
 		for (auto& order : g_ar_order) order.clear();
 
-		// 6 px before the first cell, the cells (the last one's gap is the 2 px
-		// to the strip), the 140 px strip, 1 px, the cells, 7 px
-		ar.rect.w        = 136 + AR_BIG_PITCH_X * (lc + rc);
-		ar.sCenterStartX = SCREEN_WIDTH / 2 - ar.rect.w / 2 - 2 + AR_BIG_PITCH_X * lc;
+		INT32 const left_w = lc * (g_ar_col_w[AR_LEFT] + AR_BIG_GAP); // with the last column's gap
+		ar.rect.w        = 136 + left_w + rc * (g_ar_col_w[AR_RIGHT] + AR_BIG_GAP);
+		ar.sCenterStartX = SCREEN_WIDTH / 2 - ar.rect.w / 2 - 2 + left_w;
 
 		// the rows and 7 px above and below, an even multiple of 40 (rounding up)
-		ar.rect.h = g_ar_visible_rows * AR_BIG_CELL_H + (g_ar_visible_rows - 1) * AR_BIG_GAP + 14;
+		ar.rect.h = g_ar_visible_rows * g_ar_row_h + (g_ar_visible_rows - 1) * AR_BIG_GAP + 14;
 		ar.rect.h = std::max(160, (ar.rect.h + 39) / 40 * 40);
 		return;
 	}
@@ -2855,9 +2880,10 @@ static void RenderSoldierCellHealth(SOLDIERCELL* pCell)
 	// just drawn again: nothing to restore)
 	bool    const big        = ARBig();
 	SGPFont const font       = ARFont(SMALLCOMPFONT);
-	INT16   const centre     = pCell->xp + (big ? ARPortraitDX(*pCell) + AR_BIG_PORTRAIT_W / 2 : 25);
-	INT16   const text_y     = pCell->yp + (!big ? 33 : pCell->uiFlags & CELL_MERC ? AR_BIG_MERC_TEXT_Y : AR_BIG_OTHER_TEXT_Y);
-	INT16   const retreat_y  = pCell->yp + (big ? AR_BIG_PY + AR_BIG_PORTRAIT_H / 2 : 12);
+	ARPanel const& panel     = ARPanelOf(*pCell);
+	INT16   const centre     = pCell->xp + (big ? panel.wx + panel.ww / 2 : 25);
+	INT16   const text_y     = pCell->yp + (big ? panel.text_y : 33);
+	INT16   const retreat_y  = pCell->yp + (big ? panel.wy + panel.wh / 2 : 12);
 	SetFont(font);
 	if (!big)
 	{
