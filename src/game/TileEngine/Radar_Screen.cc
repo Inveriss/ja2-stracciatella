@@ -465,7 +465,15 @@ void RenderBigRadarScreenIfVisible(void)
 
 		SGPVSurface::Lock l(FRAME_BUFFER);
 		SetClippingRegionAndImageWidth(l.Pitch(), map_x, map_y, RADAR_WINDOW_BIG_WIDTH, RADAR_WINDOW_BIG_HEIGHT);
-		RectangleDraw(TRUE, x, y, x + 1, y + 1, line_colour, l.Buffer<UINT16>());
+		if (panel_1366)
+		{ // the 580x290 map: a 4x4 mark around the same place (two rectangles fill it)
+			RectangleDraw(TRUE, x - 1, y - 1, x + 2, y + 2, line_colour, l.Buffer<UINT16>());
+			RectangleDraw(TRUE, x,     y,     x + 1, y + 1, line_colour, l.Buffer<UINT16>());
+		}
+		else
+		{
+			RectangleDraw(TRUE, x, y, x + 1, y + 1, line_colour, l.Buffer<UINT16>());
+		}
 	}
 
 	InvalidateRegion(frame_x, frame_y, frame_x + rect_w, frame_y + rect_h);
