@@ -314,8 +314,9 @@ enum
 	AR_BIG_PY         = 4,
 	AR_BIG_BAR_X      = 114, // the life bar's slot (6 px wide, as tall as the window)
 	AR_BIG_BAR_W      = 6,
-	AR_BIG_MERC_TEXT_Y  = 132, // the strip below the window: y 129..145
-	AR_BIG_OTHER_TEXT_Y = 128, // y 129..138
+	AR_BIG_MERC_TEXT_Y  = 130, // the strip below the window: y 129..145
+	AR_BIG_OTHER_TEXT_Y = 127, // y 129..138: the 14 px font reaches below the panel
+	AR_BIG_OTHER_H      = 141, // the others' panel
 	AR_BIG_GAP        = 10,
 	AR_BIG_PITCH_X    = AR_BIG_CELL_W + AR_BIG_GAP,
 	AR_BIG_PITCH_Y    = AR_BIG_CELL_H + AR_BIG_GAP,
@@ -334,6 +335,13 @@ static MOUSE_REGION              g_ar_wheel_region[AR_SIDES];
 static bool                      g_ar_wheel_regions = false;
 static GUIButtonRef              g_ar_scroll_button[AR_SIDES][2]; // up, down
 static char const* const         g_ar_scroll_gfx = INTERFACEDIR "/mapinv_done_buttons.sti"; // 8/9 up, 10/11 down
+
+// The big layout's one font for every text (per user request); the old
+// layout keeps its own (they are sized for its small cells).
+static SGPFont ARFont(SGPFont const old)
+{
+	return ARBig() ? FONT14ARIAL : old;
+}
 
 // the portrait's left edge in the cell's panel
 static INT32 ARPortraitDX(SOLDIERCELL const& c)
@@ -1141,7 +1149,15 @@ static void RenderBigSoldierCell(SOLDIERCELL* const c)
 	{
 		ColorFillVideoSurfaceArea(buf, dx, dy, dx + (merc ? AR_BIG_MERC_W : AR_BIG_CELL_W), dy + AR_BIG_CELL_H, 0);
 	}
-	if (merc) RenderBigCellBars(c);
+	if (merc)
+	{
+		RenderBigCellBars(c);
+	}
+	else
+	{ // the state text reaches below the shorter panel: the background back first
+		SGPBox const r = { (UINT16)(dx - gpAR->rect.x), (UINT16)(dy + AR_BIG_OTHER_H - gpAR->rect.y), AR_BIG_CELL_W, AR_BIG_CELL_H - AR_BIG_OTHER_H };
+		BltVideoSurface(buf, gpAR->iInterfaceBuffer, dx, dy + AR_BIG_OTHER_H, &r);
+	}
 
 	// a smaller picture (the generic faces, the skulls) in the window's middle
 	auto const middled = [&](SGPVObject* const vo, UINT16 const idx)
@@ -1650,7 +1666,11 @@ static void RenderAutoResolve(void)
 	}
 
 	//Render the titles
-	SetFontAttributes(FONT10ARIALBOLD, FONT_WHITE);
+	SGPFont const title_font = ARFont(FONT10ARIALBOLD);
+	SGPFont const text_font  = ARFont(FONT10ARIAL);
+	// the big layout's lines are as far apart as its font is tall
+	INT32   const line_dy    = ARBig() ? GetFontHeight(FONT14ARIAL) + 1 : 11;
+	SetFontAttributes(title_font, FONT_WHITE);
 
 	ST::string EncounterType;
 	switch( gubEnemyEncounterCode )
@@ -1664,16 +1684,31 @@ static void RenderAutoResolve(void)
 			break;
 	}
 
-	xp = gpAR->sCenterStartX + 70 - StringPixLength(EncounterType, FONT10ARIALBOLD) / 2;
+	xp = gpAR->sCenterStartX + 70 - StringPixLength(EncounterType, title_font) / 2;
 	yp = gpAR->rect.y + 15;
 	MPrint(xp, yp, EncounterType);
 
-	SetFontAttributes(FONT10ARIAL, FONT_GRAY2);
+	SetFontAttributes(text_font, FONT_GRAY2);
 
 	str = GetSectorIDString(arSector, TRUE);
-	xp = gpAR->sCenterStartX + 70 - StringPixLength( str, FONT10ARIAL )/2;
-	yp += 11;
-	MPrint(xp, yp, str);
+	auto const colon = ARBig() ? str.find(": ") : -1;
+	if (colon >= 0)
+	{ // the big font: the sector ("B10") and what is there ("Woods, road") on two lines
+		ST::string const sector = str.left(colon);
+		ST::string const what   = str.substr(colon + 2);
+		xp = gpAR->sCenterStartX + 70 - StringPixLength(sector, text_font) / 2;
+		yp += line_dy;
+		MPrint(xp, yp, sector);
+		xp = gpAR->sCenterStartX + 70 - StringPixLength(what, text_font) / 2;
+		yp += line_dy;
+		MPrint(xp, yp, what);
+	}
+	else
+	{
+		xp = gpAR->sCenterStartX + 70 - StringPixLength( str, text_font )/2;
+		yp += line_dy;
+		MPrint(xp, yp, str);
+	}
 
 	//Display the remaining forces
 	ubGood = (UINT8)(gpAR->ubAliveMercs + gpAR->ubAliveCivs);
@@ -1695,12 +1730,12 @@ static void RenderAutoResolve(void)
 	}
 
 	xp = gpAR->sCenterStartX + 70 - StringPixLength( str, FONT14ARIAL )/2;
-	yp += 11;
+	yp += line_dy;
 	MPrint(xp, yp, str);
 
 	if( gpAR->fPendingSurrender )
 	{
-		DisplayWrappedString(gpAR->sCenterStartX + 16, ARMiddleY() - 10, 108, 2, FONT10ARIAL, FONT_YELLOW, gpStrategicString[STR_ENEMY_SURRENDER_OFFER], FONT_BLACK, LEFT_JUSTIFIED);
+		DisplayWrappedString(gpAR->sCenterStartX + 16, ARMiddleY() - 10, 108, 2, text_font, FONT_YELLOW, gpStrategicString[STR_ENEMY_SURRENDER_OFFER], FONT_BLACK, LEFT_JUSTIFIED);
 	}
 
 	if( gpAR->ubBattleStatus != BATTLE_IN_PROGRESS )
@@ -1800,7 +1835,7 @@ static void RenderAutoResolve(void)
 					}
 					else
 					{
-						DisplayWrappedString(gpAR->sCenterStartX + 16, ARMiddleY() + 70, 108, 2, FONT10ARIAL, FONT_YELLOW, gpStrategicString[STR_ENEMY_CAPTURED], FONT_BLACK, LEFT_JUSTIFIED);
+						DisplayWrappedString(gpAR->sCenterStartX + 16, ARMiddleY() + 70, 108, 2, text_font, FONT_YELLOW, gpStrategicString[STR_ENEMY_CAPTURED], FONT_BLACK, LEFT_JUSTIFIED);
 						BattleResult = gpStrategicString[STR_AR_OVER_CAPTURED];
 					}
 					SetFontForeground( FONT_RED );
@@ -1815,26 +1850,43 @@ static void RenderAutoResolve(void)
 					break;
 			}
 			//Render the results of the battle.
-			SetFont( StrategicGeneralFont() );
+			SGPFont const result_font = ARFont(StrategicGeneralFont());
+			SetFont(result_font);
 			xp = gpAR->sCenterStartX + 12;
 			yp = ARMiddleY() - 22;
 			BltVideoObject( FRAME_BUFFER, gpAR->iIndent, 0, xp, yp);
-			xp = gpAR->sCenterStartX + 70 - StringPixLength(BattleResult, StrategicGeneralFont()) / 2;
+			xp = gpAR->sCenterStartX + 70 - StringPixLength(BattleResult, result_font) / 2;
 			yp = ARMiddleY() - 13;
 			MPrint(xp, yp, BattleResult);
 
 			//Render the total battle time elapsed.
-			SetFont( FONT10ARIAL );
-			str = ST::format("{}:  {}{} {02d}{}",
-				gpStrategicString[ STR_AR_TIME_ELAPSED ],
-				gpAR->uiTotalElapsedBattleTimeInMilliseconds/60000,
-				gsTimeStrings[1],
-				gpAR->uiTotalElapsedBattleTimeInMilliseconds % 60000 / 1000,
-				gsTimeStrings[2]);
-			xp = gpAR->sCenterStartX + 70 - StringPixLength( str, FONT10ARIAL )/2;
-			yp = ARMiddleY() + 50;
+			SetFont(text_font);
 			SetFontForeground( FONT_YELLOW );
-			MPrint(xp, yp, str);
+			yp = ARMiddleY() + 50;
+			if (ARBig())
+			{ // the big font: the label and the time on two lines, inside the strip
+				str = ST::format("{}:", gpStrategicString[STR_AR_TIME_ELAPSED]);
+				xp = gpAR->sCenterStartX + 70 - StringPixLength(str, text_font) / 2;
+				MPrint(xp, yp, str);
+				str = ST::format("{}{} {02d}{}",
+					gpAR->uiTotalElapsedBattleTimeInMilliseconds / 60000,
+					gsTimeStrings[1],
+					gpAR->uiTotalElapsedBattleTimeInMilliseconds % 60000 / 1000,
+					gsTimeStrings[2]);
+				xp = gpAR->sCenterStartX + 70 - StringPixLength(str, text_font) / 2;
+				MPrint(xp, yp + line_dy, str);
+			}
+			else
+			{
+				str = ST::format("{}:  {}{} {02d}{}",
+					gpStrategicString[ STR_AR_TIME_ELAPSED ],
+					gpAR->uiTotalElapsedBattleTimeInMilliseconds/60000,
+					gsTimeStrings[1],
+					gpAR->uiTotalElapsedBattleTimeInMilliseconds % 60000 / 1000,
+					gsTimeStrings[2]);
+				xp = gpAR->sCenterStartX + 70 - StringPixLength( str, text_font )/2;
+				MPrint(xp, yp, str);
+			}
 	}
 
 	MarkButtonsDirty();
@@ -1846,7 +1898,7 @@ static void MakeButton(UINT idx, INT16 x, INT16 y, GUI_CALLBACK click, BOOLEAN h
 {
 	GUIButtonRef const btn = QuickCreateButton(gpAR->iButtonImage[idx], x, y, MSYS_PRIORITY_HIGH, std::move(click));
 	gpAR->iButton[idx] = btn;
-	if (!text.empty()) btn->SpecifyGeneralTextAttributes(text, StrategicGeneralFont(), 169, FONT_NEARBLACK);
+	if (!text.empty()) btn->SpecifyGeneralTextAttributes(text, ARFont(StrategicGeneralFont()), 169, FONT_NEARBLACK);
 	if (hide) btn->Hide();
 }
 
@@ -2802,7 +2854,7 @@ static void RenderSoldierCellHealth(SOLDIERCELL* pCell)
 	// 1366x768: under the big portrait, on the panel's strip (the panel was
 	// just drawn again: nothing to restore)
 	bool    const big        = ARBig();
-	SGPFont const font       = big ? StrategicGeneralFont() : SMALLCOMPFONT;
+	SGPFont const font       = ARFont(SMALLCOMPFONT);
 	INT16   const centre     = pCell->xp + (big ? ARPortraitDX(*pCell) + AR_BIG_PORTRAIT_W / 2 : 25);
 	INT16   const text_y     = pCell->yp + (!big ? 33 : pCell->uiFlags & CELL_MERC ? AR_BIG_MERC_TEXT_Y : AR_BIG_OTHER_TEXT_Y);
 	INT16   const retreat_y  = pCell->yp + (big ? AR_BIG_PY + AR_BIG_PORTRAIT_H / 2 : 12);
