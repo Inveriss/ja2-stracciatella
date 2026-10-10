@@ -315,9 +315,9 @@ struct ARPanel
 // 12: 107x134, the window 94x110 at (3, 3) -- the big portrait loses 6 px at
 // every edge --, the bar's slot x 99..104, the text's strip y 115..131
 static ARPanel const g_ar_merc_panel  = { 107, 134,  3, 3,  94, 110, 99, 6, 116 };
-// 13: 126x141, the window 108x124 at (9, 3) -- the portrait 1 px inside it --,
-// the text's strip y 129..138 (the 14 px font reaches the panel's bottom)
-static ARPanel const g_ar_other_panel = { 126, 141, 10, 4, 106, 122,  0, 0, 127 };
+// 13: 99x134, the same window and strip, no bar (the small generic faces
+// and the skulls stand in the window's middle)
+static ARPanel const g_ar_other_panel = {  99, 134,  3, 3,  94, 110,  0, 0, 116 };
 
 enum { AR_BIG_GAP = 10 };
 
