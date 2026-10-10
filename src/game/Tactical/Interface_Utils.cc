@@ -209,6 +209,22 @@ static INT16 DrawTallBarSegment(SGPVSurface* const buffer, INT16 const x, INT16 
 }
 
 
+void DrawSoldierLifeBarTall(SOLDIERTYPE const& s, INT16 const x, INT16 const top_y, INT16 const width_in, INT16 const height, SGPVSurface* const buffer)
+{
+	if (s.bLife == 0) return;
+
+	INT16 const width  = std::clamp<INT16>(width_in, 1, 6);
+	INT16 const bottom = top_y + height - 1;
+	auto const rows = [height](INT32 const percent) { return static_cast<INT16>(height * percent / 100); };
+
+	// life, then bandaged and bleeding above it -- as DrawLifeUIBar()
+	INT16 y = DrawTallBarSegment(buffer, x, bottom, width, rows(s.bLife), TALL_LIFE_BAR);
+	INT32 const bandage = s.bLifeMax - s.bLife - s.bBleeding;
+	y = DrawTallBarSegment(buffer, x, y, width, rows(bandage), TALL_BANDAGE_BAR);
+	DrawTallBarSegment(buffer, x, y, width, rows(s.bBleeding), TALL_BLEEDING_BAR);
+}
+
+
 void DrawSoldierUIBarsTall(SOLDIERTYPE const& s, INT16 const life_x, INT16 const breath_x, INT16 const morale_x, INT16 const top_y, INT16 const width_in, INT16 const height, SGPVSurface* const buffer)
 {
 	INT16 const width = std::clamp<INT16>(width_in, 1, 6);

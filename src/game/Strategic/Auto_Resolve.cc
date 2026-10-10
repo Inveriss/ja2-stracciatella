@@ -23,6 +23,7 @@
 #include "MapScreen.h"
 #include "Meanwhile.h"
 #include "MercPortrait.h"
+#include "Interface_Utils.h"
 #include "HImage.h"
 #include "Object_Cache.h"
 #include "Morale.h"
@@ -286,10 +287,12 @@ static SOLDIERCELL*        gpEnemies;
 	for (SOLDIERCELL* iter = gpEnemies, *const iter##__end = &gpEnemies[gpAR->ubEnemies]; iter != iter##__end; ++iter)
 
 
-/* 1366x768 and up: big cells. The mercs' big portraits (faces/bigfaces,
- * 106x122) in a 2 px black frame with their bars under it, the others' small
- * faces middled in the same frame; up to 5 columns and 5 rows a side, 10 px
- * apart, the centre strip as before. Each side is sorted (the mercs, then the
+/* 1366x768 and up: big cells. The cell panels of autoresolve.sti (12: the
+ * mercs', 123x148, 13: the others', 126x141) have a 108x124 window for the
+ * big portrait (faces/bigfaces, 106x122; the others' small faces middled in
+ * it), the mercs' one a slot for the life bar right of it, both a strip for
+ * the state text below. Up to 4 columns and 4 rows a side, 10 px apart, the
+ * centre strip as before. Each side is sorted (the mercs, then the
  * militia in their own block below; the enemies): the militia and the enemies
  * by rank, the ranks kept together, and everybody by the state of health --
  * the best first; the retreated and the dead go below all. More rows scroll
@@ -303,15 +306,21 @@ enum
 {
 	AR_BIG_PORTRAIT_W = 106,
 	AR_BIG_PORTRAIT_H = 122,
-	AR_BIG_CELL_W     = AR_BIG_PORTRAIT_W + 4, // the frame
-	AR_BIG_FRAME_H    = AR_BIG_PORTRAIT_H + 4,
-	AR_BIG_BARS_H     = 9,                     // life, breath, morale: 2 px each
-	AR_BIG_CELL_H     = AR_BIG_FRAME_H + AR_BIG_BARS_H,
+	AR_BIG_CELL_W     = 126, // the wider panel (13); the mercs' one (12) is 123
+	AR_BIG_MERC_W     = 123,
+	AR_BIG_CELL_H     = 148, // the taller panel (12); the others' one (13) is 141
+	AR_BIG_MERC_PX    = 4,   // the portrait in the panels, 1 px inside the window
+	AR_BIG_OTHER_PX   = 10,
+	AR_BIG_PY         = 4,
+	AR_BIG_BAR_X      = 114, // the life bar's slot (6 px wide, as tall as the window)
+	AR_BIG_BAR_W      = 6,
+	AR_BIG_MERC_TEXT_Y  = 132, // the strip below the window: y 129..145
+	AR_BIG_OTHER_TEXT_Y = 128, // y 129..138
 	AR_BIG_GAP        = 10,
 	AR_BIG_PITCH_X    = AR_BIG_CELL_W + AR_BIG_GAP,
 	AR_BIG_PITCH_Y    = AR_BIG_CELL_H + AR_BIG_GAP,
-	AR_BIG_COLS       = 5,
-	AR_BIG_ROWS       = 5
+	AR_BIG_COLS       = 4,
+	AR_BIG_ROWS       = 4    // 5 rows of 148 px panels 10 px apart are 780 px
 };
 
 enum { AR_LEFT, AR_RIGHT, AR_SIDES };
@@ -325,6 +334,12 @@ static MOUSE_REGION              g_ar_wheel_region[AR_SIDES];
 static bool                      g_ar_wheel_regions = false;
 static GUIButtonRef              g_ar_scroll_button[AR_SIDES][2]; // up, down
 static char const* const         g_ar_scroll_gfx = INTERFACEDIR "/mapinv_done_buttons.sti"; // 8/9 up, 10/11 down
+
+// the portrait's left edge in the cell's panel
+static INT32 ARPortraitDX(SOLDIERCELL const& c)
+{
+	return c.uiFlags & CELL_MERC ? AR_BIG_MERC_PX : AR_BIG_OTHER_PX;
+}
 
 static INT32 ARSideRows(INT32 const side)
 {
@@ -440,6 +455,7 @@ static void ARPlaceCell(SOLDIERCELL& c, INT32 const side, INT32 const row, INT32
 	c.xp = side == AR_LEFT ?
 		ar.sCenterStartX + 8 - AR_BIG_PITCH_X * (ar.ubMercCols - col) :
 		ar.sCenterStartX + 141 + AR_BIG_PITCH_X * col;
+	if (c.uiFlags & CELL_MERC) c.xp += (AR_BIG_CELL_W - AR_BIG_MERC_W) / 2; // the narrower panel in its column
 	c.yp = top + (row - first) * AR_BIG_PITCH_Y;
 	if (shown) c.uiFlags &= ~CELL_HIDDEN; else c.uiFlags |= CELL_HIDDEN;
 	c.uiFlags |= CELL_DIRTY;
@@ -448,7 +464,7 @@ static void ARPlaceCell(SOLDIERCELL& c, INT32 const side, INT32 const row, INT32
 	{ // the merc's region (retreat) goes with his cell
 		c.pRegion->RegionTopLeftX     = c.xp;
 		c.pRegion->RegionTopLeftY     = c.yp;
-		c.pRegion->RegionBottomRightX = c.xp + AR_BIG_CELL_W;
+		c.pRegion->RegionBottomRightX = c.xp + AR_BIG_MERC_W;
 		c.pRegion->RegionBottomRightY = c.yp + AR_BIG_CELL_H;
 		if (shown && ar.ubBattleStatus == BATTLE_IN_PROGRESS) c.pRegion->Enable(); else c.pRegion->Disable();
 	}
@@ -934,7 +950,7 @@ static void CalculateSoldierCells()
 				c.uiFlags |= AM_A_ROBOT(c.pSoldier) ? CELL_ROBOT : CELL_EPC;
 			}
 			// above the sides' wheel regions
-			c.pRegion = std::make_unique<MouseRegion>(0, 0, AR_BIG_CELL_W, AR_BIG_CELL_H,
+			c.pRegion = std::make_unique<MouseRegion>(0, 0, AR_BIG_MERC_W, AR_BIG_CELL_H,
 				MSYS_PRIORITY_HIGH + 1, CURSOR_NORMAL,
 				MercCellMouseMoveCallback, MercCellMouseClickCallback);
 			c.pRegion->SetUserPtr(&c);
@@ -1092,31 +1108,12 @@ static void AdjustCellFlagsAfterRender(SOLDIERCELL* const c)
 }
 
 
-// 1366x768: life (bandaged and bleeding under it), breath and morale as 2 px
-// lines under the portrait.
+// 1366x768: the life bar (bandaged and bleeding above the life, the strategic
+// screen's tall bar) in the merc panel's slot right of the portrait, as tall
+// as the portrait. No breath and morale bars: not needed in a resolved battle.
 static void RenderBigCellBars(SOLDIERCELL const* const c)
 {
-	SGPVSurface* const buf = FRAME_BUFFER;
-	INT32 const x = c->xp + 2;
-	INT32 const y = c->yp + AR_BIG_FRAME_H;
-	ColorFillVideoSurfaceArea(buf, c->xp, y, c->xp + AR_BIG_CELL_W, y + AR_BIG_BARS_H, 0);
-
-	SOLDIERTYPE const& s = *c->pSoldier;
-	if (s.bLife == 0) return;
-
-	auto const bar = [&](INT32 const row, INT32 const value, UINT32 const colour1, UINT32 const colour2)
-	{
-		INT32 const len = AR_BIG_PORTRAIT_W * std::clamp(value, 0, 100) / 100;
-		if (len == 0) return;
-		INT32 const by = y + 1 + row * 3;
-		ColorFillVideoSurfaceArea(buf, x, by,     x + len, by + 1, Get16BPPColor(colour1));
-		ColorFillVideoSurfaceArea(buf, x, by + 1, x + len, by + 2, Get16BPPColor(colour2));
-	};
-	bar(0, s.bLifeMax,               FROMRGB(107, 107,  57), FROMRGB(222, 181, 115)); // yellow one for bleeding
-	bar(0, s.bLifeMax - s.bBleeding, FROMRGB(156,  57,  57), FROMRGB(222, 132, 132)); // pink one for bandaged
-	bar(0, s.bLife,                  FROMRGB(107,   8,   8), FROMRGB(206,   0,   0)); // red one for actual health
-	bar(1, s.bBreathMax,             FROMRGB(  8,   8, 132), FROMRGB(  8,   8, 107));
-	bar(2, s.bMorale,                FROMRGB(  8, 156,   8), FROMRGB(  8, 107,   8));
+	DrawSoldierLifeBarTall(*c->pSoldier, c->xp + AR_BIG_BAR_X, c->yp + AR_BIG_PY, AR_BIG_BAR_W, AR_BIG_PORTRAIT_H, FRAME_BUFFER);
 }
 
 
@@ -1130,12 +1127,21 @@ static void RenderBigSoldierCell(SOLDIERCELL* const c)
 	SGPVSurface* const buf = FRAME_BUFFER;
 	INT16        const dx  = c->xp;
 	INT16        const dy  = c->yp;
-	INT16        const px  = dx + 2;
-	INT16        const py  = dy + 2;
+	INT16        const px  = dx + ARPortraitDX(*c);
+	INT16        const py  = dy + AR_BIG_PY;
+	bool         const merc = (c->uiFlags & CELL_MERC) != 0;
 
-	// the frame and the portrait's window
-	ColorFillVideoSurfaceArea(buf, dx, dy, dx + AR_BIG_CELL_W, dy + AR_BIG_FRAME_H, 0);
-	if (c->uiFlags & CELL_MERC) RenderBigCellBars(c);
+	// The panel; an autoresolve.sti with the old small panels: a black box.
+	UINT16 const panel = merc ? MERC_PANEL : OTHER_PANEL;
+	if (gpAR->iPanelImages->SubregionProperties(panel).usHeight >= AR_BIG_PY + AR_BIG_PORTRAIT_H)
+	{
+		BltVideoObject(buf, gpAR->iPanelImages, panel, dx, dy);
+	}
+	else
+	{
+		ColorFillVideoSurfaceArea(buf, dx, dy, dx + (merc ? AR_BIG_MERC_W : AR_BIG_CELL_W), dy + AR_BIG_CELL_H, 0);
+	}
+	if (merc) RenderBigCellBars(c);
 
 	// a smaller picture (the generic faces, the skulls) in the window's middle
 	auto const middled = [&](SGPVObject* const vo, UINT16 const idx)
@@ -2579,7 +2585,7 @@ static void CalculateAutoResolveInfo(void)
 static void CalculateRowsAndColumns(void)
 {
 	if (ARBig())
-	{ // Up to 5 columns a side (the militia under the mercs, in their columns), 5 rows shown.
+	{ // Up to AR_BIG_COLS columns a side (the militia under the mercs, in their columns), AR_BIG_ROWS rows shown.
 		AUTORESOLVE_STRUCT& ar = *gpAR;
 		INT32 const lc = std::clamp<INT32>(std::max(ar.ubMercs, ar.ubCivs), 2, AR_BIG_COLS);
 		INT32 const rc = std::clamp<INT32>(ar.ubEnemies, 2, AR_BIG_COLS);
@@ -2793,18 +2799,15 @@ static void RenderSoldierCellHealth(SOLDIERCELL* pCell)
 	ST::string str;
 	UINT16 usColor;
 
-	// 1366x768: on a black strip over the big portrait's bottom
+	// 1366x768: under the big portrait, on the panel's strip (the panel was
+	// just drawn again: nothing to restore)
 	bool    const big        = ARBig();
 	SGPFont const font       = big ? StrategicGeneralFont() : SMALLCOMPFONT;
-	INT16   const centre     = pCell->xp + (big ? AR_BIG_CELL_W / 2 : 25);
-	INT16   const text_y     = pCell->yp + (big ? 2 + AR_BIG_PORTRAIT_H - 12 : 33);
-	INT16   const retreat_y  = pCell->yp + (big ? 2 + AR_BIG_PORTRAIT_H / 2 : 12);
+	INT16   const centre     = pCell->xp + (big ? ARPortraitDX(*pCell) + AR_BIG_PORTRAIT_W / 2 : 25);
+	INT16   const text_y     = pCell->yp + (!big ? 33 : pCell->uiFlags & CELL_MERC ? AR_BIG_MERC_TEXT_Y : AR_BIG_OTHER_TEXT_Y);
+	INT16   const retreat_y  = pCell->yp + (big ? AR_BIG_PY + AR_BIG_PORTRAIT_H / 2 : 12);
 	SetFont(font);
-	if (big)
-	{
-		ColorFillVideoSurfaceArea(FRAME_BUFFER, pCell->xp + 2, text_y - 1, pCell->xp + 2 + AR_BIG_PORTRAIT_W, pCell->yp + 2 + AR_BIG_PORTRAIT_H, 0);
-	}
-	else
+	if (!big)
 	{
 		//Restore the background before drawing text.
 		xp = pCell->xp +  2;
@@ -2862,7 +2865,7 @@ static void RenderSoldierCellHealth(SOLDIERCELL* pCell)
 		#else
 		pStr = str;
 		#endif
-		usColor = big ? FONT_GRAY2 : FONT_BLACK; // black on the big cell's black strip
+		usColor = FONT_BLACK;
 	}
 
 	//Draw the retreating text, if applicable

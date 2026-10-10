@@ -16,6 +16,9 @@ void DrawSoldierUIBars(SOLDIERTYPE const&, INT16 sXPos, INT16 sYPos, BOOLEAN fEr
 // (left columns life_x/breath_x/morale_x, top row top_y), which are black in
 // the saved background -- erased from it, then drawn into `buffer`.
 void DrawSoldierUIBarsTall(SOLDIERTYPE const&, INT16 life_x, INT16 breath_x, INT16 morale_x, INT16 top_y, INT16 width, INT16 height, SGPVSurface* buffer);
+// Only the tall life bar (life, bandaged, bleeding) of the above, in the same
+// colours; draws over what is there, nothing is restored first.
+void DrawSoldierLifeBarTall(SOLDIERTYPE const&, INT16 x, INT16 top_y, INT16 width, INT16 height, SGPVSurface* buffer);
 
 // sWidth: bar width in pixels; the last column uses sColor2 (shadow), the
 // rest sColor1. The default 2 is the original one-line-plus-shadow bar.
