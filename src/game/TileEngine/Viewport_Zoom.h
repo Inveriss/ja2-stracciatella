@@ -2,8 +2,8 @@
 
 #include "Types.h"
 
-// Tactical viewport zoom (mouse wheel over the viewport): 100%, 125%, 150%
-// and 200%. The world is still rendered into the frame 1:1; a part of the
+// Tactical viewport zoom (mouse wheel over the viewport): from 100% up to
+// 300%, in 10 steps. The world is still rendered into the frame 1:1; a part of the
 // frame (the "crop") is shown scaled onto the viewport when the screen is
 // refreshed -- see VideoSetZoomProvider() in Video.h. Mouse positions are
 // mapped back, so the game keeps working in frame coordinates.
@@ -15,15 +15,16 @@ void InitViewportZoom();
 void ViewportZoomReset();
 
 // The zoom level, in percent: 100 is no zoom.
-UINT16 ViewportZoomPercent();
+double ViewportZoomPercent();
 
 // The viewport is zoomed right now: a level above 100% and nothing that
 // needs the whole viewport 1:1 is open (e.g. a dialogue, the overhead map).
 bool ViewportZoomIsActive();
 
 // One zoom level up (zoomIn) or down, keeping the frame position under the
-// mouse under the mouse. Steps closer to each other than a short delay are
-// ignored, so a touchpad does not run through all the levels at once.
+// mouse under the mouse, and tells the new level in the tactical messages.
+// Steps closer to each other than a short delay are ignored, so a touchpad
+// does not run through all the levels at once.
 void ViewportZoomHandleWheel(bool zoomIn);
 
 // Centers the crop on the tactical map center, i.e. on the render center --
@@ -52,5 +53,5 @@ struct ViewportZoomGeometry
 // percent: above 100. The zone is the full screen width between zoneTop and
 // zoneBottom. The crop is centered on (centerX, centerY), moved inside the
 // zone if that does not fit.
-ViewportZoomGeometry ComputeViewportZoomGeometry(UINT16 percent, UINT16 screenWidth,
+ViewportZoomGeometry ComputeViewportZoomGeometry(double percent, UINT16 screenWidth,
 	UINT16 zoneTop, UINT16 zoneBottom, double centerX, double centerY);

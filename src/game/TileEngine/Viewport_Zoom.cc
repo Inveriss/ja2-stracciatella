@@ -19,13 +19,29 @@
 #include "UILayout.h"
 #include "Video.h"
 
+#include <string_theory/format>
+#include <string_theory/string>
+
 #include <algorithm>
 #include <cmath>
 #include <iterator>
 
 
-// Index 0 is no zoom.
-static UINT16 const g_zoom_levels[] = { 100, 125, 150, 200 };
+// In percent; index 0 is no zoom.
+static struct { double percent; char const* name; } const g_zoom_levels[] =
+{
+	{ 100,         "100%"    },
+	{ 110,         "110%"    },
+	{ 125,         "125%"    },
+	{ 400.0 / 3.0, "133.33%" },
+	{ 150,         "150%"    },
+	{ 160,         "160%"    },
+	{ 175,         "175%"    },
+	{ 200,         "200%"    },
+	{ 225,         "225%"    },
+	{ 250,         "250%"    },
+	{ 300,         "300%"    }
+};
 
 // Wheel steps closer to each other than this are ignored (ms).
 #define ZOOM_STEP_DELAY 90
@@ -39,7 +55,7 @@ static double g_zoom_center_y = -1;
 static UINT32 g_zoom_last_step_time = 0;
 
 
-ViewportZoomGeometry ComputeViewportZoomGeometry(UINT16 const percent, UINT16 const screenWidth,
+ViewportZoomGeometry ComputeViewportZoomGeometry(double const percent, UINT16 const screenWidth,
 	UINT16 const zoneTop, UINT16 const zoneBottom, double const centerX, double const centerY)
 {
 	ViewportZoomGeometry g;
@@ -67,9 +83,9 @@ void ViewportZoomReset()
 }
 
 
-UINT16 ViewportZoomPercent()
+double ViewportZoomPercent()
 {
-	return g_zoom_levels[g_zoom_level];
+	return g_zoom_levels[g_zoom_level].percent;
 }
 
 
@@ -131,7 +147,7 @@ static ViewportZoomGeometry ZoomGeometryAt(UINT8 const level)
 	UINT16 top;
 	UINT16 bottom;
 	GetZoomZone(top, bottom);
-	return ComputeViewportZoomGeometry(g_zoom_levels[level], SCREEN_WIDTH, top, bottom, g_zoom_center_x, g_zoom_center_y);
+	return ComputeViewportZoomGeometry(g_zoom_levels[level].percent, SCREEN_WIDTH, top, bottom, g_zoom_center_x, g_zoom_center_y);
 }
 
 
@@ -195,6 +211,18 @@ void InitViewportZoom()
 }
 
 
+// Tells the new zoom level and how much of the screen it shows: the screen
+// resolution divided by the zoom (e.g. 1280x720 at 150%: 853x480).
+static void ShowZoomMessage()
+{
+	double const percent = g_zoom_levels[g_zoom_level].percent;
+	TacticalReplaceableScreenMsg(FONT_MCOLOR_LTYELLOW, ST::format("Zoom {} - screen resolution: {}x{}",
+		g_zoom_levels[g_zoom_level].name,
+		std::lround(SCREEN_WIDTH  * 100.0 / percent),
+		std::lround(SCREEN_HEIGHT * 100.0 / percent)));
+}
+
+
 void ViewportZoomHandleWheel(bool const zoomIn)
 {
 	if (!ZoomPossible()) return;
@@ -228,6 +256,7 @@ void ViewportZoomHandleWheel(bool const zoomIn)
 	}
 
 	g_zoom_level = level;
+	ShowZoomMessage();
 	if (level == 0) return;
 
 	// ... stays under it.
@@ -298,8 +327,10 @@ void ViewportZoomGetVisibleWorldRect(INT16& left, INT16& top, INT16& right, INT1
 TEST(Viewport_Zoom, GeometryCropSizes)
 {
 	// 1280x720, team panel: zone 1280x600
-	struct { UINT16 percent, w, h; } const levels720[] = {
-		{ 125, 1024, 480 }, { 150, 853, 400 }, { 200, 640, 300 }
+	struct { double percent; UINT16 w, h; } const levels720[] = {
+		{ 110, 1164, 545 }, { 125, 1024, 480 }, { 400.0 / 3.0, 960, 450 }, { 150, 853, 400 },
+		{ 160, 800, 375 }, { 175, 731, 343 }, { 200, 640, 300 }, { 225, 569, 267 },
+		{ 250, 512, 240 }, { 300, 427, 200 }
 	};
 	for (auto const& l : levels720)
 	{
@@ -313,8 +344,9 @@ TEST(Viewport_Zoom, GeometryCropSizes)
 	}
 
 	// 1366x768, inventory panel: zone 1366x571
-	struct { UINT16 percent, w, h; } const levels768[] = {
-		{ 125, 1093, 457 }, { 150, 911, 381 }, { 200, 683, 286 }
+	struct { double percent; UINT16 w, h; } const levels768[] = {
+		{ 125, 1093, 457 }, { 150, 911, 381 }, { 200, 683, 286 },
+		{ 300, 455, 190 }
 	};
 	for (auto const& l : levels768)
 	{
@@ -344,6 +376,15 @@ TEST(Viewport_Zoom, GeometryCentersAndClampsCrop)
 	EXPECT_EQ(g.zone.y, 20);
 	EXPECT_EQ(g.zone.h, 580);
 	EXPECT_EQ(g.crop.y, 20);
+}
+
+TEST(Viewport_Zoom, LevelsGoUpFrom100)
+{
+	EXPECT_EQ(g_zoom_levels[0].percent, 100);
+	for (size_t i = 1; i != std::size(g_zoom_levels); ++i)
+	{
+		EXPECT_GT(g_zoom_levels[i].percent, g_zoom_levels[i - 1].percent);
+	}
 }
 
 #endif
