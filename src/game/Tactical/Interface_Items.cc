@@ -293,18 +293,32 @@ static const SGPBox g_map_itemdesc_item_status_box = { 18,  54,   2, 42 };
 
 // Map screen (ItemInfoC.sti), 1366x768 base with the normal ("small icons")
 // merc inventory only: own copies of every position on the box for
-// non-weapon items (_items) and for money (_money), picked by
-// GetMapItemDescLayout()/PickMapItemDesc() below. Weapons, the other
+// non-weapon items (_items), for money (_money) and for weapons (_weapons),
+// picked by GetMapItemDescLayout()/PickMapItemDesc() below. The other
 // resolutions and "Show Large Icons" keep the shared map ones. This goes for
-// every _items/_money map table in this file. The two layouts have their
-// own backgrounds, iteminfoc_items_1366x768.png and
-// iteminfoc_money_1366x768.png, the same size and arrangement as the
-// tactical Infobox_items.sti/Infobox_money.sti, so the values start out as
-// the tactical ones -- tune independently as needed.
+// every _items/_money/_weapons map table in this file. The layouts have
+// their own backgrounds, iteminfoc_items_1366x768.png,
+// iteminfoc_money_1366x768.png and iteminfoc_weapons_1366x768.png, the same
+// size and arrangement as the tactical Infobox_items.sti/Infobox_money.sti/
+// Infobox.sti, so the values start out as the tactical ones -- tune
+// independently as needed.
 static const SGPBox g_map_itemdesc_desc_box_items        = { 19, 122, 232,  0 }; // iteminfoc_items / description
 static const SGPBox g_map_itemdesc_desc_box_money        = { 19, 122, 334,  0 }; // iteminfoc_money / description
 static const SGPBox g_map_itemdesc_item_status_box_items = { 14,  82,   2, 69 }; // iteminfoc_items / status bar
 static const SGPBox g_map_itemdesc_item_status_box_money = { 14,  82,   2, 69 }; // iteminfoc_money / status bar
+// iteminfoc_weapons_1366x768.png: the size and arrangement of the tactical
+// Infobox.sti, so every _weapons map table starts out as the tactical one.
+static const SGPBox g_map_itemdesc_desc_box_weapons        = { 14,  226, 375, 0 };  // iteminfoc_weapons / description
+static const SGPBox g_map_itemdesc_pros_cons_box_weapons   = { 14, 270, 375, 10 };  // iteminfoc_weapons / pros and cons
+static const SGPBox g_map_itemdesc_item_status_box_weapons = { 156, 115,   2, 69 }; // iteminfoc_weapons / status bar
+// Bullet icons of iteminfoc_weapons: single shot, burst, the decorative row
+// -- the map's counterparts of BULLET_SING_X/Y, BULLET_BURST_X/Y and
+// BULLET_DECOR_X/Y, relative to the box.
+static const SGPPoint g_map_weapons_bullet_sing  = { 435, 42 };
+static const SGPPoint g_map_weapons_bullet_burst = { 458, 88 };
+static const SGPPoint g_map_weapons_bullet_decor = { 431, 71 };
+// "Hide empty attachment slots" checkbox on iteminfoc_weapons itself.
+static const SGPPoint g_map_weapons_hide_empty_slots_checkbox = { 8, 178 };
 
 #define DOTDOTDOT "..."
 #define COMMA_AND_SPACE ", "
@@ -382,14 +396,15 @@ BOOLEAN gfDontChargeAPsToPickup = FALSE;
 static BOOLEAN gbItemPointerLocateGood = FALSE;
 
 // Which set of map-screen (ItemInfoC.sti) positions the open description box
-// uses. The _items/_money sets only exist for the 1366x768 base with the
-// normal ("small icons") merc inventory; everything else -- weapons, other
+// uses. The _items/_money/_weapons sets only exist for the 1366x768 base
+// with the normal ("small icons") merc inventory; everything else -- other
 // resolutions, "Show Large Icons" -- stays on the shared set.
 enum MapItemDescLayout
 {
 	MAP_ITEMDESC_LAYOUT_SHARED,
 	MAP_ITEMDESC_LAYOUT_ITEMS,
-	MAP_ITEMDESC_LAYOUT_MONEY
+	MAP_ITEMDESC_LAYOUT_MONEY,
+	MAP_ITEMDESC_LAYOUT_WEAPONS
 };
 
 // Set once per box in InternalInitItemDescriptionBox(), so the mouse regions
@@ -397,11 +412,12 @@ enum MapItemDescLayout
 // even if "Show Large Icons" is toggled while the box is open.
 static MapItemDescLayout gMapItemDescLayout = MAP_ITEMDESC_LAYOUT_SHARED;
 
-// Backgrounds of the _items/_money layouts, and the money layout's own copy
+// Backgrounds of the _items/_money/_weapons layouts, and the money layout's own copy
 // of info_bil.sti. Without its background a layout is not used at all -- its
 // positions only fit that graphic.
 #define MAP_ITEMDESC_BOX_ITEMS_FILE INTERFACEDIR "/iteminfoc_items_1366x768.png"
 #define MAP_ITEMDESC_BOX_MONEY_FILE INTERFACEDIR "/iteminfoc_money_1366x768.png"
+#define MAP_ITEMDESC_BOX_WEAPONS_FILE INTERFACEDIR "/iteminfoc_weapons_1366x768.png"
 #define MONEY_GRAPHICS_FILE         INTERFACEDIR "/info_bil.sti"
 #define MAP_MONEY_GRAPHICS_FILE     INTERFACEDIR "/info_bil_1366x768.sti"
 
@@ -417,12 +433,13 @@ cache_key_t const guiItemDescBox{ INTERFACEDIR "/infobox.sti" };
 #define MAP_ITEMDESC_BOX_WIDE_FILE INTERFACEDIR "/iteminfoc_wide.sti"
 cache_key_t GetMapItemDescBoxFilename()
 {
-	// 1366x768, normal merc inventory: non-weapon items and money have
-	// their own boxes -- see gMapItemDescLayout
+	// 1366x768, normal merc inventory: non-weapon items, money and weapons
+	// have their own boxes -- see gMapItemDescLayout
 	switch (gMapItemDescLayout)
 	{
 		case MAP_ITEMDESC_LAYOUT_ITEMS: return MAP_ITEMDESC_BOX_ITEMS_FILE;
 		case MAP_ITEMDESC_LAYOUT_MONEY: return MAP_ITEMDESC_BOX_MONEY_FILE;
+		case MAP_ITEMDESC_LAYOUT_WEAPONS: return MAP_ITEMDESC_BOX_WEAPONS_FILE;
 		default: break;
 	}
 	return GetWideStrategicAsset(MAP_ITEMDESC_BOX_WIDE_FILE, MAP_ITEMDESC_BOX_FILE);
@@ -431,8 +448,8 @@ cache_key_t GetMapItemDescBoxFilename()
 // Width actually covered by the map-screen description box: the legacy
 // MAP_ITEMDESC_WIDTH, or the real width of iteminfoc_wide.sti when that one
 // is in use, so the box's background restore and its click-blocking mouse
-// region cover the whole (wider) graphic. The _items/_money boxes are
-// exactly their graphic's size.
+// region cover the whole (wider) graphic. The _items/_money/_weapons boxes
+// are exactly their graphic's size.
 INT16 GetMapItemDescWidth()
 {
 	cache_key_t const box = GetMapItemDescBoxFilename();
@@ -469,17 +486,38 @@ static SGPVObject *guiItemGraphic;
 static UINT8 guiItemGraphicIndex;
 BOOLEAN gfInItemDescBox = FALSE;
 BOOLEAN fHideEmptyAttachmentSlots = FALSE;
+// The same option for the map screen's weapon box (iteminfoc_weapons), with
+// its checkbox on the box itself -- independent of the tactical one, off by
+// default.
+static BOOLEAN      gfMapHideEmptyAttachmentSlots = FALSE;
+static GUIButtonRef giMapHideEmptySlotsCheckbox;
 static UINT32 guiCurrentItemDescriptionScreen=0;
 
 static MapItemDescLayout GetMapItemDescLayout(OBJECTTYPE const& o)
 {
 	if (!g_ui.isExtraWideStrategicScreen() || IsMapInvBigImages()) return MAP_ITEMDESC_LAYOUT_SHARED;
-	if (GCM->getItem(o.usItem)->isWeapon())                        return MAP_ITEMDESC_LAYOUT_SHARED;
 
-	bool        const money = o.usItem == MONEY;
-	cache_key_t const box   = money ? MAP_ITEMDESC_BOX_MONEY_FILE : MAP_ITEMDESC_BOX_ITEMS_FILE;
+	MapItemDescLayout layout = MAP_ITEMDESC_LAYOUT_ITEMS;
+	cache_key_t       box    = MAP_ITEMDESC_BOX_ITEMS_FILE;
+	if (o.usItem == MONEY)
+	{
+		layout = MAP_ITEMDESC_LAYOUT_MONEY;
+		box    = MAP_ITEMDESC_BOX_MONEY_FILE;
+	}
+	else if (GCM->getItem(o.usItem)->isWeapon())
+	{
+		layout = MAP_ITEMDESC_LAYOUT_WEAPONS;
+		box    = MAP_ITEMDESC_BOX_WEAPONS_FILE;
+	}
 	if (FirstUsableInterfaceAsset({ box, MAP_ITEMDESC_BOX_FILE }) != box) return MAP_ITEMDESC_LAYOUT_SHARED;
-	return money ? MAP_ITEMDESC_LAYOUT_MONEY : MAP_ITEMDESC_LAYOUT_ITEMS;
+	return layout;
+}
+
+// The open box is the map screen's own weapon box (iteminfoc_weapons): it
+// shows everything the tactical Infobox.sti does, the tactical way.
+static bool IsMapWeaponBox()
+{
+	return gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_WEAPONS;
 }
 
 // info_bil.sti (money buttons and their frame) of the open description box.
@@ -490,12 +528,13 @@ static cache_key_t GetMoneyGraphicsFilename()
 }
 
 // The map-screen position matching gMapItemDescLayout.
-template<typename T> static T const& PickMapItemDesc(T const& shared, T const& items, T const& money)
+template<typename T> static T const& PickMapItemDesc(T const& shared, T const& items, T const& money, T const& weapons)
 {
 	switch (gMapItemDescLayout)
 	{
 		case MAP_ITEMDESC_LAYOUT_ITEMS: return items;
 		case MAP_ITEMDESC_LAYOUT_MONEY: return money;
+		case MAP_ITEMDESC_LAYOUT_WEAPONS: return weapons;
 		default:                        return shared;
 	}
 }
@@ -645,9 +684,10 @@ static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
 // 1366x768 base, normal merc inventory -- see g_map_itemdesc_desc_box_items above.
 static const SGPBox gMapDescNameBox_Items = { 19, 99, 334, 8 }; // iteminfoc_items / item name, money amount of gold and silver
 static const SGPBox gMapDescNameBox_Money = { 19, 99, 334, 8 }; // iteminfoc_money / item name, total amount
+static const SGPBox gMapDescNameBox_Weapons = { 14, 203, 375, 8 }; // iteminfoc_weapons / item name, calibre and weapon class
 
 // Done button (itemdescdonebutton.sti) of the map screen's box. Only on
-// ItemInfoC.sti: the _items/_money boxes have none, like the tactical ones
+// ItemInfoC.sti: the _items/_money/_weapons boxes have none, like the tactical ones
 // (a click on the box closes it, money has its own Done).
 static const SGPPoint g_map_itemdesc_done_btn = { 204, 107 };
 
@@ -664,6 +704,7 @@ static const SGPBox gDescNameBox_Items = { 19, 99, 334, 8 };  // Infobox_items.s
 static const SGPBox g_desc_item_box_map = { 23, 10, 124, 48 };
 static const SGPBox g_desc_item_box_map_items = { 21, 13, 133, 69 }; // iteminfoc_items / main picture
 static const SGPBox g_desc_item_box_map_money = { 21, 13, 133, 69 }; // iteminfoc_money / main picture
+static const SGPBox g_desc_item_box_map_weapons = { 163,  46, 133, 69 }; // iteminfoc_weapons / main picture, ammo button
 
 // static const SGPBox g_desc_item_box     = { 23, 230, 220, 10 };
 // Main item picture: size and position within the box background. One
@@ -875,6 +916,56 @@ static const INV_DESC_STATS gMapGenericItemStats[] =
 };
 
 
+// iteminfoc_weapons on the map screen, 1366x768 base, normal merc inventory
+// -- the map's counterpart of gWeaponStats, same indices, all of them shown.
+static const INV_DESC_STATS gMapWeaponBoxStats[] =
+{
+	{ 410, 220, 87 },  // Weight
+	{ 410, 204, 87 },  // Status
+	{ 488, 14, 14 },   // Range
+	{ 410, 14, 31 },   // Damage
+	{ 410, 43, 31 },   // AP single
+	{ 426, 72, 15 },   // AP burst
+	{ 446, 43,  0 },   // = single
+	{ 446, 72,  0 },   // = burst
+
+	// The stats the shared map box (gMapWeaponStats) does not show.
+	{ 488,  43, 14 },  // [8]  Ready time
+	{ 410, 264, 87 },  // [9]  Reliability
+	{ 410, 106, 39 },  // [10] Burst penalty
+	{ 410, 280, 87 },  // [11] Repair ease
+	{ 410, 164, 87 },  // [12] Attack volume
+	{ 410, 236, 87 },  // [13] Deadliness
+	{ 410, 176, 87 },  // [14] Hit volume
+	{ 410, 135, 87 },  // [15] Reload AP cost
+
+	// "=" signs for the two other AP-cost stats (Ready time, Reload), same
+	// convention as the existing single/burst-AP "=" signs above (ids[6]/[7]).
+	{ 512,  43,  0 },  // [16] = (Ready time)
+	{ 512,  43,  0 },  // [17] = (Reload AP cost)
+
+	// Purely decorative labels — cosmetic only, no associated value, not
+	// tied to any real stat. Kept translatable via gWeaponStatsDesc[15]/[16].
+	{ 410,  72,  0 },  // [18] "AP:" (decorative)
+	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
+
+	// Combined LASERSCOPE aim bonus + merc's live CROUCH-stance bonus +
+	// merc's live roof/elevation bonus (see GunLaserScopeBonus() +
+	// GunCrouchStanceBonus() + GunRoofBonus()). Label and value always
+	// shown (0 when none apply).
+	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus
+
+	// Combined LASERSCOPE + BIPOD + PRONE stance + roof/elevation aim
+	// bonus (see GunLaserScopeBonus() + GunBipodDisplayBonus() +
+	// GunProneStanceBonus() + GunRoofBonus()). Label and value always shown.
+	{ 14, 26, 48 }, // [21] "Prone:" — Base: + BIPOD display bonus + PRONE stance bonus + roof bonus
+
+	// Standalone SNIPERSCOPE display bonus (see GunSniperScopeDisplayBonus()).
+	// Label and value always shown; never summed with Base:/Prone:.
+	{ 14, 38, 48 }  // [22] "Per Aim:"
+};
+
+
 static const INV_DESC_STATS gMapWeaponStats[] =
 {
 	{  72 - 20,      20 + 80 + 8, 86 },
@@ -961,6 +1052,21 @@ static const AttachmentGfxInfo g_generic_item_attachment_info =
 		// remaining 16 unused -- the loop is capped to 4 for this class
 	}
 };
+// iteminfoc_weapons on the map screen, 1366x768 base, normal merc inventory:
+// the 20 attachment slots of a weapon -- the map's counterpart of
+// g_attachment_info. Their frames are drawn per slot, like on Infobox.sti.
+static const AttachmentGfxInfo g_map_attachment_info_weapons =
+{
+	{ 8, 1, 36, 31 },
+	{ 1, 1,  2, 31 },
+	{
+		{ 155,   8 }, { 204,   8 }, { 252,   8 }, { 350,   8 }, // First row
+		{   8,  65 }, {  57,  65 }, { 106,  65 }, { 301,  46 }, { 301,  84 }, { 350,  65 }, // Second row
+		{ 105, 122 }, { 154, 122 }, { 203, 122 }, { 252, 122 }, { 349, 122 }, // Third row
+		{  57, 160 }, { 106, 160 }, { 154, 160 }, { 252, 160 }, { 301, 160 }, // Fourth row
+	}
+};
+
 // Slots of g_generic_item_attachment_info actually laid out: the only ones
 // drawn and the only ones given a mouse region.
 #define GENERIC_ITEM_ATTACHMENT_SLOTS 4
@@ -2604,6 +2710,16 @@ static void ItemDescDoneButtonCallbackSecondary(GUI_BUTTON* btn, UINT32 reason);
 static void ReloadItemDesc(void);
 
 
+static void ToggleMapHideEmptyAttachmentSlotsCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
+	{
+		// the checkbox has already taken its new state
+		gfMapHideEmptyAttachmentSlots = btn->Clicked();
+	}
+}
+
+
 void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const INT16 sY, const UINT8 ubStatusIndex, SOLDIERTYPE* const s)
 {
 	// Set the current screen
@@ -2625,7 +2741,19 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	{
 		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + GetMapItemDescWidth(), gsInvDescY + GetMapItemDescHeight(), MSYS_PRIORITY_HIGHEST - 2, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
 
-		// No Done button on the _items/_money boxes -- see g_map_itemdesc_done_btn
+		// "Hide empty attachment slots", on the weapon box itself
+		if (IsMapWeaponBox())
+		{
+			SGPPoint const& xy = g_map_weapons_hide_empty_slots_checkbox;
+			giMapHideEmptySlotsCheckbox = CreateCheckBoxButton(
+				gsInvDescX + xy.iX, gsInvDescY + xy.iY,
+				INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", MSYS_PRIORITY_HIGHEST,
+				ToggleMapHideEmptyAttachmentSlotsCallback); // sub-images 0-3, like the tactical one
+			if (gfMapHideEmptyAttachmentSlots) giMapHideEmptySlotsCheckbox->uiFlags |= BUTTON_CLICKED_ON;
+			giMapHideEmptySlotsCheckbox->SetFastHelpText("Hide empty attachment slots");
+		}
+
+		// No Done button on the _items/_money/_weapons boxes -- see g_map_itemdesc_done_btn
 		if (gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_SHARED)
 		{
 			SGPPoint const& done = g_map_itemdesc_done_btn;
@@ -2716,7 +2844,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		giItemDescAmmoButtonImages = ammo_img;
 
 		const INT16         h  = GetDimensionsOfButtonPic(ammo_img)->h;
-		const SGPBox* const xy = (in_map ? &g_desc_item_box_map: &g_desc_item_box);
+		const SGPBox* const xy = (in_map ? &PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money, g_desc_item_box_map_weapons) : &g_desc_item_box);
 		const INT16         x  = gsInvDescX + xy->x;
 		const INT16         y  = gsInvDescY + xy->y + xy->h - h; // align with bottom
 		const INT16         text_col   = ITEMDESC_AMMO_FORE;
@@ -2745,7 +2873,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	if (ITEM_PROS_AND_CONS(o->usItem))
 	{
 		INT16         const pros_cons_indent = std::max(StringPixLength(gzProsLabel, ITEMDESC_FONT), StringPixLength(gzConsLabel, ITEMDESC_FONT)) + 10;
-		const SGPBox* const box              = (in_map ? &g_map_itemdesc_pros_cons_box : &g_itemdesc_pros_cons_box);
+		const SGPBox* const box              = (IsMapWeaponBox() ? &g_map_itemdesc_pros_cons_box_weapons : in_map ? &g_map_itemdesc_pros_cons_box : &g_itemdesc_pros_cons_box);
 		UINT16        const x                = box->x + pros_cons_indent + gsInvDescX;
 		UINT16              y                = box->y                    + gsInvDescY;
 		UINT16        const w                = box->w - pros_cons_indent;
@@ -2783,7 +2911,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		// The map's iteminfoc_items box has the same 4 slots.
 		bool const fGenericItem = !in_map && !GCM->getItem(o->usItem)->isWeapon();
 		const AttachmentGfxInfo* const agi =
-			in_map       ? &PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info) :
+			in_map       ? &PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info, g_map_attachment_info_weapons) :
 			fGenericItem ? &g_generic_item_attachment_info :
 			               &g_attachment_info;
 		INT32 const numAttachmentSlots =
@@ -3270,6 +3398,7 @@ void RenderItemDescriptionBox(void)
 	// RenderButtons() wouldn't necessarily repaint it back the same frame --
 	// making it flicker away to nothing.
 	if (giItemDescAmmoButton) MarkAButtonDirty(giItemDescAmmoButton);
+	if (giMapHideEmptySlotsCheckbox) MarkAButtonDirty(giMapHideEmptySlotsCheckbox);
 
 	ST::string pStr;
 	INT16   usX;
@@ -3292,7 +3421,7 @@ void RenderItemDescriptionBox(void)
 	// gDescNameBox variant for this render pass -- reused by every "item
 	// name" style text below (name, weapon class/ammo line, money amount).
 	SGPBox const& descNameBox =
-		in_map    ? PickMapItemDesc(gMapDescNameBox, gMapDescNameBox_Items, gMapDescNameBox_Money) :
+		in_map    ? PickMapItemDesc(gMapDescNameBox, gMapDescNameBox_Items, gMapDescNameBox_Money, gMapDescNameBox_Weapons) :
 		fIsMoney  ? gDescNameBox_Money :
 		fIsWeapon ? gDescNameBox :
 		            gDescNameBox_Items;
@@ -3319,7 +3448,7 @@ void RenderItemDescriptionBox(void)
 		// center in slot, remove offsets
 		ETRLEObject const& e  = guiItemGraphic->SubregionProperties(guiItemGraphicIndex);
 		SGPBox      const& xy =
-			in_map    ? PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money) :
+			in_map    ? PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money, g_desc_item_box_map_weapons) :
 			fIsMoney  ? g_desc_item_box_money :
 			fIsWeapon ? g_desc_item_box :
 			            g_desc_item_box_items;
@@ -3367,7 +3496,7 @@ void RenderItemDescriptionBox(void)
 
 	{ // Display status
 		SGPBox const& box =
-			in_map    ? PickMapItemDesc(g_map_itemdesc_item_status_box, g_map_itemdesc_item_status_box_items, g_map_itemdesc_item_status_box_money) :
+			in_map    ? PickMapItemDesc(g_map_itemdesc_item_status_box, g_map_itemdesc_item_status_box_items, g_map_itemdesc_item_status_box_money, g_map_itemdesc_item_status_box_weapons) :
 			fIsMoney  ? g_itemdesc_item_status_box_money :
 			fIsWeapon ? g_itemdesc_item_status_box :
 			            g_itemdesc_item_status_box_items;
@@ -3392,7 +3521,7 @@ void RenderItemDescriptionBox(void)
 	{
 		// Display attachments
 		AttachmentGfxInfo const& agi =
-			in_map                 ? PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info) :
+			in_map                 ? PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info, g_map_attachment_info_weapons) :
 			fIsWeapon || fIsMoney  ? g_attachment_info :
 			                         g_generic_item_attachment_info;
 		// Non-weapon, non-money items only have 4 slots laid out in
@@ -3415,7 +3544,10 @@ void RenderItemDescriptionBox(void)
 			// those two graphics stay exactly as they were before this
 			// feature, with no per-slot frame drawn over them at all; only
 			// Infobox.sti (weapons) shows it.
-			if (!in_map && fIsWeapon && (!fHideEmptyAttachmentSlots || fSlotOccupied))
+			// The map's iteminfoc_weapons box has them too, with its own
+			// "hide empty" option (gfMapHideEmptyAttachmentSlots).
+			bool const fHideEmpty = in_map ? gfMapHideEmptyAttachmentSlots : fHideEmptyAttachmentSlots;
+			if ((!in_map || IsMapWeaponBox()) && fIsWeapon && (!fHideEmpty || fSlotOccupied))
 			{
 				BltVideoObject(guiSAVEBUFFER, guiAttachmentSlotFrameVO, 0, x, y);
 			}
@@ -3451,16 +3583,16 @@ void RenderItemDescriptionBox(void)
 	{
 		// display bullets for ROF
 		{
-			INT32 const x = in_map ? MAP_BULLET_SING_X : BULLET_SING_X;
-			INT32 const y = in_map ? MAP_BULLET_SING_Y : BULLET_SING_Y;
+			INT32 const x = IsMapWeaponBox() ? dx + g_map_weapons_bullet_sing.iX : in_map ? MAP_BULLET_SING_X : BULLET_SING_X;
+			INT32 const y = IsMapWeaponBox() ? dy + g_map_weapons_bullet_sing.iY : in_map ? MAP_BULLET_SING_Y : BULLET_SING_Y;
 			BltVideoObject(guiSAVEBUFFER, guiBullet, 0, x, y);
 		}
 
 		const WeaponModel * w = GCM->getWeapon(obj.usItem);
 		if (w->ubShotsPerShortBurst > 0)
 		{
-			INT32       x = in_map ? MAP_BULLET_BURST_X : BULLET_BURST_X;
-			INT32 const y = in_map ? MAP_BULLET_BURST_Y : BULLET_BURST_Y;
+			INT32       x = IsMapWeaponBox() ? dx + g_map_weapons_bullet_burst.iX : in_map ? MAP_BULLET_BURST_X : BULLET_BURST_X;
+			INT32 const y = IsMapWeaponBox() ? dy + g_map_weapons_bullet_burst.iY : in_map ? MAP_BULLET_BURST_Y : BULLET_BURST_Y;
 			// the item description shows the short burst, see docs/burst-modes.md
 			for (INT32 i = GunShotsPerBurst(obj, WM_BURST_SHORT); i != 0; --i)
 			{
@@ -3469,14 +3601,14 @@ void RenderItemDescriptionBox(void)
 			}
 		}
 
-		if (!in_map && w->ubShotsPerShortBurst > 0)
+		if ((!in_map || IsMapWeaponBox()) && w->ubShotsPerShortBurst > 0)
 		{
 			// Purely decorative: always exactly 3 bullet icons, regardless of
 			// the weapon's actual burst size — cosmetic only. Shown under the
 			// same condition as the real burst bullets/stats above: only for
 			// weapons that have a burst mode at all.
-			INT32 x = BULLET_DECOR_X;
-			INT32 const y = BULLET_DECOR_Y;
+			INT32 x = IsMapWeaponBox() ? dx + g_map_weapons_bullet_decor.iX : BULLET_DECOR_X;
+			INT32 const y = IsMapWeaponBox() ? dy + g_map_weapons_bullet_decor.iY : BULLET_DECOR_Y;
 			for (INT32 i = 0; i < 3; ++i)
 			{
 				BltVideoObject(guiSAVEBUFFER, guiBullet, 0, x, y);
@@ -3517,7 +3649,7 @@ void RenderItemDescriptionBox(void)
 	{
 		// Weapon description text: same font colour as the weapon name above.
 		SGPBox const& box =
-			in_map    ? PickMapItemDesc(g_map_itemdesc_desc_box, g_map_itemdesc_desc_box_items, g_map_itemdesc_desc_box_money) :
+			in_map    ? PickMapItemDesc(g_map_itemdesc_desc_box, g_map_itemdesc_desc_box_items, g_map_itemdesc_desc_box_money, g_map_itemdesc_desc_box_weapons) :
 			fIsMoney  ? g_itemdesc_desc_box_money :
 			fIsWeapon ? g_itemdesc_desc_box :
 			            g_itemdesc_desc_box_items;
@@ -3552,7 +3684,7 @@ void RenderItemDescriptionBox(void)
 		}
 
 		{
-			SGPBox const& box = in_map ? g_map_itemdesc_pros_cons_box : g_itemdesc_pros_cons_box;
+			SGPBox const& box = IsMapWeaponBox() ? g_map_itemdesc_pros_cons_box_weapons : in_map ? g_map_itemdesc_pros_cons_box : g_itemdesc_pros_cons_box;
 			INT32         x   = box.x + dx;
 			INT32  const  y   = box.y + dy;
 			INT32         w   = box.w;
@@ -3592,7 +3724,10 @@ void RenderItemDescriptionBox(void)
 	{
 		SetFontForeground(6);
 
-		INV_DESC_STATS const* const ids = in_map ? gMapWeaponStats : gWeaponStats;
+		INV_DESC_STATS const* const ids =
+			IsMapWeaponBox() ? gMapWeaponBoxStats :
+			in_map           ? gMapWeaponStats :
+			                   gWeaponStats;
 
 		//LABELS
 		MPrint(dx + ids[0].sX, dy + ids[0].sY, st_format_printf(gWeaponStatsDesc[0], GetWeightUnitString())); // mass
@@ -3664,7 +3799,7 @@ void RenderItemDescriptionBox(void)
 			MPrint(usX, usY, pStr);
 		}
 
-		if (!in_map)
+		if (!in_map || IsMapWeaponBox())
 		{
 			// Previously-hidden stats (ubReadyTime, ubBurstPenalty, ubAttackVolume,
 			// ubHitVolume, ubDeadliness, bReliability, bRepairEase) plus the actual
@@ -4124,6 +4259,7 @@ void DeleteItemDescriptionBox( )
 	if( guiCurrentItemDescriptionScreen == MAP_SCREEN )
 	{
 		if (giMapInvDescButton) RemoveButton( giMapInvDescButton );
+		if (giMapHideEmptySlotsCheckbox) RemoveButton(giMapHideEmptySlotsCheckbox);
 
 		// The sector-inventory panel's own transfer buttons
 		// (MapInventoryPoolMoveToSectorBtn()/-ToMercBtn(), Map_Screen_
@@ -5664,7 +5800,7 @@ static void ItemDescCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 	if (gpItemPointer)
 	{
 		BOOLEAN const in_map = (guiCurrentItemDescriptionScreen == MAP_SCREEN);
-		SGPBox const& xy = in_map ? g_desc_item_box_map : g_desc_item_box;
+		SGPBox const& xy = in_map ? PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money, g_desc_item_box_map_weapons) : g_desc_item_box;
 		BOOLEAN const fOverMainPicture =
 			gusMouseXPos >= gsInvDescX + xy.x && gusMouseXPos < gsInvDescX + xy.x + xy.w &&
 			gusMouseYPos >= gsInvDescY + xy.y && gusMouseYPos < gsInvDescY + xy.y + xy.h;
