@@ -903,6 +903,9 @@ static const AttachmentGfxInfo g_generic_item_attachment_info =
 		// remaining 16 unused -- the loop is capped to 4 for this class
 	}
 };
+// Slots of g_generic_item_attachment_info actually laid out: the only ones
+// drawn and the only ones given a mouse region.
+#define GENERIC_ITEM_ATTACHMENT_SLOTS 4
 
 
 static BOOLEAN gfItemDescHelpTextOffset = FALSE;
@@ -2712,8 +2715,16 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 
 	if (o->usItem != MONEY)
 	{
-		const AttachmentGfxInfo* const agi = (in_map ? &PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info) : &g_attachment_info);
-		for (INT32 i = 0; i < MAX_ATTACHMENTS; ++i)
+		// Same table and slot count as RenderItemDescriptionBox() draws, so
+		// the regions sit on the slots: on the tactical screen non-weapon
+		// items have their own 4-slot layout (Infobox_items.sti).
+		bool const fGenericItem = !in_map && !GCM->getItem(o->usItem)->isWeapon();
+		const AttachmentGfxInfo* const agi =
+			in_map       ? &PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info) :
+			fGenericItem ? &g_generic_item_attachment_info :
+			               &g_attachment_info;
+		INT32 const numAttachmentSlots = fGenericItem ? GENERIC_ITEM_ATTACHMENT_SLOTS : MAX_ATTACHMENTS;
+		for (INT32 i = 0; i < numAttachmentSlots; ++i)
 		{
 			// Build a mouse region here that is over any others.....
 			const UINT16        x = agi->item_box.x + agi->slot[i].iX + gsInvDescX;
@@ -3316,7 +3327,7 @@ void RenderItemDescriptionBox(void)
 		// g_generic_item_attachment_info -- the rest of its slot[] array is
 		// unused placeholder data.
 		INT32 const numAttachmentSlots =
-			(!in_map && !fIsWeapon && !fIsMoney) ? 4 : MAX_ATTACHMENTS;
+			(!in_map && !fIsWeapon && !fIsMoney) ? GENERIC_ITEM_ATTACHMENT_SLOTS : MAX_ATTACHMENTS;
 		for (INT32 i = 0; i < numAttachmentSlots; ++i)
 		{
 			INT16 const x = dx + agi.slot[i].iX;
@@ -4058,6 +4069,9 @@ void DeleteItemDescriptionBox( )
 	{
 		for ( cnt = 0; cnt < MAX_ATTACHMENTS; cnt++ )
 		{
+			// Non-weapon items on the tactical screen only get regions for
+			// their GENERIC_ITEM_ATTACHMENT_SLOTS slots.
+			if (!(gItemDescAttachmentRegions[cnt].uiFlags & MSYS_REGION_EXISTS)) continue;
 			MSYS_RemoveRegion( &gItemDescAttachmentRegions[cnt]);
 		}
 	}
