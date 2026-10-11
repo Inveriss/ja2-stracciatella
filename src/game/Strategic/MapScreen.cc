@@ -2695,7 +2695,8 @@ ScreenID MapScreenHandle(void)
 		if (giMapInvBigImagesButton) UnMarkButtonDirty(giMapInvBigImagesButton);
 		//UnMarkButtonDirty( giCharInfoButton[ 0 ] );
 		//UnMarkButtonDirty( giCharInfoButton[ 1 ] );
-		MarkAButtonDirty( giMapInvDescButton );
+		// none on the 1366x768 item / money boxes
+		if (giMapInvDescButton) MarkAButtonDirty( giMapInvDescButton );
 	}
 	else
 	{
