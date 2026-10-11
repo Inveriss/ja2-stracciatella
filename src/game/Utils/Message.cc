@@ -32,6 +32,7 @@ struct ScrollStringSt
 	VIDEO_OVERLAY* video_overlay;
 	UINT16  usColor;
 	BOOLEAN fBeginningOfNewString;
+	bool    fReplaceable; // see TacticalReplaceableScreenMsg()
 	UINT32  uiTimeOfLastUpdate;
 	ScrollStringSt* pNext;
 };
@@ -333,6 +334,48 @@ void ScreenMsg(UINT16 usColor, UINT8 ubPriority, const ST::string& str)
 	{
 		fOkToBeepNewMessage = TRUE;
 	}
+}
+
+
+void TacticalReplaceableScreenMsg(UINT16 const colour, const ST::string& str)
+{
+	if (IsTimeBeingCompressed()) return;
+
+	// Shown now: change it where it is, and let it stay for its full time again.
+	for (UINT32 cnt = 0; cnt < MAX_LINE_COUNT; cnt++)
+	{
+		ScrollStringSt* const s = gpDisplayList[cnt];
+		if (s == NULL || !s->fReplaceable) continue;
+
+		s->pString            = str;
+		s->usColor            = colour;
+		s->uiTimeOfLastUpdate = GetJA2Clock();
+		if (s->video_overlay != NULL)
+		{
+			// The overlay has the size of its text.
+			INT16   const x        = s->video_overlay->sX;
+			INT16   const y        = s->video_overlay->sY;
+			BOOLEAN const disabled = s->video_overlay->fDisabled;
+			RemoveStringVideoOverlay(s);
+			s->video_overlay = RegisterVideoOverlay(BlitString, x, y, TINYFONT1, colour, FONT_MCOLOR_BLACK, str);
+			if (disabled && s->video_overlay != NULL) EnableVideoOverlay(FALSE, s->video_overlay);
+		}
+		return;
+	}
+
+	// Waiting to be shown: change it there.
+	ScrollStringSt** anchor = &pStringS;
+	for (; *anchor; anchor = &(*anchor)->pNext)
+	{
+		if (!(*anchor)->fReplaceable) continue;
+		(*anchor)->pString = str;
+		(*anchor)->usColor = colour;
+		return;
+	}
+
+	ScrollStringSt* const tmp = AddString(str, colour, TRUE);
+	tmp->fReplaceable = true;
+	*anchor = tmp;
 }
 
 

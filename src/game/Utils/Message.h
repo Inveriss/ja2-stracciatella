@@ -32,6 +32,12 @@ void ScreenMsg(UINT16 usColor, UINT8 ubPriority, const ST::string& str);
 // The screen boxes of the tactical scroll messages shown now, at most `max`.
 UINT8 GetTacticalMessageBoxes(SGPBox* boxes, UINT8 max);
 
+// A one-line message in the tactical scroll messages only (not in the map
+// screen's message history) that replaces the previous one of its kind still
+// shown or waiting, instead of adding a line -- for a state that changes in
+// quick steps, like the viewport zoom.
+void TacticalReplaceableScreenMsg(UINT16 colour, const ST::string& str);
+
 // same as screen message, but only display to mapscreen message system, not tactical
 void MapScreenMessage(UINT16 usColor, UINT8 ubPriority, const ST::string& str);
 

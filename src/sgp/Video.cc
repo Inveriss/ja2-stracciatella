@@ -16,6 +16,7 @@
 #include "Input.h"
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <stdexcept>
 #include <string>
 
@@ -339,6 +340,34 @@ static bool EnsureZoomTexture(int const w, int const h)
 }
 
 
+// By how much the zoomed part is enlarged with no filtering before it is
+// scaled smoothly onto the screen. That last step has to scale down, or it
+// blurs: at least as much as the zoom times the window's scale (e.g. 300% in
+// a window 1.5 times the frame: 5), within what a texture can hold.
+static int ZoomOversampling(SDL_Rect const& src, SDL_Rect const& dst)
+{
+	int outW;
+	int outH;
+	if (SDL_GetRendererOutputSize(GameRenderer, &outW, &outH) != 0) return OVERSAMPLING_SCALE;
+
+	// The part of the frame filling the output: all of it, or the stretch region.
+	SGPBox const region = g_stretch_to_fill ? VideoGetStretchRegion() : SGPBox{ 0, 0, (UINT16)SCREEN_WIDTH, (UINT16)SCREEN_HEIGHT };
+	double const scale  = std::max(
+		double(dst.w) / src.w * outW / region.w,
+		double(dst.h) / src.h * outH / region.h);
+
+	SDL_RendererInfo info;
+	int maxSize = 8192;
+	if (SDL_GetRendererInfo(GameRenderer, &info) == 0 && info.max_texture_width > 0 && info.max_texture_height > 0)
+	{
+		maxSize = std::min({ maxSize, info.max_texture_width, info.max_texture_height });
+	}
+	int const most = std::max(1, std::min(maxSize / src.w, maxSize / src.h));
+
+	return std::clamp((int)std::ceil(scale), std::min(OVERSAMPLING_SCALE, most), std::min(8, most));
+}
+
+
 // Draws the zoomed part of the frame, the boxes kept 1:1 inside it, and the
 // mouse cursor (not zoomed, at the real mouse position) over the frame
 // already drawn 1:1 onto the current render target. `scale` is that target's
@@ -358,9 +387,9 @@ static void RenderZoom(int const scale, SDL_Rect const& cursorSrc, SGPPoint cons
 		// The target is oversampled already, and is scaled smoothly itself.
 		SDL_RenderCopy(GameRenderer, ScreenTexture, &src, &dst);
 	}
-	else if (EnsureZoomTexture(src.w * OVERSAMPLING_SCALE, src.h * OVERSAMPLING_SCALE))
+	else if (int const n = ZoomOversampling(src, dst); EnsureZoomTexture(src.w * n, src.h * n))
 	{
-		SDL_Rect const big = { 0, 0, src.w * OVERSAMPLING_SCALE, src.h * OVERSAMPLING_SCALE };
+		SDL_Rect const big = { 0, 0, src.w * n, src.h * n };
 		SDL_SetRenderTarget(GameRenderer, ZoomTexture);
 		SDL_RenderCopy(GameRenderer, ScreenTexture, &src, &big);
 		SDL_SetRenderTarget(GameRenderer, nullptr);
