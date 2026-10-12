@@ -103,6 +103,10 @@ extern OBJECTTYPE* gpItemDescObject;
 extern BOOLEAN fHideEmptyAttachmentSlots;
 
 BOOLEAN InItemDescriptionBox(void);
+// Right edge (screen X) of the map screen's big weapon box
+// (iteminfoc_weapons_big_1366x768.png) while it is open, else 0. The box
+// reaches down over the left part of map_screen_bottom's strip.
+INT16 MapBigItemDescBoxRight(void);
 void InitItemDescriptionBox(SOLDIERTYPE* pSoldier, UINT8 ubPosition, INT16 sX, INT16 sY, UINT8 ubStatusIndex);
 void InternalInitItemDescriptionBox(OBJECTTYPE* pObject, INT16 sX, INT16 sY, UINT8 ubStatusIndex, SOLDIERTYPE* pSoldier);
 void InitKeyItemDescriptionBox(SOLDIERTYPE* pSoldier, UINT8 ubPosition, INT16 sX, INT16 sY);

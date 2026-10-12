@@ -732,6 +732,25 @@
     "gzInfoboxSkillsStrings": [
         "Skills"
     ],
+    "gzMapBigWeaponBoxStrings": [
+        "BALLISTICS",
+        "MAINTENANCE",
+        "Fire Power",
+        "Single AP",
+        "Burst AP",
+        "Loudness",
+        "Physical",
+        "Handling",
+        "Valuation",
+        "Short:",
+        "Long:",
+        "Full:",
+        "Recoil Prone:",
+        "Unjam:",
+        "Value:",
+        "Rounds:",
+        "Up to %d"
+    ],
     "gzLockPickingDescription": [
         "",
         "",

@@ -368,7 +368,11 @@ static void RestoreBottomStripUnderBigInvPanel(void)
 // will render the map screen bottom interface
 void RenderMapScreenInterfaceBottom( void )
 {
-	bool const fCoveredByBigInvPanel = MapInvBigPanelCoversBottomStrip();
+	// The big weapon description box (iteminfoc_weapons_big_1366x768.png,
+	// Interface_Items.cc) reaches down over the same part of the strip, a
+	// little further right, with or without the merc inventory panel under it.
+	INT16 const desc_box_right = MapBigItemDescBoxRight();
+	bool const fCoveredByBigInvPanel = MapInvBigPanelCoversBottomStrip() || desc_box_right != 0;
 	if (fCoveredByBigInvPanel) gfBottomStripUnderBigInvPanel = TRUE;
 
 	// The sector-inventory panel (SECTOR_INVENTORY_FIRST_1024.sti/
@@ -486,7 +490,7 @@ void RenderMapScreenInterfaceBottom( void )
 	// rest of the strip by BlitBackgroundToSaveBuffer() (MapScreen.cc).
 	if (fCoveredByBigInvPanel)
 	{
-		INT16 const panel_right = MAP_SCREEN_X + MAP_INV_BIG_PANEL_WIDTH;
+		INT16 const panel_right = std::max<INT16>(MAP_SCREEN_X + MAP_INV_BIG_PANEL_WIDTH, desc_box_right);
 		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_UP]);
 		HideButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
 		ShowTeamListScrollButtons(false);
