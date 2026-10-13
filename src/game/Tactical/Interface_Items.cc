@@ -1032,9 +1032,9 @@ static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 // Texts only iteminfoc_weapons_big shows -- indexes gzMapBigWeaponBoxStrings.
 enum
 {
-	BIGW_TXT_BALLISTICS = 0, // headers, FONT14HUMANIST, the colour of the stat labels
+	BIGW_TXT_BALLISTICS = 0, // headers, FONT14HUMANIST, the colour of the stat values
 	BIGW_TXT_MAINTENANCE,
-	BIGW_TXT_FIRE_POWER,     // section titles, FONT14ARIAL, the colour of the stat values
+	BIGW_TXT_FIRE_POWER,     // section titles, FONT14ARIAL, the colour of the stat labels
 	BIGW_TXT_SINGLE_AP,
 	BIGW_TXT_BURST_AP,
 	BIGW_TXT_LOUDNESS,
@@ -1059,7 +1059,7 @@ enum
 static const SGPBox gMapBigWeaponBoxTitles[NUM_BIGW_TXT_TITLES] =
 {
 	/* BIGW_TXT_BALLISTICS  */ { 294, 330, 276, 22 },
-	/* BIGW_TXT_MAINTENANCE */ {  26, 368, 226, 24 },
+	/* BIGW_TXT_MAINTENANCE */ {  26, 367, 226, 24 },
 	/* BIGW_TXT_FIRE_POWER  */ { 294, 368, 128, 23 },
 	/* BIGW_TXT_SINGLE_AP   */ { 294, 430, 128, 23 },
 	/* BIGW_TXT_BURST_AP    */ { 438, 368, 132, 23 },
@@ -3597,11 +3597,11 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 		MPrint(x, y, value);
 	};
 
-	SetFontAttributes(FONT14HUMANIST, MAP_BIG_WEAPON_LABEL_COLOUR);
+	SetFontAttributes(FONT14HUMANIST, MAP_BIG_WEAPON_VALUE_COLOUR);
 	title(BIGW_TXT_BALLISTICS,  FONT14HUMANIST);
 	title(BIGW_TXT_MAINTENANCE, FONT14HUMANIST);
 
-	SetFontAttributes(FONT14ARIAL, MAP_BIG_WEAPON_VALUE_COLOUR);
+	SetFontAttributes(FONT14ARIAL, MAP_BIG_WEAPON_LABEL_COLOUR);
 	for (INT32 i = BIGW_TXT_FIRE_POWER; i <= BIGW_TXT_VALUATION; ++i) title(i, FONT14ARIAL);
 
 	SetFontAttributes(FONT12ARIAL, MAP_BIG_WEAPON_LABEL_COLOUR);
