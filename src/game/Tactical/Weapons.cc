@@ -287,13 +287,13 @@ INT8 GunProneStanceBonus(SOLDIERTYPE const* const s)
 }
 
 
-UINT8 GunProneRecoil(OBJECTTYPE const& o)
+UINT8 GunProneBurstPenalty(OBJECTTYPE const& o)
 {
 	// Display only, like the bonuses above: the burst penalty less what
 	// only helps when prone -- the bipod and the stance itself (whatever
 	// the merc's stance is right now).
-	INT16 const recoil = GCM->getWeapon(o.usItem)->ubBurstPenalty - GunBipodDisplayBonus(o) - PRONE_STANCE_DISPLAY_BONUS;
-	return recoil > 0 ? recoil : 0;
+	INT16 const penalty = GCM->getWeapon(o.usItem)->ubBurstPenalty - GunBipodDisplayBonus(o) - PRONE_STANCE_DISPLAY_BONUS;
+	return penalty > 0 ? penalty : 0;
 }
 
 

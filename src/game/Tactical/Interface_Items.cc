@@ -327,9 +327,9 @@ static const SGPPoint g_map_weapons_hide_empty_slots_checkbox = { 8, 178 };
 static const SGPBox g_map_itemdesc_desc_box_weapons_big        = { 14,  226, 375, 0 };  // iteminfoc_weapons_big / description
 static const SGPBox g_map_itemdesc_pros_cons_box_weapons_big   = { 14, 270, 375, 10 };  // iteminfoc_weapons_big / pros and cons
 static const SGPBox g_map_itemdesc_item_status_box_weapons_big = { 156, 115,   2, 69 }; // iteminfoc_weapons_big / status bar
-static const SGPPoint g_map_weapons_big_bullet_sing  = { 435, 42 };
-static const SGPPoint g_map_weapons_big_bullet_burst = { 458, 88 };
-static const SGPPoint g_map_weapons_big_bullet_decor = { 431, 71 };
+// The bullet icon of "AP:" in the Single AP field. The box has no burst or
+// decorative bullets: Short / Long / Full have their own rounds.
+static const SGPPoint g_map_weapons_big_bullet_sing  = { 321, 463 };
 
 #define DOTDOTDOT "..."
 #define COMMA_AND_SPACE ", "
@@ -717,7 +717,7 @@ static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
 static const SGPBox gMapDescNameBox_Items = { 19, 99, 334, 8 }; // iteminfoc_items / item name, money amount of gold and silver
 static const SGPBox gMapDescNameBox_Money = { 19, 99, 334, 8 }; // iteminfoc_money / item name, total amount
 static const SGPBox gMapDescNameBox_Weapons = { 14, 203, 375, 8 }; // iteminfoc_weapons / item name, calibre and weapon class
-static const SGPBox gMapDescNameBox_Weapons_Big = { 14, 203, 375, 8 }; // iteminfoc_weapons_big / item name, calibre and weapon class
+static const SGPBox gMapDescNameBox_Weapons_Big = { 24, 326, 230, 12 }; // iteminfoc_weapons_big / item name, calibre and weapon class (FONT12ARIAL)
 
 // Done button (itemdescdonebutton.sti) of the map screen's box. Only on
 // ItemInfoC.sti: the _items/_money/_weapons boxes have none, like the tactical ones
@@ -999,88 +999,95 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 	{ 14, 38, 48 }  // [22] "Per Aim:"
 };
 
-// iteminfoc_weapons_big -- placeholder copy of gMapWeaponBoxStats, same indices.
+// iteminfoc_weapons_big -- the map's counterpart of gWeaponStats, same
+// indices, laid out in the fields of the graphic's sections (FONT12ARIAL).
+// The right edge of a value is sX + sValDx + ITEM_STATS_WIDTH.
 static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 {
-	{ 410, 220, 87 },  // Weight
-	{ 410, 204, 87 },  // Status
-	{ 488, 14, 14 },   // Range
-	{ 410, 14, 31 },   // Damage
-	{ 410, 43, 31 },   // AP single
-	{ 426, 72, 15 },   // AP burst
-	{ 446, 43,  0 },   // = single
-	{ 446, 72,  0 },   // = burst
-	{ 488,  43, 14 },  // [8]  Ready time
-	{ 410, 264, 87 },  // [9]  Reliability
-	{ 410, 106, 39 },  // [10] Burst penalty
-	{ 410, 280, 87 },  // [11] Repair ease
-	{ 410, 164, 87 },  // [12] Attack volume
-	{ 410, 236, 87 },  // [13] Deadliness
-	{ 410, 176, 87 },  // [14] Hit volume
-	{ 410, 135, 87 },  // [15] Reload AP cost
-	{ 512,  43,  0 },  // [16] = (Ready time)
-	{ 512,  43,  0 },  // [17] = (Reload AP cost)
-	{ 410,  72,  0 },  // [18] "AP:" (decorative)
-	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
-	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus
-	{ 14, 26, 48 }, // [21] "Prone:" — Base: + BIPOD display bonus + PRONE stance bonus + roof bonus
-	{ 14, 38, 48 }  // [22] "Per Aim:"
+	{  30, 453, 71 },  // [0]  Weight        -- Physical
+	{  30, 438, 71 },  // [1]  Status        -- Physical
+	{ 362, 400, 30 },  // [2]  Range         -- Fire Power
+	{ 298, 400, 28 },  // [3]  Damage        -- Fire Power
+	{ 298, 462, 28 },  // [4]  AP single     -- Single AP
+	{   0,   0,  0 },  // [5]  AP burst: not on this box, see Short / Long / Full
+	{ 328, 462,  0 },  // [6]  = single      -- Single AP
+	{   0,   0,  0 },  // [7]  = burst: not on this box
+	{ 362, 462, 30 },  // [8]  Ready time    -- Single AP
+	{ 151, 483, 71 },  // [9]  Reliability   -- Handling
+	{ 442, 448, 98 },  // [10] Burst penalty -- Burst AP
+	{ 151, 468, 71 },  // [11] Repair ease   -- Handling
+	{ 298, 524, 94 },  // [12] Attack volume -- Loudness
+	{  30, 523, 71 },  // [13] Deadliness    -- Valuation
+	{ 298, 539, 94 },  // [14] Hit volume    -- Loudness
+	{ 151, 438, 71 },  // [15] Reload AP cost -- Handling
+	{ 402, 462,  0 },  // [16] = (Ready time) -- Single AP
+	{ 402, 462,  0 },  // [17] = (Reload AP cost): on [16], like on the other boxes
+	{   0,   0,  0 },  // [18] "AP:" (decorative): not on this box
+	{   0,   0,  0 },  // [19] "Rounds" (decorative): not on this box
+	{  24,  16, 96 },  // [20] "Base:"
+	{  24,  30, 96 },  // [21] "Prone:"
+	{  24,  44, 96 }   // [22] "Per Aim:"
 };
 
-// Texts only iteminfoc_weapons_big shows -- indexes both
-// gzMapBigWeaponBoxStrings and gMapBigWeaponBoxTexts.
+// Texts only iteminfoc_weapons_big shows -- indexes gzMapBigWeaponBoxStrings.
 enum
 {
-	BIGW_TXT_BALLISTICS = 0, // headers, FONT14HUMANIST, beige
+	BIGW_TXT_BALLISTICS = 0, // headers, FONT14HUMANIST, the colour of the stat labels
 	BIGW_TXT_MAINTENANCE,
-	BIGW_TXT_FIRE_POWER,     // section titles, FONT14ARIAL, white
+	BIGW_TXT_FIRE_POWER,     // section titles, FONT14ARIAL, the colour of the stat values
 	BIGW_TXT_SINGLE_AP,
 	BIGW_TXT_BURST_AP,
 	BIGW_TXT_LOUDNESS,
 	BIGW_TXT_PHYSICAL,
 	BIGW_TXT_HANDLING,
 	BIGW_TXT_VALUATION,
-	BIGW_TXT_SHORT,          // labels with a value, FONT12ARIAL, white
+	NUM_BIGW_TXT_TITLES,
+
+	BIGW_TXT_SHORT = NUM_BIGW_TXT_TITLES, // labels with a value, FONT12ARIAL
 	BIGW_TXT_LONG,
 	BIGW_TXT_FULL,
-	BIGW_TXT_RECOIL_PRONE,
+	BIGW_TXT_BRST_PEN_PRONE,
 	BIGW_TXT_UNJAM,
 	BIGW_TXT_VALUE,
-	NUM_BIGW_TXT_COORDS,
+	NUM_BIGW_TXT_VALUES_END,
 
-	BIGW_TXT_ROUNDS = NUM_BIGW_TXT_COORDS, // "Rounds:", next to Short / Long / Full
-	BIGW_TXT_UP_TO                         // "Up to %d", the rounds of Full
+	BIGW_TXT_ROUNDS = NUM_BIGW_TXT_VALUES_END, // "Rounds:", next to Short / Long / Full
+	BIGW_TXT_UP_TO                             // "Up to %d", the rounds of Full
+};
+
+// The bars of the graphic the headers and section titles are centred in.
+static const SGPBox gMapBigWeaponBoxTitles[NUM_BIGW_TXT_TITLES] =
+{
+	/* BIGW_TXT_BALLISTICS  */ { 294, 328, 276, 22 },
+	/* BIGW_TXT_MAINTENANCE */ {  26, 366, 226, 24 },
+	/* BIGW_TXT_FIRE_POWER  */ { 294, 367, 128, 23 },
+	/* BIGW_TXT_SINGLE_AP   */ { 294, 429, 128, 23 },
+	/* BIGW_TXT_BURST_AP    */ { 438, 367, 132, 23 },
+	/* BIGW_TXT_LOUDNESS    */ { 294, 491, 128, 23 },
+	/* BIGW_TXT_PHYSICAL    */ {  26, 405, 105, 23 },
+	/* BIGW_TXT_HANDLING    */ { 147, 405, 105, 23 },
+	/* BIGW_TXT_VALUATION   */ {  26, 490, 105, 23 },
 };
 
 // Label position (sX, sY) and the distance to the right-aligned value
-// (sValDx, unused by the headers and section titles). Placeholders.
-static const INV_DESC_STATS gMapBigWeaponBoxTexts[NUM_BIGW_TXT_COORDS] =
+// (sValDx), like gMapBigWeaponBoxStats. Indexed from BIGW_TXT_SHORT.
+static const INV_DESC_STATS gMapBigWeaponBoxTexts[NUM_BIGW_TXT_VALUES_END - BIGW_TXT_SHORT] =
 {
-	/* BIGW_TXT_BALLISTICS   */ {  22, 315,  0 },
-	/* BIGW_TXT_MAINTENANCE  */ { 305, 341,  0 },
-	/* BIGW_TXT_FIRE_POWER   */ {  22, 349,  0 },
-	/* BIGW_TXT_SINGLE_AP    */ {  22, 402,  0 },
-	/* BIGW_TXT_BURST_AP     */ {  22, 454,  0 },
-	/* BIGW_TXT_LOUDNESS     */ {  22, 576,  0 },
-	/* BIGW_TXT_PHYSICAL     */ { 305, 376,  0 },
-	/* BIGW_TXT_HANDLING     */ { 305, 446,  0 },
-	/* BIGW_TXT_VALUATION    */ { 305, 549,  0 },
-	/* BIGW_TXT_SHORT        */ {  22, 480, 20 },
-	/* BIGW_TXT_LONG         */ {  22, 496, 20 },
-	/* BIGW_TXT_FULL         */ {  22, 512, 20 },
-	/* BIGW_TXT_RECOIL_PRONE */ {  22, 528, 90 },
-	/* BIGW_TXT_UNJAM        */ { 305, 470, 90 },
-	/* BIGW_TXT_VALUE        */ { 305, 573, 90 },
+	/* BIGW_TXT_SHORT          */ { 442, 400, 24 }, // Burst AP
+	/* BIGW_TXT_LONG           */ { 442, 416, 24 }, // Burst AP
+	/* BIGW_TXT_FULL           */ { 442, 432, 24 }, // Burst AP
+	/* BIGW_TXT_BRST_PEN_PRONE */ { 442, 464, 98 }, // Burst AP
+	/* BIGW_TXT_UNJAM          */ { 151, 453, 71 }, // Handling
+	/* BIGW_TXT_VALUE          */ {  30, 538, 71 }, // Valuation
 };
 
 // "Rounds:" on the lines of Short / Long / Full: label position and the
 // distance to the bullet icons (Short, Long) or the "Up to" text (Full).
-// Placeholders.
 static const INV_DESC_STATS gMapBigWeaponBoxRounds[3] =
 {
-	/* Short */ { 75, 480, 45 },
-	/* Long  */ { 75, 496, 45 },
-	/* Full  */ { 75, 512, 45 },
+	/* Short */ { 498, 400, 48 },
+	/* Long  */ { 498, 416, 48 },
+	/* Full  */ { 498, 432, 48 },
 };
 
 
@@ -3490,9 +3497,18 @@ static ST::string GetObjectImprint(OBJECTTYPE const& o)
 }
 
 
-static void HighlightIf(const BOOLEAN cond)
+// Colours of a stat's label and value in ITEMDESC_FONT (BLOCKFONT2), and the
+// same two colours in the Arial / Humanist fonts of the map's big weapon box
+// (iteminfoc_weapons_big): those fonts have another palette, where 5 and 6
+// are black.
+#define ITEMDESC_LABEL_COLOUR			6
+#define ITEMDESC_VALUE_COLOUR			5
+#define MAP_BIG_WEAPON_LABEL_COLOUR		126 // (178, 168, 118), for BLOCKFONT2's (173, 148, 115)
+#define MAP_BIG_WEAPON_VALUE_COLOUR		FONT_BEIGE // (201, 197, 143), for BLOCKFONT2's (214, 201, 156)
+
+static void HighlightIf(const BOOLEAN cond, UINT8 const value_colour = ITEMDESC_VALUE_COLOUR)
 {
-	SetFontForeground(cond ? ITEMDESC_FONTHIGHLIGHT : 5);
+	SetFontForeground(cond ? ITEMDESC_FONTHIGHLIGHT : value_colour);
 }
 
 
@@ -3553,35 +3569,42 @@ static UINT32 CalcWeaponValue(OBJECTTYPE const& o)
 
 
 // The texts only the map screen's big weapon box (iteminfoc_weapons_big)
-// shows -- see gMapBigWeaponBoxTexts. Drawn to the frame buffer, after the
+// shows -- see gMapBigWeaponBoxTitles/gMapBigWeaponBoxTexts. Drawn to the frame buffer, after the
 // box itself has been copied there.
 static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, INT16 const dy)
 {
 	ItemModel      const* const item = GCM->getItem(obj.usItem);
 	WeaponModel    const* const w    = GCM->getWeapon(obj.usItem);
-	INV_DESC_STATS const* const t    = gMapBigWeaponBoxTexts;
 
-	auto const label = [&](INT32 const i)
+	auto const title = [&](INT32 const i, SGPFont const font)
 	{
-		MPrint(dx + t[i].sX, dy + t[i].sY, gzMapBigWeaponBoxStrings[i]);
+		SGPBox      const& box = gMapBigWeaponBoxTitles[i];
+		ST::string  const& str = gzMapBigWeaponBoxStrings[i];
+		INT16 x;
+		INT16 y;
+		FindFontCenterCoordinates(dx + box.x, dy + box.y, box.w, box.h, str, font, &x, &y);
+		MPrint(x, y, str);
 	};
 	auto const label_and_value = [&](INT32 const i, ST::string const& value)
 	{
-		label(i);
+		INV_DESC_STATS const& t = gMapBigWeaponBoxTexts[i - BIGW_TXT_SHORT];
+		SetFontForeground(MAP_BIG_WEAPON_LABEL_COLOUR);
+		MPrint(dx + t.sX, dy + t.sY, gzMapBigWeaponBoxStrings[i]);
+		SetFontForeground(MAP_BIG_WEAPON_VALUE_COLOUR);
 		INT16 x;
 		INT16 y;
-		FindFontRightCoordinates(dx + t[i].sX + t[i].sValDx, dy + t[i].sY, ITEM_STATS_WIDTH, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
+		FindFontRightCoordinates(dx + t.sX + t.sValDx, dy + t.sY, ITEM_STATS_WIDTH, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
 		MPrint(x, y, value);
 	};
 
-	SetFontAttributes(FONT14HUMANIST, FONT_BEIGE);
-	label(BIGW_TXT_BALLISTICS);
-	label(BIGW_TXT_MAINTENANCE);
+	SetFontAttributes(FONT14HUMANIST, MAP_BIG_WEAPON_LABEL_COLOUR);
+	title(BIGW_TXT_BALLISTICS,  FONT14HUMANIST);
+	title(BIGW_TXT_MAINTENANCE, FONT14HUMANIST);
 
-	SetFontAttributes(FONT14ARIAL, FONT_WHITE);
-	for (INT32 i = BIGW_TXT_FIRE_POWER; i <= BIGW_TXT_VALUATION; ++i) label(i);
+	SetFontAttributes(FONT14ARIAL, MAP_BIG_WEAPON_VALUE_COLOUR);
+	for (INT32 i = BIGW_TXT_FIRE_POWER; i <= BIGW_TXT_VALUATION; ++i) title(i, FONT14ARIAL);
 
-	SetFontAttributes(FONT12ARIAL, FONT_WHITE);
+	SetFontAttributes(FONT12ARIAL, MAP_BIG_WEAPON_LABEL_COLOUR);
 
 	UINT8 const single_aps = BaseAPsToShootOrStab(DEFAULT_APS, DEFAULT_AIMSKILL, obj);
 
@@ -3599,7 +3622,9 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 		label_and_value(BIGW_TXT_SHORT + m, ST::format("{}", single_aps + CalcAPsToBurst(DEFAULT_APS, DEFAULT_AIMSKILL, obj, modes[m])));
 
 		INV_DESC_STATS const& r = gMapBigWeaponBoxRounds[m];
+		SetFontForeground(MAP_BIG_WEAPON_LABEL_COLOUR);
 		MPrint(dx + r.sX, dy + r.sY, gzMapBigWeaponBoxStrings[BIGW_TXT_ROUNDS]);
+		SetFontForeground(MAP_BIG_WEAPON_VALUE_COLOUR);
 		if (modes[m] == WM_BURST_FULL)
 		{
 			// the factory magazine, a larger one doesn't lengthen the burst
@@ -3618,7 +3643,7 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 
 	if (any_burst)
 	{
-		label_and_value(BIGW_TXT_RECOIL_PRONE, ST::format("{}%", GunProneRecoil(obj)));
+		label_and_value(BIGW_TXT_BRST_PEN_PRONE, ST::format("{}%", GunProneBurstPenalty(obj)));
 	}
 
 	if (item->isGun())
@@ -3849,10 +3874,12 @@ void RenderItemDescriptionBox(void)
 		}
 
 		const WeaponModel * w = GCM->getWeapon(obj.usItem);
-		if (w->ubShotsPerShortBurst > 0)
+		// not on the map's big weapon box: its Short / Long / Full lines have
+		// their own rounds (RenderMapBigWeaponBoxTexts())
+		if (w->ubShotsPerShortBurst > 0 && !IsMapBigWeaponBox())
 		{
-			INT32       x = IsMapWeaponBox() ? dx + (IsMapBigWeaponBox() ? g_map_weapons_big_bullet_burst : g_map_weapons_bullet_burst).iX : in_map ? MAP_BULLET_BURST_X : BULLET_BURST_X;
-			INT32 const y = IsMapWeaponBox() ? dy + (IsMapBigWeaponBox() ? g_map_weapons_big_bullet_burst : g_map_weapons_bullet_burst).iY : in_map ? MAP_BULLET_BURST_Y : BULLET_BURST_Y;
+			INT32       x = IsMapWeaponBox() ? dx + g_map_weapons_bullet_burst.iX : in_map ? MAP_BULLET_BURST_X : BULLET_BURST_X;
+			INT32 const y = IsMapWeaponBox() ? dy + g_map_weapons_bullet_burst.iY : in_map ? MAP_BULLET_BURST_Y : BULLET_BURST_Y;
 			// the item description shows the short burst, see docs/burst-modes.md
 			for (INT32 i = GunShotsPerBurst(obj, WM_BURST_SHORT); i != 0; --i)
 			{
@@ -3861,14 +3888,14 @@ void RenderItemDescriptionBox(void)
 			}
 		}
 
-		if ((!in_map || IsMapWeaponBox()) && w->ubShotsPerShortBurst > 0)
+		if ((!in_map || gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_WEAPONS) && w->ubShotsPerShortBurst > 0)
 		{
 			// Purely decorative: always exactly 3 bullet icons, regardless of
 			// the weapon's actual burst size — cosmetic only. Shown under the
 			// same condition as the real burst bullets/stats above: only for
 			// weapons that have a burst mode at all.
-			INT32 x = IsMapWeaponBox() ? dx + (IsMapBigWeaponBox() ? g_map_weapons_big_bullet_decor : g_map_weapons_bullet_decor).iX : BULLET_DECOR_X;
-			INT32 const y = IsMapWeaponBox() ? dy + (IsMapBigWeaponBox() ? g_map_weapons_big_bullet_decor : g_map_weapons_bullet_decor).iY : BULLET_DECOR_Y;
+			INT32 x = IsMapWeaponBox() ? dx + g_map_weapons_bullet_decor.iX : BULLET_DECOR_X;
+			INT32 const y = IsMapWeaponBox() ? dy + g_map_weapons_bullet_decor.iY : BULLET_DECOR_Y;
 			for (INT32 i = 0; i < 3; ++i)
 			{
 				BltVideoObject(guiSAVEBUFFER, guiBullet, 0, x, y);
@@ -3895,9 +3922,11 @@ void RenderItemDescriptionBox(void)
 	SetFontAttributes(ITEMDESC_FONT, FONT_FCOLOR_WHITE);
 
 	{
-		// Render name
+		// Render name -- FONT12ARIAL on the map's big weapon box
 		SGPBox const& xy = descNameBox;
+		if (IsMapBigWeaponBox()) SetFont(FONT12ARIAL);
 		MPrint(dx + xy.x, dy + xy.y, gzItemName);
+		SetFont(ITEMDESC_FONT);
 	}
 
 	// Same shadow colour as the weapon name above (DEFAULT_SHADOW, set by the
@@ -3938,9 +3967,13 @@ void RenderItemDescriptionBox(void)
 			// DisplayWrappedString() happened to leave set globally).
 			SetFontForeground(FONT_FCOLOR_WHITE);
 
+			// FONT12ARIAL on the map's big weapon box, like the name
+			SGPFont const name_font = IsMapBigWeaponBox() ? FONT12ARIAL : ITEMDESC_FONT;
+			SetFont(name_font);
 			SGPBox const& xy = descNameBox;
-			FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, ITEMDESC_FONT, &usX, &usY);
+			FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, name_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
+			SetFont(ITEMDESC_FONT);
 		}
 
 		{
@@ -3982,7 +4015,17 @@ void RenderItemDescriptionBox(void)
 	// Render, stat  name
 	if (item->isWeapon())
 	{
-		SetFontForeground(6);
+		// The map's big weapon box (iteminfoc_weapons_big) has the stats in
+		// FONT12ARIAL, and Short / Long / Full lines of its own in place of
+		// the burst AP cost (see RenderMapBigWeaponBoxTexts()).
+		bool    const big        = IsMapBigWeaponBox();
+		SGPFont const stats_font = big ? FONT12ARIAL : BLOCKFONT2;
+		INT16   const stats_h    = big ? GetFontHeight(FONT12ARIAL) : ITEM_STATS_HEIGHT;
+		UINT8   const label_colour = big ? MAP_BIG_WEAPON_LABEL_COLOUR : ITEMDESC_LABEL_COLOUR;
+		UINT8   const value_colour = big ? MAP_BIG_WEAPON_VALUE_COLOUR : ITEMDESC_VALUE_COLOUR;
+		if (big) SetFont(stats_font);
+
+		SetFontForeground(label_colour);
 
 		INV_DESC_STATS const* const ids =
 			IsMapBigWeaponBox() ? gMapBigWeaponBoxStats :
@@ -4008,55 +4051,55 @@ void RenderItemDescriptionBox(void)
 		MPrint(dx + ids[1].sX, dy + ids[1].sY, gWeaponStatsDesc[1]); // status
 
 		const WeaponModel * w = GCM->getWeapon(obj.usItem);
-		if (w->ubShotsPerShortBurst > 0)
+		if (w->ubShotsPerShortBurst > 0 && !big)
 		{
 			MPrint(dx + ids[7].sX, dy + ids[7].sY, gWeaponStatsDesc[6]); // = (sic)
 		}
 
 		//Status
-		SetFontForeground(5);
+		SetFontForeground(value_colour);
 		pStr = ST::format("{2d}%", obj.bGunStatus);
-		FindFontRightCoordinates(dx + ids[1].sX + ids[1].sValDx, dy + ids[1].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+		FindFontRightCoordinates(dx + ids[1].sX + ids[1].sValDx, dy + ids[1].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 		MPrint(usX, usY, pStr);
 
 		//Weight
-		HighlightIf(objectWeight <= EXCEPTIONAL_WEIGHT);
+		HighlightIf(objectWeight <= EXCEPTIONAL_WEIGHT, value_colour);
 		pStr = ST::format("{1.1f}", convertedWeight);
-		FindFontRightCoordinates(dx + ids[0].sX + ids[0].sValDx, dy + ids[0].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+		FindFontRightCoordinates(dx + ids[0].sX + ids[0].sValDx, dy + ids[0].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 		MPrint(usX, usY, pStr);
 
 		if (item->getItemClass() & (IC_GUN | IC_LAUNCHER))
 		{
 			// Range
 			UINT16 const range = GunRange(obj);
-			HighlightIf(range >= EXCEPTIONAL_RANGE);
+			HighlightIf(range >= EXCEPTIONAL_RANGE, value_colour);
 			pStr = ST::format("{2d}", range / 10);
-			FindFontRightCoordinates(dx + ids[2].sX + ids[2].sValDx, dy + ids[2].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(dx + ids[2].sX + ids[2].sValDx, dy + ids[2].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
 
 		if (!(item->isLauncher()) && obj.usItem != ROCKET_LAUNCHER)
 		{
 			// Damage
-			HighlightIf(w->ubImpact >= EXCEPTIONAL_DAMAGE);
+			HighlightIf(w->ubImpact >= EXCEPTIONAL_DAMAGE, value_colour);
 			pStr = ST::format("{2d}", w->ubImpact);
-			FindFontRightCoordinates(dx + ids[3].sX + ids[3].sValDx, dy + ids[3].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(dx + ids[3].sX + ids[3].sValDx, dy + ids[3].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
 
 		UINT8 const ubAttackAPs = BaseAPsToShootOrStab(DEFAULT_APS, DEFAULT_AIMSKILL, obj);
 
 		//APs
-		HighlightIf(ubAttackAPs <= EXCEPTIONAL_AP_COST);
+		HighlightIf(ubAttackAPs <= EXCEPTIONAL_AP_COST, value_colour);
 		pStr = ST::format("{2d}", ubAttackAPs);
-		FindFontRightCoordinates(dx + ids[4].sX + ids[4].sValDx, dy + ids[4].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+		FindFontRightCoordinates(dx + ids[4].sX + ids[4].sValDx, dy + ids[4].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 		MPrint(usX, usY, pStr);
 
-		if (w->ubShotsPerShortBurst > 0)
+		if (w->ubShotsPerShortBurst > 0 && !big)
 		{
-			HighlightIf(GunShotsPerBurst(obj, WM_BURST_SHORT) >= EXCEPTIONAL_BURST_SIZE || obj.usItem == G11);
+			HighlightIf(GunShotsPerBurst(obj, WM_BURST_SHORT) >= EXCEPTIONAL_BURST_SIZE || obj.usItem == G11, value_colour);
 			pStr = ST::format("{2d}", ubAttackAPs + CalcAPsToBurst(DEFAULT_APS, DEFAULT_AIMSKILL, obj, WM_BURST_SHORT));
-			FindFontRightCoordinates(dx + ids[5].sX + ids[5].sValDx, dy + ids[5].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(dx + ids[5].sX + ids[5].sValDx, dy + ids[5].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
 
@@ -4067,7 +4110,7 @@ void RenderItemDescriptionBox(void)
 			// AP cost to reload, shown in the extra room made by the enlarged box.
 			bool const showReload = (item->getItemClass() & (IC_GUN | IC_LAUNCHER)) != 0;
 
-			SetFontForeground(6);
+			SetFontForeground(label_colour);
 			MPrint(dx + ids[8].sX,  dy + ids[8].sY,  gWeaponStatsDesc[7]);  // Ready time
 			MPrint(dx + ids[16].sX, dy + ids[16].sY, gWeaponStatsDesc[6]);  // = (Ready time)
 			MPrint(dx + ids[9].sX,  dy + ids[9].sY,  gWeaponStatsDesc[8]);  // Reliability
@@ -4089,7 +4132,7 @@ void RenderItemDescriptionBox(void)
 			// not tied to any real stat (unlike every label above). Shown
 			// under the same condition as the real burst stats: only for
 			// weapons that have a burst mode at all.
-			if (w->ubShotsPerShortBurst > 0)
+			if (w->ubShotsPerShortBurst > 0 && !big)
 			{
 				MPrint(dx + ids[18].sX, dy + ids[18].sY, gWeaponStatsDesc[15]); // "AP:" (decorative)
 				MPrint(dx + ids[19].sX, dy + ids[19].sY, gWeaponStatsDesc[16]); // "Rounds" (decorative)
@@ -4108,45 +4151,45 @@ void RenderItemDescriptionBox(void)
 			// SNIPERSCOPE display bonus, never summed with Base:/Prone:.
 			MPrint(dx + ids[22].sX, dy + ids[22].sY, gWeaponStatsDesc[19]); // "Per Aim:"
 
-			SetFontForeground(5);
+			SetFontForeground(value_colour);
 
 			// Ready time: APs needed to ready/unready this weapon
 			pStr = ST::format("{2d}", w->ubReadyTime);
-			FindFontRightCoordinates(dx + ids[8].sX + ids[8].sValDx, dy + ids[8].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(dx + ids[8].sX + ids[8].sValDx, dy + ids[8].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 
 			// Reliability: comparative rating, higher = less prone to jamming
 			pStr = ST::format("{2d}", item->getReliability());
-			FindFontRightCoordinates(dx + ids[9].sX + ids[9].sValDx, dy + ids[9].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(dx + ids[9].sX + ids[9].sValDx, dy + ids[9].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 
 			// Burst penalty: % accuracy penalty per shot after the first, in a burst
 			if (w->ubShotsPerShortBurst > 0)
 			{
 				pStr = ST::format("{2d}%", w->ubBurstPenalty);
-				FindFontRightCoordinates(dx + ids[10].sX + ids[10].sValDx, dy + ids[10].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				FindFontRightCoordinates(dx + ids[10].sX + ids[10].sValDx, dy + ids[10].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 				MPrint(usX, usY, pStr);
 			}
 
 			// Repair ease: comparative rating, higher = cheaper/easier to repair
 			pStr = ST::format("{2d}", item->getRepairEase());
-			FindFontRightCoordinates(dx + ids[11].sX + ids[11].sValDx, dy + ids[11].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(dx + ids[11].sX + ids[11].sValDx, dy + ids[11].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 
 			// Attack volume: noise made when firing this weapon (reflects a
 			// silencer attachment, unlike the raw ubAttackVolume field)
 			pStr = ST::format("{3d}", GunAttackVolume(obj));
-			FindFontRightCoordinates(dx + ids[12].sX + ids[12].sValDx, dy + ids[12].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(dx + ids[12].sX + ids[12].sValDx, dy + ids[12].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 
 			// Deadliness: comparative lethality rating used by the AI
 			pStr = ST::format("{3d}", w->ubDeadliness);
-			FindFontRightCoordinates(dx + ids[13].sX + ids[13].sValDx, dy + ids[13].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(dx + ids[13].sX + ids[13].sValDx, dy + ids[13].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 
 			// Hit volume: noise made when a shot from this weapon hits something
 			pStr = ST::format("{2d}", w->ubHitVolume);
-			FindFontRightCoordinates(dx + ids[14].sX + ids[14].sValDx, dy + ids[14].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+			FindFontRightCoordinates(dx + ids[14].sX + ids[14].sValDx, dy + ids[14].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 
 			// Reload cost, in APs: base cost, doubled when the currently loaded
@@ -4164,7 +4207,7 @@ void RenderItemDescriptionBox(void)
 					}
 				}
 				pStr = ST::format("{2d}", reloadAP);
-				FindFontRightCoordinates(dx + ids[15].sX + ids[15].sValDx, dy + ids[15].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				FindFontRightCoordinates(dx + ids[15].sX + ids[15].sValDx, dy + ids[15].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 				MPrint(usX, usY, pStr);
 			}
 
@@ -4178,7 +4221,7 @@ void RenderItemDescriptionBox(void)
 			{
 				INT8 const baseBonus = GunLaserScopeBonus(obj) + GunCrouchStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier);
 				pStr = ST::format("{}{}%", baseBonus >= 0 ? "+" : "", baseBonus);
-				FindFontRightCoordinates(dx + ids[20].sX + ids[20].sValDx, dy + ids[20].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				FindFontRightCoordinates(dx + ids[20].sX + ids[20].sValDx, dy + ids[20].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 				MPrint(usX, usY, pStr);
 			}
 
@@ -4191,7 +4234,7 @@ void RenderItemDescriptionBox(void)
 			{
 				INT8 const proneBonus = GunLaserScopeBonus(obj) + GunBipodDisplayBonus(obj) + GunProneStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier);
 				pStr = ST::format("{}{}%", proneBonus >= 0 ? "+" : "", proneBonus);
-				FindFontRightCoordinates(dx + ids[21].sX + ids[21].sValDx, dy + ids[21].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				FindFontRightCoordinates(dx + ids[21].sX + ids[21].sValDx, dy + ids[21].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 				MPrint(usX, usY, pStr);
 			}
 
@@ -4201,7 +4244,7 @@ void RenderItemDescriptionBox(void)
 			{
 				INT8 const sniperBonus = GunSniperScopeDisplayBonus(obj);
 				pStr = ST::format("{}{}%", sniperBonus >= 0 ? "+" : "", sniperBonus);
-				FindFontRightCoordinates(dx + ids[22].sX + ids[22].sValDx, dy + ids[22].sY, ITEM_STATS_WIDTH, ITEM_STATS_HEIGHT, pStr, BLOCKFONT2, &usX, &usY);
+				FindFontRightCoordinates(dx + ids[22].sX + ids[22].sValDx, dy + ids[22].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 				MPrint(usX, usY, pStr);
 			}
 		}

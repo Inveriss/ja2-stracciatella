@@ -186,7 +186,7 @@ bool   HasLaserScope(OBJECTTYPE const&);
 INT8   GunLaserScopeBonus(OBJECTTYPE const&);
 bool   HasBipod(OBJECTTYPE const&);
 INT8   GunBipodDisplayBonus(OBJECTTYPE const&);
-UINT8  GunProneRecoil(OBJECTTYPE const&); // "Recoil Prone" of the item description: burst penalty, prone, in %
+UINT8  GunProneBurstPenalty(OBJECTTYPE const&); // "Brst Pen Prone" of the item description, in %
 bool   HasSniperScope(OBJECTTYPE const&);
 INT8   GunSniperScopeDisplayBonus(OBJECTTYPE const&);
 INT8   GunProneStanceBonus(SOLDIERTYPE const*);
