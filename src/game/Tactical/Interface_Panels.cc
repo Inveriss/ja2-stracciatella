@@ -431,7 +431,8 @@ static cache_key_t const guiMapSmallSkillsInfoBox{ INTERFACEDIR "/iteminfoc_skil
 
 static bool UseMapSmallInfoPopupBox(cache_key_t const box, cache_key_t const fallback)
 {
-	return fInMapMode && g_ui.isExtraWideStrategicScreen() && !IsMapInvBigImages() &&
+	// with "Show Large Icons" too, until that mode has boxes of its own
+	return fInMapMode && g_ui.isExtraWideStrategicScreen() &&
 		FirstUsableInterfaceAsset({ box, fallback }) == box;
 }
 

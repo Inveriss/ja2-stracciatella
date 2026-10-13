@@ -408,9 +408,10 @@ static BOOLEAN gbItemPointerLocateGood = FALSE;
 
 // Which set of map-screen (ItemInfoC.sti) positions the open description box
 // uses. The _items/_money/_weapons sets only exist for the 1366x768 base
-// with the normal ("small icons") merc inventory, _weapons_big for the same
-// base with "Show Large Icons"; everything else -- other resolutions, items
-// and money with "Show Large Icons" -- stays on the shared set.
+// (_weapons with the normal, "small icons" merc inventory only), _weapons_big
+// for the same base with "Show Large Icons"; other resolutions stay on the
+// shared set. Items and money have no "Show Large Icons" boxes of their own
+// yet, so that mode shows them on their normal ones.
 enum MapItemDescLayout
 {
 	MAP_ITEMDESC_LAYOUT_SHARED,
@@ -512,10 +513,10 @@ static MapItemDescLayout GetMapItemDescLayout(OBJECTTYPE const& o)
 {
 	if (!g_ui.isExtraWideStrategicScreen()) return MAP_ITEMDESC_LAYOUT_SHARED;
 
-	if (IsMapInvBigImages())
+	if (IsMapInvBigImages() && GCM->getItem(o.usItem)->isWeapon())
 	{
-		// "Show Large Icons": only weapons have a box of their own
-		if (!GCM->getItem(o.usItem)->isWeapon()) return MAP_ITEMDESC_LAYOUT_SHARED;
+		// "Show Large Icons": weapons have a big box of their own. Items
+		// and money have none yet and use their normal ones below.
 		cache_key_t const big = MAP_ITEMDESC_BOX_WEAPONS_BIG_FILE;
 		return FirstUsableInterfaceAsset({ big, MAP_ITEMDESC_BOX_FILE }) == big ? MAP_ITEMDESC_LAYOUT_WEAPONS_BIG : MAP_ITEMDESC_LAYOUT_SHARED;
 	}

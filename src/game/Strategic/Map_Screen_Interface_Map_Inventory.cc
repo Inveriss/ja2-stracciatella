@@ -2952,12 +2952,13 @@ static void DestroyMapInventoryFilterButtons(void)
 // How many left columns of a grid the open big weapon description box
 // reaches over: those whose item picture starts left of the box's right edge
 // (0 while the box is closed). At least one column is always left.
-static INT32 CountColumnsUnderItemDescBox(SGPBox const& window, SGPBox const& slot_box, SGPBox const& item_box)
+// `grid_x` is the screen X the slot box's own x counts from.
+static INT32 CountColumnsUnderItemDescBox(INT32 const grid_x, SGPBox const& slot_box, SGPBox const& item_box)
 {
 	INT16 const box_right = MapBigItemDescBoxRight();
 	if (box_right == 0) return 0;
 
-	INT32 const first_item_x = MAP_SCREEN_RIGHT_BLOCK_X + window.x + slot_box.x + item_box.x;
+	INT32 const first_item_x = grid_x + slot_box.x + item_box.x;
 	INT32       cols         = 0;
 	while (cols < GetInventoryGridTotalCols() - 1 && first_item_x + cols * slot_box.w < box_right) ++cols;
 	return cols;
@@ -2973,7 +2974,7 @@ static void UpdateSectorInventoryReservedColumns(void)
 	{
 		// the stack split grid is on show; the main one catches up once it
 		// is back
-		INT32 const wanted = CountColumnsUnderItemDescBox(g_stack_split_box, GetStackSplitSlotBoxUnshifted(), GetStackSplitItemBox());
+		INT32 const wanted = CountColumnsUnderItemDescBox(MAP_SCREEN_RIGHT_BLOCK_X + g_stack_split_box.x, GetStackSplitSlotBoxUnshifted(), GetStackSplitItemBox());
 		if (wanted == gStackSplitReservedCols) return;
 
 		INT32 const first_item = gCurrentStackSplitPage * GetStackSplitPageSize();
@@ -2987,7 +2988,9 @@ static void UpdateSectorInventoryReservedColumns(void)
 		return;
 	}
 
-	INT32 const wanted = CountColumnsUnderItemDescBox(g_sector_inv_box, GetSectorInvSlotBoxUnshifted(), GetSectorInvItemBox());
+	// the main grid's slot box counts from the right block itself, not from
+	// the window (g_sector_inv_box) like the stack split grid's
+	INT32 const wanted = CountColumnsUnderItemDescBox(MAP_SCREEN_RIGHT_BLOCK_X, GetSectorInvSlotBoxUnshifted(), GetSectorInvItemBox());
 	if (wanted == gSectorInvReservedCols) return;
 
 	// Same as a change of "Show Large Icons": the list is partitioned for
