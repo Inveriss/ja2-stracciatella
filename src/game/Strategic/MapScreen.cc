@@ -7324,9 +7324,8 @@ static void CreateMapInvPanelControls(void)
 	InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
 
 	// "Show Large Icons" -- wide strategic screen (1280+) only, per user request
-	// Not on the 1366x768 interface: its one "Show Large Icons" button is on
-	// the bottom strip (Map_Screen_Interface_Bottom.cc), with a second one
-	// in the sector inventory.
+	// Not on the 1366x768 interface: its one "Show Large Icons" button is
+	// the sector inventory's.
 	if (g_ui.isWideStrategicScreen() && !g_ui.isExtraWideStrategicScreen())
 	{
 		BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/sector_inventory_bookmarks.sti", MAP_INV_BIG_IMAGES_BTN_OFF, MAP_INV_BIG_IMAGES_BTN_ON);

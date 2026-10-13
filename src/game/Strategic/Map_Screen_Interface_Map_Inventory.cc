@@ -3043,8 +3043,8 @@ static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
 
 	if (g_ui.isExtraWideStrategicScreen())
 	{
-		// 1366x768: a second button of the strategic screen's one option --
-		// see SectorInventoryBigImages(). The button has already flipped
+		// 1366x768: the button of the strategic screen's one option -- see
+		// SectorInventoryBigImages(). The button has already flipped
 		// its own look; put it back if the change was refused.
 		ToggleMapBigImages();
 		if (SectorInventoryBigImages()) btn->uiFlags |= BUTTON_CLICKED_ON;
