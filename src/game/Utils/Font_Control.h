@@ -97,6 +97,11 @@ SGPFont StrategicTooltipFontAs(SGPFont original);
 #define BLOCKFONTNARROW	gpBlockFontNarrow
 #define FONT14HUMANIST		gp14PointHumanist
 
+// hugefont.sti, for the game itself -- a plain alias like the fonts above.
+// Always usable: FONT16ARIAL when the game data has no hugefont.sti. The
+// editor keeps its own HUGEFONT below.
+#define FONTHUGE		gpHugeFont
+
 #define HUGEFONT		((GameMode::getInstance()->isEditorMode() && isEnglishVersion()) ? gpHugeFont : gp16PointArial)
 
 #define FONT_MCOLOR_BLACK	0

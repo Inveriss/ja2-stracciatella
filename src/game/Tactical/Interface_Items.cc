@@ -1031,7 +1031,7 @@ static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 // gzMapBigWeaponBoxStrings and gMapBigWeaponBoxTexts.
 enum
 {
-	BIGW_TXT_BALLISTICS = 0, // headers, FONT16ARIAL, yellow
+	BIGW_TXT_BALLISTICS = 0, // headers, FONT14HUMANIST, beige
 	BIGW_TXT_MAINTENANCE,
 	BIGW_TXT_FIRE_POWER,     // section titles, FONT14ARIAL, white
 	BIGW_TXT_SINGLE_AP,
@@ -3574,7 +3574,7 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 		MPrint(x, y, value);
 	};
 
-	SetFontAttributes(FONT16ARIAL, FONT_YELLOW);
+	SetFontAttributes(FONT14HUMANIST, FONT_BEIGE);
 	label(BIGW_TXT_BALLISTICS);
 	label(BIGW_TXT_MAINTENANCE);
 
