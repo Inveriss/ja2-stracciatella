@@ -89,6 +89,15 @@
 //     feature existed.
 static BOOLEAN gfSectorInventoryBigImages = FALSE;
 
+// The state actually in use. The 1366x768 interface has one "Show Large
+// Icons" option for the whole strategic screen -- the merc inventory's
+// (IsMapInvBigImages(), toggled by ToggleMapBigImages(), MapScreen.cc) --
+// and this window's own flag above is left alone there.
+static bool SectorInventoryBigImages(void)
+{
+	return g_ui.isExtraWideStrategicScreen() ? IsMapInvBigImages() != FALSE : gfSectorInventoryBigImages != FALSE;
+}
+
 // See gfSectorInventoryBigImages's own comment above for the full story.
 static ST::string const gSectorInventoryBigImagesStateKey{ "SectorInventory::bigImages" };
 
@@ -195,13 +204,33 @@ void LoadSectorInventoryMinimapFromSaveGameFile(void)
 // runtime, on every call, same reasoning as GetMapInventoryPoolBackgroundFilename()
 // below. Shared by the stack split grid too (GetStackSplitPageSize()), which
 // uses the identical rule.
+//
+// 1366x768: the map screen's big weapon description box
+// (iteminfoc_weapons_big_1366x768.png, Interface_Items.cc) reaches over the
+// left columns of this window. While it is open those columns stay empty and
+// the items start in the first column right of it: the grid loses the
+// reserved columns and starts that much further right. One count for the
+// main grid and one for the stack split grid, as only one of the two is
+// laid out at a time; changed only by UpdateSectorInventoryReservedColumns(),
+// which lays the grid out again.
+static INT32 gSectorInvReservedCols  = 0;
+static INT32 gStackSplitReservedCols = 0;
+
+static INT32 GetInventoryGridTotalCols(void)
+{
+	return SectorInventoryBigImages() ? 5 : 9;
+}
 static INT32 GetInventoryGridCols(void)
 {
-	return gfSectorInventoryBigImages ? 5 : 9;
+	return GetInventoryGridTotalCols() - gSectorInvReservedCols;
+}
+static INT32 GetStackSplitGridCols(void)
+{
+	return GetInventoryGridTotalCols() - gStackSplitReservedCols;
 }
 static INT32 GetInventoryGridRows(void)
 {
-	if (gfSectorInventoryBigImages) return g_ui.isCompactStrategicScreen() ? 8 : 9;
+	if (SectorInventoryBigImages()) return g_ui.isCompactStrategicScreen() ? 8 : 9;
 	return g_ui.isCompactStrategicScreen() ? 11 : 12;
 }
 #define MAP_INV_SLOT_ROWS GetInventoryGridRows()
@@ -295,11 +324,26 @@ static const SGPBox g_sector_inv_name_box_big   = {  31, 121, 120,  11 }; // rel
 // Small helpers picking the right slot-geometry set for the current
 // gfSectorInventoryBigImages state -- keeps the branch in one place instead
 // of scattering it across every render/slot-creation call site.
-static SGPBox const& GetSectorInvSlotBox(void)   { return gfSectorInventoryBigImages ? g_sector_inv_slot_box_big   : g_sector_inv_slot_box; }
-static SGPBox const& GetSectorInvRegionBox(void) { return gfSectorInventoryBigImages ? g_sector_inv_region_box_big : g_sector_inv_region_box; }
-static SGPBox const& GetSectorInvItemBox(void)   { return gfSectorInventoryBigImages ? g_sector_inv_item_box_big   : g_sector_inv_item_box; }
-static SGPBox const& GetSectorInvBarBox(void)    { return gfSectorInventoryBigImages ? g_sector_inv_bar_box_big    : g_sector_inv_bar_box; }
-static SGPBox const& GetSectorInvNameBox(void)   { return gfSectorInventoryBigImages ? g_sector_inv_name_box_big   : g_sector_inv_name_box; }
+// `box` moved right by `cols` columns (its own width each).
+static SGPBox const& ShiftSlotBoxByColumns(SGPBox const& box, INT32 const cols, SGPBox& shifted)
+{
+	if (cols == 0) return box;
+	shifted    = box;
+	shifted.x += static_cast<UINT16>(cols * box.w);
+	return shifted;
+}
+// The slot box as laid out in the graphic, its first column at the left edge.
+static SGPBox const& GetSectorInvSlotBoxUnshifted(void) { return SectorInventoryBigImages() ? g_sector_inv_slot_box_big : g_sector_inv_slot_box; }
+// The slot box of the grid's first column in use -- see gSectorInvReservedCols.
+static SGPBox const& GetSectorInvSlotBox(void)
+{
+	static SGPBox shifted;
+	return ShiftSlotBoxByColumns(GetSectorInvSlotBoxUnshifted(), gSectorInvReservedCols, shifted);
+}
+static SGPBox const& GetSectorInvRegionBox(void) { return SectorInventoryBigImages() ? g_sector_inv_region_box_big : g_sector_inv_region_box; }
+static SGPBox const& GetSectorInvItemBox(void)   { return SectorInventoryBigImages() ? g_sector_inv_item_box_big   : g_sector_inv_item_box; }
+static SGPBox const& GetSectorInvBarBox(void)    { return SectorInventoryBigImages() ? g_sector_inv_bar_box_big    : g_sector_inv_bar_box; }
+static SGPBox const& GetSectorInvNameBox(void)   { return SectorInventoryBigImages() ? g_sector_inv_name_box_big   : g_sector_inv_name_box; }
 
 // SECTOR_INVENTORY_FIRST_1280.sti's own artwork places its bottom row's slot
 // frame 4px lower than the uniform per-row pitch (slot_box->h * row) above
@@ -311,7 +355,7 @@ static SGPBox const& GetSectorInvNameBox(void)   { return gfSectorInventoryBigIm
 // together, without needing four separate special cases.
 static INT32 GetSectorInvLastRowYCorrection(INT32 const row)
 {
-	if (gfSectorInventoryBigImages) return 0;
+	if (SectorInventoryBigImages()) return 0;
 	if (!g_ui.isCompactStrategicScreen()) return 0;
 	if (row != GetInventoryGridRows() - 1) return 0;
 	return 4;
@@ -325,7 +369,7 @@ static INT32 GetSectorInvLastRowYCorrection(INT32 const row)
 // by the main grid and the stack split grid).
 static INT32 GetBigImagesCompactYCorrection(void)
 {
-	return (gfSectorInventoryBigImages && g_ui.isCompactStrategicScreen()) ? 3 : 0;
+	return (SectorInventoryBigImages() && g_ui.isCompactStrategicScreen()) ? 3 : 0;
 }
 
 // SECTOR_INVENTORY_FIRST_1280_BIG.sti/SECTOR_INVENTORY_STACK_1280_BIG.sti's own
@@ -339,7 +383,7 @@ static INT32 GetBigImagesCompactYCorrection(void)
 // each row below the first ends up progressively lower.
 static INT32 GetBigImagesCompactRowPitchCorrection(void)
 {
-	return (gfSectorInventoryBigImages && g_ui.isCompactStrategicScreen()) ? 2 : 0;
+	return (SectorInventoryBigImages() && g_ui.isCompactStrategicScreen()) ? 2 : 0;
 }
 
 
@@ -362,11 +406,11 @@ static cache_key_t GetMapInventoryPoolBackgroundFilename(void)
 	// 1366x768 interface: its own 762x768 panels, the 1024 ones as fallback
 	if (g_ui.isExtraWideStrategicScreen())
 	{
-		return gfSectorInventoryBigImages
+		return SectorInventoryBigImages()
 			? FirstUsableInterfaceAsset({ INTERFACEDIR "/SECTOR_INVENTORY_FIRST_BIG_1366x768.sti", INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1024_BIG.sti" })
 			: FirstUsableInterfaceAsset({ INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1366x768.sti",     INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1024.sti" });
 	}
-	if (gfSectorInventoryBigImages)
+	if (SectorInventoryBigImages())
 	{
 		return g_ui.isCompactStrategicScreen()
 			? INTERFACEDIR "/SECTOR_INVENTORY_FIRST_1280_BIG.sti"
@@ -473,6 +517,12 @@ static UINT8 gubSectorInventoryActiveFilters = SECTOR_INV_FILTER_ALL;
 // inventory pool list
 std::vector<WORLDITEM> pInventoryPoolList;
 
+// 1366x768: the item of pInventoryPoolList shown in the item description box
+// is kept here, out of the list, while the box is open -- see
+// MapInvenPoolSlotsSecondary() and ReturnDescribedItemToSectorInventory().
+static WORLDITEM gDescribedPoolItem;
+static BOOLEAN   gfDescribedPoolItemTaken = FALSE;
+
 // current page of inventory
 INT32 iCurrentInventoryPoolPage = 0;
 static INT32 iLastInventoryPoolPage = 0;
@@ -545,11 +595,11 @@ static cache_key_t GetStackSplitBackgroundFilename(void)
 	// 1366x768 interface: its own 762x768 panels, the 1024 ones as fallback
 	if (g_ui.isExtraWideStrategicScreen())
 	{
-		return gfSectorInventoryBigImages
+		return SectorInventoryBigImages()
 			? FirstUsableInterfaceAsset({ INTERFACEDIR "/SECTOR_INVENTORY_STACK_BIG_1366x768.sti", INTERFACEDIR "/SECTOR_INVENTORY_STACK_1024_BIG.sti" })
 			: FirstUsableInterfaceAsset({ INTERFACEDIR "/SECTOR_INVENTORY_STACK_1366x768.sti",     INTERFACEDIR "/SECTOR_INVENTORY_STACK_1024.sti" });
 	}
-	if (gfSectorInventoryBigImages)
+	if (SectorInventoryBigImages())
 	{
 		return g_ui.isCompactStrategicScreen()
 			? INTERFACEDIR "/SECTOR_INVENTORY_STACK_1280_BIG.sti"
@@ -583,11 +633,17 @@ static const SGPBox g_stack_split_bar_box_big    = {  27, 74,   4,  50 }; // rel
 static const SGPBox g_stack_split_name_box_big   = {  33, 126, 126,  14 }; // relative to g_stack_split_slot_box_big
 
 // Same idea as GetSectorInvSlotBox()/etc. above, for the stack split grid.
-static SGPBox const& GetStackSplitSlotBox(void)   { return gfSectorInventoryBigImages ? g_stack_split_slot_box_big   : g_stack_split_slot_box; }
-static SGPBox const& GetStackSplitRegionBox(void) { return gfSectorInventoryBigImages ? g_stack_split_region_box_big : g_stack_split_region_box; }
-static SGPBox const& GetStackSplitItemBox(void)   { return gfSectorInventoryBigImages ? g_stack_split_item_box_big   : g_stack_split_item_box; }
-static SGPBox const& GetStackSplitBarBox(void)    { return gfSectorInventoryBigImages ? g_stack_split_bar_box_big    : g_stack_split_bar_box; }
-static SGPBox const& GetStackSplitNameBox(void)   { return gfSectorInventoryBigImages ? g_stack_split_name_box_big   : g_stack_split_name_box; }
+static SGPBox const& GetStackSplitSlotBoxUnshifted(void) { return SectorInventoryBigImages() ? g_stack_split_slot_box_big : g_stack_split_slot_box; }
+// See GetSectorInvSlotBox() and gStackSplitReservedCols.
+static SGPBox const& GetStackSplitSlotBox(void)
+{
+	static SGPBox shifted;
+	return ShiftSlotBoxByColumns(GetStackSplitSlotBoxUnshifted(), gStackSplitReservedCols, shifted);
+}
+static SGPBox const& GetStackSplitRegionBox(void) { return SectorInventoryBigImages() ? g_stack_split_region_box_big : g_stack_split_region_box; }
+static SGPBox const& GetStackSplitItemBox(void)   { return SectorInventoryBigImages() ? g_stack_split_item_box_big   : g_stack_split_item_box; }
+static SGPBox const& GetStackSplitBarBox(void)    { return SectorInventoryBigImages() ? g_stack_split_bar_box_big    : g_stack_split_bar_box; }
+static SGPBox const& GetStackSplitNameBox(void)   { return SectorInventoryBigImages() ? g_stack_split_name_box_big   : g_stack_split_name_box; }
 
 // Placeholder position, per user request -- not yet the final layout.
 #define STACK_SPLIT_DONE_X 758
@@ -614,7 +670,7 @@ static SGPBox const& GetStackSplitNameBox(void)   { return gfSectorInventoryBigI
 
 static INT32 GetStackSplitPageSize(void)
 {
-	return GetInventoryGridCols() * GetInventoryGridRows();
+	return GetStackSplitGridCols() * GetInventoryGridRows();
 }
 
 // Independent pagination controls, per user request -- own page state and
@@ -662,6 +718,17 @@ static BOOLEAN gfStackSplitStandalone = FALSE;
 // open -- items become NOTHING as they're picked up, but the vector itself
 // is never resized until CloseStackSplitView()).
 static INT32 gCurrentStackSplitPage = 0;
+
+// The item description box is showing one of gStackSplitItems. It only has
+// to close for what happens to that item -- the stack merging back, the
+// item going onto the cursor -- not for whatever else is done in this
+// window, per user request.
+static bool IsItemDescBoxOnStackSplitItem(void)
+{
+	if (!InItemDescriptionBox() || gpItemDescObject == NULL || gStackSplitItems.empty()) return false;
+	OBJECTTYPE const* const first = gStackSplitItems.data();
+	return first <= gpItemDescObject && gpItemDescObject < first + gStackSplitItems.size();
+}
 static INT32 gLastStackSplitPage    = 0;
 static MOUSE_REGION gStackSplitSlots[STACK_SPLIT_PAGE_SIZE];
 // Background region: purely a click-blocker so a stray click inside the
@@ -730,7 +797,7 @@ static void RenderStackSplitItems(void);
 // glyph the counts or the (localized) "JAMMED" strings need.
 static InvItemTextLayout const* GetSectorInvBigTextLayout(void)
 {
-	if (!gfSectorInventoryBigImages) return NULL;
+	if (!SectorInventoryBigImages()) return NULL;
 
 	static InvItemTextLayout layout;
 	bool const has_glyphs = FontHasGlyphsFor(SEC_INV_BIG_COUNT_FONT,
@@ -843,7 +910,7 @@ static BOOLEAN RenderItemInPoolSlot(INT32 iCurrentSlot, INT32 iFirstSlotOnPage)
 	SetFontDestBuffer(guiSAVEBUFFER);
 	const SGPBox* const item_box = &GetSectorInvItemBox();
 	const UINT16        outline  = fMapInventoryItemCompatable[iCurrentSlot] ? Get16BPPColor(FROMRGB(255, 255, 255)) : SGP_TRANSPARENT;
-	INVRenderItem(guiSAVEBUFFER, NULL, item.o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, outline, gfSectorInventoryBigImages, GetSectorInvBigTextLayout());
+	INVRenderItem(guiSAVEBUFFER, NULL, item.o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, outline, SectorInventoryBigImages(), GetSectorInvBigTextLayout());
 
 	// draw bar for condition
 	const UINT16 col0 = Get16BPPColor(DESC_STATUS_BAR);
@@ -937,6 +1004,7 @@ static void DestroyStackSplitPageButtons(void);
 static void DestroyStash(void);
 static void GroupSectorInventoryItems(void);
 static void ApplySectorInventoryFilter(void);
+static void UpdateSectorInventoryReservedColumns(void);
 static void HandleMapSectorInventory(void);
 static void OpenStackSplitView(INT32 sourceIndex);
 static void CloseStackSplitView(BOOLEAN fExitFromMapScreen = FALSE);
@@ -975,12 +1043,20 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 	if (gfStackSplitStandalone)
 	{
 		if (!fShowMapInventoryPool) CloseStackSplitView(fExitFromMapScreen);
+		else                        UpdateSectorInventoryReservedColumns();
 		return;
 	}
+
+	// the window is up: keep its grid clear of the big weapon description box
+	if (fShowMapInventoryPool && fCreated) UpdateSectorInventoryReservedColumns();
 
 	auto const& sector{ sSelMap };
 	if (fShowMapInventoryPool && !fCreated)
 	{
+		// built for no reserved columns; the next frame lays it out again
+		// if the big weapon description box is open
+		gSectorInvReservedCols = 0;
+
 		if (gWorldSector == sector)
 		{
 			// handle all reachable before save
@@ -1394,13 +1470,18 @@ static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32
 	// so it's safe to call directly before opening the next box. Without
 	// this, MSYS_DefineRegion()/QuickCreateButtonImg() would redefine the
 	// still-active region/button from the previous box and crash.
-	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+	// Only once it is known that another box opens: an empty slot or a
+	// stack (which opens the stack split view) leaves the open one alone.
+	INT32 const slot_idx = MSYS_GetRegionUserData(pRegion, 0);
+	INT32 const abs_idx  = iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() + slot_idx;
 
-	INT32      const slot_idx = MSYS_GetRegionUserData(pRegion, 0);
-	INT32      const abs_idx  = iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize() + slot_idx;
+	if (pInventoryPoolList[abs_idx].o.usItem == NOTHING) return;
+
+	// Closing the box may put the item it was showing back into the list
+	// (ReturnDescribedItemToSectorInventory()), which can grow it: take the
+	// reference to the slot after that.
+	if (pInventoryPoolList[abs_idx].o.ubNumberOfObjects <= 1 && InItemDescriptionBox()) DeleteItemDescriptionBox();
 	WORLDITEM& slot = pInventoryPoolList[abs_idx];
-
-	if (slot.o.usItem == NOTHING) return;
 
 	if (slot.o.ubNumberOfObjects > 1)
 	{
@@ -1413,7 +1494,48 @@ static void MapInvenPoolSlotsSecondary(MOUSE_REGION* const pRegion, const UINT32
 		return;
 	}
 
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		// 1366x768: the item leaves the list while it is looked at, so
+		// nothing done to the list meanwhile -- laying the grid out again
+		// around the description box, filters, grouping, transfers -- can
+		// move or drop it. ReturnDescribedItemToSectorInventory() puts it
+		// back when the box closes.
+		gDescribedPoolItem       = slot;
+		slot                     = WORLDITEM{};
+		gfDescribedPoolItemTaken = TRUE;
+		fMapPanelDirty           = TRUE;
+		MAPInternalInitItemDescriptionBox(&gDescribedPoolItem.o, 0, GetSelectedInfoChar());
+		return;
+	}
+
 	MAPInternalInitItemDescriptionBox(&slot.o, 0, GetSelectedInfoChar());
+}
+
+
+void ReturnDescribedItemToSectorInventory(void)
+{
+	if (!gfDescribedPoolItemTaken) return;
+	gfDescribedPoolItemTaken = FALSE;
+
+	// used up while it was looked at (merged away, money all taken)
+	if (gDescribedPoolItem.o.usItem == NOTHING || gDescribedPoolItem.o.ubNumberOfObjects == 0) return;
+
+	// Back into the first free slot, as the world item it was. The copy
+	// left in gDescribedPoolItem is not used again, but the description box
+	// may still read it while it switches to one of the item's attachments.
+	auto it = std::find_if(pInventoryPoolList.begin(), pInventoryPoolList.end(),
+		[](WORLDITEM const& wi) { return wi.o.ubNumberOfObjects == 0; });
+	if (it == pInventoryPoolList.end())
+	{
+		size_t const old_size = pInventoryPoolList.size();
+		pInventoryPoolList.insert(pInventoryPoolList.end(), GetMapInventoryPoolPageSize(), WORLDITEM{});
+		it = pInventoryPoolList.begin() + old_size;
+		if (gubSectorInventoryActiveFilters & SECTOR_INV_FILTER_ALL) gVisibleInventorySlotCount = pInventoryPoolList.size();
+		iLastInventoryPoolPage = static_cast<INT32>((gVisibleInventorySlotCount - 1) / GetMapInventoryPoolPageSize());
+	}
+	*it = gDescribedPoolItem;
+	fMapPanelDirty = TRUE;
 }
 
 
@@ -1447,8 +1569,8 @@ static void CreateStackSplitSlots(void)
 	SGPBox const& reg_box  = GetStackSplitRegionBox();
 	for (INT32 i = 0; i < visible; ++i)
 	{
-		UINT16        const col = static_cast<UINT16>(i % GetInventoryGridCols());
-		UINT16        const row = static_cast<UINT16>(i / GetInventoryGridCols());
+		UINT16        const col = static_cast<UINT16>(i % GetStackSplitGridCols());
+		UINT16        const row = static_cast<UINT16>(i / GetStackSplitGridCols());
 		UINT16        const dx  = bx + slot_box.x + col * slot_box.w;
 		UINT16        const dy  = by + slot_box.y + row * (slot_box.h + GetBigImagesCompactRowPitchCorrection()) + GetBigImagesCompactYCorrection();
 		UINT16        const x   = dx + reg_box.x;
@@ -1612,14 +1734,14 @@ static void RenderStackSplitItems(void)
 		if (o.usItem == NOTHING) continue;
 
 		INT32 const i   = abs_idx - first;
-		INT32 const col = i % GetInventoryGridCols();
-		INT32 const row = i / GetInventoryGridCols();
+		INT32 const col = i % GetStackSplitGridCols();
+		INT32 const row = i / GetStackSplitGridCols();
 		SGPBox const& slot_box = GetStackSplitSlotBox();
 		INT32 const dx  = bx + slot_box.x + col * slot_box.w;
 		INT32 const dy  = by + slot_box.y + row * (slot_box.h + GetBigImagesCompactRowPitchCorrection()) + GetBigImagesCompactYCorrection();
 
 		const SGPBox* const item_box = &GetStackSplitItemBox();
-		INVRenderItem(guiSAVEBUFFER, NULL, o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, SGP_TRANSPARENT, gfSectorInventoryBigImages, GetSectorInvBigTextLayout());
+		INVRenderItem(guiSAVEBUFFER, NULL, o, dx + item_box->x, dy + item_box->y, item_box->w, item_box->h, DIRTYLEVEL2, 0, SGP_TRANSPARENT, SectorInventoryBigImages(), GetSectorInvBigTextLayout());
 
 		const UINT16        col0    = Get16BPPColor(DESC_STATUS_BAR);
 		const UINT16        col1    = Get16BPPColor(DESC_STATUS_BAR_SHADOW);
@@ -1744,7 +1866,7 @@ static void CreateStackSplitStandaloneTopBar(void)
 	CreateMapInventoryGroupButton();
 	CreateMapInventoryFilterButtons();
 	CreateMapInventoryBigImagesButton();
-	if (gfSectorInventoryBigImages) guiMapInvenButton[13]->uiFlags |= BUTTON_CLICKED_ON;
+	if (SectorInventoryBigImages()) guiMapInvenButton[13]->uiFlags |= BUTTON_CLICKED_ON;
 	CreateMapInventoryFilterModeCheckbox();
 	CreateMapInventoryMinimapCheckbox();
 	CreateMapInventoryTransferButtons();
@@ -1767,7 +1889,8 @@ void OpenMercStackView(SOLDIERTYPE& s, INT8 const pocket)
 	if (gpItemPointer != NULL) return;
 	if (s.inv[pocket].ubNumberOfObjects <= 1) return;
 
-	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+	// the box is on this very stack, about to be taken apart
+	if (InItemDescriptionBox() && gpItemDescObject == &s.inv[pocket]) DeleteItemDescriptionBox();
 
 	// another stack already split open here (from the sector or a merc):
 	// merge it back first, then show this one
@@ -1830,8 +1953,9 @@ static void CloseStackSplitView(BOOLEAN const fExitFromMapScreen)
 	// CreateDestroyMapInventoryPoolButtons() -- ItemInfoC.sti may still be
 	// open on one of gStackSplitItems (StackSplitSlotSecondary() leaves it
 	// open on top of this window, same as the main grid does). Close it
-	// before the merge below invalidates that pointer.
-	if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+	// before the merge below invalidates that pointer -- a box on anything
+	// else stays open.
+	if (IsItemDescBoxOnStackSplitItem()) DeleteItemDescriptionBox();
 
 	// Re-merge every physically split-out item still here back into one
 	// stack -- same pairwise CleanUpStack()/StackObjs() consolidation
@@ -2024,8 +2148,8 @@ static void StackSplitSlotPrimary(MOUSE_REGION* const pRegion, const UINT32 iRea
 		// If the item's own description box is open
 		// (StackSplitSlotSecondary() leaves it open on top of this
 		// window), close it -- it would otherwise dangle once the slot
-		// below is cleared.
-		if (InItemDescriptionBox()) DeleteItemDescriptionBox();
+		// below is cleared. A box on another item stays open.
+		if (InItemDescriptionBox() && gpItemDescObject == &slot) DeleteItemDescriptionBox();
 
 		gItemPointer = slot;
 		slot         = OBJECTTYPE{};
@@ -2825,31 +2949,112 @@ static void DestroyMapInventoryFilterButtons(void)
 // old, now too-narrow visible prefix into the hidden tail of
 // non-matching items appended right after it, showing a mix of the two --
 // per user report.
-static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
+// How many left columns of a grid the open big weapon description box
+// reaches over: those whose item picture starts left of the box's right edge
+// (0 while the box is closed). At least one column is always left.
+static INT32 CountColumnsUnderItemDescBox(SGPBox const& window, SGPBox const& slot_box, SGPBox const& item_box)
 {
-	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	INT16 const box_right = MapBigItemDescBoxRight();
+	if (box_right == 0) return 0;
 
-	// a stand-alone stack split view: re-lay just the view, from its first
-	// page
-	if (gfStackSplitStandalone)
+	INT32 const first_item_x = MAP_SCREEN_RIGHT_BLOCK_X + window.x + slot_box.x + item_box.x;
+	INT32       cols         = 0;
+	while (cols < GetInventoryGridTotalCols() - 1 && first_item_x + cols * slot_box.w < box_right) ++cols;
+	return cols;
+}
+
+
+// Lays the grid on show out again when the number of columns to keep clear
+// of the big weapon description box changes -- see gSectorInvReservedCols.
+// Called every frame while the window is up.
+static void UpdateSectorInventoryReservedColumns(void)
+{
+	if (gfStackSplitStandalone || gStackSplitSourceIndex != -1)
 	{
+		// the stack split grid is on show; the main one catches up once it
+		// is back
+		INT32 const wanted = CountColumnsUnderItemDescBox(g_stack_split_box, GetStackSplitSlotBoxUnshifted(), GetStackSplitItemBox());
+		if (wanted == gStackSplitReservedCols) return;
+
+		INT32 const first_item = gCurrentStackSplitPage * GetStackSplitPageSize();
 		DestroyStackSplitSlots();
-		gfSectorInventoryBigImages = !gfSectorInventoryBigImages;
-		CheckAndUnDateSlotAllocation();
-		gCurrentStackSplitPage = 0;
-		gLastStackSplitPage    = static_cast<INT32>(gStackSplitItems.empty() ? 0 : (gStackSplitItems.size() - 1) / GetStackSplitPageSize());
+		gStackSplitReservedCols = wanted;
+		gCurrentStackSplitPage  = first_item / GetStackSplitPageSize();
+		gLastStackSplitPage     = static_cast<INT32>(gStackSplitItems.empty() ? 0 : (gStackSplitItems.size() - 1) / GetStackSplitPageSize());
+		if (gCurrentStackSplitPage > gLastStackSplitPage) gCurrentStackSplitPage = gLastStackSplitPage;
 		CreateStackSplitSlots();
 		fMapPanelDirty = TRUE;
 		return;
 	}
 
+	INT32 const wanted = CountColumnsUnderItemDescBox(g_sector_inv_box, GetSectorInvSlotBoxUnshifted(), GetSectorInvItemBox());
+	if (wanted == gSectorInvReservedCols) return;
+
+	// Same as a change of "Show Large Icons": the list is partitioned for
+	// the page size, so it is partitioned again -- but the page with the
+	// first item on show stays on show.
+	INT32 const first_item = iCurrentInventoryPoolPage * GetMapInventoryPoolPageSize();
 	DestroyMapInventoryPoolSlots();
-
-	gfSectorInventoryBigImages = !gfSectorInventoryBigImages;
+	gSectorInvReservedCols = wanted;
 	ApplySectorInventoryFilter();
-
+	iCurrentInventoryPoolPage = std::min<INT32>(first_item / GetMapInventoryPoolPageSize(), iLastInventoryPoolPage);
 	CreateMapInventoryPoolSlots();
 	fMapPanelDirty = TRUE;
+}
+
+
+// The slots of the window are laid out for the current "Show Large Icons"
+// state: BeginSectorInventoryBigImagesChange() takes them down before the
+// state changes, EndSectorInventoryBigImagesChange() builds them again for
+// the new one. No-ops while the window is closed -- it is built for the
+// state of the moment when it opens.
+void BeginSectorInventoryBigImagesChange(void)
+{
+	if (!fShowMapInventoryPool) return;
+	if (gfStackSplitStandalone) DestroyStackSplitSlots();
+	else                        DestroyMapInventoryPoolSlots();
+}
+
+
+void EndSectorInventoryBigImagesChange(void)
+{
+	if (!fShowMapInventoryPool) return;
+	// a stand-alone stack split view: re-lay just the view, from its first
+	// page
+	if (gfStackSplitStandalone)
+	{
+		CheckAndUnDateSlotAllocation();
+		gCurrentStackSplitPage = 0;
+		gLastStackSplitPage    = static_cast<INT32>(gStackSplitItems.empty() ? 0 : (gStackSplitItems.size() - 1) / GetStackSplitPageSize());
+		CreateStackSplitSlots();
+	}
+	else
+	{
+		ApplySectorInventoryFilter();
+		CreateMapInventoryPoolSlots();
+	}
+	fMapPanelDirty = TRUE;
+}
+
+
+static void MapInventoryPoolBigImagesBtn(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	if (g_ui.isExtraWideStrategicScreen())
+	{
+		// 1366x768: a second button of the strategic screen's one option --
+		// see SectorInventoryBigImages(). The button has already flipped
+		// its own look; put it back if the change was refused.
+		ToggleMapBigImages();
+		if (SectorInventoryBigImages()) btn->uiFlags |= BUTTON_CLICKED_ON;
+		else                            btn->uiFlags &= ~BUTTON_CLICKED_ON;
+		return;
+	}
+
+	BeginSectorInventoryBigImagesChange();
+	gfSectorInventoryBigImages = !gfSectorInventoryBigImages;
+	EndSectorInventoryBigImagesChange();
 }
 
 
@@ -2931,8 +3136,14 @@ static void ToggleSectorInventoryMinimapCallback(GUI_BUTTON* btn, UINT32 reason)
 static void CreateMapInventoryMinimapCheckbox(void)
 {
 	BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/SECTOR_INVENTORY_RADARMAP_CHECKBOX.sti", MINIMAP_CHECKBOX_OFF, MINIMAP_CHECKBOX_ON);
+	// 1366x768: in the bottom right corner instead, the same distance from
+	// the window's right edge -- the big weapon description box reaches
+	// over the left one.
+	INT16 const x = g_ui.isExtraWideStrategicScreen()
+		? g_sector_inv_box.w - MINIMAP_CHECKBOX_X - GetDimensionsOfButtonPic(img)->w
+		: MINIMAP_CHECKBOX_X;
 	guiMapInvenButton[15] = QuickCreateButtonToggle(img,
-		MAP_SCREEN_RIGHT_BLOCK_X + g_sector_inv_box.x + MINIMAP_CHECKBOX_X,
+		MAP_SCREEN_RIGHT_BLOCK_X + g_sector_inv_box.x + x,
 		MAP_SCREEN_BOTTOM - MINIMAP_CHECKBOX_FROM_BOTTOM,
 		MSYS_PRIORITY_HIGHEST, ToggleSectorInventoryMinimapCallback);
 	guiMapInvenButton[15]->uiFlags |= BUTTON_SELFDELETE_IMAGE;

@@ -579,6 +579,11 @@ static ST::string gzItemCons;
 static INT16 gsInvDescX;
 static INT16 gsInvDescY;
 static UINT8 gubItemDescStatusIndex;
+// The item the box was laid out for (ReloadItemDesc()). On the map screen
+// things go on around the open box -- transfers, the sector inventory -- and
+// may take the item away or put another in its place: the box then closes,
+// see RenderItemDescriptionBox().
+static UINT16 gusItemDescShownItem = NOTHING;
 static BUTTON_PICS *giItemDescAmmoButtonImages;
 static GUIButtonRef giItemDescAmmoButton;
 static SOLDIERTYPE *gpItemDescSoldier;
@@ -3155,6 +3160,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 static void ReloadItemDesc(void)
 {
 	auto itemId = gpItemDescObject->usItem;
+	gusItemDescShownItem = itemId;
 	auto item = GCM->getItem(itemId);
 	auto graphic = GetBigInventoryGraphicForItem(item);
 
@@ -3668,6 +3674,15 @@ void RenderItemDescriptionBox(void)
 			fTeamPanelDirty          = TRUE;
 			fCharacterInfoPanelDirty = TRUE;
 		}
+		return;
+	}
+
+	// Map screen: the item is gone, or another one is in its place -- close
+	// the box, which was laid out for the item it opened on.
+	if (guiCurrentItemDescriptionScreen == MAP_SCREEN &&
+			gpItemDescObject != NULL && gpItemDescObject->usItem != gusItemDescShownItem)
+	{
+		DeleteItemDescriptionBox();
 		return;
 	}
 
@@ -4605,13 +4620,14 @@ void DeleteItemDescriptionBox( )
 		}
 	}
 
-	if ( ITEM_PROS_AND_CONS( gpItemDescObject->usItem ) )
+	// Like the regions and buttons above, by what was created: the box also
+	// closes because its item is gone or has become another one.
+	for (MOUSE_REGION& r : gProsAndConsRegions)
 	{
-		MSYS_RemoveRegion( &gProsAndConsRegions[0] );
-		MSYS_RemoveRegion( &gProsAndConsRegions[1] );
+		if (r.uiFlags & MSYS_REGION_EXISTS) MSYS_RemoveRegion(&r);
 	}
 
-	if(( ( GCM->getItem(gpItemDescObject->usItem)->isGun()) && gpItemDescObject->usItem != ROCKET_LAUNCHER ) )
+	if (giItemDescAmmoButton)
 	{
 		// Remove button
 		UnloadButtonImage( giItemDescAmmoButtonImages );
@@ -4653,6 +4669,9 @@ void DeleteItemDescriptionBox( )
 		gfAddingMoneyToMercFromPlayersAccount = FALSE;
 
 	gfItemDescObjectIsAttachment = FALSE;
+
+	// an item of the sector inventory goes back into its list
+	ReturnDescribedItemToSectorInventory();
 }
 
 

@@ -89,6 +89,15 @@ WORLDITEM const* GetHighlightedStackSplitSourceItem(void);
 // save/load -- see gfSectorInventoryBigImages's own comment
 // (Map_Screen_Interface_Map_Inventory.cc) for the full story.
 void InitSectorInventoryBigImagesForNewGame(void);
+// Called by ToggleMapBigImages() (MapScreen.cc) around the change of the
+// 1366x768 interface's one "Show Large Icons" option, which this window
+// follows there: take the slots down before, build them again after.
+void BeginSectorInventoryBigImagesChange(void);
+// 1366x768: puts the item of this window that the item description box was
+// showing, kept out of the list meanwhile, back into the list. Called when
+// the box closes; does nothing if the box was showing anything else.
+void ReturnDescribedItemToSectorInventory(void);
+void EndSectorInventoryBigImagesChange(void);
 void SaveSectorInventoryBigImagesToSaveGameFile(void);
 void LoadSectorInventoryBigImagesFromSaveGameFile(void);
 

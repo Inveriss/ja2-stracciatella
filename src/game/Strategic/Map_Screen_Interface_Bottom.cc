@@ -260,6 +260,15 @@ static GUIButtonRef guiMapTeamListScrollButtons[2];
 static void ShowTeamListScrollButtons(bool show);
 static GUIButtonRef guiMapBottomLaptopShortcutButtons[NUM_MAP_LAPTOP_SHORTCUTS];
 
+// 1366x768 interface: the one "Show Large Icons" button of the strategic
+// screen (ToggleMapBigImages(), MapScreen.cc), MAP_BIG_IMAGES_BTN_GAP px left
+// of the E-mail shortcut. Shown and hidden with the shortcuts. Sub-images of
+// sector_inventory_bookmarks.sti, the merc inventory's own former button.
+#define MAP_BIG_IMAGES_BTN_GAP 10
+#define MAP_BIG_IMAGES_BTN_OFF 27
+#define MAP_BIG_IMAGES_BTN_ON  26
+static GUIButtonRef guiMapBottomBigImagesButton;
+
 // mouse regions
 static MOUSE_REGION gMapMessageScrollBarRegion;
 static MOUSE_REGION gMapPauseRegion;
@@ -405,6 +414,7 @@ void RenderMapScreenInterfaceBottom( void )
 		// The laptop shortcut row (Y=664) sits inside this same 121px-tall bottom
 		// strip -- same visibility fix as the buttons above.
 		for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons) HideButton(btn);
+		if (guiMapBottomBigImagesButton) HideButton(guiMapBottomBigImagesButton);
 
 		// The message log (text, scroll bar, scroll arrows) stays live when it
 		// lies entirely left of the sector-inventory panel -- the wide
@@ -482,6 +492,13 @@ void RenderMapScreenInterfaceBottom( void )
 	ShowButton(guiMapMessageScrollButtons[MAP_SCROLL_MESSAGE_DOWN]);
 	ShowTeamListScrollButtons(true);
 	for (GUIButtonRef& btn : guiMapBottomLaptopShortcutButtons) ShowButton(btn);
+	if (guiMapBottomBigImagesButton)
+	{
+		ShowButton(guiMapBottomBigImagesButton);
+		// the option also changes from the sector inventory's button
+		if (IsMapInvBigImages()) guiMapBottomBigImagesButton->uiFlags |= BUTTON_CLICKED_ON;
+		else                     guiMapBottomBigImagesButton->uiFlags &= ~BUTTON_CLICKED_ON;
+	}
 
 	// The "Show Large Icons" merc inventory panel (mapinv_big_1280_720/768.sti,
 	// MapScreen.cc) reaches down over this strip's left part: hide the
@@ -498,6 +515,7 @@ void RenderMapScreenInterfaceBottom( void )
 		{
 			if (btn->X() < panel_right) HideButton(btn);
 		}
+		if (guiMapBottomBigImagesButton && guiMapBottomBigImagesButton->X() < panel_right) HideButton(guiMapBottomBigImagesButton);
 	}
 
 	// render whole panel
@@ -589,6 +607,18 @@ static GUIButtonRef MakeArrowButton(INT32 grayed, INT32 off, INT32 on, INT16 x, 
 
 // Same icon sheet (and off/on frame numbering) as the tactical screen's SM panel --
 // see SM_EMAIL_IMAGES etc. in Interface_Panels.cc.
+static void BtnBigImagesFromMapScreenCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	// The button has already flipped its own look; keep it in step with the
+	// state, changed or not.
+	ToggleMapBigImages();
+	if (IsMapInvBigImages()) btn->uiFlags |= BUTTON_CLICKED_ON;
+	else                     btn->uiFlags &= ~BUTTON_CLICKED_ON;
+}
+
+
 static GUIButtonRef MakeLaptopShortcutButton(INT32 off, INT32 on, INT16 x, INT16 y, GUI_CALLBACK click, const ST::string& help)
 {
 	GUIButtonRef const btn = QuickCreateButtonImg(INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti", off, on, x, y, MSYS_PRIORITY_HIGHEST - 1, click);
@@ -675,6 +705,16 @@ static void CreateButtonsForMapScreenInterfaceBottom(void)
 			x0 + MAP_LAPTOP_SHORTCUT_STATS * MAP_LAPTOP_SHORTCUT_STEP, y, BtnStatsFromMapScreenCallback, "Statistics");
 		guiMapBottomLaptopShortcutButtons[MAP_LAPTOP_SHORTCUT_SKILLS] = MakeLaptopShortcutButton(24, 25,
 			x0 + MAP_LAPTOP_SHORTCUT_SKILLS * MAP_LAPTOP_SHORTCUT_STEP, y, BtnSkillsFromMapScreenCallback, "Skills");
+
+		if (g_ui.isExtraWideStrategicScreen())
+		{
+			BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/sector_inventory_bookmarks.sti", MAP_BIG_IMAGES_BTN_OFF, MAP_BIG_IMAGES_BTN_ON);
+			INT16        const w   = GetDimensionsOfButtonPic(img)->w;
+			guiMapBottomBigImagesButton = QuickCreateButtonToggle(img, x0 - MAP_BIG_IMAGES_BTN_GAP - w, y, MSYS_PRIORITY_HIGHEST - 1, BtnBigImagesFromMapScreenCallback);
+			guiMapBottomBigImagesButton->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+			if (IsMapInvBigImages()) guiMapBottomBigImagesButton->uiFlags |= BUTTON_CLICKED_ON;
+			guiMapBottomBigImagesButton->SetFastHelpText("Show Large Icons");
+		}
 	}
 }
 
@@ -689,6 +729,7 @@ static void DestroyButtonsForMapScreenInterfaceBottom()
 		if (b) RemoveButton(b);
 	}
 	FOR_EACH(GUIButtonRef, i, guiMapBottomLaptopShortcutButtons)   RemoveButton(*i);
+	if (guiMapBottomBigImagesButton) RemoveButton(guiMapBottomBigImagesButton);
 	fMapScreenBottomDirty = TRUE;
 }
 

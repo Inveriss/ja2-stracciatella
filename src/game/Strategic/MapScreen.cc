@@ -7228,18 +7228,15 @@ static void CreateMapInvPanelControls(void);
 static void DestroyMapInvPanelControls(void);
 
 
-static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
+BOOLEAN ToggleMapBigImages(void)
 {
-	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	// Not while something sits on top of the slots.
+	if (fShowDescriptionFlag || InKeyRingPopup() || InItemStackPopup()) return FALSE;
 
-	// Not while something sits on top of the slots -- keep the button's own
-	// (already toggled) look in step with the unchanged state.
-	if (fShowDescriptionFlag || InKeyRingPopup() || InItemStackPopup())
-	{
-		if (gfMapInvBigImages) btn->uiFlags |= BUTTON_CLICKED_ON;
-		else                   btn->uiFlags &= ~BUTTON_CLICKED_ON;
-		return;
-	}
+	// 1366x768: the sector inventory follows the same option
+	// (SectorInventoryBigImages(), Map_Screen_Interface_Map_Inventory.cc)
+	bool const fSectorInventoryToo = g_ui.isExtraWideStrategicScreen();
+	if (fSectorInventoryToo) BeginSectorInventoryBigImagesChange();
 
 	gfMapInvBigImages = !gfMapInvBigImages;
 
@@ -7258,10 +7255,14 @@ static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
 	// new mode's positions. Removing this very button from inside its own
 	// callback is safe -- the button system defers the deletion until the
 	// callback returns (gfDelayButtonDeletion, Button_System.cc).
-	ShutdownInvSlotInterface();
-	InitMapInvSlotRegions();
-	DestroyMapInvPanelControls();
-	CreateMapInvPanelControls();
+	// the slots and controls of the panel only exist while it is open
+	if (fShowInventoryFlag)
+	{
+		ShutdownInvSlotInterface();
+		InitMapInvSlotRegions();
+		DestroyMapInvPanelControls();
+		CreateMapInvPanelControls();
+	}
 	fShowTrashCanHighLight = FALSE;
 
 	// The large panel covers part of the bottom strip, the normal one doesn't.
@@ -7270,6 +7271,21 @@ static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
 	SOLDIERTYPE* const s = GetSelectedInfoChar();
 	if (s != NULL) ReevaluateItemHatches(s, FALSE);
 	fTeamPanelDirty = TRUE;
+
+	if (fSectorInventoryToo) EndSectorInventoryBigImagesChange();
+	return TRUE;
+}
+
+
+static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	// Keep the button's own (already toggled) look in step with the state,
+	// changed or not.
+	ToggleMapBigImages();
+	if (gfMapInvBigImages) btn->uiFlags |= BUTTON_CLICKED_ON;
+	else                   btn->uiFlags &= ~BUTTON_CLICKED_ON;
 }
 
 
@@ -7308,7 +7324,10 @@ static void CreateMapInvPanelControls(void)
 	InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
 
 	// "Show Large Icons" -- wide strategic screen (1280+) only, per user request
-	if (g_ui.isWideStrategicScreen())
+	// Not on the 1366x768 interface: its one "Show Large Icons" button is on
+	// the bottom strip (Map_Screen_Interface_Bottom.cc), with a second one
+	// in the sector inventory.
+	if (g_ui.isWideStrategicScreen() && !g_ui.isExtraWideStrategicScreen())
 	{
 		BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/sector_inventory_bookmarks.sti", MAP_INV_BIG_IMAGES_BTN_OFF, MAP_INV_BIG_IMAGES_BTN_ON);
 		giMapInvBigImagesButton = QuickCreateButtonToggle(img, MAP_INV_BIG_IMAGES_BTN_X, MAP_INV_BIG_IMAGES_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, MapInvBigImagesBtnCallback);
