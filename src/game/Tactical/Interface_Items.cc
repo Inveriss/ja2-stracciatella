@@ -849,7 +849,7 @@ static const INV_DESC_STATS gWeaponStats[] =
 	// Previously-hidden stats, shown in the extra room made by the enlarged
 	// item description box. Only used when !in_map (gMapWeaponStats has no
 	// matching entries for these indices).
-	{ 488,  43, 14 },  // [8]  Ready time
+	{ 470,  43, 39 },  // [8]  Ready time ("First Aim:")
 	{ 410, 264, 87 },  // [9]  Reliability
 	{ 410, 106, 39 },  // [10] Burst penalty
 	{ 410, 280, 87 },  // [11] Repair ease
@@ -861,8 +861,8 @@ static const INV_DESC_STATS gWeaponStats[] =
 
 	// "=" signs for the two other AP-cost stats (Ready time, Reload), same
 	// convention as the existing single/burst-AP "=" signs above (ids[6]/[7]).
-	{ 512,  43,  0 },  // [16] = (Ready time)
-	{ 512,  43,  0 },  // [17] = (Reload AP cost)
+	{ 521,  43,  0 },  // [16] = (Ready time)
+	{ 521,  43,  0 },  // [17] = (Reload AP cost)
 	//{ 488, 135,  0 },  // [17] = (Reload AP cost)
 
 	// Purely decorative labels — cosmetic only, no associated value, not
@@ -964,7 +964,7 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 	{ 446, 72,  0 },   // = burst
 
 	// The stats the shared map box (gMapWeaponStats) does not show.
-	{ 488,  43, 14 },  // [8]  Ready time
+	{ 470,  43, 39 },  // [8]  Ready time ("First Aim:")
 	{ 410, 264, 87 },  // [9]  Reliability
 	{ 410, 106, 39 },  // [10] Burst penalty
 	{ 410, 280, 87 },  // [11] Repair ease
@@ -975,8 +975,8 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 
 	// "=" signs for the two other AP-cost stats (Ready time, Reload), same
 	// convention as the existing single/burst-AP "=" signs above (ids[6]/[7]).
-	{ 512,  43,  0 },  // [16] = (Ready time)
-	{ 512,  43,  0 },  // [17] = (Reload AP cost)
+	{ 521,  43,  0 },  // [16] = (Ready time)
+	{ 521,  43,  0 },  // [17] = (Reload AP cost)
 
 	// Purely decorative labels — cosmetic only, no associated value, not
 	// tied to any real stat. Kept translatable via gWeaponStatsDesc[15]/[16].
@@ -1012,7 +1012,7 @@ static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 	{   0,   0,  0 },  // [5]  AP burst: not on this box, see Short / Long / Full
 	{ 329, 463,  0 },  // [6]  = single      -- Single AP
 	{   0,   0,  0 },  // [7]  = burst: not on this box
-	{ 363, 463, 28 },  // [8]  Ready time    -- Single AP
+	{ 355, 463, 40 },  // [8]  Ready time ("First Aim:") -- Single AP
 	{ 152, 499, 69 },  // [9]  Reliability   -- Handling
 	{ 443, 464, 96 },  // [10] Burst penalty -- Burst AP
 	{ 152, 479, 69 },  // [11] Repair ease   -- Handling
@@ -1020,8 +1020,8 @@ static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 	{  31, 524, 69 },  // [13] Deadliness    -- Valuation
 	{ 299, 545, 92 },  // [14] Hit volume    -- Loudness
 	{ 152, 439, 69 },  // [15] Reload AP cost -- Handling
-	{ 403, 463,  0 },  // [16] = (Ready time) -- Single AP
-	{ 403, 463,  0 },  // [17] = (Reload AP cost): on [16], like on the other boxes
+	{ 406, 463,  0 },  // [16] = (Ready time) -- Single AP
+	{ 406, 463,  0 },  // [17] = (Reload AP cost): on [16], like on the other boxes
 	{   0,   0,  0 },  // [18] "AP:" (decorative): not on this box
 	{   0,   0,  0 },  // [19] "Rounds" (decorative): not on this box
 	{  24,  16, 96 },  // [20] "Base:"
@@ -1073,9 +1073,9 @@ static const SGPBox gMapBigWeaponBoxTitles[NUM_BIGW_TXT_TITLES] =
 // (sValDx), like gMapBigWeaponBoxStats. Indexed from BIGW_TXT_SHORT.
 static const INV_DESC_STATS gMapBigWeaponBoxTexts[NUM_BIGW_TXT_VALUES_END - BIGW_TXT_SHORT] =
 {
-	/* BIGW_TXT_SHORT          */ { 443, 401, 32 }, // Burst AP
-	/* BIGW_TXT_LONG           */ { 443, 422, 32 }, // Burst AP
-	/* BIGW_TXT_FULL           */ { 443, 443, 32 }, // Burst AP
+	/* BIGW_TXT_SHORT          */ { 443, 401, 36 }, // Burst AP
+	/* BIGW_TXT_LONG           */ { 443, 422, 36 }, // Burst AP
+	/* BIGW_TXT_FULL           */ { 443, 443, 36 }, // Burst AP
 	/* BIGW_TXT_BRST_PEN_PRONE */ { 443, 485, 96 }, // Burst AP
 	/* BIGW_TXT_UNJAM          */ { 152, 459, 69 }, // Handling
 	/* BIGW_TXT_VALUE          */ {  31, 544, 69 }, // Valuation
@@ -1085,9 +1085,9 @@ static const INV_DESC_STATS gMapBigWeaponBoxTexts[NUM_BIGW_TXT_VALUES_END - BIGW
 // distance to the bullet icons (Short, Long) or the "Up to" text (Full).
 static const INV_DESC_STATS gMapBigWeaponBoxRounds[3] =
 {
-	/* Short */ { 506, 401, 46 },
-	/* Long  */ { 506, 422, 46 },
-	/* Full  */ { 506, 443, 46 },
+	/* Short */ { 510, 401, 46 },
+	/* Long  */ { 510, 422, 46 },
+	/* Full  */ { 510, 443, 46 },
 };
 
 
