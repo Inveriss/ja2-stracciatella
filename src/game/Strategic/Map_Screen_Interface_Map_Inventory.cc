@@ -1005,6 +1005,7 @@ static void DestroyStash(void);
 static void GroupSectorInventoryItems(void);
 static void ApplySectorInventoryFilter(void);
 static void UpdateSectorInventoryReservedColumns(void);
+static void UpdateMinimapCheckboxCorner(void);
 static void HandleMapSectorInventory(void);
 static void OpenStackSplitView(INT32 sourceIndex);
 static void CloseStackSplitView(BOOLEAN fExitFromMapScreen = FALSE);
@@ -2970,6 +2971,8 @@ static INT32 CountColumnsUnderItemDescBox(INT32 const grid_x, SGPBox const& slot
 // Called every frame while the window is up.
 static void UpdateSectorInventoryReservedColumns(void)
 {
+	UpdateMinimapCheckboxCorner();
+
 	if (gfStackSplitStandalone || gStackSplitSourceIndex != -1)
 	{
 		// the stack split grid is on show; the main one catches up once it
@@ -3126,6 +3129,11 @@ static void DestroyMapInventoryFilterModeCheckbox(void)
 #define MINIMAP_CHECKBOX_ON           0
 #define MINIMAP_CHECKBOX_X            22
 #define MINIMAP_CHECKBOX_FROM_BOTTOM  32
+#define MINIMAP_CHECKBOX_RIGHT_X      21 // from the window's right edge, while in the bottom right corner
+
+// The checkbox is in the bottom right corner -- see
+// CreateMapInventoryMinimapCheckbox().
+static BOOLEAN gfMinimapCheckboxOnRight = FALSE;
 
 static void ToggleSectorInventoryMinimapCallback(GUI_BUTTON* btn, UINT32 reason)
 {
@@ -3139,11 +3147,13 @@ static void ToggleSectorInventoryMinimapCallback(GUI_BUTTON* btn, UINT32 reason)
 static void CreateMapInventoryMinimapCheckbox(void)
 {
 	BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/SECTOR_INVENTORY_RADARMAP_CHECKBOX.sti", MINIMAP_CHECKBOX_OFF, MINIMAP_CHECKBOX_ON);
-	// 1366x768: in the bottom right corner instead, the same distance from
-	// the window's right edge -- the big weapon description box reaches
-	// over the left one.
-	INT16 const x = g_ui.isExtraWideStrategicScreen()
-		? g_sector_inv_box.w - MINIMAP_CHECKBOX_X - GetDimensionsOfButtonPic(img)->w
+	// While the big weapon description box is open, reaching over the
+	// bottom left corner: in the bottom right one instead,
+	// MINIMAP_CHECKBOX_RIGHT_X px from the window's right edge -- see
+	// UpdateMinimapCheckboxCorner().
+	gfMinimapCheckboxOnRight = MapBigItemDescBoxRight() != 0;
+	INT16 const x = gfMinimapCheckboxOnRight
+		? g_sector_inv_box.w - MINIMAP_CHECKBOX_RIGHT_X - GetDimensionsOfButtonPic(img)->w
 		: MINIMAP_CHECKBOX_X;
 	guiMapInvenButton[15] = QuickCreateButtonToggle(img,
 		MAP_SCREEN_RIGHT_BLOCK_X + g_sector_inv_box.x + x,
@@ -3166,6 +3176,20 @@ static void CreateMapInventoryMinimapCheckbox(void)
 static void DestroyMapInventoryMinimapCheckbox(void)
 {
 	RemoveButton( guiMapInvenButton[15] );
+}
+
+
+// Moves the checkbox to the corner it belongs in now: the bottom right one
+// while the big weapon description box is open, back to the bottom left one
+// once it has closed. Called every frame while the window is up.
+static void UpdateMinimapCheckboxCorner(void)
+{
+	if (!guiMapInvenButton[15]) return;
+	if ((MapBigItemDescBoxRight() != 0) == (gfMinimapCheckboxOnRight != FALSE)) return;
+
+	DestroyMapInventoryMinimapCheckbox();
+	CreateMapInventoryMinimapCheckbox();
+	fMapPanelDirty = TRUE;
 }
 
 
