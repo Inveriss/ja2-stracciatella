@@ -584,6 +584,10 @@ static UINT8 gubItemDescStatusIndex;
 // may take the item away or put another in its place: the box then closes,
 // see RenderItemDescriptionBox().
 static UINT16 gusItemDescShownItem = NOTHING;
+// DeleteItemDescriptionBox() is only closing the map screen's box so that it
+// can open again, laid out anew, on the same item -- see
+// CloseMapItemDescBoxForRelayout().
+static BOOLEAN gfItemDescBoxRelayout = FALSE;
 static BUTTON_PICS *giItemDescAmmoButtonImages;
 static GUIButtonRef giItemDescAmmoButton;
 static SOLDIERTYPE *gpItemDescSoldier;
@@ -4670,8 +4674,48 @@ void DeleteItemDescriptionBox( )
 
 	gfItemDescObjectIsAttachment = FALSE;
 
-	// an item of the sector inventory goes back into its list
-	ReturnDescribedItemToSectorInventory();
+	// an item of the sector inventory goes back into its list -- unless the
+	// box only closes to open again on it (CloseMapItemDescBoxForRelayout())
+	if (!gfItemDescBoxRelayout) ReturnDescribedItemToSectorInventory();
+}
+
+
+// The map screen's box closed by CloseMapItemDescBoxForRelayout(), to be
+// opened again by ReopenMapItemDescBoxAfterRelayout().
+static OBJECTTYPE*  gpRelayoutItemDescObject     = NULL;
+static UINT8        gubRelayoutItemDescStatusIndex;
+static SOLDIERTYPE* gpRelayoutItemDescSoldier;
+static BOOLEAN      gfRelayoutItemDescIsAttachment;
+
+
+BOOLEAN CloseMapItemDescBoxForRelayout(void)
+{
+	if (!gfInItemDescBox || guiCurrentItemDescriptionScreen != MAP_SCREEN) return FALSE;
+	// not in the middle of taking money, nor on a key of the key ring
+	// (a temporary object the box deletes when it closes)
+	if (gpItemDescObject->usItem == MONEY || InKeyRingPopup()) return FALSE;
+
+	gpRelayoutItemDescObject       = gpItemDescObject;
+	gubRelayoutItemDescStatusIndex = gubItemDescStatusIndex;
+	gpRelayoutItemDescSoldier      = gpItemDescSoldier;
+	gfRelayoutItemDescIsAttachment = gfItemDescObjectIsAttachment;
+
+	gfItemDescBoxRelayout = TRUE;
+	DeleteItemDescriptionBox();
+	gfItemDescBoxRelayout = FALSE;
+	return TRUE;
+}
+
+
+void ReopenMapItemDescBoxAfterRelayout(void)
+{
+	if (gpRelayoutItemDescObject == NULL) return;
+
+	OBJECTTYPE* const o = gpRelayoutItemDescObject;
+	gpRelayoutItemDescObject = NULL;
+
+	gfItemDescObjectIsAttachment = gfRelayoutItemDescIsAttachment;
+	InternalInitItemDescriptionBox(o, gsInvDescX, gsInvDescY, gubRelayoutItemDescStatusIndex, gpRelayoutItemDescSoldier);
 }
 
 

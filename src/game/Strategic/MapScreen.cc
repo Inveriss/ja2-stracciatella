@@ -7230,8 +7230,12 @@ static void DestroyMapInvPanelControls(void);
 
 BOOLEAN ToggleMapBigImages(void)
 {
-	// Not while something sits on top of the slots.
-	if (fShowDescriptionFlag || InKeyRingPopup() || InItemStackPopup()) return FALSE;
+	// Not while something sits on top of the slots -- but an item
+	// description box closes for the change and opens again, laid out for
+	// the new state, after it.
+	if (InKeyRingPopup() || InItemStackPopup()) return FALSE;
+	bool const fReopenItemDescBox = fShowDescriptionFlag;
+	if (fReopenItemDescBox && !CloseMapItemDescBoxForRelayout()) return FALSE;
 
 	// 1366x768: the sector inventory follows the same option
 	// (SectorInventoryBigImages(), Map_Screen_Interface_Map_Inventory.cc)
@@ -7273,6 +7277,7 @@ BOOLEAN ToggleMapBigImages(void)
 	fTeamPanelDirty = TRUE;
 
 	if (fSectorInventoryToo) EndSectorInventoryBigImagesChange();
+	if (fReopenItemDescBox) ReopenMapItemDescBoxAfterRelayout();
 	return TRUE;
 }
 

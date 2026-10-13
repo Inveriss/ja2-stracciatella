@@ -94,8 +94,9 @@ BOOLEAN IsMapInvBigImages(void);
 BOOLEAN MapInvBigPanelCoversBottomStrip(void);
 // Flips "Show Large Icons" and lays the open panels out again: the merc
 // inventory and, on the 1366x768 interface, where it is the one option of
-// the whole strategic screen, the sector inventory. FALSE, nothing changed,
-// while an item description, key ring or stack popup is open.
+// the whole strategic screen, the sector inventory. An open item description
+// box is laid out again too. FALSE, nothing changed, while a key ring or
+// stack popup is open or money is being taken in the description box.
 BOOLEAN ToggleMapBigImages(void);
 void InitMapInvBigImagesForNewGame(void);
 void SaveMapInvBigImagesToSaveGameFile(void);
