@@ -885,9 +885,9 @@ static const INV_DESC_STATS gWeaponStats[] =
 
 	// "=" signs for the two other AP-cost stats (Ready time, Reload), same
 	// convention as the existing single/burst-AP "=" signs above (ids[6]/[7]).
-	{ 521,  43,  0 },  // [16] = (Ready time)
-	{ 521,  43,  0 },  // [17] = (Reload AP cost)
-	//{ 488, 135,  0 },  // [17] = (Reload AP cost)
+	{ 521,  43,  0 },  // [16] = (Ready time): no longer drawn
+	{ 521,  43,  0 },  // [17] = (Reload AP cost): no longer drawn
+	//{ 488, 135,  0 },  // [17] = (Reload AP cost): no longer drawn
 
 	// Purely decorative labels — cosmetic only, no associated value, not
 	// tied to any real stat. Kept translatable via gWeaponStatsDesc[15]/[16].
@@ -999,8 +999,8 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 
 	// "=" signs for the two other AP-cost stats (Ready time, Reload), same
 	// convention as the existing single/burst-AP "=" signs above (ids[6]/[7]).
-	{ 521,  43,  0 },  // [16] = (Ready time)
-	{ 521,  43,  0 },  // [17] = (Reload AP cost)
+	{ 521,  43,  0 },  // [16] = (Ready time): no longer drawn
+	{ 521,  43,  0 },  // [17] = (Reload AP cost): no longer drawn
 
 	// Purely decorative labels — cosmetic only, no associated value, not
 	// tied to any real stat. Kept translatable via gWeaponStatsDesc[15]/[16].
@@ -1028,24 +1028,24 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 // The right edge of a value is sX + sValDx + ITEM_STATS_WIDTH.
 static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 {
-	{  31, 459, 92 },  // [0]  Weight        -- Physical
-	{  31, 439, 92 },  // [1]  Status        -- Physical
-	{ 421, 401, 50 },  // [2]  Range         -- Fire Power
-	{ 331, 401, 40 },  // [3]  Damage        -- Fire Power
-	{ 331, 463, 40 },  // [4]  AP single     -- Single AP
+	{  36, 459, 82 },  // [0]  Weight        -- Physical
+	{  36, 439, 82 },  // [1]  Status        -- Physical
+	{ 427, 401, 44 },  // [2]  Range         -- Fire Power
+	{ 331, 401, 27 },  // [3]  Damage        -- Fire Power
+	{ 331, 463, 27 },  // [4]  AP single     -- Single AP
 	{   0,   0,  0 },  // [5]  AP burst: not on this box, see Short / Long / Full
 	{ 361, 463,  0 },  // [6]  = single      -- Single AP
 	{   0,   0,  0 },  // [7]  = burst: not on this box
-	{ 421, 463, 50 },  // [8]  Ready time ("First Aim:") -- Single AP
-	{ 175, 499, 91 },  // [9]  Reliability   -- Handling
-	{ 523, 464, 145 }, // [10] Burst penalty -- Burst AP
-	{ 175, 479, 91 },  // [11] Repair ease   -- Handling
+	{ 427, 463, 44 },  // [8]  Ready time ("First Aim:") -- Single AP
+	{ 180, 499, 81 },  // [9]  Reliability   -- Handling
+	{ 523, 478, 145 }, // [10] Burst penalty -- Burst AP
+	{ 180, 479, 81 },  // [11] Repair ease   -- Handling
 	{ 331, 525, 140 }, // [12] Attack volume -- Loudness
-	{  31, 524, 92 },  // [13] Deadliness    -- Valuation
+	{  36, 524, 82 },  // [13] Deadliness    -- Valuation
 	{ 331, 545, 140 }, // [14] Hit volume    -- Loudness
-	{ 175, 439, 91 },  // [15] Reload AP cost -- Handling
-	{ 474, 463,  0 },  // [16] = (Ready time) -- Single AP
-	{ 474, 463,  0 },  // [17] = (Reload AP cost): on [16], like on the other boxes
+	{ 180, 439, 81 },  // [15] Reload AP cost -- Handling
+	{ 474, 463,  0 },  // [16] = (Ready time): no longer drawn
+	{ 474, 463,  0 },  // [17] = (Reload AP cost): no longer drawn
 	{   0,   0,  0 },  // [18] "AP:" (decorative): not on this box
 	{   0,   0,  0 },  // [19] "Rounds" (decorative): not on this box
 	{  36,  16, 65 },  // [20] "Base:"
@@ -1097,21 +1097,21 @@ static const SGPBox gMapBigWeaponBoxTitles[NUM_BIGW_TXT_TITLES] =
 // (sValDx), like gMapBigWeaponBoxStats. Indexed from BIGW_TXT_SHORT.
 static const INV_DESC_STATS gMapBigWeaponBoxTexts[NUM_BIGW_TXT_VALUES_END - BIGW_TXT_SHORT] =
 {
-	/* BIGW_TXT_SHORT          */ { 523, 401, 36 }, // Burst AP
-	/* BIGW_TXT_LONG           */ { 523, 422, 36 }, // Burst AP
-	/* BIGW_TXT_FULL           */ { 523, 443, 36 }, // Burst AP
-	/* BIGW_TXT_BRST_PEN_PRONE */ { 523, 485, 145 }, // Burst AP
-	/* BIGW_TXT_UNJAM          */ { 175, 459, 91 }, // Handling
-	/* BIGW_TXT_VALUE          */ {  31, 544, 92 }, // Valuation
+	/* BIGW_TXT_SHORT          */ { 523, 401, 19 }, // Burst AP
+	/* BIGW_TXT_LONG           */ { 523, 422, 19 }, // Burst AP
+	/* BIGW_TXT_FULL           */ { 523, 443, 19 }, // Burst AP
+	/* BIGW_TXT_BRST_PEN_PRONE */ { 523, 499, 145 }, // Burst AP
+	/* BIGW_TXT_UNJAM          */ { 180, 459, 81 }, // Handling
+	/* BIGW_TXT_VALUE          */ {  36, 544, 82 }, // Valuation
 };
 
 // "Rounds:" on the lines of Short / Long / Full: label position and the
 // distance to the bullet icons (Short, Long) or the "Up to" text (Full).
 static const INV_DESC_STATS gMapBigWeaponBoxRounds[3] =
 {
-	/* Short */ { 590, 401, 46 },
-	/* Long  */ { 590, 422, 46 },
-	/* Full  */ { 590, 443, 46 },
+	/* Short */ { 602, 401, 46 },
+	/* Long  */ { 602, 422, 46 },
+	/* Full  */ { 602, 443, 46 },
 };
 
 
@@ -4233,7 +4233,6 @@ void RenderItemDescriptionBox(void)
 
 			SetFontForeground(label_colour);
 			MPrint(dx + ids[8].sX,  dy + ids[8].sY,  gWeaponStatsDesc[7]);  // Ready time
-			MPrint(dx + ids[16].sX, dy + ids[16].sY, gWeaponStatsDesc[6]);  // = (Ready time)
 			MPrint(dx + ids[9].sX,  dy + ids[9].sY,  gWeaponStatsDesc[8]);  // Reliability
 			if (w->ubShotsPerShortBurst > 0)
 			{
@@ -4246,7 +4245,6 @@ void RenderItemDescriptionBox(void)
 			if (showReload)
 			{
 				MPrint(dx + ids[15].sX, dy + ids[15].sY, gWeaponStatsDesc[14]); // Reload AP cost
-				MPrint(dx + ids[17].sX, dy + ids[17].sY, gWeaponStatsDesc[6]);  // = (Reload AP cost)
 			}
 
 			// Purely decorative labels — cosmetic only, no associated value,
