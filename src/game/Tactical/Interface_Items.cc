@@ -340,7 +340,7 @@ static const SGPPoint g_map_weapons_hide_empty_slots_checkbox = { 8, 178 };
 static const SGPBox g_map_itemdesc_desc_box_weapons_big        = {  25, 582, 675,  0 }; // iteminfoc_weapons_big / description
 static const SGPBox g_map_itemdesc_pros_cons_box_weapons_big   = {  25, 606, 315,  0 }; // iteminfoc_weapons_big / pros
 static const SGPBox g_map_itemdesc_cons_box_weapons_big        = { 350, 606, 350,  0 }; // iteminfoc_weapons_big / cons, same line
-static const SGPBox g_map_itemdesc_item_status_box_weapons_big = { 156, 115,   2, 69 }; // iteminfoc_weapons_big / status bar
+static const SGPBox g_map_itemdesc_item_status_box_weapons_big = { 312, 192,   2, 125 }; // iteminfoc_weapons_big / status bar, 2x125, y is its bottom
 // The bullet icon of "AP:" in the Single AP field. The box has no burst or
 // decorative bullets: Short / Long / Full have their own rounds.
 static const SGPPoint g_map_weapons_big_bullet_sing  = { 359, 459 };
@@ -762,7 +762,7 @@ static const SGPBox g_desc_item_box_map = { 23, 10, 124, 48 };
 static const SGPBox g_desc_item_box_map_items = { 21, 13, 133, 69 }; // iteminfoc_items / main picture
 static const SGPBox g_desc_item_box_map_money = { 21, 13, 133, 69 }; // iteminfoc_money / main picture
 static const SGPBox g_desc_item_box_map_weapons = { 163,  46, 133, 69 }; // iteminfoc_weapons / main picture, ammo button
-static const SGPBox g_desc_item_box_map_weapons_big = { 163,  46, 133, 69 }; // iteminfoc_weapons_big / main picture, ammo button
+static const SGPBox g_desc_item_box_map_weapons_big = { 318,  68, 280, 125 }; // iteminfoc_weapons_big / main picture (280x125, for the big weapon pictures to come), ammo button
 
 // static const SGPBox g_desc_item_box     = { 23, 230, 220, 10 };
 // Main item picture: size and position within the box background. One
@@ -1216,18 +1216,37 @@ static const AttachmentGfxInfo g_map_attachment_info_weapons =
 	}
 };
 
-// iteminfoc_weapons_big: the 20 attachment slots -- placeholder copy of
-// g_map_attachment_info_weapons. The graphic has the slot frames in it, so
-// none are drawn per slot and there is no "hide empty" option.
+// iteminfoc_weapons_big: the 20 attachment slots, numbered as in the
+// graphic's layout sheet. A slot's origin is the left line of its status
+// bar channel, 6 px left of its field; every slot is 70x50 for now (some
+// fields of the graphic are wider or narrower), its status bar 2x50. The
+// graphic has the slot frames in it, so none are drawn per slot and there
+// is no "hide empty" option.
 static const AttachmentGfxInfo g_map_attachment_info_weapons_big =
 {
-	{ 8, 1, 36, 31 },
-	{ 1, 1,  2, 31 },
+	{ 7, 1, 70, 50 },   // item_box: inside the field's 1 px border
+	{ 1, 1,  2, 50 },   // bar_box: inside the channel
 	{
-		{ 155,   8 }, { 204,   8 }, { 252,   8 }, { 350,   8 }, // First row
-		{   8,  65 }, {  57,  65 }, { 106,  65 }, { 301,  46 }, { 301,  84 }, { 350,  65 }, // Second row
-		{ 105, 122 }, { 154, 122 }, { 203, 122 }, { 252, 122 }, { 349, 122 }, // Third row
-		{  57, 160 }, { 106, 160 }, { 154, 160 }, { 252, 160 }, { 301, 160 }, // Fourth row
+		{ 228,  10 }, // 1
+		{ 311,  10 }, // 2
+		{ 471,  10 }, // 3
+		{ 677,  10 }, // 4
+		{  29, 104 }, // 5
+		{ 170, 104 }, // 6
+		{ 228, 199 }, // 7
+		{ 604,  67 }, // 8
+		{ 604, 142 }, // 9
+		{ 677, 142 }, // 10
+		{ 311, 199 }, // 11
+		{ 394, 199 }, // 12
+		{ 521, 199 }, // 13
+		{ 604, 199 }, // 14
+		{ 677, 256 }, // 15
+		{ 145, 256 }, // 16
+		{ 228, 256 }, // 17
+		{ 311, 256 }, // 18
+		{ 521, 256 }, // 19
+		{ 604, 256 }, // 20
 	}
 };
 
