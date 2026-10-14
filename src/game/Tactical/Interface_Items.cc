@@ -324,12 +324,16 @@ static const SGPPoint g_map_weapons_hide_empty_slots_checkbox = { 8, 178 };
 // Large Icons". Every _weapons_big map table in this file is a placeholder
 // -- a copy of its _weapons counterpart, to be placed by hand on the new
 // graphic.
-static const SGPBox g_map_itemdesc_desc_box_weapons_big        = { 14,  226, 375, 0 };  // iteminfoc_weapons_big / description
-static const SGPBox g_map_itemdesc_pros_cons_box_weapons_big   = { 14, 270, 375, 10 };  // iteminfoc_weapons_big / pros and cons
+// The description and pros / cons share the long box along the bottom of
+// iteminfoc_weapons_big (685x45 inside, from 20,577), one line each: the
+// description 5 px from its top and left, cons 5 px from its bottom and
+// left, pros 5 px above cons (ITEMDESC_FONT is 8 px high).
+static const SGPBox g_map_itemdesc_desc_box_weapons_big        = { 25, 582, 675,  0 }; // iteminfoc_weapons_big / description (a longer one wraps onto the pros line)
+static const SGPBox g_map_itemdesc_pros_cons_box_weapons_big   = { 25, 596, 675, 13 }; // iteminfoc_weapons_big / pros, cons 13 px below
 static const SGPBox g_map_itemdesc_item_status_box_weapons_big = { 156, 115,   2, 69 }; // iteminfoc_weapons_big / status bar
 // The bullet icon of "AP:" in the Single AP field. The box has no burst or
 // decorative bullets: Short / Long / Full have their own rounds.
-static const SGPPoint g_map_weapons_big_bullet_sing  = { 322, 464 };
+static const SGPPoint g_map_weapons_big_bullet_sing  = { 354, 464 };
 
 #define DOTDOTDOT "..."
 #define COMMA_AND_SPACE ", "
@@ -727,7 +731,7 @@ static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
 static const SGPBox gMapDescNameBox_Items = { 19, 99, 334, 8 }; // iteminfoc_items / item name, money amount of gold and silver
 static const SGPBox gMapDescNameBox_Money = { 19, 99, 334, 8 }; // iteminfoc_money / item name, total amount
 static const SGPBox gMapDescNameBox_Weapons = { 14, 203, 375, 8 }; // iteminfoc_weapons / item name, calibre and weapon class
-static const SGPBox gMapDescNameBox_Weapons_Big = { 24, 326, 230, 12 }; // iteminfoc_weapons_big / item name, calibre and weapon class (FONT12ARIAL)
+static const SGPBox gMapDescNameBox_Weapons_Big = { 24, 326, 275, 12 }; // iteminfoc_weapons_big / item name, calibre and weapon class (FONT12ARIAL)
 
 // Done button (itemdescdonebutton.sti) of the map screen's box. Only on
 // ItemInfoC.sti: the _items/_money/_weapons boxes have none, like the tactical ones
@@ -1014,29 +1018,29 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 // The right edge of a value is sX + sValDx + ITEM_STATS_WIDTH.
 static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 {
-	{  31, 459, 69 },  // [0]  Weight        -- Physical
-	{  31, 439, 69 },  // [1]  Status        -- Physical
-	{ 363, 401, 28 },  // [2]  Range         -- Fire Power
-	{ 299, 401, 26 },  // [3]  Damage        -- Fire Power
-	{ 299, 463, 26 },  // [4]  AP single     -- Single AP
+	{  31, 459, 92 },  // [0]  Weight        -- Physical
+	{  31, 439, 92 },  // [1]  Status        -- Physical
+	{ 421, 401, 50 },  // [2]  Range         -- Fire Power
+	{ 331, 401, 40 },  // [3]  Damage        -- Fire Power
+	{ 331, 463, 40 },  // [4]  AP single     -- Single AP
 	{   0,   0,  0 },  // [5]  AP burst: not on this box, see Short / Long / Full
-	{ 329, 463,  0 },  // [6]  = single      -- Single AP
+	{ 361, 463,  0 },  // [6]  = single      -- Single AP
 	{   0,   0,  0 },  // [7]  = burst: not on this box
-	{ 355, 463, 40 },  // [8]  Ready time ("First Aim:") -- Single AP
-	{ 152, 499, 69 },  // [9]  Reliability   -- Handling
-	{ 443, 464, 96 },  // [10] Burst penalty -- Burst AP
-	{ 152, 479, 69 },  // [11] Repair ease   -- Handling
-	{ 299, 525, 92 },  // [12] Attack volume -- Loudness
-	{  31, 524, 69 },  // [13] Deadliness    -- Valuation
-	{ 299, 545, 92 },  // [14] Hit volume    -- Loudness
-	{ 152, 439, 69 },  // [15] Reload AP cost -- Handling
-	{ 406, 463,  0 },  // [16] = (Ready time) -- Single AP
-	{ 406, 463,  0 },  // [17] = (Reload AP cost): on [16], like on the other boxes
+	{ 421, 463, 50 },  // [8]  Ready time ("First Aim:") -- Single AP
+	{ 175, 499, 91 },  // [9]  Reliability   -- Handling
+	{ 523, 464, 145 }, // [10] Burst penalty -- Burst AP
+	{ 175, 479, 91 },  // [11] Repair ease   -- Handling
+	{ 331, 525, 140 }, // [12] Attack volume -- Loudness
+	{  31, 524, 92 },  // [13] Deadliness    -- Valuation
+	{ 331, 545, 140 }, // [14] Hit volume    -- Loudness
+	{ 175, 439, 91 },  // [15] Reload AP cost -- Handling
+	{ 474, 463,  0 },  // [16] = (Ready time) -- Single AP
+	{ 474, 463,  0 },  // [17] = (Reload AP cost): on [16], like on the other boxes
 	{   0,   0,  0 },  // [18] "AP:" (decorative): not on this box
 	{   0,   0,  0 },  // [19] "Rounds" (decorative): not on this box
-	{  24,  16, 96 },  // [20] "Base:"
-	{  24,  30, 96 },  // [21] "Prone:"
-	{  24,  44, 96 }   // [22] "Per Aim:"
+	{  36,  16, 65 },  // [20] "Base:"
+	{  36,  30, 65 },  // [21] "Prone:"
+	{  36,  44, 65 }   // [22] "Per Aim:"
 };
 
 // Texts only iteminfoc_weapons_big shows -- indexes gzMapBigWeaponBoxStrings.
@@ -1068,36 +1072,36 @@ enum
 // The bars of the graphic the headers and section titles are centred in.
 static const SGPBox gMapBigWeaponBoxTitles[NUM_BIGW_TXT_TITLES] =
 {
-	/* BIGW_TXT_BALLISTICS  */ { 294, 330, 276, 22 },
-	/* BIGW_TXT_MAINTENANCE */ {  26, 367, 226, 24 },
-	/* BIGW_TXT_FIRE_POWER  */ { 294, 368, 128, 23 },
-	/* BIGW_TXT_SINGLE_AP   */ { 294, 430, 128, 23 },
-	/* BIGW_TXT_BURST_AP    */ { 438, 368, 132, 23 },
-	/* BIGW_TXT_LOUDNESS    */ { 294, 492, 128, 23 },
-	/* BIGW_TXT_PHYSICAL    */ {  26, 406, 105, 23 },
-	/* BIGW_TXT_HANDLING    */ { 147, 406, 105, 23 },
-	/* BIGW_TXT_VALUATION   */ {  26, 491, 105, 23 },
+	/* BIGW_TXT_BALLISTICS  */ { 326, 330, 373, 22 },
+	/* BIGW_TXT_MAINTENANCE */ {  26, 367, 271, 24 },
+	/* BIGW_TXT_FIRE_POWER  */ { 326, 368, 176, 23 },
+	/* BIGW_TXT_SINGLE_AP   */ { 326, 430, 176, 23 },
+	/* BIGW_TXT_BURST_AP    */ { 518, 368, 181, 23 },
+	/* BIGW_TXT_LOUDNESS    */ { 326, 492, 176, 23 },
+	/* BIGW_TXT_PHYSICAL    */ {  26, 406, 128, 23 },
+	/* BIGW_TXT_HANDLING    */ { 170, 406, 127, 23 },
+	/* BIGW_TXT_VALUATION   */ {  26, 491, 128, 23 },
 };
 
 // Label position (sX, sY) and the distance to the right-aligned value
 // (sValDx), like gMapBigWeaponBoxStats. Indexed from BIGW_TXT_SHORT.
 static const INV_DESC_STATS gMapBigWeaponBoxTexts[NUM_BIGW_TXT_VALUES_END - BIGW_TXT_SHORT] =
 {
-	/* BIGW_TXT_SHORT          */ { 443, 401, 36 }, // Burst AP
-	/* BIGW_TXT_LONG           */ { 443, 422, 36 }, // Burst AP
-	/* BIGW_TXT_FULL           */ { 443, 443, 36 }, // Burst AP
-	/* BIGW_TXT_BRST_PEN_PRONE */ { 443, 485, 96 }, // Burst AP
-	/* BIGW_TXT_UNJAM          */ { 152, 459, 69 }, // Handling
-	/* BIGW_TXT_VALUE          */ {  31, 544, 69 }, // Valuation
+	/* BIGW_TXT_SHORT          */ { 523, 401, 36 }, // Burst AP
+	/* BIGW_TXT_LONG           */ { 523, 422, 36 }, // Burst AP
+	/* BIGW_TXT_FULL           */ { 523, 443, 36 }, // Burst AP
+	/* BIGW_TXT_BRST_PEN_PRONE */ { 523, 485, 145 }, // Burst AP
+	/* BIGW_TXT_UNJAM          */ { 175, 459, 91 }, // Handling
+	/* BIGW_TXT_VALUE          */ {  31, 544, 92 }, // Valuation
 };
 
 // "Rounds:" on the lines of Short / Long / Full: label position and the
 // distance to the bullet icons (Short, Long) or the "Up to" text (Full).
 static const INV_DESC_STATS gMapBigWeaponBoxRounds[3] =
 {
-	/* Short */ { 510, 401, 46 },
-	/* Long  */ { 510, 422, 46 },
-	/* Full  */ { 510, 443, 46 },
+	/* Short */ { 590, 401, 46 },
+	/* Long  */ { 590, 422, 46 },
+	/* Full  */ { 590, 443, 46 },
 };
 
 
