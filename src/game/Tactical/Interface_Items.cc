@@ -86,6 +86,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iterator>
+#include <vector>
 
 #define ITEMDESC_FONT					BLOCKFONT2
 #define ITEMDESC_FONTSHADOW2				32
@@ -325,11 +326,20 @@ static const SGPPoint g_map_weapons_hide_empty_slots_checkbox = { 8, 178 };
 // -- a copy of its _weapons counterpart, to be placed by hand on the new
 // graphic.
 // The description and pros / cons share the long box along the bottom of
-// iteminfoc_weapons_big (685x45 inside, from 20,577), one line each: the
-// description 5 px from its top and left, cons 5 px from its bottom and
-// left, pros 5 px above cons (ITEMDESC_FONT is 8 px high).
-static const SGPBox g_map_itemdesc_desc_box_weapons_big        = { 25, 582, 675,  0 }; // iteminfoc_weapons_big / description (a longer one wraps onto the pros line)
-static const SGPBox g_map_itemdesc_pros_cons_box_weapons_big   = { 25, 596, 675, 13 }; // iteminfoc_weapons_big / pros, cons 13 px below
+// iteminfoc_weapons_big (685x45 inside, from 20,577), all in FONT12ARIAL
+// (11 px high): the description on one line, 5 px from the box's top and
+// left; pros and cons on one line 5 px from its bottom, pros 5 px from its
+// left, cons from x 350. All three end in "..." where they don't fit.
+#define MAP_BIG_WEAPON_DESC_LINES    1 // lines of the description; the last ends in "..." if it goes on
+#define MAP_BIG_WEAPON_DESC_LINE_GAP 1 // between the description's lines, if more than one
+// The colour of the pros / cons lists. On the other boxes they are drawn in
+// ITEMDESC_FONT's shadow colour, ITEMDESC_FONTSHADOW2 -- (201, 172, 133) in
+// BLOCKFONT2's palette, black in FONT12ARIAL's -- so here that colour's
+// nearest one in FONT12ARIAL's palette.
+#define MAP_BIG_WEAPON_PROS_CONS_COLOUR 127 // (210, 169, 127)
+static const SGPBox g_map_itemdesc_desc_box_weapons_big        = {  25, 582, 675,  0 }; // iteminfoc_weapons_big / description
+static const SGPBox g_map_itemdesc_pros_cons_box_weapons_big   = {  25, 606, 315,  0 }; // iteminfoc_weapons_big / pros
+static const SGPBox g_map_itemdesc_cons_box_weapons_big        = { 350, 606, 350,  0 }; // iteminfoc_weapons_big / cons, same line
 static const SGPBox g_map_itemdesc_item_status_box_weapons_big = { 156, 115,   2, 69 }; // iteminfoc_weapons_big / status bar
 // The bullet icon of "AP:" in the Single AP field. The box has no burst or
 // decorative bullets: Short / Long / Full have their own rounds.
@@ -1410,15 +1420,20 @@ static std::map<ST::string, SGPVObject*> allInventoryGraphics;
 static std::map<ST::string, SGPVObject*> allSectorInventoryBigGraphics;
 const ST::string guiBigInventoryGraphicMissingPath = "sti/interface/inventory/inventory-graphic-not-found-big.sti";
 
+// The font pros / cons are measured in by AttemptToAddSubstring():
+// ITEMDESC_FONT when NULL, FONT12ARIAL on the map's big weapon box.
+static SGPFont gProsConsFont = NULL;
+
 static BOOLEAN AttemptToAddSubstring(ST::string& zDest, const ST::string& zTemp, UINT32* puiStringLength, UINT32 uiPixLimit)
 {
 	UINT32 uiRequiredStringLength, uiTempStringLength;
+	SGPFont const font = gProsConsFont ? gProsConsFont : ITEMDESC_FONT;
 
-	uiTempStringLength = StringPixLength( zTemp, ITEMDESC_FONT );
+	uiTempStringLength = StringPixLength( zTemp, font );
 	uiRequiredStringLength = *puiStringLength + uiTempStringLength;
 	if (!zDest.empty())
 	{
-		uiRequiredStringLength += StringPixLength( COMMA_AND_SPACE, ITEMDESC_FONT );
+		uiRequiredStringLength += StringPixLength( COMMA_AND_SPACE, font );
 	}
 	if (uiRequiredStringLength < uiPixLimit)
 	{
@@ -3033,18 +3048,21 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 
 	if (ITEM_PROS_AND_CONS(o->usItem))
 	{
-		INT16         const pros_cons_indent = std::max(StringPixLength(gzProsLabel, ITEMDESC_FONT), StringPixLength(gzConsLabel, ITEMDESC_FONT)) + 10;
-		const SGPBox* const box              = (IsMapBigWeaponBox() ? &g_map_itemdesc_pros_cons_box_weapons_big : IsMapWeaponBox() ? &g_map_itemdesc_pros_cons_box_weapons : in_map ? &g_map_itemdesc_pros_cons_box : &g_itemdesc_pros_cons_box);
-		UINT16        const x                = box->x + pros_cons_indent + gsInvDescX;
-		UINT16              y                = box->y                    + gsInvDescY;
-		UINT16        const w                = box->w - pros_cons_indent;
-		UINT16        const h                = GetFontHeight(ITEMDESC_FONT);
+		// the map's big weapon box: FONT12ARIAL, pros and cons side by side
+		bool          const big              = IsMapBigWeaponBox();
+		SGPFont       const font             = big ? FONT12ARIAL : ITEMDESC_FONT;
+		INT16         const pros_cons_indent = std::max(StringPixLength(gzProsLabel, font), StringPixLength(gzConsLabel, font)) + 10;
+		const SGPBox* const box              = (big ? &g_map_itemdesc_pros_cons_box_weapons_big : IsMapWeaponBox() ? &g_map_itemdesc_pros_cons_box_weapons : in_map ? &g_map_itemdesc_pros_cons_box : &g_itemdesc_pros_cons_box);
+		UINT16        const h                = GetFontHeight(font);
 		for (INT32 i = 0; i < 2; ++i)
 		{
 			// Add region for pros/cons help text
+			const SGPBox* const line = (big && i == 1 ? &g_map_itemdesc_cons_box_weapons_big : box);
+			UINT16 const x = line->x + pros_cons_indent + gsInvDescX;
+			UINT16 const y = line->y + (big ? 0 : i * box->h) + gsInvDescY;
+			UINT16 const w = line->w - pros_cons_indent;
 			MOUSE_REGION* const r = &gProsAndConsRegions[i];
 			MSYS_DefineRegion(r, x, y, x + w - 1, y + h - 1, MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, itemDescCallback);
-			y += box->h;
 
 			ST::string label;
 			// use temp variable to prevent an initial comma from being displayed
@@ -3671,6 +3689,47 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 }
 
 
+// `text` word-wrapped onto at most `lines` lines, `pitch` px apart, in
+// white with a black shadow. If it goes on past them, the last one ends in
+// "...".
+static void PrintLinesWithEllipsis(INT16 const x, INT16 const y, INT16 const w, INT16 const pitch, INT32 const lines, SGPFont const font, ST::string const& text)
+{
+	std::vector<ST::string> const words = text.split(' ');
+	INT16 const dots = StringPixLength(DOTDOTDOT, font);
+
+	SetFontAttributes(font, FONT_FCOLOR_WHITE);
+	SetFontShadow(FONT_MCOLOR_BLACK);
+
+	size_t next = 0;
+	for (INT32 line = 0; line != lines && next < words.size(); ++line)
+	{
+		ST::string out;
+		while (next < words.size())
+		{
+			ST::string const longer = out.empty() ? words[next] : out + " " + words[next];
+			if (StringPixLength(longer, font) > w) break;
+			out = longer;
+			++next;
+		}
+		// a single word wider than the line: it goes on its own
+		if (out.empty()) out = words[next++];
+
+		if (line == lines - 1 && next < words.size())
+		{
+			// more than fits: drop words until "..." fits after them
+			while (StringPixLength(out, font) + dots > w)
+			{
+				ST_ssize_t const space = out.find_last(' ');
+				if (space <= 0) break;
+				out = out.left(space);
+			}
+			out += DOTDOTDOT;
+		}
+		MPrint(x, y + line * pitch, out);
+	}
+}
+
+
 void RenderItemDescriptionBox(void)
 {
 	if (!gfInItemDescBox)
@@ -3966,7 +4025,15 @@ void RenderItemDescriptionBox(void)
 			fIsMoney  ? g_itemdesc_desc_box_money :
 			fIsWeapon ? g_itemdesc_desc_box :
 			            g_itemdesc_desc_box_items;
-		DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+		if (IsMapBigWeaponBox())
+		{
+			// FONT12ARIAL on the map's big weapon box, one line
+			PrintLinesWithEllipsis(dx + box.x, dy + box.y, box.w, GetFontHeight(FONT12ARIAL) + MAP_BIG_WEAPON_DESC_LINE_GAP, MAP_BIG_WEAPON_DESC_LINES, FONT12ARIAL, gzItemDesc);
+		}
+		else
+		{
+			DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+		}
 	}
 
 	if (ITEM_PROS_AND_CONS(obj.usItem))
@@ -4001,7 +4068,36 @@ void RenderItemDescriptionBox(void)
 		}
 
 		{
-			SGPBox const& box = IsMapBigWeaponBox() ? g_map_itemdesc_pros_cons_box_weapons_big : IsMapWeaponBox() ? g_map_itemdesc_pros_cons_box_weapons : in_map ? g_map_itemdesc_pros_cons_box : g_itemdesc_pros_cons_box;
+			if (IsMapBigWeaponBox())
+			{
+				// the map's big weapon box: one line, pros, then cons from
+				// x 350, both in FONT12ARIAL and ending in "..." if too long
+				SGPBox const& pros_box = g_map_itemdesc_pros_cons_box_weapons_big;
+				SGPBox const& cons_box = g_map_itemdesc_cons_box_weapons_big;
+				SGPFont const font     = FONT12ARIAL;
+				INT16   const indent   = std::max(StringPixLength(gzProsLabel, font), StringPixLength(gzConsLabel, font)) + 10;
+				INT16   const dots     = StringPixLength(DOTDOTDOT, font);
+
+				SetFont(font);
+				SetFontForeground(FONT_MCOLOR_DKWHITE2);
+				SetFontShadow(DEFAULT_SHADOW);
+				MPrint(dx + pros_box.x, dy + pros_box.y, gzProsLabel);
+				MPrint(dx + cons_box.x, dy + cons_box.y, gzConsLabel);
+
+				SetFontForeground(MAP_BIG_WEAPON_PROS_CONS_COLOUR);
+				SetFontShadow(DEFAULT_SHADOW);
+
+				gProsConsFont = font;
+				GenerateProsString(gzItemPros, obj, pros_box.w - indent - dots);
+				GenerateConsString(gzItemCons, obj, cons_box.w - indent - dots);
+				gProsConsFont = NULL;
+				MPrint(dx + pros_box.x + indent, dy + pros_box.y, gzItemPros);
+				MPrint(dx + cons_box.x + indent, dy + cons_box.y, gzItemCons);
+				SetFont(ITEMDESC_FONT);
+			}
+			else
+			{
+			SGPBox const& box = IsMapWeaponBox() ? g_map_itemdesc_pros_cons_box_weapons : in_map ? g_map_itemdesc_pros_cons_box : g_itemdesc_pros_cons_box;
 			INT32         x   = box.x + dx;
 			INT32  const  y   = box.y + dy;
 			INT32         w   = box.w;
@@ -4024,6 +4120,7 @@ void RenderItemDescriptionBox(void)
 
 			GenerateConsString(gzItemCons, obj, w);
 			MPrint(x, y + h, gzItemCons);
+			}
 		}
 	}
 
