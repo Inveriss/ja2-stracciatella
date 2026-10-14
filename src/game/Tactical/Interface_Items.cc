@@ -3951,7 +3951,9 @@ void RenderItemDescriptionBox(void)
 				INT16 const item_y = agi.item_box.y + y;
 				INT16 const item_w = agi.item_box.w;
 				INT16 const item_h = agi.item_box.h;
-				INVRenderItem(guiSAVEBUFFER, NULL, obj, item_x, item_y, item_w, item_h, DIRTYLEVEL2, RENDER_ITEM_ATTACHMENT1 + i, SGP_TRANSPARENT);
+				// the map's big weapon box: the large icons, as in the sector
+				// inventory's "Show Large Icons"
+				INVRenderItem(guiSAVEBUFFER, NULL, obj, item_x, item_y, item_w, item_h, DIRTYLEVEL2, RENDER_ITEM_ATTACHMENT1 + i, SGP_TRANSPARENT, IsMapBigWeaponBox());
 
 				INT16 const bar_x = agi.bar_box.x + x;
 				INT16 const bar_h = agi.bar_box.h;
