@@ -525,7 +525,7 @@
         "Shot Volume:",
         "Prestige:",
         "Hit Volume:",
-        "Reload:",
+        "Reload AP:",
         "AP:",
         "Rounds",
         "Base:",
@@ -751,7 +751,7 @@
         "Long:",
         "Full:",
         "Recoil Prone:",
-        "Unjam:",
+        "Unjam AP:",
         "Value:",
         "Rounds:",
         "Up to %d"
