@@ -343,7 +343,7 @@ static const SGPBox g_map_itemdesc_cons_box_weapons_big        = { 350, 606, 350
 static const SGPBox g_map_itemdesc_item_status_box_weapons_big = { 312, 192,   2, 125 }; // iteminfoc_weapons_big / status bar, 2x125, y is its bottom
 // The bullet icon of "AP:" in the Single AP field. The box has no burst or
 // decorative bullets: Short / Long / Full have their own rounds.
-static const SGPPoint g_map_weapons_big_bullet_sing  = { 359, 459 };
+static const SGPPoint g_map_weapons_big_bullet_sing  = { 359, 417 };
 
 #define DOTDOTDOT "..."
 #define COMMA_AND_SPACE ", "
@@ -863,7 +863,7 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 410, 204, 87 },  // Status
 	//{ 410, 204, 87 },  // Weight
 	//{ 410, 248, 87 },  // Status
-	{ 474, 14, 35 },   // Range ("Range:")
+	{ 488, 14, 14 },   // Range
 	{ 410, 14, 31 },   // Damage
 	{ 410, 43, 31 },   // AP single
 	{ 426, 72, 15 },   // AP burst
@@ -980,7 +980,7 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 {
 	{ 410, 220, 87 },  // Weight
 	{ 410, 204, 87 },  // Status
-	{ 474, 14, 35 },   // Range ("Range:")
+	{ 488, 14, 14 },   // Range
 	{ 410, 14, 31 },   // Damage
 	{ 410, 43, 31 },   // AP single
 	{ 426, 72, 15 },   // AP burst
@@ -1031,18 +1031,18 @@ static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 	{  36, 454, 82 },  // [0]  Weight        -- Physical
 	{  36, 434, 82 },  // [1]  Status        -- Physical
 	{ 422, 396, 44 },  // [2]  Range         -- Fire Power
-	{ 336, 396, 40 },  // [3]  Damage        -- Fire Power
-	{ 336, 458, 27 },  // [4]  AP single     -- Single AP
+	{ 336, 396, 27 },  // [3]  Damage        -- Fire Power
+	{ 336, 416, 27 },  // [4]  AP single     -- Single AP (no title)
 	{   0,   0,  0 },  // [5]  AP burst: not on this box, see Short / Long / Full
-	{ 366, 458,  0 },  // [6]  = single      -- Single AP
+	{ 366, 416,  0 },  // [6]  = single      -- Single AP (no title)
 	{   0,   0,  0 },  // [7]  = burst: not on this box
-	{ 422, 458, 44 },  // [8]  Ready time ("First Aim:") -- Single AP
+	{ 422, 416, 44 },  // [8]  Ready time ("First Aim:") -- Single AP (no title)
 	{ 180, 504, 81 },  // [9]  Reliability   -- Handling
 	{ 528, 473, 135 }, // [10] Burst penalty -- Burst AP
 	{ 180, 484, 81 },  // [11] Repair ease   -- Handling
-	{ 336, 520, 130 }, // [12] Attack volume -- Loudness
+	{ 336, 481, 130 }, // [12] Attack volume -- Loudness
 	{  36, 519, 82 },  // [13] Deadliness    -- Valuation
-	{ 336, 540, 130 }, // [14] Hit volume    -- Loudness
+	{ 336, 501, 130 }, // [14] Hit volume    -- Loudness
 	{ 180, 434, 81 },  // [15] Reload AP cost -- Handling
 	{ 474, 463,  0 },  // [16] = (Ready time): no longer drawn
 	{ 474, 463,  0 },  // [17] = (Reload AP cost): no longer drawn
@@ -1087,7 +1087,7 @@ static const SGPBox gMapBigWeaponBoxTitles[NUM_BIGW_TXT_TITLES] =
 	/* BIGW_TXT_FIRE_POWER  */ { 326, 368, 176, 23 },
 	/* BIGW_TXT_SINGLE_AP   */ { 326, 430, 176, 23 },
 	/* BIGW_TXT_BURST_AP    */ { 518, 368, 181, 23 },
-	/* BIGW_TXT_LOUDNESS    */ { 326, 492, 176, 23 },
+	/* BIGW_TXT_LOUDNESS    */ { 326, 453, 176, 23 },
 	/* BIGW_TXT_PHYSICAL    */ {  26, 406, 128, 23 },
 	/* BIGW_TXT_HANDLING    */ { 170, 406, 127, 23 },
 	/* BIGW_TXT_VALUATION   */ {  26, 491, 128, 23 },
@@ -3659,6 +3659,8 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 	for (INT32 i = BIGW_TXT_FIRE_POWER; i <= BIGW_TXT_VALUATION; ++i)
 	{
 		if (i == BIGW_TXT_BURST_AP && !has_burst) continue;
+		// its lines sit in the Fire Power field now, without a title
+		if (i == BIGW_TXT_SINGLE_AP) continue;
 		title(i, FONT14ARIAL);
 	}
 
