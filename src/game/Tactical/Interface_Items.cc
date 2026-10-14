@@ -741,7 +741,7 @@ static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
 static const SGPBox gMapDescNameBox_Items = { 19, 99, 334, 8 }; // iteminfoc_items / item name, money amount of gold and silver
 static const SGPBox gMapDescNameBox_Money = { 19, 99, 334, 8 }; // iteminfoc_money / item name, total amount
 static const SGPBox gMapDescNameBox_Weapons = { 14, 203, 375, 8 }; // iteminfoc_weapons / item name, calibre and weapon class
-static const SGPBox gMapDescNameBox_Weapons_Big = { 24, 326, 275, 12 }; // iteminfoc_weapons_big / item name, calibre and weapon class (FONT12ARIAL)
+static const SGPBox gMapDescNameBox_Weapons_Big = { 24, 327, 275, 12 }; // iteminfoc_weapons_big / item name, calibre and weapon class (FONT12ARIAL)
 
 // Done button (itemdescdonebutton.sti) of the map screen's box. Only on
 // ItemInfoC.sti: the _items/_money/_weapons boxes have none, like the tactical ones
@@ -1028,8 +1028,8 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 // The right edge of a value is sX + sValDx + ITEM_STATS_WIDTH.
 static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 {
-	{  36, 459, 82 },  // [0]  Weight        -- Physical
-	{  36, 439, 82 },  // [1]  Status        -- Physical
+	{  36, 454, 82 },  // [0]  Weight        -- Physical
+	{  36, 434, 82 },  // [1]  Status        -- Physical
 	{ 427, 401, 44 },  // [2]  Range         -- Fire Power
 	{ 331, 401, 27 },  // [3]  Damage        -- Fire Power
 	{ 331, 463, 27 },  // [4]  AP single     -- Single AP
@@ -1037,20 +1037,20 @@ static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 	{ 361, 463,  0 },  // [6]  = single      -- Single AP
 	{   0,   0,  0 },  // [7]  = burst: not on this box
 	{ 427, 463, 44 },  // [8]  Ready time ("First Aim:") -- Single AP
-	{ 180, 499, 81 },  // [9]  Reliability   -- Handling
+	{ 180, 494, 81 },  // [9]  Reliability   -- Handling
 	{ 523, 478, 145 }, // [10] Burst penalty -- Burst AP
-	{ 180, 479, 81 },  // [11] Repair ease   -- Handling
+	{ 180, 474, 81 },  // [11] Repair ease   -- Handling
 	{ 331, 525, 140 }, // [12] Attack volume -- Loudness
-	{  36, 524, 82 },  // [13] Deadliness    -- Valuation
+	{  36, 519, 82 },  // [13] Deadliness    -- Valuation
 	{ 331, 545, 140 }, // [14] Hit volume    -- Loudness
-	{ 180, 439, 81 },  // [15] Reload AP cost -- Handling
+	{ 180, 434, 81 },  // [15] Reload AP cost -- Handling
 	{ 474, 463,  0 },  // [16] = (Ready time): no longer drawn
 	{ 474, 463,  0 },  // [17] = (Reload AP cost): no longer drawn
 	{   0,   0,  0 },  // [18] "AP:" (decorative): not on this box
 	{   0,   0,  0 },  // [19] "Rounds" (decorative): not on this box
-	{  36,  16, 65 },  // [20] "Base:"
-	{  36,  30, 65 },  // [21] "Prone:"
-	{  36,  44, 65 }   // [22] "Per Aim:"
+	{  37,  18, 64 },  // [20] "Base:"
+	{  37,  33, 64 },  // [21] "Prone:"
+	{  37,  48, 64 }   // [22] "Per Aim:"
 };
 
 // Texts only iteminfoc_weapons_big shows -- indexes gzMapBigWeaponBoxStrings.
@@ -1101,8 +1101,8 @@ static const INV_DESC_STATS gMapBigWeaponBoxTexts[NUM_BIGW_TXT_VALUES_END - BIGW
 	/* BIGW_TXT_LONG           */ { 523, 422, 19 }, // Burst AP
 	/* BIGW_TXT_FULL           */ { 523, 443, 19 }, // Burst AP
 	/* BIGW_TXT_BRST_PEN_PRONE */ { 523, 499, 145 }, // Burst AP
-	/* BIGW_TXT_UNJAM          */ { 180, 459, 81 }, // Handling
-	/* BIGW_TXT_VALUE          */ {  36, 544, 82 }, // Valuation
+	/* BIGW_TXT_UNJAM          */ { 180, 454, 81 }, // Handling
+	/* BIGW_TXT_VALUE          */ {  36, 539, 82 }, // Valuation
 };
 
 // "Rounds:" on the lines of Short / Long / Full: label position and the
@@ -3690,15 +3690,15 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 
 
 // `text` word-wrapped onto at most `lines` lines, `pitch` px apart, in
-// white with a black shadow. If it goes on past them, the last one ends in
+// white with the usual shadow. If it goes on past them, the last one ends in
 // "...".
 static void PrintLinesWithEllipsis(INT16 const x, INT16 const y, INT16 const w, INT16 const pitch, INT32 const lines, SGPFont const font, ST::string const& text)
 {
 	std::vector<ST::string> const words = text.split(' ');
 	INT16 const dots = StringPixLength(DOTDOTDOT, font);
 
-	SetFontAttributes(font, FONT_FCOLOR_WHITE);
-	SetFontShadow(FONT_MCOLOR_BLACK);
+	// DEFAULT_SHADOW: shadow colour 0 (FONT_MCOLOR_BLACK) means no shadow
+	SetFontAttributes(font, FONT_FCOLOR_WHITE, DEFAULT_SHADOW);
 
 	size_t next = 0;
 	for (INT32 line = 0; line != lines && next < words.size(); ++line)
