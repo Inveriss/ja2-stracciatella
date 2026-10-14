@@ -863,7 +863,7 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 410, 204, 87 },  // Status
 	//{ 410, 204, 87 },  // Weight
 	//{ 410, 248, 87 },  // Status
-	{ 488, 14, 14 },   // Range
+	{ 474, 14, 35 },   // Range ("Range:")
 	{ 410, 14, 31 },   // Damage
 	{ 410, 43, 31 },   // AP single
 	{ 426, 72, 15 },   // AP burst
@@ -980,7 +980,7 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 {
 	{ 410, 220, 87 },  // Weight
 	{ 410, 204, 87 },  // Status
-	{ 488, 14, 14 },   // Range
+	{ 474, 14, 35 },   // Range ("Range:")
 	{ 410, 14, 31 },   // Damage
 	{ 410, 43, 31 },   // AP single
 	{ 426, 72, 15 },   // AP burst
@@ -1031,7 +1031,7 @@ static const INV_DESC_STATS gMapBigWeaponBoxStats[] =
 	{  36, 454, 82 },  // [0]  Weight        -- Physical
 	{  36, 434, 82 },  // [1]  Status        -- Physical
 	{ 422, 396, 44 },  // [2]  Range         -- Fire Power
-	{ 336, 396, 27 },  // [3]  Damage        -- Fire Power
+	{ 336, 396, 40 },  // [3]  Damage        -- Fire Power
 	{ 336, 458, 27 },  // [4]  AP single     -- Single AP
 	{   0,   0,  0 },  // [5]  AP burst: not on this box, see Short / Long / Full
 	{ 366, 458,  0 },  // [6]  = single      -- Single AP
@@ -3635,7 +3635,13 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 	title(BIGW_TXT_MAINTENANCE, FONT14HUMANIST);
 
 	SetFontAttributes(FONT14ARIAL, MAP_BIG_WEAPON_LABEL_COLOUR);
-	for (INT32 i = BIGW_TXT_FIRE_POWER; i <= BIGW_TXT_VALUATION; ++i) title(i, FONT14ARIAL);
+	// "Burst AP" only for a weapon with a burst mode, like its lines below
+	bool const has_burst = w->ubShotsPerShortBurst > 0 || w->ubShotsPerLongBurst > 0 || w->ubShotsPerFullBurst > 0;
+	for (INT32 i = BIGW_TXT_FIRE_POWER; i <= BIGW_TXT_VALUATION; ++i)
+	{
+		if (i == BIGW_TXT_BURST_AP && !has_burst) continue;
+		title(i, FONT14ARIAL);
+	}
 
 	SetFontAttributes(FONT12ARIAL, MAP_BIG_WEAPON_LABEL_COLOUR);
 
