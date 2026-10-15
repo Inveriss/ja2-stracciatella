@@ -6,6 +6,8 @@
 #include "VSurface.h"
 
 #include <string_theory/string>
+#include <algorithm>
+#include <vector>
 
 inline bool IsChineseCharacter(char32_t c)
 {
@@ -99,13 +101,60 @@ WrappedString LineWrap(SGPFont font, UINT16 usLineWidthPixels, const ST::utf32_b
 // Pass in, the x,y location for the start of the string,
 //					the width of the buffer
 //					the gap in between the lines
+// One line of a FULL_JUSTIFIED string: its words spread over the width `w`,
+// the pixels it is short of it shared out between the spaces (the first
+// spaces taking one more when they don't share out evenly). A line of one
+// word is drawn as it is.
+static void DrawJustifiedLine(const ST::utf32_buffer& line, UINT16 const x, UINT16 const y, UINT16 const w, SGPFont const font, UINT8 const foreground, UINT8 const background, UINT32 const flags)
+{
+	std::vector<ST::utf32_buffer> words;
+	char32_t const* const chars = line.data();
+	size_t const          n     = line.size();
+	for (size_t i = 0; i < n;)
+	{
+		while (i < n && chars[i] == U' ') ++i;
+		size_t const start = i;
+		while (i < n && chars[i] != U' ') ++i;
+		if (i > start) words.emplace_back(chars + start, i - start);
+	}
+	if (words.size() < 2)
+	{
+		DrawTextToScreen(line, x, y, w, font, foreground, background, flags);
+		return;
+	}
+
+	INT32 words_w = 0;
+	for (auto const& word : words) words_w += StringPixLength(word, font);
+	INT32 const gaps  = static_cast<INT32>(words.size()) - 1;
+	INT32 const spare = std::max<INT32>(0, w - words_w);
+	INT32 const each  = spare / gaps;
+	INT32       extra = spare % gaps;
+
+	INT32 wx = x;
+	for (size_t i = 0; i != words.size(); ++i)
+	{
+		DrawTextToScreen(words[i], static_cast<UINT16>(wx), y, 0, font, foreground, background, flags);
+		wx += StringPixLength(words[i], font) + each;
+		if (extra > 0) { ++wx; --extra; }
+	}
+}
+
+
 UINT16 DisplayWrappedString(UINT16 x, UINT16 y, UINT16 w, UINT8 gap, SGPFont font, UINT8 foreground, const ST::utf32_buffer& codepoints, UINT8 background, UINT32 flags)
 {
 	UINT16       total_h = 0;
 	UINT16 const h       = GetFontHeight(font) + gap;
-	for (auto const& codepoints : LineWrap(font, w, codepoints))
+	WrappedString const lines = LineWrap(font, w, codepoints);
+	for (size_t i = 0; i != lines.size(); ++i)
 	{
-		DrawTextToScreen(codepoints, x, y, w, font, foreground, background, flags);
+		if ((flags & FULL_JUSTIFIED) && i + 1 != lines.size())
+		{
+			DrawJustifiedLine(lines[i], x, y, w, font, foreground, background, (flags & ~FULL_JUSTIFIED) | LEFT_JUSTIFIED);
+		}
+		else
+		{
+			DrawTextToScreen(lines[i], x, y, w, font, foreground, background, flags & ~FULL_JUSTIFIED);
+		}
 		total_h += h;
 		y       += h;
 	}

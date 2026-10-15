@@ -4127,7 +4127,9 @@ void RenderItemDescriptionBox(void)
 		}
 		else
 		{
-			DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, gfMapItemDescArialBox ? FONT12ARIAL : ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+			// justified on the map's items boxes, normal and "Show Large Icons"
+			UINT32 const justify = gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_ITEMS ? FULL_JUSTIFIED : LEFT_JUSTIFIED;
+			DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, gfMapItemDescArialBox ? FONT12ARIAL : ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, justify);
 		}
 	}
 
