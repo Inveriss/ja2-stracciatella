@@ -705,6 +705,14 @@ static INT32 gStackSplitSourceIndex = -1;
 // the 1366x768 interface -- OpenMercStackView()): the merc and the pocket
 // the stack came from, and back into which CloseStackSplitView() merges it.
 #define STACK_SPLIT_MERC_SOURCE (-2)
+// gStackSplitSourceIndex while the view shows a merc's key ring instead
+// (the key ring icon of the "Show Large Icons" merc inventory panel on the
+// 1366x768 interface -- OpenMercKeyRingView()): one slot per key ring
+// position, in place of the old key ring popup. gStackSplitSoldier is the
+// merc; the key ring itself holds the keys all along, the slots only show
+// it (SyncKeyRingViewItems()).
+#define STACK_SPLIT_KEYRING_SOURCE (-3)
+#define KEYRING_VIEW_SLOTS 28 // the key ring's positions, NUMBER_KEYS_ON_KEYRING (Interface_Items.cc)
 static SOLDIERTYPE* gStackSplitSoldier = nullptr;
 static INT8         gStackSplitPocket  = -1;
 // The merc's stack was opened while the Sector Inventory panel was closed:
@@ -1010,6 +1018,7 @@ static void HandleMapSectorInventory(void);
 static void OpenStackSplitView(INT32 sourceIndex);
 static void CloseStackSplitView(BOOLEAN fExitFromMapScreen = FALSE);
 static void StackSplitSlotPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
+static void KeyRingViewSlotPrimary(INT32 idx);
 static void StackSplitSlotSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void StackSplitSlotMove(MOUSE_REGION* pRegion, UINT32 iReason);
 static void StackSplitSlotsScroll(MOUSE_REGION* pRegion, UINT32 iReason);
@@ -1029,7 +1038,7 @@ void CreateDestroyMapInventoryPoolButtons( BOOLEAN fExitFromMapScreen )
 */
 	// A merc's stack split open here goes back to him once his inventory
 	// panel is no longer showing him (closed, another merc selected, gone).
-	if (gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE)
+	if (gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE || gStackSplitSourceIndex == STACK_SPLIT_KEYRING_SOURCE)
 	{
 		SOLDIERTYPE const* const s = gStackSplitSoldier;
 		if (!fShowInventoryFlag || GetSelectedInfoChar() != s || !s->bActive || s->bLife == 0)
@@ -1930,10 +1939,107 @@ void OpenMercStackView(SOLDIERTYPE& s, INT8 const pocket)
 }
 
 
+// The slots of the key ring view, one per key ring position, from the merc's
+// key ring as it is now. Rewritten in place: the vector keeps its size, so
+// an item description box open on one of them stays valid -- and closes by
+// itself if its key is gone (RenderItemDescriptionBox()).
+static void SyncKeyRingViewItems(void)
+{
+	SOLDIERTYPE const& s = *gStackSplitSoldier;
+	for (INT32 i = 0; i != KEYRING_VIEW_SLOTS; ++i)
+	{
+		KEY_ON_RING const& key = s.pKeyRing[i];
+		if (key.isValid()) CreateKeyObject(&gStackSplitItems[i], key.ubNumber, key.ubKeyID);
+		else               gStackSplitItems[i] = OBJECTTYPE{};
+	}
+}
+
+
+void OpenMercKeyRingView(SOLDIERTYPE& s)
+{
+	// another view open here (a stack, this or another merc's key ring):
+	// close it first, then show this one
+	if (gStackSplitSourceIndex != -1) CloseStackSplitView();
+
+	if (!fShowMapInventoryPool)
+	{
+		gfStackSplitStandalone = TRUE;
+		fShowMapInventoryPool  = TRUE;
+		DeleteMapBorderButtons();
+		CheckAndUnDateSlotAllocation();
+		CreateStackSplitStandaloneTopBar();
+		fMapScreenBottomDirty = TRUE;
+	}
+
+	gStackSplitSourceIndex = STACK_SPLIT_KEYRING_SOURCE;
+	gStackSplitSoldier     = &s;
+	gStackSplitPocket      = -1;
+	gStackSplitItems.assign(KEYRING_VIEW_SLOTS, OBJECTTYPE{});
+	SyncKeyRingViewItems();
+
+	gCurrentStackSplitPage = 0;
+	gLastStackSplitPage    = static_cast<INT32>((gStackSplitItems.size() - 1) / GetStackSplitPageSize());
+
+	CreateStackSplitSlots();
+	CreateStackSplitDoneButton();
+	CreateStackSplitPageButtons();
+
+	if (guiMapInvenButton[11]) guiMapInvenButton[11]->SetFastHelpText("Drop the entire stack into the sector inventory.");
+
+	fMapPanelDirty  = TRUE;
+	fTeamPanelDirty = TRUE;
+}
+
+
+// Left click on a slot of the key ring view -- the old key ring popup's
+// (KeyRingSlotInvClickCallbackPrimary(), Interface_Panels.cc), on the map
+// screen: an empty cursor takes one key off that position (all of them with
+// Shift); a key on the cursor goes onto it, joining the same keys or an
+// empty position, else swapping with the keys there.
+static void KeyRingViewSlotPrimary(INT32 const idx)
+{
+	SOLDIERTYPE& s = *gStackSplitSoldier;
+
+	if (gpItemPointer == NULL)
+	{
+		if (!s.pKeyRing[idx].isValid()) return;
+		BeginKeyRingItemPointer(&s, static_cast<UINT8>(idx));
+	}
+	else
+	{
+		if (GCM->getItem(gpItemPointer->usItem)->getItemClass() != IC_KEY) return;
+
+		KEY_ON_RING const& key = s.pKeyRing[idx];
+		if (key.ubKeyID == INVALID_KEY_NUMBER || key.ubNumber == 0 || key.ubKeyID == gpItemPointer->ubKeyID)
+		{
+			UINT8 const taken = AddKeysToSlot(s, static_cast<INT8>(idx), *gpItemPointer);
+			if (taken != 0)
+			{
+				gpItemPointer->ubNumberOfObjects -= taken;
+				if (gpItemPointer->ubNumberOfObjects == 0) MAPEndItemPointer();
+				else                                       SetMapCursorItem();
+			}
+		}
+		else
+		{
+			SwapKeysToSlot(s, static_cast<INT8>(idx), *gpItemPointer);
+			SetMapCursorItem();
+		}
+	}
+
+	SyncKeyRingViewItems();
+	fMapPanelDirty  = TRUE;
+	fTeamPanelDirty = TRUE;
+}
+
+
 static void CloseStackSplitView(BOOLEAN const fExitFromMapScreen)
 {
 	if (gStackSplitSourceIndex == -1) return;
-	bool const from_merc = gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE;
+	bool const from_merc    = gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE;
+	// the key ring view only shows the key ring, which keeps the keys:
+	// nothing to merge back
+	bool const from_keyring = gStackSplitSourceIndex == STACK_SPLIT_KEYRING_SOURCE;
 
 	// Whatever can't go back into the stack: to the stash, or for a merc's
 	// stack to the merc (see GiveBackToMerc()).
@@ -1970,6 +2076,7 @@ static void CloseStackSplitView(BOOLEAN const fExitFromMapScreen)
 	BOOLEAN    fHaveBase = FALSE;
 	for (size_t i = 0; i < gStackSplitItems.size(); ++i)
 	{
+		if (from_keyring) break;
 		OBJECTTYPE& src = gStackSplitItems[i];
 		if (src.usItem == NOTHING) continue;
 
@@ -2057,7 +2164,7 @@ static void CloseStackSplitView(BOOLEAN const fExitFromMapScreen)
 	gStackSplitSoldier     = nullptr;
 	gStackSplitPocket      = -1;
 
-	if (from_merc)
+	if (from_merc || from_keyring)
 	{
 		fTeamPanelDirty          = TRUE;
 		fCharacterInfoPanelDirty = TRUE;
@@ -2102,6 +2209,13 @@ static void StackSplitSlotPrimary(MOUSE_REGION* const pRegion, const UINT32 iRea
 {
 	INT32 const idx = MSYS_GetRegionUserData(pRegion, 0);
 	if (idx < 0 || static_cast<size_t>(idx) >= gStackSplitItems.size()) return;
+
+	// the key ring view: keys on and off the merc's key ring
+	if (gStackSplitSourceIndex == STACK_SPLIT_KEYRING_SOURCE)
+	{
+		KeyRingViewSlotPrimary(idx);
+		return;
+	}
 
 	OBJECTTYPE& slot = gStackSplitItems[idx];
 
@@ -3323,7 +3437,8 @@ static SOLDIERTYPE* GetSoldierForInventoryTransfer(void)
 // the Sector Inventory panel open, it shows that sector.
 static SOLDIERTYPE* GetSoldierForStackSplitToSector(void)
 {
-	if (gStackSplitSourceIndex != STACK_SPLIT_MERC_SOURCE) return NULL;
+	// a merc's stack, or his key ring (STACK_SPLIT_KEYRING_SOURCE)
+	if (gStackSplitSourceIndex != STACK_SPLIT_MERC_SOURCE && gStackSplitSourceIndex != STACK_SPLIT_KEYRING_SOURCE) return NULL;
 	SOLDIERTYPE* const s = gStackSplitSoldier;
 	if (s->fBetweenSectors) return NULL;
 
@@ -3338,6 +3453,36 @@ static SOLDIERTYPE* GetSoldierForStackSplitToSector(void)
 // Every item of the merc's stack split open here into his sector's
 // inventory -- the open panel's stash, else straight into the sector, at
 // his feet -- then the view closes (nothing left to merge back).
+// The key ring view's "drop the entire stack into the sector inventory":
+// every key comes off the merc's key ring and goes where
+// MoveStackSplitItemsToSector() puts a stack's items.
+static void MoveKeyRingToSector(SOLDIERTYPE& s)
+{
+	for (INT32 i = 0; i != KEYRING_VIEW_SLOTS; ++i)
+	{
+		KEY_ON_RING const& key = s.pKeyRing[i];
+		if (!key.isValid()) continue;
+
+		OBJECTTYPE o{};
+		if (!RemoveKeysFromSlot(&s, static_cast<INT8>(i), key.ubNumber, &o)) continue;
+
+		if (!gfStackSplitStandalone)
+		{
+			while (o.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&o);
+		}
+		else if (s.sSector == gWorldSector)
+		{
+			AddItemToPool(s.sGridNo, &o, VISIBLE, s.bLevel, 0, -1);
+		}
+		else
+		{
+			AddItemsToUnLoadedSector(s.sSector, s.sGridNo, 1, &o, s.bLevel, WORLD_ITEM_REACHABLE, 0, VISIBLE);
+		}
+	}
+	CloseStackSplitView();
+}
+
+
 static void MoveStackSplitItemsToSector(SOLDIERTYPE& s)
 {
 	for (OBJECTTYPE& o : gStackSplitItems)
@@ -3365,6 +3510,15 @@ static void MoveStackSplitItemsToSector(SOLDIERTYPE& s)
 static void MapInventoryPoolMoveToSectorBtn(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	// the key ring view: all its keys
+	if (gStackSplitSourceIndex == STACK_SPLIT_KEYRING_SOURCE)
+	{
+		SOLDIERTYPE* const merc = GetSoldierForStackSplitToSector();
+		if (merc) MoveKeyRingToSector(*merc);
+		fMapPanelDirty = TRUE;
+		return;
+	}
 
 	// a merc's stack split open here: just that stack
 	if (gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE)
@@ -3400,7 +3554,7 @@ static void MapInventoryPoolMoveToMercBtn(GUI_BUTTON* btn, UINT32 reason)
 
 	SOLDIERTYPE* const s = GetSoldierForInventoryTransfer();
 	if (s == NULL) return;
-	if (gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE) return;
+	if (gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE || gStackSplitSourceIndex == STACK_SPLIT_KEYRING_SOURCE) return;
 
 	// Pull from the stack split window's own items while it's open, per
 	// user request -- otherwise from the main grid's current page as before.
@@ -3906,11 +4060,11 @@ void HandleButtonStatesWhileMapInventoryActive( void )
 	BOOLEAN const fSoldierValid = GetSoldierForInventoryTransfer() != NULL;
 	// a merc's stack split open here may go to the sector shown
 	// (MoveStackSplitItemsToSector()) -- the stash isn't lent out then
-	EnableButton(guiMapInvenButton[11], gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE
+	EnableButton(guiMapInvenButton[11], gStackSplitSourceIndex == STACK_SPLIT_MERC_SOURCE || gStackSplitSourceIndex == STACK_SPLIT_KEYRING_SOURCE
 		? GetSoldierForStackSplitToSector() != NULL
 		: fSoldierValid && !fStackSplitOpen);
 	// not into the merc a stack split open here came from
-	EnableButton(guiMapInvenButton[12], fSoldierValid && gStackSplitSourceIndex != STACK_SPLIT_MERC_SOURCE);
+	EnableButton(guiMapInvenButton[12], fSoldierValid && gStackSplitSourceIndex != STACK_SPLIT_MERC_SOURCE && gStackSplitSourceIndex != STACK_SPLIT_KEYRING_SOURCE);
 
 	// Stack split view's own Done button -- disabled while holding an item
 	// on the cursor (picked up from here via StackSplitSlotPrimary(), or

@@ -38,6 +38,7 @@
 #include "Local.h"
 #include "Logger.h"
 #include "MapScreen.h"
+#include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Bottom.h"
 #include "Message.h"
@@ -4668,6 +4669,14 @@ void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		// 1366x768 interface, "Show Large Icons" (mapinv_1366x768.png): the
+		// key ring opens in the sector inventory's stack split view instead
+		if (guiCurrentScreen == MAP_SCREEN && g_ui.isExtraWideStrategicScreen() && IsMapInvBigImages())
+		{
+			OpenMercKeyRingView(*pSoldier);
+			return;
+		}
+
 		if( guiCurrentScreen == MAP_SCREEN )
 		{
 			// shade the background

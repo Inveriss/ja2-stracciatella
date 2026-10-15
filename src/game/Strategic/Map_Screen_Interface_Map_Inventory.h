@@ -74,6 +74,9 @@ BOOLEAN IsStackSplitViewOpen(void);
 // stack. Merged back into his pocket when the view closes.
 struct SOLDIERTYPE;
 void OpenMercStackView(SOLDIERTYPE& s, INT8 pocket);
+// 1366x768 interface, "Show Large Icons": the merc's key ring in the stack
+// split view, one slot per key ring position, in place of the key ring popup.
+void OpenMercKeyRingView(SOLDIERTYPE& s);
 // Merges whatever stack is split open back where it came from (before
 // saving the game, for one).
 void CloseStackSplitViewIfOpen(void);
