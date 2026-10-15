@@ -327,7 +327,7 @@ static const SGPPoint g_map_weapons_hide_empty_slots_checkbox = { 8, 178 };
 // graphic.
 // The description and pros / cons share the long box along the bottom of
 // iteminfoc_weapons_big (687x65 inside, from 18,557), all in FONT12ARIAL
-// (11 px high): the weapon's name line in FONT16ARIAL in the black field at
+// (11 px high): the weapon's name line in FONT14ARIAL in the black field at
 // the box's top; the description on one line under it, 34 px from the box's
 // top and 5 px from its left; pros and cons on one line 5 px from its bottom, pros 5 px from its
 // left, cons from x 350. All three end in "..." where they don't fit.
@@ -742,7 +742,7 @@ static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
 static const SGPBox gMapDescNameBox_Items = { 19, 99, 334, 8 }; // iteminfoc_items / item name, money amount of gold and silver
 static const SGPBox gMapDescNameBox_Money = { 19, 99, 334, 8 }; // iteminfoc_money / item name, total amount
 static const SGPBox gMapDescNameBox_Weapons = { 14, 203, 375, 8 }; // iteminfoc_weapons / item name, calibre and weapon class
-static const SGPBox gMapDescNameBox_Weapons_Big = { 224, 566, 275, 15 }; // iteminfoc_weapons_big / item name, calibre and weapon class (FONT16ARIAL), in the black field of the bottom box (283x20 inside, from 220,564)
+static const SGPBox gMapDescNameBox_Weapons_Big = { 224, 566, 275, 15 }; // iteminfoc_weapons_big / item name, calibre and weapon class (FONT14ARIAL), in the black field of the bottom box (283x20 inside, from 220,564)
 
 // Done button (itemdescdonebutton.sti) of the map screen's box. Only on
 // ItemInfoC.sti: the _items/_money/_weapons boxes have none, like the tactical ones
@@ -4037,7 +4037,7 @@ void RenderItemDescriptionBox(void)
 	{
 		// Render name -- FONT12ARIAL on the map's big weapon box
 		SGPBox const& xy = descNameBox;
-		if (IsMapBigWeaponBox()) SetFont(FONT16ARIAL);
+		if (IsMapBigWeaponBox()) SetFont(FONT14ARIAL);
 		MPrint(dx + xy.x, dy + xy.y, gzItemName);
 		SetFont(ITEMDESC_FONT);
 	}
@@ -4089,7 +4089,7 @@ void RenderItemDescriptionBox(void)
 			SetFontForeground(FONT_FCOLOR_WHITE);
 
 			// FONT12ARIAL on the map's big weapon box, like the name
-			SGPFont const name_font = IsMapBigWeaponBox() ? FONT16ARIAL : ITEMDESC_FONT;
+			SGPFont const name_font = IsMapBigWeaponBox() ? FONT14ARIAL : ITEMDESC_FONT;
 			SetFont(name_font);
 			SGPBox const& xy = descNameBox;
 			FindFontRightCoordinates(dx + xy.x, dy + xy.y, xy.w, xy.h, pStr, name_font, &usX, &usY);
