@@ -326,11 +326,11 @@ static const SGPPoint g_map_weapons_hide_empty_slots_checkbox = { 8, 178 };
 // -- a copy of its _weapons counterpart, to be placed by hand on the new
 // graphic.
 // The description and pros / cons share the long box along the bottom of
-// iteminfoc_weapons_big (687x65 inside, from 18,557), all in FONT12ARIAL
-// (11 px high): the weapon's name line in FONT14ARIAL in the black field at
-// the box's top; the description on one line under it, 34 px from the box's
-// top and 5 px from its left; pros and cons on one line 5 px from its bottom, pros 5 px from its
-// left, cons from x 350. All three end in "..." where they don't fit.
+// iteminfoc_weapons_big (682x38 inside, from 23,584), all in FONT12ARIAL
+// (11 px high): the description on one line, 5 px from the box's top and
+// left; pros and cons on one line 5 px from its bottom, pros 5 px from its
+// left, cons from x 350. All three end in "..." where they don't fit. The
+// weapon's name line has a box of its own, see gMapDescNameBox_Weapons_Big.
 #define MAP_BIG_WEAPON_DESC_LINES    1 // lines of the description; the last ends in "..." if it goes on
 #define MAP_BIG_WEAPON_DESC_LINE_GAP 1 // between the description's lines, if more than one
 // The colour of the pros / cons lists. On the other boxes they are drawn in
@@ -338,9 +338,9 @@ static const SGPPoint g_map_weapons_hide_empty_slots_checkbox = { 8, 178 };
 // BLOCKFONT2's palette, black in FONT12ARIAL's -- so here that colour's
 // nearest one in FONT12ARIAL's palette.
 #define MAP_BIG_WEAPON_PROS_CONS_COLOUR 127 // (210, 169, 127)
-static const SGPBox g_map_itemdesc_desc_box_weapons_big        = {  23, 591, 677,  0 }; // iteminfoc_weapons_big / description
-static const SGPBox g_map_itemdesc_pros_cons_box_weapons_big   = {  23, 606, 317,  0 }; // iteminfoc_weapons_big / pros
-static const SGPBox g_map_itemdesc_cons_box_weapons_big        = { 350, 606, 350,  0 }; // iteminfoc_weapons_big / cons, same line
+static const SGPBox g_map_itemdesc_desc_box_weapons_big        = {  28, 589, 672,  0 }; // iteminfoc_weapons_big / description
+static const SGPBox g_map_itemdesc_pros_cons_box_weapons_big   = {  28, 607, 312,  0 }; // iteminfoc_weapons_big / pros
+static const SGPBox g_map_itemdesc_cons_box_weapons_big        = { 350, 607, 350,  0 }; // iteminfoc_weapons_big / cons, same line
 static const SGPBox g_map_itemdesc_item_status_box_weapons_big = { 312, 192,   2, 125 }; // iteminfoc_weapons_big / status bar, 2x125, y is its bottom
 // The bullet icon of "AP:" in the Single AP field. The box has no burst or
 // decorative bullets: Short / Long / Full have their own rounds.
@@ -742,7 +742,7 @@ static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
 static const SGPBox gMapDescNameBox_Items = { 19, 99, 334, 8 }; // iteminfoc_items / item name, money amount of gold and silver
 static const SGPBox gMapDescNameBox_Money = { 19, 99, 334, 8 }; // iteminfoc_money / item name, total amount
 static const SGPBox gMapDescNameBox_Weapons = { 14, 203, 375, 8 }; // iteminfoc_weapons / item name, calibre and weapon class
-static const SGPBox gMapDescNameBox_Weapons_Big = { 224, 566, 275, 15 }; // iteminfoc_weapons_big / item name, calibre and weapon class (FONT14ARIAL), in the black field of the bottom box (283x20 inside, from 220,564)
+static const SGPBox gMapDescNameBox_Weapons_Big = { 347, 557, 353, 13 }; // iteminfoc_weapons_big / item name, calibre and weapon class (FONT14ARIAL), in the short box under BALLISTICS (363x21 inside, from 342,552)
 
 // Done button (itemdescdonebutton.sti) of the map screen's box. Only on
 // ItemInfoC.sti: the _items/_money/_weapons boxes have none, like the tactical ones
