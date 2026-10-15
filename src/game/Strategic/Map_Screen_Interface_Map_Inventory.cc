@@ -2667,7 +2667,7 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 }
 
 
-void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
+void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr, INT16 const sGridNo, INT8 const bLevel)
 {
 	// Find an actual free slot -- growing the stash by a page if none
 	// exists, same low-space handling CheckAndUnDateSlotAllocation() itself
@@ -2738,9 +2738,9 @@ void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr)
 	// There's no meaningful source position here (unlike a drag, which
 	// tracks sObjectSourceGridNo), so this always takes the same NOWHERE
 	// fallback that path uses.
-	slot.sGridNo                  = NOWHERE;
-	slot.ubLevel                  = 0;
-	slot.usFlags                  = WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT | WORLD_ITEM_REACHABLE;
+	slot.sGridNo                  = sGridNo;
+	slot.ubLevel                  = bLevel;
+	slot.usFlags                  = (sGridNo == NOWHERE ? WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT : 0) | WORLD_ITEM_REACHABLE;
 	slot.bRenderZHeightAboveLevel = 0;
 
 	// remove a like number of objects from pObj
@@ -3353,7 +3353,7 @@ static void MoveAllMercItemsToSectorStash(SOLDIERTYPE* const soldier)
 	{
 		while (soldier->inv[i].ubNumberOfObjects > 0)
 		{
-			AutoPlaceObjectInInventoryStash(&soldier->inv[i]);
+			AutoPlaceObjectInInventoryStash(&soldier->inv[i], soldier->sGridNo, soldier->bLevel);
 		}
 	}
 }
@@ -3468,7 +3468,7 @@ static void MoveKeyRingToSector(SOLDIERTYPE& s)
 
 		if (!gfStackSplitStandalone)
 		{
-			while (o.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&o);
+			while (o.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&o, s.sGridNo, s.bLevel);
 		}
 		else if (s.sSector == gWorldSector)
 		{
@@ -3491,7 +3491,7 @@ static void MoveStackSplitItemsToSector(SOLDIERTYPE& s)
 
 		if (!gfStackSplitStandalone)
 		{
-			while (o.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&o);
+			while (o.ubNumberOfObjects > 0) AutoPlaceObjectInInventoryStash(&o, s.sGridNo, s.bLevel);
 		}
 		else if (s.sSector == gWorldSector)
 		{

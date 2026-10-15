@@ -2,6 +2,7 @@
 #define _MAP_INTERFACE_MAP_INVEN_H
 
 #include "Types.h"
+#include "Isometric_Utils.h"
 #include "World_Items.h"
 
 #include <vector>
@@ -41,8 +42,11 @@ void HandleFlashForHighLightedItem( void );
 // the list for the inventory
 extern std::vector<WORLDITEM> pInventoryPoolList;
 
-// autoplace down object
-void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr);
+// autoplace down object. With a grid number, the item lies there (a merc's
+// items put into the sector inventory lie where he stands); without one,
+// where the sector's items without a place go -- its centre, when the
+// sector is loaded next (WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT).
+void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr, INT16 sGridNo = NOWHERE, INT8 bLevel = 0);
 
 // the current inventory item
 extern INT32 iCurrentlyHighLightedItem;
