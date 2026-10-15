@@ -429,6 +429,12 @@ static cache_key_t const guiMapSkillsInfoBox{ INTERFACEDIR "/ITEMINFOC_skills.ST
 // above.
 static cache_key_t const guiMapSmallStatsInfoBox{ INTERFACEDIR "/iteminfoc_stats_1366x768.png" };
 static cache_key_t const guiMapSmallSkillsInfoBox{ INTERFACEDIR "/iteminfoc_skills_1366x768.png" };
+// Their "Show Large Icons" versions: same size and arrangement, texts in
+// FONT12ARIAL (in its palette's nearest colours -- 5 and 6 are black there).
+static cache_key_t const guiMapBigStatsInfoBox{ INTERFACEDIR "/iteminfoc_stats_big_1366x768.png" };
+static cache_key_t const guiMapBigSkillsInfoBox{ INTERFACEDIR "/iteminfoc_skills_big_1366x768.png" };
+#define POPUP_ARIAL_LABEL_COLOUR 126        // for BLOCKFONT2's 6
+#define POPUP_ARIAL_VALUE_COLOUR FONT_BEIGE // for BLOCKFONT2's 5
 
 static bool UseMapSmallInfoPopupBox(cache_key_t const box, cache_key_t const fallback)
 {
@@ -3871,6 +3877,8 @@ static MOUSE_REGION  gStatsPopupRegion;
 // The map screen's popup is on its own 1366x768 box (guiMapSmallStatsInfoBox)
 // -- set when it opens, see UseMapSmallInfoPopupBox().
 static bool          gfStatsPopupMapSmallBox = false;
+// ... and with "Show Large Icons" on guiMapBigStatsInfoBox, in FONT12ARIAL
+static bool          gfStatsPopupArial = false;
 
 // Done button, map screen only -- same graphic/position (relative to the box's own
 // top-left corner) as the map's own item-description box (ItemInfoC.sti,
@@ -3956,9 +3964,11 @@ void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const 
 	// The map screen's own 1366x768 box is as big as its graphic, not as
 	// ItemInfoC.sti, the size the caller passes.
 	gfStatsPopupMapSmallBox = UseMapSmallInfoPopupBox(guiMapSmallStatsInfoBox, guiMapStatsInfoBox);
+	gfStatsPopupArial       = gfStatsPopupMapSmallBox && IsMapInvBigImages() &&
+		FirstUsableInterfaceAsset({ guiMapBigStatsInfoBox, guiMapSmallStatsInfoBox }) == guiMapBigStatsInfoBox;
 	if (gfStatsPopupMapSmallBox)
 	{
-		ETRLEObject const& box = GetVObject(guiMapSmallStatsInfoBox)->SubregionProperties(0);
+		ETRLEObject const& box = GetVObject(gfStatsPopupArial ? guiMapBigStatsInfoBox : guiMapSmallStatsInfoBox)->SubregionProperties(0);
 		sInvWidth  = box.usWidth;
 		sInvHeight = box.usHeight;
 	}
@@ -4039,7 +4049,7 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	INT16 const dx = fInMapMode ? gsStatsPopupInvX : (STATS_POPUP_BOX_X + gsStatsPopupInvX);
 	INT16 const dy = fInMapMode ? gsStatsPopupInvY : (STATS_POPUP_BOX_Y + gsStatsPopupInvY);
 
-	cache_key_t const box = gfStatsPopupMapSmallBox ? guiMapSmallStatsInfoBox : fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox;
+	cache_key_t const box = gfStatsPopupArial ? guiMapBigStatsInfoBox : gfStatsPopupMapSmallBox ? guiMapSmallStatsInfoBox : fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox;
 	BltVideoObject(FRAME_BUFFER, box, 0, dx, dy);
 
 	// Draw the Done button ourselves, right on top of the box we just blitted --
@@ -4061,21 +4071,27 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 		fInMapMode              ? gMapStatsPopupCoords :
 		                          gStatsPopupCoords;
 
+	// FONT12ARIAL on the "Show Large Icons" box, in its palette's colours
+	SGPFont const stats_font   = gfStatsPopupArial ? FONT12ARIAL : BLOCKFONT2;
+	INT16   const stats_h      = gfStatsPopupArial ? GetFontHeight(FONT12ARIAL) : 8;
+	UINT8   const label_colour = gfStatsPopupArial ? POPUP_ARIAL_LABEL_COLOUR : 6;
+	UINT8   const value_colour = gfStatsPopupArial ? POPUP_ARIAL_VALUE_COLOUR : 5;
+
 #define STATS_LABEL(idx) \
 	MPrint(dx + coords[idx].sX, dy + coords[idx].sY, gzInfoboxStatsStrings[idx])
 #define STATS_VALUE(idx, str) \
 	do { \
-		FindFontRightCoordinates(dx + coords[idx].sX + coords[idx].sValDx, dy + coords[idx].sY, 80, 8, (str), BLOCKFONT2, &usX, &usY); \
+		FindFontRightCoordinates(dx + coords[idx].sX + coords[idx].sValDx, dy + coords[idx].sY, 80, stats_h, (str), stats_font, &usX, &usY); \
 		MPrint(usX, usY, (str)); \
 	} while (0)
 
 	// -- Section headers --
-	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
+	SetFontAttributes(stats_font, FONT_MCOLOR_WHITE);
 	STATS_LABEL(STATS_TXT_BATTLE_HEADER);
 	STATS_LABEL(STATS_TXT_CONTRACT_HEADER);
 
 	// -- Battle statistics --
-	SetFontForeground(6);
+	SetFontForeground(label_colour);
 	STATS_LABEL(STATS_TXT_KILLS);
 	STATS_LABEL(STATS_TXT_ASSISTS);
 	STATS_LABEL(STATS_TXT_SHOTS_FIRED);
@@ -4084,7 +4100,7 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	STATS_LABEL(STATS_TXT_BATTLES);
 	STATS_LABEL(STATS_TXT_TIMES_WOUNDED);
 
-	SetFontForeground(5);
+	SetFontForeground(value_colour);
 	sVal = ST::format("{}", p.usKills);        STATS_VALUE(STATS_TXT_KILLS, sVal);
 	sVal = ST::format("{}", p.usAssists);      STATS_VALUE(STATS_TXT_ASSISTS, sVal);
 	sVal = ST::format("{}", p.usShotsFired);   STATS_VALUE(STATS_TXT_SHOTS_FIRED, sVal);
@@ -4102,13 +4118,13 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	// special case, and always uses p.sSalary for the daily rate (that
 	// function's own default case for everything except an active weekly/
 	// bi-weekly AIM contract extension).
-	SetFontForeground(6);
+	SetFontForeground(label_colour);
 	STATS_LABEL(STATS_TXT_REMAINING_CONTRACT);
 	STATS_LABEL(STATS_TXT_TOTAL_SERVICE);
 	STATS_LABEL(STATS_TXT_TOTAL_COST);
 	STATS_LABEL(STATS_TXT_MEDICAL_DEPOSIT);
 	STATS_LABEL(STATS_TXT_DAILY_COST);
-	SetFontForeground(5);
+	SetFontForeground(value_colour);
 
 	if (s.ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC || s.ubProfile == SLAY)
 	{
@@ -4382,6 +4398,8 @@ static INT16         gsSkillsPopupInvHeight;
 static MOUSE_REGION  gSkillsPopupRegion;
 // See gfStatsPopupMapSmallBox above.
 static bool          gfSkillsPopupMapSmallBox = false;
+// See gfStatsPopupArial above.
+static bool          gfSkillsPopupArial = false;
 
 // See the matching comment by gStatsPopupDoneButton above.
 static GUIButtonRef gSkillsPopupDoneButton;
@@ -4454,9 +4472,11 @@ void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const
 	// The map screen's own 1366x768 box is as big as its graphic, not as
 	// ItemInfoC.sti, the size the caller passes.
 	gfSkillsPopupMapSmallBox = UseMapSmallInfoPopupBox(guiMapSmallSkillsInfoBox, guiMapSkillsInfoBox);
+	gfSkillsPopupArial       = gfSkillsPopupMapSmallBox && IsMapInvBigImages() &&
+		FirstUsableInterfaceAsset({ guiMapBigSkillsInfoBox, guiMapSmallSkillsInfoBox }) == guiMapBigSkillsInfoBox;
 	if (gfSkillsPopupMapSmallBox)
 	{
-		ETRLEObject const& box = GetVObject(guiMapSmallSkillsInfoBox)->SubregionProperties(0);
+		ETRLEObject const& box = GetVObject(gfSkillsPopupArial ? guiMapBigSkillsInfoBox : guiMapSmallSkillsInfoBox)->SubregionProperties(0);
 		sInvWidth  = box.usWidth;
 		sInvHeight = box.usHeight;
 	}
@@ -4519,7 +4539,7 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 	INT16 const dx = fInMapMode ? gsSkillsPopupInvX : (SKILLS_POPUP_BOX_X + gsSkillsPopupInvX);
 	INT16 const dy = fInMapMode ? gsSkillsPopupInvY : (SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY);
 
-	cache_key_t const box = gfSkillsPopupMapSmallBox ? guiMapSmallSkillsInfoBox : fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox;
+	cache_key_t const box = gfSkillsPopupArial ? guiMapBigSkillsInfoBox : gfSkillsPopupMapSmallBox ? guiMapSmallSkillsInfoBox : fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox;
 	BltVideoObject(FRAME_BUFFER, box, 0, dx, dy);
 
 	// See the matching comment in RenderStatsPopup() above.
@@ -4535,11 +4555,12 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 	SkillDescCoord const* const  trait2Coords = small_box ? gMapSmallSkillTrait2DescCoords : fInMapMode ? gMapSkillTrait2DescCoords : gSkillTrait2DescCoords;
 
 	// -- Header --
-	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
+	// FONT12ARIAL on the "Show Large Icons" box, in its palette's colours
+	SetFontAttributes(gfSkillsPopupArial ? FONT12ARIAL : BLOCKFONT2, FONT_MCOLOR_WHITE);
 	MPrint(dx + skillsCoords[SKILLS_TXT_HEADER].sX, dy + skillsCoords[SKILLS_TXT_HEADER].sY, gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
 
 	// -- Skill name(s), as a mini-header for each description block below --
-	SetFontForeground(5);
+	SetFontForeground(gfSkillsPopupArial ? POPUP_ARIAL_VALUE_COLOUR : 5);
 	if (p.bSkillTrait != NO_SKILLTRAIT)
 	{
 		StatsPopupCoord const& c1 = skillsCoords[SKILLS_COORD_LINE1];
