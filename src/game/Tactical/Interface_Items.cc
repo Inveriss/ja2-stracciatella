@@ -4035,11 +4035,17 @@ void RenderItemDescriptionBox(void)
 	SetFontAttributes(ITEMDESC_FONT, FONT_FCOLOR_WHITE);
 
 	{
-		// Render name -- FONT12ARIAL on the map's big weapon box
+		// Render name -- on the map's big weapon box in FONT14ARIAL, in the
+		// colour of its MAINTENANCE / BALLISTICS headers
 		SGPBox const& xy = descNameBox;
-		if (IsMapBigWeaponBox()) SetFont(FONT14ARIAL);
+		if (IsMapBigWeaponBox())
+		{
+			SetFont(FONT14ARIAL);
+			SetFontForeground(MAP_BIG_WEAPON_VALUE_COLOUR);
+		}
 		MPrint(dx + xy.x, dy + xy.y, gzItemName);
 		SetFont(ITEMDESC_FONT);
+		SetFontForeground(FONT_FCOLOR_WHITE);
 	}
 
 	// Same shadow colour as the weapon name above (DEFAULT_SHADOW, set by the
@@ -4086,9 +4092,9 @@ void RenderItemDescriptionBox(void)
 			// Weapon class + ammo type: same font colour as the weapon name
 			// above (explicit, rather than relying on whatever foreground
 			// DisplayWrappedString() happened to leave set globally).
-			SetFontForeground(FONT_FCOLOR_WHITE);
+			SetFontForeground(IsMapBigWeaponBox() ? MAP_BIG_WEAPON_VALUE_COLOUR : FONT_FCOLOR_WHITE);
 
-			// FONT12ARIAL on the map's big weapon box, like the name
+			// FONT14ARIAL on the map's big weapon box, like the name
 			SGPFont const name_font = IsMapBigWeaponBox() ? FONT14ARIAL : ITEMDESC_FONT;
 			SetFont(name_font);
 			SGPBox const& xy = descNameBox;
