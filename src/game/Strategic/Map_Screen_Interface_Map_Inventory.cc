@@ -2588,7 +2588,16 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 	// it up as an item ID.
 	ubSlotLimit = std::min<UINT8>(GCM->getItem(pItemPtr -> usItem)->getPerPocket(), MAX_OBJECTS_PER_SLOT);
 
-	if (pInventorySlot->ubNumberOfObjects == 0)
+	if (pInventorySlot->ubNumberOfObjects == 0 && pItemPtr->usItem == MONEY && pItemPtr->uiMoneyAmount > MAX_MONEY_PER_SLOT)
+	{
+		// money in an empty slot: only up to MAX_MONEY_PER_SLOT, the rest
+		// stays on the cursor
+		*pInventorySlot = *pItemPtr;
+		pInventorySlot->bMoneyStatus  = 100;
+		pInventorySlot->uiMoneyAmount = MAX_MONEY_PER_SLOT;
+		pItemPtr->uiMoneyAmount      -= MAX_MONEY_PER_SLOT;
+	}
+	else if (pInventorySlot->ubNumberOfObjects == 0)
 	{
 		// placement in an empty slot
 		ubNumberToDrop = pItemPtr->ubNumberOfObjects;
@@ -2631,12 +2640,21 @@ static BOOLEAN PlaceObjectInInventoryStash(OBJECTTYPE* pInventorySlot, OBJECTTYP
 		{
 			if (pItemPtr->usItem == MONEY)
 			{
-				// always allow money to be combined!
+				// always allow money to be combined, up to MAX_MONEY_PER_SLOT
+				// in the slot; what doesn't fit stays on the cursor
 				// status of money is always 100
 				pInventorySlot->bMoneyStatus = 100;
-				pInventorySlot->uiMoneyAmount += pItemPtr->uiMoneyAmount;
-
-				DeleteObj( pItemPtr );
+				UINT32 const room = pInventorySlot->uiMoneyAmount < MAX_MONEY_PER_SLOT ? MAX_MONEY_PER_SLOT - pInventorySlot->uiMoneyAmount : 0;
+				if (pItemPtr->uiMoneyAmount > room)
+				{
+					pInventorySlot->uiMoneyAmount += room;
+					pItemPtr->uiMoneyAmount       -= room;
+				}
+				else
+				{
+					pInventorySlot->uiMoneyAmount += pItemPtr->uiMoneyAmount;
+					DeleteObj( pItemPtr );
+				}
 			}
 			else if (ubSlotLimit < 2 || !CanGunsStack(*pItemPtr, *pInventorySlot))
 			{
@@ -3805,15 +3823,25 @@ static void GroupWorlditemRange(std::vector<WORLDITEM>& items)
 			// other stackable item does (it's a single uiMoneyAmount), so
 			// it can't go through CleanUpStack()/StackObjs() below --
 			// combine it the same way PlaceObjectInInventoryStash() already
-			// does for a single manual drop.
-			for (size_t j = i + 1; j < items.size(); ++j)
+			// does for a single manual drop: up to MAX_MONEY_PER_SLOT, the
+			// rest staying in its own slot (filled in its turn).
+			for (size_t j = i + 1; j < items.size() && dest_wi.o.uiMoneyAmount < MAX_MONEY_PER_SLOT; ++j)
 			{
 				WORLDITEM& src_wi = items[j];
 				if (src_wi.o.usItem != MONEY || src_wi.o.ubNumberOfObjects == 0) continue;
 
 				dest_wi.o.bMoneyStatus = 100;
-				dest_wi.o.uiMoneyAmount += src_wi.o.uiMoneyAmount;
-				DeleteObj(&src_wi.o);
+				UINT32 const room = MAX_MONEY_PER_SLOT - dest_wi.o.uiMoneyAmount;
+				if (src_wi.o.uiMoneyAmount > room)
+				{
+					dest_wi.o.uiMoneyAmount += room;
+					src_wi.o.uiMoneyAmount  -= room;
+				}
+				else
+				{
+					dest_wi.o.uiMoneyAmount += src_wi.o.uiMoneyAmount;
+					DeleteObj(&src_wi.o);
+				}
 			}
 			continue;
 		}

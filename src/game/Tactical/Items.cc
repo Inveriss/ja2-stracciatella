@@ -345,11 +345,11 @@ UINT32 MoneySlotLimit( INT8 bSlot )
 {
 	if ( bSlot >= SMALLPOCK1POS )
 	{
-		return( MAX_MONEY_PER_SLOT / 2 );
+		return( MAX_MONEY_PER_SMALL_POCKET );
 	}
 	else
 	{
-		return( MAX_MONEY_PER_SLOT );
+		return( MAX_MONEY_PER_BIG_POCKET );
 	}
 }
 
@@ -2158,7 +2158,18 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 
 	pInSlot = &(pSoldier->inv[bPos]);
 
-	if (pInSlot->ubNumberOfObjects == 0)
+	if (pInSlot->ubNumberOfObjects == 0 &&
+		GCM->getItem(pObj->usItem)->getItemClass() == IC_MONEY &&
+		pObj->uiMoneyAmount > MoneySlotLimit(bPos))
+	{
+		// money in an empty slot: only up to MoneySlotLimit(), the rest
+		// stays on the cursor -- as when it is added to money in the slot
+		UINT32 const uiMoneyMax = MoneySlotLimit(bPos);
+		*pInSlot = *pObj;
+		pInSlot->uiMoneyAmount = uiMoneyMax;
+		pObj->uiMoneyAmount   -= uiMoneyMax;
+	}
+	else if (pInSlot->ubNumberOfObjects == 0)
 	{
 		// placement in an empty slot
 		ubNumberToDrop = pObj->ubNumberOfObjects;
