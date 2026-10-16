@@ -1,0 +1,15 @@
+{
+  "comment": "iteminfoc_skills_big_1366x768.png -- gMapBigSkillsPopupCoords, RenderSkillsPopup() (Interface_Panels.cc). Sample skills.",
+  "background": "Interface/ITEMINFOC_SKILLS_BIG_1366x768.png",
+  "defaults": { "font": "FONT12ARIAL", "colour": 130, "shadow": 2 },
+  "boxes": [
+    { "name": "header", "x": 14, "y": 14, "w": 577, "h": 20 },
+    { "name": "skill 1", "x": 14, "y": 46, "w": 277, "h": 20 },
+    { "name": "skill 2", "x": 313, "y": 46, "w": 277, "h": 20 }
+  ],
+  "items": [
+    { "string": "gzInfoboxSkillsStrings[0]", "x": 14, "y": 19, "w": 577, "align": "center", "colour": 208 },
+    { "string": "gzMercSkillText[4]", "x": 14, "y": 51, "w": 277, "align": "center" },
+    { "string": "gzMercSkillText[14]", "x": 313, "y": 51, "w": 277, "align": "center" }
+  ]
+}

@@ -4355,6 +4355,19 @@ static const StatsPopupCoord gMapSmallSkillsPopupCoords[NUM_SKILLS_COORDS] =
 	/* SKILLS_COORD_LINE2 */ {  272,  48,   0 },
 };
 
+// Map screen, 1366x768 base, "Show Large Icons": iteminfoc_skills_big_1366x768.png
+// (guiMapBigSkillsInfoBox, 604x292). Here sValDx is the WIDTH of the strip:
+// the header and the two skill names centred in theirs, 5 px under its top
+// (strips 20 px high inside: FONT12ARIAL's 9 px capitals and their shadow
+// row leave 5 px under them too). Checked with tools/interface_preview
+// (layouts/skills_big_1366x768.json).
+static const StatsPopupCoord gMapBigSkillsPopupCoords[NUM_SKILLS_COORDS] =
+{
+	/* SKILLS_TXT_HEADER  */ {  14,  19, 577 }, // strip 577x20 inside, from 14,14
+	/* SKILLS_COORD_LINE1 */ {  14,  51, 277 }, // strip 277x20 inside, from 14,46
+	/* SKILLS_COORD_LINE2 */ { 313,  51, 277 }, // strip 277x20 inside, from 313,46
+};
+
 static const SkillDescCoord gMapSmallSkillTrait1DescCoords[10] =
 {
 	/* FIRST_DESC  */ {  19,  77 },
@@ -4598,14 +4611,27 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 	// Independent coordinates for the map version -- see gMapSkillsPopupCoords/
 	// gMapSkillTrait1DescCoords/gMapSkillTrait2DescCoords above.
 	bool const small_box = gfSkillsPopupMapSmallBox;
-	StatsPopupCoord const* const skillsCoords = small_box ? gMapSmallSkillsPopupCoords     : fInMapMode ? gMapSkillsPopupCoords     : gSkillsPopupCoords;
+	StatsPopupCoord const* const skillsCoords = gfSkillsPopupArial ? gMapBigSkillsPopupCoords :
+		small_box ? gMapSmallSkillsPopupCoords     : fInMapMode ? gMapSkillsPopupCoords     : gSkillsPopupCoords;
 	SkillDescCoord const* const  trait1Coords = small_box ? gMapSmallSkillTrait1DescCoords : fInMapMode ? gMapSkillTrait1DescCoords : gSkillTrait1DescCoords;
 	SkillDescCoord const* const  trait2Coords = small_box ? gMapSmallSkillTrait2DescCoords : fInMapMode ? gMapSkillTrait2DescCoords : gSkillTrait2DescCoords;
+
+	// gMapBigSkillsPopupCoords: centred in the strip, sValDx wide
+	auto const print_header = [&](StatsPopupCoord const& c, ST::string const& str)
+	{
+		INT16 x = dx + c.sX;
+		if (gfSkillsPopupArial)
+		{
+			INT16 y;
+			FindFontCenterCoordinates(dx + c.sX, dy + c.sY, c.sValDx, GetFontHeight(FONT12ARIAL), str, FONT12ARIAL, &x, &y);
+		}
+		MPrint(x, dy + c.sY, str);
+	};
 
 	// -- Header --
 	// FONT12ARIAL on the "Show Large Icons" box, in its palette's colours
 	SetFontAttributes(gfSkillsPopupArial ? FONT12ARIAL : BLOCKFONT2, FONT_MCOLOR_WHITE);
-	MPrint(dx + skillsCoords[SKILLS_TXT_HEADER].sX, dy + skillsCoords[SKILLS_TXT_HEADER].sY, gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
+	print_header(skillsCoords[SKILLS_TXT_HEADER], gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
 
 	// -- Skill name(s), as a mini-header for each description block below --
 	SetFontForeground(gfSkillsPopupArial ? POPUP_ARIAL_VALUE_COLOUR : 5);
@@ -4619,18 +4645,18 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 			// expert-level array, where one exists -- see
 			// GetSkillDescription()); SKILL_TRAIT_2 is unused in this case.
 			ST::string const sVal = ST::format("{} {}", gzMercSkillText[p.bSkillTrait], gzMercSkillText[NUM_SKILLTRAITS]);
-			MPrint(dx + c1.sX, dy + c1.sY, sVal);
+			print_header(c1, sVal);
 			PrintSkillDescription(dx, dy, trait1Coords, (SkillTrait)p.bSkillTrait, true);
 		}
 		else
 		{
-			MPrint(dx + c1.sX, dy + c1.sY, gzMercSkillText[p.bSkillTrait]);
+			print_header(c1, gzMercSkillText[p.bSkillTrait]);
 			PrintSkillDescription(dx, dy, trait1Coords, (SkillTrait)p.bSkillTrait, false);
 
 			if (p.bSkillTrait2 != NO_SKILLTRAIT)
 			{
 				StatsPopupCoord const& c2 = skillsCoords[SKILLS_COORD_LINE2];
-				MPrint(dx + c2.sX, dy + c2.sY, gzMercSkillText[p.bSkillTrait2]);
+				print_header(c2, gzMercSkillText[p.bSkillTrait2]);
 				PrintSkillDescription(dx, dy, trait2Coords, (SkillTrait)p.bSkillTrait2, false);
 			}
 		}
