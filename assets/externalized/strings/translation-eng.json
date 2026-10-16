@@ -1063,7 +1063,7 @@
         "Withdraw"
     ],
     "gzMoneyWithdrawMessageText": [
-        "You can only withdraw up to $20,000 at a time.",
+        "You can only withdraw up to $1,000,000 at a time.",
         "Are you sure you want to deposit the %s into your account?"
     ],
     "gzNonPersistantPBIText": [

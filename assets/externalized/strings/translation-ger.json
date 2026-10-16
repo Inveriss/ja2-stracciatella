@@ -1058,7 +1058,7 @@
         "Abheben"
     ],
     "gzMoneyWithdrawMessageText": [
-        "Sie können nur maximal 20.000$ abheben.",
+        "Sie können nur maximal 1.000.000$ abheben.",
         "Wollen Sie wirklich %s auf Ihr Konto einzahlen?"
     ],
     "gzNonPersistantPBIText": [

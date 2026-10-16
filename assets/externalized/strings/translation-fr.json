@@ -1058,7 +1058,7 @@
         "Retirer"
     ],
     "gzMoneyWithdrawMessageText": [
-        "Vous ne pouvez retirer que 20 000 $ à la fois.",
+        "Vous ne pouvez retirer que 1 000 000 $ à la fois.",
         "Etes-vous sûr de vouloir déposer %s sur votre compte ?"
     ],
     "gzNonPersistantPBIText": [
