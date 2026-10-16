@@ -427,8 +427,8 @@ static BOOLEAN gbItemPointerLocateGood = FALSE;
 // uses. The _items/_money/_weapons sets only exist for the 1366x768 base
 // (_weapons with the normal, "small icons" merc inventory only), _weapons_big
 // for the same base with "Show Large Icons"; other resolutions stay on the
-// shared set. Items and money have no "Show Large Icons" boxes of their own
-// yet, so that mode shows them on their normal ones.
+// shared set. Items and money of "Show Large Icons" are on their own boxes
+// too (gfMapItemDescArialBox), with the _items_big tables.
 enum MapItemDescLayout
 {
 	MAP_ITEMDESC_LAYOUT_SHARED,
@@ -450,9 +450,9 @@ static MapItemDescLayout gMapItemDescLayout = MAP_ITEMDESC_LAYOUT_SHARED;
 #define MAP_ITEMDESC_BOX_MONEY_FILE INTERFACEDIR "/iteminfoc_money_1366x768.png"
 #define MAP_ITEMDESC_BOX_WEAPONS_FILE INTERFACEDIR "/iteminfoc_weapons_1366x768.png"
 #define MAP_ITEMDESC_BOX_WEAPONS_BIG_FILE INTERFACEDIR "/iteminfoc_weapons_big_1366x768.png"
-// "Show Large Icons" versions of the items / money boxes, same size and
-// arrangement (so the same positions), their texts in FONT12ARIAL -- see
-// gfMapItemDescArialBox.
+// "Show Large Icons" versions of the items / money boxes (604x340, both the
+// same arrangement -- the _items_big tables, PickMapItemDesc()), their texts
+// in FONT12ARIAL -- see gfMapItemDescArialBox.
 #define MAP_ITEMDESC_BOX_ITEMS_BIG_FILE INTERFACEDIR "/iteminfoc_items_big_1366x768.png"
 #define MAP_ITEMDESC_BOX_MONEY_BIG_FILE INTERFACEDIR "/iteminfoc_money_big_1366x768.png"
 
@@ -587,16 +587,24 @@ static cache_key_t GetMoneyGraphicsFilename()
 }
 
 // The map-screen position matching gMapItemDescLayout.
-template<typename T> static T const& PickMapItemDesc(T const& shared, T const& items, T const& money, T const& weapons, T const& weapons_big, T const& items_big)
+template<typename T> static T const& PickMapItemDesc(T const& shared, T const& items, T const& money, T const& weapons, T const& weapons_big, T const& items_big, T const& money_big)
 {
 	switch (gMapItemDescLayout)
 	{
 		case MAP_ITEMDESC_LAYOUT_ITEMS: return gfMapItemDescArialBox ? items_big : items;
-		case MAP_ITEMDESC_LAYOUT_MONEY: return money;
+		case MAP_ITEMDESC_LAYOUT_MONEY: return gfMapItemDescArialBox ? money_big : money;
 		case MAP_ITEMDESC_LAYOUT_WEAPONS: return weapons;
 		case MAP_ITEMDESC_LAYOUT_WEAPONS_BIG: return weapons_big;
 		default:                        return shared;
 	}
+}
+
+// iteminfoc_money_big_1366x768.png has the arrangement of
+// iteminfoc_items_big: its picture, status bar, name (the total amount) and
+// description are where the items box has them.
+template<typename T> static T const& PickMapItemDesc(T const& shared, T const& items, T const& money, T const& weapons, T const& weapons_big, T const& items_big)
+{
+	return PickMapItemDesc(shared, items, money, weapons, weapons_big, items_big, items_big);
 }
 OBJECTTYPE *gpItemDescObject = NULL;
 static BOOLEAN gfItemDescObjectIsAttachment = FALSE;
@@ -686,6 +694,17 @@ static const MoneyLoc gMapMoneyButtonOffsets_Money[] = { { 164, 48 }, // 1000
 												{ 202, 48 }, // Done
 												{ 174, 77 } }; // Separate
 
+// iteminfoc_money_big ("Show Large Icons", 604x340): $10, $100, $1000 and
+// Done centred in the four boxes under the picture (62x51 inside, from
+// 19/92/166/239,146), no info_bil frame; the 'Separate' text centred in the
+// right small dark box (MAP_MONEY_BIG_SEPARATE_BOX), its entry here unused.
+static const MoneyLoc gMapMoneyButtonOffsets_MoneyBig[] = { { 180, 161 }, // 1000
+												{ 107, 161 }, // 100
+												{  33, 161 }, // 10
+												{ 254, 161 }, // Done
+												{ 467, 151 } }; // Separate
+static const SGPBox MAP_MONEY_BIG_SEPARATE_BOX = { 462, 146, 128, 83 }; // iteminfoc_money_big / right small dark box
+
 // Screen position of money button `i` (M_1000..M_DONE, 4 = the 'Separate'
 // text) of the open description box.
 static SGPPoint GetMoneyButtonPos(INT32 const i)
@@ -693,7 +712,8 @@ static SGPPoint GetMoneyButtonPos(INT32 const i)
 	SGPPoint pos;
 	if (gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_MONEY)
 	{
-		pos.set(gsInvDescX + gMapMoneyButtonOffsets_Money[i].x, gsInvDescY + gMapMoneyButtonOffsets_Money[i].y);
+		MoneyLoc const* const loc = gfMapItemDescArialBox ? gMapMoneyButtonOffsets_MoneyBig : gMapMoneyButtonOffsets_Money;
+		pos.set(gsInvDescX + loc[i].x, gsInvDescY + loc[i].y);
 	}
 	else
 	{
@@ -978,6 +998,19 @@ static const INV_DESC_STATS gMapMoneyStats_Money[] =
 	{ 251, 31, 79 }, // balance / remaining
 	{ 251, 59, 78 }, // amount to / amount
 	{ 251, 71, 79 }  // withdraw / to split
+};
+
+// iteminfoc_money_big ("Show Large Icons"): the two two-line stats in the
+// left small dark box (128x83 inside, from 312,146), 5 px from its walls, 15
+// px between a stat's lines; the values right-aligned in
+// MAP_MONEY_BIG_VALUE_WIDTH on the second line.
+#define MAP_MONEY_BIG_VALUE_WIDTH 118
+static const INV_DESC_STATS gMapMoneyStats_MoneyBig[] =
+{
+	{ 317, 151, 0 }, // current / amount
+	{ 317, 166, 0 }, // balance / remaining
+	{ 317, 199, 0 }, // amount to / amount
+	{ 317, 214, 0 }  // withdraw / to split
 };
 
 // iteminfoc_items on the map screen, 1366x768 base, normal merc inventory:
@@ -3163,7 +3196,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		// The map's iteminfoc_items box has the same 4 slots.
 		bool const fGenericItem = !in_map && !GCM->getItem(o->usItem)->isWeapon();
 		const AttachmentGfxInfo* const agi =
-			in_map       ? &PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info, g_map_attachment_info_weapons, g_map_attachment_info_weapons_big, g_map_attachment_info_items_big) :
+			in_map       ? &PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info, g_map_attachment_info_weapons, g_map_attachment_info_weapons_big, g_map_attachment_info_items_big, g_map_attachment_info) :
 			fGenericItem ? &g_generic_item_attachment_info :
 			               &g_attachment_info;
 		INT32 const numAttachmentSlots =
@@ -3882,8 +3915,9 @@ void RenderItemDescriptionBox(void)
 		            guiGenericItemDescBox;
 	BltVideoObject(guiSAVEBUFFER, box_gfx, 0, dx, dy);
 
-	// Display the money 'separating' border
-	if (obj.usItem == MONEY)
+	// Display the money 'separating' border (iteminfoc_money_big has its
+	// boxes in its art)
+	if (obj.usItem == MONEY && !(gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_MONEY && gfMapItemDescArialBox))
 	{
 		// Render the money Boxes
 		SGPPoint const xy = GetMoneyButtonPos(M_1000);
@@ -3970,7 +4004,7 @@ void RenderItemDescriptionBox(void)
 	{
 		// Display attachments
 		AttachmentGfxInfo const& agi =
-			in_map                 ? PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info, g_map_attachment_info_weapons, g_map_attachment_info_weapons_big, g_map_attachment_info_items_big) :
+			in_map                 ? PickMapItemDesc(g_map_attachment_info, g_map_attachment_info_items, g_map_attachment_info, g_map_attachment_info_weapons, g_map_attachment_info_weapons_big, g_map_attachment_info_items_big, g_map_attachment_info) :
 			fIsWeapon || fIsMoney  ? g_attachment_info :
 			                         g_generic_item_attachment_info;
 		// Non-weapon, non-money items only have 4 slots laid out in
@@ -4128,8 +4162,11 @@ void RenderItemDescriptionBox(void)
 		}
 		else
 		{
-			// justified on the map's items boxes, normal and "Show Large Icons"
-			UINT32 const justify = gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_ITEMS ? FULL_JUSTIFIED : LEFT_JUSTIFIED;
+			// justified on the map's items boxes, normal and "Show Large Icons",
+			// and on the money box of "Show Large Icons" (laid out as the latter)
+			UINT32 const justify =
+				gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_ITEMS ||
+				(gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_MONEY && gfMapItemDescArialBox) ? FULL_JUSTIFIED : LEFT_JUSTIFIED;
 			DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, gfMapItemDescArialBox ? FONT12ARIAL : ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, justify);
 		}
 	}
@@ -4498,14 +4535,23 @@ void RenderItemDescriptionBox(void)
 			SetFontForeground(map_style ? 5 : misc_label_colour);
 			SGPPoint const xy = GetMoneyButtonPos(4);
 			ST::string label = gfAddingMoneyToMercFromPlayersAccount ? gzMoneyAmounts[5] : gzMoneyAmounts[4];
-			MPrint(xy.iX, xy.iY, label);
+			if (gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_MONEY && gfMapItemDescArialBox)
+			{
+				SGPBox const& box = MAP_MONEY_BIG_SEPARATE_BOX;
+				FindFontCenterCoordinates(dx + box.x, dy + box.y, box.w, box.h, label, misc_font, &usX, &usY);
+				MPrint(usX, usY, label);
+			}
+			else
+			{
+				MPrint(xy.iX, xy.iY, label);
+			}
 		}
 
 		SetFontForeground(misc_label_colour);
 
 		INV_DESC_STATS const* const xy =
 			!in_map                                         ? gMoneyStats :
-			gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_MONEY ? gMapMoneyStats_Money :
+			gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_MONEY ? (gfMapItemDescArialBox ? gMapMoneyStats_MoneyBig : gMapMoneyStats_Money) :
 			                                                  gMapMoneyStats;
 
 		if (gfAddingMoneyToMercFromPlayersAccount)
@@ -4527,6 +4573,8 @@ void RenderItemDescriptionBox(void)
 
 		// Get length of string
 		UINT16 const uiRightLength = 35;
+		// the values' width, the tactical way
+		INT16  const value_w = gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_MONEY && gfMapItemDescArialBox ? MAP_MONEY_BIG_VALUE_WIDTH : ITEM_STATS_WIDTH - 3;
 
 		//Display the total amount of money remaining
 		pStr = SPrintMoney(gRemoveMoney.uiMoneyRemaining);
@@ -4538,7 +4586,7 @@ void RenderItemDescriptionBox(void)
 		}
 		else
 		{
-			FindFontRightCoordinates(dx + xy[1].sX + xy[1].sValDx, dy + xy[1].sY, ITEM_STATS_WIDTH - 3, misc_h, pStr, misc_font, &usX, &usY);
+			FindFontRightCoordinates(dx + xy[1].sX + xy[1].sValDx, dy + xy[1].sY, value_w, misc_h, pStr, misc_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
 
@@ -4552,7 +4600,7 @@ void RenderItemDescriptionBox(void)
 		}
 		else
 		{
-			FindFontRightCoordinates(dx + xy[3].sX + xy[3].sValDx, dy + xy[3].sY, ITEM_STATS_WIDTH - 3, misc_h, pStr, misc_font, &usX, &usY);
+			FindFontRightCoordinates(dx + xy[3].sX + xy[3].sValDx, dy + xy[3].sY, value_w, misc_h, pStr, misc_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}
 	}
