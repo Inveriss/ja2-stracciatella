@@ -122,6 +122,23 @@
 #define TEAMPANEL_BUTTONSBOX_WIDTH      (142)    // width of the container of the buttons on the right of team panel
 #define TEAMPANEL_HEIGHT                (120)    // height of the bottom bar team panel
 
+// The 1366x768 interface's own team panel (bottom_bar_big_1366x768.png,
+// isBigTeamPanel()): 7 slots, 146 px apart, left-aligned (not centred), with
+// the buttons, sector name, clock and minimap block on its right. The single
+// merc (SM) panel is not affected -- it keeps INTERFACE_START_X/Y and the
+// squad-size-driven m_teamPanelWidth/m_smPanelWidth.
+#define BIG_TEAMPANEL_FILE              "bottom_bar_big_1366x768.png"
+#define BIG_TEAMPANEL_WIDTH             (1366)
+#define BIG_TEAMPANEL_HEIGHT            (254)
+#define BIG_TEAMPANEL_NUM_SLOTS         (7)
+#define BIG_TEAMPANEL_SLOT_WIDTH        (146)
+// Team panel position/size for whichever team panel is in use -- use these
+// (not INTERFACE_START_X/Y, which the SM panel shares) for the team panel.
+#define TEAM_PANEL_X                    (g_ui.isBigTeamPanel() ? 0 : INTERFACE_START_X)
+#define TEAM_PANEL_Y                    (g_ui.isBigTeamPanel() ? SCREEN_HEIGHT - BIG_TEAMPANEL_HEIGHT : INTERFACE_START_Y)
+#define TEAM_PANEL_WIDTH                (g_ui.isBigTeamPanel() ? BIG_TEAMPANEL_WIDTH : g_ui.m_teamPanelWidth)
+#define TEAM_PANEL_HEIGHT               (g_ui.isBigTeamPanel() ? BIG_TEAMPANEL_HEIGHT : TEAMPANEL_HEIGHT)
+
 
 /////////////////////////////////////////////////////////////
 // type definitions
@@ -212,6 +229,7 @@ public:
 	UINT16                m_mapScreenOffsetY;             /** Offset of the strategic map's own canvas (m_mapScreenWidth x m_mapScreenHeight) -- see MAP_SCREEN_X/Y */
 	UINT16                m_mapRightBlockOffsetX;         /** Offset of the strategic map's right block (MBS, map, sector inventory) -- see MAP_SCREEN_RIGHT_BLOCK_X */
 	UINT16                m_mapRightBlockShift;           /** How far the right block sits right of where the legacy 1024 canvas had it (m_mapScreenWidth - 1024 on the wide strategic screen, else 0) -- see MAP_RIGHT_BLOCK_SHIFT */
+	bool                  m_bigTeamPanel;                 /** The tactical team panel is bottom_bar_big_1366x768.png -- see isBigTeamPanel() */
 
 	/** Constructor.
 	 * @param screenWidth Screen width
@@ -233,6 +251,9 @@ public:
 	/** True when the active resolution uses the 1366px wide strategic screen canvas (the 1366x768 base): screen at least EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH wide and not compact. Implies isWideStrategicScreen(). */
 	bool isExtraWideStrategicScreen() const;
 
+	/** True when the tactical team panel is the 1366x768 interface's own one (BIG_TEAMPANEL_*): the 1366x768 base (as isExtraWideStrategicScreen()) and bottom_bar_big_1366x768.png present; otherwise the old bottom_bar.sti panel. */
+	bool isBigTeamPanel() const { return m_bigTeamPanel; }
+
 	UINT16 currentHeight() const;
 	UINT16 get_CLOCK_X() const;
 	UINT16 get_CLOCK_Y() const;
@@ -251,6 +272,9 @@ public:
 
 	/** Number of displayable slots in the team panel, based on the game policy and screen width. */
 	UINT16 getTeamPanelNumSlots() const;
+
+	/** Number of slots the old team panel (bottom_bar.sti) has, based on the game policy and screen width -- also sizes the SM panel's canvas. */
+	UINT16 getOldTeamPanelNumSlots() const;
 
 	/** Recalculate UI elements' positions after changing screen size.
 	 *  This method requires the game data to be loaded, but it should be called before most other the application initialization is done.

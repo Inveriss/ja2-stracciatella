@@ -1,6 +1,7 @@
 #include "UILayout.h"
 
 #include "ContentManager.h"
+#include "Directories.h"
 #include "GameInstance.h"
 #include "GamePolicy.h"
 #include "Interface.h"
@@ -28,7 +29,7 @@ UILayout g_ui(MIN_INTERFACE_WIDTH, MIN_INTERFACE_HEIGHT);
 /** Constructor. */
 UILayout::UILayout(UINT16 screenWidth, UINT16 screenHeight)
 	:m_mapScreenWidth(MIN_INTERFACE_WIDTH), m_mapScreenHeight(MIN_INTERFACE_HEIGHT),
-	m_screenWidth(screenWidth), m_screenHeight(screenHeight)
+	m_screenWidth(screenWidth), m_screenHeight(screenHeight), m_bigTeamPanel(false)
 {
 }
 
@@ -91,9 +92,19 @@ UINT16 UILayout::get_CLOCK_X() const
 	// inventory_bottom_panel.sti's latest graphic; TEAM_PANEL (bottom_bar.sti)
 	// is untouched.
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 83;
+	// the big team panel's time box: x 1263, 84 wide (clock 66)
+	if (m_bigTeamPanel) return 1263 + (84 - 66) / 2;
 	return m_teamPanelPosition.iX + m_teamPanelWidth - 86;
 }
-UINT16 UILayout::get_CLOCK_Y() const               { return currentHeight() - 23;                                  }
+UINT16 UILayout::get_CLOCK_Y() const
+{
+	// the big team panel's time box: y 8, 22 high (clock 13)
+	if (!fInMapMode && m_bigTeamPanel && gsCurInterfacePanel != SM_PANEL)
+	{
+		return m_screenHeight - BIG_TEAMPANEL_HEIGHT + 8 + (22 - 13) / 2;
+	}
+	return currentHeight() - 23;
+}
 UINT16 UILayout::get_RADAR_WINDOW_X() const
 {
 	if (fInMapMode) return MAP_SCREEN_RIGHT - 97;
@@ -110,7 +121,15 @@ UINT16 UILayout::get_ITEMDESC_PANEL_START_Y_ITEMS() const { return m_screenHeigh
 
 void UILayout::recalculatePositions()
 {
-	m_teamPanelSlotsTotalWidth = getTeamPanelNumSlots() * TEAMPANEL_SLOT_WIDTH;
+	// The 1366x768 base (same test as isExtraWideStrategicScreen(), which isn't
+	// known yet here) gets its own team panel, when its graphic is there.
+	m_bigTeamPanel = m_screenWidth >= EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH &&
+		m_screenHeight >= LARGE_STRATEGIC_SCREEN_HEIGHT &&
+		GCM && GCM->doesGameResExists(INTERFACEDIR "/" BIG_TEAMPANEL_FILE);
+
+	// Everything below stays squad-size-driven, also with the big team panel:
+	// the SM panel and its widgets keep their old positions.
+	m_teamPanelSlotsTotalWidth = getOldTeamPanelNumSlots() * TEAMPANEL_SLOT_WIDTH;
 	UINT16 tpXOffset = (m_screenWidth - m_teamPanelSlotsTotalWidth - TEAMPANEL_BUTTONSBOX_WIDTH) / 2;
 	UINT16 tpYOffset = m_screenHeight - TEAMPANEL_HEIGHT;
 	m_teamPanelPosition.set(tpXOffset, tpYOffset);
@@ -367,6 +386,12 @@ UINT16 UILayout::getTacticalTextBoxY() const
 }
 
 UINT16 UILayout::getTeamPanelNumSlots() const
+{
+	if (m_bigTeamPanel) return BIG_TEAMPANEL_NUM_SLOTS;
+	return getOldTeamPanelNumSlots();
+}
+
+UINT16 UILayout::getOldTeamPanelNumSlots() const
 {
 	if (!GCM || !GCM->getGamePolicy())
 	{

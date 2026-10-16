@@ -255,7 +255,7 @@ void InitializeCurrentPanel()
 			break;
 
 		case TEAM_PANEL:
-			gsVIEWPORT_WINDOW_END_Y = INTERFACE_START_Y;
+			gsVIEWPORT_WINDOW_END_Y = TEAM_PANEL_Y;
 			// Render full
 			SetRenderFlags(RENDER_FLAG_FULL);
 			InitializeTEAMPanel();
