@@ -3858,6 +3858,37 @@ static const StatsPopupCoord gMapSmallStatsPopupCoords[NUM_STATS_TXT] =
 	/* STATS_TXT_DAILY_COST        */ {  199, 48, 97 },
 };
 
+// Map screen, 1366x768 base, "Show Large Icons": iteminfoc_stats_big_1366x768.png
+// (guiMapBigStatsInfoBox, 604x514; the large box on its left is for the
+// merc's portrait, later). Here sValDx is the WIDTH of the row's field: the
+// label at sX, the value right-aligned in [sX, sX + sValDx); a header
+// centred in it. Battle statistics in the narrow column (fields 130 px wide
+// inside, from x 425), the contract in the wide one (200 px, from x 390).
+// FONT12ARIAL's capitals are 9 px high (the 2 rows under them are for
+// descenders), and every glyph has a blank column on its right: labels 5 px
+// from the left wall, values 5 px from the right one (their field 1 px
+// wider for that blank column), a box's first line 5 px under its top, 10
+// px between the capitals of two lines (a pitch of 19), headers 5 px under
+// the top of their strip. Checked with tools/interface_preview
+// (layouts/stats_big_1366x768.json).
+static const StatsPopupCoord gMapBigStatsPopupCoords[NUM_STATS_TXT] =
+{
+	/* STATS_TXT_BATTLE_HEADER     */ { 425,  19, 130 }, // strip 130x20 inside, from 425,14
+	/* STATS_TXT_KILLS             */ { 430,  51, 121 }, // box 130x40 inside, from 425,46
+	/* STATS_TXT_ASSISTS           */ { 430,  70, 121 },
+	/* STATS_TXT_SHOTS_FIRED       */ { 430, 103, 121 }, // box 130x60 inside, from 425,98
+	/* STATS_TXT_SHOTS_HIT         */ { 430, 122, 121 },
+	/* STATS_TXT_HIT_PERCENTAGE    */ { 430, 141, 121 },
+	/* STATS_TXT_BATTLES           */ { 430, 175, 121 }, // box 130x40 inside, from 425,170
+	/* STATS_TXT_TIMES_WOUNDED     */ { 430, 194, 121 },
+	/* STATS_TXT_CONTRACT_HEADER   */ { 390, 237, 200 }, // strip 200x20 inside, from 390,232
+	/* STATS_TXT_REMAINING_CONTRACT*/ { 395, 288, 191 }, // box 200x40 inside, from 390,264
+	/* STATS_TXT_TOTAL_SERVICE     */ { 395, 321, 191 }, // box 200x60 inside, from 390,316
+	/* STATS_TXT_TOTAL_COST        */ { 395, 340, 191 },
+	/* STATS_TXT_MEDICAL_DEPOSIT   */ { 395, 359, 191 },
+	/* STATS_TXT_DAILY_COST        */ { 395, 269, 191 },
+};
+
 // Placeholder position/size for the Infobox_stats.sti graphic itself (as
 // opposed to the screen-wide dismiss region set up in InitStatsPopup(),
 // which matches the keyring popup's own footprint) -- tune once the real
@@ -4067,6 +4098,7 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 
 	// Independent coordinates for the map version -- see gMapStatsPopupCoords above.
 	StatsPopupCoord const* const coords =
+		gfStatsPopupArial       ? gMapBigStatsPopupCoords :
 		gfStatsPopupMapSmallBox ? gMapSmallStatsPopupCoords :
 		fInMapMode              ? gMapStatsPopupCoords :
 		                          gStatsPopupCoords;
@@ -4079,16 +4111,29 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 
 #define STATS_LABEL(idx) \
 	MPrint(dx + coords[idx].sX, dy + coords[idx].sY, gzInfoboxStatsStrings[idx])
+	// gMapBigStatsPopupCoords: the value right-aligned in its field
+	// (sValDx is the field's width there)
 #define STATS_VALUE(idx, str) \
 	do { \
-		FindFontRightCoordinates(dx + coords[idx].sX + coords[idx].sValDx, dy + coords[idx].sY, 80, stats_h, (str), stats_font, &usX, &usY); \
+		if (gfStatsPopupArial) FindFontRightCoordinates(dx + coords[idx].sX, dy + coords[idx].sY, coords[idx].sValDx, stats_h, (str), stats_font, &usX, &usY); \
+		else FindFontRightCoordinates(dx + coords[idx].sX + coords[idx].sValDx, dy + coords[idx].sY, 80, stats_h, (str), stats_font, &usX, &usY); \
 		MPrint(usX, usY, (str)); \
+	} while (0)
+	// gMapBigStatsPopupCoords: a header centred in its field
+#define STATS_HEADER(idx) \
+	do { \
+		if (gfStatsPopupArial) \
+		{ \
+			FindFontCenterCoordinates(dx + coords[idx].sX, dy + coords[idx].sY, coords[idx].sValDx, stats_h, gzInfoboxStatsStrings[idx], stats_font, &usX, &usY); \
+			MPrint(usX, dy + coords[idx].sY, gzInfoboxStatsStrings[idx]); \
+		} \
+		else STATS_LABEL(idx); \
 	} while (0)
 
 	// -- Section headers --
 	SetFontAttributes(stats_font, FONT_MCOLOR_WHITE);
-	STATS_LABEL(STATS_TXT_BATTLE_HEADER);
-	STATS_LABEL(STATS_TXT_CONTRACT_HEADER);
+	STATS_HEADER(STATS_TXT_BATTLE_HEADER);
+	STATS_HEADER(STATS_TXT_CONTRACT_HEADER);
 
 	// -- Battle statistics --
 	SetFontForeground(label_colour);
@@ -4163,6 +4208,7 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 
 #undef STATS_LABEL
 #undef STATS_VALUE
+#undef STATS_HEADER
 
 	InvalidateRegion(gsStatsPopupInvX, gsStatsPopupInvY,
 		gsStatsPopupInvX + gsStatsPopupInvWidth, gsStatsPopupInvY + gsStatsPopupInvHeight);
