@@ -133,13 +133,15 @@ def is_drawn(rgb, index):
 
 
 def draw_text(img, fonts, font, text, x, y, fg, shadow, bg):
-    """MPrint(): returns the ink bounding box (x0, y0, x1, y1) or None."""
+    """MPrint(): returns the bounding boxes (x0, y0, x1, y1) of the letters
+    alone and of everything drawn (letters and their shadow), or None."""
     px = img.load()
     W, H = img.size
     fg_rgb = font.palette[fg]
     sh_rgb = font.palette[shadow] if is_drawn(font.palette[shadow], shadow) else None
     bg_rgb = font.palette[bg] if bg and is_drawn(font.palette[bg], bg) else None
     ink = None
+    drawn = None
     for c in text:
         g = font.glyphs[fonts.glyph_index(font, c)]
         gx, gy = x + g.offset_x, y + g.offset_y
@@ -158,11 +160,13 @@ def draw_text(img, fonts, font, text, x, y, fg, shadow, bg):
                 if col is None:
                     continue
                 px[dx, dy] = col + (255,)
+                drawn = (dx, dy, dx, dy) if drawn is None else (
+                    min(drawn[0], dx), min(drawn[1], dy), max(drawn[2], dx), max(drawn[3], dy))
                 if v >= 2:  # the letters themselves, not their shadow
                     ink = (dx, dy, dx, dy) if ink is None else (
                         min(ink[0], dx), min(ink[1], dy), max(ink[2], dx), max(ink[3], dy))
         x += g.advance
-    return ink
+    return ink, drawn
 
 
 def resolve_text(item, strings):
@@ -215,35 +219,43 @@ def cmd_render(a):
         text = resolve_text(item, strings)
         font = fonts.get(item["font"])
         x, y = place(fonts, font, text, item)
-        ink = draw_text(img, fonts, font, text, x, y, item.get("colour", 2),
-                        item.get("shadow", DEFAULT_SHADOW), item.get("background", 0))
+        ink, drawn = draw_text(img, fonts, font, text, x, y, item.get("colour", 2),
+                               item.get("shadow", DEFAULT_SHADOW), item.get("background", 0))
         box = next((b for b in boxes if b["x"] <= item["x"] < b["x"] + b["w"] and b["y"] <= item["y"] < b["y"] + b["h"]), None)
-        report.append((item, text, font, x, y, ink, box))
+        report.append((item, text, font, x, y, ink, drawn, box))
 
-    print(f"{'text':<26} {'print x,y':>10} {'ink x0-x1':>10} {'ink y0-y1':>10}  box: left right top bottom")
-    for item, text, font, x, y, ink, box in report:
-        if ink is None:
-            print(f"{text[:26]:<26} {x:>4},{y:<5}  (no ink)")
+    # "visible" = the letters with their shadow: what is seen on the screen
+    print(f"{'text':<26} {'print x,y':>10} {'visible x':>10} {'visible y':>10}  box margins (visible): left right top bottom")
+    for item, text, font, x, y, ink, drawn, box in report:
+        if drawn is None:
+            print(f"{text[:26]:<26} {x:>4},{y:<5}  (nothing drawn)")
             continue
-        line = f"{text[:26]:<26} {x:>4},{y:<5} {ink[0]:>4}-{ink[2]:<5} {ink[1]:>4}-{ink[3]:<5}"
+        v = drawn
+        line = f"{text[:26]:<26} {x:>4},{y:<5} {v[0]:>4}-{v[2]:<5} {v[1]:>4}-{v[3]:<5}"
         if box:
-            line += (f"  {box['name']}: {ink[0] - box['x']} {box['x'] + box['w'] - 1 - ink[2]}"
-                     f" {ink[1] - box['y']} {box['y'] + box['h'] - 1 - ink[3]}")
+            line += (f"  {box['name']}: {v[0] - box['x']} {box['x'] + box['w'] - 1 - v[2]}"
+                     f" {v[1] - box['y']} {box['y'] + box['h'] - 1 - v[3]}")
         print(line)
 
-    # gaps between the lines of a box: from the ink of one line to the next
-    # one's (different texts have different ink -- caps, descenders)
-    for b in boxes:
-        lines = sorted({(r[5][1], r[5][3]) for r in report if r[6] is b and r[5]})
+    # gaps between the lines of a box: the free rows between what is drawn of
+    # one line (with its shadow) and the next (different texts reach
+    # different rows -- capitals, descenders); also between the letters
+    # alone, without the shadow
+    def line_rows(b, idx):
+        rows = sorted({(r[idx][1], r[idx][3]) for r in report if r[7] is b and r[idx]})
         merged = []
-        for top, bottom in lines:
+        for top, bottom in rows:
             if merged and top <= merged[-1][1]:
                 merged[-1] = (merged[-1][0], max(merged[-1][1], bottom))
             else:
                 merged.append((top, bottom))
-        if len(merged) > 1:
-            gaps = [merged[i + 1][0] - merged[i][1] - 1 for i in range(len(merged) - 1)]
-            print(f"{b['name']}: line ink {merged}, gaps between lines {gaps}")
+        return merged, [merged[i + 1][0] - merged[i][1] - 1 for i in range(len(merged) - 1)]
+
+    for b in boxes:
+        rows, gaps = line_rows(b, 6)
+        if len(rows) > 1:
+            _, letter_gaps = line_rows(b, 5)
+            print(f"{b['name']}: visible rows {rows}, free rows between lines {gaps} (letters alone: {letter_gaps})")
 
     if a.scale > 1:
         img = img.resize((img.width * a.scale, img.height * a.scale), Image.NEAREST)

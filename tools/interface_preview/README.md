@@ -34,10 +34,11 @@ py -3 tools/interface_preview/text_preview.py render tools/interface_preview/lay
 `metrics` prints the font height and the ink rows of a capital, an `x`, a
 descender (`g`), and the width of `--text`.
 
-`render` writes the preview and, for every text, its print position, its
-ink bounding box and the margins of that ink to the walls of its box; then,
-per box, the gaps between the ink of its lines. The ink is the letters only,
-without their shadow.
+`render` writes the preview and, for every text, its print position, the
+bounding box of what is drawn (the letters with their shadow -- what is seen
+on the screen) and its margins to the walls of its box; then, per box, the
+free rows between its lines, with the shadow and, in brackets, between the
+letters alone.
 
 ## Layout file
 
