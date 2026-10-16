@@ -732,6 +732,25 @@
     "gzInfoboxSkillsStrings": [
         "Skills"
     ],
+    "gzMapBigWeaponBoxStrings": [
+        "BALLISTICS",
+        "MAINTENANCE",
+        "Fire Power",
+        "Single AP",
+        "Burst AP",
+        "Loudness",
+        "Physical",
+        "Handling",
+        "Valuation",
+        "Short:",
+        "Long:",
+        "Full:",
+        "Recoil Prone:",
+        "Unjam AP:",
+        "Value:",
+        "Rounds:",
+        "Up to %d"
+    ],
     "gzLockPickingDescription": [
         "",
         "",
@@ -1039,7 +1058,7 @@
         "提取"
     ],
     "gzMoneyWithdrawMessageText": [
-        "您每次最多能提取$20,000.",
+        "您每次最多能提取$1,000,000.",
         "您确认要把%s存入您的帐户吗?"
     ],
     "gzNonPersistantPBIText": [

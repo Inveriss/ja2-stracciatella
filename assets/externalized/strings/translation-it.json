@@ -732,6 +732,25 @@
     "gzInfoboxSkillsStrings": [
         "Skills"
     ],
+    "gzMapBigWeaponBoxStrings": [
+        "BALLISTICS",
+        "MAINTENANCE",
+        "Fire Power",
+        "Single AP",
+        "Burst AP",
+        "Loudness",
+        "Physical",
+        "Handling",
+        "Valuation",
+        "Short:",
+        "Long:",
+        "Full:",
+        "Recoil Prone:",
+        "Unjam AP:",
+        "Value:",
+        "Rounds:",
+        "Up to %d"
+    ],
     "gzLockPickingDescription": [
         "",
         "",
@@ -1039,7 +1058,7 @@
         "Prelevare"
     ],
     "gzMoneyWithdrawMessageText": [
-        "Potete prelevare solo fino a $20,000 alla volta.",
+        "Potete prelevare solo fino a $1,000,000 alla volta.",
         "Sieti sicuri di voler depositare il %s sul vostro conto?"
     ],
     "gzNonPersistantPBIText": [

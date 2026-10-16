@@ -2,6 +2,7 @@
 #define _MAP_INTERFACE_MAP_INVEN_H
 
 #include "Types.h"
+#include "Isometric_Utils.h"
 #include "World_Items.h"
 
 #include <vector>
@@ -41,8 +42,11 @@ void HandleFlashForHighLightedItem( void );
 // the list for the inventory
 extern std::vector<WORLDITEM> pInventoryPoolList;
 
-// autoplace down object
-void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr);
+// autoplace down object. With a grid number, the item lies there (a merc's
+// items put into the sector inventory lie where he stands); without one,
+// where the sector's items without a place go -- its centre, when the
+// sector is loaded next (WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT).
+void AutoPlaceObjectInInventoryStash(OBJECTTYPE* pItemPtr, INT16 sGridNo = NOWHERE, INT8 bLevel = 0);
 
 // the current inventory item
 extern INT32 iCurrentlyHighLightedItem;
@@ -74,6 +78,9 @@ BOOLEAN IsStackSplitViewOpen(void);
 // stack. Merged back into his pocket when the view closes.
 struct SOLDIERTYPE;
 void OpenMercStackView(SOLDIERTYPE& s, INT8 pocket);
+// 1366x768 interface, "Show Large Icons": the merc's key ring in the stack
+// split view, one slot per key ring position, in place of the key ring popup.
+void OpenMercKeyRingView(SOLDIERTYPE& s);
 // Merges whatever stack is split open back where it came from (before
 // saving the game, for one).
 void CloseStackSplitViewIfOpen(void);
@@ -89,6 +96,15 @@ WORLDITEM const* GetHighlightedStackSplitSourceItem(void);
 // save/load -- see gfSectorInventoryBigImages's own comment
 // (Map_Screen_Interface_Map_Inventory.cc) for the full story.
 void InitSectorInventoryBigImagesForNewGame(void);
+// Called by ToggleMapBigImages() (MapScreen.cc) around the change of the
+// 1366x768 interface's one "Show Large Icons" option, which this window
+// follows there: take the slots down before, build them again after.
+void BeginSectorInventoryBigImagesChange(void);
+// 1366x768: puts the item of this window that the item description box was
+// showing, kept out of the list meanwhile, back into the list. Called when
+// the box closes; does nothing if the box was showing anything else.
+void ReturnDescribedItemToSectorInventory(void);
+void EndSectorInventoryBigImagesChange(void);
 void SaveSectorInventoryBigImagesToSaveGameFile(void);
 void LoadSectorInventoryBigImagesFromSaveGameFile(void);
 

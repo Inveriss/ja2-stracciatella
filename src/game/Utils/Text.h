@@ -246,6 +246,8 @@ extern FLOAT GetWeightBasedOnMetricOption( UINT32 uiObjectWeight );
 #define gzInfoboxStatsStrings                               (g_langRes->gzInfoboxStatsStrings)
 // Tactical-screen "Infobox_skills.sti" merc-skills popup (Interface_Panels.cc).
 #define gzInfoboxSkillsStrings                              (g_langRes->gzInfoboxSkillsStrings)
+// Map screen's big weapon description box (iteminfoc_weapons_big_1366x768.png, Interface_Items.cc).
+#define gzMapBigWeaponBoxStrings                            (g_langRes->gzMapBigWeaponBoxStrings)
 // Per-skill description lines shown on Infobox_skills.sti (Interface_Panels.cc).
 #define gzLockPickingDescription                            (g_langRes->gzLockPickingDescription)
 #define gzHandToHandDescription                             (g_langRes->gzHandToHandDescription)

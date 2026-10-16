@@ -44,7 +44,13 @@ enum ItemCursor
 // itself grow any real item's stack.
 #define MAX_OBJECTS_PER_SLOT		100
 #define MAX_ATTACHMENTS		20
-#define MAX_MONEY_PER_SLOT		20000
+// Money: one sector inventory slot, and one withdrawal from the player's
+// account (the item description box)
+#define MAX_MONEY_PER_SLOT		1000000
+// Money in a merc's hands and big pockets, and in his small pockets -- see
+// MoneySlotLimit()
+#define MAX_MONEY_PER_BIG_POCKET	100000
+#define MAX_MONEY_PER_SMALL_POCKET	50000
 
 enum DetonatorType
 {

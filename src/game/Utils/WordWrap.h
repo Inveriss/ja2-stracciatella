@@ -34,6 +34,10 @@ inline UINT16 IanDisplayWrappedString(UINT16 sx, UINT16 sy, UINT16 max_w, UINT8 
 #define DONT_DISPLAY_TEXT	0x00000020 //Wont display the text.  Used if you just want to get how many lines will be displayed
 
 #define MARK_DIRTY		0x00000040
+// DisplayWrappedString() only: every line but the last spread out to the
+// full width (the space between its words widened); the last one as
+// LEFT_JUSTIFIED
+#define FULL_JUSTIFIED		0x00000080
 
 
 #define IAN_WRAP_NO_SHADOW	32

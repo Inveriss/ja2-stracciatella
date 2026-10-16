@@ -279,6 +279,7 @@ L10n_t::L10n_t(SGPFile * const translationFile)
 	GetArray(gzIMPSkillTraitsText);
 	GetArray(gzInfoboxStatsStrings);
 	GetArray(gzInfoboxSkillsStrings);
+	GetArray(gzMapBigWeaponBoxStrings);
 	GetArray(gzLockPickingDescription);
 	GetArray(gzHandToHandDescription);
 	GetArray(gzElectronicsDescription);

@@ -518,14 +518,14 @@
         "Dam:",
         "AP:",
         "=",
-        "Ready:",
-        "Reliab:",
-        "Brst Pen:",
-        "Repair:",
-        "Atk Vol:",
-        "Deadly:",
-        "Hit Vol:",
-        "Reload:",
+        "First Aim:",
+        "Reliability:",
+        "Recoil:",
+        "Repair Ease:",
+        "Shot Volume:",
+        "Prestige:",
+        "Hit Volume:",
+        "Reload AP:",
         "AP:",
         "Rounds",
         "Base:",
@@ -736,6 +736,25 @@
     ],
     "gzInfoboxSkillsStrings": [
         "Skills"
+    ],
+    "gzMapBigWeaponBoxStrings": [
+        "BALLISTICS",
+        "MAINTENANCE",
+        "Fire Power",
+        "Single AP",
+        "Burst AP",
+        "Loudness",
+        "Physical",
+        "Handling",
+        "Valuation",
+        "Short:",
+        "Long:",
+        "Full:",
+        "Recoil Prone:",
+        "Unjam AP:",
+        "Value:",
+        "Rounds:",
+        "Up to %d"
     ],
     "gzLockPickingDescription": [
         "",
@@ -1044,7 +1063,7 @@
         "Withdraw"
     ],
     "gzMoneyWithdrawMessageText": [
-        "You can only withdraw up to $20,000 at a time.",
+        "You can only withdraw up to $1,000,000 at a time.",
         "Are you sure you want to deposit the %s into your account?"
     ],
     "gzNonPersistantPBIText": [

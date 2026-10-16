@@ -513,14 +513,14 @@
         "Dég. :",
         "PA :",
         "=",
-        "Prêt :",
+        "Prêt:",
         "Fiab :",
         "Pén.raf :",
         "Répar :",
         "Vol.att :",
         "Létal :",
         "Vol.imp :",
-        "Rech :",
+        "Rech:",
         "PA :",
         "Munitions",
         "Base :",
@@ -731,6 +731,25 @@
     ],
     "gzInfoboxSkillsStrings": [
         "Skills"
+    ],
+    "gzMapBigWeaponBoxStrings": [
+        "BALLISTICS",
+        "MAINTENANCE",
+        "Fire Power",
+        "Single AP",
+        "Burst AP",
+        "Loudness",
+        "Physical",
+        "Handling",
+        "Valuation",
+        "Short:",
+        "Long:",
+        "Full:",
+        "Recoil Prone:",
+        "Unjam AP:",
+        "Value:",
+        "Rounds:",
+        "Up to %d"
     ],
     "gzLockPickingDescription": [
         "",
@@ -1039,7 +1058,7 @@
         "Retirer"
     ],
     "gzMoneyWithdrawMessageText": [
-        "Vous ne pouvez retirer que 20 000 $ à la fois.",
+        "Vous ne pouvez retirer que 1 000 000 $ à la fois.",
         "Etes-vous sûr de vouloir déposer %s sur votre compte ?"
     ],
     "gzNonPersistantPBIText": [

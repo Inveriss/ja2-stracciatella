@@ -732,6 +732,25 @@
     "gzInfoboxSkillsStrings": [
         "Skills"
     ],
+    "gzMapBigWeaponBoxStrings": [
+        "BALLISTICS",
+        "MAINTENANCE",
+        "Fire Power",
+        "Single AP",
+        "Burst AP",
+        "Loudness",
+        "Physical",
+        "Handling",
+        "Valuation",
+        "Short:",
+        "Long:",
+        "Full:",
+        "Recoil Prone:",
+        "Unjam AP:",
+        "Value:",
+        "Rounds:",
+        "Up to %d"
+    ],
     "gzLockPickingDescription": [
         "",
         "",
@@ -1039,7 +1058,7 @@
         "Abheben"
     ],
     "gzMoneyWithdrawMessageText": [
-        "Sie können nur maximal 20.000$ abheben.",
+        "Sie können nur maximal 1.000.000$ abheben.",
         "Wollen Sie wirklich %s auf Ihr Konto einzahlen?"
     ],
     "gzNonPersistantPBIText": [

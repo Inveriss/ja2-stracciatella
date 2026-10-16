@@ -732,6 +732,25 @@
     "gzInfoboxSkillsStrings": [
         "Skills"
     ],
+    "gzMapBigWeaponBoxStrings": [
+        "BALLISTICS",
+        "MAINTENANCE",
+        "Fire Power",
+        "Single AP",
+        "Burst AP",
+        "Loudness",
+        "Physical",
+        "Handling",
+        "Valuation",
+        "Short:",
+        "Long:",
+        "Full:",
+        "Recoil Prone:",
+        "Unjam AP:",
+        "Value:",
+        "Rounds:",
+        "Up to %d"
+    ],
     "gzLockPickingDescription": [
         "",
         "",
@@ -1039,7 +1058,7 @@
         "Взять"
     ],
     "gzMoneyWithdrawMessageText": [
-        "За один раз можно снять со счета не более $20,000.",
+        "За один раз можно снять со счета не более $1,000,000.",
         "Вы уверены, что хотите положить %s на свой счет?"
     ],
     "gzNonPersistantPBIText": [

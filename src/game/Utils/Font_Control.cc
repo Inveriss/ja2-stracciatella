@@ -52,16 +52,16 @@ SGPFont gpHugeFont;
 static void CreateFontPaletteTables(SGPFont);
 
 
-// An optional font drawn in the colours of `colours` (see InitializeFonts()):
-// nullptr, logged, when the file (or the PNG next to it) is missing or
-// broken. `colours` must be loaded already.
+// An optional font drawn in the colours of `colours` (see InitializeFonts()),
+// or in its own when `colours` is nullptr: nullptr, logged, when the file (or
+// the PNG next to it) is missing or broken. `colours` must be loaded already.
 static SGPFont LoadOptionalFontInColoursOf(char const* const file, SGPFont const colours)
 {
 	if (GCM->getPNGReplacement(file).empty() && !GCM->doesGameResExists(file)) return nullptr;
 	try
 	{
 		SGPFont const font = LoadFontFile(file);
-		font->ReplacePalette(colours->Palette());
+		if (colours) font->ReplacePalette(colours->Palette());
 		CreateFontPaletteTables(font);
 		return font;
 	}
@@ -144,6 +144,13 @@ void InitializeFonts(void)
 	if(GameMode::getInstance()->isEditorMode() && isEnglishVersion())
 	{
 		M(gpHugeFont, FONTSDIR "/hugefont.sti");
+	}
+	else
+	{
+		// The game itself uses it too (FONTHUGE), in its own colours like the
+		// editor; FONT16ARIAL stands in when the data doesn't have the file.
+		gpHugeFont = LoadOptionalFontInColoursOf(FONTSDIR "/hugefont.sti", nullptr);
+		if (!gpHugeFont) gpHugeFont = gp16PointArial;
 	}
 #undef M
 

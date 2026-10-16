@@ -1,0 +1,42 @@
+{
+  "comment": "iteminfoc_stats_big_1366x768.png -- gMapBigStatsPopupCoords, RenderStatsPopup() (Interface_Panels.cc). Sample values.",
+  "background": "Interface/ITEMINFOC_STATS_BIG_1366x768.png",
+  "defaults": { "font": "FONT12ARIAL", "colour": 126, "shadow": 2 },
+  "boxes": [
+    { "name": "battle header", "x": 417, "y": 22, "w": 130, "h": 20 },
+    { "name": "kills", "x": 417, "y": 54, "w": 130, "h": 40 },
+    { "name": "shots", "x": 417, "y": 106, "w": 130, "h": 60 },
+    { "name": "battles", "x": 417, "y": 178, "w": 130, "h": 40 },
+    { "name": "contract header", "x": 382, "y": 281, "w": 200, "h": 20 },
+    { "name": "daily cost", "x": 382, "y": 313, "w": 200, "h": 40 },
+    { "name": "service", "x": 382, "y": 365, "w": 200, "h": 60 }
+  ],
+  "items": [
+    { "string": "gzInfoboxStatsStrings[0]", "x": 417, "y": 27, "w": 130, "align": "center", "colour": 208 },
+    { "string": "gzInfoboxStatsStrings[1]", "x": 422, "y": 59 },
+    { "text": "0", "x": 422, "y": 59, "w": 121, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[2]", "x": 422, "y": 79 },
+    { "text": "0", "x": 422, "y": 79, "w": 121, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[3]", "x": 422, "y": 111 },
+    { "text": "0", "x": 422, "y": 111, "w": 121, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[4]", "x": 422, "y": 131 },
+    { "text": "0", "x": 422, "y": 131, "w": 121, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[5]", "x": 422, "y": 151 },
+    { "text": "0 %", "x": 422, "y": 151, "w": 121, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[6]", "x": 422, "y": 183 },
+    { "text": "4", "x": 422, "y": 183, "w": 121, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[7]", "x": 422, "y": 203 },
+    { "text": "0", "x": 422, "y": 203, "w": 121, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[8]", "x": 382, "y": 286, "w": 200, "align": "center", "colour": 208 },
+    { "string": "gzInfoboxStatsStrings[13]", "x": 387, "y": 318 },
+    { "text": "$2,800", "x": 387, "y": 318, "w": 191, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[9]", "x": 387, "y": 338 },
+    { "text": "16h / 1d", "x": 387, "y": 338, "w": 191, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[10]", "x": 387, "y": 370 },
+    { "text": "0 d", "x": 387, "y": 370, "w": 191, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[11]", "x": 387, "y": 390 },
+    { "text": "$5,505", "x": 387, "y": 390, "w": 191, "align": "right", "colour": 130 },
+    { "string": "gzInfoboxStatsStrings[12]", "x": 387, "y": 410 },
+    { "text": "$4,300", "x": 387, "y": 410, "w": 191, "align": "right", "colour": 130 }
+  ]
+}

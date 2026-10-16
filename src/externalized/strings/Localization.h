@@ -189,6 +189,11 @@ constexpr std::size_t gzInfoboxStatsStrings_SIZE = 14;
 // Skill names themselves are reused directly from gzMercSkillText.
 constexpr std::size_t gzInfoboxSkillsStrings_SIZE = 1;
 
+// Texts of the map screen's big weapon description box
+// (iteminfoc_weapons_big_1366x768.png, Interface_Items.cc): 2 headers, 7
+// section titles, 6 labels with a value, "Rounds:" and "Up to %d".
+constexpr std::size_t gzMapBigWeaponBoxStrings_SIZE = 17;
+
 // Per-skill description lines shown on Infobox_skills.sti (Interface_Panels.cc,
 // GetSkillDescription()) -- one independently editable array of 10 lines per
 // SkillTrait (Soldier_Profile_Type.h), always fully reserved (10 slots
@@ -442,6 +447,7 @@ struct L10n_t
 	STRARRAY(gzIMPSkillTraitsText);
 	STRARRAY(gzInfoboxStatsStrings);
 	STRARRAY(gzInfoboxSkillsStrings);
+	STRARRAY(gzMapBigWeaponBoxStrings);
 	STRARRAY(gzLockPickingDescription);
 	STRARRAY(gzHandToHandDescription);
 	STRARRAY(gzElectronicsDescription);

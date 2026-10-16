@@ -38,6 +38,7 @@
 #include "Local.h"
 #include "Logger.h"
 #include "MapScreen.h"
+#include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Bottom.h"
 #include "Message.h"
@@ -420,6 +421,27 @@ static cache_key_t const guiSkillsInfoBox{ INTERFACEDIR "/Infobox_skills.sti" };
 // panel strip.
 static cache_key_t const guiMapStatsInfoBox{ INTERFACEDIR "/ITEMINFOC_stats.STI" };
 static cache_key_t const guiMapSkillsInfoBox{ INTERFACEDIR "/ITEMINFOC_skills.STI" };
+
+// 1366x768 base with the normal ("small icons") merc inventory: the map
+// screen's two popups have their own boxes, the same size and arrangement as
+// the tactical Infobox_stats.sti/Infobox_skills.sti -- see
+// UseMapSmallInfoPopupBox(). Without its graphic a popup stays on the box
+// above.
+static cache_key_t const guiMapSmallStatsInfoBox{ INTERFACEDIR "/iteminfoc_stats_1366x768.png" };
+static cache_key_t const guiMapSmallSkillsInfoBox{ INTERFACEDIR "/iteminfoc_skills_1366x768.png" };
+// Their "Show Large Icons" versions: same size and arrangement, texts in
+// FONT12ARIAL (in its palette's nearest colours -- 5 and 6 are black there).
+static cache_key_t const guiMapBigStatsInfoBox{ INTERFACEDIR "/iteminfoc_stats_big_1366x768.png" };
+static cache_key_t const guiMapBigSkillsInfoBox{ INTERFACEDIR "/iteminfoc_skills_big_1366x768.png" };
+#define POPUP_ARIAL_LABEL_COLOUR 126        // for BLOCKFONT2's 6
+#define POPUP_ARIAL_VALUE_COLOUR FONT_BEIGE // for BLOCKFONT2's 5
+
+static bool UseMapSmallInfoPopupBox(cache_key_t const box, cache_key_t const fallback)
+{
+	// with "Show Large Icons" too, until that mode has boxes of its own
+	return fInMapMode && g_ui.isExtraWideStrategicScreen() &&
+		FirstUsableInterfaceAsset({ box, fallback }) == box;
+}
 
 // Sub-image 15 (0-based 14) of inventory_bottom_panel_bookmarks.sti is the
 // "ready" state icon for the money region on this panel, moved here from
@@ -3815,6 +3837,60 @@ static const StatsPopupCoord gMapStatsPopupCoords[NUM_STATS_TXT] =
 	/* STATS_TXT_DAILY_COST        */ {  199, 48, 97 },
 };
 
+// Map screen, 1366x768 base, normal merc inventory: iteminfoc_stats_1366x768.png
+// (guiMapSmallStatsInfoBox) -- independent of both tables above; starts out
+// as the tactical one, whose graphic it matches.
+static const StatsPopupCoord gMapSmallStatsPopupCoords[NUM_STATS_TXT] =
+{
+	/* STATS_TXT_BATTLE_HEADER     */ {  30,  19,   0 },
+	/* STATS_TXT_KILLS             */ {  19,  48,  38 },
+	/* STATS_TXT_ASSISTS           */ {  19,  65,  38 },
+	/* STATS_TXT_SHOTS_FIRED       */ {  19,  94,  38 },
+	/* STATS_TXT_SHOTS_HIT         */ {  19,  111,  38 },
+	/* STATS_TXT_HIT_PERCENTAGE    */ {  19,  128,  38 },
+	/* STATS_TXT_BATTLES           */ {  19,  157,  38 },
+	/* STATS_TXT_TIMES_WOUNDED     */ {  19, 174,  38 },
+	/* STATS_TXT_CONTRACT_HEADER   */ {  259, 19,   0 },
+	/* STATS_TXT_REMAINING_CONTRACT*/ {  199, 65, 97 },
+	/* STATS_TXT_TOTAL_SERVICE     */ {  199, 94, 97 },
+	/* STATS_TXT_TOTAL_COST        */ {  199, 111, 97 },
+	/* STATS_TXT_MEDICAL_DEPOSIT   */ {  199, 128, 97 },
+	/* STATS_TXT_DAILY_COST        */ {  199, 48, 97 },
+};
+
+// Map screen, 1366x768 base, "Show Large Icons": iteminfoc_stats_big_1366x768.png
+// (guiMapBigStatsInfoBox, 604x514; the large box on its left is for the
+// merc's portrait, later). Here sValDx is the WIDTH of the row's field: the
+// label at sX, the value right-aligned in [sX, sX + sValDx); a header
+// centred in it. Battle statistics in the narrow column (fields 130 px wide
+// inside, from x 417), the contract in the wide one (200 px, from x 382),
+// each in its own frame.
+// FONT12ARIAL's capitals are 9 px high (the 2 rows under them are for
+// descenders), and every glyph has a blank column on its right: labels 5 px
+// from the left wall, values 5 px from the right one (their field 1 px
+// wider for that blank column), a box's first line 5 px under its top, 10
+// free rows between a line's shadow (1 px under its capitals) and the
+// capitals of the next (a pitch of 20), headers 5 px under the top of their
+// strip. Checked with tools/interface_preview
+// (layouts/stats_big_1366x768.json).
+static const StatsPopupCoord gMapBigStatsPopupCoords[NUM_STATS_TXT] =
+{
+	/* STATS_TXT_BATTLE_HEADER     */ { 417,  27, 130 }, // strip 130x20 inside, from 417,22
+	/* STATS_TXT_KILLS             */ { 422,  59, 121 }, // box 130x40 inside, from 417,54
+	/* STATS_TXT_ASSISTS           */ { 422,  79, 121 },
+	/* STATS_TXT_SHOTS_FIRED       */ { 422, 111, 121 }, // box 130x60 inside, from 417,106
+	/* STATS_TXT_SHOTS_HIT         */ { 422, 131, 121 },
+	/* STATS_TXT_HIT_PERCENTAGE    */ { 422, 151, 121 },
+	/* STATS_TXT_BATTLES           */ { 422, 183, 121 }, // box 130x40 inside, from 417,178
+	/* STATS_TXT_TIMES_WOUNDED     */ { 422, 203, 121 },
+	/* STATS_TXT_CONTRACT_HEADER   */ { 382, 286, 200 }, // strip 200x20 inside, from 382,281
+	/* STATS_TXT_REMAINING_CONTRACT*/ { 387, 338, 191 }, // box 200x40 inside, from 382,313
+	/* STATS_TXT_TOTAL_SERVICE     */ { 387, 370, 191 }, // box 200x60 inside, from 382,365
+	/* STATS_TXT_TOTAL_COST        */ { 387, 390, 191 },
+	/* STATS_TXT_MEDICAL_DEPOSIT   */ { 387, 410, 191 },
+	/* STATS_TXT_DAILY_COST        */ { 387, 318, 191 }, // (first line of the 200x40 box)
+};
+
 // Placeholder position/size for the Infobox_stats.sti graphic itself (as
 // opposed to the screen-wide dismiss region set up in InitStatsPopup(),
 // which matches the keyring popup's own footprint) -- tune once the real
@@ -3831,6 +3907,11 @@ static INT16         gsStatsPopupInvY;
 static INT16         gsStatsPopupInvWidth;
 static INT16         gsStatsPopupInvHeight;
 static MOUSE_REGION  gStatsPopupRegion;
+// The map screen's popup is on its own 1366x768 box (guiMapSmallStatsInfoBox)
+// -- set when it opens, see UseMapSmallInfoPopupBox().
+static bool          gfStatsPopupMapSmallBox = false;
+// ... and with "Show Large Icons" on guiMapBigStatsInfoBox, in FONT12ARIAL
+static bool          gfStatsPopupArial = false;
 
 // Done button, map screen only -- same graphic/position (relative to the box's own
 // top-left corner) as the map's own item-description box (ItemInfoC.sti,
@@ -3870,7 +3951,7 @@ void DeleteStatsPopup(void)
 		fMapPanelDirty           = TRUE;
 		fTeamPanelDirty          = TRUE;
 		fMapScreenBottomDirty    = TRUE;
-		RemoveButton(gStatsPopupDoneButton);
+		if (gStatsPopupDoneButton) RemoveButton(gStatsPopupDoneButton);
 	}
 	else
 	{
@@ -3911,8 +3992,20 @@ static void StatsPopupFullRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32 
 }
 
 
-void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 sInvWidth, INT16 sInvHeight)
 {
+	// The map screen's own 1366x768 box is as big as its graphic, not as
+	// ItemInfoC.sti, the size the caller passes.
+	gfStatsPopupMapSmallBox = UseMapSmallInfoPopupBox(guiMapSmallStatsInfoBox, guiMapStatsInfoBox);
+	gfStatsPopupArial       = gfStatsPopupMapSmallBox && IsMapInvBigImages() &&
+		FirstUsableInterfaceAsset({ guiMapBigStatsInfoBox, guiMapSmallStatsInfoBox }) == guiMapBigStatsInfoBox;
+	if (gfStatsPopupMapSmallBox)
+	{
+		ETRLEObject const& box = GetVObject(gfStatsPopupArial ? guiMapBigStatsInfoBox : guiMapSmallStatsInfoBox)->SubregionProperties(0);
+		sInvWidth  = box.usWidth;
+		sInvHeight = box.usHeight;
+	}
+
 	gsStatsPopupInvX      = sInvX;
 	gsStatsPopupInvY      = sInvY;
 	gsStatsPopupInvWidth  = sInvWidth;
@@ -3949,11 +4042,12 @@ void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const 
 		// reason -- see HideSMBookmarkButtonsUnderInfoPopups().
 		HideSMBookmarkButtonsUnderInfoPopups();
 	}
-	else
+	else if (!gfStatsPopupMapSmallBox)
 	{
 		// Same button/graphic/relative position as the map's own item-description box
 		// (giMapInvDescButton, Interface_Items.cc) -- see the comment by
-		// gStatsPopupDoneButton above.
+		// gStatsPopupDoneButton above. Not on the 1366x768 box, which, like
+		// the tactical one, has none: a click closes it.
 		gStatsPopupDoneButton = QuickCreateButtonImg(INTERFACEDIR "/itemdescdonebutton.sti", 0, 1,
 			sInvX + 204, sInvY + 107, MSYS_PRIORITY_HIGHEST, BtnStatsPopupDoneCallback);
 	}
@@ -3988,14 +4082,15 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	INT16 const dx = fInMapMode ? gsStatsPopupInvX : (STATS_POPUP_BOX_X + gsStatsPopupInvX);
 	INT16 const dy = fInMapMode ? gsStatsPopupInvY : (STATS_POPUP_BOX_Y + gsStatsPopupInvY);
 
-	BltVideoObject(FRAME_BUFFER, fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox, 0, dx, dy);
+	cache_key_t const box = gfStatsPopupArial ? guiMapBigStatsInfoBox : gfStatsPopupMapSmallBox ? guiMapSmallStatsInfoBox : fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox;
+	BltVideoObject(FRAME_BUFFER, box, 0, dx, dy);
 
 	// Draw the Done button ourselves, right on top of the box we just blitted --
 	// RenderButtons()'s own separate pass only redraws a button when something marks
 	// it dirty again (e.g. a hover event), so relying on it alone left the button
 	// erased by this same full-box blit on every frame in between, drawn for a single
 	// frame only when the mouse moved over it.
-	if (fInMapMode) gStatsPopupDoneButton->Draw();
+	if (gStatsPopupDoneButton) gStatsPopupDoneButton->Draw();
 
 	SOLDIERTYPE const&       s = *gpStatsPopupSoldier;
 	MERCPROFILESTRUCT const& p = GetProfile(s.ubProfile);
@@ -4004,23 +4099,46 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	ST::string sVal;
 
 	// Independent coordinates for the map version -- see gMapStatsPopupCoords above.
-	StatsPopupCoord const* const coords = fInMapMode ? gMapStatsPopupCoords : gStatsPopupCoords;
+	StatsPopupCoord const* const coords =
+		gfStatsPopupArial       ? gMapBigStatsPopupCoords :
+		gfStatsPopupMapSmallBox ? gMapSmallStatsPopupCoords :
+		fInMapMode              ? gMapStatsPopupCoords :
+		                          gStatsPopupCoords;
+
+	// FONT12ARIAL on the "Show Large Icons" box, in its palette's colours
+	SGPFont const stats_font   = gfStatsPopupArial ? FONT12ARIAL : BLOCKFONT2;
+	INT16   const stats_h      = gfStatsPopupArial ? GetFontHeight(FONT12ARIAL) : 8;
+	UINT8   const label_colour = gfStatsPopupArial ? POPUP_ARIAL_LABEL_COLOUR : 6;
+	UINT8   const value_colour = gfStatsPopupArial ? POPUP_ARIAL_VALUE_COLOUR : 5;
 
 #define STATS_LABEL(idx) \
 	MPrint(dx + coords[idx].sX, dy + coords[idx].sY, gzInfoboxStatsStrings[idx])
+	// gMapBigStatsPopupCoords: the value right-aligned in its field
+	// (sValDx is the field's width there)
 #define STATS_VALUE(idx, str) \
 	do { \
-		FindFontRightCoordinates(dx + coords[idx].sX + coords[idx].sValDx, dy + coords[idx].sY, 80, 8, (str), BLOCKFONT2, &usX, &usY); \
+		if (gfStatsPopupArial) FindFontRightCoordinates(dx + coords[idx].sX, dy + coords[idx].sY, coords[idx].sValDx, stats_h, (str), stats_font, &usX, &usY); \
+		else FindFontRightCoordinates(dx + coords[idx].sX + coords[idx].sValDx, dy + coords[idx].sY, 80, stats_h, (str), stats_font, &usX, &usY); \
 		MPrint(usX, usY, (str)); \
+	} while (0)
+	// gMapBigStatsPopupCoords: a header centred in its field
+#define STATS_HEADER(idx) \
+	do { \
+		if (gfStatsPopupArial) \
+		{ \
+			FindFontCenterCoordinates(dx + coords[idx].sX, dy + coords[idx].sY, coords[idx].sValDx, stats_h, gzInfoboxStatsStrings[idx], stats_font, &usX, &usY); \
+			MPrint(usX, dy + coords[idx].sY, gzInfoboxStatsStrings[idx]); \
+		} \
+		else STATS_LABEL(idx); \
 	} while (0)
 
 	// -- Section headers --
-	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
-	STATS_LABEL(STATS_TXT_BATTLE_HEADER);
-	STATS_LABEL(STATS_TXT_CONTRACT_HEADER);
+	SetFontAttributes(stats_font, FONT_MCOLOR_WHITE);
+	STATS_HEADER(STATS_TXT_BATTLE_HEADER);
+	STATS_HEADER(STATS_TXT_CONTRACT_HEADER);
 
 	// -- Battle statistics --
-	SetFontForeground(6);
+	SetFontForeground(label_colour);
 	STATS_LABEL(STATS_TXT_KILLS);
 	STATS_LABEL(STATS_TXT_ASSISTS);
 	STATS_LABEL(STATS_TXT_SHOTS_FIRED);
@@ -4029,7 +4147,7 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	STATS_LABEL(STATS_TXT_BATTLES);
 	STATS_LABEL(STATS_TXT_TIMES_WOUNDED);
 
-	SetFontForeground(5);
+	SetFontForeground(value_colour);
 	sVal = ST::format("{}", p.usKills);        STATS_VALUE(STATS_TXT_KILLS, sVal);
 	sVal = ST::format("{}", p.usAssists);      STATS_VALUE(STATS_TXT_ASSISTS, sVal);
 	sVal = ST::format("{}", p.usShotsFired);   STATS_VALUE(STATS_TXT_SHOTS_FIRED, sVal);
@@ -4047,13 +4165,13 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	// special case, and always uses p.sSalary for the daily rate (that
 	// function's own default case for everything except an active weekly/
 	// bi-weekly AIM contract extension).
-	SetFontForeground(6);
+	SetFontForeground(label_colour);
 	STATS_LABEL(STATS_TXT_REMAINING_CONTRACT);
 	STATS_LABEL(STATS_TXT_TOTAL_SERVICE);
 	STATS_LABEL(STATS_TXT_TOTAL_COST);
 	STATS_LABEL(STATS_TXT_MEDICAL_DEPOSIT);
 	STATS_LABEL(STATS_TXT_DAILY_COST);
-	SetFontForeground(5);
+	SetFontForeground(value_colour);
 
 	if (s.ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC || s.ubProfile == SLAY)
 	{
@@ -4092,6 +4210,7 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 
 #undef STATS_LABEL
 #undef STATS_VALUE
+#undef STATS_HEADER
 
 	InvalidateRegion(gsStatsPopupInvX, gsStatsPopupInvY,
 		gsStatsPopupInvX + gsStatsPopupInvWidth, gsStatsPopupInvY + gsStatsPopupInvHeight);
@@ -4225,6 +4344,58 @@ static const SkillDescCoord gMapSkillTrait2DescCoords[10] =
 	/* TENTH_DESC  */ { 271, 195 },
 };
 
+// Map screen, 1366x768 base, normal merc inventory:
+// iteminfoc_skills_1366x768.png (guiMapSmallSkillsInfoBox) -- independent of
+// the tables above; they start out as the tactical ones, whose graphic it
+// matches.
+static const StatsPopupCoord gMapSmallSkillsPopupCoords[NUM_SKILLS_COORDS] =
+{
+	/* SKILLS_TXT_HEADER  */ {  225,  19,   0 },
+	/* SKILLS_COORD_LINE1 */ {  19,  48,   0 },
+	/* SKILLS_COORD_LINE2 */ {  272,  48,   0 },
+};
+
+// Map screen, 1366x768 base, "Show Large Icons": iteminfoc_skills_big_1366x768.png
+// (guiMapBigSkillsInfoBox, 604x292). Here sValDx is the WIDTH of the strip:
+// the header and the two skill names centred in theirs, 5 px under its top
+// (strips 20 px high inside: FONT12ARIAL's 9 px capitals and their shadow
+// row leave 5 px under them too). Checked with tools/interface_preview
+// (layouts/skills_big_1366x768.json).
+static const StatsPopupCoord gMapBigSkillsPopupCoords[NUM_SKILLS_COORDS] =
+{
+	/* SKILLS_TXT_HEADER  */ {  14,  19, 577 }, // strip 577x20 inside, from 14,14
+	/* SKILLS_COORD_LINE1 */ {  14,  51, 277 }, // strip 277x20 inside, from 14,46
+	/* SKILLS_COORD_LINE2 */ { 313,  51, 277 }, // strip 277x20 inside, from 313,46
+};
+
+static const SkillDescCoord gMapSmallSkillTrait1DescCoords[10] =
+{
+	/* FIRST_DESC  */ {  19,  77 },
+	/* SECOND_DESC */ {  19,  91 },
+	/* THIRD_DESC  */ {  19,  104 },
+	/* FOURTH_DESC */ {  19, 117 },
+	/* FIFTH_DESC  */ {  19, 130 },
+	/* SIXTH_DESC  */ {  19, 143 },
+	/* SEVENTH_DESC*/ {  19, 156 },
+	/* EIGHTH_DESC */ {  19, 169 },
+	/* NINTH_DESC  */ {  19, 182 },
+	/* TENTH_DESC  */ {  19, 195 },
+};
+
+static const SkillDescCoord gMapSmallSkillTrait2DescCoords[10] =
+{
+	/* FIRST_DESC  */ { 271,  77 },
+	/* SECOND_DESC */ { 271,  91 },
+	/* THIRD_DESC  */ { 271,  104 },
+	/* FOURTH_DESC */ { 271, 117 },
+	/* FIFTH_DESC  */ { 271, 130 },
+	/* SIXTH_DESC  */ { 271, 143 },
+	/* SEVENTH_DESC*/ { 271, 156 },
+	/* EIGHTH_DESC */ { 271, 169 },
+	/* NINTH_DESC  */ { 271, 182 },
+	/* TENTH_DESC  */ { 271, 195 },
+};
+
 // Maps a skill trait to its 10 description lines (Infobox_skills.sti). When
 // fExpert is true AND the trait has a dedicated expert-level array, that one
 // is used instead -- currently only wired up for NIGHTOPS
@@ -4286,6 +4457,10 @@ static INT16         gsSkillsPopupInvY;
 static INT16         gsSkillsPopupInvWidth;
 static INT16         gsSkillsPopupInvHeight;
 static MOUSE_REGION  gSkillsPopupRegion;
+// See gfStatsPopupMapSmallBox above.
+static bool          gfSkillsPopupMapSmallBox = false;
+// See gfStatsPopupArial above.
+static bool          gfSkillsPopupArial = false;
 
 // See the matching comment by gStatsPopupDoneButton above.
 static GUIButtonRef gSkillsPopupDoneButton;
@@ -4314,7 +4489,7 @@ void DeleteSkillsPopup(void)
 		fMapPanelDirty           = TRUE;
 		fTeamPanelDirty          = TRUE;
 		fMapScreenBottomDirty    = TRUE;
-		RemoveButton(gSkillsPopupDoneButton);
+		if (gSkillsPopupDoneButton) RemoveButton(gSkillsPopupDoneButton);
 	}
 	else
 	{
@@ -4353,8 +4528,20 @@ static void SkillsPopupFullRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32
 }
 
 
-void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 const sInvWidth, INT16 const sInvHeight)
+void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 sInvWidth, INT16 sInvHeight)
 {
+	// The map screen's own 1366x768 box is as big as its graphic, not as
+	// ItemInfoC.sti, the size the caller passes.
+	gfSkillsPopupMapSmallBox = UseMapSmallInfoPopupBox(guiMapSmallSkillsInfoBox, guiMapSkillsInfoBox);
+	gfSkillsPopupArial       = gfSkillsPopupMapSmallBox && IsMapInvBigImages() &&
+		FirstUsableInterfaceAsset({ guiMapBigSkillsInfoBox, guiMapSmallSkillsInfoBox }) == guiMapBigSkillsInfoBox;
+	if (gfSkillsPopupMapSmallBox)
+	{
+		ETRLEObject const& box = GetVObject(gfSkillsPopupArial ? guiMapBigSkillsInfoBox : guiMapSmallSkillsInfoBox)->SubregionProperties(0);
+		sInvWidth  = box.usWidth;
+		sInvHeight = box.usHeight;
+	}
+
 	gsSkillsPopupInvX      = sInvX;
 	gsSkillsPopupInvY      = sInvY;
 	gsSkillsPopupInvWidth  = sInvWidth;
@@ -4379,7 +4566,7 @@ void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const
 		// needed in addition to EnableSMPanelButtons(FALSE, ...).
 		HideSMBookmarkButtonsUnderInfoPopups();
 	}
-	else
+	else if (!gfSkillsPopupMapSmallBox)
 	{
 		// See the matching comment in InitStatsPopup() above.
 		gSkillsPopupDoneButton = QuickCreateButtonImg(INTERFACEDIR "/itemdescdonebutton.sti", 0, 1,
@@ -4413,25 +4600,41 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 	INT16 const dx = fInMapMode ? gsSkillsPopupInvX : (SKILLS_POPUP_BOX_X + gsSkillsPopupInvX);
 	INT16 const dy = fInMapMode ? gsSkillsPopupInvY : (SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY);
 
-	BltVideoObject(FRAME_BUFFER, fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox, 0, dx, dy);
+	cache_key_t const box = gfSkillsPopupArial ? guiMapBigSkillsInfoBox : gfSkillsPopupMapSmallBox ? guiMapSmallSkillsInfoBox : fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox;
+	BltVideoObject(FRAME_BUFFER, box, 0, dx, dy);
 
 	// See the matching comment in RenderStatsPopup() above.
-	if (fInMapMode) gSkillsPopupDoneButton->Draw();
+	if (gSkillsPopupDoneButton) gSkillsPopupDoneButton->Draw();
 
 	MERCPROFILESTRUCT const& p = GetProfile(gpSkillsPopupSoldier->ubProfile);
 
 	// Independent coordinates for the map version -- see gMapSkillsPopupCoords/
 	// gMapSkillTrait1DescCoords/gMapSkillTrait2DescCoords above.
-	StatsPopupCoord const* const skillsCoords = fInMapMode ? gMapSkillsPopupCoords  : gSkillsPopupCoords;
-	SkillDescCoord const* const  trait1Coords = fInMapMode ? gMapSkillTrait1DescCoords : gSkillTrait1DescCoords;
-	SkillDescCoord const* const  trait2Coords = fInMapMode ? gMapSkillTrait2DescCoords : gSkillTrait2DescCoords;
+	bool const small_box = gfSkillsPopupMapSmallBox;
+	StatsPopupCoord const* const skillsCoords = gfSkillsPopupArial ? gMapBigSkillsPopupCoords :
+		small_box ? gMapSmallSkillsPopupCoords     : fInMapMode ? gMapSkillsPopupCoords     : gSkillsPopupCoords;
+	SkillDescCoord const* const  trait1Coords = small_box ? gMapSmallSkillTrait1DescCoords : fInMapMode ? gMapSkillTrait1DescCoords : gSkillTrait1DescCoords;
+	SkillDescCoord const* const  trait2Coords = small_box ? gMapSmallSkillTrait2DescCoords : fInMapMode ? gMapSkillTrait2DescCoords : gSkillTrait2DescCoords;
+
+	// gMapBigSkillsPopupCoords: centred in the strip, sValDx wide
+	auto const print_header = [&](StatsPopupCoord const& c, ST::string const& str)
+	{
+		INT16 x = dx + c.sX;
+		if (gfSkillsPopupArial)
+		{
+			INT16 y;
+			FindFontCenterCoordinates(dx + c.sX, dy + c.sY, c.sValDx, GetFontHeight(FONT12ARIAL), str, FONT12ARIAL, &x, &y);
+		}
+		MPrint(x, dy + c.sY, str);
+	};
 
 	// -- Header --
-	SetFontAttributes(BLOCKFONT2, FONT_MCOLOR_WHITE);
-	MPrint(dx + skillsCoords[SKILLS_TXT_HEADER].sX, dy + skillsCoords[SKILLS_TXT_HEADER].sY, gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
+	// FONT12ARIAL on the "Show Large Icons" box, in its palette's colours
+	SetFontAttributes(gfSkillsPopupArial ? FONT12ARIAL : BLOCKFONT2, FONT_MCOLOR_WHITE);
+	print_header(skillsCoords[SKILLS_TXT_HEADER], gzInfoboxSkillsStrings[SKILLS_TXT_HEADER]);
 
 	// -- Skill name(s), as a mini-header for each description block below --
-	SetFontForeground(5);
+	SetFontForeground(gfSkillsPopupArial ? POPUP_ARIAL_VALUE_COLOUR : 5);
 	if (p.bSkillTrait != NO_SKILLTRAIT)
 	{
 		StatsPopupCoord const& c1 = skillsCoords[SKILLS_COORD_LINE1];
@@ -4442,18 +4645,18 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 			// expert-level array, where one exists -- see
 			// GetSkillDescription()); SKILL_TRAIT_2 is unused in this case.
 			ST::string const sVal = ST::format("{} {}", gzMercSkillText[p.bSkillTrait], gzMercSkillText[NUM_SKILLTRAITS]);
-			MPrint(dx + c1.sX, dy + c1.sY, sVal);
+			print_header(c1, sVal);
 			PrintSkillDescription(dx, dy, trait1Coords, (SkillTrait)p.bSkillTrait, true);
 		}
 		else
 		{
-			MPrint(dx + c1.sX, dy + c1.sY, gzMercSkillText[p.bSkillTrait]);
+			print_header(c1, gzMercSkillText[p.bSkillTrait]);
 			PrintSkillDescription(dx, dy, trait1Coords, (SkillTrait)p.bSkillTrait, false);
 
 			if (p.bSkillTrait2 != NO_SKILLTRAIT)
 			{
 				StatsPopupCoord const& c2 = skillsCoords[SKILLS_COORD_LINE2];
-				MPrint(dx + c2.sX, dy + c2.sY, gzMercSkillText[p.bSkillTrait2]);
+				print_header(c2, gzMercSkillText[p.bSkillTrait2]);
 				PrintSkillDescription(dx, dy, trait2Coords, (SkillTrait)p.bSkillTrait2, false);
 			}
 		}
@@ -4561,6 +4764,14 @@ void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		// 1366x768 interface, "Show Large Icons" (mapinv_1366x768.png): the
+		// key ring opens in the sector inventory's stack split view instead
+		if (guiCurrentScreen == MAP_SCREEN && g_ui.isExtraWideStrategicScreen() && IsMapInvBigImages())
+		{
+			OpenMercKeyRingView(*pSoldier);
+			return;
+		}
+
 		if( guiCurrentScreen == MAP_SCREEN )
 		{
 			// shade the background
