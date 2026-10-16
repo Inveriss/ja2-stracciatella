@@ -983,9 +983,10 @@ static const INV_DESC_STATS gMapMoneyStats_Money[] =
 // iteminfoc_items on the map screen, 1366x768 base, normal merc inventory:
 // Weight/Status (and the key box) of every non-weapon, non-money item --
 // the map's counterpart of gGenericItemStats, same indices.
-// iteminfoc_items_big: Status / amount, Weight and a key's two lines in the
-// small dark box (128x83 inside, from 312,146), 5 px from its walls, 10 px
-// between the lines. Same indices as gMapGenericItemStats.
+// iteminfoc_items_big: Status / amount and Weight in the left small dark box
+// (128x83 inside, from 312,146), a key's two lines in the right one (128x83
+// inside, from 462,146); 5 px from the walls, 10 px between the lines. Same
+// indices as gMapGenericItemStats.
 #define BIG_ITEMS_KEY_LINE_PITCH 21 // the key's two lines: FONT12ARIAL's 11 px + 10
 #define BIG_ITEMS_KEY_WIDTH      118 // the key's values, right-aligned in the box
 static const INV_DESC_STATS gMapGenericItemStats_Big[] =
@@ -993,7 +994,7 @@ static const INV_DESC_STATS gMapGenericItemStats_Big[] =
 	{ 317, 172, 91 },  // [0] Weight
 	{ 317, 151, 91 },  // [1] Status / ammo amount
 	{   0,   0,  0 },  // [2] unused in this branch -- kept only so [3] lines up
-	{ 317, 193, 31 },  // [3] Key description box (sector found / date found)
+	{ 467, 151, 31 },  // [3] Key description box (sector found / date found)
 };
 
 static const INV_DESC_STATS gMapGenericItemStats[] =
