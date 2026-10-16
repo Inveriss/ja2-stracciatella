@@ -3863,30 +3863,32 @@ static const StatsPopupCoord gMapSmallStatsPopupCoords[NUM_STATS_TXT] =
 // merc's portrait, later). Here sValDx is the WIDTH of the row's field: the
 // label at sX, the value right-aligned in [sX, sX + sValDx); a header
 // centred in it. Battle statistics in the narrow column (fields 130 px wide
-// inside, from x 425), the contract in the wide one (200 px, from x 390).
+// inside, from x 417), the contract in the wide one (200 px, from x 382),
+// each in its own frame.
 // FONT12ARIAL's capitals are 9 px high (the 2 rows under them are for
 // descenders), and every glyph has a blank column on its right: labels 5 px
 // from the left wall, values 5 px from the right one (their field 1 px
 // wider for that blank column), a box's first line 5 px under its top, 10
-// px between the capitals of two lines (a pitch of 19), headers 5 px under
-// the top of their strip. Checked with tools/interface_preview
+// free rows between a line's shadow (1 px under its capitals) and the
+// capitals of the next (a pitch of 20), headers 5 px under the top of their
+// strip. Checked with tools/interface_preview
 // (layouts/stats_big_1366x768.json).
 static const StatsPopupCoord gMapBigStatsPopupCoords[NUM_STATS_TXT] =
 {
-	/* STATS_TXT_BATTLE_HEADER     */ { 425,  19, 130 }, // strip 130x20 inside, from 425,14
-	/* STATS_TXT_KILLS             */ { 430,  51, 121 }, // box 130x40 inside, from 425,46
-	/* STATS_TXT_ASSISTS           */ { 430,  70, 121 },
-	/* STATS_TXT_SHOTS_FIRED       */ { 430, 103, 121 }, // box 130x60 inside, from 425,98
-	/* STATS_TXT_SHOTS_HIT         */ { 430, 122, 121 },
-	/* STATS_TXT_HIT_PERCENTAGE    */ { 430, 141, 121 },
-	/* STATS_TXT_BATTLES           */ { 430, 175, 121 }, // box 130x40 inside, from 425,170
-	/* STATS_TXT_TIMES_WOUNDED     */ { 430, 194, 121 },
-	/* STATS_TXT_CONTRACT_HEADER   */ { 390, 237, 200 }, // strip 200x20 inside, from 390,232
-	/* STATS_TXT_REMAINING_CONTRACT*/ { 395, 288, 191 }, // box 200x40 inside, from 390,264
-	/* STATS_TXT_TOTAL_SERVICE     */ { 395, 321, 191 }, // box 200x60 inside, from 390,316
-	/* STATS_TXT_TOTAL_COST        */ { 395, 340, 191 },
-	/* STATS_TXT_MEDICAL_DEPOSIT   */ { 395, 359, 191 },
-	/* STATS_TXT_DAILY_COST        */ { 395, 269, 191 },
+	/* STATS_TXT_BATTLE_HEADER     */ { 417,  27, 130 }, // strip 130x20 inside, from 417,22
+	/* STATS_TXT_KILLS             */ { 422,  59, 121 }, // box 130x40 inside, from 417,54
+	/* STATS_TXT_ASSISTS           */ { 422,  79, 121 },
+	/* STATS_TXT_SHOTS_FIRED       */ { 422, 111, 121 }, // box 130x60 inside, from 417,106
+	/* STATS_TXT_SHOTS_HIT         */ { 422, 131, 121 },
+	/* STATS_TXT_HIT_PERCENTAGE    */ { 422, 151, 121 },
+	/* STATS_TXT_BATTLES           */ { 422, 183, 121 }, // box 130x40 inside, from 417,178
+	/* STATS_TXT_TIMES_WOUNDED     */ { 422, 203, 121 },
+	/* STATS_TXT_CONTRACT_HEADER   */ { 382, 286, 200 }, // strip 200x20 inside, from 382,281
+	/* STATS_TXT_REMAINING_CONTRACT*/ { 387, 338, 191 }, // box 200x40 inside, from 382,313
+	/* STATS_TXT_TOTAL_SERVICE     */ { 387, 370, 191 }, // box 200x60 inside, from 382,365
+	/* STATS_TXT_TOTAL_COST        */ { 387, 390, 191 },
+	/* STATS_TXT_MEDICAL_DEPOSIT   */ { 387, 410, 191 },
+	/* STATS_TXT_DAILY_COST        */ { 387, 318, 191 }, // (first line of the 200x40 box)
 };
 
 // Placeholder position/size for the Infobox_stats.sti graphic itself (as
