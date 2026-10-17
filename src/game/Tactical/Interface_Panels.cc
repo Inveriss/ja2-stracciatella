@@ -319,7 +319,7 @@
 #define BIG_TM_FACE_Y				5
 #define BIG_TM_FACE_WIDTH			106
 #define BIG_TM_FACE_HEIGHT			70
-#define BIG_TM_FACE_CUT_TOP			31   // rows cut off the 106x122 portrait (21 at the bottom)
+#define BIG_TM_FACE_CUT_TOP			36   // rows cut off the 106x122 portrait (16 at the bottom)
 #define BIG_TM_LIFEBAR_X			121  // tall 6x70 bars, as the strategic screen's
 #define BIG_TM_BREATHBAR_X			130
 #define BIG_TM_MORALEBAR_X			139
@@ -3060,7 +3060,7 @@ static void UpdateTEAMPanel(void);
 
 // 1366x768 team panel: the static big portrait (faces/bigfaces/, 106x122)
 // in the slot's 106x70 portrait window, cut BIG_TM_FACE_CUT_TOP rows from
-// the top (and so 21 from the bottom), as the strategic screen's character
+// the top (and so 16 from the bottom), as the strategic screen's character
 // info panel otherwise (no blinking or talking mouth; in tactical, speech
 // shows its own face box anyway). Dead mercs get the laptop's red shade,
 // vehicles their small portrait centered; the rest of the window is black.
