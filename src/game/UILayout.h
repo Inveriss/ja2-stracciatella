@@ -133,7 +133,6 @@
 #define BIG_TEAMPANEL_WIDTH             (1366)
 #define BIG_TEAMPANEL_HEIGHT            (200)
 #define BIG_TEAMPANEL_NUM_SLOTS         (7)      // slots shown; a bigger squad scrolls through them
-#define BIG_TEAMPANEL_SLOT_FILE         "bottom_bar_panel_big_1366x768.png" // one slot, drawn over each of them
 #define BIG_TEAMPANEL_SLOT_WIDTH        (146)
 #define BIG_TEAMPANEL_FONT              FONT14ARIAL
 // Team panel position/size for whichever team panel is in use -- use these

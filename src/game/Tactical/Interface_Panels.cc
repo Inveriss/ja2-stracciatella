@@ -2929,23 +2929,6 @@ void InitializeTEAMPanel()
 		guiTEAMPanel->Fill(0);
 		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" BIG_TEAMPANEL_FILE) };
 		BltVideoObject(guiTEAMPanel, big_panel.get(), 0, 0, 0);
-		// every slot from its own graphic, when there is one
-		cache_key_t const slot_file = INTERFACEDIR "/" BIG_TEAMPANEL_SLOT_FILE;
-		if (GCM->doesGameResExists(slot_file))
-		{
-			try
-			{
-				AutoSGPVObject const slot{ AddVideoObjectFromFile(slot_file) };
-				for (INT32 i = 0; i != BIG_TEAMPANEL_NUM_SLOTS; ++i)
-				{
-					BltVideoObject(guiTEAMPanel, slot.get(), 0, i * BIG_TEAMPANEL_SLOT_WIDTH, 0);
-				}
-			}
-			catch (std::exception const& e)
-			{
-				SLOGE("Cannot use {}: {}", slot_file, e.what());
-			}
-		}
 	}
 	else
 	{
