@@ -58,7 +58,7 @@ static MOUSE_REGION gClockScreenMaskMouseRegion;
 // 1 px higher on the strategic screen of the 1366x768 interface
 #define CLOCK_MAP_Y  (CLOCK_Y - (g_ui.isExtraWideStrategicScreen() && guiCurrentScreen == MAP_SCREEN ? 1 : 0))
 #define CLOCK_HEIGHT  13
-#define CLOCK_WIDTH   66
+#define CLOCK_WIDTH  (g_ui.get_CLOCK_WIDTH())   // 66, wider on the 1366x768 team panel
 #define CLOCK_FONT   COMPFONT
 
 
@@ -256,8 +256,12 @@ void RenderClock(void)
 	// Are we in combat?
 	UINT8 const foreground = gTacticalStatus.uiFlags & INCOMBAT ?
 		FONT_FCOLOR_NICERED : FONT_LTGREEN;
-	// the strategic screen's own font on the 1366x768 interface
-	SGPFont const font = guiCurrentScreen == MAP_SCREEN ? StrategicTooltipFontAs(CLOCK_FONT) : CLOCK_FONT;
+	// the strategic screen's own font on the 1366x768 interface, FONT12ARIAL
+	// on its big tactical team panel
+	SGPFont const font =
+		guiCurrentScreen == MAP_SCREEN ? StrategicTooltipFontAs(CLOCK_FONT) :
+		g_ui.isBigTeamPanelShown()      ? FONT12ARIAL                        :
+		CLOCK_FONT;
 	SetFontAttributes(font, foreground);
 
 	// Erase first!

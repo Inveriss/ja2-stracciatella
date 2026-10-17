@@ -550,9 +550,13 @@ static void CreateDestroyMouseRegionsForSquadList(void)
 		// shows the Change Squad button that opens this, so no SM_PANEL
 		// branch is needed here (unlike get_CLOCK_X()/get_RADAR_WINDOW_X()
 		// in UILayout.cc, which are shared between both panels).
-		INT16 const squadPanelX = INTERFACE_START_X + g_ui.m_teamPanelWidth - 102;
-		BltVideoObjectOnce(guiSAVEBUFFER, INTERFACEDIR "/squadpanel.sti", 0, squadPanelX, gsVIEWPORT_END_Y);
-		RestoreExternBackgroundRect(squadPanelX, gsVIEWPORT_END_Y, 102, 120);
+		// The 1366x768 team panel: the same place relative to the minimap
+		// (see get_RADAR_WINDOW_X()), in the panel's big window.
+		bool  const big         = g_ui.isBigTeamPanelShown();
+		INT16 const squadPanelX = big ? RADAR_WINDOW_X - 5     : INTERFACE_START_X + g_ui.m_teamPanelWidth - 102;
+		INT16 const squadPanelY = big ? RADAR_WINDOW_TM_Y - 13 : gsVIEWPORT_END_Y;
+		BltVideoObjectOnce(guiSAVEBUFFER, INTERFACEDIR "/squadpanel.sti", 0, squadPanelX, squadPanelY);
+		RestoreExternBackgroundRect(squadPanelX, squadPanelY, 102, 120);
 
 		// create regions
 		INT16 const w = RADAR_WINDOW_WIDTH / 2 - 1;

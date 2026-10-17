@@ -315,38 +315,41 @@
 // The 1366x768 interface's team panel (g_ui.isBigTeamPanel(),
 // bottom_bar_big_1366x768.png): slot windows relative to each slot's left
 // edge (BIG_TEAMPANEL_SLOT_WIDTH apart), the rest relative to the panel.
-#define BIG_TM_FACE_X				12   // big portrait 106x122
-#define BIG_TM_FACE_Y				7
+#define BIG_TM_FACE_X				10   // big portrait, cut to 106x70
+#define BIG_TM_FACE_Y				5
 #define BIG_TM_FACE_WIDTH			106
-#define BIG_TM_FACE_HEIGHT			122
-#define BIG_TM_LIFEBAR_X			123  // tall 6x122 bars, as the strategic screen's
-#define BIG_TM_BREATHBAR_X			132
-#define BIG_TM_MORALEBAR_X			141
-#define BIG_TM_BARS_Y				7
+#define BIG_TM_FACE_HEIGHT			70
+#define BIG_TM_FACE_CUT_TOP			36   // rows cut off the 106x122 portrait (16 at the bottom)
+#define BIG_TM_LIFEBAR_X			121  // tall 6x70 bars, as the strategic screen's
+#define BIG_TM_BREATHBAR_X			130
+#define BIG_TM_MORALEBAR_X			139
+#define BIG_TM_BARS_Y				5
 #define BIG_TM_BAR_WIDTH			6
-#define BIG_TM_BAR_HEIGHT			122
-#define BIG_TM_NAME_X				12
-#define BIG_TM_NAME_Y				131
+#define BIG_TM_BAR_HEIGHT			70
+#define BIG_TM_NAME_X				10
+#define BIG_TM_NAME_Y				79   // 2 px under the box top
 #define BIG_TM_NAME_WIDTH			106
 #define BIG_TM_NAME_HEIGHT			16
-#define BIG_TM_AP_X				122
-#define BIG_TM_AP_Y				132
+#define BIG_TM_AP_X				120
+#define BIG_TM_AP_Y				77
 #define BIG_TM_AP_WIDTH			25
-#define BIG_TM_AP_HEIGHT			15
-#define BIG_TM_INV_X				8    // first and second hand, big pictures
-#define BIG_TM_INV_Y				150
-#define BIG_TM_INV_WIDTH			117
+#define BIG_TM_AP_HEIGHT			16
+#define BIG_TM_INV_X				5    // first and second hand, big pictures
+#define BIG_TM_INV_Y				96
+#define BIG_TM_INV_WIDTH			124
 #define BIG_TM_INV_HEIGHT			50
 #define BIG_TM_INV_SEPY			50
-#define BIG_TM_ENDTURN_X			1032 // 27x27 buttons
-#define BIG_TM_ROSTERMODE_X			1069
-#define BIG_TM_DISK_X				1106
-#define BIG_TM_BUTTONS_Y			9
-#define BIG_TM_SECTOR_X			1146 // sector name box
-#define BIG_TM_SECTOR_Y			7
-#define BIG_TM_SECTOR_WIDTH			96
+#define BIG_TM_ENDTURN_X			1029 // 27x27 buttons
+#define BIG_TM_ROSTERMODE_X			1066
+#define BIG_TM_DISK_X				1103
+#define BIG_TM_BUTTONS_Y			7
+#define BIG_TM_SECTOR_X			1031 // sector box, above the clock's
+#define BIG_TM_SECTOR_Y			123
+#define BIG_TM_SECTOR_WIDTH			79
 #define BIG_TM_SECTOR_HEIGHT			23
-#define BIG_TM_FONT				FONT12ARIAL // names and action points
+#define BIG_TM_FONT				BIG_TEAMPANEL_FONT // names and action points
+#define BIG_TM_SECTOR_FONT			FONT12ARIAL        // sector (and the clock, Game_Clock.cc)
+#define BIG_TM_NAME_COLOR			FONT_BEIGE         // as the weapon name of the map's big weapon box
 #define BIG_TM_SELECTED_COLOR			FROMRGB(255, 204, 0)
 
 #define INDICATOR_BOX_WIDTH			12
@@ -2935,11 +2938,12 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const&, INT16 x, INT16 y, DirtyLeve
 static void UpdateTEAMPanel(void);
 
 
-// 1366x768 team panel: the static big portrait (faces/bigfaces/) in the
-// slot's portrait window, as the strategic screen's character info panel
-// (no blinking or talking mouth; in tactical, speech shows its own face box
-// anyway). Dead mercs get the laptop's red shade, vehicles their small
-// portrait centered; the rest of the window is black.
+// 1366x768 team panel: the static big portrait (faces/bigfaces/, 106x122)
+// in the slot's 106x70 portrait window, cut BIG_TM_FACE_CUT_TOP rows from
+// the top (and so 16 from the bottom), as the strategic screen's character
+// info panel otherwise (no blinking or talking mouth; in tactical, speech
+// shows its own face box anyway). Dead mercs get the laptop's red shade,
+// vehicles their small portrait centered; the rest of the window is black.
 static void RenderBigTeamPortrait(SOLDIERTYPE const& s, INT16 const x, INT16 const y)
 {
 	INT16 const w = BIG_TM_FACE_WIDTH;
@@ -2960,7 +2964,14 @@ static void RenderBigTeamPortrait(SOLDIERTYPE const& s, INT16 const x, INT16 con
 				face->pShades[0] = Create16BPPPaletteShaded(face->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
 				face->CurrentShade(0);
 			}
-			BltVideoObject(guiSAVEBUFFER, face.get(), 0, x, y);
+			// drawn whole on a scratch surface, then its middle part copied
+			ETRLEObject const& e = face->SubregionProperties(0);
+			std::unique_ptr<SGPVSurface> const whole{ new SGPVSurface(e.usWidth, e.usHeight, PIXEL_DEPTH) };
+			whole->Fill(0);
+			BltVideoObject(whole.get(), face.get(), 0, -e.sOffsetX, -e.sOffsetY);
+			SGPBox const cut = { 0, BIG_TM_FACE_CUT_TOP, (UINT16)std::min<INT32>(w, e.usWidth),
+				(UINT16)std::max<INT32>(0, std::min<INT32>(h, e.usHeight - BIG_TM_FACE_CUT_TOP)) };
+			if (cut.h > 0) BltVideoSurface(guiSAVEBUFFER, whole.get(), x, y, &cut);
 		}
 		catch (std::exception const& e)
 		{
@@ -3077,7 +3088,10 @@ void RenderTEAMPanel(DirtyLevel const dirty_level)
 				// Restore AP/LIFE POSIITONS
 
 				// Render name!
-				UINT8 const foreground = s->bStealthMode ? FONT_MCOLOR_LTYELLOW : FONT_MCOLOR_LTGRAY;
+				UINT8 const foreground =
+					s->bStealthMode ? FONT_MCOLOR_LTYELLOW :
+					big             ? BIG_TM_NAME_COLOR    :
+					FONT_MCOLOR_LTGRAY;
 				SetFontAttributes(big ? BIG_TM_FONT : BLOCKFONT2, foreground);
 
 				// RENDER ON SAVE BUFFER!
@@ -3884,10 +3898,11 @@ void RenderTownIDString(void)
 	SetFontAttributes(COMPFONT, 183);
 	ST::string zTownIDString = GetSectorIDString(gWorldSector, TRUE);
 
-	// 1366x768 team panel: its own sector name box, left of the clock's
-	if (g_ui.isBigTeamPanel() && gsCurInterfacePanel != SM_PANEL)
+	// 1366x768 team panel: its own sector box, in its own font
+	if (g_ui.isBigTeamPanelShown())
 	{
-		zTownIDString = ReduceStringLength(zTownIDString, BIG_TM_SECTOR_WIDTH - 4, COMPFONT);
+		SetFont(BIG_TM_SECTOR_FONT);
+		zTownIDString = ReduceStringLength(zTownIDString, BIG_TM_SECTOR_WIDTH - 4, BIG_TM_SECTOR_FONT);
 		MPrint(TEAM_PANEL_X + BIG_TM_SECTOR_X, TEAM_PANEL_Y + BIG_TM_SECTOR_Y, zTownIDString,
 			HCenterVCenterAlign(BIG_TM_SECTOR_WIDTH, BIG_TM_SECTOR_HEIGHT));
 		return;

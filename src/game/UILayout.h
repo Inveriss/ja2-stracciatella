@@ -124,14 +124,16 @@
 
 // The 1366x768 interface's own team panel (bottom_bar_big_1366x768.png,
 // isBigTeamPanel()): 7 slots, 146 px apart, left-aligned (not centred), with
-// the buttons, sector name, clock and minimap block on its right. The single
+// the buttons, sector name, clock and minimap block on its right; its texts
+// are FONT14ARIAL (BIG_TEAMPANEL_FONT). The single
 // merc (SM) panel is not affected -- it keeps INTERFACE_START_X/Y and the
 // squad-size-driven m_teamPanelWidth/m_smPanelWidth.
 #define BIG_TEAMPANEL_FILE              "bottom_bar_big_1366x768.png"
 #define BIG_TEAMPANEL_WIDTH             (1366)
-#define BIG_TEAMPANEL_HEIGHT            (254)
+#define BIG_TEAMPANEL_HEIGHT            (200)
 #define BIG_TEAMPANEL_NUM_SLOTS         (7)
 #define BIG_TEAMPANEL_SLOT_WIDTH        (146)
+#define BIG_TEAMPANEL_FONT              FONT14ARIAL
 // Team panel position/size for whichever team panel is in use -- use these
 // (not INTERFACE_START_X/Y, which the SM panel shares) for the team panel.
 #define TEAM_PANEL_X                    (g_ui.isBigTeamPanel() ? 0 : INTERFACE_START_X)
@@ -257,6 +259,10 @@ public:
 	UINT16 currentHeight() const;
 	UINT16 get_CLOCK_X() const;
 	UINT16 get_CLOCK_Y() const;
+	UINT16 get_CLOCK_WIDTH() const;
+
+	/** The big team panel is the one on screen right now: tactical screen, team (not SM) panel. */
+	bool isBigTeamPanelShown() const;
 	UINT16 get_INV_INTERFACE_START_Y() const;
 	UINT16 get_ITEMDESC_PANEL_START_Y() const;
 	UINT16 get_ITEMDESC_PANEL_START_Y_MONEY() const;

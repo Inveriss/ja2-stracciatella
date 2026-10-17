@@ -92,27 +92,37 @@ UINT16 UILayout::get_CLOCK_X() const
 	// inventory_bottom_panel.sti's latest graphic; TEAM_PANEL (bottom_bar.sti)
 	// is untouched.
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 83;
-	// the big team panel's time box: x 1263, 84 wide (clock 66)
-	if (m_bigTeamPanel) return 1263 + (84 - 66) / 2;
+	// centered on the big team panel's time box (x 1034, 72 wide)
+	if (m_bigTeamPanel) return 1034 + (72 - get_CLOCK_WIDTH()) / 2;
 	return m_teamPanelPosition.iX + m_teamPanelWidth - 86;
 }
 UINT16 UILayout::get_CLOCK_Y() const
 {
-	// the big team panel's time box: y 8, 22 high (clock 13)
-	if (!fInMapMode && m_bigTeamPanel && gsCurInterfacePanel != SM_PANEL)
-	{
-		return m_screenHeight - BIG_TEAMPANEL_HEIGHT + 8 + (22 - 13) / 2;
-	}
+	// the big team panel's time box: y 163, 22 high (clock 13)
+	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + 163 + (22 - 13) / 2;
 	return currentHeight() - 23;
 }
+// The big team panel's clock (FONT12ARIAL, "Day 31, 23:59" is 68 px) fills
+// its 72 px box.
+UINT16 UILayout::get_CLOCK_WIDTH() const           { return isBigTeamPanelShown() ? 72 : 66; }
+// Big team panel: the old 88x44 minimap, until its own stage, in the panel's
+// big window (x 1121, y 76, 240x120), placed so the squad list
+// (squadpanel.sti, 102x120, 5 px left and 13 px above the minimap) fills
+// the window's height, centered in it.
 UINT16 UILayout::get_RADAR_WINDOW_X() const
 {
 	if (fInMapMode) return MAP_SCREEN_RIGHT - 97;
 	// SM_PANEL offset shifted 3px right (97 -> 94) -- see get_CLOCK_X().
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 94;
+	if (m_bigTeamPanel) return 1121 + (240 - 102) / 2 + 5;
 	return m_teamPanelPosition.iX + m_teamPanelWidth - 97;
 }
-UINT16 UILayout::get_RADAR_WINDOW_TM_Y() const     { return currentHeight() - 107;                                 }
+UINT16 UILayout::get_RADAR_WINDOW_TM_Y() const
+{
+	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + 76 + 13;
+	return currentHeight() - 107;
+}
+bool UILayout::isBigTeamPanelShown() const         { return !fInMapMode && m_bigTeamPanel && gsCurInterfacePanel != SM_PANEL; }
 UINT16 UILayout::get_INV_INTERFACE_START_Y() const { return m_screenHeight - INV_INTERFACE_HEIGHT;                                  }
 UINT16 UILayout::get_ITEMDESC_PANEL_START_Y() const { return m_screenHeight - ITEMDESC_PANEL_HEIGHT;                                 }
 UINT16 UILayout::get_ITEMDESC_PANEL_START_Y_MONEY() const { return m_screenHeight - ITEMDESC_PANEL_HEIGHT_MONEY;                       }
