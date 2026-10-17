@@ -29,7 +29,7 @@ UILayout g_ui(MIN_INTERFACE_WIDTH, MIN_INTERFACE_HEIGHT);
 /** Constructor. */
 UILayout::UILayout(UINT16 screenWidth, UINT16 screenHeight)
 	:m_mapScreenWidth(MIN_INTERFACE_WIDTH), m_mapScreenHeight(MIN_INTERFACE_HEIGHT),
-	m_screenWidth(screenWidth), m_screenHeight(screenHeight), m_bigTeamPanel(false), m_lowTeamPanel(false)
+	m_screenWidth(screenWidth), m_screenHeight(screenHeight), m_bigTeamPanel(false), m_lowTeamPanel(false), m_bigSMPanel(false)
 {
 }
 
@@ -91,6 +91,8 @@ UINT16 UILayout::get_CLOCK_X() const
 	// SM_PANEL offset shifted 3px right (86 -> 83) to match
 	// inventory_bottom_panel.sti's latest graphic; TEAM_PANEL (bottom_bar.sti)
 	// is untouched.
+	// the big SM panel's time box: x 16, 72 wide
+	if (gsCurInterfacePanel == SM_PANEL && m_bigSMPanel) return m_teamPanelPosition.iX + 16 + (72 - get_CLOCK_WIDTH()) / 2;
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 83;
 	// centered on the big team panel's time box (x 1034, 72 wide; 73 on the low one)
 	if (m_bigTeamPanel) return 1034 + (72 - get_CLOCK_WIDTH()) / 2;
@@ -100,11 +102,13 @@ UINT16 UILayout::get_CLOCK_Y() const
 {
 	// the big team panel's time box: y 163 (113 on the low one), 22 high (clock 13)
 	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + (isLowTeamPanel() ? 113 : 163) + (22 - 13) / 2;
+	// the big SM panel's time box: y 138, 22 high
+	if (isBigSMPanelShown()) return get_INV_INTERFACE_START_Y() + 138 + (22 - 13) / 2;
 	return currentHeight() - 23;
 }
 // The big team panel's clock (FONT12ARIAL, "Day 31, 23:59" is 68 px) fills
 // its 72 px box.
-UINT16 UILayout::get_CLOCK_WIDTH() const           { return isBigTeamPanelShown() ? 72 : 66; }
+UINT16 UILayout::get_CLOCK_WIDTH() const           { return isBigTeamPanelShown() || isBigSMPanelShown() ? 72 : 66; }
 // Big team panel: the radar window (x 1121, y 76 -- 26 on the low one --, 240x120) -- the 240x120
 // map, or the 88x44 one in its top left corner when the sector has no big
 // one (Radar_Screen.h's RadarUsesPanelMap()).
@@ -112,6 +116,9 @@ UINT16 UILayout::get_RADAR_WINDOW_X() const
 {
 	if (fInMapMode) return MAP_SCREEN_RIGHT - 97;
 	// SM_PANEL offset shifted 3px right (97 -> 94) -- see get_CLOCK_X().
+	// the big SM panel has no radar window: its radar map opens from a button
+	// (the overhead map) -- off the screen
+	if (gsCurInterfacePanel == SM_PANEL && m_bigSMPanel) return 60000;
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 94;
 	if (m_bigTeamPanel) return 1121;
 	return m_teamPanelPosition.iX + m_teamPanelWidth - 97;
@@ -122,6 +129,7 @@ UINT16 UILayout::get_RADAR_WINDOW_TM_Y() const
 	return currentHeight() - 107;
 }
 bool UILayout::isBigTeamPanelShown() const         { return !fInMapMode && m_bigTeamPanel && gsCurInterfacePanel != SM_PANEL; }
+bool UILayout::isBigSMPanelShown() const           { return !fInMapMode && m_bigSMPanel && gsCurInterfacePanel == SM_PANEL; }
 void UILayout::setLowTeamPanel(bool const low)
 {
 	m_lowTeamPanel = low && GCM && GCM->doesGameResExists(INTERFACEDIR "/" BIG_TEAMPANEL_LOW_FILE);
@@ -161,6 +169,15 @@ void UILayout::recalculatePositions()
 	// m_teamPanelWidth) for anything specific to the single-merc panel's own
 	// canvas/buttons.
 	m_smPanelWidth = std::max<UINT16>(m_teamPanelWidth, INVENTORY_BOTTOM_PANEL_WIDTH);
+
+	// The 1366x768 SM panel: one fixed 1366 px piece at the left edge, also
+	// independent of the squad size.
+	m_bigSMPanel = m_bigTeamPanel && GCM->doesGameResExists(INTERFACEDIR "/" BIG_SMPANEL_FILE);
+	if (m_bigSMPanel)
+	{
+		m_teamPanelPosition.iX = 0;
+		m_smPanelWidth         = BIG_SMPANEL_WIDTH;
+	}
 
 	UINT16 startInvY = get_INV_INTERFACE_START_Y();
 	UINT16 startX    = INTERFACE_START_X;
@@ -245,6 +262,30 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionTac[SMALLPOCK18POS      ].set(startX + 679, startInvY +  44);
 	m_invSlotPositionTac[SMALLPOCK19POS      ].set(startX + 726, startInvY +  8);
 	m_invSlotPositionTac[SMALLPOCK20POS      ].set(startX + 726, startInvY +  44);
+
+	if (m_bigSMPanel)
+	{
+		// inventory_bottom_panel_big_1366x768.png: the old panel's layout, its
+		// slots bigger (sizes: gSMInvDataTacBig, Interface_Items.cc)
+		auto const at = [&](INT32 const slot, UINT16 const x, UINT16 const y) { m_invSlotPositionTac[slot].set(startX + x, startInvY + y); };
+		at(HEAD1POS,  257,  10); at(HEAD2POS,  257,  65);
+		at(HEAD3POS,  330,  10); at(HEAD4POS,  330,  65);
+		at(HANDPOS,   330, 125); at(SECONDHANDPOS, 330, 180);
+		at(HELMETPOS, 516,  15); at(VESTPOS,   516,  75); at(LEGPOS, 516, 180);
+		UINT16 const row[] = { 15, 70, 125, 180 };
+		for (INT32 i = 0; i != 4; ++i)
+		{
+			at(SMALLPOCK1POS  + i, 596, row[i]);
+			at(SMALLPOCK5POS  + i, 679, row[i]);
+			at(SMALLPOCK9POS  + i, 762, row[i]);
+			at(SMALLPOCK13POS + i, 845, row[i]);
+			at(BIGPOCK3POS    + i, 1094, row[i]);
+			at(BIGPOCK7POS    + i, 1227, row[i]);
+		}
+		at(SMALLPOCK17POS, 928, 15); at(SMALLPOCK18POS, 928, 70);
+		at(SMALLPOCK19POS, 1011, 15); at(SMALLPOCK20POS, 1011, 70);
+		at(BIGPOCK1POS,    928, 125); at(BIGPOCK2POS,    928, 180);
+	}
 
 	// map screen inventory position -- MAP_INV_SHIFT_Y lower on the 1366x768
 	// interface (see UILayout.h)
@@ -335,7 +376,9 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionMapBig[SMALLPOCK19POS      ].set(m_mapScreenOffsetX + 114, invY + 595);
 	m_invSlotPositionMapBig[SMALLPOCK20POS      ].set(m_mapScreenOffsetX + 114, invY + 650);
 
-	m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);
+	// the big SM panel has no place for the body figure yet: off the screen
+	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);
+	else m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);
 
 	m_progress_bar_box.set(STD_SCREEN_X + 5, 2, STD_SCREEN_WIDTH - 10, 12);
 	// Uses ITEMDESC_PANEL_START_Y_MONEY (not startInvY/INV_INTERFACE_START_Y,

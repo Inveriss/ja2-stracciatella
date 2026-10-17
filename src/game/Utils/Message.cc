@@ -43,7 +43,7 @@ struct ScrollStringSt
 // above the team panel: 30 px over the old one, and the same over the
 // 1366x768 interface's taller one (its low form while that is shown; the full
 // one's height over the SM panel)
-#define Y_START (g_ui.isBigTeamPanel() ? SCREEN_HEIGHT - (g_ui.isBigTeamPanelShown() ? BIG_TEAMPANEL_HEIGHT : BIG_TEAMPANEL_FULL_HEIGHT) - 30 : SCREEN_HEIGHT - 150)
+#define Y_START (g_ui.isBigTeamPanel() ? SCREEN_HEIGHT - (g_ui.isBigTeamPanelShown() ? BIG_TEAMPANEL_HEIGHT : g_ui.isBigSMPanelShown() ? BIG_SMPANEL_HEIGHT : BIG_TEAMPANEL_FULL_HEIGHT) - 30 : SCREEN_HEIGHT - 150)
 #define MAX_AGE 10000
 #define LINE_WIDTH 320
 #define MAP_LINE_WIDTH 300

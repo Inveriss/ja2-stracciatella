@@ -121,32 +121,84 @@
 #define STATS_TEXT_FONT_COLOR			5
 
 
+// The 1366x768 SM panel (inventory_bottom_panel_big_1366x768.png,
+// g_ui.isBigSMPanel()) has the buttons in its own windows: Stealth Mode above
+// Burst Mode, Climb / Jump and Stance Up a button lower than on the old panel.
+#define SM_BIG					(g_ui.isBigSMPanel())
 #define SM_TALKB_X				155
-#define SM_TALKB_Y				108
+#define SM_TALKB_Y				(SM_BIG ? 216 : 108)
 #define SM_MUTEB_X				91
-#define SM_MUTEB_Y				108
+#define SM_MUTEB_Y				(SM_BIG ? 216 : 108)
 #define SM_STANCEUPB_X				187
-#define SM_STANCEUPB_Y				40
+#define SM_STANCEUPB_Y				(SM_BIG ? 181 : 40)
 #define SM_UPDOWNB_X				91
-#define SM_UPDOWNB_Y				73
+#define SM_UPDOWNB_Y				(SM_BIG ? 181 : 73)
 #define SM_CLIMBB_X				187
-#define SM_CLIMBB_Y				8
+#define SM_CLIMBB_Y				(SM_BIG ? 148 : 8)
 #define SM_STANCEDOWNB_X			187
-#define SM_STANCEDOWNB_Y			108
+#define SM_STANCEDOWNB_Y			(SM_BIG ? 216 : 108)
 #define SM_HANDCURSORB_X			123
-#define SM_HANDCURSORB_Y			73
+#define SM_HANDCURSORB_Y			(SM_BIG ? 181 : 73)
 #define SM_PREVMERCB_X				9
-#define SM_PREVMERCB_Y				70
+#define SM_PREVMERCB_Y				(SM_BIG ? 178 : 70)
 #define SM_NEXTMERCB_X				51
-#define SM_NEXTMERCB_Y				70
+#define SM_NEXTMERCB_Y				(SM_BIG ? 178 : 70)
 #define SM_OPTIONSB_X				9
-#define SM_OPTIONSB_Y				105
+#define SM_OPTIONSB_Y				(SM_BIG ? 213 : 105)
 #define SM_BURSTMODEB_X			155
-#define SM_BURSTMODEB_Y			73
+#define SM_BURSTMODEB_Y			(SM_BIG ? 181 : 73)
 #define SM_LOOKB_X				123
-#define SM_LOOKB_Y				108
-#define SM_STEALTHMODE_X			187
-#define SM_STEALTHMODE_Y			73
+#define SM_LOOKB_Y				(SM_BIG ? 216 : 108)
+#define SM_STEALTHMODE_X			(SM_BIG ? 155 : 187)
+#define SM_STEALTHMODE_Y			(SM_BIG ? 148 : 73)
+// the big panel's radar map button (27x27, above Cursor Level and Examine):
+// opens the overhead map, as a right click on the team panel's radar map
+#define SM_BIG_RADARB_X			102
+#define SM_BIG_RADARB_Y			137
+
+// The big SM panel's windows (panel coordinates).
+#define SM_BIG_FACE_X				4    // big portrait cut to 86x70: 10 px off each side,
+#define SM_BIG_FACE_Y				4    // the team panel's rows off the top and bottom
+#define SM_BIG_FACE_WIDTH			86
+#define SM_BIG_FACE_HEIGHT			70
+#define SM_BIG_FACE_CUT_SIDE			10
+#define SM_BIG_LIFEBAR_X			95   // tall 6x70 bars
+#define SM_BIG_BREATHBAR_X			104
+#define SM_BIG_MORALEBAR_X			113
+#define SM_BIG_BARS_Y				4
+#define SM_BIG_BAR_WIDTH			6
+#define SM_BIG_BAR_HEIGHT			70
+#define SM_BIG_NAME_X				5    // name and action points in the strip under them
+#define SM_BIG_NAME_Y				76
+#define SM_BIG_NAME_WIDTH			85
+#define SM_BIG_NAME_HEIGHT			16
+#define SM_BIG_AP_X				94
+#define SM_BIG_AP_Y				76
+#define SM_BIG_AP_WIDTH			26
+#define SM_BIG_AP_HEIGHT			16
+#define SM_BIG_STATS_LABEL_X(col)		((col) ? 178 : 126) // labels on the wood, left aligned
+#define SM_BIG_STATS_VALUE_X(col)		((col) ? 210 : 154) // values in the dark columns, right aligned
+#define SM_BIG_STATS_VALUE_WIDTH		20
+#define SM_BIG_STATS_Y(row)			(6 + (row) * 17)
+#define SM_BIG_STATS_ROW_HEIGHT		17
+#define SM_BIG_SECTOR_X			13   // sector name and clock (UILayout.cc)
+#define SM_BIG_SECTOR_Y			98
+#define SM_BIG_SECTOR_WIDTH			79
+#define SM_BIG_SECTOR_HEIGHT			23
+// armour, weight and camouflage, label over value, in the dark boxes
+#define SM_BIG_WEIGHT_BOX_X			253
+#define SM_BIG_WEIGHT_BOX_Y			134
+#define SM_BIG_CAMO_BOX_X			253
+#define SM_BIG_CAMO_BOX_Y			189
+#define SM_BIG_ARMOR_BOX_X			513
+#define SM_BIG_ARMOR_BOX_Y			137
+#define SM_BIG_INFO_BOX_WIDTH			64
+#define SM_BIG_INFO_BOX_HEIGHT			34
+#define SM_BIG_FONT				FONT14ARIAL  // name and action points, as the team panel
+#define SM_BIG_STATS_FONT			FONT12ARIAL
+#define SM_BIG_LABEL_COLOR			126          // the map's big weapon box's colours
+#define SM_BIG_VALUE_COLOR			FONT_BEIGE
+#define SM_BIG_SELECTED_COLOR			FROMRGB(255, 204, 0)
 
 // Laptop shortcut buttons (see inventory_bottom_panel_bookmarks.sti, 32x32
 // each). Placeholder coordinates -- reposition to match the final graphic.
@@ -193,10 +245,10 @@
 // it. Equivalent to the old slots-relative formula for squads >= ~11 (where
 // m_smPanelWidth == m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH
 // and isn't floored): 142 - 45 = 97, 142 - 91 = 51.
-#define SM_DONE_X				(g_ui.m_smPanelWidth - 94)
-#define SM_DONE_Y				4
-#define SM_MAPSCREEN_X				(g_ui.m_smPanelWidth - 48)
-#define SM_MAPSCREEN_Y				4
+#define SM_DONE_X				(SM_BIG ? 142 : g_ui.m_smPanelWidth - 94)
+#define SM_DONE_Y				(SM_BIG ? 98 : 4)
+#define SM_MAPSCREEN_X				(SM_BIG ? 188 : g_ui.m_smPanelWidth - 48)
+#define SM_MAPSCREEN_Y				(SM_BIG ? 98 : 4)
 
 /*
 #define SM_PERCENT_WIDTH			20
@@ -1119,19 +1171,29 @@ void InitializeSMPanel()
 	// minimap are in the bottom-right corner. Uses m_smPanelWidth (not the shared, purely squad-size-driven
 	// m_teamPanelWidth), since inventory_bottom_panel.sti can be wider than what squad size alone would need --
 	// see the comment on m_smPanelWidth in UILayout.h.
-	SGPVObject* voSMPanel = AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
 	guiSMPanel = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
-	if (g_ui.m_smPanelWidth > INVENTORY_BOTTOM_PANEL_WIDTH)
+	if (SM_BIG)
+	{
+		// the 1366x768 one, one piece
+		guiSMPanel->Fill(0);
+		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" BIG_SMPANEL_FILE) };
+		BltVideoObject(guiSMPanel, big_panel.get(), 0, 0, 0);
+	}
+	SGPVObject* voSMPanel = SM_BIG ? 0 : AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
+	if (voSMPanel && g_ui.m_smPanelWidth > INVENTORY_BOTTOM_PANEL_WIDTH)
 	{
 		// The team panel is longer than default
 		// need a second blit, and we will start from the right
 		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH, 0);
 	}
 	// draw the basic Single-Merc panel
-	BltVideoObject(guiSMPanel, voSMPanel, 0, 0, 0);
-	DeleteVideoObject(voSMPanel);
+	if (voSMPanel)
+	{
+		BltVideoObject(guiSMPanel, voSMPanel, 0, 0, 0);
+		DeleteVideoObject(voSMPanel);
+	}
 
-	INT16 sFillerWidth = g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH;
+	INT16 sFillerWidth = SM_BIG ? 0 : g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH;
 	if (sFillerWidth > 0)
 	{
 		// draw a space filler if needed
@@ -1162,21 +1224,31 @@ void InitializeSMPanel()
 	INT32 x;
 	INT32 y;
 
-	x = dx + SM_SELMERC_FACE_X;
-	y = dy + SM_SELMERC_FACE_Y;
+	x = dx + (SM_BIG ? SM_BIG_FACE_X : SM_SELMERC_FACE_X);
+	y = dy + (SM_BIG ? SM_BIG_FACE_Y : SM_SELMERC_FACE_Y);
 
 	MOUSE_CALLBACK selectedMercButtonCallback = MouseCallbackPrimarySecondary(SelectedMercButtonCallbackPrimary, SelectedMercButtonCallbackSecondary, MSYS_NO_CALLBACK, true);
 	//DEfine region for selected guy panel
-	MSYS_DefineRegion(&gSM_SELMERCPanelRegion, x, y, x + SM_SELMERC_FACE_WIDTH, y + SM_SELMERC_FACE_HEIGHT, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, SelectedMercButtonMoveCallback, selectedMercButtonCallback);
+	MSYS_DefineRegion(&gSM_SELMERCPanelRegion, x, y, x + (SM_BIG ? SM_BIG_FACE_WIDTH : SM_SELMERC_FACE_WIDTH), y + (SM_BIG ? SM_BIG_FACE_HEIGHT : SM_SELMERC_FACE_HEIGHT), MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, SelectedMercButtonMoveCallback, selectedMercButtonCallback);
 
-	//DEfine region for selected guy panel
-	MSYS_DefineRegion(&gSM_SELMERCEnemyIndicatorRegion, x + 1, y + 1, x + INDICATOR_BOX_WIDTH,
-				y + INDICATOR_BOX_HEIGHT, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR,
-				MSYS_NO_CALLBACK, SelectedMercEnemyIndicatorCallback);
+	//DEfine region for selected guy panel (the big panel's static portrait shows
+	// no enemy indicator: empty)
+	if (SM_BIG)
+	{
+		MSYS_DefineRegion(&gSM_SELMERCEnemyIndicatorRegion, x, y, x, y, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR,
+					MSYS_NO_CALLBACK, SelectedMercEnemyIndicatorCallback);
+	}
+	else
+	{
+		MSYS_DefineRegion(&gSM_SELMERCEnemyIndicatorRegion, x + 1, y + 1, x + INDICATOR_BOX_WIDTH,
+					y + INDICATOR_BOX_HEIGHT, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR,
+					MSYS_NO_CALLBACK, SelectedMercEnemyIndicatorCallback);
+	}
 
-	//DEfine region for money button
-	x = dx + MONEY_X;
-	y = dy + MONEY_Y;
+	//DEfine region for money button (the big panel has no place for it yet:
+	// off the screen)
+	x = SM_BIG ? 60000 : dx + MONEY_X;
+	y = SM_BIG ? 60000 : dy + MONEY_Y;
 	MSYS_DefineRegion(&gSM_SELMERCMoneyRegion, x, y, x + MONEY_WIDTH, y + MONEY_HEIGHT, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, SMInvMoneyMoveCallback, SMInvMoneyButtonCallback);
 	gSM_SELMERCMoneyRegion.SetFastHelpText(TacticalStr[MONEY_BUTTON_HELP_TEXT]);
 
@@ -1187,15 +1259,23 @@ void InitializeSMPanel()
 	}
 
 	//DEfine region for selected guy panel
-	MSYS_DefineRegion(&gSM_SELMERCBarsRegion, dx + 62, dy + 2, dx + 85, dy + 51, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, selectedMercButtonCallback);
+	if (SM_BIG)
+	{
+		MSYS_DefineRegion(&gSM_SELMERCBarsRegion, dx + SM_BIG_LIFEBAR_X, dy + SM_BIG_BARS_Y, dx + SM_BIG_MORALEBAR_X + SM_BIG_BAR_WIDTH, dy + SM_BIG_BARS_Y + SM_BIG_BAR_HEIGHT, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, selectedMercButtonCallback);
+	}
+	else
+	{
+		MSYS_DefineRegion(&gSM_SELMERCBarsRegion, dx + 62, dy + 2, dx + 85, dy + 51, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, selectedMercButtonCallback);
+	}
 
 	MOUSE_CALLBACK smInvClickCallback = MouseCallbackPrimarySecondary(SMInvClickCallbackPrimary, SMInvClickCallbackSecondary, MSYS_NO_CALLBACK, true);
-	InitInvSlotInterface(g_ui.m_invSlotPositionTac, &g_ui.m_invCamoRegion, SMInvMoveCallback, smInvClickCallback, SMInvMoveCamoCallback, SMInvClickCamoCallback);
+	InitInvSlotInterface(g_ui.m_invSlotPositionTac, &g_ui.m_invCamoRegion, SMInvMoveCallback, smInvClickCallback, SMInvMoveCamoCallback, SMInvClickCamoCallback, false, SM_BIG);
 	InitKeyRingInterface(KeyRingItemPanelButtonCallback);
 
 	// Trash can drop target -- see SM_TRASHCAN_* above.
-	x = dx + SM_TRASHCAN_X;
-	y = dy + SM_TRASHCAN_Y;
+	// (the big panel has no place for it yet: off the screen)
+	x = SM_BIG ? 60000 : dx + SM_TRASHCAN_X;
+	y = SM_BIG ? 60000 : dy + SM_TRASHCAN_Y;
 	MSYS_DefineRegion(&gSMTrashCanRegion, x, y, x + SM_TRASHCAN_WIDTH, y + SM_TRASHCAN_HEIGHT,
 		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, SMTrashCanMoveCallback, SMTrashCanBtnCallback);
 	// Reusing the map screen's trash-can tooltip text (same widget, different
@@ -1269,6 +1349,11 @@ static void BtnStanceUpCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnTalkCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnUpdownCallback(GUI_BUTTON* btn, UINT32 reason);
 static void ToggleHideEmptyAttachmentSlotsCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnSMRadarMapCallback(GUI_BUTTON* btn, UINT32 reason);
+
+// The big SM panel's radar map button.
+static GUIButtonRef giSMBigRadarButton;
+static BUTTON_PICS* giSMBigRadarImage;
 
 
 void CreateSMPanelButtons(void)
@@ -1364,6 +1449,18 @@ void CreateSMPanelButtons(void)
 		INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", MSYS_PRIORITY_HIGHEST,
 		ToggleHideEmptyAttachmentSlotsCallback); // sub-images 0-3, per user request
 	giSMHideEmptySlotsCheckbox->SetFastHelpText("Hide empty attachment slots");
+
+	if (SM_BIG)
+	{
+		// no places for them on the big panel yet: hidden (and kept hidden,
+		// see ShowSMBookmarkButtons())
+		HideSMBookmarkButtons();
+
+		// the radar map button, for now with Next Merc's picture
+		giSMBigRadarImage  = UseLoadedButtonImage(iSMPanelImages[STANCEUP_IMAGES], 21, 23);
+		giSMBigRadarButton = QuickCreateButton(giSMBigRadarImage, dx + SM_BIG_RADARB_X, dy + SM_BIG_RADARB_Y, MSYS_PRIORITY_HIGH - 1, BtnSMRadarMapCallback);
+		giSMBigRadarButton->SetFastHelpText("Radar Map");
+	}
 #if 0
 	MakeButtonN(BURSTMODE_BUTTON,     iSMPanelImages[BURSTMODE_IMAGES],  SM_BURSTMODEB_X,  dy + SM_BURSTMODEB_Y,  BtnBurstModeCallback,  TacticalStr[TOGGLE_BURSTMODE_POPUPTEXT]);
 #endif
@@ -1386,6 +1483,12 @@ void RemoveSMPanelButtons(void)
 
 	if (giSMStealthButton) RemoveButton(giSMStealthButton);
 	if (giSMStealthImages) UnloadButtonImage(giSMStealthImages);
+
+	if (giSMBigRadarButton)
+	{
+		RemoveButton(giSMBigRadarButton);
+		UnloadButtonImage(giSMBigRadarImage);
+	}
 
 	// BUTTON_SELFDELETE_IMAGE (set by CreateCheckBoxButton()) means
 	// RemoveButton() also frees its image -- no separate UnloadButtonImage().
@@ -1424,6 +1527,7 @@ void HideSMBookmarkButtons(void)
 
 void ShowSMBookmarkButtons(void)
 {
+	if (SM_BIG) return; // the big panel has no places for them yet
 	for (UINT32 const idx : g_smBookmarkButtons)
 	{
 		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
@@ -1456,6 +1560,7 @@ void HideSMBookmarkButtonsUnderInfoPopups(void)
 
 void ShowSMBookmarkButtonsUnderInfoPopups(void)
 {
+	if (SM_BIG) return; // the big panel has no places for them yet
 	for (UINT32 const idx : g_smBookmarkButtonsUnderInfoPopups)
 	{
 		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
@@ -1585,6 +1690,60 @@ void ProgressBarBackgroundRect(const INT16 sLeft, const INT16 sTop, const INT16 
 	}
 }
 
+// The big SM panel's portrait: the static big portrait, cut as the team
+// panel's and SM_BIG_FACE_CUT_SIDE px off each side; dead mercs red shaded,
+// vehicles their small portrait centered.
+static void RenderBigSMPortrait(SOLDIERTYPE const& s, INT16 const x, INT16 const y)
+{
+	INT16 const w = SM_BIG_FACE_WIDTH;
+	INT16 const h = SM_BIG_FACE_HEIGHT;
+	ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, y, x + w, y + h, 0);
+
+	if (s.uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		RenderSoldierFace(s, x + (w - TM_FACE_WIDTH) / 2, y + (h - TM_FACE_HEIGHT) / 2);
+	}
+	else if (s.ubProfile != NO_PROFILE)
+	{
+		try
+		{
+			AutoSGPVObject const face{ LoadBigPortrait(GetProfile(s.ubProfile)) };
+			if (s.bLife == 0)
+			{
+				face->pShades[0] = Create16BPPPaletteShaded(face->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
+				face->CurrentShade(0);
+			}
+			ETRLEObject const& e = face->SubregionProperties(0);
+			std::unique_ptr<SGPVSurface> const whole{ new SGPVSurface(e.usWidth, e.usHeight, PIXEL_DEPTH) };
+			whole->Fill(0);
+			BltVideoObject(whole.get(), face.get(), 0, -e.sOffsetX, -e.sOffsetY);
+			SGPBox const cut = { SM_BIG_FACE_CUT_SIDE, BIG_TM_FACE_CUT_TOP,
+				(UINT16)std::max<INT32>(0, std::min<INT32>(w, e.usWidth  - SM_BIG_FACE_CUT_SIDE)),
+				(UINT16)std::max<INT32>(0, std::min<INT32>(h, e.usHeight - BIG_TM_FACE_CUT_TOP)) };
+			if (cut.w > 0 && cut.h > 0) BltVideoSurface(guiSAVEBUFFER, whole.get(), x, y, &cut);
+		}
+		catch (std::exception const& e)
+		{
+			SLOGE("Cannot show the big portrait of profile {}: {}", s.ubProfile, e.what());
+		}
+	}
+}
+
+
+// The big SM panel's armour / weight / camouflage box: the label over the value.
+static void PrintBigSMInfoBox(INT32 const x, INT32 const y, ST::string const& label, ST::string const& value, UINT8 const value_colour)
+{
+	INT32 const w      = SM_BIG_INFO_BOX_WIDTH;
+	INT32 const half_h = SM_BIG_INFO_BOX_HEIGHT / 2;
+	INT32 const font_h = GetFontHeight(SM_BIG_STATS_FONT);
+	SetFont(SM_BIG_STATS_FONT);
+	SetFontForeground(SM_BIG_LABEL_COLOR);
+	MPrint(x, y + (half_h - font_h) / 2, label, CenterAlign(w));
+	SetFontForeground(value_colour);
+	MPrint(x, y + half_h + (half_h - font_h) / 2, value, CenterAlign(w));
+}
+
+
 static void PrintStat(UINT32 const change_time, UINT16 const stat_bit, INT8 const stat_val, INT16 const x, INT16 const y, INT32 const progress)
 {
 	SOLDIERTYPE const& s  = *gpSMCurrentMerc;
@@ -1596,9 +1755,20 @@ static void PrintStat(UINT32 const change_time, UINT16 const stat_bit, INT8 cons
 		s.usValueGoneUp & stat_bit                                   ? FONT_LTGREEN          :
 		FONT_RED;
 
-	SetFontForeground(fg);
+	// the big panel: FONT12ARIAL, values in the big weapon box's colour
+	SetFontForeground(SM_BIG && fg == STATS_TEXT_FONT_COLOR ? SM_BIG_VALUE_COLOR : fg);
 
 	ST::string str = ST::format("{3d}", stat_val);
+	if (SM_BIG)
+	{
+		if (gamepolicy(gui_extras))
+		{
+			ProgressBarBackgroundRect(x, y + 1, SM_BIG_STATS_VALUE_WIDTH * progress / 100, SM_BIG_STATS_ROW_HEIGHT - 2, 0x514A05, progress);
+		}
+		INT32 const font_h = GetFontHeight(SM_BIG_STATS_FONT);
+		DrawStringRight(str, x, y + (SM_BIG_STATS_ROW_HEIGHT - font_h) / 2, SM_BIG_STATS_VALUE_WIDTH, font_h, SM_BIG_STATS_FONT);
+		return;
+	}
 	if (gamepolicy(gui_extras))
 	{
 		ProgressBarBackgroundRect(x + 16, y - 2, 15 * progress / 100, 10, 0x514A05, progress);
@@ -1606,6 +1776,50 @@ static void PrintStat(UINT32 const change_time, UINT16 const stat_bit, INT8 cons
 
 	DrawStringRight(str, x, y, SM_STATS_WIDTH, SM_STATS_HEIGHT, BLOCKFONT2);
 }
+
+// The big SM panel's stats (FONT12ARIAL: labels in the big weapon box's label
+// colour on the wood, values in the dark columns), armour, weight and
+// camouflage.
+static void RenderBigSMPanelStats(SOLDIERTYPE const& s, INT32 const dx, INT32 const dy)
+{
+	INT32 const font_h = GetFontHeight(SM_BIG_STATS_FONT);
+	SetFontAttributes(SM_BIG_STATS_FONT, SM_BIG_LABEL_COLOR);
+	for (UINT32 i = 0; i != 5; ++i)
+	{
+		INT32 const y = dy + SM_BIG_STATS_Y(i) + (SM_BIG_STATS_ROW_HEIGHT - font_h) / 2;
+		MPrint(dx + SM_BIG_STATS_LABEL_X(0), y, pShortAttributeStrings[i]);
+		MPrint(dx + SM_BIG_STATS_LABEL_X(1), y, pShortAttributeStrings[i + 5]);
+	}
+
+	MERCPROFILESTRUCT& p = GetProfile(s.ubProfile);
+	INT32 const x0 = dx + SM_BIG_STATS_VALUE_X(0);
+	INT32 const x1 = dx + SM_BIG_STATS_VALUE_X(1);
+	PrintStat(s.uiChangeAgilityTime,      AGIL_INCREASE,     s.bAgility,      x0, dy + SM_BIG_STATS_Y(0), p.sAgilityGain*2);
+	PrintStat(s.uiChangeDexterityTime,    DEX_INCREASE,      s.bDexterity,    x0, dy + SM_BIG_STATS_Y(1), p.sDexterityGain*2);
+	PrintStat(s.uiChangeStrengthTime,     STRENGTH_INCREASE, s.bStrength,     x0, dy + SM_BIG_STATS_Y(2), p.sStrengthGain*2);
+	PrintStat(s.uiChangeLeadershipTime,   LDR_INCREASE,      s.bLeadership,   x0, dy + SM_BIG_STATS_Y(3), p.sLeadershipGain*2);
+	PrintStat(s.uiChangeWisdomTime,       WIS_INCREASE,      s.bWisdom,       x0, dy + SM_BIG_STATS_Y(4), p.sWisdomGain*2);
+	PrintStat(s.uiChangeLevelTime,        LVL_INCREASE,      s.bExpLevel,     x1, dy + SM_BIG_STATS_Y(0), p.sExpLevelGain*100/(350*p.bExpLevel));
+	PrintStat(s.uiChangeMarksmanshipTime, MRK_INCREASE,      s.bMarksmanship, x1, dy + SM_BIG_STATS_Y(1), p.sMarksmanshipGain*4);
+	PrintStat(s.uiChangeExplosivesTime,   EXP_INCREASE,      s.bExplosive,    x1, dy + SM_BIG_STATS_Y(2), p.sExplosivesGain*4);
+	PrintStat(s.uiChangeMechanicalTime,   MECH_INCREASE,     s.bMechanical,   x1, dy + SM_BIG_STATS_Y(3), p.sMechanicGain*4);
+	PrintStat(s.uiChangeMedicalTime,      MED_INCREASE,      s.bMedical,      x1, dy + SM_BIG_STATS_Y(4), p.sMedicalGain*4);
+
+	UINT8 const value_colour = s.bLife >= OKLIFE ? SM_BIG_VALUE_COLOR : FONT_MCOLOR_DKGRAY;
+	PrintBigSMInfoBox(dx + SM_BIG_ARMOR_BOX_X,  dy + SM_BIG_ARMOR_BOX_Y,  pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)),          value_colour);
+	PrintBigSMInfoBox(dx + SM_BIG_WEIGHT_BOX_X, dy + SM_BIG_WEIGHT_BOX_Y, pInvPanelTitleStrings[1], ST::format("{}%", CalculateCarriedWeight(&s)), value_colour);
+	PrintBigSMInfoBox(dx + SM_BIG_CAMO_BOX_X,   dy + SM_BIG_CAMO_BOX_Y,   pInvPanelTitleStrings[2], ST::format("{}%", s.bCamo),                    value_colour);
+}
+
+
+// The big SM panel's radar map button: the overhead map, as a right click on
+// the team panel's radar map.
+static void BtnSMRadarMapCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	if (!InOverheadMap()) GoIntoOverheadMap();
+}
+
 
 void RenderSMPanel(DirtyLevel* const dirty_level)
 {
@@ -1660,6 +1874,11 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 			{
 				goto no_plate;
 			}
+			if (SM_BIG)
+			{
+				// drawn after the portrait, below
+				goto no_plate;
+			}
 			INT32 const x = SM_SELMERC_PLATE_X + dx;
 			INT32 const y = SM_SELMERC_PLATE_Y + dy;
 			BltVideoObject(guiSAVEBUFFER, gfx, 0, x, y);
@@ -1667,7 +1886,29 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 		}
 no_plate:
 
-		RenderSoldierFace(s, dx + SM_SELMERC_FACE_X, dy + SM_SELMERC_FACE_Y);
+		if (SM_BIG)
+		{
+			// the static portrait; the selected merc's gold frame (as the big
+			// team panel), shaded while the items are disabled
+			INT32 const fx = dx + SM_BIG_FACE_X;
+			INT32 const fy = dy + SM_BIG_FACE_Y;
+			RenderBigSMPortrait(s, fx, fy);
+			if (gfSMDisableForItems)
+			{
+				guiSAVEBUFFER->ShadowRect(fx, fy, fx + SM_BIG_FACE_WIDTH, fy + SM_BIG_FACE_HEIGHT);
+			}
+			else if (gTacticalStatus.ubCurrentTeam == OUR_TEAM && &s == GetSelectedMan() && OK_INTERRUPT_MERC(&s))
+			{
+				SGPVSurface::Lock l(guiSAVEBUFFER);
+				SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+				RectangleDraw(TRUE, fx - 1, fy - 1, fx + SM_BIG_FACE_WIDTH, fy + SM_BIG_FACE_HEIGHT, Get16BPPColor(SM_BIG_SELECTED_COLOR), l.Buffer<UINT16>());
+			}
+			RestoreExternBackgroundRect(fx - 1, fy - 1, SM_BIG_FACE_WIDTH + 2, SM_BIG_FACE_HEIGHT + 2);
+		}
+		else
+		{
+			RenderSoldierFace(s, dx + SM_SELMERC_FACE_X, dy + SM_SELMERC_FACE_Y);
+		}
 
 		if (InItemDescriptionBox())
 		{
@@ -1684,10 +1925,18 @@ no_plate:
 		}
 		else
 		{
-			RenderInvBodyPanel(&s, SM_BODYINV_X, SM_BODYINV_Y);
+			// (the big panel has no place for the body figure yet)
+			if (!SM_BIG) RenderInvBodyPanel(&s, SM_BODYINV_X, SM_BODYINV_Y);
 
 			// Render Values for stats
 			SetFontDestBuffer(guiSAVEBUFFER);
+			if (SM_BIG)
+			{
+				RenderBigSMPanelStats(s, dx, dy);
+				SetFontDestBuffer(FRAME_BUFFER);
+				RestoreExternBackgroundRect(0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
+				goto stats_done;
+			}
 			SetFontAttributes(BLOCKFONT2, STATS_TITLE_FONT_COLOR);
 			for (UINT32 i = 0; i != 5; ++i)
 			{
@@ -1742,15 +1991,20 @@ no_plate:
 
 			RestoreExternBackgroundRect(0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
 		}
+stats_done:
 
-		// Render name
-		UINT8 const fg = s.bStealthMode ? FONT_MCOLOR_LTYELLOW : FONT_MCOLOR_LTGRAY;
-		SetFontAttributes(BLOCKFONT2, fg);
+		// Render name -- the big panel: FONT14ARIAL in the big weapon box's
+		// name colour, as the big team panel
+		UINT8 const fg =
+			s.bStealthMode ? FONT_MCOLOR_LTYELLOW :
+			SM_BIG         ? SM_BIG_VALUE_COLOR   :
+			FONT_MCOLOR_LTGRAY;
+		SetFontAttributes(SM_BIG ? SM_BIG_FONT : BLOCKFONT2, fg);
 
-		INT16 const x = SM_SELMERCNAME_X + dx;
-		INT16 const y = SM_SELMERCNAME_Y + dy;
-		INT16 const w = SM_SELMERCNAME_WIDTH;
-		INT16 const h = SM_SELMERCNAME_HEIGHT;
+		INT16 const x = (SM_BIG ? SM_BIG_NAME_X      : SM_SELMERCNAME_X) + dx;
+		INT16 const y = (SM_BIG ? SM_BIG_NAME_Y      : SM_SELMERCNAME_Y) + dy;
+		INT16 const w =  SM_BIG ? SM_BIG_NAME_WIDTH  : SM_SELMERCNAME_WIDTH;
+		INT16 const h =  SM_BIG ? SM_BIG_NAME_HEIGHT : SM_SELMERCNAME_HEIGHT;
 		RestoreExternBackgroundRect(x, y, w, h);
 		MPrint(x, y, s.name, HCenterVCenterAlign(w, h));
 	}
@@ -1762,8 +2016,17 @@ no_plate:
 		// Display AP
 		if (!(s.uiStatusFlags & SOLDIER_DEAD))
 		{
-			PrintAP(&s, dx + SM_SELMERC_AP_X, dy + SM_SELMERC_AP_Y, SM_SELMERC_AP_WIDTH, SM_SELMERC_AP_HEIGHT);
-			DrawSoldierUIBars(s, dx + SM_SELMERC_HEALTH_X, dy + SM_SELMERC_HEALTH_Y, TRUE, FRAME_BUFFER);
+			if (SM_BIG)
+			{
+				PrintAP(&s, dx + SM_BIG_AP_X, dy + SM_BIG_AP_Y, SM_BIG_AP_WIDTH, SM_BIG_AP_HEIGHT, SM_BIG_FONT);
+				DrawSoldierUIBarsTall(s, dx + SM_BIG_LIFEBAR_X, dx + SM_BIG_BREATHBAR_X, dx + SM_BIG_MORALEBAR_X,
+							dy + SM_BIG_BARS_Y, SM_BIG_BAR_WIDTH, SM_BIG_BAR_HEIGHT, FRAME_BUFFER);
+			}
+			else
+			{
+				PrintAP(&s, dx + SM_SELMERC_AP_X, dy + SM_SELMERC_AP_Y, SM_SELMERC_AP_WIDTH, SM_SELMERC_AP_HEIGHT);
+				DrawSoldierUIBars(s, dx + SM_SELMERC_HEALTH_X, dy + SM_SELMERC_HEALTH_Y, TRUE, FRAME_BUFFER);
+			}
 		}
 	}
 
@@ -1775,8 +2038,9 @@ no_plate:
 	if (gfSMDisableForItems && *dirty_level != DIRTYLEVEL0)
 	{
 		SGPRect ClipRect;
-		ClipRect.iLeft = dx + 87;
-		ClipRect.iRight = dx + 536;
+		// the big panel: its whole inventory part
+		ClipRect.iLeft = dx + (SM_BIG ? 236 : 87);
+		ClipRect.iRight = dx + (SM_BIG ? BIG_SMPANEL_WIDTH : 536);
 		ClipRect.iTop = INV_INTERFACE_START_Y;
 		ClipRect.iBottom = SCREEN_HEIGHT;
 		SGPVSurface::Lock l(FRAME_BUFFER);
@@ -1793,7 +2057,8 @@ no_plate:
 	// unlike HandleRenderInvSlots()'s early return, this does NOT hide the
 	// keyring icon while InKeyRingPopup()/InItemStackPopup() is true, so it
 	// stays visible the same way Money/Trash/Map/Shortcuts already do.
-	if (!InItemDescriptionBox())
+	// (the big panel has no places for them yet)
+	if (!InItemDescriptionBox() && !SM_BIG)
 	{
 		RenderSMMoneyAndTrashIcons();
 		RenderSMKeyringIcon();
@@ -4154,6 +4419,16 @@ void RenderTownIDString(void)
 	// Render town, position
 	SetFontAttributes(COMPFONT, 183);
 	ST::string zTownIDString = GetSectorIDString(gWorldSector, TRUE);
+
+	// the 1366x768 SM panel: its sector box, as the team panel's
+	if (g_ui.isBigSMPanelShown())
+	{
+		SetFont(BIG_TM_SECTOR_FONT);
+		zTownIDString = ReduceStringLength(zTownIDString, SM_BIG_SECTOR_WIDTH - 4, BIG_TM_SECTOR_FONT);
+		MPrint(INTERFACE_START_X + SM_BIG_SECTOR_X, INV_INTERFACE_START_Y + SM_BIG_SECTOR_Y, zTownIDString,
+			HCenterVCenterAlign(SM_BIG_SECTOR_WIDTH, SM_BIG_SECTOR_HEIGHT));
+		return;
+	}
 
 	// 1366x768 team panel: its own sector box, in its own font
 	if (g_ui.isBigTeamPanelShown())

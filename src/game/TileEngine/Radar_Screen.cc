@@ -288,6 +288,10 @@ void RenderRadarScreen()
 	// own rendering.
 	if (fShowMapInventoryPool) return;
 
+	// The 1366x768 SM panel has no radar window (its button opens the
+	// overhead map instead).
+	if (g_ui.isBigSMPanelShown()) return;
+
 	// create / destroy squad list regions as nessacary
 	CreateDestroyMouseRegionsForSquadList();
 

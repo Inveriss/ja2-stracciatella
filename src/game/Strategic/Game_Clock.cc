@@ -260,7 +260,7 @@ void RenderClock(void)
 	// on its big tactical team panel
 	SGPFont const font =
 		guiCurrentScreen == MAP_SCREEN ? StrategicTooltipFontAs(CLOCK_FONT) :
-		g_ui.isBigTeamPanelShown()      ? FONT12ARIAL                        :
+		g_ui.isBigTeamPanelShown() || g_ui.isBigSMPanelShown() ? FONT12ARIAL :
 		CLOCK_FONT;
 	SetFontAttributes(font, foreground);
 

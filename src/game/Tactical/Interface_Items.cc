@@ -386,8 +386,9 @@ constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 #define BAD_RELIABILITY				-2
 #define BAD_REPAIR_EASE				-2
 
-#define KEYRING_X      (INTERFACE_START_X + 314)
-#define KEYRING_Y      (INV_INTERFACE_START_Y + 160)
+// (the 1366x768 SM panel has no place for it yet: off the screen)
+#define KEYRING_X      (g_ui.isBigSMPanel() ? 60000 : INTERFACE_START_X + 314)
+#define KEYRING_Y      (g_ui.isBigSMPanel() ? 60000 : INV_INTERFACE_START_Y + 160)
 // Strategic map keyring icon -- laid out next to the map inventory's Done
 // button, see MAP_INV_KEYRING_X/Y in MapScreen.h.
 #define MAP_KEYRING_X (MAP_INV_KEYRING_X)
@@ -1462,6 +1463,45 @@ static INV_REGIONS const gSMInvDataMapBig[] =
 };
 static_assert(std::size(gSMInvDataMapBig) == NUM_INV_SLOTS, "one gSMInvDataMapBig entry per inventory slot");
 
+// Slot sizes on the 1366x768 interface's tactical SM panel
+// (inventory_bottom_panel_big_1366x768.png, UILayout::isBigSMPanel(); places in
+// UILayout.cc's m_invSlotPositionTac): its slot boxes, the big pictures in them.
+#define TAC_BIG_HEAD_SLOT_WIDTH			64	// HEAD1-4POS, HELMETPOS, VESTPOS, LEGPOS
+#define TAC_BIG_SLOT_HEIGHT			52
+#define TAC_BIG_HAND_SLOT_WIDTH			124	// HANDPOS, SECONDHANDPOS, BIGPOCK3-10POS
+#define TAC_BIG_WIDE_SLOT_WIDTH			157	// BIGPOCK1-2POS
+#define TAC_BIG_SMALLPOCK_SLOT_WIDTH		74	// SMALLPOCK1-20POS
+// the item's status bar: in the 2 px black line 5 px left of the slot
+#define TAC_BIG_BAR_DX				5
+#define TAC_BIG_BAR_DY				50
+#define TAC_BIG_BAR_HEIGHT			50
+#define TAC_BIG_BAR_WIDTH			2
+
+static INV_REGIONS const gSMInvDataTacBig[] =
+{
+#define M(w, h) { w, h }
+#define HEAD      M(TAC_BIG_HEAD_SLOT_WIDTH,      TAC_BIG_SLOT_HEIGHT)
+#define HAND      M(TAC_BIG_HAND_SLOT_WIDTH,      TAC_BIG_SLOT_HEIGHT)
+#define WIDE      M(TAC_BIG_WIDE_SLOT_WIDTH,      TAC_BIG_SLOT_HEIGHT)
+#define SMALLPOCK M(TAC_BIG_SMALLPOCK_SLOT_WIDTH, TAC_BIG_SLOT_HEIGHT)
+	HEAD, HEAD, HEAD,                     // HELMETPOS, VESTPOS, LEGPOS
+	HEAD, HEAD, HEAD, HEAD,               // HEAD1-4POS
+	HAND, HAND,                           // HANDPOS, SECONDHANDPOS
+	WIDE, WIDE,                           // BIGPOCK1-2
+	HAND, HAND, HAND, HAND,               // BIGPOCK3-6
+	HAND, HAND, HAND, HAND,               // BIGPOCK7-10
+	SMALLPOCK, SMALLPOCK, SMALLPOCK, SMALLPOCK, SMALLPOCK,
+	SMALLPOCK, SMALLPOCK, SMALLPOCK, SMALLPOCK, SMALLPOCK,
+	SMALLPOCK, SMALLPOCK, SMALLPOCK, SMALLPOCK, SMALLPOCK,
+	SMALLPOCK, SMALLPOCK, SMALLPOCK, SMALLPOCK, SMALLPOCK  // SMALLPOCK1-20
+#undef SMALLPOCK
+#undef WIDE
+#undef HAND
+#undef HEAD
+#undef M
+};
+static_assert(std::size(gSMInvDataTacBig) == NUM_INV_SLOTS, "one gSMInvDataTacBig entry per inventory slot");
+
 // Ammo left (bottom-left of the item picture) and stack count (bottom-right)
 // in the "Show Large Icons" panel's slots (mapinv_big_1280_720/768.sti --
 // one set for both): own font, fonts/font_mapinv_big_count.sti, and own
@@ -1755,9 +1795,12 @@ void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 	INV_REGION_DESC const* const pCamoRegion,
 	MOUSE_CALLBACK INVMoveCallback, MOUSE_CALLBACK INVClickCallback,
 	MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback,
-	bool const fMapBigImages)
+	bool const fMapBigImages, bool const fTacticalBigImages)
 {
-	INV_REGIONS const* const sizes = fMapBigImages ? gSMInvDataMapBig : gSMInvData;
+	INV_REGIONS const* const sizes =
+		fMapBigImages      ? gSMInvDataMapBig :
+		fTacticalBigImages ? gSMInvDataTacBig :
+		gSMInvData;
 
 	// Load all four body type images
 	guiBodyInvVO[0][0] = AddVideoObjectFromFile(INTERFACEDIR "/inventory_normal_male.sti");
@@ -1944,10 +1987,20 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 			}
 			else
 			{
-				INT32 const x = INTERFACE_START_X + 294;
-				INT32 const y = INV_INTERFACE_START_Y + 116;
-				BltVideoObject(guiSAVEBUFFER, guiSecItemHiddenVO, 0, x, y);
-				RestoreExternBackgroundRect(x, y, 75, 35);
+				if (g_ui.isBigSMPanel())
+				{
+					// the 1366x768 panel: the second hand's slot shaded
+					MOUSE_REGION const& h = gSMInvRegion[SECONDHANDPOS];
+					guiSAVEBUFFER->ShadowRect(h.X(), h.Y(), h.X() + h.W(), h.Y() + h.H());
+					RestoreExternBackgroundRect(h.X(), h.Y(), h.W(), h.H());
+				}
+				else
+				{
+					INT32 const x = INTERFACE_START_X + 294;
+					INT32 const y = INV_INTERFACE_START_Y + 116;
+					BltVideoObject(guiSAVEBUFFER, guiSecItemHiddenVO, 0, x, y);
+					RestoreExternBackgroundRect(x, y, 75, 35);
+				}
 			}
 		}
 
@@ -1966,7 +2019,8 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 		DIRTYLEVEL0; // We have a new item and we are in the right panel
 	// "Show Large Icons" on the map draws the same BIGITEMS graphics as the
 	// sector inventory's big mode (IsMapInvBigImages(), MapScreen.cc).
-	BOOLEAN const big = in_map && IsMapInvBigImages();
+	// The 1366x768 tactical SM panel too (UILayout::isBigSMPanel()).
+	BOOLEAN const big = in_map ? IsMapInvBigImages() : g_ui.isBigSMPanel();
 	InvItemTextLayout big_text{};
 	if (big) big_text = GetMapInvBigItemTextLayout();
 	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline, big, big ? &big_text : NULL);
@@ -2003,6 +2057,11 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 		{
 			DrawItemUIBarEx(o, 0, x - MAP_INV_BAR_DX, y + MAP_INV_BAR_DY, MAP_ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR),
 					Get16BPPColor(STATUS_BAR_SHADOW), guiSAVEBUFFER, MAP_ITEM_BAR_WIDTH);
+		}
+		else if (g_ui.isBigSMPanel())
+		{
+			DrawItemUIBarEx(o, 0, x - TAC_BIG_BAR_DX, y + TAC_BIG_BAR_DY, TAC_BIG_BAR_HEIGHT, Get16BPPColor(STATUS_BAR),
+					Get16BPPColor(STATUS_BAR_SHADOW), guiSAVEBUFFER, TAC_BIG_BAR_WIDTH);
 		}
 		else
 		{
@@ -2043,6 +2102,7 @@ void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 // from KeyRingItemPanelButtonCallback (Interface_Panels.cc).
 void RenderSMKeyringIcon()
 {
+	if (g_ui.isBigSMPanel()) return; // no place on the 1366x768 SM panel yet
 	BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fSMKeyringIconPressed ? 17 : 16, KEYRING_X, KEYRING_Y);
 	RestoreExternBackgroundRect(KEYRING_X, KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
 }

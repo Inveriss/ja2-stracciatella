@@ -16,7 +16,15 @@
 #define SCREEN_WIDTH                    (g_ui.m_screenWidth)
 #define INV_INTERFACE_START_Y           (g_ui.get_INV_INTERFACE_START_Y())
 // #define INV_INTERFACE_HEIGHT         (140)                                 // height of the bottom bar single-merc inventory panel
-#define INV_INTERFACE_HEIGHT            (197)                                 // NEW POSITION
+#define INV_INTERFACE_HEIGHT            (g_ui.isBigSMPanel() ? BIG_SMPANEL_HEIGHT : 197) // NEW POSITION; the 1366x768 one is taller
+
+// The 1366x768 interface's single merc (SM) panel,
+// inventory_bottom_panel_big_1366x768.png (isBigSMPanel()): one fixed piece at
+// the screen's left edge (not centred), its slots laid out in UILayout.cc's
+// m_invSlotPositionTac and Interface_Items.cc's gSMInvDataTacBig.
+#define BIG_SMPANEL_FILE                "inventory_bottom_panel_big_1366x768.png"
+#define BIG_SMPANEL_WIDTH               (1366)
+#define BIG_SMPANEL_HEIGHT              (247)
 
 // Infobox.sti (the weapon/item description popup) is blitted straight to the
 // screen buffer, independently of guiSMPanel/inventory_bottom_panel.sti --
@@ -240,6 +248,7 @@ public:
 	UINT16                m_mapRightBlockShift;           /** How far the right block sits right of where the legacy 1024 canvas had it (m_mapScreenWidth - 1024 on the wide strategic screen, else 0) -- see MAP_RIGHT_BLOCK_SHIFT */
 	bool                  m_bigTeamPanel;                 /** The tactical team panel is bottom_bar_big_1366x768.png -- see isBigTeamPanel() */
 	bool                  m_lowTeamPanel;                 /** The big team panel is in its low form -- see isLowTeamPanel() */
+	bool                  m_bigSMPanel;                   /** The tactical SM panel is inventory_bottom_panel_big_1366x768.png -- see isBigSMPanel() */
 
 	/** Constructor.
 	 * @param screenWidth Screen width
@@ -263,6 +272,12 @@ public:
 
 	/** True when the tactical team panel is the 1366x768 interface's own one (BIG_TEAMPANEL_*): the 1366x768 base (as isExtraWideStrategicScreen()) and bottom_bar_big_1366x768.png present; otherwise the old bottom_bar.sti panel. */
 	bool isBigTeamPanel() const { return m_bigTeamPanel; }
+
+	/** True when the tactical SM (single merc inventory) panel is the 1366x768 interface's own one (BIG_SMPANEL_*): the big team panel's resolution and its graphic present. */
+	bool isBigSMPanel() const { return m_bigSMPanel; }
+
+	/** The big SM panel is the one on screen right now: tactical screen, SM panel. */
+	bool isBigSMPanelShown() const;
 
 	/** True when the big team panel shows its low form (BIG_TEAMPANEL_LOW_*), chosen by the panel's toggle button. */
 	bool isLowTeamPanel() const { return m_bigTeamPanel && m_lowTeamPanel; }
