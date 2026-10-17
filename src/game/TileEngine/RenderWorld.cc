@@ -2339,8 +2339,9 @@ void InitRenderParams(UINT8 ubRestrictionID)
 	const double dWorldX = gsRightX - gsLeftX;
 	const double dWorldY = gsBottomY - gsTopY;
 
-	gdScaleX = (double)RADAR_WINDOW_WIDTH  / dWorldX;
-	gdScaleY = (double)RADAR_WINDOW_HEIGHT / dWorldY;
+	// for the 88x44 radar; Radar_Screen.cc scales them to its current size
+	gdScaleX = (double)RADAR_WINDOW_SMALL_WIDTH  / dWorldX;
+	gdScaleY = (double)RADAR_WINDOW_SMALL_HEIGHT / dWorldY;
 
 	gdBigScaleX = (double)RADAR_WINDOW_BIG_WIDTH  / dWorldX;
 	gdBigScaleY = (double)RADAR_WINDOW_BIG_HEIGHT / dWorldY;

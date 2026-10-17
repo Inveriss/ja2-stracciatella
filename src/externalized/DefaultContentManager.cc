@@ -86,6 +86,7 @@
 #define RADARMAPSDIR   "radarmaps"
 #define RADARMAPSBIGDIR "radarmaps_big"
 #define RADARMAPSOVERHEADDIR "radarmaps_overhead"
+#define RADARMAPSPANELDIR "radarmaps_panel"
 #define TILESETSDIR    "tilesets"
 
 #define DIALOGUESIZE 240
@@ -302,6 +303,16 @@ ST::string DefaultContentManager::getRadarMapBigResourceName(const ST::string &m
 ST::string DefaultContentManager::getRadarMapOverheadResourceName(const ST::string &mapName) const
 {
 	ST::string result = RADARMAPSOVERHEADDIR "/" + mapName;
+
+	SLOGD("map file {}", result);
+
+	return result;
+}
+
+/** Get panel (240x120) radar map resource name, for the tactical radar in the 1366x768 team panel. */
+ST::string DefaultContentManager::getRadarMapPanelResourceName(const ST::string &mapName) const
+{
+	ST::string result = RADARMAPSPANELDIR "/" + mapName;
 
 	SLOGD("map file {}", result);
 
