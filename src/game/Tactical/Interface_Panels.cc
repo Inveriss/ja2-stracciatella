@@ -340,15 +340,13 @@
 #define BIG_TM_INV_WIDTH			124
 #define BIG_TM_INV_HEIGHT			50
 #define BIG_TM_INV_SEPY			50
-#define BIG_TM_ENDTURN_X			1029 // 27x27 buttons
-#define BIG_TM_ROSTERMODE_X			1066
-#define BIG_TM_DISK_X				1103
-#define BIG_TM_BUTTONS_Y			7
-#define BIG_TM_PREVMERC_X			1029 // 27x27, under Done
-#define BIG_TM_NEXTMERC_X			1066 // 27x27, under Map Screen
-#define BIG_TM_MERC_BUTTONS_Y			40
+// The six 27x27 buttons, 3 columns x 2 rows: Done, Map Screen, Change Squad
+// above Previous / Next merc and the low panel toggle -- 37 x 33 px apart
+// from (1029, 7) on the full panel, 31 x 31 from (1028, 7) on the low one.
+#define BIG_TM_BUTTON_X(col)			(g_ui.isLowTeamPanel() ? 1028 + (col) * 31 : 1029 + (col) * 37)
+#define BIG_TM_BUTTON_Y(row)			(7 + (row) * (g_ui.isLowTeamPanel() ? 31 : 33))
 #define BIG_TM_SECTOR_X			1031 // sector box, above the clock's
-#define BIG_TM_SECTOR_Y			123
+#define BIG_TM_SECTOR_Y			(g_ui.isLowTeamPanel() ? 73 : 123)
 #define BIG_TM_SECTOR_WIDTH			79
 #define BIG_TM_SECTOR_HEIGHT			23
 #define BIG_TM_FONT				BIG_TEAMPANEL_FONT // names and action points
@@ -408,6 +406,10 @@ static BUTTON_PICS* iTEAMPanelImages[NUM_TEAM_BUTTON_IMAGES];
 // pictures), in the two 27x27 windows under Done and Map Screen.
 static GUIButtonRef giBigTeamPanelMercButtons[2];
 static BUTTON_PICS* giBigTeamPanelMercImages[2];
+// Its toggle between the full and the low panel (for now Map Screen's
+// picture), in the window under Change Squad.
+static GUIButtonRef giBigTeamPanelLowButton;
+static BUTTON_PICS* giBigTeamPanelLowImage;
 
 static BUTTON_PICS* giSMStealthImages;
 GUIButtonRef giSMStealthButton;
@@ -2834,7 +2836,16 @@ static void LayoutBigTEAMPanelRegions()
 		PlaceRegion(tp.left_bars, dx + BIG_TM_NAME_X, dy + BIG_TM_NAME_Y,
 				BIG_TM_AP_X + BIG_TM_AP_WIDTH - BIG_TM_NAME_X, BIG_TM_NAME_HEIGHT);
 		PlaceRegion(tp.first_hand, dx + BIG_TM_INV_X, dy + BIG_TM_INV_Y, BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
-		PlaceRegion(tp.second_hand, dx + BIG_TM_INV_X, dy + BIG_TM_INV_Y + BIG_TM_INV_SEPY, BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
+		if (g_ui.isLowTeamPanel())
+		{
+			// the low panel has no second hand (the first hand's right click
+			// still swaps the two)
+			PlaceRegion(tp.second_hand, OFF_SCREEN, OFF_SCREEN, 0, 0);
+		}
+		else
+		{
+			PlaceRegion(tp.second_hand, dx + BIG_TM_INV_X, dy + BIG_TM_INV_Y + BIG_TM_INV_SEPY, BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
+		}
 	}
 }
 
@@ -2929,7 +2940,8 @@ void InitializeTEAMPanel()
 		// the 1366x768 interface's own panel, one piece (RGBA: its transparent
 		// windows -- the minimap block's empty squares -- end up black)
 		guiTEAMPanel->Fill(0);
-		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" BIG_TEAMPANEL_FILE) };
+		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(g_ui.isLowTeamPanel() ?
+			INTERFACEDIR "/" BIG_TEAMPANEL_LOW_FILE : INTERFACEDIR "/" BIG_TEAMPANEL_FILE) };
 		BltVideoObject(guiTEAMPanel, big_panel.get(), 0, 0, 0);
 	}
 	else
@@ -3139,6 +3151,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 		{
 			if (b) MarkAButtonDirty(b);
 		}
+		if (giBigTeamPanelLowButton) MarkAButtonDirty(giBigTeamPanelLowButton);
 
 		BltVideoSurface(guiSAVEBUFFER, guiTEAMPanel, TEAM_PANEL_X, TEAM_PANEL_Y, NULL);
 
@@ -3346,6 +3359,7 @@ static void BtnSquadCallback(GUI_BUTTON* btn, UINT32 reason);
 
 static void BtnTeamPrevMercCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnTeamNextMercCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnTeamLowPanelCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
 void CreateTEAMPanelButtons(void)
@@ -3360,13 +3374,13 @@ void CreateTEAMPanelButtons(void)
 	// 1366x768 team panel: side by side in the first three 27x27 windows
 	bool const big = g_ui.isBigTeamPanel();
 	MakeButtonTeam(TEAM_DONE_BUTTON, iTEAMPanelImages[ENDTURN_IMAGES],
-			dx + (big ? BIG_TM_ENDTURN_X : TM_ENDTURN_X), dy + (big ? BIG_TM_BUTTONS_Y : TM_ENDTURN_Y),
+			dx + (big ? BIG_TM_BUTTON_X(0) : TM_ENDTURN_X), dy + (big ? BIG_TM_BUTTON_Y(0) : TM_ENDTURN_Y),
 			BtnEndTurnCallback, TacticalStr[END_TURN_POPUPTEXT]);
 	MakeButtonTeam(TEAM_MAP_SCREEN_BUTTON, iTEAMPanelImages[ROSTERMODE_IMAGES],
-			dx + (big ? BIG_TM_ROSTERMODE_X : TM_ROSTERMODE_X), dy + (big ? BIG_TM_BUTTONS_Y : TM_ROSTERMODE_Y),
+			dx + (big ? BIG_TM_BUTTON_X(1) : TM_ROSTERMODE_X), dy + (big ? BIG_TM_BUTTON_Y(0) : TM_ROSTERMODE_Y),
 			BtnRostermodeCallback, TacticalStr[MAPSCREEN_POPUPTEXT]);
 	MakeButtonTeam(CHANGE_SQUAD_BUTTON, iTEAMPanelImages[DISK_IMAGES],
-			dx + (big ? BIG_TM_DISK_X : TM_DISK_X), dy + (big ? BIG_TM_BUTTONS_Y : TM_DISK_Y),
+			dx + (big ? BIG_TM_BUTTON_X(2) : TM_DISK_X), dy + (big ? BIG_TM_BUTTON_Y(0) : TM_DISK_Y),
 			BtnSquadCallback, TacticalStr[CHANGE_SQUAD_POPUPTEXT]);
 
 	if (big)
@@ -3374,10 +3388,15 @@ void CreateTEAMPanelButtons(void)
 		// inventory_buttons.sti, as CreateSMPanelButtons()
 		giBigTeamPanelMercImages[0] = LoadButtonImage(INTERFACEDIR "/inventory_buttons.sti", 20, 22);
 		giBigTeamPanelMercImages[1] = UseLoadedButtonImage(giBigTeamPanelMercImages[0], 21, 23);
-		giBigTeamPanelMercButtons[0] = QuickCreateButton(giBigTeamPanelMercImages[0], dx + BIG_TM_PREVMERC_X, dy + BIG_TM_MERC_BUTTONS_Y, MSYS_PRIORITY_HIGH - 1, BtnTeamPrevMercCallback);
+		giBigTeamPanelMercButtons[0] = QuickCreateButton(giBigTeamPanelMercImages[0], dx + BIG_TM_BUTTON_X(0), dy + BIG_TM_BUTTON_Y(1), MSYS_PRIORITY_HIGH - 1, BtnTeamPrevMercCallback);
 		giBigTeamPanelMercButtons[0]->SetFastHelpText(TacticalStr[PREV_MERC_POPUPTEXT]);
-		giBigTeamPanelMercButtons[1] = QuickCreateButton(giBigTeamPanelMercImages[1], dx + BIG_TM_NEXTMERC_X, dy + BIG_TM_MERC_BUTTONS_Y, MSYS_PRIORITY_HIGH - 1, BtnTeamNextMercCallback);
+		giBigTeamPanelMercButtons[1] = QuickCreateButton(giBigTeamPanelMercImages[1], dx + BIG_TM_BUTTON_X(1), dy + BIG_TM_BUTTON_Y(1), MSYS_PRIORITY_HIGH - 1, BtnTeamNextMercCallback);
 		giBigTeamPanelMercButtons[1]->SetFastHelpText(TacticalStr[NEXT_MERC_POPUPTEXT]);
+
+		// the low panel toggle, pressed while the low panel shows
+		giBigTeamPanelLowImage  = UseLoadedButtonImage(iTEAMPanelImages[ENDTURN_IMAGES], 1, 4);
+		giBigTeamPanelLowButton = QuickCreateButtonToggle(giBigTeamPanelLowImage, dx + BIG_TM_BUTTON_X(2), dy + BIG_TM_BUTTON_Y(1), MSYS_PRIORITY_HIGH - 1, BtnTeamLowPanelCallback);
+		if (g_ui.isLowTeamPanel()) giBigTeamPanelLowButton->uiFlags |= BUTTON_CLICKED_ON;
 	}
 }
 
@@ -3395,6 +3414,21 @@ void RemoveTEAMPanelButtons(void)
 		RemoveButton(giBigTeamPanelMercButtons[i]);
 		UnloadButtonImage(giBigTeamPanelMercImages[i]);
 	}
+	if (giBigTeamPanelLowButton)
+	{
+		RemoveButton(giBigTeamPanelLowButton);
+		UnloadButtonImage(giBigTeamPanelLowImage);
+	}
+}
+
+
+// The big team panel's full / low toggle: the panel is built again, in the
+// other form, next frame (HandleTacticalPanelSwitch(), Interface_Control.cc).
+static void BtnTeamLowPanelCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	g_ui.setLowTeamPanel(!g_ui.isLowTeamPanel());
+	RebuildTacticalTeamPanel();
 }
 
 
@@ -3500,6 +3534,7 @@ static void UpdateTEAMPanel(void)
 		{
 			if (b) DisableButton(b);
 		}
+		if (giBigTeamPanelLowButton) DisableButton(giBigTeamPanelLowButton);
 
 		// OK, disable item regions.......
 		for (TeamPanelSlot& i : gTeamPanel)
@@ -3520,6 +3555,7 @@ static void UpdateTEAMPanel(void)
 		{
 			if (b) EnableButton(b, !(gTacticalStatus.uiFlags & ENGAGED_IN_CONV));
 		}
+		if (giBigTeamPanelLowButton) EnableButton(giBigTeamPanelLowButton);
 
 		for (TeamPanelSlot& i : gTeamPanel)
 		{
@@ -3956,6 +3992,7 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const& s, INT16 const x, INT16 y, D
 		INVRenderItem(buf, &s, s.inv[HANDPOS], x, y, w, h, dirty_level, 0, SGP_TRANSPARENT, big, text);
 	}
 
+	if (big && g_ui.isLowTeamPanel()) return; // the low panel has no second hand
 	y += big ? BIG_TM_INV_SEPY : TM_INV_HAND_SEPY;
 	if (s.uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER))
 	{

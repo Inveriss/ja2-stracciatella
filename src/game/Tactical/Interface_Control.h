@@ -27,4 +27,7 @@ extern BOOLEAN gfRerenderInterfaceFromHelpText;
 // in the single merc panel.
 void SetNewPanel(SOLDIERTYPE*);
 
+// Builds the team panel again next frame (HandleTacticalPanelSwitch()).
+void RebuildTacticalTeamPanel();
+
 #endif

@@ -57,6 +57,13 @@ BOOLEAN    gfPausedTacticalRenderFlags          = FALSE;
 
 static bool         g_switch_panel      = false;
 static SOLDIERTYPE* g_new_panel_soldier = 0;
+static bool         g_rebuild_team_panel = false;
+
+
+void RebuildTacticalTeamPanel()
+{
+	g_rebuild_team_panel = true;
+}
 
 
 void SetNewPanel(SOLDIERTYPE* const s)
@@ -68,6 +75,18 @@ void SetNewPanel(SOLDIERTYPE* const s)
 
 void HandleTacticalPanelSwitch()
 {
+	// the team panel again, e.g. in the other form of the 1366x768 one
+	if (g_rebuild_team_panel)
+	{
+		g_rebuild_team_panel = false;
+		if (gsCurInterfacePanel == TEAM_PANEL)
+		{
+			ShutdownCurrentPanel();
+			InitializeCurrentPanel();
+			fInterfacePanelDirty = DIRTYLEVEL2;
+		}
+	}
+
 	if (!g_switch_panel) return;
 	g_switch_panel = false;
 

@@ -131,7 +131,13 @@
 // squad-size-driven m_teamPanelWidth/m_smPanelWidth.
 #define BIG_TEAMPANEL_FILE              "bottom_bar_big_1366x768.png"
 #define BIG_TEAMPANEL_WIDTH             (1366)
-#define BIG_TEAMPANEL_HEIGHT            (200)
+// The big team panel's two heights: the full one, and the low one
+// (bottom_bar_low_big_1366x768.png, isLowTeamPanel()) without the second hand,
+// toggled by its sixth button.
+#define BIG_TEAMPANEL_FULL_HEIGHT       (200)
+#define BIG_TEAMPANEL_LOW_HEIGHT        (150)
+#define BIG_TEAMPANEL_LOW_FILE          "bottom_bar_low_big_1366x768.png"
+#define BIG_TEAMPANEL_HEIGHT            (g_ui.isLowTeamPanel() ? BIG_TEAMPANEL_LOW_HEIGHT : BIG_TEAMPANEL_FULL_HEIGHT)
 #define BIG_TEAMPANEL_NUM_SLOTS         (7)      // slots shown; a bigger squad scrolls through them
 #define BIG_TEAMPANEL_SLOT_WIDTH        (146)
 #define BIG_TEAMPANEL_FONT              FONT14ARIAL
@@ -233,6 +239,7 @@ public:
 	UINT16                m_mapRightBlockOffsetX;         /** Offset of the strategic map's right block (MBS, map, sector inventory) -- see MAP_SCREEN_RIGHT_BLOCK_X */
 	UINT16                m_mapRightBlockShift;           /** How far the right block sits right of where the legacy 1024 canvas had it (m_mapScreenWidth - 1024 on the wide strategic screen, else 0) -- see MAP_RIGHT_BLOCK_SHIFT */
 	bool                  m_bigTeamPanel;                 /** The tactical team panel is bottom_bar_big_1366x768.png -- see isBigTeamPanel() */
+	bool                  m_lowTeamPanel;                 /** The big team panel is in its low form -- see isLowTeamPanel() */
 
 	/** Constructor.
 	 * @param screenWidth Screen width
@@ -256,6 +263,12 @@ public:
 
 	/** True when the tactical team panel is the 1366x768 interface's own one (BIG_TEAMPANEL_*): the 1366x768 base (as isExtraWideStrategicScreen()) and bottom_bar_big_1366x768.png present; otherwise the old bottom_bar.sti panel. */
 	bool isBigTeamPanel() const { return m_bigTeamPanel; }
+
+	/** True when the big team panel shows its low form (BIG_TEAMPANEL_LOW_*), chosen by the panel's toggle button. */
+	bool isLowTeamPanel() const { return m_bigTeamPanel && m_lowTeamPanel; }
+
+	/** Switches the big team panel's low form on or off -- off when its graphic is missing. The panel itself is rebuilt by the caller. */
+	void setLowTeamPanel(bool low);
 
 	UINT16 currentHeight() const;
 	UINT16 get_CLOCK_X() const;

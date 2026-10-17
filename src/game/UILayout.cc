@@ -29,7 +29,7 @@ UILayout g_ui(MIN_INTERFACE_WIDTH, MIN_INTERFACE_HEIGHT);
 /** Constructor. */
 UILayout::UILayout(UINT16 screenWidth, UINT16 screenHeight)
 	:m_mapScreenWidth(MIN_INTERFACE_WIDTH), m_mapScreenHeight(MIN_INTERFACE_HEIGHT),
-	m_screenWidth(screenWidth), m_screenHeight(screenHeight), m_bigTeamPanel(false)
+	m_screenWidth(screenWidth), m_screenHeight(screenHeight), m_bigTeamPanel(false), m_lowTeamPanel(false)
 {
 }
 
@@ -92,20 +92,20 @@ UINT16 UILayout::get_CLOCK_X() const
 	// inventory_bottom_panel.sti's latest graphic; TEAM_PANEL (bottom_bar.sti)
 	// is untouched.
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 83;
-	// centered on the big team panel's time box (x 1034, 72 wide)
+	// centered on the big team panel's time box (x 1034, 72 wide; 73 on the low one)
 	if (m_bigTeamPanel) return 1034 + (72 - get_CLOCK_WIDTH()) / 2;
 	return m_teamPanelPosition.iX + m_teamPanelWidth - 86;
 }
 UINT16 UILayout::get_CLOCK_Y() const
 {
-	// the big team panel's time box: y 163, 22 high (clock 13)
-	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + 163 + (22 - 13) / 2;
+	// the big team panel's time box: y 163 (113 on the low one), 22 high (clock 13)
+	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + (isLowTeamPanel() ? 113 : 163) + (22 - 13) / 2;
 	return currentHeight() - 23;
 }
 // The big team panel's clock (FONT12ARIAL, "Day 31, 23:59" is 68 px) fills
 // its 72 px box.
 UINT16 UILayout::get_CLOCK_WIDTH() const           { return isBigTeamPanelShown() ? 72 : 66; }
-// Big team panel: the radar window (x 1121, y 76, 240x120) -- the 240x120
+// Big team panel: the radar window (x 1121, y 76 -- 26 on the low one --, 240x120) -- the 240x120
 // map, or the 88x44 one in its top left corner when the sector has no big
 // one (Radar_Screen.h's RadarUsesPanelMap()).
 UINT16 UILayout::get_RADAR_WINDOW_X() const
@@ -118,10 +118,14 @@ UINT16 UILayout::get_RADAR_WINDOW_X() const
 }
 UINT16 UILayout::get_RADAR_WINDOW_TM_Y() const
 {
-	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + 76;
+	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + (isLowTeamPanel() ? 26 : 76);
 	return currentHeight() - 107;
 }
 bool UILayout::isBigTeamPanelShown() const         { return !fInMapMode && m_bigTeamPanel && gsCurInterfacePanel != SM_PANEL; }
+void UILayout::setLowTeamPanel(bool const low)
+{
+	m_lowTeamPanel = low && GCM && GCM->doesGameResExists(INTERFACEDIR "/" BIG_TEAMPANEL_LOW_FILE);
+}
 UINT16 UILayout::get_INV_INTERFACE_START_Y() const { return m_screenHeight - INV_INTERFACE_HEIGHT;                                  }
 UINT16 UILayout::get_ITEMDESC_PANEL_START_Y() const { return m_screenHeight - ITEMDESC_PANEL_HEIGHT;                                 }
 UINT16 UILayout::get_ITEMDESC_PANEL_START_Y_MONEY() const { return m_screenHeight - ITEMDESC_PANEL_HEIGHT_MONEY;                       }
