@@ -30,4 +30,8 @@ void SetNewPanel(SOLDIERTYPE*);
 // Builds the team panel again next frame (HandleTacticalPanelSwitch()).
 void RebuildTacticalTeamPanel();
 
+// Opens the overhead map next frame (HandleTacticalPanelSwitch()) -- for
+// buttons of the SM panel, which opening it removes.
+void RequestOverheadMap();
+
 #endif

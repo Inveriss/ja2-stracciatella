@@ -1813,11 +1813,12 @@ static void RenderBigSMPanelStats(SOLDIERTYPE const& s, INT32 const dx, INT32 co
 
 
 // The big SM panel's radar map button: the overhead map, as a right click on
-// the team panel's radar map.
+// the team panel's radar map -- next frame: opening it switches to the team
+// panel, removing this very button.
 static void BtnSMRadarMapCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
-	if (!InOverheadMap()) GoIntoOverheadMap();
+	RequestOverheadMap();
 }
 
 

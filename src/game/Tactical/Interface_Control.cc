@@ -22,6 +22,7 @@
 #include "Render_Dirty.h"
 #include "Interface_Cursors.h"
 #include "Interface_Panels.h"
+#include "Overhead_Map.h"
 #include "VObject_Blitters.h"
 #include "Faces.h"
 #include "Interface_Control.h"
@@ -58,6 +59,13 @@ BOOLEAN    gfPausedTacticalRenderFlags          = FALSE;
 static bool         g_switch_panel      = false;
 static SOLDIERTYPE* g_new_panel_soldier = 0;
 static bool         g_rebuild_team_panel = false;
+static bool         g_open_overhead_map  = false;
+
+
+void RequestOverheadMap()
+{
+	g_open_overhead_map = true;
+}
 
 
 void RebuildTacticalTeamPanel()
@@ -75,6 +83,16 @@ void SetNewPanel(SOLDIERTYPE* const s)
 
 void HandleTacticalPanelSwitch()
 {
+	// The overhead map asked for from a panel button: opening it switches to
+	// the team panel, which mustn't happen inside that button's own callback
+	// (the button would be deleted under it).
+	if (g_open_overhead_map)
+	{
+		g_open_overhead_map = false;
+		if (!InOverheadMap()) GoIntoOverheadMap(); // calls this function again
+		return;
+	}
+
 	// the team panel again, e.g. in the other form of the 1366x768 one
 	if (g_rebuild_team_panel)
 	{
