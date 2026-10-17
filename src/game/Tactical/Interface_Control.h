@@ -27,8 +27,12 @@ extern BOOLEAN gfRerenderInterfaceFromHelpText;
 // in the single merc panel.
 void SetNewPanel(SOLDIERTYPE*);
 
-// Builds the team panel again next frame (HandleTacticalPanelSwitch()).
+// Builds the team or SM panel again next frame (HandleTacticalPanelSwitch()).
 void RebuildTacticalTeamPanel();
+
+// Switches the SM panels' Show Large Icons (UILayout::setSMLargeIcons()) and
+// builds the SM panel again, next frame.
+void ToggleSMLargeIcons();
 
 // Opens the overhead map next frame (HandleTacticalPanelSwitch()) -- for
 // buttons of the SM panel, which opening it removes.

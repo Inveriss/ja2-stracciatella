@@ -250,6 +250,7 @@ public:
 	bool                  m_bigTeamPanel;                 /** The tactical team panel is bottom_bar_big_1366x768.png -- see isBigTeamPanel() */
 	bool                  m_lowTeamPanel;                 /** The big team panel is in its low form -- see isLowTeamPanel() */
 	bool                  m_bigSMPanel;                   /** The tactical SM panel is inventory_bottom_panel_big_1366x768.png -- see isBigSMPanel() */
+	bool                  m_smLargeIcons;                 /** The SM panels' Show Large Icons toggle: the big SM panel (on), or the old one (off) -- see setSMLargeIcons() */
 
 	/** Constructor.
 	 * @param screenWidth Screen width
@@ -279,6 +280,12 @@ public:
 
 	/** The big SM panel is the one on screen right now: tactical screen, SM panel. */
 	bool isBigSMPanelShown() const;
+
+	/** The SM panels' Show Large Icons toggle (1366x768): on = the big SM panel, off = the old inventory_bottom_panel.sti one. */
+	bool isSMLargeIcons() const { return m_smLargeIcons; }
+
+	/** Sets the Show Large Icons toggle and lays the SM panel out again (recalculatePositions()); the panel itself is rebuilt by the caller. */
+	void setSMLargeIcons(bool on);
 
 	/** True when the big team panel shows its low form (BIG_TEAMPANEL_LOW_*), chosen by the panel's toggle button. */
 	bool isLowTeamPanel() const { return m_bigTeamPanel && m_lowTeamPanel; }

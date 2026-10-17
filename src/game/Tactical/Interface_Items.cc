@@ -1477,8 +1477,6 @@ static_assert(std::size(gSMInvDataMapBig) == NUM_INV_SLOTS, "one gSMInvDataMapBi
 #define TAC_BIG_BAR_HEIGHT			50
 #define TAC_BIG_BAR_WIDTH			2
 
-BOOLEAN gfSMLargeIcons = TRUE;
-
 static INV_REGIONS const gSMInvDataTacBig[] =
 {
 #define M(w, h) { w, h }
@@ -2021,9 +2019,8 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 		DIRTYLEVEL0; // We have a new item and we are in the right panel
 	// "Show Large Icons" on the map draws the same BIGITEMS graphics as the
 	// sector inventory's big mode (IsMapInvBigImages(), MapScreen.cc).
-	// The 1366x768 tactical SM panel too (UILayout::isBigSMPanel()), unless
-	// its Show Large Icons toggle is off.
-	BOOLEAN const big = in_map ? IsMapInvBigImages() : g_ui.isBigSMPanel() && gfSMLargeIcons;
+	// The 1366x768 tactical SM panel too (UILayout::isBigSMPanel()).
+	BOOLEAN const big = in_map ? IsMapInvBigImages() : g_ui.isBigSMPanel();
 	InvItemTextLayout big_text{};
 	if (big) big_text = GetMapInvBigItemTextLayout();
 	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline, big, big ? &big_text : NULL);

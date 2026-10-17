@@ -157,9 +157,10 @@
 // opens the overhead map, as a right click on the team panel's radar map
 #define SM_BIG_RADARB_X			95
 #define SM_BIG_RADARB_Y			(SM_BIG_TOP + 98)
-// its Show Large Icons toggle, after the bookmark buttons
-#define SM_BIG_LARGE_ICONSB_X			515
-#define SM_BIG_LARGE_ICONSB_Y			2
+// the SM panels' Show Large Icons toggle (1366x768), after the bookmark
+// buttons -- on both the big and the old panel
+#define SM_LARGE_ICONSB_X			SM_BOOKMARK_X(516)
+#define SM_LARGE_ICONSB_Y			SM_BOOKMARK_Y(160)
 
 // The big SM panel's windows (panel coordinates).
 #define SM_BIG_FACE_X				4    // big portrait cut to 86x70: 10 px off each side,
@@ -1471,13 +1472,16 @@ void CreateSMPanelButtons(void)
 		giSMBigRadarImage  = UseLoadedButtonImage(iSMPanelImages[DONE_IMAGES], 0, 2);
 		giSMBigRadarButton = QuickCreateButton(giSMBigRadarImage, dx + SM_BIG_RADARB_X, dy + SM_BIG_RADARB_Y, MSYS_PRIORITY_HIGH - 1, BtnSMRadarMapCallback);
 		giSMBigRadarButton->SetFastHelpText("Radar Map");
+	}
 
-		// Show Large Icons: big or small item pictures in the slots, for now
-		// with the Skills bookmark's picture
+	if (g_ui.isBigTeamPanel())
+	{
+		// Show Large Icons: the big panel or the old one, for now with the
+		// Skills bookmark's picture; pressed on the big one
 		giSMBigLargeIconsImage  = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 24, 25);
-		giSMBigLargeIconsButton = QuickCreateButtonToggle(giSMBigLargeIconsImage, dx + SM_BIG_LARGE_ICONSB_X, dy + SM_BIG_LARGE_ICONSB_Y, MSYS_PRIORITY_HIGH - 1, BtnSMLargeIconsCallback);
+		giSMBigLargeIconsButton = QuickCreateButtonToggle(giSMBigLargeIconsImage, dx + SM_LARGE_ICONSB_X, dy + SM_LARGE_ICONSB_Y, MSYS_PRIORITY_HIGH - 1, BtnSMLargeIconsCallback);
 		giSMBigLargeIconsButton->SetFastHelpText("Show Large Icons");
-		if (gfSMLargeIcons) giSMBigLargeIconsButton->uiFlags |= BUTTON_CLICKED_ON;
+		if (g_ui.isSMLargeIcons()) giSMBigLargeIconsButton->uiFlags |= BUTTON_CLICKED_ON;
 	}
 #if 0
 	MakeButtonN(BURSTMODE_BUTTON,     iSMPanelImages[BURSTMODE_IMAGES],  SM_BURSTMODEB_X,  dy + SM_BURSTMODEB_Y,  BtnBurstModeCallback,  TacticalStr[TOGGLE_BURSTMODE_POPUPTEXT]);
@@ -1835,15 +1839,12 @@ static void RenderBigSMPanelStats(SOLDIERTYPE const& s, INT32 const dx, INT32 co
 }
 
 
-// The big SM panel's Show Large Icons toggle: the slots' big or small
-// item pictures (gfSMLargeIcons, Interface_Items.cc).
+// The SM panels' Show Large Icons toggle: the big panel or the old one,
+// built again next frame (the toggle is one of the buttons that goes).
 static void BtnSMLargeIconsCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
-	gfSMLargeIcons = !gfSMLargeIcons;
-	if (gfSMLargeIcons) btn->uiFlags |= BUTTON_CLICKED_ON; else btn->uiFlags &= ~BUTTON_CLICKED_ON;
-	btn->uiFlags |= BUTTON_DIRTY;
-	fInterfacePanelDirty = DIRTYLEVEL2;
+	ToggleSMLargeIcons();
 }
 
 

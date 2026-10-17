@@ -29,7 +29,7 @@ UILayout g_ui(MIN_INTERFACE_WIDTH, MIN_INTERFACE_HEIGHT);
 /** Constructor. */
 UILayout::UILayout(UINT16 screenWidth, UINT16 screenHeight)
 	:m_mapScreenWidth(MIN_INTERFACE_WIDTH), m_mapScreenHeight(MIN_INTERFACE_HEIGHT),
-	m_screenWidth(screenWidth), m_screenHeight(screenHeight), m_bigTeamPanel(false), m_lowTeamPanel(false), m_bigSMPanel(false)
+	m_screenWidth(screenWidth), m_screenHeight(screenHeight), m_bigTeamPanel(false), m_lowTeamPanel(false), m_bigSMPanel(false), m_smLargeIcons(true)
 {
 }
 
@@ -130,6 +130,11 @@ UINT16 UILayout::get_RADAR_WINDOW_TM_Y() const
 }
 bool UILayout::isBigTeamPanelShown() const         { return !fInMapMode && m_bigTeamPanel && gsCurInterfacePanel != SM_PANEL; }
 bool UILayout::isBigSMPanelShown() const           { return !fInMapMode && m_bigSMPanel && gsCurInterfacePanel == SM_PANEL; }
+void UILayout::setSMLargeIcons(bool const on)
+{
+	m_smLargeIcons = on;
+	recalculatePositions();
+}
 void UILayout::setLowTeamPanel(bool const low)
 {
 	m_lowTeamPanel = low && GCM && GCM->doesGameResExists(INTERFACEDIR "/" BIG_TEAMPANEL_LOW_FILE);
@@ -171,12 +176,18 @@ void UILayout::recalculatePositions()
 	m_smPanelWidth = std::max<UINT16>(m_teamPanelWidth, INVENTORY_BOTTOM_PANEL_WIDTH);
 
 	// The 1366x768 SM panel: one fixed 1366 px piece at the left edge, also
-	// independent of the squad size.
-	m_bigSMPanel = m_bigTeamPanel && GCM->doesGameResExists(INTERFACEDIR "/" BIG_SMPANEL_FILE);
+	// independent of the squad size -- unless its Show Large Icons toggle chose
+	// the old panel, centred there as one piece, also squad size independent.
+	m_bigSMPanel = m_bigTeamPanel && m_smLargeIcons && GCM->doesGameResExists(INTERFACEDIR "/" BIG_SMPANEL_FILE);
 	if (m_bigSMPanel)
 	{
 		m_teamPanelPosition.iX = 0;
 		m_smPanelWidth         = BIG_SMPANEL_WIDTH;
+	}
+	else if (m_bigTeamPanel)
+	{
+		m_teamPanelPosition.iX = (m_screenWidth - INVENTORY_BOTTOM_PANEL_WIDTH) / 2;
+		m_smPanelWidth         = INVENTORY_BOTTOM_PANEL_WIDTH;
 	}
 
 	UINT16 startInvY = get_INV_INTERFACE_START_Y();

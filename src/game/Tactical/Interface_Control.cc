@@ -60,6 +60,14 @@ static bool         g_switch_panel      = false;
 static SOLDIERTYPE* g_new_panel_soldier = 0;
 static bool         g_rebuild_team_panel = false;
 static bool         g_open_overhead_map  = false;
+static bool         g_toggle_sm_large_icons = false;
+
+
+void ToggleSMLargeIcons()
+{
+	g_toggle_sm_large_icons = true;
+	g_rebuild_team_panel    = true;
+}
 
 
 void RequestOverheadMap()
@@ -93,16 +101,30 @@ void HandleTacticalPanelSwitch()
 		return;
 	}
 
-	// the team panel again, e.g. in the other form of the 1366x768 one
+	// the panel again, e.g. in the other form of the 1366x768 team panel or
+	// the other SM panel (Show Large Icons)
 	if (g_rebuild_team_panel)
 	{
 		g_rebuild_team_panel = false;
+		// (Show Large Icons only from the SM panel; elsewhere just the layout)
+		if (g_toggle_sm_large_icons && gsCurInterfacePanel != SM_PANEL) g_ui.setSMLargeIcons(!g_ui.isSMLargeIcons());
 		if (gsCurInterfacePanel == TEAM_PANEL)
 		{
 			ShutdownCurrentPanel();
 			InitializeCurrentPanel();
 			fInterfacePanelDirty = DIRTYLEVEL2;
 		}
+		else if (gsCurInterfacePanel == SM_PANEL && gpSMCurrentMerc)
+		{
+			SOLDIERTYPE* const s = gpSMCurrentMerc;
+			ShutdownCurrentPanel();
+			// the other SM panel's layout, between the two
+			if (g_toggle_sm_large_icons) g_ui.setSMLargeIcons(!g_ui.isSMLargeIcons());
+			InitializeCurrentPanel();
+			SetCurrentTacticalPanelCurrentMerc(s);
+			fInterfacePanelDirty = DIRTYLEVEL2;
+		}
+		g_toggle_sm_large_icons = false;
 	}
 
 	if (!g_switch_panel) return;
