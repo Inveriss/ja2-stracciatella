@@ -125,73 +125,78 @@
 // g_ui.isBigSMPanel()) has the buttons in its own windows: Stealth Mode above
 // Burst Mode, Climb / Jump and Stance Up a button lower than on the old panel.
 #define SM_BIG					(g_ui.isBigSMPanel())
+// the big panel's strip of bookmark buttons on its top: everything else under it
+#define SM_BIG_TOP				37
 #define SM_TALKB_X				155
-#define SM_TALKB_Y				(SM_BIG ? 216 : 108)
+#define SM_TALKB_Y				(SM_BIG ? SM_BIG_TOP + 216 : 108)
 #define SM_MUTEB_X				91
-#define SM_MUTEB_Y				(SM_BIG ? 216 : 108)
+#define SM_MUTEB_Y				(SM_BIG ? SM_BIG_TOP + 216 : 108)
 #define SM_STANCEUPB_X				187
-#define SM_STANCEUPB_Y				(SM_BIG ? 181 : 40)
+#define SM_STANCEUPB_Y				(SM_BIG ? SM_BIG_TOP + 181 : 40)
 #define SM_UPDOWNB_X				91
-#define SM_UPDOWNB_Y				(SM_BIG ? 181 : 73)
+#define SM_UPDOWNB_Y				(SM_BIG ? SM_BIG_TOP + 181 : 73)
 #define SM_CLIMBB_X				187
-#define SM_CLIMBB_Y				(SM_BIG ? 148 : 8)
+#define SM_CLIMBB_Y				(SM_BIG ? SM_BIG_TOP + 148 : 8)
 #define SM_STANCEDOWNB_X			187
-#define SM_STANCEDOWNB_Y			(SM_BIG ? 216 : 108)
+#define SM_STANCEDOWNB_Y			(SM_BIG ? SM_BIG_TOP + 216 : 108)
 #define SM_HANDCURSORB_X			123
-#define SM_HANDCURSORB_Y			(SM_BIG ? 181 : 73)
+#define SM_HANDCURSORB_Y			(SM_BIG ? SM_BIG_TOP + 181 : 73)
 #define SM_PREVMERCB_X				9
-#define SM_PREVMERCB_Y				(SM_BIG ? 178 : 70)
+#define SM_PREVMERCB_Y				(SM_BIG ? SM_BIG_TOP + 178 : 70)
 #define SM_NEXTMERCB_X				51
-#define SM_NEXTMERCB_Y				(SM_BIG ? 178 : 70)
+#define SM_NEXTMERCB_Y				(SM_BIG ? SM_BIG_TOP + 178 : 70)
 #define SM_OPTIONSB_X				9
-#define SM_OPTIONSB_Y				(SM_BIG ? 213 : 105)
+#define SM_OPTIONSB_Y				(SM_BIG ? SM_BIG_TOP + 213 : 105)
 #define SM_BURSTMODEB_X			155
-#define SM_BURSTMODEB_Y			(SM_BIG ? 181 : 73)
+#define SM_BURSTMODEB_Y			(SM_BIG ? SM_BIG_TOP + 181 : 73)
 #define SM_LOOKB_X				123
-#define SM_LOOKB_Y				(SM_BIG ? 216 : 108)
+#define SM_LOOKB_Y				(SM_BIG ? SM_BIG_TOP + 216 : 108)
 #define SM_STEALTHMODE_X			(SM_BIG ? 155 : 187)
-#define SM_STEALTHMODE_Y			(SM_BIG ? 148 : 73)
-// the big panel's radar map button (27x27, above Cursor Level and Examine):
+#define SM_STEALTHMODE_Y			(SM_BIG ? SM_BIG_TOP + 148 : 73)
+// the big panel's radar map button (40x20, left of Done and Map Screen):
 // opens the overhead map, as a right click on the team panel's radar map
-#define SM_BIG_RADARB_X			102
-#define SM_BIG_RADARB_Y			137
+#define SM_BIG_RADARB_X			95
+#define SM_BIG_RADARB_Y			(SM_BIG_TOP + 98)
+// its Show Large Icons toggle, after the bookmark buttons
+#define SM_BIG_LARGE_ICONSB_X			515
+#define SM_BIG_LARGE_ICONSB_Y			2
 
 // The big SM panel's windows (panel coordinates).
 #define SM_BIG_FACE_X				4    // big portrait cut to 86x70: 10 px off each side,
-#define SM_BIG_FACE_Y				4    // the team panel's rows off the top and bottom
+#define SM_BIG_FACE_Y				(SM_BIG_TOP + 4) // the team panel's rows off the top and bottom
 #define SM_BIG_FACE_WIDTH			86
 #define SM_BIG_FACE_HEIGHT			70
 #define SM_BIG_FACE_CUT_SIDE			10
 #define SM_BIG_LIFEBAR_X			95   // tall 6x70 bars
 #define SM_BIG_BREATHBAR_X			104
 #define SM_BIG_MORALEBAR_X			113
-#define SM_BIG_BARS_Y				4
+#define SM_BIG_BARS_Y				(SM_BIG_TOP + 4)
 #define SM_BIG_BAR_WIDTH			6
 #define SM_BIG_BAR_HEIGHT			70
 #define SM_BIG_NAME_X				5    // name and action points in the strip under them
-#define SM_BIG_NAME_Y				78   // 2 px under the strip top
+#define SM_BIG_NAME_Y				(SM_BIG_TOP + 78) // 2 px under the strip top
 #define SM_BIG_NAME_WIDTH			85
 #define SM_BIG_NAME_HEIGHT			16
 #define SM_BIG_AP_X				94
-#define SM_BIG_AP_Y				78
+#define SM_BIG_AP_Y				(SM_BIG_TOP + 78)
 #define SM_BIG_AP_WIDTH			26
 #define SM_BIG_AP_HEIGHT			16
 #define SM_BIG_STATS_LABEL_X(col)		((col) ? 178 : 126) // labels on the wood, left aligned
 #define SM_BIG_STATS_VALUE_X(col)		((col) ? 207 : 151) // values in the dark columns, right aligned
 #define SM_BIG_STATS_VALUE_WIDTH		20
-#define SM_BIG_STATS_Y(row)			(6 + (row) * 17)
+#define SM_BIG_STATS_Y(row)			(SM_BIG_TOP + 6 + (row) * 17)
 #define SM_BIG_STATS_ROW_HEIGHT		17
-#define SM_BIG_SECTOR_X			13   // sector name and clock (UILayout.cc)
-#define SM_BIG_SECTOR_Y			98
+#define SM_BIG_SECTOR_X			8    // sector name and clock (UILayout.cc)
+#define SM_BIG_SECTOR_Y			(SM_BIG_TOP + 98)
 #define SM_BIG_SECTOR_WIDTH			79
 #define SM_BIG_SECTOR_HEIGHT			23
 // armour, weight and camouflage, label over value, in the dark boxes
 #define SM_BIG_WEIGHT_BOX_X			253
-#define SM_BIG_WEIGHT_BOX_Y			134
+#define SM_BIG_WEIGHT_BOX_Y			(SM_BIG_TOP + 134)
 #define SM_BIG_CAMO_BOX_X			253
-#define SM_BIG_CAMO_BOX_Y			189
+#define SM_BIG_CAMO_BOX_Y			(SM_BIG_TOP + 189)
 #define SM_BIG_ARMOR_BOX_X			513
-#define SM_BIG_ARMOR_BOX_Y			137
+#define SM_BIG_ARMOR_BOX_Y			(SM_BIG_TOP + 137)
 #define SM_BIG_INFO_BOX_WIDTH			64
 #define SM_BIG_INFO_BOX_HEIGHT			34
 #define SM_BIG_FONT				FONT14ARIAL  // name and action points, as the team panel
@@ -202,35 +207,39 @@
 
 // Laptop shortcut buttons (see inventory_bottom_panel_bookmarks.sti, 32x32
 // each). Placeholder coordinates -- reposition to match the final graphic.
-#define SM_EMAILB_X				4
-#define SM_EMAILB_Y				143
-#define SM_AIM_MEMBERSB_X			39
-#define SM_AIM_MEMBERSB_Y			143
-#define SM_MERCB_X				74
-#define SM_MERCB_Y				143
-#define SM_BOBBYRB_X				110
-#define SM_BOBBYRB_Y				143
-#define SM_HISTORYB_X				145
-#define SM_HISTORYB_Y				143
-#define SM_PERSONNELB_X			180
-#define SM_PERSONNELB_Y			143
+// The big panel has all of them, money, key ring and trash can too, in its
+// top strip (y 2), in the old order, each 1 px left of its old x.
+#define SM_BOOKMARK_X(x)			(SM_BIG ? (x) - 1 : (x))
+#define SM_BOOKMARK_Y(y)			(SM_BIG ? 2 : (y))
+#define SM_EMAILB_X				SM_BOOKMARK_X(4)
+#define SM_EMAILB_Y				SM_BOOKMARK_Y(143)
+#define SM_AIM_MEMBERSB_X			SM_BOOKMARK_X(39)
+#define SM_AIM_MEMBERSB_Y			SM_BOOKMARK_Y(143)
+#define SM_MERCB_X				SM_BOOKMARK_X(74)
+#define SM_MERCB_Y				SM_BOOKMARK_Y(143)
+#define SM_BOBBYRB_X				SM_BOOKMARK_X(110)
+#define SM_BOBBYRB_Y				SM_BOOKMARK_Y(143)
+#define SM_HISTORYB_X				SM_BOOKMARK_X(145)
+#define SM_HISTORYB_Y				SM_BOOKMARK_Y(143)
+#define SM_PERSONNELB_X			SM_BOOKMARK_X(180)
+#define SM_PERSONNELB_Y			SM_BOOKMARK_Y(143)
 // 61x32 placeholder.
-#define SM_STRATSCREENB_X			215
-#define SM_STRATSCREENB_Y			160
+#define SM_STRATSCREENB_X			SM_BOOKMARK_X(215)
+#define SM_STRATSCREENB_Y			SM_BOOKMARK_Y(160)
 // 58x32 placeholder. Window/functionality not implemented yet -- points at
 // the Options screen (BtnOptionsCallback) as a stand-in until a dedicated
 // keyboard-shortcuts screen exists.
-#define SM_SHORTCUTSB_X			384
-#define SM_SHORTCUTSB_Y			160
+#define SM_SHORTCUTSB_X			SM_BOOKMARK_X(384)
+#define SM_SHORTCUTSB_Y			SM_BOOKMARK_Y(160)
 // Placeholder position, next to SM_SHORTCUTS_BUTTON -- opens the
 // Infobox_stats.sti merc-statistics popup. Tune once visible in-game.
-#define SM_STATSB_X				446
-#define SM_STATSB_Y				160
+#define SM_STATSB_X				SM_BOOKMARK_X(446)
+#define SM_STATSB_Y				SM_BOOKMARK_Y(160)
 // Placeholder position, next to SM_STATS_BUTTON -- opens the
 // Infobox_skills.sti merc-skills popup (split out of Infobox_stats.sti).
 // Tune once visible in-game.
-#define SM_SKILLSB_X				481
-#define SM_SKILLSB_Y				160
+#define SM_SKILLSB_X				SM_BOOKMARK_X(481)
+#define SM_SKILLSB_Y				SM_BOOKMARK_Y(160)
 
 // Checkbox toggling fHideEmptyAttachmentSlots -- placeholder position.
 #define SM_HIDE_EMPTY_SLOTS_X			274
@@ -246,9 +255,9 @@
 // m_smPanelWidth == m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH
 // and isn't floored): 142 - 45 = 97, 142 - 91 = 51.
 #define SM_DONE_X				(SM_BIG ? 142 : g_ui.m_smPanelWidth - 94)
-#define SM_DONE_Y				(SM_BIG ? 98 : 4)
+#define SM_DONE_Y				(SM_BIG ? SM_BIG_TOP + 98 : 4)
 #define SM_MAPSCREEN_X				(SM_BIG ? 188 : g_ui.m_smPanelWidth - 48)
-#define SM_MAPSCREEN_Y				(SM_BIG ? 98 : 4)
+#define SM_MAPSCREEN_Y				(SM_BIG ? SM_BIG_TOP + 98 : 4)
 
 /*
 #define SM_PERCENT_WIDTH			20
@@ -308,8 +317,8 @@
 #define SM_MED_X				148
 #define SM_MED_Y				47
 
-#define MONEY_X				279
-#define MONEY_Y				160
+#define MONEY_X				SM_BOOKMARK_X(279)
+#define MONEY_Y				SM_BOOKMARK_Y(160)
 #define MONEY_WIDTH				32
 #define MONEY_HEIGHT				32
 
@@ -318,8 +327,8 @@
 // MapScreen.h). The icon itself is painted directly into the panel art
 // (~10px left of the LEGPOS slot); these are placeholder coordinates/size --
 // tune to match the final graphic.
-#define SM_TRASHCAN_X				349
-#define SM_TRASHCAN_Y				160
+#define SM_TRASHCAN_X				SM_BOOKMARK_X(349)
+#define SM_TRASHCAN_Y				SM_BOOKMARK_Y(160)
 #define SM_TRASHCAN_WIDTH			32
 #define SM_TRASHCAN_HEIGHT			32
 
@@ -1245,10 +1254,9 @@ void InitializeSMPanel()
 					MSYS_NO_CALLBACK, SelectedMercEnemyIndicatorCallback);
 	}
 
-	//DEfine region for money button (the big panel has no place for it yet:
-	// off the screen)
-	x = SM_BIG ? 60000 : dx + MONEY_X;
-	y = SM_BIG ? 60000 : dy + MONEY_Y;
+	//DEfine region for money button
+	x = dx + MONEY_X;
+	y = dy + MONEY_Y;
 	MSYS_DefineRegion(&gSM_SELMERCMoneyRegion, x, y, x + MONEY_WIDTH, y + MONEY_HEIGHT, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, SMInvMoneyMoveCallback, SMInvMoneyButtonCallback);
 	gSM_SELMERCMoneyRegion.SetFastHelpText(TacticalStr[MONEY_BUTTON_HELP_TEXT]);
 
@@ -1273,9 +1281,8 @@ void InitializeSMPanel()
 	InitKeyRingInterface(KeyRingItemPanelButtonCallback);
 
 	// Trash can drop target -- see SM_TRASHCAN_* above.
-	// (the big panel has no place for it yet: off the screen)
-	x = SM_BIG ? 60000 : dx + SM_TRASHCAN_X;
-	y = SM_BIG ? 60000 : dy + SM_TRASHCAN_Y;
+	x = dx + SM_TRASHCAN_X;
+	y = dy + SM_TRASHCAN_Y;
 	MSYS_DefineRegion(&gSMTrashCanRegion, x, y, x + SM_TRASHCAN_WIDTH, y + SM_TRASHCAN_HEIGHT,
 		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, SMTrashCanMoveCallback, SMTrashCanBtnCallback);
 	// Reusing the map screen's trash-can tooltip text (same widget, different
@@ -1351,9 +1358,13 @@ static void BtnUpdownCallback(GUI_BUTTON* btn, UINT32 reason);
 static void ToggleHideEmptyAttachmentSlotsCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnSMRadarMapCallback(GUI_BUTTON* btn, UINT32 reason);
 
-// The big SM panel's radar map button.
+static void BtnSMLargeIconsCallback(GUI_BUTTON* btn, UINT32 reason);
+
+// The big SM panel's radar map button and Show Large Icons toggle.
 static GUIButtonRef giSMBigRadarButton;
 static BUTTON_PICS* giSMBigRadarImage;
+static GUIButtonRef giSMBigLargeIconsButton;
+static BUTTON_PICS* giSMBigLargeIconsImage;
 
 
 void CreateSMPanelButtons(void)
@@ -1452,14 +1463,21 @@ void CreateSMPanelButtons(void)
 
 	if (SM_BIG)
 	{
-		// no places for them on the big panel yet: hidden (and kept hidden,
-		// see ShowSMBookmarkButtons())
-		HideSMBookmarkButtons();
+		// no place for it on the big panel yet: hidden (and kept hidden, see
+		// ShowSMBookmarkButtons())
+		HideButton(giSMHideEmptySlotsCheckbox);
 
-		// the radar map button, for now with Next Merc's picture
-		giSMBigRadarImage  = UseLoadedButtonImage(iSMPanelImages[STANCEUP_IMAGES], 21, 23);
+		// the radar map button, for now with Map Screen's picture
+		giSMBigRadarImage  = UseLoadedButtonImage(iSMPanelImages[DONE_IMAGES], 0, 2);
 		giSMBigRadarButton = QuickCreateButton(giSMBigRadarImage, dx + SM_BIG_RADARB_X, dy + SM_BIG_RADARB_Y, MSYS_PRIORITY_HIGH - 1, BtnSMRadarMapCallback);
 		giSMBigRadarButton->SetFastHelpText("Radar Map");
+
+		// Show Large Icons: big or small item pictures in the slots, for now
+		// with the Skills bookmark's picture
+		giSMBigLargeIconsImage  = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 24, 25);
+		giSMBigLargeIconsButton = QuickCreateButtonToggle(giSMBigLargeIconsImage, dx + SM_BIG_LARGE_ICONSB_X, dy + SM_BIG_LARGE_ICONSB_Y, MSYS_PRIORITY_HIGH - 1, BtnSMLargeIconsCallback);
+		giSMBigLargeIconsButton->SetFastHelpText("Show Large Icons");
+		if (gfSMLargeIcons) giSMBigLargeIconsButton->uiFlags |= BUTTON_CLICKED_ON;
 	}
 #if 0
 	MakeButtonN(BURSTMODE_BUTTON,     iSMPanelImages[BURSTMODE_IMAGES],  SM_BURSTMODEB_X,  dy + SM_BURSTMODEB_Y,  BtnBurstModeCallback,  TacticalStr[TOGGLE_BURSTMODE_POPUPTEXT]);
@@ -1488,6 +1506,11 @@ void RemoveSMPanelButtons(void)
 	{
 		RemoveButton(giSMBigRadarButton);
 		UnloadButtonImage(giSMBigRadarImage);
+	}
+	if (giSMBigLargeIconsButton)
+	{
+		RemoveButton(giSMBigLargeIconsButton);
+		UnloadButtonImage(giSMBigLargeIconsImage);
 	}
 
 	// BUTTON_SELFDELETE_IMAGE (set by CreateCheckBoxButton()) means
@@ -1527,13 +1550,13 @@ void HideSMBookmarkButtons(void)
 
 void ShowSMBookmarkButtons(void)
 {
-	if (SM_BIG) return; // the big panel has no places for them yet
 	for (UINT32 const idx : g_smBookmarkButtons)
 	{
 		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
 	}
 
-	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
+	// (the big panel has no place for it yet)
+	if (giSMHideEmptySlotsCheckbox && !SM_BIG) ShowButton(giSMHideEmptySlotsCheckbox);
 }
 
 
@@ -1560,13 +1583,13 @@ void HideSMBookmarkButtonsUnderInfoPopups(void)
 
 void ShowSMBookmarkButtonsUnderInfoPopups(void)
 {
-	if (SM_BIG) return; // the big panel has no places for them yet
 	for (UINT32 const idx : g_smBookmarkButtonsUnderInfoPopups)
 	{
 		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
 	}
 
-	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
+	// (the big panel has no place for it yet)
+	if (giSMHideEmptySlotsCheckbox && !SM_BIG) ShowButton(giSMHideEmptySlotsCheckbox);
 }
 
 
@@ -1809,6 +1832,18 @@ static void RenderBigSMPanelStats(SOLDIERTYPE const& s, INT32 const dx, INT32 co
 	PrintBigSMInfoBox(dx + SM_BIG_ARMOR_BOX_X,  dy + SM_BIG_ARMOR_BOX_Y,  pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)),          value_colour);
 	PrintBigSMInfoBox(dx + SM_BIG_WEIGHT_BOX_X, dy + SM_BIG_WEIGHT_BOX_Y, pInvPanelTitleStrings[1], ST::format("{}%", CalculateCarriedWeight(&s)), value_colour);
 	PrintBigSMInfoBox(dx + SM_BIG_CAMO_BOX_X,   dy + SM_BIG_CAMO_BOX_Y,   pInvPanelTitleStrings[2], ST::format("{}%", s.bCamo),                    value_colour);
+}
+
+
+// The big SM panel's Show Large Icons toggle: the slots' big or small
+// item pictures (gfSMLargeIcons, Interface_Items.cc).
+static void BtnSMLargeIconsCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	gfSMLargeIcons = !gfSMLargeIcons;
+	if (gfSMLargeIcons) btn->uiFlags |= BUTTON_CLICKED_ON; else btn->uiFlags &= ~BUTTON_CLICKED_ON;
+	btn->uiFlags |= BUTTON_DIRTY;
+	fInterfacePanelDirty = DIRTYLEVEL2;
 }
 
 
@@ -2058,8 +2093,7 @@ stats_done:
 	// unlike HandleRenderInvSlots()'s early return, this does NOT hide the
 	// keyring icon while InKeyRingPopup()/InItemStackPopup() is true, so it
 	// stays visible the same way Money/Trash/Map/Shortcuts already do.
-	// (the big panel has no places for them yet)
-	if (!InItemDescriptionBox() && !SM_BIG)
+	if (!InItemDescriptionBox())
 	{
 		RenderSMMoneyAndTrashIcons();
 		RenderSMKeyringIcon();

@@ -386,9 +386,9 @@ constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 #define BAD_RELIABILITY				-2
 #define BAD_REPAIR_EASE				-2
 
-// (the 1366x768 SM panel has no place for it yet: off the screen)
-#define KEYRING_X      (g_ui.isBigSMPanel() ? 60000 : INTERFACE_START_X + 314)
-#define KEYRING_Y      (g_ui.isBigSMPanel() ? 60000 : INV_INTERFACE_START_Y + 160)
+// (on the 1366x768 SM panel in its top strip, 1 px left)
+#define KEYRING_X      (INTERFACE_START_X + (g_ui.isBigSMPanel() ? 313 : 314))
+#define KEYRING_Y      (INV_INTERFACE_START_Y + (g_ui.isBigSMPanel() ? 2 : 160))
 // Strategic map keyring icon -- laid out next to the map inventory's Done
 // button, see MAP_INV_KEYRING_X/Y in MapScreen.h.
 #define MAP_KEYRING_X (MAP_INV_KEYRING_X)
@@ -1477,6 +1477,8 @@ static_assert(std::size(gSMInvDataMapBig) == NUM_INV_SLOTS, "one gSMInvDataMapBi
 #define TAC_BIG_BAR_HEIGHT			50
 #define TAC_BIG_BAR_WIDTH			2
 
+BOOLEAN gfSMLargeIcons = TRUE;
+
 static INV_REGIONS const gSMInvDataTacBig[] =
 {
 #define M(w, h) { w, h }
@@ -2019,8 +2021,9 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 		DIRTYLEVEL0; // We have a new item and we are in the right panel
 	// "Show Large Icons" on the map draws the same BIGITEMS graphics as the
 	// sector inventory's big mode (IsMapInvBigImages(), MapScreen.cc).
-	// The 1366x768 tactical SM panel too (UILayout::isBigSMPanel()).
-	BOOLEAN const big = in_map ? IsMapInvBigImages() : g_ui.isBigSMPanel();
+	// The 1366x768 tactical SM panel too (UILayout::isBigSMPanel()), unless
+	// its Show Large Icons toggle is off.
+	BOOLEAN const big = in_map ? IsMapInvBigImages() : g_ui.isBigSMPanel() && gfSMLargeIcons;
 	InvItemTextLayout big_text{};
 	if (big) big_text = GetMapInvBigItemTextLayout();
 	INVRenderItem(guiSAVEBUFFER, &s, o, x, y, r.W(), r.H(), render_dirty_level, 0, outline, big, big ? &big_text : NULL);
@@ -2102,7 +2105,6 @@ void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 // from KeyRingItemPanelButtonCallback (Interface_Panels.cc).
 void RenderSMKeyringIcon()
 {
-	if (g_ui.isBigSMPanel()) return; // no place on the 1366x768 SM panel yet
 	BltVideoObject(guiSAVEBUFFER, guiSMBookmarksVO, fSMKeyringIconPressed ? 17 : 16, KEYRING_X, KEYRING_Y);
 	RestoreExternBackgroundRect(KEYRING_X, KEYRING_Y, KEYRING_WIDTH, KEYRING_HEIGHT);
 }

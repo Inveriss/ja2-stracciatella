@@ -24,7 +24,8 @@
 // m_invSlotPositionTac and Interface_Items.cc's gSMInvDataTacBig.
 #define BIG_SMPANEL_FILE                "inventory_bottom_panel_big_1366x768.png"
 #define BIG_SMPANEL_WIDTH               (1366)
-#define BIG_SMPANEL_HEIGHT              (247)
+#define BIG_SMPANEL_HEIGHT              (284)  // its top 37 px: the bookmark buttons' strip
+#define BIG_SMPANEL_TOP                 (37)
 
 // Infobox.sti (the weapon/item description popup) is blitted straight to the
 // screen buffer, independently of guiSMPanel/inventory_bottom_panel.sti --

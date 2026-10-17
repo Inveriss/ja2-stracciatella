@@ -39,6 +39,10 @@ BOOLEAN HandleItemPickupMenu(void);
 // FUNCTIONS FOR INTERFACEING WITH ITEM PANEL STUFF
 // fMapBigImages: use the strategic map's "Show Large Icons" slot sizes
 // (gSMInvDataMapBig[] in Interface_Items.cc) instead of the shared ones.
+// The 1366x768 tactical SM panel's Show Large Icons toggle: big (BIGITEMS)
+// or small item pictures in its slots.
+extern BOOLEAN gfSMLargeIcons;
+
 // fTacticalBigImages: the 1366x768 interface's tactical SM panel (UILayout::isBigSMPanel()), its own slot sizes
 void InitInvSlotInterface(INV_REGION_DESC const* pRegionDesc, INV_REGION_DESC const* pCamoRegion, MOUSE_CALLBACK INVMoveCallback, MOUSE_CALLBACK INVClickCallback, MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback, bool fMapBigImages = false, bool fTacticalBigImages = false);
 void ShutdownInvSlotInterface();

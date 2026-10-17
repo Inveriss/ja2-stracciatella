@@ -91,8 +91,8 @@ UINT16 UILayout::get_CLOCK_X() const
 	// SM_PANEL offset shifted 3px right (86 -> 83) to match
 	// inventory_bottom_panel.sti's latest graphic; TEAM_PANEL (bottom_bar.sti)
 	// is untouched.
-	// the big SM panel's time box: x 16, 72 wide
-	if (gsCurInterfacePanel == SM_PANEL && m_bigSMPanel) return m_teamPanelPosition.iX + 16 + (72 - get_CLOCK_WIDTH()) / 2;
+	// the big SM panel's time box: x 11, 74 wide
+	if (gsCurInterfacePanel == SM_PANEL && m_bigSMPanel) return m_teamPanelPosition.iX + 11 + (74 - get_CLOCK_WIDTH()) / 2;
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 83;
 	// centered on the big team panel's time box (x 1034, 72 wide; 73 on the low one)
 	if (m_bigTeamPanel) return 1034 + (72 - get_CLOCK_WIDTH()) / 2;
@@ -102,8 +102,8 @@ UINT16 UILayout::get_CLOCK_Y() const
 {
 	// the big team panel's time box: y 163 (113 on the low one), 22 high (clock 13)
 	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + (isLowTeamPanel() ? 113 : 163) + (22 - 13) / 2;
-	// the big SM panel's time box: y 138, 22 high
-	if (isBigSMPanelShown()) return get_INV_INTERFACE_START_Y() + 138 + (22 - 13) / 2;
+	// the big SM panel's time box: y 175 (under its top strip), 22 high
+	if (isBigSMPanelShown()) return get_INV_INTERFACE_START_Y() + BIG_SMPANEL_TOP + 138 + (22 - 13) / 2;
 	return currentHeight() - 23;
 }
 // The big team panel's clock (FONT12ARIAL, "Day 31, 23:59" is 68 px) fills
@@ -267,7 +267,7 @@ void UILayout::recalculatePositions()
 	{
 		// inventory_bottom_panel_big_1366x768.png: the old panel's layout, its
 		// slots bigger (sizes: gSMInvDataTacBig, Interface_Items.cc)
-		auto const at = [&](INT32 const slot, UINT16 const x, UINT16 const y) { m_invSlotPositionTac[slot].set(startX + x, startInvY + y); };
+		auto const at = [&](INT32 const slot, UINT16 const x, UINT16 const y) { m_invSlotPositionTac[slot].set(startX + x, startInvY + BIG_SMPANEL_TOP + y); };
 		at(HEAD1POS,  257,  10); at(HEAD2POS,  257,  65);
 		at(HEAD3POS,  330,  10); at(HEAD4POS,  330,  65);
 		at(HANDPOS,   330, 125); at(SECONDHANDPOS, 330, 180);
