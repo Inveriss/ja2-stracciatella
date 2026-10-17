@@ -1007,8 +1007,16 @@ static void RenderOverheadOverlays(void)
 				case VISIBLE:          col = FROMRGB(255, 255, 255); break;
 				default:               abort();
 			}
-			PixelDraw(FALSE, sX, sY, Get16BPPColor(col), pDestBuf);
-			InvalidateRegion(sX, sY, sX + 1, sY + 1);
+			// 2x2 px on the 1366x768 overhead map, 1 px on the old one
+			INT16 const size = BigOverheadMap() ? 2 : 1;
+			for (INT16 dy = 0; dy != size; ++dy)
+			{
+				for (INT16 dx = 0; dx != size; ++dx)
+				{
+					PixelDraw(FALSE, sX + dx, sY + dy, Get16BPPColor(col), pDestBuf);
+				}
+			}
+			InvalidateRegion(sX, sY, sX + size, sY + size);
 		}
 	}
 }
