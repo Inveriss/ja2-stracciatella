@@ -1182,19 +1182,24 @@ void InitializeSMPanel()
 	// m_teamPanelWidth), since inventory_bottom_panel.sti can be wider than what squad size alone would need --
 	// see the comment on m_smPanelWidth in UILayout.h.
 	guiSMPanel = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+	// black under anything the graphic doesn't cover (the 196 px tall
+	// inventory_bottom_panel.png in the 197 px panel)
+	guiSMPanel->Fill(0);
 	if (SM_BIG)
 	{
 		// the 1366x768 one, one piece
-		guiSMPanel->Fill(0);
 		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" BIG_SMPANEL_FILE) };
 		BltVideoObject(guiSMPanel, big_panel.get(), 0, 0, 0);
 	}
 	SGPVObject* voSMPanel = SM_BIG ? 0 : AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
-	if (voSMPanel && g_ui.m_smPanelWidth > INVENTORY_BOTTOM_PANEL_WIDTH)
+	// a graphic as wide as the panel (1366x768: the user's 1366 px
+	// inventory_bottom_panel.png) is drawn once, without a filler
+	INT32 const panel_gfx_w = voSMPanel ? voSMPanel->SubregionProperties(0).usWidth : g_ui.m_smPanelWidth;
+	if (voSMPanel && g_ui.m_smPanelWidth > panel_gfx_w)
 	{
 		// The team panel is longer than default
 		// need a second blit, and we will start from the right
-		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH, 0);
+		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_smPanelWidth - panel_gfx_w, 0);
 	}
 	// draw the basic Single-Merc panel
 	if (voSMPanel)
@@ -1203,7 +1208,7 @@ void InitializeSMPanel()
 		DeleteVideoObject(voSMPanel);
 	}
 
-	INT16 sFillerWidth = SM_BIG ? 0 : g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH;
+	INT16 sFillerWidth = SM_BIG ? 0 : g_ui.m_smPanelWidth - panel_gfx_w;
 	if (sFillerWidth > 0)
 	{
 		// draw a space filler if needed

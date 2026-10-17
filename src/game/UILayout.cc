@@ -177,7 +177,10 @@ void UILayout::recalculatePositions()
 
 	// The 1366x768 SM panel: one fixed 1366 px piece at the left edge, also
 	// independent of the squad size -- unless its Show Large Icons toggle chose
-	// the old panel, centred there as one piece, also squad size independent.
+	// the old panel: also at the left edge, 1366 px wide (the user's
+	// inventory_bottom_panel.png is that wide; its right block -- Done, Map
+	// Screen, radar map, sector name, clock -- stays anchored to the right
+	// edge), also squad size independent.
 	m_bigSMPanel = m_bigTeamPanel && m_smLargeIcons && GCM->doesGameResExists(INTERFACEDIR "/" BIG_SMPANEL_FILE);
 	if (m_bigSMPanel)
 	{
@@ -186,8 +189,8 @@ void UILayout::recalculatePositions()
 	}
 	else if (m_bigTeamPanel)
 	{
-		m_teamPanelPosition.iX = (m_screenWidth - INVENTORY_BOTTOM_PANEL_WIDTH) / 2;
-		m_smPanelWidth         = INVENTORY_BOTTOM_PANEL_WIDTH;
+		m_teamPanelPosition.iX = 0;
+		m_smPanelWidth         = BIG_SMPANEL_WIDTH;
 	}
 
 	UINT16 startInvY = get_INV_INTERFACE_START_Y();
