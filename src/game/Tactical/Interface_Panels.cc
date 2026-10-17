@@ -169,15 +169,15 @@
 #define SM_BIG_BAR_WIDTH			6
 #define SM_BIG_BAR_HEIGHT			70
 #define SM_BIG_NAME_X				5    // name and action points in the strip under them
-#define SM_BIG_NAME_Y				76
+#define SM_BIG_NAME_Y				78   // 2 px under the strip top
 #define SM_BIG_NAME_WIDTH			85
 #define SM_BIG_NAME_HEIGHT			16
 #define SM_BIG_AP_X				94
-#define SM_BIG_AP_Y				76
+#define SM_BIG_AP_Y				78
 #define SM_BIG_AP_WIDTH			26
 #define SM_BIG_AP_HEIGHT			16
 #define SM_BIG_STATS_LABEL_X(col)		((col) ? 178 : 126) // labels on the wood, left aligned
-#define SM_BIG_STATS_VALUE_X(col)		((col) ? 210 : 154) // values in the dark columns, right aligned
+#define SM_BIG_STATS_VALUE_X(col)		((col) ? 207 : 151) // values in the dark columns, right aligned
 #define SM_BIG_STATS_VALUE_WIDTH		20
 #define SM_BIG_STATS_Y(row)			(6 + (row) * 17)
 #define SM_BIG_STATS_ROW_HEIGHT		17
@@ -384,7 +384,7 @@
 #define BIG_TM_NAME_HEIGHT			16
 #define BIG_TM_SLOT_NUMBER_X			13   // the slot's number, in the name box, 3 px from its left wall
 #define BIG_TM_AP_X				120
-#define BIG_TM_AP_Y				77
+#define BIG_TM_AP_Y				79   // 2 px lower, as the name
 #define BIG_TM_AP_WIDTH			25
 #define BIG_TM_AP_HEIGHT			16
 #define BIG_TM_INV_X				5    // first and second hand, big pictures
