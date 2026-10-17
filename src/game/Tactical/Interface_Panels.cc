@@ -2970,6 +2970,10 @@ void InitializeTEAMPanel()
 
 	if (g_ui.isBigTeamPanel())
 	{
+		// The SM panel's animated face (and any other) stays active when the
+		// panel switches -- the old team panel took the faces over with its
+		// own; the static portraits don't, so it would go on drawing itself.
+		SetAllAutoFacesInactive();
 		CreateBigTEAMPanelRegions();
 		return;
 	}
