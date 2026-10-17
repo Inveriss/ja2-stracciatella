@@ -343,6 +343,9 @@
 #define BIG_TM_ROSTERMODE_X			1066
 #define BIG_TM_DISK_X				1103
 #define BIG_TM_BUTTONS_Y			7
+#define BIG_TM_PREVMERC_X			1029 // 27x27, under Done
+#define BIG_TM_NEXTMERC_X			1066 // 27x27, under Map Screen
+#define BIG_TM_MERC_BUTTONS_Y			40
 #define BIG_TM_SECTOR_X			1031 // sector box, above the clock's
 #define BIG_TM_SECTOR_Y			123
 #define BIG_TM_SECTOR_WIDTH			79
@@ -400,6 +403,10 @@ enum
 static BUTTON_PICS* iSMPanelImages[NUM_SM_BUTTON_IMAGES];
 static BUTTON_PICS* iBurstButtonImages[NUM_WEAPON_MODES];
 static BUTTON_PICS* iTEAMPanelImages[NUM_TEAM_BUTTON_IMAGES];
+// The 1366x768 team panel's Previous / Next merc buttons (the SM panel's
+// pictures), in the two 27x27 windows under Done and Map Screen.
+static GUIButtonRef giBigTeamPanelMercButtons[2];
+static BUTTON_PICS* giBigTeamPanelMercImages[2];
 
 static BUTTON_PICS* giSMStealthImages;
 GUIButtonRef giSMStealthButton;
@@ -2762,46 +2769,144 @@ static void TMClickSecondHandInvCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iR
 static void TMClickSecondHandInvCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
-// The 1366x768 interface's team panel: the same regions as the old panel,
-// over its windows -- portrait, the three bars, name and action points
-// (left_bars, which the old panel had left of the face), first and second
-// hand. The enemy indicator isn't drawn on the static portraits, so its
-// region is empty.
-static void CreateBigTEAMPanelRegions()
+// The 1366x768 interface's team panel shows BIG_TEAMPANEL_NUM_SLOTS of the
+// squad's slots (gTeamPanel holds one per member, NUM_TEAM_SLOTS), from
+// giBigTeamPanelFirstSlot on: the mouse wheel over the panel scrolls them by
+// one, and a newly selected merc out of sight scrolls into it.
+static INT32 giBigTeamPanelFirstSlot = 0;
+
+
+// The furthest the panel scrolls: up to its last merc.
+static INT32 BigTeamPanelMaxFirstSlot()
 {
-	INT32       dx = TEAM_PANEL_X;
-	INT32 const dy = TEAM_PANEL_Y;
-	for (TeamPanelSlot& tp : gTeamPanel)
+	INT32 last = -1;
+	for (INT32 i = 0; i != (INT32)gTeamPanel.size(); ++i)
 	{
-		MOUSE_CALLBACK mercFacePanelCallback = MouseCallbackPrimarySecondary(MercFacePanelCallbackPrimary, MercFacePanelCallbackSecondary, MSYS_NO_CALLBACK, true);
+		if (gTeamPanel[i].merc) last = i;
+	}
+	return std::max(0, last + 1 - BIG_TEAMPANEL_NUM_SLOTS);
+}
 
-		INT32 const face_x = dx + BIG_TM_FACE_X;
-		INT32 const face_y = dy + BIG_TM_FACE_Y;
-		MakeRegion(tp, tp.face, face_x, face_y, BIG_TM_FACE_WIDTH, BIG_TM_FACE_HEIGHT,
-				MercFacePanelMoveCallback, mercFacePanelCallback);
-		MakeRegion(tp, tp.enemy_indicator, face_x, face_y, 0, 0, MSYS_NO_CALLBACK, EnemyIndicatorClickCallback);
 
-		if (IsMouseInRegion(tp.face))
+static void PlaceRegion(MOUSE_REGION& r, INT32 const x, INT32 const y, INT32 const w, INT32 const h)
+{
+	r.RegionTopLeftX     = (UINT16)x;
+	r.RegionTopLeftY     = (UINT16)y;
+	r.RegionBottomRightX = (UINT16)(x + w);
+	r.RegionBottomRightY = (UINT16)(y + h);
+}
+
+// far off the screen: a hidden slot's regions
+#define OFF_SCREEN 60000
+
+
+// Puts the regions of the shown slots over their windows -- portrait, the
+// three bars, name and action points (left_bars, which the old panel had left
+// of the face), first and second hand -- and those of the others off the
+// screen. The enemy indicator isn't drawn on the static portraits, so its
+// region stays empty.
+static void LayoutBigTEAMPanelRegions()
+{
+	giBigTeamPanelFirstSlot = std::clamp(giBigTeamPanelFirstSlot, 0, BigTeamPanelMaxFirstSlot());
+
+	INT32 const dy = TEAM_PANEL_Y;
+	for (INT32 i = 0; i != (INT32)gTeamPanel.size(); ++i)
+	{
+		TeamPanelSlot& tp  = gTeamPanel[i];
+		INT32   const  pos = i - giBigTeamPanelFirstSlot;
+		if (pos < 0 || BIG_TEAMPANEL_NUM_SLOTS <= pos)
 		{
-			SOLDIERTYPE* const s = tp.merc;
-			if (s) HandleMouseOverSoldierFaceForContMove(s, TRUE);
+			for (MOUSE_REGION* const r : { &tp.face, &tp.enemy_indicator, &tp.bars, &tp.left_bars, &tp.first_hand, &tp.second_hand })
+			{
+				PlaceRegion(*r, OFF_SCREEN, OFF_SCREEN, 0, 0);
+			}
+			continue;
 		}
 
-		MakeRegion(tp, tp.bars, dx + BIG_TM_LIFEBAR_X, dy + BIG_TM_BARS_Y,
-				BIG_TM_MORALEBAR_X + BIG_TM_BAR_WIDTH - BIG_TM_LIFEBAR_X, BIG_TM_BAR_HEIGHT,
-				MSYS_NO_CALLBACK, mercFacePanelCallback);
-		MakeRegion(tp, tp.left_bars, dx + BIG_TM_NAME_X, dy + BIG_TM_NAME_Y,
-				BIG_TM_AP_X + BIG_TM_AP_WIDTH - BIG_TM_NAME_X, BIG_TM_NAME_HEIGHT,
-				MSYS_NO_CALLBACK, mercFacePanelCallback);
+		INT32 const dx     = TEAM_PANEL_X + pos * BIG_TEAMPANEL_SLOT_WIDTH;
+		INT32 const face_x = dx + BIG_TM_FACE_X;
+		INT32 const face_y = dy + BIG_TM_FACE_Y;
+		PlaceRegion(tp.face, face_x, face_y, BIG_TM_FACE_WIDTH, BIG_TM_FACE_HEIGHT);
+		PlaceRegion(tp.enemy_indicator, face_x, face_y, 0, 0);
+		PlaceRegion(tp.bars, dx + BIG_TM_LIFEBAR_X, dy + BIG_TM_BARS_Y,
+				BIG_TM_MORALEBAR_X + BIG_TM_BAR_WIDTH - BIG_TM_LIFEBAR_X, BIG_TM_BAR_HEIGHT);
+		PlaceRegion(tp.left_bars, dx + BIG_TM_NAME_X, dy + BIG_TM_NAME_Y,
+				BIG_TM_AP_X + BIG_TM_AP_WIDTH - BIG_TM_NAME_X, BIG_TM_NAME_HEIGHT);
+		PlaceRegion(tp.first_hand, dx + BIG_TM_INV_X, dy + BIG_TM_INV_Y, BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
+		PlaceRegion(tp.second_hand, dx + BIG_TM_INV_X, dy + BIG_TM_INV_Y + BIG_TM_INV_SEPY, BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
+	}
+}
 
-		INT32 const hand_x = dx + BIG_TM_INV_X;
-		INT32 const hand_y = dy + BIG_TM_INV_Y;
-		MakeRegion(tp, tp.first_hand, hand_x, hand_y, BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT,
-				MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(TMClickFirstHandInvCallbackPrimary, TMClickFirstHandInvCallbackSecondary));
-		MakeRegion(tp, tp.second_hand, hand_x, hand_y + BIG_TM_INV_SEPY, BIG_TM_INV_WIDTH,
-				BIG_TM_INV_HEIGHT, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(TMClickSecondHandInvCallbackPrimary, TMClickSecondHandInvCallbackSecondary));
 
-		dx += BIG_TEAMPANEL_SLOT_WIDTH;
+static void ScrollBigTEAMPanel(INT32 const slots)
+{
+	INT32 const first = std::clamp(giBigTeamPanelFirstSlot + slots, 0, BigTeamPanelMaxFirstSlot());
+	if (first == giBigTeamPanelFirstSlot) return;
+	giBigTeamPanelFirstSlot = first;
+	LayoutBigTEAMPanelRegions();
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+static void BigTEAMPanelWheelCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   ScrollBigTEAMPanel(-1);
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ScrollBigTEAMPanel(+1);
+}
+
+
+// Scrolls the selected merc into sight once, when the selection changes
+// (Prev/Next, keys, a click in the world) -- the wheel may then scroll away
+// from him. Returns whether the panel scrolled.
+static bool FollowSelectedMercOnBigTEAMPanel()
+{
+	static SOLDIERTYPE const* last_selected = NULL;
+	SOLDIERTYPE const* const sel = GetSelectedMan();
+	if (sel == last_selected) return false;
+	last_selected = sel;
+
+	for (INT32 i = 0; i != (INT32)gTeamPanel.size(); ++i)
+	{
+		if (gTeamPanel[i].merc != sel) continue;
+		INT32 first = giBigTeamPanelFirstSlot;
+		if (i < first)                                  first = i;
+		else if (first + BIG_TEAMPANEL_NUM_SLOTS <= i) first = i - BIG_TEAMPANEL_NUM_SLOTS + 1;
+		if (first == giBigTeamPanelFirstSlot) return false;
+		giBigTeamPanelFirstSlot = first;
+		LayoutBigTEAMPanelRegions();
+		return true;
+	}
+	return false;
+}
+
+
+// The 1366x768 interface's team panel: the old panel's regions for every
+// slot, plus the mouse wheel, laid out by LayoutBigTEAMPanelRegions().
+static void CreateBigTEAMPanelRegions()
+{
+	for (TeamPanelSlot& tp : gTeamPanel)
+	{
+		MOUSE_CALLBACK mercFacePanelCallback = MouseCallbackPrimarySecondary(MercFacePanelCallbackPrimary, MercFacePanelCallbackSecondary, BigTEAMPanelWheelCallback, true);
+		MOUSE_CALLBACK const wheel           = MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, MSYS_NO_CALLBACK, BigTEAMPanelWheelCallback);
+
+		MakeRegion(tp, tp.face, 0, 0, 0, 0, MercFacePanelMoveCallback, mercFacePanelCallback);
+		MakeRegion(tp, tp.enemy_indicator, 0, 0, 0, 0, MSYS_NO_CALLBACK, EnemyIndicatorClickCallback);
+		MakeRegion(tp, tp.bars, 0, 0, 0, 0, MSYS_NO_CALLBACK, mercFacePanelCallback);
+		MakeRegion(tp, tp.left_bars, 0, 0, 0, 0, MSYS_NO_CALLBACK, mercFacePanelCallback);
+		MakeRegion(tp, tp.first_hand, 0, 0, 0, 0,
+				MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(TMClickFirstHandInvCallbackPrimary, TMClickFirstHandInvCallbackSecondary, wheel));
+		MakeRegion(tp, tp.second_hand, 0, 0, 0, 0,
+				MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(TMClickSecondHandInvCallbackPrimary, TMClickSecondHandInvCallbackSecondary, wheel));
+	}
+	// the rest of the panel scrolls too
+	gTEAM_PanelRegion.ButtonCallback = MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, MSYS_NO_CALLBACK, BigTEAMPanelWheelCallback);
+
+	FollowSelectedMercOnBigTEAMPanel();
+	LayoutBigTEAMPanelRegions();
+
+	for (TeamPanelSlot& tp : gTeamPanel)
+	{
+		if (IsMouseInRegion(tp.face) && tp.merc) HandleMouseOverSoldierFaceForContMove(tp.merc, TRUE);
 	}
 }
 
@@ -2823,6 +2928,23 @@ void InitializeTEAMPanel()
 		guiTEAMPanel->Fill(0);
 		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" BIG_TEAMPANEL_FILE) };
 		BltVideoObject(guiTEAMPanel, big_panel.get(), 0, 0, 0);
+		// every slot from its own graphic, when there is one
+		cache_key_t const slot_file = INTERFACEDIR "/" BIG_TEAMPANEL_SLOT_FILE;
+		if (GCM->doesGameResExists(slot_file))
+		{
+			try
+			{
+				AutoSGPVObject const slot{ AddVideoObjectFromFile(slot_file) };
+				for (INT32 i = 0; i != BIG_TEAMPANEL_NUM_SLOTS; ++i)
+				{
+					BltVideoObject(guiTEAMPanel, slot.get(), 0, i * BIG_TEAMPANEL_SLOT_WIDTH, 0);
+				}
+			}
+			catch (std::exception const& e)
+			{
+				SLOGE("Cannot use {}: {}", slot_file, e.what());
+			}
+		}
 	}
 	else
 	{
@@ -3004,24 +3126,42 @@ static void RenderBigTeamSlotBorder(SOLDIERTYPE const* const s, INT32 const dx, 
 }
 
 
-void RenderTEAMPanel(DirtyLevel const dirty_level)
+void RenderTEAMPanel(DirtyLevel dirty_level)
 {
 	bool  const big        = g_ui.isBigTeamPanel();
 	INT32 const slot_width = big ? BIG_TEAMPANEL_SLOT_WIDTH : TM_INV_HAND_SEP;
+
+	// The 1366x768 team panel shows the slots from giBigTeamPanelFirstSlot on;
+	// a newly selected merc out of sight, or a squad that got shorter, scrolls
+	// it -- and then everything is drawn again.
+	if (big)
+	{
+		INT32 const old_first = giBigTeamPanelFirstSlot;
+		bool  const followed  = FollowSelectedMercOnBigTEAMPanel();
+		if (giBigTeamPanelFirstSlot > BigTeamPanelMaxFirstSlot()) LayoutBigTEAMPanelRegions();
+		if (followed || giBigTeamPanelFirstSlot != old_first) dirty_level = DIRTYLEVEL2;
+	}
+	size_t const first_slot = big ? (size_t)giBigTeamPanelFirstSlot : 0;
+	size_t const end_slot   = big ? std::min(gTeamPanel.size(), first_slot + BIG_TEAMPANEL_NUM_SLOTS) : gTeamPanel.size();
 
 	if (dirty_level == DIRTYLEVEL2)
 	{
 		MarkAButtonDirty(iTEAMPanelButtons[TEAM_DONE_BUTTON]);
 		MarkAButtonDirty(iTEAMPanelButtons[TEAM_MAP_SCREEN_BUTTON]);
 		MarkAButtonDirty(iTEAMPanelButtons[CHANGE_SQUAD_BUTTON]);
+		for (GUIButtonRef const b : giBigTeamPanelMercButtons)
+		{
+			if (b) MarkAButtonDirty(b);
+		}
 
 		BltVideoSurface(guiSAVEBUFFER, guiTEAMPanel, TEAM_PANEL_X, TEAM_PANEL_Y, NULL);
 
 		// LOOP THROUGH ALL MERCS ON TEAM PANEL
 		INT32       dx = TEAM_PANEL_X;
 		INT32 const dy = TEAM_PANEL_Y;
-		for (TeamPanelSlot& i : gTeamPanel)
+		for (size_t n = first_slot; n != end_slot; ++n)
 		{
+			TeamPanelSlot& i = gTeamPanel[n];
 			SOLDIERTYPE const* const s  = i.merc;
 			if (big)
 			{
@@ -3122,8 +3262,9 @@ void RenderTEAMPanel(DirtyLevel const dirty_level)
 	// Loop through all mercs and make go
 	INT32       dx = TEAM_PANEL_X;
 	INT32 const dy = TEAM_PANEL_Y;
-	for (TeamPanelSlot& i : gTeamPanel)
+	for (size_t n = first_slot; n != end_slot; ++n)
 	{
+		TeamPanelSlot&     i = gTeamPanel[n];
 		SOLDIERTYPE* const s = i.merc;
 		if (s)
 		{
@@ -3208,6 +3349,10 @@ static void BtnRostermodeCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnSquadCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
+static void BtnTeamPrevMercCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnTeamNextMercCallback(GUI_BUTTON* btn, UINT32 reason);
+
+
 void CreateTEAMPanelButtons(void)
 {
 	// Load button Graphics
@@ -3228,6 +3373,17 @@ void CreateTEAMPanelButtons(void)
 	MakeButtonTeam(CHANGE_SQUAD_BUTTON, iTEAMPanelImages[DISK_IMAGES],
 			dx + (big ? BIG_TM_DISK_X : TM_DISK_X), dy + (big ? BIG_TM_BUTTONS_Y : TM_DISK_Y),
 			BtnSquadCallback, TacticalStr[CHANGE_SQUAD_POPUPTEXT]);
+
+	if (big)
+	{
+		// inventory_buttons.sti, as CreateSMPanelButtons()
+		giBigTeamPanelMercImages[0] = LoadButtonImage(INTERFACEDIR "/inventory_buttons.sti", 20, 22);
+		giBigTeamPanelMercImages[1] = UseLoadedButtonImage(giBigTeamPanelMercImages[0], 21, 23);
+		giBigTeamPanelMercButtons[0] = QuickCreateButton(giBigTeamPanelMercImages[0], dx + BIG_TM_PREVMERC_X, dy + BIG_TM_MERC_BUTTONS_Y, MSYS_PRIORITY_HIGH - 1, BtnTeamPrevMercCallback);
+		giBigTeamPanelMercButtons[0]->SetFastHelpText(TacticalStr[PREV_MERC_POPUPTEXT]);
+		giBigTeamPanelMercButtons[1] = QuickCreateButton(giBigTeamPanelMercImages[1], dx + BIG_TM_NEXTMERC_X, dy + BIG_TM_MERC_BUTTONS_Y, MSYS_PRIORITY_HIGH - 1, BtnTeamNextMercCallback);
+		giBigTeamPanelMercButtons[1]->SetFastHelpText(TacticalStr[NEXT_MERC_POPUPTEXT]);
+	}
 }
 
 
@@ -3238,6 +3394,63 @@ void RemoveTEAMPanelButtons(void)
 		RemoveButton(iTEAMPanelButtons[i]);
 		UnloadButtonImage(iTEAMPanelImages[i]);
 	}
+	for (UINT32 i = 0; i != 2; ++i)
+	{
+		if (!giBigTeamPanelMercButtons[i]) continue;
+		RemoveButton(giBigTeamPanelMercButtons[i]);
+		UnloadButtonImage(giBigTeamPanelMercImages[i]);
+	}
+}
+
+
+// The 1366x768 team panel's Previous / Next merc: the merc before / after the
+// selected one on the panel, as Space (FindNextMercInTeamPanel()) -- the
+// panel scrolls to him (FollowSelectedMercOnBigTEAMPanel()).
+static SOLDIERTYPE* FindPrevMercInTeamPanel(SOLDIERTYPE* const next)
+{
+	SOLDIERTYPE* prev = 0;
+	SOLDIERTYPE* last = 0;
+	bool seen_next = false;
+	for (TeamPanelSlot& i : gTeamPanel)
+	{
+		SOLDIERTYPE* const s = i.merc;
+		if (!s) continue;
+		if (s == next)
+		{
+			seen_next = true;
+			continue;
+		}
+		if (!OK_CONTROLLABLE_MERC(s))            continue;
+		if (!OK_INTERRUPT_MERC(s))               continue;
+		if (s->bAssignment != next->bAssignment) continue;
+		if (!seen_next) prev = s;
+		last = s;
+	}
+	return prev ? prev : last ? last : next;
+}
+
+
+static void SelectTeamPanelMerc(SOLDIERTYPE* const s)
+{
+	if (!s) return;
+	HandleLocateSelectMerc(s, true);
+	LocateSoldier(GetSelectedMan(), SETLOCATOR);
+}
+
+
+static void BtnTeamPrevMercCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	SOLDIERTYPE* const sel = GetSelectedMan();
+	if (sel) SelectTeamPanelMerc(FindPrevMercInTeamPanel(sel));
+}
+
+
+static void BtnTeamNextMercCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	SOLDIERTYPE* const sel = GetSelectedMan();
+	if (sel) SelectTeamPanelMerc(FindNextMercInTeamPanel(sel));
 }
 
 
@@ -3288,6 +3501,10 @@ static void UpdateTEAMPanel(void)
 		DisableButton(iTEAMPanelButtons[TEAM_DONE_BUTTON]);
 		DisableButton(iTEAMPanelButtons[TEAM_MAP_SCREEN_BUTTON]);
 		DisableButton(iTEAMPanelButtons[CHANGE_SQUAD_BUTTON]);
+		for (GUIButtonRef const b : giBigTeamPanelMercButtons)
+		{
+			if (b) DisableButton(b);
+		}
 
 		// OK, disable item regions.......
 		for (TeamPanelSlot& i : gTeamPanel)
@@ -3304,6 +3521,10 @@ static void UpdateTEAMPanel(void)
 	else
 	{
 		EnableButton(iTEAMPanelButtons[CHANGE_SQUAD_BUTTON]);
+		for (GUIButtonRef const b : giBigTeamPanelMercButtons)
+		{
+			if (b) EnableButton(b, !(gTacticalStatus.uiFlags & ENGAGED_IN_CONV));
+		}
 
 		for (TeamPanelSlot& i : gTeamPanel)
 		{

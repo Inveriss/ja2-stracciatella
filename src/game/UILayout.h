@@ -123,7 +123,8 @@
 #define TEAMPANEL_HEIGHT                (120)    // height of the bottom bar team panel
 
 // The 1366x768 interface's own team panel (bottom_bar_big_1366x768.png,
-// isBigTeamPanel()): 7 slots, 146 px apart, left-aligned (not centred), with
+// isBigTeamPanel()): 7 slots shown, 146 px apart (a squad over 7 scrolls
+// through them), left-aligned (not centred), with
 // the buttons, sector name, clock and minimap block on its right; its texts
 // are FONT14ARIAL (BIG_TEAMPANEL_FONT). The single
 // merc (SM) panel is not affected -- it keeps INTERFACE_START_X/Y and the
@@ -131,7 +132,8 @@
 #define BIG_TEAMPANEL_FILE              "bottom_bar_big_1366x768.png"
 #define BIG_TEAMPANEL_WIDTH             (1366)
 #define BIG_TEAMPANEL_HEIGHT            (200)
-#define BIG_TEAMPANEL_NUM_SLOTS         (7)
+#define BIG_TEAMPANEL_NUM_SLOTS         (7)      // slots shown; a bigger squad scrolls through them
+#define BIG_TEAMPANEL_SLOT_FILE         "bottom_bar_panel_big_1366x768.png" // one slot, drawn over each of them
 #define BIG_TEAMPANEL_SLOT_WIDTH        (146)
 #define BIG_TEAMPANEL_FONT              FONT14ARIAL
 // Team panel position/size for whichever team panel is in use -- use these

@@ -396,7 +396,8 @@ UINT16 UILayout::getTacticalTextBoxY() const
 
 UINT16 UILayout::getTeamPanelNumSlots() const
 {
-	if (m_bigTeamPanel) return BIG_TEAMPANEL_NUM_SLOTS;
+	// every member of a squad has a slot; BIG_TEAMPANEL_NUM_SLOTS of them show
+	if (m_bigTeamPanel) return std::max<int>(BIG_TEAMPANEL_NUM_SLOTS, gamepolicy(squad_size));
 	return getOldTeamPanelNumSlots();
 }
 
