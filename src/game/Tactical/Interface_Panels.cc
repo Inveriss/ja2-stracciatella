@@ -330,6 +330,7 @@
 #define BIG_TM_NAME_Y				79   // 2 px under the box top
 #define BIG_TM_NAME_WIDTH			106
 #define BIG_TM_NAME_HEIGHT			16
+#define BIG_TM_SLOT_NUMBER_X			13   // the slot's number, in the name box, 3 px from its left wall
 #define BIG_TM_AP_X				120
 #define BIG_TM_AP_Y				77
 #define BIG_TM_AP_WIDTH			25
@@ -3168,6 +3169,15 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 				// an empty slot keeps the panel's black window
 				if (s) RenderBigTeamPortrait(*s, dx + BIG_TM_FACE_X, dy + BIG_TM_FACE_Y);
 				RenderBigTeamSlotBorder(s, dx, dy);
+
+				// the slot's number (1 to NUM_TEAM_SLOTS, also while scrolled), in
+				// the name's font and colour, vertically as the name
+				UINT8 const number_colour = s && s->bStealthMode ? FONT_MCOLOR_LTYELLOW : BIG_TM_NAME_COLOR;
+				SetFontAttributes(BIG_TM_FONT, number_colour);
+				SetFontDestBuffer(guiSAVEBUFFER);
+				MPrint(dx + BIG_TM_SLOT_NUMBER_X, dy + BIG_TM_NAME_Y + (BIG_TM_NAME_HEIGHT - GetFontHeight(BIG_TM_FONT)) / 2,
+					ST::string::from_int((int)n + 1));
+				SetFontDestBuffer(FRAME_BUFFER);
 			}
 			else
 			{
