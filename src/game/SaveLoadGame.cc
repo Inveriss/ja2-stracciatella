@@ -1894,10 +1894,9 @@ static void SaveGeneralInfo(HWFILE const f)
 	INJ_BOOL( d, gfMeanwhileTryingToStart)
 	INJ_BOOL( d, gfInMeanwhile)
 	INJ_SKIP( d, 1)
-	for (INT16 (* i)[NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD] = sDeadMercs; i != endof(sDeadMercs); ++i)
-	{
-		INJ_I16A(d, *i, lengthof(*i))
-	}
+	// the squads' dead, 6 a squad before version 109 -- now in the squad info
+	// (SaveSquadInfoToSavedGameFile(), Squads.cc), not here any more
+	INJ_SKIP( d, NUMBER_OF_SQUADS * OLD_NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD * 2)
 	INJ_I8A(  d, gbPublicNoiseLevel, lengthof(gbPublicNoiseLevel))
 	INJ_U8(   d, gubScreenCount)
 	INJ_SKIP( d, 5)
@@ -2044,9 +2043,18 @@ static void LoadGeneralInfo(HWFILE const f, UINT32 const savegame_version)
 	// Preventing the value to be saved in the first place leads to odd behaviour during the commencing cutscene
 	if (gGameOptions.ubGameSaveMode == DIF_DEAD_IS_DEAD) gfInMeanwhile = FALSE;
 	EXTR_SKIP( d, 1)
-	for (INT16 (* i)[NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD] = sDeadMercs; i != endof(sDeadMercs); ++i)
+	if (savegame_version < 109)
 	{
-		EXTR_I16A(d, *i, lengthof(*i))
+		// the first 6 dead of every squad (LoadSquadInfoFromSavedGameFile(),
+		// loaded earlier, cleared the rest)
+		for (INT16 (* i)[NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD] = sDeadMercs; i != endof(sDeadMercs); ++i)
+		{
+			EXTR_I16A(d, *i, OLD_NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD)
+		}
+	}
+	else
+	{
+		EXTR_SKIP(d, NUMBER_OF_SQUADS * OLD_NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD * 2)
 	}
 	EXTR_I8A(  d, gbPublicNoiseLevel, lengthof(gbPublicNoiseLevel))
 	EXTR_U8(   d, gubScreenCount)

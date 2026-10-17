@@ -28,6 +28,9 @@ extern const char g_version_number[16];
 // Bumped again for sSpreadLocations going from 10 to 100 entries (+180 bytes per soldier).
 // 108: the player's team has 100 slots instead of 20 (PLAYER_TEAM_SIZE) -- every
 // soldier ID from the enemy team on moved, older saves can't be loaded.
-constexpr UINT32 SAVE_GAME_VERSION = 108;
+// 109: squads of up to PLAYER_TEAM_SIZE (squad_size 100): the squad info holds
+// every squad's slots and its dead (before: 6 records a squad, 6 dead a squad in
+// the general info); 108 saves still load.
+constexpr UINT32 SAVE_GAME_VERSION = 109;
 
 #endif

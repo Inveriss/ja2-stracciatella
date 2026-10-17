@@ -2773,7 +2773,7 @@ static void TMClickSecondHandInvCallbackSecondary(MOUSE_REGION* pRegion, UINT32 
 // The 1366x768 interface's team panel shows BIG_TEAMPANEL_NUM_SLOTS of the
 // squad's slots (gTeamPanel holds one per member, NUM_TEAM_SLOTS), from
 // giBigTeamPanelFirstSlot on: the mouse wheel over the panel scrolls them by
-// one, and a newly selected merc out of sight scrolls into it.
+// one (with Shift by 7), and a newly selected merc out of sight scrolls into it.
 static INT32 giBigTeamPanelFirstSlot = 0;
 
 
@@ -2849,10 +2849,12 @@ static void ScrollBigTEAMPanel(INT32 const slots)
 }
 
 
+// One slot a notch, with Shift a whole panel (BIG_TEAMPANEL_NUM_SLOTS).
 static void BigTEAMPanelWheelCallback(MOUSE_REGION*, UINT32 const reason)
 {
-	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   ScrollBigTEAMPanel(-1);
-	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ScrollBigTEAMPanel(+1);
+	INT32 const step = _KeyDown(SHIFT) ? BIG_TEAMPANEL_NUM_SLOTS : 1;
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   ScrollBigTEAMPanel(-step);
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ScrollBigTEAMPanel(+step);
 }
 
 

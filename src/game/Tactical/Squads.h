@@ -1,14 +1,19 @@
 #ifndef _SQUADS_H
 #define _SQUADS_H
 
+#include "Overhead_Types.h"
 #include "Types.h"
 struct SOLDIERTYPE;
 
 
 // header for squad management system
-#define NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD	6
+// A squad can hold the whole team (squad_size up to PLAYER_TEAM_SIZE), and so
+// can its list of dead members; saves before version 109 had 6 of them, in
+// the general info (SaveLoadGame.cc) -- still there, unused, since then.
+#define NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD	PLAYER_TEAM_SIZE
+#define OLD_NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD	6
 #define SQUAD_INFO_FORMAT_VERSION		(1)                    // extending the Squad save format for dynamic squad sizes
-#define SQUAD_INFO_NUM_RECORDS			(NUMBER_OF_SQUADS * 6)
+#define SQUAD_INFO_NUM_RECORDS			(NUMBER_OF_SQUADS * 6) // the squad save format before version 109
 
 
 // enums for squads
