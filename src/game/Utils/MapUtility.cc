@@ -62,7 +62,7 @@
 #define RADAR_OVERHEAD_Y_SIZE	400
 
 // Fourth set, for the tactical radar in the 1366x768 interface's team panel
-// (Data/RadarMaps_Panel, Radar_Screen.h's RADAR_WINDOW_PANEL_*) --
+// (Data/RadarMaps_Bottom_Bar, Radar_Screen.h's RADAR_WINDOW_PANEL_*) --
 // "<mapname>.panel.sti", 240x120 per user choice: from the same 1:1 picture
 // as the overhead set, 13.33 px of it per pixel, so every pixel is the
 // average of the picture's pixels under it weighted by how much of each it

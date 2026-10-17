@@ -86,7 +86,7 @@
 #define RADARMAPSDIR   "radarmaps"
 #define RADARMAPSBIGDIR "radarmaps_big"
 #define RADARMAPSOVERHEADDIR "radarmaps_overhead"
-#define RADARMAPSPANELDIR "radarmaps_panel"
+#define RADARMAPSPANELDIR "radarmaps_bottom_bar"
 #define TILESETSDIR    "tilesets"
 
 #define DIALOGUESIZE 240

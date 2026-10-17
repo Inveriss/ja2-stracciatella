@@ -17,7 +17,7 @@ void LoadRadarScreenBitmap(const ST::string&);
 #define RADAR_WINDOW_SMALL_WIDTH	88
 #define RADAR_WINDOW_SMALL_HEIGHT	44
 // The 1366x768 team panel's radar window (UILayout::isBigTeamPanelShown()):
-// the 240x120 maps of Data/RadarMaps_Panel (MapUtility.cc's
+// the 240x120 maps of Data/RadarMaps_Bottom_Bar (MapUtility.cc's
 // RADAR_PANEL_X_SIZE/Y_SIZE), when the sector has one -- see
 // RadarUsesPanelMap(); otherwise the 88x44 ones there too.
 #define RADAR_WINDOW_PANEL_WIDTH	240
