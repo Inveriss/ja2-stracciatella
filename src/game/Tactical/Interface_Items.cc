@@ -584,24 +584,66 @@ static bool IsMapBigWeaponBox()
 // every position moved with the block it is in (TacBigWeaponShift()).
 // Set per box in InternalInitItemDescriptionBox() (gfTacBigWeaponBox).
 
-// Where a point of the map's big weapon box went on the tactical one: its
-// top part (attachments, picture, status) 41 px lower, the left stats frame
-// (x < 330, y 318-547) to the top right, the right one to the bottom right,
-// the name line (y 547-577, x >= 330) and the description lines (y >= 578)
-// to the bottom left.
+// Where a point of the map's big weapon box went on the tactical one
+// (infobox_weapons_big_1366x768.png, 1366x511): its top part (picture,
+// status) 107 px right and 60 lower, the left stats frame (x < 330, y 318-547)
+// to the bottom right, the right one to the top right, the name line (y
+// 547-577, x >= 330) to the bottom left; the description lines (y >= 578) and
+// the attachment slots have places of their own (TB(), g_tac_big_weapon_slots).
 struct BoxShift { INT16 dx; INT16 dy; };
 static BoxShift TacBigWeaponShift(INT32 const x, INT32 const y)
 {
 	if (!gfTacBigWeaponBox)   return BoxShift{ 0, 0 };
-	if (y < 318)              return BoxShift{ 0, 41 };
-	if (y >= 578)             return BoxShift{ 26, -148 };
-	if (y >= 547 && x >= 330) return BoxShift{ -133, -153 };
-	if (x < 330)              return BoxShift{ 802, -308 };
-	return BoxShift{ 425, -68 };
+	if (y < 318)              return BoxShift{ 107, 60 };
+	if (y >= 578)             return BoxShift{ 33, -139 };
+	if (y >= 547 && x >= 330) return BoxShift{ -71, -144 };
+	if (x < 330)              return BoxShift{ 938, -57 };
+	return BoxShift{ 560, -298 };
+}
+
+// The tactical big box's attachment slots, numbered as the map's (same item
+// and bar boxes, g_map_attachment_info_weapons_big): the channel left of each
+// field and its top.
+static SGPPoint const g_tac_big_weapon_slots[MAX_ATTACHMENTS] =
+{
+	{ 335,  70 }, // 1
+	{ 418,  70 }, // 2
+	{ 578,  70 }, // 3
+	{ 784,  70 }, // 4
+	{  53, 164 }, // 5
+	{ 194, 164 }, // 6
+	{ 335, 164 }, // 7
+	{ 711, 127 }, // 8
+	{ 711, 202 }, // 9
+	{ 784, 202 }, // 10
+	{ 335, 259 }, // 11
+	{ 418, 259 }, // 12
+	{ 501, 259 }, // 13
+	{ 628, 259 }, // 14
+	{ 711, 259 }, // 15
+	{ 335, 316 }, // 16
+	{ 418, 316 }, // 17
+	{ 628, 316 }, // 18
+	{ 711, 316 }, // 19
+	{ 784, 316 }, // 20
+};
+
+// an attachment slot's place on the open box
+static SGPPoint AttachmentSlotPos(SGPPoint const* const slots, INT32 const i)
+{
+	return gfTacBigWeaponBox ? g_tac_big_weapon_slots[i] : slots[i];
 }
 
 static SGPBox TB(SGPBox b)
 {
+	// the tactical box's description field is wider (793x38 inside, from
+	// 56,445): the description line, and pros and cons side by side
+	if (gfTacBigWeaponBox && b.y >= 578)
+	{
+		if (b.x == 350) return SGPBox{ 436, 468, 408, b.h }; // cons
+		if (b.w == 312) return SGPBox{  61, 468, 363, b.h }; // pros
+		return SGPBox{ 61, 450, 783, b.h };                  // description
+	}
 	BoxShift const d = TacBigWeaponShift(b.x, b.y);
 	b.x += d.dx;
 	b.y += d.dy;
@@ -3142,8 +3184,8 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	{
 		if (gfTacBigWeaponBox)
 		{
-			// in the screen's bottom right corner, over the SM panel's inventory
-			gsInvDescX = SCREEN_WIDTH  - GetMapItemDescWidth();
+			// from the screen's left edge, at its bottom, over the SM panel
+			gsInvDescX = 0;
 			gsInvDescY = SCREEN_HEIGHT - GetMapItemDescHeight();
 			// bookmark buttons draw over the box otherwise -- see the
 			// tactical branch below
@@ -3336,7 +3378,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		for (INT32 i = 0; i < numAttachmentSlots; ++i)
 		{
 			// Build a mouse region here that is over any others.....
-			SGPPoint const      slot = TB(agi->slot[i]);
+			SGPPoint const      slot = AttachmentSlotPos(agi->slot, i);
 			const UINT16        x = agi->item_box.x + slot.iX + gsInvDescX;
 			const UINT16        y = agi->item_box.y + slot.iY + gsInvDescY;
 			const UINT16        w = agi->item_box.w;
@@ -4154,7 +4196,7 @@ void RenderItemDescriptionBox(void)
 			(!in_map && !fIsWeapon && !fIsMoney) || gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_ITEMS ? GENERIC_ITEM_ATTACHMENT_SLOTS : MAX_ATTACHMENTS;
 		for (INT32 i = 0; i < numAttachmentSlots; ++i)
 		{
-			SGPPoint const slot = TB(agi.slot[i]);
+			SGPPoint const slot = AttachmentSlotPos(agi.slot, i);
 			INT16 const x = dx + slot.iX;
 			INT16 const y = dy + slot.iY;
 			bool  const fSlotOccupied = obj.usAttachItem[i] != NOTHING;
