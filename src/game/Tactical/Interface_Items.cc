@@ -642,10 +642,13 @@ static SGPBox TB(SGPBox b)
 	// 56,445): the description line, and pros and cons side by side
 	if (gfTacBigWeaponBox && b.y >= 578)
 	{
-		if (b.x == 350) return SGPBox{ 436, 458, 408, b.h }; // cons
-		if (b.w == 312) return SGPBox{  61, 458, 363, b.h }; // pros
-		return SGPBox{ 61, 440, 783, b.h };                  // description
+		if (b.x == 350) return SGPBox{ 436, 463, 403, b.h }; // cons
+		if (b.w == 312) return SGPBox{  66, 463, 363, b.h }; // pros
+		return SGPBox{ 66, 440, 773, b.h };                  // description
 	}
+	// the name line: 5 px more room on both sides (name left, calibre and
+	// class right aligned)
+	if (gfTacBigWeaponBox && b.x == 347 && b.y == 557) return SGPBox{ 281, 383, 343, b.h };
 	BoxShift const d = TacBigWeaponShift(b.x, b.y);
 	b.x += d.dx;
 	b.y += d.dy;
