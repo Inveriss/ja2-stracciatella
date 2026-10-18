@@ -444,16 +444,6 @@ void RenderTopmostTacticalInterface()
 		RenderKeyRingPopup(fInterfacePanelDirty == DIRTYLEVEL2);
 	}
 
-	if (InStatsPopup() && !InItemDescriptionBox())
-	{
-		RenderStatsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
-	}
-
-	if (InSkillsPopup() && !InItemDescriptionBox())
-	{
-		RenderSkillsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
-	}
-
 	if (gfInMovementMenu)
 	{
 		RenderMovementMenu();
@@ -509,6 +499,18 @@ void RenderTopmostTacticalInterface()
 
 	EndViewportOverlays();
 	RenderRubberBanding();
+
+	// The stats / skills popups after the world's overlays: their 1366x768
+	// boxes lie over the world (the stats one at the screen's top).
+	if (InStatsPopup() && !InItemDescriptionBox())
+	{
+		RenderStatsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
+	}
+
+	if (InSkillsPopup() && !InItemDescriptionBox())
+	{
+		RenderSkillsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
+	}
 
 	// the 1366x768 screen's side strips, over the world and its overlays, under
 	// the boxes and menus below

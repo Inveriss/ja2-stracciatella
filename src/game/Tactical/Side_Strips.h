@@ -14,6 +14,8 @@
 enum SideStripKind { SIDE_STRIP_LEFT, SIDE_STRIP_RIGHT };
 // the slots for other buttons, from the top (the bottom one is the toggle's)
 #define SIDE_STRIP_BUTTON_SLOTS 8
+// a strip's width: the right one from SCREEN_WIDTH - SIDE_STRIP_WIDTH (1310)
+#define SIDE_STRIP_WIDTH 56
 
 // The strips are there (the 1366x768 screen, their graphics found): the panel
 // buttons moved onto them go there, otherwise they stay in their old places.

@@ -31,7 +31,7 @@ cache_key_t const guiSideStripToggle{ INTERFACEDIR "/mapinv_done_buttons.sti" };
 
 // The strips' graphic: 56x480 at the screen's top, nine 50x50 slots
 // 3 px apart (and from the strip's edges), the toggle in the bottom one.
-constexpr INT16 SIDE_STRIP_W      = 56;
+constexpr INT16 SIDE_STRIP_W      = SIDE_STRIP_WIDTH;
 constexpr INT16 SIDE_STRIP_H      = 480;
 constexpr INT16 SIDE_STRIP_Y      = 0;
 constexpr INT16 SIDE_STRIP_SLOT   = 50;

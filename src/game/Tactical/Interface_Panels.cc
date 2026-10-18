@@ -559,13 +559,21 @@ static cache_key_t const guiTacBigSkillsInfoBox{ INTERFACEDIR "/infobox_skills_b
 #define TAC_BIG_INFO_POPUP_X		236
 
 // The 1366x768 SM panel shows this box (its own graphic there): its place,
-// x and y, from its size.
+// x and y, from its size -- at the screen's bottom from x 236; the stats box
+// at the screen's top, its right edge at the right side strip.
 static bool TacBigInfoPopupBox(cache_key_t const box, INT16& x, INT16& y)
 {
 	// (also over the 1366x768 team panel: opened from the side strip)
 	if (fInMapMode || !(g_ui.isBigSMPanel() || g_ui.isBigTeamPanelShown()) || !GCM->doesGameResExists(box)) return false;
+	ETRLEObject const& e = GetVObject(box)->SubregionProperties(0);
+	if (box == guiTacBigStatsInfoBox)
+	{
+		x = SCREEN_WIDTH - SIDE_STRIP_WIDTH - e.usWidth; // 706
+		y = 0;
+		return true;
+	}
 	x = TAC_BIG_INFO_POPUP_X;
-	y = SCREEN_HEIGHT - GetVObject(box)->SubregionProperties(0).usHeight;
+	y = SCREEN_HEIGHT - e.usHeight;
 	return true;
 }
 #define POPUP_ARIAL_LABEL_COLOUR 126        // for BLOCKFONT2's 6
