@@ -465,6 +465,14 @@ static BOOLEAN gfMapItemDescArialBox = FALSE;
 // The open box is the 1366x768 SM panel's weapon box -- see TacBigWeaponShift().
 #define TAC_ITEMDESC_BOX_WEAPONS_BIG_FILE INTERFACEDIR "/infobox_weapons_big_1366x768.png"
 static bool gfTacBigWeaponBox = false;
+// The open box is the 1366x768 SM panel's money box,
+// infobox_money_big_1366x768.png: the map's "Show Large Icons" money box
+// (iteminfoc_money_big) as it is -- its layout and tables unchanged.
+#define TAC_ITEMDESC_BOX_MONEY_BIG_FILE INTERFACEDIR "/infobox_money_big_1366x768.png"
+static bool gfTacBigMoneyBox = false;
+// either of them: at the screen's bottom left, over the SM panel (hidden
+// meanwhile), the viewport ending at its top
+static bool IsTacBigItemDescBox() { return gfTacBigWeaponBox || gfTacBigMoneyBox; }
 #define MONEY_GRAPHICS_FILE         INTERFACEDIR "/info_bil.sti"
 #define MAP_MONEY_GRAPHICS_FILE     INTERFACEDIR "/info_bil_1366x768.sti"
 
@@ -485,7 +493,7 @@ cache_key_t GetMapItemDescBoxFilename()
 	switch (gMapItemDescLayout)
 	{
 		case MAP_ITEMDESC_LAYOUT_ITEMS: return gfMapItemDescArialBox ? MAP_ITEMDESC_BOX_ITEMS_BIG_FILE : MAP_ITEMDESC_BOX_ITEMS_FILE;
-		case MAP_ITEMDESC_LAYOUT_MONEY: return gfMapItemDescArialBox ? MAP_ITEMDESC_BOX_MONEY_BIG_FILE : MAP_ITEMDESC_BOX_MONEY_FILE;
+		case MAP_ITEMDESC_LAYOUT_MONEY: return gfMapItemDescArialBox ? (gfTacBigMoneyBox ? TAC_ITEMDESC_BOX_MONEY_BIG_FILE : MAP_ITEMDESC_BOX_MONEY_BIG_FILE) : MAP_ITEMDESC_BOX_MONEY_FILE;
 		case MAP_ITEMDESC_LAYOUT_WEAPONS: return MAP_ITEMDESC_BOX_WEAPONS_FILE;
 		case MAP_ITEMDESC_LAYOUT_WEAPONS_BIG: return gfTacBigWeaponBox ? TAC_ITEMDESC_BOX_WEAPONS_BIG_FILE : MAP_ITEMDESC_BOX_WEAPONS_BIG_FILE;
 		default: break;
@@ -3160,11 +3168,15 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	// the 1366x768 SM panel's weapon box: the map's big one, rearranged
 	gfTacBigWeaponBox = !real_map && g_ui.isBigSMPanel() && GCM->getItem(o->usItem)->isWeapon() &&
 		GCM->doesGameResExists(TAC_ITEMDESC_BOX_WEAPONS_BIG_FILE);
-	// from here on "in_map": the map's box layouts (the tactical big one too)
-	const BOOLEAN in_map = real_map || gfTacBigWeaponBox;
+	// and its money box: the map's big one as it is
+	gfTacBigMoneyBox = !real_map && g_ui.isBigSMPanel() && o->usItem == MONEY &&
+		GCM->doesGameResExists(TAC_ITEMDESC_BOX_MONEY_BIG_FILE);
+	// from here on "in_map": the map's box layouts (the tactical big ones too)
+	const BOOLEAN in_map = real_map || IsTacBigItemDescBox();
 	gMapItemDescLayout =
 		real_map          ? GetMapItemDescLayout(*o)        :
 		gfTacBigWeaponBox ? MAP_ITEMDESC_LAYOUT_WEAPONS_BIG :
+		gfTacBigMoneyBox  ? MAP_ITEMDESC_LAYOUT_MONEY       :
 		MAP_ITEMDESC_LAYOUT_SHARED;
 	// "Show Large Icons": items and money on their own boxes, where those exist
 	gfMapItemDescArialBox = FALSE;
@@ -3174,6 +3186,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		cache_key_t const box = gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_ITEMS ? MAP_ITEMDESC_BOX_ITEMS_FILE     : MAP_ITEMDESC_BOX_MONEY_FILE;
 		gfMapItemDescArialBox = FirstUsableInterfaceAsset({ big, box }) == big;
 	}
+	if (gfTacBigMoneyBox) gfMapItemDescArialBox = TRUE;
 
 	gsInvDescX = sX;
 	gsInvDescY = sY;
@@ -3187,7 +3200,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	// Build a mouse region here that is over any others.....
 	if (in_map)
 	{
-		if (gfTacBigWeaponBox)
+		if (IsTacBigItemDescBox())
 		{
 			// from the screen's left edge, at its bottom, over the SM panel
 			gsInvDescX = 0;
@@ -4073,7 +4086,7 @@ void RenderItemDescriptionBox(void)
 
 	OBJECTTYPE const& obj    = *gpItemDescObject;
 	// the map's box layouts, the 1366x768 tactical big weapon box too
-	BOOLEAN    const  in_map = guiCurrentItemDescriptionScreen == MAP_SCREEN || gfTacBigWeaponBox;
+	BOOLEAN    const  in_map = guiCurrentItemDescriptionScreen == MAP_SCREEN || IsTacBigItemDescBox();
 	INT16      const  dx     = gsInvDescX;
 	INT16      const  dy     = gsInvDescY;
 
@@ -4988,8 +5001,8 @@ void DeleteItemDescriptionBox( )
 
 	gfInItemDescBox = FALSE;
 
-	// the viewport the 1366x768 weapon box shortened: back to its panel's top
-	if (gfTacBigWeaponBox)
+	// the viewport the 1366x768 weapon / money box shortened: back to its panel's top
+	if (IsTacBigItemDescBox())
 	{
 		gsVIEWPORT_WINDOW_END_Y = gsCurInterfacePanel == SM_PANEL ? INV_INTERFACE_START_Y : TEAM_PANEL_Y;
 		SetRenderFlags(RENDER_FLAG_FULL);
@@ -5027,12 +5040,12 @@ void DeleteItemDescriptionBox( )
 			bool const fIsMoney  = gpItemDescObject->usItem == MONEY;
 			bool const fIsWeapon = GCM->getItem(gpItemDescObject->usItem)->isWeapon();
 			gsItemDescCloseCleanupW =
-				gfTacBigWeaponBox ? GetMapItemDescWidth() :
+				IsTacBigItemDescBox() ? GetMapItemDescWidth() :
 				fIsMoney  ? ITEMDESC_WIDTH_MONEY :
 				fIsWeapon ? ITEMDESC_WIDTH :
 				            ITEMDESC_WIDTH_ITEMS;
 			gsItemDescCloseCleanupH =
-				gfTacBigWeaponBox ? GetMapItemDescHeight() :
+				IsTacBigItemDescBox() ? GetMapItemDescHeight() :
 				fIsMoney  ? ITEMDESC_HEIGHT_MONEY :
 				fIsWeapon ? ITEMDESC_HEIGHT :
 				            ITEMDESC_HEIGHT_ITEMS;
@@ -6634,7 +6647,7 @@ static void ItemDescCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 	// behaviour below.
 	if (gpItemPointer)
 	{
-		BOOLEAN const in_map = (guiCurrentItemDescriptionScreen == MAP_SCREEN) || gfTacBigWeaponBox;
+		BOOLEAN const in_map = (guiCurrentItemDescriptionScreen == MAP_SCREEN) || IsTacBigItemDescBox();
 		SGPBox const xy = TB(in_map ? PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money, g_desc_item_box_map_weapons, g_desc_item_box_map_weapons_big, g_desc_item_box_map_items_big) : g_desc_item_box);
 		BOOLEAN const fOverMainPicture =
 			gusMouseXPos >= gsInvDescX + xy.x && gusMouseXPos < gsInvDescX + xy.x + xy.w &&
