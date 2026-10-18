@@ -470,7 +470,7 @@ static bool gfTacBigWeaponBox = false;
 // (iteminfoc_money_big) as it is -- its layout and tables unchanged.
 #define TAC_ITEMDESC_BOX_MONEY_BIG_FILE INTERFACEDIR "/infobox_money_big_1366x768.png"
 static bool gfTacBigMoneyBox = false;
-#define TAC_ITEMDESC_BOX_MONEY_BIG_X 216
+#define TAC_ITEMDESC_BOX_MONEY_BIG_X 236
 // either of them (the map's box layouts; their places and what they hide:
 // InternalInitItemDescriptionBox())
 static bool IsTacBigItemDescBox() { return gfTacBigWeaponBox || gfTacBigMoneyBox; }
@@ -3216,7 +3216,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		}
 		else if (gfTacBigMoneyBox)
 		{
-			// at the screen's bottom, from x 216: the SM panel's portrait and
+			// at the screen's bottom, from x 236: the SM panel's portrait and
 			// buttons stay free; the viewport stays at the panel (for now)
 			gsInvDescX = TAC_ITEMDESC_BOX_MONEY_BIG_X;
 			gsInvDescY = SCREEN_HEIGHT - GetMapItemDescHeight();

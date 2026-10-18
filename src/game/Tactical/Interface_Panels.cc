@@ -54,6 +54,7 @@
 #include "Points.h"
 #include "Radar_Screen.h"
 #include "Render_Dirty.h"
+#include "RenderWorld.h"
 #include "ScreenIDs.h"
 #include "ShopKeeper_Interface.h"
 #include "Soldier_Functions.h"
@@ -549,6 +550,22 @@ static cache_key_t const guiMapSmallSkillsInfoBox{ INTERFACEDIR "/iteminfoc_skil
 // FONT12ARIAL (in its palette's nearest colours -- 5 and 6 are black there).
 static cache_key_t const guiMapBigStatsInfoBox{ INTERFACEDIR "/iteminfoc_stats_big_1366x768.png" };
 static cache_key_t const guiMapBigSkillsInfoBox{ INTERFACEDIR "/iteminfoc_skills_big_1366x768.png" };
+// The 1366x768 SM panel's stats / skills boxes: the same graphics as the map's
+// "Show Large Icons" ones, with their layouts, at x 236 on the screen's bottom
+// (TacBigInfoPopupBox()); the viewport stays as it is.
+static cache_key_t const guiTacBigStatsInfoBox{ INTERFACEDIR "/infobox_stats_big_1366x768.png" };
+static cache_key_t const guiTacBigSkillsInfoBox{ INTERFACEDIR "/infobox_skills_big_1366x768.png" };
+#define TAC_BIG_INFO_POPUP_X		236
+
+// The 1366x768 SM panel shows this box (its own graphic there): its place,
+// x and y, from its size.
+static bool TacBigInfoPopupBox(cache_key_t const box, INT16& x, INT16& y)
+{
+	if (fInMapMode || !g_ui.isBigSMPanel() || !GCM->doesGameResExists(box)) return false;
+	x = TAC_BIG_INFO_POPUP_X;
+	y = SCREEN_HEIGHT - GetVObject(box)->SubregionProperties(0).usHeight;
+	return true;
+}
 #define POPUP_ARIAL_LABEL_COLOUR 126        // for BLOCKFONT2's 6
 #define POPUP_ARIAL_VALUE_COLOUR FONT_BEIGE // for BLOCKFONT2's 5
 
@@ -4768,6 +4785,10 @@ static MOUSE_REGION  gStatsPopupRegion;
 static bool          gfStatsPopupMapSmallBox = false;
 // ... and with "Show Large Icons" on guiMapBigStatsInfoBox, in FONT12ARIAL
 static bool          gfStatsPopupArial = false;
+// ... or the 1366x768 SM panel's twin, guiTacBigStatsInfoBox, at its place
+static bool          gfStatsPopupTacBig = false;
+static INT16         gsStatsPopupBoxX;
+static INT16         gsStatsPopupBoxY;
 
 // Done button, map screen only -- same graphic/position (relative to the box's own
 // top-left corner) as the map's own item-description box (ItemInfoC.sti,
@@ -4818,6 +4839,8 @@ void DeleteStatsPopup(void)
 		// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
 		// InitStatsPopup() below.
 		ShowSMBookmarkButtonsUnderInfoPopups();
+		// the 1366x768 box reaches above the panel: the world there again
+		if (gfStatsPopupTacBig) SetRenderFlags(RENDER_FLAG_FULL);
 	}
 
 	FreeMouseCursor();
@@ -4848,14 +4871,21 @@ static void StatsPopupFullRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32 
 }
 
 
-void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 sInvWidth, INT16 sInvHeight)
+void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight)
 {
 	// The map screen's own 1366x768 box is as big as its graphic, not as
 	// ItemInfoC.sti, the size the caller passes.
-	gfStatsPopupMapSmallBox = UseMapSmallInfoPopupBox(guiMapSmallStatsInfoBox, guiMapStatsInfoBox);
-	gfStatsPopupArial       = gfStatsPopupMapSmallBox && IsMapInvBigImages() &&
-		FirstUsableInterfaceAsset({ guiMapBigStatsInfoBox, guiMapSmallStatsInfoBox }) == guiMapBigStatsInfoBox;
-	if (gfStatsPopupMapSmallBox)
+	gfStatsPopupTacBig      = TacBigInfoPopupBox(guiTacBigStatsInfoBox, gsStatsPopupBoxX, gsStatsPopupBoxY);
+	gfStatsPopupMapSmallBox = gfStatsPopupTacBig || UseMapSmallInfoPopupBox(guiMapSmallStatsInfoBox, guiMapStatsInfoBox);
+	gfStatsPopupArial       = gfStatsPopupTacBig || (gfStatsPopupMapSmallBox && IsMapInvBigImages() &&
+		FirstUsableInterfaceAsset({ guiMapBigStatsInfoBox, guiMapSmallStatsInfoBox }) == guiMapBigStatsInfoBox);
+	if (gfStatsPopupTacBig)
+	{
+		// the dismissing region: the panel and the box above it
+		sInvY      = std::min(sInvY, gsStatsPopupBoxY);
+		sInvHeight = SCREEN_HEIGHT - sInvY;
+	}
+	else if (gfStatsPopupMapSmallBox)
 	{
 		ETRLEObject const& box = GetVObject(gfStatsPopupArial ? guiMapBigStatsInfoBox : guiMapSmallStatsInfoBox)->SubregionProperties(0);
 		sInvWidth  = box.usWidth;
@@ -4935,10 +4965,10 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	// ItemInfoC.sti position/size as sInvX/Y/Width/Height, so the box goes there
 	// directly, with no extra offset -- unlike the tactical bottom-panel strip,
 	// where STATS_POPUP_BOX_X/Y positions the (differently sized) box within it.
-	INT16 const dx = fInMapMode ? gsStatsPopupInvX : (STATS_POPUP_BOX_X + gsStatsPopupInvX);
-	INT16 const dy = fInMapMode ? gsStatsPopupInvY : (STATS_POPUP_BOX_Y + gsStatsPopupInvY);
+	INT16 const dx = gfStatsPopupTacBig ? gsStatsPopupBoxX : fInMapMode ? gsStatsPopupInvX : (STATS_POPUP_BOX_X + gsStatsPopupInvX);
+	INT16 const dy = gfStatsPopupTacBig ? gsStatsPopupBoxY : fInMapMode ? gsStatsPopupInvY : (STATS_POPUP_BOX_Y + gsStatsPopupInvY);
 
-	cache_key_t const box = gfStatsPopupArial ? guiMapBigStatsInfoBox : gfStatsPopupMapSmallBox ? guiMapSmallStatsInfoBox : fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox;
+	cache_key_t const box = gfStatsPopupTacBig ? guiTacBigStatsInfoBox : gfStatsPopupArial ? guiMapBigStatsInfoBox : gfStatsPopupMapSmallBox ? guiMapSmallStatsInfoBox : fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox;
 	BltVideoObject(FRAME_BUFFER, box, 0, dx, dy);
 
 	// Draw the Done button ourselves, right on top of the box we just blitted --
@@ -5317,6 +5347,10 @@ static MOUSE_REGION  gSkillsPopupRegion;
 static bool          gfSkillsPopupMapSmallBox = false;
 // See gfStatsPopupArial above.
 static bool          gfSkillsPopupArial = false;
+// See gfStatsPopupTacBig above.
+static bool          gfSkillsPopupTacBig = false;
+static INT16         gsSkillsPopupBoxX;
+static INT16         gsSkillsPopupBoxY;
 
 // See the matching comment by gStatsPopupDoneButton above.
 static GUIButtonRef gSkillsPopupDoneButton;
@@ -5356,6 +5390,8 @@ void DeleteSkillsPopup(void)
 		// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
 		// InitSkillsPopup() below.
 		ShowSMBookmarkButtonsUnderInfoPopups();
+		// the 1366x768 box reaches above the panel: the world there again
+		if (gfSkillsPopupTacBig) SetRenderFlags(RENDER_FLAG_FULL);
 	}
 
 	FreeMouseCursor();
@@ -5384,14 +5420,21 @@ static void SkillsPopupFullRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32
 }
 
 
-void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 sInvWidth, INT16 sInvHeight)
+void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight)
 {
 	// The map screen's own 1366x768 box is as big as its graphic, not as
 	// ItemInfoC.sti, the size the caller passes.
-	gfSkillsPopupMapSmallBox = UseMapSmallInfoPopupBox(guiMapSmallSkillsInfoBox, guiMapSkillsInfoBox);
-	gfSkillsPopupArial       = gfSkillsPopupMapSmallBox && IsMapInvBigImages() &&
-		FirstUsableInterfaceAsset({ guiMapBigSkillsInfoBox, guiMapSmallSkillsInfoBox }) == guiMapBigSkillsInfoBox;
-	if (gfSkillsPopupMapSmallBox)
+	gfSkillsPopupTacBig      = TacBigInfoPopupBox(guiTacBigSkillsInfoBox, gsSkillsPopupBoxX, gsSkillsPopupBoxY);
+	gfSkillsPopupMapSmallBox = gfSkillsPopupTacBig || UseMapSmallInfoPopupBox(guiMapSmallSkillsInfoBox, guiMapSkillsInfoBox);
+	gfSkillsPopupArial       = gfSkillsPopupTacBig || (gfSkillsPopupMapSmallBox && IsMapInvBigImages() &&
+		FirstUsableInterfaceAsset({ guiMapBigSkillsInfoBox, guiMapSmallSkillsInfoBox }) == guiMapBigSkillsInfoBox);
+	if (gfSkillsPopupTacBig)
+	{
+		// the dismissing region: the panel and the box above it
+		sInvY      = std::min(sInvY, gsSkillsPopupBoxY);
+		sInvHeight = SCREEN_HEIGHT - sInvY;
+	}
+	else if (gfSkillsPopupMapSmallBox)
 	{
 		ETRLEObject const& box = GetVObject(gfSkillsPopupArial ? guiMapBigSkillsInfoBox : guiMapSmallSkillsInfoBox)->SubregionProperties(0);
 		sInvWidth  = box.usWidth;
@@ -5453,10 +5496,10 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 	}
 
 	// See the matching comment in RenderStatsPopup() above.
-	INT16 const dx = fInMapMode ? gsSkillsPopupInvX : (SKILLS_POPUP_BOX_X + gsSkillsPopupInvX);
-	INT16 const dy = fInMapMode ? gsSkillsPopupInvY : (SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY);
+	INT16 const dx = gfSkillsPopupTacBig ? gsSkillsPopupBoxX : fInMapMode ? gsSkillsPopupInvX : (SKILLS_POPUP_BOX_X + gsSkillsPopupInvX);
+	INT16 const dy = gfSkillsPopupTacBig ? gsSkillsPopupBoxY : fInMapMode ? gsSkillsPopupInvY : (SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY);
 
-	cache_key_t const box = gfSkillsPopupArial ? guiMapBigSkillsInfoBox : gfSkillsPopupMapSmallBox ? guiMapSmallSkillsInfoBox : fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox;
+	cache_key_t const box = gfSkillsPopupTacBig ? guiTacBigSkillsInfoBox : gfSkillsPopupArial ? guiMapBigSkillsInfoBox : gfSkillsPopupMapSmallBox ? guiMapSmallSkillsInfoBox : fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox;
 	BltVideoObject(FRAME_BUFFER, box, 0, dx, dy);
 
 	// See the matching comment in RenderStatsPopup() above.
