@@ -461,6 +461,10 @@ static MapItemDescLayout gMapItemDescLayout = MAP_ITEMDESC_LAYOUT_SHARED;
 // (MAP_ITEMDESC_BOX_ITEMS_BIG_FILE / MAP_ITEMDESC_BOX_MONEY_BIG_FILE): its
 // texts are in FONT12ARIAL. Set with gMapItemDescLayout.
 static BOOLEAN gfMapItemDescArialBox = FALSE;
+
+// The open box is the 1366x768 SM panel's weapon box -- see TacBigWeaponShift().
+#define TAC_ITEMDESC_BOX_WEAPONS_BIG_FILE INTERFACEDIR "/infobox_weapons_big_1366x768.png"
+static bool gfTacBigWeaponBox = false;
 #define MONEY_GRAPHICS_FILE         INTERFACEDIR "/info_bil.sti"
 #define MAP_MONEY_GRAPHICS_FILE     INTERFACEDIR "/info_bil_1366x768.sti"
 
@@ -483,7 +487,7 @@ cache_key_t GetMapItemDescBoxFilename()
 		case MAP_ITEMDESC_LAYOUT_ITEMS: return gfMapItemDescArialBox ? MAP_ITEMDESC_BOX_ITEMS_BIG_FILE : MAP_ITEMDESC_BOX_ITEMS_FILE;
 		case MAP_ITEMDESC_LAYOUT_MONEY: return gfMapItemDescArialBox ? MAP_ITEMDESC_BOX_MONEY_BIG_FILE : MAP_ITEMDESC_BOX_MONEY_FILE;
 		case MAP_ITEMDESC_LAYOUT_WEAPONS: return MAP_ITEMDESC_BOX_WEAPONS_FILE;
-		case MAP_ITEMDESC_LAYOUT_WEAPONS_BIG: return MAP_ITEMDESC_BOX_WEAPONS_BIG_FILE;
+		case MAP_ITEMDESC_LAYOUT_WEAPONS_BIG: return gfTacBigWeaponBox ? TAC_ITEMDESC_BOX_WEAPONS_BIG_FILE : MAP_ITEMDESC_BOX_WEAPONS_BIG_FILE;
 		default: break;
 	}
 	return GetWideStrategicAsset(MAP_ITEMDESC_BOX_WIDE_FILE, MAP_ITEMDESC_BOX_FILE);
@@ -566,10 +570,50 @@ static MapItemDescLayout GetMapItemDescLayout(OBJECTTYPE const& o)
 }
 
 // The open box is the map screen's weapon box for "Show Large Icons"
-// (iteminfoc_weapons_big).
+// (iteminfoc_weapons_big) -- or its tactical twin, see gfTacBigWeaponBox.
 static bool IsMapBigWeaponBox()
 {
 	return gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_WEAPONS_BIG;
+}
+
+
+// The tactical weapon box of the 1366x768 SM panel (UILayout::isBigSMPanel()):
+// infobox_weapons_big_1366x768.png (1188x492), the map's big weapon box
+// (iteminfoc_weapons_big, 773x635) with its blocks moved -- so it is drawn
+// with that box's layout (MAP_ITEMDESC_LAYOUT_WEAPONS_BIG and its tables),
+// every position moved with the block it is in (TacBigWeaponShift()).
+// Set per box in InternalInitItemDescriptionBox() (gfTacBigWeaponBox).
+
+// Where a point of the map's big weapon box went on the tactical one: its
+// top part (attachments, picture, status) 41 px lower, the left stats frame
+// (x < 330, y 318-547) to the top right, the right one to the bottom right,
+// the name line (y 547-577, x >= 330) and the description lines (y >= 578)
+// to the bottom left.
+struct BoxShift { INT16 dx; INT16 dy; };
+static BoxShift TacBigWeaponShift(INT32 const x, INT32 const y)
+{
+	if (!gfTacBigWeaponBox)   return BoxShift{ 0, 0 };
+	if (y < 318)              return BoxShift{ 0, 41 };
+	if (y >= 578)             return BoxShift{ 26, -148 };
+	if (y >= 547 && x >= 330) return BoxShift{ -133, -153 };
+	if (x < 330)              return BoxShift{ 802, -308 };
+	return BoxShift{ 425, -68 };
+}
+
+static SGPBox TB(SGPBox b)
+{
+	BoxShift const d = TacBigWeaponShift(b.x, b.y);
+	b.x += d.dx;
+	b.y += d.dy;
+	return b;
+}
+
+static SGPPoint TB(SGPPoint p)
+{
+	BoxShift const d = TacBigWeaponShift(p.iX, p.iY);
+	p.iX += d.dx;
+	p.iY += d.dy;
+	return p;
 }
 
 // The open box is one of the map screen's own weapon boxes (iteminfoc_weapons,
@@ -768,6 +812,14 @@ struct INV_DESC_STATS
 	INT16 sY;
 	INT16 sValDx;
 };
+
+static INV_DESC_STATS TB(INV_DESC_STATS t)
+{
+	BoxShift const d = TacBigWeaponShift(t.sX, t.sY);
+	t.sX += d.dx;
+	t.sY += d.dy;
+	return t;
+}
 
 
 static const SGPBox gMapDescNameBox = {  7, 65, 247, 8 };
@@ -2957,7 +3009,7 @@ BOOLEAN InItemDescriptionBox( )
 
 INT16 MapBigItemDescBoxRight(void)
 {
-	if (!gfInItemDescBox || !IsMapBigWeaponBox()) return 0;
+	if (!gfInItemDescBox || !IsMapBigWeaponBox() || gfTacBigWeaponBox) return 0;
 	return gsInvDescX + GetMapItemDescWidth();
 }
 
@@ -3057,8 +3109,16 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 {
 	// Set the current screen
 	guiCurrentItemDescriptionScreen = guiCurrentScreen;
-	const BOOLEAN in_map = (guiCurrentItemDescriptionScreen == MAP_SCREEN);
-	gMapItemDescLayout = in_map ? GetMapItemDescLayout(*o) : MAP_ITEMDESC_LAYOUT_SHARED;
+	const BOOLEAN real_map = (guiCurrentItemDescriptionScreen == MAP_SCREEN);
+	// the 1366x768 SM panel's weapon box: the map's big one, rearranged
+	gfTacBigWeaponBox = !real_map && g_ui.isBigSMPanel() && GCM->getItem(o->usItem)->isWeapon() &&
+		GCM->doesGameResExists(TAC_ITEMDESC_BOX_WEAPONS_BIG_FILE);
+	// from here on "in_map": the map's box layouts (the tactical big one too)
+	const BOOLEAN in_map = real_map || gfTacBigWeaponBox;
+	gMapItemDescLayout =
+		real_map          ? GetMapItemDescLayout(*o)        :
+		gfTacBigWeaponBox ? MAP_ITEMDESC_LAYOUT_WEAPONS_BIG :
+		MAP_ITEMDESC_LAYOUT_SHARED;
 	// "Show Large Icons": items and money on their own boxes, where those exist
 	gfMapItemDescArialBox = FALSE;
 	if (IsMapInvBigImages() && (gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_ITEMS || gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_MONEY))
@@ -3080,6 +3140,15 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	// Build a mouse region here that is over any others.....
 	if (in_map)
 	{
+		if (gfTacBigWeaponBox)
+		{
+			// in the screen's bottom right corner, over the SM panel's inventory
+			gsInvDescX = SCREEN_WIDTH  - GetMapItemDescWidth();
+			gsInvDescY = SCREEN_HEIGHT - GetMapItemDescHeight();
+			// bookmark buttons draw over the box otherwise -- see the
+			// tactical branch below
+			if (gsCurInterfacePanel == SM_PANEL) HideSMBookmarkButtons();
+		}
 		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + GetMapItemDescWidth(), gsInvDescY + GetMapItemDescHeight(), MSYS_PRIORITY_HIGHEST - 2, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
 
 		// "Hide empty attachment slots", on the weapon box itself
@@ -3101,7 +3170,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 			giMapInvDescButton = QuickCreateButtonImg(INTERFACEDIR "/itemdescdonebutton.sti", 0, 1, gsInvDescX + done.iX, gsInvDescY + done.iY, MSYS_PRIORITY_HIGHEST, ButtonCallbackPrimarySecondary(ItemDescDoneButtonCallbackPrimary, ItemDescDoneButtonCallbackSecondary));
 		}
 
-		fShowDescriptionFlag = TRUE;
+		if (real_map) fShowDescriptionFlag = TRUE;
 	}
 	else
 	{
@@ -3185,7 +3254,8 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		giItemDescAmmoButtonImages = ammo_img;
 
 		const INT16         h  = GetDimensionsOfButtonPic(ammo_img)->h;
-		const SGPBox* const xy = (in_map ? &PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money, g_desc_item_box_map_weapons, g_desc_item_box_map_weapons_big, g_desc_item_box_map_items_big) : &g_desc_item_box);
+		SGPBox const xy_box = TB(in_map ? PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money, g_desc_item_box_map_weapons, g_desc_item_box_map_weapons_big, g_desc_item_box_map_items_big) : g_desc_item_box);
+		const SGPBox* const xy = &xy_box;
 		const INT16         x  = gsInvDescX + xy->x;
 		const INT16         y  = gsInvDescY + xy->y + xy->h - h; // align with bottom
 		const INT16         text_col   = ITEMDESC_AMMO_FORE;
@@ -3217,12 +3287,14 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		bool          const big              = IsMapBigWeaponBox();
 		SGPFont       const font             = big ? FONT12ARIAL : ITEMDESC_FONT;
 		INT16         const pros_cons_indent = std::max(StringPixLength(gzProsLabel, font), StringPixLength(gzConsLabel, font)) + 10;
-		const SGPBox* const box              = (big ? &g_map_itemdesc_pros_cons_box_weapons_big : IsMapWeaponBox() ? &g_map_itemdesc_pros_cons_box_weapons : in_map ? &g_map_itemdesc_pros_cons_box : &g_itemdesc_pros_cons_box);
+		SGPBox        const pros_box         = TB(big ? g_map_itemdesc_pros_cons_box_weapons_big : IsMapWeaponBox() ? g_map_itemdesc_pros_cons_box_weapons : in_map ? g_map_itemdesc_pros_cons_box : g_itemdesc_pros_cons_box);
+		SGPBox        const cons_box         = TB(g_map_itemdesc_cons_box_weapons_big);
+		const SGPBox* const box              = &pros_box;
 		UINT16        const h                = GetFontHeight(font);
 		for (INT32 i = 0; i < 2; ++i)
 		{
 			// Add region for pros/cons help text
-			const SGPBox* const line = (big && i == 1 ? &g_map_itemdesc_cons_box_weapons_big : box);
+			const SGPBox* const line = (big && i == 1 ? &cons_box : box);
 			UINT16 const x = line->x + pros_cons_indent + gsInvDescX;
 			UINT16 const y = line->y + (big ? 0 : i * box->h) + gsInvDescY;
 			UINT16 const w = line->w - pros_cons_indent;
@@ -3264,8 +3336,9 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		for (INT32 i = 0; i < numAttachmentSlots; ++i)
 		{
 			// Build a mouse region here that is over any others.....
-			const UINT16        x = agi->item_box.x + agi->slot[i].iX + gsInvDescX;
-			const UINT16        y = agi->item_box.y + agi->slot[i].iY + gsInvDescY;
+			SGPPoint const      slot = TB(agi->slot[i]);
+			const UINT16        x = agi->item_box.x + slot.iX + gsInvDescX;
+			const UINT16        y = agi->item_box.y + slot.iY + gsInvDescY;
 			const UINT16        w = agi->item_box.w;
 			const UINT16        h = agi->item_box.h;
 			MOUSE_REGION* const r = &gItemDescAttachmentRegions[i];
@@ -3777,7 +3850,7 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 
 	auto const title = [&](INT32 const i, SGPFont const font)
 	{
-		SGPBox      const& box = gMapBigWeaponBoxTitles[i];
+		SGPBox      const  box = TB(gMapBigWeaponBoxTitles[i]);
 		ST::string  const& str = gzMapBigWeaponBoxStrings[i];
 		INT16 x;
 		INT16 y;
@@ -3786,7 +3859,7 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 	};
 	auto const label_and_value = [&](INT32 const i, ST::string const& value)
 	{
-		INV_DESC_STATS const& t = gMapBigWeaponBoxTexts[i - BIGW_TXT_SHORT];
+		INV_DESC_STATS const t = TB(gMapBigWeaponBoxTexts[i - BIGW_TXT_SHORT]);
 		SetFontForeground(MAP_BIG_WEAPON_LABEL_COLOUR);
 		MPrint(dx + t.sX, dy + t.sY, gzMapBigWeaponBoxStrings[i]);
 		SetFontForeground(MAP_BIG_WEAPON_VALUE_COLOUR);
@@ -3828,7 +3901,7 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 
 		label_and_value(BIGW_TXT_SHORT + m, ST::format("{}", single_aps + CalcAPsToBurst(DEFAULT_APS, DEFAULT_AIMSKILL, obj, modes[m])));
 
-		INV_DESC_STATS const& r = gMapBigWeaponBoxRounds[m];
+		INV_DESC_STATS const r = TB(gMapBigWeaponBoxRounds[m]);
 		SetFontForeground(MAP_BIG_WEAPON_LABEL_COLOUR);
 		MPrint(dx + r.sX, dy + r.sY, gzMapBigWeaponBoxStrings[BIGW_TXT_ROUNDS]);
 		SetFontForeground(MAP_BIG_WEAPON_VALUE_COLOUR);
@@ -3946,7 +4019,8 @@ void RenderItemDescriptionBox(void)
 	INT16   usY;
 
 	OBJECTTYPE const& obj    = *gpItemDescObject;
-	BOOLEAN    const  in_map = guiCurrentItemDescriptionScreen == MAP_SCREEN;
+	// the map's box layouts, the 1366x768 tactical big weapon box too
+	BOOLEAN    const  in_map = guiCurrentItemDescriptionScreen == MAP_SCREEN || gfTacBigWeaponBox;
 	INT16      const  dx     = gsInvDescX;
 	INT16      const  dy     = gsInvDescY;
 
@@ -3961,11 +4035,11 @@ void RenderItemDescriptionBox(void)
 
 	// gDescNameBox variant for this render pass -- reused by every "item
 	// name" style text below (name, weapon class/ammo line, money amount).
-	SGPBox const& descNameBox =
+	SGPBox const descNameBox = TB(
 		in_map    ? PickMapItemDesc(gMapDescNameBox, gMapDescNameBox_Items, gMapDescNameBox_Money, gMapDescNameBox_Weapons, gMapDescNameBox_Weapons_Big, gMapDescNameBox_Items_Big) :
 		fIsMoney  ? gDescNameBox_Money :
 		fIsWeapon ? gDescNameBox :
-		            gDescNameBox_Items;
+		            gDescNameBox_Items);
 
 	auto * const box_gfx =
 		in_map    ? GetMapItemDescBoxFilename() :
@@ -3989,11 +4063,11 @@ void RenderItemDescriptionBox(void)
 		// Display item
 		// center in slot, remove offsets
 		ETRLEObject const& e  = guiItemGraphic->SubregionProperties(guiItemGraphicIndex);
-		SGPBox      const& xy =
+		SGPBox      const  xy = TB(
 			in_map    ? PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money, g_desc_item_box_map_weapons, g_desc_item_box_map_weapons_big, g_desc_item_box_map_items_big) :
 			fIsMoney  ? g_desc_item_box_money :
 			fIsWeapon ? g_desc_item_box :
-			            g_desc_item_box_items;
+			            g_desc_item_box_items);
 		INT32       const  x  = dx + xy.x + (xy.w - e.usWidth)  / 2 - e.sOffsetX;
 		INT32       const  y  = dy + xy.y + (xy.h - e.usHeight) / 2 - e.sOffsetY;
 		if (gamepolicy(f_draw_item_shadow))
@@ -4037,11 +4111,15 @@ void RenderItemDescriptionBox(void)
 	}
 
 	{ // Display status
-		SGPBox const& box =
+		// (y is the bar's bottom: shifted by its top's block)
+		SGPBox box =
 			in_map    ? PickMapItemDesc(g_map_itemdesc_item_status_box, g_map_itemdesc_item_status_box_items, g_map_itemdesc_item_status_box_money, g_map_itemdesc_item_status_box_weapons, g_map_itemdesc_item_status_box_weapons_big, g_map_itemdesc_item_status_box_items_big) :
 			fIsMoney  ? g_itemdesc_item_status_box_money :
 			fIsWeapon ? g_itemdesc_item_status_box :
 			            g_itemdesc_item_status_box_items;
+		BoxShift const shift = TacBigWeaponShift(box.x, box.y - box.h);
+		box.x += shift.dx;
+		box.y += shift.dy;
 		INT16  const  x   = box.x + dx;
 		INT16  const  y   = box.y + dy;
 		INT16  const  h   = box.h;
@@ -4076,8 +4154,9 @@ void RenderItemDescriptionBox(void)
 			(!in_map && !fIsWeapon && !fIsMoney) || gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_ITEMS ? GENERIC_ITEM_ATTACHMENT_SLOTS : MAX_ATTACHMENTS;
 		for (INT32 i = 0; i < numAttachmentSlots; ++i)
 		{
-			INT16 const x = dx + agi.slot[i].iX;
-			INT16 const y = dy + agi.slot[i].iY;
+			SGPPoint const slot = TB(agi.slot[i]);
+			INT16 const x = dx + slot.iX;
+			INT16 const y = dy + slot.iY;
 			bool  const fSlotOccupied = obj.usAttachItem[i] != NOTHING;
 
 			// Attachment slot frame: baked into iteminfoc.sti on the map
@@ -4130,8 +4209,8 @@ void RenderItemDescriptionBox(void)
 	{
 		// display bullets for ROF
 		{
-			INT32 const x = IsMapWeaponBox() ? dx + (IsMapBigWeaponBox() ? g_map_weapons_big_bullet_sing : g_map_weapons_bullet_sing).iX : in_map ? MAP_BULLET_SING_X : BULLET_SING_X;
-			INT32 const y = IsMapWeaponBox() ? dy + (IsMapBigWeaponBox() ? g_map_weapons_big_bullet_sing : g_map_weapons_bullet_sing).iY : in_map ? MAP_BULLET_SING_Y : BULLET_SING_Y;
+			INT32 const x = IsMapWeaponBox() ? dx + TB(IsMapBigWeaponBox() ? g_map_weapons_big_bullet_sing : g_map_weapons_bullet_sing).iX : in_map ? MAP_BULLET_SING_X : BULLET_SING_X;
+			INT32 const y = IsMapWeaponBox() ? dy + TB(IsMapBigWeaponBox() ? g_map_weapons_big_bullet_sing : g_map_weapons_bullet_sing).iY : in_map ? MAP_BULLET_SING_Y : BULLET_SING_Y;
 			BltVideoObject(guiSAVEBUFFER, guiBullet, 0, x, y);
 		}
 
@@ -4209,11 +4288,11 @@ void RenderItemDescriptionBox(void)
 
 	{
 		// Weapon description text: same font colour as the weapon name above.
-		SGPBox const& box =
+		SGPBox const box = TB(
 			in_map    ? PickMapItemDesc(g_map_itemdesc_desc_box, g_map_itemdesc_desc_box_items, g_map_itemdesc_desc_box_money, g_map_itemdesc_desc_box_weapons, g_map_itemdesc_desc_box_weapons_big, g_map_itemdesc_desc_box_items_big) :
 			fIsMoney  ? g_itemdesc_desc_box_money :
 			fIsWeapon ? g_itemdesc_desc_box :
-			            g_itemdesc_desc_box_items;
+			            g_itemdesc_desc_box_items);
 		if (IsMapBigWeaponBox())
 		{
 			// FONT12ARIAL on the map's big weapon box, one line
@@ -4266,8 +4345,8 @@ void RenderItemDescriptionBox(void)
 			{
 				// the map's big weapon box: one line, pros, then cons from
 				// x 350, both in FONT12ARIAL and ending in "..." if too long
-				SGPBox const& pros_box = g_map_itemdesc_pros_cons_box_weapons_big;
-				SGPBox const& cons_box = g_map_itemdesc_cons_box_weapons_big;
+				SGPBox const pros_box = TB(g_map_itemdesc_pros_cons_box_weapons_big);
+				SGPBox const cons_box = TB(g_map_itemdesc_cons_box_weapons_big);
 				SGPFont const font     = FONT12ARIAL;
 				INT16   const indent   = std::max(StringPixLength(gzProsLabel, font), StringPixLength(gzConsLabel, font)) + 10;
 				INT16   const dots     = StringPixLength(DOTDOTDOT, font);
@@ -4350,11 +4429,18 @@ void RenderItemDescriptionBox(void)
 
 		SetFontForeground(label_colour);
 
-		INV_DESC_STATS const* const ids =
+		INV_DESC_STATS const* ids =
 			IsMapBigWeaponBox() ? gMapBigWeaponBoxStats :
 			IsMapWeaponBox() ? gMapWeaponBoxStats :
 			in_map           ? gMapWeaponStats :
 			                   gWeaponStats;
+		// the tactical big box: the same, each moved with its block
+		std::vector<INV_DESC_STATS> tac_ids;
+		if (gfTacBigWeaponBox)
+		{
+			for (INV_DESC_STATS const& t : gMapBigWeaponBoxStats) tac_ids.push_back(TB(t));
+			ids = tac_ids.data();
+		}
 
 		//LABELS
 		MPrint(dx + ids[0].sX, dy + ids[0].sY, st_format_printf(gWeaponStatsDesc[0], GetWeightUnitString())); // mass
@@ -4881,10 +4967,12 @@ void DeleteItemDescriptionBox( )
 			bool const fIsMoney  = gpItemDescObject->usItem == MONEY;
 			bool const fIsWeapon = GCM->getItem(gpItemDescObject->usItem)->isWeapon();
 			gsItemDescCloseCleanupW =
+				gfTacBigWeaponBox ? GetMapItemDescWidth() :
 				fIsMoney  ? ITEMDESC_WIDTH_MONEY :
 				fIsWeapon ? ITEMDESC_WIDTH :
 				            ITEMDESC_WIDTH_ITEMS;
 			gsItemDescCloseCleanupH =
+				gfTacBigWeaponBox ? GetMapItemDescHeight() :
 				fIsMoney  ? ITEMDESC_HEIGHT_MONEY :
 				fIsWeapon ? ITEMDESC_HEIGHT :
 				            ITEMDESC_HEIGHT_ITEMS;
@@ -6485,8 +6573,8 @@ static void ItemDescCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 	// behaviour below.
 	if (gpItemPointer)
 	{
-		BOOLEAN const in_map = (guiCurrentItemDescriptionScreen == MAP_SCREEN);
-		SGPBox const& xy = in_map ? PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money, g_desc_item_box_map_weapons, g_desc_item_box_map_weapons_big, g_desc_item_box_map_items_big) : g_desc_item_box;
+		BOOLEAN const in_map = (guiCurrentItemDescriptionScreen == MAP_SCREEN) || gfTacBigWeaponBox;
+		SGPBox const xy = TB(in_map ? PickMapItemDesc(g_desc_item_box_map, g_desc_item_box_map_items, g_desc_item_box_map_money, g_desc_item_box_map_weapons, g_desc_item_box_map_weapons_big, g_desc_item_box_map_items_big) : g_desc_item_box);
 		BOOLEAN const fOverMainPicture =
 			gusMouseXPos >= gsInvDescX + xy.x && gusMouseXPos < gsInvDescX + xy.x + xy.w &&
 			gusMouseYPos >= gsInvDescY + xy.y && gusMouseYPos < gsInvDescY + xy.y + xy.h;
