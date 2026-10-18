@@ -3196,6 +3196,11 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 			// tactical branch below
 			// the whole SM panel's buttons and texts: the box covers it
 			if (gsCurInterfacePanel == SM_PANEL) HideSMPanelUnderItemDesc();
+			// The box reaches higher than the panel: the world's viewport ends
+			// at its top meanwhile, so scrolling the map (its shift-blit stops
+			// there) leaves the box whole. Back in DeleteItemDescriptionBox().
+			gsVIEWPORT_WINDOW_END_Y = gsInvDescY;
+			SetRenderFlags(RENDER_FLAG_FULL);
 		}
 		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + GetMapItemDescWidth(), gsInvDescY + GetMapItemDescHeight(), MSYS_PRIORITY_HIGHEST - 2, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
 
@@ -4982,6 +4987,13 @@ void DeleteItemDescriptionBox( )
 	}
 
 	gfInItemDescBox = FALSE;
+
+	// the viewport the 1366x768 weapon box shortened: back to its panel's top
+	if (gfTacBigWeaponBox)
+	{
+		gsVIEWPORT_WINDOW_END_Y = gsCurInterfacePanel == SM_PANEL ? INV_INTERFACE_START_Y : TEAM_PANEL_Y;
+		SetRenderFlags(RENDER_FLAG_FULL);
+	}
 
 	if (guiCurrentItemDescriptionScreen != MAP_SCREEN && gsCurInterfacePanel == SM_PANEL)
 	{
