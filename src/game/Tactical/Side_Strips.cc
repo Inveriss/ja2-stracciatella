@@ -6,6 +6,7 @@
 #include "GameInstance.h"
 #include "GameSettings.h"
 #include "Interface_Items.h"
+#include "Interface_Panels.h"
 #include "JAScreens.h"
 #include "MapScreen.h"
 #include "MouseSystem.h"
@@ -53,6 +54,12 @@ SideStrip g_side_strips[2] = { { guiSideStripLeft, {}, {} }, { guiSideStripRight
 GUIButtonRef g_side_strip_buttons[2][SIDE_STRIP_BUTTON_SLOTS];
 bool      g_side_strips_created = false;
 bool      g_side_strips_off     = true; // off, e.g. under the overhead map, as of the last frame
+
+// The strips' own buttons, independent of the tactical panels: Statistics
+// (the SM panel bookmark row's picture, inventory_bottom_panel_bookmarks.sti
+// 22 / 23) in the right strip's top slot.
+BUTTON_PICS* g_side_strip_stats_image = NULL;
+GUIButtonRef g_side_strip_stats_button;
 
 }
 
@@ -161,6 +168,28 @@ static void SideStripToggleCallback(GUI_BUTTON* const btn, UINT32 const reason)
 }
 
 
+static void SideStripStatsCallback(GUI_BUTTON*, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleTacticalStatsPopup();
+}
+
+
+// A strip button with this picture in the middle of a slot.
+static GUIButtonRef CreateSideStripButton(SideStripKind const strip, UINT const slot, BUTTON_PICS* const image, GUI_CALLBACK click, ST::string const& help)
+{
+	INT16 x;
+	INT16 y;
+	TacticalSideStripSlotPos(strip, slot, x, y);
+	ButtonDimensions const* const d = GetDimensionsOfButtonPic(image);
+	x += (SIDE_STRIP_SLOT - (INT16)d->w) / 2;
+	y += (SIDE_STRIP_SLOT - (INT16)d->h) / 2;
+	GUIButtonRef const b = QuickCreateButton(image, x, y, MSYS_PRIORITY_HIGH, std::move(click));
+	b->SetFastHelpText(help);
+	SetTacticalSideStripButton(strip, slot, b);
+	return b;
+}
+
+
 void CreateTacticalSideStrips()
 {
 	if (g_side_strips_created || !TacticalSideStripsAvailable()) return;
@@ -175,6 +204,10 @@ void CreateTacticalSideStrips()
 			MSYS_PRIORITY_HIGH, SideStripToggleCallback);
 		s.toggle->SetUserData(i);
 	}
+
+	g_side_strip_stats_image  = LoadButtonImage(INTERFACEDIR "/inventory_bottom_panel_bookmarks.sti", 22, 23);
+	g_side_strip_stats_button = CreateSideStripButton(SIDE_STRIP_RIGHT, 0, g_side_strip_stats_image, SideStripStatsCallback, "Statistics");
+
 	g_side_strips_created = true;
 	g_side_strips_off     = SideStripsSuppressed();
 	ApplySideStripsState();
@@ -184,6 +217,12 @@ void CreateTacticalSideStrips()
 void RemoveTacticalSideStrips()
 {
 	if (!g_side_strips_created) return;
+
+	SetTacticalSideStripButton(SIDE_STRIP_RIGHT, 0, GUIButtonRef::NoButton());
+	RemoveButton(g_side_strip_stats_button);
+	UnloadButtonImage(g_side_strip_stats_image);
+	g_side_strip_stats_image = NULL;
+
 	for (SideStrip& s : g_side_strips)
 	{
 		RemoveButton(s.toggle);

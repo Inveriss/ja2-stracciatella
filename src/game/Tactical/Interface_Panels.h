@@ -126,6 +126,9 @@ extern MOUSE_CALLBACK KeyRingSlotInvClickCallback;
 void InitStatsPopup(SOLDIERTYPE* pSoldier, INT16 sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight);
 void RenderStatsPopup(BOOLEAN fFullRender);
 void DeleteStatsPopup(void);
+// Opens the stats popup for the SM panel's merc (over the team panel: the
+// selected merc), or closes it -- the Statistics button.
+void ToggleTacticalStatsPopup();
 BOOLEAN InStatsPopup(void);
 
 // Tactical-screen merc-skills popup (Infobox_skills.sti) -- opened from the

@@ -7,7 +7,8 @@
 // The 1366x768 tactical screen's vertical button strips at the screen's left
 // (x 0) and right (x 1310) edges, over the world: SIDE_STRIP_LEFT/RIGHT_1366x768.png
 // (56x480, nine 50x50 slots). The bottom slot holds the button hiding / showing
-// its strip (then only that button is left); the others are empty for now.
+// its strip (then only that button is left). Their buttons are their own,
+// independent of the tactical panels: so far Statistics, the right strip's top.
 // Hidden or not is kept in Ja2.set (gGameSettings).
 
 enum SideStripKind { SIDE_STRIP_LEFT, SIDE_STRIP_RIGHT };

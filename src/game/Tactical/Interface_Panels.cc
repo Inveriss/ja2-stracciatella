@@ -562,7 +562,8 @@ static cache_key_t const guiTacBigSkillsInfoBox{ INTERFACEDIR "/infobox_skills_b
 // x and y, from its size.
 static bool TacBigInfoPopupBox(cache_key_t const box, INT16& x, INT16& y)
 {
-	if (fInMapMode || !g_ui.isBigSMPanel() || !GCM->doesGameResExists(box)) return false;
+	// (also over the 1366x768 team panel: opened from the side strip)
+	if (fInMapMode || !(g_ui.isBigSMPanel() || g_ui.isBigTeamPanelShown()) || !GCM->doesGameResExists(box)) return false;
 	x = TAC_BIG_INFO_POPUP_X;
 	y = SCREEN_HEIGHT - GetVObject(box)->SubregionProperties(0).usHeight;
 	return true;
@@ -1480,22 +1481,9 @@ void CreateSMPanelButtons(void)
 	// placeholder standing in for a not-yet-built keyboard-shortcuts screen.
 	MakeButtonT(SM_STRATSCREEN_BUTTON, iSMPanelImages[SM_STRATSCREEN_IMAGES], dx + SM_STRATSCREENB_X, dy + SM_STRATSCREENB_Y, BtnMapScreenCallback,        "Strategic Map");
 	MakeButtonT(SM_SHORTCUTS_BUTTON,   iSMPanelImages[SM_SHORTCUTS_IMAGES],   dx + SM_SHORTCUTSB_X,   dy + SM_SHORTCUTSB_Y,   BtnOptionsCallback,          "Keyboard Shortcuts (placeholder)");
-	if (TacticalSideStripsAvailable())
-	{
-		// 1366x768: on the right side strip, its top slot (the picture in
-		// the middle of the 50x50 slot), shown / hidden with the strip
-		INT16 x;
-		INT16 y;
-		TacticalSideStripSlotPos(SIDE_STRIP_RIGHT, 0, x, y);
-		ButtonDimensions const* const d = GetDimensionsOfButtonPic(iSMPanelImages[SM_STATS_IMAGES]);
-		x += (50 - (INT16)d->w) / 2;
-		y += (50 - (INT16)d->h) / 2;
-		GUIButtonRef const btn = QuickCreateButton(iSMPanelImages[SM_STATS_IMAGES], x, y, MSYS_PRIORITY_HIGH, BtnStatsCallback);
-		btn->SetFastHelpText("Statistics");
-		iSMPanelButtons[SM_STATS_BUTTON] = btn;
-		SetTacticalSideStripButton(SIDE_STRIP_RIGHT, 0, btn);
-	}
-	else
+	// 1366x768: none on the panel, the side strips have it (Side_Strips.cc),
+	// independent of the panels
+	if (!TacticalSideStripsAvailable())
 	{
 		MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
 	}
@@ -1538,9 +1526,6 @@ void CreateSMPanelButtons(void)
 
 void RemoveSMPanelButtons(void)
 {
-	// (Statistics, if it is on the right side strip)
-	SetTacticalSideStripButton(SIDE_STRIP_RIGHT, 0, GUIButtonRef::NoButton());
-
 	for (UINT32 cnt = 0; cnt < NUM_SM_BUTTONS; ++cnt)
 	{
 		if (iSMPanelButtons[cnt]) RemoveButton(iSMPanelButtons[cnt]);
@@ -5125,19 +5110,26 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 }
 
 
+void ToggleTacticalStatsPopup()
+{
+	if (InStatsPopup())
+	{
+		DeleteStatsPopup();
+		return;
+	}
+
+	// the SM panel's merc, or over the team panel the selected one
+	bool         const sm = gsCurInterfacePanel == SM_PANEL;
+	SOLDIERTYPE* const s  = sm ? gpSMCurrentMerc : GetSelectedMan();
+	if (!s) return;
+	INT16 const y = sm ? INV_INTERFACE_START_Y : TEAM_PANEL_Y;
+	InitStatsPopup(s, 0, y, SCREEN_WIDTH, SCREEN_HEIGHT - y);
+}
+
+
 static void BtnStatsCallback(GUI_BUTTON* btn, UINT32 reason)
 {
-	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
-	{
-		if (InStatsPopup())
-		{
-			DeleteStatsPopup();
-		}
-		else if (gpSMCurrentMerc)
-		{
-			InitStatsPopup(gpSMCurrentMerc, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
-		}
-	}
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleTacticalStatsPopup();
 }
 
 
