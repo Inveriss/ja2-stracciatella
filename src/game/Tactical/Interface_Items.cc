@@ -470,10 +470,16 @@ static bool gfTacBigWeaponBox = false;
 // (iteminfoc_money_big) as it is -- its layout and tables unchanged.
 #define TAC_ITEMDESC_BOX_MONEY_BIG_FILE INTERFACEDIR "/infobox_money_big_1366x768.png"
 static bool gfTacBigMoneyBox = false;
+// The open box is the 1366x768 SM panel's items box (not weapons, not money),
+// infobox_items_big_1366x768.png: likewise the map's "Show Large Icons" items
+// box (iteminfoc_items_big) as it is.
+#define TAC_ITEMDESC_BOX_ITEMS_BIG_FILE INTERFACEDIR "/infobox_items_big_1366x768.png"
+static bool gfTacBigItemsBox = false;
+// the money and items boxes' x, at the screen's bottom
 #define TAC_ITEMDESC_BOX_MONEY_BIG_X 236
-// either of them (the map's box layouts; their places and what they hide:
+// any of them (the map's box layouts; their places and what they hide:
 // InternalInitItemDescriptionBox())
-static bool IsTacBigItemDescBox() { return gfTacBigWeaponBox || gfTacBigMoneyBox; }
+static bool IsTacBigItemDescBox() { return gfTacBigWeaponBox || gfTacBigMoneyBox || gfTacBigItemsBox; }
 bool InTacBigWeaponBox() { return gfTacBigWeaponBox && InItemDescriptionBox(); }
 #define MONEY_GRAPHICS_FILE         INTERFACEDIR "/info_bil.sti"
 #define MAP_MONEY_GRAPHICS_FILE     INTERFACEDIR "/info_bil_1366x768.sti"
@@ -494,7 +500,7 @@ cache_key_t GetMapItemDescBoxFilename()
 	// have their own boxes -- see gMapItemDescLayout
 	switch (gMapItemDescLayout)
 	{
-		case MAP_ITEMDESC_LAYOUT_ITEMS: return gfMapItemDescArialBox ? MAP_ITEMDESC_BOX_ITEMS_BIG_FILE : MAP_ITEMDESC_BOX_ITEMS_FILE;
+		case MAP_ITEMDESC_LAYOUT_ITEMS: return gfMapItemDescArialBox ? (gfTacBigItemsBox ? TAC_ITEMDESC_BOX_ITEMS_BIG_FILE : MAP_ITEMDESC_BOX_ITEMS_BIG_FILE) : MAP_ITEMDESC_BOX_ITEMS_FILE;
 		case MAP_ITEMDESC_LAYOUT_MONEY: return gfMapItemDescArialBox ? (gfTacBigMoneyBox ? TAC_ITEMDESC_BOX_MONEY_BIG_FILE : MAP_ITEMDESC_BOX_MONEY_BIG_FILE) : MAP_ITEMDESC_BOX_MONEY_FILE;
 		case MAP_ITEMDESC_LAYOUT_WEAPONS: return MAP_ITEMDESC_BOX_WEAPONS_FILE;
 		case MAP_ITEMDESC_LAYOUT_WEAPONS_BIG: return gfTacBigWeaponBox ? TAC_ITEMDESC_BOX_WEAPONS_BIG_FILE : MAP_ITEMDESC_BOX_WEAPONS_BIG_FILE;
@@ -3173,12 +3179,16 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	// and its money box: the map's big one as it is
 	gfTacBigMoneyBox = !real_map && g_ui.isBigSMPanel() && o->usItem == MONEY &&
 		GCM->doesGameResExists(TAC_ITEMDESC_BOX_MONEY_BIG_FILE);
+	// and its items box (the rest): the map's big one as it is, too
+	gfTacBigItemsBox = !real_map && g_ui.isBigSMPanel() && o->usItem != MONEY &&
+		!GCM->getItem(o->usItem)->isWeapon() && GCM->doesGameResExists(TAC_ITEMDESC_BOX_ITEMS_BIG_FILE);
 	// from here on "in_map": the map's box layouts (the tactical big ones too)
 	const BOOLEAN in_map = real_map || IsTacBigItemDescBox();
 	gMapItemDescLayout =
 		real_map          ? GetMapItemDescLayout(*o)        :
 		gfTacBigWeaponBox ? MAP_ITEMDESC_LAYOUT_WEAPONS_BIG :
 		gfTacBigMoneyBox  ? MAP_ITEMDESC_LAYOUT_MONEY       :
+		gfTacBigItemsBox  ? MAP_ITEMDESC_LAYOUT_ITEMS       :
 		MAP_ITEMDESC_LAYOUT_SHARED;
 	// "Show Large Icons": items and money on their own boxes, where those exist
 	gfMapItemDescArialBox = FALSE;
@@ -3188,7 +3198,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		cache_key_t const box = gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_ITEMS ? MAP_ITEMDESC_BOX_ITEMS_FILE     : MAP_ITEMDESC_BOX_MONEY_FILE;
 		gfMapItemDescArialBox = FirstUsableInterfaceAsset({ big, box }) == big;
 	}
-	if (gfTacBigMoneyBox) gfMapItemDescArialBox = TRUE;
+	if (gfTacBigMoneyBox || gfTacBigItemsBox) gfMapItemDescArialBox = TRUE;
 
 	gsInvDescX = sX;
 	gsInvDescY = sY;
@@ -3215,7 +3225,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 			gsVIEWPORT_WINDOW_END_Y = gsInvDescY;
 			SetRenderFlags(RENDER_FLAG_FULL);
 		}
-		else if (gfTacBigMoneyBox)
+		else if (gfTacBigMoneyBox || gfTacBigItemsBox)
 		{
 			// at the screen's bottom, from x 236: the SM panel's portrait and
 			// buttons stay free; the viewport stays at the panel (for now)
