@@ -851,7 +851,8 @@ void AddDeadSoldierToUnLoadedSector(const SGPSector& sMap, SOLDIERTYPE* const s,
 	//Create an array of objects from the mercs inventory
 
 	// Loop through all the soldier's items and add them to the world item array
-	if (!AM_A_ROBOT(s)) // If a robot, don't drop anything
+	// If a robot, don't drop anything; militia never leave anything behind
+	if (!AM_A_ROBOT(s) && s->bTeam != MILITIA_TEAM)
 	{
 		FOR_EACH_SOLDIER_INV_SLOT(i, *s)
 		{
@@ -876,7 +877,10 @@ void AddDeadSoldierToUnLoadedSector(const SGPSector& sMap, SOLDIERTYPE* const s,
 		}
 	}
 
-	DropKeysInKeyRing(*s, grid_no, s->bLevel, VISIBLE, false, 0, true);
+	if (s->bTeam != MILITIA_TEAM)
+	{
+		DropKeysInKeyRing(*s, grid_no, s->bLevel, VISIBLE, false, 0, true);
+	}
 
 	// Convert the soldier into a rotting corpse
 	ROTTING_CORPSE_DEFINITION c{};

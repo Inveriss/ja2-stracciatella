@@ -1473,7 +1473,8 @@ BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo
 					if ((gTacticalStatus.uiFlags & INCOMBAT) && !EnoughPoints( pSoldier, (INT8) (bAPs + AP_PICKUP_ITEM), 0, FALSE))
 					{
 						// try autoplace
-						if ( !AutoPlaceObject( pSoldier, &OldAmmo, FALSE ) )
+						if ( !AutoPlaceObject( pSoldier, &OldAmmo, FALSE ) &&
+							pSoldier->bTeam != MILITIA_TEAM ) // militia never leave anything behind
 						{
 							// put it on the ground
 							AddItemToPool(pSoldier->sGridNo, &OldAmmo, VISIBLE, pSoldier->bLevel, 0 , -1);

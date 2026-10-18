@@ -2400,8 +2400,11 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 				pInHand->usAttachItem[ bAttachPos ] = NOTHING;
 				pInHand->bAttachStatus[ bAttachPos ] = 0;
 
-				// drop it to ground
-				AddItemToPool(pSoldier->sGridNo, &Temp, VISIBLE, pSoldier->bLevel, 0, -1);
+				// drop it to ground (militia never leave anything behind: it's just lost)
+				if (pSoldier->bTeam != MILITIA_TEAM)
+				{
+					AddItemToPool(pSoldier->sGridNo, &Temp, VISIBLE, pSoldier->bLevel, 0, -1);
+				}
 
 				// big penalty to hit
 				iChance -= 30;

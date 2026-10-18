@@ -23,10 +23,11 @@
 #define ENEMYGRENADEDROPRATE    25 // % of time enemies drop grenades
 #define ENEMYEQUIPDROPRATE      15 // % of stuff enemies drop equipment
 
-// only 1/10th of what enemies drop...
-#define MILITIAAMMODROPRATE      5 // % of time enemies drop ammunition
-#define MILITIAGRENADEDROPRATE   3 // % of time enemies drop grenades
-#define MILITIAEQUIPDROPRATE     2 // % of stuff enemies drop equipment
+// militia never leave anything behind (see also TurnSoldierIntoCorpse(),
+// AddDeadSoldierToUnLoadedSector() and the weapon drop in SoldierTakeDamage())
+#define MILITIAAMMODROPRATE      0 // % of time militia drop ammunition
+#define MILITIAGRENADEDROPRATE   0 // % of time militia drop grenades
+#define MILITIAEQUIPDROPRATE     0 // % of stuff militia drop equipment
 
 #define MAX_MORTARS_PER_TEAM     1 // one team can't randomly roll more than this many mortars per sector
 

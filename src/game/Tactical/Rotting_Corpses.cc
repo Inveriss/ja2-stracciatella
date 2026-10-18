@@ -746,6 +746,10 @@ BOOLEAN TurnSoldierIntoCorpse(SOLDIERTYPE& s)
 	{
 
 	}
+	else if (s.bTeam == MILITIA_TEAM)
+	{
+		// militia never leave anything behind
+	}
 	else if ( ubType == QUEEN_MONSTER_DEAD )
 	{
 		gTacticalStatus.fLockItemLocators = FALSE;
