@@ -481,6 +481,9 @@ GUIButtonRef giSMStealthButton;
 // ShowSMBookmarkButtons() -- like any GUI_BUTTON it would otherwise draw on
 // top of Infobox.sti while the item description box is open.
 GUIButtonRef giSMHideEmptySlotsCheckbox;
+// the 1366x768 SM panel under the full width weapon box -- see
+// HideSMPanelUnderItemDesc()
+static bool gfSMPanelUnderItemDesc = false;
 
 BOOLEAN gfUIStanceDifferent = FALSE;
 static BOOLEAN gfAllDisabled = FALSE;
@@ -874,6 +877,7 @@ static void UpdateSMPanel()
 							INV_INTERFACE_START_Y + SM_STEALTHMODE_Y,
 							MSYS_PRIORITY_HIGH - 1, BtnStealthModeCallback);
 		giSMStealthButton->SetFastHelpText(TacticalStr[TOGGLE_STEALTH_MODE_POPUPTEXT]);
+		if (gfSMPanelUnderItemDesc) HideButton(giSMStealthButton);
 
 		gfUIStanceDifferent = FALSE;
 
@@ -1557,6 +1561,42 @@ void HideSMBookmarkButtons(void)
 }
 
 
+bool IsSMPanelUnderItemDesc(void)
+{
+	return gfSMPanelUnderItemDesc;
+}
+
+
+void HideSMPanelUnderItemDesc(void)
+{
+	gfSMPanelUnderItemDesc = true;
+	for (GUIButtonRef const b : iSMPanelButtons)
+	{
+		if (b) HideButton(b);
+	}
+	for (GUIButtonRef const b : { giSMStealthButton, giSMBigRadarButton, giSMBigLargeIconsButton, giSMHideEmptySlotsCheckbox })
+	{
+		if (b) HideButton(b);
+	}
+}
+
+
+void ShowSMPanelUnderItemDesc(void)
+{
+	gfSMPanelUnderItemDesc = false;
+	for (GUIButtonRef const b : iSMPanelButtons)
+	{
+		if (b) ShowButton(b);
+	}
+	for (GUIButtonRef const b : { giSMStealthButton, giSMBigRadarButton, giSMBigLargeIconsButton })
+	{
+		if (b) ShowButton(b);
+	}
+	// the hide-empty checkbox has no place on the big panel yet: stays hidden
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
 void ShowSMBookmarkButtons(void)
 {
 	for (UINT32 const idx : g_smBookmarkButtons)
@@ -2051,7 +2091,7 @@ stats_done:
 		MPrint(x, y, s.name, HCenterVCenterAlign(w, h));
 	}
 
-	if (*dirty_level != DIRTYLEVEL0)
+	if (*dirty_level != DIRTYLEVEL0 && !gfSMPanelUnderItemDesc)
 	{
 		SetStatsHelp(gSM_SELMERCBarsRegion, s);
 
@@ -4461,9 +4501,11 @@ void RenderTownIDString(void)
 	SetFontAttributes(COMPFONT, 183);
 	ST::string zTownIDString = GetSectorIDString(gWorldSector, TRUE);
 
-	// the 1366x768 SM panel: its sector box, as the team panel's
+	// the 1366x768 SM panel: its sector box, as the team panel's (none under
+	// the full width weapon box)
 	if (g_ui.isBigSMPanelShown())
 	{
+		if (gfSMPanelUnderItemDesc) return;
 		SetFont(BIG_TM_SECTOR_FONT);
 		zTownIDString = ReduceStringLength(zTownIDString, SM_BIG_SECTOR_WIDTH - 4, BIG_TM_SECTOR_FONT);
 		MPrint(INTERFACE_START_X + SM_BIG_SECTOR_X, INV_INTERFACE_START_Y + SM_BIG_SECTOR_Y, zTownIDString,

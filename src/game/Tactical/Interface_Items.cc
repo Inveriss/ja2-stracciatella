@@ -586,7 +586,8 @@ static bool IsMapBigWeaponBox()
 
 // Where a point of the map's big weapon box went on the tactical one
 // (infobox_weapons_big_1366x768.png, 1366x511): its top part (picture,
-// status) 107 px right and 60 lower, the left stats frame (x < 330, y 318-547)
+// ammo, status) 107 px right and 29 lower, the Base / Prone / Per Aim box 24
+// right and 29 lower, the left stats frame (x < 330, y 318-547)
 // to the bottom right, the right one to the top right, the name line (y
 // 547-577, x >= 330) to the bottom left; the description lines (y >= 578) and
 // the attachment slots have places of their own (TB(), g_tac_big_weapon_slots).
@@ -594,9 +595,10 @@ struct BoxShift { INT16 dx; INT16 dy; };
 static BoxShift TacBigWeaponShift(INT32 const x, INT32 const y)
 {
 	if (!gfTacBigWeaponBox)   return BoxShift{ 0, 0 };
-	if (y < 318)              return BoxShift{ 107, 60 };
-	if (y >= 578)             return BoxShift{ 33, -139 };
-	if (y >= 547 && x >= 330) return BoxShift{ -71, -144 };
+	if (y < 80 && x < 140)    return BoxShift{ 24, 29 };   // the Base / Prone / Per Aim box
+	if (y < 318)              return BoxShift{ 107, 29 };
+	if (y >= 578)             return BoxShift{ 33, -149 };
+	if (y >= 547 && x >= 330) return BoxShift{ -71, -174 };
 	if (x < 330)              return BoxShift{ 938, -57 };
 	return BoxShift{ 560, -298 };
 }
@@ -606,26 +608,26 @@ static BoxShift TacBigWeaponShift(INT32 const x, INT32 const y)
 // field and its top.
 static SGPPoint const g_tac_big_weapon_slots[MAX_ATTACHMENTS] =
 {
-	{ 335,  70 }, // 1
-	{ 418,  70 }, // 2
-	{ 578,  70 }, // 3
-	{ 784,  70 }, // 4
-	{  53, 164 }, // 5
-	{ 194, 164 }, // 6
-	{ 335, 164 }, // 7
-	{ 711, 127 }, // 8
-	{ 711, 202 }, // 9
-	{ 784, 202 }, // 10
-	{ 335, 259 }, // 11
-	{ 418, 259 }, // 12
-	{ 501, 259 }, // 13
-	{ 628, 259 }, // 14
-	{ 711, 259 }, // 15
-	{ 335, 316 }, // 16
-	{ 418, 316 }, // 17
-	{ 628, 316 }, // 18
-	{ 711, 316 }, // 19
-	{ 784, 316 }, // 20
+	{ 335,  39 }, // 1
+	{ 418,  39 }, // 2
+	{ 578,  39 }, // 3
+	{ 784,  39 }, // 4
+	{  53, 133 }, // 5
+	{ 194, 133 }, // 6
+	{ 335, 133 }, // 7
+	{ 711,  96 }, // 8
+	{ 711, 171 }, // 9
+	{ 784, 171 }, // 10
+	{ 335, 228 }, // 11
+	{ 418, 228 }, // 12
+	{ 501, 228 }, // 13
+	{ 628, 228 }, // 14
+	{ 711, 228 }, // 15
+	{ 335, 285 }, // 16
+	{ 418, 285 }, // 17
+	{ 628, 285 }, // 18
+	{ 711, 285 }, // 19
+	{ 784, 285 }, // 20
 };
 
 // an attachment slot's place on the open box
@@ -640,9 +642,9 @@ static SGPBox TB(SGPBox b)
 	// 56,445): the description line, and pros and cons side by side
 	if (gfTacBigWeaponBox && b.y >= 578)
 	{
-		if (b.x == 350) return SGPBox{ 436, 468, 408, b.h }; // cons
-		if (b.w == 312) return SGPBox{  61, 468, 363, b.h }; // pros
-		return SGPBox{ 61, 450, 783, b.h };                  // description
+		if (b.x == 350) return SGPBox{ 436, 458, 408, b.h }; // cons
+		if (b.w == 312) return SGPBox{  61, 458, 363, b.h }; // pros
+		return SGPBox{ 61, 440, 783, b.h };                  // description
 	}
 	BoxShift const d = TacBigWeaponShift(b.x, b.y);
 	b.x += d.dx;
@@ -3189,7 +3191,8 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 			gsInvDescY = SCREEN_HEIGHT - GetMapItemDescHeight();
 			// bookmark buttons draw over the box otherwise -- see the
 			// tactical branch below
-			if (gsCurInterfacePanel == SM_PANEL) HideSMBookmarkButtons();
+			// the whole SM panel's buttons and texts: the box covers it
+			if (gsCurInterfacePanel == SM_PANEL) HideSMPanelUnderItemDesc();
 		}
 		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + GetMapItemDescWidth(), gsInvDescY + GetMapItemDescHeight(), MSYS_PRIORITY_HIGHEST - 2, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
 
@@ -5025,7 +5028,8 @@ void DeleteItemDescriptionBox( )
 
 		// Undo the HideSMBookmarkButtons() call from
 		// InternalInitItemDescriptionBox().
-		ShowSMBookmarkButtons();
+		if (IsSMPanelUnderItemDesc()) ShowSMPanelUnderItemDesc();
+		else ShowSMBookmarkButtons();
 	}
 
 	if( guiCurrentItemDescriptionScreen == MAP_SCREEN )

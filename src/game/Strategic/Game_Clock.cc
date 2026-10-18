@@ -1,6 +1,7 @@
 #include "Font.h"
 #include "Game_Clock.h"
 #include "Font_Control.h"
+#include "Interface_Panels.h"
 #include "Render_Dirty.h"
 #include "Timer_Control.h"
 #include "Overhead.h"
@@ -252,6 +253,8 @@ void RenderClock(void)
 	// RenderClock() call being outside the fMapPanelDirty-gated pipeline
 	// entirely).
 	if (fShowMapInventoryPool) return;
+	// none over the 1366x768 SM panel's full width weapon box
+	if (g_ui.isBigSMPanelShown() && IsSMPanelUnderItemDesc()) return;
 
 	// Are we in combat?
 	UINT8 const foreground = gTacticalStatus.uiFlags & INCOMBAT ?
