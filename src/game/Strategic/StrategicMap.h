@@ -81,7 +81,7 @@ UINT8 GetTownSectorsUnderControl(INT8 town_id);
 BOOLEAN OKForSectorExit(INT8 bExitDirection, UINT16 usAdditionalData, UINT32* puiTraverseTimeInMinutes = 0);
 void SetupNewStrategicGame();
 
-void LoadStrategicInfoFromSavedFile(HWFILE);
+void LoadStrategicInfoFromSavedFile(HWFILE, UINT32 savegame_version);
 void SaveStrategicInfoToSavedFile(HWFILE);
 
 void AllMercsHaveWalkedOffSector(void);
@@ -126,6 +126,7 @@ extern const SOLDIERTYPE* gPotentiallyAbandonedEPC;
 extern INT8 gbGreenToElitePromotions;
 extern INT8 gbGreenToRegPromotions;
 extern INT8 gbRegToElitePromotions;
+extern INT8 gbEliteToHeavyPromotions;
 extern INT8 gbMilitiaPromotions;
 
 extern BOOLEAN gfGettingNameFromSaveLoadScreen;

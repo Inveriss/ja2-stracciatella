@@ -214,6 +214,7 @@ static BOOLEAN PlayerForceTooStrong(UINT8 ubSectorID, UINT16 usOffensePoints, UI
 	*pusDefencePoints = pSector->ubNumberOfCivsAtLevel[ GREEN_MILITIA ]		* 1 +
 											pSector->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] * 2 +
 											pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ]		* 3 +
+											pSector->ubNumberOfCivsAtLevel[ ELITE_HEAVY_MILITIA ] * 4 +
 											PlayerMercsInSector(sSector) * 5;
 	if( *pusDefencePoints > usOffensePoints )
 	{
@@ -934,6 +935,7 @@ static BOOLEAN ReinforcementsApproved(INT32 iGarrisonID, UINT16* pusDefencePoint
 	*pusDefencePoints = pSector->ubNumberOfCivsAtLevel[ GREEN_MILITIA ]		* 1 +
 										pSector->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] * 2 +
 										pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ]		* 3 +
+										pSector->ubNumberOfCivsAtLevel[ ELITE_HEAVY_MILITIA ] * 4 +
 										PlayerMercsInSector(sSector) * 4;
 	usOffensePoints = gArmyComp[ gGarrisonGroup[ iGarrisonID ].ubComposition ].bAdminPercentage * 2 +
 										gArmyComp[ gGarrisonGroup[ iGarrisonID ].ubComposition ].bTroopPercentage * 3 +

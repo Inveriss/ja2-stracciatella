@@ -149,6 +149,7 @@ constexpr std::size_t pPausedGameText_SIZE = 3;
 constexpr std::size_t pMessageStrings_SIZE = 68;
 constexpr std::size_t pDoctorWarningString_SIZE = 2;
 constexpr std::size_t pMilitiaButtonsHelpText_SIZE = 4;
+constexpr std::size_t pMilitiaHeavyStrings_SIZE = 4;
 constexpr std::size_t gzLaptopHelpText_SIZE = 17;
 constexpr std::size_t gzNonPersistantPBIText_SIZE = 10;
 constexpr std::size_t gzMiscString_SIZE = 5;
@@ -338,6 +339,7 @@ struct L10n_t
 	STRARRAY(zOptionsScreenHelpText);
 	STRARRAY(pDoctorWarningString);
 	STRARRAY(pMilitiaButtonsHelpText);
+	STRARRAY(pMilitiaHeavyStrings);
 	ST::string pMapScreenJustStartedHelpText;
 	ST::string pLandMarkInSectorString;
 	STRARRAY(gzMercSkillText);

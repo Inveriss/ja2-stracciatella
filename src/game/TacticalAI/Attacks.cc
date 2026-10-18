@@ -412,6 +412,10 @@ static void CalcBestThrow(SOLDIERTYPE* pSoldier, ATTACKTYPE* pBestThrow)
 
 	auto const ubDiff{ SoldierDifficultyLevel(pSoldier) };
 
+	// ELITE_HEAVY militia fight with their heavy weapon like others with a gun: they don't save
+	// their shells, LAWs and grenades for groups of targets (the rules for that are skipped below)
+	bool const fHeavyMilitia{ pSoldier->bTeam == MILITIA_TEAM && pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA };
+
 	// make a list of tiles one's friends are positioned in
 	FOR_EACH_MERC(i)
 	{
@@ -571,7 +575,7 @@ static void CalcBestThrow(SOLDIERTYPE* pSoldier, ATTACKTYPE* pBestThrow)
 	}
 
 	// this is try to minimize enemies wasting their (limited) toss attacks, with the exception of break lights
-	if (usGrenade != BREAK_LIGHT)
+	if (usGrenade != BREAK_LIGHT && !fHeavyMilitia)
 	{
 		switch( ubDiff )
 		{
@@ -751,7 +755,7 @@ static void CalcBestThrow(SOLDIERTYPE* pSoldier, ATTACKTYPE* pBestThrow)
 				}
 
 				// JA2Gold
-				if( gGameOptions.ubDifficultyLevel == DIF_LEVEL_EASY )
+				if( gGameOptions.ubDifficultyLevel == DIF_LEVEL_EASY && !fHeavyMilitia )
 				{
 					if (fSkipLocation)
 					{
@@ -823,7 +827,7 @@ static void CalcBestThrow(SOLDIERTYPE* pSoldier, ATTACKTYPE* pBestThrow)
 				// this is try to minimize enemies wasting their (few) mortar shells or LAWs
 				// they won't use them on less than 2 targets as long as half life left
 				if ((usInHand == MORTAR || usInHand == ROCKET_LAUNCHER) && (ubOppsInRange < 2) &&
-					(pSoldier->bLife > (pSoldier->bLifeMax / 2)))
+					(pSoldier->bLife > (pSoldier->bLifeMax / 2)) && !fHeavyMilitia)
 				{
 					continue;              // next gridno
 				}

@@ -824,7 +824,7 @@ void LoadSavedGame(const ST::string &saveName)
 	LoadEmailFromSavedGame(f);
 
 	BAR(1, "Strategic Information...");
-	LoadStrategicInfoFromSavedFile(f);
+	LoadStrategicInfoFromSavedFile(f, version);
 
 	BAR(1, "UnderGround Information...");
 	LoadUnderGroundSectorInfoFromSavedGame(f);

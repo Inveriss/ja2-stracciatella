@@ -43,7 +43,7 @@ void PrepareMilitiaForTactical()
 {
 	SECTORINFO *pSector;
 	//INT32 i;
-	UINT8 ubGreen, ubRegs, ubElites;
+	UINT8 ubGreen, ubRegs, ubElites, ubHeavies;
 	if (gWorldSector.z > 0)
 		return;
 
@@ -55,7 +55,8 @@ void PrepareMilitiaForTactical()
 	ubGreen = pSector->ubNumberOfCivsAtLevel[ GREEN_MILITIA ];
 	ubRegs = pSector->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ];
 	ubElites = pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ];
-	AddSoldierInitListMilitia( ubGreen, ubRegs, ubElites );
+	ubHeavies = pSector->ubNumberOfCivsAtLevel[ ELITE_HEAVY_MILITIA ];
+	AddSoldierInitListMilitia( ubGreen, ubRegs, ubElites, ubHeavies );
 }
 
 
@@ -64,6 +65,7 @@ void HandleMilitiaPromotions()
 	gbGreenToElitePromotions = 0;
 	gbGreenToRegPromotions   = 0;
 	gbRegToElitePromotions   = 0;
+	gbEliteToHeavyPromotions = 0;
 	gbMilitiaPromotions      = 0;
 
 	FOR_EACH_IN_TEAM(i, MILITIA_TEAM)
@@ -82,10 +84,6 @@ void HandleMilitiaPromotions()
 		UINT8 const promotions   = CheckOneMilitiaForPromotion(gWorldSector, militia_rank, s.ubMilitiaKills);
 		if (promotions != 0)
 		{
-			if (militia_rank == ELITE_MILITIA) {
-				// MOD: too good already, increase xp level or other stats?
-				continue;
-			}
 			++gbMilitiaPromotions;
 			if (promotions == 2)
 			{
@@ -98,6 +96,10 @@ void HandleMilitiaPromotions()
 			else if (militia_rank == REGULAR_MILITIA)
 			{
 				++gbRegToElitePromotions;
+			}
+			else if (militia_rank == ELITE_MILITIA)
+			{
+				++gbEliteToHeavyPromotions;
 			}
 
 			s.ubMilitiaKills = 0;

@@ -1288,7 +1288,8 @@ BOOLEAN PlayerSectorDefended( UINT8 ubSectorID )
 	pSector = &SectorInfo[ ubSectorID ];
 	if( pSector->ubNumberOfCivsAtLevel[ GREEN_MILITIA ] +
 		pSector->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] +
-		pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ] )
+		pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ] +
+		pSector->ubNumberOfCivsAtLevel[ ELITE_HEAVY_MILITIA ] )
 	{ //militia in sector
 		return TRUE;
 	}

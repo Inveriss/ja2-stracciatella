@@ -98,6 +98,7 @@ static void ChooseSpecialWeaponsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp,
 static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment);
 static void EquipTank(SOLDIERCREATE_STRUCT* pp);
 static void RandomlyChooseWhichItemsAreDroppable(SOLDIERCREATE_STRUCT* pp, INT8 bSoldierClass);
+static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* pp);
 
 
 //Chooses equipment based on the relative equipment level (0-4) with best being 4.  It allocates a range
@@ -148,8 +149,15 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 		return;
 	}
 
+	if ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA )
+	{
+		// fixed kit, the equipment rating doesn't matter
+		EquipEliteHeavyMilitia( pp );
+		return;
+	}
 
-	Assert( ( bSoldierClass >= SOLDIER_CLASS_NONE ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) );
+
+	Assert( ( ( bSoldierClass >= SOLDIER_CLASS_NONE ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) ) || ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA ) );
 	Assert( ( bEquipmentRating >= 0 ) && ( bEquipmentRating <= 4 ) );
 
 
@@ -508,6 +516,107 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 static BOOLEAN PlaceObjectInSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, OBJECTTYPE* pObject);
 static UINT16 SelectStandardArmyGun(UINT8 uiGunLevel);
+
+
+// ELITE_HEAVY militia may carry up to this percentage of what their strength allows
+#define ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT 110
+
+// What the soldier would carry, the same way CalculateCarriedWeight() counts it
+static grams CarriedWeight(SOLDIERCREATE_STRUCT const* const pp)
+{
+	grams total = 0;
+	for (OBJECTTYPE const& o : pp->Inv)
+	{
+		if (o.usItem == NOTHING) continue;
+		grams weight = Weight(o);
+		if (GCM->getItem(o.usItem)->getPerPocket() > 1) weight *= o.ubNumberOfObjects;
+		total += weight;
+	}
+	return total;
+}
+
+// The weight limit for this soldier's strength, the same formula as CalculateCarriedWeight() uses
+static grams MaxLoad(SOLDIERCREATE_STRUCT const* const pp, UINT32 const percent)
+{
+	UINT32 strength = pp->bStrength;
+	if (strength > 80) strength += strength - 80;
+	return (grams)(strength * 500 * percent / 100);
+}
+
+// ELITE_HEAVY militia: Spectra helmet and vest, gas mask, UV goggles, combat knife and exactly ONE
+// heavy weapon (mortar, LAW or M79, equal chances) with as much of its ammunition (mortar shells,
+// more LAWs, 40mm HE grenades) as fits into ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT of the strength
+// limit, the base equipment included.  Nothing else.
+static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
+{
+	static UINT16 const helmets[] = { SPECTRA_HELMET, SPECTRA_HELMET_18, SPECTRA_HELMET_Y };
+	static UINT16 const vests[]   = { SPECTRA_VEST,   SPECTRA_VEST_18,   SPECTRA_VEST_Y   };
+
+	CreateItem(helmets[Random(lengthof(helmets))], (INT8)(70 + Random(31)), &pp->Inv[HELMETPOS]);
+	pp->Inv[HELMETPOS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(vests[Random(lengthof(vests))], (INT8)(70 + Random(31)), &pp->Inv[VESTPOS]);
+	pp->Inv[VESTPOS].fFlags |= OBJECT_UNDROPPABLE;
+
+	CreateItem(GASMASK, (INT8)(70 + Random(31)), &pp->Inv[HEAD1POS]);
+	pp->Inv[HEAD1POS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(UVGOGGLES, (INT8)(70 + Random(31)), &pp->Inv[HEAD2POS]);
+	pp->Inv[HEAD2POS].fFlags |= OBJECT_UNDROPPABLE;
+
+	OBJECTTYPE Object;
+	CreateItem(COMBAT_KNIFE, (INT8)(70 + Random(31)), &Object);
+	Object.fFlags |= OBJECT_UNDROPPABLE;
+	PlaceObjectInSoldierCreateStruct(pp, &Object);
+
+	// one heavy weapon, equal chances; in the hand
+	UINT16 usWeapon;
+	UINT16 usAmmo;
+	switch (Random(3))
+	{
+		case 0:  usWeapon = MORTAR;          usAmmo = MORTAR_SHELL;    break;
+		case 1:  usWeapon = ROCKET_LAUNCHER; usAmmo = ROCKET_LAUNCHER; break; // the "ammunition" is more LAWs
+		default: usWeapon = GLAUNCHER;       usAmmo = GL_HE_GRENADE;   break;
+	}
+	// weapon condition as for the elites: 85-90% + 1% every 10% progress
+	INT8 const bWeaponStatus = (INT8) std::min(100, int(85 + Random(6) + HighestPlayerProgressPercentage() / 10));
+	CreateItem(usWeapon, bWeaponStatus, &pp->Inv[HANDPOS]);
+	pp->Inv[HANDPOS].fFlags |= OBJECT_UNDROPPABLE;
+
+	// ammunition, one at a time, while it stays within the weight limit and there is room for it
+	grams const max_load = MaxLoad(pp, ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT);
+	grams       load     = CarriedWeight(pp);
+	UINT8       n_ammo   = 0;
+	for (;;)
+	{
+		OBJECTTYPE One;
+		INT8 const bStatus = (usAmmo == ROCKET_LAUNCHER) ? bWeaponStatus : (INT8)(80 + Random(21));
+		CreateItem(usAmmo, bStatus, &One);
+		grams const unit = Weight(One);
+		if (load + unit > max_load) break;
+		if (usAmmo == ROCKET_LAUNCHER)
+		{
+			// a LAW doesn't stack, each one needs its own big pocket
+			One.fFlags |= OBJECT_UNDROPPABLE;
+			if (!PlaceObjectInSoldierCreateStruct(pp, &One)) break;
+		}
+		else
+		{
+			++n_ammo;
+			if (n_ammo == MAX_OBJECTS_PER_SLOT) break;
+		}
+		load += unit;
+	}
+
+	// stackable ammunition: as stacks, as big as the pockets allow
+	while (n_ammo != 0)
+	{
+		CreateItems(usAmmo, (INT8)(80 + Random(21)), n_ammo, &Object);
+		Object.fFlags |= OBJECT_UNDROPPABLE;
+		if (!PlaceObjectInSoldierCreateStruct(pp, &Object)) break; // no room left
+		n_ammo -= Object.ubNumberOfObjects; // what fitted into the pocket
+	}
+
+	RandomlyChooseWhichItemsAreDroppable(pp, SOLDIER_CLASS_ELITE_HEAVY_MILITIA);
+}
 
 
 //When using the class values, they should all range from 0-11, 0 meaning that there will be no

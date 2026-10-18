@@ -1745,6 +1745,12 @@
         "Raap op(Klik Rechts)/drop(Klik links) Veteranentroepen",
         "Verspreidt beschikbare milities evenredig over alle sectoren"
     ],
+    "pMilitiaHeavyStrings": [
+        "Pick up(Right Click)/drop(Left Click) Elite Heavy Troops",
+        "1 veteran militia has been promoted to an elite heavy militia.",
+        "%d veteran militia have been promoted to elite heavy militia.",
+        "Heavy"
+    ],
     "pMilitiaConfirmStrings": [
         "Een stadsmilitie trainen kost $",
         "Uitgave goedkeuren?",

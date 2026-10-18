@@ -878,7 +878,7 @@ static bool DoesPlayerHaveAnyMilitia()
 	FOR_EACH(SECTORINFO const, i, SectorInfo)
 	{
 		UINT8 const (&n)[MAX_MILITIA_LEVELS] = i->ubNumberOfCivsAtLevel;
-		if (n[GREEN_MILITIA] + n[REGULAR_MILITIA] + n[ELITE_MILITIA] != 0) return true;
+		if (n[GREEN_MILITIA] + n[REGULAR_MILITIA] + n[ELITE_MILITIA] + n[ELITE_HEAVY_MILITIA] != 0) return true;
 	}
 	return false;
 }

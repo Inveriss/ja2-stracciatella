@@ -1,6 +1,7 @@
 #include "Auto_Resolve.h"
 #include "Campaign.h"
 #include "ContentManager.h"
+#include "ExplosiveModel.h"
 #include "Creature_Spreading.h"
 #include "Cursors.h"
 #include "Directories.h"
@@ -101,6 +102,7 @@ struct SOLDIERCELL
 	SOLDIERCELL* pAttacker[3];
 	UINT32 uiFlashTime;
 	INT8 bWeaponSlot;
+	UINT16 usHeavyPayload; // the explosive of the heavy weapon shot just fired (ELITE_HEAVY militia), else NOTHING
 };
 
 struct AUTORESOLVE_STRUCT
@@ -394,6 +396,7 @@ static INT32 ARRank(SOLDIERCELL const& c)
 	switch (c.pSoldier->ubSoldierClass)
 	{
 		case SOLDIER_CLASS_ELITE:
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
 		case SOLDIER_CLASS_ELITE_MILITIA: return 0;
 		case SOLDIER_CLASS_ARMY:
 		case SOLDIER_CLASS_REG_MILITIA:   return 1;
@@ -1114,6 +1117,27 @@ static void RenderSoldierCellHealth(SOLDIERCELL* pCell);
 static void DrawDebugText(SOLDIERCELL* pCell);
 
 
+static bool IsHeavyMilitiaCell(SOLDIERCELL const* const c)
+{
+	return c->uiFlags & CELL_MILITIA && c->pSoldier &&
+		c->pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA;
+}
+
+
+// ELITE_HEAVY militia have no portrait of their own yet: "Heavy" written on
+// the bottom of the elite militia portrait (x, y, w, h: the portrait's place)
+static void DrawHeavyMilitiaLabel(SOLDIERCELL const* const c, INT16 const x, INT16 const y, INT16 const w, INT16 const h, SGPFont const font)
+{
+	if (!IsHeavyMilitiaCell(c) || c->pSoldier->bLife == 0) return;
+	ST::string const& label = pMilitiaHeavyStrings[3];
+	SetFontAttributes(font, FONT_YELLOW, FONT_NEARBLACK);
+	INT16 sX;
+	INT16 sY;
+	FindFontCenterCoordinates(x, y, w, h, label, font, &sX, &sY);
+	MPrint(sX, y + h - GetFontHeight(font) - 1, label);
+}
+
+
 // 1366x768: the big cell (see ARBig()).
 static void RenderBigSoldierCell(SOLDIERCELL* const c)
 {
@@ -1177,6 +1201,8 @@ static void RenderBigSoldierCell(SOLDIERCELL* const c)
 		{ // Merc is unconcious (and not taking damage), so darken his portrait.
 			buf->ShadowRect(px, py, px + panel.ww, py + panel.wh);
 		}
+
+		DrawHeavyMilitiaLabel(c, px, py, panel.ww, panel.wh, FONT10ARIAL);
 	}
 
 	RenderSoldierCellHealth(c);
@@ -1241,6 +1267,8 @@ static void RenderSoldierCell(SOLDIERCELL* const c)
 		{ // Merc is unconcious (and not taking damage), so darken his portrait.
 			buf->ShadowRect(x, y, x + 30, y + 26);
 		}
+
+		DrawHeavyMilitiaLabel(c, x, y, 30, 26, SMALLCOMPFONT);
 	}
 
 	RenderSoldierCellHealth(c);
@@ -2002,10 +2030,11 @@ static void CreateAutoResolveInterface(void)
 		}
 	}
 
+	UINT8 n_militia_heavy = MilitiaInSectorOfRank(ar->ubSector, ELITE_HEAVY_MILITIA);
 	UINT8 n_militia_elite = MilitiaInSectorOfRank(ar->ubSector, ELITE_MILITIA);
 	UINT8 n_militia_reg   = MilitiaInSectorOfRank(ar->ubSector, REGULAR_MILITIA);
 	UINT8 n_militia_green = MilitiaInSectorOfRank(ar->ubSector, GREEN_MILITIA);
-	while (n_militia_elite + n_militia_reg + n_militia_green < ar->ubCivs)
+	while (n_militia_heavy + n_militia_elite + n_militia_reg + n_militia_green < ar->ubCivs)
 	{
 		switch (PreRandom(3))
 		{
@@ -2021,17 +2050,23 @@ static void CreateAutoResolveInterface(void)
 
 		SOLDIERTYPE*       s;
 		UINT16             idx;
-		if (i < n_militia_elite)
+		if (i < n_militia_heavy)
+		{
+			// always a big male, so the elite militia face (with "Heavy" written on it)
+			s   = TacticalCreateMilitia(SOLDIER_CLASS_ELITE_HEAVY_MILITIA);
+			idx = MILITIA3_FACE;
+		}
+		else if (i < n_militia_heavy + n_militia_elite)
 		{
 			s   = TacticalCreateMilitia(SOLDIER_CLASS_ELITE_MILITIA);
 			idx = s->ubBodyType == REGFEMALE ? MILITIA3F_FACE : MILITIA3_FACE;
 		}
-		else if (i < n_militia_reg + n_militia_elite)
+		else if (i < n_militia_heavy + n_militia_reg + n_militia_elite)
 		{
 			s   = TacticalCreateMilitia(SOLDIER_CLASS_REG_MILITIA);
 			idx = s->ubBodyType == REGFEMALE ? MILITIA2F_FACE : MILITIA2_FACE;
 		}
-		else if (i < n_militia_green + n_militia_reg + n_militia_elite)
+		else if (i < n_militia_heavy + n_militia_green + n_militia_reg + n_militia_elite)
 		{
 			s   = TacticalCreateMilitia(SOLDIER_CLASS_GREEN_MILITIA);
 			idx = s->ubBodyType == REGFEMALE ? MILITIA1F_FACE : MILITIA1_FACE;
@@ -2222,6 +2257,7 @@ static void RemoveAutoResolveInterface()
 	gbGreenToElitePromotions = 0;
 	gbGreenToRegPromotions   = 0;
 	gbRegToElitePromotions   = 0;
+	gbEliteToHeavyPromotions = 0;
 	gbMilitiaPromotions      = 0;
 	for (INT32 i = 0; i != MAX_ALLOWABLE_MILITIA_PER_SECTOR; ++i)
 	{
@@ -2254,6 +2290,11 @@ static void RemoveAutoResolveInterface()
 					else if (current_rank == REGULAR_MILITIA)
 					{
 						++gbRegToElitePromotions;
+						++gbMilitiaPromotions;
+					}
+					else if (current_rank == ELITE_MILITIA)
+					{
+						++gbEliteToHeavyPromotions;
 						++gbMilitiaPromotions;
 					}
 				}
@@ -3318,6 +3359,9 @@ static SOLDIERCELL* ChooseTarget(SOLDIERCELL* pAttacker)
 }
 
 
+static bool FireHeavyWeaponShot(SOLDIERCELL* attacker);
+
+
 static BOOLEAN FireAShot(SOLDIERCELL* pAttacker)
 {
 	OBJECTTYPE *pItem;
@@ -3325,6 +3369,9 @@ static BOOLEAN FireAShot(SOLDIERCELL* pAttacker)
 	INT32 i;
 
 	pSoldier = pAttacker->pSoldier;
+	pAttacker->usHeavyPayload = NOTHING;
+
+	if (IsHeavyMilitiaCell(pAttacker) && FireHeavyWeaponShot(pAttacker)) return TRUE;
 
 	if( pAttacker->uiFlags & CELL_MALECREATURE )
 	{
@@ -3363,6 +3410,45 @@ static BOOLEAN FireAShot(SOLDIERCELL* pAttacker)
 	}
 	pAttacker->bWeaponSlot = -1;
 	return FALSE;
+}
+
+
+// ELITE_HEAVY militia: one shot of the heavy weapon (a LAW, or the mortar/M79 with one of its
+// shells/grenades), if there is anything left to fire.  Remembers the explosive for the damage.
+static bool FireHeavyWeaponShot(SOLDIERCELL* const attacker)
+{
+	SOLDIERTYPE& s = *attacker->pSoldier;
+	for (INT8 i = 0; i != NUM_INV_SLOTS; ++i)
+	{
+		OBJECTTYPE& o = s.inv[i];
+		if (o.usItem == NOTHING || o.bStatus[0] < USABLE) continue;
+
+		UINT16 payload = NOTHING;
+		if (o.usItem == ROCKET_LAUNCHER)
+		{
+			if (o.ubGunShotsLeft == 0) continue; // fired already
+			o.ubGunShotsLeft = 0;
+			payload = C1; // a LAW explodes like C1, as in tactical
+		}
+		else if (GCM->getItem(o.usItem)->getItemClass() == IC_LAUNCHER)
+		{
+			INT8 const ammo_slot = FindLaunchable(&s, o.usItem);
+			if (ammo_slot == NO_SLOT) continue;
+			OBJECTTYPE& ammo = s.inv[ammo_slot];
+			payload = ammo.usItem;
+			if (--ammo.ubNumberOfObjects == 0) DeleteObj(&ammo);
+		}
+		else
+		{
+			continue;
+		}
+
+		attacker->bWeaponSlot    = i;
+		attacker->usHeavyPayload = payload;
+		PlayAutoResolveSample(GCM->getWeapon(o.usItem)->sound, 50, 1, MIDDLEPAN);
+		return true;
+	}
+	return false;
 }
 
 
@@ -3493,7 +3579,16 @@ static void AttackTarget(SOLDIERCELL* pAttacker, SOLDIERCELL* pTarget)
 	//Attacker hits
 	if( !fMelee )
 	{
-		ubImpact = GCM->getWeapon(pAttacker->pSoldier->inv[pAttacker->bWeaponSlot].usItem)->ubImpact;
+		if (pAttacker->usHeavyPayload != NOTHING)
+		{
+			// heavy weapon: the blast damage of its explosive (tactical explosions do 100-200% of it)
+			auto const blast = GCM->getExplosive(pAttacker->usHeavyPayload)->getBlastEffect();
+			ubImpact = blast ? (UINT8) std::min(255, int(blast->damage) * 3 / 2) : 0;
+		}
+		else
+		{
+			ubImpact = GCM->getWeapon(pAttacker->pSoldier->inv[pAttacker->bWeaponSlot].usItem)->ubImpact;
+		}
 		iRandom = PreRandom( 100 );
 		if( iRandom < 15 )
 			ubLocation = AIM_SHOT_HEAD;

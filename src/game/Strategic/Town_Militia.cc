@@ -82,7 +82,10 @@ void TownMilitiaTrainingCompleted(SOLDIERTYPE *pTrainer, const SGPSector& sector
 	// 2) If not enough room there, create new GREEN militia guys in friendly sectors of the same town
 	// 3) If not enough room anywhere in town, promote a number of GREENs in this sector into regulars
 	// 4) If not enough GREENS there to promote, promote GREENs in other sectors.
-	// 5) If all friendly sectors of this town are completely filled with REGULAR militia, then training effect is wasted
+	// 5) If no GREENs anywhere, promote REGULARs in this sector into elites
+	// 6) If not enough REGULARs there to promote, promote REGULARs in other sectors.
+	// 7) If all friendly sectors of this town are completely filled with ELITE (or ELITE_HEAVY) militia, then training effect is wasted
+	//    (ELITE_HEAVY is never created by training, only by combat promotions)
 
 	SGPSector sNeighbour;
 	while (ubMilitiaTrained < MILITIA_TRAINING_SQUAD_SIZE)
@@ -149,10 +152,35 @@ void TownMilitiaTrainingCompleted(SOLDIERTYPE *pTrainer, const SGPSector& sector
 						}
 					}
 
+					// no GREENs left anywhere - promote a REGULAR to an ELITE instead
+					if (!fFoundOne)
+					{
+						if (MilitiaInSectorOfRank(sector, REGULAR_MILITIA) > 0)
+						{
+							StrategicPromoteMilitiaInSector(sector, REGULAR_MILITIA, 1);
+							fFoundOne = TRUE;
+						}
+						else if (ubTownId != BLANK_SECTOR)
+						{
+							InitFriendlyTownSectorServer(ubTownId, sector.x, sector.y);
+
+							while (ServeNextFriendlySectorInTown(sNeighbour))
+							{
+								if (MilitiaInSectorOfRank(sNeighbour, REGULAR_MILITIA) > 0)
+								{
+									StrategicPromoteMilitiaInSector(sNeighbour, REGULAR_MILITIA, 1);
+
+									fFoundOne = TRUE;
+									break;
+								}
+							}
+						}
+					}
+
 					// if we still haven't been able to train anyone
 					if (!fFoundOne)
 					{
-						// Well, that's it.  All eligible sectors of this town are full of REGULARs or ELITEs.
+						// Well, that's it.  All eligible sectors of this town are full of ELITEs (or ELITE_HEAVYs).
 						// The training goes to waste in this situation.
 						break; // the main while loop
 					}
@@ -196,6 +224,7 @@ std::optional<UINT8> SoldierClassToMilitiaRank(UINT8 const soldier_class)
 		case SOLDIER_CLASS_GREEN_MILITIA: return GREEN_MILITIA;
 		case SOLDIER_CLASS_REG_MILITIA:   return REGULAR_MILITIA;
 		case SOLDIER_CLASS_ELITE_MILITIA: return ELITE_MILITIA;
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA: return ELITE_HEAVY_MILITIA;
 		default:                          return {};
 	}
 }
@@ -257,7 +286,7 @@ UINT8 CheckOneMilitiaForPromotion(const SGPSector& sMap, UINT8 &current_rank, UI
 	// if we can't find them, we try higher ranks and make sure the caller follows up
 	SECTORINFO& si = SectorInfo[sMap.AsByte()];
 	while (si.ubNumberOfCivsAtLevel[current_rank] == 0) {
-		if (current_rank == ELITE_MILITIA) return 0;
+		if (current_rank == ELITE_HEAVY_MILITIA) return 0;
 		current_rank++;
 	}
 
@@ -278,6 +307,14 @@ UINT8 CheckOneMilitiaForPromotion(const SGPSector& sMap, UINT8 &current_rank, UI
 			if (kill_points < 5)           break;
 			if (!Chance(10 * kill_points)) break;
 			StrategicPromoteMilitiaInSector(sMap, REGULAR_MILITIA, 1);
+			++n_promotions;
+			break;
+		case ELITE_MILITIA:
+			// only militia that already were ELITE can become ELITE_HEAVY (no chain from lower ranks)
+			// 10 kill points minimum, 5% chance per kill point
+			if (kill_points < 10)          break;
+			if (!Chance(5 * kill_points))  break;
+			StrategicPromoteMilitiaInSector(sMap, ELITE_MILITIA, 1);
 			++n_promotions;
 			break;
 	}
@@ -309,6 +346,7 @@ static void HandleMilitiaDefections(const SGPSector& sMap)
 					uiChanceToDefect = 75;
 					break;
 				case ELITE_MILITIA:
+				case ELITE_HEAVY_MILITIA:
 					uiChanceToDefect = 90;
 					break;
 				default:
@@ -626,8 +664,7 @@ bool CanNearbyMilitiaScoutThisSector(const SGPSector& sMap)
 	{
 		for (sSector.x = xstart; sSector.x <= xend; ++sSector.x)
 		{
-			UINT8 (&n_milita)[MAX_MILITIA_LEVELS] = SectorInfo[sSector.AsByte()].ubNumberOfCivsAtLevel;
-			if (n_milita[GREEN_MILITIA] + n_milita[REGULAR_MILITIA] + n_milita[ELITE_MILITIA] != 0) return true;
+			if (CountAllMilitiaInSector(sSector) != 0) return true;
 		}
 	}
 	return false;
@@ -649,18 +686,18 @@ BOOLEAN IsAreaFullOfMilitia(const SGPSector& sector)
 			SGPSector town(i->sector);
 			if (SectorOursAndPeaceful(town))
 			{
-				// don't count GREEN militia, they can be trained into regulars first
-				count_milita += MilitiaInSectorOfRank(town, REGULAR_MILITIA);
+				// don't count GREEN and REGULAR militia, they can be trained into elites first
 				count_milita += MilitiaInSectorOfRank(town, ELITE_MILITIA);
+				count_milita += MilitiaInSectorOfRank(town, ELITE_HEAVY_MILITIA);
 				max_milita   += MAX_ALLOWABLE_MILITIA_PER_SECTOR;
 			}
 		}
 	}
 	else if (IsThisSectorASAMSector(sector))
 	{
-		// don't count GREEN militia, they can be trained into regulars first
-		count_milita += MilitiaInSectorOfRank(sector, REGULAR_MILITIA);
+		// don't count GREEN and REGULAR militia, they can be trained into elites first
 		count_milita += MilitiaInSectorOfRank(sector, ELITE_MILITIA);
+		count_milita += MilitiaInSectorOfRank(sector, ELITE_HEAVY_MILITIA);
 		max_milita   += MAX_ALLOWABLE_MILITIA_PER_SECTOR;
 	}
 
@@ -950,11 +987,13 @@ ST::string BuildMilitiaPromotionsString()
 	PromoteMilitia(str, gbGreenToElitePromotions, gzLateLocalizedString[STR_LATE_29], gzLateLocalizedString[STR_LATE_22]);
 	PromoteMilitia(str, gbGreenToRegPromotions,  gzLateLocalizedString[STR_LATE_30], gzLateLocalizedString[STR_LATE_23]);
 	PromoteMilitia(str, gbRegToElitePromotions,  gzLateLocalizedString[STR_LATE_31], gzLateLocalizedString[STR_LATE_24]);
+	PromoteMilitia(str, gbEliteToHeavyPromotions, pMilitiaHeavyStrings[1],           pMilitiaHeavyStrings[2]);
 
 	// Clear the fields
 	gbGreenToElitePromotions = 0;
 	gbGreenToRegPromotions   = 0;
 	gbRegToElitePromotions   = 0;
+	gbEliteToHeavyPromotions = 0;
 	gbMilitiaPromotions      = 0;
 
 	return str;

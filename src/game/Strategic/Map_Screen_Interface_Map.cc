@@ -313,21 +313,25 @@ static SGPVSurface* guiBIGMAP;
 #define HELI_SHADOW_ICON_HEIGHT 11
 
 
-// the militia box buttons
-static GUIButtonRef giMapMilitiaButton[5];
+// the militia box buttons: 0-3 the ranks of the selected sector (MilitiaLevel), then AUTO and DONE
+#define MILITIA_AUTO_BUTTON MAX_MILITIA_LEVELS
+#define MILITIA_DONE_BUTTON (MAX_MILITIA_LEVELS + 1)
+static GUIButtonRef giMapMilitiaButton[MAX_MILITIA_LEVELS + 2];
 
 
 static INT16 const gsMilitiaSectorButtonColors[] =
 {
 	FONT_LTGREEN,
 	FONT_LTBLUE,
-	16
+	16,
+	FONT_YELLOW
 };
 
 // track number of townspeople picked up
 INT16 sGreensOnCursor = 0;
 INT16 sRegularsOnCursor = 0;
 INT16 sElitesOnCursor = 0;
+INT16 sHeaviesOnCursor = 0;
 
 // the current militia town id
 INT16 sSelectedMilitiaTown = 0;
@@ -367,6 +371,15 @@ cache_key_t GetMineLevelGraphicsFilename(int const sectorZ)
 
 // militia graphics
 cache_key_t const guiMilitia{ INTERFACEDIR "/militia.sti" };
+
+// the ELITE_HEAVY militia square in militia.sti (no smaller variants); until the
+// graphic has it, the elite square of the same place is shown instead
+#define HEAVY_MILITIA_ICON 14
+static UINT16 HeavyMilitiaIcon(UINT16 const elite_icon)
+{
+	return GetVObject(guiMilitia)->SubregionCount() > HEAVY_MILITIA_ICON ? HEAVY_MILITIA_ICON : elite_icon;
+}
+
 cache_key_t const guiMilitiaMaps{ INTERFACEDIR "/militiamaps.sti" };
 cache_key_t const guiMilitiaSectorHighLight{ INTERFACEDIR "/militiamapsectoroutline2.sti" };
 cache_key_t const guiMilitiaSectorOutline{ INTERFACEDIR "/militiamapsectoroutline.sti" };
@@ -2896,6 +2909,7 @@ static INT16& GetPickedUpMilitia(UINT8 const type)
 		case GREEN_MILITIA:   return sGreensOnCursor;
 		case REGULAR_MILITIA: return sRegularsOnCursor;
 		case ELITE_MILITIA:   return sElitesOnCursor;
+		case ELITE_HEAVY_MILITIA: return sHeaviesOnCursor;
 		default: throw std::logic_error("invalid militia type");
 	}
 }
@@ -2928,7 +2942,7 @@ static void DropAPersonInASector(UINT8 const type, UINT8 const sector)
 	if (!SectorOursAndPeaceful(SGPSector(sector))) return;
 
 	UINT8 (&n_milita)[MAX_MILITIA_LEVELS] = SectorInfo[sector].ubNumberOfCivsAtLevel;
-	if (n_milita[GREEN_MILITIA] + n_milita[REGULAR_MILITIA] + n_milita[ELITE_MILITIA] >= MAX_ALLOWABLE_MILITIA_PER_SECTOR) return;
+	if (CountAllMilitiaInSector(SGPSector(sector)) >= MAX_ALLOWABLE_MILITIA_PER_SECTOR) return;
 
 	// Drop the guy into this sector
 	INT16& n_type = GetPickedUpMilitia(type);
@@ -3131,7 +3145,8 @@ static void RenderIconsPerSectorForSelectedTown(void)
 		INT32      const  n_greens   = si.ubNumberOfCivsAtLevel[GREEN_MILITIA];
 		INT32      const  n_regulars = si.ubNumberOfCivsAtLevel[REGULAR_MILITIA];
 		INT32      const  n_elites   = si.ubNumberOfCivsAtLevel[ELITE_MILITIA];
-		INT32      const  n_total    = n_greens + n_regulars + n_elites;
+		INT32      const  n_heavies  = si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA];
+		INT32      const  n_total    = n_greens + n_regulars + n_elites + n_heavies;
 
 		StrategicMapElement const& e = StrategicMap[SGPSector(sector).AsStrategicIndex()];
 		if (e.bNameId != BLANK_SECTOR && !e.fEnemyControlled)
@@ -3168,9 +3183,10 @@ static void RenderIconsPerSectorForSelectedTown(void)
 			}
 
 			UINT16 const icon =
-				i < n_greens              ? icon_base     :
-				i < n_greens + n_regulars ? icon_base + 1 :
-				icon_base + 2;
+				i < n_greens                         ? icon_base     :
+				i < n_greens + n_regulars            ? icon_base + 1 :
+				i < n_greens + n_regulars + n_elites ? icon_base + 2 :
+				HeavyMilitiaIcon(icon_base + 2);
 			BltVideoObject(FRAME_BUFFER, guiMilitia, icon, x, y);
 		}
 	}
@@ -3258,10 +3274,11 @@ void CreateDestroyMilitiaSectorButtons()
 
 	if (!fMilitiaMapButtonsCreated && sOldSectorValue == sSectorMilitiaMapSector && fShowMilitia && sSelectedMilitiaTown && sSectorMilitiaMapSector != -1)
 	{
-		// given sector..place down the 3 buttons
+		// given sector..place down the 4 buttons, one under the other (the 4th, ELITE_HEAVY,
+		// reaches below the sector box)
 		INT16 const x = MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + sSectorMilitiaMapSector % MILITIA_BOX_ROWS * MILITIA_BOX_BOX_WIDTH  + MILITIA_BTN_OFFSET_X;
 		INT16       y = MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + sSectorMilitiaMapSector / MILITIA_BOX_ROWS * MILITIA_BOX_BOX_HEIGHT + 2;
-		for (INT32 i = 0; i != 3; y += MILITIA_BTN_HEIGHT, ++i)
+		for (INT32 i = 0; i != MAX_MILITIA_LEVELS; y += MILITIA_BTN_HEIGHT, ++i)
 		{
 			GUIButtonRef b = QuickCreateButtonImg(INTERFACEDIR "/militia.sti", 3, 4, x, y, MSYS_PRIORITY_HIGHEST - 1, ButtonCallbackPrimarySecondary(MilitiaButtonCallbackPrimary, MilitiaButtonCallbackSecondary));
 			giMapMilitiaButton[i] = b;
@@ -3269,7 +3286,7 @@ void CreateDestroyMilitiaSectorButtons()
 			b->SpecifyGeneralTextAttributes({}, FONT10ARIAL, gsMilitiaSectorButtonColors[i], FONT_BLACK);
 			b->SpecifyTextSubOffsets(0, 0, TRUE);
 			b->fShiftText = FALSE;
-			b->SetFastHelpText(pMilitiaButtonsHelpText[i]);
+			b->SetFastHelpText(i == ELITE_HEAVY_MILITIA ? pMilitiaHeavyStrings[0] : pMilitiaButtonsHelpText[i]);
 		}
 
 		CreateScreenMaskForMoveBox();
@@ -3282,7 +3299,7 @@ void CreateDestroyMilitiaSectorButtons()
 		sOldSectorValue = sSectorMilitiaMapSector;
 
 		// get rid of the buttons
-		for (INT32 i = 0; i != 3; ++i)
+		for (INT32 i = 0; i != MAX_MILITIA_LEVELS; ++i)
 		{
 			RemoveButton(giMapMilitiaButton[i]);
 		}
@@ -3324,6 +3341,10 @@ static void SetMilitiaMapButtonsText()
 	// the number of elites in this sector
 	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[ELITE_MILITIA]);
 	giMapMilitiaButton[2]->SpecifyText(buf);
+
+	// the number of elite heavies in this sector
+	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA]);
+	giMapMilitiaButton[3]->SpecifyText(buf);
 }
 
 
@@ -3353,7 +3374,7 @@ static void MilitiaButtonCallbackSecondary(GUI_BUTTON *btn, UINT32 reason)
 static void DisplayUnallocatedMilitia(void)
 {
 	// show the nunber on the cursor
-	INT32 iTotalNumberOfTroops =0, iNumberOfGreens = 0, iNumberOfRegulars =0, iNumberOfElites = 0, iCurrentTroopIcon = 0;
+	INT32 iTotalNumberOfTroops =0, iNumberOfGreens = 0, iNumberOfRegulars =0, iNumberOfElites = 0, iNumberOfHeavies = 0, iCurrentTroopIcon = 0;
 	INT32 iCurrentIcon = 0;
 	INT16 sX = 0, sY = 0;
 
@@ -3361,9 +3382,10 @@ static void DisplayUnallocatedMilitia(void)
 	iNumberOfGreens = sGreensOnCursor;
 	iNumberOfRegulars = sRegularsOnCursor;
 	iNumberOfElites = sElitesOnCursor;
+	iNumberOfHeavies = sHeaviesOnCursor;
 
 	// get total
-	iTotalNumberOfTroops = iNumberOfGreens + iNumberOfRegulars + iNumberOfElites;
+	iTotalNumberOfTroops = iNumberOfGreens + iNumberOfRegulars + iNumberOfElites + iNumberOfHeavies;
 
 	// now display
 	for( iCurrentTroopIcon = 0; iCurrentTroopIcon < iTotalNumberOfTroops; iCurrentTroopIcon++ )
@@ -3380,9 +3402,13 @@ static void DisplayUnallocatedMilitia(void)
 		{
 			iCurrentIcon = 9;
 		}
-		else
+		else if( iCurrentTroopIcon < iNumberOfGreens + iNumberOfRegulars + iNumberOfElites )
 		{
 			iCurrentIcon = 10;
+		}
+		else
+		{
+			iCurrentIcon = HeavyMilitiaIcon(10);
 		}
 
 		BltVideoObject(FRAME_BUFFER, guiMilitia, iCurrentIcon, sX, sY);
@@ -3426,7 +3452,7 @@ static void DrawTownMilitiaName()
 static void HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor(INT16 const town)
 {
 	// check if anyone still on the cursor
-	if (sGreensOnCursor == 0 && sRegularsOnCursor == 0 && sElitesOnCursor == 0) return;
+	if (sGreensOnCursor == 0 && sRegularsOnCursor == 0 && sElitesOnCursor == 0 && sHeaviesOnCursor == 0) return;
 
 	FOR_EACH_SECTOR_IN_TOWN(i, town)
 	{
@@ -3436,10 +3462,11 @@ static void HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor(INT16 const town)
 		UINT8&      n_green   = si.ubNumberOfCivsAtLevel[GREEN_MILITIA];
 		UINT8&      n_regular = si.ubNumberOfCivsAtLevel[REGULAR_MILITIA];
 		UINT8&      n_elite   = si.ubNumberOfCivsAtLevel[ELITE_MILITIA];
-		INT32       n         = MAX_ALLOWABLE_MILITIA_PER_SECTOR - n_green - n_regular - n_elite;
+		UINT8&      n_heavy   = si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA];
+		INT32       n         = MAX_ALLOWABLE_MILITIA_PER_SECTOR - n_green - n_regular - n_elite - n_heavy;
 		if (n == 0) continue;
 
-		while (sGreensOnCursor != 0 || sRegularsOnCursor != 0 || sElitesOnCursor != 0)
+		while (sGreensOnCursor != 0 || sRegularsOnCursor != 0 || sElitesOnCursor != 0 || sHeaviesOnCursor != 0)
 		{
 			if (sGreensOnCursor != 0)
 			{
@@ -3461,6 +3488,13 @@ static void HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor(INT16 const town)
 				--sElitesOnCursor;
 				if (--n == 0) break;
 			}
+
+			if (sHeaviesOnCursor != 0)
+			{
+				++n_heavy;
+				--sHeaviesOnCursor;
+				if (--n == 0) break;
+			}
 		}
 
 		if (sector == GetWorldSector()) gfStrategicMilitiaChangesMade = TRUE;
@@ -3469,6 +3503,7 @@ static void HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor(INT16 const town)
 	Assert(sGreensOnCursor   == 0);
 	Assert(sRegularsOnCursor == 0);
 	Assert(sElitesOnCursor   == 0);
+	Assert(sHeaviesOnCursor  == 0);
 }
 
 
@@ -3484,6 +3519,7 @@ static void HandleEveningOutOfTroopsAmongstSectors()
 	INT32       n_green     = 0;
 	INT32       n_regular   = 0;
 	INT32       n_elite     = 0;
+	INT32       n_heavy     = 0;
 	INT16 const base_sector = GetBaseSectorForCurrentTown();
 	for (INT32 i = 0; i != 9; ++i)
 	{
@@ -3498,23 +3534,27 @@ static void HandleEveningOutOfTroopsAmongstSectors()
 		n_green   += si.ubNumberOfCivsAtLevel[GREEN_MILITIA];
 		n_regular += si.ubNumberOfCivsAtLevel[REGULAR_MILITIA];
 		n_elite   += si.ubNumberOfCivsAtLevel[ELITE_MILITIA];
+		n_heavy   += si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA];
 	}
 
 	// Grab those on the cursor
 	n_green   += sGreensOnCursor;
 	n_regular += sRegularsOnCursor;
 	n_elite   += sElitesOnCursor;
+	n_heavy   += sHeaviesOnCursor;
 
-	if (n_green + n_regular + n_elite == 0) return;
+	if (n_green + n_regular + n_elite + n_heavy == 0) return;
 
 	INT32 const n_green_per_sector   = n_green   / n_under_control;
 	INT32 const n_regular_per_sector = n_regular / n_under_control;
 	INT32 const n_elite_per_sector   = n_elite   / n_under_control;
+	INT32 const n_heavy_per_sector   = n_heavy   / n_under_control;
 
 	// Get the left overs
 	INT32 n_left_over_green   = n_green   % n_under_control;
 	INT32 n_left_over_regular = n_regular % n_under_control;
 	INT32 n_left_over_elite   = n_elite   % n_under_control;
+	INT32 n_left_over_heavy   = n_heavy   % n_under_control;
 
 	FOR_EACH_SECTOR_IN_TOWN(i, town)
 	{
@@ -3529,9 +3569,10 @@ static void HandleEveningOutOfTroopsAmongstSectors()
 		si.ubNumberOfCivsAtLevel[GREEN_MILITIA]   = n_green_per_sector;
 		si.ubNumberOfCivsAtLevel[REGULAR_MILITIA] = n_regular_per_sector;
 		si.ubNumberOfCivsAtLevel[ELITE_MILITIA]   = n_elite_per_sector;
+		si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA] = n_heavy_per_sector;
 
 		// Add leftovers that weren't included in the div operation
-		INT16 total_so_far = n_green_per_sector + n_regular_per_sector + n_elite_per_sector;
+		INT16 total_so_far = n_green_per_sector + n_regular_per_sector + n_elite_per_sector + n_heavy_per_sector;
 		if (n_left_over_green != 0 && total_so_far < MAX_ALLOWABLE_MILITIA_PER_SECTOR)
 		{
 			++si.ubNumberOfCivsAtLevel[GREEN_MILITIA];
@@ -3550,6 +3591,12 @@ static void HandleEveningOutOfTroopsAmongstSectors()
 			++total_so_far;
 			--n_left_over_elite;
 		}
+		if (n_left_over_heavy && total_so_far < MAX_ALLOWABLE_MILITIA_PER_SECTOR)
+		{
+			++si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA];
+			++total_so_far;
+			--n_left_over_heavy;
+		}
 
 		if (sector == GetWorldSector()) gfStrategicMilitiaChangesMade = TRUE;
 	}
@@ -3558,6 +3605,7 @@ static void HandleEveningOutOfTroopsAmongstSectors()
 	sGreensOnCursor   = 0;
 	sRegularsOnCursor = 0;
 	sElitesOnCursor   = 0;
+	sHeaviesOnCursor  = 0;
 }
 
 
@@ -3576,18 +3624,18 @@ static void MilitiaDoneButtonCallback(GUI_BUTTON* btn, UINT32 reason);
 
 static void CreateMilitiaPanelBottomButton(void)
 {
-	MakeButton(3, MAP_MILITIA_BOX_POS_X + MAP_MILITIA_BOX_AUTO_BOX_X, MilitiaAutoButtonCallback, pMilitiaButtonString[0]);
-	MakeButton(4, MAP_MILITIA_BOX_POS_X + MAP_MILITIA_BOX_DONE_BOX_X, MilitiaDoneButtonCallback, pMilitiaButtonString[1]);
+	MakeButton(MILITIA_AUTO_BUTTON, MAP_MILITIA_BOX_POS_X + MAP_MILITIA_BOX_AUTO_BOX_X, MilitiaAutoButtonCallback, pMilitiaButtonString[0]);
+	MakeButton(MILITIA_DONE_BUTTON, MAP_MILITIA_BOX_POS_X + MAP_MILITIA_BOX_DONE_BOX_X, MilitiaDoneButtonCallback, pMilitiaButtonString[1]);
 
 	// AUTO button help
-	giMapMilitiaButton[3]->SetFastHelpText(pMilitiaButtonsHelpText[3]);
+	giMapMilitiaButton[MILITIA_AUTO_BUTTON]->SetFastHelpText(pMilitiaButtonsHelpText[3]);
 
 
 	// if auto-distribution is not possible
 	if ( !CanMilitiaAutoDistribute( ) )
 	{
 		// disable the AUTO button
-		DisableButton( giMapMilitiaButton[ 3 ] );
+		DisableButton( giMapMilitiaButton[ MILITIA_AUTO_BUTTON ] );
 	}
 }
 
@@ -3596,8 +3644,8 @@ static void DeleteMilitiaPanelBottomButton(void)
 {
 
 	// delete militia panel bottom
-	RemoveButton( giMapMilitiaButton[ 3 ] );
-	RemoveButton( giMapMilitiaButton[ 4 ] );
+	RemoveButton( giMapMilitiaButton[ MILITIA_AUTO_BUTTON ] );
+	RemoveButton( giMapMilitiaButton[ MILITIA_DONE_BUTTON ] );
 
 	if( sSelectedMilitiaTown != 0 )
 	{
@@ -3677,6 +3725,10 @@ static void DrawMilitiaForcesForSector(INT32 const sector)
 	{
 		DrawMapBoxIcon(guiMilitia, icon + 2, sMap, pos++);
 	}
+	for (INT32 i = si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA]; i != 0; --i)
+	{
+		DrawMapBoxIcon(guiMilitia, HeavyMilitiaIcon(icon + 2), sMap, pos++);
+	}
 }
 
 
@@ -3703,7 +3755,7 @@ static void CheckAndUpdateStatesOfSelectedMilitiaSectorButtons()
 {
 	if (!fMilitiaMapButtonsCreated)
 	{
-		EnableButton(giMapMilitiaButton[4]);
+		EnableButton(giMapMilitiaButton[MILITIA_DONE_BUTTON]);
 		return;
 	}
 
@@ -3713,10 +3765,12 @@ static void CheckAndUpdateStatesOfSelectedMilitiaSectorButtons()
 	INT32      const  n_green     = si.ubNumberOfCivsAtLevel[GREEN_MILITIA]   + sGreensOnCursor;
 	INT32      const  n_regular   = si.ubNumberOfCivsAtLevel[REGULAR_MILITIA] + sRegularsOnCursor;
 	INT32      const  n_elite     = si.ubNumberOfCivsAtLevel[ELITE_MILITIA]   + sElitesOnCursor;
-	EnableButton(giMapMilitiaButton[4], sGreensOnCursor + sRegularsOnCursor + sElitesOnCursor == 0); // Done
+	INT32      const  n_heavy     = si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA] + sHeaviesOnCursor;
+	EnableButton(giMapMilitiaButton[MILITIA_DONE_BUTTON], sGreensOnCursor + sRegularsOnCursor + sElitesOnCursor + sHeaviesOnCursor == 0); // Done
 	EnableButton(giMapMilitiaButton[0], n_green   != 0); // greens button
 	EnableButton(giMapMilitiaButton[1], n_regular != 0); // regulars button
 	EnableButton(giMapMilitiaButton[2], n_elite   != 0); // elites button
+	EnableButton(giMapMilitiaButton[3], n_heavy   != 0); // elite heavies button
 }
 
 
@@ -3769,7 +3823,8 @@ INT32 GetNumberOfMilitiaInSector(const SGPSector& sSector)
 		auto sector = sSector.AsByte();
 		iNumberInSector = SectorInfo[sector].ubNumberOfCivsAtLevel[ GREEN_MILITIA ]
 			+  SectorInfo[sector].ubNumberOfCivsAtLevel[ REGULAR_MILITIA ]
-			+  SectorInfo[sector].ubNumberOfCivsAtLevel[ ELITE_MILITIA ];
+			+  SectorInfo[sector].ubNumberOfCivsAtLevel[ ELITE_MILITIA ]
+			+  SectorInfo[sector].ubNumberOfCivsAtLevel[ ELITE_HEAVY_MILITIA ];
 	}
 
 	return( iNumberInSector );
@@ -4011,8 +4066,7 @@ static bool CanMilitiaAutoDistribute()
 		INT16 const sector = i->sector;
 		if (StrategicMap[SGPSector(sector).AsStrategicIndex()].fEnemyControlled) continue;
 
-		UINT8 const (&n_milita)[MAX_MILITIA_LEVELS] = SectorInfo[sector].ubNumberOfCivsAtLevel;
-		if (n_milita[GREEN_MILITIA] + n_milita[REGULAR_MILITIA] + n_milita[ELITE_MILITIA] != 0) return true;
+		if (CountAllMilitiaInSector(SGPSector(sector)) != 0) return true;
 	}
 
 	// No militia in town, cannot auto-distribute.

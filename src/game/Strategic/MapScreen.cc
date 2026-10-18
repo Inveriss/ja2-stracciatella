@@ -3379,7 +3379,7 @@ static bool HandleKeyESC()
 		giContractHighLine = -1;
 	}
 	// in militia popup?
-	else if (sSelectedMilitiaTown != 0 && sGreensOnCursor == 0 && sRegularsOnCursor == 0 && sElitesOnCursor == 0)
+	else if (sSelectedMilitiaTown != 0 && sGreensOnCursor == 0 && sRegularsOnCursor == 0 && sElitesOnCursor == 0 && sHeaviesOnCursor == 0)
 	{
 		sSelectedMilitiaTown = 0;
 		fMapPanelDirty = TRUE;

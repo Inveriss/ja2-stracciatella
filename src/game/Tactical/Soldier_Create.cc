@@ -766,6 +766,11 @@ static void GeneratePaletteForSoldier(SOLDIERTYPE* pSoldier, UINT8 ubSoldierClas
 			pSoldier->PantsPal = "BEIGEPANTS";
 			pSoldier->ubSoldierClass = ubSoldierClass;
 			return;
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
+			pSoldier->VestPal  = "BLACKSHIRT";
+			pSoldier->PantsPal = "BLACKPANTS";
+			pSoldier->ubSoldierClass = ubSoldierClass;
+			return;
 		case SOLDIER_CLASS_MINER:
 			pSoldier->VestPal  = "greyVEST";
 			pSoldier->PantsPal = "BEIGEPANTS";
@@ -904,6 +909,7 @@ static void TacticalCopySoldierFromCreateStruct(SOLDIERTYPE& s, SOLDIERCREATE_ST
 
 		case SOLDIER_CLASS_ELITE:
 		case SOLDIER_CLASS_ELITE_MILITIA:
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
 			chance         = 40;
 			expert_progess = 40;
 			expert_chance  = 30;
@@ -1266,6 +1272,12 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 		pp->bBodyType = bp->bBodyType;
 	}
 
+	// ELITE_HEAVY militia are always big males
+	if (bp->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA && bp->bTeam == MILITIA_TEAM)
+	{
+		pp->bBodyType = BIGMALE;
+	}
+
 	//Pass over mandatory information specified from the basic placement
 	pp->bOrders = bp->bOrders;
 	pp->bAttitude = bp->bAttitude;
@@ -1345,6 +1357,9 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 		case SOLDIER_CLASS_ELITE_MILITIA:
 			pp->bExpLevel = (INT8) 6 + bExpLevelModifier;
 			break;
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
+			pp->bExpLevel = (INT8) 8 + bExpLevelModifier;
+			break;
 		case SOLDIER_CLASS_MINER:
 			pp->bExpLevel = bp->bRelativeAttributeLevel; //avg 2 (1-4)
 			break;
@@ -1418,7 +1433,14 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 	pp->bWisdom = (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 	pp->bMorale = (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 
-	if (ubSoldierClass != SOLDIER_CLASS_ELITE)
+	if (ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	{
+		// carries the heavy weapons: always full strength
+		pp->bStrength = 100;
+	}
+
+	// skipping the ELITE_HEAVY militia too: their base level 8 (+ the usual modifiers) must not be cut down
+	if (ubSoldierClass != SOLDIER_CLASS_ELITE && ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
 	{
 		// CJC: now calculate the REAL experience level if in the really upper end
 		// we're skipping elites, since they have externalised level bounds

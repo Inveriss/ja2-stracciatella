@@ -376,10 +376,11 @@ static void AddCommonInfoToBox(PopUpBox* const box)
 		if (ubMilitiaTotal > 0)
 		{
 			// some militia, show total & their breakdown by level
-			wString = ST::format("{}  ({}/{}/{})", ubMilitiaTotal,
+			wString = ST::format("{}  ({}/{}/{}/{})", ubMilitiaTotal,
 					MilitiaInSectorOfRank(bCurrentTownMineSector, GREEN_MILITIA),
 					MilitiaInSectorOfRank(bCurrentTownMineSector, REGULAR_MILITIA),
-					MilitiaInSectorOfRank(bCurrentTownMineSector, ELITE_MILITIA));
+					MilitiaInSectorOfRank(bCurrentTownMineSector, ELITE_MILITIA),
+					MilitiaInSectorOfRank(bCurrentTownMineSector, ELITE_HEAVY_MILITIA));
 			AddSecondColumnMonoString(box, wString);
 		}
 		else

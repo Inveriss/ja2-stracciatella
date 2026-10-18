@@ -152,6 +152,7 @@ enum {
 extern INT16 sGreensOnCursor;
 extern INT16 sRegularsOnCursor;
 extern INT16 sElitesOnCursor;
+extern INT16 sHeaviesOnCursor;
 
 // highlighted sectors
 extern SGPSector gsHighlightSector;

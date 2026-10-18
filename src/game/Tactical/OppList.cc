@@ -3142,6 +3142,9 @@ void DebugSoldierPage4()
 			case SOLDIER_CLASS_ELITE_MILITIA:
 				sclass = "(Elite Militia)";
 				break;
+			case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
+				sclass = "(Elite Heavy Militia)";
+				break;
 			case SOLDIER_CLASS_MINER:
 				sclass = "(Miner)";
 				break;

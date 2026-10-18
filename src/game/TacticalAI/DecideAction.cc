@@ -47,6 +47,27 @@ static UINT32 guiRedSeekCounter = 0, guiRedHelpCounter = 0; guiRedHideCounter = 
 #define CENTER_OF_RING 11237
 static const SGPSector meduna(3, MAP_ROW_P);
 
+// ELITE_HEAVY militia that can still fire their heavy weapon (a LAW, or a mortar/M79 with
+// shells/grenades) don't go looking for other weapons or items on the ground; once the
+// heavy weapon can't be fired any more, the usual item pickup logic applies again.
+static bool HeavyMilitiaCanFireHeavyWeapon(SOLDIERTYPE const* const s)
+{
+	if (s->bTeam != MILITIA_TEAM || s->ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY_MILITIA) return false;
+
+	for (OBJECTTYPE const& o : s->inv)
+	{
+		if (o.usItem == NOTHING || o.bStatus[0] < USABLE) continue;
+		if (o.usItem == ROCKET_LAUNCHER) return true;
+		if (GCM->getItem(o.usItem)->getItemClass() == IC_LAUNCHER &&
+			FindLaunchable(s, o.usItem) != NO_SLOT)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
 static void DoneScheduleAction(SOLDIERTYPE* pSoldier)
 {
 	pSoldier->fAIFlags &= (~AI_CHECK_SCHEDULE);
@@ -2326,7 +2347,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	// PICKUP A NEARBY ITEM THAT'S USEFUL
 	////////////////////////////////////////////////////////////////////////////
 
-	if ( ubCanMove && !pSoldier->bNeutral && (gfTurnBasedAI || pSoldier->bTeam == ENEMY_TEAM ) )
+	if ( ubCanMove && !pSoldier->bNeutral && (gfTurnBasedAI || pSoldier->bTeam == ENEMY_TEAM ) &&
+		!HeavyMilitiaCanFireHeavyWeapon(pSoldier) )
 	{
 		pSoldier->bAction = SearchForItems(*pSoldier, SEARCH_GENERAL_ITEMS, pSoldier->inv[HANDPOS].usItem);
 
@@ -2738,7 +2760,8 @@ static INT8 DecideActionBlack(SOLDIERTYPE* pSoldier)
 	}
 
 	// if we don't have a gun, look around for a weapon!
-	if (FindAIUsableObjClass( pSoldier, IC_GUN ) == ITEM_NOT_FOUND && ubCanMove && !pSoldier->bNeutral)
+	if (FindAIUsableObjClass( pSoldier, IC_GUN ) == ITEM_NOT_FOUND && ubCanMove && !pSoldier->bNeutral &&
+		!HeavyMilitiaCanFireHeavyWeapon(pSoldier))
 	{
 		// look around for a gun...
 		pSoldier->bAction = SearchForItems(*pSoldier, SEARCH_WEAPONS, pSoldier->inv[HANDPOS].usItem);

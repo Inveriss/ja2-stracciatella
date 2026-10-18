@@ -1745,6 +1745,12 @@
         "Podnieś(Prawy klawisz myszy)/upuść(Lewy klawisz myszy) Weteranów",
         "Umieszcza jednakową ilość żołnierzy samoobrony w każdym sektorze."
     ],
+    "pMilitiaHeavyStrings": [
+        "Podnieś(Prawy klawisz myszy)/upuść(Lewy klawisz myszy) Ciężkich weteranów",
+        "1 weteran samoobrony awansował na ciężkiego weterana.",
+        "%d weteranów samoobrony awansowało na ciężkich weteranów.",
+        "Heavy"
+    ],
     "pMilitiaConfirmStrings": [
         "Szkolenie oddziału samoobrony będzie kosztowało $",
         "Zatwierdzasz wydatek?",

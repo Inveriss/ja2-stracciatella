@@ -174,6 +174,7 @@ L10n_t::L10n_t(SGPFile * const translationFile)
 	GetArray(zOptionsScreenHelpText);
 	GetArray(pDoctorWarningString);
 	GetArray(pMilitiaButtonsHelpText);
+	GetArray(pMilitiaHeavyStrings);
 	GetString(pMapScreenJustStartedHelpText);
 	GetString(pLandMarkInSectorString);
 	GetArray(gzMercSkillText);

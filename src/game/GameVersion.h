@@ -31,6 +31,8 @@ extern const char g_version_number[16];
 // 109: squads of up to PLAYER_TEAM_SIZE (squad_size 100): the squad info holds
 // every squad's slots and its dead (before: 6 records a squad, 6 dead a squad in
 // the general info); 108 saves still load.
-constexpr UINT32 SAVE_GAME_VERSION = 109;
+// 110: a 4th militia rank (ELITE_HEAVY_MILITIA) in SECTORINFO, stored in a
+// formerly unused byte; older saves get 0 there, so they still load.
+constexpr UINT32 SAVE_GAME_VERSION = 110;
 
 #endif
