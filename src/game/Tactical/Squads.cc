@@ -643,59 +643,36 @@ INT32 GetLastSquadActive( void )
 }
 
 
+// Squad info since save version 109: for every squad PLAYER_TEAM_SIZE soldier
+// IDs (its slots, -1 = empty) and NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD profile IDs
+// of its dead (-1 = none), then the squads' movement groups.
+#define SQUAD_INFO_SIZE (NUMBER_OF_SQUADS * (PLAYER_TEAM_SIZE + NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD) * 2)
+
 void SaveSquadInfoToSavedGameFile(HWFILE const f)
 {
-	// Save the squad info to the Saved Game File
-	BYTE data[SQUAD_INFO_NUM_RECORDS * 12];
-	DataWriter d{data};
-
-	// fill in with squad info
-	UINT16 squadSize = gamepolicy(squad_size);
-	int numRecords = 0;
+	std::vector<BYTE> data(SQUAD_INFO_SIZE);
+	DataWriter d{data.data()};
 	for (INT8 squad = 0; squad < NUMBER_OF_SQUADS; squad++)
 	{
-		for (int slot = 0;; slot++)
+		for (size_t slot = 0; slot != PLAYER_TEAM_SIZE; ++slot)
 		{
-			// We write all soldiers in squad, and then we fill up the end of
-			// squad up to multiples of 6 for save compatability.
-			const SOLDIERTYPE *const s = (slot < squadSize) ? Squad[squad][slot] : NULL;
-
-			if (squadSize <= 6 && slot == 6) break;                    // always write 6 slots if squad size <= 6
-
-			if (squadSize > 6 && s == NULL && (slot % 6) == 0) break;  // writes none, or multiples of 6
-
+			SOLDIERTYPE const* const s = slot < Squad[squad].size() ? Squad[squad][slot] : NULL;
 			INJ_I16(d, s ? s->ubID : -1)
-			INJ_U8(d, SQUAD_INFO_FORMAT_VERSION)
-			INJ_I8(d, squad)
-			INJ_SKIP(d, 8)
-			numRecords++;
 		}
+		INJ_I16A(d, sDeadMercs[squad], NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD)
 	}
-	Assert(numRecords <= SQUAD_INFO_NUM_RECORDS);
-
-	// fill up the remaining unused space
-	for (; numRecords < SQUAD_INFO_NUM_RECORDS; numRecords++)
-	{
-		INJ_I16(d,  -1)
-		INJ_U8(d, SQUAD_INFO_FORMAT_VERSION)
-		INJ_SKIP(d, 9)
-	}
-	Assert(d.getConsumed() == lengthof(data));
-	f->write(data, sizeof(data));
+	Assert(d.getConsumed() == data.size());
+	f->write(data.data(), data.size());
 
 	// Save all the squad movement IDs
 	f->write(SquadMovementGroups, sizeof(SquadMovementGroups));
 }
 
 
-void LoadSquadInfoFromSavedGameFile(HWFILE const f, UINT32 const uiSaveGameVersion)
+// Puts the loaded soldiers into their squads, in their order; a squad fuller
+// than squad_size (a save made with a bigger one) spills into the next ones.
+static void DistributeLoadedSquadMembers(std::vector<std::pair<INT16, UINT8>> const& members)
 {
-	// Load in the squad info
-	BYTE data[SQUAD_INFO_NUM_RECORDS * 12] = { 0 };
-	DataReader d{data};
-	f->read(data, sizeof(data));
-
-	// reset the Squad array
 	for (auto& squad : Squad)
 	{
 		squad.resize(gamepolicy(squad_size));
@@ -704,6 +681,32 @@ void LoadSquadInfoFromSavedGameFile(HWFILE const f, UINT32 const uiSaveGameVersi
 
 	int extraSquads = 0; // if the save has larger squads than us, we will split into extra squads
 	int slotPos[NUMBER_OF_SQUADS] = {}; // next available slot per squad
+	for (auto const& [id, squad_id] : members)
+	{
+		if (squad_id + extraSquads >= NUMBER_OF_SQUADS) break; // no squad left to split into
+		if (slotPos[squad_id + extraSquads] == gamepolicy(squad_size)) extraSquads++; // squad already full, split to a new one
+		if (squad_id + extraSquads >= NUMBER_OF_SQUADS) break;
+
+		UINT8 const ubSquadID = static_cast<UINT8>(squad_id + extraSquads);
+		int const slot = slotPos[ubSquadID]++;
+		SOLDIERTYPE* s = &GetMan(id);
+		Squad[ubSquadID][slot] = s;
+
+		if (extraSquads > 0) s->bAssignment = static_cast<INT8>(ubSquadID); // fix soldier's assignment if we created extra squads
+	}
+}
+
+
+// The squad info format of saves before version 109: 6 records per squad,
+// the squads' dead in the general info.
+static void LoadOldSquadInfoFromSavedGameFile(HWFILE const f, UINT32 const uiSaveGameVersion)
+{
+	// Load in the squad info
+	BYTE data[SQUAD_INFO_NUM_RECORDS * 12] = { 0 };
+	DataReader d{data};
+	f->read(data, sizeof(data));
+
+	std::vector<std::pair<INT16, UINT8>> members;
 	for (int i = 0; i < SQUAD_INFO_NUM_RECORDS; i++)
 	{
 		INT16 id;
@@ -717,16 +720,44 @@ void LoadSquadInfoFromSavedGameFile(HWFILE const f, UINT32 const uiSaveGameVersi
 
 		if (uiSaveGameVersion < 101 || ubFormatVersion != SQUAD_INFO_FORMAT_VERSION) ubSquadID = i / 6; // fixed squads of six, if we are loading a save from old versions
 
-		if (slotPos[ubSquadID + extraSquads] == gamepolicy(squad_size)) extraSquads++; // squad already full, split to a new one
-
-		ubSquadID += extraSquads;
-		int slot = slotPos[ubSquadID]++;
-		SOLDIERTYPE* s = &GetMan(id);
-		Squad[ubSquadID][slot] = s;
-
-		if (extraSquads > 0) s->bAssignment = static_cast<INT8>(ubSquadID); // fix soldier's assignment if we created extra squads
+		members.emplace_back(id, ubSquadID);
 	}
 	Assert(d.getConsumed() == lengthof(data));
+	DistributeLoadedSquadMembers(members);
+
+	// the dead come with the general info, the first 6 of every squad
+	for (auto& dead : sDeadMercs) std::fill_n(dead, NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD, -1);
+
+	// Load in the Squad movement IDs
+	f->read(SquadMovementGroups, sizeof(SquadMovementGroups));
+}
+
+
+void LoadSquadInfoFromSavedGameFile(HWFILE const f, UINT32 const uiSaveGameVersion)
+{
+	if (uiSaveGameVersion < 109)
+	{
+		LoadOldSquadInfoFromSavedGameFile(f, uiSaveGameVersion);
+		return;
+	}
+
+	std::vector<BYTE> data(SQUAD_INFO_SIZE);
+	f->read(data.data(), data.size());
+	DataReader d{data.data()};
+
+	std::vector<std::pair<INT16, UINT8>> members;
+	for (UINT8 squad = 0; squad < NUMBER_OF_SQUADS; squad++)
+	{
+		for (size_t slot = 0; slot != PLAYER_TEAM_SIZE; ++slot)
+		{
+			INT16 id;
+			EXTR_I16(d, id)
+			if (id >= 0) members.emplace_back(id, squad);
+		}
+		EXTR_I16A(d, sDeadMercs[squad], NUMBER_OF_DEAD_SOLDIERS_ON_SQUAD)
+	}
+	Assert(d.getConsumed() == data.size());
+	DistributeLoadedSquadMembers(members);
 
 	// Load in the Squad movement IDs
 	f->read(SquadMovementGroups, sizeof(SquadMovementGroups));

@@ -14,8 +14,17 @@ void LoadRadarScreenBitmap(const ST::string&);
 // reverted back to this default.
 #define RADAR_WINDOW_X		(g_ui.get_RADAR_WINDOW_X())
 #define RADAR_WINDOW_TM_Y	(g_ui.get_RADAR_WINDOW_TM_Y())
-#define RADAR_WINDOW_WIDTH	88
-#define RADAR_WINDOW_HEIGHT	44
+#define RADAR_WINDOW_SMALL_WIDTH	88
+#define RADAR_WINDOW_SMALL_HEIGHT	44
+// The 1366x768 team panel's radar window (UILayout::isBigTeamPanelShown()):
+// the 240x120 maps of Data/RadarMaps_Bottom_Bar (MapUtility.cc's
+// RADAR_PANEL_X_SIZE/Y_SIZE), when the sector has one -- see
+// RadarUsesPanelMap(); otherwise the 88x44 ones there too.
+#define RADAR_WINDOW_PANEL_WIDTH	240
+#define RADAR_WINDOW_PANEL_HEIGHT	120
+bool RadarUsesPanelMap();
+#define RADAR_WINDOW_WIDTH	(RadarUsesPanelMap() ? RADAR_WINDOW_PANEL_WIDTH  : RADAR_WINDOW_SMALL_WIDTH)
+#define RADAR_WINDOW_HEIGHT	(RadarUsesPanelMap() ? RADAR_WINDOW_PANEL_HEIGHT : RADAR_WINDOW_SMALL_HEIGHT)
 
 void InitRadarScreen(void);
 void RenderRadarScreen(void);

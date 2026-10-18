@@ -16,7 +16,16 @@
 #define SCREEN_WIDTH                    (g_ui.m_screenWidth)
 #define INV_INTERFACE_START_Y           (g_ui.get_INV_INTERFACE_START_Y())
 // #define INV_INTERFACE_HEIGHT         (140)                                 // height of the bottom bar single-merc inventory panel
-#define INV_INTERFACE_HEIGHT            (197)                                 // NEW POSITION
+#define INV_INTERFACE_HEIGHT            (g_ui.isBigSMPanel() ? BIG_SMPANEL_HEIGHT : 197) // NEW POSITION; the 1366x768 one is taller
+
+// The 1366x768 interface's single merc (SM) panel,
+// inventory_bottom_panel_big_1366x768.png (isBigSMPanel()): one fixed piece at
+// the screen's left edge (not centred), its slots laid out in UILayout.cc's
+// m_invSlotPositionTac and Interface_Items.cc's gSMInvDataTacBig.
+#define BIG_SMPANEL_FILE                "inventory_bottom_panel_big_1366x768.png"
+#define BIG_SMPANEL_WIDTH               (1366)
+#define BIG_SMPANEL_HEIGHT              (284)  // its top 37 px: the bookmark buttons' strip
+#define BIG_SMPANEL_TOP                 (37)
 
 // Infobox.sti (the weapon/item description popup) is blitted straight to the
 // screen buffer, independently of guiSMPanel/inventory_bottom_panel.sti --
@@ -122,6 +131,32 @@
 #define TEAMPANEL_BUTTONSBOX_WIDTH      (142)    // width of the container of the buttons on the right of team panel
 #define TEAMPANEL_HEIGHT                (120)    // height of the bottom bar team panel
 
+// The 1366x768 interface's own team panel (bottom_bar_big_1366x768.png,
+// isBigTeamPanel()): 7 slots shown, 146 px apart (a squad over 7 scrolls
+// through them), left-aligned (not centred), with
+// the buttons, sector name, clock and minimap block on its right; its texts
+// are FONT14ARIAL (BIG_TEAMPANEL_FONT). The single
+// merc (SM) panel is not affected -- it keeps INTERFACE_START_X/Y and the
+// squad-size-driven m_teamPanelWidth/m_smPanelWidth.
+#define BIG_TEAMPANEL_FILE              "bottom_bar_big_1366x768.png"
+#define BIG_TEAMPANEL_WIDTH             (1366)
+// The big team panel's two heights: the full one, and the low one
+// (bottom_bar_low_big_1366x768.png, isLowTeamPanel()) without the second hand,
+// toggled by its sixth button.
+#define BIG_TEAMPANEL_FULL_HEIGHT       (200)
+#define BIG_TEAMPANEL_LOW_HEIGHT        (150)
+#define BIG_TEAMPANEL_LOW_FILE          "bottom_bar_low_big_1366x768.png"
+#define BIG_TEAMPANEL_HEIGHT            (g_ui.isLowTeamPanel() ? BIG_TEAMPANEL_LOW_HEIGHT : BIG_TEAMPANEL_FULL_HEIGHT)
+#define BIG_TEAMPANEL_NUM_SLOTS         (7)      // slots shown; a bigger squad scrolls through them
+#define BIG_TEAMPANEL_SLOT_WIDTH        (146)
+#define BIG_TEAMPANEL_FONT              FONT14ARIAL
+// Team panel position/size for whichever team panel is in use -- use these
+// (not INTERFACE_START_X/Y, which the SM panel shares) for the team panel.
+#define TEAM_PANEL_X                    (g_ui.isBigTeamPanel() ? 0 : INTERFACE_START_X)
+#define TEAM_PANEL_Y                    (g_ui.isBigTeamPanel() ? SCREEN_HEIGHT - BIG_TEAMPANEL_HEIGHT : INTERFACE_START_Y)
+#define TEAM_PANEL_WIDTH                (g_ui.isBigTeamPanel() ? BIG_TEAMPANEL_WIDTH : g_ui.m_teamPanelWidth)
+#define TEAM_PANEL_HEIGHT               (g_ui.isBigTeamPanel() ? BIG_TEAMPANEL_HEIGHT : TEAMPANEL_HEIGHT)
+
 
 /////////////////////////////////////////////////////////////
 // type definitions
@@ -212,6 +247,10 @@ public:
 	UINT16                m_mapScreenOffsetY;             /** Offset of the strategic map's own canvas (m_mapScreenWidth x m_mapScreenHeight) -- see MAP_SCREEN_X/Y */
 	UINT16                m_mapRightBlockOffsetX;         /** Offset of the strategic map's right block (MBS, map, sector inventory) -- see MAP_SCREEN_RIGHT_BLOCK_X */
 	UINT16                m_mapRightBlockShift;           /** How far the right block sits right of where the legacy 1024 canvas had it (m_mapScreenWidth - 1024 on the wide strategic screen, else 0) -- see MAP_RIGHT_BLOCK_SHIFT */
+	bool                  m_bigTeamPanel;                 /** The tactical team panel is bottom_bar_big_1366x768.png -- see isBigTeamPanel() */
+	bool                  m_lowTeamPanel;                 /** The big team panel is in its low form -- see isLowTeamPanel() */
+	bool                  m_bigSMPanel;                   /** The tactical SM panel is inventory_bottom_panel_big_1366x768.png -- see isBigSMPanel() */
+	bool                  m_smLargeIcons;                 /** The SM panels' Show Large Icons toggle: the big SM panel (on), or the old one (off) -- see setSMLargeIcons() */
 
 	/** Constructor.
 	 * @param screenWidth Screen width
@@ -233,9 +272,34 @@ public:
 	/** True when the active resolution uses the 1366px wide strategic screen canvas (the 1366x768 base): screen at least EXTRA_WIDE_STRATEGIC_SCREEN_WIDTH wide and not compact. Implies isWideStrategicScreen(). */
 	bool isExtraWideStrategicScreen() const;
 
+	/** True when the tactical team panel is the 1366x768 interface's own one (BIG_TEAMPANEL_*): the 1366x768 base (as isExtraWideStrategicScreen()) and bottom_bar_big_1366x768.png present; otherwise the old bottom_bar.sti panel. */
+	bool isBigTeamPanel() const { return m_bigTeamPanel; }
+
+	/** True when the tactical SM (single merc inventory) panel is the 1366x768 interface's own one (BIG_SMPANEL_*): the big team panel's resolution and its graphic present. */
+	bool isBigSMPanel() const { return m_bigSMPanel; }
+
+	/** The big SM panel is the one on screen right now: tactical screen, SM panel. */
+	bool isBigSMPanelShown() const;
+
+	/** The SM panels' Show Large Icons toggle (1366x768): on = the big SM panel, off = the old inventory_bottom_panel.sti one. */
+	bool isSMLargeIcons() const { return m_smLargeIcons; }
+
+	/** Sets the Show Large Icons toggle and lays the SM panel out again (recalculatePositions()); the panel itself is rebuilt by the caller. */
+	void setSMLargeIcons(bool on);
+
+	/** True when the big team panel shows its low form (BIG_TEAMPANEL_LOW_*), chosen by the panel's toggle button. */
+	bool isLowTeamPanel() const { return m_bigTeamPanel && m_lowTeamPanel; }
+
+	/** Switches the big team panel's low form on or off -- off when its graphic is missing. The panel itself is rebuilt by the caller. */
+	void setLowTeamPanel(bool low);
+
 	UINT16 currentHeight() const;
 	UINT16 get_CLOCK_X() const;
 	UINT16 get_CLOCK_Y() const;
+	UINT16 get_CLOCK_WIDTH() const;
+
+	/** The big team panel is the one on screen right now: tactical screen, team (not SM) panel. */
+	bool isBigTeamPanelShown() const;
 	UINT16 get_INV_INTERFACE_START_Y() const;
 	UINT16 get_ITEMDESC_PANEL_START_Y() const;
 	UINT16 get_ITEMDESC_PANEL_START_Y_MONEY() const;
@@ -251,6 +315,9 @@ public:
 
 	/** Number of displayable slots in the team panel, based on the game policy and screen width. */
 	UINT16 getTeamPanelNumSlots() const;
+
+	/** Number of slots the old team panel (bottom_bar.sti) has, based on the game policy and screen width -- also sizes the SM panel's canvas. */
+	UINT16 getOldTeamPanelNumSlots() const;
 
 	/** Recalculate UI elements' positions after changing screen size.
 	 *  This method requires the game data to be loaded, but it should be called before most other the application initialization is done.

@@ -45,14 +45,20 @@
 // the squad list font
 #define SQUAD_FONT COMPFONT
 
-#define SQUAD_REGION_HEIGHT 2 * RADAR_WINDOW_HEIGHT
-#define SQUAD_WINDOW_TM_Y RADAR_WINDOW_TM_Y + GetFontHeight( SQUAD_FONT )
+// The squad list keeps the 88x44 radar's own place and size: on the 1366x768
+// team panel centered in the radar window, squadpanel.sti (102x120) filling
+// its height -- see SquadListX()/SquadListY().
+#define SQUAD_LIST_WIDTH RADAR_WINDOW_SMALL_WIDTH
+#define SQUAD_REGION_HEIGHT 2 * RADAR_WINDOW_SMALL_HEIGHT
+#define SQUAD_WINDOW_TM_Y SquadListY() + GetFontHeight( SQUAD_FONT )
 
 // subtractor for squad list from size of radar view region height
 #define SUBTRACTOR_FOR_SQUAD_LIST 0
 
 
 static SGPVObject* gusRadarImage;
+// the sector's 240x120 map for the 1366x768 team panel, if it has one
+static SGPVObject* gusPanelRadarImage;
 BOOLEAN   fRenderRadarScreen = TRUE;
 static INT16       sSelectedSquadLine = -1;
 
@@ -71,6 +77,31 @@ static MOUSE_REGION gRadarRegionSquadList[NUMBER_OF_SQUADS];
 static void RadarRegionButtonCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void RadarRegionButtonCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 static void RadarRegionMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+
+
+bool RadarUsesPanelMap()
+{
+	return gusPanelRadarImage && g_ui.isBigTeamPanelShown();
+}
+
+
+// gdScaleX/Y are for the 88x44 radar (InitRenderParams(), RenderWorld.cc).
+static double RadarScaleX() { return gdScaleX * RADAR_WINDOW_WIDTH  / RADAR_WINDOW_SMALL_WIDTH;  }
+static double RadarScaleY() { return gdScaleY * RADAR_WINDOW_HEIGHT / RADAR_WINDOW_SMALL_HEIGHT; }
+
+
+// The squad list's top left corner (see SQUAD_LIST_WIDTH).
+static INT16 SquadListX()
+{
+	if (!g_ui.isBigTeamPanelShown()) return RADAR_WINDOW_X;
+	return RADAR_WINDOW_X + (RADAR_WINDOW_PANEL_WIDTH - 102) / 2 + 5;
+}
+
+static INT16 SquadListY()
+{
+	if (!g_ui.isBigTeamPanelShown()) return RADAR_WINDOW_TM_Y;
+	return RADAR_WINDOW_TM_Y + 13;
+}
 
 
 void InitRadarScreen()
@@ -101,6 +132,27 @@ void LoadRadarScreenBitmap(const ST::string& filename)
 	radar->pShades[0] = Create16BPPPaletteShaded(pal, 255, 255, 255, FALSE);
 	radar->pShades[1] = Create16BPPPaletteShaded(pal, 100, 100, 100, FALSE);
 
+	// The 240x120 one of the 1366x768 team panel, optional: without it the
+	// panel shows the 88x44 one.
+	if (g_ui.isBigTeamPanel())
+	{
+		ST::string const panel_filename(GCM->getRadarMapPanelResourceName(FileMan::replaceExtension(FileMan::getFileName(filename), "sti")));
+		try
+		{
+			SGPVObject* const panel = AddVideoObjectFromFile(panel_filename, true);
+			const SGPPaletteEntry* const panel_pal = panel->Palette();
+			panel->pShades[0] = Create16BPPPaletteShaded(panel_pal, 255, 255, 255, FALSE);
+			panel->pShades[1] = Create16BPPPaletteShaded(panel_pal, 100, 100, 100, FALSE);
+			gusPanelRadarImage = panel;
+		}
+		catch (std::exception const& e)
+		{
+			SLOGW("No 240x120 radar map {}, the panel shows the small one: {}", panel_filename, e.what());
+		}
+	}
+	// the tactical radar's mouse region follows the map's size
+	if (!fInMapMode) MoveRadarScreen();
+
 	// Dirty interface
 	fInterfacePanelDirty = DIRTYLEVEL1;
 }
@@ -113,6 +165,11 @@ void ClearOutRadarMapImage( void )
 	{
 		DeleteVideoObject(gusRadarImage);
 		gusRadarImage = 0;
+	}
+	if (gusPanelRadarImage)
+	{
+		DeleteVideoObject(gusPanelRadarImage);
+		gusPanelRadarImage = 0;
 	}
 }
 
@@ -231,6 +288,10 @@ void RenderRadarScreen()
 	// own rendering.
 	if (fShowMapInventoryPool) return;
 
+	// The 1366x768 SM panel has no radar window (its button opens the
+	// overhead map instead).
+	if (g_ui.isBigSMPanelShown()) return;
+
 	// create / destroy squad list regions as nessacary
 	CreateDestroyMouseRegionsForSquadList();
 
@@ -244,7 +305,8 @@ void RenderRadarScreen()
 	// in a meanwhile, don't render any map
 	if (AreInMeanwhile()) ClearOutRadarMapImage();
 
-	if (fInterfacePanelDirty == DIRTYLEVEL2 && gusRadarImage)
+	SGPVObject* const radar_image = RadarUsesPanelMap() ? gusPanelRadarImage : gusRadarImage;
+	if (fInterfacePanelDirty == DIRTYLEVEL2 && radar_image)
 	{
 		// If night time and on surface, darken the radarmap.
 		size_t const shade =
@@ -253,8 +315,8 @@ void RenderRadarScreen()
 				(guiCurrentScreen == MAP_SCREEN  && iCurrentMapSectorZ == 0) ||
 				(guiCurrentScreen == GAME_SCREEN && gWorldSector.z     == 0)
 			) ? 1 : 0;
-		gusRadarImage->CurrentShade(shade);
-		BltVideoObject(guiSAVEBUFFER, gusRadarImage, 0, RADAR_WINDOW_X, RADAR_WINDOW_TM_Y);
+		radar_image->CurrentShade(shade);
+		BltVideoObject(guiSAVEBUFFER, radar_image, 0, RADAR_WINDOW_X, RADAR_WINDOW_TM_Y);
 	}
 
 	// First delete what's there
@@ -274,14 +336,17 @@ void RenderRadarScreen()
 
 		if (!fInMapMode)
 		{
+			double const scale_x = RadarScaleX();
+			double const scale_y = RadarScaleY();
+
 			// The part of the world shown on the screen (smaller while zoomed).
 			INT16 sLeft, sTop, sRight, sBottom;
 			ViewportZoomGetVisibleWorldRect(sLeft, sTop, sRight, sBottom);
 			RectangleDraw(TRUE,
-				RADAR_WINDOW_X + std::max(double(0), round((sLeft - SCROLL_LEFT_PADDING) * gdScaleX)),
-				RADAR_WINDOW_TM_Y + std::max(double(0), round((sTop - SCROLL_TOP_PADDING) * gdScaleY)),
-				RADAR_WINDOW_X + std::min(round((sRight - SCROLL_RIGHT_PADDING - SCROLL_LEFT_PADDING) * gdScaleX - 1.0), double(RADAR_WINDOW_WIDTH - 1)),
-				RADAR_WINDOW_TM_Y + std::min(round((sBottom - SCROLL_BOTTOM_PADDING - SCROLL_TOP_PADDING) * gdScaleY - 1.0), double(RADAR_WINDOW_HEIGHT - 1)),
+				RADAR_WINDOW_X + std::max(double(0), round((sLeft - SCROLL_LEFT_PADDING) * scale_x)),
+				RADAR_WINDOW_TM_Y + std::max(double(0), round((sTop - SCROLL_TOP_PADDING) * scale_y)),
+				RADAR_WINDOW_X + std::min(round((sRight - SCROLL_RIGHT_PADDING - SCROLL_LEFT_PADDING) * scale_x - 1.0), double(RADAR_WINDOW_WIDTH - 1)),
+				RADAR_WINDOW_TM_Y + std::min(round((sBottom - SCROLL_BOTTOM_PADDING - SCROLL_TOP_PADDING) * scale_y - 1.0), double(RADAR_WINDOW_HEIGHT - 1)),
 				Get16BPPColor(FROMRGB(0, 255, 0)), pDestBuf);
 
 			// Re-render radar
@@ -307,8 +372,8 @@ void RenderRadarScreen()
 				GetAbsoluteScreenXYFromMapPos(s->sGridNo, &sXSoldScreen, &sYSoldScreen);
 
 				// Get radar x and y postion and add starting relative to interface
-				const INT16 x = floor(DOUBLE(sXSoldScreen) * gdScaleX) + RADAR_WINDOW_X;
-				const INT16 y = floor(DOUBLE(sYSoldScreen) * gdScaleY) + RADAR_WINDOW_TM_Y;
+				const INT16 x = floor(DOUBLE(sXSoldScreen) * scale_x) + RADAR_WINDOW_X;
+				const INT16 y = floor(DOUBLE(sYSoldScreen) * scale_y) + RADAR_WINDOW_TM_Y;
 
 				UINT32 const line_colour =
 					/* flash selected merc */
@@ -492,8 +557,8 @@ static void AdjustWorldCenterFromRadarCoords(INT16 sRadarX, INT16 sRadarY)
 	INT16 sNumXSteps, sNumYSteps;
 
 	// Use radar scale values to get screen values, then convert ot map values, rounding to nearest middle tile
-	sScreenX = (INT16) ( sRadarX / gdScaleX );
-	sScreenY = (INT16) ( sRadarY / gdScaleY );
+	sScreenX = (INT16) ( sRadarX / RadarScaleX() );
+	sScreenY = (INT16) ( sRadarY / RadarScaleY() );
 
 	// Adjust to viewport start!
 	sScreenX -= ( g_ui.m_tacticalMapCenterX );
@@ -550,17 +615,28 @@ static void CreateDestroyMouseRegionsForSquadList(void)
 		// shows the Change Squad button that opens this, so no SM_PANEL
 		// branch is needed here (unlike get_CLOCK_X()/get_RADAR_WINDOW_X()
 		// in UILayout.cc, which are shared between both panels).
-		INT16 const squadPanelX = INTERFACE_START_X + g_ui.m_teamPanelWidth - 102;
-		BltVideoObjectOnce(guiSAVEBUFFER, INTERFACEDIR "/squadpanel.sti", 0, squadPanelX, gsVIEWPORT_END_Y);
-		RestoreExternBackgroundRect(squadPanelX, gsVIEWPORT_END_Y, 102, 120);
+		// The 1366x768 team panel: the same place relative to the minimap
+		// (see get_RADAR_WINDOW_X()), in the panel's big window.
+		bool  const big         = g_ui.isBigTeamPanelShown();
+		INT16 const squadPanelX = big ? SquadListX() - 5  : INTERFACE_START_X + g_ui.m_teamPanelWidth - 102;
+		INT16 const squadPanelY = big ? SquadListY() - 13 : gsVIEWPORT_END_Y;
+		if (big)
+		{
+			// the radar map may be wider than the squad panel: black the window
+			ColorFillVideoSurfaceArea(guiSAVEBUFFER, RADAR_WINDOW_X, RADAR_WINDOW_TM_Y,
+				RADAR_WINDOW_X + RADAR_WINDOW_PANEL_WIDTH, RADAR_WINDOW_TM_Y + RADAR_WINDOW_PANEL_HEIGHT, 0);
+			RestoreExternBackgroundRect(RADAR_WINDOW_X, RADAR_WINDOW_TM_Y, RADAR_WINDOW_PANEL_WIDTH, RADAR_WINDOW_PANEL_HEIGHT);
+		}
+		BltVideoObjectOnce(guiSAVEBUFFER, INTERFACEDIR "/squadpanel.sti", 0, squadPanelX, squadPanelY);
+		RestoreExternBackgroundRect(squadPanelX, squadPanelY, 102, 120);
 
 		// create regions
-		INT16 const w = RADAR_WINDOW_WIDTH / 2 - 1;
+		INT16 const w = SQUAD_LIST_WIDTH / 2 - 1;
 		INT16 const h = (SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST) / (NUMBER_OF_SQUADS / 2);
 		for (UINT i = 0; i < NUMBER_OF_SQUADS; ++i)
 		{
 			// run through list of squads and place appropriatly
-			INT16 x = RADAR_WINDOW_X;
+			INT16 x = SquadListX();
 			INT16 y = SQUAD_WINDOW_TM_Y;
 			if (i < NUMBER_OF_SQUADS / 2)
 			{
@@ -570,7 +646,7 @@ static void CreateDestroyMouseRegionsForSquadList(void)
 			else
 			{
 				// right half of list
-				x += RADAR_WINDOW_WIDTH / 2;
+				x += SQUAD_LIST_WIDTH / 2;
 				y += (i - NUMBER_OF_SQUADS / 2) * h;
 			}
 
@@ -608,11 +684,11 @@ static void CreateDestroyMouseRegionsForSquadList(void)
 // show list of squads
 static void RenderSquadList(void)
 {
-	INT16 const dx = RADAR_WINDOW_X;
-	INT16 const dy = RADAR_WINDOW_TM_Y;
+	INT16 const dx = SquadListX();
+	INT16 const dy = SquadListY();
 
-	RestoreExternBackgroundRect(dx, dy, RADAR_WINDOW_WIDTH, SQUAD_REGION_HEIGHT);
-	ColorFillVideoSurfaceArea(FRAME_BUFFER, dx, dy, dx + RADAR_WINDOW_WIDTH, dy + SQUAD_REGION_HEIGHT, Get16BPPColor(FROMRGB(0, 0, 0)));
+	RestoreExternBackgroundRect(dx, dy, SQUAD_LIST_WIDTH, SQUAD_REGION_HEIGHT);
+	ColorFillVideoSurfaceArea(FRAME_BUFFER, dx, dy, dx + SQUAD_LIST_WIDTH, dy + SQUAD_REGION_HEIGHT, Get16BPPColor(FROMRGB(0, 0, 0)));
 
 	SetFont(SQUAD_FONT);
 	SetFontBackground(FONT_BLACK);
@@ -630,7 +706,7 @@ static void RenderSquadList(void)
 		INT16 sY;
 		INT16       x = dx;
 		INT16       y = SQUAD_WINDOW_TM_Y;
-		INT16 const w = RADAR_WINDOW_WIDTH / 2 - 1;
+		INT16 const w = SQUAD_LIST_WIDTH / 2 - 1;
 		INT16 const h = 2 * (SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST) / NUMBER_OF_SQUADS;
 		if (i < NUMBER_OF_SQUADS / 2)
 		{
@@ -639,7 +715,7 @@ static void RenderSquadList(void)
 		}
 		else
 		{
-			x += RADAR_WINDOW_WIDTH / 2 - 2;
+			x += SQUAD_LIST_WIDTH / 2 - 2;
 			y += (i - NUMBER_OF_SQUADS / 2) * h;
 		}
 		FindFontCenterCoordinates(x, y, w, h, pSquadMenuStrings[i], SQUAD_FONT, &sX, &sY);

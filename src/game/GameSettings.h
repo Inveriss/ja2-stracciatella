@@ -70,6 +70,10 @@ struct GAME_SETTINGS
 
 	UINT8				ubSizeOfDisplayCover;
 	UINT8				ubSizeOfLOS;
+
+	// The 1366x768 tactical screen's side strips hidden (Side_Strips.h)
+	BOOLEAN			fSideStripLeftHidden;
+	BOOLEAN			fSideStripRightHidden;
 };
 
 

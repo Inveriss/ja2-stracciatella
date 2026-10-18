@@ -21,6 +21,7 @@
 #include "VSurface.h"
 #include "JAScreens.h"
 #include "ScreenIDs.h"
+#include "Side_Strips.h"
 #include "UILayout.h"
 
 #include <string_theory/string>
@@ -39,8 +40,12 @@ struct ScrollStringSt
 
 
 #define MAX_LINE_COUNT 6
-#define X_START 2
-#define Y_START (SCREEN_HEIGHT - 150)
+// (right of the 1366x768 left side strip while that is shown)
+#define X_START (TacticalSideStripLeftWidth() + 2)
+// above the team panel: 30 px over the old one, and the same over the
+// 1366x768 interface's taller one (its low form while that is shown; the full
+// one's height over the SM panel)
+#define Y_START (g_ui.isBigTeamPanel() ? SCREEN_HEIGHT - (g_ui.isBigTeamPanelShown() ? BIG_TEAMPANEL_HEIGHT : g_ui.isBigSMPanelShown() ? BIG_SMPANEL_HEIGHT : BIG_TEAMPANEL_FULL_HEIGHT) - 30 : SCREEN_HEIGHT - 150)
 #define MAX_AGE 10000
 #define LINE_WIDTH 320
 #define MAP_LINE_WIDTH 300

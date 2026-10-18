@@ -71,11 +71,11 @@
   //  vanilla value: 0
   "enemy_weapon_minimal_status": 0,
 
-  // Maxiumum number of soldiers in one squad.
-  // Larger squad sizes requires the wider screen to display all members. For a squad size of n, the screen must be at
-  // least (640 + (n-6)*83) pixels wide. For example, squad size of 8 requires the screen to be at least 806px wide.
+  // Maxiumum number of soldiers in one squad, up to the player's team size (100).
+  // The old team panel shows at most 12 of them (fewer on narrower screens: for a squad size of n, the screen must be at
+  // least (640 + (n-6)*83) pixels wide); the 1366x768 team panel shows 7 and scrolls through the rest.
   // vanilla value: 6
-  "squad_size": 10,
+  "squad_size": 100,
 
   // Enable improvements over vanilla game's tactical AI
   "ai": {

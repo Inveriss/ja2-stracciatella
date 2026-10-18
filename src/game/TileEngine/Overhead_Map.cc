@@ -3,6 +3,7 @@
 #include "ContentManager.h"
 #include "Cursors.h"
 #include "Directories.h"
+#include "FileMan.h"
 #include "Faces.h"
 #include "Font.h"
 #include "Font_Control.h"
@@ -19,6 +20,7 @@
 #include "Interface_Items.h"
 #include "Interface_Panels.h"
 #include "Isometric_Utils.h"
+#include "Logger.h"
 #include "LightEffects.h"
 #include "Line.h"
 #include "Map_Information.h"
@@ -30,6 +32,7 @@
 #include "Render_Dirty.h"
 #include "RenderWorld.h"
 #include "SmokeEffects.h"
+#include "StrategicMap.h"
 #include "Soldier_Control.h"
 #include "Soldier_Init_List.h"
 #include "Structure.h"
@@ -40,6 +43,7 @@
 #include "Tile_Surface.h"
 #include "TileDat.h"
 #include "TileDef.h"
+#include "Side_Strips.h"
 #include "UILayout.h"
 #include "Video.h"
 #include "VObject.h"
@@ -48,6 +52,7 @@
 #include "Viewport_Zoom.h"
 #include "World_Items.h"
 #include "WorldDef.h"
+#include <algorithm>
 #include <string_theory/string>
 
 extern SOLDIERINITNODE *gpSelected;
@@ -225,9 +230,26 @@ static INT16 GetOffsetLandHeight(INT32 const gridno)
 }
 
 
+static bool BigOverheadMap();
+static double BigOverheadScaleX();
+static double BigOverheadScaleY();
+static INT32 OverheadMapX();
+static INT32 OverheadMapY();
+static double OverheadScaleY();
+
+
+// A gridno's place on the overhead map, from the window's top left corner.
 static void GetOverheadScreenXYFromGridNo(INT16 const gridno, INT16* const out_x, INT16* const out_y)
 {
 	GetAbsoluteScreenXYFromMapPos(gridno, out_x, out_y);
+	if (BigOverheadMap())
+	{
+		double const sx = BigOverheadScaleX();
+		double const sy = BigOverheadScaleY();
+		*out_x = (INT16)(*out_x * sx);
+		*out_y = (INT16)((*out_y - GetOffsetLandHeight(gridno) + gsRenderHeight) * sy);
+		return;
+	}
 	INT16 x = *out_x / 5;
 	INT16 y = *out_y / 5;
 
@@ -249,16 +271,98 @@ static void DisplayMercNameInOverhead(SOLDIERTYPE const& s)
 	INT16 y;
 	GetOverheadScreenXYFromGridNo(s.sGridNo, &x, &y);
 
-	x += STD_SCREEN_X;
-	y += STD_SCREEN_Y;
+	x += OverheadMapX();
+	y += OverheadMapY();
 
-	y -= s.sHeightAdjustment / 5 + 13;
+	y -= (INT16)(s.sHeightAdjustment * OverheadScaleY()) + 13;
 
 	INT16 sX;
 	INT16 sY;
 	SetFontAttributes(TINYFONT1, FONT_MCOLOR_WHITE);
 	FindFontCenterCoordinates(x, y, 1, 1, s.name, TINYFONT1, &sX, &sY);
 	GDirtyPrint(sX, sY, s.name);
+}
+
+
+// The 1366x768 interface's overhead map (right click on the tactical radar):
+// map_bord_1366x768.png (808x444, its 800x400 window at (4, 4)) in the middle
+// of the screen above the team panel, with the sector's 800x400 map of
+// Data/RadarMaps_Overhead in the window instead of the drawn 640x320 one --
+// the mercs, items and the mouse placed as on the tactical radar (the map
+// spans gsLeftX..gsRightX x gsTopY..gsBottomY). Without either graphic, the
+// old overhead map.
+#define BIG_OVERHEAD_PANEL_FILE INTERFACEDIR "/map_bord_1366x768.png"
+#define BIG_OVERHEAD_MAP_DX     4
+#define BIG_OVERHEAD_MAP_DY     4
+#define BIG_OVERHEAD_MAP_W      800
+#define BIG_OVERHEAD_MAP_H      400
+static SGPVObject* g_big_overhead_panel = 0;
+static SGPVObject* g_big_overhead_map   = 0;
+
+static bool BigOverheadMap() { return g_big_overhead_map != 0; }
+
+static INT32 BigOverheadPanelX() { return (SCREEN_WIDTH - g_big_overhead_panel->SubregionProperties(0).usWidth) / 2; }
+static INT32 BigOverheadPanelY() { return std::max(0, (TEAM_PANEL_Y - g_big_overhead_panel->SubregionProperties(0).usHeight) / 2); }
+static INT32 BigOverheadMapX()   { return BigOverheadPanelX() + BIG_OVERHEAD_MAP_DX; }
+static INT32 BigOverheadMapY()   { return BigOverheadPanelY() + BIG_OVERHEAD_MAP_DY; }
+static double BigOverheadScaleX() { return double(BIG_OVERHEAD_MAP_W) / (gsRightX  - gsLeftX); }
+static double BigOverheadScaleY() { return double(BIG_OVERHEAD_MAP_H) / (gsBottomY - gsTopY); }
+
+// The overhead map's window and its scale: absolute world screen coordinates
+// (GetAbsoluteScreenXYFromMapPos()) times the scale, from its top left corner.
+static INT32  OverheadMapX()  { return BigOverheadMap() ? BigOverheadMapX()    : STD_SCREEN_X; }
+static INT32  OverheadMapY()  { return BigOverheadMap() ? BigOverheadMapY()    : STD_SCREEN_Y; }
+static double OverheadScaleY() { return BigOverheadMap() ? BigOverheadScaleY() : 0.2; }
+
+
+static void LoadBigOverheadMap()
+{
+	g_big_overhead_panel = 0;
+	g_big_overhead_map   = 0;
+	if (gfEditMode || gfTacticalPlacementGUIActive || !g_ui.isBigTeamPanel()) return;
+	if (!GCM->doesGameResExists(BIG_OVERHEAD_PANEL_FILE)) return;
+	ST::string const name = FileMan::replaceExtension(FileMan::getFileName(GetMapFileName(gWorldSector, TRUE)), "sti");
+	try
+	{
+		g_big_overhead_panel = AddVideoObjectFromFile(BIG_OVERHEAD_PANEL_FILE);
+		g_big_overhead_map   = AddVideoObjectFromFile(GCM->getRadarMapOverheadResourceName(name));
+	}
+	catch (std::exception const& e)
+	{
+		SLOGW("The old overhead map instead of the 800x400 one: {}", e.what());
+		if (g_big_overhead_panel) DeleteVideoObject(g_big_overhead_panel);
+		g_big_overhead_panel = 0;
+		g_big_overhead_map   = 0;
+	}
+}
+
+
+static void UnloadBigOverheadMap()
+{
+	if (g_big_overhead_panel) DeleteVideoObject(g_big_overhead_panel);
+	if (g_big_overhead_map)   DeleteVideoObject(g_big_overhead_map);
+	g_big_overhead_panel = 0;
+	g_big_overhead_map   = 0;
+}
+
+
+// The panel and the sector's map, once; the rest of the screen keeps the world.
+static void RenderBigOverheadMap()
+{
+	if (!gfOverheadMapDirty) return;
+	gfOverheadMapDirty = FALSE;
+
+	BltVideoObject(FRAME_BUFFER, g_big_overhead_panel, 0, BigOverheadPanelX(), BigOverheadPanelY());
+	ColorFillVideoSurfaceArea(FRAME_BUFFER, BigOverheadMapX(), BigOverheadMapY(),
+		BigOverheadMapX() + BIG_OVERHEAD_MAP_W, BigOverheadMapY() + BIG_OVERHEAD_MAP_H, 0);
+	SGPRect const old = SetClippingRect(SGPRect{ (UINT16)BigOverheadMapX(), (UINT16)BigOverheadMapY(),
+		(UINT16)(BigOverheadMapX() + BIG_OVERHEAD_MAP_W), (UINT16)(BigOverheadMapY() + BIG_OVERHEAD_MAP_H) });
+	BltVideoObject(FRAME_BUFFER, g_big_overhead_map, 0, BigOverheadMapX(), BigOverheadMapY());
+	SetClippingRect(old);
+
+	InvalidateScreen();
+	// Update the save buffer
+	BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER, 0, 0, NULL);
 }
 
 
@@ -292,6 +396,10 @@ void HandleOverheadMap(void)
 		SetRenderFlags(RENDER_FLAG_FULL);
 		RenderWorld();
 		InvalidateScreen();
+	}
+	else if (BigOverheadMap())
+	{
+		RenderBigOverheadMap();
 	}
 	else
 	{
@@ -377,6 +485,8 @@ void HandleOverheadMap(void)
 		}
 	}
 
+	// (off here: hides their buttons)
+	RenderTacticalSideStrips();
 	RenderButtons();
 	SaveBackgroundRects();
 	RenderFastHelp();
@@ -421,8 +531,23 @@ void GoIntoOverheadMap( )
 	}
 	else
 	{
-		MSYS_DefineRegion(&OverheadBackgroundRegion, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 360, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
-		MSYS_DefineRegion(&OverheadRegion, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 320, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary));
+		LoadBigOverheadMap();
+		if (BigOverheadMap())
+		{
+			// the panel, its window the map
+			INT16 const px = BigOverheadPanelX();
+			INT16 const py = BigOverheadPanelY();
+			ETRLEObject const& e = g_big_overhead_panel->SubregionProperties(0);
+			MSYS_DefineRegion(&OverheadBackgroundRegion, px, py, px + e.usWidth, py + e.usHeight, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+			INT16 const mx = BigOverheadMapX();
+			INT16 const my = BigOverheadMapY();
+			MSYS_DefineRegion(&OverheadRegion, mx, my, mx + BIG_OVERHEAD_MAP_W, my + BIG_OVERHEAD_MAP_H, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary));
+		}
+		else
+		{
+			MSYS_DefineRegion(&OverheadBackgroundRegion, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 360, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+			MSYS_DefineRegion(&OverheadRegion, STD_SCREEN_X, STD_SCREEN_Y, STD_SCREEN_X + 640, STD_SCREEN_Y + 320, MSYS_PRIORITY_HIGH, CURSOR_NORMAL, MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(ClickOverheadRegionCallbackPrimary, ClickOverheadRegionCallbackSecondary));
+		}
 	}
 
 	// Add shades to persons....
@@ -491,6 +616,7 @@ void KillOverheadMap()
 
 	RemoveVObject(uiOVERMAP);
 	RemoveVObject(uiPERSONS);
+	UnloadBigOverheadMap();
 
 	HandleTacticalPanelSwitch( );
 	DisableTacticalTeamPanelButtons( FALSE );
@@ -813,14 +939,14 @@ static void RenderOverheadOverlays(void)
 		GetOverheadScreenXYFromGridNo(s.sGridNo, &sX, &sY);
 		//Now, draw his "doll"
 
-		sX += STD_SCREEN_X;
-		sY += STD_SCREEN_Y;
+		sX += OverheadMapX();
+		sY += OverheadMapY();
 
 		//adjust for position.
 		sX += 2;
 		sY -= 5;
 
-		sY -= s.sHeightAdjustment / 5; // Adjust for height
+		sY -= (INT16)(s.sHeightAdjustment * OverheadScaleY()); // Adjust for height
 
 		UINT32 const shade =
 			&s == sel           ? 2 :
@@ -860,8 +986,8 @@ static void RenderOverheadOverlays(void)
 			INT16 sY;
 			GetOverheadScreenXYFromGridNo(wi.sGridNo, &sX, &sY);
 
-			sX += STD_SCREEN_X;
-			sY += STD_SCREEN_Y;
+			sX += OverheadMapX();
+			sY += OverheadMapY();
 
 			//adjust for position.
 			sY += 6;
@@ -884,8 +1010,16 @@ static void RenderOverheadOverlays(void)
 				case VISIBLE:          col = FROMRGB(255, 255, 255); break;
 				default:               abort();
 			}
-			PixelDraw(FALSE, sX, sY, Get16BPPColor(col), pDestBuf);
-			InvalidateRegion(sX, sY, sX + 1, sY + 1);
+			// 2x2 px on the 1366x768 overhead map, 1 px on the old one
+			INT16 const size = BigOverheadMap() ? 2 : 1;
+			for (INT16 dy = 0; dy != size; ++dy)
+			{
+				for (INT16 dx = 0; dx != size; ++dx)
+				{
+					PixelDraw(FALSE, sX + dx, sY + dy, Get16BPPColor(col), pDestBuf);
+				}
+			}
+			InvalidateRegion(sX, sY, sX + size, sY + size);
 		}
 	}
 }
@@ -953,6 +1087,17 @@ static GridNo InternalGetOverheadMouseGridNo(const INT dy)
 		if (cell_x < 0 || WORLD_COORD_COLS <= cell_x) return NOWHERE;
 		if (cell_y < 0 || WORLD_COORD_ROWS <= cell_y) return NOWHERE;
 		return GETWORLDINDEXFROMWORLDCOORDS(cell_y, cell_x);
+	}
+
+	if (BigOverheadMap())
+	{
+		// as the radar: the map spans the world's limits (dy in old 5:1 pixels)
+		INT16 const ax = (INT16)((gusMouseXPos - BigOverheadMapX()) / BigOverheadScaleX());
+		INT16       ay = (INT16)((gusMouseYPos - BigOverheadMapY()) / BigOverheadScaleY()) + dy * 5;
+		GridNo const grid_no = GetMapPosFromAbsoluteScreenXY(ax, ay);
+		ay += GetOffsetLandHeight(grid_no);
+		ay -= gsRenderHeight;
+		return GetMapPosFromAbsoluteScreenXY(ax, ay);
 	}
 
 	// ATE: Adjust alogrithm values a tad to reflect map positioning

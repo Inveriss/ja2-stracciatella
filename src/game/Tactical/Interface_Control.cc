@@ -22,6 +22,7 @@
 #include "Render_Dirty.h"
 #include "Interface_Cursors.h"
 #include "Interface_Panels.h"
+#include "Overhead_Map.h"
 #include "VObject_Blitters.h"
 #include "Faces.h"
 #include "Interface_Control.h"
@@ -37,6 +38,7 @@
 #include "Map_Screen_Interface.h"
 #include "Civ_Quotes.h"
 #include "UILayout.h"
+#include "Side_Strips.h"
 
 #include <string_theory/format>
 
@@ -57,6 +59,28 @@ BOOLEAN    gfPausedTacticalRenderFlags          = FALSE;
 
 static bool         g_switch_panel      = false;
 static SOLDIERTYPE* g_new_panel_soldier = 0;
+static bool         g_rebuild_team_panel = false;
+static bool         g_open_overhead_map  = false;
+static bool         g_toggle_sm_large_icons = false;
+
+
+void ToggleSMLargeIcons()
+{
+	g_toggle_sm_large_icons = true;
+	g_rebuild_team_panel    = true;
+}
+
+
+void RequestOverheadMap()
+{
+	g_open_overhead_map = true;
+}
+
+
+void RebuildTacticalTeamPanel()
+{
+	g_rebuild_team_panel = true;
+}
 
 
 void SetNewPanel(SOLDIERTYPE* const s)
@@ -68,6 +92,42 @@ void SetNewPanel(SOLDIERTYPE* const s)
 
 void HandleTacticalPanelSwitch()
 {
+	// The overhead map asked for from a panel button: opening it switches to
+	// the team panel, which mustn't happen inside that button's own callback
+	// (the button would be deleted under it).
+	if (g_open_overhead_map)
+	{
+		g_open_overhead_map = false;
+		if (!InOverheadMap()) GoIntoOverheadMap(); // calls this function again
+		return;
+	}
+
+	// the panel again, e.g. in the other form of the 1366x768 team panel or
+	// the other SM panel (Show Large Icons)
+	if (g_rebuild_team_panel)
+	{
+		g_rebuild_team_panel = false;
+		// (Show Large Icons only from the SM panel; elsewhere just the layout)
+		if (g_toggle_sm_large_icons && gsCurInterfacePanel != SM_PANEL) g_ui.setSMLargeIcons(!g_ui.isSMLargeIcons());
+		if (gsCurInterfacePanel == TEAM_PANEL)
+		{
+			ShutdownCurrentPanel();
+			InitializeCurrentPanel();
+			fInterfacePanelDirty = DIRTYLEVEL2;
+		}
+		else if (gsCurInterfacePanel == SM_PANEL && gpSMCurrentMerc)
+		{
+			SOLDIERTYPE* const s = gpSMCurrentMerc;
+			ShutdownCurrentPanel();
+			// the other SM panel's layout, between the two
+			if (g_toggle_sm_large_icons) g_ui.setSMLargeIcons(!g_ui.isSMLargeIcons());
+			InitializeCurrentPanel();
+			SetCurrentTacticalPanelCurrentMerc(s);
+			fInterfacePanelDirty = DIRTYLEVEL2;
+		}
+		g_toggle_sm_large_icons = false;
+	}
+
 	if (!g_switch_panel) return;
 	g_switch_panel = false;
 
@@ -384,16 +444,6 @@ void RenderTopmostTacticalInterface()
 		RenderKeyRingPopup(fInterfacePanelDirty == DIRTYLEVEL2);
 	}
 
-	if (InStatsPopup() && !InItemDescriptionBox())
-	{
-		RenderStatsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
-	}
-
-	if (InSkillsPopup() && !InItemDescriptionBox())
-	{
-		RenderSkillsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
-	}
-
 	if (gfInMovementMenu)
 	{
 		RenderMovementMenu();
@@ -449,6 +499,22 @@ void RenderTopmostTacticalInterface()
 
 	EndViewportOverlays();
 	RenderRubberBanding();
+
+	// The stats / skills popups after the world's overlays: their 1366x768
+	// boxes lie over the world (the stats one at the screen's top).
+	if (InStatsPopup() && !InItemDescriptionBox())
+	{
+		RenderStatsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
+	}
+
+	if (InSkillsPopup() && !InItemDescriptionBox())
+	{
+		RenderSkillsPopup(fInterfacePanelDirty == DIRTYLEVEL2);
+	}
+
+	// the 1366x768 screen's side strips, over the world and its overlays, under
+	// the boxes and menus below
+	RenderTacticalSideStrips();
 
 	if (InItemDescriptionBox())
 	{

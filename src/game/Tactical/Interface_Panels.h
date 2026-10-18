@@ -73,6 +73,13 @@ void EnableSMPanelButtons(BOOLEAN fEnable, BOOLEAN fFromItemPickup);
 void HideSMBookmarkButtons(void);
 void ShowSMBookmarkButtons(void);
 
+// The 1366x768 SM panel under the full width weapon box
+// (infobox_weapons_big_1366x768.png): all its buttons hidden, its clock,
+// sector name, action points and bars not drawn, until shown again.
+void HideSMPanelUnderItemDesc(void);
+void ShowSMPanelUnderItemDesc(void);
+bool IsSMPanelUnderItemDesc(void);
+
 // Narrower version of the pair above, for the tactical-screen Stats/Skills/
 // KeyRing popups (Infobox_stats.sti, Infobox_skills.sti, the key ring),
 // which -- unlike Infobox.sti -- are narrow enough to only ever cover the
@@ -119,6 +126,9 @@ extern MOUSE_CALLBACK KeyRingSlotInvClickCallback;
 void InitStatsPopup(SOLDIERTYPE* pSoldier, INT16 sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight);
 void RenderStatsPopup(BOOLEAN fFullRender);
 void DeleteStatsPopup(void);
+// Opens the stats popup for the SM panel's merc (over the team panel: the
+// selected merc), or closes it -- the Statistics button.
+void ToggleTacticalStatsPopup();
 BOOLEAN InStatsPopup(void);
 
 // Tactical-screen merc-skills popup (Infobox_skills.sti) -- opened from the

@@ -41,6 +41,7 @@
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Bottom.h"
+#include "MercPortrait.h"
 #include "Message.h"
 #include "MessageBoxScreen.h"
 #include "MouseSystem.h"
@@ -53,6 +54,7 @@
 #include "Points.h"
 #include "Radar_Screen.h"
 #include "Render_Dirty.h"
+#include "RenderWorld.h"
 #include "ScreenIDs.h"
 #include "ShopKeeper_Interface.h"
 #include "Soldier_Functions.h"
@@ -67,6 +69,7 @@
 #include "SysUtil.h"
 #include "Text.h"
 #include "Timer_Control.h"
+#include "Side_Strips.h"
 #include "UILayout.h"
 #include "VObject.h"
 #include "VObject_Blitters.h"
@@ -120,64 +123,126 @@
 #define STATS_TEXT_FONT_COLOR			5
 
 
+// The 1366x768 SM panel (inventory_bottom_panel_big_1366x768.png,
+// g_ui.isBigSMPanel()) has the buttons in its own windows: Stealth Mode above
+// Burst Mode, Climb / Jump and Stance Up a button lower than on the old panel.
+#define SM_BIG					(g_ui.isBigSMPanel())
+// the big panel's strip of bookmark buttons on its top: everything else under it
+#define SM_BIG_TOP				37
 #define SM_TALKB_X				155
-#define SM_TALKB_Y				108
+#define SM_TALKB_Y				(SM_BIG ? SM_BIG_TOP + 216 : 108)
 #define SM_MUTEB_X				91
-#define SM_MUTEB_Y				108
+#define SM_MUTEB_Y				(SM_BIG ? SM_BIG_TOP + 216 : 108)
 #define SM_STANCEUPB_X				187
-#define SM_STANCEUPB_Y				40
+#define SM_STANCEUPB_Y				(SM_BIG ? SM_BIG_TOP + 181 : 40)
 #define SM_UPDOWNB_X				91
-#define SM_UPDOWNB_Y				73
+#define SM_UPDOWNB_Y				(SM_BIG ? SM_BIG_TOP + 181 : 73)
 #define SM_CLIMBB_X				187
-#define SM_CLIMBB_Y				8
+#define SM_CLIMBB_Y				(SM_BIG ? SM_BIG_TOP + 148 : 8)
 #define SM_STANCEDOWNB_X			187
-#define SM_STANCEDOWNB_Y			108
+#define SM_STANCEDOWNB_Y			(SM_BIG ? SM_BIG_TOP + 216 : 108)
 #define SM_HANDCURSORB_X			123
-#define SM_HANDCURSORB_Y			73
+#define SM_HANDCURSORB_Y			(SM_BIG ? SM_BIG_TOP + 181 : 73)
 #define SM_PREVMERCB_X				9
-#define SM_PREVMERCB_Y				70
+#define SM_PREVMERCB_Y				(SM_BIG ? SM_BIG_TOP + 178 : 70)
 #define SM_NEXTMERCB_X				51
-#define SM_NEXTMERCB_Y				70
+#define SM_NEXTMERCB_Y				(SM_BIG ? SM_BIG_TOP + 178 : 70)
 #define SM_OPTIONSB_X				9
-#define SM_OPTIONSB_Y				105
+#define SM_OPTIONSB_Y				(SM_BIG ? SM_BIG_TOP + 213 : 105)
 #define SM_BURSTMODEB_X			155
-#define SM_BURSTMODEB_Y			73
+#define SM_BURSTMODEB_Y			(SM_BIG ? SM_BIG_TOP + 181 : 73)
 #define SM_LOOKB_X				123
-#define SM_LOOKB_Y				108
-#define SM_STEALTHMODE_X			187
-#define SM_STEALTHMODE_Y			73
+#define SM_LOOKB_Y				(SM_BIG ? SM_BIG_TOP + 216 : 108)
+#define SM_STEALTHMODE_X			(SM_BIG ? 155 : 187)
+#define SM_STEALTHMODE_Y			(SM_BIG ? SM_BIG_TOP + 148 : 73)
+// the big panel's radar map button (40x20, left of Done and Map Screen):
+// opens the overhead map, as a right click on the team panel's radar map
+#define SM_BIG_RADARB_X			95
+#define SM_BIG_RADARB_Y			(SM_BIG_TOP + 98)
+// the SM panels' Show Large Icons toggle (1366x768), after the bookmark
+// buttons -- on both the big and the old panel
+#define SM_LARGE_ICONSB_X			SM_BOOKMARK_X(516)
+#define SM_LARGE_ICONSB_Y			SM_BOOKMARK_Y(160)
+
+// The big SM panel's windows (panel coordinates).
+#define SM_BIG_FACE_X				4    // big portrait cut to 86x70: 10 px off each side,
+#define SM_BIG_FACE_Y				(SM_BIG_TOP + 4) // the team panel's rows off the top and bottom
+#define SM_BIG_FACE_WIDTH			86
+#define SM_BIG_FACE_HEIGHT			70
+#define SM_BIG_FACE_CUT_SIDE			10
+#define SM_BIG_LIFEBAR_X			95   // tall 6x70 bars
+#define SM_BIG_BREATHBAR_X			104
+#define SM_BIG_MORALEBAR_X			113
+#define SM_BIG_BARS_Y				(SM_BIG_TOP + 4)
+#define SM_BIG_BAR_WIDTH			6
+#define SM_BIG_BAR_HEIGHT			70
+#define SM_BIG_NAME_X				5    // name and action points in the strip under them
+#define SM_BIG_NAME_Y				(SM_BIG_TOP + 78) // 2 px under the strip top
+#define SM_BIG_NAME_WIDTH			85
+#define SM_BIG_NAME_HEIGHT			16
+#define SM_BIG_AP_X				94
+#define SM_BIG_AP_Y				(SM_BIG_TOP + 78)
+#define SM_BIG_AP_WIDTH			26
+#define SM_BIG_AP_HEIGHT			16
+#define SM_BIG_STATS_LABEL_X(col)		((col) ? 178 : 126) // labels on the wood, left aligned
+#define SM_BIG_STATS_VALUE_X(col)		((col) ? 207 : 151) // values in the dark columns, right aligned
+#define SM_BIG_STATS_VALUE_WIDTH		20
+#define SM_BIG_STATS_Y(row)			(SM_BIG_TOP + 6 + (row) * 17)
+#define SM_BIG_STATS_ROW_HEIGHT		17
+#define SM_BIG_SECTOR_X			8    // sector name and clock (UILayout.cc)
+#define SM_BIG_SECTOR_Y			(SM_BIG_TOP + 98)
+#define SM_BIG_SECTOR_WIDTH			79
+#define SM_BIG_SECTOR_HEIGHT			23
+// armour, weight and camouflage, label over value, in the dark boxes
+#define SM_BIG_WEIGHT_BOX_X			253
+#define SM_BIG_WEIGHT_BOX_Y			(SM_BIG_TOP + 134)
+#define SM_BIG_CAMO_BOX_X			253
+#define SM_BIG_CAMO_BOX_Y			(SM_BIG_TOP + 189)
+#define SM_BIG_ARMOR_BOX_X			513
+#define SM_BIG_ARMOR_BOX_Y			(SM_BIG_TOP + 137)
+#define SM_BIG_INFO_BOX_WIDTH			64
+#define SM_BIG_INFO_BOX_HEIGHT			34
+#define SM_BIG_FONT				FONT14ARIAL  // name and action points, as the team panel
+#define SM_BIG_STATS_FONT			FONT12ARIAL
+#define SM_BIG_LABEL_COLOR			126          // the map's big weapon box's colours
+#define SM_BIG_VALUE_COLOR			FONT_BEIGE
+#define SM_BIG_SELECTED_COLOR			FROMRGB(255, 204, 0)
 
 // Laptop shortcut buttons (see inventory_bottom_panel_bookmarks.sti, 32x32
 // each). Placeholder coordinates -- reposition to match the final graphic.
-#define SM_EMAILB_X				4
-#define SM_EMAILB_Y				143
-#define SM_AIM_MEMBERSB_X			39
-#define SM_AIM_MEMBERSB_Y			143
-#define SM_MERCB_X				74
-#define SM_MERCB_Y				143
-#define SM_BOBBYRB_X				110
-#define SM_BOBBYRB_Y				143
-#define SM_HISTORYB_X				145
-#define SM_HISTORYB_Y				143
-#define SM_PERSONNELB_X			180
-#define SM_PERSONNELB_Y			143
+// The big panel has all of them, money, key ring and trash can too, in its
+// top strip (y 2), in the old order, each 1 px left of its old x.
+#define SM_BOOKMARK_X(x)			(SM_BIG ? (x) - 1 : (x))
+#define SM_BOOKMARK_Y(y)			(SM_BIG ? 2 : (y))
+#define SM_EMAILB_X				SM_BOOKMARK_X(4)
+#define SM_EMAILB_Y				SM_BOOKMARK_Y(143)
+#define SM_AIM_MEMBERSB_X			SM_BOOKMARK_X(39)
+#define SM_AIM_MEMBERSB_Y			SM_BOOKMARK_Y(143)
+#define SM_MERCB_X				SM_BOOKMARK_X(74)
+#define SM_MERCB_Y				SM_BOOKMARK_Y(143)
+#define SM_BOBBYRB_X				SM_BOOKMARK_X(110)
+#define SM_BOBBYRB_Y				SM_BOOKMARK_Y(143)
+#define SM_HISTORYB_X				SM_BOOKMARK_X(145)
+#define SM_HISTORYB_Y				SM_BOOKMARK_Y(143)
+#define SM_PERSONNELB_X			SM_BOOKMARK_X(180)
+#define SM_PERSONNELB_Y			SM_BOOKMARK_Y(143)
 // 61x32 placeholder.
-#define SM_STRATSCREENB_X			215
-#define SM_STRATSCREENB_Y			160
+#define SM_STRATSCREENB_X			SM_BOOKMARK_X(215)
+#define SM_STRATSCREENB_Y			SM_BOOKMARK_Y(160)
 // 58x32 placeholder. Window/functionality not implemented yet -- points at
 // the Options screen (BtnOptionsCallback) as a stand-in until a dedicated
 // keyboard-shortcuts screen exists.
-#define SM_SHORTCUTSB_X			384
-#define SM_SHORTCUTSB_Y			160
+#define SM_SHORTCUTSB_X			SM_BOOKMARK_X(384)
+#define SM_SHORTCUTSB_Y			SM_BOOKMARK_Y(160)
 // Placeholder position, next to SM_SHORTCUTS_BUTTON -- opens the
 // Infobox_stats.sti merc-statistics popup. Tune once visible in-game.
-#define SM_STATSB_X				446
-#define SM_STATSB_Y				160
+#define SM_STATSB_X				SM_BOOKMARK_X(446)
+#define SM_STATSB_Y				SM_BOOKMARK_Y(160)
 // Placeholder position, next to SM_STATS_BUTTON -- opens the
 // Infobox_skills.sti merc-skills popup (split out of Infobox_stats.sti).
 // Tune once visible in-game.
-#define SM_SKILLSB_X				481
-#define SM_SKILLSB_Y				160
+#define SM_SKILLSB_X				SM_BOOKMARK_X(481)
+#define SM_SKILLSB_Y				SM_BOOKMARK_Y(160)
 
 // Checkbox toggling fHideEmptyAttachmentSlots -- placeholder position.
 #define SM_HIDE_EMPTY_SLOTS_X			274
@@ -192,10 +257,10 @@
 // it. Equivalent to the old slots-relative formula for squads >= ~11 (where
 // m_smPanelWidth == m_teamPanelSlotsTotalWidth + TEAMPANEL_BUTTONSBOX_WIDTH
 // and isn't floored): 142 - 45 = 97, 142 - 91 = 51.
-#define SM_DONE_X				(g_ui.m_smPanelWidth - 94)
-#define SM_DONE_Y				4
-#define SM_MAPSCREEN_X				(g_ui.m_smPanelWidth - 48)
-#define SM_MAPSCREEN_Y				4
+#define SM_DONE_X				(SM_BIG ? 142 : g_ui.m_smPanelWidth - 94)
+#define SM_DONE_Y				(SM_BIG ? SM_BIG_TOP + 98 : 4)
+#define SM_MAPSCREEN_X				(SM_BIG ? 188 : g_ui.m_smPanelWidth - 48)
+#define SM_MAPSCREEN_Y				(SM_BIG ? SM_BIG_TOP + 98 : 4)
 
 /*
 #define SM_PERCENT_WIDTH			20
@@ -255,8 +320,8 @@
 #define SM_MED_X				148
 #define SM_MED_Y				47
 
-#define MONEY_X				279
-#define MONEY_Y				160
+#define MONEY_X				SM_BOOKMARK_X(279)
+#define MONEY_Y				SM_BOOKMARK_Y(160)
 #define MONEY_WIDTH				32
 #define MONEY_HEIGHT				32
 
@@ -265,8 +330,8 @@
 // MapScreen.h). The icon itself is painted directly into the panel art
 // (~10px left of the LEGPOS slot); these are placeholder coordinates/size --
 // tune to match the final graphic.
-#define SM_TRASHCAN_X				349
-#define SM_TRASHCAN_Y				160
+#define SM_TRASHCAN_X				SM_BOOKMARK_X(349)
+#define SM_TRASHCAN_Y				SM_BOOKMARK_Y(160)
 #define SM_TRASHCAN_WIDTH			32
 #define SM_TRASHCAN_HEIGHT			32
 
@@ -310,6 +375,48 @@
 #define TM_BARS_Y				3
 #define TM_BARS_WIDTH				19
 #define TM_BARS_HEIGHT				47
+
+// The 1366x768 interface's team panel (g_ui.isBigTeamPanel(),
+// bottom_bar_big_1366x768.png): slot windows relative to each slot's left
+// edge (BIG_TEAMPANEL_SLOT_WIDTH apart), the rest relative to the panel.
+#define BIG_TM_FACE_X				10   // big portrait, cut to 106x70
+#define BIG_TM_FACE_Y				5
+#define BIG_TM_FACE_WIDTH			106
+#define BIG_TM_FACE_HEIGHT			70
+#define BIG_TM_FACE_CUT_TOP			36   // rows cut off the 106x122 portrait (16 at the bottom)
+#define BIG_TM_LIFEBAR_X			121  // tall 6x70 bars, as the strategic screen's
+#define BIG_TM_BREATHBAR_X			130
+#define BIG_TM_MORALEBAR_X			139
+#define BIG_TM_BARS_Y				5
+#define BIG_TM_BAR_WIDTH			6
+#define BIG_TM_BAR_HEIGHT			70
+#define BIG_TM_NAME_X				10
+#define BIG_TM_NAME_Y				79   // 2 px under the box top
+#define BIG_TM_NAME_WIDTH			106
+#define BIG_TM_NAME_HEIGHT			16
+#define BIG_TM_SLOT_NUMBER_X			13   // the slot's number, in the name box, 3 px from its left wall
+#define BIG_TM_AP_X				120
+#define BIG_TM_AP_Y				79   // 2 px lower, as the name
+#define BIG_TM_AP_WIDTH			25
+#define BIG_TM_AP_HEIGHT			16
+#define BIG_TM_INV_X				5    // first and second hand, big pictures
+#define BIG_TM_INV_Y				96
+#define BIG_TM_INV_WIDTH			124
+#define BIG_TM_INV_HEIGHT			50
+#define BIG_TM_INV_SEPY			50
+// The six 27x27 buttons, 3 columns x 2 rows: Done, Map Screen, Change Squad
+// above Previous / Next merc and the low panel toggle -- 37 x 33 px apart
+// from (1029, 7) on the full panel, 31 x 31 from (1028, 7) on the low one.
+#define BIG_TM_BUTTON_X(col)			(g_ui.isLowTeamPanel() ? 1028 + (col) * 31 : 1029 + (col) * 37)
+#define BIG_TM_BUTTON_Y(row)			(7 + (row) * (g_ui.isLowTeamPanel() ? 31 : 33))
+#define BIG_TM_SECTOR_X			1031 // sector box, above the clock's
+#define BIG_TM_SECTOR_Y			(g_ui.isLowTeamPanel() ? 73 : 123)
+#define BIG_TM_SECTOR_WIDTH			79
+#define BIG_TM_SECTOR_HEIGHT			23
+#define BIG_TM_FONT				BIG_TEAMPANEL_FONT // names and action points
+#define BIG_TM_SECTOR_FONT			FONT12ARIAL        // sector (and the clock, Game_Clock.cc)
+#define BIG_TM_NAME_COLOR			FONT_BEIGE         // as the weapon name of the map's big weapon box
+#define BIG_TM_SELECTED_COLOR			FROMRGB(255, 204, 0)
 
 #define INDICATOR_BOX_WIDTH			12
 #define INDICATOR_BOX_HEIGHT			10
@@ -359,6 +466,14 @@ enum
 static BUTTON_PICS* iSMPanelImages[NUM_SM_BUTTON_IMAGES];
 static BUTTON_PICS* iBurstButtonImages[NUM_WEAPON_MODES];
 static BUTTON_PICS* iTEAMPanelImages[NUM_TEAM_BUTTON_IMAGES];
+// The 1366x768 team panel's Previous / Next merc buttons (the SM panel's
+// pictures), in the two 27x27 windows under Done and Map Screen.
+static GUIButtonRef giBigTeamPanelMercButtons[2];
+static BUTTON_PICS* giBigTeamPanelMercImages[2];
+// Its toggle between the full and the low panel (for now Map Screen's
+// picture), in the window under Change Squad.
+static GUIButtonRef giBigTeamPanelLowButton;
+static BUTTON_PICS* giBigTeamPanelLowImage;
 
 static BUTTON_PICS* giSMStealthImages;
 GUIButtonRef giSMStealthButton;
@@ -368,6 +483,9 @@ GUIButtonRef giSMStealthButton;
 // ShowSMBookmarkButtons() -- like any GUI_BUTTON it would otherwise draw on
 // top of Infobox.sti while the item description box is open.
 GUIButtonRef giSMHideEmptySlotsCheckbox;
+// the 1366x768 SM panel under the full width weapon box -- see
+// HideSMPanelUnderItemDesc()
+static bool gfSMPanelUnderItemDesc = false;
 
 BOOLEAN gfUIStanceDifferent = FALSE;
 static BOOLEAN gfAllDisabled = FALSE;
@@ -433,6 +551,31 @@ static cache_key_t const guiMapSmallSkillsInfoBox{ INTERFACEDIR "/iteminfoc_skil
 // FONT12ARIAL (in its palette's nearest colours -- 5 and 6 are black there).
 static cache_key_t const guiMapBigStatsInfoBox{ INTERFACEDIR "/iteminfoc_stats_big_1366x768.png" };
 static cache_key_t const guiMapBigSkillsInfoBox{ INTERFACEDIR "/iteminfoc_skills_big_1366x768.png" };
+// The 1366x768 SM panel's stats / skills boxes: the same graphics as the map's
+// "Show Large Icons" ones, with their layouts, at x 236 on the screen's bottom
+// (TacBigInfoPopupBox()); the viewport stays as it is.
+static cache_key_t const guiTacBigStatsInfoBox{ INTERFACEDIR "/infobox_stats_big_1366x768.png" };
+static cache_key_t const guiTacBigSkillsInfoBox{ INTERFACEDIR "/infobox_skills_big_1366x768.png" };
+#define TAC_BIG_INFO_POPUP_X		236
+
+// The 1366x768 SM panel shows this box (its own graphic there): its place,
+// x and y, from its size -- at the screen's bottom from x 236; the stats box
+// at the screen's top, its right edge at the right side strip.
+static bool TacBigInfoPopupBox(cache_key_t const box, INT16& x, INT16& y)
+{
+	// (also over the 1366x768 team panel: opened from the side strip)
+	if (fInMapMode || !(g_ui.isBigSMPanel() || g_ui.isBigTeamPanelShown()) || !GCM->doesGameResExists(box)) return false;
+	ETRLEObject const& e = GetVObject(box)->SubregionProperties(0);
+	if (box == guiTacBigStatsInfoBox)
+	{
+		x = SCREEN_WIDTH - SIDE_STRIP_WIDTH - e.usWidth; // 706
+		y = 0;
+		return true;
+	}
+	x = TAC_BIG_INFO_POPUP_X;
+	y = SCREEN_HEIGHT - e.usHeight;
+	return true;
+}
 #define POPUP_ARIAL_LABEL_COLOUR 126        // for BLOCKFONT2's 6
 #define POPUP_ARIAL_VALUE_COLOUR FONT_BEIGE // for BLOCKFONT2's 5
 
@@ -761,6 +904,7 @@ static void UpdateSMPanel()
 							INV_INTERFACE_START_Y + SM_STEALTHMODE_Y,
 							MSYS_PRIORITY_HIGH - 1, BtnStealthModeCallback);
 		giSMStealthButton->SetFastHelpText(TacticalStr[TOGGLE_STEALTH_MODE_POPUPTEXT]);
+		if (gfSMPanelUnderItemDesc) HideButton(giSMStealthButton);
 
 		gfUIStanceDifferent = FALSE;
 
@@ -1068,19 +1212,34 @@ void InitializeSMPanel()
 	// minimap are in the bottom-right corner. Uses m_smPanelWidth (not the shared, purely squad-size-driven
 	// m_teamPanelWidth), since inventory_bottom_panel.sti can be wider than what squad size alone would need --
 	// see the comment on m_smPanelWidth in UILayout.h.
-	SGPVObject* voSMPanel = AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
 	guiSMPanel = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
-	if (g_ui.m_smPanelWidth > INVENTORY_BOTTOM_PANEL_WIDTH)
+	// black under anything the graphic doesn't cover (the 196 px tall
+	// inventory_bottom_panel.png in the 197 px panel)
+	guiSMPanel->Fill(0);
+	if (SM_BIG)
+	{
+		// the 1366x768 one, one piece
+		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" BIG_SMPANEL_FILE) };
+		BltVideoObject(guiSMPanel, big_panel.get(), 0, 0, 0);
+	}
+	SGPVObject* voSMPanel = SM_BIG ? 0 : AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
+	// a graphic as wide as the panel (1366x768: the user's 1366 px
+	// inventory_bottom_panel.png) is drawn once, without a filler
+	INT32 const panel_gfx_w = voSMPanel ? voSMPanel->SubregionProperties(0).usWidth : g_ui.m_smPanelWidth;
+	if (voSMPanel && g_ui.m_smPanelWidth > panel_gfx_w)
 	{
 		// The team panel is longer than default
 		// need a second blit, and we will start from the right
-		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH, 0);
+		BltVideoObject(guiSMPanel, voSMPanel, 0, g_ui.m_smPanelWidth - panel_gfx_w, 0);
 	}
 	// draw the basic Single-Merc panel
-	BltVideoObject(guiSMPanel, voSMPanel, 0, 0, 0);
-	DeleteVideoObject(voSMPanel);
+	if (voSMPanel)
+	{
+		BltVideoObject(guiSMPanel, voSMPanel, 0, 0, 0);
+		DeleteVideoObject(voSMPanel);
+	}
 
-	INT16 sFillerWidth = g_ui.m_smPanelWidth - INVENTORY_BOTTOM_PANEL_WIDTH;
+	INT16 sFillerWidth = SM_BIG ? 0 : g_ui.m_smPanelWidth - panel_gfx_w;
 	if (sFillerWidth > 0)
 	{
 		// draw a space filler if needed
@@ -1111,17 +1270,26 @@ void InitializeSMPanel()
 	INT32 x;
 	INT32 y;
 
-	x = dx + SM_SELMERC_FACE_X;
-	y = dy + SM_SELMERC_FACE_Y;
+	x = dx + (SM_BIG ? SM_BIG_FACE_X : SM_SELMERC_FACE_X);
+	y = dy + (SM_BIG ? SM_BIG_FACE_Y : SM_SELMERC_FACE_Y);
 
 	MOUSE_CALLBACK selectedMercButtonCallback = MouseCallbackPrimarySecondary(SelectedMercButtonCallbackPrimary, SelectedMercButtonCallbackSecondary, MSYS_NO_CALLBACK, true);
 	//DEfine region for selected guy panel
-	MSYS_DefineRegion(&gSM_SELMERCPanelRegion, x, y, x + SM_SELMERC_FACE_WIDTH, y + SM_SELMERC_FACE_HEIGHT, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, SelectedMercButtonMoveCallback, selectedMercButtonCallback);
+	MSYS_DefineRegion(&gSM_SELMERCPanelRegion, x, y, x + (SM_BIG ? SM_BIG_FACE_WIDTH : SM_SELMERC_FACE_WIDTH), y + (SM_BIG ? SM_BIG_FACE_HEIGHT : SM_SELMERC_FACE_HEIGHT), MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, SelectedMercButtonMoveCallback, selectedMercButtonCallback);
 
-	//DEfine region for selected guy panel
-	MSYS_DefineRegion(&gSM_SELMERCEnemyIndicatorRegion, x + 1, y + 1, x + INDICATOR_BOX_WIDTH,
-				y + INDICATOR_BOX_HEIGHT, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR,
-				MSYS_NO_CALLBACK, SelectedMercEnemyIndicatorCallback);
+	//DEfine region for selected guy panel (the big panel's static portrait shows
+	// no enemy indicator: empty)
+	if (SM_BIG)
+	{
+		MSYS_DefineRegion(&gSM_SELMERCEnemyIndicatorRegion, x, y, x, y, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR,
+					MSYS_NO_CALLBACK, SelectedMercEnemyIndicatorCallback);
+	}
+	else
+	{
+		MSYS_DefineRegion(&gSM_SELMERCEnemyIndicatorRegion, x + 1, y + 1, x + INDICATOR_BOX_WIDTH,
+					y + INDICATOR_BOX_HEIGHT, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR,
+					MSYS_NO_CALLBACK, SelectedMercEnemyIndicatorCallback);
+	}
 
 	//DEfine region for money button
 	x = dx + MONEY_X;
@@ -1136,10 +1304,17 @@ void InitializeSMPanel()
 	}
 
 	//DEfine region for selected guy panel
-	MSYS_DefineRegion(&gSM_SELMERCBarsRegion, dx + 62, dy + 2, dx + 85, dy + 51, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, selectedMercButtonCallback);
+	if (SM_BIG)
+	{
+		MSYS_DefineRegion(&gSM_SELMERCBarsRegion, dx + SM_BIG_LIFEBAR_X, dy + SM_BIG_BARS_Y, dx + SM_BIG_MORALEBAR_X + SM_BIG_BAR_WIDTH, dy + SM_BIG_BARS_Y + SM_BIG_BAR_HEIGHT, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, selectedMercButtonCallback);
+	}
+	else
+	{
+		MSYS_DefineRegion(&gSM_SELMERCBarsRegion, dx + 62, dy + 2, dx + 85, dy + 51, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, selectedMercButtonCallback);
+	}
 
 	MOUSE_CALLBACK smInvClickCallback = MouseCallbackPrimarySecondary(SMInvClickCallbackPrimary, SMInvClickCallbackSecondary, MSYS_NO_CALLBACK, true);
-	InitInvSlotInterface(g_ui.m_invSlotPositionTac, &g_ui.m_invCamoRegion, SMInvMoveCallback, smInvClickCallback, SMInvMoveCamoCallback, SMInvClickCamoCallback);
+	InitInvSlotInterface(g_ui.m_invSlotPositionTac, &g_ui.m_invCamoRegion, SMInvMoveCallback, smInvClickCallback, SMInvMoveCamoCallback, SMInvClickCamoCallback, false, SM_BIG);
 	InitKeyRingInterface(KeyRingItemPanelButtonCallback);
 
 	// Trash can drop target -- see SM_TRASHCAN_* above.
@@ -1218,6 +1393,15 @@ static void BtnStanceUpCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnTalkCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnUpdownCallback(GUI_BUTTON* btn, UINT32 reason);
 static void ToggleHideEmptyAttachmentSlotsCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnSMRadarMapCallback(GUI_BUTTON* btn, UINT32 reason);
+
+static void BtnSMLargeIconsCallback(GUI_BUTTON* btn, UINT32 reason);
+
+// The big SM panel's radar map button and Show Large Icons toggle.
+static GUIButtonRef giSMBigRadarButton;
+static BUTTON_PICS* giSMBigRadarImage;
+static GUIButtonRef giSMBigLargeIconsButton;
+static BUTTON_PICS* giSMBigLargeIconsImage;
 
 
 void CreateSMPanelButtons(void)
@@ -1305,7 +1489,12 @@ void CreateSMPanelButtons(void)
 	// placeholder standing in for a not-yet-built keyboard-shortcuts screen.
 	MakeButtonT(SM_STRATSCREEN_BUTTON, iSMPanelImages[SM_STRATSCREEN_IMAGES], dx + SM_STRATSCREENB_X, dy + SM_STRATSCREENB_Y, BtnMapScreenCallback,        "Strategic Map");
 	MakeButtonT(SM_SHORTCUTS_BUTTON,   iSMPanelImages[SM_SHORTCUTS_IMAGES],   dx + SM_SHORTCUTSB_X,   dy + SM_SHORTCUTSB_Y,   BtnOptionsCallback,          "Keyboard Shortcuts (placeholder)");
-	MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
+	// 1366x768: none on the panel, the side strips have it (Side_Strips.cc),
+	// independent of the panels
+	if (!TacticalSideStripsAvailable())
+	{
+		MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
+	}
 	MakeButtonT(SM_SKILLS_BUTTON,      iSMPanelImages[SM_SKILLS_IMAGES],      dx + SM_SKILLSB_X,      dy + SM_SKILLSB_Y,      BtnSkillsCallback,           "Skills");
 
 	giSMHideEmptySlotsCheckbox = CreateCheckBoxButton(
@@ -1313,6 +1502,28 @@ void CreateSMPanelButtons(void)
 		INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", MSYS_PRIORITY_HIGHEST,
 		ToggleHideEmptyAttachmentSlotsCallback); // sub-images 0-3, per user request
 	giSMHideEmptySlotsCheckbox->SetFastHelpText("Hide empty attachment slots");
+
+	if (SM_BIG)
+	{
+		// no place for it on the big panel yet: hidden (and kept hidden, see
+		// ShowSMBookmarkButtons())
+		HideButton(giSMHideEmptySlotsCheckbox);
+
+		// the radar map button, for now with Map Screen's picture
+		giSMBigRadarImage  = UseLoadedButtonImage(iSMPanelImages[DONE_IMAGES], 0, 2);
+		giSMBigRadarButton = QuickCreateButton(giSMBigRadarImage, dx + SM_BIG_RADARB_X, dy + SM_BIG_RADARB_Y, MSYS_PRIORITY_HIGH - 1, BtnSMRadarMapCallback);
+		giSMBigRadarButton->SetFastHelpText("Radar Map");
+	}
+
+	if (g_ui.isBigTeamPanel())
+	{
+		// Show Large Icons: the big panel or the old one, for now with the
+		// Skills bookmark's picture; pressed on the big one
+		giSMBigLargeIconsImage  = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 24, 25);
+		giSMBigLargeIconsButton = QuickCreateButtonToggle(giSMBigLargeIconsImage, dx + SM_LARGE_ICONSB_X, dy + SM_LARGE_ICONSB_Y, MSYS_PRIORITY_HIGH - 1, BtnSMLargeIconsCallback);
+		giSMBigLargeIconsButton->SetFastHelpText("Show Large Icons");
+		if (g_ui.isSMLargeIcons()) giSMBigLargeIconsButton->uiFlags |= BUTTON_CLICKED_ON;
+	}
 #if 0
 	MakeButtonN(BURSTMODE_BUTTON,     iSMPanelImages[BURSTMODE_IMAGES],  SM_BURSTMODEB_X,  dy + SM_BURSTMODEB_Y,  BtnBurstModeCallback,  TacticalStr[TOGGLE_BURSTMODE_POPUPTEXT]);
 #endif
@@ -1335,6 +1546,17 @@ void RemoveSMPanelButtons(void)
 
 	if (giSMStealthButton) RemoveButton(giSMStealthButton);
 	if (giSMStealthImages) UnloadButtonImage(giSMStealthImages);
+
+	if (giSMBigRadarButton)
+	{
+		RemoveButton(giSMBigRadarButton);
+		UnloadButtonImage(giSMBigRadarImage);
+	}
+	if (giSMBigLargeIconsButton)
+	{
+		RemoveButton(giSMBigLargeIconsButton);
+		UnloadButtonImage(giSMBigLargeIconsImage);
+	}
 
 	// BUTTON_SELFDELETE_IMAGE (set by CreateCheckBoxButton()) means
 	// RemoveButton() also frees its image -- no separate UnloadButtonImage().
@@ -1371,6 +1593,42 @@ void HideSMBookmarkButtons(void)
 }
 
 
+bool IsSMPanelUnderItemDesc(void)
+{
+	return gfSMPanelUnderItemDesc;
+}
+
+
+void HideSMPanelUnderItemDesc(void)
+{
+	gfSMPanelUnderItemDesc = true;
+	for (GUIButtonRef const b : iSMPanelButtons)
+	{
+		if (b) HideButton(b);
+	}
+	for (GUIButtonRef const b : { giSMStealthButton, giSMBigRadarButton, giSMBigLargeIconsButton, giSMHideEmptySlotsCheckbox })
+	{
+		if (b) HideButton(b);
+	}
+}
+
+
+void ShowSMPanelUnderItemDesc(void)
+{
+	gfSMPanelUnderItemDesc = false;
+	for (GUIButtonRef const b : iSMPanelButtons)
+	{
+		if (b) ShowButton(b);
+	}
+	for (GUIButtonRef const b : { giSMStealthButton, giSMBigRadarButton, giSMBigLargeIconsButton })
+	{
+		if (b) ShowButton(b);
+	}
+	// the hide-empty checkbox has no place on the big panel yet: stays hidden
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
 void ShowSMBookmarkButtons(void)
 {
 	for (UINT32 const idx : g_smBookmarkButtons)
@@ -1378,7 +1636,8 @@ void ShowSMBookmarkButtons(void)
 		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
 	}
 
-	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
+	// (the big panel has no place for it yet)
+	if (giSMHideEmptySlotsCheckbox && !SM_BIG) ShowButton(giSMHideEmptySlotsCheckbox);
 }
 
 
@@ -1410,7 +1669,8 @@ void ShowSMBookmarkButtonsUnderInfoPopups(void)
 		if (iSMPanelButtons[idx]) ShowButton(iSMPanelButtons[idx]);
 	}
 
-	if (giSMHideEmptySlotsCheckbox) ShowButton(giSMHideEmptySlotsCheckbox);
+	// (the big panel has no place for it yet)
+	if (giSMHideEmptySlotsCheckbox && !SM_BIG) ShowButton(giSMHideEmptySlotsCheckbox);
 }
 
 
@@ -1466,7 +1726,7 @@ void ShutdownSMPanel()
 }
 
 
-static void PrintAP(SOLDIERTYPE* const s, INT16 const x, INT16 const y, INT16 const w, INT16 const h)
+static void PrintAP(SOLDIERTYPE* const s, INT16 const x, INT16 const y, INT16 const w, INT16 const h, SGPFont const font = TINYFONT1)
 {
 	if (!(gTacticalStatus.uiFlags & INCOMBAT))
 		return;
@@ -1481,7 +1741,7 @@ static void PrintAP(SOLDIERTYPE* const s, INT16 const x, INT16 const y, INT16 co
 		MercUnderTheInfluence(s)           ? FONT_MCOLOR_LTBLUE   :
 		s->bStealthMode                    ? FONT_MCOLOR_LTYELLOW :
 		FONT_MCOLOR_LTGRAY;
-	SetFontAttributes(TINYFONT1, foreground);
+	SetFontAttributes(font, foreground);
 
 	RestoreExternBackgroundRect(x, y, w, h);
 	MPrint(x, y, ST::string::from_int(ap), HCenterVCenterAlign(w, h));
@@ -1534,6 +1794,60 @@ void ProgressBarBackgroundRect(const INT16 sLeft, const INT16 sTop, const INT16 
 	}
 }
 
+// The big SM panel's portrait: the static big portrait, cut as the team
+// panel's and SM_BIG_FACE_CUT_SIDE px off each side; dead mercs red shaded,
+// vehicles their small portrait centered.
+static void RenderBigSMPortrait(SOLDIERTYPE const& s, INT16 const x, INT16 const y)
+{
+	INT16 const w = SM_BIG_FACE_WIDTH;
+	INT16 const h = SM_BIG_FACE_HEIGHT;
+	ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, y, x + w, y + h, 0);
+
+	if (s.uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		RenderSoldierFace(s, x + (w - TM_FACE_WIDTH) / 2, y + (h - TM_FACE_HEIGHT) / 2);
+	}
+	else if (s.ubProfile != NO_PROFILE)
+	{
+		try
+		{
+			AutoSGPVObject const face{ LoadBigPortrait(GetProfile(s.ubProfile)) };
+			if (s.bLife == 0)
+			{
+				face->pShades[0] = Create16BPPPaletteShaded(face->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
+				face->CurrentShade(0);
+			}
+			ETRLEObject const& e = face->SubregionProperties(0);
+			std::unique_ptr<SGPVSurface> const whole{ new SGPVSurface(e.usWidth, e.usHeight, PIXEL_DEPTH) };
+			whole->Fill(0);
+			BltVideoObject(whole.get(), face.get(), 0, -e.sOffsetX, -e.sOffsetY);
+			SGPBox const cut = { SM_BIG_FACE_CUT_SIDE, BIG_TM_FACE_CUT_TOP,
+				(UINT16)std::max<INT32>(0, std::min<INT32>(w, e.usWidth  - SM_BIG_FACE_CUT_SIDE)),
+				(UINT16)std::max<INT32>(0, std::min<INT32>(h, e.usHeight - BIG_TM_FACE_CUT_TOP)) };
+			if (cut.w > 0 && cut.h > 0) BltVideoSurface(guiSAVEBUFFER, whole.get(), x, y, &cut);
+		}
+		catch (std::exception const& e)
+		{
+			SLOGE("Cannot show the big portrait of profile {}: {}", s.ubProfile, e.what());
+		}
+	}
+}
+
+
+// The big SM panel's armour / weight / camouflage box: the label over the value.
+static void PrintBigSMInfoBox(INT32 const x, INT32 const y, ST::string const& label, ST::string const& value, UINT8 const value_colour)
+{
+	INT32 const w      = SM_BIG_INFO_BOX_WIDTH;
+	INT32 const half_h = SM_BIG_INFO_BOX_HEIGHT / 2;
+	INT32 const font_h = GetFontHeight(SM_BIG_STATS_FONT);
+	SetFont(SM_BIG_STATS_FONT);
+	SetFontForeground(SM_BIG_LABEL_COLOR);
+	MPrint(x, y + (half_h - font_h) / 2, label, CenterAlign(w));
+	SetFontForeground(value_colour);
+	MPrint(x, y + half_h + (half_h - font_h) / 2, value, CenterAlign(w));
+}
+
+
 static void PrintStat(UINT32 const change_time, UINT16 const stat_bit, INT8 const stat_val, INT16 const x, INT16 const y, INT32 const progress)
 {
 	SOLDIERTYPE const& s  = *gpSMCurrentMerc;
@@ -1545,9 +1859,20 @@ static void PrintStat(UINT32 const change_time, UINT16 const stat_bit, INT8 cons
 		s.usValueGoneUp & stat_bit                                   ? FONT_LTGREEN          :
 		FONT_RED;
 
-	SetFontForeground(fg);
+	// the big panel: FONT12ARIAL, values in the big weapon box's colour
+	SetFontForeground(SM_BIG && fg == STATS_TEXT_FONT_COLOR ? SM_BIG_VALUE_COLOR : fg);
 
 	ST::string str = ST::format("{3d}", stat_val);
+	if (SM_BIG)
+	{
+		if (gamepolicy(gui_extras))
+		{
+			ProgressBarBackgroundRect(x, y + 1, SM_BIG_STATS_VALUE_WIDTH * progress / 100, SM_BIG_STATS_ROW_HEIGHT - 2, 0x514A05, progress);
+		}
+		INT32 const font_h = GetFontHeight(SM_BIG_STATS_FONT);
+		DrawStringRight(str, x, y + (SM_BIG_STATS_ROW_HEIGHT - font_h) / 2, SM_BIG_STATS_VALUE_WIDTH, font_h, SM_BIG_STATS_FONT);
+		return;
+	}
 	if (gamepolicy(gui_extras))
 	{
 		ProgressBarBackgroundRect(x + 16, y - 2, 15 * progress / 100, 10, 0x514A05, progress);
@@ -1555,6 +1880,60 @@ static void PrintStat(UINT32 const change_time, UINT16 const stat_bit, INT8 cons
 
 	DrawStringRight(str, x, y, SM_STATS_WIDTH, SM_STATS_HEIGHT, BLOCKFONT2);
 }
+
+// The big SM panel's stats (FONT12ARIAL: labels in the big weapon box's label
+// colour on the wood, values in the dark columns), armour, weight and
+// camouflage.
+static void RenderBigSMPanelStats(SOLDIERTYPE const& s, INT32 const dx, INT32 const dy)
+{
+	INT32 const font_h = GetFontHeight(SM_BIG_STATS_FONT);
+	SetFontAttributes(SM_BIG_STATS_FONT, SM_BIG_LABEL_COLOR);
+	for (UINT32 i = 0; i != 5; ++i)
+	{
+		INT32 const y = dy + SM_BIG_STATS_Y(i) + (SM_BIG_STATS_ROW_HEIGHT - font_h) / 2;
+		MPrint(dx + SM_BIG_STATS_LABEL_X(0), y, pShortAttributeStrings[i]);
+		MPrint(dx + SM_BIG_STATS_LABEL_X(1), y, pShortAttributeStrings[i + 5]);
+	}
+
+	MERCPROFILESTRUCT& p = GetProfile(s.ubProfile);
+	INT32 const x0 = dx + SM_BIG_STATS_VALUE_X(0);
+	INT32 const x1 = dx + SM_BIG_STATS_VALUE_X(1);
+	PrintStat(s.uiChangeAgilityTime,      AGIL_INCREASE,     s.bAgility,      x0, dy + SM_BIG_STATS_Y(0), p.sAgilityGain*2);
+	PrintStat(s.uiChangeDexterityTime,    DEX_INCREASE,      s.bDexterity,    x0, dy + SM_BIG_STATS_Y(1), p.sDexterityGain*2);
+	PrintStat(s.uiChangeStrengthTime,     STRENGTH_INCREASE, s.bStrength,     x0, dy + SM_BIG_STATS_Y(2), p.sStrengthGain*2);
+	PrintStat(s.uiChangeLeadershipTime,   LDR_INCREASE,      s.bLeadership,   x0, dy + SM_BIG_STATS_Y(3), p.sLeadershipGain*2);
+	PrintStat(s.uiChangeWisdomTime,       WIS_INCREASE,      s.bWisdom,       x0, dy + SM_BIG_STATS_Y(4), p.sWisdomGain*2);
+	PrintStat(s.uiChangeLevelTime,        LVL_INCREASE,      s.bExpLevel,     x1, dy + SM_BIG_STATS_Y(0), p.sExpLevelGain*100/(350*p.bExpLevel));
+	PrintStat(s.uiChangeMarksmanshipTime, MRK_INCREASE,      s.bMarksmanship, x1, dy + SM_BIG_STATS_Y(1), p.sMarksmanshipGain*4);
+	PrintStat(s.uiChangeExplosivesTime,   EXP_INCREASE,      s.bExplosive,    x1, dy + SM_BIG_STATS_Y(2), p.sExplosivesGain*4);
+	PrintStat(s.uiChangeMechanicalTime,   MECH_INCREASE,     s.bMechanical,   x1, dy + SM_BIG_STATS_Y(3), p.sMechanicGain*4);
+	PrintStat(s.uiChangeMedicalTime,      MED_INCREASE,      s.bMedical,      x1, dy + SM_BIG_STATS_Y(4), p.sMedicalGain*4);
+
+	UINT8 const value_colour = s.bLife >= OKLIFE ? SM_BIG_VALUE_COLOR : FONT_MCOLOR_DKGRAY;
+	PrintBigSMInfoBox(dx + SM_BIG_ARMOR_BOX_X,  dy + SM_BIG_ARMOR_BOX_Y,  pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)),          value_colour);
+	PrintBigSMInfoBox(dx + SM_BIG_WEIGHT_BOX_X, dy + SM_BIG_WEIGHT_BOX_Y, pInvPanelTitleStrings[1], ST::format("{}%", CalculateCarriedWeight(&s)), value_colour);
+	PrintBigSMInfoBox(dx + SM_BIG_CAMO_BOX_X,   dy + SM_BIG_CAMO_BOX_Y,   pInvPanelTitleStrings[2], ST::format("{}%", s.bCamo),                    value_colour);
+}
+
+
+// The SM panels' Show Large Icons toggle: the big panel or the old one,
+// built again next frame (the toggle is one of the buttons that goes).
+static void BtnSMLargeIconsCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	ToggleSMLargeIcons();
+}
+
+
+// The big SM panel's radar map button: the overhead map, as a right click on
+// the team panel's radar map -- next frame: opening it switches to the team
+// panel, removing this very button.
+static void BtnSMRadarMapCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	RequestOverheadMap();
+}
+
 
 void RenderSMPanel(DirtyLevel* const dirty_level)
 {
@@ -1609,6 +1988,11 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 			{
 				goto no_plate;
 			}
+			if (SM_BIG)
+			{
+				// drawn after the portrait, below
+				goto no_plate;
+			}
 			INT32 const x = SM_SELMERC_PLATE_X + dx;
 			INT32 const y = SM_SELMERC_PLATE_Y + dy;
 			BltVideoObject(guiSAVEBUFFER, gfx, 0, x, y);
@@ -1616,7 +2000,29 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 		}
 no_plate:
 
-		RenderSoldierFace(s, dx + SM_SELMERC_FACE_X, dy + SM_SELMERC_FACE_Y);
+		if (SM_BIG)
+		{
+			// the static portrait; the selected merc's gold frame (as the big
+			// team panel), shaded while the items are disabled
+			INT32 const fx = dx + SM_BIG_FACE_X;
+			INT32 const fy = dy + SM_BIG_FACE_Y;
+			RenderBigSMPortrait(s, fx, fy);
+			if (gfSMDisableForItems)
+			{
+				guiSAVEBUFFER->ShadowRect(fx, fy, fx + SM_BIG_FACE_WIDTH, fy + SM_BIG_FACE_HEIGHT);
+			}
+			else if (gTacticalStatus.ubCurrentTeam == OUR_TEAM && &s == GetSelectedMan() && OK_INTERRUPT_MERC(&s))
+			{
+				SGPVSurface::Lock l(guiSAVEBUFFER);
+				SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+				RectangleDraw(TRUE, fx - 1, fy - 1, fx + SM_BIG_FACE_WIDTH, fy + SM_BIG_FACE_HEIGHT, Get16BPPColor(SM_BIG_SELECTED_COLOR), l.Buffer<UINT16>());
+			}
+			RestoreExternBackgroundRect(fx - 1, fy - 1, SM_BIG_FACE_WIDTH + 2, SM_BIG_FACE_HEIGHT + 2);
+		}
+		else
+		{
+			RenderSoldierFace(s, dx + SM_SELMERC_FACE_X, dy + SM_SELMERC_FACE_Y);
+		}
 
 		if (InItemDescriptionBox())
 		{
@@ -1633,10 +2039,18 @@ no_plate:
 		}
 		else
 		{
-			RenderInvBodyPanel(&s, SM_BODYINV_X, SM_BODYINV_Y);
+			// (the big panel has no place for the body figure yet)
+			if (!SM_BIG) RenderInvBodyPanel(&s, SM_BODYINV_X, SM_BODYINV_Y);
 
 			// Render Values for stats
 			SetFontDestBuffer(guiSAVEBUFFER);
+			if (SM_BIG)
+			{
+				RenderBigSMPanelStats(s, dx, dy);
+				SetFontDestBuffer(FRAME_BUFFER);
+				RestoreExternBackgroundRect(0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
+				goto stats_done;
+			}
 			SetFontAttributes(BLOCKFONT2, STATS_TITLE_FONT_COLOR);
 			for (UINT32 i = 0; i != 5; ++i)
 			{
@@ -1691,28 +2105,42 @@ no_plate:
 
 			RestoreExternBackgroundRect(0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
 		}
+stats_done:
 
-		// Render name
-		UINT8 const fg = s.bStealthMode ? FONT_MCOLOR_LTYELLOW : FONT_MCOLOR_LTGRAY;
-		SetFontAttributes(BLOCKFONT2, fg);
+		// Render name -- the big panel: FONT14ARIAL in the big weapon box's
+		// name colour, as the big team panel
+		UINT8 const fg =
+			s.bStealthMode ? FONT_MCOLOR_LTYELLOW :
+			SM_BIG         ? SM_BIG_VALUE_COLOR   :
+			FONT_MCOLOR_LTGRAY;
+		SetFontAttributes(SM_BIG ? SM_BIG_FONT : BLOCKFONT2, fg);
 
-		INT16 const x = SM_SELMERCNAME_X + dx;
-		INT16 const y = SM_SELMERCNAME_Y + dy;
-		INT16 const w = SM_SELMERCNAME_WIDTH;
-		INT16 const h = SM_SELMERCNAME_HEIGHT;
+		INT16 const x = (SM_BIG ? SM_BIG_NAME_X      : SM_SELMERCNAME_X) + dx;
+		INT16 const y = (SM_BIG ? SM_BIG_NAME_Y      : SM_SELMERCNAME_Y) + dy;
+		INT16 const w =  SM_BIG ? SM_BIG_NAME_WIDTH  : SM_SELMERCNAME_WIDTH;
+		INT16 const h =  SM_BIG ? SM_BIG_NAME_HEIGHT : SM_SELMERCNAME_HEIGHT;
 		RestoreExternBackgroundRect(x, y, w, h);
 		MPrint(x, y, s.name, HCenterVCenterAlign(w, h));
 	}
 
-	if (*dirty_level != DIRTYLEVEL0)
+	if (*dirty_level != DIRTYLEVEL0 && !gfSMPanelUnderItemDesc)
 	{
 		SetStatsHelp(gSM_SELMERCBarsRegion, s);
 
 		// Display AP
 		if (!(s.uiStatusFlags & SOLDIER_DEAD))
 		{
-			PrintAP(&s, dx + SM_SELMERC_AP_X, dy + SM_SELMERC_AP_Y, SM_SELMERC_AP_WIDTH, SM_SELMERC_AP_HEIGHT);
-			DrawSoldierUIBars(s, dx + SM_SELMERC_HEALTH_X, dy + SM_SELMERC_HEALTH_Y, TRUE, FRAME_BUFFER);
+			if (SM_BIG)
+			{
+				PrintAP(&s, dx + SM_BIG_AP_X, dy + SM_BIG_AP_Y, SM_BIG_AP_WIDTH, SM_BIG_AP_HEIGHT, SM_BIG_FONT);
+				DrawSoldierUIBarsTall(s, dx + SM_BIG_LIFEBAR_X, dx + SM_BIG_BREATHBAR_X, dx + SM_BIG_MORALEBAR_X,
+							dy + SM_BIG_BARS_Y, SM_BIG_BAR_WIDTH, SM_BIG_BAR_HEIGHT, FRAME_BUFFER);
+			}
+			else
+			{
+				PrintAP(&s, dx + SM_SELMERC_AP_X, dy + SM_SELMERC_AP_Y, SM_SELMERC_AP_WIDTH, SM_SELMERC_AP_HEIGHT);
+				DrawSoldierUIBars(s, dx + SM_SELMERC_HEALTH_X, dy + SM_SELMERC_HEALTH_Y, TRUE, FRAME_BUFFER);
+			}
 		}
 	}
 
@@ -1724,8 +2152,9 @@ no_plate:
 	if (gfSMDisableForItems && *dirty_level != DIRTYLEVEL0)
 	{
 		SGPRect ClipRect;
-		ClipRect.iLeft = dx + 87;
-		ClipRect.iRight = dx + 536;
+		// the big panel: its whole inventory part
+		ClipRect.iLeft = dx + (SM_BIG ? 236 : 87);
+		ClipRect.iRight = dx + (SM_BIG ? BIG_SMPANEL_WIDTH : 536);
 		ClipRect.iTop = INV_INTERFACE_START_Y;
 		ClipRect.iBottom = SCREEN_HEIGHT;
 		SGPVSurface::Lock l(FRAME_BUFFER);
@@ -2721,23 +3150,188 @@ static void TMClickSecondHandInvCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iR
 static void TMClickSecondHandInvCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
+// The 1366x768 interface's team panel shows BIG_TEAMPANEL_NUM_SLOTS of the
+// squad's slots (gTeamPanel holds one per member, NUM_TEAM_SLOTS), from
+// giBigTeamPanelFirstSlot on: the mouse wheel over the panel scrolls them by
+// one (with Shift by 7), and a newly selected merc out of sight scrolls into it.
+static INT32 giBigTeamPanelFirstSlot = 0;
+
+
+// The furthest the panel scrolls: up to its last merc.
+static INT32 BigTeamPanelMaxFirstSlot()
+{
+	INT32 last = -1;
+	for (INT32 i = 0; i != (INT32)gTeamPanel.size(); ++i)
+	{
+		if (gTeamPanel[i].merc) last = i;
+	}
+	return std::max(0, last + 1 - BIG_TEAMPANEL_NUM_SLOTS);
+}
+
+
+static void PlaceRegion(MOUSE_REGION& r, INT32 const x, INT32 const y, INT32 const w, INT32 const h)
+{
+	r.RegionTopLeftX     = (UINT16)x;
+	r.RegionTopLeftY     = (UINT16)y;
+	r.RegionBottomRightX = (UINT16)(x + w);
+	r.RegionBottomRightY = (UINT16)(y + h);
+}
+
+// far off the screen: a hidden slot's regions
+#define OFF_SCREEN 60000
+
+
+// Puts the regions of the shown slots over their windows -- portrait, the
+// three bars, name and action points (left_bars, which the old panel had left
+// of the face), first and second hand -- and those of the others off the
+// screen. The enemy indicator isn't drawn on the static portraits, so its
+// region stays empty.
+static void LayoutBigTEAMPanelRegions()
+{
+	giBigTeamPanelFirstSlot = std::clamp(giBigTeamPanelFirstSlot, 0, BigTeamPanelMaxFirstSlot());
+
+	INT32 const dy = TEAM_PANEL_Y;
+	for (INT32 i = 0; i != (INT32)gTeamPanel.size(); ++i)
+	{
+		TeamPanelSlot& tp  = gTeamPanel[i];
+		INT32   const  pos = i - giBigTeamPanelFirstSlot;
+		if (pos < 0 || BIG_TEAMPANEL_NUM_SLOTS <= pos)
+		{
+			for (MOUSE_REGION* const r : { &tp.face, &tp.enemy_indicator, &tp.bars, &tp.left_bars, &tp.first_hand, &tp.second_hand })
+			{
+				PlaceRegion(*r, OFF_SCREEN, OFF_SCREEN, 0, 0);
+			}
+			continue;
+		}
+
+		INT32 const dx     = TEAM_PANEL_X + pos * BIG_TEAMPANEL_SLOT_WIDTH;
+		INT32 const face_x = dx + BIG_TM_FACE_X;
+		INT32 const face_y = dy + BIG_TM_FACE_Y;
+		PlaceRegion(tp.face, face_x, face_y, BIG_TM_FACE_WIDTH, BIG_TM_FACE_HEIGHT);
+		PlaceRegion(tp.enemy_indicator, face_x, face_y, 0, 0);
+		PlaceRegion(tp.bars, dx + BIG_TM_LIFEBAR_X, dy + BIG_TM_BARS_Y,
+				BIG_TM_MORALEBAR_X + BIG_TM_BAR_WIDTH - BIG_TM_LIFEBAR_X, BIG_TM_BAR_HEIGHT);
+		PlaceRegion(tp.left_bars, dx + BIG_TM_NAME_X, dy + BIG_TM_NAME_Y,
+				BIG_TM_AP_X + BIG_TM_AP_WIDTH - BIG_TM_NAME_X, BIG_TM_NAME_HEIGHT);
+		PlaceRegion(tp.first_hand, dx + BIG_TM_INV_X, dy + BIG_TM_INV_Y, BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
+		if (g_ui.isLowTeamPanel())
+		{
+			// the low panel has no second hand (the first hand's right click
+			// still swaps the two)
+			PlaceRegion(tp.second_hand, OFF_SCREEN, OFF_SCREEN, 0, 0);
+		}
+		else
+		{
+			PlaceRegion(tp.second_hand, dx + BIG_TM_INV_X, dy + BIG_TM_INV_Y + BIG_TM_INV_SEPY, BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
+		}
+	}
+}
+
+
+static void ScrollBigTEAMPanel(INT32 const slots)
+{
+	INT32 const first = std::clamp(giBigTeamPanelFirstSlot + slots, 0, BigTeamPanelMaxFirstSlot());
+	if (first == giBigTeamPanelFirstSlot) return;
+	giBigTeamPanelFirstSlot = first;
+	LayoutBigTEAMPanelRegions();
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+// One slot a notch, with Shift a whole panel (BIG_TEAMPANEL_NUM_SLOTS).
+static void BigTEAMPanelWheelCallback(MOUSE_REGION*, UINT32 const reason)
+{
+	INT32 const step = _KeyDown(SHIFT) ? BIG_TEAMPANEL_NUM_SLOTS : 1;
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   ScrollBigTEAMPanel(-step);
+	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ScrollBigTEAMPanel(+step);
+}
+
+
+// Scrolls the selected merc into sight once, when the selection changes
+// (Prev/Next, keys, a click in the world) -- the wheel may then scroll away
+// from him. Returns whether the panel scrolled.
+static bool FollowSelectedMercOnBigTEAMPanel()
+{
+	static SOLDIERTYPE const* last_selected = NULL;
+	SOLDIERTYPE const* const sel = GetSelectedMan();
+	if (sel == last_selected) return false;
+	last_selected = sel;
+
+	for (INT32 i = 0; i != (INT32)gTeamPanel.size(); ++i)
+	{
+		if (gTeamPanel[i].merc != sel) continue;
+		INT32 first = giBigTeamPanelFirstSlot;
+		if (i < first)                                  first = i;
+		else if (first + BIG_TEAMPANEL_NUM_SLOTS <= i) first = i - BIG_TEAMPANEL_NUM_SLOTS + 1;
+		if (first == giBigTeamPanelFirstSlot) return false;
+		giBigTeamPanelFirstSlot = first;
+		LayoutBigTEAMPanelRegions();
+		return true;
+	}
+	return false;
+}
+
+
+// The 1366x768 interface's team panel: the old panel's regions for every
+// slot, plus the mouse wheel, laid out by LayoutBigTEAMPanelRegions().
+static void CreateBigTEAMPanelRegions()
+{
+	for (TeamPanelSlot& tp : gTeamPanel)
+	{
+		MOUSE_CALLBACK mercFacePanelCallback = MouseCallbackPrimarySecondary(MercFacePanelCallbackPrimary, MercFacePanelCallbackSecondary, BigTEAMPanelWheelCallback, true);
+		MOUSE_CALLBACK const wheel           = MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, MSYS_NO_CALLBACK, BigTEAMPanelWheelCallback);
+
+		MakeRegion(tp, tp.face, 0, 0, 0, 0, MercFacePanelMoveCallback, mercFacePanelCallback);
+		MakeRegion(tp, tp.enemy_indicator, 0, 0, 0, 0, MSYS_NO_CALLBACK, EnemyIndicatorClickCallback);
+		MakeRegion(tp, tp.bars, 0, 0, 0, 0, MSYS_NO_CALLBACK, mercFacePanelCallback);
+		MakeRegion(tp, tp.left_bars, 0, 0, 0, 0, MSYS_NO_CALLBACK, mercFacePanelCallback);
+		MakeRegion(tp, tp.first_hand, 0, 0, 0, 0,
+				MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(TMClickFirstHandInvCallbackPrimary, TMClickFirstHandInvCallbackSecondary, wheel));
+		MakeRegion(tp, tp.second_hand, 0, 0, 0, 0,
+				MSYS_NO_CALLBACK, MouseCallbackPrimarySecondary(TMClickSecondHandInvCallbackPrimary, TMClickSecondHandInvCallbackSecondary, wheel));
+	}
+	// the rest of the panel scrolls too
+	gTEAM_PanelRegion.ButtonCallback = MouseCallbackPrimarySecondary(MSYS_NO_CALLBACK, MSYS_NO_CALLBACK, BigTEAMPanelWheelCallback);
+
+	FollowSelectedMercOnBigTEAMPanel();
+	LayoutBigTEAMPanelRegions();
+
+	for (TeamPanelSlot& tp : gTeamPanel)
+	{
+		if (IsMouseInRegion(tp.face) && tp.merc) HandleMouseOverSoldierFaceForContMove(tp.merc, TRUE);
+	}
+}
+
+
 void InitializeTEAMPanel()
 {
 	// INit viewport region
 	// Set global mouse regions
 	// Define region for viewport
-	MSYS_DefineRegion(&gViewportRegion, 0, 0, gsVIEWPORT_END_X, gsVIEWPORT_END_Y, MSYS_PRIORITY_NORMAL, VIDEO_NO_CURSOR, TacticalViewPortMovementCallback, TacticalViewPortTouchCallback);
+	MSYS_DefineRegion(&gViewportRegion, 0, 0, gsVIEWPORT_END_X, TEAM_PANEL_Y, MSYS_PRIORITY_NORMAL, VIDEO_NO_CURSOR, TacticalViewPortMovementCallback, TacticalViewPortTouchCallback);
 
 	// Create the TEAMpanel from graphic objects.
-	guiTEAMPanel = new SGPVSurface(g_ui.m_teamPanelWidth, TEAMPANEL_HEIGHT, PIXEL_DEPTH);
+	guiTEAMPanel = new SGPVSurface(TEAM_PANEL_WIDTH, TEAM_PANEL_HEIGHT, PIXEL_DEPTH);
 
-	auto vsTEAMPanel = CreateVideoSurfaceFromObjectFile(INTERFACEDIR "/bottom_bar.sti", 0);
-	BltVideoSurface(guiTEAMPanel, vsTEAMPanel.get(), 0, 0, NULL);
-	for (int i = 6; i < NUM_TEAM_SLOTS; i++)
-	{	// extend the panel if needed
-		SGPBox const rect = {5 * TEAMPANEL_SLOT_WIDTH, 0,
-					TEAMPANEL_SLOT_WIDTH + TEAMPANEL_BUTTONSBOX_WIDTH, TEAMPANEL_HEIGHT};
-		BltVideoSurface(guiTEAMPanel, vsTEAMPanel.get(), i * TEAMPANEL_SLOT_WIDTH, 0, &rect);
+	if (g_ui.isBigTeamPanel())
+	{
+		// the 1366x768 interface's own panel, one piece (RGBA: its transparent
+		// windows -- the minimap block's empty squares -- end up black)
+		guiTEAMPanel->Fill(0);
+		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(g_ui.isLowTeamPanel() ?
+			INTERFACEDIR "/" BIG_TEAMPANEL_LOW_FILE : INTERFACEDIR "/" BIG_TEAMPANEL_FILE) };
+		BltVideoObject(guiTEAMPanel, big_panel.get(), 0, 0, 0);
+	}
+	else
+	{
+		auto vsTEAMPanel = CreateVideoSurfaceFromObjectFile(INTERFACEDIR "/bottom_bar.sti", 0);
+		BltVideoSurface(guiTEAMPanel, vsTEAMPanel.get(), 0, 0, NULL);
+		for (int i = 6; i < NUM_TEAM_SLOTS; i++)
+		{	// extend the panel if needed
+			SGPBox const rect = {5 * TEAMPANEL_SLOT_WIDTH, 0,
+						TEAMPANEL_SLOT_WIDTH + TEAMPANEL_BUTTONSBOX_WIDTH, TEAMPANEL_HEIGHT};
+			BltVideoSurface(guiTEAMPanel, vsTEAMPanel.get(), i * TEAMPANEL_SLOT_WIDTH, 0, &rect);
+		}
 	}
 
 	guiTEAMObjects = AddVideoObjectFromFile(INTERFACEDIR "/gold_front.sti");
@@ -2750,7 +3344,17 @@ void InitializeTEAMPanel()
 
 	// Set viewports
 	// Define region for panel
-	MSYS_DefineRegion(&gTEAM_PanelRegion, 0, gsVIEWPORT_END_Y, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_NORMAL, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+	MSYS_DefineRegion(&gTEAM_PanelRegion, 0, TEAM_PANEL_Y, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_NORMAL, CURSOR_NORMAL, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+
+	if (g_ui.isBigTeamPanel())
+	{
+		// The SM panel's animated face (and any other) stays active when the
+		// panel switches -- the old team panel took the faces over with its
+		// own; the static portraits don't, so it would go on drawing itself.
+		SetAllAutoFacesInactive();
+		CreateBigTEAMPanelRegions();
+		return;
+	}
 
 	INT32       dx = INTERFACE_START_X;
 	INT32 const dy = INTERFACE_START_Y;
@@ -2836,33 +3440,139 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const&, INT16 x, INT16 y, DirtyLeve
 static void UpdateTEAMPanel(void);
 
 
-void RenderTEAMPanel(DirtyLevel const dirty_level)
+// 1366x768 team panel: the static big portrait (faces/bigfaces/, 106x122)
+// in the slot's 106x70 portrait window, cut BIG_TM_FACE_CUT_TOP rows from
+// the top (and so 16 from the bottom), as the strategic screen's character
+// info panel otherwise (no blinking or talking mouth; in tactical, speech
+// shows its own face box anyway). Dead mercs get the laptop's red shade,
+// vehicles their small portrait centered; the rest of the window is black.
+static void RenderBigTeamPortrait(SOLDIERTYPE const& s, INT16 const x, INT16 const y)
 {
+	INT16 const w = BIG_TM_FACE_WIDTH;
+	INT16 const h = BIG_TM_FACE_HEIGHT;
+	ColorFillVideoSurfaceArea(guiSAVEBUFFER, x, y, x + w, y + h, 0);
+
+	if (s.uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		RenderSoldierFace(s, x + (w - TM_FACE_WIDTH) / 2, y + (h - TM_FACE_HEIGHT) / 2);
+	}
+	else if (s.ubProfile != NO_PROFILE)
+	{
+		try
+		{
+			AutoSGPVObject const face{ LoadBigPortrait(GetProfile(s.ubProfile)) };
+			if (s.bLife == 0)
+			{
+				face->pShades[0] = Create16BPPPaletteShaded(face->Palette(), DEAD_MERC_COLOR_RED, DEAD_MERC_COLOR_GREEN, DEAD_MERC_COLOR_BLUE, TRUE);
+				face->CurrentShade(0);
+			}
+			// drawn whole on a scratch surface, then its middle part copied
+			ETRLEObject const& e = face->SubregionProperties(0);
+			std::unique_ptr<SGPVSurface> const whole{ new SGPVSurface(e.usWidth, e.usHeight, PIXEL_DEPTH) };
+			whole->Fill(0);
+			BltVideoObject(whole.get(), face.get(), 0, -e.sOffsetX, -e.sOffsetY);
+			SGPBox const cut = { 0, BIG_TM_FACE_CUT_TOP, (UINT16)std::min<INT32>(w, e.usWidth),
+				(UINT16)std::max<INT32>(0, std::min<INT32>(h, e.usHeight - BIG_TM_FACE_CUT_TOP)) };
+			if (cut.h > 0) BltVideoSurface(guiSAVEBUFFER, whole.get(), x, y, &cut);
+		}
+		catch (std::exception const& e)
+		{
+			SLOGE("Cannot show the big portrait of profile {}: {}", s.ubProfile, e.what());
+		}
+	}
+}
+
+
+// 1366x768 team panel: what gold_front.sti does on the old one, drawn --
+// the selected merc's portrait gets a 1 px frame, and outside the player's
+// turn (or a merc that already moved while an interrupt is queued) the
+// portrait is shaded instead of hatched.
+static void RenderBigTeamSlotBorder(SOLDIERTYPE const* const s, INT32 const dx, INT32 const dy)
+{
+	INT32 const x = dx + BIG_TM_FACE_X;
+	INT32 const y = dy + BIG_TM_FACE_Y;
+	INT32 const w = BIG_TM_FACE_WIDTH;
+	INT32 const h = BIG_TM_FACE_HEIGHT;
+	if (gTacticalStatus.ubCurrentTeam != OUR_TEAM || (INTERRUPT_QUEUED && (!s || s->bMoved)))
+	{
+		guiSAVEBUFFER->ShadowRect(x, y, x + w, y + h);
+	}
+	else if (s && s == GetSelectedMan())
+	{
+		SGPVSurface::Lock l(guiSAVEBUFFER);
+		SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+		RectangleDraw(TRUE, x - 1, y - 1, x + w, y + h, Get16BPPColor(BIG_TM_SELECTED_COLOR), l.Buffer<UINT16>());
+	}
+}
+
+
+void RenderTEAMPanel(DirtyLevel dirty_level)
+{
+	bool  const big        = g_ui.isBigTeamPanel();
+	INT32 const slot_width = big ? BIG_TEAMPANEL_SLOT_WIDTH : TM_INV_HAND_SEP;
+
+	// The 1366x768 team panel shows the slots from giBigTeamPanelFirstSlot on;
+	// a newly selected merc out of sight, or a squad that got shorter, scrolls
+	// it -- and then everything is drawn again.
+	if (big)
+	{
+		INT32 const old_first = giBigTeamPanelFirstSlot;
+		bool  const followed  = FollowSelectedMercOnBigTEAMPanel();
+		if (giBigTeamPanelFirstSlot > BigTeamPanelMaxFirstSlot()) LayoutBigTEAMPanelRegions();
+		if (followed || giBigTeamPanelFirstSlot != old_first) dirty_level = DIRTYLEVEL2;
+	}
+	size_t const first_slot = big ? (size_t)giBigTeamPanelFirstSlot : 0;
+	size_t const end_slot   = big ? std::min(gTeamPanel.size(), first_slot + BIG_TEAMPANEL_NUM_SLOTS) : gTeamPanel.size();
+
 	if (dirty_level == DIRTYLEVEL2)
 	{
 		MarkAButtonDirty(iTEAMPanelButtons[TEAM_DONE_BUTTON]);
 		MarkAButtonDirty(iTEAMPanelButtons[TEAM_MAP_SCREEN_BUTTON]);
 		MarkAButtonDirty(iTEAMPanelButtons[CHANGE_SQUAD_BUTTON]);
+		for (GUIButtonRef const b : giBigTeamPanelMercButtons)
+		{
+			if (b) MarkAButtonDirty(b);
+		}
+		if (giBigTeamPanelLowButton) MarkAButtonDirty(giBigTeamPanelLowButton);
 
-		BltVideoSurface(guiSAVEBUFFER, guiTEAMPanel, INTERFACE_START_X, INTERFACE_START_Y, NULL);
+		BltVideoSurface(guiSAVEBUFFER, guiTEAMPanel, TEAM_PANEL_X, TEAM_PANEL_Y, NULL);
 
 		// LOOP THROUGH ALL MERCS ON TEAM PANEL
-		INT32       dx = INTERFACE_START_X;
-		INT32 const dy = INTERFACE_START_Y;
-		for (TeamPanelSlot& i : gTeamPanel)
+		INT32       dx = TEAM_PANEL_X;
+		INT32 const dy = TEAM_PANEL_Y;
+		for (size_t n = first_slot; n != end_slot; ++n)
 		{
+			TeamPanelSlot& i = gTeamPanel[n];
 			SOLDIERTYPE const* const s  = i.merc;
-			if (s)
+			if (big)
 			{
-				RenderSoldierFace(*s, dx + TM_FACE_X, dy + TM_FACE_Y);
+				// an empty slot keeps the panel's black window
+				if (s) RenderBigTeamPortrait(*s, dx + BIG_TM_FACE_X, dy + BIG_TM_FACE_Y);
+				RenderBigTeamSlotBorder(s, dx, dy);
+
+				// the slot's number (1 to NUM_TEAM_SLOTS, also while scrolled), in
+				// the name's font and colour, vertically as the name
+				UINT8 const number_colour = s && s->bStealthMode ? FONT_MCOLOR_LTYELLOW : BIG_TM_NAME_COLOR;
+				SetFontAttributes(BIG_TM_FONT, number_colour);
+				SetFontDestBuffer(guiSAVEBUFFER);
+				MPrint(dx + BIG_TM_SLOT_NUMBER_X, dy + BIG_TM_NAME_Y + (BIG_TM_NAME_HEIGHT - GetFontHeight(BIG_TM_FONT)) / 2,
+					ST::string::from_int((int)n + 1));
+				SetFontDestBuffer(FRAME_BUFFER);
 			}
 			else
 			{
-				//BLIT CLOSE PANEL
-				BltVideoObject(guiSAVEBUFFER, guiCLOSE, 5, dx + TM_FACE_X, dy + TM_FACE_Y);
-			}
+				if (s)
+				{
+					RenderSoldierFace(*s, dx + TM_FACE_X, dy + TM_FACE_Y);
+				}
+				else
+				{
+					//BLIT CLOSE PANEL
+					BltVideoObject(guiSAVEBUFFER, guiCLOSE, 5, dx + TM_FACE_X, dy + TM_FACE_Y);
+				}
 
-			RenderTeamSlotBorder(s, dx, dy);
+				RenderTeamSlotBorder(s, dx, dy);
+			}
 
 			if (s)
 			{
@@ -2908,31 +3618,43 @@ void RenderTEAMPanel(DirtyLevel const dirty_level)
 				// Restore AP/LIFE POSIITONS
 
 				// Render name!
-				UINT8 const foreground = s->bStealthMode ? FONT_MCOLOR_LTYELLOW : FONT_MCOLOR_LTGRAY;
-				SetFontAttributes(BLOCKFONT2, foreground);
+				UINT8 const foreground =
+					s->bStealthMode ? FONT_MCOLOR_LTYELLOW :
+					big             ? BIG_TM_NAME_COLOR    :
+					FONT_MCOLOR_LTGRAY;
+				SetFontAttributes(big ? BIG_TM_FONT : BLOCKFONT2, foreground);
 
 				// RENDER ON SAVE BUFFER!
 				SetFontDestBuffer(guiSAVEBUFFER);
-				MPrint(dx + TM_NAME_X, dy + TM_NAME_Y, s->name,
-					HCenterVCenterAlign(TM_NAME_WIDTH, TM_NAME_HEIGHT));
+				if (big)
+				{
+					MPrint(dx + BIG_TM_NAME_X, dy + BIG_TM_NAME_Y, s->name,
+						HCenterVCenterAlign(BIG_TM_NAME_WIDTH, BIG_TM_NAME_HEIGHT));
+				}
+				else
+				{
+					MPrint(dx + TM_NAME_X, dy + TM_NAME_Y, s->name,
+						HCenterVCenterAlign(TM_NAME_WIDTH, TM_NAME_HEIGHT));
+				}
 				// reset to frame buffer!
 				SetFontDestBuffer(FRAME_BUFFER);
 			}
 
-			dx += TM_INV_HAND_SEP;
+			dx += slot_width;
 		}
 
-		RestoreExternBackgroundRect(INTERFACE_START_X, INTERFACE_START_Y, SCREEN_WIDTH - INTERFACE_START_X,
-						SCREEN_HEIGHT - INTERFACE_START_Y);
+		RestoreExternBackgroundRect(TEAM_PANEL_X, TEAM_PANEL_Y, SCREEN_WIDTH - TEAM_PANEL_X,
+						SCREEN_HEIGHT - TEAM_PANEL_Y);
 
 		RenderTownIDString();
 	}
 
 	// Loop through all mercs and make go
-	INT32       dx = INTERFACE_START_X;
-	INT32 const dy = INTERFACE_START_Y;
-	for (TeamPanelSlot& i : gTeamPanel)
+	INT32       dx = TEAM_PANEL_X;
+	INT32 const dy = TEAM_PANEL_Y;
+	for (size_t n = first_slot; n != end_slot; ++n)
 	{
+		TeamPanelSlot&     i = gTeamPanel[n];
 		SOLDIERTYPE* const s = i.merc;
 		if (s)
 		{
@@ -2948,15 +3670,24 @@ void RenderTEAMPanel(DirtyLevel const dirty_level)
 				// Update stats!
 				if (dirty_level == DIRTYLEVEL2) SetStatsHelp(i.bars, *s);
 
-				const INT32 x = dx + TM_AP_X;
-				const INT32 y = dy + TM_AP_Y;
-				const INT32 w = TM_AP_WIDTH;
-				const INT32 h = TM_AP_HEIGHT;
+				const INT32 x = dx + (big ? BIG_TM_AP_X      : TM_AP_X);
+				const INT32 y = dy + (big ? BIG_TM_AP_Y      : TM_AP_Y);
+				const INT32 w =       big ? BIG_TM_AP_WIDTH  : TM_AP_WIDTH;
+				const INT32 h =       big ? BIG_TM_AP_HEIGHT : TM_AP_HEIGHT;
 				if (!(s->uiStatusFlags & SOLDIER_DEAD))
 				{
-					PrintAP(s, x, y, w, h);
-					DrawSoldierUIBars(*s, dx + TM_BARS_X + 2, dy + TM_BARS_Y + 2 + TM_LIFEBAR_HEIGHT,
-								TRUE, FRAME_BUFFER);
+					if (big)
+					{
+						PrintAP(s, x, y, w, h, BIG_TM_FONT);
+						DrawSoldierUIBarsTall(*s, dx + BIG_TM_LIFEBAR_X, dx + BIG_TM_BREATHBAR_X, dx + BIG_TM_MORALEBAR_X,
+									dy + BIG_TM_BARS_Y, BIG_TM_BAR_WIDTH, BIG_TM_BAR_HEIGHT, FRAME_BUFFER);
+					}
+					else
+					{
+						PrintAP(s, x, y, w, h);
+						DrawSoldierUIBars(*s, dx + TM_BARS_X + 2, dy + TM_BARS_Y + 2 + TM_LIFEBAR_HEIGHT,
+									TRUE, FRAME_BUFFER);
+					}
 				}
 				else
 				{
@@ -2965,9 +3696,16 @@ void RenderTEAMPanel(DirtyLevel const dirty_level)
 				}
 			}
 
-			RenderSoldierTeamInv(*s, dx + TM_INV_HAND1STARTX, dy + TM_INV_HAND1STARTY, dirty_level);
+			if (big)
+			{
+				RenderSoldierTeamInv(*s, dx + BIG_TM_INV_X, dy + BIG_TM_INV_Y, dirty_level);
+			}
+			else
+			{
+				RenderSoldierTeamInv(*s, dx + TM_INV_HAND1STARTX, dy + TM_INV_HAND1STARTY, dirty_level);
+			}
 		}
-		dx += TM_INV_HAND_SEP;
+		dx += slot_width;
 	}
 	UpdateTEAMPanel();
 
@@ -3001,6 +3739,11 @@ static void BtnRostermodeCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnSquadCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
+static void BtnTeamPrevMercCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnTeamNextMercCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnTeamLowPanelCallback(GUI_BUTTON* btn, UINT32 reason);
+
+
 void CreateTEAMPanelButtons(void)
 {
 	// Load button Graphics
@@ -3008,14 +3751,35 @@ void CreateTEAMPanelButtons(void)
 	iTEAMPanelImages[ROSTERMODE_IMAGES] = UseLoadedButtonImage(iTEAMPanelImages[ENDTURN_IMAGES],  1, 4);
 	iTEAMPanelImages[DISK_IMAGES]       = UseLoadedButtonImage(iTEAMPanelImages[ENDTURN_IMAGES],  2, 5);
 
-	const INT32 dx = INTERFACE_START_X;
-	const INT32 dy = INTERFACE_START_Y;
-	MakeButtonTeam(TEAM_DONE_BUTTON, iTEAMPanelImages[ENDTURN_IMAGES], dx + TM_ENDTURN_X, dy + TM_ENDTURN_Y,
+	const INT32 dx = TEAM_PANEL_X;
+	const INT32 dy = TEAM_PANEL_Y;
+	// 1366x768 team panel: side by side in the first three 27x27 windows
+	bool const big = g_ui.isBigTeamPanel();
+	MakeButtonTeam(TEAM_DONE_BUTTON, iTEAMPanelImages[ENDTURN_IMAGES],
+			dx + (big ? BIG_TM_BUTTON_X(0) : TM_ENDTURN_X), dy + (big ? BIG_TM_BUTTON_Y(0) : TM_ENDTURN_Y),
 			BtnEndTurnCallback, TacticalStr[END_TURN_POPUPTEXT]);
-	MakeButtonTeam(TEAM_MAP_SCREEN_BUTTON, iTEAMPanelImages[ROSTERMODE_IMAGES], dx + TM_ROSTERMODE_X,
-			dy + TM_ROSTERMODE_Y, BtnRostermodeCallback, TacticalStr[MAPSCREEN_POPUPTEXT]);
-	MakeButtonTeam(CHANGE_SQUAD_BUTTON, iTEAMPanelImages[DISK_IMAGES], dx + TM_DISK_X, dy + TM_DISK_Y,
+	MakeButtonTeam(TEAM_MAP_SCREEN_BUTTON, iTEAMPanelImages[ROSTERMODE_IMAGES],
+			dx + (big ? BIG_TM_BUTTON_X(1) : TM_ROSTERMODE_X), dy + (big ? BIG_TM_BUTTON_Y(0) : TM_ROSTERMODE_Y),
+			BtnRostermodeCallback, TacticalStr[MAPSCREEN_POPUPTEXT]);
+	MakeButtonTeam(CHANGE_SQUAD_BUTTON, iTEAMPanelImages[DISK_IMAGES],
+			dx + (big ? BIG_TM_BUTTON_X(2) : TM_DISK_X), dy + (big ? BIG_TM_BUTTON_Y(0) : TM_DISK_Y),
 			BtnSquadCallback, TacticalStr[CHANGE_SQUAD_POPUPTEXT]);
+
+	if (big)
+	{
+		// inventory_buttons.sti, as CreateSMPanelButtons()
+		giBigTeamPanelMercImages[0] = LoadButtonImage(INTERFACEDIR "/inventory_buttons.sti", 20, 22);
+		giBigTeamPanelMercImages[1] = UseLoadedButtonImage(giBigTeamPanelMercImages[0], 21, 23);
+		giBigTeamPanelMercButtons[0] = QuickCreateButton(giBigTeamPanelMercImages[0], dx + BIG_TM_BUTTON_X(0), dy + BIG_TM_BUTTON_Y(1), MSYS_PRIORITY_HIGH - 1, BtnTeamPrevMercCallback);
+		giBigTeamPanelMercButtons[0]->SetFastHelpText(TacticalStr[PREV_MERC_POPUPTEXT]);
+		giBigTeamPanelMercButtons[1] = QuickCreateButton(giBigTeamPanelMercImages[1], dx + BIG_TM_BUTTON_X(1), dy + BIG_TM_BUTTON_Y(1), MSYS_PRIORITY_HIGH - 1, BtnTeamNextMercCallback);
+		giBigTeamPanelMercButtons[1]->SetFastHelpText(TacticalStr[NEXT_MERC_POPUPTEXT]);
+
+		// the low panel toggle, pressed while the low panel shows
+		giBigTeamPanelLowImage  = UseLoadedButtonImage(iTEAMPanelImages[ENDTURN_IMAGES], 1, 4);
+		giBigTeamPanelLowButton = QuickCreateButtonToggle(giBigTeamPanelLowImage, dx + BIG_TM_BUTTON_X(2), dy + BIG_TM_BUTTON_Y(1), MSYS_PRIORITY_HIGH - 1, BtnTeamLowPanelCallback);
+		if (g_ui.isLowTeamPanel()) giBigTeamPanelLowButton->uiFlags |= BUTTON_CLICKED_ON;
+	}
 }
 
 
@@ -3026,6 +3790,78 @@ void RemoveTEAMPanelButtons(void)
 		RemoveButton(iTEAMPanelButtons[i]);
 		UnloadButtonImage(iTEAMPanelImages[i]);
 	}
+	for (UINT32 i = 0; i != 2; ++i)
+	{
+		if (!giBigTeamPanelMercButtons[i]) continue;
+		RemoveButton(giBigTeamPanelMercButtons[i]);
+		UnloadButtonImage(giBigTeamPanelMercImages[i]);
+	}
+	if (giBigTeamPanelLowButton)
+	{
+		RemoveButton(giBigTeamPanelLowButton);
+		UnloadButtonImage(giBigTeamPanelLowImage);
+	}
+}
+
+
+// The big team panel's full / low toggle: the panel is built again, in the
+// other form, next frame (HandleTacticalPanelSwitch(), Interface_Control.cc).
+static void BtnTeamLowPanelCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	g_ui.setLowTeamPanel(!g_ui.isLowTeamPanel());
+	RebuildTacticalTeamPanel();
+}
+
+
+// The 1366x768 team panel's Previous / Next merc: the merc before / after the
+// selected one on the panel, as Space (FindNextMercInTeamPanel()) -- the
+// panel scrolls to him (FollowSelectedMercOnBigTEAMPanel()).
+static SOLDIERTYPE* FindPrevMercInTeamPanel(SOLDIERTYPE* const next)
+{
+	SOLDIERTYPE* prev = 0;
+	SOLDIERTYPE* last = 0;
+	bool seen_next = false;
+	for (TeamPanelSlot& i : gTeamPanel)
+	{
+		SOLDIERTYPE* const s = i.merc;
+		if (!s) continue;
+		if (s == next)
+		{
+			seen_next = true;
+			continue;
+		}
+		if (!OK_CONTROLLABLE_MERC(s))            continue;
+		if (!OK_INTERRUPT_MERC(s))               continue;
+		if (s->bAssignment != next->bAssignment) continue;
+		if (!seen_next) prev = s;
+		last = s;
+	}
+	return prev ? prev : last ? last : next;
+}
+
+
+static void SelectTeamPanelMerc(SOLDIERTYPE* const s)
+{
+	if (!s) return;
+	HandleLocateSelectMerc(s, true);
+	LocateSoldier(GetSelectedMan(), SETLOCATOR);
+}
+
+
+static void BtnTeamPrevMercCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	SOLDIERTYPE* const sel = GetSelectedMan();
+	if (sel) SelectTeamPanelMerc(FindPrevMercInTeamPanel(sel));
+}
+
+
+static void BtnTeamNextMercCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	SOLDIERTYPE* const sel = GetSelectedMan();
+	if (sel) SelectTeamPanelMerc(FindNextMercInTeamPanel(sel));
 }
 
 
@@ -3076,6 +3912,11 @@ static void UpdateTEAMPanel(void)
 		DisableButton(iTEAMPanelButtons[TEAM_DONE_BUTTON]);
 		DisableButton(iTEAMPanelButtons[TEAM_MAP_SCREEN_BUTTON]);
 		DisableButton(iTEAMPanelButtons[CHANGE_SQUAD_BUTTON]);
+		for (GUIButtonRef const b : giBigTeamPanelMercButtons)
+		{
+			if (b) DisableButton(b);
+		}
+		if (giBigTeamPanelLowButton) DisableButton(giBigTeamPanelLowButton);
 
 		// OK, disable item regions.......
 		for (TeamPanelSlot& i : gTeamPanel)
@@ -3092,6 +3933,11 @@ static void UpdateTEAMPanel(void)
 	else
 	{
 		EnableButton(iTEAMPanelButtons[CHANGE_SQUAD_BUTTON]);
+		for (GUIButtonRef const b : giBigTeamPanelMercButtons)
+		{
+			if (b) EnableButton(b, !(gTacticalStatus.uiFlags & ENGAGED_IN_CONV));
+		}
+		if (giBigTeamPanelLowButton) EnableButton(giBigTeamPanelLowButton);
 
 		for (TeamPanelSlot& i : gTeamPanel)
 		{
@@ -3374,6 +4220,12 @@ void HandlePanelFaceAnimations(SOLDIERTYPE* pSoldier)
 		return;
 	}
 
+	// The 1366x768 team panel shows static big portraits instead of the
+	// faces, so the closing shutter and the skull aren't drawn over them --
+	// the animations still run (and end) as before.
+	bool const draw_on_face = !pSoldier->face->fDisabled &&
+		!(g_ui.isBigTeamPanel() && gsCurInterfacePanel == TEAM_PANEL);
+
 	if ( pSoldier->fUICloseMerc )
 	{
 		pSoldier->fUICloseMerc = FALSE;
@@ -3410,7 +4262,7 @@ void HandlePanelFaceAnimations(SOLDIERTYPE* pSoldier)
 				}
 				else
 				{
-					if (!pSoldier->face->fDisabled)
+					if (draw_on_face)
 					{
 						RestoreExternBackgroundRect( pSoldier->sPanelFaceX, pSoldier->sPanelFaceY, TM_FACE_WIDTH, TM_FACE_HEIGHT );
 					}
@@ -3421,7 +4273,7 @@ void HandlePanelFaceAnimations(SOLDIERTYPE* pSoldier)
 
 	if ( pSoldier->fClosePanel )
 	{
-		if (!pSoldier->face->fDisabled)
+		if (draw_on_face)
 		{
 			RestoreExternBackgroundRect(pSoldier->sPanelFaceX, pSoldier->sPanelFaceY, TM_FACE_WIDTH, TM_FACE_HEIGHT);
 			BltVideoObject(FRAME_BUFFER, guiCLOSE, pSoldier->ubClosePanelFrame,
@@ -3454,7 +4306,7 @@ void HandlePanelFaceAnimations(SOLDIERTYPE* pSoldier)
 				pSoldier->fClosePanelToDie = FALSE;
 
 				// Finish!
-				if (!pSoldier->face->fDisabled)
+				if (draw_on_face)
 				{
 					BltVideoObject(guiSAVEBUFFER, guiDEAD, pSoldier->ubDeadPanelFrame,
 							pSoldier->sPanelFaceX, pSoldier->sPanelFaceY);
@@ -3476,7 +4328,7 @@ void HandlePanelFaceAnimations(SOLDIERTYPE* pSoldier)
 	if ( pSoldier->fDeadPanel )
 	{
 		// Render panel!
-		if (!pSoldier->face->fDisabled)
+		if (draw_on_face)
 		{
 			BltVideoObject(FRAME_BUFFER, guiDEAD, pSoldier->ubDeadPanelFrame,
 					pSoldier->sPanelFaceX, pSoldier->sPanelFaceY);
@@ -3496,30 +4348,43 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const& s, INT16 const x, INT16 y, D
 {
 	if (s.uiStatusFlags & SOLDIER_DEAD) return;
 
+	// 1366x768 team panel: bigger slots with the big pictures (bigitems/) and
+	// the big merc inventory's ammo/count text; the vehicle icons (58x23)
+	// centered in them
+	bool         const big = g_ui.isBigTeamPanel();
 	SGPVSurface* const buf = guiSAVEBUFFER;
-	INT16        const w   = TM_INV_WIDTH;
-	INT16        const h   = TM_INV_HEIGHT;
+	INT16        const w   = big ? BIG_TM_INV_WIDTH  : TM_INV_WIDTH;
+	INT16        const h   = big ? BIG_TM_INV_HEIGHT : TM_INV_HEIGHT;
+	INT16        const vx  = big ? (w - TM_INV_WIDTH)  / 2 : 0;
+	INT16        const vy  = big ? (h - TM_INV_HEIGHT) / 2 : 0;
+	InvItemTextLayout const* text = NULL;
+	if (big)
+	{
+		static InvItemTextLayout const big_text = GetMapInvBigItemTextLayout();
+		text = &big_text;
+	}
 	if (s.uiStatusFlags & SOLDIER_DRIVER)
 	{
-		BltVideoObject(buf, guiVEHINV, 0, x, y);
+		BltVideoObject(buf, guiVEHINV, 0, x + vx, y + vy);
 		RestoreExternBackgroundRect(x, y, w, h);
 	}
 	else
 	{
 		// Look in primary hand
-		INVRenderItem(buf, &s, s.inv[HANDPOS], x, y, w, h, dirty_level, 0, SGP_TRANSPARENT);
+		INVRenderItem(buf, &s, s.inv[HANDPOS], x, y, w, h, dirty_level, 0, SGP_TRANSPARENT, big, text);
 	}
 
-	y += TM_INV_HAND_SEPY;
+	if (big && g_ui.isLowTeamPanel()) return; // the low panel has no second hand
+	y += big ? BIG_TM_INV_SEPY : TM_INV_HAND_SEPY;
 	if (s.uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER))
 	{
-		BltVideoObject(buf, guiVEHINV, 1, x, y);
+		BltVideoObject(buf, guiVEHINV, 1, x + vx, y + vy);
 		RestoreExternBackgroundRect(x, y, w, h);
 	}
 	else
 	{
 		// Do secondary hand
-		INVRenderItem(buf, &s, s.inv[SECONDHANDPOS], x, y, w, h, dirty_level, 0, SGP_TRANSPARENT);
+		INVRenderItem(buf, &s, s.inv[SECONDHANDPOS], x, y, w, h, dirty_level, 0, SGP_TRANSPARENT, big, text);
 	}
 }
 
@@ -3667,6 +4532,29 @@ void RenderTownIDString(void)
 	// Render town, position
 	SetFontAttributes(COMPFONT, 183);
 	ST::string zTownIDString = GetSectorIDString(gWorldSector, TRUE);
+
+	// the 1366x768 SM panel: its sector box, as the team panel's (none under
+	// the full width weapon box)
+	if (g_ui.isBigSMPanelShown())
+	{
+		if (gfSMPanelUnderItemDesc) return;
+		SetFont(BIG_TM_SECTOR_FONT);
+		zTownIDString = ReduceStringLength(zTownIDString, SM_BIG_SECTOR_WIDTH - 4, BIG_TM_SECTOR_FONT);
+		MPrint(INTERFACE_START_X + SM_BIG_SECTOR_X, INV_INTERFACE_START_Y + SM_BIG_SECTOR_Y, zTownIDString,
+			HCenterVCenterAlign(SM_BIG_SECTOR_WIDTH, SM_BIG_SECTOR_HEIGHT));
+		return;
+	}
+
+	// 1366x768 team panel: its own sector box, in its own font
+	if (g_ui.isBigTeamPanelShown())
+	{
+		SetFont(BIG_TM_SECTOR_FONT);
+		zTownIDString = ReduceStringLength(zTownIDString, BIG_TM_SECTOR_WIDTH - 4, BIG_TM_SECTOR_FONT);
+		MPrint(TEAM_PANEL_X + BIG_TM_SECTOR_X, TEAM_PANEL_Y + BIG_TM_SECTOR_Y, zTownIDString,
+			HCenterVCenterAlign(BIG_TM_SECTOR_WIDTH, BIG_TM_SECTOR_HEIGHT));
+		return;
+	}
+
 	zTownIDString = ReduceStringLength(zTownIDString, 80, COMPFONT);
 	// Anchored to the right edge of whichever of the two bottom-bar panels is
 	// actually on screen right now -- see the comment above get_CLOCK_X() in
@@ -3912,6 +4800,10 @@ static MOUSE_REGION  gStatsPopupRegion;
 static bool          gfStatsPopupMapSmallBox = false;
 // ... and with "Show Large Icons" on guiMapBigStatsInfoBox, in FONT12ARIAL
 static bool          gfStatsPopupArial = false;
+// ... or the 1366x768 SM panel's twin, guiTacBigStatsInfoBox, at its place
+static bool          gfStatsPopupTacBig = false;
+static INT16         gsStatsPopupBoxX;
+static INT16         gsStatsPopupBoxY;
 
 // Done button, map screen only -- same graphic/position (relative to the box's own
 // top-left corner) as the map's own item-description box (ItemInfoC.sti,
@@ -3962,6 +4854,8 @@ void DeleteStatsPopup(void)
 		// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
 		// InitStatsPopup() below.
 		ShowSMBookmarkButtonsUnderInfoPopups();
+		// the 1366x768 box reaches above the panel: the world there again
+		if (gfStatsPopupTacBig) SetRenderFlags(RENDER_FLAG_FULL);
 	}
 
 	FreeMouseCursor();
@@ -3992,14 +4886,21 @@ static void StatsPopupFullRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32 
 }
 
 
-void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 sInvWidth, INT16 sInvHeight)
+void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight)
 {
 	// The map screen's own 1366x768 box is as big as its graphic, not as
 	// ItemInfoC.sti, the size the caller passes.
-	gfStatsPopupMapSmallBox = UseMapSmallInfoPopupBox(guiMapSmallStatsInfoBox, guiMapStatsInfoBox);
-	gfStatsPopupArial       = gfStatsPopupMapSmallBox && IsMapInvBigImages() &&
-		FirstUsableInterfaceAsset({ guiMapBigStatsInfoBox, guiMapSmallStatsInfoBox }) == guiMapBigStatsInfoBox;
-	if (gfStatsPopupMapSmallBox)
+	gfStatsPopupTacBig      = TacBigInfoPopupBox(guiTacBigStatsInfoBox, gsStatsPopupBoxX, gsStatsPopupBoxY);
+	gfStatsPopupMapSmallBox = gfStatsPopupTacBig || UseMapSmallInfoPopupBox(guiMapSmallStatsInfoBox, guiMapStatsInfoBox);
+	gfStatsPopupArial       = gfStatsPopupTacBig || (gfStatsPopupMapSmallBox && IsMapInvBigImages() &&
+		FirstUsableInterfaceAsset({ guiMapBigStatsInfoBox, guiMapSmallStatsInfoBox }) == guiMapBigStatsInfoBox);
+	if (gfStatsPopupTacBig)
+	{
+		// the dismissing region: the panel and the box above it
+		sInvY      = std::min(sInvY, gsStatsPopupBoxY);
+		sInvHeight = SCREEN_HEIGHT - sInvY;
+	}
+	else if (gfStatsPopupMapSmallBox)
 	{
 		ETRLEObject const& box = GetVObject(gfStatsPopupArial ? guiMapBigStatsInfoBox : guiMapSmallStatsInfoBox)->SubregionProperties(0);
 		sInvWidth  = box.usWidth;
@@ -4063,6 +4964,47 @@ void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const 
 }
 
 
+// The name field under the picture frame of the 1366x768 stats boxes: its
+// inside (without the frame) and where the text goes in it -- FONTHUGE's
+// capitals with their shadow (17 rows) 5 px from its top and bottom.
+#define STATS_NAME_FIELD_X		16
+#define STATS_NAME_FIELD_Y		447
+#define STATS_NAME_FIELD_W		344
+#define STATS_NAME_FIELD_H		27
+#define STATS_NAME_TEXT_DY		5
+
+// Letters and digits only, in lower case: "Dr. Q" and "Dr Q." alike.
+static ST::string StatsPopupNameKey(ST::string const& s)
+{
+	ST::string key;
+	for (char32_t const c : s.to_utf32())
+	{
+		if (c < 128 && !std::isalnum(static_cast<int>(c))) continue;
+		key += ST::string::from_utf32(&c, 1);
+	}
+	return key.to_lower();
+}
+
+// The full name with the nickname: as it is where it already has it -- quoted
+// (most full names in the data, e.g. Earl "Magic" Walker, Lt. "Stogie" Horge),
+// as a name (Ivan Dolvich, "Ivan"; Corp. Len Anderson, "Len") or the start of
+// one (Dr. Clifford Highball, "Cliff"); otherwise quoted before the last name
+// (Victoria "Vicki" Waters), or left out where that doesn't fit.
+static ST::string StatsPopupFullName(MERCPROFILESTRUCT const& p, INT16 const width)
+{
+	ST::string const name = p.zName.trim();
+	ST::string const nick = p.zNickname.trim();
+	if (name.empty()) return nick;
+	if (nick.empty() || StatsPopupNameKey(name).find(StatsPopupNameKey(nick)) >= 0) return name;
+
+	ST_ssize_t const space = name.find_last(" ");
+	ST::string const full = space < 0 ?
+		ST::format("{} \"{}\"", name, nick) :
+		ST::format("{} \"{}\" {}", name.substr(0, space), nick, name.substr(space + 1));
+	return StringPixLength(full, FONTHUGE) <= width ? full : name;
+}
+
+
 void RenderStatsPopup(BOOLEAN const fFullRender)
 {
 	if (!gfInStatsPopup || !gpStatsPopupSoldier) return;
@@ -4079,10 +5021,10 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 	// ItemInfoC.sti position/size as sInvX/Y/Width/Height, so the box goes there
 	// directly, with no extra offset -- unlike the tactical bottom-panel strip,
 	// where STATS_POPUP_BOX_X/Y positions the (differently sized) box within it.
-	INT16 const dx = fInMapMode ? gsStatsPopupInvX : (STATS_POPUP_BOX_X + gsStatsPopupInvX);
-	INT16 const dy = fInMapMode ? gsStatsPopupInvY : (STATS_POPUP_BOX_Y + gsStatsPopupInvY);
+	INT16 const dx = gfStatsPopupTacBig ? gsStatsPopupBoxX : fInMapMode ? gsStatsPopupInvX : (STATS_POPUP_BOX_X + gsStatsPopupInvX);
+	INT16 const dy = gfStatsPopupTacBig ? gsStatsPopupBoxY : fInMapMode ? gsStatsPopupInvY : (STATS_POPUP_BOX_Y + gsStatsPopupInvY);
 
-	cache_key_t const box = gfStatsPopupArial ? guiMapBigStatsInfoBox : gfStatsPopupMapSmallBox ? guiMapSmallStatsInfoBox : fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox;
+	cache_key_t const box = gfStatsPopupTacBig ? guiTacBigStatsInfoBox : gfStatsPopupArial ? guiMapBigStatsInfoBox : gfStatsPopupMapSmallBox ? guiMapSmallStatsInfoBox : fInMapMode ? guiMapStatsInfoBox : guiStatsInfoBox;
 	BltVideoObject(FRAME_BUFFER, box, 0, dx, dy);
 
 	// Draw the Done button ourselves, right on top of the box we just blitted --
@@ -4212,24 +5154,42 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 #undef STATS_VALUE
 #undef STATS_HEADER
 
+	// The 1366x768 boxes (iteminfoc_stats_big / infobox_stats_big): the full
+	// name in the field under the picture frame, FONTHUGE in the colour of the
+	// big weapon box's MAINTENANCE / BALLISTICS headers, centred.
+	if (gfStatsPopupArial)
+	{
+		ST::string const name = StatsPopupFullName(p, STATS_NAME_FIELD_W);
+		SetFontAttributes(FONTHUGE, POPUP_ARIAL_VALUE_COLOUR);
+		FindFontCenterCoordinates(dx + STATS_NAME_FIELD_X, dy + STATS_NAME_FIELD_Y, STATS_NAME_FIELD_W, STATS_NAME_FIELD_H, name, FONTHUGE, &usX, &usY);
+		MPrint(usX, dy + STATS_NAME_FIELD_Y + STATS_NAME_TEXT_DY, name);
+	}
+
 	InvalidateRegion(gsStatsPopupInvX, gsStatsPopupInvY,
 		gsStatsPopupInvX + gsStatsPopupInvWidth, gsStatsPopupInvY + gsStatsPopupInvHeight);
 }
 
 
+void ToggleTacticalStatsPopup()
+{
+	if (InStatsPopup())
+	{
+		DeleteStatsPopup();
+		return;
+	}
+
+	// the SM panel's merc, or over the team panel the selected one
+	bool         const sm = gsCurInterfacePanel == SM_PANEL;
+	SOLDIERTYPE* const s  = sm ? gpSMCurrentMerc : GetSelectedMan();
+	if (!s) return;
+	INT16 const y = sm ? INV_INTERFACE_START_Y : TEAM_PANEL_Y;
+	InitStatsPopup(s, 0, y, SCREEN_WIDTH, SCREEN_HEIGHT - y);
+}
+
+
 static void BtnStatsCallback(GUI_BUTTON* btn, UINT32 reason)
 {
-	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
-	{
-		if (InStatsPopup())
-		{
-			DeleteStatsPopup();
-		}
-		else if (gpSMCurrentMerc)
-		{
-			InitStatsPopup(gpSMCurrentMerc, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
-		}
-	}
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) ToggleTacticalStatsPopup();
 }
 
 
@@ -4461,6 +5421,10 @@ static MOUSE_REGION  gSkillsPopupRegion;
 static bool          gfSkillsPopupMapSmallBox = false;
 // See gfStatsPopupArial above.
 static bool          gfSkillsPopupArial = false;
+// See gfStatsPopupTacBig above.
+static bool          gfSkillsPopupTacBig = false;
+static INT16         gsSkillsPopupBoxX;
+static INT16         gsSkillsPopupBoxY;
 
 // See the matching comment by gStatsPopupDoneButton above.
 static GUIButtonRef gSkillsPopupDoneButton;
@@ -4500,6 +5464,8 @@ void DeleteSkillsPopup(void)
 		// Undo the HideSMBookmarkButtonsUnderInfoPopups() call from
 		// InitSkillsPopup() below.
 		ShowSMBookmarkButtonsUnderInfoPopups();
+		// the 1366x768 box reaches above the panel: the world there again
+		if (gfSkillsPopupTacBig) SetRenderFlags(RENDER_FLAG_FULL);
 	}
 
 	FreeMouseCursor();
@@ -4528,14 +5494,21 @@ static void SkillsPopupFullRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32
 }
 
 
-void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 const sInvY, INT16 sInvWidth, INT16 sInvHeight)
+void InitSkillsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 sInvY, INT16 sInvWidth, INT16 sInvHeight)
 {
 	// The map screen's own 1366x768 box is as big as its graphic, not as
 	// ItemInfoC.sti, the size the caller passes.
-	gfSkillsPopupMapSmallBox = UseMapSmallInfoPopupBox(guiMapSmallSkillsInfoBox, guiMapSkillsInfoBox);
-	gfSkillsPopupArial       = gfSkillsPopupMapSmallBox && IsMapInvBigImages() &&
-		FirstUsableInterfaceAsset({ guiMapBigSkillsInfoBox, guiMapSmallSkillsInfoBox }) == guiMapBigSkillsInfoBox;
-	if (gfSkillsPopupMapSmallBox)
+	gfSkillsPopupTacBig      = TacBigInfoPopupBox(guiTacBigSkillsInfoBox, gsSkillsPopupBoxX, gsSkillsPopupBoxY);
+	gfSkillsPopupMapSmallBox = gfSkillsPopupTacBig || UseMapSmallInfoPopupBox(guiMapSmallSkillsInfoBox, guiMapSkillsInfoBox);
+	gfSkillsPopupArial       = gfSkillsPopupTacBig || (gfSkillsPopupMapSmallBox && IsMapInvBigImages() &&
+		FirstUsableInterfaceAsset({ guiMapBigSkillsInfoBox, guiMapSmallSkillsInfoBox }) == guiMapBigSkillsInfoBox);
+	if (gfSkillsPopupTacBig)
+	{
+		// the dismissing region: the panel and the box above it
+		sInvY      = std::min(sInvY, gsSkillsPopupBoxY);
+		sInvHeight = SCREEN_HEIGHT - sInvY;
+	}
+	else if (gfSkillsPopupMapSmallBox)
 	{
 		ETRLEObject const& box = GetVObject(gfSkillsPopupArial ? guiMapBigSkillsInfoBox : guiMapSmallSkillsInfoBox)->SubregionProperties(0);
 		sInvWidth  = box.usWidth;
@@ -4597,10 +5570,10 @@ void RenderSkillsPopup(BOOLEAN const fFullRender)
 	}
 
 	// See the matching comment in RenderStatsPopup() above.
-	INT16 const dx = fInMapMode ? gsSkillsPopupInvX : (SKILLS_POPUP_BOX_X + gsSkillsPopupInvX);
-	INT16 const dy = fInMapMode ? gsSkillsPopupInvY : (SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY);
+	INT16 const dx = gfSkillsPopupTacBig ? gsSkillsPopupBoxX : fInMapMode ? gsSkillsPopupInvX : (SKILLS_POPUP_BOX_X + gsSkillsPopupInvX);
+	INT16 const dy = gfSkillsPopupTacBig ? gsSkillsPopupBoxY : fInMapMode ? gsSkillsPopupInvY : (SKILLS_POPUP_BOX_Y + gsSkillsPopupInvY);
 
-	cache_key_t const box = gfSkillsPopupArial ? guiMapBigSkillsInfoBox : gfSkillsPopupMapSmallBox ? guiMapSmallSkillsInfoBox : fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox;
+	cache_key_t const box = gfSkillsPopupTacBig ? guiTacBigSkillsInfoBox : gfSkillsPopupArial ? guiMapBigSkillsInfoBox : gfSkillsPopupMapSmallBox ? guiMapSmallSkillsInfoBox : fInMapMode ? guiMapSkillsInfoBox : guiSkillsInfoBox;
 	BltVideoObject(FRAME_BUFFER, box, 0, dx, dy);
 
 	// See the matching comment in RenderStatsPopup() above.
