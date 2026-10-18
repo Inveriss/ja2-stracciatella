@@ -4964,6 +4964,47 @@ void InitStatsPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 sInvY,
 }
 
 
+// The name field under the picture frame of the 1366x768 stats boxes: its
+// inside (without the frame) and where the text goes in it -- FONTHUGE's
+// capitals with their shadow (17 rows) 5 px from its top and bottom.
+#define STATS_NAME_FIELD_X		16
+#define STATS_NAME_FIELD_Y		447
+#define STATS_NAME_FIELD_W		344
+#define STATS_NAME_FIELD_H		27
+#define STATS_NAME_TEXT_DY		5
+
+// Letters and digits only, in lower case: "Dr. Q" and "Dr Q." alike.
+static ST::string StatsPopupNameKey(ST::string const& s)
+{
+	ST::string key;
+	for (char32_t const c : s.to_utf32())
+	{
+		if (c < 128 && !std::isalnum(static_cast<int>(c))) continue;
+		key += ST::string::from_utf32(&c, 1);
+	}
+	return key.to_lower();
+}
+
+// The full name with the nickname: as it is where it already has it -- quoted
+// (most full names in the data, e.g. Earl "Magic" Walker, Lt. "Stogie" Horge),
+// as a name (Ivan Dolvich, "Ivan"; Corp. Len Anderson, "Len") or the start of
+// one (Dr. Clifford Highball, "Cliff"); otherwise quoted before the last name
+// (Victoria "Vicki" Waters), or left out where that doesn't fit.
+static ST::string StatsPopupFullName(MERCPROFILESTRUCT const& p, INT16 const width)
+{
+	ST::string const name = p.zName.trim();
+	ST::string const nick = p.zNickname.trim();
+	if (name.empty()) return nick;
+	if (nick.empty() || StatsPopupNameKey(name).find(StatsPopupNameKey(nick)) >= 0) return name;
+
+	ST_ssize_t const space = name.find_last(" ");
+	ST::string const full = space < 0 ?
+		ST::format("{} \"{}\"", name, nick) :
+		ST::format("{} \"{}\" {}", name.substr(0, space), nick, name.substr(space + 1));
+	return StringPixLength(full, FONTHUGE) <= width ? full : name;
+}
+
+
 void RenderStatsPopup(BOOLEAN const fFullRender)
 {
 	if (!gfInStatsPopup || !gpStatsPopupSoldier) return;
@@ -5112,6 +5153,17 @@ void RenderStatsPopup(BOOLEAN const fFullRender)
 #undef STATS_LABEL
 #undef STATS_VALUE
 #undef STATS_HEADER
+
+	// The 1366x768 boxes (iteminfoc_stats_big / infobox_stats_big): the full
+	// name in the field under the picture frame, FONTHUGE in the colour of the
+	// big weapon box's MAINTENANCE / BALLISTICS headers, centred.
+	if (gfStatsPopupArial)
+	{
+		ST::string const name = StatsPopupFullName(p, STATS_NAME_FIELD_W);
+		SetFontAttributes(FONTHUGE, POPUP_ARIAL_VALUE_COLOUR);
+		FindFontCenterCoordinates(dx + STATS_NAME_FIELD_X, dy + STATS_NAME_FIELD_Y, STATS_NAME_FIELD_W, STATS_NAME_FIELD_H, name, FONTHUGE, &usX, &usY);
+		MPrint(usX, dy + STATS_NAME_FIELD_Y + STATS_NAME_TEXT_DY, name);
+	}
 
 	InvalidateRegion(gsStatsPopupInvX, gsStatsPopupInvY,
 		gsStatsPopupInvX + gsStatsPopupInvWidth, gsStatsPopupInvY + gsStatsPopupInvHeight);
