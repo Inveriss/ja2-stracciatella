@@ -31,6 +31,7 @@
 #include "Tile_Cache.h"
 #include "Timer.h"
 #include "Timer_Control.h"
+#include "Side_Strips.h"
 #include "UILayout.h"
 #include "Video.h"
 #include "Viewport_Zoom.h"
@@ -2193,8 +2194,9 @@ void ScrollWorld(void)
 				// The screen edges: the real mouse position, not the zoomed one.
 				if (gusPhysMouseYPos <  NO_PX_SHOW_EXIT_CURS)                       ScrollFlags |= SCROLL_UP;
 				if (gusPhysMouseYPos >= SCREEN_HEIGHT - NO_PX_SCROLL_DOWN_TRIGGER)  ScrollFlags |= SCROLL_DOWN;
-				if (gusPhysMouseXPos >= SCREEN_WIDTH  - NO_PX_SHOW_EXIT_CURS) ScrollFlags |= SCROLL_RIGHT;
-				if (gusPhysMouseXPos <  NO_PX_SHOW_EXIT_CURS)                 ScrollFlags |= SCROLL_LEFT;
+				// (next to the 1366x768 side strips where these are shown)
+				if (InTacticalRightEdgeZone(gusPhysMouseXPos, gusPhysMouseYPos)) ScrollFlags |= SCROLL_RIGHT;
+				if (InTacticalLeftEdgeZone( gusPhysMouseXPos, gusPhysMouseYPos)) ScrollFlags |= SCROLL_LEFT;
 			}
 		}
 	}

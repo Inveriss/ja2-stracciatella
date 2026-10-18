@@ -33,6 +33,7 @@
 #include "Faces.h"
 #include "Interface_Control.h"
 #include "Interface_Items.h"
+#include "Side_Strips.h"
 #include "MercTextBox.h"
 #include "Soldier_Functions.h"
 #include "Cursor_Control.h"
@@ -267,6 +268,9 @@ void InitializeCurrentPanel()
 
 	//RefreshMouseRegions( );
 	gfPanelAllocated = TRUE;
+
+	// the 1366x768 screen's side strips go with the panel
+	CreateTacticalSideStrips();
 }
 
 
@@ -288,6 +292,7 @@ void ShutdownCurrentPanel( )
 				break;
 		}
 
+		RemoveTacticalSideStrips();
 		gfPanelAllocated = FALSE;
 
 	}

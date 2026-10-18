@@ -65,10 +65,15 @@ void LoadGameSettings(void)
 		EXTR_SKIP(d, 1)
 		EXTR_U8(  d, g.ubSizeOfDisplayCover)
 		EXTR_U8(  d, g.ubSizeOfLOS)
-		EXTR_SKIP(d, 20)
+		UINT8 side_strips_hidden;
+		EXTR_U8(  d, side_strips_hidden) // (in the former padding: 0 in older files)
+		EXTR_SKIP(d, 19)
 		Assert(d.getConsumed() == lengthof(data));
 
 		if (settings_version < GAME_SETTING_CURRENT_VERSION) goto fail;
+
+		g.fSideStripLeftHidden  = (side_strips_hidden & 1) != 0;
+		g.fSideStripRightHidden = (side_strips_hidden & 2) != 0;
 
 		// Do checking to make sure the settings are valid
 		if (g.bLastSavedGameSlot < 0) g.bLastSavedGameSlot = -1;
@@ -126,7 +131,9 @@ void SaveGameSettings(void)
 	INJ_SKIP(d, 1)
 	INJ_U8(  d, g.ubSizeOfDisplayCover)
 	INJ_U8(  d, g.ubSizeOfLOS)
-	INJ_SKIP(d, 20)
+	UINT8 const side_strips_hidden = (g.fSideStripLeftHidden ? 1 : 0) | (g.fSideStripRightHidden ? 2 : 0);
+	INJ_U8(  d, side_strips_hidden)
+	INJ_SKIP(d, 19)
 	Assert(d.getConsumed() == lengthof(data));
 
 	AutoSGPFile f(GCM->userPrivateFiles()->openForWriting(GAME_SETTINGS_FILE, true));
@@ -169,6 +176,8 @@ static void InitGameSettings(void)
 	g.fHideHelpInAllScreens                       = FALSE;
 	g.ubSizeOfDisplayCover                        = 4;
 	g.ubSizeOfLOS                                 = 4;
+	g.fSideStripLeftHidden                        = FALSE;
+	g.fSideStripRightHidden                       = FALSE;
 
 	// Since we just set the settings, save them
 	SaveGameSettings();

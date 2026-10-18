@@ -474,6 +474,7 @@ static bool gfTacBigMoneyBox = false;
 // either of them (the map's box layouts; their places and what they hide:
 // InternalInitItemDescriptionBox())
 static bool IsTacBigItemDescBox() { return gfTacBigWeaponBox || gfTacBigMoneyBox; }
+bool InTacBigWeaponBox() { return gfTacBigWeaponBox && InItemDescriptionBox(); }
 #define MONEY_GRAPHICS_FILE         INTERFACEDIR "/info_bil.sti"
 #define MAP_MONEY_GRAPHICS_FILE     INTERFACEDIR "/info_bil_1366x768.sti"
 

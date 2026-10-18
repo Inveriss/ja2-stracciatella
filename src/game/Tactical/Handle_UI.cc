@@ -69,6 +69,7 @@
 #include "Map_Information.h"
 #include "Video.h"
 #include "Screens.h"
+#include "Side_Strips.h"
 #include "UILayout.h"
 #include "Viewport_Zoom.h"
 
@@ -699,7 +700,7 @@ static void SetUIMouseCursor(void)
 
 		// The screen edges: the real mouse position, and while the viewport is
 		// zoomed, the zoomed part has to show that edge of the map too.
-		if ( gfScrolledToRight && ViewportZoomCropAtEdge(SCROLL_RIGHT) && gusPhysMouseXPos >= SCREEN_WIDTH - NO_PX_SHOW_EXIT_CURS )
+		if ( gfScrolledToRight && ViewportZoomCropAtEdge(SCROLL_RIGHT) && InTacticalRightEdgeZone(gusPhysMouseXPos, gusPhysMouseYPos) )
 		{
 			gfUIDisplayActionPoints = FALSE;
 			ErasePath();
@@ -721,7 +722,7 @@ static void SetUIMouseCursor(void)
 			}
 		}
 
-		if ( gfScrolledToLeft && ViewportZoomCropAtEdge(SCROLL_LEFT) && gusPhysMouseXPos < NO_PX_SHOW_EXIT_CURS )
+		if ( gfScrolledToLeft && ViewportZoomCropAtEdge(SCROLL_LEFT) && InTacticalLeftEdgeZone(gusPhysMouseXPos, gusPhysMouseYPos) )
 		{
 			gfUIDisplayActionPoints = FALSE;
 			ErasePath();

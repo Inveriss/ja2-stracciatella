@@ -38,6 +38,7 @@
 #include "Map_Screen_Interface.h"
 #include "Civ_Quotes.h"
 #include "UILayout.h"
+#include "Side_Strips.h"
 
 #include <string_theory/format>
 
@@ -508,6 +509,10 @@ void RenderTopmostTacticalInterface()
 
 	EndViewportOverlays();
 	RenderRubberBanding();
+
+	// the 1366x768 screen's side strips, over the world and its overlays, under
+	// the boxes and menus below
+	RenderTacticalSideStrips();
 
 	if (InItemDescriptionBox())
 	{

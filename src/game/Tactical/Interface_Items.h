@@ -104,6 +104,8 @@ extern OBJECTTYPE* gpItemDescObject;
 extern BOOLEAN fHideEmptyAttachmentSlots;
 
 BOOLEAN InItemDescriptionBox(void);
+// The 1366x768 tactical weapon box (over the screen's whole width) is open.
+bool InTacBigWeaponBox();
 // Right edge (screen X) of the map screen's big weapon box
 // (iteminfoc_weapons_big_1366x768.png) while it is open, else 0. The box
 // reaches down over the left part of map_screen_bottom's strip.

@@ -43,6 +43,7 @@
 #include "Tile_Surface.h"
 #include "TileDat.h"
 #include "TileDef.h"
+#include "Side_Strips.h"
 #include "UILayout.h"
 #include "Video.h"
 #include "VObject.h"
@@ -484,6 +485,8 @@ void HandleOverheadMap(void)
 		}
 	}
 
+	// (off here: hides their buttons)
+	RenderTacticalSideStrips();
 	RenderButtons();
 	SaveBackgroundRects();
 	RenderFastHelp();
