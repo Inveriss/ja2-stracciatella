@@ -69,6 +69,7 @@
 #include "SysUtil.h"
 #include "Text.h"
 #include "Timer_Control.h"
+#include "Side_Strips.h"
 #include "UILayout.h"
 #include "VObject.h"
 #include "VObject_Blitters.h"
@@ -1479,7 +1480,25 @@ void CreateSMPanelButtons(void)
 	// placeholder standing in for a not-yet-built keyboard-shortcuts screen.
 	MakeButtonT(SM_STRATSCREEN_BUTTON, iSMPanelImages[SM_STRATSCREEN_IMAGES], dx + SM_STRATSCREENB_X, dy + SM_STRATSCREENB_Y, BtnMapScreenCallback,        "Strategic Map");
 	MakeButtonT(SM_SHORTCUTS_BUTTON,   iSMPanelImages[SM_SHORTCUTS_IMAGES],   dx + SM_SHORTCUTSB_X,   dy + SM_SHORTCUTSB_Y,   BtnOptionsCallback,          "Keyboard Shortcuts (placeholder)");
-	MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
+	if (TacticalSideStripsAvailable())
+	{
+		// 1366x768: on the right side strip, its top slot (the picture in
+		// the middle of the 50x50 slot), shown / hidden with the strip
+		INT16 x;
+		INT16 y;
+		TacticalSideStripSlotPos(SIDE_STRIP_RIGHT, 0, x, y);
+		ButtonDimensions const* const d = GetDimensionsOfButtonPic(iSMPanelImages[SM_STATS_IMAGES]);
+		x += (50 - (INT16)d->w) / 2;
+		y += (50 - (INT16)d->h) / 2;
+		GUIButtonRef const btn = QuickCreateButton(iSMPanelImages[SM_STATS_IMAGES], x, y, MSYS_PRIORITY_HIGH, BtnStatsCallback);
+		btn->SetFastHelpText("Statistics");
+		iSMPanelButtons[SM_STATS_BUTTON] = btn;
+		SetTacticalSideStripButton(SIDE_STRIP_RIGHT, 0, btn);
+	}
+	else
+	{
+		MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
+	}
 	MakeButtonT(SM_SKILLS_BUTTON,      iSMPanelImages[SM_SKILLS_IMAGES],      dx + SM_SKILLSB_X,      dy + SM_SKILLSB_Y,      BtnSkillsCallback,           "Skills");
 
 	giSMHideEmptySlotsCheckbox = CreateCheckBoxButton(
@@ -1519,6 +1538,9 @@ void CreateSMPanelButtons(void)
 
 void RemoveSMPanelButtons(void)
 {
+	// (Statistics, if it is on the right side strip)
+	SetTacticalSideStripButton(SIDE_STRIP_RIGHT, 0, GUIButtonRef::NoButton());
+
 	for (UINT32 cnt = 0; cnt < NUM_SM_BUTTONS; ++cnt)
 	{
 		if (iSMPanelButtons[cnt]) RemoveButton(iSMPanelButtons[cnt]);

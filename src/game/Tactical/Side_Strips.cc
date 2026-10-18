@@ -49,6 +49,8 @@ struct SideStrip
 };
 
 SideStrip g_side_strips[2] = { { guiSideStripLeft, {}, {} }, { guiSideStripRight, {}, {} } };
+// the buttons other code placed in the slots
+GUIButtonRef g_side_strip_buttons[2][SIDE_STRIP_BUTTON_SLOTS];
 bool      g_side_strips_created = false;
 bool      g_side_strips_off     = true; // off, e.g. under the overhead map, as of the last frame
 
@@ -81,6 +83,50 @@ static bool SideStripsShown()
 }
 
 
+bool TacticalSideStripsAvailable()
+{
+	return g_ui.isBigTeamPanel() &&
+		GCM->doesGameResExists(guiSideStripLeft)  &&
+		GCM->doesGameResExists(guiSideStripRight) &&
+		GCM->doesGameResExists(guiSideStripToggle);
+}
+
+
+void TacticalSideStripSlotPos(SideStripKind const strip, UINT const slot, INT16& x, INT16& y)
+{
+	x = SideStripX(strip) + SIDE_STRIP_GAP;
+	y = SIDE_STRIP_SLOT_Y(slot);
+}
+
+
+void SetTacticalSideStripButton(SideStripKind const strip, UINT const slot, GUIButtonRef const button)
+{
+	if (slot >= SIDE_STRIP_BUTTON_SLOTS) return;
+	g_side_strip_buttons[strip][slot] = button;
+}
+
+
+// The slots' buttons shown with their strip, hidden otherwise -- also after
+// their owner showed them (e.g. the SM panel's bookmark row).
+static void ApplySideStripButtons()
+{
+	for (UINT i = 0; i != lengthof(g_side_strips); ++i)
+	{
+		bool const shown = !g_side_strips_off && !SideStripHidden(i);
+		for (GUIButtonRef const b : g_side_strip_buttons[i])
+		{
+			if (!b) continue;
+			bool const visible = (b->Area.uiFlags & MSYS_REGION_ENABLED) != 0;
+			if (visible != shown)
+			{
+				if (shown) ShowButton(b); else HideButton(b);
+			}
+			if (shown) MarkAButtonDirty(b);
+		}
+	}
+}
+
+
 // The buttons and regions as the strips' state says.
 static void ApplySideStripsState()
 {
@@ -98,6 +144,7 @@ static void ApplySideStripsState()
 			if (SideStripHidden(i)) s.region.Disable(); else s.region.Enable();
 		}
 	}
+	ApplySideStripButtons();
 }
 
 
@@ -116,10 +163,7 @@ static void SideStripToggleCallback(GUI_BUTTON* const btn, UINT32 const reason)
 
 void CreateTacticalSideStrips()
 {
-	if (g_side_strips_created || !g_ui.isBigTeamPanel()) return;
-	if (!GCM->doesGameResExists(guiSideStripLeft)  ||
-		!GCM->doesGameResExists(guiSideStripRight) ||
-		!GCM->doesGameResExists(guiSideStripToggle)) return;
+	if (g_side_strips_created || !TacticalSideStripsAvailable()) return;
 
 	for (UINT i = 0; i != lengthof(g_side_strips); ++i)
 	{
@@ -162,7 +206,11 @@ void RenderTacticalSideStrips()
 		// e.g. the weapon box: the world where the strips were
 		if (off) SetRenderFlags(RENDER_FLAG_FULL);
 	}
-	if (off) return;
+	if (off)
+	{
+		ApplySideStripButtons();
+		return;
+	}
 
 	// Drawn every frame over the world (its slots are see-through), like the
 	// world's own overlays.
@@ -181,6 +229,7 @@ void RenderTacticalSideStrips()
 		MarkAButtonDirty(s.toggle);
 	}
 	ClippingRect = old_clip;
+	ApplySideStripButtons();
 }
 
 

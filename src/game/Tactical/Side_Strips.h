@@ -1,6 +1,7 @@
 #ifndef SIDE_STRIPS_H
 #define SIDE_STRIPS_H
 
+#include "Button_System.h"
 #include "Types.h"
 
 // The 1366x768 tactical screen's vertical button strips at the screen's left
@@ -8,6 +9,22 @@
 // (56x480, nine 50x50 slots). The bottom slot holds the button hiding / showing
 // its strip (then only that button is left); the others are empty for now.
 // Hidden or not is kept in Ja2.set (gGameSettings).
+
+enum SideStripKind { SIDE_STRIP_LEFT, SIDE_STRIP_RIGHT };
+// the slots for other buttons, from the top (the bottom one is the toggle's)
+#define SIDE_STRIP_BUTTON_SLOTS 8
+
+// The strips are there (the 1366x768 screen, their graphics found): the panel
+// buttons moved onto them go there, otherwise they stay in their old places.
+bool TacticalSideStripsAvailable();
+
+// Top left of a 50x50 slot (0 = the top one).
+void TacticalSideStripSlotPos(SideStripKind strip, UINT slot, INT16& x, INT16& y);
+
+// A button placed in a slot by its owner (e.g. the SM panel's Statistics);
+// the strip shows / hides it with itself and redraws it over the strip. Set
+// GUIButtonRef::NoButton() before removing the button.
+void SetTacticalSideStripButton(SideStripKind strip, UINT slot, GUIButtonRef button);
 
 // With the tactical panel (InitializeCurrentPanel() / ShutdownCurrentPanel()).
 void CreateTacticalSideStrips();
