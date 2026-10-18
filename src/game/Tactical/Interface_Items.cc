@@ -6137,6 +6137,70 @@ static void ItemPopupRegionCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason
 static void ItemPopupRegionCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason);
 
 
+// The 1366x768 SM panel's key ring and item stack popups:
+// keyring_tactical_big_1366x768.png (538x247) at x 236 on the screen's bottom,
+// 7x4 slots of 64x52 (like the panel's own head slots, the same big pictures
+// and status bars), 73 px apart across, 55 down. The stack popup uses it while
+// the stack fits in its 28 slots; the slots past the stack's limit shaded.
+#define TAC_BIG_KEYRING_FILE      INTERFACEDIR "/keyring_tactical_big_1366x768.png"
+#define TAC_BIG_KEYRING_X         236
+#define TAC_BIG_KEYRING_SLOT_X    21
+#define TAC_BIG_KEYRING_SLOT_Y    15
+#define TAC_BIG_KEYRING_PITCH_X   73
+#define TAC_BIG_KEYRING_PITCH_Y   55
+#define TAC_BIG_KEYRING_COLS      7
+#define TAC_BIG_KEYRING_SLOTS     28
+#define TAC_BIG_KEYRING_SLOT_W    64
+#define TAC_BIG_KEYRING_SLOT_H    52
+static bool gfTacBigKeyRingPopup = false;
+static bool gfTacBigStackPopup   = false;
+
+static bool UseTacBigKeyRingPanel()
+{
+	return guiCurrentScreen != MAP_SCREEN && guiCurrentScreen != SHOPKEEPER_SCREEN &&
+		g_ui.isBigSMPanel() && GCM->doesGameResExists(TAC_BIG_KEYRING_FILE);
+}
+
+static INT16 TacBigKeyRingPanelY()
+{
+	return SCREEN_HEIGHT - GetVObject(TAC_BIG_KEYRING_FILE)->SubregionProperties(0).usHeight;
+}
+
+// slot i's picture box
+static void TacBigKeyRingSlot(UINT const i, INT16& x, INT16& y)
+{
+	x = TAC_BIG_KEYRING_X     + TAC_BIG_KEYRING_SLOT_X + i % TAC_BIG_KEYRING_COLS * TAC_BIG_KEYRING_PITCH_X;
+	y = TacBigKeyRingPanelY() + TAC_BIG_KEYRING_SLOT_Y + i / TAC_BIG_KEYRING_COLS * TAC_BIG_KEYRING_PITCH_Y;
+}
+
+static void DefineTacBigKeyRingSlotRegion(MOUSE_REGION& r, UINT const i, MOUSE_CALLBACK const& click)
+{
+	INT16 x;
+	INT16 y;
+	TacBigKeyRingSlot(i, x, y);
+	MSYS_DefineRegion(&r, x, y, x + TAC_BIG_KEYRING_SLOT_W, y + TAC_BIG_KEYRING_SLOT_H,
+		MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, click);
+	MSYS_SetRegionUserData(&r, 0, i);
+}
+
+static void RenderTacBigKeyRingPanel()
+{
+	BltVideoObject(FRAME_BUFFER, GetVObject(TAC_BIG_KEYRING_FILE), 0, TAC_BIG_KEYRING_X, TacBigKeyRingPanelY());
+}
+
+// in slot i the object's big picture and the status bar of its object status_index
+static void RenderTacBigKeyRingSlotItem(UINT const i, OBJECTTYPE const& o, UINT8 const status_index, UINT8 const render_flags)
+{
+	INT16 x;
+	INT16 y;
+	TacBigKeyRingSlot(i, x, y);
+	InvItemTextLayout const text = GetMapInvBigItemTextLayout();
+	INVRenderItem(FRAME_BUFFER, NULL, o, x, y, TAC_BIG_KEYRING_SLOT_W, TAC_BIG_KEYRING_SLOT_H, DIRTYLEVEL2, render_flags, SGP_TRANSPARENT, TRUE, &text);
+	DrawItemUIBarEx(o, status_index, x - TAC_BIG_BAR_DX, y + TAC_BIG_BAR_DY, TAC_BIG_BAR_HEIGHT,
+		Get16BPPColor(STATUS_BAR), Get16BPPColor(STATUS_BAR_SHADOW), FRAME_BUFFER, TAC_BIG_BAR_WIDTH);
+}
+
+
 // Shared body of InitItemStackPopup()/InitSectorInventoryStackPopup() --
 // factored out the same way InitItemDescriptionBox() was split into
 // InternalInitItemDescriptionBox(), so a caller whose item isn't a
@@ -6166,7 +6230,11 @@ static void InternalInitItemStackPopup(OBJECTTYPE* const pObject, SOLDIERTYPE* c
 	gpItemPopupObject = pObject;
 
 	// Return if #objects not >1
-	if (ubLimit < 1) return;
+	if (ubLimit < 1)
+	{
+		gfTacBigStackPopup = false;
+		return;
+	}
 
 	SortItemStackByStatus(pObject);
 
@@ -6242,8 +6310,15 @@ static void InternalInitItemStackPopup(OBJECTTYPE* const pObject, SOLDIERTYPE* c
 
 		// Build a mouse region here that is over any others.....
 		MOUSE_CALLBACK itemPopupRegionCallback = MouseCallbackPrimarySecondary(ItemPopupRegionCallbackPrimary, ItemPopupRegionCallbackSecondary, MSYS_NO_CALLBACK, true);
-		MSYS_DefineRegion(&gItemPopupRegions[cnt], sCenX + col * usPopupWidth, sCenY + row * usPopupHeight, sCenX + (col + 1) * usPopupWidth, sCenY + (row+1) * usPopupHeight, MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, itemPopupRegionCallback);
-		MSYS_SetRegionUserData( &gItemPopupRegions[cnt], 0, cnt );
+		if (gfTacBigStackPopup)
+		{
+			DefineTacBigKeyRingSlotRegion(gItemPopupRegions[cnt], cnt, itemPopupRegionCallback);
+		}
+		else
+		{
+			MSYS_DefineRegion(&gItemPopupRegions[cnt], sCenX + col * usPopupWidth, sCenY + row * usPopupHeight, sCenX + (col + 1) * usPopupWidth, sCenY + (row+1) * usPopupHeight, MSYS_PRIORITY_HIGHEST, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, itemPopupRegionCallback);
+			MSYS_SetRegionUserData( &gItemPopupRegions[cnt], 0, cnt );
+		}
 
 		//OK, for each item, set dirty text if applicable!
 		gItemPopupRegions[cnt].SetFastHelpText(GCM->getItem(pObject->usItem)->getName());
@@ -6293,6 +6368,8 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 	// units regardless of what ubPerPocket claims.
 	UINT8       const ubLimit = std::min<UINT8>(ApplyBigPerPocketOverride(pObject->usItem, (INT8)ubPosition, ItemSlotLimit( pObject->usItem, ubPosition )), MAX_OBJECTS_PER_SLOT);
 
+	// the 1366x768 SM panel: in the key ring's panel, if the stack fits
+	gfTacBigStackPopup = UseTacBigKeyRingPanel() && ubLimit <= TAC_BIG_KEYRING_SLOTS;
 	InternalInitItemStackPopup(pObject, pSoldier, gSMInvRegion[ubPosition], INTERFACEDIR "/extra_inventory.sti", ubLimit, sInvX, sInvY, sInvWidth, sInvHeight);
 }
 
@@ -6317,6 +6394,29 @@ void RenderItemStackPopup( BOOLEAN fFullRender )
 		}
 
 	}
+	if (gfTacBigStackPopup)
+	{
+		RenderTacBigKeyRingPanel();
+		for (UINT cnt = 0; cnt != TAC_BIG_KEYRING_SLOTS; ++cnt)
+		{
+			if (cnt >= gubNumItemPopups)
+			{
+				// past the stack's limit
+				INT16 x;
+				INT16 y;
+				TacBigKeyRingSlot(cnt, x, y);
+				FRAME_BUFFER->ShadowRect(x, y, x + TAC_BIG_KEYRING_SLOT_W, y + TAC_BIG_KEYRING_SLOT_H);
+				continue;
+			}
+			if (cnt < gpItemPopupObject->ubNumberOfObjects)
+			{
+				RenderTacBigKeyRingSlotItem(cnt, *gpItemPopupObject, cnt, RENDER_ITEM_NOSTATUS);
+			}
+		}
+		InvalidateRegion( gsItemPopupInvX, gsItemPopupInvY, gsItemPopupInvX + gsItemPopupInvWidth, gsItemPopupInvY + gsItemPopupInvHeight );
+		return;
+	}
+
 	// TAKE A LOOK AT THE VIDEO OBJECT SIZE ( ONE OF TWO SIZES ) AND CENTER!
 	ETRLEObject const& pTrav  = guiItemPopupBoxes->SubregionProperties(0);
 	UINT32 const usWidth = pTrav.usWidth;
@@ -6359,6 +6459,7 @@ void DeleteItemStackPopup(void)
 
 
 	gfInItemStackPopup = FALSE;
+	gfTacBigStackPopup = false;
 
 	for ( cnt = 0; cnt < gubNumItemPopups; cnt++ )
 	{
@@ -6415,8 +6516,15 @@ void InitKeyRingPopup(SOLDIERTYPE* const pSoldier, INT16 const sInvX, INT16 cons
 	UINT16      const  usPopupWidth  = pTrav.usWidth;
 	UINT16      const  usPopupHeight = pTrav.usHeight;
 
+	// the 1366x768 SM panel: its own key ring panel
+	gfTacBigKeyRingPopup = UseTacBigKeyRingPanel();
 	for (INT32 cnt = 0; cnt < NUMBER_KEYS_ON_KEYRING; cnt++)
 	{
+		if (gfTacBigKeyRingPopup)
+		{
+			DefineTacBigKeyRingSlotRegion(gKeyRingRegions[cnt], cnt, KeyRingSlotInvClickCallback);
+			continue;
+		}
 		// Build a mouse region here that is over any others.....
 		MSYS_DefineRegion(&gKeyRingRegions[cnt],
 			gsKeyRingPopupInvX + (cnt % sKeyRingItemWidth      * usPopupWidth)  + sOffSetX, // top left
@@ -6487,6 +6595,8 @@ void RenderKeyRingPopup(const BOOLEAN fFullRender)
 	o = OBJECTTYPE{};
 	o.bStatus[0] = 100;
 
+	if (gfTacBigKeyRingPopup) RenderTacBigKeyRingPanel();
+
 	ETRLEObject const& pTrav = guiItemPopupBoxes->SubregionProperties(0);
 	UINT32      const  box_w = pTrav.usWidth;
 	UINT32      const  box_h = pTrav.usHeight;
@@ -6513,7 +6623,7 @@ void RenderKeyRingPopup(const BOOLEAN fFullRender)
 		const UINT x = dx + offset_x + i % key_ring_cols * box_w;
 		const UINT y = dy + offset_y + i / key_ring_cols * box_h;
 
-		BltVideoObject(FRAME_BUFFER, guiItemPopupBoxes, 0, x, y);
+		if (!gfTacBigKeyRingPopup) BltVideoObject(FRAME_BUFFER, guiItemPopupBoxes, 0, x, y);
 
 		const KEY_ON_RING& key = key_ring[i];
 		if (!key.isValid()) continue;
@@ -6527,6 +6637,11 @@ void RenderKeyRingPopup(const BOOLEAN fFullRender)
 		}
 		o.usItem            = item->getItemIndex();
 
+		if (gfTacBigKeyRingPopup)
+		{
+			RenderTacBigKeyRingSlotItem(i, o, 0, 0);
+			continue;
+		}
 		DrawItemUIBarEx(o, 0, x + 6, y + 31, ITEM_BAR_HEIGHT, Get16BPPColor(STATUS_BAR), Get16BPPColor(STATUS_BAR_SHADOW), FRAME_BUFFER);
 		INVRenderItem(FRAME_BUFFER, NULL, o, x + 11, y -2, box_w - 8, box_h - 2, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
 	}
@@ -6543,7 +6658,8 @@ void DeleteKeyRingPopup(void)
 
 	MSYS_RemoveRegion(&gItemPopupRegion);
 
-	gfInKeyRingPopup = FALSE;
+	gfInKeyRingPopup     = FALSE;
+	gfTacBigKeyRingPopup = false;
 
 	for (INT32 i = 0; i < NUMBER_KEYS_ON_KEYRING; i++)
 	{
