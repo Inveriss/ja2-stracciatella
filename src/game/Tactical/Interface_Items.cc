@@ -470,8 +470,9 @@ static bool gfTacBigWeaponBox = false;
 // (iteminfoc_money_big) as it is -- its layout and tables unchanged.
 #define TAC_ITEMDESC_BOX_MONEY_BIG_FILE INTERFACEDIR "/infobox_money_big_1366x768.png"
 static bool gfTacBigMoneyBox = false;
-// either of them: at the screen's bottom left, over the SM panel (hidden
-// meanwhile), the viewport ending at its top
+#define TAC_ITEMDESC_BOX_MONEY_BIG_X 216
+// either of them (the map's box layouts; their places and what they hide:
+// InternalInitItemDescriptionBox())
 static bool IsTacBigItemDescBox() { return gfTacBigWeaponBox || gfTacBigMoneyBox; }
 #define MONEY_GRAPHICS_FILE         INTERFACEDIR "/info_bil.sti"
 #define MAP_MONEY_GRAPHICS_FILE     INTERFACEDIR "/info_bil_1366x768.sti"
@@ -3200,13 +3201,11 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 	// Build a mouse region here that is over any others.....
 	if (in_map)
 	{
-		if (IsTacBigItemDescBox())
+		if (gfTacBigWeaponBox)
 		{
 			// from the screen's left edge, at its bottom, over the SM panel
 			gsInvDescX = 0;
 			gsInvDescY = SCREEN_HEIGHT - GetMapItemDescHeight();
-			// bookmark buttons draw over the box otherwise -- see the
-			// tactical branch below
 			// the whole SM panel's buttons and texts: the box covers it
 			if (gsCurInterfacePanel == SM_PANEL) HideSMPanelUnderItemDesc();
 			// The box reaches higher than the panel: the world's viewport ends
@@ -3214,6 +3213,16 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 			// there) leaves the box whole. Back in DeleteItemDescriptionBox().
 			gsVIEWPORT_WINDOW_END_Y = gsInvDescY;
 			SetRenderFlags(RENDER_FLAG_FULL);
+		}
+		else if (gfTacBigMoneyBox)
+		{
+			// at the screen's bottom, from x 216: the SM panel's portrait and
+			// buttons stay free; the viewport stays at the panel (for now)
+			gsInvDescX = TAC_ITEMDESC_BOX_MONEY_BIG_X;
+			gsInvDescY = SCREEN_HEIGHT - GetMapItemDescHeight();
+			// bookmark buttons draw over the box otherwise -- see the
+			// tactical branch below
+			if (gsCurInterfacePanel == SM_PANEL) HideSMBookmarkButtons();
 		}
 		MSYS_DefineRegion(&gInvDesc, gsInvDescX, gsInvDescY, gsInvDescX + GetMapItemDescWidth(), gsInvDescY + GetMapItemDescHeight(), MSYS_PRIORITY_HIGHEST - 2, CURSOR_NORMAL, MSYS_NO_CALLBACK, itemDescCallback);
 
@@ -5001,8 +5010,8 @@ void DeleteItemDescriptionBox( )
 
 	gfInItemDescBox = FALSE;
 
-	// the viewport the 1366x768 weapon / money box shortened: back to its panel's top
-	if (IsTacBigItemDescBox())
+	// the viewport the 1366x768 weapon box shortened: back to its panel's top
+	if (gfTacBigWeaponBox)
 	{
 		gsVIEWPORT_WINDOW_END_Y = gsCurInterfacePanel == SM_PANEL ? INV_INTERFACE_START_Y : TEAM_PANEL_Y;
 		SetRenderFlags(RENDER_FLAG_FULL);
