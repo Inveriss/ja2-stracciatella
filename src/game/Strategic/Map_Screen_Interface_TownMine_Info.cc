@@ -390,11 +390,15 @@ static void AddCommonInfoToBox(PopUpBox* const box)
 		}
 
 
-		// percentage of current militia squad training completed
-		wString = ST::format("{}:", pwTownInfoStrings[5]);
-		AddMonoString(box, wString);
-		wString = ST::format("{}%", SectorInfo[sector].ubMilitiaTrainingPercentDone);
-		AddSecondColumnMonoString(box, wString);
+		// percentage of current militia squad training completed (no training with
+		// militia recruitment)
+		if (!IsMilitiaRecruitmentEnabled())
+		{
+			wString = ST::format("{}:", pwTownInfoStrings[5]);
+			AddMonoString(box, wString);
+			wString = ST::format("{}%", SectorInfo[sector].ubMilitiaTrainingPercentDone);
+			AddSecondColumnMonoString(box, wString);
+		}
 	}
 
 

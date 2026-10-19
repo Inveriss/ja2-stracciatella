@@ -1771,7 +1771,8 @@
         "Elite",
         "Elite Heavy",
         "Count",
-        "Cost"
+        "Cost",
+        "You have no militia. Recruit them with Assign > Train > Militia in a town."
     ],
     "pMilitiaConfirmStrings": [
         "Training a squad of town militia will cost $",

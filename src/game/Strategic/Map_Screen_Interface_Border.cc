@@ -17,6 +17,7 @@
 #include "Video.h"
 #include "VObject.h"
 #include "VSurface.h"
+#include "Town_Militia.h"
 #include <string_theory/string>
 
 struct BUTTON_PICS;
@@ -453,8 +454,13 @@ void ToggleShowMilitiaMode( void )
 
 			// no - so put up a message explaining how it works
 
+			if (IsMilitiaRecruitmentEnabled())
+			{
+				// say they are bought in the recruitment panel
+				pwString = pMilitiaRecruitStrings[15];
+			}
 			// if he's already training some
-			if( IsAnyOneOnPlayersTeamOnThisAssignment( TRAIN_TOWN ) )
+			else if( IsAnyOneOnPlayersTeamOnThisAssignment( TRAIN_TOWN ) )
 			{
 				// say they'll show up when training is completed
 				pwString = pMapErrorString[ 28 ];

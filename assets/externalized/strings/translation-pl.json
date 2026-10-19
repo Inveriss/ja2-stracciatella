@@ -1766,7 +1766,8 @@
         "Weteran",
         "Ciężki weteran",
         "Liczba",
-        "Koszt"
+        "Koszt",
+        "Nie masz samoobrony. Zrekrutuj ją w mieście: Przydział > Szkolenie > Samoobrona."
     ],
     "pMilitiaConfirmStrings": [
         "Szkolenie oddziału samoobrony będzie kosztowało $",
