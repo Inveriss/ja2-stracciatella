@@ -2866,7 +2866,7 @@ bool IsSectorDesert(const SGPSector& sector)
 static void HandleDefiniteUnloadingOfWorld(UINT8 const ubUnloadCode)
 {
 	// a watched militia battle ends with its sector
-	gfWatchingMilitiaBattle = FALSE;
+	EndWatchedMilitiaBattle();
 
 	// clear tactical queue
 	ClearEventQueue();

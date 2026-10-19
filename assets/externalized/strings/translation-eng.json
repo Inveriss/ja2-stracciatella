@@ -1777,7 +1777,8 @@
     ],
     "pMilitiaWatchStrings": [
         "Watch the Battle",
-        "Do you want to watch the battle?"
+        "Do you want to watch the battle?",
+        "EXIT"
     ],
     "pMilitiaConfirmStrings": [
         "Training a squad of town militia will cost $",

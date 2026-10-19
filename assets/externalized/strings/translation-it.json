@@ -1772,7 +1772,8 @@
     ],
     "pMilitiaWatchStrings": [
         "Watch the Battle",
-        "Do you want to watch the battle?"
+        "Do you want to watch the battle?",
+        "EXIT"
     ],
     "pMilitiaConfirmStrings": [
         "Addestrare una squadra dell'esercito cittadino costerà $",

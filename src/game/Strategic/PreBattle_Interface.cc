@@ -1062,7 +1062,9 @@ void RenderPreBattleInterface()
 // battle can be watched in tactical
 static bool CanWatchMilitiaBattle(const SGPSector& sector)
 {
+	// (not when tactical hands a battle over to autoresolve, e.g. after EXIT)
 	return sector.z == 0 &&
+		!gfTransferTacticalOppositionToAutoResolve &&
 		PlayerMercsInSector(sector) == 0 &&
 		CountAllMilitiaInSector(sector) != 0;
 }
