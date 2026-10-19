@@ -1085,6 +1085,10 @@ void LoadSavedGame(const ST::string &saveName)
 	// Update the mercs in the sector with the new soldier info
 	UpdateMercsInSector();
 
+#if REVEAL_WHOLE_MAP_FOR_TESTING
+	RevealWholeMapForTesting();
+#endif
+
 	PostSchedules();
 
 	BAR(1, "Final Checks...");

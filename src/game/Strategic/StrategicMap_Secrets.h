@@ -10,6 +10,11 @@ extern Observable<UINT8> OnMapSecretFound;
 // Reset the state of all map secrets
 void InitMapSecrets();
 
+// TEMPORARY FOR TESTING: every surface sector visited, every map secret found
+// (called for a new game and after loading a game while this is enabled)
+#define REVEAL_WHOLE_MAP_FOR_TESTING 1
+void RevealWholeMapForTesting();
+
 // Whether the town was found by the player. Returns TRUE if the town is not hidden (i.e. not defined in map secrets)
 BOOLEAN IsTownFound(INT8 bTownID);
 
