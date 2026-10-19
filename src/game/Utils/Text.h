@@ -135,6 +135,7 @@ extern FLOAT GetWeightBasedOnMetricOption( UINT32 uiObjectWeight );
 #define pDoctorWarningString                                (g_langRes->pDoctorWarningString)
 #define pMilitiaButtonsHelpText                             (g_langRes->pMilitiaButtonsHelpText)
 #define pMilitiaHeavyStrings                                (g_langRes->pMilitiaHeavyStrings)
+#define pMilitiaRecruitStrings                              (g_langRes->pMilitiaRecruitStrings)
 #define pMapScreenJustStartedHelpText                       (g_langRes->pMapScreenJustStartedHelpText)
 #define pLandMarkInSectorString                             (g_langRes->pLandMarkInSectorString)
 #define gzMercSkillText                                     (g_langRes->gzMercSkillText)

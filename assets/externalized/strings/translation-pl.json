@@ -1751,6 +1751,23 @@
         "%d weteranów samoobrony awansowało na ciężkich weteranów.",
         "Heavy"
     ],
+    "pMilitiaRecruitStrings": [
+        "CENTRUM REKRUTACJI SAMOOBRONY",
+        "Ceny bazowe",
+        "MODYFIKATORY CEN",
+        "Twój najemnik z najlepszym przywództwem",
+        "%s - Przywództwo %d",
+        "Brak najemnika w tym mieście",
+        "Modyfikator ceny: %s",
+        "Twoja cena = %s",
+        "Koszt całkowity",
+        "Zielony",
+        "Regularny",
+        "Weteran",
+        "Ciężki weteran",
+        "Liczba",
+        "Koszt"
+    ],
     "pMilitiaConfirmStrings": [
         "Szkolenie oddziału samoobrony będzie kosztowało $",
         "Zatwierdzasz wydatek?",

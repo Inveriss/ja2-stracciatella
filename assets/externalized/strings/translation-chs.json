@@ -1751,6 +1751,23 @@
         "%d veteran militia have been promoted to elite heavy militia.",
         "Heavy"
     ],
+    "pMilitiaRecruitStrings": [
+        "MILITIA RECRUITMENT CENTER",
+        "Base Prices",
+        "PRICE MODIFIERS",
+        "Your mercenary with the best Leadership",
+        "%s - Leadership %d",
+        "No mercenary in this town",
+        "Price modifier: %s",
+        "Your price = %s",
+        "Total Cost",
+        "Green",
+        "Regular",
+        "Elite",
+        "Elite Heavy",
+        "Count",
+        "Cost"
+    ],
     "pMilitiaConfirmStrings": [
         "训练一队民兵要花费$",
         "同意支付吗?",

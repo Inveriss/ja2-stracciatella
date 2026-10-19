@@ -1,0 +1,49 @@
+{
+  "comment": "MILITIA_RECRUIT_PANEL_1366x768.png -- RenderRecruitTexts() (Militia_Recruit_Panel.cc). Sample texts, English.",
+  "background": "Interface/MILITIA_RECRUIT_PANEL_1366x768.png",
+  "defaults": { "font": "FONT12ARIAL", "colour": 130, "shadow": 2 },
+  "boxes": [
+    { "name": "base prices", "x": 19, "y": 32, "w": 142, "h": 84 },
+    { "name": "title", "x": 184, "y": 29, "w": 392, "h": 31 },
+    { "name": "recruiter", "x": 198, "y": 73, "w": 363, "h": 43 },
+    { "name": "modifiers", "x": 600, "y": 32, "w": 142, "h": 84 },
+    { "name": "rank 1", "x": 200, "y": 150, "w": 150, "h": 60 },
+    { "name": "rank 4", "x": 200, "y": 426, "w": 151, "h": 60 },
+    { "name": "total", "x": 621, "y": 289, "w": 121, "h": 60 }
+  ],
+  "items": [
+    { "text": "Base Prices", "x": 19, "y": 36, "w": 142, "align": "center" },
+    { "text": "Green", "x": 25, "y": 52 },
+    { "text": "$100", "x": 25, "y": 52, "w": 131, "align": "right" },
+    { "text": "Regular", "x": 25, "y": 68 },
+    { "text": "$250", "x": 25, "y": 68, "w": 131, "align": "right" },
+    { "text": "Elite", "x": 25, "y": 84 },
+    { "text": "$500", "x": 25, "y": 84, "w": 131, "align": "right" },
+    { "text": "Elite Heavy", "x": 25, "y": 100 },
+    { "text": "$1000", "x": 25, "y": 100, "w": 131, "align": "right" },
+
+    { "text": "MILITIA RECRUITMENT CENTER", "x": 184, "y": 40, "w": 392, "align": "center" },
+
+    { "text": "Your mercenary with the best Leadership", "x": 198, "y": 76, "w": 363, "align": "center" },
+    { "text": "Raider - Leadership 84", "x": 198, "y": 89, "w": 363, "align": "center" },
+    { "text": "Price modifier: -25%", "x": 198, "y": 102, "w": 363, "align": "center" },
+
+    { "text": "PRICE MODIFIERS", "x": 600, "y": 36, "w": 142, "align": "center" },
+    { "text": "1 - 25", "x": 606, "y": 52 },
+    { "text": "+25%", "x": 606, "y": 52, "w": 131, "align": "right" },
+    { "text": "26 - 50", "x": 606, "y": 68 },
+    { "text": "+10%", "x": 606, "y": 68, "w": 131, "align": "right" },
+    { "text": "51 - 75", "x": 606, "y": 84 },
+    { "text": "-10%", "x": 606, "y": 84, "w": 131, "align": "right" },
+    { "text": "76 - 100", "x": 606, "y": 100 },
+    { "text": "-25%", "x": 606, "y": 100, "w": 131, "align": "right" },
+
+    { "text": "Green", "x": 200, "y": 164, "w": 150, "align": "center" },
+    { "text": "Your price = $75", "x": 200, "y": 185, "w": 150, "align": "center" },
+    { "text": "Elite Heavy", "x": 200, "y": 440, "w": 151, "align": "center" },
+    { "text": "Your price = $750", "x": 200, "y": 461, "w": 151, "align": "center" },
+
+    { "text": "Total Cost", "x": 621, "y": 303, "w": 121, "align": "center" },
+    { "text": "$0", "x": 621, "y": 324, "w": 121, "align": "center" }
+  ]
+}
