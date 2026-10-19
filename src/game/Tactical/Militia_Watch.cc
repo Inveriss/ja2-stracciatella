@@ -2,6 +2,7 @@
 #include "Button_System.h"
 #include "Directories.h"
 #include "Font_Control.h"
+#include "Handle_UI.h"
 #include "Interface_Control.h"
 #include "Text.h"
 #include "UILayout.h"
@@ -69,32 +70,43 @@ static void ExitButtonCallback(GUI_BUTTON*, UINT32 const reason)
 }
 
 
-// The EXIT button exists while a battle is watched on the tactical screen
+// The EXIT button exists while a battle is watched on the tactical screen.
+// The turns of the AI (all of them here) lock the interface with a screen-wide
+// region of the highest priority (the wait cursor); the button has that
+// priority too and is made again whenever such a lock begins, so that it is
+// the newer region and gets the clicks.
 static void HandleExitButton()
 {
-	bool const want = gfWatchingMilitiaBattle && guiCurrentScreen == GAME_SCREEN;
+	static bool locked_before = false;
+	bool const  locked        = gfDisableRegionActive || gfUserTurnRegionActive;
+	bool const  want          = gfWatchingMilitiaBattle && guiCurrentScreen == GAME_SCREEN;
+	if (g_exit_button && (!want || (locked && !locked_before)))
+	{
+		RemoveButton(g_exit_button);
+	}
+	locked_before = locked;
 	if (want && !g_exit_button)
 	{
 		INT16 const x = SCREEN_WIDTH - WATCH_EXIT_MARGIN - WATCH_EXIT_W;
 		INT16 const y = SCREEN_HEIGHT - BIG_TEAMPANEL_HEIGHT - WATCH_EXIT_MARGIN - WATCH_EXIT_H;
-		g_exit_button = QuickCreateButtonImg(WATCH_EXIT_GFX, 6, 7, x, y, MSYS_PRIORITY_HIGHEST - 1, ExitButtonCallback);
+		g_exit_button = QuickCreateButtonImg(WATCH_EXIT_GFX, 6, 7, x, y, MSYS_PRIORITY_HIGHEST, ExitButtonCallback);
 		g_exit_button->SpecifyGeneralTextAttributes(pMilitiaWatchStrings[2], FONT12ARIAL, 169, FONT_NEARBLACK);
-	}
-	else if (!want && g_exit_button)
-	{
-		RemoveButton(g_exit_button);
 	}
 }
 
 
 void HandleWatchedMilitiaBattleTurn()
 {
-	if (g_exit_requested)
+	if (g_exit_requested && gTacticalStatus.ubAttackBusyCount == 0)
 	{
 		// stop watching: leave the sector, back to the map screen; a battle still
-		// going on is finished by autoresolve (nobody of the player's team is here)
+		// going on is finished by autoresolve (nobody of the player's team is here).
+		// First the AI's turn ends and the interface lock goes, as at the end of a
+		// battle, or the lock would stay over the map screen.
 		g_exit_requested        = false;
 		gfWatchingMilitiaBattle = FALSE;
+		if (gTacticalStatus.ubCurrentTeam != OUR_TEAM) EndAllAITurns();
+		UIHandleLUIEndLock(NULL);
 		CheckAndHandleUnloadingOfCurrentWorld();
 	}
 	HandleExitButton();
