@@ -85,6 +85,7 @@
 #include "TileDef.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
+#include "Militia_Watch.h"
 #include "VObject.h"
 #include "WCheck.h"
 #include "Weapons.h"
@@ -547,6 +548,9 @@ static void HandleCreatureTenseQuote(void);
 void ExecuteOverhead(void)
 {
 	BOOLEAN fKeepMoving;
+
+	// a watched militia battle: the player's (empty) turns end by themselves
+	HandleWatchedMilitiaBattleTurn();
 
 	if (COUNTERDONE(TOVERHEAD))
 	{
@@ -4591,6 +4595,9 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
 		// Set enemy presence to false
 		gTacticalStatus.fEnemyInSector = FALSE;
 
+		// a watched militia battle: back to the map screen after a moment
+		WatchedMilitiaBattleWon();
+
 		// CJC: End AI's turn here.... first... so that UnSetUIBusy will succeed if militia win
 		// battle for us
 		EndAllAITurns( );
@@ -5059,6 +5066,9 @@ static BOOLEAN CheckForLosingEndOfBattle(void)
 		// Are there militia in sector?
 		if ( fMilitiaInSector )
 		{
+			// a watched militia battle: the militia fight it here, no autoresolve
+			if (gfWatchingMilitiaBattle) return FALSE;
+
 			if( guiCurrentScreen != AUTORESOLVE_SCREEN )
 			{
 				// if here, check if we should autoresolve.

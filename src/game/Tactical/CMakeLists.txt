@@ -45,6 +45,7 @@ set(LOCAL_JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Merc_Entering.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Merc_Hiring.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Militia_Control.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Militia_Watch.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Morale.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/OppList.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Overhead.cc

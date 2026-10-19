@@ -99,6 +99,7 @@
 #include "Timer.h"
 #include "TownModel.h"
 #include "Town_Militia.h"
+#include "Militia_Watch.h"
 #include "Types.h"
 #include "UILayout.h"
 #include "VObject.h"
@@ -2864,6 +2865,9 @@ bool IsSectorDesert(const SGPSector& sector)
 
 static void HandleDefiniteUnloadingOfWorld(UINT8 const ubUnloadCode)
 {
+	// a watched militia battle ends with its sector
+	gfWatchingMilitiaBattle = FALSE;
+
 	// clear tactical queue
 	ClearEventQueue();
 

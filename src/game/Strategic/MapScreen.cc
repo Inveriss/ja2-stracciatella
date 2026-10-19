@@ -81,6 +81,7 @@
 #include "Timer_Control.h"
 #include "Town_Militia.h"
 #include "Militia_Recruit_Panel.h"
+#include "Militia_Watch.h"
 #include "UILayout.h"
 #include "Video.h"
 #include "VObject.h"
@@ -2714,6 +2715,9 @@ ScreenID MapScreenHandle(void)
 
 	// the militia recruitment panel (opens here when asked for on the tactical screen)
 	HandleMilitiaRecruitPanel();
+
+	// "Watch the battle" on the autoresolve screen: load the sector
+	HandleWatchMilitiaBattleRequest();
 
 	if (!fDisableDueToBattleRoster)
 	{

@@ -50,6 +50,7 @@
 #include "Timer.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
+#include "Militia_Watch.h"
 #include "UILayout.h"
 #include "Video.h"
 #include "VObject.h"
@@ -145,6 +146,7 @@ struct AUTORESOLVE_STRUCT
 
 	BOOLEAN fRenderAutoResolve;
 	BOOLEAN fExitAutoResolve;
+	BOOLEAN fWatchBattle; // left by "Watch the battle": the battle goes on in tactical
 	BOOLEAN fPaused;
 	BOOLEAN fDebugInfo;
 	BOOLEAN ubBattleStatus;
@@ -1965,6 +1967,12 @@ static void PauseButtonCallback(GUI_BUTTON* btn, UINT32 reason);
 static void PlayButtonCallback(GUI_BUTTON* btn, UINT32 reason);
 static void RejectSurrenderCallback(GUI_BUTTON* btn, UINT32 reason);
 static void RetreatButtonCallback(GUI_BUTTON* btn, UINT32 reason);
+static void WatchBattleButtonCallback(GUI_BUTTON* btn, UINT32 reason);
+
+// "Watch the battle": only militia on the player's side (MILITIA_RECRUIT_BUTTONS.STI
+// 6 ready, 7 pressed, 120x33), centred over the play / fast / finish buttons
+static GUIButtonRef g_ar_watch_button;
+#define AR_WATCH_BUTTON_GFX INTERFACEDIR "/MILITIA_RECRUIT_BUTTONS.STI"
 
 
 static void CreateAutoResolveInterface(void)
@@ -2132,6 +2140,12 @@ static void CreateAutoResolveInterface(void)
 	MakeButton(PAUSE_BUTTON,    dx + 11, dy + 34, PauseButtonCallback,     FALSE, {});
 	MakeButton(RETREAT_BUTTON,  dx + 51, dy + 34, RetreatButtonCallback,   FALSE, gpStrategicString[STR_AR_RETREAT_BUTTON]);
 	if (!ar->ubMercs) DisableButton(ar->iButton[RETREAT_BUTTON]);
+
+	// only militia fight here: the battle can be watched in tactical instead
+	if (!ar->ubMercs && ar->ubCivs && ar->ubSector.z == 0)
+	{
+		g_ar_watch_button = QuickCreateButtonImg(AR_WATCH_BUTTON_GFX, 6, 7, dx + 10, dy - 63, MSYS_PRIORITY_HIGH, WatchBattleButtonCallback);
+	}
 
 	MakeButton(BANDAGE_BUTTON,  dx + 11, dy +  5, BandageButtonCallback,   TRUE,  {});
 	MakeButton(DONEWIN_BUTTON,  dx + 51, dy +  5, DoneButtonCallback,      TRUE,  gpStrategicString[STR_AR_DONE_BUTTON]);
@@ -2333,7 +2347,7 @@ static void RemoveAutoResolveInterface()
 			EliminateAllEnemies(arSector);
 		}
 	}
-	else
+	else if (!ar.fWatchBattle) // a watched battle goes on: the enemy stays
 	{ // The enemy won, so repoll movement.
 		ResetMovementForEnemyGroupsInLocation();
 	}
@@ -2351,6 +2365,7 @@ static void RemoveAutoResolveInterface()
 		UnloadButtonImage(ar.iButtonImage[i]);
 		RemoveButton(ar.iButton[i]);
 	}
+	if (g_ar_watch_button) RemoveButton(g_ar_watch_button);
 
 	//Warp the game time accordingly
 
@@ -2427,6 +2442,18 @@ static void FinishButtonCallback(GUI_BUTTON* btn, UINT32 reason)
 		gpAR->fSound = FALSE;
 		PlayJA2Sample(AUTORESOLVE_FINISHFX, HIGHVOLUME, 1, MIDDLEPAN);
 	}
+}
+
+
+static void WatchBattleButtonCallback(GUI_BUTTON*, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	if (gpAR->ubBattleStatus != BATTLE_IN_PROGRESS) return;
+	// leave autoresolve with the battle undecided (what was fought so far
+	// counts), the sector is loaded on the map screen
+	gpAR->fWatchBattle     = TRUE;
+	gpAR->fExitAutoResolve = TRUE;
+	RequestWatchMilitiaBattle(gpAR->ubSector);
 }
 
 
@@ -4075,6 +4102,7 @@ static BOOLEAN AttemptPlayerCapture(void)
 static void SetupDoneInterface(void)
 {
 	gpAR->fRenderAutoResolve = TRUE;
+	if (g_ar_watch_button) HideButton(g_ar_watch_button);
 
 	HideButton( gpAR->iButton[ PAUSE_BUTTON ] );
 	HideButton( gpAR->iButton[ PLAY_BUTTON ] );
@@ -4102,6 +4130,7 @@ static void SetupDoneInterface(void)
 
 static void SetupSurrenderInterface(void)
 {
+	if (g_ar_watch_button) HideButton(g_ar_watch_button);
 	HideButton( gpAR->iButton[ PAUSE_BUTTON ] );
 	HideButton( gpAR->iButton[ PLAY_BUTTON ] );
 	HideButton( gpAR->iButton[ FAST_BUTTON ] );
