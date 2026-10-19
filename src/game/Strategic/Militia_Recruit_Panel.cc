@@ -12,20 +12,29 @@
 #include "HImage.h"
 #include "JAScreens.h"
 #include "MapScreen.h"
+#include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Bottom.h"
+#include "MessageBoxScreen.h"
 #include "MouseSystem.h"
 #include "Object_Cache.h"
 #include "ScreenIDs.h"
 #include "Soldier_Control.h"
 #include "Text.h"
+#include "StrategicMap.h"
+#include "Strategic_Town_Loyalty.h"
 #include "Town_Militia.h"
 #include "UILayout.h"
 #include "VObject.h"
 #include "VSurface.h"
 #include "Video.h"
 
+#include "LaptopSave.h"
+
 #include <string_theory/format>
 #include <string_theory/string>
+
+#include <algorithm>
+#include <iterator>
 
 
 namespace {
@@ -70,9 +79,25 @@ constexpr INT16 RECRUIT_RANK_X      = 200;
 constexpr INT16 RECRUIT_RANK_W      = 150;
 constexpr INT16 RECRUIT_RANK_NAME_DY  = 25; // from the row frame's top
 constexpr INT16 RECRUIT_RANK_PRICE_DY = 46;
-// total cost box (618,286 127x66)
+// the count / cost box of a row (363,y+8 237x66): - and + buttons, then the
+// "Count" and "Cost" columns (label over value) with "=" between the values
+char const* const RECRUIT_BUTTONS_GFX = INTERFACEDIR "/MILITIA_RECRUIT_BUTTONS.STI"; // 39x33: 0/1 -, 2/3 +, 4/5 done
+constexpr INT16 RECRUIT_MINUS_X      = 372;
+constexpr INT16 RECRUIT_PLUS_X       = 416;
+constexpr INT16 RECRUIT_BUTTON_DY    = 23; // from the row frame's top
+constexpr INT16 RECRUIT_LABEL_DY     = 23;
+constexpr INT16 RECRUIT_VALUE_DY     = 40;
+constexpr INT16 RECRUIT_COUNT_X      = 459;
+constexpr INT16 RECRUIT_COUNT_W      = 44;
+constexpr INT16 RECRUIT_EQUALS_X     = 503;
+constexpr INT16 RECRUIT_EQUALS_W     = 16;
+constexpr INT16 RECRUIT_COST_X       = 519;
+constexpr INT16 RECRUIT_COST_W       = 72;
+// total cost box (618,286 127x66), the buy button 10 px under it, centred
 constexpr RecruitTextPos RECRUIT_TOTAL_LABEL = { 621, 303, 121 };
 constexpr RecruitTextPos RECRUIT_TOTAL_VALUE = { 621, 324, 121 };
+constexpr INT16 RECRUIT_BUY_X = 662;
+constexpr INT16 RECRUIT_BUY_Y = 362;
 
 // pMilitiaRecruitStrings
 enum
@@ -96,6 +121,10 @@ SGPSector    g_sector;                 // the recruiting merc's sector
 SOLDIERTYPE const* g_pending = NULL;   // asked for on the tactical screen, opens on the map screen
 MOUSE_REGION g_blanket;                // the whole panel, so that clicks don't reach the map under it
 GUIButtonRef g_close_button;
+GUIButtonRef g_minus_buttons[MAX_MILITIA_LEVELS];
+GUIButtonRef g_plus_buttons[MAX_MILITIA_LEVELS];
+GUIButtonRef g_buy_button;
+UINT8        g_counts[MAX_MILITIA_LEVELS]; // militia picked to buy, per rank
 
 }
 
@@ -120,6 +149,84 @@ static void CloseButtonCallback(GUI_BUTTON*, UINT32 const reason)
 }
 
 
+static UINT32 PickedTotal()
+{
+	UINT32 n = 0;
+	for (UINT8 const c : g_counts) n += c;
+	return n;
+}
+
+
+static INT32 PickedCost()
+{
+	INT32 cost = 0;
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		cost += g_counts[rank] * MilitiaRecruitUnitPrice(rank, g_sector);
+	}
+	return cost;
+}
+
+
+// The picks never exceed the room in the town (it can shrink, e.g. after a buy)
+static void ClampPicks()
+{
+	UINT32 const free_slots = MilitiaRecruitFreeSlots(g_sector);
+	for (UINT8 rank = MAX_MILITIA_LEVELS; rank-- != 0;)
+	{
+		while (g_counts[rank] != 0 && PickedTotal() > free_slots) --g_counts[rank];
+	}
+}
+
+
+static void MinusButtonCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	UINT8& n = g_counts[btn->GetUserData()];
+	if (n != 0) --n;
+}
+
+
+static void PlusButtonCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	// no more than the town has room for
+	if (PickedTotal() >= MilitiaRecruitFreeSlots(g_sector)) return;
+	UINT8& n = g_counts[btn->GetUserData()];
+	if (n != 255) ++n;
+}
+
+
+static void BuyButtonCallback(GUI_BUTTON*, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	if (PickedTotal() == 0) return;
+
+	if (PickedTotal() > MilitiaRecruitFreeSlots(g_sector))
+	{
+		// "<town> is full of militia"
+		INT8 const town_id = GetTownIdForSector(g_sector);
+		ST::string const where = town_id != BLANK_SECTOR ? GCM->getTownName(town_id) : g_sector.AsShortString();
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, st_format_printf(zMarksMapScreenText[20], where), MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+		ClampPicks();
+		return;
+	}
+	if (LaptopSaveInfo.iCurrentBalance < PickedCost())
+	{
+		// "You can't afford it."
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, pMilitiaConfirmStrings[2], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+		return;
+	}
+
+	if (BuyMilitia(g_sector, g_counts))
+	{
+		// bought: start over (the panel stays open)
+		std::fill(std::begin(g_counts), std::end(g_counts), 0);
+		fMapScreenBottomDirty = TRUE; // the balance
+	}
+}
+
+
 static void CreatePanel()
 {
 	INT16 x, y, w, h;
@@ -131,6 +238,19 @@ static void CreatePanel()
 	INT16 const by = y + h - RECRUIT_CLOSE_BUTTON_MARGIN - RECRUIT_CLOSE_BUTTON_SIZE;
 	g_close_button = QuickCreateButtonImg(RECRUIT_CLOSE_BUTTON_GFX, 2, 3, bx, by, MSYS_PRIORITY_HIGHEST, CloseButtonCallback);
 	g_close_button->SetFastHelpText("Close");
+
+	// a - and a + button per rank row
+	std::fill(std::begin(g_counts), std::end(g_counts), 0);
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		INT16 const row_y = y + RECRUIT_ROW_FIRST_Y + rank * RECRUIT_ROW_PITCH + RECRUIT_BUTTON_DY;
+		g_minus_buttons[rank] = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 0, 1, x + RECRUIT_MINUS_X, row_y, MSYS_PRIORITY_HIGHEST, MinusButtonCallback);
+		g_minus_buttons[rank]->SetUserData(rank);
+		g_plus_buttons[rank]  = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 2, 3, x + RECRUIT_PLUS_X,  row_y, MSYS_PRIORITY_HIGHEST, PlusButtonCallback);
+		g_plus_buttons[rank]->SetUserData(rank);
+	}
+	// buy (doesn't close the panel)
+	g_buy_button = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 4, 5, x + RECRUIT_BUY_X, y + RECRUIT_BUY_Y, MSYS_PRIORITY_HIGHEST, BuyButtonCallback);
 
 	g_open = true;
 }
@@ -159,6 +279,12 @@ void CloseMilitiaRecruitPanel()
 	if (!g_open) return;
 
 	RemoveButton(g_close_button);
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		RemoveButton(g_minus_buttons[rank]);
+		RemoveButton(g_plus_buttons[rank]);
+	}
+	RemoveButton(g_buy_button);
 	MSYS_RemoveRegion(&g_blanket);
 	g_open = false;
 
@@ -250,13 +376,20 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 	{
 		INT16 const row_y = RECRUIT_ROW_FIRST_Y + rank * RECRUIT_ROW_PITCH;
 		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_NAME_DY), RECRUIT_RANK_W }, pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]);
-		ST::string const price = SPrintMoney(MilitiaRecruitUnitPrice(rank, g_sector));
-		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_DY), RECRUIT_RANK_W }, st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_YOUR_PRICE_FMT], price));
+		INT32 const unit_price = MilitiaRecruitUnitPrice(rank, g_sector);
+		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_DY), RECRUIT_RANK_W }, st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_YOUR_PRICE_FMT], SPrintMoney(unit_price)));
+
+		// count = cost
+		PrintCentered(px, py, { RECRUIT_COUNT_X,  INT16(row_y + RECRUIT_LABEL_DY), RECRUIT_COUNT_W  }, pMilitiaRecruitStrings[RECRUIT_STR_COUNT]);
+		PrintCentered(px, py, { RECRUIT_COUNT_X,  INT16(row_y + RECRUIT_VALUE_DY), RECRUIT_COUNT_W  }, ST::format("{}", g_counts[rank]));
+		PrintCentered(px, py, { RECRUIT_EQUALS_X, INT16(row_y + RECRUIT_VALUE_DY), RECRUIT_EQUALS_W }, "=");
+		PrintCentered(px, py, { RECRUIT_COST_X,   INT16(row_y + RECRUIT_LABEL_DY), RECRUIT_COST_W   }, pMilitiaRecruitStrings[RECRUIT_STR_COST]);
+		PrintCentered(px, py, { RECRUIT_COST_X,   INT16(row_y + RECRUIT_VALUE_DY), RECRUIT_COST_W   }, SPrintMoney(g_counts[rank] * unit_price));
 	}
 
-	// total cost (the counts come with the buy buttons)
+	// total cost
 	PrintCentered(px, py, RECRUIT_TOTAL_LABEL, pMilitiaRecruitStrings[RECRUIT_STR_TOTAL_COST]);
-	PrintCentered(px, py, RECRUIT_TOTAL_VALUE, SPrintMoney(0));
+	PrintCentered(px, py, RECRUIT_TOTAL_VALUE, SPrintMoney(PickedCost()));
 }
 
 
@@ -272,7 +405,14 @@ void HandleMilitiaRecruitPanel()
 	INT16 x, y, w, h;
 	PanelRect(x, y, w, h);
 	BltVideoObject(FRAME_BUFFER, guiRecruitPanel, 0, x, y);
+	ClampPicks();
 	RenderRecruitTexts(x, y);
 	InvalidateRegion(x, y, x + w, y + h);
 	MarkAButtonDirty(g_close_button);
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		MarkAButtonDirty(g_minus_buttons[rank]);
+		MarkAButtonDirty(g_plus_buttons[rank]);
+	}
+	MarkAButtonDirty(g_buy_button);
 }
