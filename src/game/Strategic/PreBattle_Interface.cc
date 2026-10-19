@@ -30,6 +30,9 @@
 #include "Tactical_Placement_GUI.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
+#include "Militia_Watch.h"
+#include "MessageBoxScreen.h"
+#include "Strategic_Movement.h"
 #include "Campaign.h"
 #include "GameSettings.h"
 #include "Random.h"
@@ -803,6 +806,12 @@ static void MPrintCentered(INT32 x, INT32 y, INT32 w, const ST::string& str)
 static ST::string GetSoldierConditionInfo(const SOLDIERTYPE& s);
 
 
+// asked already whether to watch the battle (this pre-battle interface)
+static bool g_watch_battle_asked = false;
+static bool CanWatchMilitiaBattle(const SGPSector&);
+static void WatchBattleQuestionCallback(MessageBoxReturnValue);
+
+
 void RenderPreBattleInterface()
 {
 	ST::string str;
@@ -1031,10 +1040,49 @@ void RenderPreBattleInterface()
 	if (gfEnterAutoResolveMode)
 	{
 		gfEnterAutoResolveMode = FALSE;
-		EnterAutoResolveMode(gubPBSector);
+		if (!g_watch_battle_asked && CanWatchMilitiaBattle(gubPBSector))
+		{
+			// only militia fight here: first ask whether to watch the battle in
+			// tactical instead of autoresolving it
+			g_watch_battle_asked = true;
+			DoMapMessageBox(MSG_BOX_BASIC_STYLE, pMilitiaWatchStrings[1], MAP_SCREEN, MSG_BOX_FLAG_YESNO, WatchBattleQuestionCallback);
+		}
+		else
+		{
+			g_watch_battle_asked = false;
+			EnterAutoResolveMode(gubPBSector);
+		}
 	}
 
 	gfIgnoreAllInput = FALSE;
+}
+
+
+// Only militia (no mercs) fight on the player's side, on the surface: the
+// battle can be watched in tactical
+static bool CanWatchMilitiaBattle(const SGPSector& sector)
+{
+	return sector.z == 0 &&
+		PlayerMercsInSector(sector) == 0 &&
+		CountAllMilitiaInSector(sector) != 0;
+}
+
+
+static void WatchBattleQuestionCallback(MessageBoxReturnValue const ret)
+{
+	if (ret == MSG_BOX_RETURN_YES)
+	{
+		// watch it: the map screen loads the sector
+		g_watch_battle_asked = false;
+		RequestWatchMilitiaBattle(gubPBSector);
+		KillPreBattleInterface();
+	}
+	else
+	{
+		// autoresolve as usual (asked already)
+		gfEnterAutoResolveMode = TRUE;
+		gfRenderPBInterface    = TRUE;
+	}
 }
 
 

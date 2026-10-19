@@ -2145,6 +2145,9 @@ static void CreateAutoResolveInterface(void)
 	if (!ar->ubMercs && ar->ubCivs && ar->ubSector.z == 0)
 	{
 		g_ar_watch_button = QuickCreateButtonImg(AR_WATCH_BUTTON_GFX, 6, 7, dx + 10, dy - 63, MSYS_PRIORITY_HIGH, WatchBattleButtonCallback);
+		// the label as on the retreat button
+		g_ar_watch_button->SpecifyGeneralTextAttributes(pMilitiaWatchStrings[0], ARFont(StrategicGeneralFont()), 169, FONT_NEARBLACK);
+		if (ARBig()) g_ar_watch_button->SpecifyTextSubOffsets(0, 1, TRUE); // the big font: 1 px lower
 	}
 
 	MakeButton(BANDAGE_BUTTON,  dx + 11, dy +  5, BandageButtonCallback,   TRUE,  {});

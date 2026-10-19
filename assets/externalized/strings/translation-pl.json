@@ -1770,6 +1770,10 @@
         "Nie masz samoobrony. Zrekrutuj ją w mieście: Przydział > Szkolenie > Samoobrona.",
         "Aktualne saldo"
     ],
+    "pMilitiaWatchStrings": [
+        "Obserwuj bitwę",
+        "Czy chcesz obserwować bitwę?"
+    ],
     "pMilitiaConfirmStrings": [
         "Szkolenie oddziału samoobrony będzie kosztowało $",
         "Zatwierdzasz wydatek?",

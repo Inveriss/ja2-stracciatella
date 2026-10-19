@@ -1770,6 +1770,10 @@
         "You have no militia. Recruit them with Assign > Train > Militia in a town.",
         "Current Balance"
     ],
+    "pMilitiaWatchStrings": [
+        "Watch the Battle",
+        "Do you want to watch the battle?"
+    ],
     "pMilitiaConfirmStrings": [
         "Een stadsmilitie trainen kost $",
         "Uitgave goedkeuren?",
