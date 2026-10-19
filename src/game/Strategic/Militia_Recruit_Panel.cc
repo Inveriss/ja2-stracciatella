@@ -25,7 +25,6 @@
 #include "Town_Militia.h"
 #include "UILayout.h"
 #include "VObject.h"
-#include "VObject_Blitters.h"
 #include "VSurface.h"
 #include "Video.h"
 
@@ -99,13 +98,7 @@ constexpr RecruitTextPos RECRUIT_TOTAL_LABEL = { 621, 303, 121 };
 constexpr RecruitTextPos RECRUIT_TOTAL_VALUE = { 621, 324, 121 };
 constexpr INT16 RECRUIT_BUY_X = 662;
 constexpr INT16 RECRUIT_BUY_Y = 362;
-// current balance box: not in the graphic, the total cost box (with its
-// frame) is copied there, at the height of the first rank row's boxes
-constexpr INT16 RECRUIT_TOTAL_BOX_X = 618;
-constexpr INT16 RECRUIT_TOTAL_BOX_Y = 286;
-constexpr INT16 RECRUIT_TOTAL_BOX_W = 127;
-constexpr INT16 RECRUIT_TOTAL_BOX_H = 66;
-constexpr INT16 RECRUIT_BALANCE_BOX_Y = 147;
+// current balance box (618,147 127x66), at the height of the first rank row's boxes
 constexpr RecruitTextPos RECRUIT_BALANCE_LABEL = { 621, 164, 121 };
 constexpr RecruitTextPos RECRUIT_BALANCE_VALUE = { 621, 185, 121 };
 
@@ -431,14 +424,6 @@ void HandleMilitiaRecruitPanel()
 	INT16 x, y, w, h;
 	PanelRect(x, y, w, h);
 	BltVideoObject(FRAME_BUFFER, guiRecruitPanel, 0, x, y);
-	{
-		// the current balance box: a copy of the total cost box
-		INT16 const bx = x + RECRUIT_TOTAL_BOX_X;
-		INT16 const by = y + RECRUIT_BALANCE_BOX_Y;
-		SGPRect const old = SetClippingRect(SGPRect{ (UINT16)bx, (UINT16)by, (UINT16)(bx + RECRUIT_TOTAL_BOX_W), (UINT16)(by + RECRUIT_TOTAL_BOX_H) });
-		BltVideoObject(FRAME_BUFFER, guiRecruitPanel, 0, x, y + RECRUIT_BALANCE_BOX_Y - RECRUIT_TOTAL_BOX_Y);
-		SetClippingRect(old);
-	}
 	ClampPicks();
 	// + greyed out once one more wouldn't fit into the town or the balance
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)

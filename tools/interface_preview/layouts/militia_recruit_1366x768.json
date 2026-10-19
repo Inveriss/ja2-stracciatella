@@ -1,5 +1,5 @@
 {
-  "comment": "MILITIA_RECRUIT_PANEL_1366x768.png -- RenderRecruitTexts() (Militia_Recruit_Panel.cc). Sample texts, English. The balance box (618,147) is the total cost box copied there at run time.",
+  "comment": "MILITIA_RECRUIT_PANEL_1366x768.png -- RenderRecruitTexts() (Militia_Recruit_Panel.cc). Sample texts, English.",
   "background": "Interface/MILITIA_RECRUIT_PANEL_1366x768.png",
   "defaults": {
     "font": "FONT12ARIAL",
