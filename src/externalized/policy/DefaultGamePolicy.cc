@@ -125,6 +125,15 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 			}
 		}
 	}
+
+	militia_watch_realtime    = true;
+	militia_watch_ai_delay_ms = 1500;
+	if (gp.has("militia_watch"))
+	{
+		auto mw = gp["militia_watch"].toObject();
+		militia_watch_realtime    = mw.getOptionalBool("realtime", true);
+		militia_watch_ai_delay_ms = mw.getOptionalUInt("ai_delay_ms", 1500);
+	}
 }
 
 /** Check if a hotkey is enabled. */

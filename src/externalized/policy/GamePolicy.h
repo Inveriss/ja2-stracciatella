@@ -121,6 +121,10 @@ public:
 	uint8_t militia_recruit_leadership_max[4];// leadership brackets (upper bounds) for the price modifiers
 	int32_t militia_recruit_price_percent[4]; // price in percent of the base price, per leadership bracket
 
+	/* Watching a militia battle (autoresolve's "Watch the battle") */
+	bool militia_watch_realtime;              // the watched battle is fought in real time, without turns
+	uint16_t militia_watch_ai_delay_ms;       // real time: the time between two decisions of a soldier in the battle (both sides)
+
 	////////////////////////////////////////////////////////////
 	//
 	////////////////////////////////////////////////////////////

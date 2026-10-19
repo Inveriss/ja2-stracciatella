@@ -241,5 +241,15 @@
     "price_elite_heavy": 1000,
     "leadership_max": [ 25, 50, 75, 100 ],
     "price_percent": [ 125, 110, 90, 75 ]
+  },
+
+  //  Watching a militia battle (the autoresolve screen's "Watch the battle"):
+  //  realtime: true fights it in real time, without turns (false: in turns,
+  //  the player's turns ending by themselves).
+  //  ai_delay_ms: in real time, the time between two decisions of a soldier
+  //  in the battle, the same for the militia and the enemy.
+  "militia_watch": {
+    "realtime": true,
+    "ai_delay_ms": 1500
   }
 }
