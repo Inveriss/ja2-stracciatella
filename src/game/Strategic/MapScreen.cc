@@ -80,6 +80,7 @@
 #include "SaveLoadGameStates.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
+#include "Militia_Recruit_Panel.h"
 #include "UILayout.h"
 #include "Video.h"
 #include "VObject.h"
@@ -2711,6 +2712,9 @@ ScreenID MapScreenHandle(void)
 
 	DrawMilitiaPopUpBox( );
 
+	// the militia recruitment panel (opens here when asked for on the tactical screen)
+	HandleMilitiaRecruitPanel();
+
 	if (!fDisableDueToBattleRoster)
 	{
 		CreateDestroyTheUpdateBox( );
@@ -3870,6 +3874,8 @@ void EndMapScreen( BOOLEAN fDuringFade )
 	sSelectedMilitiaTown = 0;
 	CreateDestroyMilitiaPopUPRegions( );
 	CreateDestroyMilitiaSectorButtons( );
+
+	CloseMilitiaRecruitPanel();
 
 	// stop showing contract menu
 	fShowContractMenu = FALSE;

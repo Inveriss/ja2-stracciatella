@@ -71,6 +71,7 @@
 #include "StrategicMap.h"
 #include "Text.h"
 #include "Town_Militia.h"
+#include "Militia_Recruit_Panel.h"
 #include "UILayout.h"
 #include "Vehicles.h"
 #include "VObject.h"
@@ -2103,7 +2104,8 @@ static void HandleTrainingInSector(const SGPSector& sector)
 	}
 
 	// check if we're doing a sector where militia can be trained
-	if (CanSectorContainMilita(sector))
+	// (not with militia recruitment: militia are bought, not trained)
+	if (CanSectorContainMilita(sector) && !IsMilitiaRecruitmentEnabled())
 	{
 		// init town trainer list
 		std::fill(std::begin(TownTrainer), std::end(TownTrainer), TOWN_TRAINER_TYPE{});
@@ -4600,6 +4602,21 @@ static void TrainingMenuBtnCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason
 
 
 				// PASSED ALL THE TESTS - ALLOW SOLDIER TO TRAIN MILITIA HERE
+
+				if (IsMilitiaRecruitmentEnabled())
+				{
+					// militia recruitment: no training assignment, the recruitment panel
+					// opens instead (the merc keeps his assignment)
+					fShowAssignmentMenu = FALSE;
+					fShowTrainingMenu   = FALSE;
+					giAssignHighLine    = -1;
+					UnHighLightBox(ghAssignmentBox);
+					ResetSelectedListForMapScreen();
+					gfRenderPBInterface = TRUE;
+					OpenMilitiaRecruitPanel(*pSoldier);
+					break;
+				}
+
 				PreChangeAssignment(*pSoldier);
 
 				if( ( pSoldier->bAssignment != TRAIN_TOWN ) )
@@ -5831,6 +5848,12 @@ static void SetSoldierAssignmentDoctor(SOLDIERTYPE& s)
 static void SetSoldierAssignmentTrainTown(SOLDIERTYPE& s)
 {
 	if (!CanCharacterTrainMilitia(&s)) return;
+	if (IsMilitiaRecruitmentEnabled())
+	{
+		// militia recruitment: nobody trains militia, the recruitment panel buys them
+		OpenMilitiaRecruitPanel(s);
+		return;
+	}
 	PreSetAssignment(s, TRAIN_TOWN);
 	if (s.bAssignment != TRAIN_TOWN) SetTimeOfAssignmentChangeForMerc(&s);
 	if (!pMilitiaTrainerSoldier &&

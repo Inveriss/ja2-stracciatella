@@ -2061,7 +2061,8 @@
         "Transfert de fonds de %s",
         "Coût milice de %s",
         "Achats à %s.",
-        "Montant déposé par %s."
+        "Montant déposé par %s.",
+        "Militia recruitment in %s"
     ],
     "pTrashItemText": [
         "Vous ne le reverrez jamais. Vous êtes sûr de vous ?",

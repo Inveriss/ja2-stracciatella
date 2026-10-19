@@ -2061,7 +2061,8 @@
         "Maak Geld over van %s",
         "Rust militie uit in %s",
         "Items gekocht van %s.",
-        "%s heeft geld gestort."
+        "%s heeft geld gestort.",
+        "Militia recruitment in %s"
     ],
     "pTrashItemText": [
         "Je bent het voor altijd kwijt. Zeker weten?",

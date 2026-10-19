@@ -2061,7 +2061,8 @@
         "Überweisen von %s",
         "Miliz in %s ausbilden",
         "Gegenstände von %s gekauft.",
-        "%s hat Geld angelegt."
+        "%s hat Geld angelegt.",
+        "Militia recruitment in %s"
     ],
     "pTrashItemText": [
         "Sie werden das Ding nie wiedersehen. Trotzdem wegwerfen?",

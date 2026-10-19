@@ -2061,7 +2061,8 @@
         "%s退回的佣金",
         "在%s训练民兵",
         "向%s购买了物品.",
-        "%s存款"
+        "%s存款",
+        "Militia recruitment in %s"
     ],
     "pTrashItemText": [
         "您将不会再见到它了.您确定吗?",

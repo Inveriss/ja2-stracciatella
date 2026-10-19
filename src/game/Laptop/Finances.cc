@@ -814,8 +814,9 @@ static ST::string ProcessTransactionString(const FinanceUnit* f)
 			return st_format_printf(pTransactionText[code], GetProfile(f->ubSecondCode).zNickname);
 
 		case TRAIN_TOWN_MILITIA:
+		case RECRUIT_TOWN_MILITIA:
 		{
-			return st_format_printf(pTransactionText[TRAIN_TOWN_MILITIA], GetSectorIDString(f->ubSecondCode, TRUE));
+			return st_format_printf(pTransactionText[code], GetSectorIDString(f->ubSecondCode, TRUE));
 		}
 
 		default:

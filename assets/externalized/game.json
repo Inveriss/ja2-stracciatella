@@ -225,5 +225,21 @@
     //  Is the start sector revealed at game start?
     //  vanilla settings: true
     "start_sector_revealed": true
+  },
+
+  //  Militia recruitment: Assign > Train > Militia opens the recruitment panel,
+  //  militia are bought directly (and appear at once) instead of being trained.
+  //  enabled: false brings back the vanilla militia training.
+  //  Prices are per militia. The price modifier depends on the best leadership
+  //  among the mercs in the town: up to leadership_max[i] the price is
+  //  price_percent[i] percent of the base price.
+  "militia_recruitment": {
+    "enabled": true,
+    "price_green": 100,
+    "price_regular": 250,
+    "price_elite": 500,
+    "price_elite_heavy": 1000,
+    "leadership_max": [ 25, 50, 75, 100 ],
+    "price_percent": [ 125, 110, 90, 75 ]
   }
 }

@@ -4,6 +4,7 @@
 // header for town militia strategic control module
 
 #include "JA2Types.h"
+#include "Campaign_Types.h"
 
 #include <string_theory/string>
 #include <optional>
@@ -65,6 +66,32 @@ BOOLEAN MilitiaTrainingAllowedInSector(const SGPSector& sMap);
 BOOLEAN MilitiaTrainingAllowedInTown( INT8 bTownId );
 
 void AddSectorForSoldierToListOfSectorsThatCompletedMilitiaTraining(SOLDIERTYPE* pSoldier);
+
+
+// Militia recruitment (game.json "militia_recruitment"): militia are bought
+// directly in the recruitment panel instead of being trained.
+
+// Recruitment is on (and the militia training off)
+bool IsMilitiaRecruitmentEnabled();
+
+// How many more militia fit into the town (or SAM site) of this sector: the
+// room left in its sectors that are ours and peaceful
+UINT32 MilitiaRecruitFreeSlots(const SGPSector& sector);
+
+// The merc with the best leadership in the town (or SAM site) of this sector;
+// NULL if there is none
+SOLDIERTYPE const* BestMilitiaRecruiter(const SGPSector& sector);
+
+// The price modifier (percent of the base price) for this leadership
+INT32 MilitiaRecruitPricePercent(INT8 leadership);
+
+// The price of one militia of this rank, with the best recruiter's modifier
+INT32 MilitiaRecruitUnitPrice(UINT8 rank, const SGPSector& sector);
+
+// Buys counts[rank] militia of each rank for the town (or SAM site) of this
+// sector: checks money and room, pays, places them (the given sector first)
+// and handles the town loyalty bonus. FALSE (nothing bought) when it can't.
+BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS]);
 
 extern SOLDIERTYPE* pMilitiaTrainerSoldier;
 

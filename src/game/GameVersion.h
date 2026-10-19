@@ -33,6 +33,8 @@ extern const char g_version_number[16];
 // the general info); 108 saves still load.
 // 110: a 4th militia rank (ELITE_HEAVY_MILITIA) in SECTORINFO, stored in a
 // formerly unused byte; older saves get 0 there, so they still load.
-constexpr UINT32 SAVE_GAME_VERSION = 110;
+// 111: militia recruitment counter in SECTORINFO (ubMilitiaRecruitedForLoyalty).
+// From here on older saves are not supported any more: start a new game.
+constexpr UINT32 SAVE_GAME_VERSION = 111;
 
 #endif

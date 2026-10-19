@@ -26,6 +26,7 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "TownModel.h"
+#include "GamePolicy.h"
 
 #include <string_theory/format>
 #include <string_theory/string>
@@ -675,6 +676,12 @@ BOOLEAN IsAreaFullOfMilitia(const SGPSector& sector)
 {
 	if (sector.z != 0) return TRUE;
 
+	if (IsMilitiaRecruitmentEnabled())
+	{
+		// recruitment buys any rank: full means no room left at all
+		return MilitiaRecruitFreeSlots(sector) == 0;
+	}
+
 	UINT32 count_milita = 0;
 	UINT32 max_milita   = 0;
 
@@ -997,4 +1004,158 @@ ST::string BuildMilitiaPromotionsString()
 	gbMilitiaPromotions      = 0;
 
 	return str;
+}
+
+
+// ---------------------------------------------------------------------------
+// Militia recruitment
+// ---------------------------------------------------------------------------
+
+bool IsMilitiaRecruitmentEnabled()
+{
+	return gamepolicy(militia_recruitment);
+}
+
+
+// The sectors of the town (or the SAM site) of this sector that can take
+// militia now: ours and peaceful
+template<typename F> static void ForEachRecruitSector(const SGPSector& sector, F f)
+{
+	if (sector.z != 0) return;
+	INT8 const town_id = GetTownIdForSector(sector);
+	if (town_id != BLANK_SECTOR)
+	{
+		FOR_EACH_SECTOR_IN_TOWN(i, town_id)
+		{
+			SGPSector const town(i->sector);
+			if (SectorOursAndPeaceful(town)) f(town);
+		}
+	}
+	else if (IsThisSectorASAMSector(sector) && SectorOursAndPeaceful(sector))
+	{
+		f(sector);
+	}
+}
+
+
+UINT32 MilitiaRecruitFreeSlots(const SGPSector& sector)
+{
+	UINT32 free_slots = 0;
+	ForEachRecruitSector(sector, [&](const SGPSector& s)
+	{
+		UINT8 const n = CountAllMilitiaInSector(s);
+		if (n < MAX_ALLOWABLE_MILITIA_PER_SECTOR) free_slots += MAX_ALLOWABLE_MILITIA_PER_SECTOR - n;
+	});
+	return free_slots;
+}
+
+
+SOLDIERTYPE const* BestMilitiaRecruiter(const SGPSector& sector)
+{
+	if (sector.z != 0) return NULL;
+	INT8 const town_id = GetTownIdForSector(sector);
+
+	SOLDIERTYPE const* best = NULL;
+	CFOR_EACH_IN_TEAM(s, OUR_TEAM)
+	{
+		if (s->bLife < OKLIFE)                         continue;
+		if (s->uiStatusFlags & SOLDIER_VEHICLE)        continue;
+		if (s->fBetweenSectors || s->sSector.z != 0)   continue;
+		if (s->bAssignment == IN_TRANSIT ||
+				s->bAssignment == ASSIGNMENT_DEAD ||
+				s->bAssignment == ASSIGNMENT_POW)          continue;
+		// in the same town, or for a SAM site in the same sector
+		if (town_id != BLANK_SECTOR ? GetTownIdForSector(s->sSector) != town_id : s->sSector != sector) continue;
+		if (!best || s->bLeadership > best->bLeadership) best = s;
+	}
+	return best;
+}
+
+
+INT32 MilitiaRecruitPricePercent(INT8 const leadership)
+{
+	for (int i = 0; i != 4; ++i)
+	{
+		if (leadership <= gamepolicy(militia_recruit_leadership_max[i])) return gamepolicy(militia_recruit_price_percent[i]);
+	}
+	return gamepolicy(militia_recruit_price_percent[3]);
+}
+
+
+INT32 MilitiaRecruitUnitPrice(UINT8 const rank, const SGPSector& sector)
+{
+	SOLDIERTYPE const* const recruiter = BestMilitiaRecruiter(sector);
+	INT8  const leadership = recruiter ? recruiter->bLeadership : 0;
+	INT32 const base       = gamepolicy(militia_recruit_price[rank]);
+	return base * MilitiaRecruitPricePercent(leadership) / 100;
+}
+
+
+// One militia of this rank into the given sector if there is room, else into
+// another sector of the same town; FALSE if there is no room anywhere
+static BOOLEAN PlaceRecruitedMilitia(const SGPSector& sector, UINT8 const rank)
+{
+	if (SectorOursAndPeaceful(sector) && CountAllMilitiaInSector(sector) < MAX_ALLOWABLE_MILITIA_PER_SECTOR)
+	{
+		StrategicAddMilitiaToSector(sector, rank, 1);
+		return TRUE;
+	}
+
+	BOOLEAN placed = FALSE;
+	ForEachRecruitSector(sector, [&](const SGPSector& s)
+	{
+		if (placed) return;
+		if (CountAllMilitiaInSector(s) >= MAX_ALLOWABLE_MILITIA_PER_SECTOR) return;
+		StrategicAddMilitiaToSector(s, rank, 1);
+		placed = TRUE;
+	});
+	return placed;
+}
+
+
+BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS])
+{
+	UINT32 n_total = 0;
+	INT32  cost    = 0;
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		n_total += counts[rank];
+		cost    += counts[rank] * MilitiaRecruitUnitPrice(rank, sector);
+	}
+	if (n_total == 0)                                return FALSE;
+	if (n_total > MilitiaRecruitFreeSlots(sector))   return FALSE;
+	if (LaptopSaveInfo.iCurrentBalance < cost)      return FALSE;
+
+	AddTransactionToPlayersBook(RECRUIT_TOWN_MILITIA, sector.AsByte(), GetWorldTotalMin(), -cost);
+
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		for (UINT8 i = 0; i != counts[rank]; ++i)
+		{
+			if (!PlaceRecruitedMilitia(sector, rank)) break; // can't happen, the room was checked
+		}
+	}
+
+	// force tactical to update militia status
+	gfStrategicMilitiaChangesMade = TRUE;
+	fMapPanelDirty = TRUE;
+
+	// the town loyalty bonus of the militia training: one for every 10 militia
+	INT8 const town_id = GetTownIdForSector(sector);
+	if (town_id != BLANK_SECTOR)
+	{
+		auto const town = GCM->getTown(town_id);
+		if (town)
+		{
+			UINT8& counter = SectorInfo[town->getBaseSector().AsByte()].ubMilitiaRecruitedForLoyalty;
+			UINT32 recruited = counter + n_total;
+			while (recruited >= MILITIA_TRAINING_SQUAD_SIZE)
+			{
+				IncrementTownLoyalty(town_id, LOYALTY_BONUS_FOR_TOWN_TRAINING);
+				recruited -= MILITIA_TRAINING_SQUAD_SIZE;
+			}
+			counter = (UINT8) recruited;
+		}
+	}
+	return TRUE;
 }

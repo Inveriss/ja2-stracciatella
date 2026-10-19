@@ -115,6 +115,12 @@ public:
 	uint16_t start_sector;        // Starting sector
 	bool reveal_start_sector;     // Should the start sector radar map be shown at start
 
+	/* Militia recruitment (buying militia instead of training it) */
+	bool militia_recruitment;                 // Train > Militia opens the recruitment panel, the militia training is off
+	int32_t militia_recruit_price[4];         // base price of one militia, per rank (green, regular, elite, elite heavy)
+	uint8_t militia_recruit_leadership_max[4];// leadership brackets (upper bounds) for the price modifiers
+	int32_t militia_recruit_price_percent[4]; // price in percent of the base price, per leadership bracket
+
 	////////////////////////////////////////////////////////////
 	//
 	////////////////////////////////////////////////////////////

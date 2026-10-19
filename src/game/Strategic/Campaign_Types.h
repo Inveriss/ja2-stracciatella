@@ -181,6 +181,7 @@ struct SECTORINFO
 												//around.  This value is used for determining how often items would "vanish" from
 												//a sector (nice theory, except it isn't being used that way.  Stealing is only in towns.  ARM)
 	UINT8 ubNumberOfCivsAtLevel[ MAX_MILITIA_LEVELS ]; // town militia per experience class, 0/1/2/3 is GREEN/REGULAR/ELITE/ELITE_HEAVY
+	UINT8 ubMilitiaRecruitedForLoyalty; // militia recruitment: militia bought for this town since the last loyalty bonus (kept in the town's base sector)
 	UINT32	uiTimeCurrentSectorWasLastLoaded;		//Specifies the last time the player was in the sector
 	UINT32 uiTimeLastPlayerLiberated; //in game seconds (used to prevent the queen from attacking for awhile)
 

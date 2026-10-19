@@ -2061,7 +2061,8 @@
         "Transfer funduszy od - %s",
         "Samoobrona w - %s",
         "Zakupy u - %s.",
-        "%s wpłacił(a) pieniądze."
+        "%s wpłacił(a) pieniądze.",
+        "Rekrutacja samoobrony w - %s"
     ],
     "pTrashItemText": [
         "Więcej tego nie zobaczysz. Czy na pewno chcesz to zrobić?",

@@ -2067,7 +2067,8 @@
         "Transfer Funds from %s",
         "Equip militia in %s",
         "Purchased items from %s.",
-        "%s deposited money."
+        "%s deposited money.",
+        "Militia recruitment in %s"
     ],
     "pTrashItemText": [
         "You'll never see it again. You sure?",
