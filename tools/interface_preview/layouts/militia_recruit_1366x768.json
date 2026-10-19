@@ -1,5 +1,5 @@
 {
-  "comment": "MILITIA_RECRUIT_PANEL_1366x768.png -- RenderRecruitTexts() (Militia_Recruit_Panel.cc). Sample texts, English.",
+  "comment": "MILITIA_RECRUIT_PANEL_1366x768.png -- RenderRecruitTexts() (Militia_Recruit_Panel.cc). Sample texts, English. The balance box (618,147) is the total cost box copied there at run time.",
   "background": "Interface/MILITIA_RECRUIT_PANEL_1366x768.png",
   "defaults": {
     "font": "FONT12ARIAL",
@@ -90,6 +90,13 @@
       "y": 362,
       "w": 39,
       "h": 33
+    },
+    {
+      "name": "balance",
+      "x": 621,
+      "y": 150,
+      "w": 121,
+      "h": 60
     }
   ],
   "items": [
@@ -340,6 +347,20 @@
       "text": "$15,900",
       "x": 621,
       "y": 324,
+      "w": 121,
+      "align": "center"
+    },
+    {
+      "text": "Current Balance",
+      "x": 621,
+      "y": 164,
+      "w": 121,
+      "align": "center"
+    },
+    {
+      "text": "$453,430",
+      "x": 621,
+      "y": 185,
       "w": 121,
       "align": "center"
     }
