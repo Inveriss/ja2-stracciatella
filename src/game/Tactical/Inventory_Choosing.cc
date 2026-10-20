@@ -520,7 +520,10 @@ static UINT16 SelectStandardArmyGun(UINT8 uiGunLevel);
 
 
 // ELITE_HEAVY militia may carry up to this percentage of what their strength allows
-#define ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT 110
+#define ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT 100
+// ...their ammunition (more LAWs, mortar shells) only in this many big pockets
+// (BIGPOCK1POS on); the last big pocket stays free for the militia man's own use
+#define ELITE_HEAVY_MILITIA_AMMO_BIG_POCKETS 9
 
 // What the soldier would carry, the same way CalculateCarriedWeight() counts it
 static grams CarriedWeight(SOLDIERCREATE_STRUCT const* const pp)
@@ -544,10 +547,11 @@ static grams MaxLoad(SOLDIERCREATE_STRUCT const* const pp, UINT32 const percent)
 	return (grams)(strength * 500 * percent / 100);
 }
 
-// ELITE_HEAVY militia: Spectra helmet and vest, gas mask, UV goggles, combat knife and exactly ONE
-// heavy weapon (mortar, LAW or M79, equal chances) with as much of its ammunition (mortar shells,
-// more LAWs, 40mm HE grenades) as fits into ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT of the strength
-// limit, the base equipment included.  Nothing else.
+// ELITE_HEAVY militia: Spectra helmet and vest, gas mask, UV goggles and exactly ONE heavy weapon
+// (mortar or LAW, equal chances) in the hand, with as much of its ammunition (mortar shells, more
+// LAWs) as fits into ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT of the strength limit (the rest of the
+// equipment included) and into the first ELITE_HEAVY_MILITIA_AMMO_BIG_POCKETS big pockets (as many
+// per pocket as a soldier's big pocket takes).  Nothing else.
 static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
 {
 	static UINT16 const helmets[] = { SPECTRA_HELMET, SPECTRA_HELMET_18, SPECTRA_HELMET_Y };
@@ -563,57 +567,47 @@ static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
 	CreateItem(UVGOGGLES, (INT8)(70 + Random(31)), &pp->Inv[HEAD2POS]);
 	pp->Inv[HEAD2POS].fFlags |= OBJECT_UNDROPPABLE;
 
-	OBJECTTYPE Object;
-	CreateItem(COMBAT_KNIFE, (INT8)(70 + Random(31)), &Object);
-	Object.fFlags |= OBJECT_UNDROPPABLE;
-	PlaceObjectInSoldierCreateStruct(pp, &Object);
-
 	// one heavy weapon, equal chances; in the hand
-	UINT16 usWeapon;
-	UINT16 usAmmo;
-	switch (Random(3))
-	{
-		case 0:  usWeapon = MORTAR;          usAmmo = MORTAR_SHELL;    break;
-		case 1:  usWeapon = ROCKET_LAUNCHER; usAmmo = ROCKET_LAUNCHER; break; // the "ammunition" is more LAWs
-		default: usWeapon = GLAUNCHER;       usAmmo = GL_HE_GRENADE;   break;
-	}
+	bool const   fMortar  = Random(2) == 0;
+	UINT16 const usWeapon = fMortar ? MORTAR       : ROCKET_LAUNCHER;
+	UINT16 const usAmmo   = fMortar ? MORTAR_SHELL : ROCKET_LAUNCHER; // the LAW's "ammunition" is more LAWs
 	// weapon condition as for the elites: 85-90% + 1% every 10% progress
 	INT8 const bWeaponStatus = (INT8) std::min(100, int(85 + Random(6) + HighestPlayerProgressPercentage() / 10));
 	CreateItem(usWeapon, bWeaponStatus, &pp->Inv[HANDPOS]);
 	pp->Inv[HANDPOS].fFlags |= OBJECT_UNDROPPABLE;
 
-	// ammunition, one at a time, while it stays within the weight limit and there is room for it
+	// the ammunition: pocket by pocket, as much as the weight limit allows
 	grams const max_load = MaxLoad(pp, ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT);
 	grams       load     = CarriedWeight(pp);
-	UINT8       n_ammo   = 0;
-	for (;;)
+	OBJECTTYPE  One;
+	CreateItem(usAmmo, 100, &One);
+	grams const unit     = Weight(One);
+	for (INT8 slot = BIGPOCK1POS; slot != BIGPOCK1POS + ELITE_HEAVY_MILITIA_AMMO_BIG_POCKETS; ++slot)
 	{
-		OBJECTTYPE One;
-		INT8 const bStatus = (usAmmo == ROCKET_LAUNCHER) ? bWeaponStatus : (INT8)(80 + Random(21));
-		CreateItem(usAmmo, bStatus, &One);
-		grams const unit = Weight(One);
-		if (load + unit > max_load) break;
+		OBJECTTYPE& o = pp->Inv[slot];
+		if (o.usItem != NOTHING) continue;
+
+		// how many fit into this pocket (a LAW doesn't stack), and into the weight limit
+		int per_pocket = 1;
+		if (usAmmo != ROCKET_LAUNCHER)
+		{
+			per_pocket = std::min(int(ApplyBigPerPocketOverride(usAmmo, slot, ItemSlotLimit(usAmmo, slot))), int(MAX_OBJECTS_PER_SLOT));
+			per_pocket = std::max(per_pocket, 1);
+		}
+		int const by_weight = unit > 0 ? (max_load - load) / unit : per_pocket;
+		int const n         = std::min(per_pocket, by_weight);
+		if (n <= 0) break;
+
 		if (usAmmo == ROCKET_LAUNCHER)
 		{
-			// a LAW doesn't stack, each one needs its own big pocket
-			One.fFlags |= OBJECT_UNDROPPABLE;
-			if (!PlaceObjectInSoldierCreateStruct(pp, &One)) break;
+			CreateItem(usAmmo, bWeaponStatus, &o);
 		}
 		else
 		{
-			++n_ammo;
-			if (n_ammo == MAX_OBJECTS_PER_SLOT) break;
+			CreateItems(usAmmo, (INT8)(80 + Random(21)), (UINT8)n, &o);
 		}
-		load += unit;
-	}
-
-	// stackable ammunition: as stacks, as big as the pockets allow
-	while (n_ammo != 0)
-	{
-		CreateItems(usAmmo, (INT8)(80 + Random(21)), n_ammo, &Object);
-		Object.fFlags |= OBJECT_UNDROPPABLE;
-		if (!PlaceObjectInSoldierCreateStruct(pp, &Object)) break; // no room left
-		n_ammo -= Object.ubNumberOfObjects; // what fitted into the pocket
+		o.fFlags |= OBJECT_UNDROPPABLE;
+		load     += n * unit;
 	}
 
 	RandomlyChooseWhichItemsAreDroppable(pp, SOLDIER_CLASS_ELITE_HEAVY_MILITIA);

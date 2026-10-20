@@ -1435,8 +1435,9 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 
 	if (ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
 	{
-		// carries the heavy weapons: always full strength
+		// carries the heavy weapons: always full strength, and a fixed agility
 		pp->bStrength = 100;
+		pp->bAgility  = 94;
 	}
 
 	// skipping the ELITE_HEAVY militia too: their base level 8 (+ the usual modifiers) must not be cut down
