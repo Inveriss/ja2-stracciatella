@@ -22,6 +22,7 @@
 #include "Explosion_Control.h"
 #include "OppList.h"
 #include "Physics.h"
+#include "RenderWorld.h"
 #include "Soldier_Control.h"
 #include "Animation_Data.h"
 #include "Logger.h"
@@ -50,6 +51,7 @@ static SGPSector g_watch_sector;
 static bool      g_saved_low_team_panel = false; // the team panel's form before the watching
 static bool      g_low_team_panel_forced = false;
 static bool      g_exit_requested = false;
+static bool      g_show_all_set = false; // SHOW_ALL_MERCS set by the watching
 
 // EXIT (MILITIA_RECRUIT_BUTTONS.STI 6 ready, 7 pressed, 120x33): over the team
 // panel at the screen's right edge
@@ -267,6 +269,16 @@ void HandleWatchedMilitiaBattleTurn()
 		// ...and no turn or interrupt bar at the top of the screen
 		if (gTacticalStatus.fInTopMessage) EndTopMessage();
 
+		// no fog of war for the watcher: every soldier is drawn (SHOW_ALL_MERCS
+		// changes only what the screen shows; who sees whom stays as it is for
+		// the militia and the enemy)
+		if (!(gTacticalStatus.uiFlags & SHOW_ALL_MERCS))
+		{
+			gTacticalStatus.uiFlags |= SHOW_ALL_MERCS;
+			g_show_all_set = true;
+			SetRenderFlags(RENDER_FLAG_FULL);
+		}
+
 		// several soldiers attack at once
 		EndOverAttacks();
 		HandleStuckAttackBusyCount();
@@ -290,6 +302,11 @@ static void WatchedBattleOverCallback()
 
 void EndWatchedMilitiaBattle()
 {
+	if (g_show_all_set)
+	{
+		g_show_all_set = false;
+		gTacticalStatus.uiFlags &= ~SHOW_ALL_MERCS;
+	}
 	if (g_exit_button) RemoveButton(g_exit_button);
 	g_exit_requested = false;
 	if (g_low_team_panel_forced)
