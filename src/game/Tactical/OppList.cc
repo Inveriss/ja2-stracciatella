@@ -383,7 +383,14 @@ static void HandleBestSightingPositionInRealtime(void)
 	{
 		SLOGD("HBSPIR called and there is someone in the list" );
 
+		// game.json turnbased_starts_when_spotted: only an enemy seeing a merc
+		// starts the turns; mercs (or the militia) seeing the enemy, or the
+		// enemy seeing the militia, keep the real time
+		bool const start_turns = !TurnBasedWhenSpottedOnly() || AnEnemySeesAMerc();
+		if (!start_turns) SetEnemyPresence();
+
 		//if (gfHumanSawSomeoneInRealtime)
+		if (start_turns)
 		{
 			if (gBestToMakeSighting[1] == NULL)
 			{
@@ -1785,6 +1792,14 @@ static void ManSeesMan(SOLDIERTYPE& s, SOLDIERTYPE& opponent, UINT8 const caller
 			{
 				new_opponent = true;
 				++s.bNewOppCnt; // increment looker's NEW opponent count
+
+				// game.json turnbased_starts_when_spotted: a merc who sees an
+				// enemy in real time stops and waits (his words come as usual)
+				if (s.bTeam == OUR_TEAM && TurnBasedWhenSpottedOnly() &&
+					!(gTacticalStatus.uiFlags & INCOMBAT))
+				{
+					StopMercOnSpotting(s);
+				}
 
 				IncrementWatchedLoc(&s, opponent.sGridNo, opponent.bLevel);
 

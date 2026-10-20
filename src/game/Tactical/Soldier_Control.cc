@@ -910,10 +910,11 @@ void EVENT_InitNewSoldierAnim(SOLDIERTYPE* const pSoldier, UINT16 usNewState, UI
 
 		if ( pSoldier->fRTInNonintAnim )
 		{
-			// a watched militia battle in real time is a fight without combat mode:
+			// a fight in real time (watched militia battle, or the militia against
+			// the enemy, turnbased_starts_when_spotted) is one without combat mode:
 			// a hit, a fall or a death must interrupt the shot as in combat, or the
 			// new animation is lost (a dying soldier stays in his firing pose)
-			if ( !(gTacticalStatus.uiFlags & INCOMBAT) && !IsWatchedBattleInRealtime() )
+			if ( !(gTacticalStatus.uiFlags & INCOMBAT) && !IsRealtimeFight() )
 			{
 				return;
 			}

@@ -286,6 +286,17 @@ void HandleWatchedMilitiaBattleTurn()
 		CheckAndHandleUnloadingOfCurrentWorld();
 	}
 	HandleExitButton();
+
+	// any fight in real time -- also outside a watched battle: the militia
+	// against the enemy while no enemy has seen a merc (game.json
+	// turnbased_starts_when_spotted) -- has several soldiers attacking at once
+	if (IsRealtimeFight())
+	{
+		EndOverAttacks();
+		HandleStuckAttackBusyCount();
+		FixDyingSoldiersPoses();
+	}
+
 	if (!gfWatchingMilitiaBattle)                       return;
 
 	// real time: no interface lock (wait cursor) stays from before the watching
@@ -307,10 +318,6 @@ void HandleWatchedMilitiaBattleTurn()
 			SetRenderFlags(RENDER_FLAG_FULL);
 		}
 
-		// several soldiers attack at once
-		EndOverAttacks();
-		HandleStuckAttackBusyCount();
-		FixDyingSoldiersPoses();
 	}
 	if (!(gTacticalStatus.uiFlags & INCOMBAT))           return;
 	if (gTacticalStatus.ubCurrentTeam != OUR_TEAM)       return;

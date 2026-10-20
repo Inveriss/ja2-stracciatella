@@ -545,12 +545,19 @@ static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving);
 static void HandleCreatureTenseQuote(void);
 
 
+static void HandleSpottingStops();
+
+
 void ExecuteOverhead(void)
 {
 	BOOLEAN fKeepMoving;
 
 	// a watched militia battle: the player's (empty) turns end by themselves
+	// (and any fight in real time gets its attacks ended, see IsRealtimeFight())
 	HandleWatchedMilitiaBattleTurn();
+
+	// mercs who saw an unaware enemy stop
+	HandleSpottingStops();
 
 	if (COUNTERDONE(TOVERHEAD))
 	{
@@ -6325,6 +6332,63 @@ static void HandleBrothelWallDestroyed(INT16 const sSectorX, INT16 const sSector
         }
     }
 }
+
+bool TurnBasedWhenSpottedOnly()
+{
+	return gamepolicy(turnbased_starts_when_spotted) && !gfWatchingMilitiaBattle;
+}
+
+
+bool AnEnemySeesAMerc()
+{
+	CFOR_EACH_SOLDIER(e)
+	{
+		if (!e->bInSector || e->bLife < OKLIFE || e->bNeutral) continue;
+		if (e->bSide == OUR_TEAM) continue; // the player's side: mercs, militia
+		CFOR_EACH_IN_TEAM(m, OUR_TEAM)
+		{
+			if (!m->bInSector || m->bLife <= 0) continue;
+			if (e->bOppList[m->ubID] == SEEN_CURRENTLY) return true;
+		}
+	}
+	return false;
+}
+
+
+bool IsRealtimeFight()
+{
+	if (IsWatchedBattleInRealtime()) return true;
+	return TurnBasedWhenSpottedOnly() &&
+		!(gTacticalStatus.uiFlags & INCOMBAT) &&
+		gTacticalStatus.fEnemyInSector;
+}
+
+
+static bool g_stop_on_spotting[MAX_NUM_SOLDIERS];
+
+void StopMercOnSpotting(SOLDIERTYPE const& s)
+{
+	if (s.ubID < MAX_NUM_SOLDIERS) g_stop_on_spotting[s.ubID] = true;
+}
+
+static void HandleSpottingStops()
+{
+	for (UINT32 i = 0; i != MAX_NUM_SOLDIERS; ++i)
+	{
+		if (!g_stop_on_spotting[i]) continue;
+		g_stop_on_spotting[i] = false;
+
+		SOLDIERTYPE& s = GetMan(i);
+		if (!s.bActive || !s.bInSector || s.bLife < OKLIFE) continue;
+		if (gTacticalStatus.uiFlags & INCOMBAT) continue; // the turns stop him anyway
+		if (s.sGridNo == s.sFinalDestination && !(gAnimControl[s.usAnimState].uiFlags & ANIM_MOVING)) continue;
+
+		// stop where he is and wait for orders (still in real time)
+		EVENT_StopMerc(&s);
+		s.sFinalDestination = s.sGridNo;
+	}
+}
+
 
 #ifdef WITH_UNITTESTS
 #include "gtest/gtest.h"

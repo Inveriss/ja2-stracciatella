@@ -19,6 +19,13 @@
   //  vanilla setting: false
   "can_enter_turnbased": true,
 
+  //  Turn based mode starts only when an enemy sees one of the player's mercs,
+  //  attacks first, or a merc attacks. A merc who sees an enemy that hasn't
+  //  seen him stops (with his usual words) and waits, still in real time; the
+  //  enemy and the militia go on in real time until the enemy sees a merc.
+  //  vanilla setting: false
+  "turnbased_starts_when_spotted": true,
+
   //  Enables middle mouse button to trigger a look into cursor direction
   //  vanilla setting: false
   "middle_mouse_look": true,

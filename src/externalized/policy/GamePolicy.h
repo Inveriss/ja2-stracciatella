@@ -52,6 +52,7 @@ public:
 
 	bool middle_mouse_look;               // Look cursor with middle mouse button
 	bool can_enter_turnbased;             // 'd' can start turnbased if in real-time
+	bool turnbased_starts_when_spotted;   // turns only when an enemy sees a merc (or an attack); a merc seeing an enemy stops in real time
 
 	bool ai_better_aiming_choice;         // decide where to shoot depending on to-hit probability if random choice is being made
 	bool ai_go_prone_more_often;          // especially when already facing the right direction

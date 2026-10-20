@@ -371,4 +371,22 @@ void HandleThePlayerBeNotifiedOfSomeoneElseInSector(void);
 
 bool WildernessSectorWithAllProfiledNPCsNotSpokenWith(const SGPSector& sector);
 
+// game.json turnbased_starts_when_spotted (not in a watched militia battle,
+// which has its own rules): turns start only when an enemy sees a merc, an
+// enemy attacks first or a merc attacks
+bool TurnBasedWhenSpottedOnly();
+
+// An enemy (anybody hostile, not on the player's side) sees one of the
+// player's mercs
+bool AnEnemySeesAMerc();
+
+// A fight goes on in real time: a watched militia battle in real time, or
+// (turnbased_starts_when_spotted) the militia against the enemy while no enemy
+// has seen a merc
+bool IsRealtimeFight();
+
+// turnbased_starts_when_spotted: a merc who saw an enemy that hasn't seen him
+// stops (next frame, outside the sight code) and waits for orders
+void StopMercOnSpotting(SOLDIERTYPE const&);
+
 #endif

@@ -385,8 +385,8 @@ void DisplayHiddenInterrupt( SOLDIERTYPE * pSoldier )
 		return;
 	}
 
-	// a watched militia battle in real time has no interrupts
-	if (IsWatchedBattleInRealtime())
+	// a fight in real time has no interrupts
+	if (IsRealtimeFight() || (TurnBasedWhenSpottedOnly() && !(gTacticalStatus.uiFlags & INCOMBAT)))
 	{
 		gfHiddenInterrupt = FALSE;
 		return;
@@ -443,6 +443,15 @@ void DisplayHiddenTurnbased( SOLDIERTYPE * pActingSoldier )
 	// a watched militia battle in real time: the attack goes on without turns
 	// (same rule as in EnterCombatMode)
 	if (gfWatchingMilitiaBattle && gamepolicy(militia_watch_realtime)) return;
+
+	// game.json turnbased_starts_when_spotted: an attack starts the turns only
+	// when an enemy sees a merc (the militia attacking, or being attacked, go on
+	// in real time)
+	if (TurnBasedWhenSpottedOnly() && !AnEnemySeesAMerc())
+	{
+		SetEnemyPresence();
+		return;
+	}
 
 	// Enter combat mode starting with this side's turn
 	gTacticalStatus.ubCurrentTeam  = pActingSoldier->bTeam;
@@ -1348,9 +1357,10 @@ void AddToIntList(SOLDIERTYPE* const s, const BOOLEAN fGainControl, const BOOLEA
 {
 	UINT8 ubLoop;
 
-	// a watched militia battle in real time has no turns, so no interrupts
-	// (the sighting and unseen-attacker code asks for them after EnterCombatMode)
-	if (IsWatchedBattleInRealtime()) return;
+	// a fight in real time has no turns, so no interrupts (the sighting and
+	// unseen-attacker code asks for them after EnterCombatMode, which may not
+	// have started the turns: watched battle, turnbased_starts_when_spotted)
+	if (IsRealtimeFight() || (TurnBasedWhenSpottedOnly() && !(gTacticalStatus.uiFlags & INCOMBAT))) return;
 
 	SLOGD("INTERRUPT: adding ID {} who {}",
 				s->ubID, fGainControl ? "gains control" : "loses control");
@@ -1510,8 +1520,8 @@ static void VerifyOutOfTurnOrderArray(void)
 
 void DoneAddingToIntList(void)
 {
-	// a watched militia battle in real time has no interrupts (see AddToIntList)
-	if (IsWatchedBattleInRealtime()) return;
+	// a fight in real time has no interrupts (see AddToIntList)
+	if (IsRealtimeFight() || (TurnBasedWhenSpottedOnly() && !(gTacticalStatus.uiFlags & INCOMBAT))) return;
 
 	VerifyOutOfTurnOrderArray();
 	if (EveryoneInInterruptListOnSameTeam())
