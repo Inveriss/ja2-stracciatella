@@ -1665,8 +1665,9 @@ static BOOLEAN DoSpecialEffectAmmoMiss(SOLDIERTYPE* const attacker, const INT16 
 	UINT8          ubAmmoType;
 	UINT16         usItem;
 
-	ubAmmoType = attacker->inv[attacker->ubAttackingHand].ubGunAmmoType;
-	usItem     = attacker->inv[attacker->ubAttackingHand].usItem;
+	// a bullet keeps what was fired; the firer may hold another item by now (real time)
+	ubAmmoType = bullet ? bullet->ubAmmoType : attacker->inv[attacker->ubAttackingHand].ubGunAmmoType;
+	usItem     = bullet ? bullet->usWeapon   : attacker->inv[attacker->ubAttackingHand].usItem;
 
 	AniParams = ANITILE_PARAMS{};
 
@@ -1776,7 +1777,7 @@ void StructureHit(BULLET* const pBullet, const UINT16 usStructureID, const INT32
 	UINT32         uiMissVolume = MIDVOLUME;
 
 	SOLDIERTYPE* const attacker      = pBullet->pFirer;
-	const UINT16       usWeaponIndex = attacker->usAttackingWeapon;
+	const UINT16       usWeaponIndex = pBullet->usWeapon;
 	const INT8         bWeaponStatus = pBullet->ubItemStatus;
 
 	if (fStopped)
@@ -3328,7 +3329,7 @@ void ShotMiss(const BULLET* const b)
 	// AGILITY GAIN: Opponent "dodged" a bullet shot at him (it missed)
 	if (opponent != NULL) AgilityForEnemyMissingPlayer(pAttacker, opponent, 5);
 
-	switch (GCM->getWeapon(pAttacker->usAttackingWeapon)->ubWeaponClass)
+	switch (GCM->getWeapon(b->usWeapon)->ubWeaponClass)
 	{
 		case HANDGUNCLASS:
 		case RIFLECLASS:

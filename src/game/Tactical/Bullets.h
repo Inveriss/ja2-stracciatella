@@ -57,6 +57,10 @@ struct BULLET
 	ANITILE *pAniTile;
 	ANITILE *pShadowAniTile;
 	UINT8   ubItemStatus;
+	// weapon and gun ammo type at the moment of firing; in a real-time fight
+	// the firer may already hold another item when the bullet hits
+	UINT16  usWeapon;
+	UINT8   ubAmmoType;
 };
 
 extern UINT32 guiNumBullets;

@@ -1826,7 +1826,7 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 	}
 	else
 	{
-		ubAmmoType = pFirer->inv[pFirer->ubAttackingHand].ubGunAmmoType;
+		ubAmmoType = pBullet->ubAmmoType;
 	}
 
 	// at least partly compensate for "near miss" increases for this guy, after all, the bullet
@@ -2099,7 +2099,7 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 	// now check to see if the bullet goes THROUGH this person! (not vehicles)
 	if (!(tgt.uiStatusFlags & SOLDIER_VEHICLE) &&
 		(ubAmmoType == AMMO_REGULAR || ubAmmoType == AMMO_AP || ubAmmoType == AMMO_SUPER_AP) &&
-		!EXPLOSIVE_GUN(pFirer->usAttackingWeapon))
+		!EXPLOSIVE_GUN(pBullet->usWeapon))
 	{
 		// if we do more damage than expected, then the bullet will be more likely
 		// to be lodged in the body
@@ -2180,7 +2180,7 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 	}
 
 	// handle hit!
-	WeaponHit(&tgt, pFirer->usAttackingWeapon, iDamage, breath_loss, hit_direction, tgt.dXPos, tgt.dYPos, 20, sRange, pFirer, ubSpecial, ubHitLocation);
+	WeaponHit(&tgt, pBullet->usWeapon, iDamage, breath_loss, hit_direction, tgt.dXPos, tgt.dYPos, 20, sRange, pFirer, ubSpecial, ubHitLocation);
 	return( fStopped );
 }
 
@@ -2260,7 +2260,7 @@ static INT32 HandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pStruc
 	else if ( pBullet->usFlags & BULLET_FLAG_SMALL_MISSILE )
 	{
 		// stops if using HE ammo
-		if (pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ].ubGunAmmoType == AMMO_HE)
+		if (pBullet->ubAmmoType == AMMO_HE)
 		{
 			*pfHit = TRUE;
 			return( 0 );
@@ -2316,7 +2316,7 @@ static INT32 HandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pStruc
 		iImpactReduction = gubMaterialArmour[ pStructure->pDBStructureRef->pDBStructure->ubArmour ];
 		iImpactReduction = StructureResistanceIncreasedByRange( iImpactReduction, pBullet->iRange, pBullet->iLoop );
 
-		switch (pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ].ubGunAmmoType)
+		switch (pBullet->ubAmmoType)
 		{
 			case AMMO_HP:
 				iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_HP( iImpactReduction );
@@ -2369,7 +2369,7 @@ static INT32 CTGTHandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pS
 	else if ( pBullet->usFlags & BULLET_FLAG_SMALL_MISSILE )
 	{
 		// stops if using HE ammo
-		if (pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ].ubGunAmmoType == AMMO_HE)
+		if (pBullet->ubAmmoType == AMMO_HE)
 		{
 			return( pBullet->iImpact );
 		}
@@ -2389,7 +2389,7 @@ static INT32 CTGTHandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pS
 	// multiply impact reduction by 100 to retain fractions for a bit...
 	iImpactReduction = gubMaterialArmour[ pStructure->pDBStructureRef->pDBStructure->ubArmour ] * pStructure->pDBStructureRef->pDBStructure->ubDensity / 100;
 	iImpactReduction = StructureResistanceIncreasedByRange( iImpactReduction, pBullet->iRange, pBullet->iLoop );
-	switch (pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ].ubGunAmmoType)
+	switch (pBullet->ubAmmoType)
 	{
 		case AMMO_HP:
 			iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_HP( iImpactReduction );
@@ -3205,13 +3205,13 @@ static INT8 FireBullet(BULLET* pBullet, BOOLEAN fFake)
 			}
 		}
 
-		if ( GCM->getItem(pFirer->usAttackingWeapon)->getItemClass() == IC_THROWING_KNIFE )
+		if ( GCM->getItem(pBullet->usWeapon)->getItemClass() == IC_THROWING_KNIFE )
 		{
 			pBullet->usClockTicksPerUpdate = 30;
 		}
 		else
 		{
-			pBullet->usClockTicksPerUpdate = GCM->getWeapon( pFirer->usAttackingWeapon )->ubBulletSpeed / 10;
+			pBullet->usClockTicksPerUpdate = GCM->getWeapon( pBullet->usWeapon )->ubBulletSpeed / 10;
 		}
 
 		HandleBulletSpecialFlags(pBullet);
@@ -3341,6 +3341,8 @@ INT8 FireBulletGivenTarget(SOLDIERTYPE* const pFirer, const FLOAT dEndX, const F
 			return FALSE;
 		}
 		pBullet->sHitBy	= sHitBy;
+		pBullet->usWeapon   = usHandItem;
+		pBullet->ubAmmoType = pFirer->inv[pFirer->ubAttackingHand].ubGunAmmoType;
 
 		if (dStartZ < WALL_HEIGHT_UNITS)
 		{
