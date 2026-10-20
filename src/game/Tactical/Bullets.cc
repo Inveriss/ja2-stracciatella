@@ -14,7 +14,9 @@
 #include <algorithm>
 #include <iterator>
 
-#define NUM_BULLET_SLOTS 50
+// was 50: a fight in real time (watched militia battle) has many soldiers
+// firing bursts and buckshot at once; the save stores only the bullets in use
+#define NUM_BULLET_SLOTS 200
 
 
 static BULLET gBullets[NUM_BULLET_SLOTS];
@@ -64,6 +66,17 @@ BULLET* CreateBullet(SOLDIERTYPE* const firer, const BOOLEAN fFake, const UINT16
 	b->fReal = !fFake;
 
 	return b;
+}
+
+
+bool BulletInFlight(SOLDIERTYPE const* const firer)
+{
+	for (BULLET const* b = gBullets; b != gBullets + guiNumBullets; ++b)
+	{
+		if (!b->fAllocated || b->fToDelete || !b->fReal) continue;
+		if (firer == NULL || b->pFirer == firer) return true;
+	}
+	return false;
 }
 
 

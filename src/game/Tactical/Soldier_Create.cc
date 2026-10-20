@@ -1839,7 +1839,10 @@ SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass const sc)
 {
 	if (guiCurrentScreen == AUTORESOLVE_SCREEN && !gfPersistantPBI)
 	{
-		return ReserveTacticalSoldierForAutoresolve(sc);
+		SOLDIERTYPE* const s = ReserveTacticalSoldierForAutoresolve(sc);
+		if (s) return s;
+		// The sector counts more of them than tactical has (some never got a
+		// place there: no room, still on their way): a new one for autoresolve
 	}
 
 	BASIC_SOLDIERCREATE_STRUCT bp;
@@ -1906,7 +1909,9 @@ SOLDIERTYPE* TacticalCreateCreature( INT8 bCreatureBodyType )
 
 	if( guiCurrentScreen == AUTORESOLVE_SCREEN && !gfPersistantPBI )
 	{
-		return ReserveTacticalSoldierForAutoresolve( SOLDIER_CLASS_CREATURE );
+		SOLDIERTYPE* const s = ReserveTacticalSoldierForAutoresolve( SOLDIER_CLASS_CREATURE );
+		if (s) return s;
+		// more counted than tactical has: a new one (see TacticalCreateEnemySoldier)
 	}
 
 	bp = BASIC_SOLDIERCREATE_STRUCT{};

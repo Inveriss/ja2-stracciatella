@@ -1710,8 +1710,9 @@ INT16 MinAPsToThrow(SOLDIERTYPE const& s, GridNo gridno, bool const add_turning_
 {
 	INT32 ap = AP_MIN_AIM_ATTACK;
 
-	// Make sure the guy's actually got a throwable item in his hand
-	UINT16 const in_hand = s.inv[HANDPOS].usItem;
+	// Make sure the guy's actually got a throwable item in his hand (during the
+	// throw animation it has already left the hand: pTempObject is thrown)
+	UINT16 const in_hand = s.pTempObject ? s.pTempObject->usItem : s.inv[HANDPOS].usItem;
 	auto * item{ GCM->getItem(in_hand, ItemSystem::nothrow) };
 	if (!item)
 	{

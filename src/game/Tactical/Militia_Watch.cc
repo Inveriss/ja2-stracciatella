@@ -16,6 +16,15 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "GamePolicy.h"
+#include "AI.h"
+#include "Animation_Control.h"
+#include "Bullets.h"
+#include "Explosion_Control.h"
+#include "OppList.h"
+#include "Physics.h"
+#include "Soldier_Control.h"
+#include "Animation_Data.h"
+#include "Logger.h"
 
 #include <chrono>
 
@@ -111,15 +120,136 @@ static void HandleExitButton()
 }
 
 
+// Real time: nothing of an attack is on its way any more (bullets, thrown or
+// launched objects, explosions waiting to go off); the attack busy count is not
+// asked, several soldiers attack at once and it seldom drops to 0
+static bool NoAttackInFlight()
+{
+	return !BulletInFlight(NULL) && !ObjectInFlight(NULL) && gubElementsOnExplosionQueue == 0;
+}
+
+
+// The end of an attack (the AI soldier free for his next action, his target
+// under fire and noticing him, the muzzle flash off) is handled where the attack
+// busy count drops to 0, for the last attacker only.  In a watched battle in real
+// time several soldiers attack at once, so every AI attacker whose attack is over
+// (nothing of his on its way, no firing animation) for ATTACK_OVER_DELAY gets it
+// here.
+#define ATTACK_OVER_DELAY 1000 // ms
+
+static bool IsAttackAction(INT8 const action)
+{
+	switch (action)
+	{
+		case AI_ACTION_FIRE_GUN:
+		case AI_ACTION_TOSS_PROJECTILE:
+		case AI_ACTION_THROW_KNIFE:
+		case AI_ACTION_KNIFE_STAB:
+			return true;
+		default:
+			return false;
+	}
+}
+
+static bool OwnAttackUnderway(SOLDIERTYPE const& s)
+{
+	UINT32 const anim_flags = gAnimControl[s.usAnimState].uiFlags;
+	return
+		s.bBulletsLeft > 0                                    || // a burst goes on
+		s.pTempObject != NULL                                 || // something about to be thrown
+		s.bDesiredDirection != s.bDirection                   || // turning to the target
+		s.usPendingAnimation != NO_PENDING_ANIMATION          ||
+		anim_flags & (ANIM_FIRE | ANIM_RAISE_WEAPON | ANIM_MOVING) ||
+		BulletInFlight(&s)                                    ||
+		ObjectInFlight(&s);
+}
+
+static void EndOwnAttack(SOLDIERTYPE& s)
+{
+	SOLDIERTYPE* const tgt = s.target;
+	if (tgt && tgt->bActive && tgt->bInSector && (s.uiStatusFlags & SOLDIER_ATTACK_NOTICED) &&
+		tgt->ubBodyType != CROW && (s.bTeam != OUR_TEAM || tgt->bTeam != OUR_TEAM))
+	{
+		if (tgt->bOppList[s.ubID] != SEEN_CURRENTLY) NoticeUnseenAttacker(&s, tgt, 0);
+		tgt->bUnderFire = 2;
+	}
+	s.uiStatusFlags   &= ~SOLDIER_ATTACK_NOTICED;
+	s.ubAttackingHand  = HANDPOS;
+	if (s.bWeaponMode == WM_ATTACHED) s.bWeaponMode = WM_NORMAL;
+	s.sLastTarget      = s.sTargetGridNo;
+	EndMuzzleFlash(&s);
+	FreeUpNPCFromAttacking(&s);
+}
+
+static void EndOverAttacks()
+{
+	static UINT32 attack_over_since[TOTAL_SOLDIERS]; // 0: underway / no attack
+	UINT32 const now = GetJA2Clock();
+	FOR_EACH_SOLDIER(s)
+	{
+		UINT32& since = attack_over_since[s->ubID];
+		if (!s->bInSector || s->bTeam == OUR_TEAM || s->bLife < OKLIFE ||
+			!s->bActionInProgress || !IsAttackAction(s->bAction) || OwnAttackUnderway(*s))
+		{
+			since = 0;
+			continue;
+		}
+		if (since == 0 || now < since) { since = now; continue; }
+		if (now - since < ATTACK_OVER_DELAY) continue;
+
+		since = 0;
+		SLOGD("Watched battle: attack of {} over, freeing him", s->ubID);
+		EndOwnAttack(*s);
+	}
+}
+
+
+// A watch on the attack busy count: when it stays above 0 for
+// STUCK_BUSY_COUNT_DELAY while nothing is on its way and nobody is being hit, a
+// part of an attack never ended (several at once in real time); the count goes
+// back to 0 and the end of the battle is checked, which needs the count at 0.
+#define STUCK_BUSY_COUNT_DELAY 3000 // ms
+
+static void HandleStuckAttackBusyCount()
+{
+	static UINT8  last_count;
+	static UINT32 last_change;
+	UINT32 const now   = GetJA2Clock();
+	UINT8  const count = gTacticalStatus.ubAttackBusyCount;
+	if (count != last_count || now < last_change)
+	{
+		last_count  = count;
+		last_change = now;
+		return;
+	}
+	if (count == 0 || now - last_change < STUCK_BUSY_COUNT_DELAY) return;
+	if (!NoAttackInFlight()) return;
+	CFOR_EACH_SOLDIER(s)
+	{
+		if (s->bInSector && s->fGettingHit) return;
+	}
+
+	SLOGW("Watched battle: attack busy count {} stuck, set to 0", count);
+	gTacticalStatus.ubAttackBusyCount = 0;
+	last_count  = 0;
+	last_change = now;
+	CheckForEndOfBattle(FALSE);
+}
+
+
 void HandleWatchedMilitiaBattleTurn()
 {
-	if (g_exit_requested && gTacticalStatus.ubAttackBusyCount == 0)
+	bool const exit_now = gTacticalStatus.ubAttackBusyCount == 0 ||
+		(IsWatchedBattleInRealtime() && NoAttackInFlight());
+	if (g_exit_requested && exit_now)
 	{
 		// stop watching: leave the sector, back to the map screen; a battle still
 		// going on is finished by autoresolve (nobody of the player's team is here).
 		// First the AI's turn ends and the interface lock goes, as at the end of a
 		// battle, or the lock would stay over the map screen.
 		g_exit_requested        = false;
+		// real time: attacks of others may still count (nothing is in flight)
+		if (IsWatchedBattleInRealtime()) gTacticalStatus.ubAttackBusyCount = 0;
 		gfWatchingMilitiaBattle = FALSE;
 		if (gTacticalStatus.ubCurrentTeam != OUR_TEAM) EndAllAITurns();
 		UIHandleLUIEndLock(NULL);
@@ -136,6 +266,10 @@ void HandleWatchedMilitiaBattleTurn()
 		if (gfUserTurnRegionActive) guiPendingOverrideEvent = LA_ENDUIOUTURNLOCK;
 		// ...and no turn or interrupt bar at the top of the screen
 		if (gTacticalStatus.fInTopMessage) EndTopMessage();
+
+		// several soldiers attack at once
+		EndOverAttacks();
+		HandleStuckAttackBusyCount();
 	}
 	if (!(gTacticalStatus.uiFlags & INCOMBAT))           return;
 	if (gTacticalStatus.ubCurrentTeam != OUR_TEAM)       return;
