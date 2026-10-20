@@ -4080,6 +4080,10 @@ void EnterCombatMode( UINT8 ubStartingTeam )
 	// only do this once they are seen.....
 	SetEnemyPresence();
 
+	// a watched militia battle in real time (game.json militia_watch.realtime):
+	// no turns, the enemy presence above is all (music, end of battle checks)
+	if (gfWatchingMilitiaBattle && gamepolicy(militia_watch_realtime)) return;
+
 	CommonEnterCombatModeCode( );
 
 	if (ubStartingTeam == OUR_TEAM)
