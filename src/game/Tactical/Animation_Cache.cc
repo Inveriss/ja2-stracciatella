@@ -11,6 +11,15 @@ void AnimationSurfaceCacheType::init(UINT8 const pid)
 {
 	mPid = pid;
 
+	// A new soldier starts with an empty cache: a list left from the struct's
+	// former soldier (or copied with it) would claim surfaces this one never
+	// locked -- they could be unloaded under him (frozen, not drawn)
+	for (int cnt = 0; cnt < ANIM_CACHE_SIZE; cnt++)
+	{
+		usCachedSurfaces[cnt] = EMPTY_CACHE_ENTRY;
+		sCacheHits[cnt]       = 0;
+	}
+
 	// Zero surface database history for this soldier
 	ClearAnimationSurfacesUsageHistory( pid );
 }
@@ -79,7 +88,7 @@ void AnimationSurfaceCacheType::cache(UINT16 const usSurfaceIndex, UINT16 const 
 
 		// Bump off lowest index
 		SLOGD("Anim Cache: Bumping {} ( Soldier {} )", freeSlot, mPid);
-		UnLoadAnimationSurface( mPid, usCachedSurfaces[ freeSlot ] );
+		UnLoadAnimationSurface( mPid, usCachedSurfaces[ freeSlot ], this );
 		usCachedSurfaces[ freeSlot ] = EMPTY_CACHE_ENTRY;
 	}
 
@@ -96,11 +105,26 @@ void AnimationSurfaceCacheType::cache(UINT16 const usSurfaceIndex, UINT16 const 
 void AnimationSurfaceCacheType::free()
 {
 	// Check to see if surface exists already
-	for (const UINT16 surface : usCachedSurfaces)
+	for (int cnt = 0; cnt < ANIM_CACHE_SIZE; cnt++)
 	{
+		UINT16& surface = usCachedSurfaces[cnt];
 		if ( surface != EMPTY_CACHE_ENTRY )
 		{
-			UnLoadAnimationSurface( mPid, surface );
+			UnLoadAnimationSurface( mPid, surface, this );
 		}
+		// nothing held any more: a second free() (a copy of this soldier, or
+		// the struct used again) must not give the surfaces back again
+		surface          = EMPTY_CACHE_ENTRY;
+		sCacheHits[cnt]  = 0;
 	}
+}
+
+
+bool AnimationSurfaceCacheType::has(UINT16 const usSurfaceIndex) const
+{
+	for (const UINT16 surface : usCachedSurfaces)
+	{
+		if (surface == usSurfaceIndex) return true;
+	}
+	return false;
 }
