@@ -38,6 +38,7 @@
 #include "Debug.h"
 #include "Items.h"
 #include "Logger.h"
+#include "Militia_Watch.h"
 
 // for that single policy check :|
 #include "GamePolicy.h"
@@ -431,6 +432,10 @@ void DisplayHiddenTurnbased( SOLDIERTYPE * pActingSoldier )
 		// pointless call here; do nothing
 		return;
 	}
+
+	// a watched militia battle in real time: the attack goes on without turns
+	// (same rule as in EnterCombatMode)
+	if (gfWatchingMilitiaBattle && gamepolicy(militia_watch_realtime)) return;
 
 	// Enter combat mode starting with this side's turn
 	gTacticalStatus.ubCurrentTeam  = pActingSoldier->bTeam;
