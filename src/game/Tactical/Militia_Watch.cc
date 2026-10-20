@@ -80,10 +80,13 @@ void HandleWatchMilitiaBattleRequest()
 	// team is there: the militia fight, the player watches
 	gfWatchingMilitiaBattle = TRUE;
 
-	// always the low team panel (bottom_bar_low_big_1366x768.png): there is no merc
+	// there is no merc: at 1366x768 the watched battle's bar (WATCH_BAR_FILE,
+	// only the EXIT button on it), otherwise the low team panel
+	// (bottom_bar_low_big_1366x768.png)
 	if (!g_low_team_panel_forced) g_saved_low_team_panel = g_ui.isLowTeamPanel();
 	g_low_team_panel_forced = true;
 	g_ui.setLowTeamPanel(true);
+	g_ui.setWatchBar(true);
 	RebuildTacticalTeamPanel();
 
 	SetCurrentWorldSector(g_watch_sector);
@@ -115,8 +118,13 @@ static void HandleExitButton()
 	locked_before = locked;
 	if (want && !g_exit_button)
 	{
-		INT16 const x = SCREEN_WIDTH - WATCH_EXIT_MARGIN - WATCH_EXIT_W;
-		INT16 const y = SCREEN_HEIGHT - BIG_TEAMPANEL_HEIGHT - WATCH_EXIT_MARGIN - WATCH_EXIT_H;
+		// in the middle of the watched battle's bar, or over the low team panel
+		// at the screen's right edge
+		bool  const bar = g_ui.isWatchBar();
+		INT16 const x   = bar ? (SCREEN_WIDTH - WATCH_EXIT_W) / 2 :
+			SCREEN_WIDTH - WATCH_EXIT_MARGIN - WATCH_EXIT_W;
+		INT16 const y   = bar ? SCREEN_HEIGHT - WATCH_BAR_HEIGHT + (WATCH_BAR_HEIGHT - WATCH_EXIT_H) / 2 :
+			SCREEN_HEIGHT - BIG_TEAMPANEL_HEIGHT - WATCH_EXIT_MARGIN - WATCH_EXIT_H;
 		g_exit_button = QuickCreateButtonImg(WATCH_EXIT_GFX, 6, 7, x, y, MSYS_PRIORITY_HIGHEST, ExitButtonCallback);
 		g_exit_button->SpecifyGeneralTextAttributes(pMilitiaWatchStrings[2], FONT12ARIAL, 169, FONT_NEARBLACK);
 	}
@@ -334,6 +342,7 @@ void EndWatchedMilitiaBattle()
 	{
 		// the team panel's form from before the watching
 		g_low_team_panel_forced = false;
+		g_ui.setWatchBar(false);
 		g_ui.setLowTeamPanel(g_saved_low_team_panel);
 		RebuildTacticalTeamPanel();
 	}

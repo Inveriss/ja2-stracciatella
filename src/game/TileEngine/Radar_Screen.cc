@@ -201,6 +201,16 @@ void MoveRadarScreen( )
 	// check if we are allowed to do anything?
 	if (!fRenderRadarScreen) return;
 
+	if (g_ui.isWatchBarShown())
+	{
+		// the watched battle's bar has no radar: its region out of the way
+		gRadarRegion.RegionTopLeftX     = 0;
+		gRadarRegion.RegionTopLeftY     = 0;
+		gRadarRegion.RegionBottomRightX = 0;
+		gRadarRegion.RegionBottomRightY = 0;
+		return;
+	}
+
 	gRadarRegion.RegionTopLeftX     = RADAR_WINDOW_X;
 	gRadarRegion.RegionTopLeftY     = RADAR_WINDOW_TM_Y;
 	gRadarRegion.RegionBottomRightX = RADAR_WINDOW_X + RADAR_WINDOW_WIDTH;
@@ -287,6 +297,9 @@ void RenderRadarScreen()
 	// SECTOR_INVENTORY_STACK_1024.sti every frame regardless of that panel's
 	// own rendering.
 	if (fShowMapInventoryPool) return;
+
+	// the watched battle's bar has no radar
+	if (g_ui.isWatchBarShown()) return;
 
 	// The 1366x768 SM panel has no radar window (its button opens the
 	// overhead map instead).

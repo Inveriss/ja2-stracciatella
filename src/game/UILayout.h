@@ -146,7 +146,11 @@
 #define BIG_TEAMPANEL_FULL_HEIGHT       (200)
 #define BIG_TEAMPANEL_LOW_HEIGHT        (150)
 #define BIG_TEAMPANEL_LOW_FILE          "bottom_bar_low_big_1366x768.png"
-#define BIG_TEAMPANEL_HEIGHT            (g_ui.isLowTeamPanel() ? BIG_TEAMPANEL_LOW_HEIGHT : BIG_TEAMPANEL_FULL_HEIGHT)
+// The bar of a watched militia battle (isWatchBar()): only the EXIT button on
+// it, the world shown down to it; 1366x768 only
+#define WATCH_BAR_FILE                  "MILITIA_BOTTOM_BAR.png"
+#define WATCH_BAR_HEIGHT                (45)
+#define BIG_TEAMPANEL_HEIGHT            (g_ui.isWatchBar() ? WATCH_BAR_HEIGHT : g_ui.isLowTeamPanel() ? BIG_TEAMPANEL_LOW_HEIGHT : BIG_TEAMPANEL_FULL_HEIGHT)
 #define BIG_TEAMPANEL_NUM_SLOTS         (7)      // slots shown; a bigger squad scrolls through them
 #define BIG_TEAMPANEL_SLOT_WIDTH        (146)
 #define BIG_TEAMPANEL_FONT              FONT14ARIAL
@@ -249,6 +253,7 @@ public:
 	UINT16                m_mapRightBlockShift;           /** How far the right block sits right of where the legacy 1024 canvas had it (m_mapScreenWidth - 1024 on the wide strategic screen, else 0) -- see MAP_RIGHT_BLOCK_SHIFT */
 	bool                  m_bigTeamPanel;                 /** The tactical team panel is bottom_bar_big_1366x768.png -- see isBigTeamPanel() */
 	bool                  m_lowTeamPanel;                 /** The big team panel is in its low form -- see isLowTeamPanel() */
+	bool                  m_watchBar;                     /** The big team panel is the watched battle's bar -- see isWatchBar() */
 	bool                  m_bigSMPanel;                   /** The tactical SM panel is inventory_bottom_panel_big_1366x768.png -- see isBigSMPanel() */
 	bool                  m_smLargeIcons;                 /** The SM panels' Show Large Icons toggle: the big SM panel (on), or the old one (off) -- see setSMLargeIcons() */
 
@@ -292,6 +297,15 @@ public:
 
 	/** Switches the big team panel's low form on or off -- off when its graphic is missing. The panel itself is rebuilt by the caller. */
 	void setLowTeamPanel(bool low);
+
+	/** True when the big team panel is the bar of a watched militia battle (WATCH_BAR_*): nothing on it but the EXIT button. */
+	bool isWatchBar() const { return m_bigTeamPanel && m_watchBar; }
+
+	/** The watched battle's bar on screen right now (tactical, team panel). */
+	bool isWatchBarShown() const { return isWatchBar() && isBigTeamPanelShown(); }
+
+	/** Switches the watched battle's bar on or off -- on only at 1366x768 with its graphic present; the world viewport then reaches down to the bar. The panel itself is rebuilt by the caller. */
+	void setWatchBar(bool on);
 
 	UINT16 currentHeight() const;
 	UINT16 get_CLOCK_X() const;

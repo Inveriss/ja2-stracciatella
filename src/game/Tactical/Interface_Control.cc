@@ -606,7 +606,8 @@ void RenderTopmostTacticalInterface()
 
 	if (gfInSectorExitMenu) RenderSectorExitMenu();
 
-	if (fRenderRadarScreen)
+	// (the watched battle's bar has no clock, sector name or radar)
+	if (fRenderRadarScreen && !g_ui.isWatchBarShown())
 	{
 		RenderClock();
 		RenderTownIDString();

@@ -29,7 +29,7 @@ UILayout g_ui(MIN_INTERFACE_WIDTH, MIN_INTERFACE_HEIGHT);
 /** Constructor. */
 UILayout::UILayout(UINT16 screenWidth, UINT16 screenHeight)
 	:m_mapScreenWidth(MIN_INTERFACE_WIDTH), m_mapScreenHeight(MIN_INTERFACE_HEIGHT),
-	m_screenWidth(screenWidth), m_screenHeight(screenHeight), m_bigTeamPanel(false), m_lowTeamPanel(false), m_bigSMPanel(false), m_smLargeIcons(true)
+	m_screenWidth(screenWidth), m_screenHeight(screenHeight), m_bigTeamPanel(false), m_lowTeamPanel(false), m_watchBar(false), m_bigSMPanel(false), m_smLargeIcons(true)
 {
 }
 
@@ -138,6 +138,14 @@ void UILayout::setSMLargeIcons(bool const on)
 void UILayout::setLowTeamPanel(bool const low)
 {
 	m_lowTeamPanel = low && GCM && GCM->doesGameResExists(INTERFACEDIR "/" BIG_TEAMPANEL_LOW_FILE);
+}
+void UILayout::setWatchBar(bool const on)
+{
+	bool const want = on && m_screenWidth == 1366 && m_screenHeight == 768 &&
+		GCM && GCM->doesGameResExists(INTERFACEDIR "/" WATCH_BAR_FILE);
+	if (want == m_watchBar) return;
+	m_watchBar = want;
+	recalculatePositions(); // the viewport's bottom
 }
 UINT16 UILayout::get_INV_INTERFACE_START_Y() const { return m_screenHeight - INV_INTERFACE_HEIGHT;                                  }
 UINT16 UILayout::get_ITEMDESC_PANEL_START_Y() const { return m_screenHeight - ITEMDESC_PANEL_HEIGHT;                                 }
@@ -409,12 +417,14 @@ void UILayout::recalculatePositions()
 	m_VIEWPORT_START_Y            = 0;
 	m_VIEWPORT_WINDOW_START_Y     = 0;
 	m_VIEWPORT_END_X              = m_screenWidth;
-	m_VIEWPORT_END_Y              = m_screenHeight - 120;
-	m_VIEWPORT_WINDOW_END_Y       = m_screenHeight - 120;
+	// the watched battle's bar is low: the world is shown down to it
+	UINT16 const viewport_end_y   = m_screenHeight - (isWatchBar() ? WATCH_BAR_HEIGHT : 120);
+	m_VIEWPORT_END_Y              = viewport_end_y;
+	m_VIEWPORT_WINDOW_END_Y       = viewport_end_y;
 	m_tacticalMapCenterX          = (m_VIEWPORT_END_X - m_VIEWPORT_START_X) / 2;
 	m_tacticalMapCenterY          = (m_VIEWPORT_END_Y - m_VIEWPORT_START_Y) / 2;
 
-	m_worldClippingRect.set(0, 0, m_screenWidth, m_screenHeight - 120);
+	m_worldClippingRect.set(0, 0, m_screenWidth, viewport_end_y);
 
 	m_contractPosition.set(       m_mapScreenOffsetX + 120, m_mapScreenOffsetY +  50);
 	m_attributePosition.set(      m_mapScreenOffsetX + 220, m_mapScreenOffsetY + 150);
