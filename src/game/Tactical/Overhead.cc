@@ -2166,8 +2166,10 @@ void LocateSoldier(SOLDIERTYPE* s, BOOLEAN fSetLocator)
 
 	// do we need to move the screen?
 	//ATE: Force this baby to locate if told to
-	// (a watched militia battle in real time: the screen stays where the player put it)
-	if ((!SoldierOnScreen(s) || fSetLocator == 10) && !IsWatchedBattleInRealtime())
+	// (a fight in real time -- watched militia battle, or the militia against the
+	// enemy while no enemy has seen a merc -- leaves the screen where the player
+	// put it; only the player's own mercs are still located)
+	if ((!SoldierOnScreen(s) || fSetLocator == 10) && !(IsRealtimeFight() && s->bTeam != OUR_TEAM))
 	{
 		// Center on guy
 		const INT16 sNewCenterWorldX = (INT16)s->dXPos;
@@ -2198,8 +2200,8 @@ void InternalLocateGridNo(UINT16 sGridNo, BOOLEAN fForce)
 	// FIRST CHECK IF WE ARE ON SCREEN
 	if (GridNoOnScreen(sGridNo) && !fForce) return;
 
-	// a watched militia battle in real time: the screen stays where the player put it
-	if (IsWatchedBattleInRealtime() && !fForce) return;
+	// a fight in real time: the screen stays where the player put it
+	if (IsRealtimeFight() && !fForce) return;
 
 	SetRenderCenter(sNewCenterWorldX, sNewCenterWorldY);
 }
@@ -2231,8 +2233,9 @@ void SlideTo(SOLDIERTYPE* const tgt, const BOOLEAN fSetLocator)
 	// FIRST CHECK IF WE ARE ON SCREEN
 	if (GridNoOnScreen(tgt->sGridNo)) return;
 
-	// a watched militia battle in real time: the screen stays where the player put it
-	if (IsWatchedBattleInRealtime()) return;
+	// a fight in real time: the screen stays where the player put it (the
+	// player's own mercs are still slid to)
+	if (IsRealtimeFight() && tgt->bTeam != OUR_TEAM) return;
 
 	// sGridNo here for DG compatibility
 	gTacticalStatus.sSlideTarget = tgt->sGridNo;
@@ -2249,8 +2252,8 @@ void SlideToLocation(const INT16 sDestGridNo)
 	// FIRST CHECK IF WE ARE ON SCREEN
 	if (GridNoOnScreen(sDestGridNo)) return;
 
-	// a watched militia battle in real time: the screen stays where the player put it
-	if (IsWatchedBattleInRealtime()) return;
+	// a fight in real time: the screen stays where the player put it
+	if (IsRealtimeFight()) return;
 
 	// sGridNo here for DG compatibility
 	gTacticalStatus.sSlideTarget = sDestGridNo;

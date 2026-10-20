@@ -4025,7 +4025,9 @@ static ScreenID UIHandleLUIBeginLock(UI_EVENT* pUIEvent)
 
 	// a watched militia battle in real time: no lock, the player keeps the
 	// cursor and the screen (nobody of his acts, the fight doesn't wait)
-	if (IsWatchedBattleInRealtime()) return( GAME_SCREEN );
+	// (any fight in real time: also the militia against the enemy while no enemy
+	// has seen a merc, game.json turnbased_starts_when_spotted)
+	if (IsRealtimeFight()) return( GAME_SCREEN );
 
 	// Hide touch ui
 	HideTacticalTouchUI();
@@ -4479,8 +4481,8 @@ static ScreenID UIHandleLABeginLockOurTurn(UI_EVENT* pUIEvent)
 	// ( They are mutually exclusive )!
 	UIHandleLUIEndLock( NULL );
 
-	// a watched militia battle in real time: no lock (see UIHandleLUIBeginLock)
-	if (IsWatchedBattleInRealtime()) return( GAME_SCREEN );
+	// a fight in real time: no lock (see UIHandleLUIBeginLock)
+	if (IsRealtimeFight()) return( GAME_SCREEN );
 
 	if ( !gfUserTurnRegionActive )
 	{
