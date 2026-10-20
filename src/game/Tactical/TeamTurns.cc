@@ -385,6 +385,13 @@ void DisplayHiddenInterrupt( SOLDIERTYPE * pSoldier )
 		return;
 	}
 
+	// a watched militia battle in real time has no interrupts
+	if (IsWatchedBattleInRealtime())
+	{
+		gfHiddenInterrupt = FALSE;
+		return;
+	}
+
 	if (pSoldier->bVisible != -1) SlideTo(pSoldier, SETLOCATOR);
 
 	guiPendingOverrideEvent = LU_BEGINUILOCK;
@@ -1341,6 +1348,10 @@ void AddToIntList(SOLDIERTYPE* const s, const BOOLEAN fGainControl, const BOOLEA
 {
 	UINT8 ubLoop;
 
+	// a watched militia battle in real time has no turns, so no interrupts
+	// (the sighting and unseen-attacker code asks for them after EnterCombatMode)
+	if (IsWatchedBattleInRealtime()) return;
+
 	SLOGD("INTERRUPT: adding ID {} who {}",
 				s->ubID, fGainControl ? "gains control" : "loses control");
 
@@ -1499,6 +1510,9 @@ static void VerifyOutOfTurnOrderArray(void)
 
 void DoneAddingToIntList(void)
 {
+	// a watched militia battle in real time has no interrupts (see AddToIntList)
+	if (IsWatchedBattleInRealtime()) return;
+
 	VerifyOutOfTurnOrderArray();
 	if (EveryoneInInterruptListOnSameTeam())
 	{

@@ -2159,7 +2159,8 @@ void LocateSoldier(SOLDIERTYPE* s, BOOLEAN fSetLocator)
 
 	// do we need to move the screen?
 	//ATE: Force this baby to locate if told to
-	if (!SoldierOnScreen(s) || fSetLocator == 10)
+	// (a watched militia battle in real time: the screen stays where the player put it)
+	if ((!SoldierOnScreen(s) || fSetLocator == 10) && !IsWatchedBattleInRealtime())
 	{
 		// Center on guy
 		const INT16 sNewCenterWorldX = (INT16)s->dXPos;
@@ -2189,6 +2190,9 @@ void InternalLocateGridNo(UINT16 sGridNo, BOOLEAN fForce)
 
 	// FIRST CHECK IF WE ARE ON SCREEN
 	if (GridNoOnScreen(sGridNo) && !fForce) return;
+
+	// a watched militia battle in real time: the screen stays where the player put it
+	if (IsWatchedBattleInRealtime() && !fForce) return;
 
 	SetRenderCenter(sNewCenterWorldX, sNewCenterWorldY);
 }
@@ -2220,6 +2224,9 @@ void SlideTo(SOLDIERTYPE* const tgt, const BOOLEAN fSetLocator)
 	// FIRST CHECK IF WE ARE ON SCREEN
 	if (GridNoOnScreen(tgt->sGridNo)) return;
 
+	// a watched militia battle in real time: the screen stays where the player put it
+	if (IsWatchedBattleInRealtime()) return;
+
 	// sGridNo here for DG compatibility
 	gTacticalStatus.sSlideTarget = tgt->sGridNo;
 
@@ -2234,6 +2241,9 @@ void SlideToLocation(const INT16 sDestGridNo)
 
 	// FIRST CHECK IF WE ARE ON SCREEN
 	if (GridNoOnScreen(sDestGridNo)) return;
+
+	// a watched militia battle in real time: the screen stays where the player put it
+	if (IsWatchedBattleInRealtime()) return;
 
 	// sGridNo here for DG compatibility
 	gTacticalStatus.sSlideTarget = sDestGridNo;

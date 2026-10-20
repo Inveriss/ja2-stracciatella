@@ -3,6 +3,7 @@
 #include "Directories.h"
 #include "Font_Control.h"
 #include "Handle_UI.h"
+#include "Interface.h"
 #include "Interface_Control.h"
 #include "Text.h"
 #include "UILayout.h"
@@ -126,6 +127,16 @@ void HandleWatchedMilitiaBattleTurn()
 	}
 	HandleExitButton();
 	if (!gfWatchingMilitiaBattle)                       return;
+
+	// real time: no interface lock (wait cursor) stays from before the watching
+	// or from anything that set one up anyway; the player keeps the cursor
+	if (IsWatchedBattleInRealtime())
+	{
+		if (gfDisableRegionActive)  UIHandleLUIEndLock(NULL);
+		if (gfUserTurnRegionActive) guiPendingOverrideEvent = LA_ENDUIOUTURNLOCK;
+		// ...and no turn or interrupt bar at the top of the screen
+		if (gTacticalStatus.fInTopMessage) EndTopMessage();
+	}
 	if (!(gTacticalStatus.uiFlags & INCOMBAT))           return;
 	if (gTacticalStatus.ubCurrentTeam != OUR_TEAM)       return;
 	if (gTacticalStatus.ubAttackBusyCount > 0)           return;
