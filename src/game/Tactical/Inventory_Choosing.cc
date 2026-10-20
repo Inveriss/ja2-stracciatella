@@ -524,6 +524,8 @@ static UINT16 SelectStandardArmyGun(UINT8 uiGunLevel);
 // ...their ammunition (more LAWs, mortar shells) only in this many big pockets
 // (BIGPOCK1POS on); the last big pocket stays free for the militia man's own use
 #define ELITE_HEAVY_MILITIA_AMMO_BIG_POCKETS 9
+// ...and everything of theirs is in perfect condition at the start
+#define ELITE_HEAVY_MILITIA_ITEM_STATUS 100
 
 // What the soldier would carry, the same way CalculateCarriedWeight() counts it
 static grams CarriedWeight(SOLDIERCREATE_STRUCT const* const pp)
@@ -555,28 +557,27 @@ static grams MaxLoad(SOLDIERCREATE_STRUCT const* const pp, UINT32 const percent)
 // per pocket as a soldier's big pocket takes).  Nothing else.
 static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
 {
-	CreateItem(SPECTRA_HELMET_18, (INT8)(70 + Random(31)), &pp->Inv[HELMETPOS]);
+	CreateItem(SPECTRA_HELMET_18, ELITE_HEAVY_MILITIA_ITEM_STATUS, &pp->Inv[HELMETPOS]);
 	pp->Inv[HELMETPOS].fFlags |= OBJECT_UNDROPPABLE;
-	CreateItem(SPECTRA_VEST_18, (INT8)(70 + Random(31)), &pp->Inv[VESTPOS]);
+	CreateItem(SPECTRA_VEST_18, ELITE_HEAVY_MILITIA_ITEM_STATUS, &pp->Inv[VESTPOS]);
 	pp->Inv[VESTPOS].fFlags |= OBJECT_UNDROPPABLE;
 	{
 		OBJECTTYPE Plates;
-		CreateItem(CERAMIC_PLATES, (INT8)(70 + Random(31)), &Plates);
+		CreateItem(CERAMIC_PLATES, ELITE_HEAVY_MILITIA_ITEM_STATUS, &Plates);
 		Plates.fFlags |= OBJECT_UNDROPPABLE;
 		AttachObject(NULL, &pp->Inv[VESTPOS], &Plates);
 	}
 
-	CreateItem(GASMASK, (INT8)(70 + Random(31)), &pp->Inv[HEAD1POS]);
+	CreateItem(GASMASK, ELITE_HEAVY_MILITIA_ITEM_STATUS, &pp->Inv[HEAD1POS]);
 	pp->Inv[HEAD1POS].fFlags |= OBJECT_UNDROPPABLE;
-	CreateItem(UVGOGGLES, (INT8)(70 + Random(31)), &pp->Inv[HEAD2POS]);
+	CreateItem(UVGOGGLES, ELITE_HEAVY_MILITIA_ITEM_STATUS, &pp->Inv[HEAD2POS]);
 	pp->Inv[HEAD2POS].fFlags |= OBJECT_UNDROPPABLE;
 
 	// one heavy weapon, equal chances; in the hand
 	bool const   fMortar  = Random(2) == 0;
 	UINT16 const usWeapon = fMortar ? MORTAR       : ROCKET_LAUNCHER;
 	UINT16 const usAmmo   = fMortar ? MORTAR_SHELL : ROCKET_LAUNCHER; // the LAW's "ammunition" is more LAWs
-	// weapon condition as for the elites: 85-90% + 1% every 10% progress
-	INT8 const bWeaponStatus = (INT8) std::min(100, int(85 + Random(6) + HighestPlayerProgressPercentage() / 10));
+	INT8 const bWeaponStatus = ELITE_HEAVY_MILITIA_ITEM_STATUS;
 	CreateItem(usWeapon, bWeaponStatus, &pp->Inv[HANDPOS]);
 	pp->Inv[HANDPOS].fFlags |= OBJECT_UNDROPPABLE;
 
@@ -608,7 +609,7 @@ static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
 		}
 		else
 		{
-			CreateItems(usAmmo, (INT8)(80 + Random(21)), (UINT8)n, &o);
+			CreateItems(usAmmo, ELITE_HEAVY_MILITIA_ITEM_STATUS, (UINT8)n, &o);
 		}
 		o.fFlags |= OBJECT_UNDROPPABLE;
 		load     += n * unit;
