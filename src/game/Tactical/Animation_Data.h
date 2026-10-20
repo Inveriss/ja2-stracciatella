@@ -541,6 +541,8 @@ void InitAnimationSystem(void);
 void DeInitAnimationSystem(void);
 void LoadAnimationSurface(UINT16 usSoldierID, UINT16 usSurfaceIndex, UINT16 usAnimState);
 void UnLoadAnimationSurface(UINT16 usSoldierID, UINT16 usSurfaceIndex);
+// The soldier holds a usage of this surface (his animation cache or a preview)
+bool AnimationSurfaceLockedBySoldier(UINT16 usSoldierID, UINT16 usSurfaceIndex);
 
 // Whether a full colour PNG may replace the animation (docs/png-images.md).
 enum class AnimationColours

@@ -742,6 +742,10 @@ static BOOLEAN fItemDescDelete = FALSE;
 // below. INVALID_ANIMATION_SURFACE when nothing is loaded (money/generic
 // items, map screen, or a non-merc body type never load one).
 static UINT16 gusMercPreviewAnimSurface = INVALID_ANIMATION_SURFACE;
+// the preview took its own usage of the surface; when the merc already held one
+// (often: the preview is his current animation) it must not be given back, or
+// the surface is unloaded under his feet and he freezes
+static bool   gfMercPreviewSurfaceLocked = false;
 
 // Extra frames, after DeleteItemDescriptionBox() closes the weapon box, to
 // keep re-flipping the box's last on-screen rectangle to the screen -- see
@@ -3315,6 +3319,7 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		MercPreviewFrame previewFrame;
 		if (ENABLE_MERC_PREVIEW_PICTURE && fIsWeapon && s && GetMercPreviewFrame(*s, &previewFrame))
 		{
+			gfMercPreviewSurfaceLocked = !AnimationSurfaceLockedBySoldier(SOLDIER2ID(s), previewFrame.usAnimSurface);
 			LoadAnimationSurface(SOLDIER2ID(s), previewFrame.usAnimSurface, s->usAnimState);
 			gusMercPreviewAnimSurface = previewFrame.usAnimSurface;
 		}
@@ -5015,8 +5020,12 @@ void DeleteItemDescriptionBox( )
 	// ever loaded for the weapon box, so only ever needs unloading here.
 	if (gusMercPreviewAnimSurface != INVALID_ANIMATION_SURFACE && gpItemDescSoldier)
 	{
-		UnLoadAnimationSurface(SOLDIER2ID(gpItemDescSoldier), gusMercPreviewAnimSurface);
-		gusMercPreviewAnimSurface = INVALID_ANIMATION_SURFACE;
+		if (gfMercPreviewSurfaceLocked)
+		{
+			UnLoadAnimationSurface(SOLDIER2ID(gpItemDescSoldier), gusMercPreviewAnimSurface);
+		}
+		gfMercPreviewSurfaceLocked = false;
+		gusMercPreviewAnimSurface  = INVALID_ANIMATION_SURFACE;
 	}
 
 	gfInItemDescBox = FALSE;

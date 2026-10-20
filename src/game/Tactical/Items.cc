@@ -2873,11 +2873,11 @@ static void CreateMagazine(UINT16 usItem, OBJECTTYPE* pObj)
 
 void CreateItem(UINT16 const usItem, INT8 const bStatus, OBJECTTYPE* const pObj)
 {
-	auto checkedStatus = [](INT8 status)
+	auto checkedStatus = [usItem](INT8 status)
 	{
 		if (status < 1 || status > 100)
 		{
-			SLOGE("CreateItem: Status outside interval [1, 100]");
+			SLOGE("CreateItem: Status {} of item {} outside interval [1, 100]", status, usItem);
 			// Since we have no idea what was intended here, just
 			// choose some valid value instead.
 			status = 70;

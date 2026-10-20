@@ -1,4 +1,5 @@
 #include "Soldier_Control.h"
+#include "Militia_Watch.h"
 #include "AI.h"
 #include "Animation_Cache.h"
 #include "Animation_Control.h"
@@ -909,7 +910,10 @@ void EVENT_InitNewSoldierAnim(SOLDIERTYPE* const pSoldier, UINT16 usNewState, UI
 
 		if ( pSoldier->fRTInNonintAnim )
 		{
-			if ( !(gTacticalStatus.uiFlags & INCOMBAT) )
+			// a watched militia battle in real time is a fight without combat mode:
+			// a hit, a fall or a death must interrupt the shot as in combat, or the
+			// new animation is lost (a dying soldier stays in his firing pose)
+			if ( !(gTacticalStatus.uiFlags & INCOMBAT) && !IsWatchedBattleInRealtime() )
 			{
 				return;
 			}

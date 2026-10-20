@@ -2830,7 +2830,23 @@ UINT16 GetSoldierAnimationSurface(SOLDIERTYPE const* const pSoldier)
 	if ( usAnimSurface != INVALID_ANIMATION_SURFACE )
 	{
 		// Ensure that it's loaded!
-		if ( gAnimSurfaceDatabase[usAnimSurface].hVideoObject == NULL )
+		AnimationSurfaceType& a = gAnimSurfaceDatabase[usAnimSurface];
+		if ( a.hVideoObject == NULL && pSoldier->bActive && pSoldier->ubID < MAX_NUM_SOLDIERS )
+		{
+			// The surface of the current animation was unloaded although this
+			// soldier uses it (its usage count got out of step): without it his
+			// animation stops (ConvertAniCodeToAniFrame fails) and he isn't drawn,
+			// so load it again for him
+			try
+			{
+				LoadAnimationSurface(pSoldier->ubID, usAnimSurface, pSoldier->usAnimState);
+				if (a.bUsageCount <= 0) a.bUsageCount = 1;
+				SLOGD("Animation Surface for Body {}, animation {}, surface {} was unloaded, loaded again.",
+					pSoldier->ubBodyType, gAnimControl[pSoldier->usAnimState].zAnimStr, usAnimSurface);
+			}
+			catch (...) {}
+		}
+		if ( a.hVideoObject == NULL )
 		{
 			SLOGW("Animation Surface for Body {}, animation {}, surface {} not loaded.",
 				pSoldier->ubBodyType, gAnimControl[pSoldier->usAnimState].zAnimStr, usAnimSurface);

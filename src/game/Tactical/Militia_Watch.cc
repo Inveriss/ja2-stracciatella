@@ -24,6 +24,7 @@
 #include "Physics.h"
 #include "RenderWorld.h"
 #include "Soldier_Control.h"
+#include "Soldier_Functions.h"
 #include "Animation_Data.h"
 #include "Logger.h"
 
@@ -206,6 +207,25 @@ static void EndOverAttacks()
 }
 
 
+// A dying soldier (below OKLIFE) still standing, crouching or in a firing pose:
+// his fall was lost (an animation that couldn't be interrupted); it is started
+// again
+static void FixDyingSoldiersPoses()
+{
+	FOR_EACH_SOLDIER(s)
+	{
+		if (!s->bInSector || s->bLife <= 0 || s->bLife >= OKLIFE || !s->bCollapsed) continue;
+		if (s->fInNonintAnim || s->usPendingAnimation != NO_PENDING_ANIMATION)    continue;
+		ANIMCONTROLTYPE const& a = gAnimControl[s->usAnimState];
+		if (a.ubEndHeight == ANIM_PRONE && !(a.uiFlags & (ANIM_FIRE | ANIM_FIREREADY))) continue;
+
+		SLOGD("Watched battle: dying soldier {} not down, collapsing again", s->ubID);
+		s->bCollapsed = FALSE;
+		SoldierCollapse(s);
+	}
+}
+
+
 // A watch on the attack busy count: when it stays above 0 for
 // STUCK_BUSY_COUNT_DELAY while nothing is on its way and nobody is being hit, a
 // part of an attack never ended (several at once in real time); the count goes
@@ -282,6 +302,7 @@ void HandleWatchedMilitiaBattleTurn()
 		// several soldiers attack at once
 		EndOverAttacks();
 		HandleStuckAttackBusyCount();
+		FixDyingSoldiersPoses();
 	}
 	if (!(gTacticalStatus.uiFlags & INCOMBAT))           return;
 	if (gTacticalStatus.ubCurrentTeam != OUR_TEAM)       return;

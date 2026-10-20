@@ -852,6 +852,12 @@ void LoadAnimationSurface(UINT16 const usSoldierID, UINT16 const usSurfaceIndex,
 }
 
 
+bool AnimationSurfaceLockedBySoldier(UINT16 const usSoldierID, UINT16 const usSurfaceIndex)
+{
+	return gbAnimUsageHistory[usSurfaceIndex][usSoldierID] > 0;
+}
+
+
 void UnLoadAnimationSurface(const UINT16 usSoldierID, const UINT16 usSurfaceIndex)
 {
 	// Decrement usage flag, only if this soldier has it currently tagged
