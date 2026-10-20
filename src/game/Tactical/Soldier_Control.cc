@@ -4205,6 +4205,15 @@ BOOLEAN ConvertAniCodeToAniFrame(SOLDIERTYPE* const s, UINT16 ani_frame)
 	}
 	else
 	{
+		// A frame the graphic doesn't have (a script made for a graphic with more
+		// frames, e.g. CROUCHED_BURST's 21 in an 18 frame one): the direction's
+		// last frame, the nearest pose, instead of frame 0 of the first direction
+		if (as.uiNumFramesPerDir != 0 && ani_frame >= as.uiNumFramesPerDir)
+		{
+			SLOGD("Frame {} past the {} frames per direction, {}",
+				ani_frame, as.uiNumFramesPerDir, gAnimControl[s->usAnimState].zAnimStr);
+			ani_frame = (UINT16)(as.uiNumFramesPerDir - 1);
+		}
 		ani_frame += as.uiNumFramesPerDir * temp_dir;
 		if (ani_frame >= as.hVideoObject->SubregionCount())
 		{
