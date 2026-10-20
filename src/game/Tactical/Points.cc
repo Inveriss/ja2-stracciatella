@@ -1717,7 +1717,9 @@ INT16 MinAPsToThrow(SOLDIERTYPE const& s, GridNo gridno, bool const add_turning_
 	{
 		SLOGW("MinAPsToThrow - in-hand item is missing");
 	}
-	else if (!(item->getItemClass() & (IC_GRENADE | IC_THROWN))) // match MinAPsToAttack
+	// match MinAPsToAttack; launchers (mortar, grenade launcher) too: the AI
+	// rates their indirect fire as a throw (CalcBestThrow)
+	else if (!(item->getItemClass() & (IC_GRENADE | IC_THROWN | IC_LAUNCHER)))
 	{
 		SLOGW("MinAPsToThrow - in-hand item '{}' has unexpected item class 0x{x}", item->getInternalName(), item->getItemClass());
 	}
