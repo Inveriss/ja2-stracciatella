@@ -768,7 +768,7 @@ static void GeneratePaletteForSoldier(SOLDIERTYPE* pSoldier, UINT8 ubSoldierClas
 			return;
 		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
 			pSoldier->VestPal  = "BLACKSHIRT";
-			pSoldier->PantsPal = "BLACKPANTS";
+			pSoldier->PantsPal = "BEIGEPANTS"; // as every militia rank: only the shirt differs
 			pSoldier->ubSoldierClass = ubSoldierClass;
 			return;
 		case SOLDIER_CLASS_MINER:
