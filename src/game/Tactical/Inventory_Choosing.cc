@@ -547,20 +547,24 @@ static grams MaxLoad(SOLDIERCREATE_STRUCT const* const pp, UINT32 const percent)
 	return (grams)(strength * 500 * percent / 100);
 }
 
-// ELITE_HEAVY militia: Spectra helmet and vest, gas mask, UV goggles and exactly ONE heavy weapon
+// ELITE_HEAVY militia: Spectra helmet and vest (both treated with Compound 18, ceramic plates on
+// the vest), gas mask, UV goggles and exactly ONE heavy weapon
 // (mortar or LAW, equal chances) in the hand, with as much of its ammunition (mortar shells, more
 // LAWs) as fits into ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT of the strength limit (the rest of the
 // equipment included) and into the first ELITE_HEAVY_MILITIA_AMMO_BIG_POCKETS big pockets (as many
 // per pocket as a soldier's big pocket takes).  Nothing else.
 static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
 {
-	static UINT16 const helmets[] = { SPECTRA_HELMET, SPECTRA_HELMET_18, SPECTRA_HELMET_Y };
-	static UINT16 const vests[]   = { SPECTRA_VEST,   SPECTRA_VEST_18,   SPECTRA_VEST_Y   };
-
-	CreateItem(helmets[Random(lengthof(helmets))], (INT8)(70 + Random(31)), &pp->Inv[HELMETPOS]);
+	CreateItem(SPECTRA_HELMET_18, (INT8)(70 + Random(31)), &pp->Inv[HELMETPOS]);
 	pp->Inv[HELMETPOS].fFlags |= OBJECT_UNDROPPABLE;
-	CreateItem(vests[Random(lengthof(vests))], (INT8)(70 + Random(31)), &pp->Inv[VESTPOS]);
+	CreateItem(SPECTRA_VEST_18, (INT8)(70 + Random(31)), &pp->Inv[VESTPOS]);
 	pp->Inv[VESTPOS].fFlags |= OBJECT_UNDROPPABLE;
+	{
+		OBJECTTYPE Plates;
+		CreateItem(CERAMIC_PLATES, (INT8)(70 + Random(31)), &Plates);
+		Plates.fFlags |= OBJECT_UNDROPPABLE;
+		AttachObject(NULL, &pp->Inv[VESTPOS], &Plates);
+	}
 
 	CreateItem(GASMASK, (INT8)(70 + Random(31)), &pp->Inv[HEAD1POS]);
 	pp->Inv[HEAD1POS].fFlags |= OBJECT_UNDROPPABLE;

@@ -935,13 +935,11 @@ maybe_nightops:
 			break;
 	}
 
-	// ELITE_HEAVY militia: always Heavy Weapons (once), in the first trait slot;
-	// Night Ops (as for the elites above) then only once, in the second
+	// ELITE_HEAVY militia: always Heavy Weapons and Night Ops, once each
 	if (s.ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
 	{
-		bool const nightops = s.ubSkillTrait1 == NIGHTOPS;
 		s.ubSkillTrait1 = HEAVY_WEAPS;
-		s.ubSkillTrait2 = nightops ? NIGHTOPS : NO_SKILLTRAIT;
+		s.ubSkillTrait2 = NIGHTOPS;
 	}
 
 	// KM:  November 10, 1997
