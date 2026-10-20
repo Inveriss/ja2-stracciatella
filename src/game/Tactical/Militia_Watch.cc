@@ -12,6 +12,9 @@
 #include "StrategicMap.h"
 #include "TeamTurns.h"
 #include "Timer_Control.h"
+#include "ContentManager.h"
+#include "GameInstance.h"
+#include "GamePolicy.h"
 
 #include <chrono>
 
@@ -19,6 +22,18 @@ using namespace std::chrono_literals;
 
 
 BOOLEAN gfWatchingMilitiaBattle = FALSE;
+
+
+bool IsWatchedBattleInRealtime()
+{
+	return gfWatchingMilitiaBattle && gamepolicy(militia_watch_realtime);
+}
+
+
+UINT16 WatchedBattleAIDelay()
+{
+	return gamepolicy(militia_watch_ai_delay_ms);
+}
 
 static bool      g_watch_requested = false;
 static SGPSector g_watch_sector;

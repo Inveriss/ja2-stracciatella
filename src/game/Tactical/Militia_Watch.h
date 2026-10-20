@@ -28,4 +28,11 @@ void WatchedMilitiaBattleWon();
 // The sector of the watched battle is unloaded: the watching ends
 void EndWatchedMilitiaBattle();
 
+// The watched battle is fought in real time (game.json militia_watch.realtime)
+bool IsWatchedBattleInRealtime();
+
+// Real time: the time between two decisions of a soldier, both sides
+// (game.json militia_watch.ai_delay_ms)
+UINT16 WatchedBattleAIDelay();
+
 #endif
