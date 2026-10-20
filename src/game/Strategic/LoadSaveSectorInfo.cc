@@ -47,7 +47,8 @@ void ExtractSectorInfoFromFile(HWFILE const f, SECTORINFO& s, UINT32 const saveg
 	EXTR_BOOL(d, s.fSurfaceWasEverPlayerControlled)
 	EXTR_SKIP(d, 3)
 	EXTR_U32( d, s.uiNumberOfWorldItemsInTempFileThatCanBeSeenByPlayer)
-	EXTR_SKIP(d, 44)
+	EXTR_U8(  d, s.ubTestSamCounterattackGroupID)
+	EXTR_SKIP(d, 43)
 	Assert(d.getConsumed() == lengthof(data));
 }
 
@@ -91,7 +92,8 @@ void InjectSectorInfoIntoFile(HWFILE const f, SECTORINFO const& s)
 	INJ_BOOL(d, s.fSurfaceWasEverPlayerControlled)
 	INJ_SKIP(d, 3)
 	INJ_U32( d, s.uiNumberOfWorldItemsInTempFileThatCanBeSeenByPlayer)
-	INJ_SKIP(d, 44)
+	INJ_U8(  d, s.ubTestSamCounterattackGroupID)
+	INJ_SKIP(d, 43)
 	Assert(d.getConsumed() == lengthof(data));
 
 	f->write(data, sizeof(data));

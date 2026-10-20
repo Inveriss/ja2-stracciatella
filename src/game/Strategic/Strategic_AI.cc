@@ -12,6 +12,7 @@
 #include "Game_Init.h"
 #include "GameInstance.h"
 #include "GameSettings.h"
+#include "StrategicMap_Secrets.h"
 #include "Interface_Dialogue.h"
 #include "Logger.h"
 #include "Map_Information.h"
@@ -2805,9 +2806,18 @@ void ExecuteStrategicAIAction(UINT16 usActionCode, const SGPSector* sMap)
 		case NPC_ACTION_SEND_TROOPS_TO_SAM:
 			ubSectorID = sMap ? sMap->AsByte() : 0;
 			ubNumSoldiers = (UINT8)( 3 + gGameOptions.ubDifficultyLevel + HighestPlayerProgressPercentage() / 15 );
+#if SAM_D15_COUNTERATTACK_FOR_TESTING
+			if (ubSectorID == SEC_D15 && gGameOptions.ubDifficultyLevel == DIF_LEVEL_HARD) ubNumSoldiers = 20;
+#endif
 			giReinforcementPool -= ubNumSoldiers;
 			giReinforcementPool = std::max(giReinforcementPool, 0);
 			pGroup = CreateNewEnemyGroupDepartingFromSector( SEC_P3, 0, 0, ubNumSoldiers );
+#if SAM_D15_COUNTERATTACK_FOR_TESTING
+			if (ubSectorID == SEC_D15 && gGameOptions.ubDifficultyLevel == DIF_LEVEL_HARD)
+			{
+				SectorInfo[SEC_D15].ubTestSamCounterattackGroupID = pGroup->ubGroupID;
+			}
+#endif
 			MoveSAIGroupToSector( &pGroup, ubSectorID, STAGE, REINFORCEMENTS );
 
 			if( gGarrisonGroup[ SectorInfo[ ubSectorID ].ubGarrisonID ].ubPendingGroupID )

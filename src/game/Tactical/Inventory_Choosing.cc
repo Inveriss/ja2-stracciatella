@@ -619,6 +619,72 @@ static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
 }
 
 
+void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 const usWeapon)
+{
+	for (OBJECTTYPE& o : s.inv)
+	{
+		if (o.usItem == NOTHING) continue;
+		switch (GCM->getItem(o.usItem)->getItemClass())
+		{
+			case IC_GUN:
+			case IC_BLADE:
+			case IC_THROWING_KNIFE:
+			case IC_LAUNCHER:
+			case IC_AMMO:
+			case IC_GRENADE:
+			case IC_BOMB:
+				DeleteObj(&o);
+				break;
+			default:
+				break;
+		}
+	}
+
+	// the hand may still hold something else (a kit...): it goes
+	DeleteObj(&s.inv[HANDPOS]);
+	CreateItem(usWeapon, 100, &s.inv[HANDPOS]);
+
+	UINT16 const usAmmo = usWeapon == MORTAR ? MORTAR_SHELL : ROCKET_LAUNCHER; // the LAW's "ammunition" is more LAWs
+	bool ammo_given = false;
+	for (INT8 slot = BIGPOCK1POS; slot <= BIGPOCK10POS; ++slot)
+	{
+		OBJECTTYPE& o = s.inv[slot];
+		if (o.usItem != NOTHING) continue;
+
+		int per_pocket = 1; // a LAW doesn't stack
+		if (usAmmo != ROCKET_LAUNCHER)
+		{
+			per_pocket = std::min(int(ApplyBigPerPocketOverride(usAmmo, slot, ItemSlotLimit(usAmmo, slot))), int(MAX_OBJECTS_PER_SLOT));
+			per_pocket = std::max(per_pocket, 1);
+		}
+		// as many as the strength carries
+		int n = per_pocket;
+		for (; n > 0; --n)
+		{
+			CreateItems(usAmmo, 100, (UINT8)n, &o);
+			if (CalculateCarriedWeight(&s) <= 100) break;
+		}
+		if (n == 0)
+		{
+			DeleteObj(&o);
+			break;
+		}
+		ammo_given = true;
+	}
+
+	// a mortar always gets a few shells, even over the weight limit
+	if (usAmmo == MORTAR_SHELL && !ammo_given)
+	{
+		for (INT8 slot = BIGPOCK1POS; slot <= BIGPOCK10POS; ++slot)
+		{
+			if (s.inv[slot].usItem != NOTHING) continue;
+			CreateItems(MORTAR_SHELL, 100, 2, &s.inv[slot]);
+			break;
+		}
+	}
+}
+
+
 //When using the class values, they should all range from 0-11, 0 meaning that there will be no
 //selection for that particular type of item, and 1-11 means to choose an item if possible.  1 is
 //the worst class of item, while 11 is the best.

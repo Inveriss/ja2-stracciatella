@@ -53,4 +53,10 @@ void ReplaceExtendedGuns( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass );
 
 void ResetMortarsOnTeamCount( void );
 
+// An enemy soldier keeps his armour and other gear but loses every weapon, ammo
+// and explosive; instead he gets the heavy weapon (ROCKET_LAUNCHER or MORTAR) in
+// the hand and its ammunition (more LAWs, mortar shells) in his empty big
+// pockets, as much as his strength carries (100%).  Everything at 100%.
+void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 usWeapon);
+
 #endif

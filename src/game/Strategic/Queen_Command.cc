@@ -37,6 +37,8 @@
 #include "Vehicles.h"
 #include "Logger.h"
 #include "JAScreens.h"
+#include "Inventory_Choosing.h"
+#include "StrategicMap_Secrets.h"
 
 //The sector information required for the strategic AI.  Contains the number of enemy troops,
 //as well as intentions, etc.
@@ -311,9 +313,37 @@ static UINT8 NumFreeEnemySlots(void)
 static void PrepareEnemyForUndergroundBattle();
 
 
+#if SAM_D15_COUNTERATTACK_FOR_TESTING
+// The D15 SAM counterattack (Expert): of its elites in the loaded sector, the
+// first 4 carry only LAWs, the next 3 only a mortar with shells
+static UINT8 g_test_sam_laws_given;
+static UINT8 g_test_sam_mortars_given;
+
+static void GiveTestSamCounterattackKit(SOLDIERTYPE& s)
+{
+	UINT8 const id = SectorInfo[SEC_D15].ubTestSamCounterattackGroupID;
+	if (id == 0 || s.ubGroupID != id || s.ubSoldierClass != SOLDIER_CLASS_ELITE) return;
+	if (g_test_sam_laws_given < 4)
+	{
+		++g_test_sam_laws_given;
+		GiveEnemyOnlyHeavyWeapon(s, ROCKET_LAUNCHER);
+	}
+	else if (g_test_sam_mortars_given < 3)
+	{
+		++g_test_sam_mortars_given;
+		GiveEnemyOnlyHeavyWeapon(s, MORTAR);
+	}
+}
+#endif
+
+
 void PrepareEnemyForSectorBattle()
 {
 	gfPendingEnemies = FALSE;
+#if SAM_D15_COUNTERATTACK_FOR_TESTING
+	g_test_sam_laws_given    = 0;
+	g_test_sam_mortars_given = 0;
+#endif
 
 	if (gWorldSector.z > 0)
 	{
@@ -526,6 +556,9 @@ void PrepareEnemyForSectorBattle()
 			--n;
 			--n_slots;
 			s->ubGroupID = g->ubGroupID;
+#if SAM_D15_COUNTERATTACK_FOR_TESTING
+			GiveTestSamCounterattackKit(*s);
+#endif
 		}
 		AssertMsg(n == 0 || n_slots == 0, "Failed to assign battle counters for enemies properly. Please send save. KM:0.");
 	}
@@ -1034,6 +1067,9 @@ static void AddEnemiesToBattle(GROUP const& g, UINT8 const strategic_insertion_c
 
 		SOLDIERTYPE& s = *TacticalCreateEnemySoldier(sc);
 		s.ubGroupID = g.ubGroupID;
+#if SAM_D15_COUNTERATTACK_FOR_TESTING
+		GiveTestSamCounterattackKit(s);
+#endif
 		s.ubInsertionDirection = desired_direction;
 		// Setup the position
 		if (curr_slot < edgepoint_info.ubNumPoints)

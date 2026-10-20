@@ -188,6 +188,8 @@ struct SECTORINFO
 	BOOLEAN fSurfaceWasEverPlayerControlled;
 
 	UINT32	uiNumberOfWorldItemsInTempFileThatCanBeSeenByPlayer;
+
+	UINT8 ubTestSamCounterattackGroupID; // SAM_D15_COUNTERATTACK_FOR_TESTING: the group sent to retake this SAM site (0 = none)
 };
 
 #define NO_ADJACENT_SECTOR		0x00
