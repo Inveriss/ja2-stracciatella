@@ -4254,6 +4254,23 @@ static bool SoldierHasSeenEnemiesLastFewTurns(SOLDIERTYPE const& s)
 }
 
 
+// turnbased_starts_when_spotted: a hostile soldier has seen one of the
+// player's mercs in the last few turns (as SoldierHasSeenEnemiesLastFewTurns)
+static bool SoldierHasSeenMercsLastFewTurns(SOLDIERTYPE const& s)
+{
+	if (s.bSide == OUR_TEAM) return false; // the player's side: mercs, militia
+	CFOR_EACH_IN_TEAM(m, OUR_TEAM)
+	{
+		if (!m->bInSector || m->bLife <= 0)           continue;
+		if (CONSIDERED_NEUTRAL(&s, m))                 continue;
+		INT8 const seen = s.bOppList[m->ubID];
+		if (seen < SEEN_CURRENTLY || SEEN_THIS_TURN < seen) continue;
+		return true;
+	}
+	return false;
+}
+
+
 static BOOLEAN WeSeeNoOne(void)
 {
 	FOR_EACH_MERC(i)
@@ -4365,12 +4382,18 @@ BOOLEAN CheckForEndOfCombatMode( BOOLEAN fIncrementTurnsNotSeen )
 	else
 	{
 		// we have to loop through EVERYONE to see if anyone sees a hostile... if so, stay in turnbased...
+		// (game.json turnbased_starts_when_spotted: only the mercs and the enemy
+		// seeing each other count -- the militia and the enemy fighting on go on
+		// in real time once neither side has seen the other for two turns)
+		bool const merc_contact_only = TurnBasedWhenSpottedOnly();
 		FOR_EACH_MERC(i)
 		{
 			SOLDIERTYPE const& s = **i;
 			if (s.bLife >= OKLIFE &&
 				!s.bNeutral &&
-				SoldierHasSeenEnemiesLastFewTurns(s))
+				(!merc_contact_only                   ? SoldierHasSeenEnemiesLastFewTurns(s) :
+				 s.bTeam == OUR_TEAM                  ? SoldierHasSeenEnemiesLastFewTurns(s) :
+				 SoldierHasSeenMercsLastFewTurns(s)))
 			{
 				gTacticalStatus.bConsNumTurnsNotSeen = 0;
 				fSomeoneSawSomeoneRecently = TRUE;
