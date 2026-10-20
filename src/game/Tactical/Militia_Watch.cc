@@ -52,7 +52,7 @@ static SGPSector g_watch_sector;
 static bool      g_saved_low_team_panel = false; // the team panel's form before the watching
 static bool      g_low_team_panel_forced = false;
 static bool      g_exit_requested = false;
-static bool      g_show_all_set = false; // SHOW_ALL_MERCS set by the watching
+static bool      g_show_all_set = false; // SHOW_ALL_MERCS set for a fight in real time
 
 // EXIT (MILITIA_RECRUIT_BUTTONS.STI 6 ready, 7 pressed, 120x33): over the team
 // panel at the screen's right edge
@@ -290,11 +290,29 @@ void HandleWatchedMilitiaBattleTurn()
 	// any fight in real time -- also outside a watched battle: the militia
 	// against the enemy while no enemy has seen a merc (game.json
 	// turnbased_starts_when_spotted) -- has several soldiers attacking at once
-	if (IsRealtimeFight())
+	bool const realtime_fight = IsRealtimeFight();
+	if (realtime_fight)
 	{
 		EndOverAttacks();
 		HandleStuckAttackBusyCount();
 		FixDyingSoldiersPoses();
+	}
+
+	// no fog of war for the player during a fight in real time: every soldier
+	// is drawn (SHOW_ALL_MERCS changes only what the screen shows; who sees whom
+	// stays as it is for the militia and the enemy). Turns bring back the
+	// normal fog of war.
+	if (realtime_fight && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS))
+	{
+		gTacticalStatus.uiFlags |= SHOW_ALL_MERCS;
+		g_show_all_set = true;
+		SetRenderFlags(RENDER_FLAG_FULL);
+	}
+	else if (!realtime_fight && g_show_all_set)
+	{
+		gTacticalStatus.uiFlags &= ~SHOW_ALL_MERCS;
+		g_show_all_set = false;
+		SetRenderFlags(RENDER_FLAG_FULL);
 	}
 
 	if (!gfWatchingMilitiaBattle)                       return;
@@ -307,17 +325,6 @@ void HandleWatchedMilitiaBattleTurn()
 		if (gfUserTurnRegionActive) guiPendingOverrideEvent = LA_ENDUIOUTURNLOCK;
 		// ...and no turn or interrupt bar at the top of the screen
 		if (gTacticalStatus.fInTopMessage) EndTopMessage();
-
-		// no fog of war for the watcher: every soldier is drawn (SHOW_ALL_MERCS
-		// changes only what the screen shows; who sees whom stays as it is for
-		// the militia and the enemy)
-		if (!(gTacticalStatus.uiFlags & SHOW_ALL_MERCS))
-		{
-			gTacticalStatus.uiFlags |= SHOW_ALL_MERCS;
-			g_show_all_set = true;
-			SetRenderFlags(RENDER_FLAG_FULL);
-		}
-
 	}
 	if (!(gTacticalStatus.uiFlags & INCOMBAT))           return;
 	if (gTacticalStatus.ubCurrentTeam != OUR_TEAM)       return;
