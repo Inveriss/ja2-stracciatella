@@ -942,6 +942,33 @@ maybe_nightops:
 		s.ubSkillTrait2 = NIGHTOPS;
 	}
 
+	// The other militia: 10% Camouflaged -- camouflage at 100% that never wears
+	// off, and agility and dexterity fixed at 94. The trait takes the first free
+	// place (else the second one, an expert Night Ops being single then).
+	switch (s.ubSoldierClass)
+	{
+		case SOLDIER_CLASS_GREEN_MILITIA:
+		case SOLDIER_CLASS_REG_MILITIA:
+		case SOLDIER_CLASS_ELITE_MILITIA:
+			if (Chance(10))
+			{
+				if (s.ubSkillTrait1 == NO_SKILLTRAIT)
+				{
+					s.ubSkillTrait1 = CAMOUFLAGED;
+				}
+				else
+				{
+					s.ubSkillTrait2 = CAMOUFLAGED;
+				}
+				s.bCamo      = 100;
+				s.bAgility   = 94;
+				s.bDexterity = 94;
+			}
+			break;
+		default:
+			break;
+	}
+
 	// KM:  November 10, 1997
 	// Adding patrol points
 	// CAUTION:  CONVERTING SIGNED TO UNSIGNED though the values should never be
