@@ -1,0 +1,151 @@
+diff --git a/src/game/Tactical/Soldier_Control.cc b/src/game/Tactical/Soldier_Control.cc
+index 81aa9bd44..ff7bc0268 100644
+--- a/src/game/Tactical/Soldier_Control.cc
++++ b/src/game/Tactical/Soldier_Control.cc
+@@ -82,6 +82,7 @@
+ #include "Weapons.h"
+ #include "WorldMan.h"
+ #include "enums.h"
++#include <algorithm>
+ #include <array>
+ #include <cmath>
+ #include <stdexcept>
+@@ -5031,6 +5032,129 @@ void BuildCharacterRecolour(RGBARecolour& rc, SGPPaletteEntry const original[256
+ }
+ 
+ 
++// Palette replacements drawn by code, not taken from ja2pal.dat: a ramp of
++// shades for one palette range, from a top colour down to a bottom lightness,
++// worked out in the OKLab colour space (Bjorn Ottosson, 2020): even steps of
++// perceived lightness, the colour fading out towards the shadows, warmer
++// lights and cooler shadows. The pixel art's shading (which pixel gets which
++// shade) stays the original one.
++namespace
++{
++	struct OKLab { double L, a, b; };
++
++	double SRGBToLinear(UINT8 const c)
++	{
++		double const v = c / 255.0;
++		return v <= 0.04045 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4);
++	}
++
++	UINT8 LinearToSRGB(double c)
++	{
++		c = std::clamp(c, 0.0, 1.0);
++		double const v = c <= 0.0031308 ? 12.92 * c : 1.055 * std::pow(c, 1 / 2.4) - 0.055;
++		return static_cast<UINT8>(std::lround(v * 255));
++	}
++
++	OKLab ToOKLab(SGPPaletteEntry const& c)
++	{
++		double const r = SRGBToLinear(c.r);
++		double const g = SRGBToLinear(c.g);
++		double const b = SRGBToLinear(c.b);
++		double const l = std::cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
++		double const m = std::cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
++		double const s = std::cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
++		return {
++			0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
++			1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
++			0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s };
++	}
++
++	SGPPaletteEntry FromOKLab(OKLab const& c)
++	{
++		double l = c.L + 0.3963377774 * c.a + 0.2158037573 * c.b;
++		double m = c.L - 0.1055613458 * c.a - 0.0638541728 * c.b;
++		double s = c.L - 0.0894841775 * c.a - 1.2914855480 * c.b;
++		l = l * l * l;
++		m = m * m * m;
++		s = s * s * s;
++		SGPPaletteEntry e{};
++		e.r = LinearToSRGB( 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s);
++		e.g = LinearToSRGB(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s);
++		e.b = LinearToSRGB(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s);
++		return e;
++	}
++
++	struct CodeDrawnPalette
++	{
++		char const*     id;
++		UINT8           type;        // palette range (1: pants)
++		SGPPaletteEntry top;         // the lightest shade
++		SGPPaletteEntry bottom;      // its lightness is the darkest shade's
++		double          chroma_mul;  // colourfulness against the top colour
++		double          hue_shift;   // degrees, the top colour's hue moved
++	};
++
++	CodeDrawnPalette const g_code_drawn_palettes[] =
++	{
++		// GREENPANTS' olive (its top and bottom shades), shaded by code: the
++		// green militia's trousers
++		{ "OKGREENPANTS", 1, { 79, 90, 45, 0 }, { 2, 2, 2, 0 }, 1.0,  0 },
++		// a livelier military green: the enemy army's trousers
++		{ "OKARMYPANTS",  1, { 79, 90, 45, 0 }, { 2, 2, 2, 0 }, 1.35, 14 },
++	};
++
++	void DrawPaletteRamp(CodeDrawnPalette const& p, SGPPaletteEntry* const out, UINT8 const n)
++	{
++		double constexpr pi = 3.14159265358979323846;
++		OKLab const  top    = ToOKLab(p.top);
++		double const bottom = ToOKLab(p.bottom).L;
++		double const chroma = std::hypot(top.a, top.b) * p.chroma_mul;
++		double const hue    = std::atan2(top.b, top.a) + p.hue_shift * pi / 180;
++		for (UINT8 i = 0; i < n; ++i)
++		{
++			double const t = n > 1 ? i / double(n - 1) : 0; // 0: lightest
++			double const L = top.L + (bottom - top.L) * t;
++			double const C = chroma * (1 - std::pow(t, 1.6));
++			// lights 4 degrees towards yellow, shadows 10 towards cyan
++			double const h = hue + (-4 * (1 - t) + 10 * t) * pi / 180;
++			out[i] = FromOKLab({ L, C * std::cos(h), C * std::sin(h) });
++		}
++	}
++
++	// Each one goes after the last replacement of its range, as the editor
++	// and the palette cycling keys expect them grouped by range
++	void AddCodeDrawnPalettes()
++	{
++		for (CodeDrawnPalette const& p : g_code_drawn_palettes)
++		{
++			if (p.type >= guiNumPaletteSubRanges) continue;
++			UINT8 const n = gpPaletteSubRanges[p.type].ubEnd - gpPaletteSubRanges[p.type].ubStart + 1;
++
++			UINT32 at = 0;
++			for (UINT32 i = 0; i < guiNumReplacements; ++i)
++			{
++				if (gpPalRep[i].ubType <= p.type) at = i + 1;
++			}
++
++			PaletteReplacementType* const reps = new PaletteReplacementType[guiNumReplacements + 1]{};
++			std::copy_n(gpPalRep, at, reps);
++			std::copy(gpPalRep + at, gpPalRep + guiNumReplacements, reps + at + 1);
++			PaletteReplacementType& r = reps[at];
++			r.ubType        = p.type;
++			r.ID            = p.id;
++			r.ubPaletteSize = n;
++			r.rgb           = new SGPPaletteEntry[n]{};
++			DrawPaletteRamp(p, r.rgb, n);
++
++			delete[] gpPalRep;
++			gpPalRep = reps;
++			++guiNumReplacements;
++			++gubpNumReplacementsPerRange[p.type];
++		}
++	}
++}
++
++
+ void LoadPaletteData()
+ {
+ 	UINT32 cnt, cnt2;
+@@ -5088,6 +5212,8 @@ void LoadPaletteData()
+ 		}
+ 
+ 	}
++
++	AddCodeDrawnPalettes();
+ }
+ 
+ 
