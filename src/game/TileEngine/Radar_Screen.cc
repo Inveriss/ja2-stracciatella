@@ -59,6 +59,8 @@
 static SGPVObject* gusRadarImage;
 // the sector's 240x120 map for the 1366x768 team panel, if it has one
 static SGPVObject* gusPanelRadarImage;
+// the sector's 200x100 map for the 1366x768 bar of a watched militia battle, if it has one
+static SGPVObject* gusBarRadarImage;
 BOOLEAN   fRenderRadarScreen = TRUE;
 static INT16       sSelectedSquadLine = -1;
 
@@ -81,7 +83,13 @@ static void RadarRegionMoveCallback(MOUSE_REGION* pRegion, UINT32 iReason);
 
 bool RadarUsesPanelMap()
 {
-	return gusPanelRadarImage && g_ui.isBigTeamPanelShown();
+	return gusPanelRadarImage && g_ui.isBigTeamPanelShown() && !g_ui.isWatchBar();
+}
+
+
+bool RadarUsesBarMap()
+{
+	return gusBarRadarImage && g_ui.isWatchBarShown();
 }
 
 
@@ -93,13 +101,13 @@ static double RadarScaleY() { return gdScaleY * RADAR_WINDOW_HEIGHT / RADAR_WIND
 // The squad list's top left corner (see SQUAD_LIST_WIDTH).
 static INT16 SquadListX()
 {
-	if (!g_ui.isBigTeamPanelShown()) return RADAR_WINDOW_X;
+	if (!g_ui.isBigTeamPanelShown() || g_ui.isWatchBar()) return RADAR_WINDOW_X;
 	return RADAR_WINDOW_X + (RADAR_WINDOW_PANEL_WIDTH - 102) / 2 + 5;
 }
 
 static INT16 SquadListY()
 {
-	if (!g_ui.isBigTeamPanelShown()) return RADAR_WINDOW_TM_Y;
+	if (!g_ui.isBigTeamPanelShown() || g_ui.isWatchBar()) return RADAR_WINDOW_TM_Y;
 	return RADAR_WINDOW_TM_Y + 13;
 }
 
@@ -149,6 +157,21 @@ void LoadRadarScreenBitmap(const ST::string& filename)
 		{
 			SLOGW("No 240x120 radar map {}, the panel shows the small one: {}", panel_filename, e.what());
 		}
+
+		// The 200x100 one of a watched militia battle's bar, optional too
+		ST::string const bar_filename(GCM->getRadarMapBarResourceName(FileMan::replaceExtension(FileMan::getFileName(filename), "sti")));
+		try
+		{
+			SGPVObject* const bar = AddVideoObjectFromFile(bar_filename, true);
+			const SGPPaletteEntry* const bar_pal = bar->Palette();
+			bar->pShades[0] = Create16BPPPaletteShaded(bar_pal, 255, 255, 255, FALSE);
+			bar->pShades[1] = Create16BPPPaletteShaded(bar_pal, 100, 100, 100, FALSE);
+			gusBarRadarImage = bar;
+		}
+		catch (std::exception const& e)
+		{
+			SLOGD("No 200x100 radar map {}, the watched battle's bar shows the small one: {}", bar_filename, e.what());
+		}
 	}
 	// the tactical radar's mouse region follows the map's size
 	if (!fInMapMode) MoveRadarScreen();
@@ -170,6 +193,11 @@ void ClearOutRadarMapImage( void )
 	{
 		DeleteVideoObject(gusPanelRadarImage);
 		gusPanelRadarImage = 0;
+	}
+	if (gusBarRadarImage)
+	{
+		DeleteVideoObject(gusBarRadarImage);
+		gusBarRadarImage = 0;
 	}
 }
 
@@ -200,16 +228,6 @@ void MoveRadarScreen( )
 {
 	// check if we are allowed to do anything?
 	if (!fRenderRadarScreen) return;
-
-	if (g_ui.isWatchBarShown())
-	{
-		// the watched battle's bar has no radar: its region out of the way
-		gRadarRegion.RegionTopLeftX     = 0;
-		gRadarRegion.RegionTopLeftY     = 0;
-		gRadarRegion.RegionBottomRightX = 0;
-		gRadarRegion.RegionBottomRightY = 0;
-		return;
-	}
 
 	gRadarRegion.RegionTopLeftX     = RADAR_WINDOW_X;
 	gRadarRegion.RegionTopLeftY     = RADAR_WINDOW_TM_Y;
@@ -298,9 +316,6 @@ void RenderRadarScreen()
 	// own rendering.
 	if (fShowMapInventoryPool) return;
 
-	// the watched battle's bar has no radar
-	if (g_ui.isWatchBarShown()) return;
-
 	// The 1366x768 SM panel has no radar window (its button opens the
 	// overhead map instead).
 	if (g_ui.isBigSMPanelShown()) return;
@@ -318,7 +333,9 @@ void RenderRadarScreen()
 	// in a meanwhile, don't render any map
 	if (AreInMeanwhile()) ClearOutRadarMapImage();
 
-	SGPVObject* const radar_image = RadarUsesPanelMap() ? gusPanelRadarImage : gusRadarImage;
+	SGPVObject* const radar_image =
+		RadarUsesBarMap()   ? gusBarRadarImage   :
+		RadarUsesPanelMap() ? gusPanelRadarImage : gusRadarImage;
 	if (fInterfacePanelDirty == DIRTYLEVEL2 && radar_image)
 	{
 		// If night time and on surface, darken the radarmap.

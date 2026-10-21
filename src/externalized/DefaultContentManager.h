@@ -50,6 +50,9 @@ public:
 	/** Get panel (240x120) radar map resource name, for the tactical radar in the 1366x768 team panel. */
 	virtual ST::string getRadarMapPanelResourceName(const ST::string &mapName) const override;
 
+	/** Get bar (200x100) radar map resource name, for the tactical radar in the 1366x768 bar of a watched militia battle. */
+	virtual ST::string getRadarMapBarResourceName(const ST::string &mapName) const override;
+
 	/** Get tileset resource name. */
 	virtual ST::string getTilesetResourceName(int number, const ST::string& fileName) const override;
 
