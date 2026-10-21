@@ -62,6 +62,25 @@ static INT16 const       WATCH_EXIT_W      = 120;
 static INT16 const       WATCH_EXIT_H      = 33;
 static INT16 const       WATCH_EXIT_MARGIN = 8;
 
+// the militia and the enemy see each other now or saw each other this turn
+static bool MilitiaAndEnemyInContact()
+{
+	CFOR_EACH_IN_TEAM(m, MILITIA_TEAM)
+	{
+		if (!m->bInSector || m->bLife <= 0 || m->bSide != 0) continue;
+		CFOR_EACH_SOLDIER(e)
+		{
+			if (!e->bInSector || e->bLife <= 0 || e->bNeutral) continue;
+			if (e->bSide == m->bSide)                          continue;
+			INT8 const m_sees = m->bOppList[e->ubID];
+			INT8 const e_sees = e->bOppList[m->ubID];
+			if (SEEN_CURRENTLY <= m_sees && m_sees <= SEEN_THIS_TURN) return true;
+			if (SEEN_CURRENTLY <= e_sees && e_sees <= SEEN_THIS_TURN) return true;
+		}
+	}
+	return false;
+}
+
 
 void RequestWatchMilitiaBattle(const SGPSector& sector)
 {
@@ -300,15 +319,18 @@ void HandleWatchedMilitiaBattleTurn()
 
 	// no fog of war for the player during a fight in real time: every soldier
 	// is drawn (SHOW_ALL_MERCS changes only what the screen shows; who sees whom
-	// stays as it is for the militia and the enemy). Turns bring back the
-	// normal fog of war.
-	if (realtime_fight && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS))
+	// stays as it is for the militia and the enemy). Outside a watched battle
+	// only while the militia and the enemy see each other -- an enemy merely
+	// being in the sector is no fight. Turns bring back the normal fog of war.
+	bool const no_fog = IsWatchedBattleInRealtime() ||
+		(realtime_fight && MilitiaAndEnemyInContact());
+	if (no_fog && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS))
 	{
 		gTacticalStatus.uiFlags |= SHOW_ALL_MERCS;
 		g_show_all_set = true;
 		SetRenderFlags(RENDER_FLAG_FULL);
 	}
-	else if (!realtime_fight && g_show_all_set)
+	else if (!no_fog && g_show_all_set)
 	{
 		gTacticalStatus.uiFlags &= ~SHOW_ALL_MERCS;
 		g_show_all_set = false;
