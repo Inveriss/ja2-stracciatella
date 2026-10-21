@@ -16,6 +16,12 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 #define MILITIA_MENU_STR_RECRUITMENT 23
 #define MILITIA_MENU_STR_DEPLOYMENT  24
 
+// pMilitiaRecruitStrings of the militia orders (Town_Militia.cc): bought,
+// arrived, waiting
+#define MILITIA_STR_ORDER_COMING     25
+#define MILITIA_STR_ORDER_ARRIVED    26
+#define MILITIA_STR_ORDER_WAITING    27
+
 void CloseMilitiaRecruitPanel();
 
 bool IsMilitiaRecruitPanelOpen();

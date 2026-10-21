@@ -27,6 +27,10 @@
 #include "GameInstance.h"
 #include "TownModel.h"
 #include "GamePolicy.h"
+#include "Game_Event_Hook.h"
+#include "Militia_Recruit_Panel.h"
+#include "Message.h"
+#include "SaveLoadGameStates.h"
 
 #include <string_theory/format>
 #include <string_theory/string>
@@ -1038,15 +1042,62 @@ template<typename F> static void ForEachRecruitSector(const SGPSector& sector, F
 }
 
 
-UINT32 MilitiaRecruitFreeSlots(const SGPSector& sector)
+static std::vector<MilitiaOrder> g_militia_orders;
+
+
+std::vector<MilitiaOrder> const& GetMilitiaOrders()
 {
-	UINT32 free_slots = 0;
+	return g_militia_orders;
+}
+
+
+// Both sectors belong to the same town, or are the same SAM site
+static bool SameRecruitArea(const SGPSector& a, const SGPSector& b)
+{
+	INT8 const town_a = GetTownIdForSector(a);
+	return town_a != BLANK_SECTOR ? town_a == GetTownIdForSector(b) : a == b;
+}
+
+
+static UINT32 OrderTotal(MilitiaOrder const& o)
+{
+	UINT32 n = 0;
+	for (UINT8 const c : o.counts) n += c;
+	return n;
+}
+
+
+// The room in the town's peaceful sectors of ours, before the orders
+static UINT32 MilitiaRecruitRoom(const SGPSector& sector)
+{
+	UINT32 room = 0;
 	ForEachRecruitSector(sector, [&](const SGPSector& s)
 	{
 		UINT8 const n = CountAllMilitiaInSector(s);
-		if (n < MAX_ALLOWABLE_MILITIA_PER_SECTOR) free_slots += MAX_ALLOWABLE_MILITIA_PER_SECTOR - n;
+		if (n < MAX_ALLOWABLE_MILITIA_PER_SECTOR) room += MAX_ALLOWABLE_MILITIA_PER_SECTOR - n;
 	});
-	return free_slots;
+	return room;
+}
+
+
+// The militia ordered for this town (or SAM site), on their way or waiting
+static UINT32 MilitiaOrderedFor(const SGPSector& sector)
+{
+	UINT32 n = 0;
+	for (MilitiaOrder const& o : g_militia_orders)
+	{
+		if (SameRecruitArea(o.sector, sector)) n += OrderTotal(o);
+	}
+	return n;
+}
+
+
+UINT32 MilitiaRecruitFreeSlots(const SGPSector& sector)
+{
+	// the ordered militia have their places already
+	UINT32 const room    = MilitiaRecruitRoom(sector);
+	UINT32 const ordered = MilitiaOrderedFor(sector);
+	return room > ordered ? room - ordered : 0;
 }
 
 
@@ -1135,10 +1186,38 @@ INT32 MilitiaArrivalExtraCost(UINT8 const option)
 }
 
 
-BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS], INT32 const extra_cost)
+// The town loyalty bonus of the militia training: one for every 10 militia
+// that arrived in the town
+static void AddMilitiaRecruitLoyalty(const SGPSector& sector, UINT32 const n)
+{
+	INT8 const town_id = GetTownIdForSector(sector);
+	if (town_id == BLANK_SECTOR) return;
+	auto const town = GCM->getTown(town_id);
+	if (!town) return;
+
+	UINT8& counter = SectorInfo[town->getBaseSector().AsByte()].ubMilitiaRecruitedForLoyalty;
+	UINT32 recruited = counter + n;
+	while (recruited >= MILITIA_TRAINING_SQUAD_SIZE)
+	{
+		IncrementTownLoyalty(town_id, LOYALTY_BONUS_FOR_TOWN_TRAINING);
+		recruited -= MILITIA_TRAINING_SQUAD_SIZE;
+	}
+	counter = (UINT8) recruited;
+}
+
+
+// The town's name, or the SAM site's sector
+static ST::string RecruitAreaName(const SGPSector& sector)
+{
+	INT8 const town_id = GetTownIdForSector(sector);
+	return town_id != BLANK_SECTOR ? GCM->getTownName(town_id) : sector.AsShortString();
+}
+
+
+BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS], UINT8 const arrival_option)
 {
 	UINT32 n_total = 0;
-	INT32  cost    = extra_cost;
+	INT32  cost    = MilitiaArrivalExtraCost(arrival_option);
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		n_total += counts[rank];
@@ -1150,34 +1229,101 @@ BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LE
 
 	AddTransactionToPlayersBook(RECRUIT_TOWN_MILITIA, sector.AsByte(), GetWorldTotalMin(), -cost);
 
+	// ordered: they arrive after the option's hours
+	MilitiaOrder o{};
+	o.id = 1;
+	for (MilitiaOrder const& other : g_militia_orders) o.id = std::max(o.id, other.id + 1);
+	o.sector      = sector;
+	std::copy(std::begin(counts), std::end(counts), std::begin(o.counts));
+	o.arrival_min = GetWorldTotalMin() + MilitiaArrivalHours(arrival_option) * 60;
+	o.option      = arrival_option;
+	o.waiting     = false;
+	g_militia_orders.push_back(o);
+	AddStrategicEvent(EVENT_MILITIA_ORDER_ARRIVAL, o.arrival_min, o.id);
+
+	fMapPanelDirty = TRUE;
+	return TRUE;
+}
+
+
+void HandleMilitiaOrderArrival(UINT32 const order_id)
+{
+	auto const it = std::find_if(g_militia_orders.begin(), g_militia_orders.end(),
+		[&](MilitiaOrder const& o) { return o.id == order_id; });
+	if (it == g_militia_orders.end()) return;
+	MilitiaOrder& o = *it;
+
+	// the room left for this order: the town's, less the other orders'
+	UINT32 const total   = OrderTotal(o);
+	UINT32 const room    = MilitiaRecruitRoom(o.sector);
+	UINT32 const ordered = MilitiaOrderedFor(o.sector) - total;
+	if (room < ordered + total)
+	{
+		// an enemy in the town, or no room: they wait for orders
+		// (docs/militia-arrival-time-plan.md, stage 4)
+		o.waiting = true;
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_WAITING], RecruitAreaName(o.sector)));
+		return;
+	}
+
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
-		for (UINT8 i = 0; i != counts[rank]; ++i)
+		for (UINT8 i = 0; i != o.counts[rank]; ++i)
 		{
-			if (!PlaceRecruitedMilitia(sector, rank)) break; // can't happen, the room was checked
+			if (!PlaceRecruitedMilitia(o.sector, rank)) break; // can't happen, the room was checked
 		}
 	}
+	AddMilitiaRecruitLoyalty(o.sector, total);
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED], RecruitAreaName(o.sector)));
+	g_militia_orders.erase(it);
 
 	// force tactical to update militia status
 	gfStrategicMilitiaChangesMade = TRUE;
 	fMapPanelDirty = TRUE;
+}
 
-	// the town loyalty bonus of the militia training: one for every 10 militia
-	INT8 const town_id = GetTownIdForSector(sector);
-	if (town_id != BLANK_SECTOR)
+
+// Saved as one list of numbers, MILITIA_ORDER_FIELDS per order
+static ST::string const gMilitiaOrdersStateKey{ "Militia::orders" };
+#define MILITIA_ORDER_FIELDS (4 + MAX_MILITIA_LEVELS + 2)
+
+void InitMilitiaOrdersForNewGame()
+{
+	g_militia_orders.clear();
+}
+
+
+void SaveMilitiaOrdersToSaveGameFile()
+{
+	std::vector<int32_t> v;
+	for (MilitiaOrder const& o : g_militia_orders)
 	{
-		auto const town = GCM->getTown(town_id);
-		if (town)
-		{
-			UINT8& counter = SectorInfo[town->getBaseSector().AsByte()].ubMilitiaRecruitedForLoyalty;
-			UINT32 recruited = counter + n_total;
-			while (recruited >= MILITIA_TRAINING_SQUAD_SIZE)
-			{
-				IncrementTownLoyalty(town_id, LOYALTY_BONUS_FOR_TOWN_TRAINING);
-				recruited -= MILITIA_TRAINING_SQUAD_SIZE;
-			}
-			counter = (UINT8) recruited;
-		}
+		v.push_back(o.id);
+		v.push_back(o.sector.AsByte());
+		v.push_back(o.arrival_min);
+		v.push_back(o.option);
+		for (UINT8 const c : o.counts) v.push_back(c);
+		v.push_back(o.waiting ? 1 : 0);
+		v.push_back(0); // spare
 	}
-	return TRUE;
+	g_gameStates.SetVector(gMilitiaOrdersStateKey, std::move(v));
+}
+
+
+void LoadMilitiaOrdersFromSaveGameFile()
+{
+	g_militia_orders.clear();
+	if (!g_gameStates.HasKey(gMilitiaOrdersStateKey)) return;
+	auto const v = g_gameStates.GetVector<int32_t>(gMilitiaOrdersStateKey);
+	for (size_t i = 0; i + MILITIA_ORDER_FIELDS <= v.size(); i += MILITIA_ORDER_FIELDS)
+	{
+		MilitiaOrder o{};
+		o.id          = v[i];
+		o.sector      = SGPSector::FromSectorID(UINT32(v[i + 1]), 0);
+		o.arrival_min = v[i + 2];
+		o.option      = v[i + 3];
+		for (UINT8 r = 0; r != MAX_MILITIA_LEVELS; ++r) o.counts[r] = v[i + 4 + r];
+		o.waiting     = v[i + 4 + MAX_MILITIA_LEVELS] != 0;
+		g_militia_orders.push_back(o);
+	}
 }

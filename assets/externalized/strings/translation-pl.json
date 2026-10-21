@@ -1776,7 +1776,10 @@
         "%d h",
         "Arrival in %d hours, extra cost %s",
         "Militia Recruitment Center",
-        "Militia Deployment Center"
+        "Militia Deployment Center",
+        "Militia will arrive in %d hours.",
+        "Militia have arrived in %s.",
+        "The militia ordered for %s can't enter and are waiting for orders."
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

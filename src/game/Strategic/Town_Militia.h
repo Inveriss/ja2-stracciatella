@@ -8,6 +8,7 @@
 
 #include <string_theory/string>
 #include <optional>
+#include <vector>
 
 
 // how many militia of all ranks can be in any one sector at once
@@ -100,11 +101,36 @@ enum MilitiaArrivalOption
 UINT8 MilitiaArrivalHours(UINT8 option);
 INT32 MilitiaArrivalExtraCost(UINT8 option);
 
+// A purchase on its way: the militia arrive at arrival_min (the event
+// EVENT_MILITIA_ORDER_ARRIVAL with the order's id). Waiting: they arrived but
+// couldn't enter the town (enemy, no room); they wait for orders.
+struct MilitiaOrder
+{
+	UINT32    id;
+	SGPSector sector; // the sector the purchase was made for
+	UINT8     counts[MAX_MILITIA_LEVELS];
+	UINT32    arrival_min;
+	UINT8     option; // MilitiaArrivalOption
+	bool      waiting;
+};
+std::vector<MilitiaOrder> const& GetMilitiaOrders();
+
 // Buys counts[rank] militia of each rank for the town (or SAM site) of this
-// sector: checks money and room, pays (with extra_cost, the arrival option's),
-// places them (the given sector first) and handles the town loyalty bonus.
-// FALSE (nothing bought) when it can't.
-BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS], INT32 extra_cost = 0);
+// sector: checks money and room (the militia ordered before count as there),
+// pays (with the arrival option's extra cost) and orders them -- they arrive
+// after the option's hours (HandleMilitiaOrderArrival()). FALSE (nothing
+// bought) when it can't.
+BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS], UINT8 arrival_option);
+
+// EVENT_MILITIA_ORDER_ARRIVAL: the order's militia enter the town -- the
+// ordered sector first, then the town's other sectors with room -- and the
+// town loyalty bonus counts them; when they can't all enter, the order waits.
+void HandleMilitiaOrderArrival(UINT32 order_id);
+
+// The orders in the saved game (g_gameStates); none in a new game
+void InitMilitiaOrdersForNewGame();
+void SaveMilitiaOrdersToSaveGameFile();
+void LoadMilitiaOrdersFromSaveGameFile();
 
 extern SOLDIERTYPE* pMilitiaTrainerSoldier;
 

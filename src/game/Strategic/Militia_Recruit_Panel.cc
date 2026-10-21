@@ -135,10 +135,16 @@ enum
 	RECRUIT_STR_HOURS_FMT = RECRUIT_STR_ARRIVAL_FIRST + NUM_MILITIA_ARRIVAL_OPTIONS,
 	RECRUIT_STR_ARRIVAL_HELP_FMT,
 	RECRUIT_STR_MENU_RECRUITMENT, // the Militia menu of Assign > Train (Assignments.cc)
-	RECRUIT_STR_MENU_DEPLOYMENT
+	RECRUIT_STR_MENU_DEPLOYMENT,
+	RECRUIT_STR_ORDER_COMING,     // the militia orders (Town_Militia.cc)
+	RECRUIT_STR_ORDER_ARRIVED,
+	RECRUIT_STR_ORDER_WAITING
 };
 static_assert(RECRUIT_STR_MENU_RECRUITMENT == MILITIA_MENU_STR_RECRUITMENT);
 static_assert(RECRUIT_STR_MENU_DEPLOYMENT  == MILITIA_MENU_STR_DEPLOYMENT);
+static_assert(RECRUIT_STR_ORDER_COMING     == MILITIA_STR_ORDER_COMING);
+static_assert(RECRUIT_STR_ORDER_ARRIVED    == MILITIA_STR_ORDER_ARRIVED);
+static_assert(RECRUIT_STR_ORDER_WAITING    == MILITIA_STR_ORDER_WAITING);
 
 bool         g_open = false;
 SGPSector    g_sector;                 // the recruiting merc's sector
@@ -308,11 +314,14 @@ static void BuyButtonCallback(GUI_BUTTON*, UINT32 const reason)
 		return;
 	}
 
-	if (BuyMilitia(g_sector, g_counts, MilitiaArrivalExtraCost(g_arrival)))
+	if (BuyMilitia(g_sector, g_counts, g_arrival))
 	{
-		// bought: start over (the panel stays open)
+		// bought: start over (the panel stays open), and when they arrive
 		std::fill(std::begin(g_counts), std::end(g_counts), 0);
 		fMapScreenBottomDirty = TRUE; // the balance
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE,
+			st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_ORDER_COMING], int(MilitiaArrivalHours(g_arrival))),
+			MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
 	}
 }
 
