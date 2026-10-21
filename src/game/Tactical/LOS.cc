@@ -39,6 +39,7 @@
 #include "GameInstance.h"
 #include "WeaponModels.h"
 #include "Logger.h"
+#include "Render_Fun.h"
 
 #define STEPS_FOR_BULLET_MOVE_TRAILS				10
 #define STEPS_FOR_BULLET_MOVE_SMALL_TRAILS			5
@@ -1558,42 +1559,56 @@ INT32 SoldierToSoldierLineOfSightTest(const SOLDIERTYPE* const pStartSoldier, co
 		}
 	}
 
-	if ( pEndSoldier->bCamo && !bAware )
+	// Camouflage (the Camouflaged trait, or a camouflage kit at 85% or more):
+	// lying still or crawling, the soldier can't be seen beyond a fixed number
+	// of tiles by a looker not aware of him. Any other stance: no effect. Not
+	// in buildings, nor on paved roads and airstrips. It no longer adds to the
+	// trees' cover (bEffectiveCamo 0 below; the trees' own cover is unchanged).
+	//                       lying still  crawling   (seen up to this distance)
+	//   Camouflaged trait        1           5
+	//   kit, 85-100%             5          10
+	bEffectiveCamo = 0;
+	if ( !bAware && !fSmell && pEndSoldier->ubBodyType != BLOODCAT )
 	{
-
-		INT32 iTemp;
-
-		// reduce effects of camo of 5% per tile moved last turn
-		if ( pEndSoldier->ubBodyType == BLOODCAT )
+		bool const fTrait = HAS_SKILL_TRAIT(pEndSoldier, CAMOUFLAGED);
+		bool const fKit   = !fTrait && pEndSoldier->bCamo >= 85;
+		ANIMCONTROLTYPE const& anim = gAnimControl[ pEndSoldier->usAnimState ];
+		bool const fProne = anim.ubEndHeight == ANIM_PRONE;
+		bool const fInBuilding = pEndSoldier->bLevel == 0 &&
+			(GetRoom(pEndSoldier->sGridNo) != NO_ROOM || pEndSoldier->bOverTerrainType == FLAT_FLOOR);
+		bool const fPaved = pEndSoldier->bOverTerrainType == PAVED_ROAD;
+		if ( (fTrait || fKit) && fProne && !fInBuilding && !fPaved )
 		{
-			bEffectiveCamo = 100 - pEndSoldier->bTilesMoved * 5;
+			bool const fCrawling = (anim.uiFlags & ANIM_MOVING) != 0;
+			INT16 const sSeenUpTo = fTrait ? (fCrawling ? 5 : 1) : (fCrawling ? 10 : 5);
+			if ( PythSpacesAway( pStartSoldier->sGridNo, pEndSoldier->sGridNo ) > sSeenUpTo )
+			{
+				return( 0 );
+			}
 		}
-		else
-		{
-			bEffectiveCamo = pEndSoldier->bCamo * (100 - pEndSoldier->bTilesMoved * 5) / 100;
-		}
-		bEffectiveCamo = std::max(bEffectiveCamo, 0);
-
+	}
+	else if ( pEndSoldier->bCamo && !bAware && pEndSoldier->ubBodyType == BLOODCAT )
+	{
+		// bloodcats (no camouflage of their own): the original rule, prone or
+		// crouched in the open, a third less sight, less for each tile moved
+		bEffectiveCamo = std::max(100 - pEndSoldier->bTilesMoved * 5, 0);
 		if ( gAnimControl[ pEndSoldier->usAnimState ].ubEndHeight < ANIM_STAND )
 		{
-			// reduce visibility by up to a third for camouflage!
 			switch( pEndSoldier->bOverTerrainType )
 			{
 				case FLAT_GROUND:
 				case LOW_GRASS:
 				case HIGH_GRASS:
-					iTemp = ubTileSightLimit;
+				{
+					INT32 iTemp = ubTileSightLimit;
 					iTemp -= iTemp * (bEffectiveCamo / 3) / 100;
 					ubTileSightLimit = (UINT8) iTemp;
 					break;
+				}
 				default:
 					break;
 			}
 		}
-	}
-	else
-	{
-		bEffectiveCamo = 0;
 	}
 
 	if ( TANK( pEndSoldier ) )
