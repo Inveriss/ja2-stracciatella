@@ -88,10 +88,23 @@ INT32 MilitiaRecruitPricePercent(INT8 leadership);
 // The price of one militia of this rank, with the best recruiter's modifier
 INT32 MilitiaRecruitUnitPrice(UINT8 rank, const SGPSector& sector);
 
+// The arrival options of a purchase (docs/militia-arrival-time-plan.md): how
+// soon the militia arrive and the extra cost of it, per purchase
+enum MilitiaArrivalOption
+{
+	MILITIA_ARRIVAL_EXPRESS,  // 6 hours, + $1000
+	MILITIA_ARRIVAL_FAST,     // 12 hours, + $500
+	MILITIA_ARRIVAL_STANDARD, // 24 hours
+	NUM_MILITIA_ARRIVAL_OPTIONS
+};
+UINT8 MilitiaArrivalHours(UINT8 option);
+INT32 MilitiaArrivalExtraCost(UINT8 option);
+
 // Buys counts[rank] militia of each rank for the town (or SAM site) of this
-// sector: checks money and room, pays, places them (the given sector first)
-// and handles the town loyalty bonus. FALSE (nothing bought) when it can't.
-BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS]);
+// sector: checks money and room, pays (with extra_cost, the arrival option's),
+// places them (the given sector first) and handles the town loyalty bonus.
+// FALSE (nothing bought) when it can't.
+BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS], INT32 extra_cost = 0);
 
 extern SOLDIERTYPE* pMilitiaTrainerSoldier;
 

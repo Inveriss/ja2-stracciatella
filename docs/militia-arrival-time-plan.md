@@ -42,6 +42,25 @@ picks one of three arrival options; the militia arrive after its time.
    purchase.
 6. Texts: English in all 9 translation files for now, translations later.
 
+Added 2026-10-21 (with the graphics MILITIA_RECRUIT_PANEL_1366x768.png, new
+"Arrival time" box, and MILITIA_DEPLOYMENT_PANEL_1366x768.png):
+
+7. No refunds for now. Militia that cannot enter go to the waiting list.
+8. The waiting militia are shown in a separate Deployment Panel
+   (MILITIA_DEPLOYMENT_PANEL_1366x768.png, 761x647): title "MILITIA
+   DEPLOYMENT", two headers "INCOMING" and "WAITING", one row per rank (green,
+   regular, elite, elite heavy) with the rank's three portraits, an Incoming
+   box (count, town, ETA per order), a Waiting box (count, town and a Done
+   button per order) and a TOTAL box (Incoming / Waiting).
+9. The Done button of a waiting order tries again to enter the target town;
+   graphic SECTOR_INVENTORY_DONE_BUTTONS.STI, images 2 and 3.
+10. No limit on the number of orders; every order is listed in the
+    Deployment Panel.
+11. The questions of stage 4 are shown on the tactical screen too.
+12. The Deployment Panel shows values only, no labels, except in the TOTAL
+    box.
+13. Later stage: scrolling or arrows in the Deployment Panel.
+
 ## Recommended stages
 
 ### Stage 1 — Arrival options in the panel (UI only)

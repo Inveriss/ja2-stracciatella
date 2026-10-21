@@ -1768,7 +1768,13 @@
         "Liczba",
         "Koszt",
         "Nie masz samoobrony. Zrekrutuj ją w mieście: Przydział > Szkolenie > Samoobrona.",
-        "Aktualne saldo"
+        "Aktualne saldo",
+        "Arrival Time",
+        "Express",
+        "Fast",
+        "Standard",
+        "%d h",
+        "Arrival in %d hours, extra cost %s"
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

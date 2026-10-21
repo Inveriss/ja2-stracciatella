@@ -1113,10 +1113,32 @@ static BOOLEAN PlaceRecruitedMilitia(const SGPSector& sector, UINT8 const rank)
 }
 
 
-BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS])
+UINT8 MilitiaArrivalHours(UINT8 const option)
+{
+	switch (option)
+	{
+		case MILITIA_ARRIVAL_EXPRESS: return 6;
+		case MILITIA_ARRIVAL_FAST:    return 12;
+		default:                      return 24;
+	}
+}
+
+
+INT32 MilitiaArrivalExtraCost(UINT8 const option)
+{
+	switch (option)
+	{
+		case MILITIA_ARRIVAL_EXPRESS: return 1000;
+		case MILITIA_ARRIVAL_FAST:    return 500;
+		default:                      return 0;
+	}
+}
+
+
+BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS], INT32 const extra_cost)
 {
 	UINT32 n_total = 0;
-	INT32  cost    = 0;
+	INT32  cost    = extra_cost;
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		n_total += counts[rank];

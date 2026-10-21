@@ -93,11 +93,22 @@ constexpr INT16 RECRUIT_EQUALS_X     = 503;
 constexpr INT16 RECRUIT_EQUALS_W     = 16;
 constexpr INT16 RECRUIT_COST_X       = 519;
 constexpr INT16 RECRUIT_COST_W       = 72;
-// total cost box (618,286 127x66), the buy button 10 px under it, centred
-constexpr RecruitTextPos RECRUIT_TOTAL_LABEL = { 621, 303, 121 };
-constexpr RecruitTextPos RECRUIT_TOTAL_VALUE = { 621, 324, 121 };
+// total cost box (618,331 127x66), the buy button 10 px under it, centred
+constexpr RecruitTextPos RECRUIT_TOTAL_LABEL = { 621, 348, 121 };
+constexpr RecruitTextPos RECRUIT_TOTAL_VALUE = { 621, 369, 121 };
 constexpr INT16 RECRUIT_BUY_X = 662;
-constexpr INT16 RECRUIT_BUY_Y = 362;
+constexpr INT16 RECRUIT_BUY_Y = 407;
+// arrival time box (618,239 127x66): header, then a line per option -- check
+// box (the sector inventory's check box sheet, its 15x15 images), name, hours
+// right-aligned -- in the smaller font
+#define RECRUIT_SMALL_FONT FONT10ARIAL
+constexpr RecruitTextPos RECRUIT_ARRIVAL_HEADER = { 621, 244, 121 };
+char const* const RECRUIT_CHECKBOX_GFX = INTERFACEDIR "/Sector_Inventory_PopupCheck.sti";
+constexpr INT16 RECRUIT_CHECKBOX_X      = 624;
+constexpr INT16 RECRUIT_ARRIVAL_FIRST_Y = 257;
+constexpr INT16 RECRUIT_ARRIVAL_PITCH   = 15;
+constexpr INT16 RECRUIT_ARRIVAL_NAME_X  = 643;
+constexpr INT16 RECRUIT_ARRIVAL_W       = 95; // name .. right edge of the hours
 // current balance box (618,147 127x66), at the height of the first rank row's boxes
 constexpr RecruitTextPos RECRUIT_BALANCE_LABEL = { 621, 164, 121 };
 constexpr RecruitTextPos RECRUIT_BALANCE_VALUE = { 621, 185, 121 };
@@ -118,7 +129,11 @@ enum
 	RECRUIT_STR_COUNT = RECRUIT_STR_RANK_FIRST + MAX_MILITIA_LEVELS,
 	RECRUIT_STR_COST,
 	RECRUIT_STR_NO_MILITIA, // the map's militia view without militia (Map_Screen_Interface_Border.cc)
-	RECRUIT_STR_CURRENT_BALANCE
+	RECRUIT_STR_CURRENT_BALANCE,
+	RECRUIT_STR_ARRIVAL_TIME,
+	RECRUIT_STR_ARRIVAL_FIRST, // Express, Fast, Standard (MilitiaArrivalOption)
+	RECRUIT_STR_HOURS_FMT = RECRUIT_STR_ARRIVAL_FIRST + NUM_MILITIA_ARRIVAL_OPTIONS,
+	RECRUIT_STR_ARRIVAL_HELP_FMT
 };
 
 bool         g_open = false;
@@ -129,7 +144,9 @@ GUIButtonRef g_close_button;
 GUIButtonRef g_minus_buttons[MAX_MILITIA_LEVELS];
 GUIButtonRef g_plus_buttons[MAX_MILITIA_LEVELS];
 GUIButtonRef g_buy_button;
+GUIButtonRef g_arrival_buttons[NUM_MILITIA_ARRIVAL_OPTIONS];
 UINT8        g_counts[MAX_MILITIA_LEVELS]; // militia picked to buy, per rank
+UINT8        g_arrival = MILITIA_ARRIVAL_STANDARD; // the arrival option checked
 
 }
 
@@ -173,6 +190,37 @@ static INT32 PickedCost()
 }
 
 
+// What the purchase costs: the militia picked and the arrival option's extra
+static INT32 TotalCost()
+{
+	return PickedCost() + MilitiaArrivalExtraCost(g_arrival);
+}
+
+
+// The arrival option can be paid with the militia picked
+static bool CanAffordArrival(UINT8 const option)
+{
+	return PickedCost() + MilitiaArrivalExtraCost(option) <= LaptopSaveInfo.iCurrentBalance;
+}
+
+
+// The checked option no longer affordable: the most expensive one that is
+// (Standard costs nothing extra)
+static void ClampArrival()
+{
+	if (CanAffordArrival(g_arrival)) return;
+	for (UINT8 option = 0; option != NUM_MILITIA_ARRIVAL_OPTIONS; ++option)
+	{
+		if (CanAffordArrival(option))
+		{
+			g_arrival = option;
+			return;
+		}
+	}
+	g_arrival = MILITIA_ARRIVAL_STANDARD;
+}
+
+
 // The picks never exceed the room in the town (it can shrink, e.g. after a buy)
 static void ClampPicks()
 {
@@ -190,7 +238,30 @@ static bool CanPickOneMore(UINT8 const rank)
 {
 	if (g_counts[rank] == 255)                              return false;
 	if (PickedTotal() >= MilitiaRecruitFreeSlots(g_sector)) return false;
-	return PickedCost() + MilitiaRecruitUnitPrice(rank, g_sector) <= LaptopSaveInfo.iCurrentBalance;
+	return TotalCost() + MilitiaRecruitUnitPrice(rank, g_sector) <= LaptopSaveInfo.iCurrentBalance;
+}
+
+
+// Exactly one option checked: a click checks the clicked one
+static void ArrivalButtonCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	UINT8 const option = btn->GetUserData();
+	if (CanAffordArrival(option)) g_arrival = option;
+}
+
+
+// The check boxes show the checked option, greyed out when unaffordable
+static void UpdateArrivalButtons()
+{
+	ClampArrival();
+	for (UINT8 option = 0; option != NUM_MILITIA_ARRIVAL_OPTIONS; ++option)
+	{
+		GUIButtonRef const b = g_arrival_buttons[option];
+		EnableButton(b, CanAffordArrival(option));
+		if (option == g_arrival) b->uiFlags |=  BUTTON_CLICKED_ON;
+		else                     b->uiFlags &= ~BUTTON_CLICKED_ON;
+	}
 }
 
 
@@ -226,14 +297,14 @@ static void BuyButtonCallback(GUI_BUTTON*, UINT32 const reason)
 		ClampPicks();
 		return;
 	}
-	if (LaptopSaveInfo.iCurrentBalance < PickedCost())
+	if (LaptopSaveInfo.iCurrentBalance < TotalCost())
 	{
 		// "You can't afford it."
 		DoMapMessageBox(MSG_BOX_BASIC_STYLE, pMilitiaConfirmStrings[2], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
 		return;
 	}
 
-	if (BuyMilitia(g_sector, g_counts))
+	if (BuyMilitia(g_sector, g_counts, MilitiaArrivalExtraCost(g_arrival)))
 	{
 		// bought: start over (the panel stays open)
 		std::fill(std::begin(g_counts), std::end(g_counts), 0);
@@ -266,6 +337,18 @@ static void CreatePanel()
 	}
 	// buy (doesn't close the panel)
 	g_buy_button = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 4, 5, x + RECRUIT_BUY_X, y + RECRUIT_BUY_Y, MSYS_PRIORITY_HIGHEST, BuyButtonCallback);
+
+	// the arrival options, Standard checked
+	g_arrival = MILITIA_ARRIVAL_STANDARD;
+	for (UINT8 option = 0; option != NUM_MILITIA_ARRIVAL_OPTIONS; ++option)
+	{
+		INT16 const oy = y + RECRUIT_ARRIVAL_FIRST_Y + option * RECRUIT_ARRIVAL_PITCH;
+		GUIButtonRef const b = CreateCheckBoxButton(x + RECRUIT_CHECKBOX_X, oy, RECRUIT_CHECKBOX_GFX, MSYS_PRIORITY_HIGHEST, ArrivalButtonCallback, 0);
+		b->SetUserData(option);
+		b->SetFastHelpText(st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_ARRIVAL_HELP_FMT],
+			int(MilitiaArrivalHours(option)), SPrintMoney(MilitiaArrivalExtraCost(option))));
+		g_arrival_buttons[option] = b;
+	}
 
 	g_open = true;
 }
@@ -300,6 +383,7 @@ void CloseMilitiaRecruitPanel()
 		RemoveButton(g_plus_buttons[rank]);
 	}
 	RemoveButton(g_buy_button);
+	for (GUIButtonRef& b : g_arrival_buttons) RemoveButton(b);
 	MSYS_RemoveRegion(&g_blanket);
 	g_open = false;
 
@@ -406,9 +490,25 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 	PrintCentered(px, py, RECRUIT_BALANCE_LABEL, pMilitiaRecruitStrings[RECRUIT_STR_CURRENT_BALANCE]);
 	PrintCentered(px, py, RECRUIT_BALANCE_VALUE, SPrintMoney(LaptopSaveInfo.iCurrentBalance));
 
-	// total cost
+	// total cost: the militia and the arrival option's extra
 	PrintCentered(px, py, RECRUIT_TOTAL_LABEL, pMilitiaRecruitStrings[RECRUIT_STR_TOTAL_COST]);
-	PrintCentered(px, py, RECRUIT_TOTAL_VALUE, SPrintMoney(PickedCost()));
+	PrintCentered(px, py, RECRUIT_TOTAL_VALUE, SPrintMoney(TotalCost()));
+
+	// the arrival options: name, hours right-aligned
+	PrintCentered(px, py, RECRUIT_ARRIVAL_HEADER, pMilitiaRecruitStrings[RECRUIT_STR_ARRIVAL_TIME]);
+	SetFont(RECRUIT_SMALL_FONT);
+	for (UINT8 option = 0; option != NUM_MILITIA_ARRIVAL_OPTIONS; ++option)
+	{
+		// the text's middle at the 15 px check box's
+		INT16 const oy = RECRUIT_ARRIVAL_FIRST_Y + option * RECRUIT_ARRIVAL_PITCH + (15 - GetFontHeight(RECRUIT_SMALL_FONT)) / 2;
+		MPrint(px + RECRUIT_ARRIVAL_NAME_X, py + oy, pMilitiaRecruitStrings[RECRUIT_STR_ARRIVAL_FIRST + option]);
+		ST::string const hours = st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_HOURS_FMT], int(MilitiaArrivalHours(option)));
+		INT16 hx;
+		INT16 hy;
+		FindFontRightCoordinates(px + RECRUIT_ARRIVAL_NAME_X, py + oy, RECRUIT_ARRIVAL_W, 0, hours, RECRUIT_SMALL_FONT, &hx, &hy);
+		MPrint(hx, py + oy, hours);
+	}
+	SetFont(RECRUIT_FONT);
 }
 
 
@@ -425,6 +525,7 @@ void HandleMilitiaRecruitPanel()
 	PanelRect(x, y, w, h);
 	BltVideoObject(FRAME_BUFFER, guiRecruitPanel, 0, x, y);
 	ClampPicks();
+	UpdateArrivalButtons();
 	// + greyed out once one more wouldn't fit into the town or the balance
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
@@ -439,4 +540,5 @@ void HandleMilitiaRecruitPanel()
 		MarkAButtonDirty(g_plus_buttons[rank]);
 	}
 	MarkAButtonDirty(g_buy_button);
+	for (GUIButtonRef const b : g_arrival_buttons) MarkAButtonDirty(b);
 }

@@ -1768,7 +1768,13 @@
         "Count",
         "Cost",
         "You have no militia. Recruit them with Assign > Train > Militia in a town.",
-        "Current Balance"
+        "Current Balance",
+        "Arrival Time",
+        "Express",
+        "Fast",
+        "Standard",
+        "%d h",
+        "Arrival in %d hours, extra cost %s"
     ],
     "pMilitiaWatchStrings": [
         "Watch the Battle",
