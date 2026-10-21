@@ -27,6 +27,7 @@
 #include "Soldier_Functions.h"
 #include "Animation_Data.h"
 #include "Logger.h"
+#include "Game_Clock.h"
 
 #include <chrono>
 
@@ -53,6 +54,8 @@ static bool      g_saved_low_team_panel = false; // the team panel's form before
 static bool      g_low_team_panel_forced = false;
 static bool      g_exit_requested = false;
 static bool      g_show_all_set = false; // SHOW_ALL_MERCS set for a fight in real time
+static UINT32    g_battle_over_at    = 0; // JA2 clock when the watched battle was won or lost, 0: not over
+static UINT32    g_battle_over_delay = 0; // ms from then to leaving the sector
 
 // EXIT (MILITIA_RECRUIT_BUTTONS.STI 6 ready, 7 pressed, 120x33): over the team
 // panel at the screen's right edge
@@ -87,6 +90,7 @@ void RequestWatchMilitiaBattle(const SGPSector& sector)
 	g_watch_requested = true;
 	g_watch_sector    = sector;
 	g_watch_sector.z  = 0;
+	g_battle_over_at  = 0;
 }
 
 
@@ -253,6 +257,39 @@ static void FixDyingSoldiersPoses()
 }
 
 
+// Real time: the end of the battle is checked where a soldier dies or the attack
+// busy count drops to 0; several attackers at once can leave a death without
+// that check (the count was above 0 then). It is checked again every
+// END_OF_BATTLE_CHECK_DELAY while nothing is on its way.
+#define END_OF_BATTLE_CHECK_DELAY 1000 // ms
+
+static void CheckForEndOfWatchedBattle()
+{
+	static UINT32 last_check;
+	UINT32 const now = GetJA2Clock();
+	if (now >= last_check && now - last_check < END_OF_BATTLE_CHECK_DELAY) return;
+	last_check = now;
+	if (g_battle_over_at != 0)                      return;
+	if (!gTacticalStatus.fEnemyInSector)            return;
+	if (gTacticalStatus.ubAttackBusyCount > 0)      return;
+	if (!NoAttackInFlight())                        return;
+	CheckForEndOfBattle(FALSE);
+}
+
+
+// The watched battle is over (won or lost): after its delay (the victory or
+// defeat music) the sector is left as with the EXIT button, which waits for
+// nothing to be on its way and ends the AI's turn and the interface lock first
+static void HandleWatchedBattleOver()
+{
+	if (g_battle_over_at == 0) return;
+	UINT32 const now = GetJA2Clock();
+	if (now >= g_battle_over_at && now - g_battle_over_at < g_battle_over_delay) return;
+	g_battle_over_at = 0;
+	g_exit_requested = true;
+}
+
+
 // A watch on the attack busy count: when it stays above 0 for
 // STUCK_BUSY_COUNT_DELAY while nothing is on its way and nobody is being hit, a
 // part of an attack never ended (several at once in real time); the count goes
@@ -286,8 +323,30 @@ static void HandleStuckAttackBusyCount()
 }
 
 
+// Entering a sector with enemies pauses the game (pre-battle, locked); the
+// unpause after loading the sector is refused while it is locked, and the
+// game stays paused until the end of the AI's first turn lock unpauses it.
+// A fight in real time has no turns and no locks: the game would stay paused
+// for good -- no real time turns, so nobody knocked down gets up (no breath
+// back) and first aid makes no progress. Left paused with nothing holding it
+// (not by the player, not locked, no conversation), it is unpaused.
+static void HandleLeftoverPause()
+{
+	if (!GamePaused())                                  return;
+	if (gfPauseDueToPlayerGamePause)                    return;
+	if (PauseStateLocked())                             return;
+	if (gTacticalStatus.uiFlags & ENGAGED_IN_CONV)      return;
+	if (guiCurrentScreen != GAME_SCREEN)                return;
+	SLOGD("Fight in real time: game left paused, unpaused");
+	UnPauseGame();
+}
+
+
 void HandleWatchedMilitiaBattleTurn()
 {
+
+	if (gfWatchingMilitiaBattle) HandleWatchedBattleOver();
+
 	bool const exit_now = gTacticalStatus.ubAttackBusyCount == 0 ||
 		(IsWatchedBattleInRealtime() && NoAttackInFlight());
 	if (g_exit_requested && exit_now)
@@ -297,6 +356,7 @@ void HandleWatchedMilitiaBattleTurn()
 		// First the AI's turn ends and the interface lock goes, as at the end of a
 		// battle, or the lock would stay over the map screen.
 		g_exit_requested        = false;
+		g_battle_over_at        = 0;
 		// real time: attacks of others may still count (nothing is in flight)
 		if (IsWatchedBattleInRealtime()) gTacticalStatus.ubAttackBusyCount = 0;
 		gfWatchingMilitiaBattle = FALSE;
@@ -312,10 +372,12 @@ void HandleWatchedMilitiaBattleTurn()
 	bool const realtime_fight = IsRealtimeFight();
 	if (realtime_fight)
 	{
+		HandleLeftoverPause();
 		EndOverAttacks();
 		HandleStuckAttackBusyCount();
 		FixDyingSoldiersPoses();
 	}
+	if (IsWatchedBattleInRealtime()) CheckForEndOfWatchedBattle();
 
 	// no fog of war for the player during a fight in real time: every soldier
 	// is drawn (SHOW_ALL_MERCS changes only what the screen shows; who sees whom
@@ -358,13 +420,6 @@ void HandleWatchedMilitiaBattleTurn()
 }
 
 
-static void WatchedBattleOverCallback()
-{
-	// leave the sector: back to the map screen (the militia stay)
-	CheckAndHandleUnloadingOfCurrentWorld();
-}
-
-
 void EndWatchedMilitiaBattle()
 {
 	if (g_show_all_set)
@@ -374,6 +429,7 @@ void EndWatchedMilitiaBattle()
 	}
 	if (g_exit_button) RemoveButton(g_exit_button);
 	g_exit_requested = false;
+	g_battle_over_at = 0;
 	if (g_low_team_panel_forced)
 	{
 		// the team panel's form from before the watching
@@ -386,9 +442,26 @@ void EndWatchedMilitiaBattle()
 }
 
 
+// Not with the customizable timer: the end of the battle sets that one to other
+// callbacks right after, which would call this one at once
+static void WatchedBattleOver(UINT32 const delay)
+{
+	if (!gfWatchingMilitiaBattle || g_battle_over_at != 0) return;
+	g_battle_over_at    = GetJA2Clock();
+	g_battle_over_delay = delay;
+	if (g_battle_over_at == 0) g_battle_over_at = 1;
+}
+
+
 void WatchedMilitiaBattleWon()
 {
-	if (!gfWatchingMilitiaBattle) return;
 	// a moment for the victory music
-	SetCustomizableTimerCallbackAndDelay(5s, WatchedBattleOverCallback, true);
+	WatchedBattleOver(5000);
+}
+
+
+void WatchedMilitiaBattleLost()
+{
+	// the defeat music, as long as after a lost battle of the mercs
+	WatchedBattleOver(10000);
 }

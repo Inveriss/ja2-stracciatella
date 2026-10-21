@@ -4595,7 +4595,15 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
 
 		// Play death music
 		SetMusicMode( MUSIC_TACTICAL_DEFEAT );
-		SetCustomizableTimerCallbackAndDelay(10s, DeathNoMessageTimerCallback, false);
+		if (gfWatchingMilitiaBattle)
+		{
+			// a watched militia battle: back to the map screen after the music
+			WatchedMilitiaBattleLost();
+		}
+		else
+		{
+			SetCustomizableTimerCallbackAndDelay(10s, DeathNoMessageTimerCallback, false);
+		}
 
 		if ( CheckFact( FACT_FIRST_BATTLE_BEING_FOUGHT, 0 ) )
 		{

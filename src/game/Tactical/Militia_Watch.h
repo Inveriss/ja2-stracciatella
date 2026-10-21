@@ -25,6 +25,10 @@ void HandleWatchedMilitiaBattleTurn();
 // The watched battle was won: back to the map screen after a moment
 void WatchedMilitiaBattleWon();
 
+// The watched battle was lost (the sector is the enemy's): back to the map
+// screen after the defeat music
+void WatchedMilitiaBattleLost();
+
 // The sector of the watched battle is unloaded: the watching ends
 void EndWatchedMilitiaBattle();
 
