@@ -133,8 +133,12 @@ enum
 	RECRUIT_STR_ARRIVAL_TIME,
 	RECRUIT_STR_ARRIVAL_FIRST, // Express, Fast, Standard (MilitiaArrivalOption)
 	RECRUIT_STR_HOURS_FMT = RECRUIT_STR_ARRIVAL_FIRST + NUM_MILITIA_ARRIVAL_OPTIONS,
-	RECRUIT_STR_ARRIVAL_HELP_FMT
+	RECRUIT_STR_ARRIVAL_HELP_FMT,
+	RECRUIT_STR_MENU_RECRUITMENT, // the Militia menu of Assign > Train (Assignments.cc)
+	RECRUIT_STR_MENU_DEPLOYMENT
 };
+static_assert(RECRUIT_STR_MENU_RECRUITMENT == MILITIA_MENU_STR_RECRUITMENT);
+static_assert(RECRUIT_STR_MENU_DEPLOYMENT  == MILITIA_MENU_STR_DEPLOYMENT);
 
 bool         g_open = false;
 SGPSector    g_sector;                 // the recruiting merc's sector

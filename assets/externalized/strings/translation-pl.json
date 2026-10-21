@@ -1774,7 +1774,9 @@
         "Fast",
         "Standard",
         "%d h",
-        "Arrival in %d hours, extra cost %s"
+        "Arrival in %d hours, extra cost %s",
+        "Militia Recruitment Center",
+        "Militia Deployment Center"
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

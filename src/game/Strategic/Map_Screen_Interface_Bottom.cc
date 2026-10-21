@@ -1332,7 +1332,7 @@ BOOLEAN AllowedToTimeCompress( void )
 		return( FALSE );
 	}
 
-	if (fShowAssignmentMenu || fShowTrainingMenu || fShowAttributeMenu || fShowSquadMenu || fShowContractMenu)
+	if (fShowAssignmentMenu || fShowTrainingMenu || fShowAttributeMenu || fShowMilitiaMenu || fShowSquadMenu || fShowContractMenu)
 	{
 		return( FALSE );
 	}

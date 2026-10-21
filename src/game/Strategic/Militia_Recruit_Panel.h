@@ -11,6 +11,11 @@
 // Opens the panel for this merc's town (going to the map screen first if needed)
 void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 
+// Assign > Train > Militia opens a menu (Assignments.cc) of these two
+// pMilitiaRecruitStrings: the recruitment panel and the deployment panel
+#define MILITIA_MENU_STR_RECRUITMENT 23
+#define MILITIA_MENU_STR_DEPLOYMENT  24
+
 void CloseMilitiaRecruitPanel();
 
 bool IsMilitiaRecruitPanelOpen();

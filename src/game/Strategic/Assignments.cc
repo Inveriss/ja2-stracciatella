@@ -140,6 +140,7 @@ static PopUpBox* ghVehicleBox;
 PopUpBox* ghRepairBox;
 PopUpBox* ghTrainingBox;
 PopUpBox* ghAttributeBox;
+PopUpBox* ghMilitiaBox; // Assign > Train > Militia with the militia recruitment on
 PopUpBox* ghRemoveMercAssignBox;
 PopUpBox* ghContractBox;
 PopUpBox* ghMoveBox;
@@ -153,6 +154,9 @@ static INT16 gsAssignmentBoxesY;
 static MOUSE_REGION gAssignmentMenuRegion[MAX_ASSIGN_STRING_COUNT];
 static MOUSE_REGION gTrainingMenuRegion[MAX_TRAIN_STRING_COUNT];
 static MOUSE_REGION gAttributeMenuRegion[MAX_ATTRIBUTE_STRING_COUNT];
+// the Militia menu: the recruitment and the deployment centre
+enum { MILITIA_MENU_RECRUITMENT, MILITIA_MENU_DEPLOYMENT, MAX_MILITIA_MENU_STRING_COUNT };
+static MOUSE_REGION gMilitiaMenuRegion[MAX_MILITIA_MENU_STRING_COUNT];
 static MOUSE_REGION gSquadMenuRegion[MAX_SQUAD_MENU_STRING_COUNT];
 static MOUSE_REGION gContractMenuRegion[MAX_CONTRACT_MENU_STRING_COUNT];
 static MOUSE_REGION gRemoveMercAssignRegion[MAX_REMOVE_MERC_COUNT];
@@ -3482,6 +3486,7 @@ static void ShowAssignmentBox(void)
 
 static void CreateDestroyMouseRegionsForTrainingMenu(void);
 static void CreateDestroyMouseRegionsForAttributeMenu(void);
+static void CreateDestroyMouseRegionsForMilitiaMenu(void);
 static void CreateDestroyMouseRegionsForSquadMenu();
 static BOOLEAN HandleShowingOfMovementBox(void);
 
@@ -3534,6 +3539,7 @@ void DetermineWhichAssignmentMenusCanBeShown(void)
 		CreateDestroyMouseRegionsForAssignmentMenu( );
 		CreateDestroyMouseRegionsForTrainingMenu( );
 		CreateDestroyMouseRegionsForAttributeMenu( );
+		CreateDestroyMouseRegionsForMilitiaMenu( );
 		CreateDestroyMouseRegionsForSquadMenu();
 		CreateDestroyMouseRegionForRepairMenu( );
 
@@ -3543,6 +3549,7 @@ void DetermineWhichAssignmentMenusCanBeShown(void)
 		HideBoxIfShown(ghTrainingBox);
 		HideBoxIfShown(ghRepairBox);
 		HideBoxIfShown(ghAttributeBox);
+		HideBoxIfShown(ghMilitiaBox);
 		HideBoxIfShown(ghVehicleBox);
 
 		// do we really want ot hide this box?
@@ -3572,6 +3579,7 @@ void DetermineWhichAssignmentMenusCanBeShown(void)
 	CreateDestroyMouseRegionsForAssignmentMenu( );
 	CreateDestroyMouseRegionsForTrainingMenu( );
 	CreateDestroyMouseRegionsForAttributeMenu( );
+	CreateDestroyMouseRegionsForMilitiaMenu( );
 	CreateDestroyMouseRegionsForSquadMenu();
 	CreateDestroyMouseRegionForRepairMenu(  );
 
@@ -3608,6 +3616,16 @@ void DetermineWhichAssignmentMenusCanBeShown(void)
 	else
 	{
 		HideBoxIfShownMap(ghAttributeBox);
+	}
+
+	// MILITIA menu
+	if (fShowMilitiaMenu)
+	{
+		ShowBox( ghMilitiaBox );
+	}
+	else
+	{
+		HideBoxIfShownMap(ghMilitiaBox);
 	}
 
 	// VEHICLE menu
@@ -3712,6 +3730,7 @@ void ClearScreenMaskForMapScreenExit( void )
 	CreateDestroyMouseRegionsForAssignmentMenu( );
 	CreateDestroyMouseRegionsForTrainingMenu( );
 	CreateDestroyMouseRegionsForAttributeMenu( );
+	CreateDestroyMouseRegionsForMilitiaMenu( );
 	CreateDestroyMouseRegionsForSquadMenu();
 	CreateDestroyMouseRegionForRepairMenu(  );
 }
@@ -3904,6 +3923,112 @@ static void CreateDestroyMouseRegionsForAttributeMenu(void)
 
 		fCreated = FALSE;
 	}
+}
+
+
+static void MilitiaMenuMvtCallBack(MOUSE_REGION* pRegion, UINT32 iReason);
+static void MilitiaMenuBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason);
+
+
+// The Militia menu of Assign > Train (the militia recruitment on), as the
+// attribute menu beside the training menu
+static void CreateDestroyMouseRegionsForMilitiaMenu(void)
+{
+	static BOOLEAN fCreated = FALSE;
+
+	PopUpBox* const box = ghMilitiaBox;
+	if (!fCreated && fShowMilitiaMenu)
+	{
+		if (fShowAssignmentMenu && guiCurrentScreen == MAP_SCREEN)
+		{
+			SetBoxXY(ghAssignmentBox, AssignmentPosition.iX, AssignmentPosition.iY);
+		}
+
+		// the deployment centre doesn't exist yet
+		ShadeStringInBox(box, MILITIA_MENU_DEPLOYMENT, POPUP_SHADE);
+		CheckAndUpdateTacticalAssignmentPopUpPositions();
+
+		SGPBox const& area = GetBoxArea(box);
+		UINT16 const  x    = area.x;
+		UINT16        y    = area.y + GetTopMarginSize(box);
+		UINT16 const  w    = area.w;
+		UINT16 const  h    = GetLineSpace(box) + GetFontHeight(GetBoxFont(box));
+
+		for (UINT32 i = 0; i < GetNumberOfLinesOfTextInBox(box); ++i)
+		{
+			MOUSE_REGION* const r = &gMilitiaMenuRegion[i];
+			MSYS_DefineRegion(r, x, y, x + w, y + h, MSYS_PRIORITY_HIGHEST - 2, MSYS_NO_CURSOR, MilitiaMenuMvtCallBack, MilitiaMenuBtnCallback);
+			MSYS_SetRegionUserData(r, 0, i);
+			y += h;
+		}
+
+		UnHighLightBox(box);
+
+		fCreated = TRUE;
+	}
+	else if (fCreated && (!fShowAssignmentMenu || !fShowTrainingMenu || !fShowMilitiaMenu))
+	{
+		fShowMilitiaMenu = FALSE;
+
+		for (UINT32 i = 0; i < GetNumberOfLinesOfTextInBox(box); ++i)
+		{
+			MSYS_RemoveRegion(&gMilitiaMenuRegion[i]);
+		}
+
+		gfRenderPBInterface      = TRUE;
+		fMapPanelDirty           = TRUE;
+		fCharacterInfoPanelDirty = TRUE;
+		fTeamPanelDirty          = TRUE;
+		fMapScreenBottomDirty    = TRUE;
+		HideBox(box);
+		SetRenderFlags(RENDER_FLAG_FULL);
+
+		if (fShowTrainingMenu) UnHighLightBox(ghTrainingBox);
+
+		fCreated = FALSE;
+	}
+}
+
+
+static void MilitiaMenuMvtCallBack(MOUSE_REGION* const pRegion, UINT32 const iReason)
+{
+	INT32 const iValue = MSYS_GetRegionUserData(pRegion, 0);
+	if (iReason & MSYS_CALLBACK_REASON_GAIN_MOUSE)
+	{
+		if (!GetBoxShadeFlag(ghMilitiaBox, iValue)) HighLightBoxLine(ghMilitiaBox, iValue);
+	}
+	else if (iReason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		UnHighLightBox(ghMilitiaBox);
+	}
+}
+
+
+static void MilitiaMenuBtnCallback(MOUSE_REGION* const pRegion, UINT32 const iReason)
+{
+	if (!(iReason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+
+	SOLDIERTYPE* const pSoldier = gAssignmentTargetSoldier;
+	switch (MSYS_GetRegionUserData(pRegion, 0))
+	{
+		case MILITIA_MENU_RECRUITMENT:
+			// the recruitment panel for the merc's town (the merc keeps his assignment)
+			fShowAssignmentMenu = FALSE;
+			fShowTrainingMenu   = FALSE;
+			fShowMilitiaMenu    = FALSE;
+			giAssignHighLine    = -1;
+			UnHighLightBox(ghAssignmentBox);
+			ResetSelectedListForMapScreen();
+			gfRenderPBInterface = TRUE;
+			if (pSoldier) OpenMilitiaRecruitPanel(*pSoldier);
+			break;
+
+		case MILITIA_MENU_DEPLOYMENT:
+			// greyed out until the deployment panel exists
+			break;
+	}
+	fTeamPanelDirty       = TRUE;
+	fMapScreenBottomDirty = TRUE;
 }
 
 
@@ -4532,10 +4657,11 @@ static void TrainingMenuBtnCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason
 	const SGPSector& sSector = pSoldier->sSector;
 	INT8 const bTownId = GetTownIdForSector(sSector);
 
-	if( fShowAttributeMenu )
+	if( fShowAttributeMenu || fShowMilitiaMenu )
 	{
-		// cancel attribute submenu
+		// cancel attribute (or militia) submenu
 		fShowAttributeMenu = FALSE;
+		fShowMilitiaMenu   = FALSE;
 		// rerender tactical stuff
 		gfRenderPBInterface = TRUE;
 
@@ -4605,15 +4731,10 @@ static void TrainingMenuBtnCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason
 
 				if (IsMilitiaRecruitmentEnabled())
 				{
-					// militia recruitment: no training assignment, the recruitment panel
-					// opens instead (the merc keeps his assignment)
-					fShowAssignmentMenu = FALSE;
-					fShowTrainingMenu   = FALSE;
-					giAssignHighLine    = -1;
-					UnHighLightBox(ghAssignmentBox);
-					ResetSelectedListForMapScreen();
-					gfRenderPBInterface = TRUE;
-					OpenMilitiaRecruitPanel(*pSoldier);
+					// militia recruitment: no training assignment, the Militia menu
+					// opens instead -- the recruitment and the deployment centre
+					fShowMilitiaMenu = TRUE;
+					DetermineBoxPositions( );
 					break;
 				}
 
@@ -4691,10 +4812,11 @@ static void TrainingMenuBtnCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason
 
 static void TrainingMenuBtnCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
 {
-	if( fShowAttributeMenu )
+	if( fShowAttributeMenu || fShowMilitiaMenu )
 	{
-		// cancel attribute submenu
+		// cancel attribute (or militia) submenu
 		fShowAttributeMenu = FALSE;
+		fShowMilitiaMenu   = FALSE;
 		// rerender tactical stuff
 		gfRenderPBInterface = TRUE;
 
@@ -4774,7 +4896,7 @@ static void AssignmentMenuBtnCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReas
 	ST::string sString;
 	SOLDIERTYPE * pSoldier = gAssignmentTargetSoldier;
 
-	if( ( fShowAttributeMenu )||( fShowTrainingMenu ) || ( fShowRepairMenu ) || ( fShowVehicleMenu ) ||( fShowSquadMenu ) )
+	if( ( fShowAttributeMenu )||( fShowMilitiaMenu )||( fShowTrainingMenu ) || ( fShowRepairMenu ) || ( fShowVehicleMenu ) ||( fShowSquadMenu ) )
 	{
 		return;
 	}
@@ -5013,9 +5135,10 @@ static void AssignmentMenuBtnCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReas
 
 static void AssignmentMenuBtnCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
 {
-	if( ( fShowAttributeMenu )||( fShowTrainingMenu ) || ( fShowRepairMenu ) || ( fShowVehicleMenu ) ||( fShowSquadMenu ) )
+	if( ( fShowAttributeMenu )||( fShowMilitiaMenu )||( fShowTrainingMenu ) || ( fShowRepairMenu ) || ( fShowVehicleMenu ) ||( fShowSquadMenu ) )
 	{
 		fShowAttributeMenu = FALSE;
+		fShowMilitiaMenu = FALSE;
 		fShowTrainingMenu = FALSE;
 		fShowRepairMenu = FALSE;
 		fShowVehicleMenu = FALSE;
@@ -5219,6 +5342,20 @@ static void CreateAttributeBox()
 }
 
 
+// create the Militia menu (Assign > Train > Militia, the militia recruitment on)
+static void CreateMilitiaBox()
+{
+	PopUpBox* const box = MakeBox(AttributePosition, POPUP_BOX_FLAG_CENTER_TEXT);
+	ghMilitiaBox = box;
+
+	AddMonoString(box, pMilitiaRecruitStrings[MILITIA_MENU_STR_RECRUITMENT]);
+	AddMonoString(box, pMilitiaRecruitStrings[MILITIA_MENU_STR_DEPLOYMENT]);
+
+	SetBoxTextAttrs(box);
+	ResizeBoxToText(box);
+}
+
+
 static void CreateTrainingBox()
 {
 	if (giBoxY != 0)
@@ -5300,6 +5437,7 @@ void CreateDestroyAssignmentPopUpBoxes()
 		CreateAssignmentsBox();
 		CreateTrainingBox();
 		CreateAttributeBox();
+		CreateMilitiaBox();
 		CreateVehicleBox();
 		CreateRepairBox();
 
@@ -5314,6 +5452,9 @@ void CreateDestroyAssignmentPopUpBoxes()
 
 		RemoveBox(ghAttributeBox);
 		ghAttributeBox = NO_POPUP_BOX;
+
+		RemoveBox(ghMilitiaBox);
+		ghMilitiaBox = NO_POPUP_BOX;
 
 		RemoveBox(ghVehicleBox);
 		ghVehicleBox = NO_POPUP_BOX;
@@ -5387,6 +5528,13 @@ void DetermineBoxPositions()
 			// hang it right beside the training box menu
 			SGPBox const& area = GetBoxArea(ghTrainingBox);
 			SetBoxXY(ghAttributeBox, area.x + area.w, area.y);
+		}
+
+		if (fShowMilitiaMenu && ghMilitiaBox != NO_POPUP_BOX)
+		{
+			// as the attribute menu
+			SGPBox const& area = GetBoxArea(ghTrainingBox);
+			SetBoxXY(ghMilitiaBox, area.x + area.w, area.y);
 		}
 	}
 }
@@ -5476,10 +5624,11 @@ static void CheckAndUpdateTacticalAssignmentPopUpPositions(void)
 	{
 		AdjustBoxPos(assignment_area, ghSquadBox, ASSIGN_MENU_ON_DUTY);
 	}
-	else if (fShowAttributeMenu)
+	else if (fShowAttributeMenu || fShowMilitiaMenu)
 	{
-		SGPBox const& train_area = GetBoxArea(ghTrainingBox);
-		SGPBox const& attr_area  = GetBoxArea(ghAttributeBox);
+		PopUpBox* const sub_box    = fShowMilitiaMenu ? ghMilitiaBox : ghAttributeBox;
+		SGPBox const&   train_area = GetBoxArea(ghTrainingBox);
+		SGPBox const&   attr_area  = GetBoxArea(sub_box);
 
 		INT16 const max_x = SCREEN_WIDTH - assignment_area.w - train_area.w - attr_area.w;
 		if (gsAssignmentBoxesX > max_x)
@@ -5498,8 +5647,8 @@ static void CheckAndUpdateTacticalAssignmentPopUpPositions(void)
 
 		INT16 const x = gsAssignmentBoxesX + assignment_area.w;
 		INT16 const y = gsAssignmentBoxesY + dy;
-		SetBoxXY(ghAttributeBox, x + train_area.w, y);
-		SetBoxXY(ghTrainingBox,  x,                 y);
+		SetBoxXY(sub_box,       x + train_area.w, y);
+		SetBoxXY(ghTrainingBox, x,                y);
 	}
 	else if (fShowTrainingMenu)
 	{
@@ -5954,6 +6103,11 @@ static BOOLEAN HandleAssignmentExpansionAndHighLightForAssignMenu(SOLDIERTYPE* p
 
 static BOOLEAN HandleAssignmentExpansionAndHighLightForTrainingMenu(void)
 {
+	if( fShowMilitiaMenu )
+	{
+		HighLightBoxLine( ghTrainingBox, TRAIN_MENU_TOWN );
+		return( TRUE );
+	}
 	if( fShowAttributeMenu )
 	{
 		switch ( gbTrainingMode )

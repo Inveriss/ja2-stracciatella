@@ -2625,7 +2625,7 @@ ScreenID MapScreenHandle(void)
 		MapscreenMarkButtonsDirty();
 	}
 
-	if( fShowAttributeMenu )
+	if( fShowAttributeMenu || fShowMilitiaMenu )
 	{
 		// mark all popups as dirty
 		MarkAllBoxesAsAltered( );
@@ -3351,9 +3351,10 @@ static bool HandleKeyESC()
 		fCharacterInfoPanelDirty = TRUE;
 
 		// stop showing current assignment box
-		if (fShowAttributeMenu)
+		if (fShowAttributeMenu || fShowMilitiaMenu)
 		{
 			fShowAttributeMenu = FALSE;
+			fShowMilitiaMenu   = FALSE;
 			fMapPanelDirty = TRUE;
 		}
 		else if (fShowTrainingMenu)
@@ -5895,6 +5896,7 @@ void RenderMapRegionBackground( void )
 	RenderMapBorder( );
 
 	if (ghAttributeBox != NO_POPUP_BOX) ForceUpDateOfBox(ghAttributeBox);
+	if (ghMilitiaBox   != NO_POPUP_BOX) ForceUpDateOfBox(ghMilitiaBox);
 	if (ghTownMineBox  != NO_POPUP_BOX) ForceUpDateOfBox(ghTownMineBox);
 
 	MapscreenMarkButtonsDirty();
@@ -9479,7 +9481,7 @@ static void MapscreenMarkButtonsDirty(void)
 	if( !fShowMapInventoryPool )
 	{
 		// if the attribute assignment menu is showing
-		if ( fShowAttributeMenu )
+		if ( fShowAttributeMenu || fShowMilitiaMenu )
 		{
 			// don't redraw the town button, it would wipe out a chunk of the attribute menu
 			UnMarkButtonDirty( giMapBorderButtons[ MAP_BORDER_TOWN_BTN ] );

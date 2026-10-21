@@ -251,6 +251,7 @@ UINT32 guiSectorLocatorBaseTime = 0;
 BOOLEAN fShowAssignmentMenu = FALSE;
 BOOLEAN fShowTrainingMenu = FALSE;
 BOOLEAN fShowAttributeMenu = FALSE;
+BOOLEAN fShowMilitiaMenu = FALSE;
 BOOLEAN fShowSquadMenu = FALSE;
 BOOLEAN fShowContractMenu = FALSE;
 
@@ -1461,6 +1462,11 @@ void UpdateMapScreenAssignmentPositions( void )
 	if( fShowAttributeMenu )
 	{
 		SetBoxY(ghAttributeBox, giBoxY + (GetFontHeight(MAP_SCREEN_FONT) + 2) * ASSIGN_MENU_TRAIN);
+	}
+
+	if( fShowMilitiaMenu )
+	{
+		SetBoxY(ghMilitiaBox, giBoxY + (GetFontHeight(MAP_SCREEN_FONT) + 2) * ASSIGN_MENU_TRAIN);
 	}
 
 	if( fShowRepairMenu )
