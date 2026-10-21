@@ -60,10 +60,14 @@ static UINT32    g_battle_over_delay = 0; // ms from then to leaving the sector
 // EXIT (MILITIA_RECRUIT_BUTTONS.STI 6 ready, 7 pressed, 120x33): over the team
 // panel at the screen's right edge
 static GUIButtonRef  g_exit_button;
+static GUIButtonRef  g_pause_button;
 static char const* const WATCH_EXIT_GFX    = INTERFACEDIR "/MILITIA_RECRUIT_BUTTONS.STI";
 static INT16 const       WATCH_EXIT_W      = 120;
 static INT16 const       WATCH_EXIT_H      = 33;
 static INT16 const       WATCH_EXIT_MARGIN = 8;
+// PAUSE takes EXIT's place in the middle of the bar, EXIT this far left of it
+// (the buttons are 120 wide: 4 px between them)
+static INT16 const       WATCH_EXIT_SHIFT  = 124;
 
 // the militia and the enemy see each other now or saw each other this turn
 static bool MilitiaAndEnemyInContact()
@@ -103,8 +107,8 @@ void HandleWatchMilitiaBattleRequest()
 	// team is there: the militia fight, the player watches
 	gfWatchingMilitiaBattle = TRUE;
 
-	// there is no merc: at 1366x768 the watched battle's bar (WATCH_BAR_FILE,
-	// only the EXIT button on it), otherwise the low team panel
+	// there is no merc: at 1366x768 the watched battle's bar (WATCH_BAR_FILE:
+	// radar, sector, clock, EXIT and PAUSE), otherwise the low team panel
 	// (bottom_bar_low_big_1366x768.png)
 	if (!g_low_team_panel_forced) g_saved_low_team_panel = g_ui.isLowTeamPanel();
 	g_low_team_panel_forced = true;
@@ -124,33 +128,63 @@ static void ExitButtonCallback(GUI_BUTTON*, UINT32 const reason)
 }
 
 
-// The EXIT button exists while a battle is watched on the tactical screen.
-// The turns of the AI (all of them here) lock the interface with a screen-wide
-// region of the highest priority (the wait cursor); the button has that
-// priority too and is made again whenever such a lock begins, so that it is
-// the newer region and gets the clicks.
+// PAUSE stops the battle as the player's pause of the game does (the time and
+// everybody stop, "Game Paused" is shown); a click on it, or anywhere while
+// paused, goes on
+static void PauseButtonCallback(GUI_BUTTON*, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	HandlePlayerPauseUnPauseOfGame();
+}
+
+
+// The EXIT and PAUSE buttons exist while a battle is watched on the tactical
+// screen. The turns of the AI (all of them here) lock the interface with a
+// screen-wide region of the highest priority (the wait cursor); the buttons
+// have that priority too and are made again whenever such a lock begins, so
+// that they are the newer regions and get the clicks.
 static void HandleExitButton()
 {
 	static bool locked_before = false;
+	static bool paused_before = false;
 	bool const  locked        = gfDisableRegionActive || gfUserTurnRegionActive;
 	bool const  want          = gfWatchingMilitiaBattle && guiCurrentScreen == GAME_SCREEN;
-	if (g_exit_button && (!want || (locked && !locked_before)))
+	bool        created       = false;
+	if (!want || (locked && !locked_before))
 	{
-		RemoveButton(g_exit_button);
+		if (g_exit_button)  RemoveButton(g_exit_button);
+		if (g_pause_button) RemoveButton(g_pause_button);
 	}
 	locked_before = locked;
 	if (want && !g_exit_button)
 	{
-		// in the middle of the watched battle's bar, or over the low team panel
-		// at the screen's right edge
-		bool  const bar = g_ui.isWatchBar();
-		INT16 const x   = bar ? (SCREEN_WIDTH - WATCH_EXIT_W) / 2 :
+		// the watched battle's bar: in the middle of it, vertically in its
+		// frame's 100 px inside, PAUSE in the middle and EXIT left of it; over
+		// the low team panel: at the screen's right edge, PAUSE left of EXIT
+		bool  const bar   = g_ui.isWatchBar();
+		INT16 const right = bar ? (SCREEN_WIDTH - WATCH_EXIT_W) / 2 :
 			SCREEN_WIDTH - WATCH_EXIT_MARGIN - WATCH_EXIT_W;
-		INT16 const y   = bar ? SCREEN_HEIGHT - WATCH_BAR_HEIGHT + (WATCH_BAR_HEIGHT - WATCH_EXIT_H) / 2 :
+		INT16 const y     = bar ?
+			SCREEN_HEIGHT - WATCH_BAR_HEIGHT + WATCH_BAR_INNER_Y + (WATCH_BAR_INNER_HEIGHT - WATCH_EXIT_H) / 2 :
 			SCREEN_HEIGHT - BIG_TEAMPANEL_HEIGHT - WATCH_EXIT_MARGIN - WATCH_EXIT_H;
-		g_exit_button = QuickCreateButtonImg(WATCH_EXIT_GFX, 6, 7, x, y, MSYS_PRIORITY_HIGHEST, ExitButtonCallback);
+		INT16 const exit_x  = bar ? right - WATCH_EXIT_SHIFT : right;
+		INT16 const pause_x = bar ? right : right - WATCH_EXIT_SHIFT;
+		g_exit_button = QuickCreateButtonImg(WATCH_EXIT_GFX, 6, 7, exit_x, y, MSYS_PRIORITY_HIGHEST, ExitButtonCallback);
 		g_exit_button->SpecifyGeneralTextAttributes(pMilitiaWatchStrings[2], FONT12ARIAL, 169, FONT_NEARBLACK);
+		g_pause_button = QuickCreateButtonImg(WATCH_EXIT_GFX, 6, 7, pause_x, y, MSYS_PRIORITY_HIGHEST, PauseButtonCallback);
+		g_pause_button->SpecifyGeneralTextAttributes(pMilitiaWatchStrings[3], FONT12ARIAL, 169, FONT_NEARBLACK);
+		created = true; // its look set below
 	}
+
+	// PAUSE stays pressed down while the game is paused by it
+	bool const paused = gfGamePaused && gfPauseDueToPlayerGamePause;
+	if (g_pause_button && (paused != paused_before || created))
+	{
+		if (paused) g_pause_button->uiFlags |=  BUTTON_CLICKED_ON;
+		else        g_pause_button->uiFlags &= ~BUTTON_CLICKED_ON;
+		g_pause_button->uiFlags |= BUTTON_DIRTY;
+	}
+	paused_before = paused;
 }
 
 
@@ -427,7 +461,10 @@ void EndWatchedMilitiaBattle()
 		g_show_all_set = false;
 		gTacticalStatus.uiFlags &= ~SHOW_ALL_MERCS;
 	}
-	if (g_exit_button) RemoveButton(g_exit_button);
+	if (g_exit_button)  RemoveButton(g_exit_button);
+	if (g_pause_button) RemoveButton(g_pause_button);
+	// no battle stays paused by its PAUSE button
+	if (gfGamePaused && gfPauseDueToPlayerGamePause) HandlePlayerPauseUnPauseOfGame();
 	g_exit_requested = false;
 	g_battle_over_at = 0;
 	if (g_low_team_panel_forced)

@@ -1773,7 +1773,8 @@
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",
         "Czy chcesz obserwować bitwę?",
-        "WYJŚCIE"
+        "WYJŚCIE",
+        "PAUZA"
     ],
     "pMilitiaConfirmStrings": [
         "Szkolenie oddziału samoobrony będzie kosztowało $",

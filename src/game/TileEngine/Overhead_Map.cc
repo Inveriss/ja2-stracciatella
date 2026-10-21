@@ -422,11 +422,8 @@ void HandleOverheadMap(void)
 			if (!gfInOverheadMap) return;
 			RenderTacticalInterface();
 			RenderRadarScreen();
-			if (!g_ui.isWatchBarShown()) // the watched battle's bar has no clock
-			{
-				RenderClock();
-				RenderTownIDString();
-			}
+			RenderClock();
+			RenderTownIDString();
 
 			HandleAutoFaces();
 		}

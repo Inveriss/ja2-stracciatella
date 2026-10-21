@@ -1773,7 +1773,8 @@
     "pMilitiaWatchStrings": [
         "Watch the Battle",
         "Do you want to watch the battle?",
-        "EXIT"
+        "EXIT",
+        "PAUSE"
     ],
     "pMilitiaConfirmStrings": [
         "训练一队民兵要花费$",

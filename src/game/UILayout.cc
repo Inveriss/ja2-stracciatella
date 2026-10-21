@@ -88,6 +88,8 @@ UINT16 UILayout::currentHeight() const             { return fInMapMode ? (MAP_SC
 UINT16 UILayout::get_CLOCK_X() const
 {
 	if (fInMapMode) return MAP_SCREEN_RIGHT - 86;
+	// the watched battle's bar: its clock box
+	if (isWatchBarShown()) return WATCH_BAR_BOX_X;
 	// SM_PANEL offset shifted 3px right (86 -> 83) to match
 	// inventory_bottom_panel.sti's latest graphic; TEAM_PANEL (bottom_bar.sti)
 	// is untouched.
@@ -100,6 +102,8 @@ UINT16 UILayout::get_CLOCK_X() const
 }
 UINT16 UILayout::get_CLOCK_Y() const
 {
+	// the watched battle's bar: its clock box, 20 high (clock 13)
+	if (isWatchBarShown()) return m_screenHeight - WATCH_BAR_HEIGHT + WATCH_BAR_CLOCK_Y + (WATCH_BAR_BOX_HEIGHT - 13) / 2;
 	// the big team panel's time box: y 163 (113 on the low one), 22 high (clock 13)
 	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + (isLowTeamPanel() ? 113 : 163) + (22 - 13) / 2;
 	// the big SM panel's time box: y 175 (under its top strip), 22 high
@@ -108,7 +112,7 @@ UINT16 UILayout::get_CLOCK_Y() const
 }
 // The big team panel's clock (FONT12ARIAL, "Day 31, 23:59" is 68 px) fills
 // its 72 px box.
-UINT16 UILayout::get_CLOCK_WIDTH() const           { return isBigTeamPanelShown() || isBigSMPanelShown() ? 72 : 66; }
+UINT16 UILayout::get_CLOCK_WIDTH() const           { return isWatchBarShown() ? WATCH_BAR_BOX_WIDTH : isBigTeamPanelShown() || isBigSMPanelShown() ? 72 : 66; }
 // Big team panel: the radar window (x 1121, y 76 -- 26 on the low one --, 240x120) -- the 240x120
 // map, or the 88x44 one in its top left corner when the sector has no big
 // one (Radar_Screen.h's RadarUsesPanelMap()).
@@ -120,11 +124,13 @@ UINT16 UILayout::get_RADAR_WINDOW_X() const
 	// (the overhead map) -- off the screen
 	if (gsCurInterfacePanel == SM_PANEL && m_bigSMPanel) return 60000;
 	if (gsCurInterfacePanel == SM_PANEL) return m_teamPanelPosition.iX + m_smPanelWidth - 94;
+	if (isWatchBar()) return WATCH_BAR_RADAR_X;
 	if (m_bigTeamPanel) return 1121;
 	return m_teamPanelPosition.iX + m_teamPanelWidth - 97;
 }
 UINT16 UILayout::get_RADAR_WINDOW_TM_Y() const
 {
+	if (isWatchBarShown()) return m_screenHeight - WATCH_BAR_HEIGHT + WATCH_BAR_RADAR_Y;
 	if (isBigTeamPanelShown()) return m_screenHeight - BIG_TEAMPANEL_HEIGHT + (isLowTeamPanel() ? 26 : 76);
 	return currentHeight() - 107;
 }

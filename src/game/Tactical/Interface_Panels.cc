@@ -3657,7 +3657,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 		RestoreExternBackgroundRect(TEAM_PANEL_X, TEAM_PANEL_Y, SCREEN_WIDTH - TEAM_PANEL_X,
 						SCREEN_HEIGHT - TEAM_PANEL_Y);
 
-		if (!g_ui.isWatchBar()) RenderTownIDString();
+		RenderTownIDString();
 	}
 
 	// Loop through all mercs and make go
@@ -3720,8 +3720,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 	}
 	UpdateTEAMPanel();
 
-	// the watched battle's bar has no clock
-	if (fRenderRadarScreen && !g_ui.isWatchBar())
+	if (fRenderRadarScreen)
 	{
 		CreateMouseRegionForPauseOfClock();
 	}
@@ -4554,6 +4553,16 @@ void RenderTownIDString(void)
 		zTownIDString = ReduceStringLength(zTownIDString, SM_BIG_SECTOR_WIDTH - 4, BIG_TM_SECTOR_FONT);
 		MPrint(INTERFACE_START_X + SM_BIG_SECTOR_X, INV_INTERFACE_START_Y + SM_BIG_SECTOR_Y, zTownIDString,
 			HCenterVCenterAlign(SM_BIG_SECTOR_WIDTH, SM_BIG_SECTOR_HEIGHT));
+		return;
+	}
+
+	// the watched battle's bar: its sector box, in the team panel's font
+	if (g_ui.isWatchBarShown())
+	{
+		SetFont(BIG_TM_SECTOR_FONT);
+		zTownIDString = ReduceStringLength(zTownIDString, WATCH_BAR_BOX_WIDTH - 4, BIG_TM_SECTOR_FONT);
+		MPrint(WATCH_BAR_BOX_X, SCREEN_HEIGHT - WATCH_BAR_HEIGHT + WATCH_BAR_SECTOR_Y, zTownIDString,
+			HCenterVCenterAlign(WATCH_BAR_BOX_WIDTH, WATCH_BAR_BOX_HEIGHT));
 		return;
 	}
 

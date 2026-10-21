@@ -146,10 +146,20 @@
 #define BIG_TEAMPANEL_FULL_HEIGHT       (200)
 #define BIG_TEAMPANEL_LOW_HEIGHT        (150)
 #define BIG_TEAMPANEL_LOW_FILE          "bottom_bar_low_big_1366x768.png"
-// The bar of a watched militia battle (isWatchBar()): only the EXIT button on
-// it, the world shown down to it; 1366x768 only
-#define WATCH_BAR_FILE                  "MILITIA_BOTTOM_BAR.png"
-#define WATCH_BAR_HEIGHT                (45)
+// The bar of a watched militia battle (isWatchBar()): the radar, the sector
+// and the clock, the EXIT and PAUSE buttons; the world shown down to it;
+// 1366x768 only. Its parts (bar coordinates) inside the 5 px frame:
+#define WATCH_BAR_FILE                  "MILITIA_BOTTOM_BAR_1366x768.png"
+#define WATCH_BAR_HEIGHT                (110)
+#define WATCH_BAR_INNER_Y               (5)      // the frame's inside, 100 high
+#define WATCH_BAR_INNER_HEIGHT          (100)
+#define WATCH_BAR_RADAR_X               (1161)   // radar window, 200x100
+#define WATCH_BAR_RADAR_Y               (5)
+#define WATCH_BAR_BOX_X                 (1043)   // sector and clock boxes, 90x20
+#define WATCH_BAR_BOX_WIDTH             (90)
+#define WATCH_BAR_BOX_HEIGHT            (20)
+#define WATCH_BAR_SECTOR_Y              (27)
+#define WATCH_BAR_CLOCK_Y               (63)
 #define BIG_TEAMPANEL_HEIGHT            (g_ui.isWatchBar() ? WATCH_BAR_HEIGHT : g_ui.isLowTeamPanel() ? BIG_TEAMPANEL_LOW_HEIGHT : BIG_TEAMPANEL_FULL_HEIGHT)
 #define BIG_TEAMPANEL_NUM_SLOTS         (7)      // slots shown; a bigger squad scrolls through them
 #define BIG_TEAMPANEL_SLOT_WIDTH        (146)
@@ -298,7 +308,7 @@ public:
 	/** Switches the big team panel's low form on or off -- off when its graphic is missing. The panel itself is rebuilt by the caller. */
 	void setLowTeamPanel(bool low);
 
-	/** True when the big team panel is the bar of a watched militia battle (WATCH_BAR_*): nothing on it but the EXIT button. */
+	/** True when the big team panel is the bar of a watched militia battle (WATCH_BAR_*): radar, sector, clock, EXIT and PAUSE. */
 	bool isWatchBar() const { return m_bigTeamPanel && m_watchBar; }
 
 	/** The watched battle's bar on screen right now (tactical, team panel). */

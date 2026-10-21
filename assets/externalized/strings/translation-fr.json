@@ -1773,7 +1773,8 @@
     "pMilitiaWatchStrings": [
         "Watch the Battle",
         "Do you want to watch the battle?",
-        "EXIT"
+        "EXIT",
+        "PAUSE"
     ],
     "pMilitiaConfirmStrings": [
         "L'entraînement de la milice vous coûtera $",
