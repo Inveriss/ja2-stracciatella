@@ -60,6 +60,15 @@ Added 2026-10-21 (with the graphics MILITIA_RECRUIT_PANEL_1366x768.png, new
 12. The Deployment Panel shows values only, no labels, except in the TOTAL
     box.
 13. Later stage: scrolling or arrows in the Deployment Panel.
+14. Stage 4 in three parts, tested one by one: 4.1 the question box (map
+    screen and tactical), its queue, Wait and the partial entry (4e); 4.2
+    entering a sector with the enemy or a retaken town: the pre-battle panel
+    with autoresolve / watch (4b, 4d); 4.3 a battle going on: joining it, in
+    tactical with mercs as reinforcements from the map edge (4c).
+15. 4c reinforcements come in from the edge facing a neighbouring sector of
+    the same town; without one, from the edge farthest from the enemies.
+16. Waiting orders are not asked about again by themselves: the Deployment
+    Panel's Done button tries again (decision 9).
 
 ## Recommended stages
 

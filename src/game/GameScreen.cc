@@ -47,6 +47,7 @@
 #include "EditScreen.h"
 #include "Logger.h"
 #include "GameSettings.h"
+#include "Town_Militia.h"
 
 #define ARE_IN_FADE_IN( )		( gfFadeIn || gfFadeInitialized )
 
@@ -349,6 +350,9 @@ ScreenID MainGameScreenHandle(void)
 
 		// Handle strategic engine
 		HandleStrategicTurn( );
+
+		// questions about arriving militia orders
+		HandleMilitiaOrderQuestions();
 	}
 
 	if ( gfTacticalDoHeliRun )

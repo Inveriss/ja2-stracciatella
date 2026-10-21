@@ -29,6 +29,8 @@
 #include "GamePolicy.h"
 #include "Game_Event_Hook.h"
 #include "Militia_Recruit_Panel.h"
+#include "Militia_Watch.h"
+#include "ScreenIDs.h"
 #include "Message.h"
 #include "SaveLoadGameStates.h"
 
@@ -1246,40 +1248,138 @@ BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LE
 }
 
 
-void HandleMilitiaOrderArrival(UINT32 const order_id)
+static std::vector<MilitiaOrder>::iterator FindMilitiaOrder(UINT32 const order_id)
 {
-	auto const it = std::find_if(g_militia_orders.begin(), g_militia_orders.end(),
+	return std::find_if(g_militia_orders.begin(), g_militia_orders.end(),
 		[&](MilitiaOrder const& o) { return o.id == order_id; });
+}
+
+
+// How many of the order's militia can enter the town now: its room, less the
+// other orders'
+static UINT32 MilitiaOrderRoom(MilitiaOrder const& o)
+{
+	UINT32 const room   = MilitiaRecruitRoom(o.sector);
+	UINT32 const others = MilitiaOrderedFor(o.sector) - OrderTotal(o);
+	return room > others ? room - others : 0;
+}
+
+
+// Up to n of the order's militia enter the town, the best ranks first; the
+// order keeps the rest (and is removed when none is left)
+static void EnterMilitiaOrder(UINT32 const order_id, UINT32 n)
+{
+	auto const it = FindMilitiaOrder(order_id);
 	if (it == g_militia_orders.end()) return;
 	MilitiaOrder& o = *it;
 
-	// the room left for this order: the town's, less the other orders'
-	UINT32 const total   = OrderTotal(o);
-	UINT32 const room    = MilitiaRecruitRoom(o.sector);
-	UINT32 const ordered = MilitiaOrderedFor(o.sector) - total;
-	if (room < ordered + total)
+	UINT32 entered = 0;
+	for (UINT8 rank = MAX_MILITIA_LEVELS; rank-- != 0 && n != 0;)
 	{
-		// an enemy in the town, or no room: they wait for orders
-		// (docs/militia-arrival-time-plan.md, stage 4)
-		o.waiting = true;
-		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_WAITING], RecruitAreaName(o.sector)));
-		return;
-	}
-
-	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
-	{
-		for (UINT8 i = 0; i != o.counts[rank]; ++i)
+		while (o.counts[rank] != 0 && n != 0)
 		{
-			if (!PlaceRecruitedMilitia(o.sector, rank)) break; // can't happen, the room was checked
+			if (!PlaceRecruitedMilitia(o.sector, rank)) { n = 0; break; } // no room after all
+			--o.counts[rank];
+			--n;
+			++entered;
 		}
 	}
-	AddMilitiaRecruitLoyalty(o.sector, total);
+	if (entered == 0) return;
+
+	AddMilitiaRecruitLoyalty(o.sector, entered);
 	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED], RecruitAreaName(o.sector)));
-	g_militia_orders.erase(it);
+	if (OrderTotal(o) == 0) g_militia_orders.erase(it);
 
 	// force tactical to update militia status
 	gfStrategicMilitiaChangesMade = TRUE;
 	fMapPanelDirty = TRUE;
+}
+
+
+static void MilitiaOrderWaits(MilitiaOrder& o)
+{
+	o.waiting = true;
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_WAITING], RecruitAreaName(o.sector)));
+}
+
+
+// The orders waiting for the player's answer, in the order they arrived; the
+// one asked about now
+static std::vector<UINT32> g_order_questions;
+static UINT32              g_order_asked = 0;
+
+
+static void PartialEntryCallback(MessageBoxReturnValue const ret)
+{
+	UINT32 const order_id = g_order_asked;
+	g_order_asked = 0;
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+
+	if (ret == MSG_BOX_RETURN_YES)
+	{
+		// those who fit enter, the rest waits
+		EnterMilitiaOrder(order_id, MilitiaOrderRoom(*it));
+		auto const rest = FindMilitiaOrder(order_id);
+		if (rest != g_militia_orders.end()) MilitiaOrderWaits(*rest);
+	}
+	else
+	{
+		MilitiaOrderWaits(*it);
+	}
+}
+
+
+void HandleMilitiaOrderArrival(UINT32 const order_id)
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	MilitiaOrder& o = *it;
+
+	UINT32 const total = OrderTotal(o);
+	UINT32 const room  = MilitiaOrderRoom(o);
+	if (room >= total)
+	{
+		// everybody enters
+		EnterMilitiaOrder(order_id, total);
+	}
+	else if (room > 0)
+	{
+		// only some fit (4e): the player is asked
+		g_order_questions.push_back(order_id);
+	}
+	else
+	{
+		// an enemy in the town, or no room: they wait for orders
+		// (4b - 4d: docs/militia-arrival-time-plan.md, stages 4.2 and 4.3)
+		MilitiaOrderWaits(o);
+	}
+}
+
+
+void HandleMilitiaOrderQuestions()
+{
+	if (g_order_asked != 0 || g_order_questions.empty()) return;
+	// nothing else going on
+	if (guiCurrentScreen != MAP_SCREEN && guiCurrentScreen != GAME_SCREEN) return;
+	if (gfInMsgBox || gfPreBattleInterfaceActive || gfWatchingMilitiaBattle) return;
+	if (gTacticalStatus.uiFlags & INCOMBAT)                                    return;
+
+	UINT32 const order_id = g_order_questions.front();
+	g_order_questions.erase(g_order_questions.begin());
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+
+	// the situation may have changed while it was queued
+	UINT32 const total = OrderTotal(*it);
+	UINT32 const room  = MilitiaOrderRoom(*it);
+	if (room >= total) { EnterMilitiaOrder(order_id, total); return; }
+	if (room == 0)     { MilitiaOrderWaits(*it);             return; }
+
+	g_order_asked = order_id;
+	DoScreenIndependantMessageBox(
+		st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_PARTIAL], int(room), int(total), RecruitAreaName(it->sector)),
+		MSG_BOX_FLAG_YESNO, PartialEntryCallback);
 }
 
 
@@ -1290,6 +1390,8 @@ static ST::string const gMilitiaOrdersStateKey{ "Militia::orders" };
 void InitMilitiaOrdersForNewGame()
 {
 	g_militia_orders.clear();
+	g_order_questions.clear();
+	g_order_asked = 0;
 }
 
 
@@ -1324,6 +1426,10 @@ void LoadMilitiaOrdersFromSaveGameFile()
 		o.option      = v[i + 3];
 		for (UINT8 r = 0; r != MAX_MILITIA_LEVELS; ++r) o.counts[r] = v[i + 4 + r];
 		o.waiting     = v[i + 4 + MAX_MILITIA_LEVELS] != 0;
+		// arrived, but its question wasn't answered: it waits
+		if (o.arrival_min <= GetWorldTotalMin()) o.waiting = true;
 		g_militia_orders.push_back(o);
 	}
+	g_order_questions.clear();
+	g_order_asked = 0;
 }

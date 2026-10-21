@@ -124,8 +124,14 @@ BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LE
 
 // EVENT_MILITIA_ORDER_ARRIVAL: the order's militia enter the town -- the
 // ordered sector first, then the town's other sectors with room -- and the
-// town loyalty bonus counts them; when they can't all enter, the order waits.
+// town loyalty bonus counts them. When only some fit, the player is asked
+// whether they enter and the rest waits; when none fits, the order waits.
 void HandleMilitiaOrderArrival(UINT32 order_id);
+
+// Every map screen and tactical frame: asks the queued questions of arriving
+// orders, one at a time, when nothing else is going on (no message box,
+// battle or pre-battle panel)
+void HandleMilitiaOrderQuestions();
 
 // The orders in the saved game (g_gameStates); none in a new game
 void InitMilitiaOrdersForNewGame();

@@ -2359,6 +2359,9 @@ ScreenID MapScreenHandle(void)
 
 	HandleStrategicTurn( );
 
+	// questions about arriving militia orders
+	HandleMilitiaOrderQuestions();
+
 
 	/*
 	// update cursor based on state
