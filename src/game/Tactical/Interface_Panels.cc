@@ -4560,9 +4560,9 @@ void RenderTownIDString(void)
 	if (g_ui.isWatchBarShown())
 	{
 		SetFont(BIG_TM_SECTOR_FONT);
-		zTownIDString = ReduceStringLength(zTownIDString, WATCH_BAR_BOX_WIDTH - 4, BIG_TM_SECTOR_FONT);
-		MPrint(WATCH_BAR_BOX_X, SCREEN_HEIGHT - WATCH_BAR_HEIGHT + WATCH_BAR_SECTOR_Y, zTownIDString,
-			HCenterVCenterAlign(WATCH_BAR_BOX_WIDTH, WATCH_BAR_BOX_HEIGHT));
+		zTownIDString = ReduceStringLength(zTownIDString, WATCH_BAR_SECTOR_WIDTH - 4, BIG_TM_SECTOR_FONT);
+		MPrint(WATCH_BAR_SECTOR_X, SCREEN_HEIGHT - WATCH_BAR_HEIGHT + WATCH_BAR_SECTOR_Y, zTownIDString,
+			HCenterVCenterAlign(WATCH_BAR_SECTOR_WIDTH, WATCH_BAR_BOX_HEIGHT));
 		return;
 	}
 

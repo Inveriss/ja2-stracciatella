@@ -66,8 +66,8 @@ static INT16 const       WATCH_EXIT_W      = 120;
 static INT16 const       WATCH_EXIT_H      = 33;
 static INT16 const       WATCH_EXIT_MARGIN = 8;
 // PAUSE takes EXIT's place in the middle of the bar, EXIT this far left of it
-// (the buttons are 120 wide: 4 px between them)
-static INT16 const       WATCH_EXIT_SHIFT  = 124;
+// (the buttons are 120 wide: 10 px between them)
+static INT16 const       WATCH_EXIT_SHIFT  = 130;
 
 // the militia and the enemy see each other now or saw each other this turn
 static bool MilitiaAndEnemyInContact()

@@ -155,11 +155,13 @@
 #define WATCH_BAR_INNER_HEIGHT          (100)
 #define WATCH_BAR_RADAR_X               (1161)   // radar window, 200x100
 #define WATCH_BAR_RADAR_Y               (5)
-#define WATCH_BAR_BOX_X                 (1043)   // sector and clock boxes, 90x20
-#define WATCH_BAR_BOX_WIDTH             (90)
-#define WATCH_BAR_BOX_HEIGHT            (20)
+#define WATCH_BAR_BOX_HEIGHT            (20)     // sector and clock boxes
+#define WATCH_BAR_SECTOR_X              (1003)   // sector box, 130x20
 #define WATCH_BAR_SECTOR_Y              (27)
+#define WATCH_BAR_SECTOR_WIDTH          (130)
+#define WATCH_BAR_CLOCK_X               (1018)   // clock box, 100x20
 #define WATCH_BAR_CLOCK_Y               (63)
+#define WATCH_BAR_CLOCK_WIDTH           (100)
 #define BIG_TEAMPANEL_HEIGHT            (g_ui.isWatchBar() ? WATCH_BAR_HEIGHT : g_ui.isLowTeamPanel() ? BIG_TEAMPANEL_LOW_HEIGHT : BIG_TEAMPANEL_FULL_HEIGHT)
 #define BIG_TEAMPANEL_NUM_SLOTS         (7)      // slots shown; a bigger squad scrolls through them
 #define BIG_TEAMPANEL_SLOT_WIDTH        (146)
