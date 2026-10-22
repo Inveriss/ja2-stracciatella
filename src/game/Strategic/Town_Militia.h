@@ -115,6 +115,9 @@ struct MilitiaOrder
 };
 std::vector<MilitiaOrder> const& GetMilitiaOrders();
 
+// Adds militia of this rank to the sector's strategic count
+void StrategicAddMilitiaToSector(const SGPSector&, UINT8 rank, UINT8 how_many);
+
 // Buys counts[rank] militia of each rank for the town (or SAM site) of this
 // sector: checks money and room (the militia ordered before count as there),
 // pays (with the arrival option's extra cost) and orders them -- they arrive

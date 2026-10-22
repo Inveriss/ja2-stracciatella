@@ -23,6 +23,7 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 #define MILITIA_STR_ORDER_WAITING    27
 #define MILITIA_STR_ORDER_PARTIAL    28 // only some can enter: let them?
 #define MILITIA_STR_ORDER_ATTACK     29 // the enemy holds the sector: attack?
+#define MILITIA_STR_ORDER_JOIN       30 // a battle there: join it?
 
 void CloseMilitiaRecruitPanel();
 

@@ -32,6 +32,8 @@
 #include "Militia_Watch.h"
 #include "Strategic_Movement.h"
 #include "Map_Information.h"
+#include "Militia_Control.h"
+#include "Handle_UI.h"
 #include "ScreenIDs.h"
 #include "Message.h"
 #include "SaveLoadGameStates.h"
@@ -63,7 +65,6 @@ static INT16 gsUnpaidStrategicSector[MAX_CHARACTER_COUNT];
 static void HandleCompletionOfTownTrainingByGroupWithTrainer(SOLDIERTYPE* pTrainer);
 static void InitFriendlyTownSectorServer(UINT8 ubTownId, INT16 sSkipSectorX, INT16 sSkipSectorY);
 static bool ServeNextFriendlySectorInTown(SGPSector& neighbour);
-static void StrategicAddMilitiaToSector(const SGPSector& sMap, UINT8 ubRank, UINT8 ubHowMany);
 static void StrategicPromoteMilitiaInSector(const SGPSector& sMap, UINT8 current_rank, UINT8 n);
 
 
@@ -240,7 +241,7 @@ std::optional<UINT8> SoldierClassToMilitiaRank(UINT8 const soldier_class)
 
 
 // add militias of a certain rank
-static void StrategicAddMilitiaToSector(const SGPSector& sMap, UINT8 ubRank, UINT8 ubHowMany)
+void StrategicAddMilitiaToSector(const SGPSector& sMap, UINT8 ubRank, UINT8 ubHowMany)
 {
 	SECTORINFO *pSectorInfo = &(SectorInfo[sMap.AsByte()]);
 
@@ -1325,6 +1326,59 @@ static bool MilitiaOrderCanAttack(MilitiaOrder const& o)
 }
 
 
+// A battle is going on in the order's sector, loaded in tactical, and it can
+// take more militia (4c): they can join it from a map edge
+static bool MilitiaOrderCanJoin(MilitiaOrder const& o)
+{
+	if (o.sector.z != 0 || !gfWorldLoaded || gWorldSector != o.sector) return false;
+	if (!gTacticalStatus.fEnemyInSector)                               return false;
+	return MilitiaReinforcementRoom() != 0;
+}
+
+
+// Joining a battle is asked on the tactical screen only, in real time or in
+// the player's turn, between attacks
+static bool CanAskToJoinNow()
+{
+	if (guiCurrentScreen != GAME_SCREEN)                           return false;
+	if (gTacticalStatus.ubAttackBusyCount != 0)                     return false;
+	if (gfDisableRegionActive || gfUserTurnRegionActive)            return false;
+	if ((gTacticalStatus.uiFlags & INCOMBAT) &&
+			gTacticalStatus.ubCurrentTeam != OUR_TEAM)                 return false;
+	return true;
+}
+
+
+static void JoinCallback(MessageBoxReturnValue const ret)
+{
+	UINT32 const order_id = g_order_asked;
+	g_order_asked = 0;
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	MilitiaOrder& o = *it;
+
+	if (ret != MSG_BOX_RETURN_YES || !MilitiaOrderCanJoin(o) || guiCurrentScreen != GAME_SCREEN)
+	{
+		MilitiaOrderWaits(o);
+		return;
+	}
+
+	// as many as the battle takes come in, the best ranks first; the rest waits
+	SGPSector const sector = o.sector;
+	UINT8 const entered = AddMilitiaReinforcementsToBattle(o.counts, (UINT8)std::min<UINT32>(OrderTotal(o), 255));
+	if (entered == 0)
+	{
+		MilitiaOrderWaits(o);
+		return;
+	}
+	AddMilitiaRecruitLoyalty(sector, entered);
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED], RecruitAreaName(sector)));
+	if (OrderTotal(o) == 0) g_militia_orders.erase(it);
+	else                    MilitiaOrderWaits(o);
+	fMapPanelDirty = TRUE;
+}
+
+
 static void AttackCallback(MessageBoxReturnValue const ret)
 {
 	UINT32 const order_id = g_order_asked;
@@ -1397,16 +1451,15 @@ void HandleMilitiaOrderArrival(UINT32 const order_id)
 		// everybody enters
 		EnterMilitiaOrder(order_id, total);
 	}
-	else if (room > 0 || MilitiaOrderCanAttack(o))
+	else if (room > 0 || MilitiaOrderCanJoin(o) || MilitiaOrderCanAttack(o))
 	{
-		// only some fit (4e), or the enemy holds the sector (4b, 4d): the
-		// player is asked
+		// only some fit (4e), a battle in the loaded sector (4c), or the enemy
+		// holds the sector (4b, 4d): the player is asked
 		g_order_questions.push_back(order_id);
 	}
 	else
 	{
-		// no room, or a battle there (4c: docs/militia-arrival-time-plan.md,
-		// stage 4.3): they wait for orders
+		// no room: they wait for orders
 		MilitiaOrderWaits(o);
 	}
 }
@@ -1415,23 +1468,38 @@ void HandleMilitiaOrderArrival(UINT32 const order_id)
 void HandleMilitiaOrderQuestions()
 {
 	if (g_order_asked != 0 || g_order_questions.empty()) return;
-	// nothing else going on
+	// no other message box or battle panel
 	if (guiCurrentScreen != MAP_SCREEN && guiCurrentScreen != GAME_SCREEN) return;
-	if (gfInMsgBox || gfPreBattleInterfaceActive || gfWatchingMilitiaBattle) return;
-	if (gTacticalStatus.uiFlags & INCOMBAT)                                    return;
+	if (gfInMsgBox || gfPreBattleInterfaceActive)                           return;
 
 	UINT32 const order_id = g_order_questions.front();
-	g_order_questions.erase(g_order_questions.begin());
 	auto const it = FindMilitiaOrder(order_id);
-	if (it == g_militia_orders.end()) return;
+	if (it == g_militia_orders.end())
+	{
+		g_order_questions.erase(g_order_questions.begin());
+		return;
+	}
 
 	// the situation may have changed while it was queued
 	UINT32 const total = OrderTotal(*it);
 	UINT32 const room  = MilitiaOrderRoom(*it);
+	bool   const join  = room == 0 && MilitiaOrderCanJoin(*it);
+	// a battle going on: joining it is asked between attacks, the other
+	// questions after it
+	bool const in_battle = (gTacticalStatus.uiFlags & INCOMBAT) || gfWatchingMilitiaBattle;
+	if (join ? !CanAskToJoinNow() : (in_battle && room < total)) return;
+
+	g_order_questions.erase(g_order_questions.begin());
 	if (room >= total) { EnterMilitiaOrder(order_id, total); return; }
 
 	g_order_asked = order_id;
-	if (room > 0)
+	if (join)
+	{
+		DoScreenIndependantMessageBox(
+			st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_JOIN], RecruitAreaName(it->sector), it->sector.AsShortString()),
+			MSG_BOX_FLAG_YESNO, JoinCallback);
+	}
+	else if (room > 0)
 	{
 		DoScreenIndependantMessageBox(
 			st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_PARTIAL], int(room), int(total), RecruitAreaName(it->sector)),
