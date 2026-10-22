@@ -1,7 +1,13 @@
-# Militia recruitment: arrival time — implementation plan
+# Militia recruitment: arrival time
 
-Status: plan only (2026-10-21), not implemented. Branch: `Militia`.
-Panel: `Militia_Recruit_Panel.cc` (MILITIA_RECRUIT_PANEL_1366x768.png).
+Status: implemented, stages 1-6 done and verified in the game (2026-10-21 to
+2026-10-22). Branch: `Militia`.
+Code: `Strategic/Town_Militia.cc` (orders, arrival, questions),
+`Strategic/Militia_Recruit_Panel.cc` (recruitment panel),
+`Strategic/Militia_Deployment_Panel.cc` (deployment panel),
+`Strategic/Assignments.cc` (the Militia menu),
+`Strategic/PreBattle_Interface.cc` (militia attack battles),
+`Tactical/Militia_Control.cc` (reinforcements in tactical).
 
 ## Goal
 
@@ -37,14 +43,11 @@ picks one of three arrival options; the militia arrive after its time.
      a sector and start autoresolve, or wait.
    - e) Only part of the order fits (e.g. a sector taken by the enemy): a
      message asks whether that part enters and the rest waits, or all wait.
-   - f) Later stage: a separate panel to manage the waiting militia.
+   - f) A separate panel to manage the waiting militia.
 5. The loyalty bonus (every 10 bought in a town) counts at arrival, not at
    purchase.
-6. Texts: English in all 9 translation files for now, translations later.
-
-Added 2026-10-21 (with the graphics MILITIA_RECRUIT_PANEL_1366x768.png, new
-"Arrival time" box, and MILITIA_DEPLOYMENT_PANEL_1366x768.png):
-
+6. Texts: English first, translated into all 9 languages at the end
+   (stage 6).
 7. No refunds for now. Militia that cannot enter go to the waiting list.
 8. The waiting militia are shown in a separate Deployment Panel
    (MILITIA_DEPLOYMENT_PANEL_1366x768.png, 761x647): title "MILITIA
@@ -69,98 +72,108 @@ Added 2026-10-21 (with the graphics MILITIA_RECRUIT_PANEL_1366x768.png, new
     the same town; without one, from the edge farthest from the enemies.
 16. Waiting orders are not asked about again by themselves: the Deployment
     Panel's Done button tries again (decision 9).
+17. Both panels open wherever militia can be bought (a town or SAM site
+    allowed to have militia, with the loyalty to train them), also in a town
+    full of militia; there the recruitment panel's + buttons stay greyed out.
+    The loyalty requirement stays.
 
-## Recommended stages
+## What was built
 
-### Stage 1 — Arrival options in the panel (UI only)
+### Stage 1 -- Arrival options (commit 6955477fc)
 
-- Three check boxes, graphic of the sector inventory's "Combine Item Filters"
-  check box (`Map_Screen_Interface_Map_Inventory.cc`, `guiMapInvenButton[14]`),
-  labels "Express (+$1000, 6 h)", "Fast (+$500, 12 h)", "Standard (24 h)".
-- Exactly one is checked (radio behaviour); default Standard.
-- Express / Fast are greyed out (disabled) when the current balance is lower
-  than the militia's cost plus that option's extra cost; both when even Fast
-  doesn't fit. A checked option that becomes unaffordable falls back to the
-  most expensive affordable one.
-- Total Cost shows the militia's cost plus the option's extra cost
-  (recommended, so the balance check stays one number).
-- Placeholder position: 20 px under the Total Cost box (box 618,286 127x66,
-  bottom at y 352). Note: the buy button is at y 362–395, 10 px under that
-  box, so y 372 overlaps it; recommended placeholder 20 px under the buy
-  button (y 415) until the user places the final graphic.
-- Buying still instant in this stage (only the extra cost is charged), so
-  the stage can be tested alone.
-- New strings (pMilitiaRecruitStrings): the three option labels, a section
-  title "Arrival Time".
+- The recruitment panel's right column: Current Balance (y 147), Arrival
+  Time (y 239, new box), Total Cost (y 331); the buy button 10 px under it
+  (y 407). Boxes 127x66 at x 618.
+- Arrival Time: a header and three check boxes (the sector inventory's check
+  box sheet `Sector_Inventory_PopupCheck.sti`, its 15x15 images 0-3, so that
+  three lines fit), each with the option's name and hours; the extra cost is
+  in the check box's fast help. Exactly one checked, Standard when the panel
+  opens; an option the balance can't pay (with the picked militia) is greyed
+  out, and a checked one falls back to the most expensive affordable one.
+- Total Cost, the + buttons and the purchase include the extra cost
+  (`MilitiaArrivalHours()`, `MilitiaArrivalExtraCost()`).
 
-### Stage 2 — Pending orders (data, save, purchase)
+### Stage 2 and 3 -- Orders, save, peaceful arrival (commit df9f38451)
 
-- `struct PendingMilitiaOrder { SGPSector sector; INT8 town; UINT8
-  counts[MAX_MILITIA_LEVELS]; UINT32 arrival_min; UINT8 option; UINT32 id; }`
-  in a list (Town_Militia.cc), saved in the savegame: new SAVE_GAME_VERSION
-  (no backward compatibility needed — new game; see memory no-save-compat).
-- `MilitiaRecruitFreeSlots()` subtracts the town's pending militia
-  (decision 3).
-- `BuyMilitia()` charges the money at once (militia + extra cost, finance
-  entry RECRUIT_TOWN_MILITIA), creates the order, adds no militia; the
-  loyalty counter is NOT advanced here (decision 5).
-- New strategic event `EVENT_MILITIA_ORDER_ARRIVAL` (Game_Event_Hook.h,
-  appended before NUMBER_OF_EVENT_TYPES) with the order id as parameter,
-  added with AddStrategicEvent at arrival_min.
-- After a successful purchase: message box over the open panel
-  "Militia will arrive in %d hours" (DoMapMessageBox, OK only; the callback
-  returns to the panel — decision 1).
+- `BuyMilitia(sector, counts, arrival_option)` charges the militia and the
+  extra cost (one finance entry RECRUIT_TOWN_MILITIA) and creates a
+  `MilitiaOrder` { id, sector, counts per rank, arrival_min, option, waiting }
+  instead of placing militia; the strategic event
+  `EVENT_MILITIA_ORDER_ARRIVAL` (79, parameter: the order's id) fires at
+  arrival_min. The panel shows "Militia will arrive in %d hours."
+- `MilitiaRecruitFreeSlots()` subtracts the militia ordered for the same town
+  or SAM site, on their way or waiting (decision 3).
+- At arrival, when everybody fits: the ordered sector first, then the town's
+  other sectors with room (decision 4a), the loyalty bonus (decision 5),
+  "Militia have arrived in <town>."
+- The orders are saved in the game states (key "Militia::orders", a list of
+  numbers, 10 per order); no SAVE_GAME_VERSION change was needed. A new game
+  starts without orders. An order saved while its question was pending waits
+  after loading.
 
-### Stage 3 — Arrival in peace
+### Stage 4.1 -- Questions, partial entry (commit efcf59c1d)
 
-- On the event: place the order's militia as today's purchase did — the
-  ordered sector first, then the other town sectors with room (decision 4a),
-  then the loyalty bonus per 10 (decision 5); remove the order; screen
-  message "Militia have arrived in <town>".
-- If the town sectors can't take everybody without fighting, go to stage 4.
+- Questions are queued and asked one at a time with a YES/NO message box
+  (`DoScreenIndependantMessageBox()`, map screen and tactical) when nothing
+  else is going on: no other message box, pre-battle panel, watched battle
+  or turn-based combat (`HandleMilitiaOrderQuestions()`, every map screen
+  and tactical frame). The room is checked again just before asking.
+- 4e: "Only %d of the %d militia ordered for %s can enter. Let them enter?"
+  YES: those who fit enter, the best ranks first; the rest waits. NO: the
+  whole order waits.
+- Nothing fits and nothing to ask: the order waits ("... can't enter and are
+  waiting for orders.").
 
-### Stage 4 — Arrival with enemies or a battle (decisions 4b–4e)
+### Stage 4.2 -- Attacking an enemy-held sector (commit bd4535077)
 
-- Message box with two choices (YES/NO style, strings to add):
-  - 4b enemy in the sector, others full: "Enter <sector> (battle by
-    autoresolve)" / "Wait".
-  - 4c a battle going on in the sector (tactical or about to be resolved):
-    "Enter and help" / "Wait". Tactical with mercs: the militia join as
-    reinforcements at the map edge (to investigate: the existing militia
-    placement, `PrepareMilitiaForTactical()` in Militia_Control.cc, and how
-    enemy reinforcements enter in Queen_Command.cc, AddEnemiesToBattle).
-  - 4d the whole town retaken: "Enter <sector> (autoresolve)" / "Wait".
-  - 4e part fits: "Let N enter, the rest waits" / "All wait".
-- Enter → add the militia to the sector, then the standard pre-battle /
-  autoresolve flow (as militia meeting an enemy group).
-- Wait → the order stays pending, flagged waiting. To decide later: when to
-  ask again (recommended: when the situation changes — sector liberated,
-  battle over — and once a day otherwise), so the player isn't asked every
-  hour.
-- Only one such question at a time; others queue (the map screen message
-  box is modal). Questions during tactical: wait for the map screen, or show
-  in tactical — to decide.
+- 4b / 4d: the order's sector held by the enemy (no battle there already, the
+  sector not full of militia): "The enemy holds %s, where the militia
+  ordered for it should go (%s). Attack?"
+- YES: as many as the sector holds (20) enter it, the best ranks first; the
+  rest waits. `StartMilitiaAttackBattle()` opens the persistent pre-battle
+  panel without a battle group (a flag in PreBattle_Interface.cc gives it the
+  sector and ENEMY_ENCOUNTER_CODE instead of a creature attack); the
+  autoresolve starts by itself, with Watch the Battle available. A victory
+  makes the sector the player's.
 
-### Stage 5 — Waiting militia panel (decision 4f, later)
+### Stage 4.3 -- Joining a battle (commit 840379e44)
 
-- A list of pending and waiting orders: town, counts per rank, arrival time
-  or "waiting", with actions (send in now, change target sector, cancel —
-  refund rules to decide).
+- 4c: a battle going on in the order's sector, loaded in tactical (mercs, or
+  a watched militia battle): "A battle is going on in %s (%s). Should the
+  militia ordered for it join the fight?" -- asked on the tactical screen
+  only, in real time or in the player's turn, between attacks. Battles on
+  the pre-battle panel or in autoresolve aren't asked about: the order waits
+  until they are over and is checked again.
+- YES (`AddMilitiaReinforcementsToBattle()`): as many as the battle takes
+  (the sector's 20 and the militia team's free slots), the best ranks first,
+  from the edge facing a neighbouring sector of the same town, else the edge
+  farthest from the enemies (decision 15), on its edgepoints as enemy
+  reinforcements; alert, seeking the enemy; counted in the sector at once.
 
-### Stage 6 — Translations and docs
+### Stage 5 -- Deployment panel (commits 5c7584689, 154967dda)
 
-- Strings translated in all 9 files; this document updated to what was built.
+- Opened by Assign > Train > Militia > Militia Deployment Center (the Militia
+  menu: Militia Recruitment Center / Militia Deployment Center, ef055a13f);
+  at the map screen's right edge as the recruitment panel, one of the two at
+  a time; from tactical it opens on the map screen.
+- Per rank: Incoming (count of the rank, town or SAM sector, hours to arrival
+  rounded up; the soonest first), Waiting (count, town, Done button) and
+  TOTAL (Incoming / Waiting of the rank). Up to 3 orders a box for now.
+- Done (`RetryMilitiaOrder()`) tries again with the whole order, as at its
+  arrival, with the same questions.
+- Decision 17: the panels open in a town full of militia too.
 
-## Risks
+### Stage 6 -- Translations and this document
 
-- Save format change (stage 2): a new game needed.
-- Events firing while in tactical, during battles or time compression: the
-  arrival questions must not interrupt a running battle or a message box.
-- Stage 4 tactical reinforcements: the most work and the most unknowns.
+- All militia feature strings (pMilitiaRecruitStrings, pMilitiaWatchStrings,
+  pMilitiaHeavyStrings, the finance entry pTransactionText[28]) translated
+  into Chinese, Dutch, French, German, Italian, Polish and Russian (Russian
+  Gold the same as Russian), with each language's existing militia and menu
+  terms (e.g. the Italian translation's "esercito"). The panels' texts were
+  checked for width with tools/interface_preview (the Latin-script
+  languages).
 
-## Open questions for later
+## Open for later
 
-- Refund (militia cost and/or extra cost) when an order is cancelled or the
-  town is lost for good.
-- A limit on the number of pending orders.
-- Where the questions of stage 4 appear when the player is in tactical.
+- Scrolling or arrows in the Deployment Panel (more than 3 orders a box).
+- Refunds, cancelling an order or changing its target sector.
