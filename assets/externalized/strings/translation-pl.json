@@ -1780,7 +1780,8 @@
         "Militia will arrive in %d hours.",
         "Militia have arrived in %s.",
         "The militia ordered for %s can't enter and are waiting for orders.",
-        "Only %d of the %d militia ordered for %s can enter. Let them enter? The others will wait for orders."
+        "Only %d of the %d militia ordered for %s can enter. Let them enter? The others will wait for orders.",
+        "The enemy holds %s, where the militia ordered for it should go (%s). Attack? Otherwise they wait for orders."
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

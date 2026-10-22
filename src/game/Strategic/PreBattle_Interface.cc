@@ -176,6 +176,10 @@ static void PBListWheelCallback(MOUSE_REGION*, UINT32 const reason)
 
 GROUP *gpBattleGroup = NULL;
 
+// The pre-battle panel is for militia attacking this sector (StartMilitiaAttackBattle())
+static bool      g_militia_attack = false;
+static SGPSector g_militia_attack_sector;
+
 
 static MOUSE_REGION PBInterfaceBlanket;
 BOOLEAN gfPreBattleInterfaceActive = FALSE;
@@ -300,6 +304,11 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 		if (battle_group)
 		{
 			gubPBSector = battle_group->ubSector;
+			fMapPanelDirty = TRUE;
+		}
+		else if (g_militia_attack)
+		{
+			gubPBSector = g_militia_attack_sector;
 			fMapPanelDirty = TRUE;
 		}
 		else
@@ -454,7 +463,11 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 
 	if (gfPersistantPBI)
 	{
-		if (!battle_group)
+		if (!battle_group && g_militia_attack)
+		{ // Militia attack the enemy holding the sector
+			gubEnemyEncounterCode = ENEMY_ENCOUNTER_CODE;
+		}
+		else if (!battle_group)
 		{ // Creatures are attacking
 			gubEnemyEncounterCode = CREATURE_ATTACK_CODE;
 		}
@@ -679,10 +692,23 @@ static void DoTransitionFromMapscreenToPreBattleInterface(void)
 	BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER, 0, 0, NULL);
 }
 
+void StartMilitiaAttackBattle(const SGPSector& sector)
+{
+	g_militia_attack        = true;
+	g_militia_attack_sector = sector;
+	gfUsePersistantPBI      = TRUE;
+	gfDelayAutoResolveStart = TRUE; // nobody of the player's team to command
+	StopTimeCompression();
+	InitPreBattleInterface(NULL, true);
+}
+
+
 void KillPreBattleInterface()
 {
 	if( !gfPreBattleInterfaceActive )
 		return;
+
+	g_militia_attack = false;
 
 	fDisableMapInterfaceDueToBattle = FALSE;
 	MSYS_RemoveRegion( &PBInterfaceBlanket );

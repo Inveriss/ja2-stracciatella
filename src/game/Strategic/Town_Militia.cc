@@ -30,6 +30,8 @@
 #include "Game_Event_Hook.h"
 #include "Militia_Recruit_Panel.h"
 #include "Militia_Watch.h"
+#include "Strategic_Movement.h"
+#include "Map_Information.h"
 #include "ScreenIDs.h"
 #include "Message.h"
 #include "SaveLoadGameStates.h"
@@ -1309,6 +1311,58 @@ static std::vector<UINT32> g_order_questions;
 static UINT32              g_order_asked = 0;
 
 
+// The order's sector held by the enemy, no battle there already (4b, 4d):
+// the militia can attack it
+static bool MilitiaOrderCanAttack(MilitiaOrder const& o)
+{
+	SGPSector const& s = o.sector;
+	if (s.z != 0)                     return false;
+	if (NumEnemiesInSector(s) == 0)   return false;
+	if (gfPreBattleInterfaceActive)   return false;
+	// a battle in the loaded sector: joining it is stage 4.3
+	if (gfWorldLoaded && gWorldSector == s && gTacticalStatus.fEnemyInSector) return false;
+	return CountAllMilitiaInSector(s) < MAX_ALLOWABLE_MILITIA_PER_SECTOR;
+}
+
+
+static void AttackCallback(MessageBoxReturnValue const ret)
+{
+	UINT32 const order_id = g_order_asked;
+	g_order_asked = 0;
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	MilitiaOrder& o = *it;
+
+	if (ret != MSG_BOX_RETURN_YES || !MilitiaOrderCanAttack(o))
+	{
+		MilitiaOrderWaits(o);
+		return;
+	}
+
+	// as many as the sector holds enter it, the best ranks first; the rest
+	// waits
+	SGPSector const sector = o.sector;
+	UINT32 n = MAX_ALLOWABLE_MILITIA_PER_SECTOR - CountAllMilitiaInSector(sector);
+	UINT32 entered = 0;
+	for (UINT8 rank = MAX_MILITIA_LEVELS; rank-- != 0 && n != 0;)
+	{
+		UINT8 const k = (UINT8)std::min<UINT32>(o.counts[rank], n);
+		if (k == 0) continue;
+		StrategicAddMilitiaToSector(sector, rank, k);
+		o.counts[rank] -= k;
+		n              -= k;
+		entered        += k;
+	}
+	AddMilitiaRecruitLoyalty(sector, entered);
+	if (OrderTotal(o) == 0) g_militia_orders.erase(it);
+	else                    o.waiting = true;
+
+	gfStrategicMilitiaChangesMade = TRUE;
+	fMapPanelDirty = TRUE;
+	StartMilitiaAttackBattle(sector);
+}
+
+
 static void PartialEntryCallback(MessageBoxReturnValue const ret)
 {
 	UINT32 const order_id = g_order_asked;
@@ -1343,15 +1397,16 @@ void HandleMilitiaOrderArrival(UINT32 const order_id)
 		// everybody enters
 		EnterMilitiaOrder(order_id, total);
 	}
-	else if (room > 0)
+	else if (room > 0 || MilitiaOrderCanAttack(o))
 	{
-		// only some fit (4e): the player is asked
+		// only some fit (4e), or the enemy holds the sector (4b, 4d): the
+		// player is asked
 		g_order_questions.push_back(order_id);
 	}
 	else
 	{
-		// an enemy in the town, or no room: they wait for orders
-		// (4b - 4d: docs/militia-arrival-time-plan.md, stages 4.2 and 4.3)
+		// no room, or a battle there (4c: docs/militia-arrival-time-plan.md,
+		// stage 4.3): they wait for orders
 		MilitiaOrderWaits(o);
 	}
 }
@@ -1374,12 +1429,25 @@ void HandleMilitiaOrderQuestions()
 	UINT32 const total = OrderTotal(*it);
 	UINT32 const room  = MilitiaOrderRoom(*it);
 	if (room >= total) { EnterMilitiaOrder(order_id, total); return; }
-	if (room == 0)     { MilitiaOrderWaits(*it);             return; }
 
 	g_order_asked = order_id;
-	DoScreenIndependantMessageBox(
-		st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_PARTIAL], int(room), int(total), RecruitAreaName(it->sector)),
-		MSG_BOX_FLAG_YESNO, PartialEntryCallback);
+	if (room > 0)
+	{
+		DoScreenIndependantMessageBox(
+			st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_PARTIAL], int(room), int(total), RecruitAreaName(it->sector)),
+			MSG_BOX_FLAG_YESNO, PartialEntryCallback);
+	}
+	else if (MilitiaOrderCanAttack(*it))
+	{
+		DoScreenIndependantMessageBox(
+			st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ATTACK], RecruitAreaName(it->sector), it->sector.AsShortString()),
+			MSG_BOX_FLAG_YESNO, AttackCallback);
+	}
+	else
+	{
+		g_order_asked = 0;
+		MilitiaOrderWaits(*it);
+	}
 }
 
 

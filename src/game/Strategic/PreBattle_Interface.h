@@ -6,6 +6,11 @@
 
 void InitPreBattleInterface(GROUP* battle_group, bool persistent_pbi);
 void KillPreBattleInterface(void);
+
+// Militia (arriving from a recruitment order) attack the enemy holding this
+// sector: the persistent pre-battle panel without a battle group, the
+// autoresolve starting by itself (no merc is involved)
+void StartMilitiaAttackBattle(const SGPSector&);
 void RenderPreBattleInterface(void);
 
 extern BOOLEAN gfPreBattleInterfaceActive;
