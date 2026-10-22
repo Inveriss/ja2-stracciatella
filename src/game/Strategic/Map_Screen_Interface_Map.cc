@@ -328,6 +328,15 @@ static INT16 const gsMilitiaSectorButtonColors[] =
 	16,
 	FONT_YELLOW
 };
+// the big militia box's: elite (0, 0, 255), elite heavy (24, 20, 16) -- the
+// font palette's nearest, (27, 22, 17)
+static INT16 const gsBigMilitiaSectorButtonColors[] =
+{
+	FONT_LTGREEN,
+	FONT_LTBLUE,
+	FONT_BLUE,
+	192
+};
 
 // track number of townspeople picked up
 INT16 sGreensOnCursor = 0;
@@ -3372,7 +3381,9 @@ void CreateDestroyMilitiaSectorButtons()
 			else         y += MILITIA_BTN_HEIGHT;
 			giMapMilitiaButton[i] = b;
 			b->SetUserData(i);
-			b->SpecifyGeneralTextAttributes({}, box.font, gsMilitiaSectorButtonColors[i], FONT_BLACK); // the rank's colour
+			// the rank's colour; the big box's with a shadow
+			if (box.big) b->SpecifyGeneralTextAttributes({}, box.font, gsBigMilitiaSectorButtonColors[i], DEFAULT_SHADOW);
+			else         b->SpecifyGeneralTextAttributes({}, box.font, gsMilitiaSectorButtonColors[i],    FONT_BLACK);
 			b->SpecifyTextSubOffsets(0, 0, TRUE);
 			b->fShiftText = FALSE;
 			b->SetFastHelpText(i == ELITE_HEAVY_MILITIA ? pMilitiaHeavyStrings[0] : pMilitiaButtonsHelpText[i]);
@@ -3548,6 +3559,7 @@ static void DrawTownMilitiaName()
 	buf = box.big ? pMilitiaString[1] : ST::format("{} {}", town, pMilitiaString[1]);
 	INT16 const uh = box.unassigned_h ? box.unassigned_h : GetFontHeight(box.font);
 	FindFontCenterCoordinates(MAP_MILITIA_BOX_POS_X + box.unassigned_x, y + box.unassigned_y, box.unassigned_w, uh, buf, box.font, &sX, &sY);
+	SetFontShadow(DEFAULT_SHADOW); // with a shadow
 	MPrint(sX, sY, buf);
 }
 
@@ -3717,7 +3729,7 @@ static void MakeButton(UINT idx, INT16 x, GUI_CALLBACK click, const ST::string& 
 	GUIButtonRef const btn = QuickCreateButtonImg(INTERFACEDIR "/militia.sti", 1, 2, x, MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_BOX_AUTO_BOX_Y, MSYS_PRIORITY_HIGHEST - 1, click);
 	giMapMilitiaButton[idx] = btn;
 	MilitiaBoxLayout const& box = MilitiaBox();
-	btn->SpecifyGeneralTextAttributes(text, box.font, box.big ? box.colour : FONT_BLACK, FONT_BLACK);
+	btn->SpecifyGeneralTextAttributes(text, box.font, box.big ? box.colour : FONT_BLACK, box.big ? DEFAULT_SHADOW : FONT_BLACK);
 }
 
 
