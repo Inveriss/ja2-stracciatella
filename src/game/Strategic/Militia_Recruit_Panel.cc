@@ -292,22 +292,28 @@ static void UpdateArrivalButtons()
 }
 
 
-static void MinusButtonCallback(GUI_BUTTON* const btn, UINT32 const reason)
+// A right click on - or + takes or adds this many at once
+#define RECRUIT_BIG_STEP 5
+
+static void RemovePicks(GUI_BUTTON* const btn, UINT8 const step)
 {
-	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
 	UINT8& n = g_counts[btn->GetUserData()];
-	if (n != 0) --n;
+	n -= std::min(n, step);
 }
 
 
-static void PlusButtonCallback(GUI_BUTTON* const btn, UINT32 const reason)
+// no more than the town has room for and the balance pays
+static void AddPicks(GUI_BUTTON* const btn, UINT8 const step)
 {
-	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
-	// no more than the town has room for
 	UINT8 const rank = btn->GetUserData();
-	if (!CanPickOneMore(rank)) return;
-	++g_counts[rank];
+	for (UINT8 i = 0; i != step && CanPickOneMore(rank); ++i) ++g_counts[rank];
 }
+
+
+static void MinusButtonCallbackPrimary(GUI_BUTTON* const btn, UINT32)   { RemovePicks(btn, 1); }
+static void MinusButtonCallbackSecondary(GUI_BUTTON* const btn, UINT32) { RemovePicks(btn, RECRUIT_BIG_STEP); }
+static void PlusButtonCallbackPrimary(GUI_BUTTON* const btn, UINT32)    { AddPicks(btn, 1); }
+static void PlusButtonCallbackSecondary(GUI_BUTTON* const btn, UINT32)  { AddPicks(btn, RECRUIT_BIG_STEP); }
 
 
 static void BuyButtonCallback(GUI_BUTTON*, UINT32 const reason)
@@ -360,9 +366,12 @@ static void CreatePanel()
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		INT16 const row_y = y + RECRUIT_ROW_FIRST_Y + rank * RECRUIT_ROW_PITCH + RECRUIT_BUTTON_DY;
-		g_minus_buttons[rank] = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 0, 1, x + RECRUIT_MINUS_X, row_y, MSYS_PRIORITY_HIGHEST, MinusButtonCallback);
+		// a left click changes the count by 1, a right click by RECRUIT_BIG_STEP
+		g_minus_buttons[rank] = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 0, 1, x + RECRUIT_MINUS_X, row_y, MSYS_PRIORITY_HIGHEST,
+			ButtonCallbackPrimarySecondary(MinusButtonCallbackPrimary, MinusButtonCallbackSecondary));
 		g_minus_buttons[rank]->SetUserData(rank);
-		g_plus_buttons[rank]  = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 2, 3, x + RECRUIT_PLUS_X,  row_y, MSYS_PRIORITY_HIGHEST, PlusButtonCallback);
+		g_plus_buttons[rank]  = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 2, 3, x + RECRUIT_PLUS_X,  row_y, MSYS_PRIORITY_HIGHEST,
+			ButtonCallbackPrimarySecondary(PlusButtonCallbackPrimary, PlusButtonCallbackSecondary));
 		g_plus_buttons[rank]->SetUserData(rank);
 	}
 	// buy (doesn't close the panel)
