@@ -279,30 +279,30 @@ enum{
 static SGPVSurface* guiBIGMAP;
 
 
-// the max allowable towns militia in a sector
-#define MAP_MILITIA_MAP_X 4
-#define MAP_MILITIA_MAP_Y 20
-#define MAP_MILITIA_LOWER_ROW_Y 142
-#define NUMBER_OF_MILITIA_ICONS_PER_LOWER_ROW 25
+// The militia box (militia.sti 0, the town's map from militiamaps.sti) in one
+// of two layouts, chosen by the panel graphic's size -- see MilitiaBox()
+#define MAP_MILITIA_MAP_X (MilitiaBox().map_x)
+#define MAP_MILITIA_MAP_Y (MilitiaBox().map_y)
+#define MAP_MILITIA_LOWER_ROW_Y (MilitiaBox().lower_y)
+#define NUMBER_OF_MILITIA_ICONS_PER_LOWER_ROW (MilitiaBox().lower_per_row)
 #define MILITIA_BOX_ROWS 3
-#define MILITIA_BOX_BOX_HEIGHT 36
-#define MILITIA_BOX_BOX_WIDTH 42
+#define MILITIA_BOX_BOX_HEIGHT (MilitiaBox().cell_h)
+#define MILITIA_BOX_BOX_WIDTH (MilitiaBox().cell_w)
 #define MAP_MILITIA_BOX_POS_X (MAP_SCREEN_RIGHT_BLOCK_X + 400)
 #define MAP_MILITIA_BOX_POS_Y (MAP_SCREEN_Y + 125)
 
-#define POPUP_MILITIA_ICONS_PER_ROW 5 // max 6 rows gives the limit of 30 militia
-#define MEDIUM_MILITIA_ICON_SPACING 5
+#define POPUP_MILITIA_ICONS_PER_ROW (MilitiaBox().sector_per_row)
+#define MEDIUM_MILITIA_ICON_SPACING (MilitiaBox().icon_pitch)
 
-#define MILITIA_BTN_OFFSET_X 26
+#define MILITIA_BTN_OFFSET_X 26 // the small layout's rank buttons, in the selected sector
 #define MILITIA_BTN_HEIGHT 11
-#define MILITIA_BOX_WIDTH 133
+#define MILITIA_BOX_WIDTH (MilitiaBox().title_w)
 #define MILITIA_BOX_TEXT_OFFSET_Y 4
-#define MILITIA_BOX_UNASSIGNED_TEXT_OFFSET_Y 132
-#define MILITIA_BOX_TEXT_TITLE_HEIGHT 13
+#define MILITIA_BOX_TEXT_TITLE_HEIGHT (MilitiaBox().title_h)
 
-#define MAP_MILITIA_BOX_AUTO_BOX_X 4
-#define MAP_MILITIA_BOX_AUTO_BOX_Y 167
-#define MAP_MILITIA_BOX_DONE_BOX_X 67
+#define MAP_MILITIA_BOX_AUTO_BOX_X (MilitiaBox().auto_x)
+#define MAP_MILITIA_BOX_AUTO_BOX_Y (MilitiaBox().bottom_y)
+#define MAP_MILITIA_BOX_DONE_BOX_X (MilitiaBox().done_x)
 
 #define HELI_ICON               0
 #define HELI_SHADOW_ICON        1
@@ -379,6 +379,42 @@ static UINT16 HeavyMilitiaIcon(UINT16 const elite_icon)
 {
 	return GetVObject(guiMilitia)->SubregionCount() > HEAVY_MILITIA_ICON ? HEAVY_MILITIA_ICON : elite_icon;
 }
+
+// The militia box's layout, positions inside its panel (militia.sti 0):
+// - small (the original 137x190 panel, 127x109 maps): the rank buttons in the
+//   selected sector, 3-4 px icons, FONT10ARIAL;
+// - big (a panel 250 px wide or more, 268x370 with 254x218 maps): 84x72
+//   sectors, the militia as 11x11 squares (militia.sti 15-18: green, regular,
+//   elite, elite heavy), the rank buttons (32x22) in a row under the
+//   unassigned militia, the sector outlines drawn, FONT12ARIAL.
+struct MilitiaBoxLayout
+{
+	bool   big;
+	INT16  map_x, map_y, cell_w, cell_h;         // the town's map and its sectors
+	INT16  title_x, title_w, title_h;            // the title bar (from y MILITIA_BOX_TEXT_OFFSET_Y)
+	INT16  unassigned_x, unassigned_y, unassigned_w, unassigned_h; // the "Unassigned" label
+	INT16  lower_x, lower_y, lower_per_row;      // the unassigned militia
+	INT16  sector_per_row, icon_pitch;           // the militia in a sector
+	INT16  rank_btn_x, rank_btn_y, rank_btn_dx;  // big: the rank buttons
+	INT16  auto_x, done_x, bottom_y;             // the AUTO and DONE buttons
+	SGPFont font;
+};
+
+static MilitiaBoxLayout const& MilitiaBox()
+{
+	static MilitiaBoxLayout const small_box =
+	{
+		false, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL
+	};
+	static MilitiaBoxLayout const big_box =
+	{
+		true, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT12ARIAL
+	};
+	return GetVObject(guiMilitia)->SubregionProperties(0).usWidth >= 250 ? big_box : small_box;
+}
+
+// The big layout's square of a militia rank (militia.sti 15-18)
+#define BIG_MILITIA_ICON_FIRST 15
 
 cache_key_t const guiMilitiaMaps{ INTERFACEDIR "/militiamaps.sti" };
 cache_key_t const guiMilitiaSectorHighLight{ INTERFACEDIR "/militiamapsectoroutline2.sti" };
@@ -3149,17 +3185,27 @@ static void RenderIconsPerSectorForSelectedTown(void)
 		INT32      const  n_total    = n_greens + n_regulars + n_elites + n_heavies;
 
 		StrategicMapElement const& e = StrategicMap[SGPSector(sector).AsStrategicIndex()];
+		MilitiaBoxLayout const& box = MilitiaBox();
 		if (e.bNameId != BLANK_SECTOR && !e.fEnemyControlled)
 		{
-			// print number of troops
-			SetFont(FONT10ARIAL);
+			// print number of troops (the small layout's rank buttons cover the
+			// selected sector's right side)
+			SetFont(box.font);
 			ST::string sString = ST::format("{}", n_total);
 			INT16       sX;
 			INT16       sY;
 			INT16 const x  = MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + dx * MILITIA_BOX_BOX_WIDTH;
 			INT16 const y  = MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + dy * MILITIA_BOX_BOX_HEIGHT;
-			FindFontRightCoordinates(x, y, MILITIA_BOX_BOX_WIDTH, 0, sString, FONT10ARIAL, &sX, &sY);
-			MPrint(sSectorMilitiaMapSector != iCounter ? sX : sX - 15, sY + MILITIA_BOX_BOX_HEIGHT - 5, sString);
+			if (box.big)
+			{
+				FindFontRightCoordinates(x, y, MILITIA_BOX_BOX_WIDTH - 4, 0, sString, box.font, &sX, &sY);
+				MPrint(sX, y + MILITIA_BOX_BOX_HEIGHT - 4 - GetFontHeight(box.font), sString);
+			}
+			else
+			{
+				FindFontRightCoordinates(x, y, MILITIA_BOX_BOX_WIDTH, 0, sString, FONT10ARIAL, &sX, &sY);
+				MPrint(sSectorMilitiaMapSector != iCounter ? sX : sX - 15, sY + MILITIA_BOX_BOX_HEIGHT - 5, sString);
+			}
 		}
 
 		// now display
@@ -3168,6 +3214,19 @@ static void RenderIconsPerSectorForSelectedTown(void)
 			// get screen x and y coords
 			INT16  x = MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + dx * MILITIA_BOX_BOX_WIDTH;
 			INT16  y = MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + dy * MILITIA_BOX_BOX_HEIGHT;
+			if (box.big)
+			{
+				// the 11x11 squares, also in the selected sector
+				x += i % POPUP_MILITIA_ICONS_PER_ROW * MEDIUM_MILITIA_ICON_SPACING + 4;
+				y += i / POPUP_MILITIA_ICONS_PER_ROW * MEDIUM_MILITIA_ICON_SPACING + 4;
+				UINT16 const big_icon =
+					i < n_greens                         ? BIG_MILITIA_ICON_FIRST + GREEN_MILITIA   :
+					i < n_greens + n_regulars            ? BIG_MILITIA_ICON_FIRST + REGULAR_MILITIA :
+					i < n_greens + n_regulars + n_elites ? BIG_MILITIA_ICON_FIRST + ELITE_MILITIA   :
+					BIG_MILITIA_ICON_FIRST + ELITE_HEAVY_MILITIA;
+				BltVideoObject(FRAME_BUFFER, guiMilitia, big_icon, x, y);
+				continue;
+			}
 			UINT16 icon_base;
 			if (sSectorMilitiaMapSector == iCounter)
 			{
@@ -3214,18 +3273,32 @@ static void ShowHighLightedSectorOnMilitiaMap(void)
 	// show the highlighted sector on the militia map
 	INT16 sX = 0, sY = 0;
 
+	// the big layout's sectors are larger than the outline graphics: as them,
+	// the selected sector yellow, the one under the mouse white, drawn 2 px wide
+	bool const big = MilitiaBox().big;
+	auto const frame = [](INT16 const x, INT16 const y, INT16 const w, INT16 const h, UINT32 const rgb)
+	{
+		UINT16 const c = Get16BPPColor(rgb);
+		ColorFillVideoSurfaceArea(FRAME_BUFFER, x,         y,         x + w,     y + 2,     c);
+		ColorFillVideoSurfaceArea(FRAME_BUFFER, x,         y + h - 2, x + w,     y + h,     c);
+		ColorFillVideoSurfaceArea(FRAME_BUFFER, x,         y,         x + 2,     y + h,     c);
+		ColorFillVideoSurfaceArea(FRAME_BUFFER, x + w - 2, y,         x + w,     y + h,     c);
+	};
+
 	if( sSectorMilitiaMapSector != -1 )
 	{
 		sX = MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + ( ( sSectorMilitiaMapSector % MILITIA_BOX_ROWS ) * MILITIA_BOX_BOX_WIDTH );
 		sY = MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + ( ( sSectorMilitiaMapSector / MILITIA_BOX_ROWS ) * MILITIA_BOX_BOX_HEIGHT );
-		BltVideoObject(FRAME_BUFFER, guiMilitiaSectorHighLight, 0, sX, sY);
+		if (big) frame(sX, sY, MILITIA_BOX_BOX_WIDTH, MILITIA_BOX_BOX_HEIGHT, FROMRGB(241, 255, 11));
+		else     BltVideoObject(FRAME_BUFFER, guiMilitiaSectorHighLight, 0, sX, sY);
 	}
 
 	if( sSectorMilitiaMapSectorOutline != -1 )
 	{
 		sX = MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + ( ( sSectorMilitiaMapSectorOutline % MILITIA_BOX_ROWS ) * MILITIA_BOX_BOX_WIDTH );
 		sY = MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + ( ( sSectorMilitiaMapSectorOutline / MILITIA_BOX_ROWS ) * MILITIA_BOX_BOX_HEIGHT );
-		BltVideoObject(FRAME_BUFFER, guiMilitiaSectorOutline, 0, sX, sY);
+		if (big) frame(sX, sY, MILITIA_BOX_BOX_WIDTH, MILITIA_BOX_BOX_HEIGHT, FROMRGB(255, 255, 255));
+		else     BltVideoObject(FRAME_BUFFER, guiMilitiaSectorOutline, 0, sX, sY);
 	}
 }
 
@@ -3274,16 +3347,25 @@ void CreateDestroyMilitiaSectorButtons()
 
 	if (!fMilitiaMapButtonsCreated && sOldSectorValue == sSectorMilitiaMapSector && fShowMilitia && sSelectedMilitiaTown && sSectorMilitiaMapSector != -1)
 	{
-		// given sector..place down the 4 buttons, one under the other (the 4th, ELITE_HEAVY,
-		// reaches below the sector box)
-		INT16 const x = MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + sSectorMilitiaMapSector % MILITIA_BOX_ROWS * MILITIA_BOX_BOX_WIDTH  + MILITIA_BTN_OFFSET_X;
-		INT16       y = MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + sSectorMilitiaMapSector / MILITIA_BOX_ROWS * MILITIA_BOX_BOX_HEIGHT + 2;
-		for (INT32 i = 0; i != MAX_MILITIA_LEVELS; y += MILITIA_BTN_HEIGHT, ++i)
+		// given sector..place down the 4 buttons: the small layout's one under the
+		// other in the sector (the 4th, ELITE_HEAVY, reaches below the sector box),
+		// the big layout's in a row under the unassigned militia
+		MilitiaBoxLayout const& box = MilitiaBox();
+		INT16 x = MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + sSectorMilitiaMapSector % MILITIA_BOX_ROWS * MILITIA_BOX_BOX_WIDTH  + MILITIA_BTN_OFFSET_X;
+		INT16 y = MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + sSectorMilitiaMapSector / MILITIA_BOX_ROWS * MILITIA_BOX_BOX_HEIGHT + 2;
+		if (box.big)
+		{
+			x = MAP_MILITIA_BOX_POS_X + box.rank_btn_x;
+			y = MAP_MILITIA_BOX_POS_Y + box.rank_btn_y;
+		}
+		for (INT32 i = 0; i != MAX_MILITIA_LEVELS; ++i)
 		{
 			GUIButtonRef b = QuickCreateButtonImg(INTERFACEDIR "/militia.sti", 3, 4, x, y, MSYS_PRIORITY_HIGHEST - 1, ButtonCallbackPrimarySecondary(MilitiaButtonCallbackPrimary, MilitiaButtonCallbackSecondary));
+			if (box.big) x += box.rank_btn_dx;
+			else         y += MILITIA_BTN_HEIGHT;
 			giMapMilitiaButton[i] = b;
 			b->SetUserData(i);
-			b->SpecifyGeneralTextAttributes({}, FONT10ARIAL, gsMilitiaSectorButtonColors[i], FONT_BLACK);
+			b->SpecifyGeneralTextAttributes({}, box.font, gsMilitiaSectorButtonColors[i], FONT_BLACK);
 			b->SpecifyTextSubOffsets(0, 0, TRUE);
 			b->fShiftText = FALSE;
 			b->SetFastHelpText(i == ELITE_HEAVY_MILITIA ? pMilitiaHeavyStrings[0] : pMilitiaButtonsHelpText[i]);
@@ -3388,10 +3470,11 @@ static void DisplayUnallocatedMilitia(void)
 	iTotalNumberOfTroops = iNumberOfGreens + iNumberOfRegulars + iNumberOfElites + iNumberOfHeavies;
 
 	// now display
+	MilitiaBoxLayout const& box = MilitiaBox();
 	for( iCurrentTroopIcon = 0; iCurrentTroopIcon < iTotalNumberOfTroops; iCurrentTroopIcon++ )
 	{
 		// get screen x and y coords
-		sX =  ( iCurrentTroopIcon % NUMBER_OF_MILITIA_ICONS_PER_LOWER_ROW ) * MEDIUM_MILITIA_ICON_SPACING + MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + 1;
+		sX =  ( iCurrentTroopIcon % NUMBER_OF_MILITIA_ICONS_PER_LOWER_ROW ) * MEDIUM_MILITIA_ICON_SPACING + MAP_MILITIA_BOX_POS_X + box.lower_x;
 		sY =  ( iCurrentTroopIcon / NUMBER_OF_MILITIA_ICONS_PER_LOWER_ROW ) * MEDIUM_MILITIA_ICON_SPACING + MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_LOWER_ROW_Y;
 
 		if( iCurrentTroopIcon < iNumberOfGreens )
@@ -3409,6 +3492,15 @@ static void DisplayUnallocatedMilitia(void)
 		else
 		{
 			iCurrentIcon = HeavyMilitiaIcon(10);
+		}
+		// the big layout's squares: 15-18 instead of 8-10, 14
+		if (box.big)
+		{
+			iCurrentIcon =
+				iCurrentTroopIcon < iNumberOfGreens                                        ? BIG_MILITIA_ICON_FIRST + GREEN_MILITIA   :
+				iCurrentTroopIcon < iNumberOfGreens + iNumberOfRegulars                    ? BIG_MILITIA_ICON_FIRST + REGULAR_MILITIA :
+				iCurrentTroopIcon < iNumberOfGreens + iNumberOfRegulars + iNumberOfElites  ? BIG_MILITIA_ICON_FIRST + ELITE_MILITIA   :
+				BIG_MILITIA_ICON_FIRST + ELITE_HEAVY_MILITIA;
 		}
 
 		BltVideoObject(FRAME_BUFFER, guiMilitia, iCurrentIcon, sX, sY);
@@ -3430,7 +3522,8 @@ static bool IsThisMilitiaTownSectorAllowable(INT16 const sSectorIndexValue)
 static void DrawTownMilitiaName()
 {
 	ST::string town = GCM->getTownName(sSelectedMilitiaTown);
-	INT16          const x    = MAP_MILITIA_BOX_POS_X;
+	MilitiaBoxLayout const& box = MilitiaBox();
+	INT16          const x    = MAP_MILITIA_BOX_POS_X + box.title_x;
 	INT16          const y    = MAP_MILITIA_BOX_POS_Y;
 	INT16          const w    = MILITIA_BOX_WIDTH;
 	ST::string buf;
@@ -3438,13 +3531,16 @@ static void DrawTownMilitiaName()
 	INT16                sY;
 
 	// get the name for the current militia town
+	SetFont(box.font);
 	buf = ST::format("{} {}", town, pMilitiaString[0]);
-	FindFontCenterCoordinates(x, y + MILITIA_BOX_TEXT_OFFSET_Y, w, MILITIA_BOX_TEXT_TITLE_HEIGHT, buf, FONT10ARIAL, &sX, &sY);
+	FindFontCenterCoordinates(x, y + MILITIA_BOX_TEXT_OFFSET_Y, w, MILITIA_BOX_TEXT_TITLE_HEIGHT, buf, box.font, &sX, &sY);
 	MPrint(sX, sY, buf);
 
-	// might as well show the unassigned string
-	buf = ST::format("{} {}", town, pMilitiaString[1]);
-	FindFontCenterCoordinates(x, y + MILITIA_BOX_UNASSIGNED_TEXT_OFFSET_Y, w, GetFontHeight(FONT10ARIAL), buf, FONT10ARIAL, &sX, &sY);
+	// might as well show the unassigned string (the big layout: next to the
+	// rank buttons, the town is in the title)
+	buf = box.big ? pMilitiaString[1] : ST::format("{} {}", town, pMilitiaString[1]);
+	INT16 const uh = box.unassigned_h ? box.unassigned_h : GetFontHeight(box.font);
+	FindFontCenterCoordinates(MAP_MILITIA_BOX_POS_X + box.unassigned_x, y + box.unassigned_y, box.unassigned_w, uh, buf, box.font, &sX, &sY);
 	MPrint(sX, sY, buf);
 }
 
@@ -3613,7 +3709,7 @@ static void MakeButton(UINT idx, INT16 x, GUI_CALLBACK click, const ST::string& 
 {
 	GUIButtonRef const btn = QuickCreateButtonImg(INTERFACEDIR "/militia.sti", 1, 2, x, MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_BOX_AUTO_BOX_Y, MSYS_PRIORITY_HIGHEST - 1, click);
 	giMapMilitiaButton[idx] = btn;
-	btn->SpecifyGeneralTextAttributes(text, FONT10ARIAL, FONT_BLACK, FONT_BLACK);
+	btn->SpecifyGeneralTextAttributes(text, MilitiaBox().font, FONT_BLACK, FONT_BLACK);
 }
 
 
