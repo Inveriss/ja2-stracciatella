@@ -288,7 +288,8 @@ static SGPVSurface* guiBIGMAP;
 #define MILITIA_BOX_ROWS 3
 #define MILITIA_BOX_BOX_HEIGHT (MilitiaBox().cell_h)
 #define MILITIA_BOX_BOX_WIDTH (MilitiaBox().cell_w)
-#define MAP_MILITIA_BOX_POS_X (MAP_SCREEN_RIGHT_BLOCK_X + 400)
+// the big box centred on the map's width (its panel 259 px without the shadow)
+#define MAP_MILITIA_BOX_POS_X (MilitiaBox().big ? MAP_VIEW_START_X + (MAP_VIEW_WIDTH - MilitiaBox().panel_w) / 2 : MAP_SCREEN_RIGHT_BLOCK_X + 400)
 #define MAP_MILITIA_BOX_POS_Y (MAP_SCREEN_Y + 125)
 
 #define POPUP_MILITIA_ICONS_PER_ROW (MilitiaBox().sector_per_row)
@@ -386,10 +387,13 @@ static UINT16 HeavyMilitiaIcon(UINT16 const elite_icon)
 // - big (a panel 250 px wide or more, 268x370 with 254x218 maps): 84x72
 //   sectors, the militia as 11x11 squares (militia.sti 15-18: green, regular,
 //   elite, elite heavy), the rank buttons (32x22) in a row under the
-//   unassigned militia, the sector outlines drawn, FONT12ARIAL.
+//   unassigned militia, the sector outlines drawn, all texts in FONT14ARIAL
+//   in the colour of the big weapon box's BALLISTICS / MAINTENANCE headers,
+//   the box centred on the map.
 struct MilitiaBoxLayout
 {
 	bool   big;
+	INT16  panel_w;                              // without its shadow
 	INT16  map_x, map_y, cell_w, cell_h;         // the town's map and its sectors
 	INT16  title_x, title_w, title_h;            // the title bar (from y MILITIA_BOX_TEXT_OFFSET_Y)
 	INT16  unassigned_x, unassigned_y, unassigned_w, unassigned_h; // the "Unassigned" label
@@ -398,17 +402,18 @@ struct MilitiaBoxLayout
 	INT16  rank_btn_x, rank_btn_y, rank_btn_dx;  // big: the rank buttons
 	INT16  auto_x, done_x, bottom_y;             // the AUTO and DONE buttons
 	SGPFont font;
+	UINT8  colour;                               // big: every text's; small: the original colours
 };
 
 static MilitiaBoxLayout const& MilitiaBox()
 {
 	static MilitiaBoxLayout const small_box =
 	{
-		false, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL
+		false, 137, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL, FONT_WHITE
 	};
 	static MilitiaBoxLayout const big_box =
 	{
-		true, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT12ARIAL
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT14ARIAL, FONT_BEIGE
 	};
 	return GetVObject(guiMilitia)->SubregionProperties(0).usWidth >= 250 ? big_box : small_box;
 }
@@ -3084,7 +3089,7 @@ void DrawMilitiaPopUpBox()
 	BltVideoObject(FRAME_BUFFER, guiMilitiaMaps, sSelectedMilitiaTown - 1, MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X, MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y);
 
 	// set font color for labels and "total militia" counts
-	SetFontForeground(FONT_WHITE);
+	SetFontForeground(MilitiaBox().colour);
 
 	// draw name of town, and the "unassigned" label
 	DrawTownMilitiaName();
@@ -3365,7 +3370,7 @@ void CreateDestroyMilitiaSectorButtons()
 			else         y += MILITIA_BTN_HEIGHT;
 			giMapMilitiaButton[i] = b;
 			b->SetUserData(i);
-			b->SpecifyGeneralTextAttributes({}, box.font, gsMilitiaSectorButtonColors[i], FONT_BLACK);
+			b->SpecifyGeneralTextAttributes({}, box.font, box.big ? box.colour : gsMilitiaSectorButtonColors[i], FONT_BLACK);
 			b->SpecifyTextSubOffsets(0, 0, TRUE);
 			b->fShiftText = FALSE;
 			b->SetFastHelpText(i == ELITE_HEAVY_MILITIA ? pMilitiaHeavyStrings[0] : pMilitiaButtonsHelpText[i]);
@@ -3709,7 +3714,8 @@ static void MakeButton(UINT idx, INT16 x, GUI_CALLBACK click, const ST::string& 
 {
 	GUIButtonRef const btn = QuickCreateButtonImg(INTERFACEDIR "/militia.sti", 1, 2, x, MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_BOX_AUTO_BOX_Y, MSYS_PRIORITY_HIGHEST - 1, click);
 	giMapMilitiaButton[idx] = btn;
-	btn->SpecifyGeneralTextAttributes(text, MilitiaBox().font, FONT_BLACK, FONT_BLACK);
+	MilitiaBoxLayout const& box = MilitiaBox();
+	btn->SpecifyGeneralTextAttributes(text, box.font, box.big ? box.colour : FONT_BLACK, FONT_BLACK);
 }
 
 
