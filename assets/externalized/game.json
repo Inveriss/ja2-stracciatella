@@ -257,6 +257,15 @@
   //  in the battle, the same for the militia and the enemy.
   "militia_watch": {
     "realtime": true,
-    "ai_delay_ms": 1500
+    "ai_delay_ms": 100
+  },
+
+  //  Militia AI:
+  //  explosives_spare_friends: true keeps the militia from throwing grenades
+  //  and firing grenade launchers, mortars and LAWs at a target with friends
+  //  (other militia, the player's mercs) within the blast; false: they fire
+  //  regardless (the thrower himself still keeps clear of the blast).
+  "militia_ai": {
+    "explosives_spare_friends": true
   }
 }

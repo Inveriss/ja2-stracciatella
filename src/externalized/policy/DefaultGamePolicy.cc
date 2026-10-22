@@ -128,12 +128,19 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	}
 
 	militia_watch_realtime    = true;
-	militia_watch_ai_delay_ms = 1500;
+	militia_watch_ai_delay_ms = 100;
 	if (gp.has("militia_watch"))
 	{
 		auto mw = gp["militia_watch"].toObject();
 		militia_watch_realtime    = mw.getOptionalBool("realtime", true);
-		militia_watch_ai_delay_ms = mw.getOptionalUInt("ai_delay_ms", 1500);
+		militia_watch_ai_delay_ms = mw.getOptionalUInt("ai_delay_ms", 100);
+	}
+
+	militia_explosives_spare_friends = true;
+	if (gp.has("militia_ai"))
+	{
+		auto ma = gp["militia_ai"].toObject();
+		militia_explosives_spare_friends = ma.getOptionalBool("explosives_spare_friends", true);
 	}
 }
 

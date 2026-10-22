@@ -126,6 +126,9 @@ public:
 	bool militia_watch_realtime;              // the watched battle is fought in real time, without turns
 	uint16_t militia_watch_ai_delay_ms;       // real time: the time between two decisions of a soldier in the battle (both sides)
 
+	/* Militia AI */
+	bool militia_explosives_spare_friends;    // the militia don't throw / fire explosives at targets with friends near them
+
 	////////////////////////////////////////////////////////////
 	//
 	////////////////////////////////////////////////////////////

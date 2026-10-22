@@ -416,6 +416,11 @@ static void CalcBestThrow(SOLDIERTYPE* pSoldier, ATTACKTYPE* pBestThrow)
 	// their shells, LAWs and grenades for groups of targets (the rules for that are skipped below)
 	bool const fHeavyMilitia{ pSoldier->bTeam == MILITIA_TEAM && pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA };
 
+	// game.json's militia_ai.explosives_spare_friends false: the militia throw
+	// and fire explosives with no regard to their friends near the target (the
+	// thrower himself still keeps clear of the blast)
+	bool const fSpareFriends{ pSoldier->bTeam != MILITIA_TEAM || gamepolicy(militia_explosives_spare_friends) };
+
 	// make a list of tiles one's friends are positioned in
 	FOR_EACH_MERC(i)
 	{
@@ -430,6 +435,11 @@ static void CalcBestThrow(SOLDIERTYPE* pSoldier, ATTACKTYPE* pBestThrow)
 		if (pFriend->bNeutral || (pSoldier->bSide != pFriend->bSide))
 		{
 			continue;          // next soldier
+		}
+
+		if (!fSpareFriends && pFriend != pSoldier)
+		{
+			continue;
 		}
 
 		// active friend, remember where he is so that we DON'T blow him up!
