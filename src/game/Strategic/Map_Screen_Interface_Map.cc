@@ -288,8 +288,9 @@ static SGPVSurface* guiBIGMAP;
 #define MILITIA_BOX_ROWS 3
 #define MILITIA_BOX_BOX_HEIGHT (MilitiaBox().cell_h)
 #define MILITIA_BOX_BOX_WIDTH (MilitiaBox().cell_w)
-// the big box centred on the map's width (its panel 259 px without the shadow)
-#define MAP_MILITIA_BOX_POS_X (MilitiaBox().big ? MAP_VIEW_START_X + (MAP_VIEW_WIDTH - MilitiaBox().panel_w) / 2 : MAP_SCREEN_RIGHT_BLOCK_X + 400)
+// the big box centred on the map's width (its panel 259 px without the
+// shadow), then 40 px further right
+#define MAP_MILITIA_BOX_POS_X (MilitiaBox().big ? MAP_VIEW_START_X + (MAP_VIEW_WIDTH - MilitiaBox().panel_w) / 2 + 40 : MAP_SCREEN_RIGHT_BLOCK_X + 400)
 #define MAP_MILITIA_BOX_POS_Y (MAP_SCREEN_Y + 125)
 
 #define POPUP_MILITIA_ICONS_PER_ROW (MilitiaBox().sector_per_row)
@@ -388,8 +389,9 @@ static UINT16 HeavyMilitiaIcon(UINT16 const elite_icon)
 //   sectors, the militia as 11x11 squares (militia.sti 15-18: green, regular,
 //   elite, elite heavy), the rank buttons (32x22) in a row under the
 //   unassigned militia, the sector outlines drawn, all texts in FONT14ARIAL
-//   in the colour of the big weapon box's BALLISTICS / MAINTENANCE headers,
-//   the box centred on the map.
+//   in the colour of the big weapon box's BALLISTICS / MAINTENANCE headers
+//   (the rank buttons' counts in their ranks' colours), the box centred on
+//   the map and 40 px right of it.
 struct MilitiaBoxLayout
 {
 	bool   big;
@@ -3370,7 +3372,7 @@ void CreateDestroyMilitiaSectorButtons()
 			else         y += MILITIA_BTN_HEIGHT;
 			giMapMilitiaButton[i] = b;
 			b->SetUserData(i);
-			b->SpecifyGeneralTextAttributes({}, box.font, box.big ? box.colour : gsMilitiaSectorButtonColors[i], FONT_BLACK);
+			b->SpecifyGeneralTextAttributes({}, box.font, gsMilitiaSectorButtonColors[i], FONT_BLACK); // the rank's colour
 			b->SpecifyTextSubOffsets(0, 0, TRUE);
 			b->fShiftText = FALSE;
 			b->SetFastHelpText(i == ELITE_HEAVY_MILITIA ? pMilitiaHeavyStrings[0] : pMilitiaButtonsHelpText[i]);
