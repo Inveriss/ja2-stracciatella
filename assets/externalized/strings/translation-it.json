@@ -1789,7 +1789,11 @@
         "TOTALE",
         "In arrivo:",
         "In attesa:",
-        "Riprova a entrare a %s"
+        "Riprova a entrare a %s",
+        "Reclute dell'esercito (%d) arrivate a %s.",
+        "Soldati regolari (%d) arrivati a %s.",
+        "Veterani (%d) arrivati a %s.",
+        "Veterani pesanti (%d) arrivati a %s."
     ],
     "pMilitiaWatchStrings": [
         "Osserva la battaglia",

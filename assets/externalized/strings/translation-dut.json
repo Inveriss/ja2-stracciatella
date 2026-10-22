@@ -1789,7 +1789,11 @@
         "TOTAAL",
         "Onderweg:",
         "Wachtend:",
-        "Opnieuw proberen %s binnen te gaan"
+        "Opnieuw proberen %s binnen te gaan",
+        "Groene militie (%d) is aangekomen in %s.",
+        "Normale militie (%d) is aangekomen in %s.",
+        "Veteranenmilitie (%d) is aangekomen in %s.",
+        "Zware veteranen (%d) zijn aangekomen in %s."
     ],
     "pMilitiaWatchStrings": [
         "Gevecht bekijken",

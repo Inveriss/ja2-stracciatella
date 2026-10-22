@@ -29,6 +29,7 @@
 #include "GamePolicy.h"
 #include "Game_Event_Hook.h"
 #include "Militia_Recruit_Panel.h"
+#include "WordWrap.h"
 #include "Militia_Watch.h"
 #include "Strategic_Movement.h"
 #include "Map_Information.h"
@@ -1270,6 +1271,10 @@ static UINT32 MilitiaOrderRoom(MilitiaOrder const& o)
 
 // Up to n of the order's militia enter the town, the best ranks first; the
 // order keeps the rest (and is removed when none is left)
+// The arrival notices waiting to be shown (HandleMilitiaOrderQuestions())
+static std::vector<ST::string> g_order_notices;
+
+
 static void EnterMilitiaOrder(UINT32 const order_id, UINT32 n)
 {
 	auto const it = FindMilitiaOrder(order_id);
@@ -1277,6 +1282,7 @@ static void EnterMilitiaOrder(UINT32 const order_id, UINT32 n)
 	MilitiaOrder& o = *it;
 
 	UINT32 entered = 0;
+	UINT32 entered_rank[MAX_MILITIA_LEVELS] = {};
 	for (UINT8 rank = MAX_MILITIA_LEVELS; rank-- != 0 && n != 0;)
 	{
 		while (o.counts[rank] != 0 && n != 0)
@@ -1285,12 +1291,27 @@ static void EnterMilitiaOrder(UINT32 const order_id, UINT32 n)
 			--o.counts[rank];
 			--n;
 			++entered;
+			++entered_rank[rank];
 		}
 	}
 	if (entered == 0) return;
 
 	AddMilitiaRecruitLoyalty(o.sector, entered);
-	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED], RecruitAreaName(o.sector)));
+
+	// "10 green militia have arrived in Drassen.": a line per rank, in the
+	// message log and in a message box
+	char32_t const newline[] = { TEXT_CODE_NEWLINE, 0 };
+	ST::string     notice;
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		if (entered_rank[rank] == 0) continue;
+		ST::string const line = st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED_RANK_FIRST + rank],
+			int(entered_rank[rank]), RecruitAreaName(o.sector));
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, line);
+		if (!notice.empty()) notice += ST::string::from_utf32(newline);
+		notice += line;
+	}
+	g_order_notices.push_back(notice);
 	if (OrderTotal(o) == 0) g_militia_orders.erase(it);
 
 	// force tactical to update militia status
@@ -1482,10 +1503,21 @@ ST::string MilitiaOrderAreaName(MilitiaOrder const& o)
 
 void HandleMilitiaOrderQuestions()
 {
-	if (g_order_asked != 0 || g_order_questions.empty()) return;
+	if (g_order_asked != 0) return;
 	// no other message box or battle panel
 	if (guiCurrentScreen != MAP_SCREEN && guiCurrentScreen != GAME_SCREEN) return;
 	if (gfInMsgBox || gfPreBattleInterfaceActive)                           return;
+
+	// the militia that arrived, after any battle
+	if (!g_order_notices.empty())
+	{
+		if ((gTacticalStatus.uiFlags & INCOMBAT) || gfWatchingMilitiaBattle) return;
+		ST::string const notice = g_order_notices.front();
+		g_order_notices.erase(g_order_notices.begin());
+		DoScreenIndependantMessageBox(notice, MSG_BOX_FLAG_OK, NULL);
+		return;
+	}
+	if (g_order_questions.empty()) return;
 
 	UINT32 const order_id = g_order_questions.front();
 	auto const it = FindMilitiaOrder(order_id);
@@ -1542,6 +1574,7 @@ void InitMilitiaOrdersForNewGame()
 {
 	g_militia_orders.clear();
 	g_order_questions.clear();
+	g_order_notices.clear();
 	g_order_asked = 0;
 }
 
@@ -1582,5 +1615,6 @@ void LoadMilitiaOrdersFromSaveGameFile()
 		g_militia_orders.push_back(o);
 	}
 	g_order_questions.clear();
+	g_order_notices.clear();
 	g_order_asked = 0;
 }

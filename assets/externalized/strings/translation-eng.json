@@ -1794,7 +1794,11 @@
         "TOTAL",
         "Incoming:",
         "Waiting:",
-        "Try again to enter %s"
+        "Try again to enter %s",
+        "%d green militia have arrived in %s.",
+        "%d regular militia have arrived in %s.",
+        "%d elite militia have arrived in %s.",
+        "%d elite heavy militia have arrived in %s."
     ],
     "pMilitiaWatchStrings": [
         "Watch the Battle",

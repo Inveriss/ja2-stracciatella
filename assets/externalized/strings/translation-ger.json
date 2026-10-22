@@ -1789,7 +1789,11 @@
         "GESAMT",
         "Unterwegs:",
         "Wartend:",
-        "Erneut versuchen, %s zu betreten"
+        "Erneut versuchen, %s zu betreten",
+        "Grüne Miliz (%d) ist in %s eingetroffen.",
+        "Reguläre Miliz (%d) ist in %s eingetroffen.",
+        "Elitemiliz (%d) ist in %s eingetroffen.",
+        "Schwere Elitemiliz (%d) ist in %s eingetroffen."
     ],
     "pMilitiaWatchStrings": [
         "Kampf beobachten",

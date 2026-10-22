@@ -1789,7 +1789,11 @@
         "RAZEM",
         "W drodze:",
         "Oczekujący:",
-        "Spróbuj ponownie wejść: %s"
+        "Spróbuj ponownie wejść: %s",
+        "Zielona samoobrona (%d) dotarła na miejsce: %s.",
+        "Regularna samoobrona (%d) dotarła na miejsce: %s.",
+        "Weterani samoobrony (%d) dotarli na miejsce: %s.",
+        "Ciężcy weterani samoobrony (%d) dotarli na miejsce: %s."
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

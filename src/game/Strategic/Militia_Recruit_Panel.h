@@ -34,6 +34,8 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 #define MILITIA_STR_DEPLOY_INCOMING_LABEL  35
 #define MILITIA_STR_DEPLOY_WAITING_LABEL   36
 #define MILITIA_STR_DEPLOY_RETRY_FMT       37 // the Done button's help
+// "%d green militia have arrived in %s.", then regular, elite, elite heavy
+#define MILITIA_STR_ORDER_ARRIVED_RANK_FIRST 38
 
 void CloseMilitiaRecruitPanel();
 
