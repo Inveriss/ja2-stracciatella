@@ -772,8 +772,9 @@ static BOOLEAN IsTheRoofVisible(INT16 sGridNo)
 
 // Camouflage rings: around each merc of ours lying down with camouflage (see
 // CamouflageSightLimits()), the tiles exactly as far as an unaware enemy sees
-// him from lying still and crawling, in SPECIALTILE_COVER_4 (green). They
-// follow the merc and go when he gets up; several mercs' rings may overlap.
+// him from lying still and crawling, in SPECIALTILE_COVER_5 (the line of
+// sight display's green). They follow the merc and go when he gets up;
+// several mercs' rings may overlap.
 struct CAMO_RING_TILE
 {
 	INT16   sGridNo;
@@ -806,7 +807,7 @@ static void AddCamoRing(CAMO_RINGS& r, INT16 const sRadius)
 
 			// on a visible flat roof above the tile, as the line of sight display
 			BOOLEAN const fRoof = FlatRoofAboveGridNo(sGridNo) && IsTheRoofVisible(sGridNo) && gWorldSector.z == 0;
-			AddCoverObjectToWorld(sGridNo, SPECIALTILE_COVER_4, fRoof);
+			AddCoverObjectToWorld(sGridNo, SPECIALTILE_COVER_5, fRoof);
 			r.tiles.push_back({ sGridNo, fRoof });
 		}
 	}
@@ -817,7 +818,7 @@ static void RemoveCamoRings(CAMO_RINGS const& r)
 {
 	for (CAMO_RING_TILE const& t : r.tiles)
 	{
-		RemoveCoverObjectFromWorld(t.sGridNo, SPECIALTILE_COVER_4, t.fRoof);
+		RemoveCoverObjectFromWorld(t.sGridNo, SPECIALTILE_COVER_5, t.fRoof);
 	}
 }
 
