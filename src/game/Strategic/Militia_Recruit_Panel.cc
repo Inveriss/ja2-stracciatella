@@ -370,10 +370,10 @@ static void CreatePanel()
 		INT16 const row_y = y + RECRUIT_ROW_FIRST_Y + rank * RECRUIT_ROW_PITCH + RECRUIT_BUTTON_DY;
 		// a left click changes the count by 1, a right click by RECRUIT_BIG_STEP
 		g_minus_buttons[rank] = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 0, 1, x + RECRUIT_MINUS_X, row_y, MSYS_PRIORITY_HIGHEST,
-			ButtonCallbackPrimarySecondary(MinusButtonCallbackPrimary, MinusButtonCallbackSecondary));
+			ButtonCallbackPrimarySecondary(MinusButtonCallbackPrimary, MinusButtonCallbackSecondary, ShowButtonPressedOnRightClick));
 		g_minus_buttons[rank]->SetUserData(rank);
 		g_plus_buttons[rank]  = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 2, 3, x + RECRUIT_PLUS_X,  row_y, MSYS_PRIORITY_HIGHEST,
-			ButtonCallbackPrimarySecondary(PlusButtonCallbackPrimary, PlusButtonCallbackSecondary));
+			ButtonCallbackPrimarySecondary(PlusButtonCallbackPrimary, PlusButtonCallbackSecondary, ShowButtonPressedOnRightClick));
 		g_plus_buttons[rank]->SetUserData(rank);
 	}
 	// buy (doesn't close the panel)
@@ -572,6 +572,9 @@ void HandleMilitiaRecruitPanel()
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		EnableButton(g_plus_buttons[rank], CanPickOneMore(rank));
+		// a right click's pressed look
+		ReleaseButtonPressedLook(g_minus_buttons[rank]);
+		ReleaseButtonPressedLook(g_plus_buttons[rank]);
 	}
 	RenderRecruitTexts(x, y);
 	InvalidateRegion(x, y, x + w, y + h);

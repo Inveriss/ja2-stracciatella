@@ -3122,6 +3122,10 @@ void DrawMilitiaPopUpBox()
 
 	// set the text for the militia map sector info buttons
 	SetMilitiaMapButtonsText( );
+	if (fMilitiaMapButtonsCreated)
+	{
+		for (INT32 i = 0; i != MAX_MILITIA_LEVELS; ++i) ReleaseButtonPressedLook(giMapMilitiaButton[i]);
+	}
 
 	// render buttons
 	MarkButtonsDirty( );
@@ -3376,14 +3380,14 @@ void CreateDestroyMilitiaSectorButtons()
 		}
 		for (INT32 i = 0; i != MAX_MILITIA_LEVELS; ++i)
 		{
-			GUIButtonRef b = QuickCreateButtonImg(INTERFACEDIR "/militia.sti", 3, 4, x, y, MSYS_PRIORITY_HIGHEST - 1, ButtonCallbackPrimarySecondary(MilitiaButtonCallbackPrimary, MilitiaButtonCallbackSecondary));
+			GUIButtonRef b = QuickCreateButtonImg(INTERFACEDIR "/militia.sti", 3, 4, x, y, MSYS_PRIORITY_HIGHEST - 1,
+				ButtonCallbackPrimarySecondary(MilitiaButtonCallbackPrimary, MilitiaButtonCallbackSecondary, ShowButtonPressedOnRightClick));
 			if (box.big) x += box.rank_btn_dx;
 			else         y += MILITIA_BTN_HEIGHT;
 			giMapMilitiaButton[i] = b;
 			b->SetUserData(i);
-			// the rank's colour; the big box's with a shadow
-			if (box.big) b->SpecifyGeneralTextAttributes({}, box.font, gsBigMilitiaSectorButtonColors[i], DEFAULT_SHADOW);
-			else         b->SpecifyGeneralTextAttributes({}, box.font, gsMilitiaSectorButtonColors[i],    FONT_BLACK);
+			// the rank's colour
+			b->SpecifyGeneralTextAttributes({}, box.font, box.big ? gsBigMilitiaSectorButtonColors[i] : gsMilitiaSectorButtonColors[i], FONT_BLACK);
 			b->SpecifyTextSubOffsets(0, 0, TRUE);
 			b->fShiftText = FALSE;
 			b->SetFastHelpText(i == ELITE_HEAVY_MILITIA ? pMilitiaHeavyStrings[0] : pMilitiaButtonsHelpText[i]);

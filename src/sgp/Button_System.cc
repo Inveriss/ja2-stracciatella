@@ -1658,6 +1658,30 @@ UINT16 GetGenericButtonFillColor(void)
 	return GenericButtonFillColors;
 }
 
+void ShowButtonPressedOnRightClick(GUI_BUTTON* const b, UINT32 const reason)
+{
+	if (!b || !b->Enabled()) return;
+	if (reason & MSYS_CALLBACK_REASON_RBUTTON_DWN)
+	{
+		b->uiFlags |= BUTTON_CLICKED_ON | BUTTON_DIRTY;
+	}
+	else if (reason & MSYS_CALLBACK_REASON_RBUTTON_UP)
+	{
+		b->uiFlags &= ~BUTTON_CLICKED_ON;
+		b->uiFlags |= BUTTON_DIRTY;
+	}
+}
+
+
+void ReleaseButtonPressedLook(GUI_BUTTON* const b)
+{
+	if (!b || !b->Clicked()) return;
+	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) return;
+	b->uiFlags &= ~BUTTON_CLICKED_ON;
+	b->uiFlags |= BUTTON_DIRTY;
+}
+
+
 GUI_CALLBACK ButtonCallbackPrimarySecondary(
 	GUI_CALLBACK primaryAction,
 	GUI_CALLBACK secondaryAction,
