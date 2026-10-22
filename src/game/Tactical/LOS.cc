@@ -1491,6 +1491,27 @@ BOOLEAN CalculateSoldierZPos(const SOLDIERTYPE* pSoldier, UINT8 ubPosType, FLOAT
 }
 
 
+BOOLEAN CamouflageSightLimits(const SOLDIERTYPE* const s, INT16* const psStill, INT16* const psCrawling)
+{
+	//                       lying still  crawling   (seen up to this distance)
+	//   Camouflaged trait        1           5
+	//   kit, 85-100%             5          10
+	// Any other stance: no effect. Not in buildings, nor on paved roads and
+	// airstrips. Bloodcats keep their own rule.
+	if ( s->ubBodyType == BLOODCAT ) return( FALSE );
+	bool const fTrait = HAS_SKILL_TRAIT(s, CAMOUFLAGED);
+	bool const fKit   = !fTrait && s->bCamo >= 85;
+	if ( !fTrait && !fKit ) return( FALSE );
+	if ( gAnimControl[ s->usAnimState ].ubEndHeight != ANIM_PRONE ) return( FALSE );
+	bool const fInBuilding = s->bLevel == 0 &&
+		(GetRoom(s->sGridNo) != NO_ROOM || s->bOverTerrainType == FLAT_FLOOR);
+	if ( fInBuilding || s->bOverTerrainType == PAVED_ROAD ) return( FALSE );
+	*psStill    = fTrait ? 1 : 5;
+	*psCrawling = fTrait ? 5 : 10;
+	return( TRUE );
+}
+
+
 INT32 SoldierToSoldierLineOfSightTest(const SOLDIERTYPE* const pStartSoldier, const SOLDIERTYPE* const pEndSoldier, UINT8 ubTileSightLimit, const INT8 bAware)
 {
 	FLOAT dStartZPos, dEndZPos;
@@ -1559,32 +1580,18 @@ INT32 SoldierToSoldierLineOfSightTest(const SOLDIERTYPE* const pStartSoldier, co
 		}
 	}
 
-	// Camouflage (the Camouflaged trait, or a camouflage kit at 85% or more):
-	// lying still or crawling, the soldier can't be seen beyond a fixed number
-	// of tiles by a looker not aware of him. Any other stance: no effect. Not
-	// in buildings, nor on paved roads and airstrips. It no longer adds to the
-	// trees' cover (bEffectiveCamo 0 below; the trees' own cover is unchanged).
-	//                       lying still  crawling   (seen up to this distance)
-	//   Camouflaged trait        1           5
-	//   kit, 85-100%             5          10
+	// Camouflage (see CamouflageSightLimits()): lying still or crawling, the
+	// soldier can't be seen beyond a fixed number of tiles by a looker not
+	// aware of him. It no longer adds to the trees' cover (bEffectiveCamo 0
+	// below; the trees' own cover is unchanged).
 	bEffectiveCamo = 0;
-	if ( !bAware && !fSmell && pEndSoldier->ubBodyType != BLOODCAT )
+	INT16 sSeenStill, sSeenCrawling;
+	if ( !bAware && !fSmell && CamouflageSightLimits( pEndSoldier, &sSeenStill, &sSeenCrawling ) )
 	{
-		bool const fTrait = HAS_SKILL_TRAIT(pEndSoldier, CAMOUFLAGED);
-		bool const fKit   = !fTrait && pEndSoldier->bCamo >= 85;
-		ANIMCONTROLTYPE const& anim = gAnimControl[ pEndSoldier->usAnimState ];
-		bool const fProne = anim.ubEndHeight == ANIM_PRONE;
-		bool const fInBuilding = pEndSoldier->bLevel == 0 &&
-			(GetRoom(pEndSoldier->sGridNo) != NO_ROOM || pEndSoldier->bOverTerrainType == FLAT_FLOOR);
-		bool const fPaved = pEndSoldier->bOverTerrainType == PAVED_ROAD;
-		if ( (fTrait || fKit) && fProne && !fInBuilding && !fPaved )
+		bool const fCrawling = (gAnimControl[ pEndSoldier->usAnimState ].uiFlags & ANIM_MOVING) != 0;
+		if ( PythSpacesAway( pStartSoldier->sGridNo, pEndSoldier->sGridNo ) > (fCrawling ? sSeenCrawling : sSeenStill) )
 		{
-			bool const fCrawling = (anim.uiFlags & ANIM_MOVING) != 0;
-			INT16 const sSeenUpTo = fTrait ? (fCrawling ? 5 : 1) : (fCrawling ? 10 : 5);
-			if ( PythSpacesAway( pStartSoldier->sGridNo, pEndSoldier->sGridNo ) > sSeenUpTo )
-			{
-				return( 0 );
-			}
+			return( 0 );
 		}
 	}
 	else if ( pEndSoldier->bCamo && !bAware && pEndSoldier->ubBodyType == BLOODCAT )

@@ -58,6 +58,7 @@
 #include "World_Items.h"
 #include "WorldDat.h"
 #include "WorldMan.h"
+#include "DisplayCover.h"
 #include <cstdint>
 #include <stdexcept>
 #include <string>
@@ -2606,6 +2607,7 @@ void FreeLevelNodeList(LEVELNODE** const head)
 
 void TrashWorld(void)
 {
+	ResetCamouflageRings(); // their tiles go with the world
 	if (!gfWorldLoaded) return;
 
 	TrashWorldItems();

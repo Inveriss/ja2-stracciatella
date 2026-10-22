@@ -48,6 +48,7 @@
 #include "Logger.h"
 #include "GameSettings.h"
 #include "Town_Militia.h"
+#include "DisplayCover.h"
 
 #define ARE_IN_FADE_IN( )		( gfFadeIn || gfFadeInitialized )
 
@@ -440,6 +441,9 @@ ScreenID MainGameScreenHandle(void)
 	if (gfWorldLoaded)
 	{
 		HandleAnimatedCursors();
+
+		// the rings around mercs lying down with camouflage
+		HandleCamouflageRings();
 
 		// Handle Interface
 		ScreenID const uiNewScreen = HandleTacticalUI();
