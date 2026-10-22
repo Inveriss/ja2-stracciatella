@@ -1465,6 +1465,21 @@ void HandleMilitiaOrderArrival(UINT32 const order_id)
 }
 
 
+void RetryMilitiaOrder(UINT32 const order_id)
+{
+	// already asked about, or queued
+	if (g_order_asked == order_id) return;
+	if (std::find(g_order_questions.begin(), g_order_questions.end(), order_id) != g_order_questions.end()) return;
+	HandleMilitiaOrderArrival(order_id);
+}
+
+
+ST::string MilitiaOrderAreaName(MilitiaOrder const& o)
+{
+	return RecruitAreaName(o.sector);
+}
+
+
 void HandleMilitiaOrderQuestions()
 {
 	if (g_order_asked != 0 || g_order_questions.empty()) return;

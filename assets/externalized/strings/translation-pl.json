@@ -1782,7 +1782,14 @@
         "The militia ordered for %s can't enter and are waiting for orders.",
         "Only %d of the %d militia ordered for %s can enter. Let them enter? The others will wait for orders.",
         "The enemy holds %s, where the militia ordered for it should go (%s). Attack? Otherwise they wait for orders.",
-        "A battle is going on in %s (%s). Should the militia ordered for it join the fight? Otherwise they wait for orders."
+        "A battle is going on in %s (%s). Should the militia ordered for it join the fight? Otherwise they wait for orders.",
+        "MILITIA DEPLOYMENT",
+        "INCOMING",
+        "WAITING",
+        "TOTAL",
+        "Incoming:",
+        "Waiting:",
+        "Try again to enter %s"
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

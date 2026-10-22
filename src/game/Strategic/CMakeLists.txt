@@ -48,6 +48,7 @@ set(JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/SAM_Sites.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Town_Militia.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/Militia_Recruit_Panel.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Militia_Deployment_Panel.cc
     PARENT_SCOPE
 )
 

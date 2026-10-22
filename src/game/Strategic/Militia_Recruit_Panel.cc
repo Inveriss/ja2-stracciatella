@@ -1,4 +1,5 @@
 #include "Militia_Recruit_Panel.h"
+#include "Militia_Deployment_Panel.h"
 #include "Button_System.h"
 #include "Campaign_Types.h"
 #include "ContentManager.h"
@@ -141,7 +142,14 @@ enum
 	RECRUIT_STR_ORDER_WAITING,
 	RECRUIT_STR_ORDER_PARTIAL,
 	RECRUIT_STR_ORDER_ATTACK,
-	RECRUIT_STR_ORDER_JOIN
+	RECRUIT_STR_ORDER_JOIN,
+	RECRUIT_STR_DEPLOY_TITLE, // the deployment panel (Militia_Deployment_Panel.cc)
+	RECRUIT_STR_DEPLOY_INCOMING,
+	RECRUIT_STR_DEPLOY_WAITING,
+	RECRUIT_STR_DEPLOY_TOTAL,
+	RECRUIT_STR_DEPLOY_INCOMING_LABEL,
+	RECRUIT_STR_DEPLOY_WAITING_LABEL,
+	RECRUIT_STR_DEPLOY_RETRY_FMT
 };
 static_assert(RECRUIT_STR_MENU_RECRUITMENT == MILITIA_MENU_STR_RECRUITMENT);
 static_assert(RECRUIT_STR_MENU_DEPLOYMENT  == MILITIA_MENU_STR_DEPLOYMENT);
@@ -151,6 +159,9 @@ static_assert(RECRUIT_STR_ORDER_WAITING    == MILITIA_STR_ORDER_WAITING);
 static_assert(RECRUIT_STR_ORDER_PARTIAL    == MILITIA_STR_ORDER_PARTIAL);
 static_assert(RECRUIT_STR_ORDER_ATTACK     == MILITIA_STR_ORDER_ATTACK);
 static_assert(RECRUIT_STR_ORDER_JOIN       == MILITIA_STR_ORDER_JOIN);
+static_assert(RECRUIT_STR_HOURS_FMT        == MILITIA_STR_HOURS_FMT);
+static_assert(RECRUIT_STR_DEPLOY_TITLE     == MILITIA_STR_DEPLOY_TITLE);
+static_assert(RECRUIT_STR_DEPLOY_RETRY_FMT == MILITIA_STR_DEPLOY_RETRY_FMT);
 
 bool         g_open = false;
 SGPSector    g_sector;                 // the recruiting merc's sector
@@ -376,6 +387,7 @@ static void CreatePanel()
 void OpenMilitiaRecruitPanel(SOLDIERTYPE const& s)
 {
 	if (g_open) CloseMilitiaRecruitPanel();
+	CloseMilitiaDeploymentPanel(); // one panel at a time
 
 	g_sector = s.sSector;
 	if (guiCurrentScreen != MAP_SCREEN)

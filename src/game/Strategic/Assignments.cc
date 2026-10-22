@@ -72,6 +72,7 @@
 #include "Text.h"
 #include "Town_Militia.h"
 #include "Militia_Recruit_Panel.h"
+#include "Militia_Deployment_Panel.h"
 #include "UILayout.h"
 #include "Vehicles.h"
 #include "VObject.h"
@@ -3944,8 +3945,6 @@ static void CreateDestroyMouseRegionsForMilitiaMenu(void)
 			SetBoxXY(ghAssignmentBox, AssignmentPosition.iX, AssignmentPosition.iY);
 		}
 
-		// the deployment centre doesn't exist yet
-		ShadeStringInBox(box, MILITIA_MENU_DEPLOYMENT, POPUP_SHADE);
 		CheckAndUpdateTacticalAssignmentPopUpPositions();
 
 		SGPBox const& area = GetBoxArea(box);
@@ -4024,7 +4023,15 @@ static void MilitiaMenuBtnCallback(MOUSE_REGION* const pRegion, UINT32 const iRe
 			break;
 
 		case MILITIA_MENU_DEPLOYMENT:
-			// greyed out until the deployment panel exists
+			// the deployment panel: every order on its way or waiting
+			fShowAssignmentMenu = FALSE;
+			fShowTrainingMenu   = FALSE;
+			fShowMilitiaMenu    = FALSE;
+			giAssignHighLine    = -1;
+			UnHighLightBox(ghAssignmentBox);
+			ResetSelectedListForMapScreen();
+			gfRenderPBInterface = TRUE;
+			OpenMilitiaDeploymentPanel();
 			break;
 	}
 	fTeamPanelDirty       = TRUE;

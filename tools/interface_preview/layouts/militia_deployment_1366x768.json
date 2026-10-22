@@ -1,0 +1,751 @@
+{
+  "comment": "MILITIA_DEPLOYMENT_PANEL_1366x768.png -- RenderDeploymentTexts() (Militia_Deployment_Panel.cc). Sample values; the Done buttons (41x16 at Waiting x +148) are not drawn.",
+  "background": "Interface/MILITIA_DEPLOYMENT_PANEL_1366x768.png",
+  "defaults": {
+    "font": "FONT12ARIAL",
+    "colour": 130,
+    "shadow": 2
+  },
+  "boxes": [
+    {
+      "name": "title",
+      "x": 200,
+      "y": 32,
+      "w": 397,
+      "h": 25
+    }
+  ],
+  "items": [
+    {
+      "text": "MILITIA DEPLOYMENT",
+      "x": 197,
+      "y": 29,
+      "w": 403,
+      "h": 31,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "INCOMING",
+      "x": 197,
+      "y": 75,
+      "w": 196,
+      "h": 49,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "WAITING",
+      "x": 404,
+      "y": 75,
+      "w": 196,
+      "h": 49,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "10",
+      "x": 203,
+      "y": 155,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Drassen",
+      "x": 235,
+      "y": 155,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "17 h",
+      "x": 337,
+      "y": 155,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "5",
+      "x": 203,
+      "y": 174,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "San Mona",
+      "x": 235,
+      "y": 174,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "4 h",
+      "x": 337,
+      "y": 174,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "20",
+      "x": 203,
+      "y": 193,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Cambria",
+      "x": 235,
+      "y": 193,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "23 h",
+      "x": 337,
+      "y": 193,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "8",
+      "x": 410,
+      "y": 155,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Alma",
+      "x": 442,
+      "y": 155,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "3",
+      "x": 410,
+      "y": 174,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "D15",
+      "x": 442,
+      "y": 174,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "12",
+      "x": 410,
+      "y": 193,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Grumm",
+      "x": 442,
+      "y": 193,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "TOTAL",
+      "x": 618,
+      "y": 155,
+      "w": 127,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Incoming:",
+      "x": 626,
+      "y": 174,
+      "h": 16,
+      "valign": "center"
+    },
+    {
+      "text": "35",
+      "x": 626,
+      "y": 174,
+      "w": 111,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "Waiting:",
+      "x": 626,
+      "y": 193,
+      "h": 16,
+      "valign": "center"
+    },
+    {
+      "text": "23",
+      "x": 626,
+      "y": 193,
+      "w": 111,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "10",
+      "x": 203,
+      "y": 247,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Drassen",
+      "x": 235,
+      "y": 247,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "17 h",
+      "x": 337,
+      "y": 247,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "5",
+      "x": 203,
+      "y": 266,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "San Mona",
+      "x": 235,
+      "y": 266,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "4 h",
+      "x": 337,
+      "y": 266,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "20",
+      "x": 203,
+      "y": 285,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Cambria",
+      "x": 235,
+      "y": 285,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "23 h",
+      "x": 337,
+      "y": 285,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "8",
+      "x": 410,
+      "y": 247,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Alma",
+      "x": 442,
+      "y": 247,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "3",
+      "x": 410,
+      "y": 266,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "D15",
+      "x": 442,
+      "y": 266,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "12",
+      "x": 410,
+      "y": 285,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Grumm",
+      "x": 442,
+      "y": 285,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "TOTAL",
+      "x": 618,
+      "y": 247,
+      "w": 127,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Incoming:",
+      "x": 626,
+      "y": 266,
+      "h": 16,
+      "valign": "center"
+    },
+    {
+      "text": "35",
+      "x": 626,
+      "y": 266,
+      "w": 111,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "Waiting:",
+      "x": 626,
+      "y": 285,
+      "h": 16,
+      "valign": "center"
+    },
+    {
+      "text": "23",
+      "x": 626,
+      "y": 285,
+      "w": 111,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "10",
+      "x": 203,
+      "y": 339,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Drassen",
+      "x": 235,
+      "y": 339,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "17 h",
+      "x": 337,
+      "y": 339,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "5",
+      "x": 203,
+      "y": 358,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "San Mona",
+      "x": 235,
+      "y": 358,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "4 h",
+      "x": 337,
+      "y": 358,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "20",
+      "x": 203,
+      "y": 377,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Cambria",
+      "x": 235,
+      "y": 377,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "23 h",
+      "x": 337,
+      "y": 377,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "8",
+      "x": 410,
+      "y": 339,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Alma",
+      "x": 442,
+      "y": 339,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "3",
+      "x": 410,
+      "y": 358,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "D15",
+      "x": 442,
+      "y": 358,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "12",
+      "x": 410,
+      "y": 377,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Grumm",
+      "x": 442,
+      "y": 377,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "TOTAL",
+      "x": 618,
+      "y": 339,
+      "w": 127,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Incoming:",
+      "x": 626,
+      "y": 358,
+      "h": 16,
+      "valign": "center"
+    },
+    {
+      "text": "35",
+      "x": 626,
+      "y": 358,
+      "w": 111,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "Waiting:",
+      "x": 626,
+      "y": 377,
+      "h": 16,
+      "valign": "center"
+    },
+    {
+      "text": "23",
+      "x": 626,
+      "y": 377,
+      "w": 111,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "10",
+      "x": 203,
+      "y": 431,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Drassen",
+      "x": 235,
+      "y": 431,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "17 h",
+      "x": 337,
+      "y": 431,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "5",
+      "x": 203,
+      "y": 450,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "San Mona",
+      "x": 235,
+      "y": 450,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "4 h",
+      "x": 337,
+      "y": 450,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "20",
+      "x": 203,
+      "y": 469,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Cambria",
+      "x": 235,
+      "y": 469,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "23 h",
+      "x": 337,
+      "y": 469,
+      "w": 48,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "8",
+      "x": 410,
+      "y": 431,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Alma",
+      "x": 442,
+      "y": 431,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "3",
+      "x": 410,
+      "y": 450,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "D15",
+      "x": 442,
+      "y": 450,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "12",
+      "x": 410,
+      "y": 469,
+      "w": 28,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Grumm",
+      "x": 442,
+      "y": 469,
+      "w": 100,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "TOTAL",
+      "x": 618,
+      "y": 431,
+      "w": 127,
+      "h": 16,
+      "align": "center",
+      "valign": "center"
+    },
+    {
+      "text": "Incoming:",
+      "x": 626,
+      "y": 450,
+      "h": 16,
+      "valign": "center"
+    },
+    {
+      "text": "35",
+      "x": 626,
+      "y": 450,
+      "w": 111,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    },
+    {
+      "text": "Waiting:",
+      "x": 626,
+      "y": 469,
+      "h": 16,
+      "valign": "center"
+    },
+    {
+      "text": "23",
+      "x": 626,
+      "y": 469,
+      "w": 111,
+      "h": 16,
+      "align": "right",
+      "valign": "center"
+    }
+  ]
+}

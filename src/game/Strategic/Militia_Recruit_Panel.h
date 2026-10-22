@@ -25,6 +25,16 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 #define MILITIA_STR_ORDER_ATTACK     29 // the enemy holds the sector: attack?
 #define MILITIA_STR_ORDER_JOIN       30 // a battle there: join it?
 
+// pMilitiaRecruitStrings of the deployment panel (Militia_Deployment_Panel.cc)
+#define MILITIA_STR_HOURS_FMT              21 // "%d h"
+#define MILITIA_STR_DEPLOY_TITLE           31
+#define MILITIA_STR_DEPLOY_INCOMING        32
+#define MILITIA_STR_DEPLOY_WAITING         33
+#define MILITIA_STR_DEPLOY_TOTAL           34
+#define MILITIA_STR_DEPLOY_INCOMING_LABEL  35
+#define MILITIA_STR_DEPLOY_WAITING_LABEL   36
+#define MILITIA_STR_DEPLOY_RETRY_FMT       37 // the Done button's help
+
 void CloseMilitiaRecruitPanel();
 
 bool IsMilitiaRecruitPanelOpen();

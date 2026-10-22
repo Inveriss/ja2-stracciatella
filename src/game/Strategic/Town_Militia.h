@@ -131,6 +131,13 @@ BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LE
 // whether they enter and the rest waits; when none fits, the order waits.
 void HandleMilitiaOrderArrival(UINT32 order_id);
 
+// A waiting order tries again to enter its town (the deployment panel's Done
+// button), as at its arrival -- with the same questions
+void RetryMilitiaOrder(UINT32 order_id);
+
+// The order's town, or its SAM site's sector
+ST::string MilitiaOrderAreaName(MilitiaOrder const&);
+
 // Every map screen and tactical frame: asks the queued questions of arriving
 // orders, one at a time, when nothing else is going on (no message box,
 // battle or pre-battle panel)

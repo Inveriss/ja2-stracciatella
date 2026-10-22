@@ -81,6 +81,7 @@
 #include "Timer_Control.h"
 #include "Town_Militia.h"
 #include "Militia_Recruit_Panel.h"
+#include "Militia_Deployment_Panel.h"
 #include "Militia_Watch.h"
 #include "UILayout.h"
 #include "Video.h"
@@ -2716,8 +2717,10 @@ ScreenID MapScreenHandle(void)
 
 	DrawMilitiaPopUpBox( );
 
-	// the militia recruitment panel (opens here when asked for on the tactical screen)
+	// the militia recruitment and deployment panels (open here when asked for
+	// on the tactical screen)
 	HandleMilitiaRecruitPanel();
+	HandleMilitiaDeploymentPanel();
 
 	// "Watch the battle" on the autoresolve screen: load the sector
 	HandleWatchMilitiaBattleRequest();
@@ -3884,6 +3887,7 @@ void EndMapScreen( BOOLEAN fDuringFade )
 	CreateDestroyMilitiaSectorButtons( );
 
 	CloseMilitiaRecruitPanel();
+	CloseMilitiaDeploymentPanel();
 
 	// stop showing contract menu
 	fShowContractMenu = FALSE;
