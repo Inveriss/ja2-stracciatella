@@ -606,10 +606,13 @@ static INT8 CountMilitiaTrainersInSoldiersSector(const SOLDIERTYPE* s);
 
 BOOLEAN CanCharacterTrainMilitia(const SOLDIERTYPE* const s)
 {
+	if (!BasicCanCharacterTrainMilitia(s))                         return FALSE;
+	if (!MilitiaTrainingAllowedInSector(s->sSector))               return FALSE;
+	if (!DoesSectorMercIsInHaveSufficientLoyaltyToTrainMilitia(s)) return FALSE;
+	// militia recruitment: the panels open in a town full of militia too (the
+	// recruitment panel's + buttons stay greyed out), and nobody trains
+	if (IsMilitiaRecruitmentEnabled()) return TRUE;
 	return
-		BasicCanCharacterTrainMilitia(s)                                      &&
-		MilitiaTrainingAllowedInSector(s->sSector) &&
-		DoesSectorMercIsInHaveSufficientLoyaltyToTrainMilitia(s)              &&
 		!IsAreaFullOfMilitia(s->sSector) &&
 		CountMilitiaTrainersInSoldiersSector(s) < MAX_MILITIA_TRAINERS_PER_SECTOR;
 }
@@ -4709,6 +4712,16 @@ static void TrainingMenuBtnCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason
 					}
 				}
 
+				if (IsMilitiaRecruitmentEnabled())
+				{
+					// militia recruitment: no training assignment, the Militia menu
+					// opens instead -- the recruitment and the deployment centre --
+					// also in a town full of militia
+					fShowMilitiaMenu = TRUE;
+					DetermineBoxPositions( );
+					break;
+				}
+
 				if (IsAreaFullOfMilitia(sSector))
 				{
 					if( bTownId == BLANK_SECTOR )
@@ -4735,15 +4748,6 @@ static void TrainingMenuBtnCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason
 
 
 				// PASSED ALL THE TESTS - ALLOW SOLDIER TO TRAIN MILITIA HERE
-
-				if (IsMilitiaRecruitmentEnabled())
-				{
-					// militia recruitment: no training assignment, the Militia menu
-					// opens instead -- the recruitment and the deployment centre
-					fShowMilitiaMenu = TRUE;
-					DetermineBoxPositions( );
-					break;
-				}
 
 				PreChangeAssignment(*pSoldier);
 
