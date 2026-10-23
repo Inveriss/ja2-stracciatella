@@ -521,6 +521,7 @@ static MOUSE_REGION gMapScreenMilitiaBoxRegions[9];
 
 // the sector that is highlighted on the militia map
 static INT16 sSectorMilitiaMapSector        = -1;
+static bool  g_militia_box_done             = false; // the box is being closed with Done
 static bool  fMilitiaMapButtonsCreated      = false;
 static INT16 sSectorMilitiaMapSectorOutline = -1;
 
@@ -2967,13 +2968,49 @@ static INT16& GetPickedUpMilitia(UINT8 const type)
 }
 
 
+// A town sector held by the enemy the militia box's militia can attack: put
+// there, they attack it when the box is closed with Done (an autoresolve
+// battle, as the militia orders' attack)
+static bool MilitiaBoxSectorAttackable(UINT8 const sector)
+{
+	SGPSector const s(sector);
+	if (NumEnemiesInSector(s) == 0)  return false;
+	if (gfPreBattleInterfaceActive)  return false;
+	// a battle in the loaded sector
+	if (gfWorldLoaded && gWorldSector == s && gTacticalStatus.fEnemyInSector) return false;
+	return true;
+}
+
+
+// The town sector the militia box's militia were put in to attack it, -1: none
+static INT16 MilitiaBoxAttackSector(INT16 const town)
+{
+	FOR_EACH_SECTOR_IN_TOWN(i, town)
+	{
+		UINT8 const sector = i->sector;
+		if (SectorOursAndPeaceful(SGPSector(sector))) continue;
+		if (NumEnemiesInSector(SGPSector(sector)) == 0) continue;
+		if (CountAllMilitiaInSector(SGPSector(sector)) != 0) return sector;
+	}
+	return -1;
+}
+
+
+// Militia can be put in and taken from the town's sectors of ours with no
+// enemy, and from those the enemy holds the militia can attack
+static bool MilitiaBoxSectorUsable(UINT8 const sector)
+{
+	return SectorOursAndPeaceful(SGPSector(sector)) || MilitiaBoxSectorAttackable(sector);
+}
+
+
 // function to manipulate the number of towns people on the cursor
 static void PickUpATownPersonFromSector(UINT8 const type, UINT8 const sector)
 {
 	// Are they in the same town as they were picked up from?
 	if (GetTownIdForSector(sector) != sSelectedMilitiaTown) return;
 
-	if (!SectorOursAndPeaceful(SGPSector(sector))) return;
+	if (!MilitiaBoxSectorUsable(sector)) return;
 
 	UINT8& n_type = SectorInfo[sector].ubNumberOfCivsAtLevel[type];
 	// See if there are any militia of this type in this sector
@@ -2991,7 +3028,14 @@ static void DropAPersonInASector(UINT8 const type, UINT8 const sector)
 	// Are they in the same town as they were picked up from?
 	if (GetTownIdForSector(sector) != sSelectedMilitiaTown) return;
 
-	if (!SectorOursAndPeaceful(SGPSector(sector))) return;
+	if (!MilitiaBoxSectorUsable(sector)) return;
+
+	// one enemy-held sector attacked at a time
+	if (!SectorOursAndPeaceful(SGPSector(sector)))
+	{
+		INT16 const attacked = MilitiaBoxAttackSector(sSelectedMilitiaTown);
+		if (attacked != -1 && attacked != sector) return;
+	}
 
 	UINT8 (&n_milita)[MAX_MILITIA_LEVELS] = SectorInfo[sector].ubNumberOfCivsAtLevel;
 	if (CountAllMilitiaInSector(SGPSector(sector)) >= MAX_ALLOWABLE_MILITIA_PER_SECTOR) return;
@@ -3171,11 +3215,33 @@ void CreateDestroyMilitiaPopUPRegions(void)
 			MSYS_RemoveRegion(&gMapScreenMilitiaBoxRegions[i]);
 		}
 
+		// militia put in an enemy-held sector: closed with Done, they attack it;
+		// closed any other way (or the attack not possible any more), they go
+		// back to the cursor and from there over the town's sectors of ours
+		INT16 const attacked = MilitiaBoxAttackSector(sOldTown);
+		bool  const fAttack  = attacked != -1 && g_militia_box_done && MilitiaBoxSectorAttackable(attacked);
+		g_militia_box_done = false;
+		if (attacked != -1 && !fAttack)
+		{
+			UINT8 (&n)[MAX_MILITIA_LEVELS] = SectorInfo[attacked].ubNumberOfCivsAtLevel;
+			for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+			{
+				GetPickedUpMilitia(rank) += n[rank];
+				n[rank] = 0;
+			}
+		}
+
 		// handle the shutdown of the panel...there maybe people on the cursor, distribute them evenly over all the sectors
 		HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor(sOldTown);
 
 		DeleteMilitiaPanelBottomButton();
 		gfMilitiaPopupCreated = FALSE;
+
+		if (fAttack)
+		{
+			gfStrategicMilitiaChangesMade = TRUE;
+			StartMilitiaAttackBattle(SGPSector(attacked));
+		}
 	}
 }
 
@@ -3206,7 +3272,7 @@ static void RenderIconsPerSectorForSelectedTown(void)
 
 		StrategicMapElement const& e = StrategicMap[SGPSector(sector).AsStrategicIndex()];
 		MilitiaBoxLayout const& box = MilitiaBox();
-		if (e.bNameId != BLANK_SECTOR && !e.fEnemyControlled)
+		if (e.bNameId != BLANK_SECTOR && (!e.fEnemyControlled || n_total != 0))
 		{
 			// print number of troops (the small layout's rank buttons cover the
 			// selected sector's right side)
@@ -3537,7 +3603,7 @@ static bool IsThisMilitiaTownSectorAllowable(INT16 const sSectorIndexValue)
 	INT16 const sector      = base_sector + sSectorIndexValue % MILITIA_BOX_ROWS + sSectorIndexValue / MILITIA_BOX_ROWS * 16;
 	SGPSector sec(sector);
 	return StrategicMap[sec.AsStrategicIndex()].bNameId != BLANK_SECTOR &&
-		SectorOursAndPeaceful(sec);
+		MilitiaBoxSectorUsable(sector);
 }
 
 
@@ -3793,6 +3859,9 @@ static void MilitiaDoneButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		// militia put in an enemy-held sector attack it
+		g_militia_box_done = true;
+
 		// reset fact we are in the box
 		sSelectedMilitiaTown = 0;
 		fMapPanelDirty = TRUE;
