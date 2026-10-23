@@ -319,6 +319,9 @@ static SGPVSurface* guiBIGMAP;
 #define MILITIA_AUTO_BUTTON MAX_MILITIA_LEVELS
 #define MILITIA_DONE_BUTTON (MAX_MILITIA_LEVELS + 1)
 static GUIButtonRef giMapMilitiaButton[MAX_MILITIA_LEVELS + 2];
+// the big box's arrows, per rank: up puts one into the sector, down takes one out
+static GUIButtonRef g_militia_up_arrow[MAX_MILITIA_LEVELS];
+static GUIButtonRef g_militia_down_arrow[MAX_MILITIA_LEVELS];
 
 
 static INT16 const gsMilitiaSectorButtonColors[] =
@@ -383,6 +386,10 @@ cache_key_t GetMineLevelGraphicsFilename(int const sectorZ)
 // militia graphics
 cache_key_t const guiMilitia{ INTERFACEDIR "/militia.sti" };
 
+// the big militia box's panel with the arrows (militia.sti 19), the arrows
+#define MILITIA_ARROWS_PANEL 19
+#define MILITIA_ARROWS_FILE  INTERFACEDIR "/militia_arrows.sti"
+
 // the ELITE_HEAVY militia square in militia.sti (no smaller variants); until the
 // graphic has it, the elite square of the same place is shown instead
 #define HEAVY_MILITIA_ICON 14
@@ -400,7 +407,11 @@ static UINT16 HeavyMilitiaIcon(UINT16 const elite_icon)
 //   unassigned militia, the sector outlines drawn, all texts in FONT14ARIAL
 //   in the colour of the big weapon box's BALLISTICS / MAINTENANCE headers
 //   (the rank buttons' counts in their ranks' colours), the box centred on
-//   the map and 40 px right of it.
+//   the map and 40 px right of it;
+// - big with arrows (militia.sti 19, 268x416, used when the graphic has it):
+//   as big, the rank buttons in a row between an up arrow (into the sector)
+//   and a down arrow (out of the sector) each (militia_arrows.sti), the
+//   unassigned militia under them.
 struct MilitiaBoxLayout
 {
 	bool   big;
@@ -414,19 +425,27 @@ struct MilitiaBoxLayout
 	INT16  auto_x, done_x, bottom_y;             // the AUTO and DONE buttons
 	SGPFont font;
 	UINT8  colour;                               // big: every text's; small: the original colours
+	UINT16 panel;                                // the panel's militia.sti frame
+	INT16  arrow_up_y, arrow_down_y, arrow_dx;   // the arrows, x from their rank button's (up y 0: none)
 };
 
 static MilitiaBoxLayout const& MilitiaBox()
 {
 	static MilitiaBoxLayout const small_box =
 	{
-		false, 137, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL, FONT_WHITE
+		false, 137, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL, FONT_WHITE, 0, 0, 0, 0
 	};
 	static MilitiaBoxLayout const big_box =
 	{
-		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT14ARIAL, FONT_BEIGE
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT14ARIAL, FONT_BEIGE, 0, 0, 0, 0
 	};
-	return GetVObject(guiMilitia)->SubregionProperties(0).usWidth >= 250 ? big_box : small_box;
+	static MilitiaBoxLayout const big_arrows_box =
+	{
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 276, 104, 22, 4, 325, 23, 7, 11, 4, 275, 33, 4, 134, 374, FONT14ARIAL, FONT_BEIGE, MILITIA_ARROWS_PANEL, 252, 298, 5
+	};
+	SGPVObject const* const vo = GetVObject(guiMilitia);
+	if (vo->SubregionCount() > MILITIA_ARROWS_PANEL && vo->SubregionProperties(MILITIA_ARROWS_PANEL).usWidth >= 250) return big_arrows_box;
+	return vo->SubregionProperties(0).usWidth >= 250 ? big_box : small_box;
 }
 
 // The big layout's square of a militia rank (militia.sti 15-18)
@@ -3140,7 +3159,7 @@ void DrawMilitiaPopUpBox()
 	// update states of militia selected sector buttons
 	CheckAndUpdateStatesOfSelectedMilitiaSectorButtons();
 
-	BltVideoObject(FRAME_BUFFER, guiMilitia,     0,                        MAP_MILITIA_BOX_POS_X,                     MAP_MILITIA_BOX_POS_Y);
+	BltVideoObject(FRAME_BUFFER, guiMilitia,     MilitiaBox().panel,       MAP_MILITIA_BOX_POS_X,                     MAP_MILITIA_BOX_POS_Y);
 	BltVideoObject(FRAME_BUFFER, guiMilitiaMaps, sSelectedMilitiaTown - 1, MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X, MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y);
 
 	// set font color for labels and "total militia" counts
@@ -3161,7 +3180,7 @@ void DrawMilitiaPopUpBox()
 	// draw the highlight last
 	ShowHighLightedSectorOnMilitiaMap( );
 
-	ETRLEObject const& pTrav = GetVObject(guiMilitia)->SubregionProperties(0);
+	ETRLEObject const& pTrav = GetVObject(guiMilitia)->SubregionProperties(MilitiaBox().panel);
 	InvalidateRegion(MAP_MILITIA_BOX_POS_X, MAP_MILITIA_BOX_POS_Y, MAP_MILITIA_BOX_POS_X + pTrav.usWidth, MAP_MILITIA_BOX_POS_Y + pTrav.usHeight);
 
 	// set the text for the militia map sector info buttons
@@ -3425,6 +3444,8 @@ static void MilitiaRegionMoveCallback(MOUSE_REGION* const r, UINT32 const reason
 
 static void MilitiaButtonCallbackPrimary(GUI_BUTTON* btn, UINT32 reason);
 static void MilitiaButtonCallbackSecondary(GUI_BUTTON* btn, UINT32 reason);
+static void MilitiaUpArrowCallback(GUI_BUTTON* btn, UINT32 reason);
+static void MilitiaDownArrowCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
 void CreateDestroyMilitiaSectorButtons()
@@ -3457,6 +3478,17 @@ void CreateDestroyMilitiaSectorButtons()
 			b->SpecifyTextSubOffsets(0, 0, TRUE);
 			b->fShiftText = FALSE;
 			b->SetFastHelpText(i == ELITE_HEAVY_MILITIA ? pMilitiaHeavyStrings[0] : pMilitiaButtonsHelpText[i]);
+
+			if (box.arrow_up_y != 0)
+			{
+				INT16 const ax = b->X() + box.arrow_dx;
+				GUIButtonRef const up = QuickCreateButtonImg(MILITIA_ARROWS_FILE, 0, 1, ax, MAP_MILITIA_BOX_POS_Y + box.arrow_up_y, MSYS_PRIORITY_HIGHEST - 1, MilitiaUpArrowCallback);
+				up->SetUserData(i);
+				g_militia_up_arrow[i] = up;
+				GUIButtonRef const down = QuickCreateButtonImg(MILITIA_ARROWS_FILE, 2, 3, ax, MAP_MILITIA_BOX_POS_Y + box.arrow_down_y, MSYS_PRIORITY_HIGHEST - 1, MilitiaDownArrowCallback);
+				down->SetUserData(i);
+				g_militia_down_arrow[i] = down;
+			}
 		}
 
 		CreateScreenMaskForMoveBox();
@@ -3472,6 +3504,8 @@ void CreateDestroyMilitiaSectorButtons()
 		for (INT32 i = 0; i != MAX_MILITIA_LEVELS; ++i)
 		{
 			RemoveButton(giMapMilitiaButton[i]);
+			if (g_militia_up_arrow[i])   RemoveButton(g_militia_up_arrow[i]);
+			if (g_militia_down_arrow[i]) RemoveButton(g_militia_down_arrow[i]);
 		}
 
 		if (!fShowMilitia || !sSelectedMilitiaTown)
@@ -3538,6 +3572,25 @@ static void MilitiaButtonCallbackSecondary(GUI_BUTTON *btn, UINT32 reason)
 	INT16 sGlobalMapSector = sBaseSectorValue + sSectorMilitiaMapSector % MILITIA_BOX_ROWS + sSectorMilitiaMapSector / MILITIA_BOX_ROWS * 16;
 
 	PickUpATownPersonFromSector(iValue, sGlobalMapSector);
+}
+
+
+// the big box's arrows: up puts one of the rank from the cursor into the
+// selected sector (as the rank button's left click), down takes one out onto
+// the cursor (its right click)
+static void MilitiaUpArrowCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	INT16 const sector = GetBaseSectorForCurrentTown() + sSectorMilitiaMapSector % MILITIA_BOX_ROWS + sSectorMilitiaMapSector / MILITIA_BOX_ROWS * 16;
+	DropAPersonInASector(btn->GetUserData(), sector);
+}
+
+
+static void MilitiaDownArrowCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	INT16 const sector = GetBaseSectorForCurrentTown() + sSectorMilitiaMapSector % MILITIA_BOX_ROWS + sSectorMilitiaMapSector / MILITIA_BOX_ROWS * 16;
+	PickUpATownPersonFromSector(btn->GetUserData(), sector);
 }
 
 
@@ -3960,6 +4013,16 @@ static void CheckAndUpdateStatesOfSelectedMilitiaSectorButtons()
 	EnableButton(giMapMilitiaButton[1], n_regular != 0); // regulars button
 	EnableButton(giMapMilitiaButton[2], n_elite   != 0); // elites button
 	EnableButton(giMapMilitiaButton[3], n_heavy   != 0); // elite heavies button
+
+	// the arrows: up with some of the rank on the cursor, down with some in the sector
+	if (MilitiaBox().arrow_up_y != 0)
+	{
+		for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+		{
+			EnableButton(g_militia_up_arrow[rank],   GetPickedUpMilitia(rank) != 0);
+			EnableButton(g_militia_down_arrow[rank], si.ubNumberOfCivsAtLevel[rank] != 0);
+		}
+	}
 }
 
 
