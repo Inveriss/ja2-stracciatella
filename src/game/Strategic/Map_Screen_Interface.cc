@@ -3150,7 +3150,7 @@ static void MoveScreenMaskBtnCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReas
 
 static void MoveScreenMaskBtnCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason)
 {
-	sSelectedMilitiaTown = 0;
+	// the militia box stays open: only its DONE button closes it
 
 	// are we showing the update box
 	if( fShowUpdateBox )

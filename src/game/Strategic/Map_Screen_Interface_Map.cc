@@ -542,6 +542,9 @@ BOOLEAN   fTempPathAlreadyDrawn = FALSE;
 
 // the regions for the mapscreen militia box
 static MOUSE_REGION gMapScreenMilitiaBoxRegions[9];
+// the whole militia box under its sectors and buttons: clicks on its
+// background don't reach the map below (only DONE closes the box)
+static MOUSE_REGION gMapScreenMilitiaBoxBlanket;
 
 // the sector that is highlighted on the militia map
 static INT16 sSectorMilitiaMapSector        = -1;
@@ -3220,12 +3223,18 @@ void CreateDestroyMilitiaPopUPRegions(void)
 
 	if (fShowMilitia && sSelectedMilitiaTown && !gfMilitiaPopupCreated)
 	{
+		{
+			ETRLEObject const& panel = GetVObject(guiMilitia)->SubregionProperties(MilitiaBox().panel);
+			UINT16 const x = MAP_MILITIA_BOX_POS_X;
+			UINT16 const y = MAP_MILITIA_BOX_POS_Y;
+			MSYS_DefineRegion(&gMapScreenMilitiaBoxBlanket, x, y, x + panel.usWidth, y + panel.usHeight, MSYS_PRIORITY_HIGHEST - 3, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
+		}
 		for (INT32 i = 0; i < 9; ++i)
 		{
 			MOUSE_REGION* const r = &gMapScreenMilitiaBoxRegions[i];
 			UINT16        const x = MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + i % MILITIA_BOX_ROWS * MILITIA_BOX_BOX_WIDTH;
 			UINT16        const y = MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + i / MILITIA_BOX_ROWS * MILITIA_BOX_BOX_HEIGHT;
-			MSYS_DefineRegion(r, x, y, x + MILITIA_BOX_BOX_WIDTH, y + MILITIA_BOX_BOX_HEIGHT, MSYS_PRIORITY_HIGHEST - 3, MSYS_NO_CURSOR, MilitiaRegionMoveCallback, MouseCallbackPrimarySecondary(MilitiaRegionClickCallbackPrimary, MilitiaRegionClickCallbackSecondary));
+			MSYS_DefineRegion(r, x, y, x + MILITIA_BOX_BOX_WIDTH, y + MILITIA_BOX_BOX_HEIGHT, MSYS_PRIORITY_HIGHEST - 2, MSYS_NO_CURSOR, MilitiaRegionMoveCallback, MouseCallbackPrimarySecondary(MilitiaRegionClickCallbackPrimary, MilitiaRegionClickCallbackSecondary));
 			MSYS_SetRegionUserData(r, 0, i);
 		}
 
@@ -3238,6 +3247,7 @@ void CreateDestroyMilitiaPopUPRegions(void)
 		{
 			MSYS_RemoveRegion(&gMapScreenMilitiaBoxRegions[i]);
 		}
+		MSYS_RemoveRegion(&gMapScreenMilitiaBoxBlanket);
 
 		// militia put in an enemy-held sector: closed with Done, they attack it;
 		// closed any other way (or the attack not possible any more), they go
@@ -3482,10 +3492,14 @@ void CreateDestroyMilitiaSectorButtons()
 			b->SpecifyGeneralTextAttributes({}, box.font, box.big ? gsBigMilitiaSectorButtonColors[i] : gsMilitiaSectorButtonColors[i], FONT_BLACK);
 			b->SpecifyTextSubOffsets(0, 0, TRUE);
 			b->fShiftText = FALSE;
-			b->SetFastHelpText(i == ELITE_HEAVY_MILITIA ? pMilitiaHeavyStrings[0] : pMilitiaButtonsHelpText[i]);
-
 			if (box.arrow_up_y != 0)
 			{
+				// the arrows move the militia: the rank button only shows the
+				// sector's number -- clicks do nothing (nor go through it), it
+				// doesn't look pressed, no help text
+				b->ClickCallback = [](GUI_BUTTON*, UINT32) {}; // not empty: an empty one toggles the pressed look
+				b->MoveCallback  = GUI_CALLBACK();
+
 				INT16 const ax = b->X() + box.arrow_dx;
 				GUIButtonRef const up = QuickCreateButtonImg(MILITIA_ARROWS_FILE, 0, 1, ax, MAP_MILITIA_BOX_POS_Y + box.arrow_up_y, MSYS_PRIORITY_HIGHEST - 1, MilitiaUpArrowCallback);
 				up->SetUserData(i);
@@ -3493,6 +3507,10 @@ void CreateDestroyMilitiaSectorButtons()
 				GUIButtonRef const down = QuickCreateButtonImg(MILITIA_ARROWS_FILE, 2, 3, ax, MAP_MILITIA_BOX_POS_Y + box.arrow_down_y, MSYS_PRIORITY_HIGHEST - 1, MilitiaDownArrowCallback);
 				down->SetUserData(i);
 				g_militia_down_arrow[i] = down;
+			}
+			else
+			{
+				b->SetFastHelpText(i == ELITE_HEAVY_MILITIA ? pMilitiaHeavyStrings[0] : pMilitiaButtonsHelpText[i]);
 			}
 		}
 
