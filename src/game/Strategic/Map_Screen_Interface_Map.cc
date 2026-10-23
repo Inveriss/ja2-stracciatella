@@ -411,7 +411,11 @@ static UINT16 HeavyMilitiaIcon(UINT16 const elite_icon)
 // - big with arrows (militia.sti 19, 268x416, used when the graphic has it):
 //   as big, the rank buttons in a row between an up arrow (into the sector)
 //   and a down arrow (out of the sector) each (militia_arrows.sti), the
-//   unassigned militia under them.
+//   unassigned militia under them, under those their numbers per rank on
+//   the rank button's graphic (militia.sti 3).
+
+// the rank button's graphic in militia.sti
+#define MILITIA_RANK_BUTTON_GRAPHIC 3
 struct MilitiaBoxLayout
 {
 	bool   big;
@@ -427,21 +431,22 @@ struct MilitiaBoxLayout
 	UINT8  colour;                               // big: every text's; small: the original colours
 	UINT16 panel;                                // the panel's militia.sti frame
 	INT16  arrow_up_y, arrow_down_y, arrow_dx;   // the arrows, x from their rank button's (up y 0: none)
+	INT16  counter_y;                            // the unassigned militia counters per rank, x as the rank buttons (0: none)
 };
 
 static MilitiaBoxLayout const& MilitiaBox()
 {
 	static MilitiaBoxLayout const small_box =
 	{
-		false, 137, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL, FONT_WHITE, 0, 0, 0, 0
+		false, 137, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL, FONT_WHITE, 0, 0, 0, 0, 0
 	};
 	static MilitiaBoxLayout const big_box =
 	{
-		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT14ARIAL, FONT_BEIGE, 0, 0, 0, 0
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT14ARIAL, FONT_BEIGE, 0, 0, 0, 0, 0
 	};
 	static MilitiaBoxLayout const big_arrows_box =
 	{
-		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 276, 104, 22, 4, 325, 23, 7, 11, 4, 275, 33, 4, 134, 374, FONT14ARIAL, FONT_BEIGE, MILITIA_ARROWS_PANEL, 252, 298, 5
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 276, 104, 22, 4, 325, 23, 7, 11, 4, 275, 33, 4, 134, 401, FONT14ARIAL, FONT_BEIGE, MILITIA_ARROWS_PANEL, 252, 298, 5, 374
 	};
 	SGPVObject const* const vo = GetVObject(guiMilitia);
 	if (vo->SubregionCount() > MILITIA_ARROWS_PANEL && vo->SubregionProperties(MILITIA_ARROWS_PANEL).usWidth >= 250) return big_arrows_box;
@@ -3645,6 +3650,28 @@ static void DisplayUnallocatedMilitia(void)
 		}
 
 		BltVideoObject(FRAME_BUFFER, guiMilitia, iCurrentIcon, sX, sY);
+	}
+
+	// the big box with arrows: the unassigned militia's numbers per rank, on
+	// the rank button's graphic, in the rank's colour, as the rank buttons
+	if (box.counter_y != 0)
+	{
+		ETRLEObject const& g = GetVObject(guiMilitia)->SubregionProperties(MILITIA_RANK_BUTTON_GRAPHIC);
+		SetFont(box.font);
+		SetFontBackground(FONT_MCOLOR_BLACK);
+		SetFontShadow(NO_SHADOW);
+		for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+		{
+			INT16 const x = MAP_MILITIA_BOX_POS_X + box.rank_btn_x + rank * box.rank_btn_dx;
+			INT16 const y = MAP_MILITIA_BOX_POS_Y + box.counter_y;
+			BltVideoObject(FRAME_BUFFER, guiMilitia, MILITIA_RANK_BUTTON_GRAPHIC, x, y);
+			ST::string const n = ST::format("{}", GetPickedUpMilitia(rank));
+			FindFontCenterCoordinates(x, y, g.usWidth, g.usHeight, n, box.font, &sX, &sY);
+			SetFontForeground(gsBigMilitiaSectorButtonColors[rank]);
+			MPrint(sX, sY, n);
+		}
+		SetFontShadow(DEFAULT_SHADOW);
+		SetFontForeground(box.colour);
 	}
 }
 
