@@ -243,7 +243,7 @@
   "militia_recruitment": {
     "enabled": true,
     "price_green": 100,
-    "price_regular": 250,
+    "price_regular": 200,
     "price_elite": 500,
     "price_elite_heavy": 1000,
     "leadership_max": [ 25, 50, 75, 100 ],

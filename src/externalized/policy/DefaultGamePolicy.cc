@@ -98,7 +98,7 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	reveal_start_sector = campaign.getOptionalBool("start_sector_revealed", false);
 
 	{
-		static int32_t const default_prices[4]  = { 100, 250, 500, 1000 };
+		static int32_t const default_prices[4]  = { 100, 200, 500, 1000 };
 		static uint8_t const default_max[4]     = { 25, 50, 75, 100 };
 		static int32_t const default_percent[4] = { 125, 110, 90, 75 };
 		std::copy(std::begin(default_prices),  std::end(default_prices),  militia_recruit_price);
