@@ -67,8 +67,13 @@ constexpr INT16 RECRUIT_BASE_X       = 30; // 11 px from the inner walls
 constexpr INT16 RECRUIT_BASE_W       = 102;
 // title bar (184,16 392x31)
 constexpr RecruitTextPos RECRUIT_TITLE = { 184, 27, 392 };
-// the recruiter box (195,57 369x49): three lines
-constexpr RecruitTextPos RECRUIT_RECRUITER[3] = { { 198, 63, 363 }, { 198, 76, 363 }, { 198, 89, 363 } };
+// the recruiter box (195,57 369x49): "Your mercenary with the highest
+// Leadership in this town" centred, under it in one line "<name> - Leadership
+// N" from the same left edge and "Price modifier: X%" RECRUITER_GAP to its
+// right
+constexpr RecruitTextPos RECRUIT_RECRUITER = { 198, 65, 363 };
+constexpr INT16 RECRUIT_RECRUITER_LINE_Y = 88;
+constexpr INT16 RECRUIT_RECRUITER_GAP    = 77;
 // price modifiers box (617,16 128x90): header, then a line per leadership bracket
 constexpr RecruitTextPos RECRUIT_MOD_HEADER   = { 620, 21, 122 }; // "Leadership"
 constexpr RecruitTextPos RECRUIT_MOD_HEADER_2 = { 620, 33, 122 }; // "Price Modifiers"
@@ -650,15 +655,22 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 
 	// the recruiter: the merc with the best leadership in this town
 	SOLDIERTYPE const* const recruiter = BestMilitiaRecruiter(g_sector);
-	PrintCentered(px, py, RECRUIT_RECRUITER[0], pMilitiaRecruitStrings[RECRUIT_STR_BEST_RECRUITER]);
+	ST::string const header = pMilitiaRecruitStrings[RECRUIT_STR_BEST_RECRUITER];
+	PrintCentered(px, py, RECRUIT_RECRUITER, header);
+	INT16 left;
+	INT16 dummy;
+	FindFontCenterCoordinates(px + RECRUIT_RECRUITER.x, py + RECRUIT_RECRUITER.y, RECRUIT_RECRUITER.w, 0, header, RECRUIT_FONT, &left, &dummy);
+	INT16 const line_y = py + RECRUIT_RECRUITER_LINE_Y;
 	if (recruiter)
 	{
-		PrintCentered(px, py, RECRUIT_RECRUITER[1], st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_RECRUITER_FMT], recruiter->name, int(recruiter->bLeadership)));
-		PrintCentered(px, py, RECRUIT_RECRUITER[2], st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_MODIFIER_FMT], ModifierString(MilitiaRecruitPricePercent(recruiter->bLeadership))));
+		ST::string const who = st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_RECRUITER_FMT], recruiter->name, int(recruiter->bLeadership));
+		MPrint(left, line_y, who);
+		MPrint(left + StringPixLength(who, RECRUIT_FONT) + RECRUIT_RECRUITER_GAP, line_y,
+			st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_MODIFIER_FMT], ModifierString(MilitiaRecruitPricePercent(recruiter->bLeadership))));
 	}
 	else
 	{
-		PrintCentered(px, py, RECRUIT_RECRUITER[1], pMilitiaRecruitStrings[RECRUIT_STR_NO_RECRUITER]);
+		MPrint(left, line_y, pMilitiaRecruitStrings[RECRUIT_STR_NO_RECRUITER]);
 	}
 
 	// a row per rank: its name and the price with the recruiter's modifier
