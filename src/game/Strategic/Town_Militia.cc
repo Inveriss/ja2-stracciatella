@@ -1340,6 +1340,8 @@ static bool MilitiaOrderCanAttack(MilitiaOrder const& o)
 	SGPSector const& s = o.sector;
 	if (s.z != 0)                     return false;
 	if (NumEnemiesInSector(s) == 0)   return false;
+	// militia alone attack only a sector the mercs liberated once
+	if (!SectorInfo[s.AsByte()].fSurfaceWasEverPlayerControlled) return false;
 	if (gfPreBattleInterfaceActive)   return false;
 	// a battle in the loaded sector: joining it is stage 4.3
 	if (gfWorldLoaded && gWorldSector == s && gTacticalStatus.fEnemyInSector) return false;
@@ -1480,7 +1482,14 @@ void HandleMilitiaOrderArrival(UINT32 const order_id)
 	}
 	else
 	{
-		// no room: they wait for orders
+		// no room: they wait for orders (the enemy holding a sector the mercs
+		// never liberated: the player is told why there is no attack)
+		if (o.sector.z == 0 && NumEnemiesInSector(o.sector) != 0 &&
+				!SectorInfo[o.sector.AsByte()].fSurfaceWasEverPlayerControlled)
+		{
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE,
+				st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_LIBERATE_FIRST], o.sector.AsShortString()));
+		}
 		MilitiaOrderWaits(o);
 	}
 }

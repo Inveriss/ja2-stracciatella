@@ -86,6 +86,15 @@ D1. **When the box opens: also for SAM sites.** For any order that doesn't
 
     Joining a battle in tactical (4c) is D5.2.
 
+D1a. **Liberated first, without exception** (2026-10-24, commits 3cc60b4ec
+    and the next): militia alone never attack a sector the mercs never
+    liberated (`fSurfaceWasEverPlayerControlled`). In the box they may be put
+    there, but Done refuses with "Your mercenaries must liberate %s first.
+    After that, you can recapture sectors using militia alone." and the box
+    stays open; an arriving order is not asked to attack it (it waits, the
+    same line in the message log). The recapture choice in D1's texts is
+    therefore only for sectors that were ours once.
+
 D2. **Existing militia: yes**, the box's full normal functions (the down
     arrows also take militia out of the sectors).
 
