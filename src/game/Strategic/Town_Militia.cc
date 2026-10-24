@@ -1624,7 +1624,16 @@ void HandleMilitiaOrderQuestions()
 	INT16 const town = MilitiaOrderBoxTown(*it);
 	if (town != BLANK_SECTOR && !join)
 	{
-		if (guiCurrentScreen != MAP_SCREEN) return;
+		if (guiCurrentScreen != MAP_SCREEN)
+		{
+			// the tactical screen without a battle (D5.1): to the map screen,
+			// the box opens there, Done comes back
+			if (CanAskToJoinNow() && !gTacticalStatus.fEnemyInSector && !gfWatchingMilitiaBattle)
+			{
+				RequestMilitiaArrivalBoxFromTactical();
+			}
+			return;
+		}
 		if (MilitiaArrivalBoxTown() == town)
 		{
 			// the town's box is open: they join its unassigned militia (D7)

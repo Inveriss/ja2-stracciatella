@@ -1,7 +1,7 @@
 # Militia arrival: placing them in the militia box
 
-Status: stages 1-3 implemented and verified in the game (2026-10-24);
-stages 4-5 (the tactical screen) to do. Decisions D1-D8 given by the user.
+Status: stages 1-4 implemented and verified in the game (2026-10-24);
+stage 5 (an arrival during a battle) to do. Decisions D1-D8 given by the user.
 Branch: `Militia`.
 Code to change: `Strategic/Town_Militia.cc` (orders, arrival questions),
 `Strategic/Map_Screen_Interface_Map.cc` (the militia box),
@@ -281,7 +281,10 @@ tools/interface_preview.
 ## Stages
 
 Done: stage 1 (towns d8b018a5f, SAM sites outside the towns a4585aa81, the
-box at y 44 a4ca4bbcb), stage 2 (13f0e9b31), stage 3 (the translations).
+box at y 44 a4ca4bbcb), stage 2 (13f0e9b31), stage 3 (1ca04102f), stage 4
+(an arrival on the tactical screen without a battle: the map screen is
+entered, the box opens there, closing it -- not into an attack -- goes back
+to the tactical screen).
 
 1. **Logic without the new graphics.** Arrival mode of the box: opening from
    the question queue (on the map screen; an arrival on the tactical screen

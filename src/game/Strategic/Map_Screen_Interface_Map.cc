@@ -26,6 +26,9 @@
 #include "Militia_Recruit_Panel.h"
 #include "Militia_Deployment_Panel.h"
 #include "SAM_Sites.h"
+#include "GameScreen.h"
+#include "JAScreens.h"
+#include "Map_Screen_Interface_Bottom.h"
 #include "WordWrap.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface_Border.h"
@@ -622,6 +625,10 @@ static bool         g_arrival_ours     = false; // the box had a sector of ours 
 #define MILITIA_TEXT_FONT   FONT12ARIAL
 #define MILITIA_TEXT_PITCH  12
 static GUIButtonRef g_militia_deploy_button;
+// D5.1: the map screen was entered for an arrival on the tactical screen
+// (pending until the box opens); the box goes back there when it closes
+static bool         g_arrival_jump_pending = false;
+static bool         g_arrival_back_to_tactical = false;
 static bool  fMilitiaMapButtonsCreated      = false;
 static INT16 sSectorMilitiaMapSectorOutline = -1;
 
@@ -3111,6 +3118,8 @@ bool OpenMilitiaArrivalBox(UINT32 const order_id, INT16 const town, UINT8 const 
 	sElitesOnCursor   = counts[ELITE_MILITIA];
 	sHeaviesOnCursor  = counts[ELITE_HEAVY_MILITIA];
 	g_arrival_order      = order_id;
+	g_arrival_back_to_tactical = g_arrival_jump_pending;
+	g_arrival_jump_pending     = false;
 	g_arrival_total      = CursorMilitiaTotal();
 	g_arrival_sent       = 0;
 	g_arrival_room       = 0;
@@ -3167,8 +3176,18 @@ void AddToMilitiaArrivalBox(UINT8 const counts[])
 }
 
 
+void RequestMilitiaArrivalBoxFromTactical()
+{
+	if (g_arrival_jump_pending || gfEnteringMapScreen) return;
+	g_arrival_jump_pending = true;
+	gfEnteringMapScreen    = TRUE;
+}
+
+
 void ResetMilitiaArrivalBox()
 {
+	g_arrival_jump_pending     = false;
+	g_arrival_back_to_tactical = false;
 	g_arrival_order = 0;
 	g_arrival_total = 0;
 	g_arrival_sent  = 0;
@@ -3456,10 +3475,12 @@ void CreateDestroyMilitiaPopUPRegions(void)
 
 		// the arrival mode: what is unassigned goes to the Deployment Center
 		// (closed other than with Done, D3), the order is done
+		bool back_to_tactical = false;
 		if (g_arrival_order != 0)
 		{
 			SendCursorMilitiaToDeployment();
 			FinishMilitiaArrivalOrder(g_arrival_order, g_arrival_total > g_arrival_sent ? g_arrival_total - g_arrival_sent : 0);
+			back_to_tactical = g_arrival_back_to_tactical;
 			ResetMilitiaArrivalBox();
 		}
 
@@ -3473,6 +3494,11 @@ void CreateDestroyMilitiaPopUPRegions(void)
 		{
 			gfStrategicMilitiaChangesMade = TRUE;
 			StartMilitiaAttackBattle(SGPSector(attacked));
+		}
+		else if (back_to_tactical && guiCurrentScreen == MAP_SCREEN)
+		{
+			// the box opened for an arrival on the tactical screen (D5.1)
+			RequestTriggerExitFromMapscreen(MAP_EXIT_TO_TACTICAL);
 		}
 	}
 }

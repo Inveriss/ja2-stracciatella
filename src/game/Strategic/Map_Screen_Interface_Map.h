@@ -201,5 +201,8 @@ UINT32 MilitiaArrivalBoxOrder();
 void AddToMilitiaArrivalBox(UINT8 const counts[]);
 // A new or loaded game: no box in the arrival mode
 void ResetMilitiaArrivalBox();
+// An order arrived on the tactical screen (D5.1): the map screen is entered,
+// the box opens there and its closing goes back to the tactical screen
+void RequestMilitiaArrivalBoxFromTactical();
 
 #endif
