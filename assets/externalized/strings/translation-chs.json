@@ -225,7 +225,12 @@
         "每日",
         "阵亡",
         "看起来您雇佣了太多的佣兵.最多只能雇18人.",
-        "不可雇佣"
+        "不可雇佣",
+        "留言",
+        "挂断",
+        "留言已记录",
+        "点击",
+        "雇佣按钮"
     ],
     "MercNoAccountText": [
         "开户",
@@ -2005,7 +2010,8 @@
         "Bobby Rays",
         "Kingpin",
         "John Kulba",
-        "A.I.M."
+        "A.I.M.",
+        "M.E.R.C."
     ],
     "pShortAttributeStrings": [
         "敏捷",

@@ -225,7 +225,12 @@
         "Per Dag",
         "Overleden",
         "Lijkt erop dat je teveel huurlingen wil recruteren. Limiet is 18.",
-        "Niet beschikbaar"
+        "Niet beschikbaar",
+        "STUUR BERICHT",
+        "OPHANGEN",
+        "Bericht opgenomen",
+        "Klik op",
+        "de knop Huur"
     ],
     "MercNoAccountText": [
         "Open Rekening",
@@ -2005,7 +2010,8 @@
         "Bobby Rays",
         "Kingpin",
         "John Kulba",
-        "A.I.M."
+        "A.I.M.",
+        "M.E.R.C."
     ],
     "pShortAttributeStrings": [
         "Bew",

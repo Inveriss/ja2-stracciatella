@@ -225,7 +225,12 @@
         "Pro Tag",
         "Verstorben",
         "Sie versuchen, zu viele Söldner anzuheuern. 18 ist Maximum.",
-        "nicht da"
+        "nicht da",
+        "NACHRICHT",
+        "AUFLEGEN",
+        "Nachricht aufgenommen",
+        "Klicken Sie",
+        "auf Anheuern"
     ],
     "MercNoAccountText": [
         "Konto eröffnen",
@@ -2005,7 +2010,8 @@
         "Bobby Rays",
         "Kingpin",
         "John Kulba",
-        "A.I.M."
+        "A.I.M.",
+        "M.E.R.C."
     ],
     "pShortAttributeStrings": [
         "Bew",

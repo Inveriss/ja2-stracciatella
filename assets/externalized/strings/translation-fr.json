@@ -225,7 +225,12 @@
         "Par jour",
         "Décédé(e)",
         "Vous ne pouvez engager plus de 18 mercenaires.",
-        "Indisponible"
+        "Indisponible",
+        "MESSAGE",
+        "RACCROCHER",
+        "Message enregistré",
+        "Cliquez sur",
+        "Engager"
     ],
     "MercNoAccountText": [
         "Ouvrir compte",
@@ -2005,7 +2010,8 @@
         "Bobby Ray",
         "Kingpin",
         "John Kulba",
-        "A.I.M."
+        "A.I.M.",
+        "M.E.R.C."
     ],
     "pShortAttributeStrings": [
         "Agi",

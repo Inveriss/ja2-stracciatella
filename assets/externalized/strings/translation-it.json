@@ -225,7 +225,12 @@
         "Al giorno",
         "Deceduto",
         "Sembra che state arruolando troppi mercenari. Il vostro limite è di 18.",
-        "Non disponibile"
+        "Non disponibile",
+        "LASCIA MESSAGGIO",
+        "TACI",
+        "Messaggio registrato",
+        "Clicca su",
+        "Ricompensa"
     ],
     "MercNoAccountText": [
         "Apri conto",
@@ -2005,7 +2010,8 @@
         "Bobby Ray",
         "Capo",
         "John Kulba",
-        "A.I.M."
+        "A.I.M.",
+        "M.E.R.C."
     ],
     "pShortAttributeStrings": [
         "Abi",

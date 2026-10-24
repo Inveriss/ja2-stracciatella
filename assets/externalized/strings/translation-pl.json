@@ -225,7 +225,12 @@
         "Dziennie",
         "Nie żyje",
         "Wygląda na to, że chcesz wynająć zbyt wielu najemników. Limit wynosi 18.",
-        "Niedostępny"
+        "Niedostępny",
+        "NAGRAJ SIĘ",
+        "ROZŁĄCZ",
+        "Wiadomość zapisana",
+        "Kliknij",
+        "przycisk Najmij"
     ],
     "MercNoAccountText": [
         "Otwórz konto",
@@ -2005,7 +2010,8 @@
         "Bobby Ray",
         "Kingpin",
         "John Kulba",
-        "A.I.M."
+        "A.I.M.",
+        "M.E.R.C."
     ],
     "pShortAttributeStrings": [
         "Zwn",
