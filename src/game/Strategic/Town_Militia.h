@@ -143,8 +143,13 @@ ST::string MilitiaOrderAreaName(MilitiaOrder const&);
 // militia as the unassigned ones and keeps the order in step with them
 void SetMilitiaOrderCounts(UINT32 order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS]);
 // Send to Deployment Center: these militia of the order become a waiting
-// order of their own (the deployment panel); the order keeps the rest
-void SendMilitiaOrderToDeployment(UINT32 order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS]);
+// order of their own (the deployment panel); the order keeps the rest. The
+// new order's id, 0: none (announce: the "waiting for orders" log line)
+UINT32 SendMilitiaOrderToDeployment(UINT32 order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS], bool announce = true);
+// The box put this (waiting) order's militia into the battle loaded in
+// tactical (D5.2): back on the tactical screen they join it from a map edge,
+// as many as it takes; the rest waits
+void JoinMilitiaOrderToBattle(UINT32 order_id);
 // The box closed: n of the order's militia entered the town (its loyalty
 // counts them), the order is done
 void FinishMilitiaArrivalOrder(UINT32 order_id, UINT32 n_entered);

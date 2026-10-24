@@ -26,6 +26,7 @@
 #include "Militia_Recruit_Panel.h"
 #include "Militia_Deployment_Panel.h"
 #include "SAM_Sites.h"
+#include "Militia_Control.h"
 #include "GameScreen.h"
 #include "JAScreens.h"
 #include "Map_Screen_Interface_Bottom.h"
@@ -628,6 +629,9 @@ static GUIButtonRef g_militia_deploy_button;
 // D5.1: the map screen was entered for an arrival on the tactical screen
 // (pending until the box opens); the box goes back there when it closes
 static bool         g_arrival_jump_pending = false;
+// D5.2: the militia put into the battle loaded in tactical, per rank; they
+// join it when the box is closed with Done
+static UINT8        g_reinforce[MAX_MILITIA_LEVELS] = {};
 static bool         g_arrival_back_to_tactical = false;
 static bool  fMilitiaMapButtonsCreated      = false;
 static INT16 sSectorMilitiaMapSectorOutline = -1;
@@ -3093,6 +3097,43 @@ static UINT32 CursorMilitiaTotal()
 }
 
 
+// D5.2: the sector of the battle loaded in tactical, when the arrival box has
+// it: militia put there join the battle when the box is closed with Done
+static bool IsReinforceSector(INT16 const sector)
+{
+	return g_arrival_order != 0 && gfWorldLoaded && gWorldSector.z == 0 &&
+		gTacticalStatus.fEnemyInSector && gWorldSector.AsByte() == sector &&
+		MilitiaBoxHasSector(sSelectedMilitiaTown, sector);
+}
+
+
+// The militia put into the battle's sector for it, of this rank
+static UINT8 Reinforcing(INT16 const sector, UINT8 const rank)
+{
+	return IsReinforceSector(sector) ? g_reinforce[rank] : 0;
+}
+
+
+static UINT32 ReinforceTotal()
+{
+	UINT32 n = 0;
+	for (UINT8 const c : g_reinforce) n += c;
+	return n;
+}
+
+
+// The arrival order's militia: the unassigned ones and those for the battle
+static UINT8 const (&ArrivalOrderMilitia())[MAX_MILITIA_LEVELS]
+{
+	static UINT8 counts[MAX_MILITIA_LEVELS];
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		counts[rank] = (UINT8)std::min(CursorMilitia()[rank] + g_reinforce[rank], 255);
+	}
+	return counts;
+}
+
+
 // The unassigned militia go to the Deployment Center as a waiting order
 static void SendCursorMilitiaToDeployment()
 {
@@ -3110,7 +3151,6 @@ bool OpenMilitiaArrivalBox(UINT32 const order_id, INT16 const town, UINT8 const 
 	if (sSelectedMilitiaTown != 0 || gfMilitiaPopupCreated) return false; // the box is open
 	if (fShowMapInventoryPool)                               return false;
 	if (IsMilitiaRecruitPanelOpen() || IsMilitiaDeploymentPanelOpen()) return false;
-	if (!CanRedistributeMilitiaInSector(town))               return false;
 
 	if (!fShowMilitia) ToggleShowMilitiaMode();
 	sGreensOnCursor   = counts[GREEN_MILITIA];
@@ -3171,7 +3211,7 @@ void AddToMilitiaArrivalBox(UINT8 const counts[])
 		GetPickedUpMilitia(rank) += counts[rank];
 		g_arrival_total          += counts[rank];
 	}
-	SetMilitiaOrderCounts(g_arrival_order, CursorMilitia());
+	SetMilitiaOrderCounts(g_arrival_order, ArrivalOrderMilitia());
 	fMapPanelDirty = TRUE;
 }
 
@@ -3188,6 +3228,7 @@ void ResetMilitiaArrivalBox()
 {
 	g_arrival_jump_pending     = false;
 	g_arrival_back_to_tactical = false;
+	std::fill(std::begin(g_reinforce), std::end(g_reinforce), 0);
 	g_arrival_order = 0;
 	g_arrival_total = 0;
 	g_arrival_sent  = 0;
@@ -3216,6 +3257,8 @@ static INT16 MilitiaBoxAttackSector(INT16 const town)
 	{
 		if (attacked != -1) return;
 		if (SectorOursAndPeaceful(SGPSector(sector))) return;
+		// the battle loaded in tactical (its militia are fighting there)
+		if (gfWorldLoaded && gWorldSector.z == 0 && gWorldSector.AsByte() == sector && gTacticalStatus.fEnemyInSector) return;
 		if (NumEnemiesInSector(SGPSector(sector)) == 0) return;
 		if (CountAllMilitiaInSector(SGPSector(sector)) != 0) attacked = sector;
 	});
@@ -3227,7 +3270,7 @@ static INT16 MilitiaBoxAttackSector(INT16 const town)
 // enemy, and from those the enemy holds the militia can attack
 static bool MilitiaBoxSectorUsable(UINT8 const sector)
 {
-	return SectorOursAndPeaceful(SGPSector(sector)) || MilitiaBoxSectorAttackable(sector);
+	return SectorOursAndPeaceful(SGPSector(sector)) || MilitiaBoxSectorAttackable(sector) || IsReinforceSector(sector);
 }
 
 
@@ -3238,6 +3281,16 @@ static void PickUpATownPersonFromSector(UINT8 const type, UINT8 const sector)
 	if (!MilitiaBoxHasSector(sSelectedMilitiaTown, sector)) return;
 
 	if (!MilitiaBoxSectorUsable(sector)) return;
+
+	// the battle's sector: only the militia put there for it (D5.2)
+	if (IsReinforceSector(sector))
+	{
+		if (g_reinforce[type] == 0) return;
+		--g_reinforce[type];
+		++GetPickedUpMilitia(type);
+		fMapPanelDirty = TRUE;
+		return;
+	}
 
 	UINT8& n_type = SectorInfo[sector].ubNumberOfCivsAtLevel[type];
 	// See if there are any militia of this type in this sector
@@ -3256,6 +3309,18 @@ static void DropAPersonInASector(UINT8 const type, UINT8 const sector)
 	if (!MilitiaBoxHasSector(sSelectedMilitiaTown, sector)) return;
 
 	if (!MilitiaBoxSectorUsable(sector)) return;
+
+	// the battle's sector: as many as the battle can take (D5.2)
+	if (IsReinforceSector(sector))
+	{
+		if (ReinforceTotal() >= MilitiaReinforcementRoom()) return;
+		INT16& n_type = GetPickedUpMilitia(type);
+		if (n_type == 0) return;
+		--n_type;
+		++g_reinforce[type];
+		fMapPanelDirty = TRUE;
+		return;
+	}
 
 	// one enemy-held sector attacked at a time
 	if (!SectorOursAndPeaceful(SGPSector(sector)))
@@ -3366,7 +3431,7 @@ void DrawMilitiaPopUpBox()
 	if (!sSelectedMilitiaTown) return;
 
 	// the arrival mode: the order holds exactly the unassigned militia
-	if (g_arrival_order != 0) SetMilitiaOrderCounts(g_arrival_order, CursorMilitia());
+	if (g_arrival_order != 0) SetMilitiaOrderCounts(g_arrival_order, ArrivalOrderMilitia());
 
 	// update states of militia selected sector buttons
 	CheckAndUpdateStatesOfSelectedMilitiaSectorButtons();
@@ -3461,7 +3526,8 @@ void CreateDestroyMilitiaPopUPRegions(void)
 		// closed any other way (or the attack not possible any more), they go
 		// back to the cursor and from there over the town's sectors of ours
 		INT16 const attacked = MilitiaBoxAttackSector(sOldTown);
-		bool  const fAttack  = attacked != -1 && g_militia_box_done && MilitiaBoxSectorAttackable(attacked);
+		bool  const fDone    = g_militia_box_done;
+		bool  const fAttack  = attacked != -1 && fDone && MilitiaBoxSectorAttackable(attacked);
 		g_militia_box_done = false;
 		if (attacked != -1 && !fAttack)
 		{
@@ -3478,6 +3544,17 @@ void CreateDestroyMilitiaPopUPRegions(void)
 		bool back_to_tactical = false;
 		if (g_arrival_order != 0)
 		{
+			// militia for the battle in tactical (D5.2): closed with Done they
+			// join it back on the tactical screen (their own waiting order, the
+			// loyalty counted then); otherwise they go to the Deployment Center
+			if (ReinforceTotal() != 0)
+			{
+				SetMilitiaOrderCounts(g_arrival_order, ArrivalOrderMilitia());
+				UINT32 const id = SendMilitiaOrderToDeployment(g_arrival_order, g_reinforce, !fDone);
+				if (fDone && id != 0) JoinMilitiaOrderToBattle(id);
+				g_arrival_sent += ReinforceTotal();
+				std::fill(std::begin(g_reinforce), std::end(g_reinforce), 0);
+			}
 			SendCursorMilitiaToDeployment();
 			FinishMilitiaArrivalOrder(g_arrival_order, g_arrival_total > g_arrival_sent ? g_arrival_total - g_arrival_sent : 0);
 			back_to_tactical = g_arrival_back_to_tactical;
@@ -3522,10 +3599,10 @@ static void RenderIconsPerSectorForSelectedTown(void)
 
 		// get number of each
 		SECTORINFO const& si         = SectorInfo[sector];
-		INT32      const  n_greens   = si.ubNumberOfCivsAtLevel[GREEN_MILITIA];
-		INT32      const  n_regulars = si.ubNumberOfCivsAtLevel[REGULAR_MILITIA];
-		INT32      const  n_elites   = si.ubNumberOfCivsAtLevel[ELITE_MILITIA];
-		INT32      const  n_heavies  = si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA];
+		INT32      const  n_greens   = si.ubNumberOfCivsAtLevel[GREEN_MILITIA]       + Reinforcing(sector, GREEN_MILITIA);
+		INT32      const  n_regulars = si.ubNumberOfCivsAtLevel[REGULAR_MILITIA]     + Reinforcing(sector, REGULAR_MILITIA);
+		INT32      const  n_elites   = si.ubNumberOfCivsAtLevel[ELITE_MILITIA]       + Reinforcing(sector, ELITE_MILITIA);
+		INT32      const  n_heavies  = si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA] + Reinforcing(sector, ELITE_HEAVY_MILITIA);
 		INT32      const  n_total    = n_greens + n_regulars + n_elites + n_heavies;
 
 		StrategicMapElement const& e = StrategicMap[SGPSector(sector).AsStrategicIndex()];
@@ -3787,19 +3864,19 @@ static void SetMilitiaMapButtonsText()
 	ST::string buf;
 
 	// the greens in this sector
-	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[GREEN_MILITIA]);
+	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[GREEN_MILITIA] + Reinforcing(sector, GREEN_MILITIA));
 	giMapMilitiaButton[0]->SpecifyText(buf);
 
 	// the regulars in this sector
-	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[REGULAR_MILITIA]);
+	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[REGULAR_MILITIA] + Reinforcing(sector, REGULAR_MILITIA));
 	giMapMilitiaButton[1]->SpecifyText(buf);
 
 	// the number of elites in this sector
-	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[ELITE_MILITIA]);
+	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[ELITE_MILITIA] + Reinforcing(sector, ELITE_MILITIA));
 	giMapMilitiaButton[2]->SpecifyText(buf);
 
 	// the number of elite heavies in this sector
-	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA]);
+	buf = ST::format("{}", si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA] + Reinforcing(sector, ELITE_HEAVY_MILITIA));
 	giMapMilitiaButton[3]->SpecifyText(buf);
 }
 
@@ -4335,7 +4412,9 @@ static void CheckAndUpdateStatesOfSelectedMilitiaSectorButtons()
 		for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 		{
 			EnableButton(g_militia_up_arrow[rank],   GetPickedUpMilitia(rank) != 0);
-			EnableButton(g_militia_down_arrow[rank], si.ubNumberOfCivsAtLevel[rank] != 0);
+			// the battle's sector: only those put there for it (D5.2)
+			UINT8 const takeable = IsReinforceSector(sector) ? g_reinforce[rank] : si.ubNumberOfCivsAtLevel[rank];
+			EnableButton(g_militia_down_arrow[rank], takeable != 0);
 		}
 	}
 }
