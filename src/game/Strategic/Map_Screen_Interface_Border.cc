@@ -411,7 +411,7 @@ void ToggleShowMinesMode( void )
 static bool DoesPlayerHaveAnyMilitia();
 
 
-void ToggleShowMilitiaMode( void )
+void ToggleShowMilitiaMode(bool const explain)
 {
 	if (fShowMilitia)
 	{
@@ -448,7 +448,7 @@ void ToggleShowMilitiaMode( void )
 
 
 		// check if player has any militia
-		if (!DoesPlayerHaveAnyMilitia())
+		if (explain && !DoesPlayerHaveAnyMilitia())
 		{
 			ST::string pwString;
 

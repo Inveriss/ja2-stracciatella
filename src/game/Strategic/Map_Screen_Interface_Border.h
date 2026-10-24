@@ -67,7 +67,9 @@ void RenderMapLevelMarker( void );
 
 void ToggleShowTownsMode( void );
 void ToggleShowMinesMode( void );
-void ToggleShowMilitiaMode( void );
+// explain: turned on with no militia anywhere, a message tells how to get
+// them (not when the militia box's arrival mode turns it on: they are there)
+void ToggleShowMilitiaMode(bool explain = true);
 void ToggleShowTeamsMode( void );
 void ToggleAirspaceMode( void );
 void ToggleItemsFilter( void );

@@ -3152,7 +3152,7 @@ bool OpenMilitiaArrivalBox(UINT32 const order_id, INT16 const town, UINT8 const 
 	if (fShowMapInventoryPool)                               return false;
 	if (IsMilitiaRecruitPanelOpen() || IsMilitiaDeploymentPanelOpen()) return false;
 
-	if (!fShowMilitia) ToggleShowMilitiaMode();
+	if (!fShowMilitia) ToggleShowMilitiaMode(false); // the arrived militia are in the box
 	sGreensOnCursor   = counts[GREEN_MILITIA];
 	sRegularsOnCursor = counts[REGULAR_MILITIA];
 	sElitesOnCursor   = counts[ELITE_MILITIA];
