@@ -123,6 +123,10 @@ picks one of three arrival options; the militia arrive after its time.
   whole order waits.
 - Nothing fits and nothing to ask: the order waits ("... can't enter and are
   waiting for orders.").
+- Later replaced for towns and SAM sites by the militia box's arrival mode
+  (docs/militia-arrival-box-plan.md): every arriving order opens the box
+  with its militia to be placed by hand; only joining a battle in tactical
+  (4c) keeps its question.
 
 ### Stage 4.2 -- Attacking an enemy-held sector (commit bd4535077)
 

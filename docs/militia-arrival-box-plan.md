@@ -1,7 +1,8 @@
 # Militia arrival: placing them in the militia box
 
-Status: plan, not implemented; decisions D1-D8 given by the user
-(2026-10-24). Branch: `Militia`.
+Status: stages 1-3 implemented and verified in the game (2026-10-24);
+stages 4-5 (the tactical screen) to do. Decisions D1-D8 given by the user.
+Branch: `Militia`.
 Code to change: `Strategic/Town_Militia.cc` (orders, arrival questions),
 `Strategic/Map_Screen_Interface_Map.cc` (the militia box),
 `Strategic/MapScreen.cc` (opening the box from the arrival),
@@ -279,6 +280,9 @@ tools/interface_preview.
 
 ## Stages
 
+Done: stage 1 (towns d8b018a5f, SAM sites outside the towns a4585aa81, the
+box at y 44 a4ca4bbcb), stage 2 (13f0e9b31), stage 3 (the translations).
+
 1. **Logic without the new graphics.** Arrival mode of the box: opening from
    the question queue (on the map screen; an arrival on the tactical screen
    waits for the map screen until stages 4-5), the order on the
@@ -290,7 +294,13 @@ tools/interface_preview.
 2. **The user's graphics.** The text box and the button at their final
    places, the box's y if needed (Drawing).
 3. **Texts and translations**, `docs/militia-arrival-time-plan.md` updated
-   (4e replaced for towns).
+   (4e replaced for towns). The 10 texts (pMilitiaRecruitStrings 43-52) in
+   Chinese, Dutch, French, German, Italian, Polish and Russian (Russian
+   Gold the same), with each language's existing terms (Polish
+   "samoobrona", Italian "esercito", the Deployment Center's own name); the
+   Latin-script ones checked with tools/interface_preview: the button label
+   (FONT14ARIAL) fits its 252 px, every choice line fits 240 px and the
+   longest headers wrap into 2 lines, so 6 lines at most fill the text box.
 
 4. **D5.1**: arrival on the tactical screen without a battle (way B).
 5. **D5.2**: arrival during a battle, each kind tested: watched real-time
