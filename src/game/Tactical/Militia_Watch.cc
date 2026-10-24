@@ -49,6 +49,7 @@ UINT16 WatchedBattleAIDelay()
 }
 
 static bool      g_watch_requested = false;
+static bool      g_watch_starting  = false; // the watched sector is being loaded
 static SGPSector g_watch_sector;
 static bool      g_saved_low_team_panel = false; // the team panel's form before the watching
 static bool      g_low_team_panel_forced = false;
@@ -116,7 +117,11 @@ void HandleWatchMilitiaBattleRequest()
 	g_ui.setWatchBar(true);
 	RebuildTacticalTeamPanel();
 
+	// loading it unloads the sector loaded before (from the pre-battle panel:
+	// the mercs' sector), which must not end the watching that begins
+	g_watch_starting = true;
 	SetCurrentWorldSector(g_watch_sector);
+	g_watch_starting = false;
 }
 
 
@@ -456,6 +461,9 @@ void HandleWatchedMilitiaBattleTurn()
 
 void EndWatchedMilitiaBattle()
 {
+	// the sector loaded before the watched one goes: the watching goes on
+	if (g_watch_starting) return;
+
 	if (g_show_all_set)
 	{
 		g_show_all_set = false;
