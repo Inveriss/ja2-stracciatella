@@ -24,6 +24,9 @@
 #include "Message.h"
 #include "Militia_Control.h"
 #include "Militia_Recruit_Panel.h"
+#include "Militia_Deployment_Panel.h"
+#include "Map_Screen_Interface_Map_Inventory.h"
+#include "Map_Screen_Interface_Border.h"
 #include "MineModel.h"
 #include "MouseSystem.h"
 #include "Object_Cache.h"
@@ -60,6 +63,7 @@
 #include <string_theory/string>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 // // Scroll region width
 // #define SCROLL_REGION 4
@@ -389,6 +393,10 @@ cache_key_t const guiMilitia{ INTERFACEDIR "/militia.sti" };
 
 // the big militia box's panel with the arrows (militia.sti 19), the arrows
 #define MILITIA_ARROWS_PANEL 19
+// the arrival mode's Send to Deployment Center button (militia.sti 20 normal,
+// 21 pressed, 252x30), in the panel's slot over AUTO and DONE
+#define MILITIA_DEPLOY_BUTTON_NORMAL  20
+#define MILITIA_DEPLOY_BUTTON_PRESSED 21
 #define MILITIA_ARROWS_FILE  INTERFACEDIR "/militia_arrows.sti"
 
 // the ELITE_HEAVY militia square in militia.sti (no smaller variants); until the
@@ -413,7 +421,9 @@ static UINT16 HeavyMilitiaIcon(UINT16 const elite_icon)
 //   as big, the rank buttons in a row between an up arrow (into the sector)
 //   and a down arrow (out of the sector) each (militia_arrows.sti), the
 //   unassigned militia under them, under those their numbers per rank on
-//   the rank button's graphic (militia.sti 3).
+//   the rank button's graphic (militia.sti 3); the panel (268x478) has a
+//   slot over AUTO and DONE for the arrival mode's Send to Deployment Center
+//   button.
 
 // the rank button's graphic in militia.sti
 #define MILITIA_RANK_BUTTON_GRAPHIC 3
@@ -433,21 +443,22 @@ struct MilitiaBoxLayout
 	UINT16 panel;                                // the panel's militia.sti frame
 	INT16  arrow_up_y, arrow_down_y, arrow_dx;   // the arrows, x from their rank button's (up y 0: none)
 	INT16  counter_y;                            // the unassigned militia counters per rank, x as the rank buttons (0: none)
+	INT16  deploy_x, deploy_y;                   // the arrival mode's Send to Deployment Center button (y 0: none)
 };
 
 static MilitiaBoxLayout const& MilitiaBox()
 {
 	static MilitiaBoxLayout const small_box =
 	{
-		false, 137, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL, FONT_WHITE, 0, 0, 0, 0, 0
+		false, 137, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL, FONT_WHITE, 0, 0, 0, 0, 0, 0, 0
 	};
 	static MilitiaBoxLayout const big_box =
 	{
-		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT14ARIAL, FONT_BEIGE, 0, 0, 0, 0, 0
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT14ARIAL, FONT_BEIGE, 0, 0, 0, 0, 0, 0, 0
 	};
 	static MilitiaBoxLayout const big_arrows_box =
 	{
-		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 276, 104, 22, 4, 325, 23, 7, 11, 4, 275, 33, 4, 134, 401, FONT14ARIAL, FONT_BEIGE, MILITIA_ARROWS_PANEL, 252, 298, 5, 374
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 276, 104, 22, 4, 325, 23, 7, 11, 4, 275, 33, 4, 134, 436, FONT14ARIAL, FONT_BEIGE, MILITIA_ARROWS_PANEL, 252, 298, 5, 374, 4, 401
 	};
 	SGPVObject const* const vo = GetVObject(guiMilitia);
 	if (vo->SubregionCount() > MILITIA_ARROWS_PANEL && vo->SubregionProperties(MILITIA_ARROWS_PANEL).usWidth >= 250) return big_arrows_box;
@@ -550,6 +561,17 @@ static MOUSE_REGION gMapScreenMilitiaBoxBlanket;
 // the sector that is highlighted on the militia map
 static INT16 sSectorMilitiaMapSector        = -1;
 static bool  g_militia_box_done             = false; // the box is being closed with Done
+
+// The arrival mode (docs/militia-arrival-box-plan.md): the box opened for an
+// arrived order, whose militia are the unassigned ones. The order is kept in
+// step with them (so a save holds them as a waiting order); Send to
+// Deployment Center splits them off as a waiting order; closing the box with
+// Done finishes the order, closing it otherwise sends them to the Deployment
+// Center too.
+static UINT32       g_arrival_order    = 0; // 0: the box's normal mode
+static UINT32       g_arrival_total    = 0; // the order's militia when the box opened (and joined later)
+static UINT32       g_arrival_sent     = 0; // sent to the Deployment Center since
+static GUIButtonRef g_militia_deploy_button;
 static bool  fMilitiaMapButtonsCreated      = false;
 static INT16 sSectorMilitiaMapSectorOutline = -1;
 
@@ -2996,6 +3018,90 @@ static INT16& GetPickedUpMilitia(UINT8 const type)
 }
 
 
+// The unassigned militia ("on the cursor") per rank
+static UINT8 const (&CursorMilitia())[MAX_MILITIA_LEVELS]
+{
+	static UINT8 counts[MAX_MILITIA_LEVELS];
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		counts[rank] = (UINT8)std::clamp<INT16>(GetPickedUpMilitia(rank), 0, 255);
+	}
+	return counts;
+}
+
+
+static UINT32 CursorMilitiaTotal()
+{
+	return sGreensOnCursor + sRegularsOnCursor + sElitesOnCursor + sHeaviesOnCursor;
+}
+
+
+// The unassigned militia go to the Deployment Center as a waiting order
+static void SendCursorMilitiaToDeployment()
+{
+	if (g_arrival_order == 0 || CursorMilitiaTotal() == 0) return;
+	SetMilitiaOrderCounts(g_arrival_order, CursorMilitia());
+	SendMilitiaOrderToDeployment(g_arrival_order, CursorMilitia());
+	g_arrival_sent += CursorMilitiaTotal();
+	sGreensOnCursor = sRegularsOnCursor = sElitesOnCursor = sHeaviesOnCursor = 0;
+	fMapPanelDirty = TRUE;
+}
+
+
+bool OpenMilitiaArrivalBox(UINT32 const order_id, INT8 const town, UINT8 const counts[])
+{
+	if (sSelectedMilitiaTown != 0 || gfMilitiaPopupCreated) return false; // the box is open
+	if (fShowMapInventoryPool)                               return false;
+	if (IsMilitiaRecruitPanelOpen() || IsMilitiaDeploymentPanelOpen()) return false;
+	if (!CanRedistributeMilitiaInSector(town))               return false;
+
+	if (!fShowMilitia) ToggleShowMilitiaMode();
+	sGreensOnCursor   = counts[GREEN_MILITIA];
+	sRegularsOnCursor = counts[REGULAR_MILITIA];
+	sElitesOnCursor   = counts[ELITE_MILITIA];
+	sHeaviesOnCursor  = counts[ELITE_HEAVY_MILITIA];
+	g_arrival_order      = order_id;
+	g_arrival_total      = CursorMilitiaTotal();
+	g_arrival_sent       = 0;
+	sSelectedMilitiaTown = town;
+	fMapPanelDirty       = TRUE;
+	return true;
+}
+
+
+INT8 MilitiaArrivalBoxTown()
+{
+	return g_arrival_order != 0 ? sSelectedMilitiaTown : 0;
+}
+
+
+UINT32 MilitiaArrivalBoxOrder()
+{
+	return g_arrival_order;
+}
+
+
+void AddToMilitiaArrivalBox(UINT8 const counts[])
+{
+	if (g_arrival_order == 0) return;
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		GetPickedUpMilitia(rank) += counts[rank];
+		g_arrival_total          += counts[rank];
+	}
+	SetMilitiaOrderCounts(g_arrival_order, CursorMilitia());
+	fMapPanelDirty = TRUE;
+}
+
+
+void ResetMilitiaArrivalBox()
+{
+	g_arrival_order = 0;
+	g_arrival_total = 0;
+	g_arrival_sent  = 0;
+}
+
+
 // A town sector held by the enemy the militia box's militia can attack: put
 // there, they attack it when the box is closed with Done (an autoresolve
 // battle, as the militia orders' attack)
@@ -3165,6 +3271,9 @@ void DrawMilitiaPopUpBox()
 
 	if (!sSelectedMilitiaTown) return;
 
+	// the arrival mode: the order holds exactly the unassigned militia
+	if (g_arrival_order != 0) SetMilitiaOrderCounts(g_arrival_order, CursorMilitia());
+
 	// update states of militia selected sector buttons
 	CheckAndUpdateStatesOfSelectedMilitiaSectorButtons();
 
@@ -3264,6 +3373,15 @@ void CreateDestroyMilitiaPopUPRegions(void)
 				GetPickedUpMilitia(rank) += n[rank];
 				n[rank] = 0;
 			}
+		}
+
+		// the arrival mode: what is unassigned goes to the Deployment Center
+		// (closed other than with Done, D3), the order is done
+		if (g_arrival_order != 0)
+		{
+			SendCursorMilitiaToDeployment();
+			FinishMilitiaArrivalOrder(g_arrival_order, g_arrival_total > g_arrival_sent ? g_arrival_total - g_arrival_sent : 0);
+			ResetMilitiaArrivalBox();
 		}
 
 		// handle the shutdown of the panel...there maybe people on the cursor, distribute them evenly over all the sectors
@@ -3791,105 +3909,56 @@ static void HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor(INT16 const town)
 }
 
 
-// Even out troops among the town
+// Even out troops among the town: all the militia of the town's sectors of
+// ours with no enemy and the unassigned ones, dealt out one at a time to
+// those sectors in turn, rank by rank, up to MAX_ALLOWABLE_MILITIA_PER_SECTOR
+// each; what doesn't fit stays unassigned (the arrival mode's cursor can hold
+// more than the room)
 static void HandleEveningOutOfTroopsAmongstSectors()
 {
 	INT8 const town = sSelectedMilitiaTown;
 
-	// How many sectors in the selected town do we control?
-	INT32 const n_under_control = GetTownSectorsUnderControl(town);
-	if (n_under_control == 0) return; // If none, there's nothing to be done
-
-	INT32       n_green     = 0;
-	INT32       n_regular   = 0;
-	INT32       n_elite     = 0;
-	INT32       n_heavy     = 0;
-	INT16 const base_sector = GetBaseSectorForCurrentTown();
-	for (INT32 i = 0; i != 9; ++i)
-	{
-		INT16 const sector = base_sector + i % MILITIA_BOX_ROWS + i / MILITIA_BOX_ROWS * 16;
-
-		// Skip sectors not in the selected town (nearby other towns or wilderness SAM Sites)
-		if (GetTownIdForSector(sector) != town) continue;
-
-		if (StrategicMap[SGPSector(sector).AsStrategicIndex()].fEnemyControlled) continue;
-
-		SECTORINFO const& si = SectorInfo[sector];
-		n_green   += si.ubNumberOfCivsAtLevel[GREEN_MILITIA];
-		n_regular += si.ubNumberOfCivsAtLevel[REGULAR_MILITIA];
-		n_elite   += si.ubNumberOfCivsAtLevel[ELITE_MILITIA];
-		n_heavy   += si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA];
-	}
-
-	// Grab those on the cursor
-	n_green   += sGreensOnCursor;
-	n_regular += sRegularsOnCursor;
-	n_elite   += sElitesOnCursor;
-	n_heavy   += sHeaviesOnCursor;
-
-	if (n_green + n_regular + n_elite + n_heavy == 0) return;
-
-	INT32 const n_green_per_sector   = n_green   / n_under_control;
-	INT32 const n_regular_per_sector = n_regular / n_under_control;
-	INT32 const n_elite_per_sector   = n_elite   / n_under_control;
-	INT32 const n_heavy_per_sector   = n_heavy   / n_under_control;
-
-	// Get the left overs
-	INT32 n_left_over_green   = n_green   % n_under_control;
-	INT32 n_left_over_regular = n_regular % n_under_control;
-	INT32 n_left_over_elite   = n_elite   % n_under_control;
-	INT32 n_left_over_heavy   = n_heavy   % n_under_control;
-
+	std::vector<UINT8> sectors;
 	FOR_EACH_SECTOR_IN_TOWN(i, town)
 	{
-		UINT8 const sector = i->sector;
-		SGPSector iSector(sector);
-		if (StrategicMap[iSector.AsStrategicIndex()].fEnemyControlled) continue;
-		if (NumHostilesInSector(iSector) != 0) continue;
+		if (SectorOursAndPeaceful(SGPSector(i->sector))) sectors.push_back(i->sector);
+	}
+	if (sectors.empty()) return;
 
-		SECTORINFO& si = SectorInfo[sector];
-
-		// Distribute here
-		si.ubNumberOfCivsAtLevel[GREEN_MILITIA]   = n_green_per_sector;
-		si.ubNumberOfCivsAtLevel[REGULAR_MILITIA] = n_regular_per_sector;
-		si.ubNumberOfCivsAtLevel[ELITE_MILITIA]   = n_elite_per_sector;
-		si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA] = n_heavy_per_sector;
-
-		// Add leftovers that weren't included in the div operation
-		INT16 total_so_far = n_green_per_sector + n_regular_per_sector + n_elite_per_sector + n_heavy_per_sector;
-		if (n_left_over_green != 0 && total_so_far < MAX_ALLOWABLE_MILITIA_PER_SECTOR)
+	INT32 n[MAX_MILITIA_LEVELS];
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank) n[rank] = GetPickedUpMilitia(rank);
+	for (UINT8 const sector : sectors)
+	{
+		for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 		{
-			++si.ubNumberOfCivsAtLevel[GREEN_MILITIA];
-			++total_so_far;
-			--n_left_over_green;
+			n[rank] += SectorInfo[sector].ubNumberOfCivsAtLevel[rank];
+			SectorInfo[sector].ubNumberOfCivsAtLevel[rank] = 0;
 		}
-		if (n_left_over_regular != 0 && total_so_far < MAX_ALLOWABLE_MILITIA_PER_SECTOR)
-		{
-			++si.ubNumberOfCivsAtLevel[REGULAR_MILITIA];
-			++total_so_far;
-			--n_left_over_regular;
-		}
-		if (n_left_over_elite && total_so_far < MAX_ALLOWABLE_MILITIA_PER_SECTOR)
-		{
-			++si.ubNumberOfCivsAtLevel[ELITE_MILITIA];
-			++total_so_far;
-			--n_left_over_elite;
-		}
-		if (n_left_over_heavy && total_so_far < MAX_ALLOWABLE_MILITIA_PER_SECTOR)
-		{
-			++si.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA];
-			++total_so_far;
-			--n_left_over_heavy;
-		}
-
 		if (sector == GetWorldSector()) gfStrategicMilitiaChangesMade = TRUE;
 	}
 
-	// Zero out numbers on the cursor
-	sGreensOnCursor   = 0;
-	sRegularsOnCursor = 0;
-	sElitesOnCursor   = 0;
-	sHeaviesOnCursor  = 0;
+	size_t next = 0;
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		while (n[rank] != 0)
+		{
+			// the next sector with room
+			size_t tried = 0;
+			while (tried != sectors.size() && CountAllMilitiaInSector(SGPSector(sectors[next])) >= MAX_ALLOWABLE_MILITIA_PER_SECTOR)
+			{
+				next = (next + 1) % sectors.size();
+				++tried;
+			}
+			if (tried == sectors.size()) break; // all full
+
+			++SectorInfo[sectors[next]].ubNumberOfCivsAtLevel[rank];
+			--n[rank];
+			next = (next + 1) % sectors.size();
+		}
+	}
+
+	// what didn't fit
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank) GetPickedUpMilitia(rank) = n[rank];
 }
 
 
@@ -3907,8 +3976,26 @@ static void MilitiaAutoButtonCallback(GUI_BUTTON* btn, UINT32 reason);
 static void MilitiaDoneButtonCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
+static void MilitiaDeployButtonCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) SendCursorMilitiaToDeployment(); // the box stays open (D8)
+}
+
+
 static void CreateMilitiaPanelBottomButton(void)
 {
+	// the arrival mode: Send to Deployment Center
+	MilitiaBoxLayout const& box = MilitiaBox();
+	if (g_arrival_order != 0 && box.deploy_y != 0 &&
+			GetVObject(guiMilitia)->SubregionCount() > MILITIA_DEPLOY_BUTTON_PRESSED)
+	{
+		GUIButtonRef const b = QuickCreateButtonImg(INTERFACEDIR "/militia.sti", MILITIA_DEPLOY_BUTTON_NORMAL, MILITIA_DEPLOY_BUTTON_PRESSED,
+			MAP_MILITIA_BOX_POS_X + box.deploy_x, MAP_MILITIA_BOX_POS_Y + box.deploy_y, MSYS_PRIORITY_HIGHEST - 1, MilitiaDeployButtonCallback);
+		b->SpecifyGeneralTextAttributes(pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_SEND], box.font, box.colour, DEFAULT_SHADOW);
+		b->SetFastHelpText(pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_SEND_HELP]);
+		g_militia_deploy_button = b;
+	}
+
 	MakeButton(MILITIA_AUTO_BUTTON, MAP_MILITIA_BOX_POS_X + MAP_MILITIA_BOX_AUTO_BOX_X, MilitiaAutoButtonCallback, pMilitiaButtonString[0]);
 	MakeButton(MILITIA_DONE_BUTTON, MAP_MILITIA_BOX_POS_X + MAP_MILITIA_BOX_DONE_BOX_X, MilitiaDoneButtonCallback, pMilitiaButtonString[1]);
 
@@ -3931,8 +4018,9 @@ static void DeleteMilitiaPanelBottomButton(void)
 	// delete militia panel bottom
 	RemoveButton( giMapMilitiaButton[ MILITIA_AUTO_BUTTON ] );
 	RemoveButton( giMapMilitiaButton[ MILITIA_DONE_BUTTON ] );
+	if (g_militia_deploy_button) RemoveButton(g_militia_deploy_button);
 
-	if( sSelectedMilitiaTown != 0 )
+	if( sSelectedMilitiaTown != 0 && g_arrival_order == 0 )
 	{
 		HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor( sSelectedMilitiaTown );
 	}
@@ -4052,9 +4140,13 @@ static void DrawTownMilitiaForcesOnMap()
 
 static void CheckAndUpdateStatesOfSelectedMilitiaSectorButtons()
 {
+	// the arrival mode: Done only with nothing unassigned (D4), Send to
+	// Deployment Center with something
+	if (g_militia_deploy_button) EnableButton(g_militia_deploy_button, CursorMilitiaTotal() != 0);
+	if (g_arrival_order != 0) EnableButton(giMapMilitiaButton[MILITIA_AUTO_BUTTON], CanMilitiaAutoDistribute());
 	if (!fMilitiaMapButtonsCreated)
 	{
-		EnableButton(giMapMilitiaButton[MILITIA_DONE_BUTTON]);
+		EnableButton(giMapMilitiaButton[MILITIA_DONE_BUTTON], g_arrival_order == 0 || CursorMilitiaTotal() == 0);
 		return;
 	}
 
@@ -4369,6 +4461,15 @@ static bool CanMilitiaAutoDistribute()
 
 	// Cannot auto-distribute, if we don't have a town selected. (this excludes SAM sites)
 	if (town == BLANK_SECTOR) return false;
+
+	// unassigned militia and a sector of ours with no enemy to put them in
+	if (CursorMilitiaTotal() != 0)
+	{
+		FOR_EACH_SECTOR_IN_TOWN(i, town)
+		{
+			if (SectorOursAndPeaceful(SGPSector(i->sector))) return true;
+		}
+	}
 
 	FOR_EACH_SECTOR_IN_TOWN(i, town)
 	{

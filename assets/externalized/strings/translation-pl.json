@@ -1794,7 +1794,9 @@
         "Regularna samoobrona (%d) dotarła na miejsce: %s.",
         "Weterani samoobrony (%d) dotarli na miejsce: %s.",
         "Ciężcy weterani samoobrony (%d) dotarli na miejsce: %s.",
-        "Twoi najemnicy muszą najpierw wyzwolić sektor %s. Potem możesz odbijać sektory samą samoobroną."
+        "Twoi najemnicy muszą najpierw wyzwolić sektor %s. Potem możesz odbijać sektory samą samoobroną.",
+        "Send to Deployment Center",
+        "The unassigned militia go to the Deployment Center and wait there for orders."
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

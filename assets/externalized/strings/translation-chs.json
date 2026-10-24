@@ -1794,7 +1794,9 @@
         "老兵(%d名)已到达%s.",
         "精兵(%d名)已到达%s.",
         "重装精兵(%d名)已到达%s.",
-        "你的佣兵必须先解放%s. 之后才能只用民兵夺回区域."
+        "你的佣兵必须先解放%s. 之后才能只用民兵夺回区域.",
+        "Send to Deployment Center",
+        "The unassigned militia go to the Deployment Center and wait there for orders."
     ],
     "pMilitiaWatchStrings": [
         "观战",

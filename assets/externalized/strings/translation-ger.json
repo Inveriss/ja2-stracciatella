@@ -1794,7 +1794,9 @@
         "Reguläre Miliz (%d) ist in %s eingetroffen.",
         "Elitemiliz (%d) ist in %s eingetroffen.",
         "Schwere Elitemiliz (%d) ist in %s eingetroffen.",
-        "Ihre Söldner müssen zuerst %s befreien. Danach können Sie Sektoren allein mit der Miliz zurückerobern."
+        "Ihre Söldner müssen zuerst %s befreien. Danach können Sie Sektoren allein mit der Miliz zurückerobern.",
+        "Send to Deployment Center",
+        "The unassigned militia go to the Deployment Center and wait there for orders."
     ],
     "pMilitiaWatchStrings": [
         "Kampf beobachten",

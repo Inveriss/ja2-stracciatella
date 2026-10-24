@@ -5,7 +5,8 @@ Status: plan, not implemented; decisions D1-D8 given by the user
 Code to change: `Strategic/Town_Militia.cc` (orders, arrival questions),
 `Strategic/Map_Screen_Interface_Map.cc` (the militia box),
 `Strategic/MapScreen.cc` (opening the box from the arrival),
-the 9 language files (`Utils/*Text.cc`).
+the 9 translation files (`assets/externalized/strings/translation-*.json`,
+`pMilitiaRecruitStrings`) and `src/externalized/strings/Localization.h`.
 Builds on: [militia-arrival-time-plan.md](militia-arrival-time-plan.md)
 (orders, stage 4.1 partial entry, stage 4.2 attack, stage 5 deployment
 panel) and the big militia box with arrows (`militia.sti` 19, commits
@@ -181,13 +182,13 @@ cursor may hold more than the room.
 
 ### Opening
 
-`HandleMilitiaOrderQuestions()` (Town_Militia.cc), for a town order with
-room < total (D1): instead of `MILITIA_STR_ORDER_PARTIAL` / `_ATTACK` it
-calls a new `OpenMilitiaArrivalBox(order_id)` (Map_Screen_Interface_Map.cc)
+`HandleMilitiaOrderQuestions()` (Town_Militia.cc), for every arriving town
+order (D1, D1b): instead of entering it by itself (and the arrival notice)
+or `MILITIA_STR_ORDER_PARTIAL` / `_ATTACK` it calls a new `OpenMilitiaArrivalBox(order_id)` (Map_Screen_Interface_Map.cc)
 when the map screen is up, no other box/panel is open (recruitment,
 deployment, militia box in normal mode, pre-battle) and no message box.
-On the tactical screen: D5.1/D5.2 (stages 4 and 5); until then the
-question stays queued until the map screen. Opening sets `fShowMilitia` (the map's militia view) and
+On the tactical screen: D5.1/D5.2 (stages 4 and 5, way B); until then the
+order stays queued until the player enters the map screen. Opening sets `fShowMilitia` (the map's militia view) and
 `sSelectedMilitiaTown`, as clicking a town in that view does.
 
 ### SAM sites (D1)
@@ -279,7 +280,8 @@ tools/interface_preview.
 ## Stages
 
 1. **Logic without the new graphics.** Arrival mode of the box: opening from
-   the question queue (map screen, D5 log line in tactical), the order on the
+   the question queue (on the map screen; an arrival on the tactical screen
+   waits for the map screen until stages 4-5), the order on the
    cursor and kept in sync, Done, forced close to the Deployment Center, AUTO
    capped at 20 (D6), no `HandleShutDown...` in this mode. A temporary
    Deployment Center button with the AUTO/DONE graphic and the text drawn

@@ -38,6 +38,9 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 #define MILITIA_STR_ORDER_ARRIVED_RANK_FIRST 38
 // the militia box's Done: "Your mercenaries must liberate %s first. ..."
 #define MILITIA_STR_LIBERATE_FIRST           42
+// the militia box's arrival mode: the Send to Deployment Center button, its help
+#define MILITIA_STR_DEPLOY_SEND              43
+#define MILITIA_STR_DEPLOY_SEND_HELP         44
 
 void CloseMilitiaRecruitPanel();
 

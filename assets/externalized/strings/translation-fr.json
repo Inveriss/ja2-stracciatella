@@ -1794,7 +1794,9 @@
         "Soldats (%d) arrivés à %s.",
         "Vétérans (%d) arrivés à %s.",
         "Vétérans lourds (%d) arrivés à %s.",
-        "Vos mercenaires doivent d'abord libérer %s. Ensuite, vous pourrez reprendre des secteurs avec la milice seule."
+        "Vos mercenaires doivent d'abord libérer %s. Ensuite, vous pourrez reprendre des secteurs avec la milice seule.",
+        "Send to Deployment Center",
+        "The unassigned militia go to the Deployment Center and wait there for orders."
     ],
     "pMilitiaWatchStrings": [
         "Regarder la bataille",

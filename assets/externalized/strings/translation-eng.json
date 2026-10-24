@@ -1799,7 +1799,9 @@
         "%d regular militia have arrived in %s.",
         "%d elite militia have arrived in %s.",
         "%d elite heavy militia have arrived in %s.",
-        "Your mercenaries must liberate %s first. After that, you can recapture sectors using militia alone."
+        "Your mercenaries must liberate %s first. After that, you can recapture sectors using militia alone.",
+        "Send to Deployment Center",
+        "The unassigned militia go to the Deployment Center and wait there for orders."
     ],
     "pMilitiaWatchStrings": [
         "Watch the Battle",

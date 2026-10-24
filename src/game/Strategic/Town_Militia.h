@@ -138,6 +138,17 @@ void RetryMilitiaOrder(UINT32 order_id);
 // The order's town, or its SAM site's sector
 ST::string MilitiaOrderAreaName(MilitiaOrder const&);
 
+// The militia box's arrival mode (Map_Screen_Interface_Map.cc,
+// docs/militia-arrival-box-plan.md): the box shows an arrived order's
+// militia as the unassigned ones and keeps the order in step with them
+void SetMilitiaOrderCounts(UINT32 order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS]);
+// Send to Deployment Center: these militia of the order become a waiting
+// order of their own (the deployment panel); the order keeps the rest
+void SendMilitiaOrderToDeployment(UINT32 order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS]);
+// The box closed: n of the order's militia entered the town (its loyalty
+// counts them), the order is done
+void FinishMilitiaArrivalOrder(UINT32 order_id, UINT32 n_entered);
+
 // Every map screen and tactical frame: asks the queued questions of arriving
 // orders, one at a time, when nothing else is going on (no message box,
 // battle or pre-battle panel)

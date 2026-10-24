@@ -1275,6 +1275,61 @@ static UINT32 MilitiaOrderRoom(MilitiaOrder const& o)
 static std::vector<ST::string> g_order_notices;
 
 
+static void MilitiaOrderWaits(MilitiaOrder& o);
+
+
+// "10 green militia have arrived in Drassen.": a line per rank in the
+// message log
+static void LogMilitiaArrival(MilitiaOrder const& o)
+{
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		if (o.counts[rank] == 0) continue;
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED_RANK_FIRST + rank],
+			int(o.counts[rank]), RecruitAreaName(o.sector)));
+	}
+}
+
+
+void SetMilitiaOrderCounts(UINT32 const order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS])
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	std::copy(std::begin(counts), std::end(counts), std::begin(it->counts));
+}
+
+
+void SendMilitiaOrderToDeployment(UINT32 const order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS])
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+
+	MilitiaOrder sent = *it;
+	sent.id = 1;
+	for (MilitiaOrder const& other : g_militia_orders) sent.id = std::max(sent.id, other.id + 1);
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		UINT8 const n = std::min(counts[rank], it->counts[rank]);
+		sent.counts[rank]  = n;
+		it->counts[rank]  -= n;
+	}
+	if (OrderTotal(sent) == 0) return;
+	g_militia_orders.push_back(sent); // it is no longer valid
+	MilitiaOrderWaits(g_militia_orders.back());
+}
+
+
+void FinishMilitiaArrivalOrder(UINT32 const order_id, UINT32 const n_entered)
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	if (n_entered != 0) AddMilitiaRecruitLoyalty(it->sector, n_entered);
+	g_militia_orders.erase(it);
+	gfStrategicMilitiaChangesMade = TRUE;
+	fMapPanelDirty = TRUE;
+}
+
+
 static void EnterMilitiaOrder(UINT32 const order_id, UINT32 n)
 {
 	auto const it = FindMilitiaOrder(order_id);
@@ -1461,11 +1516,27 @@ static void PartialEntryCallback(MessageBoxReturnValue const ret)
 }
 
 
+// The town of an order the militia box takes on its arrival (BLANK_SECTOR:
+// none -- a SAM site outside the towns keeps the questions)
+static INT8 MilitiaOrderBoxTown(MilitiaOrder const& o)
+{
+	return o.sector.z == 0 ? GetTownIdForSector(o.sector) : BLANK_SECTOR;
+}
+
+
 void HandleMilitiaOrderArrival(UINT32 const order_id)
 {
 	auto const it = FindMilitiaOrder(order_id);
 	if (it == g_militia_orders.end()) return;
 	MilitiaOrder& o = *it;
+
+	// a town's order: the militia box, on the map screen (D1, D1b), queued
+	// as the questions
+	if (MilitiaOrderBoxTown(o) != BLANK_SECTOR)
+	{
+		g_order_questions.push_back(order_id);
+		return;
+	}
 
 	UINT32 const total = OrderTotal(o);
 	UINT32 const room  = MilitiaOrderRoom(o);
@@ -1497,6 +1568,8 @@ void HandleMilitiaOrderArrival(UINT32 const order_id)
 
 void RetryMilitiaOrder(UINT32 const order_id)
 {
+	// its militia are the militia box's unassigned ones
+	if (order_id == MilitiaArrivalBoxOrder()) return;
 	// already asked about, or queued
 	if (g_order_asked == order_id) return;
 	if (std::find(g_order_questions.begin(), g_order_questions.end(), order_id) != g_order_questions.end()) return;
@@ -1545,6 +1618,29 @@ void HandleMilitiaOrderQuestions()
 	bool const in_battle = (gTacticalStatus.uiFlags & INCOMBAT) || gfWatchingMilitiaBattle;
 	if (join ? !CanAskToJoinNow() : (in_battle && room < total)) return;
 
+	// a town's order (not joining a battle): the militia box with the order's
+	// militia as the unassigned ones -- on the map screen only (on the
+	// tactical screen it waits for the map screen)
+	INT8 const town = MilitiaOrderBoxTown(*it);
+	if (town != BLANK_SECTOR && !join)
+	{
+		if (guiCurrentScreen != MAP_SCREEN) return;
+		if (MilitiaArrivalBoxTown() == town)
+		{
+			// the town's box is open: they join its unassigned militia (D7)
+			AddToMilitiaArrivalBox(it->counts);
+			LogMilitiaArrival(*it);
+			g_militia_orders.erase(it);
+			g_order_questions.erase(g_order_questions.begin());
+			return;
+		}
+		if (!OpenMilitiaArrivalBox(order_id, town, it->counts)) return;
+		it->waiting = true; // saved in the box: back as a waiting order
+		LogMilitiaArrival(*it);
+		g_order_questions.erase(g_order_questions.begin());
+		return;
+	}
+
 	g_order_questions.erase(g_order_questions.begin());
 	if (room >= total) { EnterMilitiaOrder(order_id, total); return; }
 
@@ -1585,6 +1681,7 @@ void InitMilitiaOrdersForNewGame()
 	g_order_questions.clear();
 	g_order_notices.clear();
 	g_order_asked = 0;
+	ResetMilitiaArrivalBox();
 }
 
 
@@ -1593,6 +1690,7 @@ void SaveMilitiaOrdersToSaveGameFile()
 	std::vector<int32_t> v;
 	for (MilitiaOrder const& o : g_militia_orders)
 	{
+		if (OrderTotal(o) == 0) continue; // the militia box's, all placed
 		v.push_back(o.id);
 		v.push_back(o.sector.AsByte());
 		v.push_back(o.arrival_min);
@@ -1626,4 +1724,5 @@ void LoadMilitiaOrdersFromSaveGameFile()
 	g_order_questions.clear();
 	g_order_notices.clear();
 	g_order_asked = 0;
+	ResetMilitiaArrivalBox();
 }
