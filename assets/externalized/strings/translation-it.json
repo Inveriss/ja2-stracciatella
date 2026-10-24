@@ -1793,7 +1793,8 @@
         "Reclute dell'esercito (%d) arrivate a %s.",
         "Soldati regolari (%d) arrivati a %s.",
         "Veterani (%d) arrivati a %s.",
-        "Veterani pesanti (%d) arrivati a %s."
+        "Veterani pesanti (%d) arrivati a %s.",
+        "I vostri mercenari devono prima liberare %s. Dopo, potrete riconquistare i settori con il solo esercito."
     ],
     "pMilitiaWatchStrings": [
         "Osserva la battaglia",

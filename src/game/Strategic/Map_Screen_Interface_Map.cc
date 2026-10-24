@@ -23,6 +23,7 @@
 #include "Merc_Hiring.h"
 #include "Message.h"
 #include "Militia_Control.h"
+#include "Militia_Recruit_Panel.h"
 #include "MineModel.h"
 #include "MouseSystem.h"
 #include "Object_Cache.h"
@@ -3957,6 +3958,17 @@ static void MilitiaDoneButtonCallback(GUI_BUTTON *btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		// militia put in an enemy-held sector the mercs never liberated can't
+		// attack it: the player is told, the box stays open
+		INT16 const attacked = MilitiaBoxAttackSector(sSelectedMilitiaTown);
+		if (attacked != -1 && !SectorInfo[attacked].fSurfaceWasEverPlayerControlled)
+		{
+			DoMapMessageBox(MSG_BOX_BASIC_STYLE,
+				st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_LIBERATE_FIRST], SGPSector(attacked).AsShortString()),
+				MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
+			return;
+		}
+
 		// militia put in an enemy-held sector attack it
 		g_militia_box_done = true;
 

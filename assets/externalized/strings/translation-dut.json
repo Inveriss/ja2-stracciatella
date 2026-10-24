@@ -1793,7 +1793,8 @@
         "Groene militie (%d) is aangekomen in %s.",
         "Normale militie (%d) is aangekomen in %s.",
         "Veteranenmilitie (%d) is aangekomen in %s.",
-        "Zware veteranen (%d) zijn aangekomen in %s."
+        "Zware veteranen (%d) zijn aangekomen in %s.",
+        "Je huurlingen moeten eerst %s bevrijden. Daarna kun je sectoren met alleen de militie heroveren."
     ],
     "pMilitiaWatchStrings": [
         "Gevecht bekijken",

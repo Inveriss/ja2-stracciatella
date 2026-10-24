@@ -36,6 +36,8 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 #define MILITIA_STR_DEPLOY_RETRY_FMT       37 // the Done button's help
 // "%d green militia have arrived in %s.", then regular, elite, elite heavy
 #define MILITIA_STR_ORDER_ARRIVED_RANK_FIRST 38
+// the militia box's Done: "Your mercenaries must liberate %s first. ..."
+#define MILITIA_STR_LIBERATE_FIRST           42
 
 void CloseMilitiaRecruitPanel();
 

@@ -1793,7 +1793,8 @@
         "Miliciens (%d) arrivés à %s.",
         "Soldats (%d) arrivés à %s.",
         "Vétérans (%d) arrivés à %s.",
-        "Vétérans lourds (%d) arrivés à %s."
+        "Vétérans lourds (%d) arrivés à %s.",
+        "Vos mercenaires doivent d'abord libérer %s. Ensuite, vous pourrez reprendre des secteurs avec la milice seule."
     ],
     "pMilitiaWatchStrings": [
         "Regarder la bataille",

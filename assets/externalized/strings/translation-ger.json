@@ -1793,7 +1793,8 @@
         "Grüne Miliz (%d) ist in %s eingetroffen.",
         "Reguläre Miliz (%d) ist in %s eingetroffen.",
         "Elitemiliz (%d) ist in %s eingetroffen.",
-        "Schwere Elitemiliz (%d) ist in %s eingetroffen."
+        "Schwere Elitemiliz (%d) ist in %s eingetroffen.",
+        "Ihre Söldner müssen zuerst %s befreien. Danach können Sie Sektoren allein mit der Miliz zurückerobern."
     ],
     "pMilitiaWatchStrings": [
         "Kampf beobachten",
