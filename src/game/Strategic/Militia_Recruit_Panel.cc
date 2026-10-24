@@ -74,50 +74,50 @@ constexpr RecruitTextPos RECRUIT_MOD_HEADER = { 600, 23, 142 };
 constexpr INT16 RECRUIT_MOD_X = 606;
 constexpr INT16 RECRUIT_MOD_W = 131;
 // the rank rows (box frames at y 134, 210, 286, 362, 76 apart; a portrait at
-// x 24): the rank box (100,y 74x66) -- the rank's name, "Your price" and the
-// price under it -- then the recruit box (184,y 237x66) and the box at 431
-// (for the upgrades)
+// x 24): the rank box (100,y 84x66) -- the rank's name, "Your price" and the
+// price under it -- then the recruit box (194,y 237x66) and the upgrade box
+// (441,y 275x66)
 constexpr INT16 RECRUIT_ROW_FIRST_Y = 134;
 constexpr INT16 RECRUIT_ROW_PITCH   = 76;
 constexpr INT16 RECRUIT_RANK_X      = 103;
-constexpr INT16 RECRUIT_RANK_W      = 68;
+constexpr INT16 RECRUIT_RANK_W      = 78;
 constexpr INT16 RECRUIT_RANK_NAME_DY        = 9; // from the row frame's top
-constexpr INT16 RECRUIT_RANK_PRICE_LABEL_DY = 34;
-constexpr INT16 RECRUIT_RANK_PRICE_DY       = 49;
-// the recruit box: "Recruit <rank> Militia" at its top, then the - and
+constexpr INT16 RECRUIT_RANK_PRICE_LABEL_DY = 33;
+constexpr INT16 RECRUIT_RANK_PRICE_DY       = 48;
+// the recruit box: "Recruit <rank>" at its top, then the - and
 // + buttons and the "Count" and "Cost" columns (label over value) with "="
 // between the values
 char const* const RECRUIT_BUTTONS_GFX = INTERFACEDIR "/MILITIA_RECRUIT_BUTTONS.STI"; // 39x33: 0/1 -, 2/3 +, 4/5 done
-constexpr INT16 RECRUIT_TITLE_X      = 187;
+constexpr INT16 RECRUIT_TITLE_X      = 197;
 constexpr INT16 RECRUIT_TITLE_W      = 231;
 constexpr INT16 RECRUIT_TITLE_DY     = 8;
-constexpr INT16 RECRUIT_MINUS_X      = 192;
-constexpr INT16 RECRUIT_PLUS_X       = 236;
+constexpr INT16 RECRUIT_MINUS_X      = 202;
+constexpr INT16 RECRUIT_PLUS_X       = 246;
 constexpr INT16 RECRUIT_BUTTON_DY    = 25; // from the row frame's top
 constexpr INT16 RECRUIT_LABEL_DY     = 25;
 constexpr INT16 RECRUIT_VALUE_DY     = 42;
-constexpr INT16 RECRUIT_COUNT_X      = 279;
+constexpr INT16 RECRUIT_COUNT_X      = 289;
 constexpr INT16 RECRUIT_COUNT_W      = 44;
-constexpr INT16 RECRUIT_EQUALS_X     = 324;
+constexpr INT16 RECRUIT_EQUALS_X     = 334;
 constexpr INT16 RECRUIT_EQUALS_W     = 16;
-constexpr INT16 RECRUIT_COST_X       = 339;
+constexpr INT16 RECRUIT_COST_X       = 349;
 constexpr INT16 RECRUIT_COST_W       = 72;
-// the upgrade box (431,y 237x66; green, regular and elite rows -- elite heavy is
+// the upgrade box (441,y 275x66; green, regular and elite rows -- elite heavy is
 // the last rank): "Available to upgrade: N" and "Your price = $" on its top,
 // the - and + buttons, Count = Cost (docs/militia-upgrade-plan.md)
-constexpr INT16 UPGRADE_AVAILABLE_X  = 438;
-constexpr INT16 UPGRADE_PRICE_X      = 623;
+constexpr INT16 UPGRADE_AVAILABLE_X  = 448;
+constexpr INT16 UPGRADE_PRICE_X      = 615;
 constexpr INT16 UPGRADE_TEXT_DY      = 6;
-constexpr INT16 UPGRADE_MINUS_X      = 439;
-constexpr INT16 UPGRADE_PLUS_X       = 483;
+constexpr INT16 UPGRADE_MINUS_X      = 449;
+constexpr INT16 UPGRADE_PLUS_X       = 493;
 constexpr INT16 UPGRADE_BUTTON_DY    = 24;
 constexpr INT16 UPGRADE_LABEL_DY     = 24;
 constexpr INT16 UPGRADE_VALUE_DY     = 41;
-constexpr INT16 UPGRADE_COUNT_X      = 526;
+constexpr INT16 UPGRADE_COUNT_X      = 536;
 constexpr INT16 UPGRADE_COUNT_W      = 44;
-constexpr INT16 UPGRADE_EQUALS_X     = 571;
+constexpr INT16 UPGRADE_EQUALS_X     = 581;
 constexpr INT16 UPGRADE_EQUALS_W     = 16;
-constexpr INT16 UPGRADE_COST_X       = 586;
+constexpr INT16 UPGRADE_COST_X       = 596;
 constexpr INT16 UPGRADE_COST_W       = 72;
 #define UPGRADE_RANKS (MAX_MILITIA_LEVELS - 1)
 // under the rows (frames at y 446, 127x66): current balance (274), arrival
@@ -179,7 +179,7 @@ enum
 	RECRUIT_STR_DEPLOY_RETRY_FMT,
 	RECRUIT_STR_ORDER_ARRIVED_RANK_FIRST, // a line per rank (Town_Militia.cc)
 	RECRUIT_STR_YOUR_PRICE = 54, // "Your price" over the price (54: after the militia box's texts)
-	RECRUIT_STR_RECRUIT_TITLE_FMT, // "Recruit %s Militia"
+	RECRUIT_STR_RECRUIT_TITLE_FMT, // "Recruit %s"
 	RECRUIT_STR_UPGRADE_AVAILABLE_FMT // "Available to upgrade: %d"
 };
 static_assert(RECRUIT_STR_MENU_RECRUITMENT == MILITIA_MENU_STR_RECRUITMENT);
@@ -660,7 +660,7 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_LABEL_DY), RECRUIT_RANK_W }, pMilitiaRecruitStrings[RECRUIT_STR_YOUR_PRICE]);
 		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_DY), RECRUIT_RANK_W }, SPrintMoney(unit_price));
 
-		// "Recruit <rank> Militia" (a placeholder for its place)
+		// "Recruit <rank>" (a placeholder for its place)
 		PrintCentered(px, py, { RECRUIT_TITLE_X, INT16(row_y + RECRUIT_TITLE_DY), RECRUIT_TITLE_W },
 			st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_RECRUIT_TITLE_FMT], pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]));
 
@@ -751,6 +751,11 @@ void HandleMilitiaRecruitPanel()
 	{
 		MarkAButtonDirty(g_minus_buttons[rank]);
 		MarkAButtonDirty(g_plus_buttons[rank]);
+	}
+	for (UINT8 rank = 0; rank != UPGRADE_RANKS; ++rank)
+	{
+		MarkAButtonDirty(g_upgrade_minus_buttons[rank]);
+		MarkAButtonDirty(g_upgrade_plus_buttons[rank]);
 	}
 	MarkAButtonDirty(g_buy_button);
 	for (GUIButtonRef const b : g_arrival_buttons) MarkAButtonDirty(b);

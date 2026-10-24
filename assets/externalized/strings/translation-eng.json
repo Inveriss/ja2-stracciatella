@@ -1812,7 +1812,7 @@
         "- Send to Deployment Center",
         "Assigned",
         "Your price",
-        "Recruit %s Militia",
+        "Recruit %s",
         "Available to upgrade: %d"
     ],
     "pMilitiaWatchStrings": [
