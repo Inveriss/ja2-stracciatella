@@ -710,9 +710,10 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 		PrintCentered(px, py, { UPGRADE_COST_X,   INT16(row_y + UPGRADE_VALUE_DY), UPGRADE_COST_W   }, SPrintMoney(g_upgrades[rank] * unit));
 	}
 
-	// current balance
+	// current balance: what is left after the purchase picked so far (every
+	// pick shows at once; the money is taken only by the buy button)
 	PrintCentered(px, py, RECRUIT_BALANCE_LABEL, pMilitiaRecruitStrings[RECRUIT_STR_CURRENT_BALANCE]);
-	PrintCentered(px, py, RECRUIT_BALANCE_VALUE, SPrintMoney(LaptopSaveInfo.iCurrentBalance));
+	PrintCentered(px, py, RECRUIT_BALANCE_VALUE, SPrintMoney(LaptopSaveInfo.iCurrentBalance - TotalCost()));
 
 	// total cost: the militia and the arrival option's extra
 	PrintCentered(px, py, RECRUIT_TOTAL_LABEL, pMilitiaRecruitStrings[RECRUIT_STR_TOTAL_COST]);
