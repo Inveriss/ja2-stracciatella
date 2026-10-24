@@ -1,4 +1,6 @@
 #include "Map_Screen_Interface_Border.h"
+#include "Militia_Recruit_Panel.h"
+#include "Militia_Deployment_Panel.h"
 #include "Assignments.h"
 #include "Campaign_Types.h"
 #include "Debug.h"
@@ -565,6 +567,8 @@ static void DisplayCurrentLevelMarker(void)
 void RenderMapLevelMarker(void)
 {
 	if (fShowMapInventoryPool) return;
+	// the militia panels lie over it
+	if (IsMilitiaRecruitPanelOpen() || IsMilitiaDeploymentPanelOpen()) return;
 
 	// Draws straight to FRAME_BUFFER (not guiSAVEBUFFER, unlike
 	// DisplayCurrentLevelMarker() above) so it always ends up on top,
