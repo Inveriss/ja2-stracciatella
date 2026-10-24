@@ -57,19 +57,19 @@ constexpr INT16   RECRUIT_CLOSE_BUTTON_MARGIN = 10; // from the panel's bottom r
 // right-aligned to
 struct RecruitTextPos { INT16 x, y, w; };
 
-// base prices box (16,29 148x90): header, then a line per rank (name left,
+// base prices box (16,16 148x90): header, then a line per rank (name left,
 // price right)
-constexpr RecruitTextPos RECRUIT_BASE_HEADER = { 19, 36, 142 };
-constexpr INT16 RECRUIT_LIST_FIRST_Y = 52; // the rank / bracket lines of both top boxes
+constexpr RecruitTextPos RECRUIT_BASE_HEADER = { 19, 23, 142 };
+constexpr INT16 RECRUIT_LIST_FIRST_Y = 39; // the rank / bracket lines of both top boxes
 constexpr INT16 RECRUIT_LIST_PITCH   = 16;
 constexpr INT16 RECRUIT_BASE_X       = 25;
 constexpr INT16 RECRUIT_BASE_W       = 131;
-// title bar (184,29 392x31)
-constexpr RecruitTextPos RECRUIT_TITLE = { 184, 40, 392 };
-// the recruiter box (195,70 369x49): three lines
-constexpr RecruitTextPos RECRUIT_RECRUITER[3] = { { 198, 76, 363 }, { 198, 89, 363 }, { 198, 102, 363 } };
-// price modifiers box (597,29 148x90): header, then a line per leadership bracket
-constexpr RecruitTextPos RECRUIT_MOD_HEADER = { 600, 36, 142 };
+// title bar (184,16 392x31)
+constexpr RecruitTextPos RECRUIT_TITLE = { 184, 27, 392 };
+// the recruiter box (195,57 369x49): three lines
+constexpr RecruitTextPos RECRUIT_RECRUITER[3] = { { 198, 63, 363 }, { 198, 76, 363 }, { 198, 89, 363 } };
+// price modifiers box (597,16 148x90): header, then a line per leadership bracket
+constexpr RecruitTextPos RECRUIT_MOD_HEADER = { 600, 23, 142 };
 constexpr INT16 RECRUIT_MOD_X = 606;
 constexpr INT16 RECRUIT_MOD_W = 131;
 // the rank rows (box frames at y 134, 210, 286, 362, 76 apart; a portrait at
