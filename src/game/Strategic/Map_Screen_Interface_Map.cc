@@ -429,7 +429,7 @@ static UINT16 HeavyMilitiaIcon(UINT16 const elite_icon)
 //   unassigned militia under them, under those their numbers per rank on
 //   the rank button's graphic (militia.sti 3); the panel (268x478) has a
 //   slot over AUTO and DONE for the arrival mode's Send to Deployment Center
-//   button and a text box at its bottom (268x560 in all, at y 44); the
+//   button and a text box at its bottom (268x478, at y 85); the
 //   "Unassigned" label right of the counters.
 
 // the rank button's graphic in militia.sti
@@ -466,7 +466,7 @@ static MilitiaBoxLayout const& MilitiaBox()
 	};
 	static MilitiaBoxLayout const big_arrows_box =
 	{
-		true, 259, 3, 30, 84, 72, 3, 254, 22, 140, 375, 83, 22, 4, 325, 23, 7, 11, 4, 275, 33, 4, 134, 436, FONT14ARIAL, FONT_BEIGE, MILITIA_ARROWS_PANEL, 252, 298, 5, 374, 4, 401, 44
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 140, 375, 83, 22, 4, 325, 23, 7, 11, 4, 275, 33, 4, 134, 436, FONT14ARIAL, FONT_BEIGE, MILITIA_ARROWS_PANEL, 252, 298, 5, 374, 4, 401, 85
 	};
 	SGPVObject const* const vo = GetVObject(guiMilitia);
 	if (vo->SubregionCount() > MILITIA_ARROWS_PANEL && vo->SubregionProperties(MILITIA_ARROWS_PANEL).usWidth >= 250) return big_arrows_box;
