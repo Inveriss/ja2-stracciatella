@@ -58,32 +58,33 @@ constexpr INT16   RECRUIT_CLOSE_BUTTON_MARGIN = 10; // from the panel's bottom r
 // right-aligned to
 struct RecruitTextPos { INT16 x, y, w; };
 
-// base prices box (16,16 148x90): header, then a line per rank (name left,
+// base prices box (16,16 128x90): header, then a line per rank (name left,
 // price right)
-constexpr RecruitTextPos RECRUIT_BASE_HEADER = { 19, 23, 142 };
+constexpr RecruitTextPos RECRUIT_BASE_HEADER = { 19, 23, 122 };
 constexpr INT16 RECRUIT_LIST_FIRST_Y = 39; // the rank / bracket lines of both top boxes
 constexpr INT16 RECRUIT_LIST_PITCH   = 16;
-constexpr INT16 RECRUIT_BASE_X       = 25;
-constexpr INT16 RECRUIT_BASE_W       = 131;
+constexpr INT16 RECRUIT_BASE_X       = 30; // 11 px from the inner walls
+constexpr INT16 RECRUIT_BASE_W       = 102;
 // title bar (184,16 392x31)
 constexpr RecruitTextPos RECRUIT_TITLE = { 184, 27, 392 };
 // the recruiter box (195,57 369x49): three lines
 constexpr RecruitTextPos RECRUIT_RECRUITER[3] = { { 198, 63, 363 }, { 198, 76, 363 }, { 198, 89, 363 } };
-// price modifiers box (597,16 148x90): header, then a line per leadership bracket
-constexpr RecruitTextPos RECRUIT_MOD_HEADER   = { 600, 21, 142 }; // "Leadership"
-constexpr RecruitTextPos RECRUIT_MOD_HEADER_2 = { 600, 33, 142 }; // "Price Modifiers"
+// price modifiers box (617,16 128x90): header, then a line per leadership bracket
+constexpr RecruitTextPos RECRUIT_MOD_HEADER   = { 620, 21, 122 }; // "Leadership"
+constexpr RecruitTextPos RECRUIT_MOD_HEADER_2 = { 620, 33, 122 }; // "Price Modifiers"
 constexpr INT16 RECRUIT_MOD_LIST_FIRST_Y = 49;
 constexpr INT16 RECRUIT_MOD_LIST_PITCH   = 14;
-constexpr INT16 RECRUIT_MOD_X = 606;
-constexpr INT16 RECRUIT_MOD_W = 131;
+constexpr INT16 RECRUIT_MOD_X = 631;
+constexpr INT16 RECRUIT_MOD_W = 102;
 // the rank rows (box frames at y 134, 210, 286, 362, 76 apart; a portrait at
-// x 24): the rank box (100,y 84x66) -- the rank's name, "Your price" and the
-// price under it -- then the recruit box (194,y 237x66) and the upgrade box
-// (441,y 275x66)
+// x 24): the portrait and the rank box in one (24,y 160x66; the portrait to x
+// 86) -- the rank's name, "Your price" and the price under it right of the
+// portrait -- then the recruit box (194,y 242x66) and the upgrade box
+// (446,y 285x66)
 constexpr INT16 RECRUIT_ROW_FIRST_Y = 134;
 constexpr INT16 RECRUIT_ROW_PITCH   = 76;
-constexpr INT16 RECRUIT_RANK_X      = 103;
-constexpr INT16 RECRUIT_RANK_W      = 78;
+constexpr INT16 RECRUIT_RANK_X      = 87;
+constexpr INT16 RECRUIT_RANK_W      = 94;
 constexpr INT16 RECRUIT_RANK_NAME_DY        = 9; // from the row frame's top
 constexpr INT16 RECRUIT_RANK_PRICE_LABEL_DY = 33;
 constexpr INT16 RECRUIT_RANK_PRICE_DY       = 48;
@@ -92,7 +93,7 @@ constexpr INT16 RECRUIT_RANK_PRICE_DY       = 48;
 // between the values
 char const* const RECRUIT_BUTTONS_GFX = INTERFACEDIR "/MILITIA_RECRUIT_BUTTONS.STI"; // 39x33: 0/1 -, 2/3 +, 4/5 done
 constexpr INT16 RECRUIT_TITLE_X      = 197;
-constexpr INT16 RECRUIT_TITLE_W      = 231;
+constexpr INT16 RECRUIT_TITLE_W      = 236;
 constexpr INT16 RECRUIT_TITLE_DY     = 8;
 constexpr INT16 RECRUIT_MINUS_X      = 202;
 constexpr INT16 RECRUIT_PLUS_X       = 246;
@@ -105,22 +106,22 @@ constexpr INT16 RECRUIT_EQUALS_X     = 334;
 constexpr INT16 RECRUIT_EQUALS_W     = 16;
 constexpr INT16 RECRUIT_COST_X       = 349;
 constexpr INT16 RECRUIT_COST_W       = 72;
-// the upgrade box (441,y 275x66; green, regular and elite rows -- elite heavy is
+// the upgrade box (446,y 285x66; green, regular and elite rows -- elite heavy is
 // the last rank): "Available to upgrade: N" and "Your price = $" on its top,
 // the - and + buttons, Count = Cost (docs/militia-upgrade-plan.md)
-constexpr INT16 UPGRADE_AVAILABLE_X  = 449;
-constexpr INT16 UPGRADE_PRICE_X      = 615;
+constexpr INT16 UPGRADE_AVAILABLE_X  = 454;
+constexpr INT16 UPGRADE_PRICE_X      = 620;
 constexpr INT16 UPGRADE_TEXT_DY      = 6;
-constexpr INT16 UPGRADE_MINUS_X      = 449;
-constexpr INT16 UPGRADE_PLUS_X       = 493;
+constexpr INT16 UPGRADE_MINUS_X      = 454;
+constexpr INT16 UPGRADE_PLUS_X       = 498;
 constexpr INT16 UPGRADE_BUTTON_DY    = 24;
 constexpr INT16 UPGRADE_LABEL_DY     = 24;
 constexpr INT16 UPGRADE_VALUE_DY     = 41;
-constexpr INT16 UPGRADE_COUNT_X      = 536;
+constexpr INT16 UPGRADE_COUNT_X      = 541;
 constexpr INT16 UPGRADE_COUNT_W      = 44;
-constexpr INT16 UPGRADE_EQUALS_X     = 581;
+constexpr INT16 UPGRADE_EQUALS_X     = 586;
 constexpr INT16 UPGRADE_EQUALS_W     = 16;
-constexpr INT16 UPGRADE_COST_X       = 596;
+constexpr INT16 UPGRADE_COST_X       = 601;
 constexpr INT16 UPGRADE_COST_W       = 72;
 #define UPGRADE_RANKS (MAX_MILITIA_LEVELS - 1)
 // under the rows (frames at y 446, 127x66): current balance (274), arrival
@@ -605,28 +606,6 @@ static void PrintRight(INT16 const px, INT16 const py, INT16 const x0, INT16 con
 }
 
 
-// The rows' rank names and titles in capitals: the Latin letters (with the
-// Latin-1 and Latin Extended-A ones, e.g. Polish, German, French) and the
-// Cyrillic ones
-static ST::string Capitals(ST::string const& str)
-{
-	ST::utf32_buffer s = str.to_utf32();
-	for (size_t i = 0; i != s.size(); ++i)
-	{
-		char32_t& c = s[i];
-		if      (U'a' <= c && c <= U'z')                    c -= 0x20;
-		else if (0xE0 <= c && c <= 0xFE && c != 0xF7)       c -= 0x20; // a grave .. thorn
-		else if (0x100 <= c && c <= 0x137 && (c & 1))       c -= 1;    // a macron .. k cedilla
-		else if (0x139 <= c && c <= 0x148 && !(c & 1))      c -= 1;    // l acute .. n caron (l stroke)
-		else if (0x14A <= c && c <= 0x177 && (c & 1))       c -= 1;    // eng .. y circumflex (s acute)
-		else if (0x179 <= c && c <= 0x17E && !(c & 1))      c -= 1;    // z acute .. z caron
-		else if (0x430 <= c && c <= 0x44F)                  c -= 0x20; // Cyrillic a .. ya
-		else if (0x450 <= c && c <= 0x45F)                  c -= 0x50; // Cyrillic ie grave .. dzhe (yo)
-	}
-	return ST::string::from_utf32(s);
-}
-
-
 // "+25%" / "-10%" / "0%"
 static ST::string ModifierString(INT32 const percent)
 {
@@ -686,14 +665,14 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		INT16 const row_y = RECRUIT_ROW_FIRST_Y + rank * RECRUIT_ROW_PITCH;
-		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_NAME_DY), RECRUIT_RANK_W }, Capitals(pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]));
+		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_NAME_DY), RECRUIT_RANK_W }, pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]);
 		INT32 const unit_price = MilitiaRecruitUnitPrice(rank, g_sector);
 		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_LABEL_DY), RECRUIT_RANK_W }, pMilitiaRecruitStrings[RECRUIT_STR_YOUR_PRICE]);
 		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_DY), RECRUIT_RANK_W }, SPrintMoney(unit_price));
 
 		// "Recruit <rank>" (a placeholder for its place)
 		PrintCentered(px, py, { RECRUIT_TITLE_X, INT16(row_y + RECRUIT_TITLE_DY), RECRUIT_TITLE_W },
-			Capitals(st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_RECRUIT_TITLE_FMT], pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank])));
+			st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_RECRUIT_TITLE_FMT], pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]));
 
 		// count = cost
 		PrintCentered(px, py, { RECRUIT_COUNT_X,  INT16(row_y + RECRUIT_LABEL_DY), RECRUIT_COUNT_W  }, pMilitiaRecruitStrings[RECRUIT_STR_COUNT]);
