@@ -86,6 +86,25 @@ D1. **When the box opens: also for SAM sites.** For any order that doesn't
 
     Joining a battle in tactical (4c) is D5.2.
 
+D1b. **Also when the whole order fits** (user, 2026-10-24): today an order
+    that fits whole enters the sectors by itself and a message box lists
+    the militia that arrived ("10 green militia have arrived in Drassen.",
+    commit 99bac6a04). Instead the box opens with the order on the cursor,
+    to be placed by hand, as in every other case. So the box opens for
+    every arriving order (towns now, SAM sites with their frames). The
+    lines per rank stay in the message log. Text under the box in this case
+    (proposed, as the SAM site's own text in D1):
+
+    > The militia has arrived in (town).
+    >
+    > Choose which militia:
+    > - Send to available sectors
+    > - Send to Deployment Center
+
+    It is the same arrival mode (the order owns the cursor, Done, D3, D8),
+    so it is part of stage 1, not a change of its own: the room only decides
+    the text.
+
 D1a. **Liberated first, without exception** (2026-10-24, commits 3cc60b4ec
     and the next): militia alone never attack a sector the mercs never
     liberated (`fSurfaceWasEverPlayerControlled`). In the box they may be put
