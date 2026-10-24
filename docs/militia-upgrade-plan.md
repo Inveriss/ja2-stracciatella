@@ -1,6 +1,7 @@
 # Militia recruitment: upgrading militia already in the town
 
-Status: plan, not implemented (2026-10-24). Branch: `Militia`.
+Status: plan, not implemented; decisions U1-U13 given by the user
+(2026-10-24). Branch: `Militia`.
 Code to change: `Strategic/Militia_Recruit_Panel.cc` (the panel),
 `Strategic/Town_Militia.cc` / `.h` (the upgrade itself), the 9 translation
 files (`assets/externalized/strings/translation-*.json`,
@@ -26,13 +27,15 @@ rank the town has now, under it.
 
 ## Placeholders (user, to be placed by hand later)
 
-- **Upgrade button:** the panel's own + button graphic
-  (`MILITIA_RECRUIT_BUTTONS.STI` 2 = normal, 3 = pressed, 39x33), centred
-  on the third ("big male") portrait of its row. The portraits are at x
-  137..186 and y row+9..row+70 of the rows at y 139, 231, 323 (415 the
-  heavy row): centre (161, row+40), so the button at (142, row+24).
-  Constants `RECRUIT_UPGRADE_X` / `RECRUIT_UPGRADE_DY`, as the - / +
-  buttons'.
+- **Upgrade + and - buttons** (U4): the panel's own + and - graphics
+  (`MILITIA_RECRUIT_BUTTONS.STI` 2/3 and 0/1, 39x33), on the middle
+  ("normal male") portrait of the row. The portraits are at x 80..129 and y
+  row+9..row+70 of the rows at y 139, 231, 323 (415 the elite heavy row,
+  without buttons): centre (105, row+40). Two 39x33 buttons don't fit one
+  49x61 portrait side by side, so for a start the + over the -: + at
+  (86, row+8), - at (86, row+41) (they reach 2 px past the portrait's
+  bottom). Constants `RECRUIT_UPGRADE_X`, `RECRUIT_UPGRADE_PLUS_DY`,
+  `RECRUIT_UPGRADE_MINUS_DY`, as the - / + buttons'.
 - **"Current" and its number:** next to "Your price" in the rank box
   (197,row+8 156x66), the label at row+46 right of it and the number under
   it; the box is narrow, so for the first version the rank box's text may
@@ -55,71 +58,58 @@ rank the town has now, under it.
 - A militia change in the sector loaded in tactical needs
   `gfStrategicMilitiaChangesMade = TRUE` (as `EnterMilitiaOrder()` does).
 
-## Decisions to make (recommendations)
+## Decisions (user, 2026-10-24)
 
-U1. **Whose militia.** The town's sectors of ours with no enemy, as the
-    recruitment room (`ForEachRecruitSector`). Militia in a sector with
-    enemies (a battle) are not upgraded. Orders on their way or waiting
-    (Deployment Center) are not counted and not upgraded. Recommended: so.
+U1. **Whose militia:** only the militia standing in the town's sectors of
+    ours with no enemy (`ForEachRecruitSector`). No orders on their way or
+    waiting (Deployment Center). Militia in a sector with enemies are not
+    upgraded.
 
-U2. **"Current" counts what.** The militia of that rank standing in those
-    sectors now (U1), without orders and without the upgrades picked in the
-    panel. Recommended: so; optionally a second number "after upgrade".
+U2. **"Current"** counts only the militia of that rank standing in those
+    sectors now (U1): no orders on their way or waiting, without the
+    upgrades picked in the panel.
 
-U3. **How the button works.** Two ways:
-    a) each click upgrades one militia at once and pays at once;
-    b) as the + button: clicks pick upgrades (a count per row, right click
-       5 at a time), their cost is added to the Total cost, the Buy button
-       buys the new militia and the upgrades together.
-    Recommended: b), the panel already works so. It needs a "-" or a way to
-    take an upgrade back (U4).
+U3. **The buttons pick, Buy buys:** as the + button, clicks pick upgrades
+    (a count per row, right click 5 at a time); their cost is added to the
+    Total cost; the Buy button buys the new militia and the upgrades
+    together.
 
-U4. **Taking a picked upgrade back.** a) a second placeholder button (the -
-    graphic) next to it; b) right click on the upgrade button takes one
-    back (right click no longer 5 at a time). Recommended: a), symmetric
-    with - / +.
+U4. **A + and a - button per row** for the upgrades, on the middle
+    ("normal male") portrait (Placeholders). The - takes a picked upgrade
+    back; right click 5 at a time on both, as on the new militia's - / +.
 
-U5. **Where the upgrade count and its cost are shown.** The row's Count /
-    Cost box is for new militia. Recommended: a placeholder line under the
-    upgrade button ("Upgrade: 3 = $900"), placed by the user later.
+U5. **The upgrade count and its cost:** a placeholder line under the
+    upgrade buttons, e.g. "Upgrade: 3 = $900", placed by the user later.
 
-U6. **When it takes effect.** a) at once on Buy (training in the town);
-    b) after the arrival option's hours, as an order. Recommended: a), and
-    the arrival option's extra cost applies only to new militia (an upgrade
-    alone costs no Express/Fast extra).
+U6. **At once on Buy** (for now): the upgrade is training in the town, no
+    arrival time; the arrival option's extra cost applies only to new
+    militia (upgrades alone cost no Express/Fast extra).
 
-U7. **Price.** a) the difference of the base prices (game.json: 100 / 200
-    / 500 / 1000 -> 100, 300, 500); b) the difference of the "Your price"
-    values, i.e. with the leadership percent (75-125 %) as new militia.
-    Recommended: b), so that a better recruiter makes upgrades cheaper
-    too, as he makes new militia cheaper.
+U7. **Price: the difference of the "Your price" values**, i.e. with the
+    best recruiter's leadership percent (75-125 %), as new militia:
+    `MilitiaRecruitUnitPrice(rank + 1) - MilitiaRecruitUnitPrice(rank)`.
 
-U8. **Chains in one purchase.** Can a green be picked green -> regular and
-    the same militia regular -> elite in one purchase? Recommended: no, each
-    row upgrades only the militia of its rank standing now (U2); the next
-    step is a next purchase.
+U8. **No chains in one purchase:** each row upgrades only the militia of
+    its rank standing now (U2); the next step is a next purchase. So a
+    row's picks are capped by its "Current".
 
-U9. **Which sector's militia.** In a town of several sectors: the
-    recruiting merc's sector first, then the other sectors in the town's
-    order. Recommended: so (the rank of a sector matters little).
+U9. **Which sector's militia:** the recruiting merc's sector first, then
+    the town's other sectors in the town's order.
 
-U10. **Limits.** Upgrades don't change the number of militia, so the room
-     (free slots) is not involved; only the balance. Up to "Current" per
-     row (U8).
+U10. **Limits:** the number of militia doesn't change, the room (free
+     slots) is not involved; only the balance and "Current" (U8).
 
-U11. **Loyalty.** New militia raise the town's loyalty
-     (`AddMilitiaRecruitLoyalty`). Upgrades: recommended none.
+U11. **Loyalty:** upgrades don't raise the town's loyalty.
 
-U12. **SAM sites.** The panel opens for SAM sites too; upgrades work there
-     the same (one sector). Recommended: yes.
+U12. **SAM sites:** upgrades work there too (one sector).
 
-U13. **Texts** (9 languages): "Current", the upgrade buttons' help ("Upgrade
-     a green militia to regular: $%d", ...), the U5 line, the take-back
-     button's help. Recommended wording to be confirmed in English first.
+U13. **Texts** (9 languages): "Current", the upgrade buttons' help
+     ("Upgrade a green militia to regular: $%d", ...), the - button's help,
+     the U5 line. English wording confirmed first, translations in stage 2.
 
 ## Stages
 
-1. **Upgrade logic and placeholders** (U1-U12 as decided): the buttons,
+1. **Upgrade logic and placeholders** (U1-U12): the + / - buttons,
    the picks, the cost in the Total, Buy applying them, "Current". English
    texts in all 9 files (translations in stage 2). Game test: a town of
    several sectors, a sector loaded in tactical, too little money, Buy with
