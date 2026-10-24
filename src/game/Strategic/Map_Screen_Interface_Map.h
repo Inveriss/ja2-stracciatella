@@ -3,6 +3,7 @@
 
 #include "JA2Types.h"
 #include "UILayout.h"
+#include <string_theory/string>
 
 
 void InitMapScreenInterfaceMap();
@@ -190,6 +191,12 @@ BOOLEAN CanRedistributeMilitiaInSector(INT16 bClickedTownId);
 // the unassigned ones; false when it can't now (another box or panel, the
 // map inventory, combat in the town)
 bool OpenMilitiaArrivalBox(UINT32 order_id, INT16 town, UINT8 const counts[]);
+// The box could open now (no other box or panel, no map inventory)
+bool CanOpenMilitiaArrivalBox();
+// The message shown before the box opens for an arrived order of total
+// militia: the header after the room, "Choose which militia:" and the
+// choices there are (docs/militia-arrival-box-plan.md, D1, D1b)
+ST::string MilitiaArrivalMessage(INT16 key, UINT32 total);
 // The militia box's key of a sector (sSelectedMilitiaTown): its town id, a
 // SAM site's own key outside the towns, 0: no box
 INT16 MilitiaBoxKeyForSector(const SGPSector&);

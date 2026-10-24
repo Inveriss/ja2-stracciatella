@@ -1587,6 +1587,24 @@ ST::string MilitiaOrderAreaName(MilitiaOrder const& o)
 }
 
 
+// The arrival message closed: the militia box opens with the order's militia
+// (when it can't now, the order is queued again)
+static void ArrivalMessageCallback(MessageBoxReturnValue)
+{
+	UINT32 const order_id = g_order_asked;
+	g_order_asked = 0;
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	if (!OpenMilitiaArrivalBox(order_id, MilitiaOrderBoxTown(*it), it->counts))
+	{
+		g_order_questions.insert(g_order_questions.begin(), order_id);
+		return;
+	}
+	it->waiting = true; // saved in the box: back as a waiting order
+	LogMilitiaArrival(*it);
+}
+
+
 void JoinMilitiaOrderToBattle(UINT32 const order_id)
 {
 	auto const it = FindMilitiaOrder(order_id);
@@ -1669,10 +1687,11 @@ void HandleMilitiaOrderQuestions()
 			g_order_questions.erase(g_order_questions.begin());
 			return;
 		}
-		if (!OpenMilitiaArrivalBox(order_id, town, it->counts)) return;
-		it->waiting = true; // saved in the box: back as a waiting order
-		LogMilitiaArrival(*it);
+		// first a message about the arrival and the choices, its OK opens the box
+		if (!CanOpenMilitiaArrivalBox()) return;
 		g_order_questions.erase(g_order_questions.begin());
+		g_order_asked = order_id;
+		DoScreenIndependantMessageBox(MilitiaArrivalMessage(town, OrderTotal(*it)), MSG_BOX_FLAG_OK, ArrivalMessageCallback);
 		return;
 	}
 

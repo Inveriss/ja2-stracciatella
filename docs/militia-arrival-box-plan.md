@@ -1,6 +1,9 @@
 # Militia arrival: placing them in the militia box
 
-Status: implemented, stages 1-5 done and verified in the game (2026-10-24). Decisions D1-D8 given by the user.
+Status: implemented, stages 1-5 done and verified in the game (2026-10-24).
+Later change (user): the texts are no longer drawn in a text box under the
+buttons (the panel, militia.sti 19, is 268x478 again); the same texts are
+shown first as a message box on the map, whose OK opens the box. Decisions D1-D8 given by the user.
 Branch: `Militia`.
 Code to change: `Strategic/Town_Militia.cc` (orders, arrival questions),
 `Strategic/Map_Screen_Interface_Map.cc` (the militia box),
