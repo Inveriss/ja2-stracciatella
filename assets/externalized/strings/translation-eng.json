@@ -1812,7 +1812,8 @@
         "- Send to Deployment Center",
         "Assigned",
         "Your price",
-        "Recruit %s Militia"
+        "Recruit %s Militia",
+        "Available to upgrade: %d"
     ],
     "pMilitiaWatchStrings": [
         "Watch the Battle",

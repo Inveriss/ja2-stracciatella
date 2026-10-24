@@ -1812,7 +1812,8 @@
         "- Invia al centro di schieramento",
         "Incaricato",
         "Il vostro prezzo",
-        "Recluta esercito: %s"
+        "Recluta esercito: %s",
+        "Promuovibili: %d"
     ],
     "pMilitiaWatchStrings": [
         "Osserva la battaglia",

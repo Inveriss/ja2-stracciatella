@@ -1812,7 +1812,8 @@
         "- Envoyer au centre de déploiement",
         "Affectés",
         "Votre prix",
-        "Recruter la milice : %s"
+        "Recruter la milice : %s",
+        "Promouvables : %d"
     ],
     "pMilitiaWatchStrings": [
         "Regarder la bataille",

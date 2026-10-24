@@ -1812,7 +1812,8 @@
         "- Naar het inzetcentrum sturen",
         "Toegewezen",
         "Jouw prijs",
-        "Militie werven: %s"
+        "Militie werven: %s",
+        "Te bevorderen: %d"
     ],
     "pMilitiaWatchStrings": [
         "Gevecht bekijken",

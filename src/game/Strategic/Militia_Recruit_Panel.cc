@@ -7,6 +7,7 @@
 #include "Finances.h"
 #include "Font.h"
 #include "Font_Control.h"
+#include "Game_Clock.h"
 #include "GameInstance.h"
 #include "GamePolicy.h"
 #include "GameScreen.h"
@@ -101,6 +102,24 @@ constexpr INT16 RECRUIT_EQUALS_X     = 324;
 constexpr INT16 RECRUIT_EQUALS_W     = 16;
 constexpr INT16 RECRUIT_COST_X       = 339;
 constexpr INT16 RECRUIT_COST_W       = 72;
+// the upgrade box (431,y 237x66; green, regular and elite rows -- elite heavy is
+// the last rank): "Available to upgrade: N" and "Your price = $" on its top,
+// the - and + buttons, Count = Cost (docs/militia-upgrade-plan.md)
+constexpr INT16 UPGRADE_AVAILABLE_X  = 438;
+constexpr INT16 UPGRADE_PRICE_X      = 623;
+constexpr INT16 UPGRADE_TEXT_DY      = 6;
+constexpr INT16 UPGRADE_MINUS_X      = 439;
+constexpr INT16 UPGRADE_PLUS_X       = 483;
+constexpr INT16 UPGRADE_BUTTON_DY    = 24;
+constexpr INT16 UPGRADE_LABEL_DY     = 24;
+constexpr INT16 UPGRADE_VALUE_DY     = 41;
+constexpr INT16 UPGRADE_COUNT_X      = 526;
+constexpr INT16 UPGRADE_COUNT_W      = 44;
+constexpr INT16 UPGRADE_EQUALS_X     = 571;
+constexpr INT16 UPGRADE_EQUALS_W     = 16;
+constexpr INT16 UPGRADE_COST_X       = 586;
+constexpr INT16 UPGRADE_COST_W       = 72;
+#define UPGRADE_RANKS (MAX_MILITIA_LEVELS - 1)
 // under the rows (frames at y 446, 127x66): current balance (274), arrival
 // time (411), total cost (549), the buy button right of it
 constexpr RecruitTextPos RECRUIT_TOTAL_LABEL = { 552, 463, 121 };
@@ -160,7 +179,8 @@ enum
 	RECRUIT_STR_DEPLOY_RETRY_FMT,
 	RECRUIT_STR_ORDER_ARRIVED_RANK_FIRST, // a line per rank (Town_Militia.cc)
 	RECRUIT_STR_YOUR_PRICE = 54, // "Your price" over the price (54: after the militia box's texts)
-	RECRUIT_STR_RECRUIT_TITLE_FMT // "Recruit %s Militia"
+	RECRUIT_STR_RECRUIT_TITLE_FMT, // "Recruit %s Militia"
+	RECRUIT_STR_UPGRADE_AVAILABLE_FMT // "Available to upgrade: %d"
 };
 static_assert(RECRUIT_STR_MENU_RECRUITMENT == MILITIA_MENU_STR_RECRUITMENT);
 static_assert(RECRUIT_STR_MENU_DEPLOYMENT  == MILITIA_MENU_STR_DEPLOYMENT);
@@ -185,6 +205,9 @@ GUIButtonRef g_plus_buttons[MAX_MILITIA_LEVELS];
 GUIButtonRef g_buy_button;
 GUIButtonRef g_arrival_buttons[NUM_MILITIA_ARRIVAL_OPTIONS];
 UINT8        g_counts[MAX_MILITIA_LEVELS]; // militia picked to buy, per rank
+GUIButtonRef g_upgrade_minus_buttons[UPGRADE_RANKS];
+GUIButtonRef g_upgrade_plus_buttons[UPGRADE_RANKS];
+UINT8        g_upgrades[UPGRADE_RANKS]; // militia picked to upgrade to the next rank, per rank
 UINT8        g_arrival = MILITIA_ARRIVAL_STANDARD; // the arrival option checked
 
 }
@@ -229,17 +252,44 @@ static INT32 PickedCost()
 }
 
 
-// What the purchase costs: the militia picked and the arrival option's extra
-static INT32 TotalCost()
+static UINT32 UpgradesTotal()
 {
-	return PickedCost() + MilitiaArrivalExtraCost(g_arrival);
+	UINT32 n = 0;
+	for (UINT8 const c : g_upgrades) n += c;
+	return n;
 }
 
 
-// The arrival option can be paid with the militia picked
+static INT32 UpgradesCost()
+{
+	INT32 cost = 0;
+	for (UINT8 rank = 0; rank != UPGRADE_RANKS; ++rank)
+	{
+		cost += g_upgrades[rank] * MilitiaUpgradeUnitPrice(rank, g_sector);
+	}
+	return cost;
+}
+
+
+// The arrival option's extra: only with new militia (upgrades are at once, U6)
+static INT32 ArrivalExtra(UINT8 const option)
+{
+	return PickedTotal() != 0 ? MilitiaArrivalExtraCost(option) : 0;
+}
+
+
+// What the purchase costs: the militia picked, the upgrades and the arrival
+// option's extra
+static INT32 TotalCost()
+{
+	return PickedCost() + UpgradesCost() + ArrivalExtra(g_arrival);
+}
+
+
+// The arrival option can be paid with the militia and upgrades picked
 static bool CanAffordArrival(UINT8 const option)
 {
-	return PickedCost() + MilitiaArrivalExtraCost(option) <= LaptopSaveInfo.iCurrentBalance;
+	return PickedCost() + UpgradesCost() + MilitiaArrivalExtraCost(option) <= LaptopSaveInfo.iCurrentBalance;
 }
 
 
@@ -322,6 +372,47 @@ static void AddPicks(GUI_BUTTON* const btn, UINT8 const step)
 }
 
 
+// Upgrades: no more than the militia of the rank standing in the town now
+// (U2, U8) and the balance pays
+static bool CanPickOneMoreUpgrade(UINT8 const rank)
+{
+	if (g_upgrades[rank] == 255)                                     return false;
+	if (g_upgrades[rank] >= MilitiaUpgradeAvailable(g_sector, rank)) return false;
+	return TotalCost() + MilitiaUpgradeUnitPrice(rank, g_sector) <= LaptopSaveInfo.iCurrentBalance;
+}
+
+
+// The upgrade picks never exceed the militia standing there (fewer after a
+// buy or a fight)
+static void ClampUpgrades()
+{
+	for (UINT8 rank = 0; rank != UPGRADE_RANKS; ++rank)
+	{
+		g_upgrades[rank] = (UINT8)std::min<UINT32>(g_upgrades[rank], MilitiaUpgradeAvailable(g_sector, rank));
+	}
+}
+
+
+static void RemoveUpgrades(GUI_BUTTON* const btn, UINT8 const step)
+{
+	UINT8& n = g_upgrades[btn->GetUserData()];
+	n -= std::min(n, step);
+}
+
+
+static void AddUpgrades(GUI_BUTTON* const btn, UINT8 const step)
+{
+	UINT8 const rank = btn->GetUserData();
+	for (UINT8 i = 0; i != step && CanPickOneMoreUpgrade(rank); ++i) ++g_upgrades[rank];
+}
+
+
+static void UpgradeMinusCallbackPrimary(GUI_BUTTON* const btn, UINT32)   { RemoveUpgrades(btn, 1); }
+static void UpgradeMinusCallbackSecondary(GUI_BUTTON* const btn, UINT32) { RemoveUpgrades(btn, RECRUIT_BIG_STEP); }
+static void UpgradePlusCallbackPrimary(GUI_BUTTON* const btn, UINT32)    { AddUpgrades(btn, 1); }
+static void UpgradePlusCallbackSecondary(GUI_BUTTON* const btn, UINT32)  { AddUpgrades(btn, RECRUIT_BIG_STEP); }
+
+
 static void MinusButtonCallbackPrimary(GUI_BUTTON* const btn, UINT32)   { RemovePicks(btn, 1); }
 static void MinusButtonCallbackSecondary(GUI_BUTTON* const btn, UINT32) { RemovePicks(btn, RECRUIT_BIG_STEP); }
 static void PlusButtonCallbackPrimary(GUI_BUTTON* const btn, UINT32)    { AddPicks(btn, 1); }
@@ -331,7 +422,7 @@ static void PlusButtonCallbackSecondary(GUI_BUTTON* const btn, UINT32)  { AddPic
 static void BuyButtonCallback(GUI_BUTTON*, UINT32 const reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
-	if (PickedTotal() == 0) return;
+	if (PickedTotal() == 0 && UpgradesTotal() == 0) return;
 
 	if (PickedTotal() > MilitiaRecruitFreeSlots(g_sector))
 	{
@@ -348,6 +439,25 @@ static void BuyButtonCallback(GUI_BUTTON*, UINT32 const reason)
 		DoMapMessageBox(MSG_BOX_BASIC_STYLE, pMilitiaConfirmStrings[2], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
 		return;
 	}
+
+	// the upgrades at once (U6), the highest rank first so that nobody is
+	// upgraded twice (U8); paid as the militia are
+	ClampUpgrades();
+	INT32 upgrade_cost = 0;
+	for (UINT8 rank = UPGRADE_RANKS; rank-- != 0;)
+	{
+		if (g_upgrades[rank] == 0) continue;
+		INT32  const unit = MilitiaUpgradeUnitPrice(rank, g_sector);
+		UINT32 const done = UpgradeMilitia(g_sector, rank, g_upgrades[rank]);
+		upgrade_cost += INT32(done) * unit;
+	}
+	std::fill(std::begin(g_upgrades), std::end(g_upgrades), 0);
+	if (upgrade_cost != 0)
+	{
+		AddTransactionToPlayersBook(RECRUIT_TOWN_MILITIA, g_sector.AsByte(), GetWorldTotalMin(), -upgrade_cost);
+		fMapScreenBottomDirty = TRUE; // the balance
+	}
+	if (PickedTotal() == 0) return;
 
 	if (BuyMilitia(g_sector, g_counts, g_arrival))
 	{
@@ -386,6 +496,20 @@ static void CreatePanel()
 			ButtonCallbackPrimarySecondary(PlusButtonCallbackPrimary, PlusButtonCallbackSecondary, ShowButtonPressedOnRightClick));
 		g_plus_buttons[rank]->SetUserData(rank);
 	}
+	// the upgrade box's - and + per rank but the last (left click 1, right click
+	// RECRUIT_BIG_STEP)
+	std::fill(std::begin(g_upgrades), std::end(g_upgrades), 0);
+	for (UINT8 rank = 0; rank != UPGRADE_RANKS; ++rank)
+	{
+		INT16 const row_y = y + RECRUIT_ROW_FIRST_Y + rank * RECRUIT_ROW_PITCH + UPGRADE_BUTTON_DY;
+		g_upgrade_minus_buttons[rank] = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 0, 1, x + UPGRADE_MINUS_X, row_y, MSYS_PRIORITY_HIGHEST,
+			ButtonCallbackPrimarySecondary(UpgradeMinusCallbackPrimary, UpgradeMinusCallbackSecondary, ShowButtonPressedOnRightClick));
+		g_upgrade_minus_buttons[rank]->SetUserData(rank);
+		g_upgrade_plus_buttons[rank]  = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 2, 3, x + UPGRADE_PLUS_X,  row_y, MSYS_PRIORITY_HIGHEST,
+			ButtonCallbackPrimarySecondary(UpgradePlusCallbackPrimary, UpgradePlusCallbackSecondary, ShowButtonPressedOnRightClick));
+		g_upgrade_plus_buttons[rank]->SetUserData(rank);
+	}
+
 	// buy (doesn't close the panel)
 	g_buy_button = QuickCreateButtonImg(RECRUIT_BUTTONS_GFX, 4, 5, x + RECRUIT_BUY_X, y + RECRUIT_BUY_Y, MSYS_PRIORITY_HIGHEST, BuyButtonCallback);
 
@@ -433,6 +557,11 @@ void CloseMilitiaRecruitPanel()
 	{
 		RemoveButton(g_minus_buttons[rank]);
 		RemoveButton(g_plus_buttons[rank]);
+	}
+	for (UINT8 rank = 0; rank != UPGRADE_RANKS; ++rank)
+	{
+		RemoveButton(g_upgrade_minus_buttons[rank]);
+		RemoveButton(g_upgrade_plus_buttons[rank]);
 	}
 	RemoveButton(g_buy_button);
 	for (GUIButtonRef& b : g_arrival_buttons) RemoveButton(b);
@@ -543,6 +672,22 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 		PrintCentered(px, py, { RECRUIT_COST_X,   INT16(row_y + RECRUIT_VALUE_DY), RECRUIT_COST_W   }, SPrintMoney(g_counts[rank] * unit_price));
 	}
 
+	// the upgrade box: available, the price of one, count = cost
+	for (UINT8 rank = 0; rank != UPGRADE_RANKS; ++rank)
+	{
+		INT16 const row_y = RECRUIT_ROW_FIRST_Y + rank * RECRUIT_ROW_PITCH;
+		INT32 const unit  = MilitiaUpgradeUnitPrice(rank, g_sector);
+		MPrint(px + UPGRADE_AVAILABLE_X, py + row_y + UPGRADE_TEXT_DY,
+			st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_UPGRADE_AVAILABLE_FMT], int(MilitiaUpgradeAvailable(g_sector, rank))));
+		MPrint(px + UPGRADE_PRICE_X, py + row_y + UPGRADE_TEXT_DY,
+			st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_YOUR_PRICE_FMT], SPrintMoney(unit)));
+		PrintCentered(px, py, { UPGRADE_COUNT_X,  INT16(row_y + UPGRADE_LABEL_DY), UPGRADE_COUNT_W  }, pMilitiaRecruitStrings[RECRUIT_STR_COUNT]);
+		PrintCentered(px, py, { UPGRADE_COUNT_X,  INT16(row_y + UPGRADE_VALUE_DY), UPGRADE_COUNT_W  }, ST::format("{}", g_upgrades[rank]));
+		PrintCentered(px, py, { UPGRADE_EQUALS_X, INT16(row_y + UPGRADE_VALUE_DY), UPGRADE_EQUALS_W }, "=");
+		PrintCentered(px, py, { UPGRADE_COST_X,   INT16(row_y + UPGRADE_LABEL_DY), UPGRADE_COST_W   }, pMilitiaRecruitStrings[RECRUIT_STR_COST]);
+		PrintCentered(px, py, { UPGRADE_COST_X,   INT16(row_y + UPGRADE_VALUE_DY), UPGRADE_COST_W   }, SPrintMoney(g_upgrades[rank] * unit));
+	}
+
 	// current balance
 	PrintCentered(px, py, RECRUIT_BALANCE_LABEL, pMilitiaRecruitStrings[RECRUIT_STR_CURRENT_BALANCE]);
 	PrintCentered(px, py, RECRUIT_BALANCE_VALUE, SPrintMoney(LaptopSaveInfo.iCurrentBalance));
@@ -590,6 +735,14 @@ void HandleMilitiaRecruitPanel()
 		// a right click's pressed look
 		ReleaseButtonPressedLook(g_minus_buttons[rank]);
 		ReleaseButtonPressedLook(g_plus_buttons[rank]);
+	}
+	// the upgrades' + likewise: no more than stand there and the balance pays
+	ClampUpgrades();
+	for (UINT8 rank = 0; rank != UPGRADE_RANKS; ++rank)
+	{
+		EnableButton(g_upgrade_plus_buttons[rank], CanPickOneMoreUpgrade(rank));
+		ReleaseButtonPressedLook(g_upgrade_minus_buttons[rank]);
+		ReleaseButtonPressedLook(g_upgrade_plus_buttons[rank]);
 	}
 	RenderRecruitTexts(x, y);
 	InvalidateRegion(x, y, x + w, y + h);

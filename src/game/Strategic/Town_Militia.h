@@ -89,6 +89,17 @@ INT32 MilitiaRecruitPricePercent(INT8 leadership);
 // The price of one militia of this rank, with the best recruiter's modifier
 INT32 MilitiaRecruitUnitPrice(UINT8 rank, const SGPSector& sector);
 
+// Upgrading militia in the recruitment panel (docs/militia-upgrade-plan.md):
+// the militia of this rank standing in the town's (or SAM site's) sectors of
+// ours with no enemy -- no orders (U1, U2)
+UINT32 MilitiaUpgradeAvailable(const SGPSector& sector, UINT8 rank);
+// The price of upgrading one of them to the next rank: the difference of the
+// two ranks' prices with the recruiter's modifier (U7)
+INT32 MilitiaUpgradeUnitPrice(UINT8 rank, const SGPSector& sector);
+// Up to n of them become the next rank at once (U6), this sector's first,
+// then the town's other sectors (U9); the number upgraded
+UINT32 UpgradeMilitia(const SGPSector& sector, UINT8 rank, UINT32 n);
+
 // The arrival options of a purchase (docs/militia-arrival-time-plan.md): how
 // soon the militia arrive and the extra cost of it, per purchase
 enum MilitiaArrivalOption

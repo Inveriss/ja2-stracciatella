@@ -1,7 +1,15 @@
 # Militia recruitment: upgrading militia already in the town
 
-Status: plan, not implemented; decisions U1-U13 given by the user
-(2026-10-24). Branch: `Militia`.
+Status: stage 1 implemented and verified in the game (2026-10-24); stage 2
+(translations of the remaining texts, the final places) to do. Decisions
+U1-U13 given by the user. Branch: `Militia`.
+
+Later change (user): the reworked panel has a fourth box per rank row (x
+431, 237x66); the upgrade controls are there instead of on the portraits
+(the green, regular and elite rows): "Available to upgrade: N" (x 438) and
+"Your price = $X" (x 623, wider than the box: left for the user) at the
+row's y+6, the - and + buttons at x 439 and 483 (y+24), Count = Cost as in
+the recruit box. "Available to upgrade" is U2's "Current".
 Code to change: `Strategic/Militia_Recruit_Panel.cc` (the panel),
 `Strategic/Town_Militia.cc` / `.h` (the upgrade itself), the 9 translation
 files (`assets/externalized/strings/translation-*.json`,

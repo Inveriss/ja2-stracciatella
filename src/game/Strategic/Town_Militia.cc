@@ -1148,6 +1148,51 @@ INT32 MilitiaRecruitUnitPrice(UINT8 const rank, const SGPSector& sector)
 }
 
 
+UINT32 MilitiaUpgradeAvailable(const SGPSector& sector, UINT8 const rank)
+{
+	if (rank + 1 >= MAX_MILITIA_LEVELS) return 0; // elite heavy: the last rank
+	UINT32 n = 0;
+	ForEachRecruitSector(sector, [&](const SGPSector& s)
+	{
+		n += SectorInfo[s.AsByte()].ubNumberOfCivsAtLevel[rank];
+	});
+	return n;
+}
+
+
+INT32 MilitiaUpgradeUnitPrice(UINT8 const rank, const SGPSector& sector)
+{
+	if (rank + 1 >= MAX_MILITIA_LEVELS) return 0;
+	return std::max(0, MilitiaRecruitUnitPrice(rank + 1, sector) - MilitiaRecruitUnitPrice(rank, sector));
+}
+
+
+UINT32 UpgradeMilitia(const SGPSector& sector, UINT8 const rank, UINT32 n)
+{
+	if (rank + 1 >= MAX_MILITIA_LEVELS) return 0;
+	UINT32 done = 0;
+	auto const upgrade_in = [&](const SGPSector& s)
+	{
+		UINT8 const k = (UINT8)std::min<UINT32>(SectorInfo[s.AsByte()].ubNumberOfCivsAtLevel[rank], n - done);
+		if (k == 0) return;
+		StrategicPromoteMilitiaInSector(s, rank, k);
+		done += k;
+		if (s == gWorldSector) gfStrategicMilitiaChangesMade = TRUE; // tactical updates its militia
+	};
+	// the recruiting merc's sector first, when it is one of them
+	bool in_area = false;
+	ForEachRecruitSector(sector, [&](const SGPSector& s) { if (s == sector) in_area = true; });
+	if (in_area) upgrade_in(sector);
+	ForEachRecruitSector(sector, [&](const SGPSector& s)
+	{
+		if (done == n || s == sector) return;
+		upgrade_in(s);
+	});
+	fMapPanelDirty = TRUE;
+	return done;
+}
+
+
 // One militia of this rank into the given sector if there is room, else into
 // another sector of the same town; FALSE if there is no room anywhere
 static BOOLEAN PlaceRecruitedMilitia(const SGPSector& sector, UINT8 const rank)

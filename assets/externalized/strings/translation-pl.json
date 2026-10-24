@@ -1812,7 +1812,8 @@
         "- Wyślij do Centrum rozmieszczenia",
         "Z przydziałem",
         "Twoja cena",
-        "Rekrutuj samoobronę: %s"
+        "Rekrutuj samoobronę: %s",
+        "Do awansu: %d"
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",
