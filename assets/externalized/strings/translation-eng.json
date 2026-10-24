@@ -1810,7 +1810,9 @@
         "- Send to available sector",
         "- Send to recapture the occupied sector",
         "- Send to Deployment Center",
-        "Assigned"
+        "Assigned",
+        "Your price",
+        "Recruit %s Militia"
     ],
     "pMilitiaWatchStrings": [
         "Watch the Battle",

@@ -1810,7 +1810,9 @@
         "- Wyślij do wolnego sektora",
         "- Wyślij, by odbić zajęty sektor",
         "- Wyślij do Centrum rozmieszczenia",
-        "Z przydziałem"
+        "Z przydziałem",
+        "Twoja cena",
+        "Rekrutuj samoobronę: %s"
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

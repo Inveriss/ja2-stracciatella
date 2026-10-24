@@ -1810,7 +1810,9 @@
         "- Invia al settore libero",
         "- Invia a riconquistare il settore occupato",
         "- Invia al centro di schieramento",
-        "Incaricato"
+        "Incaricato",
+        "Il vostro prezzo",
+        "Recluta esercito: %s"
     ],
     "pMilitiaWatchStrings": [
         "Osserva la battaglia",

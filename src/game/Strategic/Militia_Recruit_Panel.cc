@@ -72,47 +72,55 @@ constexpr RecruitTextPos RECRUIT_RECRUITER[3] = { { 198, 76, 363 }, { 198, 89, 3
 constexpr RecruitTextPos RECRUIT_MOD_HEADER = { 600, 36, 142 };
 constexpr INT16 RECRUIT_MOD_X = 606;
 constexpr INT16 RECRUIT_MOD_W = 131;
-// the rank rows (frames at y 139, 231, 323, 415, 92 apart): rank name and
-// "Your price" in the box at 197,y+8 156x66
-constexpr INT16 RECRUIT_ROW_FIRST_Y = 139;
-constexpr INT16 RECRUIT_ROW_PITCH   = 92;
-constexpr INT16 RECRUIT_RANK_X      = 200;
-constexpr INT16 RECRUIT_RANK_W      = 150;
-constexpr INT16 RECRUIT_RANK_NAME_DY  = 25; // from the row frame's top
-constexpr INT16 RECRUIT_RANK_PRICE_DY = 46;
-// the count / cost box of a row (363,y+8 237x66): - and + buttons, then the
-// "Count" and "Cost" columns (label over value) with "=" between the values
+// the rank rows (box frames at y 134, 210, 286, 362, 76 apart; a portrait at
+// x 24): the rank box (100,y 74x66) -- the rank's name, "Your price" and the
+// price under it -- then the recruit box (184,y 237x66) and the box at 431
+// (for the upgrades)
+constexpr INT16 RECRUIT_ROW_FIRST_Y = 134;
+constexpr INT16 RECRUIT_ROW_PITCH   = 76;
+constexpr INT16 RECRUIT_RANK_X      = 103;
+constexpr INT16 RECRUIT_RANK_W      = 68;
+constexpr INT16 RECRUIT_RANK_NAME_DY        = 9; // from the row frame's top
+constexpr INT16 RECRUIT_RANK_PRICE_LABEL_DY = 34;
+constexpr INT16 RECRUIT_RANK_PRICE_DY       = 49;
+// the recruit box: "Recruit <rank> Militia" at its top, then the - and
+// + buttons and the "Count" and "Cost" columns (label over value) with "="
+// between the values
 char const* const RECRUIT_BUTTONS_GFX = INTERFACEDIR "/MILITIA_RECRUIT_BUTTONS.STI"; // 39x33: 0/1 -, 2/3 +, 4/5 done
-constexpr INT16 RECRUIT_MINUS_X      = 372;
-constexpr INT16 RECRUIT_PLUS_X       = 416;
-constexpr INT16 RECRUIT_BUTTON_DY    = 23; // from the row frame's top
-constexpr INT16 RECRUIT_LABEL_DY     = 23;
-constexpr INT16 RECRUIT_VALUE_DY     = 40;
-constexpr INT16 RECRUIT_COUNT_X      = 459;
+constexpr INT16 RECRUIT_TITLE_X      = 187;
+constexpr INT16 RECRUIT_TITLE_W      = 231;
+constexpr INT16 RECRUIT_TITLE_DY     = 8;
+constexpr INT16 RECRUIT_MINUS_X      = 192;
+constexpr INT16 RECRUIT_PLUS_X       = 236;
+constexpr INT16 RECRUIT_BUTTON_DY    = 25; // from the row frame's top
+constexpr INT16 RECRUIT_LABEL_DY     = 25;
+constexpr INT16 RECRUIT_VALUE_DY     = 42;
+constexpr INT16 RECRUIT_COUNT_X      = 279;
 constexpr INT16 RECRUIT_COUNT_W      = 44;
-constexpr INT16 RECRUIT_EQUALS_X     = 503;
+constexpr INT16 RECRUIT_EQUALS_X     = 324;
 constexpr INT16 RECRUIT_EQUALS_W     = 16;
-constexpr INT16 RECRUIT_COST_X       = 519;
+constexpr INT16 RECRUIT_COST_X       = 339;
 constexpr INT16 RECRUIT_COST_W       = 72;
-// total cost box (618,331 127x66), the buy button 10 px under it, centred
-constexpr RecruitTextPos RECRUIT_TOTAL_LABEL = { 621, 348, 121 };
-constexpr RecruitTextPos RECRUIT_TOTAL_VALUE = { 621, 369, 121 };
-constexpr INT16 RECRUIT_BUY_X = 662;
-constexpr INT16 RECRUIT_BUY_Y = 407;
-// arrival time box (618,239 127x66): header, then a line per option -- check
-// box (the sector inventory's check box sheet, its 15x15 images), name, hours
-// right-aligned -- in the smaller font
+// under the rows (frames at y 446, 127x66): current balance (274), arrival
+// time (411), total cost (549), the buy button right of it
+constexpr RecruitTextPos RECRUIT_TOTAL_LABEL = { 552, 463, 121 };
+constexpr RecruitTextPos RECRUIT_TOTAL_VALUE = { 552, 484, 121 };
+constexpr INT16 RECRUIT_BUY_X = 697;
+constexpr INT16 RECRUIT_BUY_Y = 463;
+// arrival time: header, then a line per option -- check box (the sector
+// inventory's check box sheet, its 15x15 images), name, hours right-aligned
+// -- in the smaller font
 #define RECRUIT_SMALL_FONT FONT10ARIAL
-constexpr RecruitTextPos RECRUIT_ARRIVAL_HEADER = { 621, 244, 121 };
+constexpr RecruitTextPos RECRUIT_ARRIVAL_HEADER = { 414, 451, 121 };
 char const* const RECRUIT_CHECKBOX_GFX = INTERFACEDIR "/Sector_Inventory_PopupCheck.sti";
-constexpr INT16 RECRUIT_CHECKBOX_X      = 624;
-constexpr INT16 RECRUIT_ARRIVAL_FIRST_Y = 257;
+constexpr INT16 RECRUIT_CHECKBOX_X      = 417;
+constexpr INT16 RECRUIT_ARRIVAL_FIRST_Y = 464;
 constexpr INT16 RECRUIT_ARRIVAL_PITCH   = 15;
-constexpr INT16 RECRUIT_ARRIVAL_NAME_X  = 643;
+constexpr INT16 RECRUIT_ARRIVAL_NAME_X  = 436;
 constexpr INT16 RECRUIT_ARRIVAL_W       = 95; // name .. right edge of the hours
-// current balance box (618,147 127x66), at the height of the first rank row's boxes
-constexpr RecruitTextPos RECRUIT_BALANCE_LABEL = { 621, 164, 121 };
-constexpr RecruitTextPos RECRUIT_BALANCE_VALUE = { 621, 185, 121 };
+// current balance
+constexpr RecruitTextPos RECRUIT_BALANCE_LABEL = { 277, 463, 121 };
+constexpr RecruitTextPos RECRUIT_BALANCE_VALUE = { 277, 484, 121 };
 
 // pMilitiaRecruitStrings
 enum
@@ -150,7 +158,9 @@ enum
 	RECRUIT_STR_DEPLOY_INCOMING_LABEL,
 	RECRUIT_STR_DEPLOY_WAITING_LABEL,
 	RECRUIT_STR_DEPLOY_RETRY_FMT,
-	RECRUIT_STR_ORDER_ARRIVED_RANK_FIRST // a line per rank (Town_Militia.cc)
+	RECRUIT_STR_ORDER_ARRIVED_RANK_FIRST, // a line per rank (Town_Militia.cc)
+	RECRUIT_STR_YOUR_PRICE = 54, // "Your price" over the price (54: after the militia box's texts)
+	RECRUIT_STR_RECRUIT_TITLE_FMT // "Recruit %s Militia"
 };
 static_assert(RECRUIT_STR_MENU_RECRUITMENT == MILITIA_MENU_STR_RECRUITMENT);
 static_assert(RECRUIT_STR_MENU_DEPLOYMENT  == MILITIA_MENU_STR_DEPLOYMENT);
@@ -518,7 +528,12 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 		INT16 const row_y = RECRUIT_ROW_FIRST_Y + rank * RECRUIT_ROW_PITCH;
 		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_NAME_DY), RECRUIT_RANK_W }, pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]);
 		INT32 const unit_price = MilitiaRecruitUnitPrice(rank, g_sector);
-		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_DY), RECRUIT_RANK_W }, st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_YOUR_PRICE_FMT], SPrintMoney(unit_price)));
+		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_LABEL_DY), RECRUIT_RANK_W }, pMilitiaRecruitStrings[RECRUIT_STR_YOUR_PRICE]);
+		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_DY), RECRUIT_RANK_W }, SPrintMoney(unit_price));
+
+		// "Recruit <rank> Militia" (a placeholder for its place)
+		PrintCentered(px, py, { RECRUIT_TITLE_X, INT16(row_y + RECRUIT_TITLE_DY), RECRUIT_TITLE_W },
+			st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_RECRUIT_TITLE_FMT], pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]));
 
 		// count = cost
 		PrintCentered(px, py, { RECRUIT_COUNT_X,  INT16(row_y + RECRUIT_LABEL_DY), RECRUIT_COUNT_W  }, pMilitiaRecruitStrings[RECRUIT_STR_COUNT]);
