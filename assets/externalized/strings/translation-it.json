@@ -1809,7 +1809,8 @@
         "- Invia ai settori liberi",
         "- Invia al settore libero",
         "- Invia a riconquistare il settore occupato",
-        "- Invia al centro di schieramento"
+        "- Invia al centro di schieramento",
+        "Incaricato"
     ],
     "pMilitiaWatchStrings": [
         "Osserva la battaglia",

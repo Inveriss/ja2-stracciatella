@@ -1809,7 +1809,8 @@
         "- Zu freien Sektoren schicken",
         "- Zum freien Sektor schicken",
         "- Besetzten Sektor zurückerobern",
-        "- Zum Einsatzzentrum schicken"
+        "- Zum Einsatzzentrum schicken",
+        "Mit Aufgabe"
     ],
     "pMilitiaWatchStrings": [
         "Kampf beobachten",

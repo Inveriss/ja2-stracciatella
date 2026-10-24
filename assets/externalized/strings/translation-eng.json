@@ -1809,7 +1809,8 @@
         "- Send to available sectors",
         "- Send to available sector",
         "- Send to recapture the occupied sector",
-        "- Send to Deployment Center"
+        "- Send to Deployment Center",
+        "Assigned"
     ],
     "pMilitiaWatchStrings": [
         "Watch the Battle",

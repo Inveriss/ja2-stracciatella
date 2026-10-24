@@ -1809,7 +1809,8 @@
         "- Envoyer vers les secteurs libres",
         "- Envoyer vers le secteur libre",
         "- Envoyer reprendre le secteur occupé",
-        "- Envoyer au centre de déploiement"
+        "- Envoyer au centre de déploiement",
+        "Affectés"
     ],
     "pMilitiaWatchStrings": [
         "Regarder la bataille",

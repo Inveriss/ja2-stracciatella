@@ -3468,7 +3468,12 @@ void DrawMilitiaPopUpBox()
 	SetMilitiaMapButtonsText( );
 	if (fMilitiaMapButtonsCreated)
 	{
-		for (INT32 i = 0; i != MAX_MILITIA_LEVELS; ++i) ReleaseButtonPressedLook(giMapMilitiaButton[i]);
+		for (INT32 i = 0; i != MAX_MILITIA_LEVELS; ++i)
+		{
+			ReleaseButtonPressedLook(giMapMilitiaButton[i]);
+			ReleaseButtonPressedLook(g_militia_up_arrow[i]);   // a right click's pressed look
+			ReleaseButtonPressedLook(g_militia_down_arrow[i]);
+		}
 	}
 
 	// render buttons
@@ -3765,8 +3770,10 @@ static void MilitiaRegionMoveCallback(MOUSE_REGION* const r, UINT32 const reason
 
 static void MilitiaButtonCallbackPrimary(GUI_BUTTON* btn, UINT32 reason);
 static void MilitiaButtonCallbackSecondary(GUI_BUTTON* btn, UINT32 reason);
-static void MilitiaUpArrowCallback(GUI_BUTTON* btn, UINT32 reason);
-static void MilitiaDownArrowCallback(GUI_BUTTON* btn, UINT32 reason);
+static void MilitiaUpArrowCallbackPrimary(GUI_BUTTON* btn, UINT32 reason);
+static void MilitiaUpArrowCallbackSecondary(GUI_BUTTON* btn, UINT32 reason);
+static void MilitiaDownArrowCallbackPrimary(GUI_BUTTON* btn, UINT32 reason);
+static void MilitiaDownArrowCallbackSecondary(GUI_BUTTON* btn, UINT32 reason);
 
 
 void CreateDestroyMilitiaSectorButtons()
@@ -3807,10 +3814,12 @@ void CreateDestroyMilitiaSectorButtons()
 				b->MoveCallback  = GUI_CALLBACK();
 
 				INT16 const ax = b->X() + box.arrow_dx;
-				GUIButtonRef const up = QuickCreateButtonImg(MILITIA_ARROWS_FILE, 0, 1, ax, MAP_MILITIA_BOX_POS_Y + box.arrow_up_y, MSYS_PRIORITY_HIGHEST - 1, MilitiaUpArrowCallback);
+				GUIButtonRef const up = QuickCreateButtonImg(MILITIA_ARROWS_FILE, 0, 1, ax, MAP_MILITIA_BOX_POS_Y + box.arrow_up_y, MSYS_PRIORITY_HIGHEST - 1,
+					ButtonCallbackPrimarySecondary(MilitiaUpArrowCallbackPrimary, MilitiaUpArrowCallbackSecondary, ShowButtonPressedOnRightClick));
 				up->SetUserData(i);
 				g_militia_up_arrow[i] = up;
-				GUIButtonRef const down = QuickCreateButtonImg(MILITIA_ARROWS_FILE, 2, 3, ax, MAP_MILITIA_BOX_POS_Y + box.arrow_down_y, MSYS_PRIORITY_HIGHEST - 1, MilitiaDownArrowCallback);
+				GUIButtonRef const down = QuickCreateButtonImg(MILITIA_ARROWS_FILE, 2, 3, ax, MAP_MILITIA_BOX_POS_Y + box.arrow_down_y, MSYS_PRIORITY_HIGHEST - 1,
+					ButtonCallbackPrimarySecondary(MilitiaDownArrowCallbackPrimary, MilitiaDownArrowCallbackSecondary, ShowButtonPressedOnRightClick));
 				down->SetUserData(i);
 				g_militia_down_arrow[i] = down;
 			}
@@ -3904,23 +3913,25 @@ static void MilitiaButtonCallbackSecondary(GUI_BUTTON *btn, UINT32 reason)
 }
 
 
-// the big box's arrows: up puts one of the rank from the cursor into the
-// selected sector (as the rank button's left click), down takes one out onto
-// the cursor (its right click)
-static void MilitiaUpArrowCallback(GUI_BUTTON* const btn, UINT32 const reason)
+// the big box's arrows: up puts militia of the rank from the cursor into the
+// selected sector, down takes them out onto the cursor -- a left click one,
+// a right click MILITIA_ARROW_BIG_STEP
+#define MILITIA_ARROW_BIG_STEP 5
+
+static void MoveMilitiaByArrow(GUI_BUTTON* const btn, bool const up, UINT8 const n)
 {
-	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
 	INT16 const sector = GetBaseSectorForCurrentTown() + sSectorMilitiaMapSector % MILITIA_BOX_ROWS + sSectorMilitiaMapSector / MILITIA_BOX_ROWS * 16;
-	DropAPersonInASector(btn->GetUserData(), sector);
+	for (UINT8 i = 0; i != n; ++i)
+	{
+		if (up) DropAPersonInASector(btn->GetUserData(), sector);
+		else    PickUpATownPersonFromSector(btn->GetUserData(), sector);
+	}
 }
 
-
-static void MilitiaDownArrowCallback(GUI_BUTTON* const btn, UINT32 const reason)
-{
-	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
-	INT16 const sector = GetBaseSectorForCurrentTown() + sSectorMilitiaMapSector % MILITIA_BOX_ROWS + sSectorMilitiaMapSector / MILITIA_BOX_ROWS * 16;
-	PickUpATownPersonFromSector(btn->GetUserData(), sector);
-}
+static void MilitiaUpArrowCallbackPrimary(GUI_BUTTON* const btn, UINT32)     { MoveMilitiaByArrow(btn, true,  1); }
+static void MilitiaUpArrowCallbackSecondary(GUI_BUTTON* const btn, UINT32)   { MoveMilitiaByArrow(btn, true,  MILITIA_ARROW_BIG_STEP); }
+static void MilitiaDownArrowCallbackPrimary(GUI_BUTTON* const btn, UINT32)   { MoveMilitiaByArrow(btn, false, 1); }
+static void MilitiaDownArrowCallbackSecondary(GUI_BUTTON* const btn, UINT32) { MoveMilitiaByArrow(btn, false, MILITIA_ARROW_BIG_STEP); }
 
 
 static void DisplayUnallocatedMilitia(void)
@@ -4090,6 +4101,18 @@ static void DrawTownMilitiaName()
 	FindFontCenterCoordinates(MAP_MILITIA_BOX_POS_X + box.unassigned_x, y + box.unassigned_y, box.unassigned_w, uh, buf, box.font, &sX, &sY);
 	SetFontShadow(DEFAULT_SHADOW); // with a shadow
 	MPrint(sX, sY, buf);
+
+	// the layout with arrows: "Assigned" next to the rank buttons (the selected
+	// sector's militia), left-aligned with "Unassigned" under it -- with the
+	// arrows, i.e. while a sector is selected
+	if (box.arrow_up_y != 0 && fMilitiaMapButtonsCreated)
+	{
+		INT16 aX;
+		INT16 aY;
+		ST::string const assigned = pMilitiaRecruitStrings[MILITIA_STR_ASSIGNED];
+		FindFontCenterCoordinates(MAP_MILITIA_BOX_POS_X + box.unassigned_x, y + box.rank_btn_y, box.unassigned_w, uh, assigned, box.font, &aX, &aY);
+		MPrint(sX, aY, assigned);
+	}
 }
 
 

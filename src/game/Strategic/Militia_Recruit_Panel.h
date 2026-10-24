@@ -54,6 +54,8 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 #define MILITIA_STR_ARRIVAL_SECTOR           50
 #define MILITIA_STR_ARRIVAL_RECAPTURE        51
 #define MILITIA_STR_ARRIVAL_DEPLOYMENT       52
+// the militia box's "Assigned" label (next to the rank buttons)
+#define MILITIA_STR_ASSIGNED                 53
 
 void CloseMilitiaRecruitPanel();
 

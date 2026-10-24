@@ -1809,7 +1809,8 @@
         "- Wyślij do wolnych sektorów",
         "- Wyślij do wolnego sektora",
         "- Wyślij, by odbić zajęty sektor",
-        "- Wyślij do Centrum rozmieszczenia"
+        "- Wyślij do Centrum rozmieszczenia",
+        "Z przydziałem"
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

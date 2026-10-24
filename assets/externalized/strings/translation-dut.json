@@ -1809,7 +1809,8 @@
         "- Naar vrije sectoren sturen",
         "- Naar de vrije sector sturen",
         "- Bezette sector heroveren",
-        "- Naar het inzetcentrum sturen"
+        "- Naar het inzetcentrum sturen",
+        "Toegewezen"
     ],
     "pMilitiaWatchStrings": [
         "Gevecht bekijken",
