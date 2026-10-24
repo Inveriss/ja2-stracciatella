@@ -183,15 +183,18 @@ extern SGPSector sSelMap;
 
 
 void    CreateDestroyMilitiaSectorButtons(void);
-BOOLEAN CanRedistributeMilitiaInSector(INT8 bClickedTownId);
+BOOLEAN CanRedistributeMilitiaInSector(INT16 bClickedTownId);
 
 // The militia box's arrival mode (docs/militia-arrival-box-plan.md): opens
 // the box for the town with an arrived order's militia (counts per rank) as
 // the unassigned ones; false when it can't now (another box or panel, the
 // map inventory, combat in the town)
-bool OpenMilitiaArrivalBox(UINT32 order_id, INT8 town, UINT8 const counts[]);
+bool OpenMilitiaArrivalBox(UINT32 order_id, INT16 town, UINT8 const counts[]);
+// The militia box's key of a sector (sSelectedMilitiaTown): its town id, a
+// SAM site's own key outside the towns, 0: no box
+INT16 MilitiaBoxKeyForSector(const SGPSector&);
 // The town of the box open in the arrival mode, 0: none
-INT8 MilitiaArrivalBoxTown();
+INT16 MilitiaArrivalBoxTown();
 // Its order, 0: none
 UINT32 MilitiaArrivalBoxOrder();
 // Another order for the same town: its militia join the unassigned ones

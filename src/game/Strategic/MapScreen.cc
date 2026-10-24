@@ -8978,8 +8978,19 @@ static void HandleMilitiaRedistributionClick(void)
 		{
 			INT8 const sam_id = GetSAMIdFromSector(sector);
 			if (sam_id != -1 && IsSecretFoundAt(sector.AsByte()))
-			{ // Cannot move militia around sam sites.
-				DoScreenIndependantMessageBox(pMapErrorString[30], MSG_BOX_FLAG_OK, NULL);
+			{
+				// a SAM site of ours: its own militia box
+				INT16 const key = MilitiaBoxKeyForSector(sector);
+				if (key != 0 && SectorOursAndPeaceful(sector) && CanRedistributeMilitiaInSector(key))
+				{
+					fShowTownInfo        = FALSE;
+					fMapPanelDirty       = TRUE;
+					sSelectedMilitiaTown = key;
+				}
+				else
+				{ // Cannot move militia around sam sites.
+					DoScreenIndependantMessageBox(pMapErrorString[30], MSG_BOX_FLAG_OK, NULL);
+				}
 			}
 		}
 	}

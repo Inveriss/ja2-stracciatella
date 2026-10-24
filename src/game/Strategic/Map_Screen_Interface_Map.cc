@@ -25,6 +25,7 @@
 #include "Militia_Control.h"
 #include "Militia_Recruit_Panel.h"
 #include "Militia_Deployment_Panel.h"
+#include "SAM_Sites.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface_Border.h"
 #include "MineModel.h"
@@ -296,7 +297,7 @@ static SGPVSurface* guiBIGMAP;
 // the big box centred on the map's width (its panel 259 px without the
 // shadow), then 40 px further right
 #define MAP_MILITIA_BOX_POS_X (MilitiaBox().big ? MAP_VIEW_START_X + (MAP_VIEW_WIDTH - MilitiaBox().panel_w) / 2 + 40 : MAP_SCREEN_RIGHT_BLOCK_X + 400)
-#define MAP_MILITIA_BOX_POS_Y (MAP_SCREEN_Y + 125)
+#define MAP_MILITIA_BOX_POS_Y (MAP_SCREEN_Y + MilitiaBox().box_y)
 
 #define POPUP_MILITIA_ICONS_PER_ROW (MilitiaBox().sector_per_row)
 #define MEDIUM_MILITIA_ICON_SPACING (MilitiaBox().icon_pitch)
@@ -423,7 +424,7 @@ static UINT16 HeavyMilitiaIcon(UINT16 const elite_icon)
 //   unassigned militia under them, under those their numbers per rank on
 //   the rank button's graphic (militia.sti 3); the panel (268x478) has a
 //   slot over AUTO and DONE for the arrival mode's Send to Deployment Center
-//   button.
+//   button and a text box at its bottom (268x560 in all, at y 41).
 
 // the rank button's graphic in militia.sti
 #define MILITIA_RANK_BUTTON_GRAPHIC 3
@@ -444,21 +445,22 @@ struct MilitiaBoxLayout
 	INT16  arrow_up_y, arrow_down_y, arrow_dx;   // the arrows, x from their rank button's (up y 0: none)
 	INT16  counter_y;                            // the unassigned militia counters per rank, x as the rank buttons (0: none)
 	INT16  deploy_x, deploy_y;                   // the arrival mode's Send to Deployment Center button (y 0: none)
+	INT16  box_y;                                // the box's top from the map screen's
 };
 
 static MilitiaBoxLayout const& MilitiaBox()
 {
 	static MilitiaBoxLayout const small_box =
 	{
-		false, 137, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL, FONT_WHITE, 0, 0, 0, 0, 0, 0, 0
+		false, 137, 4, 20, 42, 36, 0, 133, 13, 0, 132, 133, 0, 5, 142, 25, 5, 5, 0, 0, 0, 4, 67, 167, FONT10ARIAL, FONT_WHITE, 0, 0, 0, 0, 0, 0, 0, 125
 	};
 	static MilitiaBoxLayout const big_box =
 	{
-		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT14ARIAL, FONT_BEIGE, 0, 0, 0, 0, 0, 0, 0
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 301, 104, 22, 4, 252, 23, 7, 11, 5, 300, 37, 4, 134, 328, FONT14ARIAL, FONT_BEIGE, 0, 0, 0, 0, 0, 0, 0, 125
 	};
 	static MilitiaBoxLayout const big_arrows_box =
 	{
-		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 276, 104, 22, 4, 325, 23, 7, 11, 4, 275, 33, 4, 134, 436, FONT14ARIAL, FONT_BEIGE, MILITIA_ARROWS_PANEL, 252, 298, 5, 374, 4, 401
+		true, 259, 3, 30, 84, 72, 3, 254, 22, 151, 276, 104, 22, 4, 325, 23, 7, 11, 4, 275, 33, 4, 134, 436, FONT14ARIAL, FONT_BEIGE, MILITIA_ARROWS_PANEL, 252, 298, 5, 374, 4, 401, 41
 	};
 	SGPVObject const* const vo = GetVObject(guiMilitia);
 	if (vo->SubregionCount() > MILITIA_ARROWS_PANEL && vo->SubregionProperties(MILITIA_ARROWS_PANEL).usWidth >= 250) return big_arrows_box;
@@ -519,6 +521,40 @@ static UINT16* pMapDKGreenPalette;
 
 // base sectors (sector value for the upper left corner) of towns. List start at zero, indexed by (townId - 1)
 static std::vector<SGPSector> sBaseSectorList;
+
+// The militia box's key (sSelectedMilitiaTown): a town id, or for a SAM site
+// outside the towns MILITIA_BOX_SAM_KEY + its sector. A SAM site's box shows
+// militiamaps.sti MILITIA_BOX_SAM_MAP (the site in the middle of a 3x3 map);
+// only its own sector is used.
+#define MILITIA_BOX_SAM_KEY 1000
+#define MILITIA_BOX_SAM_MAP 12
+
+static bool IsSamBoxKey(INT16 const key)
+{
+	return key >= MILITIA_BOX_SAM_KEY;
+}
+
+static UINT8 SamBoxSector(INT16 const key)
+{
+	return UINT8(key - MILITIA_BOX_SAM_KEY);
+}
+
+// The sector belongs to the box of this key
+static bool MilitiaBoxHasSector(INT16 const key, INT16 const sector)
+{
+	return IsSamBoxKey(key) ? sector == SamBoxSector(key) : GetTownIdForSector(sector) == key;
+}
+
+// f(sector) for each sector of the box of this key
+template<typename F> static void ForEachMilitiaBoxSector(INT16 const key, F f)
+{
+	if (IsSamBoxKey(key))
+	{
+		f(SamBoxSector(key));
+		return;
+	}
+	FOR_EACH_SECTOR_IN_TOWN(i, key) f(UINT8(i->sector));
+}
 
 // position of town names on the map (list by townId, starting at 1)
 // these are no longer PIXELS, but 10 * the X,Y position in SECTORS (fractions possible) to the X-CENTER of the town
@@ -3048,7 +3084,7 @@ static void SendCursorMilitiaToDeployment()
 }
 
 
-bool OpenMilitiaArrivalBox(UINT32 const order_id, INT8 const town, UINT8 const counts[])
+bool OpenMilitiaArrivalBox(UINT32 const order_id, INT16 const town, UINT8 const counts[])
 {
 	if (sSelectedMilitiaTown != 0 || gfMilitiaPopupCreated) return false; // the box is open
 	if (fShowMapInventoryPool)                               return false;
@@ -3069,7 +3105,21 @@ bool OpenMilitiaArrivalBox(UINT32 const order_id, INT8 const town, UINT8 const c
 }
 
 
-INT8 MilitiaArrivalBoxTown()
+INT16 MilitiaBoxKeyForSector(const SGPSector& sector)
+{
+	if (sector.z != 0) return 0;
+	INT8 const town = GetTownIdForSector(sector);
+	if (town != BLANK_SECTOR) return town;
+	if (IsThisSectorASAMSector(sector) &&
+			GetVObject(guiMilitiaMaps)->SubregionCount() > MILITIA_BOX_SAM_MAP)
+	{
+		return MILITIA_BOX_SAM_KEY + sector.AsByte();
+	}
+	return 0;
+}
+
+
+INT16 MilitiaArrivalBoxTown()
 {
 	return g_arrival_order != 0 ? sSelectedMilitiaTown : 0;
 }
@@ -3119,14 +3169,15 @@ static bool MilitiaBoxSectorAttackable(UINT8 const sector)
 // The town sector the militia box's militia were put in to attack it, -1: none
 static INT16 MilitiaBoxAttackSector(INT16 const town)
 {
-	FOR_EACH_SECTOR_IN_TOWN(i, town)
+	INT16 attacked = -1;
+	ForEachMilitiaBoxSector(town, [&](UINT8 const sector)
 	{
-		UINT8 const sector = i->sector;
-		if (SectorOursAndPeaceful(SGPSector(sector))) continue;
-		if (NumEnemiesInSector(SGPSector(sector)) == 0) continue;
-		if (CountAllMilitiaInSector(SGPSector(sector)) != 0) return sector;
-	}
-	return -1;
+		if (attacked != -1) return;
+		if (SectorOursAndPeaceful(SGPSector(sector))) return;
+		if (NumEnemiesInSector(SGPSector(sector)) == 0) return;
+		if (CountAllMilitiaInSector(SGPSector(sector)) != 0) attacked = sector;
+	});
+	return attacked;
 }
 
 
@@ -3142,7 +3193,7 @@ static bool MilitiaBoxSectorUsable(UINT8 const sector)
 static void PickUpATownPersonFromSector(UINT8 const type, UINT8 const sector)
 {
 	// Are they in the same town as they were picked up from?
-	if (GetTownIdForSector(sector) != sSelectedMilitiaTown) return;
+	if (!MilitiaBoxHasSector(sSelectedMilitiaTown, sector)) return;
 
 	if (!MilitiaBoxSectorUsable(sector)) return;
 
@@ -3160,7 +3211,7 @@ static void PickUpATownPersonFromSector(UINT8 const type, UINT8 const sector)
 static void DropAPersonInASector(UINT8 const type, UINT8 const sector)
 {
 	// Are they in the same town as they were picked up from?
-	if (GetTownIdForSector(sector) != sSelectedMilitiaTown) return;
+	if (!MilitiaBoxHasSector(sSelectedMilitiaTown, sector)) return;
 
 	if (!MilitiaBoxSectorUsable(sector)) return;
 
@@ -3278,7 +3329,8 @@ void DrawMilitiaPopUpBox()
 	CheckAndUpdateStatesOfSelectedMilitiaSectorButtons();
 
 	BltVideoObject(FRAME_BUFFER, guiMilitia,     MilitiaBox().panel,       MAP_MILITIA_BOX_POS_X,                     MAP_MILITIA_BOX_POS_Y);
-	BltVideoObject(FRAME_BUFFER, guiMilitiaMaps, sSelectedMilitiaTown - 1, MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X, MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y);
+	UINT16 const map_frame = IsSamBoxKey(sSelectedMilitiaTown) ? MILITIA_BOX_SAM_MAP : sSelectedMilitiaTown - 1;
+	BltVideoObject(FRAME_BUFFER, guiMilitiaMaps, map_frame,                MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X, MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y);
 
 	// set font color for labels and "total militia" counts
 	SetFontForeground(MilitiaBox().colour);
@@ -3413,7 +3465,7 @@ static void RenderIconsPerSectorForSelectedTown(void)
 		INT16 const sector = sBaseSectorValue + dx + dy * 16;
 
 		// skip sectors not in the selected town (nearby other towns or wilderness SAM Sites)
-		if (GetTownIdForSector(sector) != sSelectedMilitiaTown) continue;
+		if (!MilitiaBoxHasSector(sSelectedMilitiaTown, sector)) continue;
 
 		// get number of each
 		SECTORINFO const& si         = SectorInfo[sector];
@@ -3425,7 +3477,7 @@ static void RenderIconsPerSectorForSelectedTown(void)
 
 		StrategicMapElement const& e = StrategicMap[SGPSector(sector).AsStrategicIndex()];
 		MilitiaBoxLayout const& box = MilitiaBox();
-		if (e.bNameId != BLANK_SECTOR && (!e.fEnemyControlled || n_total != 0))
+		if (!e.fEnemyControlled || n_total != 0)
 		{
 			// print number of troops (the small layout's rank buttons cover the
 			// selected sector's right side)
@@ -3497,7 +3549,12 @@ static INT16 GetBaseSectorForCurrentTown(void)
 	INT16 sBaseSector = 0;
 
 	// is the current town
-	if( sSelectedMilitiaTown != 0 )
+	if (IsSamBoxKey(sSelectedMilitiaTown))
+	{
+		// the SAM site in the middle
+		sBaseSector = SamBoxSector(sSelectedMilitiaTown) - 1 - 16;
+	}
+	else if( sSelectedMilitiaTown != 0 )
 	{
 		sBaseSector = sBaseSectorList[sSelectedMilitiaTown - 1].AsByte();
 	}
@@ -3819,14 +3876,16 @@ static bool IsThisMilitiaTownSectorAllowable(INT16 const sSectorIndexValue)
 	INT16 const base_sector = GetBaseSectorForCurrentTown();
 	INT16 const sector      = base_sector + sSectorIndexValue % MILITIA_BOX_ROWS + sSectorIndexValue / MILITIA_BOX_ROWS * 16;
 	SGPSector sec(sector);
-	return StrategicMap[sec.AsStrategicIndex()].bNameId != BLANK_SECTOR &&
+	return MilitiaBoxHasSector(sSelectedMilitiaTown, sector) &&
 		MilitiaBoxSectorUsable(sector);
 }
 
 
 static void DrawTownMilitiaName()
 {
-	ST::string town = GCM->getTownName(sSelectedMilitiaTown);
+	ST::string town = IsSamBoxKey(sSelectedMilitiaTown) ?
+		ST::format("{} {}", pRepairStrings[1], SGPSector(SamBoxSector(sSelectedMilitiaTown)).AsShortString()) :
+		GCM->getTownName(sSelectedMilitiaTown);
 	MilitiaBoxLayout const& box = MilitiaBox();
 	INT16          const x    = MAP_MILITIA_BOX_POS_X + box.title_x;
 	INT16          const y    = MAP_MILITIA_BOX_POS_Y;
@@ -3856,9 +3915,10 @@ static void HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor(INT16 const town)
 	// check if anyone still on the cursor
 	if (sGreensOnCursor == 0 && sRegularsOnCursor == 0 && sElitesOnCursor == 0 && sHeaviesOnCursor == 0) return;
 
-	FOR_EACH_SECTOR_IN_TOWN(i, town)
+	std::vector<UINT8> box_sectors;
+	ForEachMilitiaBoxSector(town, [&](UINT8 const sector) { box_sectors.push_back(sector); });
+	for (UINT8 const sector : box_sectors)
 	{
-		UINT8 const sector    = i->sector;
 		if (!SectorOursAndPeaceful(SGPSector(sector))) continue;
 		SECTORINFO& si        = SectorInfo[sector];
 		UINT8&      n_green   = si.ubNumberOfCivsAtLevel[GREEN_MILITIA];
@@ -3916,13 +3976,13 @@ static void HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor(INT16 const town)
 // more than the room)
 static void HandleEveningOutOfTroopsAmongstSectors()
 {
-	INT8 const town = sSelectedMilitiaTown;
+	INT16 const town = sSelectedMilitiaTown;
 
 	std::vector<UINT8> sectors;
-	FOR_EACH_SECTOR_IN_TOWN(i, town)
+	ForEachMilitiaBoxSector(town, [&](UINT8 const sector)
 	{
-		if (SectorOursAndPeaceful(SGPSector(i->sector))) sectors.push_back(i->sector);
-	}
+		if (SectorOursAndPeaceful(SGPSector(sector))) sectors.push_back(sector);
+	});
 	if (sectors.empty()) return;
 
 	INT32 n[MAX_MILITIA_LEVELS];
@@ -4079,7 +4139,7 @@ static void RenderShadingForUnControlledSectors(void)
 		{
 			SGPSector sMap = sBase + delta;
 			StrategicMapElement const& e = StrategicMap[sMap.AsStrategicIndex()];
-			if (e.bNameId == BLANK_SECTOR) continue;
+			if (!MilitiaBoxHasSector(sSelectedMilitiaTown, sMap.AsByte())) continue;
 			if (!e.fEnemyControlled && NumHostilesInSector(sMap) == 0) continue;
 
 			// shade this sector, not under our control
@@ -4457,30 +4517,20 @@ static void BlitSAMGridMarkers()
 
 static bool CanMilitiaAutoDistribute()
 {
-	INT8 const town = sSelectedMilitiaTown;
+	INT16 const town = sSelectedMilitiaTown;
 
-	// Cannot auto-distribute, if we don't have a town selected. (this excludes SAM sites)
+	// Cannot auto-distribute, if we don't have a town (or SAM site) selected
 	if (town == BLANK_SECTOR) return false;
 
-	// unassigned militia and a sector of ours with no enemy to put them in
-	if (CursorMilitiaTotal() != 0)
+	bool can = false;
+	ForEachMilitiaBoxSector(town, [&](UINT8 const sector)
 	{
-		FOR_EACH_SECTOR_IN_TOWN(i, town)
-		{
-			if (SectorOursAndPeaceful(SGPSector(i->sector))) return true;
-		}
-	}
-
-	FOR_EACH_SECTOR_IN_TOWN(i, town)
-	{
-		INT16 const sector = i->sector;
-		if (StrategicMap[SGPSector(sector).AsStrategicIndex()].fEnemyControlled) continue;
-
-		if (CountAllMilitiaInSector(SGPSector(sector)) != 0) return true;
-	}
-
-	// No militia in town, cannot auto-distribute.
-	return false;
+		if (!SectorOursAndPeaceful(SGPSector(sector))) return;
+		// unassigned militia and a sector of ours with no enemy to put them
+		// in, or militia there
+		if (CursorMilitiaTotal() != 0 || CountAllMilitiaInSector(SGPSector(sector)) != 0) can = true;
+	});
+	return can;
 }
 
 
@@ -4568,7 +4618,7 @@ static void HideExistenceOfUndergroundMapSector(const SGPSector& sSector)
 }
 
 
-BOOLEAN CanRedistributeMilitiaInSector(INT8 bClickedTownId)
+BOOLEAN CanRedistributeMilitiaInSector(INT16 bClickedTownId)
 {
 	INT32 iCounter = 0;
 	INT16 sBaseSectorValue = 0, sCurrentSectorValue = 0;
@@ -4596,6 +4646,12 @@ BOOLEAN CanRedistributeMilitiaInSector(INT8 bClickedTownId)
 
 
 	// currently loaded surface sector IS hostile - so we must check if it's also one of the sectors in this "militia map"
+
+	// a SAM site's box: its one sector
+	if (IsSamBoxKey(bClickedTownId))
+	{
+		return !(SGPSector(SamBoxSector(bClickedTownId)) == gWorldSector);
+	}
 
 	// get the sector value for the upper left corner
 	sBaseSectorValue = sBaseSectorList[bClickedTownId - 1].AsByte();

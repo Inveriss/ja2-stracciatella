@@ -1516,11 +1516,11 @@ static void PartialEntryCallback(MessageBoxReturnValue const ret)
 }
 
 
-// The town of an order the militia box takes on its arrival (BLANK_SECTOR:
-// none -- a SAM site outside the towns keeps the questions)
-static INT8 MilitiaOrderBoxTown(MilitiaOrder const& o)
+// The militia box (its key: a town, a SAM site) that takes an order on its
+// arrival, BLANK_SECTOR: none
+static INT16 MilitiaOrderBoxTown(MilitiaOrder const& o)
 {
-	return o.sector.z == 0 ? GetTownIdForSector(o.sector) : BLANK_SECTOR;
+	return MilitiaBoxKeyForSector(o.sector);
 }
 
 
@@ -1621,7 +1621,7 @@ void HandleMilitiaOrderQuestions()
 	// a town's order (not joining a battle): the militia box with the order's
 	// militia as the unassigned ones -- on the map screen only (on the
 	// tactical screen it waits for the map screen)
-	INT8 const town = MilitiaOrderBoxTown(*it);
+	INT16 const town = MilitiaOrderBoxTown(*it);
 	if (town != BLANK_SECTOR && !join)
 	{
 		if (guiCurrentScreen != MAP_SCREEN) return;
