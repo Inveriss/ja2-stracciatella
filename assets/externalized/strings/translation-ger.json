@@ -1759,7 +1759,7 @@
     "pMilitiaRecruitStrings": [
         "MILIZ-REKRUTIERUNGSZENTRUM",
         "Grundpreise",
-        "PREISMODIFIKATOREN",
+        "Führung",
         "Ihr Söldner mit der besten Führungsqualität hier",
         "%s - Führungsqualität %d",
         "Kein Söldner in dieser Stadt",
@@ -1813,7 +1813,8 @@
         "Mit Aufgabe",
         "Ihr Preis",
         "Rekrutieren: %s",
-        "Beförderbar: %d"
+        "Beförderbar: %d",
+        "Preismodifikatoren"
     ],
     "pMilitiaWatchStrings": [
         "Kampf beobachten",

@@ -1759,7 +1759,7 @@
     "pMilitiaRecruitStrings": [
         "CENTRE DE RECRUTEMENT DE LA MILICE",
         "Prix de base",
-        "MODIFICATEURS DE PRIX",
+        "Commandement",
         "Votre mercenaire au meilleur Commandement ici",
         "%s - Commandement %d",
         "Aucun mercenaire dans cette ville",
@@ -1813,7 +1813,8 @@
         "Affectés",
         "Votre prix",
         "Recruter : %s",
-        "Promouvables : %d"
+        "Promouvables : %d",
+        "Modificateurs de prix"
     ],
     "pMilitiaWatchStrings": [
         "Regarder la bataille",

@@ -100,7 +100,7 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	{
 		static int32_t const default_prices[4]  = { 100, 200, 500, 1000 };
 		static uint8_t const default_max[4]     = { 25, 50, 75, 100 };
-		static int32_t const default_percent[4] = { 125, 110, 90, 75 };
+		static int32_t const default_percent[4] = { 130, 115, 85, 70 };
 		std::copy(std::begin(default_prices),  std::end(default_prices),  militia_recruit_price);
 		std::copy(std::begin(default_max),     std::end(default_max),     militia_recruit_leadership_max);
 		std::copy(std::begin(default_percent), std::end(default_percent), militia_recruit_price_percent);

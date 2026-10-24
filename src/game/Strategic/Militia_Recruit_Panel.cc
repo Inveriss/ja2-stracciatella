@@ -70,7 +70,10 @@ constexpr RecruitTextPos RECRUIT_TITLE = { 184, 27, 392 };
 // the recruiter box (195,57 369x49): three lines
 constexpr RecruitTextPos RECRUIT_RECRUITER[3] = { { 198, 63, 363 }, { 198, 76, 363 }, { 198, 89, 363 } };
 // price modifiers box (597,16 148x90): header, then a line per leadership bracket
-constexpr RecruitTextPos RECRUIT_MOD_HEADER = { 600, 23, 142 };
+constexpr RecruitTextPos RECRUIT_MOD_HEADER   = { 600, 21, 142 }; // "Leadership"
+constexpr RecruitTextPos RECRUIT_MOD_HEADER_2 = { 600, 33, 142 }; // "Price Modifiers"
+constexpr INT16 RECRUIT_MOD_LIST_FIRST_Y = 49;
+constexpr INT16 RECRUIT_MOD_LIST_PITCH   = 14;
 constexpr INT16 RECRUIT_MOD_X = 606;
 constexpr INT16 RECRUIT_MOD_W = 131;
 // the rank rows (box frames at y 134, 210, 286, 362, 76 apart; a portrait at
@@ -105,7 +108,7 @@ constexpr INT16 RECRUIT_COST_W       = 72;
 // the upgrade box (441,y 275x66; green, regular and elite rows -- elite heavy is
 // the last rank): "Available to upgrade: N" and "Your price = $" on its top,
 // the - and + buttons, Count = Cost (docs/militia-upgrade-plan.md)
-constexpr INT16 UPGRADE_AVAILABLE_X  = 448;
+constexpr INT16 UPGRADE_AVAILABLE_X  = 449;
 constexpr INT16 UPGRADE_PRICE_X      = 615;
 constexpr INT16 UPGRADE_TEXT_DY      = 6;
 constexpr INT16 UPGRADE_MINUS_X      = 449;
@@ -180,7 +183,8 @@ enum
 	RECRUIT_STR_ORDER_ARRIVED_RANK_FIRST, // a line per rank (Town_Militia.cc)
 	RECRUIT_STR_YOUR_PRICE = 54, // "Your price" over the price (54: after the militia box's texts)
 	RECRUIT_STR_RECRUIT_TITLE_FMT, // "Recruit %s"
-	RECRUIT_STR_UPGRADE_AVAILABLE_FMT // "Available to upgrade: %d"
+	RECRUIT_STR_UPGRADE_AVAILABLE_FMT, // "Available to upgrade: %d"
+	RECRUIT_STR_PRICE_MODIFIERS_2 // the price modifiers box's second header line
 };
 static_assert(RECRUIT_STR_MENU_RECRUITMENT == MILITIA_MENU_STR_RECRUITMENT);
 static_assert(RECRUIT_STR_MENU_DEPLOYMENT  == MILITIA_MENU_STR_DEPLOYMENT);
@@ -592,12 +596,34 @@ static void PrintCentered(INT16 const px, INT16 const py, RecruitTextPos const& 
 }
 
 
-static void PrintRight(INT16 const px, INT16 const py, INT16 const x0, INT16 const y0, INT16 const w, ST::string const& str)
+static void PrintRight(INT16 const px, INT16 const py, INT16 const x0, INT16 const y0, INT16 const w, ST::string const& str, SGPFont const font = RECRUIT_FONT)
 {
 	INT16 x;
 	INT16 y;
-	FindFontRightCoordinates(px + x0, py + y0, w, 0, str, RECRUIT_FONT, &x, &y);
+	FindFontRightCoordinates(px + x0, py + y0, w, 0, str, font, &x, &y);
 	MPrint(x, py + y0, str);
+}
+
+
+// The rows' rank names and titles in capitals: the Latin letters (with the
+// Latin-1 and Latin Extended-A ones, e.g. Polish, German, French) and the
+// Cyrillic ones
+static ST::string Capitals(ST::string const& str)
+{
+	ST::utf32_buffer s = str.to_utf32();
+	for (size_t i = 0; i != s.size(); ++i)
+	{
+		char32_t& c = s[i];
+		if      (U'a' <= c && c <= U'z')                    c -= 0x20;
+		else if (0xE0 <= c && c <= 0xFE && c != 0xF7)       c -= 0x20; // a grave .. thorn
+		else if (0x100 <= c && c <= 0x137 && (c & 1))       c -= 1;    // a macron .. k cedilla
+		else if (0x139 <= c && c <= 0x148 && !(c & 1))      c -= 1;    // l acute .. n caron (l stroke)
+		else if (0x14A <= c && c <= 0x177 && (c & 1))       c -= 1;    // eng .. y circumflex (s acute)
+		else if (0x179 <= c && c <= 0x17E && !(c & 1))      c -= 1;    // z acute .. z caron
+		else if (0x430 <= c && c <= 0x44F)                  c -= 0x20; // Cyrillic a .. ya
+		else if (0x450 <= c && c <= 0x45F)                  c -= 0x50; // Cyrillic ie grave .. dzhe (yo)
+	}
+	return ST::string::from_utf32(s);
 }
 
 
@@ -619,24 +645,29 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 
 	// base prices
 	PrintCentered(px, py, RECRUIT_BASE_HEADER, pMilitiaRecruitStrings[RECRUIT_STR_BASE_PRICES]);
+	SetFont(RECRUIT_SMALL_FONT); // the lists as the arrival options
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		INT16 const y = RECRUIT_LIST_FIRST_Y + rank * RECRUIT_LIST_PITCH;
 		MPrint(px + RECRUIT_BASE_X, py + y, pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]);
-		PrintRight(px, py, RECRUIT_BASE_X, y, RECRUIT_BASE_W, SPrintMoney(gamepolicy(militia_recruit_price[rank])));
+		PrintRight(px, py, RECRUIT_BASE_X, y, RECRUIT_BASE_W, SPrintMoney(gamepolicy(militia_recruit_price[rank])), RECRUIT_SMALL_FONT);
 	}
+	SetFont(RECRUIT_FONT);
 
-	// the price modifiers by leadership
-	PrintCentered(px, py, RECRUIT_MOD_HEADER, pMilitiaRecruitStrings[RECRUIT_STR_PRICE_MODIFIERS]);
+	// the price modifiers by leadership: "Leadership" / "Price Modifiers"
+	PrintCentered(px, py, RECRUIT_MOD_HEADER,   pMilitiaRecruitStrings[RECRUIT_STR_PRICE_MODIFIERS]);
+	PrintCentered(px, py, RECRUIT_MOD_HEADER_2, pMilitiaRecruitStrings[RECRUIT_STR_PRICE_MODIFIERS_2]);
+	SetFont(RECRUIT_SMALL_FONT);
 	INT32 low = 1;
 	for (int i = 0; i != 4; ++i)
 	{
-		INT16 const y    = RECRUIT_LIST_FIRST_Y + i * RECRUIT_LIST_PITCH;
+		INT16 const y    = RECRUIT_MOD_LIST_FIRST_Y + i * RECRUIT_MOD_LIST_PITCH;
 		INT32 const high = gamepolicy(militia_recruit_leadership_max[i]);
 		MPrint(px + RECRUIT_MOD_X, py + y, ST::format("{} - {}", low, high));
-		PrintRight(px, py, RECRUIT_MOD_X, y, RECRUIT_MOD_W, ModifierString(gamepolicy(militia_recruit_price_percent[i])));
+		PrintRight(px, py, RECRUIT_MOD_X, y, RECRUIT_MOD_W, ModifierString(gamepolicy(militia_recruit_price_percent[i])), RECRUIT_SMALL_FONT);
 		low = high + 1;
 	}
+	SetFont(RECRUIT_FONT);
 
 	// the recruiter: the merc with the best leadership in this town
 	SOLDIERTYPE const* const recruiter = BestMilitiaRecruiter(g_sector);
@@ -655,14 +686,14 @@ static void RenderRecruitTexts(INT16 const px, INT16 const py)
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		INT16 const row_y = RECRUIT_ROW_FIRST_Y + rank * RECRUIT_ROW_PITCH;
-		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_NAME_DY), RECRUIT_RANK_W }, pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]);
+		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_NAME_DY), RECRUIT_RANK_W }, Capitals(pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]));
 		INT32 const unit_price = MilitiaRecruitUnitPrice(rank, g_sector);
 		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_LABEL_DY), RECRUIT_RANK_W }, pMilitiaRecruitStrings[RECRUIT_STR_YOUR_PRICE]);
 		PrintCentered(px, py, { RECRUIT_RANK_X, INT16(row_y + RECRUIT_RANK_PRICE_DY), RECRUIT_RANK_W }, SPrintMoney(unit_price));
 
 		// "Recruit <rank>" (a placeholder for its place)
 		PrintCentered(px, py, { RECRUIT_TITLE_X, INT16(row_y + RECRUIT_TITLE_DY), RECRUIT_TITLE_W },
-			st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_RECRUIT_TITLE_FMT], pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank]));
+			Capitals(st_format_printf(pMilitiaRecruitStrings[RECRUIT_STR_RECRUIT_TITLE_FMT], pMilitiaRecruitStrings[RECRUIT_STR_RANK_FIRST + rank])));
 
 		// count = cost
 		PrintCentered(px, py, { RECRUIT_COUNT_X,  INT16(row_y + RECRUIT_LABEL_DY), RECRUIT_COUNT_W  }, pMilitiaRecruitStrings[RECRUIT_STR_COUNT]);

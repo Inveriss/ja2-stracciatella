@@ -1759,7 +1759,7 @@
     "pMilitiaRecruitStrings": [
         "CENTRO DI RECLUTAMENTO DELL'ESERCITO",
         "Prezzi base",
-        "MODIFICATORI DI PREZZO",
+        "Comando",
         "Il vostro mercenario con il miglior Comando qui",
         "%s - Comando %d",
         "Nessun mercenario in questa città",
@@ -1813,7 +1813,8 @@
         "Incaricato",
         "Il vostro prezzo",
         "Recluta: %s",
-        "Promuovibili: %d"
+        "Promuovibili: %d",
+        "Modificatori di prezzo"
     ],
     "pMilitiaWatchStrings": [
         "Osserva la battaglia",

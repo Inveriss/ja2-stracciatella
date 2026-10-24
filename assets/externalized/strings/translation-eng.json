@@ -1759,7 +1759,7 @@
     "pMilitiaRecruitStrings": [
         "MILITIA RECRUITMENT CENTER",
         "Base Prices",
-        "PRICE MODIFIERS",
+        "Leadership",
         "Your mercenary with the highest Leadership in this town",
         "%s - Leadership %d",
         "No mercenary in this town",
@@ -1813,7 +1813,8 @@
         "Assigned",
         "Your price",
         "Recruit %s",
-        "Available to upgrade: %d"
+        "Available to upgrade: %d",
+        "Price Modifiers"
     ],
     "pMilitiaWatchStrings": [
         "Watch the Battle",

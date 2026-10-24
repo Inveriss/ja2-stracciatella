@@ -1759,7 +1759,7 @@
     "pMilitiaRecruitStrings": [
         "MILITIE-WERVINGSCENTRUM",
         "Basisprijzen",
-        "PRIJSAANPASSINGEN",
+        "Leiderschap",
         "Je huurling met het hoogste leiderschap in deze stad",
         "%s - Leiderschap %d",
         "Geen huurling in deze stad",
@@ -1813,7 +1813,8 @@
         "Toegewezen",
         "Jouw prijs",
         "Werven: %s",
-        "Te bevorderen: %d"
+        "Te bevorderen: %d",
+        "Prijsaanpassingen"
     ],
     "pMilitiaWatchStrings": [
         "Gevecht bekijken",

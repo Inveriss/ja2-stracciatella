@@ -247,7 +247,7 @@
     "price_elite": 500,
     "price_elite_heavy": 1000,
     "leadership_max": [ 25, 50, 75, 100 ],
-    "price_percent": [ 125, 110, 90, 75 ]
+    "price_percent": [ 130, 115, 85, 70 ]
   },
 
   //  Watching a militia battle (the autoresolve screen's "Watch the battle"):

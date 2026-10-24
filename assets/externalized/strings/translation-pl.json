@@ -1759,7 +1759,7 @@
     "pMilitiaRecruitStrings": [
         "CENTRUM REKRUTACJI SAMOOBRONY",
         "Ceny bazowe",
-        "MODYFIKATORY CEN",
+        "Przywództwo",
         "Twój najemnik z najwyższym przywództwem w tym mieście",
         "%s - Przywództwo %d",
         "Brak najemnika w tym mieście",
@@ -1813,7 +1813,8 @@
         "Z przydziałem",
         "Twoja cena",
         "Rekrutuj: %s",
-        "Do awansu: %d"
+        "Do awansu: %d",
+        "Modyfikatory cen"
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",
