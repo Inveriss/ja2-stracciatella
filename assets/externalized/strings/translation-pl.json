@@ -1796,7 +1796,15 @@
         "Ciężcy weterani samoobrony (%d) dotarli na miejsce: %s.",
         "Twoi najemnicy muszą najpierw wyzwolić sektor %s. Potem możesz odbijać sektory samą samoobroną.",
         "Send to Deployment Center",
-        "The unassigned militia go to the Deployment Center and wait there for orders."
+        "The unassigned militia go to the Deployment Center and wait there for orders.",
+        "The militia has arrived in %s.",
+        "The militia has arrived in %s, but there is room for only %d of the %d militia.",
+        "The militia has arrived in %s, but the sector is occupied by enemy forces.",
+        "Choose which militia:",
+        "- Send to available sectors",
+        "- Send to available sector",
+        "- Send to recapture the occupied sector",
+        "- Send to Deployment Center"
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

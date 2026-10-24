@@ -41,6 +41,19 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 // the militia box's arrival mode: the Send to Deployment Center button, its help
 #define MILITIA_STR_DEPLOY_SEND              43
 #define MILITIA_STR_DEPLOY_SEND_HELP         44
+// the arrival mode's text box: three headers ("The militia has arrived in %s."
+// / "..., but there is room for only %d of the %d militia." / "..., but the
+// sector is occupied by enemy forces."), "Choose which militia:", then the
+// choices: available sectors, available sector (a SAM site), recapture,
+// Deployment Center
+#define MILITIA_STR_ARRIVAL_HEADER           45
+#define MILITIA_STR_ARRIVAL_HEADER_ROOM      46
+#define MILITIA_STR_ARRIVAL_HEADER_OCCUPIED  47
+#define MILITIA_STR_ARRIVAL_CHOOSE           48
+#define MILITIA_STR_ARRIVAL_SECTORS          49
+#define MILITIA_STR_ARRIVAL_SECTOR           50
+#define MILITIA_STR_ARRIVAL_RECAPTURE        51
+#define MILITIA_STR_ARRIVAL_DEPLOYMENT       52
 
 void CloseMilitiaRecruitPanel();
 

@@ -26,6 +26,7 @@
 #include "Militia_Recruit_Panel.h"
 #include "Militia_Deployment_Panel.h"
 #include "SAM_Sites.h"
+#include "WordWrap.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface_Border.h"
 #include "MineModel.h"
@@ -608,6 +609,18 @@ static bool  g_militia_box_done             = false; // the box is being closed 
 static UINT32       g_arrival_order    = 0; // 0: the box's normal mode
 static UINT32       g_arrival_total    = 0; // the order's militia when the box opened (and joined later)
 static UINT32       g_arrival_sent     = 0; // sent to the Deployment Center since
+static UINT32       g_arrival_room     = 0; // the free places in the sectors of ours when it opened
+static bool         g_arrival_ours     = false; // the box had a sector of ours with no enemy then
+
+// The arrival mode's text box (the panel's bottom box, inside its frame): the
+// lines in FONT12ARIAL, beige with a shadow, 12 px apart, the block centred
+// in its height
+#define MILITIA_TEXT_X      9
+#define MILITIA_TEXT_Y      474
+#define MILITIA_TEXT_W      240
+#define MILITIA_TEXT_H      71
+#define MILITIA_TEXT_FONT   FONT12ARIAL
+#define MILITIA_TEXT_PITCH  12
 static GUIButtonRef g_militia_deploy_button;
 static bool  fMilitiaMapButtonsCreated      = false;
 static INT16 sSectorMilitiaMapSectorOutline = -1;
@@ -3100,6 +3113,15 @@ bool OpenMilitiaArrivalBox(UINT32 const order_id, INT16 const town, UINT8 const 
 	g_arrival_order      = order_id;
 	g_arrival_total      = CursorMilitiaTotal();
 	g_arrival_sent       = 0;
+	g_arrival_room       = 0;
+	g_arrival_ours       = false;
+	ForEachMilitiaBoxSector(town, [&](UINT8 const sector)
+	{
+		if (!SectorOursAndPeaceful(SGPSector(sector))) return;
+		g_arrival_ours = true;
+		UINT8 const n = CountAllMilitiaInSector(SGPSector(sector));
+		if (n < MAX_ALLOWABLE_MILITIA_PER_SECTOR) g_arrival_room += MAX_ALLOWABLE_MILITIA_PER_SECTOR - n;
+	});
 	sSelectedMilitiaTown = town;
 	fMapPanelDirty       = TRUE;
 	return true;
@@ -3301,6 +3323,7 @@ void DeleteMapScreenInterfaceMapGraphics()
 
 static void CheckAndUpdateStatesOfSelectedMilitiaSectorButtons();
 static void DisplayUnallocatedMilitia(void);
+static void DrawMilitiaArrivalText();
 static void DrawTownMilitiaName();
 static void RenderIconsPerSectorForSelectedTown(void);
 static void RenderShadingForUnControlledSectors(void);
@@ -3347,6 +3370,9 @@ void DrawMilitiaPopUpBox()
 
 	// display anyone picked up
 	DisplayUnallocatedMilitia( );
+
+	// the arrival mode's text box
+	DrawMilitiaArrivalText();
 
 	// draw the highlight last
 	ShowHighLightedSectorOnMilitiaMap( );
@@ -3882,11 +3908,64 @@ static bool IsThisMilitiaTownSectorAllowable(INT16 const sSectorIndexValue)
 }
 
 
-static void DrawTownMilitiaName()
+// The box's name: the town's, or "SAM Site D15"
+static ST::string MilitiaBoxName()
 {
-	ST::string town = IsSamBoxKey(sSelectedMilitiaTown) ?
+	return IsSamBoxKey(sSelectedMilitiaTown) ?
 		ST::format("{} {}", pRepairStrings[1], SGPSector(SamBoxSector(sSelectedMilitiaTown)).AsShortString()) :
 		GCM->getTownName(sSelectedMilitiaTown);
+}
+
+
+// The arrival mode's text box (docs/militia-arrival-box-plan.md, D1, D1b):
+// the header after the room when the box opened, "Choose which militia:",
+// then the choices there are -- available sector(s) with a sector of ours,
+// recapture with an enemy-held sector the militia can attack (the mercs
+// liberated it once), the Deployment Center always
+static void DrawMilitiaArrivalText()
+{
+	MilitiaBoxLayout const& box = MilitiaBox();
+	if (g_arrival_order == 0 || box.deploy_y == 0) return;
+	if (GetVObject(guiMilitia)->SubregionProperties(box.panel).usHeight < MILITIA_TEXT_Y + MILITIA_TEXT_H) return;
+
+	bool const sam = IsSamBoxKey(sSelectedMilitiaTown);
+	bool recapture = false;
+	ForEachMilitiaBoxSector(sSelectedMilitiaTown, [&](UINT8 const sector)
+	{
+		if (SectorOursAndPeaceful(SGPSector(sector))) return;
+		if (MilitiaBoxSectorAttackable(sector) && SectorInfo[sector].fSurfaceWasEverPlayerControlled) recapture = true;
+	});
+
+	ST::string const name = MilitiaBoxName();
+	ST::string header;
+	if (!g_arrival_ours && sam)                header = st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ARRIVAL_HEADER_OCCUPIED], name);
+	else if (sam || g_arrival_room >= g_arrival_total) header = st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ARRIVAL_HEADER], name);
+	else                                       header = st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ARRIVAL_HEADER_ROOM], name, int(g_arrival_room), int(g_arrival_total));
+
+	std::vector<ST::string> lines;
+	for (ST::utf32_buffer const& l : LineWrap(MILITIA_TEXT_FONT, MILITIA_TEXT_W, header)) lines.push_back(ST::string::from_utf32(l));
+	lines.push_back(pMilitiaRecruitStrings[MILITIA_STR_ARRIVAL_CHOOSE]);
+	if (g_arrival_ours) lines.push_back(pMilitiaRecruitStrings[sam ? MILITIA_STR_ARRIVAL_SECTOR : MILITIA_STR_ARRIVAL_SECTORS]);
+	if (recapture)      lines.push_back(pMilitiaRecruitStrings[MILITIA_STR_ARRIVAL_RECAPTURE]);
+	lines.push_back(pMilitiaRecruitStrings[MILITIA_STR_ARRIVAL_DEPLOYMENT]);
+
+	INT16 const block_h = INT16((lines.size() - 1) * MILITIA_TEXT_PITCH + GetFontHeight(MILITIA_TEXT_FONT));
+	INT16       y       = MAP_MILITIA_BOX_POS_Y + MILITIA_TEXT_Y + std::max<INT16>(0, (MILITIA_TEXT_H - block_h) / 2);
+	SetFont(MILITIA_TEXT_FONT);
+	SetFontForeground(box.colour);
+	SetFontBackground(FONT_MCOLOR_BLACK);
+	SetFontShadow(DEFAULT_SHADOW);
+	for (ST::string const& l : lines)
+	{
+		MPrint(MAP_MILITIA_BOX_POS_X + MILITIA_TEXT_X, y, l);
+		y += MILITIA_TEXT_PITCH;
+	}
+}
+
+
+static void DrawTownMilitiaName()
+{
+	ST::string town = MilitiaBoxName();
 	MilitiaBoxLayout const& box = MilitiaBox();
 	INT16          const x    = MAP_MILITIA_BOX_POS_X + box.title_x;
 	INT16          const y    = MAP_MILITIA_BOX_POS_Y;
