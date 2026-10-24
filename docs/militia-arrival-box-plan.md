@@ -55,15 +55,34 @@ D1. **When the box opens: also for SAM sites.** For any order that doesn't
     fit whole: some room left (today's 4e), or no room but an enemy-held
     sector to attack (today's 4b/4d). A SAM site is always one sector; the
     same holds for a town whose sectors are all held by the enemy when the
-    order arrives. Then there is nowhere to place militia peacefully and the
-    text under the box drops the first choice:
+    order arrives. The text under the box then depends on the case:
 
-    > The militia has arrived in (town / SAM site), but there is room for
-    > only (COUNT) of the (COUNT) militia.
-    >
-    > Choose which militia:
-    > - Send to recapture the occupied sector
-    > - Send to Deployment Center
+    - Town, some sectors ours (the Goal's case): the text in the Goal.
+    - Town with all its sectors held by the enemy:
+
+      > The militia has arrived in (town), but there is room for only
+      > (COUNT) of the (COUNT) militia.
+      >
+      > Choose which militia:
+      > - Send to recapture the occupied sector
+      > - Send to Deployment Center
+
+    - SAM site ours (the order doesn't fit whole in its one sector):
+
+      > The militia has arrived in (SAM site).
+      >
+      > Choose which militia:
+      > - Send to available sector
+      > - Send to Deployment Center
+
+    - SAM site taken back by the enemy meanwhile:
+
+      > The militia has arrived in (SAM site), but the sector is occupied by
+      > enemy forces.
+      >
+      > Choose which militia:
+      > - Send to recapture the occupied sector
+      > - Send to Deployment Center
 
     Joining a battle in tactical (4c) is D5.2.
 
@@ -147,18 +166,16 @@ question stays queued until the map screen. Opening sets `fShowMilitia` (the map
 
 The box draws the town's 3x3 map from `militiamaps.sti` (a frame per town).
 N4 belongs to a town; D2, D15 and I8 are SAM sites outside towns and have no
-such frame. Two ways:
-
-- the user adds a frame per SAM site (its sector and the 8 around, only the
-  middle one usable), or
-- a one-sector layout: the SAM sector alone in the middle of the map area.
-
-To decide when stage 1 reaches it; the first is closer to the town box.
+such frame. Decided: the user adds frames for them to `militiamaps.sti`
+later (presumably its sector and the 8 around, only the middle one usable;
+the frame order and the SAM sector's place in it to be agreed with the
+graphic). Until then the SAM site box is not opened (the order's message
+boxes stay for SAM sites outside towns).
 
 ### The box on the tactical screen (D5)
 
 The question: can the box open on the tactical screen itself? It can, two
-ways:
+ways. **Decided: B** (2026-10-24).
 
 A. **Directly on the tactical screen.** The box is map screen code: its
    position on the strategic map, the map screen's redraw (`fMapPanelDirty`,
@@ -168,7 +185,7 @@ A. **Directly on the tactical screen.** The box is map screen code: its
    (real-time battles too) and the tactical input blocked. Possible, but
    about as large again as stage 1, with two copies to keep in step.
 
-B. **A jump to the strategic map and back (recommended).** The arrival
+B. **A jump to the strategic map and back (chosen).** The arrival
    switches to the map screen on its own (as the M key does; whether every
    kind of battle allows it is checked in stage 5 -- tactical stops while
    the map screen is up), the box opens
@@ -202,8 +219,12 @@ mode or let the battle run on.
 
 - `MILITIA_STR_ARRIVAL_BOX_HEADER`: "The militia has arrived in %s, but
   there is room for only %d of the %d militia."
+- `MILITIA_STR_ARRIVAL_BOX_HEADER_SAM`: "The militia has arrived in %s."
+- `MILITIA_STR_ARRIVAL_BOX_HEADER_OCCUPIED`: "The militia has arrived in %s,
+  but the sector is occupied by enemy forces."
 - `MILITIA_STR_ARRIVAL_BOX_CHOOSE`: "Choose which militia:"
 - `MILITIA_STR_ARRIVAL_BOX_SECTORS`: "- Send to available sectors"
+- `MILITIA_STR_ARRIVAL_BOX_SECTOR`: "- Send to available sector" (SAM site)
 - `MILITIA_STR_ARRIVAL_BOX_RECAPTURE`: "- Send to recapture the occupied
   sector"
 - `MILITIA_STR_ARRIVAL_BOX_DEPLOYMENT`: "- Send to Deployment Center"
@@ -211,8 +232,9 @@ mode or let the battle run on.
   the button graphic has no text)
 - `MILITIA_STR_ARRIVAL_IN_TACTICAL`: the D5 log line.
 
-The recapture line only when the town has an enemy-held sector the militia
-can attack. Translations as in stage 6, checked for width with
+Which header and lines: D1. The recapture line only when there is an
+enemy-held sector the militia can attack, the sector line(s) only when there
+is a sector of ours. Translations as in stage 6, checked for width with
 tools/interface_preview.
 
 ## Stages
@@ -229,8 +251,7 @@ tools/interface_preview.
 3. **Texts and translations**, `docs/militia-arrival-time-plan.md` updated
    (4e replaced for towns).
 
-4. **D5.1**: arrival on the tactical screen without a battle (way B unless
-   decided otherwise).
+4. **D5.1**: arrival on the tactical screen without a battle (way B).
 5. **D5.2**: arrival during a battle, each kind tested: watched real-time
    battle, mercs vs enemy, mercs and militia vs enemy.
 
