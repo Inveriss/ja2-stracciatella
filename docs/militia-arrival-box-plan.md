@@ -41,6 +41,13 @@ Instead, the big militia box (`militia.sti` 19) opens for the order's town:
   above AUTO and DONE; the panel is updated for it (new `militia.sti` frame
   or a taller frame 19, by the user).
 
+## Terms
+
+**On the cursor** (the code's `sGreensOnCursor` ...): the unassigned militia --
+the squares in the box under the rank buttons and down arrows, and the
+counters per rank under them -- taken out of the sectors and not placed yet.
+Not the militia standing in the sectors (the squares in the town's map).
+
 ## Decisions to confirm (recommendations)
 
 D1. **When the box opens.** For a town order (not a SAM site) that doesn't
