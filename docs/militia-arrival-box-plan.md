@@ -181,6 +181,17 @@ the frame order and the SAM sector's place in it to be agreed with the
 graphic). Until then the SAM site box is not opened (the order's message
 boxes stay for SAM sites outside towns).
 
+**Opening the box on a SAM site by a click** (user, 2026-10-24): today the
+box opens only for a town (`MapScreen.cc`, the militia view's map click:
+`GetTownIdForSector() != BLANK_SECTOR`), as in the original game, so D2,
+D15 and I8 can't open it (N4 lies in a town and opens that town's box). The block
+goes with the SAM frames: the box is keyed by the town id throughout
+(`sSelectedMilitiaTown`, `sBaseSectorList`, `FOR_EACH_SECTOR_IN_TOWN`, the
+town checks in picking up and dropping, AUTO, the title). A SAM site gets
+its own key (e.g. a value above the town ids mapped to its sector), its
+3x3 base sector, its frame and its name; the sector filters accept its one
+sector. Done when the user's frames exist (with stage 1 or right before).
+
 ### The box on the tactical screen (D5)
 
 The question: can the box open on the tactical screen itself? It can, two
