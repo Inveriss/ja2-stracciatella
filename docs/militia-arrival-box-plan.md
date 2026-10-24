@@ -1,6 +1,7 @@
 # Militia arrival: placing them in the militia box
 
-Status: plan, not implemented (2026-10-24). Branch: `Militia`.
+Status: plan, not implemented; decisions D1-D8 given by the user
+(2026-10-24). Branch: `Militia`.
 Code to change: `Strategic/Town_Militia.cc` (orders, arrival questions),
 `Strategic/Map_Screen_Interface_Map.cc` (the militia box),
 `Strategic/MapScreen.cc` (opening the box from the arrival),
@@ -48,43 +49,57 @@ the squares in the box under the rank buttons and down arrows, and the
 counters per rank under them -- taken out of the sectors and not placed yet.
 Not the militia standing in the sectors (the squares in the town's map).
 
-## Decisions to confirm (recommendations)
+## Decisions (user, 2026-10-24)
 
-D1. **When the box opens.** For a town order (not a SAM site) that doesn't
+D1. **When the box opens: also for SAM sites.** For any order that doesn't
     fit whole: some room left (today's 4e), or no room but an enemy-held
-    sector of the town to attack (today's 4b/4d). Recommended: both. SAM
-    site orders and joining a battle in tactical (4c) keep their message
-    boxes.
+    sector to attack (today's 4b/4d). A SAM site is always one sector; the
+    same holds for a town whose sectors are all held by the enemy when the
+    order arrives. Then there is nowhere to place militia peacefully and the
+    text under the box drops the first choice:
 
-D2. **Existing militia.** In this mode the box works as always: the player
-    may also take militia out of the sectors with the down arrows (to swap
-    ranks). Recommended: yes.
+    > The militia has arrived in (town / SAM site), but there is room for
+    > only (COUNT) of the (COUNT) militia.
+    >
+    > Choose which militia:
+    > - Send to recapture the occupied sector
+    > - Send to Deployment Center
+
+    Joining a battle in tactical (4c) is D5.2.
+
+D2. **Existing militia: yes**, the box's full normal functions (the down
+    arrows also take militia out of the sectors).
 
 D3. **Closing the box other than with Done** (ESC, the map border's militia
-    button, the team list, leaving the map screen). Recommended: whatever is
-    on the cursor waits at the Deployment Center (as the button), nothing is
-    lost or spread automatically.
+    button, the team list, leaving the map screen): what is on the cursor
+    goes to the Deployment Center.
 
-D4. **Done** stays disabled while anything is on the cursor (as today): the
-    player places everything or sends the rest to the Deployment Center.
+D4. **Done** stays disabled while anything is on the cursor.
 
-D5. **The order arriving on the tactical screen.** The box lives on the map
-    screen. Recommended: a line in the message log ("The militia have arrived
-    in Drassen. Place them in the strategic map's militia box.") and the box
-    opens when the player enters the map screen (as the deployment panel
-    opened from tactical, stage 5). During a battle it waits until the battle
-    ends (as today's questions).
+D5. **The order arriving on the tactical screen**, in sub-stages:
 
-D6. **AUTO in this mode** fills the town's sectors of ours up to 20 each;
-    what doesn't fit stays on the cursor. (Today's AUTO divides everything
-    evenly and can put more than 20 in a sector, then clears the cursor --
-    only harmless today because the cursor never holds more than the room.
-    It needs the cap anyway.)
+    - D5.1: tactical screen, no battle: the box appears at once.
+    - D5.2: tactical screen during a battle, every kind: the real-time
+      watched militia battle, our mercs against the enemy, our mercs and
+      militia against the enemy: the box appears at once.
 
-D7. **Several orders arriving together** for the same or other towns: one
-    box at a time, in the order they arrived (today's question queue). An
-    order for the same town arriving while its box is open joins the cursor
-    (recommended) or waits for the next box.
+    The user asks whether the box can open directly on the tactical screen,
+    without going to the strategic map. See "The box on the tactical screen"
+    below.
+
+D6. **AUTO in this mode** fills the sectors of ours up to 20 each; what
+    doesn't fit stays on the cursor. (Today's AUTO divides everything evenly
+    and can put more than 20 in a sector, then clears the cursor -- only
+    harmless today because the cursor never holds more than the room. It
+    gets the cap anyway.)
+
+D7. **Several orders arriving together**: one box at a time, in the order
+    they arrived. An order for the same town arriving while its box is open
+    joins the cursor.
+
+D8. **Send to Deployment Center does not close the box.** It moves the
+    militia on the cursor to the Deployment Center; the box stays open (the
+    player may go on placing militia from the sectors, then press Done).
 
 ## Design
 
@@ -106,9 +121,11 @@ To keep saves and closing safe, the order is not removed when the box opens:
   loyalty (`AddMilitiaRecruitLoyalty`) for the militia that entered: the
   order's total at opening less those that went to the Deployment Center.
   An enemy-held sector with militia: the attack starts (existing code).
-- Send to Deployment Center: the order gets `waiting = true` (counts =
-  cursor), the cursor is cleared; the box stays open with nothing on the
-  cursor so the player can still move things and press Done.
+- Send to Deployment Center (D8): a new waiting order is split off with the
+  cursor's counts (it shows in the deployment panel at once), the box's
+  order is left with 0 and the cursor is cleared; the box stays open. What
+  the player takes out of the sectors afterwards belongs to the box's order
+  again (and may be sent the same way).
 - Forced close (D3): as the Deployment Center button, then the box closes.
 
 `HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor()` (spreads the cursor over
@@ -122,9 +139,49 @@ room < total (D1): instead of `MILITIA_STR_ORDER_PARTIAL` / `_ATTACK` it
 calls a new `OpenMilitiaArrivalBox(order_id)` (Map_Screen_Interface_Map.cc)
 when the map screen is up, no other box/panel is open (recruitment,
 deployment, militia box in normal mode, pre-battle) and no message box.
-On the tactical screen it logs the message once and keeps the question
-queued (D5). Opening sets `fShowMilitia` (the map's militia view) and
+On the tactical screen: D5.1/D5.2 (stages 4 and 5); until then the
+question stays queued until the map screen. Opening sets `fShowMilitia` (the map's militia view) and
 `sSelectedMilitiaTown`, as clicking a town in that view does.
+
+### SAM sites (D1)
+
+The box draws the town's 3x3 map from `militiamaps.sti` (a frame per town).
+N4 belongs to a town; D2, D15 and I8 are SAM sites outside towns and have no
+such frame. Two ways:
+
+- the user adds a frame per SAM site (its sector and the 8 around, only the
+  middle one usable), or
+- a one-sector layout: the SAM sector alone in the middle of the map area.
+
+To decide when stage 1 reaches it; the first is closer to the town box.
+
+### The box on the tactical screen (D5)
+
+The question: can the box open on the tactical screen itself? It can, two
+ways:
+
+A. **Directly on the tactical screen.** The box is map screen code: its
+   position on the strategic map, the map screen's redraw (`fMapPanelDirty`,
+   its save buffer), its mouse regions and screen mask, the town maps. On
+   the tactical screen it would be a second copy drawn over the world every
+   frame (like the tactical big boxes), with the game paused under it
+   (real-time battles too) and the tactical input blocked. Possible, but
+   about as large again as stage 1, with two copies to keep in step.
+
+B. **A jump to the strategic map and back (recommended).** The arrival
+   switches to the map screen on its own (as the M key does; whether every
+   kind of battle allows it is checked in stage 5 -- tactical stops while
+   the map screen is up), the box opens
+   there; Done returns to the tactical screen (Send to Deployment Center keeps
+   the box open, D8). It reuses the whole box; for the player it looks like the box
+   appearing at once.
+
+D5.2 in either way: militia placed in the sector of a battle going on in
+tactical are reinforcements and enter from a map edge (stage 4.3's
+`AddMilitiaReinforcementsToBattle()`), as many as the battle takes; the
+rest stays on the cursor. The real-time watched battle (watch mode) is to
+be tested on its own: the switch to the map screen must not end the watch
+mode or let the battle run on.
 
 ### Drawing
 
@@ -171,6 +228,11 @@ tools/interface_preview.
    places, the box's y if needed (Drawing).
 3. **Texts and translations**, `docs/militia-arrival-time-plan.md` updated
    (4e replaced for towns).
+
+4. **D5.1**: arrival on the tactical screen without a battle (way B unless
+   decided otherwise).
+5. **D5.2**: arrival during a battle, each kind tested: watched real-time
+   battle, mercs vs enemy, mercs and militia vs enemy.
 
 Stage 1 is the biggest (about 250-350 lines, mostly in
 Map_Screen_Interface_Map.cc). It needs game testing and is better done with
