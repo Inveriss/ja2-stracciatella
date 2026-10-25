@@ -62,6 +62,10 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 // the militia box's "Assigned" label (next to the rank buttons)
 #define MILITIA_STR_ASSIGNED                 53
 
+// The deployment panel's button: the panel again, for the town (or SAM site)
+// it showed last -- else the selected merc's
+void OpenMilitiaRecruitPanelAgain();
+
 void CloseMilitiaRecruitPanel();
 
 bool IsMilitiaRecruitPanelOpen();

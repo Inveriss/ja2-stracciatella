@@ -47,6 +47,10 @@ cache_key_t const guiRecruitPanel{ INTERFACEDIR "/MILITIA_RECRUIT_PANEL_1366x768
 char const* const RECRUIT_CLOSE_BUTTON_GFX = INTERFACEDIR "/mapinv_done_buttons.sti";
 constexpr INT16   RECRUIT_CLOSE_BUTTON_SIZE   = 50;
 constexpr INT16   RECRUIT_CLOSE_BUTTON_MARGIN = 10; // from the panel's bottom right corner
+// The button to the deployment panel (for now the close button's graphic), in
+// the panel's 50x50 opening under the elite heavy row
+constexpr INT16   RECRUIT_SWITCH_X = 16;
+constexpr INT16   RECRUIT_SWITCH_Y = 446;
 
 // The texts: FONT12ARIAL in the colour of the big weapon box's MAINTENANCE /
 // BALLISTICS headers. Positions inside the panel graphic (761x647); every box
@@ -207,6 +211,8 @@ static_assert(RECRUIT_STR_ORDER_ARRIVED_RANK_FIRST == MILITIA_STR_ORDER_ARRIVED_
 
 bool         g_open = false;
 SGPSector    g_sector;                 // the recruiting merc's sector
+bool         g_sector_known = false;   // the panel was opened before (for the deployment panel's button)
+GUIButtonRef g_switch_button;          // to the deployment panel
 SOLDIERTYPE const* g_pending = NULL;   // asked for on the tactical screen, opens on the map screen
 MOUSE_REGION g_blanket;                // the whole panel, so that clicks don't reach the map under it
 GUIButtonRef g_close_button;
@@ -481,6 +487,13 @@ static void BuyButtonCallback(GUI_BUTTON*, UINT32 const reason)
 }
 
 
+// to the deployment panel (it closes this one)
+static void SwitchButtonCallback(GUI_BUTTON*, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) OpenMilitiaDeploymentPanel();
+}
+
+
 static void CreatePanel()
 {
 	INT16 x, y, w, h;
@@ -492,6 +505,10 @@ static void CreatePanel()
 	INT16 const by = y + h - RECRUIT_CLOSE_BUTTON_MARGIN - RECRUIT_CLOSE_BUTTON_SIZE;
 	g_close_button = QuickCreateButtonImg(RECRUIT_CLOSE_BUTTON_GFX, 2, 3, bx, by, MSYS_PRIORITY_HIGHEST, CloseButtonCallback);
 	g_close_button->SetFastHelpText("Close");
+
+	// to the deployment panel
+	g_switch_button = QuickCreateButtonImg(RECRUIT_CLOSE_BUTTON_GFX, 2, 3, x + RECRUIT_SWITCH_X, y + RECRUIT_SWITCH_Y, MSYS_PRIORITY_HIGHEST, SwitchButtonCallback);
+	g_switch_button->SetFastHelpText(pMilitiaRecruitStrings[RECRUIT_STR_MENU_DEPLOYMENT]);
 
 	// a - and a + button per rank row
 	std::fill(std::begin(g_counts), std::end(g_counts), 0);
@@ -544,7 +561,8 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const& s)
 	if (g_open) CloseMilitiaRecruitPanel();
 	CloseMilitiaDeploymentPanel(); // one panel at a time
 
-	g_sector = s.sSector;
+	g_sector       = s.sSector;
+	g_sector_known = true;
 	if (guiCurrentScreen != MAP_SCREEN)
 	{
 		// the panel belongs to the map screen: go there, it opens on arrival
@@ -557,12 +575,30 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const& s)
 }
 
 
+void OpenMilitiaRecruitPanelAgain()
+{
+	if (g_sector_known)
+	{
+		// the town (or SAM site) it showed last
+		if (g_open) return;
+		CloseMilitiaDeploymentPanel(); // one panel at a time
+		if (guiCurrentScreen != MAP_SCREEN) return;
+		g_pending = NULL;
+		CreatePanel();
+		return;
+	}
+	SOLDIERTYPE const* const s = GetSelectedInfoChar();
+	if (s) OpenMilitiaRecruitPanel(*s);
+}
+
+
 void CloseMilitiaRecruitPanel()
 {
 	g_pending = NULL;
 	if (!g_open) return;
 
 	RemoveButton(g_close_button);
+	RemoveButton(g_switch_button);
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		RemoveButton(g_minus_buttons[rank]);
@@ -770,6 +806,7 @@ void HandleMilitiaRecruitPanel()
 	RenderRecruitTexts(x, y);
 	InvalidateRegion(x, y, x + w, y + h);
 	MarkAButtonDirty(g_close_button);
+	MarkAButtonDirty(g_switch_button);
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		MarkAButtonDirty(g_minus_buttons[rank]);

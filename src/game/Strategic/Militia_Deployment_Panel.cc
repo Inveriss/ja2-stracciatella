@@ -35,6 +35,10 @@ cache_key_t const guiDeploymentPanel{ INTERFACEDIR "/MILITIA_DEPLOYMENT_PANEL_13
 char const* const DEPLOY_CLOSE_BUTTON_GFX = INTERFACEDIR "/mapinv_done_buttons.sti";
 constexpr INT16   DEPLOY_CLOSE_BUTTON_SIZE   = 50;
 constexpr INT16   DEPLOY_CLOSE_BUTTON_MARGIN = 10;
+// The button to the recruitment panel (for now the close button's graphic),
+// in the panel's 50x50 opening under the elite heavy row
+constexpr INT16   DEPLOY_SWITCH_X = 36;
+constexpr INT16   DEPLOY_SWITCH_Y = 446;
 // A waiting order's Done button: SECTOR_INVENTORY_DONE_BUTTONS.STI 2/3, 41x16
 char const* const DEPLOY_DONE_BUTTON_GFX = INTERFACEDIR "/SECTOR_INVENTORY_DONE_BUTTONS.STI";
 constexpr INT16   DEPLOY_DONE_BUTTON_W   = 41;
@@ -82,6 +86,7 @@ bool         g_open    = false;
 bool         g_pending = false;   // asked for on the tactical screen, opens on the map screen
 MOUSE_REGION g_blanket;           // the whole panel, so that clicks don't reach the map under it
 GUIButtonRef g_close_button;
+GUIButtonRef g_switch_button; // to the recruitment panel
 GUIButtonRef g_done_buttons[MAX_MILITIA_LEVELS][DEPLOY_LINES];
 
 // The orders listed in a rank row's box: the ones with militia of the rank,
@@ -131,6 +136,13 @@ static void DoneButtonCallback(GUI_BUTTON* const btn, UINT32 const reason)
 }
 
 
+// to the recruitment panel (it closes this one)
+static void SwitchButtonCallback(GUI_BUTTON*, UINT32 const reason)
+{
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP) OpenMilitiaRecruitPanelAgain();
+}
+
+
 static void CreatePanel()
 {
 	INT16 x, y, w, h;
@@ -142,6 +154,10 @@ static void CreatePanel()
 	INT16 const by = y + h - DEPLOY_CLOSE_BUTTON_MARGIN - DEPLOY_CLOSE_BUTTON_SIZE;
 	g_close_button = QuickCreateButtonImg(DEPLOY_CLOSE_BUTTON_GFX, 2, 3, bx, by, MSYS_PRIORITY_HIGHEST, CloseButtonCallback);
 	g_close_button->SetFastHelpText("Close");
+
+	// to the recruitment panel
+	g_switch_button = QuickCreateButtonImg(DEPLOY_CLOSE_BUTTON_GFX, 2, 3, x + DEPLOY_SWITCH_X, y + DEPLOY_SWITCH_Y, MSYS_PRIORITY_HIGHEST, SwitchButtonCallback);
+	g_switch_button->SetFastHelpText(pMilitiaRecruitStrings[MILITIA_MENU_STR_RECRUITMENT]);
 
 	// a Done button per waiting line, shown when the line has an order
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
@@ -184,6 +200,7 @@ void CloseMilitiaDeploymentPanel()
 	if (!g_open) return;
 
 	RemoveButton(g_close_button);
+	RemoveButton(g_switch_button);
 	for (auto& rank_buttons : g_done_buttons)
 	{
 		for (GUIButtonRef& b : rank_buttons) RemoveButton(b);
@@ -336,6 +353,7 @@ void HandleMilitiaDeploymentPanel()
 	RenderDeploymentTexts(x, y);
 	InvalidateRegion(x, y, x + w, y + h);
 	MarkAButtonDirty(g_close_button);
+	MarkAButtonDirty(g_switch_button);
 	for (auto const& rank_buttons : g_done_buttons)
 	{
 		for (GUIButtonRef const b : rank_buttons) MarkAButtonDirty(b);
