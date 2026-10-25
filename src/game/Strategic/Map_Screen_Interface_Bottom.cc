@@ -1055,6 +1055,11 @@ static void DisplayCompressMode(void)
 	if( giTimeCompressMode != NOT_USING_TIME_COMPRESSION )
 	{
 		Time = sTimeStrings[IsTimeBeingCompressed() ? giTimeCompressMode : 0];
+		// the testing 5 hours: "300 min" after the language's "60 min"
+		if (IsTimeBeingCompressed() && giTimeCompressMode == TIME_SUPER_COMPRESS && TIME_COMPRESS_5HOURS_FOR_TESTING)
+		{
+			Time = sTimeStrings[TIME_COMPRESS_60MINS].replace("60", "300");
+		}
 	}
 
 	// Bottom+right-anchored: 640-489=151, 480-457=23 -- same distance from the
@@ -1288,7 +1293,7 @@ static void EnableDisableTimeCompressButtons(void)
 
 		// disable MORE if we're not paused and time compression is at maximum
 		// only disable MORE if we're not paused and time compression is at maximum
-		EnableButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE], !IsTimeCompressionOn() || giTimeCompressMode != TIME_COMPRESS_60MINS);
+		EnableButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE], !IsTimeCompressionOn() || giTimeCompressMode != MAX_TIME_COMPRESS);
 	}
 }
 

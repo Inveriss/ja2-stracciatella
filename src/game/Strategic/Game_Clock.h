@@ -94,6 +94,12 @@ enum
 	NUM_TIME_COMPRESS_SPEEDS
 };
 
+// TEMPORARY, for testing: a fourth map screen time compression after 60 min,
+// 300 min (5 hours) per real second, in the unused TIME_SUPER_COMPRESS slot
+// (shown as "300 min"). 0 turns it off again.
+#define TIME_COMPRESS_5HOURS_FOR_TESTING 1
+#define MAX_TIME_COMPRESS (TIME_COMPRESS_5HOURS_FOR_TESTING ? TIME_SUPER_COMPRESS : TIME_COMPRESS_60MINS)
+
 
 //dereferenced with the above enumerations to provide the actual time compression rate.
 extern INT32 giTimeCompressSpeeds[ NUM_TIME_COMPRESS_SPEEDS ];

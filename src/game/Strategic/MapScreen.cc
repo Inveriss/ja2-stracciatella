@@ -2139,7 +2139,7 @@ ScreenID MapScreenHandle(void)
 
 
 		// if the current time compression mode is something legal in mapscreen, keep it
-		if ( ( giTimeCompressMode >= TIME_COMPRESS_5MINS ) && ( giTimeCompressMode <= TIME_COMPRESS_60MINS ) )
+		if ( ( giTimeCompressMode >= TIME_COMPRESS_5MINS ) && ( giTimeCompressMode <= MAX_TIME_COMPRESS ) )
 		{
 			// leave the current time compression mode set, but DO stop it
 			StopTimeCompression();
