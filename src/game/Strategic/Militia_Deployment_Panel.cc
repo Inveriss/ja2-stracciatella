@@ -216,12 +216,13 @@ static void PrintIn(INT16 const x, INT16 const y, INT16 const w, INT16 const h, 
 }
 
 
-// "17 h": the hours until the order arrives, rounded up
-static ST::string HoursString(MilitiaOrder const& o)
+// "Day 3, 14:20": when the order arrives, as the map screen's clock
+static ST::string ArrivalString(MilitiaOrder const& o)
 {
-	UINT32 const now   = GetWorldTotalMin();
-	UINT32 const left  = o.arrival_min > now ? o.arrival_min - now : 0;
-	return st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_HOURS_FMT], int((left + 59) / 60));
+	UINT32 const day  = o.arrival_min / (24 * 60);
+	UINT32 const hour = o.arrival_min / 60 % 24;
+	UINT32 const min  = o.arrival_min % 60;
+	return ST::format("{} {}, {02d}:{02d}", pDayStrings, day, hour, min);
 }
 
 
@@ -272,7 +273,7 @@ static void RenderDeploymentTexts(INT16 const px, INT16 const py)
 			INT16 const         bx = px + DEPLOY_INCOMING_X;
 			PrintIn(bx + DEPLOY_COUNT_DX, ly, DEPLOY_COUNT_W, DEPLOY_LINE_H, ST::format("{}", o.counts[rank]));
 			PrintIn(bx + DEPLOY_TOWN_DX,  ly, DEPLOY_TOWN_W,  DEPLOY_LINE_H, MilitiaOrderAreaName(o));
-			PrintIn(bx + DEPLOY_ETA_DX,   ly, DEPLOY_ETA_W,   DEPLOY_LINE_H, HoursString(o), true);
+			PrintIn(bx + DEPLOY_ETA_DX - 52, ly, DEPLOY_ETA_W + 52, DEPLOY_LINE_H, ArrivalString(o), true);
 		}
 
 		// waiting: count, town and the Done button
