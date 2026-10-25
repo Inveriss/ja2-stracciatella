@@ -67,8 +67,8 @@ struct RecruitTextPos { INT16 x, y, w; };
 constexpr RecruitTextPos RECRUIT_BASE_HEADER = { 19, 23, 122 };
 constexpr INT16 RECRUIT_LIST_FIRST_Y = 39; // the rank / bracket lines of both top boxes
 constexpr INT16 RECRUIT_LIST_PITCH   = 16;
-constexpr INT16 RECRUIT_BASE_X       = 30; // 11 px from the inner walls
-constexpr INT16 RECRUIT_BASE_W       = 102;
+constexpr INT16 RECRUIT_BASE_X       = 25; // names 6 px from the inner left wall, values 4 px from the right
+constexpr INT16 RECRUIT_BASE_W       = 112;
 // title bar (184,16 392x31)
 constexpr RecruitTextPos RECRUIT_TITLE = { 184, 27, 392 };
 // the recruiter box (195,57 369x49): "Your mercenary with the highest
@@ -83,8 +83,8 @@ constexpr RecruitTextPos RECRUIT_MOD_HEADER   = { 620, 21, 122 }; // "Leadership
 constexpr RecruitTextPos RECRUIT_MOD_HEADER_2 = { 620, 33, 122 }; // "Price Modifiers"
 constexpr INT16 RECRUIT_MOD_LIST_FIRST_Y = 49;
 constexpr INT16 RECRUIT_MOD_LIST_PITCH   = 14;
-constexpr INT16 RECRUIT_MOD_X = 631;
-constexpr INT16 RECRUIT_MOD_W = 102;
+constexpr INT16 RECRUIT_MOD_X = 626;
+constexpr INT16 RECRUIT_MOD_W = 112;
 // the rank rows (box frames at y 134, 210, 286, 362, 76 apart; a portrait at
 // x 24): the portrait and the rank box in one (24,y 160x66; the portrait to x
 // 86) -- the rank's name, "Your price" and the price under it right of the
