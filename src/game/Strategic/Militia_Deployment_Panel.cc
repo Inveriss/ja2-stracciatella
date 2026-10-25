@@ -63,15 +63,15 @@ constexpr INT16 DEPLOY_ROW_PITCH   = 76;
 constexpr INT16 DEPLOY_ROW_H       = 66;
 constexpr INT16 DEPLOY_RANK_X      = 107;
 constexpr INT16 DEPLOY_RANK_W      = 60;
-constexpr INT16 DEPLOY_RANK_PITCH  = 13;
-// three lines in a box, 19 px apart, the first 5 px under the box's inside
+constexpr INT16 DEPLOY_RANK_PITCH  = 15;
+// three lines in a box, 19 px apart, the first 4 px under the box's inside
 constexpr INT16 DEPLOY_LINES       = 3;
-constexpr INT16 DEPLOY_LINE_FIRST  = 3 + 5;
+constexpr INT16 DEPLOY_LINE_FIRST  = 3 + 4;
 constexpr INT16 DEPLOY_LINE_PITCH  = 19;
 constexpr INT16 DEPLOY_LINE_H      = 16;
 // the columns of a line, from the box's left edge: count (centred), town,
 // hours (right-aligned) or the Done button
-constexpr INT16 DEPLOY_COUNT_DX = 6,   DEPLOY_COUNT_W = 28;
+constexpr INT16 DEPLOY_COUNT_DX = 9,   DEPLOY_COUNT_W = 28;
 constexpr INT16 DEPLOY_TOWN_DX  = 38,  DEPLOY_TOWN_W  = 100;
 constexpr INT16 DEPLOY_ETA_DX   = 140, DEPLOY_ETA_W   = 48;
 constexpr INT16 DEPLOY_DONE_DX  = 196 - 3 - 4 - DEPLOY_DONE_BUTTON_W; // 4 px from the inside's right
