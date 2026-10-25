@@ -1788,7 +1788,7 @@
         "Nur %d der %d für %s bestellten Milizen können einrücken. Sollen sie einrücken? Die anderen warten auf Befehle.",
         "Der Feind hält %s, wohin die bestellte Miliz soll (%s). Angreifen? Sonst wartet sie auf Befehle.",
         "In %s (%s) tobt ein Kampf. Soll die bestellte Miliz eingreifen? Sonst wartet sie auf Befehle.",
-        "MILIZ-EINSATZ",
+        "MILIZ-EINSATZZENTRUM",
         "UNTERWEGS",
         "WARTEND",
         "GESAMT",
@@ -1814,7 +1814,9 @@
         "Ihr Preis",
         "Rekrutieren: %s",
         "Beförderbar: %d",
-        "Preismodifikatoren"
+        "Preismodifikatoren",
+        "Stadt",
+        "Einsetzen"
     ],
     "pMilitiaWatchStrings": [
         "Kampf beobachten",

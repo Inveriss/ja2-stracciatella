@@ -1788,7 +1788,7 @@
         "Tylko %d z %d żołnierzy samoobrony zamówionych dla: %s może wejść. Wpuścić ich? Pozostali poczekają na rozkazy.",
         "Wróg zajmuje: %s, dokąd ma przybyć zamówiona samoobrona (%s). Atakować? W przeciwnym razie poczeka na rozkazy.",
         "W: %s (%s) trwa walka. Czy zamówiona samoobrona ma dołączyć? W przeciwnym razie poczeka na rozkazy.",
-        "ROZMIESZCZENIE SAMOOBRONY",
+        "CENTRUM ROZMIESZCZENIA SAMOOBRONY",
         "W DRODZE",
         "OCZEKUJĄCY",
         "RAZEM",
@@ -1814,7 +1814,9 @@
         "Twoja cena",
         "Rekrutuj: %s",
         "Do awansu: %d",
-        "Modyfikatory cen"
+        "Modyfikatory cen",
+        "Miasto",
+        "Rozmieść"
     ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",

@@ -1788,7 +1788,7 @@
         "Slechts %d van de %d milities besteld voor %s kunnen erin. Laten ze erin gaan? De anderen wachten op orders.",
         "De vijand houdt %s bezet, waar de bestelde militie heen moet (%s). Aanvallen? Anders wacht ze op orders.",
         "Er wordt gevochten in %s (%s). Moet de bestelde militie meevechten? Anders wacht ze op orders.",
-        "INZET VAN DE MILITIE",
+        "MILITIE-INZETCENTRUM",
         "ONDERWEG",
         "WACHTEND",
         "TOTAAL",
@@ -1814,7 +1814,9 @@
         "Jouw prijs",
         "Werven: %s",
         "Te bevorderen: %d",
-        "Prijsaanpassingen"
+        "Prijsaanpassingen",
+        "Stad",
+        "Inzetten"
     ],
     "pMilitiaWatchStrings": [
         "Gevecht bekijken",

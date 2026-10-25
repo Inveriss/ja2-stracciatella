@@ -34,6 +34,11 @@ void OpenMilitiaRecruitPanel(SOLDIERTYPE const&);
 #define MILITIA_STR_DEPLOY_INCOMING_LABEL  35
 #define MILITIA_STR_DEPLOY_WAITING_LABEL   36
 #define MILITIA_STR_DEPLOY_RETRY_FMT       37 // the Done button's help
+#define MILITIA_STR_RANK_FIRST              9 // Green, Regular, Elite, Elite Heavy
+#define MILITIA_STR_DEPLOY_COUNT           13 // "Count"
+#define MILITIA_STR_DEPLOY_ARRIVAL         17 // "Arrival Time"
+#define MILITIA_STR_DEPLOY_CITY            58 // the headers' column labels
+#define MILITIA_STR_DEPLOY_DEPLOY          59
 // "%d green militia have arrived in %s.", then regular, elite, elite heavy
 #define MILITIA_STR_ORDER_ARRIVED_RANK_FIRST 38
 // the militia box's Done: "Your mercenaries must liberate %s first. ..."

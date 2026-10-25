@@ -1788,7 +1788,7 @@
         "Solo %d dei %d soldati ordinati per %s possono entrare. Farli entrare? Gli altri attenderanno ordini.",
         "Il nemico occupa %s, dove deve andare l'esercito ordinato (%s). Attaccare? Altrimenti attenderà ordini.",
         "È in corso una battaglia a %s (%s). L'esercito ordinato deve unirsi? Altrimenti attenderà ordini.",
-        "SCHIERAMENTO DELL'ESERCITO",
+        "CENTRO DI SCHIERAMENTO DELL'ESERCITO",
         "IN ARRIVO",
         "IN ATTESA",
         "TOTALE",
@@ -1814,7 +1814,9 @@
         "Il vostro prezzo",
         "Recluta: %s",
         "Promuovibili: %d",
-        "Modificatori di prezzo"
+        "Modificatori di prezzo",
+        "Città",
+        "Schiera"
     ],
     "pMilitiaWatchStrings": [
         "Osserva la battaglia",

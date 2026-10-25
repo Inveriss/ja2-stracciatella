@@ -1788,7 +1788,7 @@
         "Seuls %d des %d miliciens commandés pour %s peuvent entrer. Les faire entrer ? Les autres attendront des ordres.",
         "L'ennemi tient %s, où doit aller la milice commandée (%s). Attaquer ? Sinon, elle attendra des ordres.",
         "Un combat a lieu à %s (%s). La milice commandée doit-elle s'y joindre ? Sinon, elle attendra des ordres.",
-        "DÉPLOIEMENT DE LA MILICE",
+        "CENTRE DE DÉPLOIEMENT DE LA MILICE",
         "EN ROUTE",
         "EN ATTENTE",
         "TOTAL",
@@ -1814,7 +1814,9 @@
         "Votre prix",
         "Recruter : %s",
         "Promouvables : %d",
-        "Modificateurs de prix"
+        "Modificateurs de prix",
+        "Ville",
+        "Déployer"
     ],
     "pMilitiaWatchStrings": [
         "Regarder la bataille",

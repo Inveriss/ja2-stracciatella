@@ -45,16 +45,25 @@ constexpr INT16   DEPLOY_DONE_BUTTON_H   = 16;
 #define DEPLOY_FONT   FONT12ARIAL
 #define DEPLOY_COLOUR FONT_BEIGE
 
-// title bar (197,29 403x31), the two headers (197,75 / 404,75 196x49)
-constexpr INT16 DEPLOY_TITLE_X  = 197, DEPLOY_TITLE_Y  = 29, DEPLOY_TITLE_W  = 403, DEPLOY_TITLE_H  = 31;
-constexpr INT16 DEPLOY_HEADER_Y = 75,  DEPLOY_HEADER_H = 49, DEPLOY_HEADER_W = 196;
-constexpr INT16 DEPLOY_INCOMING_X = 197; // the header and the rank rows' Incoming boxes
-constexpr INT16 DEPLOY_WAITING_X  = 404; // ... and Waiting boxes
-constexpr INT16 DEPLOY_TOTAL_X    = 618; // the rank rows' TOTAL boxes, 127 wide
+// title bar (180,16 402x31), the two headers (180,68 / 386,68 196x56): the
+// header's name at the top, the column labels under it
+constexpr INT16 DEPLOY_TITLE_X  = 180, DEPLOY_TITLE_Y  = 16, DEPLOY_TITLE_W  = 402, DEPLOY_TITLE_H  = 31;
+constexpr INT16 DEPLOY_HEADER_Y = 78;  // the header's name
+constexpr INT16 DEPLOY_LABELS_Y = 104; // the column labels
+constexpr INT16 DEPLOY_HEADER_W = 196;
+constexpr INT16 DEPLOY_INCOMING_X = 180; // the header and the rank rows' Incoming boxes
+constexpr INT16 DEPLOY_WAITING_X  = 386; // ... and Waiting boxes
+constexpr INT16 DEPLOY_TOTAL_X    = 592; // the rank rows' TOTAL boxes, 127 wide
 constexpr INT16 DEPLOY_TOTAL_W    = 127;
-// the rank rows' boxes (66 high), one rank row a 92 px
-constexpr INT16 DEPLOY_ROW_FIRST_Y = 147;
-constexpr INT16 DEPLOY_ROW_PITCH   = 92;
+// the rank rows' boxes (66 high), 76 px apart; the portrait and the rank's
+// name in one box (44,y 126x66), the name right of the portrait (107-167),
+// a name of two words in two lines
+constexpr INT16 DEPLOY_ROW_FIRST_Y = 134;
+constexpr INT16 DEPLOY_ROW_PITCH   = 76;
+constexpr INT16 DEPLOY_ROW_H       = 66;
+constexpr INT16 DEPLOY_RANK_X      = 107;
+constexpr INT16 DEPLOY_RANK_W      = 60;
+constexpr INT16 DEPLOY_RANK_PITCH  = 13;
 // three lines in a box, 19 px apart, the first 5 px under the box's inside
 constexpr INT16 DEPLOY_LINES       = 3;
 constexpr INT16 DEPLOY_LINE_FIRST  = 3 + 5;
@@ -203,7 +212,7 @@ static void PrintIn(INT16 const x, INT16 const y, INT16 const w, INT16 const h, 
 	INT16 py;
 	if (right) FindFontRightCoordinates( x, y, w, h, str, DEPLOY_FONT, &px, &py);
 	else       FindFontCenterCoordinates(x, y, w, h, str, DEPLOY_FONT, &px, &py);
-	MPrint(px, py, str);
+	MPrint(px, h != 0 ? py : y, str); // h 0: at y, only centred (right-aligned) across
 }
 
 
@@ -221,14 +230,38 @@ static void RenderDeploymentTexts(INT16 const px, INT16 const py)
 	SetFontDestBuffer(FRAME_BUFFER);
 	SetFontAttributes(DEPLOY_FONT, DEPLOY_COLOUR);
 
-	// title and the two headers
+	// title and the two headers: the name, the column labels over their
+	// columns (count, town, hours / count, town, the Done buttons)
 	PrintIn(px + DEPLOY_TITLE_X,    py + DEPLOY_TITLE_Y,  DEPLOY_TITLE_W,  DEPLOY_TITLE_H,  pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_TITLE]);
-	PrintIn(px + DEPLOY_INCOMING_X, py + DEPLOY_HEADER_Y, DEPLOY_HEADER_W, DEPLOY_HEADER_H, pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_INCOMING]);
-	PrintIn(px + DEPLOY_WAITING_X,  py + DEPLOY_HEADER_Y, DEPLOY_HEADER_W, DEPLOY_HEADER_H, pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_WAITING]);
+	PrintIn(px + DEPLOY_INCOMING_X, py + DEPLOY_HEADER_Y, DEPLOY_HEADER_W, 0, pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_INCOMING]);
+	PrintIn(px + DEPLOY_WAITING_X,  py + DEPLOY_HEADER_Y, DEPLOY_HEADER_W, 0, pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_WAITING]);
+	for (INT16 const bx : { INT16(px + DEPLOY_INCOMING_X), INT16(px + DEPLOY_WAITING_X) })
+	{
+		bool  const waiting_box = bx == px + DEPLOY_WAITING_X;
+		INT16 const ly          = py + DEPLOY_LABELS_Y;
+		PrintIn(bx + DEPLOY_COUNT_DX - 6, ly, DEPLOY_COUNT_W + 12, 0, pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_COUNT]);
+		PrintIn(bx + DEPLOY_TOWN_DX,      ly, DEPLOY_TOWN_W,       0, pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_CITY]);
+		if (waiting_box) PrintIn(bx + DEPLOY_DONE_DX - 10, ly, DEPLOY_DONE_BUTTON_W + 20, 0, pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_DEPLOY]);
+		else             PrintIn(bx + DEPLOY_ETA_DX - 52,  ly, DEPLOY_ETA_W + 52,         0, pMilitiaRecruitStrings[MILITIA_STR_DEPLOY_ARRIVAL], true);
+	}
 
 	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
 	{
 		INT16 const row_y = py + DEPLOY_ROW_FIRST_Y + rank * DEPLOY_ROW_PITCH;
+
+		// the rank's name right of its portrait, a name of two words in two lines
+		ST::string const name  = pMilitiaRecruitStrings[MILITIA_STR_RANK_FIRST + rank];
+		ST_ssize_t const space = name.find_last(' ');
+		if (space < 0)
+		{
+			PrintIn(px + DEPLOY_RANK_X, row_y, DEPLOY_RANK_W, DEPLOY_ROW_H, name);
+		}
+		else
+		{
+			INT16 const half = DEPLOY_RANK_PITCH / 2 + 1;
+			PrintIn(px + DEPLOY_RANK_X, row_y - half, DEPLOY_RANK_W, DEPLOY_ROW_H, name.substr(0, space));
+			PrintIn(px + DEPLOY_RANK_X, row_y + DEPLOY_RANK_PITCH - half, DEPLOY_RANK_W, DEPLOY_ROW_H, name.substr(space + 1));
+		}
 
 		// on their way: count, town, hours (values only)
 		auto const incoming = RankOrders(rank, false);
