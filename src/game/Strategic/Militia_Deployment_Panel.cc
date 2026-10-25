@@ -173,6 +173,8 @@ static void CreatePanel()
 		}
 	}
 
+	// no time compression while it is open (AllowedToTimeCompress())
+	StopTimeCompression();
 	g_open = true;
 }
 

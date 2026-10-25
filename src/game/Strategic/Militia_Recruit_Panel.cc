@@ -552,6 +552,8 @@ static void CreatePanel()
 		g_arrival_buttons[option] = b;
 	}
 
+	// no time compression while it is open (AllowedToTimeCompress())
+	StopTimeCompression();
 	g_open = true;
 }
 

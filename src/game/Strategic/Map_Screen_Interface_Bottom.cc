@@ -2,6 +2,8 @@
 #include "Font.h"
 #include "Interface.h"
 #include "Interface_Panels.h"
+#include "Militia_Recruit_Panel.h"
+#include "Militia_Deployment_Panel.h"
 #include "Laptop.h"
 #include "AIMSort.h"
 #include "Local.h"
@@ -1341,6 +1343,9 @@ BOOLEAN AllowedToTimeCompress( void )
 	{
 		return( FALSE );
 	}
+
+	// the militia recruitment and deployment panels
+	if (IsMilitiaRecruitPanelOpen() || IsMilitiaDeploymentPanelOpen()) return FALSE;
 
 	// renewing contracts
 	if ( gfContractRenewalSquenceOn )
