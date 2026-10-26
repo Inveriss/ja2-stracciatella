@@ -986,6 +986,9 @@ void UpdateMercInSector(SOLDIERTYPE& s, const SGPSector& sSector)
 
 	if (s.bAssignment == IN_TRANSIT) return;
 
+	// the helicopter's soldier has no tactical body
+	if (IsHelicopterSoldier(s)) return;
+
 	if (s.ubProfile != NO_PROFILE && GetProfile(s.ubProfile).ubMiscFlags3 & PROFILE_MISC_FLAG3_PERMANENT_INSERTION_CODE)
 	{ // Override orders
 		s.bOrders = STATIONARY;

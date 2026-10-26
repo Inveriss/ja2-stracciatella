@@ -1,5 +1,6 @@
 #include "Map_Screen_Helicopter.h"
 
+#include "Animation_Data.h"
 #include "ContentManager.h"
 #include "Debug.h"
 #include "Dialogue_Control.h"
@@ -357,8 +358,14 @@ static void SkyriderDestroyed(void)
 	gMercProfiles[ SKYRIDER ].iBalance = 0;
 	iTotalAccumulatedCostByPlayer = 0;
 
-	// remove vehicle and reset
-	RemoveVehicleFromList(v);
+	// remove the helicopter's soldier (this frees the vehicle slot, too), then the
+	// vehicle, and reset
+	if (SOLDIERTYPE* const hs = GetHelicopterSoldier())
+	{
+		TacticalRemoveSoldier(*hs);
+		fReBuildCharacterList = TRUE;
+	}
+	if (v.fValid) RemoveVehicleFromList(v);
 	iHelicopterVehicleId = -1;
 }
 
@@ -636,11 +643,39 @@ void UpdateRefuelSiteAvailability( void )
 	}
 }
 
+// The helicopter's own soldier on the player's team, like the Hummer's, so it
+// gets a team list row with its condition. Strategic only: it has no tactical
+// body and is never put into a sector (IsHelicopterSoldier() checks).
+static void CreateHelicopterSoldier(const SGPSector& sMap)
+{
+	SOLDIERCREATE_STRUCT c{};
+	c.bTeam              = OUR_TEAM;
+	c.ubProfile          = NO_PROFILE;
+	c.bBodyType          = HUMVEE; // any vehicle body, never drawn
+	c.sSector            = sMap;
+	c.sInsertionGridNo   = NOWHERE;
+	c.bLife              = 100;
+	c.bLifeMax           = 100;
+	c.fUseGivenVehicle   = TRUE;
+	c.bUseGivenVehicleID = static_cast<INT8>(iHelicopterVehicleId);
+
+	SOLDIERTYPE* const s = TacticalCreateSoldier(c);
+	if (!s)
+	{
+		SLOGE("No free player team slot for the helicopter's soldier");
+		return;
+	}
+	s->bAssignment = ASSIGNMENT_EMPTY;
+	fReBuildCharacterList = TRUE;
+}
+
+
 void SetUpHelicopterForPlayer(const SGPSector& sMap)
 {
 	if (!fSkyRiderSetUp)
 	{
 		iHelicopterVehicleId = AddVehicleToList(sMap, 0, HELICOPTER);
+		CreateHelicopterSoldier(sMap);
 
 		// set up for movement
 		SetUpHelicopterForMovement( );

@@ -5459,6 +5459,13 @@ static void TeamListDestinationRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, U
 		// reset list if the clicked character isn't also selected
 		ChangeSelectedInfoChar(iValue, !IsEntryInSelectedListSet(iValue));
 
+		if (IsHelicopterSoldier(*s))
+		{ // the helicopter's row: plot Skyrider's route, like a click on its icon
+			MakeMapModesSuitableForDestPlotting(s);
+			RequestGiveSkyriderNewDestination();
+			return;
+		}
+
 		// deselect any characters/vehicles that can't accompany the clicked merc
 		DeselectSelectedListMercsWhoCantMoveWithThisGuy(s);
 
@@ -8663,7 +8670,7 @@ static void MakeMapModesSuitableForDestPlotting(const SOLDIERTYPE* const pSoldie
 
 	TurnOnShowTeamsMode();
 
-	if (InHelicopter(*pSoldier))
+	if (InHelicopter(*pSoldier) || IsHelicopterSoldier(*pSoldier))
 	{
 		if (!fShowAircraftFlag)
 		{

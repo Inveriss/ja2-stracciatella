@@ -1340,9 +1340,9 @@ void UpdateCharRegionHelpText(void)
 			pMapScreenStatusStrings[2]
 		);
 	}
-	else if (AM_A_ROBOT(s))
+	else if (AM_A_ROBOT(s) || IsHelicopterSoldier(*s))
 	{
-		// robot (condition only)
+		// robot, helicopter (condition only)
 		status = ST::format("{}: {}/{}",
 			pMapScreenStatusStrings[3], s->bLife, s->bLifeMax
 		);
@@ -2323,6 +2323,8 @@ void SetUpMovingListsForSector(const SGPSector& sSector)
 		if (s.bAssignment == IN_TRANSIT)     continue;
 		if (s.bAssignment == ASSIGNMENT_POW) continue;
 		if (s.sSector != sSector) continue;
+
+		if (IsHelicopterSoldier(s)) continue; // Skyrider isn't moved with the move box
 
 		if (s.uiStatusFlags & SOLDIER_VEHICLE)
 		{
@@ -4062,6 +4064,10 @@ void NotifyPlayerOfInvasionByEnemyForces(const SGPSector& sector, MSGBOX_CALLBAC
 static MoveError CanCharacterMoveInStrategic(SOLDIERTYPE& s)
 {
 	Assert(s.bActive);
+
+	/* The helicopter's soldier travels with the helicopter, whose flights are
+	 * checked by RequestGiveSkyriderNewDestination() (it can fly empty) */
+	if (IsHelicopterSoldier(s)) return ME_OK;
 
 	/* NOTE: Check for the most permanent conditions first, and the most easily
 	 * remedied ones last. In case several cases apply, only the reason found

@@ -774,6 +774,15 @@ void SetVehicleSectorValues(VEHICLETYPE& v, const SGPSector& sMap)
 	MERCPROFILESTRUCT& p = GetProfile(vehicleProfile);
 	p.sSector = sMap;
 
+	if (IsHelicopter(v))
+	{ // its soldier shows the helicopter's position in the team list
+		if (SOLDIERTYPE* const hs = GetHelicopterSoldier())
+		{
+			hs->sSector         = sMap;
+			hs->fBetweenSectors = FALSE;
+		}
+	}
+
 	// Go through list of mercs in vehicle and set all their states as arrived
 	CFOR_EACH_PASSENGER(v, i)
 	{
@@ -1029,4 +1038,22 @@ UINT16 GetVehicleArmour(const UINT8 vehicle_id)
 UINT8 GetVehicleSeats(VEHICLETYPE const& v)
 {
 	return GCM->getVehicle(v.ubVehicleType)->seats;
+}
+
+
+bool IsHelicopterSoldier(SOLDIERTYPE const& s)
+{
+	return s.uiStatusFlags & SOLDIER_VEHICLE &&
+		iHelicopterVehicleId != -1 &&
+		s.bVehicleID == iHelicopterVehicleId;
+}
+
+
+SOLDIERTYPE* GetHelicopterSoldier()
+{
+	FOR_EACH_IN_TEAM(s, OUR_TEAM)
+	{
+		if (IsHelicopterSoldier(*s)) return s;
+	}
+	return nullptr;
 }

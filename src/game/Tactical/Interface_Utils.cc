@@ -323,9 +323,13 @@ void RenderSoldierFace(SOLDIERTYPE const& s, INT16 const sFaceX, INT16 const sFa
 {
 	if (s.uiStatusFlags & SOLDIER_VEHICLE)
 	{
-		// just draw the vehicle
+		// just draw the vehicle (only the first ones have a portrait -- not the
+		// tank or the helicopter)
 		const UINT8 vehicle_type = pVehicleList[s.bVehicleID].ubVehicleType;
-		BltVideoObject(guiSAVEBUFFER, giCarPortraits[vehicle_type], 0, sFaceX, sFaceY);
+		if (vehicle_type < lengthof(giCarPortraits))
+		{
+			BltVideoObject(guiSAVEBUFFER, giCarPortraits[vehicle_type], 0, sFaceX, sFaceY);
+		}
 		RestoreExternBackgroundRect(sFaceX, sFaceY, FACE_WIDTH, FACE_HEIGHT);
 	}
 	else if (s.face->uiFlags & FACE_INACTIVE_HANDLED_ELSEWHERE) // OK, check if this face actually went active

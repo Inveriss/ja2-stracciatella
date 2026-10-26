@@ -155,6 +155,11 @@ UINT16 GetVehicleArmour(UINT8 vehicle_id);
 
 UINT8 GetVehicleSeats(VEHICLETYPE const&);
 
+// The helicopter's soldier: strategic only (team list row, condition), it never
+// enters tactical
+bool IsHelicopterSoldier(SOLDIERTYPE const&);
+SOLDIERTYPE* GetHelicopterSoldier();
+
 void InitVehicles(void);
 
 #endif
