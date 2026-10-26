@@ -83,11 +83,20 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
   | 3 | 25 | kwestia `HELI_TOOK_MAJOR_DAMAGE`, `MakeHeliReturnToBase()` |
   | 4 | 0 | oryginalna katastrofa: kwestia `HELI_GOING_DOWN`, dźwięk upadku, `SkyriderDestroyed()` — giną wszyscy na pokładzie |
 
-- Skutek wybiera się ze **stanu po trafieniu**, więc naprawiony (albo częściowo
-  naprawiony) helikopter podlega tym samym regułom:
-  stan > 25 → kwestia lekka; 1–25 → kwestia poważna + powrót do bazy;
-  0 → katastrofa. Stan nigdy nie spada poniżej 0. To zastępuje oryginalną
-  regułę liczby trafień (kwestia, powrót, katastrofa przy trafieniach 1, 2, 3).
+- Skutek wybiera się ze **stanu po trafieniu** (aktualizacja D2, 2026-10-26),
+  więc naprawiony albo częściowo naprawiony helikopter podlega tym samym
+  regułom:
+
+  | Stan po trafieniu | Skutek |
+  |---|---|
+  | 100–50 | monolog o lekkim uszkodzeniu |
+  | 49–25 | monolog o ciężkim uszkodzeniu + powrót do bazy |
+  | 24 i mniej | oryginalna katastrofa, giną wszyscy na pokładzie |
+
+  Przykłady: 82 → 57 monolog o lekkim uszkodzeniu; 70 → 45 monolog o ciężkim
+  uszkodzeniu + powrót do bazy; 35 → 10 katastrofa. Stan nigdy nie spada
+  poniżej 0. To zastępuje oryginalną regułę liczby trafień (kwestia, powrót,
+  katastrofa przy trafieniach 1, 2, 3).
 - Ścieżka obrażeń pojazdu (`VehicleTakeDamage`, która ustawia życie < `OKLIFE`
   na 0) nie jest używana dla trafień SAM; logika helikoptera sama zmienia `bLife`.
 - Zapis: `gubHelicopterHitsTaken` zostaje w rekordzie zapisu (nieużywane albo
@@ -113,9 +122,10 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
 - Blokada lotu (D6): **poniżej 25 stanu helikopter nie wystartuje**, dopóki nie
   zostanie naprawiony — nowy warunek w `CanHelicopterFly()` /
   `CanHelicopterTakeOff()` z komunikatem Skyridera, dlaczego. Uwaga: po
-  dokładnie trzech trafieniach od pełnego stanu ma 25, więc *nie* jest
-  zablokowany (i tak już wraca do bazy); blokada dotyczy stanu 1–24,
-  osiąganego po trafieniach częściowo naprawionego helikoptera.
+  aktualizacji D2 trafienie, które zostawia 1–24, niszczy helikopter, więc
+  helikopter zdolny do lotu nigdy nie ma po trafieniu SAM mniej niż 25;
+  blokada jest tylko zabezpieczeniem (np. gdyby stan został ustawiony
+  inaczej).
 
 ### Etap 4 — limity, teksty, testy
 
@@ -136,7 +146,7 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
 | # | Pytanie | Decyzja |
 |---|---|---|
 | D1 | Czy helikopter zajmuje miejsce w drużynie (jak Hummer)? | **tak**, jak Hummer (wg rekomendacji) |
-| D2 | Obrażenia na trafienie SAM i skutki | **−25 na trafienie**; 1. i 2. trafienie: kwestia o lekkim uszkodzeniu; 3. trafienie (stan 25): kwestia o poważnym uszkodzeniu + powrót do bazy; 4. trafienie: oryginalna katastrofa, wszyscy giną (szczegóły w etapie 2) |
+| D2 | Obrażenia na trafienie SAM i skutki | **−25 na trafienie**; skutek wg stanu po trafieniu: **100–50** monolog o lekkim uszkodzeniu, **49–25** monolog o ciężkim uszkodzeniu + powrót do bazy, **24 i mniej** oryginalna katastrofa, wszyscy giną. Od pełnego stanu: trafienia 1–2 lekkie, 3. ciężkie + powrót, 4. katastrofa (szczegóły w etapie 2) |
 | D3 | Gdzie można go naprawiać? | **tylko po wylądowaniu, najemnik w tym samym sektorze** (dowolny sektor, nie tylko miejsce tankowania), wg rekomendacji |
 | D4 | Szybkość naprawy | **20 punktów naprawy = 1 punkt stanu** (wolniej niż 10 u Hummera, bo to helikopter) |
 | D5 | Kliknięcie wiersza helikoptera, by wyznaczyć trasę | **otwiera zwykłe wyznaczanie trasy Skyridera**, wg rekomendacji |

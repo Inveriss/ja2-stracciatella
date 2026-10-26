@@ -81,10 +81,18 @@ a second kind of entry would touch far more code.
   | 3 | 25 | quote `HELI_TOOK_MAJOR_DAMAGE`, `MakeHeliReturnToBase()` |
   | 4 | 0 | the original crash: quote `HELI_GOING_DOWN`, crash sound, `SkyriderDestroyed()` — everyone aboard dies |
 
-- The effect is chosen from the **condition after the hit**, so a repaired (or
-  partly repaired) helicopter follows the same rules:
-  condition > 25 → minor quote; 1–25 → major quote + return to base;
-  0 → crash. Condition never goes below 0. This replaces the original
+- The effect is chosen from the **condition after the hit** (D2 update,
+  2026-10-26), so a repaired or partly repaired helicopter follows the same
+  rules:
+
+  | Condition after the hit | Effect |
+  |---|---|
+  | 100–50 | minor damage quote |
+  | 49–25 | major damage quote + return to base |
+  | 24 and below | the original crash, everyone aboard dies |
+
+  Examples: 82 → 57 minor quote; 70 → 45 major quote + return to base;
+  35 → 10 crash. Condition never goes below 0. This replaces the original
   hit-count rule (quote, return, crash on hits 1, 2, 3).
 - The vehicle damage path (`VehicleTakeDamage`, which sets life < `OKLIFE` to 0)
   is not used for SAM hits; the helicopter logic changes `bLife` itself.
@@ -109,10 +117,10 @@ a second kind of entry would touch far more code.
   `VEHICLE_REPAIR_POINTS_DIVISOR`; it must use the same per-vehicle divisor.
 - Flight lock (D6): **below 25 condition the helicopter can't take off** until
   repaired — a new check in `CanHelicopterFly()` / `CanHelicopterTakeOff()`
-  with a Skyrider message why. Note: after exactly three hits from full
-  condition it has 25, so it is *not* locked (it is already returning to base);
-  the lock applies to 1–24, reached after hits on a partly repaired
-  helicopter.
+  with a Skyrider message why. Note: with the D2 update a hit that leaves
+  1–24 destroys the helicopter, so a flying-capable helicopter never has less
+  than 25 after a SAM hit; the lock is a safety net only (e.g. for a condition
+  set some other way).
 
 ### Stage 4 — limits, texts, tests
 
@@ -133,7 +141,7 @@ a second kind of entry would touch far more code.
 | # | Question | Decision |
 |---|---|---|
 | D1 | Does the helicopter take a team slot (like the Hummer)? | **yes**, same as Hummer (as recommended) |
-| D2 | Damage per SAM hit and effects | **−25 per hit**; hit 1 and hit 2: minor damage quote; hit 3 (condition 25): major damage quote + return to base; hit 4: the original crash, everyone dies (details in stage 2) |
+| D2 | Damage per SAM hit and effects | **−25 per hit**; effect by condition after the hit: **100–50** minor damage quote, **49–25** major damage quote + return to base, **24 and below** the original crash, everyone dies. From full condition: hits 1–2 minor, hit 3 major + return, hit 4 crash (details in stage 2) |
 | D3 | Where can it be repaired? | **only landed, merc in the same sector** (any sector, not only a refuel site), as recommended |
 | D4 | Repair speed | **20 repair points = 1 condition point** (slower than the Hummer's 10, because it is a helicopter) |
 | D5 | Clicking the helicopter row to plot a route | **open the normal Skyrider route plotting**, as recommended |
