@@ -21,11 +21,6 @@
 #define BREATHMAX_FULLY_RESTED			95
 
 
-#define VEHICLE_REPAIR_POINTS_DIVISOR		10
-// the helicopter takes longer to fix
-#define HELICOPTER_REPAIR_POINTS_DIVISOR	20
-
-
 // Assignments Defines
 enum Assignments : int8_t
 {

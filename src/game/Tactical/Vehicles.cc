@@ -687,7 +687,7 @@ bool DoesVehicleNeedAnyRepairs(VEHICLETYPE const& v)
 
 UINT8 GetVehicleRepairPointsDivisor(VEHICLETYPE const& v)
 {
-	return IsHelicopter(v) ? HELICOPTER_REPAIR_POINTS_DIVISOR : VEHICLE_REPAIR_POINTS_DIVISOR;
+	return GCM->getVehicle(v.ubVehicleType)->repair_points_divisor;
 }
 
 

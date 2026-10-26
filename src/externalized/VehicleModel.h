@@ -12,7 +12,7 @@ class ItemSystem;
 class VehicleModel
 {
 public:
-	VehicleModel(ST::string enterSound, ST::string movementSound, ProfileID profileID, VehicleMovementType movementType, uint16_t armourType, uint8_t seats);
+	VehicleModel(ST::string enterSound, ST::string movementSound, ProfileID profileID, VehicleMovementType movementType, uint16_t armourType, uint8_t seats, uint8_t repairPointsDivisor);
 	static const VehicleModel* deserialize(const JsonValue& obj, const ItemSystem* itemSystem, const MercSystem* mercSystem);
 	static void validateData(const std::vector<const VehicleModel*>& vehicles);
 
@@ -22,4 +22,6 @@ public:
 	const VehicleMovementType   movement_type;
 	const uint16_t  armour_type;
 	const uint8_t   seats;
+	// repair points that restore one point of the vehicle's condition
+	const uint8_t   repair_points_divisor;
 };

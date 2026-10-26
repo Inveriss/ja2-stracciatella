@@ -153,7 +153,7 @@ a second kind of entry would touch far more code.
 | D1 | Does the helicopter take a team slot (like the Hummer)? | **yes**, same as Hummer (as recommended) |
 | D2 | Damage per SAM hit and effects | **−25 per hit**; effect by condition after the hit: **100–50** minor damage quote, **49–25** major damage quote + return to base, **24 and below** the original crash, everyone dies. From full condition: hits 1–2 minor, hit 3 major + return, hit 4 crash (details in stage 2) |
 | D3 | Where can it be repaired? | **only landed, merc in the same sector** (any sector, not only a refuel site), as recommended |
-| D4 | Repair speed | **20 repair points = 1 condition point** (slower than the Hummer's 10, because it is a helicopter) |
+| D4 | Repair speed | **20 repair points = 1 condition point** (slower than the Hummer's 10, because it is a helicopter). **Changed 2026-10-26 to 12**: even the best mechanics earn under 20 repair points an hour (Trevor 17, Static 18), and the hourly repair rounds down, so 20 repaired nothing. Each vehicle now has its own `repairPointsDivisor` in `vehicles.json`: helicopter 12, Hummer 10, ice cream truck 8, others 10 |
 | D5 | Clicking the helicopter row to plot a route | **open the normal Skyrider route plotting**, as recommended |
 | D6 | Does damage also stop flying? | **yes: 100–50 it can fly, 49 and below flight is refused** until repaired to 50 |
 

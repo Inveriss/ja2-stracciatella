@@ -13,6 +13,7 @@
  * - movementType: Determines if the vehicle can travel through map sectors and how fast. Must be one of FOOT, CAR, TRUCK, TRACKED or AIR.
  * - armourType: Determines the vehicle's protection against damage. Use the internal name of any armour items.
  * - seats: Maximum number of soldiers allowed in the vehicle. Must not be greater than 10.
+ * - repairPointsDivisor: Repair points that restore one point of the vehicle's condition (1-100, default 10).
  */
 [
     // Eldorado (unused)
@@ -22,7 +23,8 @@
         "profile": "PROF_ELDERODO",
         "movementType": "CAR",
         "armourType": "KEVLAR_VEST",
-        "seats": 6
+        "seats": 6,
+        "repairPointsDivisor": 10
     },
     // Hummer
     {
@@ -31,7 +33,8 @@
         "profile": "PROF_HUMMER",
         "movementType": "CAR",
         "armourType": "SPECTRA_VEST",
-        "seats": 6
+        "seats": 6,
+        "repairPointsDivisor": 10
     },
     // Ice cream truck
     {
@@ -40,7 +43,8 @@
         "profile": "PROF_ICECREAM",
         "movementType": "CAR",
         "armourType": "KEVLAR_VEST",
-        "seats": 6
+        "seats": 6,
+        "repairPointsDivisor": 8
     },
     // Jeep (unused)
     {
@@ -49,7 +53,8 @@
         "profile": "NPC164",
         "movementType": "CAR",
         "armourType": "KEVLAR_VEST",
-        "seats":  6
+        "seats":  6,
+        "repairPointsDivisor": 10
     },
     // Tank (unused)
     {
@@ -58,7 +63,8 @@
         "profile": "NPC164",
         "movementType": "CAR",
         "armourType": "SPECTRA_VEST",
-        "seats": 6
+        "seats": 6,
+        "repairPointsDivisor": 10
     },
     // Helicopter
     {
@@ -67,6 +73,7 @@
         "profile": "PROF_HELICOPTER",
         "movementType": "AIR",
         "armourType": "KEVLAR_VEST",
-        "seats":6
+        "seats":6,
+        "repairPointsDivisor": 12
     }
 ]

@@ -157,7 +157,7 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
 | D1 | Czy helikopter zajmuje miejsce w drużynie (jak Hummer)? | **tak**, jak Hummer (wg rekomendacji) |
 | D2 | Obrażenia na trafienie SAM i skutki | **−25 na trafienie**; skutek wg stanu po trafieniu: **100–50** monolog o lekkim uszkodzeniu, **49–25** monolog o ciężkim uszkodzeniu + powrót do bazy, **24 i mniej** oryginalna katastrofa, wszyscy giną. Od pełnego stanu: trafienia 1–2 lekkie, 3. ciężkie + powrót, 4. katastrofa (szczegóły w etapie 2) |
 | D3 | Gdzie można go naprawiać? | **tylko po wylądowaniu, najemnik w tym samym sektorze** (dowolny sektor, nie tylko miejsce tankowania), wg rekomendacji |
-| D4 | Szybkość naprawy | **20 punktów naprawy = 1 punkt stanu** (wolniej niż 10 u Hummera, bo to helikopter) |
+| D4 | Szybkość naprawy | **20 punktów naprawy = 1 punkt stanu** (wolniej niż 10 u Hummera, bo to helikopter). **Zmienione 2026-10-26 na 12**: nawet najlepsi mechanicy zdobywają poniżej 20 punktów naprawy na godzinę (Trevor 17, Static 18), a godzinowa naprawa zaokrągla w dół, więc przy 20 nic się nie naprawiało. Każdy pojazd ma teraz własny `repairPointsDivisor` w `vehicles.json`: helikopter 12, Hummer 10, furgonetka z lodami 8, pozostałe 10 |
 | D5 | Kliknięcie wiersza helikoptera, by wyznaczyć trasę | **otwiera zwykłe wyznaczanie trasy Skyridera**, wg rekomendacji |
 | D6 | Czy uszkodzenie blokuje też lot? | **tak: 100–50 może latać, 49 i mniej odmowa lotu** do czasu naprawy do 50 |
 
