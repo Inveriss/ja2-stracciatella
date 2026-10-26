@@ -60,6 +60,7 @@
 #include "UILayout.h"
 
 #include <algorithm>
+#include <stdexcept>
 #include <string_theory/string>
 
 
@@ -510,8 +511,19 @@ void RenderMapScreenInterfaceBottom( void )
 
 		if (GetSectorFlagStatus(sMap, SF_ALREADY_VISITED))
 		{
-			LoadRadarScreenBitmap(GetMapFileName(sMap, TRUE));
-			LoadBigRadarScreenBitmap(GetMapFileName(sMap, TRUE));
+			// A visited sector without a map (e.g. revealed by a testing switch)
+			// has no radar map either: show it like an unvisited one
+			try
+			{
+				LoadRadarScreenBitmap(GetMapFileName(sMap, TRUE));
+				LoadBigRadarScreenBitmap(GetMapFileName(sMap, TRUE));
+			}
+			catch (std::exception const& e)
+			{
+				SLOGW("No radar map for sector {}: {}", sMap.AsShortString(), e.what());
+				ClearOutRadarMapImage();
+				ClearOutBigRadarMapImage();
+			}
 		}
 		else
 		{
