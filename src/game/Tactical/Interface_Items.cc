@@ -419,6 +419,18 @@ BOOLEAN gfItemPointerDifferentThanDefault = FALSE;
 SOLDIERTYPE *gpItemPointerSoldier;
 INT8 gbItemPointerSrcSlot;
 static UINT16 gusItemPointer = 255;
+
+
+// One of our vehicles an item can be passed into (its cargo pockets): not
+// destroyed, here in the sector; never by a throw
+static bool IsVehicleCargoTarget(SOLDIERTYPE const& tgt)
+{
+	return tgt.uiStatusFlags & SOLDIER_VEHICLE &&
+		tgt.bTeam == OUR_TEAM &&
+		tgt.bLife > 0         &&
+		tgt.bInSector         &&
+		!TANK(&tgt);
+}
 static UINT32 guiNewlyPlacedItemTimer = 0;
 static BOOLEAN gfBadThrowItemCTGH;
 BOOLEAN gfDontChargeAPsToPickup = FALSE;
@@ -5473,9 +5485,18 @@ void DrawItemTileCursor( )
 				const SOLDIERTYPE* const tgt = gUIFullTarget;
 				if (tgt != NULL)
 				{
+					// One of our vehicles: a pass into its cargo, only from close by
+					if (IsVehicleCargoTarget(*tgt))
+					{
+						if (sDist <= PASSING_ITEM_DISTANCE_OKLIFE)
+						{
+							gfUIMouseOnValidCatcher = 4;
+							gUIValidCatcher         = tgt;
+						}
+					}
 					// Are they on our team?
 					// ATE: Can't be an EPC
-					if (tgt->bTeam == OUR_TEAM && !AM_AN_EPC(tgt) && !(tgt->uiStatusFlags & SOLDIER_VEHICLE))
+					else if (tgt->bTeam == OUR_TEAM && !AM_AN_EPC(tgt) && !(tgt->uiStatusFlags & SOLDIER_VEHICLE))
 					{
 						if ( sDist <= PASSING_ITEM_DISTANCE_OKLIFE )
 						{
@@ -5683,6 +5704,42 @@ static bool IsValidAmmoToReloadRobot(SOLDIERTYPE const& s, OBJECTTYPE const& amm
 		return false;
 	}
 	return true;
+}
+
+
+// The item on the cursor into this vehicle's cargo pockets: the merc holding
+// it stands within passing distance and can see the vehicle; in turn-based
+// combat it costs him AP_PICKUP_ITEM, the vehicle nothing
+static BOOLEAN PassItemIntoVehicleCargo(SOLDIERTYPE& vehicle)
+{
+	SOLDIERTYPE& merc = *gpItemPointerSoldier;
+	bool const   in_combat = gTacticalStatus.uiFlags & INCOMBAT;
+
+	if (in_combat && !EnoughPoints(&merc, AP_PICKUP_ITEM, 0, TRUE)) return FALSE;
+
+	INT16 const visible = DistanceVisible(&merc, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, vehicle.sGridNo, vehicle.bLevel);
+	if (!SoldierTo3DLocationLineOfSightTest(&merc, vehicle.sGridNo, vehicle.bLevel, 3, (UINT8)visible, TRUE)) return FALSE;
+
+	UINT16 const usItem = gpItemPointer->usItem;
+	if (!AutoPlaceObject(&vehicle, gpItemPointer, TRUE))
+	{
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMessageStrings[MSG_NO_ROOM_TO_PASS_ITEM], GCM->getItem(usItem)->getShortName(), vehicle.name));
+		return FALSE;
+	}
+
+	if (in_combat) DeductPoints(&merc, AP_PICKUP_ITEM, 0);
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMessageStrings[MSG_ITEM_PASSED_TO_MERC], GCM->getItem(usItem)->getShortName(), vehicle.name));
+	if (gpItemPointer->ubNumberOfObjects == 0) EndItemPointer();
+
+	// he turns to the vehicle and hands it over (the vehicle doesn't move)
+	EVENT_StopMerc(&merc);
+	if (gAnimControl[merc.usAnimState].ubEndHeight == ANIM_STAND && !MercInWater(&merc))
+	{
+		EVENT_SetSoldierDesiredDirection(&merc, (UINT8)GetDirectionFromGridNo(vehicle.sGridNo, &merc));
+		merc.fTurningUntilDone = TRUE;
+		merc.usPendingAnimation = PASS_OBJECT;
+	}
+	return TRUE;
 }
 
 
@@ -5963,7 +6020,11 @@ BOOLEAN HandleItemPointerClick( UINT16 usMapPos )
 		sGridNo = usMapPos;
 
 		SOLDIERTYPE* const pSoldier = gUIFullTarget;
-		if (sDist <= PASSING_ITEM_DISTANCE_OKLIFE &&
+		if (sDist <= PASSING_ITEM_DISTANCE_OKLIFE && pSoldier != NULL && IsVehicleCargoTarget(*pSoldier))
+		{
+			return PassItemIntoVehicleCargo(*pSoldier);
+		}
+		else if (sDist <= PASSING_ITEM_DISTANCE_OKLIFE &&
 			pSoldier != NULL &&
 			pSoldier->bTeam == OUR_TEAM &&
 			!AM_AN_EPC(pSoldier) &&
