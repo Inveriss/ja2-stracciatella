@@ -57,12 +57,10 @@ Branch `Vehicles`. Background: [vehicles-current-implementation.md](vehicles-cur
 | V8c | Broken items | **stay in the dropped pile as broken** (status below `USABLE`); in stacks, units at status 1 are removed (existing rule) |
 | V9 | The helicopter (since it got its own soldier, plan docs/helicopter-team-list-repair-plan.md) | **it gets an openable inventory too**; when it crashes, **its cargo is lost completely** (section 4.6) |
 
-Open (proposals for V9 details, not decided yet):
+| V9a | When can items be moved to / from the helicopter? | only while it has **landed**, with anyone in its sector; and with **its own passengers** at any time, also in flight (as proposed) |
+| V9b | Its `slotLimitMultiplier` | **4**, like the ground vehicles (as proposed) |
 
-| # | Question | Proposal |
-|---|---|---|
-| V9a | When can items be moved to / from the helicopter? | only while it has **landed**, with anyone in its sector; and with **its own passengers** at any time, also in flight |
-| V9b | Its `slotLimitMultiplier` | **4**, like the ground vehicles |
+All decisions V1–V9b are taken; nothing is open.
 
 ## 4. Design
 

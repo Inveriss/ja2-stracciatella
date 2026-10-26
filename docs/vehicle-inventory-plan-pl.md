@@ -57,12 +57,10 @@ Control; V9 dla helikoptera dopisane później tego samego dnia). Branch `Vehicl
 | V8c | Zniszczone przedmioty | **zostają w porzuconym stosie jako zepsute** (stan poniżej `USABLE`); w stosach sztuki ze stanem 1 są usuwane (istniejąca reguła) |
 | V9 | Helikopter (od kiedy ma własną postać, plan docs/helicopter-team-list-repair-plan-pl.md) | **też dostaje otwierany inwentarz**; przy katastrofie **ładunek przepada całkowicie** (rozdział 4.6) |
 
-Otwarte (propozycje szczegółów V9, jeszcze bez decyzji):
+| V9a | Kiedy można przenosić przedmioty do / z helikoptera? | tylko gdy **wylądował**, z każdym w jego sektorze; a z **jego pasażerami** zawsze, także w locie (wg propozycji) |
+| V9b | Jego `slotLimitMultiplier` | **4**, jak pojazdy naziemne (wg propozycji) |
 
-| # | Pytanie | Propozycja |
-|---|---|---|
-| V9a | Kiedy można przenosić przedmioty do / z helikoptera? | tylko gdy **wylądował**, z każdym w jego sektorze; a z **jego pasażerami** zawsze, także w locie |
-| V9b | Jego `slotLimitMultiplier` | **4**, jak pojazdy naziemne |
+Wszystkie decyzje V1–V9b są podjęte; nic nie zostało otwarte.
 
 ## 4. Projekt
 
