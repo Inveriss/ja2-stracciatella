@@ -115,12 +115,15 @@ a second kind of entry would touch far more code.
   by `IsHelicopter(v)`.
 - `Faces.cc` rounds the shown repair points to a multiple of
   `VEHICLE_REPAIR_POINTS_DIVISOR`; it must use the same per-vehicle divisor.
-- Flight lock (D6): **below 25 condition the helicopter can't take off** until
-  repaired — a new check in `CanHelicopterFly()` / `CanHelicopterTakeOff()`
-  with a Skyrider message why. Note: with the D2 update a hit that leaves
-  1–24 destroys the helicopter, so a flying-capable helicopter never has less
-  than 25 after a SAM hit; the lock is a safety net only (e.g. for a condition
-  set some other way).
+- Flight lock (D6, updated 2026-10-26): **condition 100–50 — the helicopter
+  can fly; 49 and below — Skyrider refuses to fly** until it is repaired back
+  to at least 50. A new check in `CanHelicopterFly()` / `CanHelicopterTakeOff()`
+  with a Skyrider message why (`HELI_FLIGHT_MIN_CONDITION` 50).
+- Together with D2: a hit that leaves 49–25 sends the helicopter back to base
+  (that flight still completes — the forced return is not a take-off); after
+  landing it stays grounded until repaired to 50. So from full condition the
+  3rd hit (25) both returns it to base and grounds it; repair needs 25 points
+  of condition = 500 repair points (D4).
 
 ### Stage 4 — limits, texts, tests
 
@@ -132,8 +135,8 @@ a second kind of entry would touch far more code.
   landed to be repaired").
 - Tests in the game: get Skyrider, check the row; fly over a SAM sector to take
   hits (75 / 50 / 25 and the quotes, return to base after the 3rd); land;
-  repair with a mechanic (20 points per condition point); take-off lock below
-  25; destroy the heli (4th hit from full) and check the row disappears;
+  repair with a mechanic (20 points per condition point); flight refused at
+  49 and below, allowed again at 50; destroy the heli (4th hit from full) and check the row disappears;
   save/load.
 
 ## 5. Decisions (taken 2026-10-26)
@@ -145,7 +148,7 @@ a second kind of entry would touch far more code.
 | D3 | Where can it be repaired? | **only landed, merc in the same sector** (any sector, not only a refuel site), as recommended |
 | D4 | Repair speed | **20 repair points = 1 condition point** (slower than the Hummer's 10, because it is a helicopter) |
 | D5 | Clicking the helicopter row to plot a route | **open the normal Skyrider route plotting**, as recommended |
-| D6 | Does damage also stop flying? | **yes, below 25 condition** the helicopter can't take off until repaired |
+| D6 | Does damage also stop flying? | **yes: 100–50 it can fly, 49 and below flight is refused** until repaired to 50 |
 
 ## 6. Size and risk
 

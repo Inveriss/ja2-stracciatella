@@ -119,13 +119,16 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
   wybiera dzielnik wg `IsHelicopter(v)`.
 - `Faces.cc` zaokrągla pokazywane punkty naprawy do wielokrotności
   `VEHICLE_REPAIR_POINTS_DIVISOR`; musi używać tego samego dzielnika co pojazd.
-- Blokada lotu (D6): **poniżej 25 stanu helikopter nie wystartuje**, dopóki nie
-  zostanie naprawiony — nowy warunek w `CanHelicopterFly()` /
-  `CanHelicopterTakeOff()` z komunikatem Skyridera, dlaczego. Uwaga: po
-  aktualizacji D2 trafienie, które zostawia 1–24, niszczy helikopter, więc
-  helikopter zdolny do lotu nigdy nie ma po trafieniu SAM mniej niż 25;
-  blokada jest tylko zabezpieczeniem (np. gdyby stan został ustawiony
-  inaczej).
+- Blokada lotu (D6, aktualizacja 2026-10-26): **stan 100–50 — helikopter może
+  latać; 49 i mniej — Skyrider odmawia lotu**, dopóki helikopter nie zostanie
+  naprawiony do co najmniej 50. Nowy warunek w `CanHelicopterFly()` /
+  `CanHelicopterTakeOff()` z komunikatem Skyridera, dlaczego
+  (`HELI_FLIGHT_MIN_CONDITION` 50).
+- Razem z D2: trafienie, które zostawia 49–25, odsyła helikopter do bazy (ten
+  lot zostaje dokończony — przymusowy powrót nie jest startem); po wylądowaniu
+  helikopter stoi na ziemi do naprawy do 50. Od pełnego stanu 3. trafienie (25)
+  więc odsyła go do bazy i uziemia; naprawa wymaga 25 punktów stanu = 500
+  punktów naprawy (D4).
 
 ### Etap 4 — limity, teksty, testy
 
@@ -137,8 +140,8 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
   wylądować, żeby go naprawić”).
 - Testy w grze: zdobyć Skyridera, sprawdzić wiersz; przelecieć nad sektorem SAM,
   żeby dostać trafienia (75 / 50 / 25 i kwestie, powrót do bazy po 3.);
-  wylądować; naprawić mechanikiem (20 punktów na punkt stanu); blokada startu
-  poniżej 25; zniszczyć helikopter (4. trafienie od pełnego stanu) i sprawdzić,
+  wylądować; naprawić mechanikiem (20 punktów na punkt stanu); odmowa lotu przy
+  49 i mniej, lot znów możliwy przy 50; zniszczyć helikopter (4. trafienie od pełnego stanu) i sprawdzić,
   że wiersz znika; zapis/odczyt.
 
 ## 5. Decyzje (podjęte 2026-10-26)
@@ -150,7 +153,7 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
 | D3 | Gdzie można go naprawiać? | **tylko po wylądowaniu, najemnik w tym samym sektorze** (dowolny sektor, nie tylko miejsce tankowania), wg rekomendacji |
 | D4 | Szybkość naprawy | **20 punktów naprawy = 1 punkt stanu** (wolniej niż 10 u Hummera, bo to helikopter) |
 | D5 | Kliknięcie wiersza helikoptera, by wyznaczyć trasę | **otwiera zwykłe wyznaczanie trasy Skyridera**, wg rekomendacji |
-| D6 | Czy uszkodzenie blokuje też lot? | **tak, poniżej 25 stanu** helikopter nie wystartuje do czasu naprawy |
+| D6 | Czy uszkodzenie blokuje też lot? | **tak: 100–50 może latać, 49 i mniej odmowa lotu** do czasu naprawy do 50 |
 
 ## 6. Rozmiar i ryzyko
 
