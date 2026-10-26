@@ -672,12 +672,22 @@ static void HandleCriticalHitForVehicleInLocation(const UINT8 ubID, const INT16 
 
 bool DoesVehicleNeedAnyRepairs(VEHICLETYPE const& v)
 {
-	// Skyrider isn't damagable/repairable
-	if (IsHelicopter(v)) return false;
+	// the helicopter's condition is its soldier's (if it got one)
+	if (IsHelicopter(v))
+	{
+		SOLDIERTYPE const* const hs = GetHelicopterSoldier();
+		return hs && hs->bLife != hs->bLifeMax;
+	}
 
 	// get the vehicle soldiertype
 	SOLDIERTYPE const& vs = GetSoldierStructureForVehicle(v);
 	return vs.bLife != vs.bLifeMax;
+}
+
+
+UINT8 GetVehicleRepairPointsDivisor(VEHICLETYPE const& v)
+{
+	return IsHelicopter(v) ? HELICOPTER_REPAIR_POINTS_DIVISOR : VEHICLE_REPAIR_POINTS_DIVISOR;
 }
 
 
@@ -694,13 +704,14 @@ INT8 RepairVehicle(VEHICLETYPE const& v, INT8 const bRepairPtsLeft, BOOLEAN* con
 	bOldLife = vs.bLife;
 
 	// Repair
-	vs.bLife += bRepairPtsLeft / VEHICLE_REPAIR_POINTS_DIVISOR;
+	INT8 const divisor = GetVehicleRepairPointsDivisor(v);
+	vs.bLife += bRepairPtsLeft / divisor;
 
 	// Check
 	if (vs.bLife > vs.bLifeMax) vs.bLife = vs.bLifeMax;
 
 	// Calculate pts used;
-	bRepairPtsUsed = (vs.bLife - bOldLife) * VEHICLE_REPAIR_POINTS_DIVISOR;
+	bRepairPtsUsed = (vs.bLife - bOldLife) * divisor;
 
 	// ARM: personally, I'd love to know where in Arulco the mechanic gets the PARTS to do this stuff, but hey, it's a game!
 	*pfNothingToRepair = !DoesVehicleNeedAnyRepairs(v);

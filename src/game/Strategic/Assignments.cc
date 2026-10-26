@@ -95,11 +95,10 @@ enum AssignmentAbortReason
 	NUM_ASSIGN_ABORT_REASONS
 };
 
+// a repair menu line's choice: a vehicle by its id (0 to MAX_VEHICLES - 1),
+// or one of these
 enum{
-	REPAIR_MENU_VEHICLE1 = 0,
-	REPAIR_MENU_VEHICLE2,
-	REPAIR_MENU_VEHICLE3,
-	REPAIR_MENU_ROBOT,
+	REPAIR_MENU_ROBOT = MAX_VEHICLES,
 	REPAIR_MENU_ITEMS,
 	REPAIR_MENU_CANCEL,
 };
@@ -378,6 +377,24 @@ static BOOLEAN CanCharacterDoctor(SOLDIERTYPE const* const pSoldier)
 
 static BOOLEAN CanCharacterRepairRobot(SOLDIERTYPE const*);
 static bool CanCharacterRepairVehicle(SOLDIERTYPE const&, VEHICLETYPE const&);
+
+
+// Is this vehicle where the merc can work on it? The helicopter only when it
+// has landed in the merc's sector (it doesn't need to be able to fly, unlike
+// boarding it); the others in the same sector and owned by the player.
+static bool IsVehicleInRepairReach(SOLDIERTYPE const& s, VEHICLETYPE const& v)
+{
+	if (IsHelicopter(v))
+	{
+		return GetHelicopterSoldier() != nullptr &&
+			!fHelicopterIsAirBorne &&
+			!v.fDestroyed          &&
+			!v.fBetweenSectors     &&
+			!s.fBetweenSectors     &&
+			s.sSector == v.sSector;
+	}
+	return IsThisVehicleAccessibleToSoldier(s, v);
+}
 static BOOLEAN DoesCharacterHaveAnyItemsToRepair(SOLDIERTYPE const*, INT8 bHighestPass);
 
 
@@ -394,10 +411,8 @@ static bool IsAnythingAroundForSoldierToRepair(SOLDIERTYPE const& s)
 	{
 		CFOR_EACH_VEHICLE(v)
 		{
-			// The helicopter, is NEVER repairable
-			if (IsHelicopter(v))                         continue;
-			if (!IsThisVehicleAccessibleToSoldier(s, v)) continue;
-			if (!CanCharacterRepairVehicle(s, v))        continue;
+			if (!IsVehicleInRepairReach(s, v))    continue;
+			if (!CanCharacterRepairVehicle(s, v)) continue;
 			// There is a repairable vehicle here
 			return true;
 		}
@@ -3081,9 +3096,7 @@ static void DisplayRepairMenu(SOLDIERTYPE const& s)
 	{ // Run through list of vehicles in sector and add them to pop up box
 		CFOR_EACH_VEHICLE(v)
 		{
-			// Don't even list the helicopter, because it's never repairable
-			if (IsHelicopter(v))                         continue;
-			if (!IsThisVehicleAccessibleToSoldier(s, v)) continue;
+			if (!IsVehicleInRepairReach(s, v)) continue;
 			AddMonoString(box, pVehicleStrings[v.ubVehicleType]);
 		}
 	}
@@ -3120,9 +3133,7 @@ static void HandleShadingOfLinesForRepairMenu()
 	{
 		CFOR_EACH_VEHICLE(v)
 		{
-			// don't even list the helicopter, because it's NEVER repairable...
-			if (IsHelicopter(v))                         continue;
-			if (!IsThisVehicleAccessibleToSoldier(s, v)) continue;
+			if (!IsVehicleInRepairReach(s, v)) continue;
 			ShadeStringInBox(box, line++, !CanCharacterRepairVehicle(s, v));
 		}
 	}
@@ -3181,11 +3192,8 @@ static void CreateDestroyMouseRegionForRepairMenu(void)
 			// vehicles
 			CFOR_EACH_VEHICLE(v)
 			{
-				// don't even list the helicopter, because it's NEVER repairable...
-				if (IsHelicopter(v)) continue;
-
-				// other vehicles *in the sector* are listed, but later shaded dark if they're not repairable
-				if (!IsThisVehicleAccessibleToSoldier(s, v)) continue;
+				// vehicles *in the sector* (the helicopter: landed there) are listed, but later shaded dark if they're not repairable
+				if (!IsVehicleInRepairReach(s, v)) continue;
 
 				// add mouse region for each line of text..and set user data
 				MakeRepairRegion(idx++, regionArea, VEHICLE2ID(v), s);
@@ -3258,7 +3266,7 @@ static void RepairMenuBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		if( ( iRepairWhat >= REPAIR_MENU_VEHICLE1 ) && ( iRepairWhat <= REPAIR_MENU_VEHICLE3 ) )
+		if (0 <= iRepairWhat && iRepairWhat < REPAIR_MENU_ROBOT)
 		{
 			// repair VEHICLE
 			SetSoldierAssignmentRepair(pSoldier, false, iRepairWhat);
@@ -5845,8 +5853,9 @@ static bool CanCharacterRepairVehicle(SOLDIERTYPE const& s, VEHICLETYPE const& v
 	// is it damaged at all?
 	if (!DoesVehicleNeedAnyRepairs(v)) return false;
 
-	// same sector, neither is between sectors, and OK To Use (player owns it) ?
-	if (!IsThisVehicleAccessibleToSoldier(s, v)) return false;
+	// same sector, neither is between sectors, and OK To Use (player owns it;
+	// the helicopter: landed)?
+	if (!IsVehicleInRepairReach(s, v)) return false;
 
 	return true;
 }

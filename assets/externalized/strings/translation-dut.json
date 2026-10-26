@@ -2048,7 +2048,8 @@
     "pSkyriderText": [
         "Skyrider is $%d betaald.",
         "Skyrider heeft $%d tegoed.",
-        "Skyrider heeft geen passagiers. Als je huurlingen in deze sector wil vervoeren, wijs ze dan eerst toe aan Voertuig/Helikopter."
+        "Skyrider heeft geen passagiers. Als je huurlingen in deze sector wil vervoeren, wijs ze dan eerst toe aan Voertuig/Helikopter.",
+        "Skyrider vliegt niet: de helikopter is te zwaar beschadigd (staat %d). Repareer hem eerst tot minstens %d."
     ],
     "pSquadMenuStrings": [
         "Team  1",

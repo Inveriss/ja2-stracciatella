@@ -51,6 +51,8 @@
 #define HELI_SAM_HIT_DAMAGE             25
 #define HELI_MINOR_DAMAGE_MIN_CONDITION 50
 #define HELI_MAJOR_DAMAGE_MIN_CONDITION 25
+// below this condition Skyrider won't take off until the helicopter is repaired
+#define HELI_FLIGHT_MIN_CONDITION       50
 
 // the amounts of time to wait for hover stuff
 #define TIME_DELAY_FOR_HOVER_WAIT						10		// minutes
@@ -391,11 +393,25 @@ BOOLEAN CanHelicopterFly( void )
 
 	if (fHeliReturnStraightToBase) return FALSE;
 
+	// too damaged?
+	if (IsHelicopterTooDamagedToFly()) return FALSE;
+
 	// grounded by enemies in sector?
 	if (!CanHelicopterTakeOff()) return FALSE;
 
 	// everything A-OK!
 	return( TRUE );
+}
+
+bool IsHelicopterTooDamagedToFly()
+{
+	SOLDIERTYPE const* const hs = GetHelicopterSoldier();
+	return hs && hs->bLife < HELI_FLIGHT_MIN_CONDITION;
+}
+
+INT8 GetHelicopterFlightMinCondition()
+{
+	return HELI_FLIGHT_MIN_CONDITION;
 }
 
 BOOLEAN IsHelicopterPilotAvailable( void )

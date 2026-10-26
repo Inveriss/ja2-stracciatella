@@ -111,6 +111,9 @@ bool DoesVehicleNeedAnyRepairs(VEHICLETYPE const&);
 // repair the vehicle
 INT8 RepairVehicle(VEHICLETYPE const&, INT8 bTotalPts, BOOLEAN* pfNothingToRepair);
 
+// repair points that restore one condition point of this vehicle
+UINT8 GetVehicleRepairPointsDivisor(VEHICLETYPE const&);
+
 
 //Save all the vehicle information to the saved game file
 void SaveVehicleInformationToSaveGameFile(HWFILE);

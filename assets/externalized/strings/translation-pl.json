@@ -2048,7 +2048,8 @@
     "pSkyriderText": [
         "Skyriderowi zapłacono %d$",
         "Skyriderowi trzeba jeszcze zapłacić %d$",
-        "Skyrider nie ma pasażerów. Jeśli chcesz przetransportować najemników, zmień ich przydział na POJAZD/HELIKOPTER."
+        "Skyrider nie ma pasażerów. Jeśli chcesz przetransportować najemników, zmień ich przydział na POJAZD/HELIKOPTER.",
+        "Skyrider nie poleci: helikopter jest zbyt uszkodzony (stan %d). Najpierw napraw go co najmniej do %d."
     ],
     "pSquadMenuStrings": [
         "Oddział  1",

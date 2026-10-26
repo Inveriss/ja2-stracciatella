@@ -8797,6 +8797,14 @@ static void ExplainWhySkyriderCantFly(void)
 		return;
 	}
 
+	// too damaged to take off?
+	if (IsHelicopterTooDamagedToFly())
+	{
+		ST::string const msg = st_format_printf(pSkyriderText[3], GetHelicopterSoldier()->bLife, GetHelicopterFlightMinCondition());
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, msg, MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback);
+		return;
+	}
+
 	// grounded by enemies in sector?
 	if (!CanHelicopterTakeOff())
 	{

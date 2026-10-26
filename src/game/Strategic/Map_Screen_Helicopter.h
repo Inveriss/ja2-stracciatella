@@ -124,6 +124,11 @@ BOOLEAN CanHelicopterFly( void );
 // is the pilot alive and on our side?
 BOOLEAN IsHelicopterPilotAvailable( void );
 
+// is the helicopter's condition below the one Skyrider needs to take off
+// (GetHelicopterFlightMinCondition())?
+bool IsHelicopterTooDamagedToFly();
+INT8 GetHelicopterFlightMinCondition();
+
 // have helicopter take off
 void TakeOffHelicopter( void );
 

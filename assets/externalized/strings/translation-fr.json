@@ -2048,7 +2048,8 @@
     "pSkyriderText": [
         "Skyrider a reçu %d $",
         "Skyrider attend toujours ses %d $",
-        "Skyrider n'a pas de passagers. Si vous voulez envoyer des mercenaires dans ce secteur, n'oubliez pas de les assigner à l'hélicoptère."
+        "Skyrider n'a pas de passagers. Si vous voulez envoyer des mercenaires dans ce secteur, n'oubliez pas de les assigner à l'hélicoptère.",
+        "Skyrider ne volera pas : l'hélicoptère est trop endommagé (état %d). Réparez-le d'abord jusqu'à au moins %d."
     ],
     "pSquadMenuStrings": [
         "Esc. 1",

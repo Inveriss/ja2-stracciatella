@@ -2048,7 +2048,8 @@
     "pSkyriderText": [
         "Skyrider was paid $%d",
         "Skyrider is still owed $%d",
-        "Skyrider has no passengers.  If it is your intention to transport mercs in this sector, assign them to Vehicle/Helicopter first."
+        "Skyrider has no passengers.  If it is your intention to transport mercs in this sector, assign them to Vehicle/Helicopter first.",
+        "Skyrider won't fly: the helicopter is too badly damaged (condition %d). Repair it to at least %d first."
     ],
     "pSquadMenuStrings": [
         "Squad  1",

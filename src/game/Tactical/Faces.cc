@@ -1,5 +1,6 @@
 #include "Faces.h"
 #include "Assignments.h"
+#include "Vehicles.h"
 #include "Campaign_Types.h"
 #include "ContentManager.h"
 #include "Dialogue_Control.h"
@@ -903,10 +904,11 @@ static void HandleRenderFaceAdjustments(FACETYPE& f, BOOLEAN const fDisplayBuffe
 				// check if we are repairing a vehicle
 				if (s->bVehicleUnderRepairID != -1)
 				{
-					// reduce to a multiple of VEHICLE_REPAIR_POINTS_DIVISOR.
+					// reduce to a multiple of the vehicle's repair points divisor.
 					// This way skill too low will show up as 0 repair pts.
-					sPtsAvailable -= sPtsAvailable % VEHICLE_REPAIR_POINTS_DIVISOR;
-					usMaximumPts  -= usMaximumPts  % VEHICLE_REPAIR_POINTS_DIVISOR;
+					UINT8 const divisor = GetVehicleRepairPointsDivisor(GetVehicle(s->bVehicleUnderRepairID));
+					sPtsAvailable -= sPtsAvailable % divisor;
+					usMaximumPts  -= usMaximumPts  % divisor;
 				}
 				fShowNumber = TRUE;
 				sIconIndex  = 0;

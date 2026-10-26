@@ -2048,7 +2048,8 @@
     "pSkyriderText": [
         "Skyrider è stato pagato $%d",
         "A Skyrider bisogna ancora dare $%d",
-        "Skyrider non ha passeggeri. Se avete intenzione di trasportare mercenari in questo settore, assegnateli prima al Veicolo/Elicottero."
+        "Skyrider non ha passeggeri. Se avete intenzione di trasportare mercenari in questo settore, assegnateli prima al Veicolo/Elicottero.",
+        "Skyrider non volerà: l'elicottero è troppo danneggiato (condizioni %d). Riparatelo prima almeno fino a %d."
     ],
     "pSquadMenuStrings": [
         "Squadra  1",

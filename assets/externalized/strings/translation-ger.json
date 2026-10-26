@@ -2048,7 +2048,8 @@
     "pSkyriderText": [
         "Skyrider wurden $%d gezahlt",
         "Skyrider bekommt noch $%d",
-        "Skyrider hat keine Passagiere. Wenn Sie Söldner in den Sektor transportieren wollen, weisen Sie sie einem Fahrzeug/Helikopter zu."
+        "Skyrider hat keine Passagiere. Wenn Sie Söldner in den Sektor transportieren wollen, weisen Sie sie einem Fahrzeug/Helikopter zu.",
+        "Skyrider fliegt nicht: Der Helikopter ist zu stark beschädigt (Zustand %d). Reparieren Sie ihn zuerst auf mindestens %d."
     ],
     "pSquadMenuStrings": [
         "Trupp  1",
