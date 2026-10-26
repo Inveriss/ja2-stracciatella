@@ -48,12 +48,12 @@ Control). Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehic
 | V2 | Jeden wspólny mnożnik czy osobny dla pojazdu? | **osobny dla każdego pojazdu**, pole w `vehicles.json` |
 | V3 | Limity pieniędzy | **bez zmian** także dla pojazdów (100000 duża / 50000 mała kieszeń) |
 | V4 | Wykluczone przedmioty | **wszystkie bronie (`IC_WEAPON`) i kastet (`IC_PUNCH`)** zostają przy limicie najemnika; na razie bez innych wyjątków |
+| V5 | Gdzie można otworzyć inwentarz pojazdu? | **wariant B**: ekran mapy w etapach 1–2, **a taktyka jako zupełnie osobny, niezależny etap 3**, rozpoczęty dopiero po zakończeniu etapów 1–2 |
 
 Otwarte (propozycje z analizy, jeszcze bez decyzji):
 
 | # | Pytanie | Propozycja |
 |---|---|---|
-| V5 | Gdzie można otworzyć inwentarz pojazdu? | tylko na ekranie mapy (panel SM w taktyce to osobna, większa zmiana) |
 | V6 | Które sloty? | tylko kieszenie; dłonie i sloty pancerza/głowy zablokowane (bez efektu dla pojazdu, przedmioty w dłoni mogłyby wpływać na taktykę) |
 | V7 | Uszkodzony pojazd (stan < `OKLIFE` 15) | inwentarz nadal dostępny (dzisiejsza reguła by go zamknęła) |
 
@@ -114,6 +114,20 @@ sprawdzenia dłoni na mapie/w taktyce (tylko > 0).
 - Sprawdzić asercje wołające `MapCharacterHasAccessibleInventory`
   (`MapScreen.cc`) i logikę włączania przycisku inwentarza.
 
+### 4.5 Przenoszenie na ekranie mapy: walka i podróż
+
+- **W trakcie walki** `MapscreenCanPassItemToChar` odmawia każdego przekazania
+  między postaciami, gdy we wczytanym sektorze są wrogowie
+  (`gTacticalStatus.fEnemyInSector`) — po cichu: kliknięcie innej postaci z
+  przedmiotem w ręce nic nie robi. Propozycja: pokazać komunikat (np.
+  istniejący „Podczas walki nie można korzystać z tego panelu.” albo nowy
+  tekst). Uwaga: flaga dotyczy sektora wczytanego w taktyce, więc walka tam
+  blokuje przenoszenie na mapie wszędzie (zachowanie oryginalne).
+- **W trakcie podróży** wymiana jest dozwolona tylko w tym samym oddziale lub
+  pojeździe (równe `bAssignment`). Postać pojazdu ma jako `bAssignment` numer
+  oddziału, a jej pasażerowie `VEHICLE`, więc pasażer ↔ pojazd w drodze
+  zostałby odrzucony — dopuścić to, gdy `iVehicleId` pasażera to ten pojazd.
+
 ## 5. Etapy
 
 1. **Dostęp do inwentarza** (ekran mapy): zmiana warunku + ograniczenie slotów.
@@ -125,4 +139,21 @@ sprawdzenia dłoni na mapie/w taktyce (tylko > 0).
    pieniędzy bez zmian; zniszczyć pojazd w taktyce i sprawdzić, że przedmioty
    spadają na ziemię.
 
-Rozmiar: mały–średni; bez zmiany formatu zapisu.
+Rozmiar etapów 1–2: mały–średni; bez zmiany formatu zapisu.
+
+### Etap 3 — inwentarz pojazdu w taktyce (osobny, niezależny)
+
+Rozpoczynany **dopiero po zakończeniu i przetestowaniu etapów 1–2** (V5). Cel:
+korzystanie z ładunku pojazdu w trakcie walki. Przed wdrożeniem wymaga własnej
+szczegółowej analizy i decyzji; znane punkty wyjścia:
+
+- Panel SM (inwentarz) jest zamknięty dla ciał innych niż ludzkie
+  (`Interface.cc`, `!IS_MERC_BODY_TYPE(s)` → panel drużyny); pojazd nie ma
+  sylwetki, statystyk ani przycisków dłoni, które miałyby sens na tym panelu.
+- Przekazywanie przedmiotów innej postaci w taktyce wyklucza pojazdy
+  (`Interface_Items.cc`, sprawdzenie celu przekazania).
+- Pytania do rozstrzygnięcia wtedy: kto ma dostęp do ładunku (pasażer,
+  najemnik stojący obok pojazdu), koszt AP za przeniesienie, co panel pokazuje
+  dla pojazdu, zachowanie w walce turowej i przy zniszczeniu pojazdu.
+
+Rozmiar etapu 3: średni–duży, do oszacowania we własnej analizie.

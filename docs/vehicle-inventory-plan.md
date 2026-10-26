@@ -47,12 +47,12 @@ Branch `Vehicles`. Background: [vehicles-current-implementation.md](vehicles-cur
 | V2 | One global multiplier or per vehicle? | **per vehicle**, a field in `vehicles.json` |
 | V3 | Money limits | **unchanged** for vehicles (100000 big / 50000 small pocket) |
 | V4 | Excluded items | **all weapons (`IC_WEAPON`) and brass knuckles (`IC_PUNCH`)** keep the merc limit; no other exceptions for now |
+| V5 | Where can the vehicle inventory be opened? | **variant B**: map screen in stages 1–2, **and tactical as a completely separate, independent stage 3**, started only after stages 1–2 are finished |
 
 Open (proposals from the analysis, not decided yet):
 
 | # | Question | Proposal |
 |---|---|---|
-| V5 | Where can the vehicle inventory be opened? | map screen only (tactical SM panel is a separate, bigger change) |
 | V6 | Which slots? | pockets only; hands and armour/head slots blocked (no effect on a vehicle, hand items could affect tactical) |
 | V7 | Damaged vehicle (condition < `OKLIFE` 15) | inventory still accessible (today's rule would close it) |
 
@@ -112,6 +112,21 @@ checks (> 0 only).
 - Check the asserts that call `MapCharacterHasAccessibleInventory`
   (`MapScreen.cc`) and the inventory-button enable logic.
 
+### 4.5 Map screen transfers: battle and travel
+
+- **During a battle** `MapscreenCanPassItemToChar` refuses every transfer
+  between characters when the loaded sector has enemies
+  (`gTacticalStatus.fEnemyInSector`) — silently: clicking another character
+  while holding an item does nothing. Proposal: show a message instead (e.g.
+  the existing "You can't use this panel during combat." or a new text).
+  Note: the flag is about the sector loaded in tactical, so a battle there
+  blocks transfers on the map everywhere (original behaviour).
+- **While travelling** transfers are only allowed within the same squad or
+  vehicle (`bAssignment` equal). The vehicle soldier has its squad number as
+  `bAssignment`, its passengers have `VEHICLE`, so passenger ↔ vehicle on the
+  road would be refused — allow it when the passenger's `iVehicleId` is that
+  vehicle.
+
 ## 5. Stages
 
 1. **Inventory access** (map screen): gate change + slot restriction. Test:
@@ -123,4 +138,22 @@ checks (> 0 only).
    merc limit; money limits unchanged; destroy the vehicle in tactical and
    check the items drop.
 
-Size: small–medium; no save format change.
+Size of stages 1–2: small–medium; no save format change.
+
+### Stage 3 — vehicle inventory in tactical (separate, independent)
+
+Started **only after stages 1–2 are finished and tested** (V5). Purpose: use
+the vehicle's cargo during a battle. Needs its own detailed analysis and
+decisions before implementation; known starting points:
+
+- The SM (inventory) panel is closed for non-human bodies
+  (`Interface.cc`, `!IS_MERC_BODY_TYPE(s)` → team panel); the vehicle has no
+  body figure, stats or hand buttons that make sense on that panel.
+- Giving items to another character in tactical excludes vehicles
+  (`Interface_Items.cc`, the give-item target check).
+- Questions to decide then: who can reach the cargo (a passenger, a merc
+  standing next to the vehicle), AP cost per transfer, what the panel shows
+  for a vehicle, behaviour in turn-based combat and when the vehicle is
+  destroyed.
+
+Size of stage 3: medium–big, to be estimated in its own analysis.
