@@ -42,6 +42,16 @@
 #include "WorldDef.h"
 #include "WorldMan.h"
 
+#include <algorithm>
+
+// SAM hits on the helicopter: each costs this much of its condition (0-100);
+// the condition left picks the outcome -- from HELI_MINOR_DAMAGE_MIN_CONDITION
+// up Skyrider reports minor damage, from HELI_MAJOR_DAMAGE_MIN_CONDITION up
+// major damage and flies back to base, below that the helicopter goes down
+#define HELI_SAM_HIT_DAMAGE             25
+#define HELI_MINOR_DAMAGE_MIN_CONDITION 50
+#define HELI_MAJOR_DAMAGE_MIN_CONDITION 25
+
 // the amounts of time to wait for hover stuff
 #define TIME_DELAY_FOR_HOVER_WAIT						10		// minutes
 #define TIME_DELAY_FOR_HOVER_WAIT_TOO_LONG	20		// mintues
@@ -1125,23 +1135,32 @@ static BOOLEAN HandleSAMSiteAttackOfHelicopterInSector(const SGPSector& sSector)
 		// another hit!
 		gubHelicopterHitsTaken++;
 
+		// The hit costs condition: the helicopter soldier's, or -- without one
+		// (no free team slot) -- the one the hits taken so far leave
+		SOLDIERTYPE* const hs = GetHelicopterSoldier();
+		INT32 condition = hs ? hs->bLife : 100 - (gubHelicopterHitsTaken - 1) * HELI_SAM_HIT_DAMAGE;
+		condition = std::max(0, condition - HELI_SAM_HIT_DAMAGE);
+		if (hs)
+		{
+			hs->bLife                = static_cast<INT8>(condition);
+			fTeamPanelDirty          = TRUE;
+			fCharacterInfoPanelDirty = TRUE;
+		}
+
 		// Took a hit!  Pause time so player can reconsider
 		StopTimeCompression();
 
-		// first hit?
-		if ( gubHelicopterHitsTaken == 1 )
+		if (condition >= HELI_MINOR_DAMAGE_MIN_CONDITION)
 		{
 			HeliCharacterDialogue(HELI_TOOK_MINOR_DAMAGE);
 		}
-		// second hit?
-		else if ( gubHelicopterHitsTaken == 2 )
+		else if (condition >= HELI_MAJOR_DAMAGE_MIN_CONDITION)
 		{
 			// going back to base (no choice, dialogue says so)
 			HeliCharacterDialogue(HELI_TOOK_MAJOR_DAMAGE);
 			MakeHeliReturnToBase();
 		}
-		// third hit!
-		else
+		else // going down
 		{
 			// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
 			HeliCharacterDialogue(HELI_GOING_DOWN);
