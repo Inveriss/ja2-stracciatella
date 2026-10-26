@@ -129,3 +129,93 @@ U13. **Texts** (9 languages): "Current", the upgrade buttons' help
 Size: stage 1 about 150-200 lines in Militia_Recruit_Panel.cc and a public
 upgrade function in Town_Militia.cc. It needs game testing, so better done
 with the game at hand.
+
+## Later stage (planned, not decided): upgrades with the arrival time
+
+Analysis 2026-10-26, no code changed. Goal: the upgrades follow the arrival
+time options (Express 6 h, Fast 12 h, Standard 24 h) as new militia do,
+instead of U6 (at once on Buy). The recommendations below are proposals for
+the user to confirm.
+
+Today: `UpgradeMilitia()` (Town_Militia.cc) upgrades at once on Buy;
+`ArrivalExtra()` (Militia_Recruit_Panel.cc) charges the Express/Fast extra
+only with new militia. `MilitiaOrder` covers new militia only; its saved
+record has a spare field that can hold an "upgrade" flag without a new
+save format (no save compatibility is kept anyway).
+
+**D-A. Model.** The key decision; the others follow from it.
+- A. The militia stay where they are and fight at the old rank; after the
+  option's hours N militia of the rank standing in the town then are
+  upgraded. The town is not weakened; needs a "reservation" (D-C..D-F).
+- B. The militia leave for training at once and come back at the new rank
+  through the arrival flow (message, militia box, Deployment Center). Reuses
+  that flow, but the town is weaker for 6-24 h (the queen may attack), their
+  places must be reserved and on their return there may be no room.
+- Recommended: A. D-B..D-K assume it.
+
+**D-B. The arrival option's extra cost.**
+1. Upgrades alone pay it too (recommended: yes).
+2. Buy with new militia and upgrades: one extra per purchase (recommended,
+   as the arrival-time plan's rule).
+3. One arrival option for the whole purchase (recommended: yes).
+
+**D-C. Reservation and "Available to upgrade".** Without it the same 20
+greens can be upgraded twice.
+1. Available = standing minus pending upgrades of the rank (recommended).
+2. Show the pending ones in the upgrade box, e.g. "Upgrading: 5"
+   (recommended; a placeholder).
+3. No chains: no regular -> elite for greens still waiting to become
+   regulars (recommended, as U8).
+
+**D-D. Fewer militia of the rank when the upgrade comes due** (killed, sent
+to the Deployment Center, promoted by experience).
+1. The missing ones: refund (with a log line) / lost / wait at the
+   Deployment Center. Recommended: refund the upgrade price of the missing
+   ones, not the arrival extra.
+2. A militiaman promoted by experience meanwhile counts as missing (refund);
+   the game tracks ranks, not persons (recommended).
+3. New militia of the rank that arrived meanwhile may take the upgrade
+   (accepted: the rank counts, not the person).
+
+**D-E. Where and when the upgrade is applied.**
+1. The sector the purchase was made from first (stored with the order),
+   then the town's others (recommended; the merc may have moved since).
+2. A sector with a battle loaded in tactical: a rank change there needs the
+   tactical militia recreated (`ResetMilitia`), which would remove and
+   recreate the fighters (full health, new places). Recommended: skip that
+   sector, or postpone the upgrade until the battle ends.
+3. Only the town's peaceful sectors of ours (recommended).
+
+**D-F. The town or SAM site taken by the enemy before the upgrade.** It
+waits at the Deployment Center (retry with Done, as an order) /
+refund / lost. Recommended: waits; a refund only with the planned
+cancel/refund feature.
+
+**D-G. Deployment Center.**
+1. Pending upgrades listed under INCOMING with the town and the time
+   (recommended).
+2. In the target rank's row, marked as an upgrade, e.g. "^ 5 Drassen
+   Day 3, 14:20" (recommended; a sign or text and room in the box needed).
+3. Not counted in the Incoming total, or a line of their own (recommended:
+   not counted - they are no new people).
+
+**D-H. Message when done.** No militia box (nobody new arrives); a message,
+e.g. "5 regular militia in Drassen have been upgraded to elite.", and a
+line about a refund if any (recommended).
+
+**D-I. The militia box's arrows / Deployment Center.** Reserved militia
+can't be told apart, so no blocking: moving them within the town changes
+nothing, sending them out of it is a shortfall at the upgrade (D-D,
+refund). Recommended.
+
+**D-J. Technical.** The upgrade order type in the spare save field; it must
+not take places in the town (`MilitiaOrderedFor`) nor open the arrival box.
+
+**D-K. Same time as an arrival.** Upgrades first, then arrivals, so that
+militia just arrived don't take an upgrade bought for the older ones
+(recommended).
+
+Size with model A and the recommendations: medium - a new order type, the
+reservation in the panel, the upgrade after the time with refunds, the
+battle sector skipped, a Deployment Center line and a message; texts in 9
+languages and placeholders in the graphics.
