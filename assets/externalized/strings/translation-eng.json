@@ -1026,7 +1026,8 @@
         "Can't compress time while viewing sector inventory.",
         "Current/Max Progress: %d%%/%d%%",
         "Escort John and Mary?",
-        "Switch Activated."
+        "Switch Activated.",
+        "%s's tool kit is in too poor condition to repair %s!"
     ],
     "gzMercSkillText": [
         "No Skill",

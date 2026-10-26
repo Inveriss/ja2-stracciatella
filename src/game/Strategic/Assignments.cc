@@ -1090,13 +1090,24 @@ UINT16 CalculateHealingPointsForDoctor(SOLDIERTYPE *pDoctor, UINT16 *pusMaxPts, 
 
 
 static UINT16 ToolKitPoints(SOLDIERTYPE* pSoldier);
+
+
+// % of his repair points the shape of all his tool kits together leaves
+static UINT8 ToolKitEffectiveness(SOLDIERTYPE* const s)
+{
+	UINT16 const kit_pts = ToolKitPoints(s);
+	if (kit_pts < 25) return  50; // kit(s) in extremely bad shape
+	if (kit_pts < 50) return  75; // kit(s) in pretty bad shape
+	return 100;
+}
+
+
 static void MakeSureToolKitIsInHand(SOLDIERTYPE* pSoldier);
 
 
 UINT8 CalculateRepairPointsForRepairman(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts, BOOLEAN fMakeSureKitIsInHand )
 {
 	UINT16 usRepairPts;
-	UINT16 usKitPts;
 	UINT8  ubKitEffectiveness;
 
 	// make sure toolkit in hand?
@@ -1125,22 +1136,7 @@ UINT8 CalculateRepairPointsForRepairman(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts
 
 
 	// figure out what shape his "equipment" is in ("coming" in JA3: Viagra - improves the "shape" your "equipment" is in)
-	usKitPts = ToolKitPoints( pSoldier );
-
-	// if kit(s) in extremely bad shape
-	if ( usKitPts < 25 )
-	{
-		ubKitEffectiveness = 50;
-	}
-	// if kit(s) in pretty bad shape
-	else if ( usKitPts < 50 )
-	{
-		ubKitEffectiveness = 75;
-	}
-	else
-	{
-		ubKitEffectiveness = 100;
-	}
+	ubKitEffectiveness = ToolKitEffectiveness(pSoldier);
 
 	// adjust for equipment
 	usRepairPts = (usRepairPts * ubKitEffectiveness) / 100;
@@ -1786,6 +1782,9 @@ static void HandleRepairBySoldier(SOLDIERTYPE& s)
 	}
 	UINT8 repair_pts_left = initial_repair_pts;
 
+	// set if a vehicle got nothing only because of the tool kit's shape
+	VEHICLETYPE const* kit_too_poor_for = nullptr;
+
 	// check if we are repairing a vehicle
 	if (s.bVehicleUnderRepairID != -1)
 	{
@@ -1793,6 +1792,15 @@ static void HandleRepairBySoldier(SOLDIERTYPE& s)
 		if (CanCharacterRepairVehicle(s, v))
 		{ // Attempt to fix vehicle
 			repair_pts_left -= RepairVehicle(v, repair_pts_left, &nothing_left_to_repair);
+
+			// nothing fixed, but his skill alone (a kit in good shape) would have
+			UINT8 const kit_effectiveness = ToolKitEffectiveness(&s);
+			if (repair_pts_left == initial_repair_pts &&
+					kit_effectiveness < 100 &&
+					initial_repair_pts * 100 / kit_effectiveness >= GetVehicleRepairPointsDivisor(v))
+			{
+				kit_too_poor_for = &v;
+			}
 		}
 	}
 	// check if we are repairing a robot
@@ -1894,6 +1902,15 @@ static void HandleRepairBySoldier(SOLDIERTYPE& s)
 			{
 				// he could (maybe) repair something, but can't because he doesn't have a tool kit!
 				AssignmentAborted(s, NO_MORE_TOOL_KITS);
+			}
+			else if (kit_too_poor_for)
+			{
+				// he could repair the vehicle, but his tool kit is too worn
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(gzLateLocalizedString[STR_LATE_59], s.name, pVehicleStrings[kit_too_poor_for->ubVehicleType]));
+				StopTimeCompression();
+				fCharacterInfoPanelDirty = TRUE;
+				fTeamPanelDirty          = TRUE;
+				fMapScreenBottomDirty    = TRUE;
 			}
 			else
 			{

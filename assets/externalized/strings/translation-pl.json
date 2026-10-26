@@ -1026,7 +1026,8 @@
         "Nie można kompresować czasu, gdy otwarty jest inwentarz sektora.",
         "Bieżący/Maks. postęp: %d%%/%d%%",
         "Eskortować Johna i Mary?",
-        "Przełącznik aktywowany."
+        "Przełącznik aktywowany.",
+        "%s ma zestaw narzędzi w zbyt złym stanie, by naprawić pojazd: %s!"
     ],
     "gzMercSkillText": [
         "Brak umiejętności",

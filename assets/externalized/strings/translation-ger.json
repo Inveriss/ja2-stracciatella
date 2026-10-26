@@ -1026,7 +1026,8 @@
         "Die Zeit kann nicht komprimiert werden, während das Sektorinventar eingesehen wird.",
         "Aktueller/Maximaler Fortschritt: %d%%/%d%%",
         "John und Mary eskortieren?",
-        "Schalter betätigt."
+        "Schalter betätigt.",
+        "Der Werkzeugkasten von %s ist in zu schlechtem Zustand, um das Fahrzeug zu reparieren: %s!"
     ],
     "gzMercSkillText": [
         "Keine Fähigkeiten",

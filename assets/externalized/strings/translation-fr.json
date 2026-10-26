@@ -1026,7 +1026,8 @@
         "Compression du temps impossible dans l'écran d'inventaire.",
         "Actuel/Maximum : %d%%/%d%%",
         "Escorter John et Mary ?",
-        "Interrupteur activé."
+        "Interrupteur activé.",
+        "La trousse à outils de %s est en trop mauvais état pour réparer le véhicule : %s !"
     ],
     "gzMercSkillText": [
         "Aucune spécialité",

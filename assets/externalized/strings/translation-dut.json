@@ -1026,7 +1026,8 @@
         "Kan tijd niet versneller tijdens bekijken van sector inventaris.",
         "Huidig/Max Voortgang: %d%%/%d%%",
         "John en Mary escorteren?",
-        "Schakelaar geactiveerd."
+        "Schakelaar geactiveerd.",
+        "De gereedschapskist van %s is in te slechte staat om het voertuig te repareren: %s!"
     ],
     "gzMercSkillText": [
         "No Skill",
