@@ -213,3 +213,56 @@ decisions before implementation; known starting points:
   destroyed.
 
 Size of stage 4: medium–big, to be estimated in its own analysis.
+
+#### Stage 4 analysis (2026-10-27)
+
+How tactical item passing works today (mercs):
+
+- A merc's SM (inventory) panel opens from his team panel portrait
+  (`Interface_Panels.cc`, not for EPCs, drivers or passengers).
+- **Passing between mercs:** with an item on the cursor taken from merc A's
+  SM panel, the SM panel can switch to merc B only if B is within
+  `PASSING_ITEM_DISTANCE_OKLIFE` (3 tiles) and in A's line of sight
+  (`gfSMDisableForItems`, `Interface_Panels.cc`); the item is then put into B's
+  slot. Or A drops the item on B in the world: next to him (≤ 3 tiles) it's a
+  pass costing `AP_PICKUP_ITEM`, farther a throw (`AP_TOSS_ITEM`,
+  `Interface_Items.cc`, `SoldierGiveItem()`).
+- Vehicles are shut out on every step: the SM panel refuses non-human bodies
+  (`SetCurrentTacticalPanelCurrentMerc`, `!IS_MERC_BODY_TYPE`), the team panel
+  shows a vehicle's passengers but not the vehicle itself, a click on a
+  vehicle in the world means "get in", and a vehicle is never a valid
+  catcher (`!(tgt->uiStatusFlags & SOLDIER_VEHICLE)`).
+- Passengers have no SM panel either (hidden aboard; their hand slots show the
+  vehicle icons, the second one being the exit button).
+- Already done on the way: the inventory panel draws no body figure for a
+  vehicle (stage 1), hands/armour/head slots refuse items (V6).
+
+Proposed design, reusing the passing mechanics:
+
+1. A merc's item **into** the vehicle: drop it on the vehicle in the world
+   while standing within 3 tiles of it — a pass into its cargo pockets
+   (automatic placement), costing the merc `AP_PICKUP_ITEM` in turn-based
+   combat. No throwing into a vehicle from farther away.
+2. **Out of** the vehicle: open the vehicle's own SM panel — from a merc's SM
+   panel, a new "vehicle cargo" switch shown while that merc is within 3 tiles
+   of a vehicle of his team (or a key: Ctrl+click on the vehicle) — then pick an
+   item and drop it on the merc / into his panel, i.e. a pass from the vehicle,
+   costing **the merc** `AP_PICKUP_ITEM`.
+3. The vehicle's SM panel: its pockets only, no figure, no stats; the merc-only
+   buttons (stance, burst, look, …) disabled.
+4. Passengers: no access while aboard (they get out first), as today.
+5. Turn-based combat: allowed, at the AP cost above; real time: free.
+6. Destroyed vehicle: no panel; the cargo drops damaged (stage 3).
+
+Decisions needed:
+
+| # | Question | Proposal |
+|---|---|---|
+| T1 | How does the player open the vehicle's cargo in tactical? | a "vehicle cargo" switch on the SM panel of a merc standing within 3 tiles (alternative: Ctrl+click on the vehicle) |
+| T2 | Who pays AP, and how much? | the merc, `AP_PICKUP_ITEM` per transfer, only in turn-based combat |
+| T3 | Range | 3 tiles from the vehicle (`PASSING_ITEM_DISTANCE_OKLIFE`) and line of sight, like passing between mercs |
+| T4 | Throwing items into a vehicle from farther away? | no |
+| T5 | Passengers' access while aboard | none (exit first) |
+
+Size: medium–big — SM panel for a non-human body (buttons, layout on the
+1366x768 panels), a new switch/graphic, the catcher rule, AP handling.

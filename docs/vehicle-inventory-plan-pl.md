@@ -212,3 +212,57 @@ szczegółowej analizy i decyzji; znane punkty wyjścia:
   dla pojazdu, zachowanie w walce turowej i przy zniszczeniu pojazdu.
 
 Rozmiar etapu 4: średni–duży, do oszacowania we własnej analizie.
+
+#### Analiza etapu 4 (2026-10-27)
+
+Jak dziś działa przekazywanie przedmiotów w taktyce (najemnicy):
+
+- Panel SM (inwentarz) najemnika otwiera się z jego portretu w panelu drużyny
+  (`Interface_Panels.cc`, nie dla EPC, kierowców ani pasażerów).
+- **Przekazywanie między najemnikami:** z przedmiotem na kursorze wziętym z
+  panelu SM najemnika A panel SM może przełączyć się na najemnika B tylko wtedy,
+  gdy B jest w zasięgu `PASSING_ITEM_DISTANCE_OKLIFE` (3 pola) i w polu widzenia
+  A (`gfSMDisableForItems`, `Interface_Panels.cc`); przedmiot trafia wtedy do
+  slotu B. Albo A upuszcza przedmiot na B na mapie: obok (≤ 3 pola) to
+  podanie za `AP_PICKUP_ITEM`, dalej rzut (`AP_TOSS_ITEM`, `Interface_Items.cc`,
+  `SoldierGiveItem()`).
+- Pojazdy są wykluczone na każdym kroku: panel SM odrzuca ciała inne niż
+  ludzkie (`SetCurrentTacticalPanelCurrentMerc`, `!IS_MERC_BODY_TYPE`), panel
+  drużyny pokazuje pasażerów pojazdu, ale nie sam pojazd, kliknięcie pojazdu na
+  mapie znaczy „wsiądź”, a pojazd nigdy nie jest odbiorcą podania
+  (`!(tgt->uiStatusFlags & SOLDIER_VEHICLE)`).
+- Pasażerowie też nie mają panelu SM (są ukryci w środku; ich sloty dłoni
+  pokazują ikony pojazdu, druga to przycisk wysiadania).
+- Już zrobione po drodze: panel inwentarza nie rysuje sylwetki dla pojazdu
+  (etap 1), sloty dłoni/pancerza/głowy odrzucają przedmioty (V6).
+
+Proponowany projekt, oparty na mechanice podawania:
+
+1. Przedmiot najemnika **do** pojazdu: upuścić go na pojazd na mapie, stojąc w
+   odległości do 3 pól — podanie do kieszeni ładunku (automatyczne układanie),
+   koszt `AP_PICKUP_ITEM` dla najemnika w walce turowej. Bez rzucania do pojazdu
+   z dalszej odległości.
+2. **Z** pojazdu: otworzyć własny panel SM pojazdu — z panelu SM najemnika
+   nowy przełącznik „ładunek pojazdu”, widoczny, gdy ten najemnik jest do 3 pól
+   od pojazdu swojej drużyny (albo klawisz: Ctrl+klik na pojeździe) — potem
+   wziąć przedmiot i upuścić go na najemnika / do jego panelu, czyli podanie z
+   pojazdu, koszt `AP_PICKUP_ITEM` dla **najemnika**.
+3. Panel SM pojazdu: tylko jego kieszenie, bez sylwetki, bez statystyk;
+   przyciski tylko dla najemnika (postawa, seria, patrz, …) wyłączone.
+4. Pasażerowie: bez dostępu w środku (najpierw wysiadają), jak dziś.
+5. Walka turowa: dozwolone, za powyższy koszt AP; czas rzeczywisty: bez kosztu.
+6. Zniszczony pojazd: brak panelu; ładunek spada uszkodzony (etap 3).
+
+Decyzje do podjęcia:
+
+| # | Pytanie | Propozycja |
+|---|---|---|
+| T1 | Jak gracz otwiera ładunek pojazdu w taktyce? | przełącznik „ładunek pojazdu” na panelu SM najemnika stojącego do 3 pól od pojazdu (alternatywa: Ctrl+klik na pojeździe) |
+| T2 | Kto płaci AP i ile? | najemnik, `AP_PICKUP_ITEM` za każde przeniesienie, tylko w walce turowej |
+| T3 | Zasięg | 3 pola od pojazdu (`PASSING_ITEM_DISTANCE_OKLIFE`) i pole widzenia, jak przy podawaniu między najemnikami |
+| T4 | Rzucanie przedmiotów do pojazdu z większej odległości? | nie |
+| T5 | Dostęp pasażerów w środku | brak (najpierw wysiadają) |
+
+Rozmiar: średni–duży — panel SM dla ciała innego niż ludzkie (przyciski, układ
+na panelach 1366x768), nowy przełącznik/grafika, reguła odbiorcy podania,
+obsługa AP.
