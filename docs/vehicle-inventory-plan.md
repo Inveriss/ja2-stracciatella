@@ -53,13 +53,11 @@ Branch `Vehicles`. Background: [vehicles-current-implementation.md](vehicles-cur
 | V7 | Damaged vehicle (condition < `OKLIFE` 15) | **inventory still accessible**, as recommended |
 | V8 | Cargo when the vehicle is destroyed | **items inside are damaged by the explosion**, depending on its strength (section 4.5) |
 
-Open (proposals for V8 details, not decided yet):
+| V8a | Damage strength | **100** = 2 × the vehicle explosion's blast damage (`GREAT_BIG_EXPLOSION` 50), the same factor the game uses for items lying at an explosion |
+| V8b | Explosives in the cargo | **can go off in a chain reaction** (existing rule for mercs' items) |
+| V8c | Broken items | **stay in the dropped pile as broken** (status below `USABLE`); in stacks, units at status 1 are removed (existing rule) |
 
-| # | Question | Proposal |
-|---|---|---|
-| V8a | Damage strength | 100 = 2 × the vehicle explosion's blast damage (`GREAT_BIG_EXPLOSION` 50), the same factor the game uses for items lying at an explosion |
-| V8b | Explosives in the cargo | can go off in a chain reaction (existing rule for mercs' items) |
-| V8c | Broken items | stay in the dropped pile as broken (status below `USABLE`); in stacks, units at status 1 are removed (existing rule) |
+All decisions V1–V8c are taken; nothing is open.
 
 ## 4. Design
 

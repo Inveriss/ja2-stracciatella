@@ -53,13 +53,11 @@ Control). Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehic
 | V7 | Uszkodzony pojazd (stan < `OKLIFE` 15) | **inwentarz nadal dostępny**, wg rekomendacji |
 | V8 | Ładunek przy zniszczeniu pojazdu | **przedmioty w środku ulegają uszkodzeniu w wybuchu**, zależnie od jego siły (rozdział 4.5) |
 
-Otwarte (propozycje szczegółów V8, jeszcze bez decyzji):
+| V8a | Siła uszkodzeń | **100** = 2 × siła wybuchu pojazdu (`GREAT_BIG_EXPLOSION` 50), ten sam mnożnik, którego gra używa dla przedmiotów leżących w miejscu wybuchu |
+| V8b | Materiały wybuchowe w ładunku | **mogą wybuchnąć reakcją łańcuchową** (istniejąca reguła dla przedmiotów najemników) |
+| V8c | Zniszczone przedmioty | **zostają w porzuconym stosie jako zepsute** (stan poniżej `USABLE`); w stosach sztuki ze stanem 1 są usuwane (istniejąca reguła) |
 
-| # | Pytanie | Propozycja |
-|---|---|---|
-| V8a | Siła uszkodzeń | 100 = 2 × siła wybuchu pojazdu (`GREAT_BIG_EXPLOSION` 50), ten sam mnożnik, którego gra używa dla przedmiotów leżących w miejscu wybuchu |
-| V8b | Materiały wybuchowe w ładunku | mogą wybuchnąć reakcją łańcuchową (istniejąca reguła dla przedmiotów najemników) |
-| V8c | Zniszczone przedmioty | zostają w porzuconym stosie jako zepsute (stan poniżej `USABLE`); w stosach sztuki ze stanem 1 są usuwane (istniejąca reguła) |
+Wszystkie decyzje V1–V8c są podjęte; nic nie zostało otwarte.
 
 ## 4. Projekt
 
