@@ -1,6 +1,7 @@
 # Plan: vehicle inventory (transporting items)
 
-Status: **plan only**, not implemented (2026-10-26, user on Remote Control).
+Status: **plan only**, not implemented (2026-10-26, user on Remote Control;
+V9 for the helicopter added later the same day).
 Branch `Vehicles`. Background: [vehicles-current-implementation.md](vehicles-current-implementation.md).
 
 ## 1. Goal
@@ -48,16 +49,20 @@ Branch `Vehicles`. Background: [vehicles-current-implementation.md](vehicles-cur
 | V3 | Money limits | **unchanged** for vehicles (100000 big / 50000 small pocket) |
 | V4 | Excluded items | **all weapons (`IC_WEAPON`) and brass knuckles (`IC_PUNCH`)** keep the merc limit; no other exceptions for now |
 | V5 | Where can the vehicle inventory be opened? | **variant B**: map screen first, **and tactical as a completely separate, independent stage** (stage 4), started only after the map screen stages are finished |
-
 | V6 | Which slots? | **pockets only**; hands and armour/head slots blocked |
 | V7 | Damaged vehicle (condition < `OKLIFE` 15) | **inventory still accessible**, as recommended |
 | V8 | Cargo when the vehicle is destroyed | **items inside are damaged by the explosion**, depending on its strength (section 4.5) |
-
 | V8a | Damage strength | **100** = 2 × the vehicle explosion's blast damage (`GREAT_BIG_EXPLOSION` 50), the same factor the game uses for items lying at an explosion |
 | V8b | Explosives in the cargo | **can go off in a chain reaction** (existing rule for mercs' items) |
 | V8c | Broken items | **stay in the dropped pile as broken** (status below `USABLE`); in stacks, units at status 1 are removed (existing rule) |
+| V9 | The helicopter (since it got its own soldier, plan docs/helicopter-team-list-repair-plan.md) | **it gets an openable inventory too**; when it crashes, **its cargo is lost completely** (section 4.6) |
 
-All decisions V1–V8c are taken; nothing is open.
+Open (proposals for V9 details, not decided yet):
+
+| # | Question | Proposal |
+|---|---|---|
+| V9a | When can items be moved to / from the helicopter? | only while it has **landed**, with anyone in its sector; and with **its own passengers** at any time, also in flight |
+| V9b | Its `slotLimitMultiplier` | **4**, like the ground vehicles |
 
 ## 4. Design
 
@@ -71,7 +76,7 @@ All decisions V1–V8c are taken; nothing is open.
 
 `VehicleModel` gets `uint8_t slot_limit_multiplier` (default 1 when the field
 is missing = merc limits). Set 4 for the Hummer and the ice cream truck (and the
-other ground vehicles); the helicopter has no inventory (no `SOLDIERTYPE`).
+other ground vehicles); the helicopter per V9b.
 
 ### 4.2 One limit function for a soldier's slot
 
@@ -142,7 +147,26 @@ Plan: when a player vehicle is destroyed, right after `fDestroyed` is set,
 apply `CheckEquipmentForDamage(vehicle soldier, V8a damage)` (not for tanks)
 to its inventory, then let the normal drop place what is left on the ground.
 
-### 4.6 Map screen transfers: battle and travel
+### 4.6 The helicopter's inventory (V9)
+
+- Since stage 1 of the helicopter plan the helicopter has a soldier on the
+  player's team (`IsHelicopterSoldier()`, strategic only), so the same gate
+  change (4.4) opens its inventory; its sector follows the helicopter.
+- Transfers (V9a): `MapscreenCanPassItemToChar` only checks the sector and
+  between-sectors state, and the helicopter soldier's sector is the one it
+  flies over. So for the helicopter add: items move only while it has landed
+  (`!fHelicopterIsAirBorne`), except between the helicopter and its own
+  passengers (`InHelicopter(s)`), who may do it in flight too. The sector
+  inventory needs it landed as well.
+- Crash (V9): `SkyriderDestroyed()` removes the helicopter soldier with
+  `TacticalRemoveSoldier()` -- its inventory goes with it, nothing is
+  dropped. That is the decided outcome, so nothing more is needed; just
+  don't add a drop there. The cargo damage of 4.5 doesn't apply (no
+  tactical explosion).
+- Repair keeps working on the condition only; the inventory doesn't matter
+  for flying (the helicopter has no weight model).
+
+### 4.7 Map screen transfers: battle and travel
 
 - **During a battle** `MapscreenCanPassItemToChar` refuses every transfer
   between characters when the loaded sector has enemies
@@ -159,9 +183,11 @@ to its inventory, then let the normal drop place what is left on the ground.
 
 ## 5. Stages
 
-1. **Inventory access** (map screen): gate change + slot restriction. Test:
-   open the Hummer's inventory, move items from a merc and from the sector
-   inventory, drive to another sector, take them out; save/load.
+1. **Inventory access** (map screen): gate change + slot restriction, and the
+   helicopter's transfer rule (V9a). Test: open the Hummer's inventory, move
+   items from a merc and from the sector inventory, drive to another sector,
+   take them out; the same with the helicopter (landed / in flight with its
+   passengers); its crash loses the cargo; save/load.
 2. **Vehicle limits**: `slotLimitMultiplier`, `SoldierSlotLimit`, the three
    call sites. Test: stack 32 magazines in a big pocket and 16 in a small one
    of the Hummer; a merc still 8/4; weapons and brass knuckles still at the

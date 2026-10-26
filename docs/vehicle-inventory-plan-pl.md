@@ -3,7 +3,7 @@
 Polska wersja dokumentu [vehicle-inventory-plan.md](vehicle-inventory-plan.md).
 
 Status: **tylko plan**, niewdrożony (2026-10-26, użytkownik w trybie Remote
-Control). Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehicles-current-implementation-pl.md).
+Control; V9 dla helikoptera dopisane później tego samego dnia). Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehicles-current-implementation-pl.md).
 
 ## 1. Cel
 
@@ -52,12 +52,17 @@ Control). Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehic
 | V6 | Które sloty? | **tylko kieszenie**; dłonie i sloty pancerza/głowy zablokowane |
 | V7 | Uszkodzony pojazd (stan < `OKLIFE` 15) | **inwentarz nadal dostępny**, wg rekomendacji |
 | V8 | Ładunek przy zniszczeniu pojazdu | **przedmioty w środku ulegają uszkodzeniu w wybuchu**, zależnie od jego siły (rozdział 4.5) |
-
 | V8a | Siła uszkodzeń | **100** = 2 × siła wybuchu pojazdu (`GREAT_BIG_EXPLOSION` 50), ten sam mnożnik, którego gra używa dla przedmiotów leżących w miejscu wybuchu |
 | V8b | Materiały wybuchowe w ładunku | **mogą wybuchnąć reakcją łańcuchową** (istniejąca reguła dla przedmiotów najemników) |
 | V8c | Zniszczone przedmioty | **zostają w porzuconym stosie jako zepsute** (stan poniżej `USABLE`); w stosach sztuki ze stanem 1 są usuwane (istniejąca reguła) |
+| V9 | Helikopter (od kiedy ma własną postać, plan docs/helicopter-team-list-repair-plan-pl.md) | **też dostaje otwierany inwentarz**; przy katastrofie **ładunek przepada całkowicie** (rozdział 4.6) |
 
-Wszystkie decyzje V1–V8c są podjęte; nic nie zostało otwarte.
+Otwarte (propozycje szczegółów V9, jeszcze bez decyzji):
+
+| # | Pytanie | Propozycja |
+|---|---|---|
+| V9a | Kiedy można przenosić przedmioty do / z helikoptera? | tylko gdy **wylądował**, z każdym w jego sektorze; a z **jego pasażerami** zawsze, także w locie |
+| V9b | Jego `slotLimitMultiplier` | **4**, jak pojazdy naziemne |
 
 ## 4. Projekt
 
@@ -71,8 +76,7 @@ Wszystkie decyzje V1–V8c są podjęte; nic nie zostało otwarte.
 
 `VehicleModel` dostaje `uint8_t slot_limit_multiplier` (domyślnie 1, gdy pola
 brak = limity najemnika). Ustawić 4 dla Hummera i furgonetki z lodami (i
-pozostałych pojazdów naziemnych); helikopter nie ma inwentarza (brak
-`SOLDIERTYPE`).
+pozostałych pojazdów naziemnych); helikopter wg V9b.
 
 ### 4.2 Jedna funkcja limitu dla slotu postaci
 
@@ -144,7 +148,26 @@ Plan: gdy pojazd gracza zostaje zniszczony, zaraz po ustawieniu `fDestroyed`
 wywołać `CheckEquipmentForDamage(postać pojazdu, siła V8a)` (nie dla czołgów)
 na jego inwentarzu, a potem zwykłe upuszczenie kładzie na ziemi to, co zostało.
 
-### 4.6 Przenoszenie na ekranie mapy: walka i podróż
+### 4.6 Inwentarz helikoptera (V9)
+
+- Od etapu 1 planu helikoptera helikopter ma postać w drużynie gracza
+  (`IsHelicopterSoldier()`, tylko strategiczną), więc ta sama zmiana warunku
+  (4.4) otwiera jego inwentarz; jego sektor podąża za helikopterem.
+- Przenoszenie (V9a): `MapscreenCanPassItemToChar` sprawdza tylko sektor i
+  stan „między sektorami”, a sektor postaci helikoptera to ten, nad którym
+  leci. Dla helikoptera trzeba więc dodać: przedmioty przenosi się tylko po
+  wylądowaniu (`!fHelicopterIsAirBorne`), z wyjątkiem wymiany między
+  helikopterem a jego pasażerami (`InHelicopter(s)`), którzy mogą to robić
+  także w locie. Inwentarz sektora też wymaga wylądowania.
+- Katastrofa (V9): `SkyriderDestroyed()` usuwa postać helikoptera przez
+  `TacticalRemoveSoldier()` — jej inwentarz znika razem z nią, nic nie spada
+  na ziemię. To jest zdecydowany skutek, więc nic więcej nie trzeba; po prostu
+  nie dodawać tam upuszczania. Uszkodzenie ładunku z 4.5 nie dotyczy
+  helikoptera (brak wybuchu w taktyce).
+- Naprawa dalej dotyczy tylko stanu; inwentarz nie wpływa na lot (helikopter
+  nie ma modelu wagi).
+
+### 4.7 Przenoszenie na ekranie mapy: walka i podróż
 
 - **W trakcie walki** `MapscreenCanPassItemToChar` odmawia każdego przekazania
   między postaciami, gdy we wczytanym sektorze są wrogowie
@@ -160,9 +183,11 @@ na jego inwentarzu, a potem zwykłe upuszczenie kładzie na ziemi to, co został
 
 ## 5. Etapy
 
-1. **Dostęp do inwentarza** (ekran mapy): zmiana warunku + ograniczenie slotów.
-   Test: otworzyć inwentarz Hummera, przenieść przedmioty od najemnika i z
-   inwentarza sektora, pojechać do innego sektora, wyjąć je; zapis/odczyt.
+1. **Dostęp do inwentarza** (ekran mapy): zmiana warunku + ograniczenie slotów
+   oraz reguła przenoszenia dla helikoptera (V9a). Test: otworzyć inwentarz
+   Hummera, przenieść przedmioty od najemnika i z inwentarza sektora, pojechać
+   do innego sektora, wyjąć je; to samo z helikopterem (po wylądowaniu / w
+   locie z jego pasażerami); katastrofa usuwa ładunek; zapis/odczyt.
 2. **Limity pojazdów**: `slotLimitMultiplier`, `SoldierSlotLimit`, trzy
    miejsca wywołań. Test: 32 magazynki w dużej i 16 w małej kieszeni Hummera;
    najemnik nadal 8/4; bronie i kastet nadal przy limicie najemnika; limity
