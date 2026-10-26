@@ -51,6 +51,11 @@ cache_key_t const giCarPortraits[]
 	INTERFACEDIR "/jeep.sti"
 };
 
+// the helicopter has no car portrait: an optional 48x43 one in the game data,
+// else the map screen's helicopter icon
+cache_key_t const guiHelicopterPortrait{ INTERFACEDIR "/helicopter.png" };
+cache_key_t const guiHelicopterMapIcon{ INTERFACEDIR "/helicop.sti" };
+
 // backgrounds for breath max background
 cache_key_t const guiBrownBackgroundForTeamPanel{ INTERFACEDIR "/bars.sti" };
 }
@@ -63,6 +68,7 @@ void UnLoadCarPortraits(void)
 	{
 		RemoveVObject(portraitName);
 	}
+	RemoveVObject(guiHelicopterPortrait);
 }
 
 
@@ -323,12 +329,21 @@ void RenderSoldierFace(SOLDIERTYPE const& s, INT16 const sFaceX, INT16 const sFa
 {
 	if (s.uiStatusFlags & SOLDIER_VEHICLE)
 	{
-		// just draw the vehicle (only the first ones have a portrait -- not the
-		// tank or the helicopter)
+		// just draw the vehicle (only the first ones have a car portrait -- not
+		// the tank or the helicopter)
 		const UINT8 vehicle_type = pVehicleList[s.bVehicleID].ubVehicleType;
 		if (vehicle_type < lengthof(giCarPortraits))
 		{
 			BltVideoObject(guiSAVEBUFFER, giCarPortraits[vehicle_type], 0, sFaceX, sFaceY);
+		}
+		else if (vehicle_type == HELICOPTER)
+		{ // centred in the portrait's place
+			cache_key_t const portrait = GCM->doesGameResExists(guiHelicopterPortrait) ?
+				guiHelicopterPortrait : guiHelicopterMapIcon;
+			ETRLEObject const& e = GetVObject(portrait)->SubregionProperties(0);
+			INT16 const x = sFaceX + (FACE_WIDTH  - e.usWidth)  / 2;
+			INT16 const y = sFaceY + (FACE_HEIGHT - e.usHeight) / 2;
+			BltVideoObject(guiSAVEBUFFER, portrait, 0, x, y);
 		}
 		RestoreExternBackgroundRect(sFaceX, sFaceY, FACE_WIDTH, FACE_HEIGHT);
 	}

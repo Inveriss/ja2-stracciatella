@@ -2,10 +2,12 @@
 
 Polska wersja dokumentu [helicopter-team-list-repair-plan.md](helicopter-team-list-repair-plan.md).
 
-Status: **tylko plan**, niewdrożony (zlecony 2026-10-26, gdy użytkownik
-pracował przez Remote Control; zmiana jest zbyt duża, by robić ją bez testów).
-Decyzje D1–D6 podjęte przez użytkownika 2026-10-26 (rozdział 5).
-Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehicles-current-implementation-pl.md).
+Status: **wdrożony** na branchu `Vehicles` (2026-10-26), każdy etap
+sprawdzony w grze przez użytkownika — zob. rozdział 7. Najpierw powstał jako
+sam plan (zlecony, gdy użytkownik pracował przez Remote Control). Decyzje
+D1–D6 podjęte przez użytkownika 2026-10-26 (rozdział 5). Tło:
+[vehicles-current-implementation-pl.md](vehicles-current-implementation-pl.md).
+**Wymaga nowej gry**: zapisy sprzed etapu 1 nie mają postaci helikoptera.
 
 ## 1. Cel
 
@@ -67,9 +69,10 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
 - Lista drużyny: kolumny położenia/celu/przydziału dla helikoptera (sektor z
   `GetHelicopter()`, cel z jego trasy).
 - Wybór wiersza helikoptera i wyznaczanie trasy: przekazać do istniejącego
-  wyznaczania trasy Skyridera albo zablokować (decyzja D5).
-- Nazwa i portret: `zVehicleName[HELICOPTER]`, `giCarPortraits[HELICOPTER]`
-  (sprawdzić, czy portret istnieje dla indeksu 5).
+  wyznaczania trasy Skyridera (decyzja D5).
+- Nazwa i portret: `zVehicleName[HELICOPTER]`; `giCarPortraits` ma tylko 4
+  pozycje (bez czołgu i helikoptera), więc odczyt musi sprawdzać zakres, a
+  helikopter dostaje własny portret (etap 4).
 
 ### Etap 2 — stan techniczny zamiast licznika trafień
 
@@ -99,9 +102,10 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
   katastrofa przy trafieniach 1, 2, 3).
 - Ścieżka obrażeń pojazdu (`VehicleTakeDamage`, która ustawia życie < `OKLIFE`
   na 0) nie jest używana dla trafień SAM; logika helikoptera sama zmienia `bLife`.
-- Zapis: `gubHelicopterHitsTaken` zostaje w rekordzie zapisu (nieużywane albo
-  wyliczane); zgodnie z zasadą braku zgodności zapisów może być potrzebna nowa
-  gra.
+- Zapis: `gubHelicopterHitsTaken` zostaje w rekordzie zapisu i nadal liczy
+  trafienia; stan zapisuje się razem z postacią helikoptera. Starsze zapisy nie
+  mają postaci helikoptera, więc (brak zgodności zapisów, zasada projektu)
+  potrzebna jest nowa gra.
 
 ### Etap 3 — naprawa
 
@@ -136,8 +140,10 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
   jak Hummer (`PlayerTeamFull` liczy pojazdy) — decyzja D1.
 - Linia statusu: tylko stan, bez paliwa (helikopter nie ma modelu paliwa) —
   jak u robota.
-- Tłumaczenia: tylko jeśli dojdą nowe komunikaty (np. „helikopter musi
-  wylądować, żeby go naprawić”).
+- Tłumaczenia: komunikat blokady lotu (`pSkyriderText[3]`, wszystkie 9 języków).
+- Portret: `giCarPortraits` nie ma go dla helikoptera; pokazywany jest
+  opcjonalny `Interface/helicopter.png` 48x43 z danych gry, a bez niego ikona
+  helikoptera z ekranu mapy (`helicop.sti`), wyśrodkowana.
 - Testy w grze: zdobyć Skyridera, sprawdzić wiersz; przelecieć nad sektorem SAM,
   żeby dostać trafienia (75 / 50 / 25 i kwestie, powrót do bazy po 3.);
   wylądować; naprawić mechanikiem (20 punktów na punkt stanu); odmowa lotu przy
@@ -162,3 +168,16 @@ trafić do taktyki, zmieniony model obrażeń, reguły naprawy, zawartość zapi
 Trzeba sprawdzić wiele pętli po `OUR_TEAM` / `SOLDIER_VEHICLE` pod kątem
 helikoptera. Szacunek: 4 etapy, każdy do zbudowania i przetestowania w grze
 przed następnym.
+
+## 7. Wdrożenie (branch `Vehicles`)
+
+| Etap | Commit | Co |
+|---|---|---|
+| 1 | 805e498fd | postać helikoptera (`CreateHelicopterSoldier`, `IsHelicopterSoldier` / `GetHelicopterSoldier` w `Vehicles.cc`), trzymana poza taktyką (`UpdateMercInSector`, `InternalAddSoldierToSector`), sektor zgodny z helikopterem, kliknięcie wiersza wyznacza trasę Skyridera, okienko ruchu ją pomija, linia statusu tylko ze stanem |
+| 2 | e3760854f | trafienie SAM −25 stanu, skutek wg stanu po trafieniu (`HELI_SAM_HIT_DAMAGE`, `HELI_MINOR/MAJOR_DAMAGE_MIN_CONDITION`) |
+| 3 | 0a3d90095 | naprawa po wylądowaniu w sektorze najemnika (`IsVehicleInRepairReach`), `HELICOPTER_REPAIR_POINTS_DIVISOR` 20, blokada lotu poniżej 50 (`IsHelicopterTooDamagedToFly`) z `pSkyriderText[3]`; menu naprawy przyjmuje każdy numer pojazdu poniżej `MAX_VEHICLES` |
+| 4 | (ten etap) | portret helikoptera; ten dokument zaktualizowany do stanu po wdrożeniu |
+
+Powiązana poprawka znaleziona przy testach: ed5a82d49 (ekran mapy nie kończy
+się crashem na odwiedzonym sektorze bez mapy radaru, np. przy testowym
+odsłonięciu całej mapy).

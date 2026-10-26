@@ -1,9 +1,11 @@
 # Plan: helicopter on the team list, with Repair
 
-Status: **plan only**, not implemented (requested 2026-10-26 while the user
-worked over Remote Control; the change is too big to make untested).
-Decisions D1–D6 taken by the user on 2026-10-26 (section 5). Branch
-`Vehicles`. Background: [vehicles-current-implementation.md](vehicles-current-implementation.md).
+Status: **implemented** on branch `Vehicles` (2026-10-26), each stage
+verified in the game by the user — see section 7. Planned first as a plan only
+(requested while the user worked over Remote Control). Decisions D1–D6 taken
+by the user on 2026-10-26 (section 5). Background:
+[vehicles-current-implementation.md](vehicles-current-implementation.md).
+**Needs a new game**: saves made before stage 1 have no helicopter soldier.
 
 ## 1. Goal
 
@@ -64,10 +66,11 @@ a second kind of entry would touch far more code.
   `AddCharacterToUniqueSquad` is only called for non-helicopters).
 - Team list: the row's location/destination/assignment columns for the
   helicopter (sector of `GetHelicopter()`, destination of its path).
-- Selecting the helicopter row and plotting a route: either forward to the
-  existing Skyrider route plotting or block it (decision D5).
-- Name and portrait: `zVehicleName[HELICOPTER]`, `giCarPortraits[HELICOPTER]`
-  (check the portrait exists for index 5).
+- Selecting the helicopter row and plotting a route: forward to the existing
+  Skyrider route plotting (decision D5).
+- Name and portrait: `zVehicleName[HELICOPTER]`; `giCarPortraits` has only 4
+  entries (no tank, no helicopter), so the lookup must be bounds-checked and
+  the helicopter gets its own portrait (stage 4).
 
 ### Stage 2 — condition instead of hit count
 
@@ -96,8 +99,10 @@ a second kind of entry would touch far more code.
   hit-count rule (quote, return, crash on hits 1, 2, 3).
 - The vehicle damage path (`VehicleTakeDamage`, which sets life < `OKLIFE` to 0)
   is not used for SAM hits; the helicopter logic changes `bLife` itself.
-- Save: `gubHelicopterHitsTaken` stays in the save record (unused or derived);
-  per the no-save-compatibility rule a new game may be needed.
+- Save: `gubHelicopterHitsTaken` stays in the save record and still counts
+  the hits; the condition is saved with the helicopter soldier. Older saves
+  have no helicopter soldier, so (no save compatibility, project rule) a new
+  game is needed.
 
 ### Stage 3 — Repair
 
@@ -131,8 +136,10 @@ a second kind of entry would touch far more code.
   (`PlayerTeamFull` counts vehicles) — decision D1.
 - Status line: condition only, no fuel (the helicopter has no fuel model) —
   like the robot's line.
-- Translations: only if new messages are added (e.g. "the helicopter must be
-  landed to be repaired").
+- Translations: the flight lock message (`pSkyriderText[3]`, all 9 languages).
+- Portrait: `giCarPortraits` has none for the helicopter; it shows an optional
+  48x43 `Interface/helicopter.png` from the game data, else the map screen's
+  helicopter icon (`helicop.sti`), centred.
 - Tests in the game: get Skyrider, check the row; fly over a SAM sector to take
   hits (75 / 50 / 25 and the quotes, return to base after the 3rd); land;
   repair with a mechanic (20 points per condition point); flight refused at
@@ -156,3 +163,15 @@ Big: a new kind of soldier on the player team that must never enter tactical,
 a changed damage model, repair rules, save content. Many loops over
 `OUR_TEAM` / `SOLDIER_VEHICLE` must be checked for the helicopter case.
 Estimate 4 stages, each to be built and tested in the game before the next.
+
+## 7. Implementation (branch `Vehicles`)
+
+| Stage | Commit | What |
+|---|---|---|
+| 1 | 805e498fd | helicopter soldier (`CreateHelicopterSoldier`, `IsHelicopterSoldier` / `GetHelicopterSoldier` in `Vehicles.cc`), kept out of tactical (`UpdateMercInSector`, `InternalAddSoldierToSector`), sector state follows the helicopter, row click plots Skyrider's route, move box skips it, condition-only status line |
+| 2 | e3760854f | SAM hit −25 condition, outcome by condition after the hit (`HELI_SAM_HIT_DAMAGE`, `HELI_MINOR/MAJOR_DAMAGE_MIN_CONDITION`) |
+| 3 | 0a3d90095 | repair when landed in the merc's sector (`IsVehicleInRepairReach`), `HELICOPTER_REPAIR_POINTS_DIVISOR` 20, flight lock below 50 (`IsHelicopterTooDamagedToFly`) with `pSkyriderText[3]`; repair menu takes any vehicle id below `MAX_VEHICLES` |
+| 4 | (this stage) | helicopter portrait; this document updated to the implemented state |
+
+Related fix found while testing: ed5a82d49 (map screen no longer crashes on a
+visited sector without a radar map, e.g. with the whole-map testing switch).
