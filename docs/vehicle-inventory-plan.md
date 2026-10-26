@@ -254,9 +254,9 @@ Proposed design, reusing the passing mechanics:
 5. Turn-based combat: allowed, at the AP cost above; real time: free.
 6. Destroyed vehicle: no panel; the cargo drops damaged (stage 3).
 
-Decisions needed:
+Decisions (taken 2026-10-27, all as proposed):
 
-| # | Question | Proposal |
+| # | Question | Decision |
 |---|---|---|
 | T1 | How does the player open the vehicle's cargo in tactical? | a "vehicle cargo" switch on the SM panel of a merc standing within 3 tiles (alternative: Ctrl+click on the vehicle) |
 | T2 | Who pays AP, and how much? | the merc, `AP_PICKUP_ITEM` per transfer, only in turn-based combat |

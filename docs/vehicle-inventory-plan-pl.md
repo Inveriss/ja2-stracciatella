@@ -253,9 +253,9 @@ Proponowany projekt, oparty na mechanice podawania:
 5. Walka turowa: dozwolone, za powyższy koszt AP; czas rzeczywisty: bez kosztu.
 6. Zniszczony pojazd: brak panelu; ładunek spada uszkodzony (etap 3).
 
-Decyzje do podjęcia:
+Decyzje (podjęte 2026-10-27, wszystkie wg propozycji):
 
-| # | Pytanie | Propozycja |
+| # | Pytanie | Decyzja |
 |---|---|---|
 | T1 | Jak gracz otwiera ładunek pojazdu w taktyce? | przełącznik „ładunek pojazdu” na panelu SM najemnika stojącego do 3 pól od pojazdu (alternatywa: Ctrl+klik na pojeździe) |
 | T2 | Kto płaci AP i ile? | najemnik, `AP_PICKUP_ITEM` za każde przeniesienie, tylko w walce turowej |
