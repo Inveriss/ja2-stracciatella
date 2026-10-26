@@ -367,9 +367,11 @@ bool IsHelicopterGoingDown()
 	return gfHelicopterGoingDown;
 }
 
-bool IsHelicopterSoldierAirborne(SOLDIERTYPE const& s)
+bool IsHelicopterSoldierInFlight(SOLDIERTYPE const& s)
 {
-	return IsHelicopterSoldier(s) && fHelicopterIsAirBorne;
+	// landed or hovering over a sector, it is in that sector; only on its way
+	// between two sectors is it out of reach
+	return IsHelicopterSoldier(s) && GetHelicopter().fBetweenSectors;
 }
 
 static void StartHelicopterGoingDown()

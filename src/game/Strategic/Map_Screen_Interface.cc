@@ -1623,11 +1623,12 @@ BOOLEAN MapscreenCanPassItemToChar(const SOLDIERTYPE* const pNewSoldier)
 		}
 	}
 
-	// the helicopter in the air: its cargo only goes to / comes from its own
-	// passengers (not the sector inventory, not anyone on the ground)
-	bool const new_heli_airborne = IsHelicopterSoldierAirborne(*pNewSoldier);
-	bool const old_heli_airborne = pOldSoldier && IsHelicopterSoldierAirborne(*pOldSoldier);
-	if (new_heli_airborne || old_heli_airborne)
+	// the helicopter flying between sectors: its cargo only goes to / comes
+	// from its own passengers (not the sector inventory, not anyone on the
+	// ground); landed or hovering over a sector, it is in that sector
+	bool const new_heli_in_flight = IsHelicopterSoldierInFlight(*pNewSoldier);
+	bool const old_heli_in_flight = pOldSoldier && IsHelicopterSoldierInFlight(*pOldSoldier);
+	if (new_heli_in_flight || old_heli_in_flight)
 	{
 		if (!pOldSoldier || !IsVehicleAndItsPassenger(*pNewSoldier, *pOldSoldier))
 		{

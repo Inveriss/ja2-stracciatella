@@ -132,9 +132,10 @@ bool IsHelicopterTooDamagedToFly();
 // can't change their assignment then.
 bool IsHelicopterGoingDown();
 
-// is this the helicopter's soldier while the helicopter is in the air? Its
-// cargo then only moves to / from its own passengers, not the sector.
-bool IsHelicopterSoldierAirborne(SOLDIERTYPE const&);
+// is this the helicopter's soldier while the helicopter flies between two
+// sectors? Its cargo then only moves to / from its own passengers, not the
+// sector. Landed or hovering over a sector, it is in that sector.
+bool IsHelicopterSoldierInFlight(SOLDIERTYPE const&);
 INT8 GetHelicopterFlightMinCondition();
 
 // have helicopter take off
