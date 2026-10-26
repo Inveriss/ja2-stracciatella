@@ -8209,12 +8209,15 @@ static bool CanToggleSelectedCharInventory()
 
 bool MapCharacterHasAccessibleInventory(SOLDIERTYPE const& s)
 {
+	// vehicles carry cargo (in their pockets, see CanItemFitInPosition()), also
+	// when badly damaged; the robot has no inventory to open
+	bool const vehicle = s.uiStatusFlags & SOLDIER_VEHICLE;
 	return
 		s.bAssignment         != IN_TRANSIT     &&
 		s.bAssignment         != ASSIGNMENT_POW &&
-		!IsMechanical(s)                        &&
+		!AM_A_ROBOT(&s)                         &&
 		s.ubWhatKindOfMercAmI != MERC_TYPE__EPC &&
-		s.bLife               >= OKLIFE;
+		(vehicle ? s.bLife > 0 : s.bLife >= OKLIFE);
 }
 
 

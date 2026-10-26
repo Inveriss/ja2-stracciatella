@@ -1988,6 +1988,13 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos,
 	UINT8 ubSlotLimit;
 	INT8  bNewPos;
 
+	// vehicles carry cargo in their pockets only -- nothing in hands, armour or
+	// head slots
+	if (pSoldier->uiStatusFlags & SOLDIER_VEHICLE && bPos < BIGPOCK1POS)
+	{
+		return( FALSE );
+	}
+
 	auto item = GCM->getItem(pObj->usItem);
 	switch( bPos )
 	{

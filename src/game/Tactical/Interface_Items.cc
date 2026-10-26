@@ -2063,6 +2063,10 @@ void ShutdownInvSlotInterface()
 
 void RenderInvBodyPanel(const SOLDIERTYPE* pSoldier, INT16 sX, INT16 sY)
 {
+	// Only the merc bodies have a figure (guiBodyInvVO) -- not vehicles, whose
+	// cargo inventory opens here too
+	if (!IS_MERC_BODY_TYPE(pSoldier)) return;
+
 	// Blit body inv, based on body type
 	INT8 bSubImageIndex = gbCompatibleApplyItem;
 

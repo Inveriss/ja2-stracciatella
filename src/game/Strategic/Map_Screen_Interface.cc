@@ -1526,6 +1526,19 @@ static bool ValidSelectableCharForNextOrPrev(SOLDIERTYPE const& s)
 }
 
 
+// Is one of them a vehicle (its soldier) and the other one aboard it?
+static bool IsVehicleAndItsPassenger(SOLDIERTYPE const& a, SOLDIERTYPE const& b)
+{
+	auto const carries = [](SOLDIERTYPE const& vehicle, SOLDIERTYPE const& passenger)
+	{
+		return vehicle.uiStatusFlags & SOLDIER_VEHICLE &&
+			passenger.bAssignment == VEHICLE &&
+			passenger.iVehicleId == vehicle.bVehicleID;
+	};
+	return carries(a, b) || carries(b, a);
+}
+
+
 BOOLEAN MapscreenCanPassItemToChar(const SOLDIERTYPE* const pNewSoldier)
 {
 	SOLDIERTYPE *pOldSoldier;
@@ -1592,17 +1605,33 @@ BOOLEAN MapscreenCanPassItemToChar(const SOLDIERTYPE* const pNewSoldier)
 				return( FALSE );
 			}
 
-			// only exchanges between those is the same squad or vehicle are permitted
-			if ( pNewSoldier->bAssignment != pOldSoldier->bAssignment )
+			// a vehicle and its own passenger may swap cargo on the road, too
+			if (!IsVehicleAndItsPassenger(*pNewSoldier, *pOldSoldier))
 			{
-				return( FALSE );
-			}
+				// only exchanges between those is the same squad or vehicle are permitted
+				if ( pNewSoldier->bAssignment != pOldSoldier->bAssignment )
+				{
+					return( FALSE );
+				}
 
-			// if in vehicles, make sure it's the same one
-			if ( ( pNewSoldier->bAssignment == VEHICLE ) && ( pNewSoldier->iVehicleId != pOldSoldier->iVehicleId ) )
-			{
-				return( FALSE );
+				// if in vehicles, make sure it's the same one
+				if ( ( pNewSoldier->bAssignment == VEHICLE ) && ( pNewSoldier->iVehicleId != pOldSoldier->iVehicleId ) )
+				{
+					return( FALSE );
+				}
 			}
+		}
+	}
+
+	// the helicopter in the air: its cargo only goes to / comes from its own
+	// passengers (not the sector inventory, not anyone on the ground)
+	bool const new_heli_airborne = IsHelicopterSoldierAirborne(*pNewSoldier);
+	bool const old_heli_airborne = pOldSoldier && IsHelicopterSoldierAirborne(*pOldSoldier);
+	if (new_heli_airborne || old_heli_airborne)
+	{
+		if (!pOldSoldier || !IsVehicleAndItsPassenger(*pNewSoldier, *pOldSoldier))
+		{
+			return( FALSE );
 		}
 	}
 

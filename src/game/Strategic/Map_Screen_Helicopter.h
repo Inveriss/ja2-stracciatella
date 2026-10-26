@@ -131,6 +131,10 @@ bool IsHelicopterTooDamagedToFly();
 // has the helicopter been shot down, its crash still to come? Those aboard
 // can't change their assignment then.
 bool IsHelicopterGoingDown();
+
+// is this the helicopter's soldier while the helicopter is in the air? Its
+// cargo then only moves to / from its own passengers, not the sector.
+bool IsHelicopterSoldierAirborne(SOLDIERTYPE const&);
 INT8 GetHelicopterFlightMinCondition();
 
 // have helicopter take off

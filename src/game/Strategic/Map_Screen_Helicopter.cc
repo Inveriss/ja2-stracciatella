@@ -367,6 +367,11 @@ bool IsHelicopterGoingDown()
 	return gfHelicopterGoingDown;
 }
 
+bool IsHelicopterSoldierAirborne(SOLDIERTYPE const& s)
+{
+	return IsHelicopterSoldier(s) && fHelicopterIsAirBorne;
+}
+
 static void StartHelicopterGoingDown()
 {
 	gfHelicopterGoingDown = true;
