@@ -220,4 +220,9 @@ void ClearScreenMaskForMapScreenExit(void);
 
 void CreateMercRemoveAssignBox(void);
 
+// "Remove Merc", or for a destroyed vehicle "Remove <its short name>"; the
+// remove box rebuilt with that label for this soldier
+ST::string GetRemoveMercString(SOLDIERTYPE const&);
+void SetRemoveMercAssignBoxFor(SOLDIERTYPE const&);
+
 #endif

@@ -1064,9 +1064,12 @@ UINT8 GetVehicleSeats(VEHICLETYPE const& v)
 
 bool IsHelicopterSoldier(SOLDIERTYPE const& s)
 {
-	return s.uiStatusFlags & SOLDIER_VEHICLE &&
-		iHelicopterVehicleId != -1 &&
-		s.bVehicleID == iHelicopterVehicleId;
+	// by the vehicle's type, so it holds for the crashed helicopter's soldier,
+	// left on the team list until removed, too (iHelicopterVehicleId is -1 then)
+	if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) return false;
+	if (s.bVehicleID < 0 || s.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[s.bVehicleID];
+	return v.fValid && v.ubVehicleType == HELICOPTER;
 }
 
 

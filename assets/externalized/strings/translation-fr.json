@@ -1027,7 +1027,8 @@
         "Actuel/Maximum : %d%%/%d%%",
         "Escorter John et Mary ?",
         "Interrupteur activé.",
-        "La trousse à outils de %s est en trop mauvais état pour réparer le véhicule : %s !"
+        "La trousse à outils de %s est en trop mauvais état pour réparer le véhicule : %s !",
+        "Retirer %s"
     ],
     "gzMercSkillText": [
         "Aucune spécialité",

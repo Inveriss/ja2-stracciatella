@@ -1027,7 +1027,8 @@
         "Current/Max Progress: %d%%/%d%%",
         "Escort John and Mary?",
         "Switch Activated.",
-        "%s's tool kit is in too poor condition to repair %s!"
+        "%s's tool kit is in too poor condition to repair %s!",
+        "Remove %s"
     ],
     "gzMercSkillText": [
         "No Skill",

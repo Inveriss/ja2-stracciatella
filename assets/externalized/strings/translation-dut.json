@@ -1027,7 +1027,8 @@
         "Huidig/Max Voortgang: %d%%/%d%%",
         "John en Mary escorteren?",
         "Schakelaar geactiveerd.",
-        "De gereedschapskist van %s is in te slechte staat om het voertuig te repareren: %s!"
+        "De gereedschapskist van %s is in te slechte staat om het voertuig te repareren: %s!",
+        "%s verwijderen"
     ],
     "gzMercSkillText": [
         "No Skill",

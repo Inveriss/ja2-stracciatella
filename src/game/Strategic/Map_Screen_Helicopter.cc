@@ -371,7 +371,7 @@ bool IsHelicopterSoldierInFlight(SOLDIERTYPE const& s)
 {
 	// landed or hovering over a sector, it is in that sector; only on its way
 	// between two sectors is it out of reach
-	return IsHelicopterSoldier(s) && GetHelicopter().fBetweenSectors;
+	return IsHelicopterSoldier(s) && iHelicopterVehicleId != -1 && GetHelicopter().fBetweenSectors;
 }
 
 static void StartHelicopterGoingDown()
@@ -411,14 +411,22 @@ static void SkyriderDestroyed(void)
 	gMercProfiles[ SKYRIDER ].iBalance = 0;
 	iTotalAccumulatedCostByPlayer = 0;
 
-	// remove the helicopter's soldier (this frees the vehicle slot, too), then the
-	// vehicle, and reset
+	// The helicopter's soldier stays on the team list as destroyed, like a
+	// destroyed Hummer, until the player removes it ("Remove Heli") -- its
+	// cargo is lost (never dropped), and the vehicle stays (destroyed) for it.
+	// Without one, the vehicle goes now.
 	if (SOLDIERTYPE* const hs = GetHelicopterSoldier())
 	{
-		TacticalRemoveSoldier(*hs);
+		std::fill_n(hs->inv, static_cast<size_t>(NUM_INV_SLOTS), OBJECTTYPE{});
+		hs->bLife       = 0;
+		hs->bAssignment = ASSIGNMENT_DEAD;
+		v.fDestroyed    = TRUE;
 		fReBuildCharacterList = TRUE;
 	}
-	if (v.fValid) RemoveVehicleFromList(v);
+	else
+	{
+		RemoveVehicleFromList(v);
+	}
 	iHelicopterVehicleId = -1;
 }
 

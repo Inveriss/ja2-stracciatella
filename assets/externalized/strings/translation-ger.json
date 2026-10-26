@@ -1027,7 +1027,8 @@
         "Aktueller/Maximaler Fortschritt: %d%%/%d%%",
         "John und Mary eskortieren?",
         "Schalter betätigt.",
-        "Der Werkzeugkasten von %s ist in zu schlechtem Zustand, um das Fahrzeug zu reparieren: %s!"
+        "Der Werkzeugkasten von %s ist in zu schlechtem Zustand, um das Fahrzeug zu reparieren: %s!",
+        "%s entfernen"
     ],
     "gzMercSkillText": [
         "Keine Fähigkeiten",

@@ -1027,7 +1027,8 @@
         "Bieżący/Maks. postęp: %d%%/%d%%",
         "Eskortować Johna i Mary?",
         "Przełącznik aktywowany.",
-        "%s ma zestaw narzędzi w zbyt złym stanie, by naprawić pojazd: %s!"
+        "%s ma zestaw narzędzi w zbyt złym stanie, by naprawić pojazd: %s!",
+        "Usuń %s"
     ],
     "gzMercSkillText": [
         "Brak umiejętności",

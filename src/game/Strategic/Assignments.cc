@@ -58,6 +58,7 @@
 #include "SkillCheck.h"
 #include "Soldier_Add.h"
 #include "Soldier_Control.h"
+#include "Soldier_Create.h"
 #include "Soldier_Find.h"
 #include "Soldier_Macros.h"
 #include "Soldier_Profile.h"
@@ -4387,7 +4388,13 @@ static void RemoveMercMenuBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 				break;
 			case( REMOVE_MERC ):
 				auto * const deadMerc{ gCharactersList[bSelectedInfoChar].merc };
-				if (deadMerc)
+				if (deadMerc && deadMerc->uiStatusFlags & SOLDIER_VEHICLE)
+				{
+					// a destroyed vehicle: just off the team (frees its vehicle slot)
+					TacticalRemoveSoldier(*deadMerc);
+					if (fInMapMode) ReBuildCharactersList();
+				}
+				else if (deadMerc)
 				{
 					StrategicRemoveMerc(*deadMerc);
 				}
@@ -5458,19 +5465,41 @@ static void CreateAssignmentsBox()
 }
 
 
-// create remove mercbox to be placed in assignment area
-void CreateMercRemoveAssignBox()
+static void MakeRemoveMercAssignBox(ST::string const& remove_label)
 {
 	PopUpBox* const box = MakeBox(AssignmentPosition, POPUP_BOX_FLAG_CENTER_TEXT);
 	ghRemoveMercAssignBox = box;
 
-	for (UINT32 i = 0; i < MAX_REMOVE_MERC_COUNT; ++i)
-	{
-		AddMonoString(box, pRemoveMercStrings[i]);
-	}
+	AddMonoString(box, remove_label);
+	AddMonoString(box, pRemoveMercStrings[REMOVE_MERC_CANCEL]);
 
 	SetBoxTextAttrs(box);
 	ResizeBoxToText(box);
+}
+
+
+// create remove mercbox to be placed in assignment area
+void CreateMercRemoveAssignBox()
+{
+	MakeRemoveMercAssignBox(pRemoveMercStrings[REMOVE_MERC]);
+}
+
+
+ST::string GetRemoveMercString(SOLDIERTYPE const& s)
+{
+	// a destroyed vehicle: "Remove Hummer"
+	if (s.uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		return st_format_printf(gzLateLocalizedString[STR_LATE_60], pShortVehicleStrings[GetVehicle(s.bVehicleID).ubVehicleType]);
+	}
+	return pRemoveMercStrings[REMOVE_MERC];
+}
+
+
+void SetRemoveMercAssignBoxFor(SOLDIERTYPE const& s)
+{
+	RemoveBox(ghRemoveMercAssignBox);
+	MakeRemoveMercAssignBox(GetRemoveMercString(s));
 }
 
 
@@ -7099,9 +7128,10 @@ static SOLDIERTYPE* GetSelectedAssignSoldier(BOOLEAN fNullOK)
 
 	if ( pSoldier != NULL )
 	{
-		// better be an active person, not a vehicle
+		// better be an active person, not a vehicle -- except a destroyed one,
+		// which gets the Remove menu
 		Assert( pSoldier->bActive );
-		Assert( !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) );
+		Assert( !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) || pSoldier->bLife == 0 );
 	}
 
 	return( pSoldier );

@@ -331,7 +331,8 @@ enum
 	STR_LATE_56,
 	STR_LATE_57,
 	STR_LATE_58,
-	STR_LATE_59 // "%s's tool kit is in too poor condition to repair %s!"
+	STR_LATE_59, // "%s's tool kit is in too poor condition to repair %s!"
+	STR_LATE_60  // "Remove %s" (a destroyed vehicle)
 };
 
 

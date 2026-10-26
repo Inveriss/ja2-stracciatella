@@ -5364,8 +5364,14 @@ static void TeamListAssignmentRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, UI
 		fMapPanelDirty = TRUE;
 		gfRenderPBInterface = TRUE;
 
-		// if this thing can be re-assigned
-		if( !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) )
+		// dead (a destroyed vehicle, too) or POW: the Remove box, labelled for him
+		if (pSoldier->bLife == 0 || pSoldier->bAssignment == ASSIGNMENT_POW)
+		{
+			SetRemoveMercAssignBoxFor(*pSoldier);
+		}
+
+		// if this thing can be re-assigned (or a destroyed vehicle removed)
+		if (!(pSoldier->uiStatusFlags & SOLDIER_VEHICLE) || pSoldier->bLife == 0)
 		{
 			giAssignHighLine = iValue;
 
@@ -5485,6 +5491,7 @@ static void TeamListDestinationRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, U
 
 		if (IsHelicopterSoldier(*s))
 		{ // the helicopter's row: plot Skyrider's route, like a click on its icon
+			if (s->bLife == 0) return; // crashed
 			MakeMapModesSuitableForDestPlotting(s);
 			RequestGiveSkyriderNewDestination();
 			return;
@@ -6550,8 +6557,17 @@ static void EnableDisableTeamListRegionsAndHelpText(void)
 			// valid character.  If it's a vehicle, however
 			if (s->uiStatusFlags & SOLDIER_VEHICLE)
 			{
-				// Can't change assignment for vehicles
-				r.assignment.Disable();
+				// Can't change assignment for vehicles -- a destroyed one can be
+				// removed ("Remove Hummer")
+				if (s->bLife == 0)
+				{
+					r.assignment.Enable();
+					r.assignment.SetFastHelpText(GetRemoveMercString(*s));
+				}
+				else
+				{
+					r.assignment.Disable();
+				}
 			}
 			else
 			{

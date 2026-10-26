@@ -1027,7 +1027,8 @@
         "Attuale/Massimo Progresso: %d%%/%d%%",
         "Accompagnate John e Mary?",
         "Interruttore attivato.",
-        "Il kit attrezzi di %s è in condizioni troppo cattive per riparare il veicolo: %s!"
+        "Il kit attrezzi di %s è in condizioni troppo cattive per riparare il veicolo: %s!",
+        "Rimuovi %s"
     ],
     "gzMercSkillText": [
         "Nessuna abilità",
