@@ -1999,7 +1999,28 @@ static void DisplayCharacterList(void)
 			SetFontForeground(FONT_RED);
 		}
 		ST::string assignment = GetMapscreenMercAssignmentString(s);
-		DrawStringCentered(assignment, ASSIGN_X + 1, y, ASSIGN_WIDTH, Y_SIZE, MAP_SCREEN_FONT);
+		// 1366x768: Repair shows what is being repaired, in brackets in
+		// FONT12ARIAL -- "Repair (Heli)" -- centred together if it fits
+		ST::string repairing;
+		if (s.bAssignment == REPAIR && g_ui.isExtraWideStrategicScreen())
+		{
+			repairing = ST::format(" ({})",
+				s.fFixingRobot                ? pRepairStrings[3] : // Robot
+				s.bVehicleUnderRepairID != -1 ? pShortVehicleStrings[GetVehicle(s.bVehicleUnderRepairID).ubVehicleType] :
+				pRepairStrings[0]); // Items
+		}
+		UINT16 const assignment_w = StringPixLength(assignment, MAP_SCREEN_FONT);
+		UINT16 const repairing_w  = repairing.empty() ? 0 : StringPixLength(repairing, FONT12ARIAL);
+		if (repairing_w != 0 && assignment_w + repairing_w <= ASSIGN_WIDTH)
+		{
+			UINT16 const x = ASSIGN_X + 1 + (ASSIGN_WIDTH - assignment_w - repairing_w) / 2;
+			DrawStringCentered(assignment, x,                y, assignment_w, Y_SIZE, MAP_SCREEN_FONT);
+			DrawStringCentered(repairing,  x + assignment_w, y, repairing_w,  Y_SIZE, FONT12ARIAL);
+		}
+		else
+		{
+			DrawStringCentered(assignment, ASSIGN_X + 1, y, ASSIGN_WIDTH, Y_SIZE, MAP_SCREEN_FONT);
+		}
 
 		// Remaining contract time
 		str = GetMapscreenMercDepartureString(s, foreground != FONT_WHITE ? &foreground : 0);
