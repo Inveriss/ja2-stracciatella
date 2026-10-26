@@ -21,6 +21,8 @@ public:
 	void init(UINT8 usSoldierID);
 	// Unload all cached animation surfaces.
 	void free();
+	// The surface is in this cache.
+	bool has(UINT16 usSurfaceIndex) const;
 };
 
 #endif

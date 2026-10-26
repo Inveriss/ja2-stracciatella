@@ -129,6 +129,18 @@ static GridNo vector_3ToGridNo(vector_3 const& v)
 }
 
 
+bool ObjectInFlight(SOLDIERTYPE const* const owner)
+{
+	for (UINT32 i = 0; i != guiNumObjectSlots; ++i)
+	{
+		REAL_OBJECT const& o = ObjectSlots[i];
+		if (!o.fAllocated || o.fTestObject) continue;
+		if (owner == NULL || o.owner == owner) return true;
+	}
+	return false;
+}
+
+
 REAL_OBJECT* CreatePhysicalObject(OBJECTTYPE const* const pGameObj, float const dLifeLength, float const xPos, float const yPos, float const zPos, float const xForce, float const yForce, float const zForce, SOLDIERTYPE* const owner, UINT8 const ubActionCode, SOLDIERTYPE* const target)
 {
 	REAL_OBJECT* const o = GetFreeObjectSlot();

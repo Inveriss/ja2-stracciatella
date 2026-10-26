@@ -852,7 +852,13 @@ void LoadAnimationSurface(UINT16 const usSoldierID, UINT16 const usSurfaceIndex,
 }
 
 
-void UnLoadAnimationSurface(const UINT16 usSoldierID, const UINT16 usSurfaceIndex)
+bool AnimationSurfaceLockedBySoldier(UINT16 const usSoldierID, UINT16 const usSurfaceIndex)
+{
+	return gbAnimUsageHistory[usSurfaceIndex][usSoldierID] > 0;
+}
+
+
+void UnLoadAnimationSurface(const UINT16 usSoldierID, const UINT16 usSurfaceIndex, AnimationSurfaceCacheType const* const releasing)
 {
 	// Decrement usage flag, only if this soldier has it currently tagged
 	INT8* const in_use = &gbAnimUsageHistory[usSurfaceIndex][usSoldierID];
@@ -867,13 +873,37 @@ void UnLoadAnimationSurface(const UINT16 usSoldierID, const UINT16 usSurfaceInde
 	SLOGD("Surface Database: Decrementing Usage {} ( Soldier {} )", usSurfaceIndex, usSoldierID);
 
 	AnimationSurfaceType* const a         = &gAnimSurfaceDatabase[usSurfaceIndex];
-	INT8*                 const use_count = &a->bUsageCount;
+	INT16*                const use_count = &a->bUsageCount;
 	--*use_count;
 
 	SLOGD("Surface Database: MercUsage: {}, Global Usage: {}", *in_use, *use_count);
 
-	Assert(*use_count >= 0);
 	if (*use_count < 0) *use_count = 0;
+
+	// The count can be out of step with the soldiers really using the surface
+	// (any path that loads or gives back a surface for the wrong soldier): a
+	// surface still shown by an active soldier, or in his cache, is never
+	// unloaded -- without it his animation stops and he isn't drawn. Those
+	// soldiers hold it again, and the count is theirs.
+	if (*use_count == 0)
+	{
+		FOR_EACH_SOLDIER(s)
+		{
+			// not the soldier whose cache gives it back (being freed or bumped)
+			if (s->ubID >= MAX_NUM_SOLDIERS || &s->AnimCache == releasing) continue;
+			if (s->usAnimSurface != usSurfaceIndex && !s->AnimCache.has(usSurfaceIndex)) continue;
+			INT8& held = gbAnimUsageHistory[usSurfaceIndex][s->ubID];
+			if (held == 0)
+			{
+				held = 1;
+				++*use_count;
+			}
+		}
+		if (*use_count != 0)
+		{
+			SLOGD("Surface Database: Surface {} kept, {} soldiers still use it", usSurfaceIndex, *use_count);
+		}
+	}
 
 	// Delete if count reched zero
 	if (*use_count == 0)

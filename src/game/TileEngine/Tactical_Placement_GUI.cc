@@ -1125,6 +1125,9 @@ void TacticalPlacementHandle()
 					if (iTPButtons[DONE_BUTTON]->Enabled())
 					{
 						KillTacticalPlacementGUI();
+						// the placement and its buttons are gone: keys still queued
+						// ('c', 'g', 's') would click buttons that don't exist any more
+						return;
 					}
 					break;
 				case 'c':

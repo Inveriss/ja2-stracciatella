@@ -33,6 +33,7 @@
 #include "Campaign.h"
 #include "Debug.h"
 #include "Observable.h"
+#include "Town_Militia.h"
 
 extern UINT32	guiTimeStampOfCurrentlyExecutingEvent;
 extern BOOLEAN gfPreventDeletionOfAnyEvent;
@@ -304,6 +305,10 @@ BOOLEAN ExecuteStrategicEvent( STRATEGICEVENT *pEvent )
 
 		case EVENT_MERC_SITE_NEW_MERC_AVAILABLE:
 			NewMercsAvailableAtMercSiteCallBack( );
+			break;
+
+		case EVENT_MILITIA_ORDER_ARRIVAL:
+			HandleMilitiaOrderArrival(pEvent->uiParam);
 			break;
 	}
 	gfPreventDeletionOfAnyEvent = fOrigPreventFlag;

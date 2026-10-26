@@ -2,6 +2,8 @@
 #include "Font.h"
 #include "Interface.h"
 #include "Interface_Panels.h"
+#include "Militia_Recruit_Panel.h"
+#include "Militia_Deployment_Panel.h"
 #include "Laptop.h"
 #include "AIMSort.h"
 #include "Local.h"
@@ -1053,6 +1055,11 @@ static void DisplayCompressMode(void)
 	if( giTimeCompressMode != NOT_USING_TIME_COMPRESSION )
 	{
 		Time = sTimeStrings[IsTimeBeingCompressed() ? giTimeCompressMode : 0];
+		// the testing 5 hours: "300 min" after the language's "60 min"
+		if (IsTimeBeingCompressed() && giTimeCompressMode == TIME_SUPER_COMPRESS && TIME_COMPRESS_5HOURS_FOR_TESTING)
+		{
+			Time = sTimeStrings[TIME_COMPRESS_60MINS].replace("60", "300");
+		}
 	}
 
 	// Bottom+right-anchored: 640-489=151, 480-457=23 -- same distance from the
@@ -1286,7 +1293,7 @@ static void EnableDisableTimeCompressButtons(void)
 
 		// disable MORE if we're not paused and time compression is at maximum
 		// only disable MORE if we're not paused and time compression is at maximum
-		EnableButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE], !IsTimeCompressionOn() || giTimeCompressMode != TIME_COMPRESS_60MINS);
+		EnableButton(guiMapBottomTimeButtons[MAP_TIME_COMPRESS_MORE], !IsTimeCompressionOn() || giTimeCompressMode != MAX_TIME_COMPRESS);
 	}
 }
 
@@ -1332,7 +1339,7 @@ BOOLEAN AllowedToTimeCompress( void )
 		return( FALSE );
 	}
 
-	if (fShowAssignmentMenu || fShowTrainingMenu || fShowAttributeMenu || fShowSquadMenu || fShowContractMenu)
+	if (fShowAssignmentMenu || fShowTrainingMenu || fShowAttributeMenu || fShowMilitiaMenu || fShowSquadMenu || fShowContractMenu)
 	{
 		return( FALSE );
 	}
@@ -1341,6 +1348,9 @@ BOOLEAN AllowedToTimeCompress( void )
 	{
 		return( FALSE );
 	}
+
+	// the militia recruitment and deployment panels
+	if (IsMilitiaRecruitPanelOpen() || IsMilitiaDeploymentPanelOpen()) return FALSE;
 
 	// renewing contracts
 	if ( gfContractRenewalSquenceOn )

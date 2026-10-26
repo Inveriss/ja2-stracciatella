@@ -4,7 +4,7 @@
 #include "SGPFile.h"
 
 
-void ExtractSectorInfoFromFile(HWFILE const f, SECTORINFO& s)
+void ExtractSectorInfoFromFile(HWFILE const f, SECTORINFO& s, UINT32 const savegame_version)
 {
 	BYTE data[116];
 	f->read(data, sizeof(data));
@@ -35,15 +35,20 @@ void ExtractSectorInfoFromFile(HWFILE const f, SECTORINFO& s)
 	EXTR_I8(  d, s.bBloodCatPlacements)
 	EXTR_SKIP(d, 1)
 	EXTR_U8(  d, s.ubTravelRating)
-	EXTR_U8A( d, s.ubNumberOfCivsAtLevel, lengthof(s.ubNumberOfCivsAtLevel))
-	EXTR_SKIP(d, 6)
+	EXTR_U8A( d, s.ubNumberOfCivsAtLevel, ELITE_HEAVY_MILITIA)
+	// ELITE_HEAVY_MILITIA lives in the first formerly unused byte (save version 110+)
+	EXTR_U8(  d, s.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA])
+	if (savegame_version < 110) s.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA] = 0;
+	EXTR_U8(  d, s.ubMilitiaRecruitedForLoyalty)
+	EXTR_SKIP(d, 4)
 	EXTR_U32( d, s.uiTimeCurrentSectorWasLastLoaded)
 	EXTR_SKIP(d, 4)
 	EXTR_U32( d, s.uiTimeLastPlayerLiberated)
 	EXTR_BOOL(d, s.fSurfaceWasEverPlayerControlled)
 	EXTR_SKIP(d, 3)
 	EXTR_U32( d, s.uiNumberOfWorldItemsInTempFileThatCanBeSeenByPlayer)
-	EXTR_SKIP(d, 44)
+	EXTR_U8(  d, s.ubTestSamCounterattackGroupID)
+	EXTR_SKIP(d, 43)
 	Assert(d.getConsumed() == lengthof(data));
 }
 
@@ -77,15 +82,18 @@ void InjectSectorInfoIntoFile(HWFILE const f, SECTORINFO const& s)
 	INJ_I8(  d, s.bBloodCatPlacements)
 	INJ_SKIP(d, 1)
 	INJ_U8(  d, s.ubTravelRating)
-	INJ_U8A( d, s.ubNumberOfCivsAtLevel, lengthof(s.ubNumberOfCivsAtLevel))
-	INJ_SKIP(d, 6)
+	INJ_U8A( d, s.ubNumberOfCivsAtLevel, ELITE_HEAVY_MILITIA)
+	INJ_U8(  d, s.ubNumberOfCivsAtLevel[ELITE_HEAVY_MILITIA])
+	INJ_U8(  d, s.ubMilitiaRecruitedForLoyalty)
+	INJ_SKIP(d, 4)
 	INJ_U32( d, s.uiTimeCurrentSectorWasLastLoaded)
 	INJ_SKIP(d, 4)
 	INJ_U32( d, s.uiTimeLastPlayerLiberated)
 	INJ_BOOL(d, s.fSurfaceWasEverPlayerControlled)
 	INJ_SKIP(d, 3)
 	INJ_U32( d, s.uiNumberOfWorldItemsInTempFileThatCanBeSeenByPlayer)
-	INJ_SKIP(d, 44)
+	INJ_U8(  d, s.ubTestSamCounterattackGroupID)
+	INJ_SKIP(d, 43)
 	Assert(d.getConsumed() == lengthof(data));
 
 	f->write(data, sizeof(data));

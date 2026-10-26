@@ -47,6 +47,27 @@ static UINT32 guiRedSeekCounter = 0, guiRedHelpCounter = 0; guiRedHideCounter = 
 #define CENTER_OF_RING 11237
 static const SGPSector meduna(3, MAP_ROW_P);
 
+// ELITE_HEAVY militia that can still fire their heavy weapon (a LAW, or a mortar/M79 with
+// shells/grenades) don't go looking for other weapons or items on the ground; once the
+// heavy weapon can't be fired any more, the usual item pickup logic applies again.
+static bool HeavyMilitiaCanFireHeavyWeapon(SOLDIERTYPE const* const s)
+{
+	if (s->bTeam != MILITIA_TEAM || s->ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY_MILITIA) return false;
+
+	for (OBJECTTYPE const& o : s->inv)
+	{
+		if (o.usItem == NOTHING || o.bStatus[0] < USABLE) continue;
+		if (o.usItem == ROCKET_LAUNCHER) return true;
+		if (GCM->getItem(o.usItem)->getItemClass() == IC_LAUNCHER &&
+			FindLaunchable(s, o.usItem) != NO_SLOT)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
 static void DoneScheduleAction(SOLDIERTYPE* pSoldier)
 {
 	pSoldier->fAIFlags &= (~AI_CHECK_SCHEDULE);
@@ -1230,7 +1251,8 @@ static INT8 DecideActionYellow(SOLDIERTYPE* pSoldier)
 	if ( !( pSoldier->bTeam == CIV_TEAM && pSoldier->ubProfile != NO_PROFILE && pSoldier->ubProfile != ELDIN ) )
 	{
 		// IF WE ARE MILITIA/CIV IN REALTIME, CLOSE TO NOISE, AND CAN SEE THE SPOT WHERE THE NOISE CAME FROM, FORGET IT
-		if ( fReachable && !fClimb && !gfTurnBasedAI && (pSoldier->bTeam == MILITIA_TEAM || pSoldier->bTeam == CIV_TEAM )&& PythSpacesAway( pSoldier->sGridNo, sNoiseGridNo ) < 5 )
+		// (not in a watched militia battle in real time: the noise is the battle)
+		if ( fReachable && !fClimb && !gfTurnBasedAI && !IsWatchedBattleInRealtime() && (pSoldier->bTeam == MILITIA_TEAM || pSoldier->bTeam == CIV_TEAM )&& PythSpacesAway( pSoldier->sGridNo, sNoiseGridNo ) < 5 )
 		{
 			if ( SoldierTo3DLocationLineOfSightTest( pSoldier, sNoiseGridNo, pSoldier->bLevel, 0, 6, TRUE )	)
 			{
@@ -1363,7 +1385,8 @@ static INT8 DecideActionYellow(SOLDIERTYPE* pSoldier)
 		// TAKE BEST NEARBY COVER FROM THE NOISE GENERATING GRIDNO
 		////////////////////////////////////////////////////////////////////////////
 
-		if (!SkipCoverCheck && gfTurnBasedAI) // only do in turnbased
+		// only do in turnbased (and in a watched militia battle in real time)
+		if (!SkipCoverCheck && (gfTurnBasedAI || IsWatchedBattleInRealtime()))
 		{
 			// remember that noise value is negative, and closer to 0 => more important!
 			iChance = 25;
@@ -1701,7 +1724,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	////////////////////////////////////////////////////////////////////////
 
 	// can't do this in realtime, because the player could be shooting a gun or whatever at the same time!
-	if (gfTurnBasedAI && !fCivilian && !bInWater && !bInGas && !(pSoldier->uiStatusFlags & SOLDIER_BOXER) && (CanNPCAttack(pSoldier) == TRUE))
+	// (a watched militia battle in real time has no player: allowed)
+	if ((gfTurnBasedAI || IsWatchedBattleInRealtime()) && !fCivilian && !bInWater && !bInGas && !(pSoldier->uiStatusFlags & SOLDIER_BOXER) && (CanNPCAttack(pSoldier) == TRUE))
 	{
 		BestThrow.ubPossible = FALSE;    // by default, assume Throwing isn't possible
 
@@ -2326,7 +2350,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	// PICKUP A NEARBY ITEM THAT'S USEFUL
 	////////////////////////////////////////////////////////////////////////////
 
-	if ( ubCanMove && !pSoldier->bNeutral && (gfTurnBasedAI || pSoldier->bTeam == ENEMY_TEAM ) )
+	if ( ubCanMove && !pSoldier->bNeutral && (gfTurnBasedAI || pSoldier->bTeam == ENEMY_TEAM ) &&
+		!HeavyMilitiaCanFireHeavyWeapon(pSoldier) )
 	{
 		pSoldier->bAction = SearchForItems(*pSoldier, SEARCH_GENERAL_ITEMS, pSoldier->inv[HANDPOS].usItem);
 
@@ -2738,7 +2763,8 @@ static INT8 DecideActionBlack(SOLDIERTYPE* pSoldier)
 	}
 
 	// if we don't have a gun, look around for a weapon!
-	if (FindAIUsableObjClass( pSoldier, IC_GUN ) == ITEM_NOT_FOUND && ubCanMove && !pSoldier->bNeutral)
+	if (FindAIUsableObjClass( pSoldier, IC_GUN ) == ITEM_NOT_FOUND && ubCanMove && !pSoldier->bNeutral &&
+		!HeavyMilitiaCanFireHeavyWeapon(pSoldier))
 	{
 		// look around for a gun...
 		pSoldier->bAction = SearchForItems(*pSoldier, SEARCH_WEAPONS, pSoldier->inv[HANDPOS].usItem);

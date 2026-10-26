@@ -766,6 +766,11 @@ static void GeneratePaletteForSoldier(SOLDIERTYPE* pSoldier, UINT8 ubSoldierClas
 			pSoldier->PantsPal = "BEIGEPANTS";
 			pSoldier->ubSoldierClass = ubSoldierClass;
 			return;
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
+			pSoldier->VestPal  = "BLACKSHIRT";
+			pSoldier->PantsPal = "BEIGEPANTS"; // as every militia rank: only the shirt differs
+			pSoldier->ubSoldierClass = ubSoldierClass;
+			return;
 		case SOLDIER_CLASS_MINER:
 			pSoldier->VestPal  = "greyVEST";
 			pSoldier->PantsPal = "BEIGEPANTS";
@@ -904,6 +909,7 @@ static void TacticalCopySoldierFromCreateStruct(SOLDIERTYPE& s, SOLDIERCREATE_ST
 
 		case SOLDIER_CLASS_ELITE:
 		case SOLDIER_CLASS_ELITE_MILITIA:
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
 			chance         = 40;
 			expert_progess = 40;
 			expert_chance  = 30;
@@ -926,6 +932,40 @@ maybe_nightops:
 					s.ubSkillTrait2 = NIGHTOPS;
 				}
 			}
+			break;
+	}
+
+	// ELITE_HEAVY militia: always Heavy Weapons and Night Ops, once each
+	if (s.ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	{
+		s.ubSkillTrait1 = HEAVY_WEAPS;
+		s.ubSkillTrait2 = NIGHTOPS;
+	}
+
+	// The other militia: 10% Camouflaged -- camouflage at 100% that never wears
+	// off, and agility and dexterity fixed at 94. The trait takes the first free
+	// place (else the second one, an expert Night Ops being single then).
+	switch (s.ubSoldierClass)
+	{
+		case SOLDIER_CLASS_GREEN_MILITIA:
+		case SOLDIER_CLASS_REG_MILITIA:
+		case SOLDIER_CLASS_ELITE_MILITIA:
+			if (Chance(10))
+			{
+				if (s.ubSkillTrait1 == NO_SKILLTRAIT)
+				{
+					s.ubSkillTrait1 = CAMOUFLAGED;
+				}
+				else
+				{
+					s.ubSkillTrait2 = CAMOUFLAGED;
+				}
+				s.bCamo      = 100;
+				s.bAgility   = 94;
+				s.bDexterity = 94;
+			}
+			break;
+		default:
 			break;
 	}
 
@@ -1266,6 +1306,12 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 		pp->bBodyType = bp->bBodyType;
 	}
 
+	// ELITE_HEAVY militia are always big males
+	if (bp->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA && bp->bTeam == MILITIA_TEAM)
+	{
+		pp->bBodyType = BIGMALE;
+	}
+
 	//Pass over mandatory information specified from the basic placement
 	pp->bOrders = bp->bOrders;
 	pp->bAttitude = bp->bAttitude;
@@ -1345,6 +1391,9 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 		case SOLDIER_CLASS_ELITE_MILITIA:
 			pp->bExpLevel = (INT8) 6 + bExpLevelModifier;
 			break;
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
+			pp->bExpLevel = (INT8) 8 + bExpLevelModifier;
+			break;
 		case SOLDIER_CLASS_MINER:
 			pp->bExpLevel = bp->bRelativeAttributeLevel; //avg 2 (1-4)
 			break;
@@ -1418,7 +1467,15 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 	pp->bWisdom = (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 	pp->bMorale = (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 
-	if (ubSoldierClass != SOLDIER_CLASS_ELITE)
+	if (ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	{
+		// carries the heavy weapons: always full strength, and a fixed agility
+		pp->bStrength = 100;
+		pp->bAgility  = 94;
+	}
+
+	// skipping the ELITE_HEAVY militia too: their base level 8 (+ the usual modifiers) must not be cut down
+	if (ubSoldierClass != SOLDIER_CLASS_ELITE && ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
 	{
 		// CJC: now calculate the REAL experience level if in the really upper end
 		// we're skipping elites, since they have externalised level bounds
@@ -1809,7 +1866,10 @@ SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass const sc)
 {
 	if (guiCurrentScreen == AUTORESOLVE_SCREEN && !gfPersistantPBI)
 	{
-		return ReserveTacticalSoldierForAutoresolve(sc);
+		SOLDIERTYPE* const s = ReserveTacticalSoldierForAutoresolve(sc);
+		if (s) return s;
+		// The sector counts more of them than tactical has (some never got a
+		// place there: no room, still on their way): a new one for autoresolve
 	}
 
 	BASIC_SOLDIERCREATE_STRUCT bp;
@@ -1876,7 +1936,9 @@ SOLDIERTYPE* TacticalCreateCreature( INT8 bCreatureBodyType )
 
 	if( guiCurrentScreen == AUTORESOLVE_SCREEN && !gfPersistantPBI )
 	{
-		return ReserveTacticalSoldierForAutoresolve( SOLDIER_CLASS_CREATURE );
+		SOLDIERTYPE* const s = ReserveTacticalSoldierForAutoresolve( SOLDIER_CLASS_CREATURE );
+		if (s) return s;
+		// more counted than tactical has: a new one (see TacticalCreateEnemySoldier)
 	}
 
 	bp = BASIC_SOLDIERCREATE_STRUCT{};

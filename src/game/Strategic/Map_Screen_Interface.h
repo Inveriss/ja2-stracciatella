@@ -234,6 +234,7 @@ INT16 TeamListEntryY(INT32 i);
 extern BOOLEAN fShowAssignmentMenu;
 extern BOOLEAN fShowTrainingMenu ;
 extern BOOLEAN fShowAttributeMenu;
+extern BOOLEAN fShowMilitiaMenu; // Assign > Train > Militia: recruitment / deployment (militia recruitment on)
 extern BOOLEAN fShowSquadMenu ;
 extern BOOLEAN fShowContractMenu ;
 

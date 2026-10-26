@@ -26,6 +26,18 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "TownModel.h"
+#include "GamePolicy.h"
+#include "Game_Event_Hook.h"
+#include "Militia_Recruit_Panel.h"
+#include "WordWrap.h"
+#include "Militia_Watch.h"
+#include "Strategic_Movement.h"
+#include "Map_Information.h"
+#include "Militia_Control.h"
+#include "Handle_UI.h"
+#include "ScreenIDs.h"
+#include "Message.h"
+#include "SaveLoadGameStates.h"
 
 #include <string_theory/format>
 #include <string_theory/string>
@@ -54,7 +66,6 @@ static INT16 gsUnpaidStrategicSector[MAX_CHARACTER_COUNT];
 static void HandleCompletionOfTownTrainingByGroupWithTrainer(SOLDIERTYPE* pTrainer);
 static void InitFriendlyTownSectorServer(UINT8 ubTownId, INT16 sSkipSectorX, INT16 sSkipSectorY);
 static bool ServeNextFriendlySectorInTown(SGPSector& neighbour);
-static void StrategicAddMilitiaToSector(const SGPSector& sMap, UINT8 ubRank, UINT8 ubHowMany);
 static void StrategicPromoteMilitiaInSector(const SGPSector& sMap, UINT8 current_rank, UINT8 n);
 
 
@@ -82,7 +93,10 @@ void TownMilitiaTrainingCompleted(SOLDIERTYPE *pTrainer, const SGPSector& sector
 	// 2) If not enough room there, create new GREEN militia guys in friendly sectors of the same town
 	// 3) If not enough room anywhere in town, promote a number of GREENs in this sector into regulars
 	// 4) If not enough GREENS there to promote, promote GREENs in other sectors.
-	// 5) If all friendly sectors of this town are completely filled with REGULAR militia, then training effect is wasted
+	// 5) If no GREENs anywhere, promote REGULARs in this sector into elites
+	// 6) If not enough REGULARs there to promote, promote REGULARs in other sectors.
+	// 7) If all friendly sectors of this town are completely filled with ELITE (or ELITE_HEAVY) militia, then training effect is wasted
+	//    (ELITE_HEAVY is never created by training, only by combat promotions)
 
 	SGPSector sNeighbour;
 	while (ubMilitiaTrained < MILITIA_TRAINING_SQUAD_SIZE)
@@ -149,10 +163,35 @@ void TownMilitiaTrainingCompleted(SOLDIERTYPE *pTrainer, const SGPSector& sector
 						}
 					}
 
+					// no GREENs left anywhere - promote a REGULAR to an ELITE instead
+					if (!fFoundOne)
+					{
+						if (MilitiaInSectorOfRank(sector, REGULAR_MILITIA) > 0)
+						{
+							StrategicPromoteMilitiaInSector(sector, REGULAR_MILITIA, 1);
+							fFoundOne = TRUE;
+						}
+						else if (ubTownId != BLANK_SECTOR)
+						{
+							InitFriendlyTownSectorServer(ubTownId, sector.x, sector.y);
+
+							while (ServeNextFriendlySectorInTown(sNeighbour))
+							{
+								if (MilitiaInSectorOfRank(sNeighbour, REGULAR_MILITIA) > 0)
+								{
+									StrategicPromoteMilitiaInSector(sNeighbour, REGULAR_MILITIA, 1);
+
+									fFoundOne = TRUE;
+									break;
+								}
+							}
+						}
+					}
+
 					// if we still haven't been able to train anyone
 					if (!fFoundOne)
 					{
-						// Well, that's it.  All eligible sectors of this town are full of REGULARs or ELITEs.
+						// Well, that's it.  All eligible sectors of this town are full of ELITEs (or ELITE_HEAVYs).
 						// The training goes to waste in this situation.
 						break; // the main while loop
 					}
@@ -196,13 +235,14 @@ std::optional<UINT8> SoldierClassToMilitiaRank(UINT8 const soldier_class)
 		case SOLDIER_CLASS_GREEN_MILITIA: return GREEN_MILITIA;
 		case SOLDIER_CLASS_REG_MILITIA:   return REGULAR_MILITIA;
 		case SOLDIER_CLASS_ELITE_MILITIA: return ELITE_MILITIA;
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA: return ELITE_HEAVY_MILITIA;
 		default:                          return {};
 	}
 }
 
 
 // add militias of a certain rank
-static void StrategicAddMilitiaToSector(const SGPSector& sMap, UINT8 ubRank, UINT8 ubHowMany)
+void StrategicAddMilitiaToSector(const SGPSector& sMap, UINT8 ubRank, UINT8 ubHowMany)
 {
 	SECTORINFO *pSectorInfo = &(SectorInfo[sMap.AsByte()]);
 
@@ -257,7 +297,7 @@ UINT8 CheckOneMilitiaForPromotion(const SGPSector& sMap, UINT8 &current_rank, UI
 	// if we can't find them, we try higher ranks and make sure the caller follows up
 	SECTORINFO& si = SectorInfo[sMap.AsByte()];
 	while (si.ubNumberOfCivsAtLevel[current_rank] == 0) {
-		if (current_rank == ELITE_MILITIA) return 0;
+		if (current_rank == ELITE_HEAVY_MILITIA) return 0;
 		current_rank++;
 	}
 
@@ -278,6 +318,14 @@ UINT8 CheckOneMilitiaForPromotion(const SGPSector& sMap, UINT8 &current_rank, UI
 			if (kill_points < 5)           break;
 			if (!Chance(10 * kill_points)) break;
 			StrategicPromoteMilitiaInSector(sMap, REGULAR_MILITIA, 1);
+			++n_promotions;
+			break;
+		case ELITE_MILITIA:
+			// only militia that already were ELITE can become ELITE_HEAVY (no chain from lower ranks)
+			// 10 kill points minimum, 5% chance per kill point
+			if (kill_points < 10)          break;
+			if (!Chance(5 * kill_points))  break;
+			StrategicPromoteMilitiaInSector(sMap, ELITE_MILITIA, 1);
 			++n_promotions;
 			break;
 	}
@@ -309,6 +357,7 @@ static void HandleMilitiaDefections(const SGPSector& sMap)
 					uiChanceToDefect = 75;
 					break;
 				case ELITE_MILITIA:
+				case ELITE_HEAVY_MILITIA:
 					uiChanceToDefect = 90;
 					break;
 				default:
@@ -626,8 +675,7 @@ bool CanNearbyMilitiaScoutThisSector(const SGPSector& sMap)
 	{
 		for (sSector.x = xstart; sSector.x <= xend; ++sSector.x)
 		{
-			UINT8 (&n_milita)[MAX_MILITIA_LEVELS] = SectorInfo[sSector.AsByte()].ubNumberOfCivsAtLevel;
-			if (n_milita[GREEN_MILITIA] + n_milita[REGULAR_MILITIA] + n_milita[ELITE_MILITIA] != 0) return true;
+			if (CountAllMilitiaInSector(sSector) != 0) return true;
 		}
 	}
 	return false;
@@ -637,6 +685,12 @@ bool CanNearbyMilitiaScoutThisSector(const SGPSector& sMap)
 BOOLEAN IsAreaFullOfMilitia(const SGPSector& sector)
 {
 	if (sector.z != 0) return TRUE;
+
+	if (IsMilitiaRecruitmentEnabled())
+	{
+		// recruitment buys any rank: full means no room left at all
+		return MilitiaRecruitFreeSlots(sector) == 0;
+	}
 
 	UINT32 count_milita = 0;
 	UINT32 max_milita   = 0;
@@ -649,18 +703,18 @@ BOOLEAN IsAreaFullOfMilitia(const SGPSector& sector)
 			SGPSector town(i->sector);
 			if (SectorOursAndPeaceful(town))
 			{
-				// don't count GREEN militia, they can be trained into regulars first
-				count_milita += MilitiaInSectorOfRank(town, REGULAR_MILITIA);
+				// don't count GREEN and REGULAR militia, they can be trained into elites first
 				count_milita += MilitiaInSectorOfRank(town, ELITE_MILITIA);
+				count_milita += MilitiaInSectorOfRank(town, ELITE_HEAVY_MILITIA);
 				max_milita   += MAX_ALLOWABLE_MILITIA_PER_SECTOR;
 			}
 		}
 	}
 	else if (IsThisSectorASAMSector(sector))
 	{
-		// don't count GREEN militia, they can be trained into regulars first
-		count_milita += MilitiaInSectorOfRank(sector, REGULAR_MILITIA);
+		// don't count GREEN and REGULAR militia, they can be trained into elites first
 		count_milita += MilitiaInSectorOfRank(sector, ELITE_MILITIA);
+		count_milita += MilitiaInSectorOfRank(sector, ELITE_HEAVY_MILITIA);
 		max_milita   += MAX_ALLOWABLE_MILITIA_PER_SECTOR;
 	}
 
@@ -950,12 +1004,835 @@ ST::string BuildMilitiaPromotionsString()
 	PromoteMilitia(str, gbGreenToElitePromotions, gzLateLocalizedString[STR_LATE_29], gzLateLocalizedString[STR_LATE_22]);
 	PromoteMilitia(str, gbGreenToRegPromotions,  gzLateLocalizedString[STR_LATE_30], gzLateLocalizedString[STR_LATE_23]);
 	PromoteMilitia(str, gbRegToElitePromotions,  gzLateLocalizedString[STR_LATE_31], gzLateLocalizedString[STR_LATE_24]);
+	PromoteMilitia(str, gbEliteToHeavyPromotions, pMilitiaHeavyStrings[1],           pMilitiaHeavyStrings[2]);
 
 	// Clear the fields
 	gbGreenToElitePromotions = 0;
 	gbGreenToRegPromotions   = 0;
 	gbRegToElitePromotions   = 0;
+	gbEliteToHeavyPromotions = 0;
 	gbMilitiaPromotions      = 0;
 
 	return str;
+}
+
+
+// ---------------------------------------------------------------------------
+// Militia recruitment
+// ---------------------------------------------------------------------------
+
+bool IsMilitiaRecruitmentEnabled()
+{
+	return gamepolicy(militia_recruitment);
+}
+
+
+// The sectors of the town (or the SAM site) of this sector that can take
+// militia now: ours and peaceful
+template<typename F> static void ForEachRecruitSector(const SGPSector& sector, F f)
+{
+	if (sector.z != 0) return;
+	INT8 const town_id = GetTownIdForSector(sector);
+	if (town_id != BLANK_SECTOR)
+	{
+		FOR_EACH_SECTOR_IN_TOWN(i, town_id)
+		{
+			SGPSector const town(i->sector);
+			if (SectorOursAndPeaceful(town)) f(town);
+		}
+	}
+	else if (IsThisSectorASAMSector(sector) && SectorOursAndPeaceful(sector))
+	{
+		f(sector);
+	}
+}
+
+
+static std::vector<MilitiaOrder> g_militia_orders;
+
+
+std::vector<MilitiaOrder> const& GetMilitiaOrders()
+{
+	return g_militia_orders;
+}
+
+
+// Both sectors belong to the same town, or are the same SAM site
+static bool SameRecruitArea(const SGPSector& a, const SGPSector& b)
+{
+	INT8 const town_a = GetTownIdForSector(a);
+	return town_a != BLANK_SECTOR ? town_a == GetTownIdForSector(b) : a == b;
+}
+
+
+static UINT32 OrderTotal(MilitiaOrder const& o)
+{
+	UINT32 n = 0;
+	for (UINT8 const c : o.counts) n += c;
+	return n;
+}
+
+
+// The room in the town's peaceful sectors of ours, before the orders
+static UINT32 MilitiaRecruitRoom(const SGPSector& sector)
+{
+	UINT32 room = 0;
+	ForEachRecruitSector(sector, [&](const SGPSector& s)
+	{
+		UINT8 const n = CountAllMilitiaInSector(s);
+		if (n < MAX_ALLOWABLE_MILITIA_PER_SECTOR) room += MAX_ALLOWABLE_MILITIA_PER_SECTOR - n;
+	});
+	return room;
+}
+
+
+// The militia ordered for this town (or SAM site), on their way or waiting
+static UINT32 MilitiaOrderedFor(const SGPSector& sector)
+{
+	UINT32 n = 0;
+	for (MilitiaOrder const& o : g_militia_orders)
+	{
+		if (SameRecruitArea(o.sector, sector)) n += OrderTotal(o);
+	}
+	return n;
+}
+
+
+UINT32 MilitiaRecruitFreeSlots(const SGPSector& sector)
+{
+	// the ordered militia have their places already
+	UINT32 const room    = MilitiaRecruitRoom(sector);
+	UINT32 const ordered = MilitiaOrderedFor(sector);
+	return room > ordered ? room - ordered : 0;
+}
+
+
+SOLDIERTYPE const* BestMilitiaRecruiter(const SGPSector& sector)
+{
+	if (sector.z != 0) return NULL;
+	INT8 const town_id = GetTownIdForSector(sector);
+
+	SOLDIERTYPE const* best = NULL;
+	CFOR_EACH_IN_TEAM(s, OUR_TEAM)
+	{
+		if (s->bLife < OKLIFE)                         continue;
+		if (s->uiStatusFlags & SOLDIER_VEHICLE)        continue;
+		if (s->fBetweenSectors || s->sSector.z != 0)   continue;
+		if (s->bAssignment == IN_TRANSIT ||
+				s->bAssignment == ASSIGNMENT_DEAD ||
+				s->bAssignment == ASSIGNMENT_POW)          continue;
+		// in the same town, or for a SAM site in the same sector
+		if (town_id != BLANK_SECTOR ? GetTownIdForSector(s->sSector) != town_id : s->sSector != sector) continue;
+		if (!best || s->bLeadership > best->bLeadership) best = s;
+	}
+	return best;
+}
+
+
+INT32 MilitiaRecruitPricePercent(INT8 const leadership)
+{
+	for (int i = 0; i != 4; ++i)
+	{
+		if (leadership <= gamepolicy(militia_recruit_leadership_max[i])) return gamepolicy(militia_recruit_price_percent[i]);
+	}
+	return gamepolicy(militia_recruit_price_percent[3]);
+}
+
+
+INT32 MilitiaRecruitUnitPrice(UINT8 const rank, const SGPSector& sector)
+{
+	SOLDIERTYPE const* const recruiter = BestMilitiaRecruiter(sector);
+	INT8  const leadership = recruiter ? recruiter->bLeadership : 0;
+	INT32 const base       = gamepolicy(militia_recruit_price[rank]);
+	return base * MilitiaRecruitPricePercent(leadership) / 100;
+}
+
+
+UINT32 MilitiaUpgradeAvailable(const SGPSector& sector, UINT8 const rank)
+{
+	if (rank + 1 >= MAX_MILITIA_LEVELS) return 0; // elite heavy: the last rank
+	UINT32 n = 0;
+	ForEachRecruitSector(sector, [&](const SGPSector& s)
+	{
+		n += SectorInfo[s.AsByte()].ubNumberOfCivsAtLevel[rank];
+	});
+	return n;
+}
+
+
+INT32 MilitiaUpgradeUnitPrice(UINT8 const rank, const SGPSector& sector)
+{
+	if (rank + 1 >= MAX_MILITIA_LEVELS) return 0;
+	return std::max(0, MilitiaRecruitUnitPrice(rank + 1, sector) - MilitiaRecruitUnitPrice(rank, sector));
+}
+
+
+UINT32 UpgradeMilitia(const SGPSector& sector, UINT8 const rank, UINT32 n)
+{
+	if (rank + 1 >= MAX_MILITIA_LEVELS) return 0;
+	UINT32 done = 0;
+	auto const upgrade_in = [&](const SGPSector& s)
+	{
+		UINT8 const k = (UINT8)std::min<UINT32>(SectorInfo[s.AsByte()].ubNumberOfCivsAtLevel[rank], n - done);
+		if (k == 0) return;
+		StrategicPromoteMilitiaInSector(s, rank, k);
+		done += k;
+		if (s == gWorldSector) gfStrategicMilitiaChangesMade = TRUE; // tactical updates its militia
+	};
+	// the recruiting merc's sector first, when it is one of them
+	bool in_area = false;
+	ForEachRecruitSector(sector, [&](const SGPSector& s) { if (s == sector) in_area = true; });
+	if (in_area) upgrade_in(sector);
+	ForEachRecruitSector(sector, [&](const SGPSector& s)
+	{
+		if (done == n || s == sector) return;
+		upgrade_in(s);
+	});
+	fMapPanelDirty = TRUE;
+	return done;
+}
+
+
+// One militia of this rank into the given sector if there is room, else into
+// another sector of the same town; FALSE if there is no room anywhere
+static BOOLEAN PlaceRecruitedMilitia(const SGPSector& sector, UINT8 const rank)
+{
+	if (SectorOursAndPeaceful(sector) && CountAllMilitiaInSector(sector) < MAX_ALLOWABLE_MILITIA_PER_SECTOR)
+	{
+		StrategicAddMilitiaToSector(sector, rank, 1);
+		return TRUE;
+	}
+
+	BOOLEAN placed = FALSE;
+	ForEachRecruitSector(sector, [&](const SGPSector& s)
+	{
+		if (placed) return;
+		if (CountAllMilitiaInSector(s) >= MAX_ALLOWABLE_MILITIA_PER_SECTOR) return;
+		StrategicAddMilitiaToSector(s, rank, 1);
+		placed = TRUE;
+	});
+	return placed;
+}
+
+
+UINT8 MilitiaArrivalHours(UINT8 const option)
+{
+	switch (option)
+	{
+		case MILITIA_ARRIVAL_EXPRESS: return 6;
+		case MILITIA_ARRIVAL_FAST:    return 12;
+		default:                      return 24;
+	}
+}
+
+
+INT32 MilitiaArrivalExtraCost(UINT8 const option)
+{
+	switch (option)
+	{
+		case MILITIA_ARRIVAL_EXPRESS: return 1000;
+		case MILITIA_ARRIVAL_FAST:    return 500;
+		default:                      return 0;
+	}
+}
+
+
+// The town loyalty bonus of the militia training: one for every 10 militia
+// that arrived in the town
+static void AddMilitiaRecruitLoyalty(const SGPSector& sector, UINT32 const n)
+{
+	INT8 const town_id = GetTownIdForSector(sector);
+	if (town_id == BLANK_SECTOR) return;
+	auto const town = GCM->getTown(town_id);
+	if (!town) return;
+
+	UINT8& counter = SectorInfo[town->getBaseSector().AsByte()].ubMilitiaRecruitedForLoyalty;
+	UINT32 recruited = counter + n;
+	while (recruited >= MILITIA_TRAINING_SQUAD_SIZE)
+	{
+		IncrementTownLoyalty(town_id, LOYALTY_BONUS_FOR_TOWN_TRAINING);
+		recruited -= MILITIA_TRAINING_SQUAD_SIZE;
+	}
+	counter = (UINT8) recruited;
+}
+
+
+// The town's name, or the SAM site's sector
+static ST::string RecruitAreaName(const SGPSector& sector)
+{
+	INT8 const town_id = GetTownIdForSector(sector);
+	return town_id != BLANK_SECTOR ? GCM->getTownName(town_id) : sector.AsShortString();
+}
+
+
+BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS], UINT8 const arrival_option)
+{
+	UINT32 n_total = 0;
+	INT32  cost    = MilitiaArrivalExtraCost(arrival_option);
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		n_total += counts[rank];
+		cost    += counts[rank] * MilitiaRecruitUnitPrice(rank, sector);
+	}
+	if (n_total == 0)                                return FALSE;
+	if (n_total > MilitiaRecruitFreeSlots(sector))   return FALSE;
+	if (LaptopSaveInfo.iCurrentBalance < cost)      return FALSE;
+
+	AddTransactionToPlayersBook(RECRUIT_TOWN_MILITIA, sector.AsByte(), GetWorldTotalMin(), -cost);
+
+	// ordered: they arrive after the option's hours
+	MilitiaOrder o{};
+	o.id = 1;
+	for (MilitiaOrder const& other : g_militia_orders) o.id = std::max(o.id, other.id + 1);
+	o.sector      = sector;
+	std::copy(std::begin(counts), std::end(counts), std::begin(o.counts));
+	o.arrival_min = GetWorldTotalMin() + MilitiaArrivalHours(arrival_option) * 60;
+	o.option      = arrival_option;
+	o.waiting     = false;
+	g_militia_orders.push_back(o);
+	AddStrategicEvent(EVENT_MILITIA_ORDER_ARRIVAL, o.arrival_min, o.id);
+
+	fMapPanelDirty = TRUE;
+	return TRUE;
+}
+
+
+static std::vector<MilitiaOrder>::iterator FindMilitiaOrder(UINT32 const order_id)
+{
+	return std::find_if(g_militia_orders.begin(), g_militia_orders.end(),
+		[&](MilitiaOrder const& o) { return o.id == order_id; });
+}
+
+
+// How many of the order's militia can enter the town now: its room, less the
+// other orders'
+static UINT32 MilitiaOrderRoom(MilitiaOrder const& o)
+{
+	UINT32 const room   = MilitiaRecruitRoom(o.sector);
+	UINT32 const others = MilitiaOrderedFor(o.sector) - OrderTotal(o);
+	return room > others ? room - others : 0;
+}
+
+
+// Up to n of the order's militia enter the town, the best ranks first; the
+// order keeps the rest (and is removed when none is left)
+// The arrival notices waiting to be shown (HandleMilitiaOrderQuestions())
+static std::vector<ST::string> g_order_notices;
+
+
+static void MilitiaOrderWaits(MilitiaOrder& o);
+
+
+// "10 green militia have arrived in Drassen.": a line per rank in the
+// message log
+static void LogMilitiaArrival(MilitiaOrder const& o)
+{
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		if (o.counts[rank] == 0) continue;
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED_RANK_FIRST + rank],
+			int(o.counts[rank]), RecruitAreaName(o.sector)));
+	}
+}
+
+
+void SetMilitiaOrderCounts(UINT32 const order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS])
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	std::copy(std::begin(counts), std::end(counts), std::begin(it->counts));
+}
+
+
+UINT32 SendMilitiaOrderToDeployment(UINT32 const order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS], bool const announce)
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return 0;
+
+	MilitiaOrder sent = *it;
+	sent.id = 1;
+	for (MilitiaOrder const& other : g_militia_orders) sent.id = std::max(sent.id, other.id + 1);
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		UINT8 const n = std::min(counts[rank], it->counts[rank]);
+		sent.counts[rank]  = n;
+		it->counts[rank]  -= n;
+	}
+	if (OrderTotal(sent) == 0) return 0;
+	sent.waiting = true;
+	g_militia_orders.push_back(sent); // it is no longer valid
+	if (announce) MilitiaOrderWaits(g_militia_orders.back());
+	return sent.id;
+}
+
+
+void FinishMilitiaArrivalOrder(UINT32 const order_id, UINT32 const n_entered)
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	if (n_entered != 0) AddMilitiaRecruitLoyalty(it->sector, n_entered);
+	g_militia_orders.erase(it);
+	gfStrategicMilitiaChangesMade = TRUE;
+	fMapPanelDirty = TRUE;
+}
+
+
+static void EnterMilitiaOrder(UINT32 const order_id, UINT32 n)
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	MilitiaOrder& o = *it;
+
+	UINT32 entered = 0;
+	UINT32 entered_rank[MAX_MILITIA_LEVELS] = {};
+	for (UINT8 rank = MAX_MILITIA_LEVELS; rank-- != 0 && n != 0;)
+	{
+		while (o.counts[rank] != 0 && n != 0)
+		{
+			if (!PlaceRecruitedMilitia(o.sector, rank)) { n = 0; break; } // no room after all
+			--o.counts[rank];
+			--n;
+			++entered;
+			++entered_rank[rank];
+		}
+	}
+	if (entered == 0) return;
+
+	AddMilitiaRecruitLoyalty(o.sector, entered);
+
+	// "10 green militia have arrived in Drassen.": a line per rank, in the
+	// message log and in a message box
+	char32_t const newline[] = { TEXT_CODE_NEWLINE, 0 };
+	ST::string     notice;
+	for (UINT8 rank = 0; rank != MAX_MILITIA_LEVELS; ++rank)
+	{
+		if (entered_rank[rank] == 0) continue;
+		ST::string const line = st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED_RANK_FIRST + rank],
+			int(entered_rank[rank]), RecruitAreaName(o.sector));
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, line);
+		if (!notice.empty()) notice += ST::string::from_utf32(newline);
+		notice += line;
+	}
+	g_order_notices.push_back(notice);
+	if (OrderTotal(o) == 0) g_militia_orders.erase(it);
+
+	// force tactical to update militia status
+	gfStrategicMilitiaChangesMade = TRUE;
+	fMapPanelDirty = TRUE;
+}
+
+
+static void MilitiaOrderWaits(MilitiaOrder& o)
+{
+	o.waiting = true;
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_WAITING], RecruitAreaName(o.sector)));
+}
+
+
+// The orders waiting for the player's answer, in the order they arrived; the
+// one asked about now
+static std::vector<UINT32> g_order_questions;
+static UINT32              g_order_asked = 0;
+// The orders the militia box sent into the battle loaded in tactical (D5.2)
+static std::vector<UINT32> g_order_joins;
+
+
+// The order's sector held by the enemy, no battle there already (4b, 4d):
+// the militia can attack it
+static bool MilitiaOrderCanAttack(MilitiaOrder const& o)
+{
+	SGPSector const& s = o.sector;
+	if (s.z != 0)                     return false;
+	if (NumEnemiesInSector(s) == 0)   return false;
+	// militia alone attack only a sector the mercs liberated once
+	if (!SectorInfo[s.AsByte()].fSurfaceWasEverPlayerControlled) return false;
+	if (gfPreBattleInterfaceActive)   return false;
+	// a battle in the loaded sector: joining it is stage 4.3
+	if (gfWorldLoaded && gWorldSector == s && gTacticalStatus.fEnemyInSector) return false;
+	return CountAllMilitiaInSector(s) < MAX_ALLOWABLE_MILITIA_PER_SECTOR;
+}
+
+
+// A battle is going on in the order's sector, loaded in tactical, and it can
+// take more militia (4c): they can join it from a map edge
+static bool MilitiaOrderCanJoin(MilitiaOrder const& o)
+{
+	if (o.sector.z != 0 || !gfWorldLoaded || gWorldSector != o.sector) return false;
+	if (!gTacticalStatus.fEnemyInSector)                               return false;
+	return MilitiaReinforcementRoom() != 0;
+}
+
+
+// Joining a battle is asked on the tactical screen only, in real time or in
+// the player's turn, between attacks
+static bool CanAskToJoinNow()
+{
+	if (guiCurrentScreen != GAME_SCREEN)                           return false;
+	if (gTacticalStatus.ubAttackBusyCount != 0)                     return false;
+	if (gfDisableRegionActive || gfUserTurnRegionActive)            return false;
+	if ((gTacticalStatus.uiFlags & INCOMBAT) &&
+			gTacticalStatus.ubCurrentTeam != OUR_TEAM)                 return false;
+	return true;
+}
+
+
+static void JoinCallback(MessageBoxReturnValue const ret)
+{
+	UINT32 const order_id = g_order_asked;
+	g_order_asked = 0;
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	MilitiaOrder& o = *it;
+
+	if (ret != MSG_BOX_RETURN_YES || !MilitiaOrderCanJoin(o) || guiCurrentScreen != GAME_SCREEN)
+	{
+		MilitiaOrderWaits(o);
+		return;
+	}
+
+	// as many as the battle takes come in, the best ranks first; the rest waits
+	SGPSector const sector = o.sector;
+	UINT8 const entered = AddMilitiaReinforcementsToBattle(o.counts, (UINT8)std::min<UINT32>(OrderTotal(o), 255));
+	if (entered == 0)
+	{
+		MilitiaOrderWaits(o);
+		return;
+	}
+	AddMilitiaRecruitLoyalty(sector, entered);
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED], RecruitAreaName(sector)));
+	if (OrderTotal(o) == 0) g_militia_orders.erase(it);
+	else                    MilitiaOrderWaits(o);
+	fMapPanelDirty = TRUE;
+}
+
+
+static void AttackCallback(MessageBoxReturnValue const ret)
+{
+	UINT32 const order_id = g_order_asked;
+	g_order_asked = 0;
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	MilitiaOrder& o = *it;
+
+	if (ret != MSG_BOX_RETURN_YES || !MilitiaOrderCanAttack(o))
+	{
+		MilitiaOrderWaits(o);
+		return;
+	}
+
+	// as many as the sector holds enter it, the best ranks first; the rest
+	// waits
+	SGPSector const sector = o.sector;
+	UINT32 n = MAX_ALLOWABLE_MILITIA_PER_SECTOR - CountAllMilitiaInSector(sector);
+	UINT32 entered = 0;
+	for (UINT8 rank = MAX_MILITIA_LEVELS; rank-- != 0 && n != 0;)
+	{
+		UINT8 const k = (UINT8)std::min<UINT32>(o.counts[rank], n);
+		if (k == 0) continue;
+		StrategicAddMilitiaToSector(sector, rank, k);
+		o.counts[rank] -= k;
+		n              -= k;
+		entered        += k;
+	}
+	AddMilitiaRecruitLoyalty(sector, entered);
+	if (OrderTotal(o) == 0) g_militia_orders.erase(it);
+	else                    o.waiting = true;
+
+	gfStrategicMilitiaChangesMade = TRUE;
+	fMapPanelDirty = TRUE;
+	StartMilitiaAttackBattle(sector);
+}
+
+
+static void PartialEntryCallback(MessageBoxReturnValue const ret)
+{
+	UINT32 const order_id = g_order_asked;
+	g_order_asked = 0;
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+
+	if (ret == MSG_BOX_RETURN_YES)
+	{
+		// those who fit enter, the rest waits
+		EnterMilitiaOrder(order_id, MilitiaOrderRoom(*it));
+		auto const rest = FindMilitiaOrder(order_id);
+		if (rest != g_militia_orders.end()) MilitiaOrderWaits(*rest);
+	}
+	else
+	{
+		MilitiaOrderWaits(*it);
+	}
+}
+
+
+// The militia box (its key: a town, a SAM site) that takes an order on its
+// arrival, BLANK_SECTOR: none
+static INT16 MilitiaOrderBoxTown(MilitiaOrder const& o)
+{
+	return MilitiaBoxKeyForSector(o.sector);
+}
+
+
+void HandleMilitiaOrderArrival(UINT32 const order_id)
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	MilitiaOrder& o = *it;
+
+	// a town's order: the militia box, on the map screen (D1, D1b), queued
+	// as the questions
+	if (MilitiaOrderBoxTown(o) != BLANK_SECTOR)
+	{
+		g_order_questions.push_back(order_id);
+		return;
+	}
+
+	UINT32 const total = OrderTotal(o);
+	UINT32 const room  = MilitiaOrderRoom(o);
+	if (room >= total)
+	{
+		// everybody enters
+		EnterMilitiaOrder(order_id, total);
+	}
+	else if (room > 0 || MilitiaOrderCanJoin(o) || MilitiaOrderCanAttack(o))
+	{
+		// only some fit (4e), a battle in the loaded sector (4c), or the enemy
+		// holds the sector (4b, 4d): the player is asked
+		g_order_questions.push_back(order_id);
+	}
+	else
+	{
+		// no room: they wait for orders (the enemy holding a sector the mercs
+		// never liberated: the player is told why there is no attack)
+		if (o.sector.z == 0 && NumEnemiesInSector(o.sector) != 0 &&
+				!SectorInfo[o.sector.AsByte()].fSurfaceWasEverPlayerControlled)
+		{
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE,
+				st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_LIBERATE_FIRST], o.sector.AsShortString()));
+		}
+		MilitiaOrderWaits(o);
+	}
+}
+
+
+void RetryMilitiaOrder(UINT32 const order_id)
+{
+	// its militia are the militia box's unassigned ones
+	if (order_id == MilitiaArrivalBoxOrder()) return;
+	// already asked about, or queued
+	if (g_order_asked == order_id) return;
+	if (std::find(g_order_questions.begin(), g_order_questions.end(), order_id) != g_order_questions.end()) return;
+	HandleMilitiaOrderArrival(order_id);
+}
+
+
+ST::string MilitiaOrderAreaName(MilitiaOrder const& o)
+{
+	return RecruitAreaName(o.sector);
+}
+
+
+// The arrival message closed: the militia box opens with the order's militia
+// (when it can't now, the order is queued again)
+static void ArrivalMessageCallback(MessageBoxReturnValue)
+{
+	UINT32 const order_id = g_order_asked;
+	g_order_asked = 0;
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	if (!OpenMilitiaArrivalBox(order_id, MilitiaOrderBoxTown(*it), it->counts))
+	{
+		g_order_questions.insert(g_order_questions.begin(), order_id);
+		return;
+	}
+	it->waiting = true; // saved in the box: back as a waiting order
+	LogMilitiaArrival(*it);
+}
+
+
+void JoinMilitiaOrderToBattle(UINT32 const order_id)
+{
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end()) return;
+	it->sector = gWorldSector; // the battle's sector, of the same town
+	g_order_joins.push_back(order_id);
+}
+
+
+void HandleMilitiaOrderQuestions()
+{
+	if (g_order_asked != 0) return;
+	// no other message box or battle panel
+	if (guiCurrentScreen != MAP_SCREEN && guiCurrentScreen != GAME_SCREEN) return;
+	if (gfInMsgBox || gfPreBattleInterfaceActive)                           return;
+
+	// militia the box sent into the battle: back on the tactical screen they
+	// join it, between attacks (D5.2)
+	if (!g_order_joins.empty() && CanAskToJoinNow())
+	{
+		UINT32 const order_id = g_order_joins.front();
+		g_order_joins.erase(g_order_joins.begin());
+		auto const it = FindMilitiaOrder(order_id);
+		if (it == g_militia_orders.end()) return;
+		MilitiaOrder& o = *it;
+		if (MilitiaOrderCanJoin(o))
+		{
+			SGPSector const sector  = o.sector;
+			UINT8     const entered = AddMilitiaReinforcementsToBattle(o.counts, (UINT8)std::min<UINT32>(OrderTotal(o), 255));
+			if (entered != 0)
+			{
+				AddMilitiaRecruitLoyalty(sector, entered);
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ARRIVED], RecruitAreaName(sector)));
+			}
+		}
+		if (OrderTotal(o) == 0) g_militia_orders.erase(it);
+		else                    MilitiaOrderWaits(o); // the battle took fewer, or is over
+		fMapPanelDirty = TRUE;
+		return;
+	}
+
+	// the militia that arrived, after any battle
+	if (!g_order_notices.empty())
+	{
+		if ((gTacticalStatus.uiFlags & INCOMBAT) || gfWatchingMilitiaBattle) return;
+		ST::string const notice = g_order_notices.front();
+		g_order_notices.erase(g_order_notices.begin());
+		DoScreenIndependantMessageBox(notice, MSG_BOX_FLAG_OK, NULL);
+		return;
+	}
+	if (g_order_questions.empty()) return;
+
+	UINT32 const order_id = g_order_questions.front();
+	auto const it = FindMilitiaOrder(order_id);
+	if (it == g_militia_orders.end())
+	{
+		g_order_questions.erase(g_order_questions.begin());
+		return;
+	}
+
+	// a town's or a SAM site's order: the militia box with the order's
+	// militia as the unassigned ones, on the map screen -- also during a
+	// battle, whose sector (in the box) takes reinforcements (D5.2)
+	INT16 const town = MilitiaOrderBoxTown(*it);
+	if (town != BLANK_SECTOR)
+	{
+		if (guiCurrentScreen != MAP_SCREEN)
+		{
+			// the tactical screen (D5.1, D5.2): to the map screen, between
+			// attacks; the box opens there, closing it comes back
+			if (CanAskToJoinNow()) RequestMilitiaArrivalBoxFromTactical();
+			return;
+		}
+		if (MilitiaArrivalBoxTown() == town)
+		{
+			// the town's box is open: they join its unassigned militia (D7)
+			AddToMilitiaArrivalBox(it->counts);
+			LogMilitiaArrival(*it);
+			g_militia_orders.erase(it);
+			g_order_questions.erase(g_order_questions.begin());
+			return;
+		}
+		// first a message about the arrival and the choices, its OK opens the box
+		if (!CanOpenMilitiaArrivalBox()) return;
+		g_order_questions.erase(g_order_questions.begin());
+		g_order_asked = order_id;
+		DoScreenIndependantMessageBox(MilitiaArrivalMessage(town, OrderTotal(*it)), MSG_BOX_FLAG_OK, ArrivalMessageCallback);
+		return;
+	}
+
+	// the situation may have changed while it was queued
+	UINT32 const total = OrderTotal(*it);
+	UINT32 const room  = MilitiaOrderRoom(*it);
+	bool   const join  = room == 0 && MilitiaOrderCanJoin(*it);
+	// a battle going on: joining it is asked between attacks, the other
+	// questions after it
+	bool const in_battle = (gTacticalStatus.uiFlags & INCOMBAT) || gfWatchingMilitiaBattle;
+	if (join ? !CanAskToJoinNow() : (in_battle && room < total)) return;
+
+	g_order_questions.erase(g_order_questions.begin());
+	if (room >= total) { EnterMilitiaOrder(order_id, total); return; }
+
+	g_order_asked = order_id;
+	if (join)
+	{
+		DoScreenIndependantMessageBox(
+			st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_JOIN], RecruitAreaName(it->sector), it->sector.AsShortString()),
+			MSG_BOX_FLAG_YESNO, JoinCallback);
+	}
+	else if (room > 0)
+	{
+		DoScreenIndependantMessageBox(
+			st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_PARTIAL], int(room), int(total), RecruitAreaName(it->sector)),
+			MSG_BOX_FLAG_YESNO, PartialEntryCallback);
+	}
+	else if (MilitiaOrderCanAttack(*it))
+	{
+		DoScreenIndependantMessageBox(
+			st_format_printf(pMilitiaRecruitStrings[MILITIA_STR_ORDER_ATTACK], RecruitAreaName(it->sector), it->sector.AsShortString()),
+			MSG_BOX_FLAG_YESNO, AttackCallback);
+	}
+	else
+	{
+		g_order_asked = 0;
+		MilitiaOrderWaits(*it);
+	}
+}
+
+
+// Saved as one list of numbers, MILITIA_ORDER_FIELDS per order
+static ST::string const gMilitiaOrdersStateKey{ "Militia::orders" };
+#define MILITIA_ORDER_FIELDS (4 + MAX_MILITIA_LEVELS + 2)
+
+void InitMilitiaOrdersForNewGame()
+{
+	g_militia_orders.clear();
+	g_order_questions.clear();
+	g_order_notices.clear();
+	g_order_asked = 0;
+	g_order_joins.clear();
+	ResetMilitiaArrivalBox();
+}
+
+
+void SaveMilitiaOrdersToSaveGameFile()
+{
+	std::vector<int32_t> v;
+	for (MilitiaOrder const& o : g_militia_orders)
+	{
+		if (OrderTotal(o) == 0) continue; // the militia box's, all placed
+		v.push_back(o.id);
+		v.push_back(o.sector.AsByte());
+		v.push_back(o.arrival_min);
+		v.push_back(o.option);
+		for (UINT8 const c : o.counts) v.push_back(c);
+		v.push_back(o.waiting ? 1 : 0);
+		v.push_back(0); // spare
+	}
+	g_gameStates.SetVector(gMilitiaOrdersStateKey, std::move(v));
+}
+
+
+void LoadMilitiaOrdersFromSaveGameFile()
+{
+	g_militia_orders.clear();
+	if (!g_gameStates.HasKey(gMilitiaOrdersStateKey)) return;
+	auto const v = g_gameStates.GetVector<int32_t>(gMilitiaOrdersStateKey);
+	for (size_t i = 0; i + MILITIA_ORDER_FIELDS <= v.size(); i += MILITIA_ORDER_FIELDS)
+	{
+		MilitiaOrder o{};
+		o.id          = v[i];
+		o.sector      = SGPSector::FromSectorID(UINT32(v[i + 1]), 0);
+		o.arrival_min = v[i + 2];
+		o.option      = v[i + 3];
+		for (UINT8 r = 0; r != MAX_MILITIA_LEVELS; ++r) o.counts[r] = v[i + 4 + r];
+		o.waiting     = v[i + 4 + MAX_MILITIA_LEVELS] != 0;
+		// arrived, but its question wasn't answered: it waits
+		if (o.arrival_min <= GetWorldTotalMin()) o.waiting = true;
+		g_militia_orders.push_back(o);
+	}
+	g_order_questions.clear();
+	g_order_notices.clear();
+	g_order_asked = 0;
+	g_order_joins.clear();
+	ResetMilitiaArrivalBox();
 }

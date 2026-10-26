@@ -536,6 +536,13 @@ static void RemoveGroupFromList(GROUP* const g)
 		// Found the group, so now remove it.
 		*i = g->next;
 
+#if SAM_D15_COUNTERATTACK_FOR_TESTING
+		if (SectorInfo[SEC_D15].ubTestSamCounterattackGroupID == g->ubGroupID)
+		{
+			SectorInfo[SEC_D15].ubTestSamCounterattackGroupID = 0;
+		}
+#endif
+
 		// Clear the unique group ID
 		const UINT32 index = g->ubGroupID / 32;
 		const UINT32 bit   = g->ubGroupID % 32;

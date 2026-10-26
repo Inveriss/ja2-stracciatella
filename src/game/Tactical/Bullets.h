@@ -57,6 +57,10 @@ struct BULLET
 	ANITILE *pAniTile;
 	ANITILE *pShadowAniTile;
 	UINT8   ubItemStatus;
+	// weapon and gun ammo type at the moment of firing; in a real-time fight
+	// the firer may already hold another item when the bullet hits
+	UINT16  usWeapon;
+	UINT8   ubAmmoType;
 };
 
 extern UINT32 guiNumBullets;
@@ -65,6 +69,10 @@ BULLET* CreateBullet(SOLDIERTYPE* firer, BOOLEAN fFake, UINT16 usFlags);
 void    RemoveBullet(BULLET* b);
 void    StopBullet(BULLET* b);
 void    UpdateBullets(void);
+
+// A real bullet (not a chance-to-get-through test) is on its way; of this firer
+// only, or of anybody when firer is NULL
+bool BulletInFlight(SOLDIERTYPE const* firer);
 
 void DeleteAllBullets(void);
 

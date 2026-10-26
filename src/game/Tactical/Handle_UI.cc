@@ -23,6 +23,7 @@
 #include "Overhead.h"
 #include "Sys_Globals.h"
 #include "Interface.h"
+#include "Militia_Watch.h"
 #include "Cursor_Control.h"
 #include "Points.h"
 #include "Interactive_Tiles.h"
@@ -4022,6 +4023,12 @@ static ScreenID UIHandleLUIBeginLock(UI_EVENT* pUIEvent)
 	// ( They are mutually exclusive )!
 	UIHandleLAEndLockOurTurn( NULL );
 
+	// a watched militia battle in real time: no lock, the player keeps the
+	// cursor and the screen (nobody of his acts, the fight doesn't wait)
+	// (any fight in real time: also the militia against the enemy while no enemy
+	// has seen a merc, game.json turnbased_starts_when_spotted)
+	if (IsRealtimeFight()) return( GAME_SCREEN );
+
 	// Hide touch ui
 	HideTacticalTouchUI();
 	if (gfIsUsingTouch) ResetCurrentCursorTarget();
@@ -4473,6 +4480,9 @@ static ScreenID UIHandleLABeginLockOurTurn(UI_EVENT* pUIEvent)
 	// Don't let both versions of the locks to happen at the same time!
 	// ( They are mutually exclusive )!
 	UIHandleLUIEndLock( NULL );
+
+	// a fight in real time: no lock (see UIHandleLUIBeginLock)
+	if (IsRealtimeFight()) return( GAME_SCREEN );
 
 	if ( !gfUserTurnRegionActive )
 	{

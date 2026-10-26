@@ -99,6 +99,7 @@
 #include "Timer.h"
 #include "TownModel.h"
 #include "Town_Militia.h"
+#include "Militia_Watch.h"
 #include "Types.h"
 #include "UILayout.h"
 #include "VObject.h"
@@ -149,6 +150,7 @@ const SOLDIERTYPE* gPotentiallyAbandonedEPC = NULL;
 INT8 gbGreenToElitePromotions = 0;
 INT8 gbGreenToRegPromotions = 0;
 INT8 gbRegToElitePromotions = 0;
+INT8 gbEliteToHeavyPromotions = 0;
 INT8 gbMilitiaPromotions = 0;
 
 
@@ -2311,7 +2313,7 @@ void SaveStrategicInfoToSavedFile(HWFILE const f)
 }
 
 
-void LoadStrategicInfoFromSavedFile(HWFILE const f)
+void LoadStrategicInfoFromSavedFile(HWFILE const f, UINT32 const savegame_version)
 {
 	// Load the strategic map information
 	FOR_EACH (StrategicMapElement, i, StrategicMap)
@@ -2322,7 +2324,7 @@ void LoadStrategicInfoFromSavedFile(HWFILE const f)
 	// Load the Sector Info
 	FOR_EACH(SECTORINFO, i, SectorInfo)
 	{
-		ExtractSectorInfoFromFile(f, *i);
+		ExtractSectorInfoFromFile(f, *i, savegame_version);
 	}
 
 	// Skip the SAM controlled sector information
@@ -2863,6 +2865,9 @@ bool IsSectorDesert(const SGPSector& sector)
 
 static void HandleDefiniteUnloadingOfWorld(UINT8 const ubUnloadCode)
 {
+	// a watched militia battle ends with its sector
+	EndWatchedMilitiaBattle();
+
 	// clear tactical queue
 	ClearEventQueue();
 

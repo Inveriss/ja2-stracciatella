@@ -1665,8 +1665,9 @@ static BOOLEAN DoSpecialEffectAmmoMiss(SOLDIERTYPE* const attacker, const INT16 
 	UINT8          ubAmmoType;
 	UINT16         usItem;
 
-	ubAmmoType = attacker->inv[attacker->ubAttackingHand].ubGunAmmoType;
-	usItem     = attacker->inv[attacker->ubAttackingHand].usItem;
+	// a bullet keeps what was fired; the firer may hold another item by now (real time)
+	ubAmmoType = bullet ? bullet->ubAmmoType : attacker->inv[attacker->ubAttackingHand].ubGunAmmoType;
+	usItem     = bullet ? bullet->usWeapon   : attacker->inv[attacker->ubAttackingHand].usItem;
 
 	AniParams = ANITILE_PARAMS{};
 
@@ -1776,7 +1777,7 @@ void StructureHit(BULLET* const pBullet, const UINT16 usStructureID, const INT32
 	UINT32         uiMissVolume = MIDVOLUME;
 
 	SOLDIERTYPE* const attacker      = pBullet->pFirer;
-	const UINT16       usWeaponIndex = attacker->usAttackingWeapon;
+	const UINT16       usWeaponIndex = pBullet->usWeapon;
 	const INT8         bWeaponStatus = pBullet->ubItemStatus;
 
 	if (fStopped)
@@ -2400,8 +2401,11 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 				pInHand->usAttachItem[ bAttachPos ] = NOTHING;
 				pInHand->bAttachStatus[ bAttachPos ] = 0;
 
-				// drop it to ground
-				AddItemToPool(pSoldier->sGridNo, &Temp, VISIBLE, pSoldier->bLevel, 0, -1);
+				// drop it to ground (militia never leave anything behind: it's just lost)
+				if (pSoldier->bTeam != MILITIA_TEAM)
+				{
+					AddItemToPool(pSoldier->sGridNo, &Temp, VISIBLE, pSoldier->bLevel, 0, -1);
+				}
 
 				// big penalty to hit
 				iChance -= 30;
@@ -3325,7 +3329,7 @@ void ShotMiss(const BULLET* const b)
 	// AGILITY GAIN: Opponent "dodged" a bullet shot at him (it missed)
 	if (opponent != NULL) AgilityForEnemyMissingPlayer(pAttacker, opponent, 5);
 
-	switch (GCM->getWeapon(pAttacker->usAttackingWeapon)->ubWeaponClass)
+	switch (GCM->getWeapon(b->usWeapon)->ubWeaponClass)
 	{
 		case HANDGUNCLASS:
 		case RIFLECLASS:

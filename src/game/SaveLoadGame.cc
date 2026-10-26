@@ -112,6 +112,7 @@
 #include "WorldDef.h"
 
 #include "policy/GamePolicy.h"
+#include "Town_Militia.h"
 
 #include <string_theory/format>
 #include <string_theory/string>
@@ -464,6 +465,7 @@ BOOLEAN SaveGame(const ST::string& saveName, const ST::string& gameDesc)
 
 		// Same convention, for the "combine filters" checkbox -- per user request.
 		SaveSectorInventoryFilterModeToSaveGameFile();
+		SaveMilitiaOrdersToSaveGameFile();
 
 		// Same convention, for the "hide big minimap" checkbox.
 		SaveSectorInventoryMinimapToSaveGameFile();
@@ -824,7 +826,7 @@ void LoadSavedGame(const ST::string &saveName)
 	LoadEmailFromSavedGame(f);
 
 	BAR(1, "Strategic Information...");
-	LoadStrategicInfoFromSavedFile(f);
+	LoadStrategicInfoFromSavedFile(f, version);
 
 	BAR(1, "UnderGround Information...");
 	LoadUnderGroundSectorInfoFromSavedGame(f);
@@ -1072,6 +1074,9 @@ void LoadSavedGame(const ST::string &saveName)
 	// preserve for this one, unlike the big-images toggle above.
 	LoadSectorInventoryFilterModeFromSaveGameFile();
 
+	// the militia ordered in the recruitment panel (none before they existed)
+	LoadMilitiaOrdersFromSaveGameFile();
+
 	// "Hide big minimap" checkbox -- falls back to FALSE (minimap shown).
 	LoadSectorInventoryMinimapFromSaveGameFile();
 
@@ -1084,6 +1089,10 @@ void LoadSavedGame(const ST::string &saveName)
 
 	// Update the mercs in the sector with the new soldier info
 	UpdateMercsInSector();
+
+#if REVEAL_WHOLE_MAP_FOR_TESTING
+	RevealWholeMapForTesting();
+#endif
 
 	PostSchedules();
 

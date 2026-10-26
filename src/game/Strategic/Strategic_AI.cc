@@ -12,6 +12,7 @@
 #include "Game_Init.h"
 #include "GameInstance.h"
 #include "GameSettings.h"
+#include "StrategicMap_Secrets.h"
 #include "Interface_Dialogue.h"
 #include "Logger.h"
 #include "Map_Information.h"
@@ -214,6 +215,7 @@ static BOOLEAN PlayerForceTooStrong(UINT8 ubSectorID, UINT16 usOffensePoints, UI
 	*pusDefencePoints = pSector->ubNumberOfCivsAtLevel[ GREEN_MILITIA ]		* 1 +
 											pSector->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] * 2 +
 											pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ]		* 3 +
+											pSector->ubNumberOfCivsAtLevel[ ELITE_HEAVY_MILITIA ] * 4 +
 											PlayerMercsInSector(sSector) * 5;
 	if( *pusDefencePoints > usOffensePoints )
 	{
@@ -934,6 +936,7 @@ static BOOLEAN ReinforcementsApproved(INT32 iGarrisonID, UINT16* pusDefencePoint
 	*pusDefencePoints = pSector->ubNumberOfCivsAtLevel[ GREEN_MILITIA ]		* 1 +
 										pSector->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] * 2 +
 										pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ]		* 3 +
+										pSector->ubNumberOfCivsAtLevel[ ELITE_HEAVY_MILITIA ] * 4 +
 										PlayerMercsInSector(sSector) * 4;
 	usOffensePoints = gArmyComp[ gGarrisonGroup[ iGarrisonID ].ubComposition ].bAdminPercentage * 2 +
 										gArmyComp[ gGarrisonGroup[ iGarrisonID ].ubComposition ].bTroopPercentage * 3 +
@@ -2803,9 +2806,18 @@ void ExecuteStrategicAIAction(UINT16 usActionCode, const SGPSector* sMap)
 		case NPC_ACTION_SEND_TROOPS_TO_SAM:
 			ubSectorID = sMap ? sMap->AsByte() : 0;
 			ubNumSoldiers = (UINT8)( 3 + gGameOptions.ubDifficultyLevel + HighestPlayerProgressPercentage() / 15 );
+#if SAM_D15_COUNTERATTACK_FOR_TESTING
+			if (ubSectorID == SEC_D15 && gGameOptions.ubDifficultyLevel == DIF_LEVEL_HARD) ubNumSoldiers = 20;
+#endif
 			giReinforcementPool -= ubNumSoldiers;
 			giReinforcementPool = std::max(giReinforcementPool, 0);
 			pGroup = CreateNewEnemyGroupDepartingFromSector( SEC_P3, 0, 0, ubNumSoldiers );
+#if SAM_D15_COUNTERATTACK_FOR_TESTING
+			if (ubSectorID == SEC_D15 && gGameOptions.ubDifficultyLevel == DIF_LEVEL_HARD)
+			{
+				SectorInfo[SEC_D15].ubTestSamCounterattackGroupID = pGroup->ubGroupID;
+			}
+#endif
 			MoveSAIGroupToSector( &pGroup, ubSectorID, STAGE, REINFORCEMENTS );
 
 			if( gGarrisonGroup[ SectorInfo[ ubSectorID ].ubGarrisonID ].ubPendingGroupID )

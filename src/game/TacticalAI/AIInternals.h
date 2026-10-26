@@ -3,6 +3,7 @@
 
 #include "JA2Types.h"
 #include "Overhead_Types.h"
+#include "Militia_Watch.h"
 
 
 extern BOOLEAN gfTurnBasedAI;
@@ -53,9 +54,11 @@ enum
 
 #define PTR_CIV_OR_MILITIA (IsOnCivTeam(pSoldier) || pSoldier->bTeam == MILITIA_TEAM)
 
-#define REALTIME_AI_DELAY (10000 + Random( 1000 ))
-#define REALTIME_CIV_AI_DELAY ( 1000 * (gTacticalStatus.Team[ MILITIA_TEAM ].bMenInSector + gTacticalStatus.Team[ CIV_TEAM ].bMenInSector) + 5000 + 2000 * Random( 3 ) )
-#define REALTIME_CREATURE_AI_DELAY ( 10000 + 1000 * Random( 3 ) )
+// a watched militia battle in real time: the same short wait for everybody
+// (game.json militia_watch.ai_delay_ms)
+#define REALTIME_AI_DELAY (IsWatchedBattleInRealtime() ? WatchedBattleAIDelay() : (10000 + Random( 1000 )))
+#define REALTIME_CIV_AI_DELAY (IsWatchedBattleInRealtime() ? WatchedBattleAIDelay() : ( 1000 * (gTacticalStatus.Team[ MILITIA_TEAM ].bMenInSector + gTacticalStatus.Team[ CIV_TEAM ].bMenInSector) + 5000 + 2000 * Random( 3 ) ))
+#define REALTIME_CREATURE_AI_DELAY (IsWatchedBattleInRealtime() ? WatchedBattleAIDelay() : ( 10000 + 1000 * Random( 3 ) ))
 
 #define NOSHOOT_WAITABIT        -1
 #define NOSHOOT_WATER           -2

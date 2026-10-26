@@ -87,6 +87,7 @@
 #define RADARMAPSBIGDIR "radarmaps_big"
 #define RADARMAPSOVERHEADDIR "radarmaps_overhead"
 #define RADARMAPSPANELDIR "radarmaps_bottom_bar"
+#define RADARMAPSBARDIR "radarmaps_militia"
 #define TILESETSDIR    "tilesets"
 
 #define DIALOGUESIZE 240
@@ -313,6 +314,16 @@ ST::string DefaultContentManager::getRadarMapOverheadResourceName(const ST::stri
 ST::string DefaultContentManager::getRadarMapPanelResourceName(const ST::string &mapName) const
 {
 	ST::string result = RADARMAPSPANELDIR "/" + mapName;
+
+	SLOGD("map file {}", result);
+
+	return result;
+}
+
+/** Get bar (200x100) radar map resource name, for the tactical radar in the 1366x768 bar of a watched militia battle. */
+ST::string DefaultContentManager::getRadarMapBarResourceName(const ST::string &mapName) const
+{
+	ST::string result = RADARMAPSBARDIR "/" + mapName;
 
 	SLOGD("map file {}", result);
 

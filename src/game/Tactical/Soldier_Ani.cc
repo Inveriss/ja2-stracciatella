@@ -1228,6 +1228,33 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 							}
 						}
 					}
+
+					// A burst longer than the table's own shots (6) goes on from the end
+					// of the table's last shot -- not from case 449, after the gun has
+					// been lowered: those lowering frames would show between the extra
+					// shots, and CROUCHED_BURST's first one (21) isn't even in its
+					// 18 frame graphic (frame 0 instead). Back to the shot's muzzle
+					// flash (441), so case 448 checks the burst length, ammo and jam as
+					// for every other shot of the table.
+					if ( ENABLE_EXTENDED_BURST_FIRE &&
+					     pSoldier->bDoBurst > 0 &&
+					     pSoldier->usBurstFireAniCodeAnchor != 0xFFFF &&
+					     pSoldier->usBurstFireAniCodeAnchor >= 3 &&
+					     pSoldier->usBurstFireAniCodeAnchor < pSoldier->usAniCode )
+					{
+						UINT16 const* const anim   = gusAnimInst[ pSoldier->usAnimState ];
+						UINT16 const        anchor = pSoldier->usBurstFireAniCodeAnchor;
+						bool const last_shot_of_table =
+							anim[ anchor - 2 ] == 441 && anim[ anchor - 1 ] == 448 &&
+							pSoldier->usAniCode + 1 < MAX_FRAMES_PER_ANIM &&
+							anim[ pSoldier->usAniCode + 1 ] != 441;
+						if ( last_shot_of_table &&
+						     pSoldier->bDoBurst <= CurrentBurstLength( pSoldier ) &&
+						     EnoughAmmo( pSoldier, FALSE, pSoldier->ubAttackingHand ) )
+						{
+							pSoldier->usAniCode = (UINT16)( anchor - 3 );
+						}
+					}
 					break;
 
 				case 478:

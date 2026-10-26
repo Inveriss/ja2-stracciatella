@@ -60,6 +60,13 @@ void ExtractBulletFromFile(HWFILE const file, BULLET* const b)
 	EXTR_U8(s, b->ubItemStatus)
 	EXTR_SKIP(s, 3)
 	Assert(s.getConsumed() == lengthof(src));
+
+	// not in the save: the weapon and ammo the firer has now
+	if (b->pFirer)
+	{
+		b->usWeapon   = b->pFirer->usAttackingWeapon;
+		b->ubAmmoType = b->pFirer->inv[b->pFirer->ubAttackingHand].ubGunAmmoType;
+	}
 }
 
 

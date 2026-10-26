@@ -67,6 +67,10 @@ struct REAL_OBJECT
 
 
 // OBJECT LIST STUFF
+// A thrown or launched object (not a trajectory test) is on its way; of this
+// owner only, or of anybody when owner is NULL
+bool ObjectInFlight(SOLDIERTYPE const* owner);
+
 REAL_OBJECT* CreatePhysicalObject(const OBJECTTYPE* pGameObj, float dLifeLength, float xPos, float yPos, float zPos, float xForce, float yForce, float zForce, SOLDIERTYPE* owner, UINT8 ubActionCode, SOLDIERTYPE* target);
 void RemoveAllPhysicsObjects(void);
 

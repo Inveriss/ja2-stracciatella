@@ -151,6 +151,7 @@ extern PopUpBox* ghSquadBox;
 extern PopUpBox* ghRepairBox;
 extern PopUpBox* ghTrainingBox;
 extern PopUpBox* ghAttributeBox;
+extern PopUpBox* ghMilitiaBox;
 extern PopUpBox* ghRemoveMercAssignBox;
 extern PopUpBox* ghContractBox;
 extern PopUpBox* ghMoveBox;

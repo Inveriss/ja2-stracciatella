@@ -543,7 +543,8 @@ static UINT8 DetermineCivQuoteEntry(SOLDIERTYPE* pCiv, UINT8* pubCivHintToUse, B
 		{
 			return( CIV_QUOTE_MEDIUM_MILITIA );
 		}
-		if ( pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA )
+		if ( pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA ||
+			pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA )
 		{
 			return( CIV_QUOTE_ELITE_MILITIA );
 		}

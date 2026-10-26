@@ -23,8 +23,15 @@ void LoadRadarScreenBitmap(const ST::string&);
 #define RADAR_WINDOW_PANEL_WIDTH	240
 #define RADAR_WINDOW_PANEL_HEIGHT	120
 bool RadarUsesPanelMap();
-#define RADAR_WINDOW_WIDTH	(RadarUsesPanelMap() ? RADAR_WINDOW_PANEL_WIDTH  : RADAR_WINDOW_SMALL_WIDTH)
-#define RADAR_WINDOW_HEIGHT	(RadarUsesPanelMap() ? RADAR_WINDOW_PANEL_HEIGHT : RADAR_WINDOW_SMALL_HEIGHT)
+// The radar window of a watched militia battle's bar (UILayout::isWatchBarShown()):
+// the 200x100 maps of Data/RadarMaps_Militia (MapUtility.cc's
+// RADAR_BAR_X_SIZE/Y_SIZE), when the sector has one -- see RadarUsesBarMap();
+// otherwise the 88x44 ones there too.
+#define RADAR_WINDOW_BAR_WIDTH	200
+#define RADAR_WINDOW_BAR_HEIGHT	100
+bool RadarUsesBarMap();
+#define RADAR_WINDOW_WIDTH	(RadarUsesBarMap() ? RADAR_WINDOW_BAR_WIDTH  : RadarUsesPanelMap() ? RADAR_WINDOW_PANEL_WIDTH  : RADAR_WINDOW_SMALL_WIDTH)
+#define RADAR_WINDOW_HEIGHT	(RadarUsesBarMap() ? RADAR_WINDOW_BAR_HEIGHT : RadarUsesPanelMap() ? RADAR_WINDOW_PANEL_HEIGHT : RADAR_WINDOW_SMALL_HEIGHT)
 
 void InitRadarScreen(void);
 void RenderRadarScreen(void);

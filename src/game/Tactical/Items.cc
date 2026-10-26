@@ -1473,7 +1473,8 @@ BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo
 					if ((gTacticalStatus.uiFlags & INCOMBAT) && !EnoughPoints( pSoldier, (INT8) (bAPs + AP_PICKUP_ITEM), 0, FALSE))
 					{
 						// try autoplace
-						if ( !AutoPlaceObject( pSoldier, &OldAmmo, FALSE ) )
+						if ( !AutoPlaceObject( pSoldier, &OldAmmo, FALSE ) &&
+							pSoldier->bTeam != MILITIA_TEAM ) // militia never leave anything behind
 						{
 							// put it on the ground
 							AddItemToPool(pSoldier->sGridNo, &OldAmmo, VISIBLE, pSoldier->bLevel, 0 , -1);
@@ -2872,11 +2873,11 @@ static void CreateMagazine(UINT16 usItem, OBJECTTYPE* pObj)
 
 void CreateItem(UINT16 const usItem, INT8 const bStatus, OBJECTTYPE* const pObj)
 {
-	auto checkedStatus = [](INT8 status)
+	auto checkedStatus = [usItem](INT8 status)
 	{
 		if (status < 1 || status > 100)
 		{
-			SLOGE("CreateItem: Status outside interval [1, 100]");
+			SLOGE("CreateItem: Status {} of item {} outside interval [1, 100]", status, usItem);
 			// Since we have no idea what was intended here, just
 			// choose some valid value instead.
 			status = 70;

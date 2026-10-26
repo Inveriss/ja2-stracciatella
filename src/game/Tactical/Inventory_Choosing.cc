@@ -23,10 +23,11 @@
 #define ENEMYGRENADEDROPRATE    25 // % of time enemies drop grenades
 #define ENEMYEQUIPDROPRATE      15 // % of stuff enemies drop equipment
 
-// only 1/10th of what enemies drop...
-#define MILITIAAMMODROPRATE      5 // % of time enemies drop ammunition
-#define MILITIAGRENADEDROPRATE   3 // % of time enemies drop grenades
-#define MILITIAEQUIPDROPRATE     2 // % of stuff enemies drop equipment
+// militia never leave anything behind (see also TurnSoldierIntoCorpse(),
+// AddDeadSoldierToUnLoadedSector() and the weapon drop in SoldierTakeDamage())
+#define MILITIAAMMODROPRATE      0 // % of time militia drop ammunition
+#define MILITIAGRENADEDROPRATE   0 // % of time militia drop grenades
+#define MILITIAEQUIPDROPRATE     0 // % of stuff militia drop equipment
 
 #define MAX_MORTARS_PER_TEAM     1 // one team can't randomly roll more than this many mortars per sector
 
@@ -98,6 +99,7 @@ static void ChooseSpecialWeaponsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp,
 static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment);
 static void EquipTank(SOLDIERCREATE_STRUCT* pp);
 static void RandomlyChooseWhichItemsAreDroppable(SOLDIERCREATE_STRUCT* pp, INT8 bSoldierClass);
+static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* pp);
 
 
 //Chooses equipment based on the relative equipment level (0-4) with best being 4.  It allocates a range
@@ -148,8 +150,15 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 		return;
 	}
 
+	if ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA )
+	{
+		// fixed kit, the equipment rating doesn't matter
+		EquipEliteHeavyMilitia( pp );
+		return;
+	}
 
-	Assert( ( bSoldierClass >= SOLDIER_CLASS_NONE ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) );
+
+	Assert( ( ( bSoldierClass >= SOLDIER_CLASS_NONE ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) ) || ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA ) );
 	Assert( ( bEquipmentRating >= 0 ) && ( bEquipmentRating <= 4 ) );
 
 
@@ -508,6 +517,172 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 static BOOLEAN PlaceObjectInSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, OBJECTTYPE* pObject);
 static UINT16 SelectStandardArmyGun(UINT8 uiGunLevel);
+
+
+// ELITE_HEAVY militia may carry up to this percentage of what their strength allows
+#define ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT 100
+// ...their ammunition (more LAWs, mortar shells) only in this many big pockets
+// (BIGPOCK1POS on); the last big pocket stays free for the militia man's own use
+#define ELITE_HEAVY_MILITIA_AMMO_BIG_POCKETS 9
+// ...and everything of theirs is in perfect condition at the start
+#define ELITE_HEAVY_MILITIA_ITEM_STATUS 100
+
+// What the soldier would carry, the same way CalculateCarriedWeight() counts it
+static grams CarriedWeight(SOLDIERCREATE_STRUCT const* const pp)
+{
+	grams total = 0;
+	for (OBJECTTYPE const& o : pp->Inv)
+	{
+		if (o.usItem == NOTHING) continue;
+		grams weight = Weight(o);
+		if (GCM->getItem(o.usItem)->getPerPocket() > 1) weight *= o.ubNumberOfObjects;
+		total += weight;
+	}
+	return total;
+}
+
+// The weight limit for this soldier's strength, the same formula as CalculateCarriedWeight() uses
+static grams MaxLoad(SOLDIERCREATE_STRUCT const* const pp, UINT32 const percent)
+{
+	UINT32 strength = pp->bStrength;
+	if (strength > 80) strength += strength - 80;
+	return (grams)(strength * 500 * percent / 100);
+}
+
+// ELITE_HEAVY militia: Spectra helmet and vest (both treated with Compound 18, ceramic plates on
+// the vest), gas mask, UV goggles and exactly ONE heavy weapon
+// (mortar or LAW, equal chances) in the hand, with as much of its ammunition (mortar shells, more
+// LAWs) as fits into ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT of the strength limit (the rest of the
+// equipment included) and into the first ELITE_HEAVY_MILITIA_AMMO_BIG_POCKETS big pockets (as many
+// per pocket as a soldier's big pocket takes).  Nothing else.
+static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
+{
+	CreateItem(SPECTRA_HELMET_18, ELITE_HEAVY_MILITIA_ITEM_STATUS, &pp->Inv[HELMETPOS]);
+	pp->Inv[HELMETPOS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(SPECTRA_VEST_18, ELITE_HEAVY_MILITIA_ITEM_STATUS, &pp->Inv[VESTPOS]);
+	pp->Inv[VESTPOS].fFlags |= OBJECT_UNDROPPABLE;
+	{
+		OBJECTTYPE Plates;
+		CreateItem(CERAMIC_PLATES, ELITE_HEAVY_MILITIA_ITEM_STATUS, &Plates);
+		Plates.fFlags |= OBJECT_UNDROPPABLE;
+		AttachObject(NULL, &pp->Inv[VESTPOS], &Plates);
+	}
+
+	CreateItem(GASMASK, ELITE_HEAVY_MILITIA_ITEM_STATUS, &pp->Inv[HEAD1POS]);
+	pp->Inv[HEAD1POS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(UVGOGGLES, ELITE_HEAVY_MILITIA_ITEM_STATUS, &pp->Inv[HEAD2POS]);
+	pp->Inv[HEAD2POS].fFlags |= OBJECT_UNDROPPABLE;
+
+	// one heavy weapon, equal chances; in the hand
+	bool const   fMortar  = Random(2) == 0;
+	UINT16 const usWeapon = fMortar ? MORTAR       : ROCKET_LAUNCHER;
+	UINT16 const usAmmo   = fMortar ? MORTAR_SHELL : ROCKET_LAUNCHER; // the LAW's "ammunition" is more LAWs
+	INT8 const bWeaponStatus = ELITE_HEAVY_MILITIA_ITEM_STATUS;
+	CreateItem(usWeapon, bWeaponStatus, &pp->Inv[HANDPOS]);
+	pp->Inv[HANDPOS].fFlags |= OBJECT_UNDROPPABLE;
+
+	// the ammunition: pocket by pocket, as much as the weight limit allows
+	grams const max_load = MaxLoad(pp, ELITE_HEAVY_MILITIA_MAX_LOAD_PERCENT);
+	grams       load     = CarriedWeight(pp);
+	OBJECTTYPE  One;
+	CreateItem(usAmmo, 100, &One);
+	grams const unit     = Weight(One);
+	for (INT8 slot = BIGPOCK1POS; slot != BIGPOCK1POS + ELITE_HEAVY_MILITIA_AMMO_BIG_POCKETS; ++slot)
+	{
+		OBJECTTYPE& o = pp->Inv[slot];
+		if (o.usItem != NOTHING) continue;
+
+		// how many fit into this pocket (a LAW doesn't stack), and into the weight limit
+		int per_pocket = 1;
+		if (usAmmo != ROCKET_LAUNCHER)
+		{
+			per_pocket = std::min(int(ApplyBigPerPocketOverride(usAmmo, slot, ItemSlotLimit(usAmmo, slot))), int(MAX_OBJECTS_PER_SLOT));
+			per_pocket = std::max(per_pocket, 1);
+		}
+		int const by_weight = unit > 0 ? (max_load - load) / unit : per_pocket;
+		int const n         = std::min(per_pocket, by_weight);
+		if (n <= 0) break;
+
+		if (usAmmo == ROCKET_LAUNCHER)
+		{
+			CreateItem(usAmmo, bWeaponStatus, &o);
+		}
+		else
+		{
+			CreateItems(usAmmo, ELITE_HEAVY_MILITIA_ITEM_STATUS, (UINT8)n, &o);
+		}
+		o.fFlags |= OBJECT_UNDROPPABLE;
+		load     += n * unit;
+	}
+
+	RandomlyChooseWhichItemsAreDroppable(pp, SOLDIER_CLASS_ELITE_HEAVY_MILITIA);
+}
+
+
+void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 const usWeapon)
+{
+	for (OBJECTTYPE& o : s.inv)
+	{
+		if (o.usItem == NOTHING) continue;
+		switch (GCM->getItem(o.usItem)->getItemClass())
+		{
+			case IC_GUN:
+			case IC_BLADE:
+			case IC_THROWING_KNIFE:
+			case IC_LAUNCHER:
+			case IC_AMMO:
+			case IC_GRENADE:
+			case IC_BOMB:
+				DeleteObj(&o);
+				break;
+			default:
+				break;
+		}
+	}
+
+	// the hand may still hold something else (a kit...): it goes
+	DeleteObj(&s.inv[HANDPOS]);
+	CreateItem(usWeapon, 100, &s.inv[HANDPOS]);
+
+	UINT16 const usAmmo = usWeapon == MORTAR ? MORTAR_SHELL : ROCKET_LAUNCHER; // the LAW's "ammunition" is more LAWs
+	bool ammo_given = false;
+	for (INT8 slot = BIGPOCK1POS; slot <= BIGPOCK10POS; ++slot)
+	{
+		OBJECTTYPE& o = s.inv[slot];
+		if (o.usItem != NOTHING) continue;
+
+		int per_pocket = 1; // a LAW doesn't stack
+		if (usAmmo != ROCKET_LAUNCHER)
+		{
+			per_pocket = std::min(int(ApplyBigPerPocketOverride(usAmmo, slot, ItemSlotLimit(usAmmo, slot))), int(MAX_OBJECTS_PER_SLOT));
+			per_pocket = std::max(per_pocket, 1);
+		}
+		// as many as the strength carries
+		int n = per_pocket;
+		for (; n > 0; --n)
+		{
+			CreateItems(usAmmo, 100, (UINT8)n, &o);
+			if (CalculateCarriedWeight(&s) <= 100) break;
+		}
+		if (n == 0)
+		{
+			DeleteObj(&o);
+			break;
+		}
+		ammo_given = true;
+	}
+
+	// a mortar always gets a few shells, even over the weight limit
+	if (usAmmo == MORTAR_SHELL && !ammo_given)
+	{
+		for (INT8 slot = BIGPOCK1POS; slot <= BIGPOCK10POS; ++slot)
+		{
+			if (s.inv[slot].usItem != NOTHING) continue;
+			CreateItems(MORTAR_SHELL, 100, 2, &s.inv[slot]);
+			break;
+		}
+	}
+}
 
 
 //When using the class values, they should all range from 0-11, 0 meaning that there will be no

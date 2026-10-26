@@ -65,6 +65,7 @@ enum StrategicEventKind
 	EVENT_QUARTER_HOUR_UPDATE                            = 76,
 	EVENT_MERC_MERC_WENT_UP_LEVEL_EMAIL_DELAY            = 77,
 	EVENT_MERC_SITE_NEW_MERC_AVAILABLE                   = 78,
+	EVENT_MILITIA_ORDER_ARRIVAL                          = 79, // param: the order's id (Town_Militia.cc)
 
 	NUMBER_OF_EVENT_TYPES
 };

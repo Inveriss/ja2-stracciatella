@@ -9,6 +9,7 @@
 #include "Interface_Panels.h"
 #include "JAScreens.h"
 #include "MapScreen.h"
+#include "Militia_Watch.h"
 #include "MouseSystem.h"
 #include "Object_Cache.h"
 #include "Overhead_Map.h"
@@ -77,10 +78,12 @@ static BOOLEAN& SideStripHidden(UINT const i)
 
 
 // Created, but nothing to show here: not the tactical screen, the overhead
-// map, or the 1366x768 weapon box over the screen's whole width.
+// map, the 1366x768 weapon box over the screen's whole width, or a watched
+// militia battle (nobody of the player's team is there).
 static bool SideStripsSuppressed()
 {
-	return fInMapMode || guiCurrentScreen != GAME_SCREEN || InOverheadMap() || InTacBigWeaponBox();
+	return fInMapMode || guiCurrentScreen != GAME_SCREEN || InOverheadMap() || InTacBigWeaponBox() ||
+		gfWatchingMilitiaBattle;
 }
 
 

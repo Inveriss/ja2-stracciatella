@@ -70,6 +70,13 @@
 #define RADAR_PANEL_X_SIZE	240
 #define RADAR_PANEL_Y_SIZE	120
 
+// Fifth set, for the tactical radar in the bar of a watched militia battle
+// (Data/RadarMaps_Militia, Radar_Screen.h's RADAR_WINDOW_BAR_*) --
+// "<mapname>.militia_bar.sti", 200x100: made as the panel set, 16 px of the
+// 1:1 picture per pixel.
+#define RADAR_BAR_X_SIZE	200
+#define RADAR_BAR_Y_SIZE	100
+
 // The part of the world the overhead map shows, in the renderer's screen
 // coordinates (FromCellToScreenCoordinates() of a cell is the top corner of
 // its tile's diamond): the overhead map starts with the tile at map position
@@ -231,13 +238,13 @@ static void CaptureWorldPicture(SGPVSurface* const picture, INT32 const x, INT32
 
 // The sizes to write, chosen in a prompt before the first map: any of them,
 // at least one.
-enum { SIZE_SMALL, SIZE_BIG, SIZE_OVERHEAD, SIZE_PANEL, NUM_RADAR_SIZES };
-static bool g_write_size[NUM_RADAR_SIZES] = { true, true, true, true };
+enum { SIZE_SMALL, SIZE_BIG, SIZE_OVERHEAD, SIZE_PANEL, SIZE_BAR, NUM_RADAR_SIZES };
+static bool g_write_size[NUM_RADAR_SIZES] = { true, true, true, true, true };
 static bool g_sizes_chosen = false;
 
 enum PromptResult { PROMPT_OPEN, PROMPT_START, PROMPT_CANCEL };
 
-// Draws the prompt and handles its input: the keys 1-4 or a click on a line
+// Draws the prompt and handles its input: the keys 1-5 or a click on a line
 // toggle a size, A takes all, Enter or a click on Start begins, Esc or a click
 // on Cancel goes back to the editor.
 static PromptResult RadarMapSizePrompt()
@@ -249,7 +256,8 @@ static PromptResult RadarMapSizePrompt()
 		{ "88x44   <map>.sti   (tactical radar)" },
 		{ "580x290   <map>.big.sti" },
 		{ "800x400   <map>.overhead.sti   (tactical placement)" },
-		{ "240x120   <map>.panel.sti   (1366x768 team panel radar)" }
+		{ "240x120   <map>.panel.sti   (1366x768 team panel radar)" },
+		{ "200x100   <map>.militia_bar.sti   (1366x768 watched militia battle radar)" }
 	};
 
 	INT32 const x      = 60;
@@ -275,6 +283,7 @@ static PromptResult RadarMapSizePrompt()
 			case '2': g_write_size[SIZE_BIG]      = !g_write_size[SIZE_BIG];      break;
 			case '3': g_write_size[SIZE_OVERHEAD] = !g_write_size[SIZE_OVERHEAD]; break;
 			case '4': g_write_size[SIZE_PANEL]    = !g_write_size[SIZE_PANEL];    break;
+			case '5': g_write_size[SIZE_BAR]      = !g_write_size[SIZE_BAR];      break;
 			case 'a': for (bool& b : g_write_size) b = true;                      break;
 			case SDLK_RETURN: if (any) result = PROMPT_START;                     break;
 			case SDLK_ESCAPE: result = PROMPT_CANCEL;                             break;
@@ -356,6 +365,10 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 	static auto p24BitValuesPanel{ std::make_unique<SGPPaletteEntry[]>(RADAR_PANEL_X_SIZE * RADAR_PANEL_Y_SIZE) };
 	static SGPVSurface* giMiniMapPanel{ AddVideoSurface(RADAR_PANEL_X_SIZE, RADAR_PANEL_Y_SIZE, PIXEL_DEPTH) };
 	static SGPVSurface* gi8BitMiniMapPanel{ AddVideoSurface(RADAR_PANEL_X_SIZE, RADAR_PANEL_Y_SIZE, 8) };
+	// Watched battle's bar minimap set -- see RADAR_BAR_X_SIZE/Y_SIZE above.
+	static auto p24BitValuesBar{ std::make_unique<SGPPaletteEntry[]>(RADAR_BAR_X_SIZE * RADAR_BAR_Y_SIZE) };
+	static SGPVSurface* giMiniMapBar{ AddVideoSurface(RADAR_BAR_X_SIZE, RADAR_BAR_Y_SIZE, PIXEL_DEPTH) };
+	static SGPVSurface* gi8BitMiniMapBar{ AddVideoSurface(RADAR_BAR_X_SIZE, RADAR_BAR_Y_SIZE, 8) };
 	// the sector 1:1, the source of the overhead and panel sets
 	static SGPVSurface* giWorldPicture{ AddVideoSurface(WORLD_PICTURE_W, WORLD_PICTURE_H, PIXEL_DEPTH) };
 
@@ -709,13 +722,13 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 
 	INT16 text_y = 330;
 
-	/* The sector drawn 1:1, the source of the 800x400 and 240x120 maps -- the
+	/* The sector drawn 1:1, the source of the 800x400, 240x120 and 200x100 maps -- the
 	 * part the overhead map shows, its restricted part for a restricted map
 	 * (the bounds above are overhead map pixels, 5 world pixels each). */
 	bool  const restricted = gMapInformation.ubRestrictedScrollID != 0;
 	INT32 const ww = restricted ? std::clamp((sRight  - sLeft) * 5, 5, int(WORLD_PICTURE_W)) : WORLD_PICTURE_W;
 	INT32 const wh = restricted ? std::clamp((sBottom - sTop)  * 5, 5, int(WORLD_PICTURE_H)) : WORLD_PICTURE_H;
-	if (g_write_size[SIZE_OVERHEAD] || g_write_size[SIZE_PANEL])
+	if (g_write_size[SIZE_OVERHEAD] || g_write_size[SIZE_PANEL] || g_write_size[SIZE_BAR])
 	{
 		INT32 const wx = WORLD_PICTURE_X + (restricted ? sLeft * 5 : 0);
 		INT32 const wy = WORLD_PICTURE_Y + (restricted ? sTop  * 5 : 0);
@@ -784,17 +797,16 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 		text_y = 10 + h + 10;
 	}
 
-	if (g_write_size[SIZE_PANEL])
+	/* The 240x120 and 200x100 maps: every pixel covers ww/w x wh/h pixels of
+	 * the picture (13.33 and 16 for a whole sector); the picture's pixels count
+	 * by the part of them it covers -- an area-weighted average. */
+	auto const write_area_weighted = [&](INT32 const w, INT32 const h, SGPPaletteEntry* const values,
+		SGPVSurface* const surface, SGPVSurface* const surface8, char const* const extension, INT32 const x)
 	{
-		/* The 240x120 map: every pixel covers ww/w x wh/h pixels of the
-		 * picture (13.33 for a whole sector); the picture's pixels count by the
-		 * part of them it covers -- an area-weighted average. */
-		INT32  const w      = RADAR_PANEL_X_SIZE;
-		INT32  const h      = RADAR_PANEL_Y_SIZE;
 		double const step_x = double(ww) / w;
 		double const step_y = double(wh) / h;
 		{ SGPVSurface::Lock lsrc(giWorldPicture);
-			SGPVSurface::Lock ldst(giMiniMapPanel);
+			SGPVSurface::Lock ldst(surface);
 			UINT16 const* const src       = lsrc.Buffer<UINT16>();
 			UINT16*       const dst       = ldst.Buffer<UINT16>();
 			UINT32        const src_pitch = lsrc.Pitch() / 2;
@@ -824,7 +836,7 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 							n += weight;
 						}
 					}
-					SGPPaletteEntry& value = p24BitValuesPanel[oy * w + ox];
+					SGPPaletteEntry& value = values[oy * w + ox];
 					value.r = n > 0 ? (UINT8)std::lround(r / n) : 0;
 					value.g = n > 0 ? (UINT8)std::lround(g / n) : 0;
 					value.b = n > 0 ? (UINT8)std::lround(b / n) : 0;
@@ -835,21 +847,31 @@ template<> ScreenID HandleScreen<MAPUTILITY_SCREEN>()
 
 		SGPPaletteEntry palette[256];
 		ST::string      filename;
-		{ SGPVSurface::Lock l(gi8BitMiniMapPanel);
+		{ SGPVSurface::Lock l(surface8);
 			UINT8* const data = l.Buffer<UINT8>();
 			// sMaxColors capped to 254 -- see the small pass's own comment above.
-			QuantizeImage(data, p24BitValuesPanel.get(), w, h, palette, 254);
+			QuantizeImage(data, values, w, h, palette, 254);
 			ReserveTransparentPaletteIndex(data, palette, w * h);
-			gi8BitMiniMapPanel->SetPalette(palette);
-			filename = FileMan::replaceExtension(*currentFile, "panel.sti");
+			surface8->SetPalette(palette);
+			filename = FileMan::replaceExtension(*currentFile, extension);
 			WriteSTIFile(data, palette, w, h, filename, CONVERT_ETRLE_COMPRESS, 0);
 		}
 		written.push_back(ST::format("Writing {}x{} radar image {}", w, h, filename));
 
-		// right of the 800x400 one, or alone
-		INT32 const x = g_write_size[SIZE_OVERHEAD] ? 10 + RADAR_OVERHEAD_X_SIZE + 10 : 10;
-		BltVideoSurface(FRAME_BUFFER, giMiniMapPanel, x, 10, NULL);
-		if (!g_write_size[SIZE_OVERHEAD]) text_y = 10 + h + 10;
+		BltVideoSurface(FRAME_BUFFER, surface, x, 10, NULL);
+		text_y = (INT16)std::max<INT32>(text_y, 10 + h + 10);
+	};
+
+	// right of the 800x400 one (or alone), the 200x100 one right of them
+	INT32 x = g_write_size[SIZE_OVERHEAD] ? 10 + RADAR_OVERHEAD_X_SIZE + 10 : 10;
+	if (g_write_size[SIZE_PANEL])
+	{
+		write_area_weighted(RADAR_PANEL_X_SIZE, RADAR_PANEL_Y_SIZE, p24BitValuesPanel.get(), giMiniMapPanel, gi8BitMiniMapPanel, "panel.sti", x);
+		x += RADAR_PANEL_X_SIZE + 10;
+	}
+	if (g_write_size[SIZE_BAR])
+	{
+		write_area_weighted(RADAR_BAR_X_SIZE, RADAR_BAR_Y_SIZE, p24BitValuesBar.get(), giMiniMapBar, gi8BitMiniMapBar, "militia_bar.sti", x);
 	}
 
 	SetFontDestBuffer(FRAME_BUFFER);

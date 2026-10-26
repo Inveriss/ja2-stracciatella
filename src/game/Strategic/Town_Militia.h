@@ -4,9 +4,11 @@
 // header for town militia strategic control module
 
 #include "JA2Types.h"
+#include "Campaign_Types.h"
 
 #include <string_theory/string>
 #include <optional>
+#include <vector>
 
 
 // how many militia of all ranks can be in any one sector at once
@@ -65,6 +67,113 @@ BOOLEAN MilitiaTrainingAllowedInSector(const SGPSector& sMap);
 BOOLEAN MilitiaTrainingAllowedInTown( INT8 bTownId );
 
 void AddSectorForSoldierToListOfSectorsThatCompletedMilitiaTraining(SOLDIERTYPE* pSoldier);
+
+
+// Militia recruitment (game.json "militia_recruitment"): militia are bought
+// directly in the recruitment panel instead of being trained.
+
+// Recruitment is on (and the militia training off)
+bool IsMilitiaRecruitmentEnabled();
+
+// How many more militia fit into the town (or SAM site) of this sector: the
+// room left in its sectors that are ours and peaceful
+UINT32 MilitiaRecruitFreeSlots(const SGPSector& sector);
+
+// The merc with the best leadership in the town (or SAM site) of this sector;
+// NULL if there is none
+SOLDIERTYPE const* BestMilitiaRecruiter(const SGPSector& sector);
+
+// The price modifier (percent of the base price) for this leadership
+INT32 MilitiaRecruitPricePercent(INT8 leadership);
+
+// The price of one militia of this rank, with the best recruiter's modifier
+INT32 MilitiaRecruitUnitPrice(UINT8 rank, const SGPSector& sector);
+
+// Upgrading militia in the recruitment panel (docs/militia-upgrade-plan.md):
+// the militia of this rank standing in the town's (or SAM site's) sectors of
+// ours with no enemy -- no orders (U1, U2)
+UINT32 MilitiaUpgradeAvailable(const SGPSector& sector, UINT8 rank);
+// The price of upgrading one of them to the next rank: the difference of the
+// two ranks' prices with the recruiter's modifier (U7)
+INT32 MilitiaUpgradeUnitPrice(UINT8 rank, const SGPSector& sector);
+// Up to n of them become the next rank at once (U6), this sector's first,
+// then the town's other sectors (U9); the number upgraded
+UINT32 UpgradeMilitia(const SGPSector& sector, UINT8 rank, UINT32 n);
+
+// The arrival options of a purchase (docs/militia-arrival-time-plan.md): how
+// soon the militia arrive and the extra cost of it, per purchase
+enum MilitiaArrivalOption
+{
+	MILITIA_ARRIVAL_EXPRESS,  // 6 hours, + $1000
+	MILITIA_ARRIVAL_FAST,     // 12 hours, + $500
+	MILITIA_ARRIVAL_STANDARD, // 24 hours
+	NUM_MILITIA_ARRIVAL_OPTIONS
+};
+UINT8 MilitiaArrivalHours(UINT8 option);
+INT32 MilitiaArrivalExtraCost(UINT8 option);
+
+// A purchase on its way: the militia arrive at arrival_min (the event
+// EVENT_MILITIA_ORDER_ARRIVAL with the order's id). Waiting: they arrived but
+// couldn't enter the town (enemy, no room); they wait for orders.
+struct MilitiaOrder
+{
+	UINT32    id;
+	SGPSector sector; // the sector the purchase was made for
+	UINT8     counts[MAX_MILITIA_LEVELS];
+	UINT32    arrival_min;
+	UINT8     option; // MilitiaArrivalOption
+	bool      waiting;
+};
+std::vector<MilitiaOrder> const& GetMilitiaOrders();
+
+// Adds militia of this rank to the sector's strategic count
+void StrategicAddMilitiaToSector(const SGPSector&, UINT8 rank, UINT8 how_many);
+
+// Buys counts[rank] militia of each rank for the town (or SAM site) of this
+// sector: checks money and room (the militia ordered before count as there),
+// pays (with the arrival option's extra cost) and orders them -- they arrive
+// after the option's hours (HandleMilitiaOrderArrival()). FALSE (nothing
+// bought) when it can't.
+BOOLEAN BuyMilitia(const SGPSector& sector, UINT8 const (&counts)[MAX_MILITIA_LEVELS], UINT8 arrival_option);
+
+// EVENT_MILITIA_ORDER_ARRIVAL: the order's militia enter the town -- the
+// ordered sector first, then the town's other sectors with room -- and the
+// town loyalty bonus counts them. When only some fit, the player is asked
+// whether they enter and the rest waits; when none fits, the order waits.
+void HandleMilitiaOrderArrival(UINT32 order_id);
+
+// A waiting order tries again to enter its town (the deployment panel's Done
+// button), as at its arrival -- with the same questions
+void RetryMilitiaOrder(UINT32 order_id);
+
+// The order's town, or its SAM site's sector
+ST::string MilitiaOrderAreaName(MilitiaOrder const&);
+
+// The militia box's arrival mode (Map_Screen_Interface_Map.cc,
+// docs/militia-arrival-box-plan.md): the box shows an arrived order's
+// militia as the unassigned ones and keeps the order in step with them
+void SetMilitiaOrderCounts(UINT32 order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS]);
+// Send to Deployment Center: these militia of the order become a waiting
+// order of their own (the deployment panel); the order keeps the rest. The
+// new order's id, 0: none (announce: the "waiting for orders" log line)
+UINT32 SendMilitiaOrderToDeployment(UINT32 order_id, UINT8 const (&counts)[MAX_MILITIA_LEVELS], bool announce = true);
+// The box put this (waiting) order's militia into the battle loaded in
+// tactical (D5.2): back on the tactical screen they join it from a map edge,
+// as many as it takes; the rest waits
+void JoinMilitiaOrderToBattle(UINT32 order_id);
+// The box closed: n of the order's militia entered the town (its loyalty
+// counts them), the order is done
+void FinishMilitiaArrivalOrder(UINT32 order_id, UINT32 n_entered);
+
+// Every map screen and tactical frame: asks the queued questions of arriving
+// orders, one at a time, when nothing else is going on (no message box,
+// battle or pre-battle panel)
+void HandleMilitiaOrderQuestions();
+
+// The orders in the saved game (g_gameStates); none in a new game
+void InitMilitiaOrdersForNewGame();
+void SaveMilitiaOrdersToSaveGameFile();
+void LoadMilitiaOrdersFromSaveGameFile();
 
 extern SOLDIERTYPE* pMilitiaTrainerSoldier;
 

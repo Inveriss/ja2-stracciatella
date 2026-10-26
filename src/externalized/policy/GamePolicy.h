@@ -52,6 +52,7 @@ public:
 
 	bool middle_mouse_look;               // Look cursor with middle mouse button
 	bool can_enter_turnbased;             // 'd' can start turnbased if in real-time
+	bool turnbased_starts_when_spotted;   // turns only when an enemy sees a merc (or an attack); a merc seeing an enemy stops in real time
 
 	bool ai_better_aiming_choice;         // decide where to shoot depending on to-hit probability if random choice is being made
 	bool ai_go_prone_more_often;          // especially when already facing the right direction
@@ -114,6 +115,19 @@ public:
 
 	uint16_t start_sector;        // Starting sector
 	bool reveal_start_sector;     // Should the start sector radar map be shown at start
+
+	/* Militia recruitment (buying militia instead of training it) */
+	bool militia_recruitment;                 // Train > Militia opens the recruitment panel, the militia training is off
+	int32_t militia_recruit_price[4];         // base price of one militia, per rank (green, regular, elite, elite heavy)
+	uint8_t militia_recruit_leadership_max[4];// leadership brackets (upper bounds) for the price modifiers
+	int32_t militia_recruit_price_percent[4]; // price in percent of the base price, per leadership bracket
+
+	/* Watching a militia battle (autoresolve's "Watch the battle") */
+	bool militia_watch_realtime;              // the watched battle is fought in real time, without turns
+	uint16_t militia_watch_ai_delay_ms;       // real time: the time between two decisions of a soldier in the battle (both sides)
+
+	/* Militia AI */
+	bool militia_explosives_spare_friends;    // the militia don't throw / fire explosives at targets with friends near them
 
 	////////////////////////////////////////////////////////////
 	//

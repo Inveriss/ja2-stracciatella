@@ -39,6 +39,7 @@
 #include "GameInstance.h"
 #include "WeaponModels.h"
 #include "Logger.h"
+#include "Render_Fun.h"
 
 #define STEPS_FOR_BULLET_MOVE_TRAILS				10
 #define STEPS_FOR_BULLET_MOVE_SMALL_TRAILS			5
@@ -1490,6 +1491,27 @@ BOOLEAN CalculateSoldierZPos(const SOLDIERTYPE* pSoldier, UINT8 ubPosType, FLOAT
 }
 
 
+BOOLEAN CamouflageSightLimits(const SOLDIERTYPE* const s, INT16* const psStill, INT16* const psCrawling)
+{
+	//                       lying still  crawling   (seen up to this distance)
+	//   Camouflaged trait        1           5
+	//   kit, 85-100%             5          10
+	// Any other stance: no effect. Not in buildings, nor on paved roads and
+	// airstrips. Bloodcats keep their own rule.
+	if ( s->ubBodyType == BLOODCAT ) return( FALSE );
+	bool const fTrait = HAS_SKILL_TRAIT(s, CAMOUFLAGED);
+	bool const fKit   = !fTrait && s->bCamo >= 85;
+	if ( !fTrait && !fKit ) return( FALSE );
+	if ( gAnimControl[ s->usAnimState ].ubEndHeight != ANIM_PRONE ) return( FALSE );
+	bool const fInBuilding = s->bLevel == 0 &&
+		(GetRoom(s->sGridNo) != NO_ROOM || s->bOverTerrainType == FLAT_FLOOR);
+	if ( fInBuilding || s->bOverTerrainType == PAVED_ROAD ) return( FALSE );
+	*psStill    = fTrait ? 1 : 5;
+	*psCrawling = fTrait ? 5 : 10;
+	return( TRUE );
+}
+
+
 INT32 SoldierToSoldierLineOfSightTest(const SOLDIERTYPE* const pStartSoldier, const SOLDIERTYPE* const pEndSoldier, UINT8 ubTileSightLimit, const INT8 bAware)
 {
 	FLOAT dStartZPos, dEndZPos;
@@ -1558,42 +1580,42 @@ INT32 SoldierToSoldierLineOfSightTest(const SOLDIERTYPE* const pStartSoldier, co
 		}
 	}
 
-	if ( pEndSoldier->bCamo && !bAware )
+	// Camouflage (see CamouflageSightLimits()): lying still or crawling, the
+	// soldier can't be seen beyond a fixed number of tiles by a looker not
+	// aware of him. It no longer adds to the trees' cover (bEffectiveCamo 0
+	// below; the trees' own cover is unchanged).
+	bEffectiveCamo = 0;
+	INT16 sSeenStill, sSeenCrawling;
+	if ( !bAware && !fSmell && CamouflageSightLimits( pEndSoldier, &sSeenStill, &sSeenCrawling ) )
 	{
-
-		INT32 iTemp;
-
-		// reduce effects of camo of 5% per tile moved last turn
-		if ( pEndSoldier->ubBodyType == BLOODCAT )
+		bool const fCrawling = (gAnimControl[ pEndSoldier->usAnimState ].uiFlags & ANIM_MOVING) != 0;
+		if ( PythSpacesAway( pStartSoldier->sGridNo, pEndSoldier->sGridNo ) > (fCrawling ? sSeenCrawling : sSeenStill) )
 		{
-			bEffectiveCamo = 100 - pEndSoldier->bTilesMoved * 5;
+			return( 0 );
 		}
-		else
-		{
-			bEffectiveCamo = pEndSoldier->bCamo * (100 - pEndSoldier->bTilesMoved * 5) / 100;
-		}
-		bEffectiveCamo = std::max(bEffectiveCamo, 0);
-
+	}
+	else if ( pEndSoldier->bCamo && !bAware && pEndSoldier->ubBodyType == BLOODCAT )
+	{
+		// bloodcats (no camouflage of their own): the original rule, prone or
+		// crouched in the open, a third less sight, less for each tile moved
+		bEffectiveCamo = std::max(100 - pEndSoldier->bTilesMoved * 5, 0);
 		if ( gAnimControl[ pEndSoldier->usAnimState ].ubEndHeight < ANIM_STAND )
 		{
-			// reduce visibility by up to a third for camouflage!
 			switch( pEndSoldier->bOverTerrainType )
 			{
 				case FLAT_GROUND:
 				case LOW_GRASS:
 				case HIGH_GRASS:
-					iTemp = ubTileSightLimit;
+				{
+					INT32 iTemp = ubTileSightLimit;
 					iTemp -= iTemp * (bEffectiveCamo / 3) / 100;
 					ubTileSightLimit = (UINT8) iTemp;
 					break;
+				}
 				default:
 					break;
 			}
 		}
-	}
-	else
-	{
-		bEffectiveCamo = 0;
 	}
 
 	if ( TANK( pEndSoldier ) )
@@ -1826,7 +1848,7 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 	}
 	else
 	{
-		ubAmmoType = pFirer->inv[pFirer->ubAttackingHand].ubGunAmmoType;
+		ubAmmoType = pBullet->ubAmmoType;
 	}
 
 	// at least partly compensate for "near miss" increases for this guy, after all, the bullet
@@ -2099,7 +2121,7 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 	// now check to see if the bullet goes THROUGH this person! (not vehicles)
 	if (!(tgt.uiStatusFlags & SOLDIER_VEHICLE) &&
 		(ubAmmoType == AMMO_REGULAR || ubAmmoType == AMMO_AP || ubAmmoType == AMMO_SUPER_AP) &&
-		!EXPLOSIVE_GUN(pFirer->usAttackingWeapon))
+		!EXPLOSIVE_GUN(pBullet->usWeapon))
 	{
 		// if we do more damage than expected, then the bullet will be more likely
 		// to be lodged in the body
@@ -2180,7 +2202,7 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 	}
 
 	// handle hit!
-	WeaponHit(&tgt, pFirer->usAttackingWeapon, iDamage, breath_loss, hit_direction, tgt.dXPos, tgt.dYPos, 20, sRange, pFirer, ubSpecial, ubHitLocation);
+	WeaponHit(&tgt, pBullet->usWeapon, iDamage, breath_loss, hit_direction, tgt.dXPos, tgt.dYPos, 20, sRange, pFirer, ubSpecial, ubHitLocation);
 	return( fStopped );
 }
 
@@ -2260,7 +2282,7 @@ static INT32 HandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pStruc
 	else if ( pBullet->usFlags & BULLET_FLAG_SMALL_MISSILE )
 	{
 		// stops if using HE ammo
-		if (pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ].ubGunAmmoType == AMMO_HE)
+		if (pBullet->ubAmmoType == AMMO_HE)
 		{
 			*pfHit = TRUE;
 			return( 0 );
@@ -2316,7 +2338,7 @@ static INT32 HandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pStruc
 		iImpactReduction = gubMaterialArmour[ pStructure->pDBStructureRef->pDBStructure->ubArmour ];
 		iImpactReduction = StructureResistanceIncreasedByRange( iImpactReduction, pBullet->iRange, pBullet->iLoop );
 
-		switch (pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ].ubGunAmmoType)
+		switch (pBullet->ubAmmoType)
 		{
 			case AMMO_HP:
 				iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_HP( iImpactReduction );
@@ -2369,7 +2391,7 @@ static INT32 CTGTHandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pS
 	else if ( pBullet->usFlags & BULLET_FLAG_SMALL_MISSILE )
 	{
 		// stops if using HE ammo
-		if (pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ].ubGunAmmoType == AMMO_HE)
+		if (pBullet->ubAmmoType == AMMO_HE)
 		{
 			return( pBullet->iImpact );
 		}
@@ -2389,7 +2411,7 @@ static INT32 CTGTHandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pS
 	// multiply impact reduction by 100 to retain fractions for a bit...
 	iImpactReduction = gubMaterialArmour[ pStructure->pDBStructureRef->pDBStructure->ubArmour ] * pStructure->pDBStructureRef->pDBStructure->ubDensity / 100;
 	iImpactReduction = StructureResistanceIncreasedByRange( iImpactReduction, pBullet->iRange, pBullet->iLoop );
-	switch (pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ].ubGunAmmoType)
+	switch (pBullet->ubAmmoType)
 	{
 		case AMMO_HP:
 			iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_HP( iImpactReduction );
@@ -3205,13 +3227,13 @@ static INT8 FireBullet(BULLET* pBullet, BOOLEAN fFake)
 			}
 		}
 
-		if ( GCM->getItem(pFirer->usAttackingWeapon)->getItemClass() == IC_THROWING_KNIFE )
+		if ( GCM->getItem(pBullet->usWeapon)->getItemClass() == IC_THROWING_KNIFE )
 		{
 			pBullet->usClockTicksPerUpdate = 30;
 		}
 		else
 		{
-			pBullet->usClockTicksPerUpdate = GCM->getWeapon( pFirer->usAttackingWeapon )->ubBulletSpeed / 10;
+			pBullet->usClockTicksPerUpdate = GCM->getWeapon( pBullet->usWeapon )->ubBulletSpeed / 10;
 		}
 
 		HandleBulletSpecialFlags(pBullet);
@@ -3341,6 +3363,8 @@ INT8 FireBulletGivenTarget(SOLDIERTYPE* const pFirer, const FLOAT dEndX, const F
 			return FALSE;
 		}
 		pBullet->sHitBy	= sHitBy;
+		pBullet->usWeapon   = usHandItem;
+		pBullet->ubAmmoType = pFirer->inv[pFirer->ubAttackingHand].ubGunAmmoType;
 
 		if (dStartZ < WALL_HEIGHT_UNITS)
 		{

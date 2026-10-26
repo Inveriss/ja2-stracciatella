@@ -529,7 +529,7 @@ struct AnimationSurfaceType
 	const UINT32 uiNumDirections;
 	UINT32       uiNumFramesPerDir;
 	HVOBJECT     hVideoObject;
-	INT8         bUsageCount;
+	INT16        bUsageCount; // soldiers holding the surface (was INT8: up to 127)
 	const INT8   bProfile;
 };
 
@@ -540,7 +540,12 @@ extern AnimationSurfaceType gAnimSurfaceDatabase[NUMANIMATIONSURFACETYPES];
 void InitAnimationSystem(void);
 void DeInitAnimationSystem(void);
 void LoadAnimationSurface(UINT16 usSoldierID, UINT16 usSurfaceIndex, UINT16 usAnimState);
-void UnLoadAnimationSurface(UINT16 usSoldierID, UINT16 usSurfaceIndex);
+class AnimationSurfaceCacheType;
+// releasing: the animation cache giving the surface back (its soldier doesn't
+// count as still using it), NULL for anything else
+void UnLoadAnimationSurface(UINT16 usSoldierID, UINT16 usSurfaceIndex, AnimationSurfaceCacheType const* releasing = NULL);
+// The soldier holds a usage of this surface (his animation cache or a preview)
+bool AnimationSurfaceLockedBySoldier(UINT16 usSoldierID, UINT16 usSurfaceIndex);
 
 // Whether a full colour PNG may replace the animation (docs/png-images.md).
 enum class AnimationColours

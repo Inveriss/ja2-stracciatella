@@ -1032,7 +1032,29 @@ void AddSoldierInitListEnemyDefenceSoldiers( UINT8 ubTotalAdmin, UINT8 ubTotalTr
 //sector, then they get to use the enemy placements.  However, we remove any orders from
 //placements containing RNDPTPATROL or POINTPATROL orders, as well as remove any detailed
 //placement information.
-void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumElites )
+//ELITE_HEAVY militia use the ELITE enemy placements (after the elite militia) and are always BIGMALE.
+static void MakeMilitiaPlacement(SOLDIERINITNODE* const curr, UINT8 const ubSoldierClass)
+{
+	curr->pBasicPlacement->ubSoldierClass = ubSoldierClass;
+	curr->pBasicPlacement->bTeam = MILITIA_TEAM;
+	curr->pBasicPlacement->bOrders = STATIONARY;
+	curr->pBasicPlacement->bAttitude = (INT8) Random( MAXATTITUDES );
+	if (ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	{
+		curr->pBasicPlacement->bBodyType = BIGMALE;
+	}
+	if( curr->pDetailedPlacement )
+	{
+		//delete the detailed placement information.
+		delete curr->pDetailedPlacement;
+		curr->pDetailedPlacement = NULL;
+		curr->pBasicPlacement->fDetailedPlacement = FALSE;
+		RandomizeRelativeLevel( &( curr->pBasicPlacement->bRelativeAttributeLevel ), curr->pBasicPlacement->ubSoldierClass );
+		RandomizeRelativeLevel( &( curr->pBasicPlacement->bRelativeEquipmentLevel ), curr->pBasicPlacement->ubSoldierClass );
+	}
+}
+
+void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumElites, UINT8 ubNumHeavies )
 {
 	SOLDIERINITNODE *mark;
 	SOLDIERINITNODE *curr;
@@ -1047,7 +1069,7 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 	UINT8 *pCurrTotal=NULL;
 	UINT8 ubCurrClass;
 
-	ubMaxNum = ubNumGreen + ubNumRegs + ubNumElites;
+	ubMaxNum = ubNumGreen + ubNumRegs + ubNumElites + ubNumHeavies;
 
 	//Sort the list in the following manner:
 	//-Priority placements first
@@ -1080,23 +1102,17 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 				curr->pBasicPlacement->ubSoldierClass = SOLDIER_CLASS_GREEN_MILITIA;
 				ubNumGreen--;
 			}
+			else if( ubNumHeavies && curr->pBasicPlacement->ubSoldierClass == SOLDIER_CLASS_ELITE )
+			{
+				curr->pBasicPlacement->ubSoldierClass = SOLDIER_CLASS_ELITE_HEAVY_MILITIA;
+				ubNumHeavies--;
+			}
 			else
 				fDoPlacement = FALSE;
 
 			if ( fDoPlacement )
 			{
-				curr->pBasicPlacement->bTeam = MILITIA_TEAM;
-				curr->pBasicPlacement->bOrders = STATIONARY;
-				curr->pBasicPlacement->bAttitude = (INT8) Random( MAXATTITUDES );
-				if( curr->pDetailedPlacement )
-				{
-					//delete the detailed placement information.
-					delete curr->pDetailedPlacement;
-					curr->pDetailedPlacement = NULL;
-					curr->pBasicPlacement->fDetailedPlacement = FALSE;
-					RandomizeRelativeLevel( &( curr->pBasicPlacement->bRelativeAttributeLevel ), curr->pBasicPlacement->ubSoldierClass );
-					RandomizeRelativeLevel( &( curr->pBasicPlacement->bRelativeEquipmentLevel ), curr->pBasicPlacement->ubSoldierClass );
-				}
+				MakeMilitiaPlacement(curr, curr->pBasicPlacement->ubSoldierClass);
 				if( AddPlacementToWorld( curr ) )
 				{
 					ubMaxNum--;
@@ -1188,6 +1204,39 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 			curr = curr->next;
 		}
 	}
+	//The ELITE_HEAVY militia take the elite slots the elite militia left unused.
+	ubEliteSlots = 0;
+	for( curr = mark; curr; curr = curr->next )
+	{
+		if( !curr->pSoldier &&
+			( curr->pBasicPlacement->bTeam == ENEMY_TEAM || curr->pBasicPlacement->bTeam == MILITIA_TEAM ) &&
+			curr->pBasicPlacement->ubSoldierClass == SOLDIER_CLASS_ELITE )
+		{
+			ubEliteSlots++;
+		}
+	}
+	curr = mark;
+	while( curr && ubMaxNum && ubNumHeavies && ubEliteSlots )
+	{
+		if( !curr->pSoldier &&
+			( curr->pBasicPlacement->bTeam == ENEMY_TEAM || curr->pBasicPlacement->bTeam == MILITIA_TEAM ) &&
+			curr->pBasicPlacement->ubSoldierClass == SOLDIER_CLASS_ELITE )
+		{
+			if( ubEliteSlots <= ubNumHeavies || Random( ubEliteSlots ) < ubNumHeavies )
+			{
+				MakeMilitiaPlacement(curr, SOLDIER_CLASS_ELITE_HEAVY_MILITIA);
+				if( AddPlacementToWorld( curr ) )
+				{
+					ubNumHeavies--;
+					ubMaxNum--;
+				}
+				else
+					return;
+			}
+			ubEliteSlots--;
+		}
+		curr = curr->next;
+	}
 	if( !ubMaxNum )
 		return;
 	//If we are at this point, that means that there are some compatibility issues.  This is fine.  An example
@@ -1223,35 +1272,30 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 			{
 				//Choose which team to use.
 				iRandom = Random( ubMaxNum );
-				if( iRandom < ubNumElites )
+				UINT8 ubNewClass = SOLDIER_CLASS_GREEN_MILITIA;
+				if( iRandom < ubNumHeavies )
 				{
-					curr->pBasicPlacement->ubSoldierClass = SOLDIER_CLASS_ELITE_MILITIA;
+					ubNewClass = SOLDIER_CLASS_ELITE_HEAVY_MILITIA;
+					ubNumHeavies--;
+				}
+				else if( iRandom < ubNumHeavies + ubNumElites )
+				{
+					ubNewClass = SOLDIER_CLASS_ELITE_MILITIA;
 					ubNumElites--;
 				}
-				else if( iRandom < ubNumElites + ubNumRegs )
+				else if( iRandom < ubNumHeavies + ubNumElites + ubNumRegs )
 				{
-					curr->pBasicPlacement->ubSoldierClass = SOLDIER_CLASS_REG_MILITIA;
+					ubNewClass = SOLDIER_CLASS_REG_MILITIA;
 					ubNumRegs--;
 				}
-				else if( iRandom < ubNumElites + ubNumRegs + ubNumGreen )
+				else if( iRandom < ubNumHeavies + ubNumElites + ubNumRegs + ubNumGreen )
 				{
-					curr->pBasicPlacement->ubSoldierClass = SOLDIER_CLASS_GREEN_MILITIA;
+					ubNewClass = SOLDIER_CLASS_GREEN_MILITIA;
 					ubNumGreen--;
 				}
 				else
 					SLOGE("AddSoldierInitListMilitia: something wrong with random");
-				curr->pBasicPlacement->bTeam = MILITIA_TEAM;
-				curr->pBasicPlacement->bOrders = STATIONARY;
-				curr->pBasicPlacement->bAttitude = (INT8) Random( MAXATTITUDES );
-				if( curr->pDetailedPlacement )
-				{
-					//delete the detailed placement information.
-					delete curr->pDetailedPlacement;
-					curr->pDetailedPlacement = NULL;
-					curr->pBasicPlacement->fDetailedPlacement = FALSE;
-					RandomizeRelativeLevel( &( curr->pBasicPlacement->bRelativeAttributeLevel), curr->pBasicPlacement->ubSoldierClass );
-					RandomizeRelativeLevel( &( curr->pBasicPlacement->bRelativeEquipmentLevel), curr->pBasicPlacement->ubSoldierClass );
-				}
+				MakeMilitiaPlacement(curr, ubNewClass);
 				if( AddPlacementToWorld( curr ) )
 				{
 					ubMaxNum--;

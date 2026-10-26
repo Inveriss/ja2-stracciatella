@@ -42,6 +42,7 @@ enum
 	TRAIN_TOWN_MILITIA,
 	PURCHASED_ITEM_FROM_DEALER,
 	MERC_DEPOSITED_MONEY_TO_PLAYER_ACCOUNT,
+	RECRUIT_TOWN_MILITIA, // militia recruitment (bought militia), second code: the sector
 
 };
 

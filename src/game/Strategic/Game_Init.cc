@@ -167,6 +167,9 @@ void InitStrategicLayer( void )
 
 	// make Orta, Tixa, SAM sites not found
 	InitMapSecrets();
+#if REVEAL_WHOLE_MAP_FOR_TESTING
+	RevealWholeMapForTesting();
+#endif
 
 
 	// free up any leave list arrays that were left allocated

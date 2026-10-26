@@ -85,6 +85,7 @@
 #include "TileDef.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
+#include "Militia_Watch.h"
 #include "VObject.h"
 #include "WCheck.h"
 #include "Weapons.h"
@@ -544,9 +545,19 @@ static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving);
 static void HandleCreatureTenseQuote(void);
 
 
+static void HandleSpottingStops();
+
+
 void ExecuteOverhead(void)
 {
 	BOOLEAN fKeepMoving;
+
+	// a watched militia battle: the player's (empty) turns end by themselves
+	// (and any fight in real time gets its attacks ended, see IsRealtimeFight())
+	HandleWatchedMilitiaBattleTurn();
+
+	// mercs who saw an unaware enemy stop
+	HandleSpottingStops();
 
 	if (COUNTERDONE(TOVERHEAD))
 	{
@@ -2155,7 +2166,10 @@ void LocateSoldier(SOLDIERTYPE* s, BOOLEAN fSetLocator)
 
 	// do we need to move the screen?
 	//ATE: Force this baby to locate if told to
-	if (!SoldierOnScreen(s) || fSetLocator == 10)
+	// (a fight in real time -- watched militia battle, or the militia against the
+	// enemy while no enemy has seen a merc -- leaves the screen where the player
+	// put it; only the player's own mercs are still located)
+	if ((!SoldierOnScreen(s) || fSetLocator == 10) && !(IsRealtimeFight() && s->bTeam != OUR_TEAM))
 	{
 		// Center on guy
 		const INT16 sNewCenterWorldX = (INT16)s->dXPos;
@@ -2185,6 +2199,9 @@ void InternalLocateGridNo(UINT16 sGridNo, BOOLEAN fForce)
 
 	// FIRST CHECK IF WE ARE ON SCREEN
 	if (GridNoOnScreen(sGridNo) && !fForce) return;
+
+	// a fight in real time: the screen stays where the player put it
+	if (IsRealtimeFight() && !fForce) return;
 
 	SetRenderCenter(sNewCenterWorldX, sNewCenterWorldY);
 }
@@ -2216,6 +2233,10 @@ void SlideTo(SOLDIERTYPE* const tgt, const BOOLEAN fSetLocator)
 	// FIRST CHECK IF WE ARE ON SCREEN
 	if (GridNoOnScreen(tgt->sGridNo)) return;
 
+	// a fight in real time: the screen stays where the player put it (the
+	// player's own mercs are still slid to)
+	if (IsRealtimeFight() && tgt->bTeam != OUR_TEAM) return;
+
 	// sGridNo here for DG compatibility
 	gTacticalStatus.sSlideTarget = tgt->sGridNo;
 
@@ -2230,6 +2251,9 @@ void SlideToLocation(const INT16 sDestGridNo)
 
 	// FIRST CHECK IF WE ARE ON SCREEN
 	if (GridNoOnScreen(sDestGridNo)) return;
+
+	// a fight in real time: the screen stays where the player put it
+	if (IsRealtimeFight()) return;
 
 	// sGridNo here for DG compatibility
 	gTacticalStatus.sSlideTarget = sDestGridNo;
@@ -4076,6 +4100,10 @@ void EnterCombatMode( UINT8 ubStartingTeam )
 	// only do this once they are seen.....
 	SetEnemyPresence();
 
+	// a watched militia battle in real time (game.json militia_watch.realtime):
+	// no turns, the enemy presence above is all (music, end of battle checks)
+	if (gfWatchingMilitiaBattle && gamepolicy(militia_watch_realtime)) return;
+
 	CommonEnterCombatModeCode( );
 
 	if (ubStartingTeam == OUR_TEAM)
@@ -4229,6 +4257,23 @@ static bool SoldierHasSeenEnemiesLastFewTurns(SOLDIERTYPE const& s)
 }
 
 
+// turnbased_starts_when_spotted: a hostile soldier has seen one of the
+// player's mercs in the last few turns (as SoldierHasSeenEnemiesLastFewTurns)
+static bool SoldierHasSeenMercsLastFewTurns(SOLDIERTYPE const& s)
+{
+	if (s.bSide == OUR_TEAM) return false; // the player's side: mercs, militia
+	CFOR_EACH_IN_TEAM(m, OUR_TEAM)
+	{
+		if (!m->bInSector || m->bLife <= 0)           continue;
+		if (CONSIDERED_NEUTRAL(&s, m))                 continue;
+		INT8 const seen = s.bOppList[m->ubID];
+		if (seen < SEEN_CURRENTLY || SEEN_THIS_TURN < seen) continue;
+		return true;
+	}
+	return false;
+}
+
+
 static BOOLEAN WeSeeNoOne(void)
 {
 	FOR_EACH_MERC(i)
@@ -4340,12 +4385,18 @@ BOOLEAN CheckForEndOfCombatMode( BOOLEAN fIncrementTurnsNotSeen )
 	else
 	{
 		// we have to loop through EVERYONE to see if anyone sees a hostile... if so, stay in turnbased...
+		// (game.json turnbased_starts_when_spotted: only the mercs and the enemy
+		// seeing each other count -- the militia and the enemy fighting on go on
+		// in real time once neither side has seen the other for two turns)
+		bool const merc_contact_only = TurnBasedWhenSpottedOnly();
 		FOR_EACH_MERC(i)
 		{
 			SOLDIERTYPE const& s = **i;
 			if (s.bLife >= OKLIFE &&
 				!s.bNeutral &&
-				SoldierHasSeenEnemiesLastFewTurns(s))
+				(!merc_contact_only                   ? SoldierHasSeenEnemiesLastFewTurns(s) :
+				 s.bTeam == OUR_TEAM                  ? SoldierHasSeenEnemiesLastFewTurns(s) :
+				 SoldierHasSeenMercsLastFewTurns(s)))
 			{
 				gTacticalStatus.bConsNumTurnsNotSeen = 0;
 				fSomeoneSawSomeoneRecently = TRUE;
@@ -4544,7 +4595,15 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
 
 		// Play death music
 		SetMusicMode( MUSIC_TACTICAL_DEFEAT );
-		SetCustomizableTimerCallbackAndDelay(10s, DeathNoMessageTimerCallback, false);
+		if (gfWatchingMilitiaBattle)
+		{
+			// a watched militia battle: back to the map screen after the music
+			WatchedMilitiaBattleLost();
+		}
+		else
+		{
+			SetCustomizableTimerCallbackAndDelay(10s, DeathNoMessageTimerCallback, false);
+		}
 
 		if ( CheckFact( FACT_FIRST_BATTLE_BEING_FOUGHT, 0 ) )
 		{
@@ -4590,6 +4649,9 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
 
 		// Set enemy presence to false
 		gTacticalStatus.fEnemyInSector = FALSE;
+
+		// a watched militia battle: back to the map screen after a moment
+		WatchedMilitiaBattleWon();
 
 		// CJC: End AI's turn here.... first... so that UnSetUIBusy will succeed if militia win
 		// battle for us
@@ -5059,6 +5121,9 @@ static BOOLEAN CheckForLosingEndOfBattle(void)
 		// Are there militia in sector?
 		if ( fMilitiaInSector )
 		{
+			// a watched militia battle: the militia fight it here, no autoresolve
+			if (gfWatchingMilitiaBattle) return FALSE;
+
 			if( guiCurrentScreen != AUTORESOLVE_SCREEN )
 			{
 				// if here, check if we should autoresolve.
@@ -6301,6 +6366,63 @@ static void HandleBrothelWallDestroyed(INT16 const sSectorX, INT16 const sSector
         }
     }
 }
+
+bool TurnBasedWhenSpottedOnly()
+{
+	return gamepolicy(turnbased_starts_when_spotted) && !gfWatchingMilitiaBattle;
+}
+
+
+bool AnEnemySeesAMerc()
+{
+	CFOR_EACH_SOLDIER(e)
+	{
+		if (!e->bInSector || e->bLife < OKLIFE || e->bNeutral) continue;
+		if (e->bSide == OUR_TEAM) continue; // the player's side: mercs, militia
+		CFOR_EACH_IN_TEAM(m, OUR_TEAM)
+		{
+			if (!m->bInSector || m->bLife <= 0) continue;
+			if (e->bOppList[m->ubID] == SEEN_CURRENTLY) return true;
+		}
+	}
+	return false;
+}
+
+
+bool IsRealtimeFight()
+{
+	if (IsWatchedBattleInRealtime()) return true;
+	return TurnBasedWhenSpottedOnly() &&
+		!(gTacticalStatus.uiFlags & INCOMBAT) &&
+		gTacticalStatus.fEnemyInSector;
+}
+
+
+static bool g_stop_on_spotting[MAX_NUM_SOLDIERS];
+
+void StopMercOnSpotting(SOLDIERTYPE const& s)
+{
+	if (s.ubID < MAX_NUM_SOLDIERS) g_stop_on_spotting[s.ubID] = true;
+}
+
+static void HandleSpottingStops()
+{
+	for (UINT32 i = 0; i != MAX_NUM_SOLDIERS; ++i)
+	{
+		if (!g_stop_on_spotting[i]) continue;
+		g_stop_on_spotting[i] = false;
+
+		SOLDIERTYPE& s = GetMan(i);
+		if (!s.bActive || !s.bInSector || s.bLife < OKLIFE) continue;
+		if (gTacticalStatus.uiFlags & INCOMBAT) continue; // the turns stop him anyway
+		if (s.sGridNo == s.sFinalDestination && !(gAnimControl[s.usAnimState].uiFlags & ANIM_MOVING)) continue;
+
+		// stop where he is and wait for orders (still in real time)
+		EVENT_StopMerc(&s);
+		s.sFinalDestination = s.sGridNo;
+	}
+}
+
 
 #ifdef WITH_UNITTESTS
 #include "gtest/gtest.h"

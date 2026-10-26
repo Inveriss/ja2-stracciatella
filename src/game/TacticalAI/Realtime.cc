@@ -10,6 +10,7 @@
 #include "NPC.h"
 #include "Render_Fun.h"
 #include "Quests.h"
+#include "Timer_Control.h"
 
 
 static INT8 RTPlayerDecideAction(SOLDIERTYPE* pSoldier)
@@ -61,6 +62,20 @@ static INT8 RTDecideAction(SOLDIERTYPE* pSoldier)
 		return( DecideAction( pSoldier ) );
 	}
 }
+
+// A watched militia battle in real time: a soldier decides again only when
+// ai_delay_ms has passed since his last decision (the same for both sides)
+static bool WatchedBattleDecisionDue(SOLDIERTYPE const& s)
+{
+	static UINT32 last_decision[TOTAL_SOLDIERS];
+	UINT32&      last = last_decision[s.ubID];
+	UINT32 const now  = GetJA2Clock();
+	// now < last: the clock was set back (a loaded game)
+	if (now >= last && now - last < WatchedBattleAIDelay()) return false;
+	last = now;
+	return true;
+}
+
 
 UINT16 RealtimeDelay( SOLDIERTYPE * pSoldier )
 {
@@ -201,6 +216,8 @@ void RTHandleAI( SOLDIERTYPE * pSoldier )
 			}
 			else
 			{
+				if (IsWatchedBattleInRealtime() && !WatchedBattleDecisionDue(*pSoldier)) return;
+
 				if (!(gTacticalStatus.uiFlags & ENGAGED_IN_CONV))
 				{
 					pSoldier->bAction = RTDecideAction( pSoldier );

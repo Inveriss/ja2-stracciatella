@@ -1811,7 +1811,8 @@ static void CreateTopMessage(void)
 
 			INT32  gfx    = 2;
 			// -3 for the end pieces
-			UINT32 length = (bar->w - 3) * ts->usTactialTurnLimitCounter / ts->usTactialTurnLimitMax;
+			UINT32 length = ts->usTactialTurnLimitMax == 0 ? 0 :
+				(bar->w - 3) * ts->usTactialTurnLimitCounter / ts->usTactialTurnLimitMax;
 			while (length-- != 0)
 			{
 				BltVideoObject(dst, bar_vo.get(), gfx, ++bar_x, bar->y);

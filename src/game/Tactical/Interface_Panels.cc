@@ -3195,7 +3195,8 @@ static void LayoutBigTEAMPanelRegions()
 	{
 		TeamPanelSlot& tp  = gTeamPanel[i];
 		INT32   const  pos = i - giBigTeamPanelFirstSlot;
-		if (pos < 0 || BIG_TEAMPANEL_NUM_SLOTS <= pos)
+		// the watched battle's bar has no slots
+		if (pos < 0 || BIG_TEAMPANEL_NUM_SLOTS <= pos || g_ui.isWatchBar())
 		{
 			for (MOUSE_REGION* const r : { &tp.face, &tp.enemy_indicator, &tp.bars, &tp.left_bars, &tp.first_hand, &tp.second_hand })
 			{
@@ -3318,8 +3319,9 @@ void InitializeTEAMPanel()
 		// the 1366x768 interface's own panel, one piece (RGBA: its transparent
 		// windows -- the minimap block's empty squares -- end up black)
 		guiTEAMPanel->Fill(0);
-		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(g_ui.isLowTeamPanel() ?
-			INTERFACEDIR "/" BIG_TEAMPANEL_LOW_FILE : INTERFACEDIR "/" BIG_TEAMPANEL_FILE) };
+		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(
+			g_ui.isWatchBar()     ? INTERFACEDIR "/" WATCH_BAR_FILE :
+			g_ui.isLowTeamPanel() ? INTERFACEDIR "/" BIG_TEAMPANEL_LOW_FILE : INTERFACEDIR "/" BIG_TEAMPANEL_FILE) };
 		BltVideoObject(guiTEAMPanel, big_panel.get(), 0, 0, 0);
 	}
 	else
@@ -3337,10 +3339,18 @@ void InitializeTEAMPanel()
 	guiTEAMObjects = AddVideoObjectFromFile(INTERFACEDIR "/gold_front.sti");
 	guiVEHINV      = AddVideoObjectFromFile(INTERFACEDIR "/inventor.sti");
 
-	FillEmptySpaceAtBottom();
+	// (the watched battle's bar is under the world, which reaches down to it)
+	if (!g_ui.isWatchBar()) FillEmptySpaceAtBottom();
 
 	// Create buttons
 	CreateTEAMPanelButtons();
+	if (g_ui.isWatchBar())
+	{
+		// nothing on the watched battle's bar but its EXIT button (Militia_Watch.cc)
+		for (GUIButtonRef const b : iTEAMPanelButtons)         if (b) b->Hide();
+		for (GUIButtonRef const b : giBigTeamPanelMercButtons) if (b) b->Hide();
+		if (giBigTeamPanelLowButton) giBigTeamPanelLowButton->Hide();
+	}
 
 	// Set viewports
 	// Define region for panel
@@ -3522,7 +3532,8 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 		if (followed || giBigTeamPanelFirstSlot != old_first) dirty_level = DIRTYLEVEL2;
 	}
 	size_t const first_slot = big ? (size_t)giBigTeamPanelFirstSlot : 0;
-	size_t const end_slot   = big ? std::min(gTeamPanel.size(), first_slot + BIG_TEAMPANEL_NUM_SLOTS) : gTeamPanel.size();
+	size_t const end_slot   = g_ui.isWatchBar() ? first_slot : // no slots on the watched battle's bar
+		big ? std::min(gTeamPanel.size(), first_slot + BIG_TEAMPANEL_NUM_SLOTS) : gTeamPanel.size();
 
 	if (dirty_level == DIRTYLEVEL2)
 	{
@@ -4542,6 +4553,16 @@ void RenderTownIDString(void)
 		zTownIDString = ReduceStringLength(zTownIDString, SM_BIG_SECTOR_WIDTH - 4, BIG_TM_SECTOR_FONT);
 		MPrint(INTERFACE_START_X + SM_BIG_SECTOR_X, INV_INTERFACE_START_Y + SM_BIG_SECTOR_Y, zTownIDString,
 			HCenterVCenterAlign(SM_BIG_SECTOR_WIDTH, SM_BIG_SECTOR_HEIGHT));
+		return;
+	}
+
+	// the watched battle's bar: its sector box, in the team panel's font
+	if (g_ui.isWatchBarShown())
+	{
+		SetFont(BIG_TM_SECTOR_FONT);
+		zTownIDString = ReduceStringLength(zTownIDString, WATCH_BAR_SECTOR_WIDTH - 4, BIG_TM_SECTOR_FONT);
+		MPrint(WATCH_BAR_SECTOR_X, SCREEN_HEIGHT - WATCH_BAR_HEIGHT + WATCH_BAR_SECTOR_Y, zTownIDString,
+			HCenterVCenterAlign(WATCH_BAR_SECTOR_WIDTH, WATCH_BAR_BOX_HEIGHT));
 		return;
 	}
 

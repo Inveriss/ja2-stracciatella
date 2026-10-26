@@ -1,5 +1,6 @@
 #include "StrategicMap_Secrets.h"
 #include "Buffer.h"
+#include "Campaign_Types.h"
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "JAScreens.h"
@@ -95,6 +96,36 @@ void SetSectorSecretAsFound(UINT8 const ubSectorID, BOOLEAN const fFound)
 		OnMapSecretFound(ubSectorID);
 	}
 }
+
+// TEMPORARY FOR TESTING: the whole strategic map known, as if every surface
+// sector had been visited, and every map secret (Tixa, Orta, the SAM sites)
+// found. Underground sectors are left alone, a visited K4 basement is a quest
+// fact (FACT_PLAYER_BEEN_TO_K4).
+void RevealWholeMapForTesting()
+{
+	for (auto s : GCM->getMapSecrets())
+	{
+		SetSectorSecretAsFound(s->sectorID, TRUE);
+	}
+
+	// directly, not through SetSectorFlag(): no "new sectors visited today" activity
+	for (INT16 y = 1; y <= 16; ++y)
+	{
+		for (INT16 x = 1; x <= 16; ++x)
+		{
+			SectorInfo[SGPSector(x, y).AsByte()].uiFlags |= SF_ALREADY_VISITED;
+		}
+	}
+
+	// the facilities SetSectorFlag() reveals when these sectors get visited:
+	// Tixa prison, Alma shooting range
+	SectorInfo[SEC_J9 ].uiFacilitiesFlags |= SFCF_PRISON;
+	SectorInfo[SEC_H13].uiFacilitiesFlags |= SFCF_GUN_RANGE;
+	SectorInfo[SEC_H14].uiFacilitiesFlags |= SFCF_GUN_RANGE;
+	SectorInfo[SEC_I13].uiFacilitiesFlags |= SFCF_GUN_RANGE;
+	SectorInfo[SEC_I14].uiFacilitiesFlags |= SFCF_GUN_RANGE;
+}
+
 
 const StrategicMapSecretModel* GetMapSecretBySectorID(UINT8 const ubSectorID)
 {

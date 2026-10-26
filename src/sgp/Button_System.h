@@ -47,6 +47,15 @@ GUI_CALLBACK ButtonCallbackPrimarySecondary(
 	bool triggerPrimaryOnMouseDown = false
 );
 
+// For ButtonCallbackPrimarySecondary()'s allEvents: a button with a right
+// click action shows itself pressed while the right mouse button is down on
+// it, as it does for the left one
+void ShowButtonPressedOnRightClick(GUI_BUTTON*, UINT32 reason);
+
+// Every frame for such a button: its pressed look goes when no mouse button is
+// down any more (the right button released outside of it)
+void ReleaseButtonPressedLook(GUI_BUTTON*);
+
 // GUI_BUTTON structure definitions.
 struct GUI_BUTTON
 {

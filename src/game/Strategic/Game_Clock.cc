@@ -80,7 +80,7 @@ UINT32         guiDay;
 UINT32         guiHour;
 UINT32         guiMin;
 ST::string     gswzWorldTimeStr;
-INT32          giTimeCompressSpeeds[ NUM_TIME_COMPRESS_SPEEDS ] = { 0, 1, 5 * 60, 30 * 60, 60 * 60 };
+INT32          giTimeCompressSpeeds[ NUM_TIME_COMPRESS_SPEEDS ] = { 0, 1, 5 * 60, 30 * 60, 60 * 60, TIME_COMPRESS_5HOURS_FOR_TESTING ? 5 * 60 * 60 : 0 };
 static UINT16  usPausedActualWidth;
 static UINT16  usPausedActualHeight;
 UINT32         guiTimeOfLastEventQuery = 0;
@@ -362,7 +362,7 @@ BOOLEAN IsTimeCompressionOn( void )
 void IncreaseGameTimeCompressionRate( )
 {
 	// if not already at maximum time compression rate
-	if( giTimeCompressMode < TIME_COMPRESS_60MINS )
+	if( giTimeCompressMode < MAX_TIME_COMPRESS )
 	{
 		// check that we can
 		if ( !AllowedToTimeCompress( ) )
@@ -464,7 +464,7 @@ static void SetClockResolutionToCompressMode(INT32 iCompressMode)
 	}
 	else
 	{
-		SetClockResolutionPerSecond((UINT8) std::max(1U, guiGameSecondsPerRealSecond / 60));
+		SetClockResolutionPerSecond((UINT8) std::clamp(guiGameSecondsPerRealSecond / 60, 1U, 255U)); // the testing 5 hours: 300 a second
 	}
 
 	// if the compress mode is X0 or X1

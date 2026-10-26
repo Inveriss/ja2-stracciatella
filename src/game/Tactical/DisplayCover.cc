@@ -26,6 +26,8 @@
 #include "WeaponModels.h"
 
 #include <algorithm>
+#include <map>
+#include <vector>
 
 #define DC_MAX_COVER_RANGE		31
 
@@ -765,6 +767,120 @@ static BOOLEAN IsTheRoofVisible(INT16 sGridNo)
 	{
 		return( TRUE );
 	}
+}
+
+
+// Camouflage rings: around each merc of ours lying down with camouflage (see
+// CamouflageSightLimits()), the tiles exactly as far as an unaware enemy sees
+// him from lying still and crawling, in SPECIALTILE_COVER_5 (the line of
+// sight display's green). They follow the merc and go when he gets up;
+// several mercs' rings may overlap.
+struct CAMO_RING_TILE
+{
+	INT16   sGridNo;
+	BOOLEAN fRoof;
+};
+
+struct CAMO_RINGS
+{
+	INT16 sGridNo;
+	INT16 sStill;
+	INT16 sCrawling;
+	std::vector<CAMO_RING_TILE> tiles;
+};
+
+static std::map<SOLDIERTYPE const*, CAMO_RINGS> gCamoRings;
+
+
+static void AddCamoRing(CAMO_RINGS& r, INT16 const sRadius)
+{
+	INT16 const sX = r.sGridNo % MAXCOL;
+	INT16 const sY = r.sGridNo / MAXCOL;
+	for (INT16 y = sY - sRadius; y <= sY + sRadius; ++y)
+	{
+		if (y < 0 || y >= MAXROW) continue;
+		for (INT16 x = sX - sRadius; x <= sX + sRadius; ++x)
+		{
+			if (x < 0 || x >= MAXCOL) continue;
+			INT16 const sGridNo = x + y * MAXCOL;
+			if (PythSpacesAway(r.sGridNo, sGridNo) != sRadius) continue;
+
+			// on a visible flat roof above the tile, as the line of sight display
+			BOOLEAN const fRoof = FlatRoofAboveGridNo(sGridNo) && IsTheRoofVisible(sGridNo) && gWorldSector.z == 0;
+			AddCoverObjectToWorld(sGridNo, SPECIALTILE_COVER_5, fRoof);
+			r.tiles.push_back({ sGridNo, fRoof });
+		}
+	}
+}
+
+
+static void RemoveCamoRings(CAMO_RINGS const& r)
+{
+	for (CAMO_RING_TILE const& t : r.tiles)
+	{
+		RemoveCoverObjectFromWorld(t.sGridNo, SPECIALTILE_COVER_5, t.fRoof);
+	}
+}
+
+
+void HandleCamouflageRings(void)
+{
+	bool fChanged = false;
+
+	// mercs gone from the team
+	for (auto it = gCamoRings.begin(); it != gCamoRings.end();)
+	{
+		if (it->first->bActive && it->first->bTeam == OUR_TEAM)
+		{
+			++it;
+			continue;
+		}
+		RemoveCamoRings(it->second);
+		it = gCamoRings.erase(it);
+		fChanged = true;
+	}
+
+	FOR_EACH_IN_TEAM(s, OUR_TEAM)
+	{
+		INT16 sStill    = 0;
+		INT16 sCrawling = 0;
+		bool const fShow =
+			s->bInSector &&
+			s->sGridNo != NOWHERE &&
+			s->bLife >= OKLIFE &&
+			!(s->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_PASSENGER | SOLDIER_DRIVER)) &&
+			CamouflageSightLimits(s, &sStill, &sCrawling);
+
+		auto it = gCamoRings.find(s);
+		if (it != gCamoRings.end())
+		{
+			CAMO_RINGS const& r = it->second;
+			if (fShow && r.sGridNo == s->sGridNo && r.sStill == sStill && r.sCrawling == sCrawling)
+			{
+				continue; // as they are
+			}
+			RemoveCamoRings(r);
+			gCamoRings.erase(it);
+			fChanged = true;
+		}
+		if (!fShow) continue;
+
+		CAMO_RINGS& r = gCamoRings[s];
+		r.sGridNo   = s->sGridNo;
+		r.sStill    = sStill;
+		r.sCrawling = sCrawling;
+		AddCamoRing(r, sStill);
+		AddCamoRing(r, sCrawling);
+		fChanged = true;
+	}
+
+	if (fChanged) SetRenderFlags(RENDER_FLAG_FULL);
+}
+
+
+void ResetCamouflageRings(void)
+{
+	gCamoRings.clear();
 }
 
 

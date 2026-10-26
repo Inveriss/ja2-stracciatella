@@ -1,11 +1,15 @@
 #include "DefaultGamePolicy.h"
 #include "Types.h"
 
+#include <algorithm>
+#include <iterator>
+
 DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 {
 	auto gp = json.toObject();
 	extra_hotkeys = gp.getOptionalBool("extra_hotkeys", true);
 	can_enter_turnbased = gp.getOptionalBool("can_enter_turnbased");
+	turnbased_starts_when_spotted = gp.getOptionalBool("turnbased_starts_when_spotted", false);
 	middle_mouse_look = gp.getOptionalBool("middle_mouse_look", true);
 
 	f_draw_item_shadow = gp.getOptionalBool("draw_item_shadow", true);
@@ -92,6 +96,52 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	ST::string sector_string = campaign.getOptionalString("start_sector");
 	start_sector = SGPSector::FromShortString(!sector_string.empty() ? sector_string : "A9").AsByte();
 	reveal_start_sector = campaign.getOptionalBool("start_sector_revealed", false);
+
+	{
+		static int32_t const default_prices[4]  = { 100, 200, 500, 1000 };
+		static uint8_t const default_max[4]     = { 25, 50, 75, 100 };
+		static int32_t const default_percent[4] = { 130, 115, 85, 70 };
+		std::copy(std::begin(default_prices),  std::end(default_prices),  militia_recruit_price);
+		std::copy(std::begin(default_max),     std::end(default_max),     militia_recruit_leadership_max);
+		std::copy(std::begin(default_percent), std::end(default_percent), militia_recruit_price_percent);
+		militia_recruitment = true;
+		if (gp.has("militia_recruitment"))
+		{
+			auto mr = gp["militia_recruitment"].toObject();
+			militia_recruitment = mr.getOptionalBool("enabled", true);
+			char const* const price_keys[4] = { "price_green", "price_regular", "price_elite", "price_elite_heavy" };
+			for (int i = 0; i != 4; ++i)
+			{
+				militia_recruit_price[i] = mr.getOptionalInt(price_keys[i], default_prices[i]);
+			}
+			if (mr.has("leadership_max"))
+			{
+				auto const v = mr["leadership_max"].toVec();
+				for (size_t i = 0; i != 4 && i < v.size(); ++i) militia_recruit_leadership_max[i] = v[i].toInt();
+			}
+			if (mr.has("price_percent"))
+			{
+				auto const v = mr["price_percent"].toVec();
+				for (size_t i = 0; i != 4 && i < v.size(); ++i) militia_recruit_price_percent[i] = v[i].toInt();
+			}
+		}
+	}
+
+	militia_watch_realtime    = true;
+	militia_watch_ai_delay_ms = 100;
+	if (gp.has("militia_watch"))
+	{
+		auto mw = gp["militia_watch"].toObject();
+		militia_watch_realtime    = mw.getOptionalBool("realtime", true);
+		militia_watch_ai_delay_ms = mw.getOptionalUInt("ai_delay_ms", 100);
+	}
+
+	militia_explosives_spare_friends = true;
+	if (gp.has("militia_ai"))
+	{
+		auto ma = gp["militia_ai"].toObject();
+		militia_explosives_spare_friends = ma.getOptionalBool("explosives_spare_friends", true);
+	}
 }
 
 /** Check if a hotkey is enabled. */

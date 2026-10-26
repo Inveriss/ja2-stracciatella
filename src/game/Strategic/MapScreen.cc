@@ -80,6 +80,9 @@
 #include "SaveLoadGameStates.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
+#include "Militia_Recruit_Panel.h"
+#include "Militia_Deployment_Panel.h"
+#include "Militia_Watch.h"
 #include "UILayout.h"
 #include "Video.h"
 #include "VObject.h"
@@ -2136,7 +2139,7 @@ ScreenID MapScreenHandle(void)
 
 
 		// if the current time compression mode is something legal in mapscreen, keep it
-		if ( ( giTimeCompressMode >= TIME_COMPRESS_5MINS ) && ( giTimeCompressMode <= TIME_COMPRESS_60MINS ) )
+		if ( ( giTimeCompressMode >= TIME_COMPRESS_5MINS ) && ( giTimeCompressMode <= MAX_TIME_COMPRESS ) )
 		{
 			// leave the current time compression mode set, but DO stop it
 			StopTimeCompression();
@@ -2356,6 +2359,9 @@ ScreenID MapScreenHandle(void)
 	HandleRebuildingOfMapScreenCharacterList( );
 
 	HandleStrategicTurn( );
+
+	// questions about arriving militia orders
+	HandleMilitiaOrderQuestions();
 
 
 	/*
@@ -2623,7 +2629,7 @@ ScreenID MapScreenHandle(void)
 		MapscreenMarkButtonsDirty();
 	}
 
-	if( fShowAttributeMenu )
+	if( fShowAttributeMenu || fShowMilitiaMenu )
 	{
 		// mark all popups as dirty
 		MarkAllBoxesAsAltered( );
@@ -2710,6 +2716,14 @@ ScreenID MapScreenHandle(void)
 	}
 
 	DrawMilitiaPopUpBox( );
+
+	// the militia recruitment and deployment panels (open here when asked for
+	// on the tactical screen)
+	HandleMilitiaRecruitPanel();
+	HandleMilitiaDeploymentPanel();
+
+	// "Watch the battle" on the autoresolve screen: load the sector
+	HandleWatchMilitiaBattleRequest();
 
 	if (!fDisableDueToBattleRoster)
 	{
@@ -3343,9 +3357,10 @@ static bool HandleKeyESC()
 		fCharacterInfoPanelDirty = TRUE;
 
 		// stop showing current assignment box
-		if (fShowAttributeMenu)
+		if (fShowAttributeMenu || fShowMilitiaMenu)
 		{
 			fShowAttributeMenu = FALSE;
+			fShowMilitiaMenu   = FALSE;
 			fMapPanelDirty = TRUE;
 		}
 		else if (fShowTrainingMenu)
@@ -3379,7 +3394,7 @@ static bool HandleKeyESC()
 		giContractHighLine = -1;
 	}
 	// in militia popup?
-	else if (sSelectedMilitiaTown != 0 && sGreensOnCursor == 0 && sRegularsOnCursor == 0 && sElitesOnCursor == 0)
+	else if (sSelectedMilitiaTown != 0 && sGreensOnCursor == 0 && sRegularsOnCursor == 0 && sElitesOnCursor == 0 && sHeaviesOnCursor == 0)
 	{
 		sSelectedMilitiaTown = 0;
 		fMapPanelDirty = TRUE;
@@ -3870,6 +3885,9 @@ void EndMapScreen( BOOLEAN fDuringFade )
 	sSelectedMilitiaTown = 0;
 	CreateDestroyMilitiaPopUPRegions( );
 	CreateDestroyMilitiaSectorButtons( );
+
+	CloseMilitiaRecruitPanel();
+	CloseMilitiaDeploymentPanel();
 
 	// stop showing contract menu
 	fShowContractMenu = FALSE;
@@ -5885,6 +5903,7 @@ void RenderMapRegionBackground( void )
 	RenderMapBorder( );
 
 	if (ghAttributeBox != NO_POPUP_BOX) ForceUpDateOfBox(ghAttributeBox);
+	if (ghMilitiaBox   != NO_POPUP_BOX) ForceUpDateOfBox(ghMilitiaBox);
 	if (ghTownMineBox  != NO_POPUP_BOX) ForceUpDateOfBox(ghTownMineBox);
 
 	MapscreenMarkButtonsDirty();
@@ -8959,8 +8978,19 @@ static void HandleMilitiaRedistributionClick(void)
 		{
 			INT8 const sam_id = GetSAMIdFromSector(sector);
 			if (sam_id != -1 && IsSecretFoundAt(sector.AsByte()))
-			{ // Cannot move militia around sam sites.
-				DoScreenIndependantMessageBox(pMapErrorString[30], MSG_BOX_FLAG_OK, NULL);
+			{
+				// a SAM site of ours: its own militia box
+				INT16 const key = MilitiaBoxKeyForSector(sector);
+				if (key != 0 && SectorOursAndPeaceful(sector) && CanRedistributeMilitiaInSector(key))
+				{
+					fShowTownInfo        = FALSE;
+					fMapPanelDirty       = TRUE;
+					sSelectedMilitiaTown = key;
+				}
+				else
+				{ // Cannot move militia around sam sites.
+					DoScreenIndependantMessageBox(pMapErrorString[30], MSG_BOX_FLAG_OK, NULL);
+				}
 			}
 		}
 	}
@@ -9469,7 +9499,7 @@ static void MapscreenMarkButtonsDirty(void)
 	if( !fShowMapInventoryPool )
 	{
 		// if the attribute assignment menu is showing
-		if ( fShowAttributeMenu )
+		if ( fShowAttributeMenu || fShowMilitiaMenu )
 		{
 			// don't redraw the town button, it would wipe out a chunk of the attribute menu
 			UnMarkButtonDirty( giMapBorderButtons[ MAP_BORDER_TOWN_BTN ] );

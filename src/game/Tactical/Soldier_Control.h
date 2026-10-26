@@ -305,10 +305,13 @@ enum SoldierClass
 	SOLDIER_CLASS_ELITE_MILITIA,
 	SOLDIER_CLASS_CREATURE,
 	SOLDIER_CLASS_MINER,
+	// Appended (not next to the other militia classes): soldier class values are
+	// stored in maps and saved games, so the existing values must not move.
+	SOLDIER_CLASS_ELITE_HEAVY_MILITIA,
 };
 
 #define SOLDIER_CLASS_ENEMY( bSoldierClass )		( ( bSoldierClass >= SOLDIER_CLASS_ADMINISTRATOR ) && ( bSoldierClass <= SOLDIER_CLASS_ARMY ) )
-#define SOLDIER_CLASS_MILITIA( bSoldierClass )		( ( bSoldierClass >= SOLDIER_CLASS_GREEN_MILITIA ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) )
+#define SOLDIER_CLASS_MILITIA( bSoldierClass )		( ( ( bSoldierClass >= SOLDIER_CLASS_GREEN_MILITIA ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) ) || ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA ) )
 
 // This macro should be used whenever we want to see if someone is neutral
 // IF WE ARE CONSIDERING ATTACKING THEM.  Creatures & bloodcats will attack neutrals

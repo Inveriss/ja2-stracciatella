@@ -14,6 +14,7 @@
 #include "Tactical_Save.h"
 #include "Types.h"
 #include "UndergroundSectorModel.h"
+#include "Town_Militia.h"
 
 #include <algorithm>
 
@@ -130,6 +131,7 @@ void InitNewCampaign()
 	// request -- see gfSectorInventoryCombinableFilters's own comment
 	// (Map_Screen_Interface_Map_Inventory.cc) for the full story.
 	InitSectorInventoryFilterModeForNewGame();
+	InitMilitiaOrdersForNewGame();
 
 	// "Hide big minimap" checkbox -- unchecked (minimap shown) for a new game.
 	InitSectorInventoryMinimapForNewGame();

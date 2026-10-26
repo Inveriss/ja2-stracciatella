@@ -1,4 +1,5 @@
 #include "Soldier_Control.h"
+#include "Militia_Watch.h"
 #include "AI.h"
 #include "Animation_Cache.h"
 #include "Animation_Control.h"
@@ -909,7 +910,11 @@ void EVENT_InitNewSoldierAnim(SOLDIERTYPE* const pSoldier, UINT16 usNewState, UI
 
 		if ( pSoldier->fRTInNonintAnim )
 		{
-			if ( !(gTacticalStatus.uiFlags & INCOMBAT) )
+			// a fight in real time (watched militia battle, or the militia against
+			// the enemy, turnbased_starts_when_spotted) is one without combat mode:
+			// a hit, a fall or a death must interrupt the shot as in combat, or the
+			// new animation is lost (a dying soldier stays in his firing pose)
+			if ( !(gTacticalStatus.uiFlags & INCOMBAT) && !IsRealtimeFight() )
 			{
 				return;
 			}
@@ -4201,6 +4206,15 @@ BOOLEAN ConvertAniCodeToAniFrame(SOLDIERTYPE* const s, UINT16 ani_frame)
 	}
 	else
 	{
+		// A frame the graphic doesn't have (a script made for a graphic with more
+		// frames, e.g. CROUCHED_BURST's 21 in an 18 frame one): the direction's
+		// last frame, the nearest pose, instead of frame 0 of the first direction
+		if (as.uiNumFramesPerDir != 0 && ani_frame >= as.uiNumFramesPerDir)
+		{
+			SLOGD("Frame {} past the {} frames per direction, {}",
+				ani_frame, as.uiNumFramesPerDir, gAnimControl[s->usAnimState].zAnimStr);
+			ani_frame = (UINT16)(as.uiNumFramesPerDir - 1);
+		}
 		ani_frame += as.uiNumFramesPerDir * temp_dir;
 		if (ani_frame >= as.hVideoObject->SubregionCount())
 		{
@@ -5767,7 +5781,8 @@ UINT8 SoldierTakeDamage(SOLDIERTYPE* const pSoldier, INT16 sLifeDeduct, INT16 sB
 	}
 
 	// OK, if here, let's see if we should drop our weapon....
-	if ( ubReason != TAKE_DAMAGE_BLOODLOSS && !(AM_A_ROBOT( pSoldier )) )
+	// (militia never drop their weapon, not even when blown off their feet)
+	if ( ubReason != TAKE_DAMAGE_BLOODLOSS && !(AM_A_ROBOT( pSoldier )) && pSoldier->bTeam != MILITIA_TEAM )
 	{
 		INT16 sTestOne, sTestTwo, sChanceToDrop;
 

@@ -1,4 +1,6 @@
 #include "Map_Screen_Interface_Border.h"
+#include "Militia_Recruit_Panel.h"
+#include "Militia_Deployment_Panel.h"
 #include "Assignments.h"
 #include "Campaign_Types.h"
 #include "Debug.h"
@@ -17,6 +19,7 @@
 #include "Video.h"
 #include "VObject.h"
 #include "VSurface.h"
+#include "Town_Militia.h"
 #include <string_theory/string>
 
 struct BUTTON_PICS;
@@ -410,7 +413,7 @@ void ToggleShowMinesMode( void )
 static bool DoesPlayerHaveAnyMilitia();
 
 
-void ToggleShowMilitiaMode( void )
+void ToggleShowMilitiaMode(bool const explain)
 {
 	if (fShowMilitia)
 	{
@@ -447,14 +450,19 @@ void ToggleShowMilitiaMode( void )
 
 
 		// check if player has any militia
-		if (!DoesPlayerHaveAnyMilitia())
+		if (explain && !DoesPlayerHaveAnyMilitia())
 		{
 			ST::string pwString;
 
 			// no - so put up a message explaining how it works
 
+			if (IsMilitiaRecruitmentEnabled())
+			{
+				// say they are bought in the recruitment panel
+				pwString = pMilitiaRecruitStrings[15];
+			}
 			// if he's already training some
-			if( IsAnyOneOnPlayersTeamOnThisAssignment( TRAIN_TOWN ) )
+			else if( IsAnyOneOnPlayersTeamOnThisAssignment( TRAIN_TOWN ) )
 			{
 				// say they'll show up when training is completed
 				pwString = pMapErrorString[ 28 ];
@@ -559,6 +567,8 @@ static void DisplayCurrentLevelMarker(void)
 void RenderMapLevelMarker(void)
 {
 	if (fShowMapInventoryPool) return;
+	// the militia panels lie over it
+	if (IsMilitiaRecruitPanelOpen() || IsMilitiaDeploymentPanelOpen()) return;
 
 	// Draws straight to FRAME_BUFFER (not guiSAVEBUFFER, unlike
 	// DisplayCurrentLevelMarker() above) so it always ends up on top,
@@ -878,7 +888,7 @@ static bool DoesPlayerHaveAnyMilitia()
 	FOR_EACH(SECTORINFO const, i, SectorInfo)
 	{
 		UINT8 const (&n)[MAX_MILITIA_LEVELS] = i->ubNumberOfCivsAtLevel;
-		if (n[GREEN_MILITIA] + n[REGULAR_MILITIA] + n[ELITE_MILITIA] != 0) return true;
+		if (n[GREEN_MILITIA] + n[REGULAR_MILITIA] + n[ELITE_MILITIA] + n[ELITE_HEAVY_MILITIA] != 0) return true;
 	}
 	return false;
 }

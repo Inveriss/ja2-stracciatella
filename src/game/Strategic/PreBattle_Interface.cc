@@ -30,6 +30,9 @@
 #include "Tactical_Placement_GUI.h"
 #include "Timer_Control.h"
 #include "Town_Militia.h"
+#include "Militia_Watch.h"
+#include "MessageBoxScreen.h"
+#include "Strategic_Movement.h"
 #include "Campaign.h"
 #include "GameSettings.h"
 #include "Random.h"
@@ -173,6 +176,10 @@ static void PBListWheelCallback(MOUSE_REGION*, UINT32 const reason)
 
 GROUP *gpBattleGroup = NULL;
 
+// The pre-battle panel is for militia attacking this sector (StartMilitiaAttackBattle())
+static bool      g_militia_attack = false;
+static SGPSector g_militia_attack_sector;
+
 
 static MOUSE_REGION PBInterfaceBlanket;
 BOOLEAN gfPreBattleInterfaceActive = FALSE;
@@ -297,6 +304,11 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 		if (battle_group)
 		{
 			gubPBSector = battle_group->ubSector;
+			fMapPanelDirty = TRUE;
+		}
+		else if (g_militia_attack)
+		{
+			gubPBSector = g_militia_attack_sector;
 			fMapPanelDirty = TRUE;
 		}
 		else
@@ -451,7 +463,11 @@ void InitPreBattleInterface(GROUP* const battle_group, bool const persistent_pbi
 
 	if (gfPersistantPBI)
 	{
-		if (!battle_group)
+		if (!battle_group && g_militia_attack)
+		{ // Militia attack the enemy holding the sector
+			gubEnemyEncounterCode = ENEMY_ENCOUNTER_CODE;
+		}
+		else if (!battle_group)
 		{ // Creatures are attacking
 			gubEnemyEncounterCode = CREATURE_ATTACK_CODE;
 		}
@@ -676,10 +692,23 @@ static void DoTransitionFromMapscreenToPreBattleInterface(void)
 	BltVideoSurface(guiSAVEBUFFER, FRAME_BUFFER, 0, 0, NULL);
 }
 
+void StartMilitiaAttackBattle(const SGPSector& sector)
+{
+	g_militia_attack        = true;
+	g_militia_attack_sector = sector;
+	gfUsePersistantPBI      = TRUE;
+	gfDelayAutoResolveStart = TRUE; // nobody of the player's team to command
+	StopTimeCompression();
+	InitPreBattleInterface(NULL, true);
+}
+
+
 void KillPreBattleInterface()
 {
 	if( !gfPreBattleInterfaceActive )
 		return;
+
+	g_militia_attack = false;
 
 	fDisableMapInterfaceDueToBattle = FALSE;
 	MSYS_RemoveRegion( &PBInterfaceBlanket );
@@ -801,6 +830,12 @@ static void MPrintCentered(INT32 x, INT32 y, INT32 w, const ST::string& str)
 
 
 static ST::string GetSoldierConditionInfo(const SOLDIERTYPE& s);
+
+
+// asked already whether to watch the battle (this pre-battle interface)
+static bool g_watch_battle_asked = false;
+static bool CanWatchMilitiaBattle(const SGPSector&);
+static void WatchBattleQuestionCallback(MessageBoxReturnValue);
 
 
 void RenderPreBattleInterface()
@@ -1031,10 +1066,51 @@ void RenderPreBattleInterface()
 	if (gfEnterAutoResolveMode)
 	{
 		gfEnterAutoResolveMode = FALSE;
-		EnterAutoResolveMode(gubPBSector);
+		if (!g_watch_battle_asked && CanWatchMilitiaBattle(gubPBSector))
+		{
+			// only militia fight here: first ask whether to watch the battle in
+			// tactical instead of autoresolving it
+			g_watch_battle_asked = true;
+			DoMapMessageBox(MSG_BOX_BASIC_STYLE, pMilitiaWatchStrings[1], MAP_SCREEN, MSG_BOX_FLAG_YESNO, WatchBattleQuestionCallback);
+		}
+		else
+		{
+			g_watch_battle_asked = false;
+			EnterAutoResolveMode(gubPBSector);
+		}
 	}
 
 	gfIgnoreAllInput = FALSE;
+}
+
+
+// Only militia (no mercs) fight on the player's side, on the surface: the
+// battle can be watched in tactical
+static bool CanWatchMilitiaBattle(const SGPSector& sector)
+{
+	// (not when tactical hands a battle over to autoresolve, e.g. after EXIT)
+	return sector.z == 0 &&
+		!gfTransferTacticalOppositionToAutoResolve &&
+		PlayerMercsInSector(sector) == 0 &&
+		CountAllMilitiaInSector(sector) != 0;
+}
+
+
+static void WatchBattleQuestionCallback(MessageBoxReturnValue const ret)
+{
+	if (ret == MSG_BOX_RETURN_YES)
+	{
+		// watch it: the map screen loads the sector
+		g_watch_battle_asked = false;
+		RequestWatchMilitiaBattle(gubPBSector);
+		KillPreBattleInterface();
+	}
+	else
+	{
+		// autoresolve as usual (asked already)
+		gfEnterAutoResolveMode = TRUE;
+		gfRenderPBInterface    = TRUE;
+	}
 }
 
 
