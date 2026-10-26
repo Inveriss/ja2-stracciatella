@@ -4,6 +4,7 @@ Polska wersja dokumentu [helicopter-team-list-repair-plan.md](helicopter-team-li
 
 Status: **tylko plan**, niewdrożony (zlecony 2026-10-26, gdy użytkownik
 pracował przez Remote Control; zmiana jest zbyt duża, by robić ją bez testów).
+Decyzje D1–D6 podjęte przez użytkownika 2026-10-26 (rozdział 5).
 Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehicles-current-implementation-pl.md).
 
 ## 1. Cel
@@ -72,12 +73,23 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
 
 ### Etap 2 — stan techniczny zamiast licznika trafień
 
-- Zastąpić `gubHelicopterHitsTaken` przez `bLife` pustego żołnierza (decyzja D2
-  co do liczb). Propozycja z zachowaniem oryginalnego charakteru: każde
-  trafienie SAM −34 → 66 (kwestia „lekkie uszkodzenie”), 32 (kwestia „poważne
-  uszkodzenie”, powrót do bazy), poniżej `OKLIFE` → zniszczenie.
-- Progi są liczone ze stanu, więc naprawiony helikopter może znów przyjąć
-  trafienia.
+- Zastąpić `gubHelicopterHitsTaken` przez `bLife` pustego żołnierza (D2):
+  **każde trafienie SAM −25 stanu** (`HELI_SAM_HIT_DAMAGE` 25). Od pełnego stanu:
+
+  | Trafienie | Stan po | Skutek |
+  |---|---|---|
+  | 1 | 75 | kwestia `HELI_TOOK_MINOR_DAMAGE` |
+  | 2 | 50 | kwestia `HELI_TOOK_MINOR_DAMAGE` |
+  | 3 | 25 | kwestia `HELI_TOOK_MAJOR_DAMAGE`, `MakeHeliReturnToBase()` |
+  | 4 | 0 | oryginalna katastrofa: kwestia `HELI_GOING_DOWN`, dźwięk upadku, `SkyriderDestroyed()` — giną wszyscy na pokładzie |
+
+- Skutek wybiera się ze **stanu po trafieniu**, więc naprawiony (albo częściowo
+  naprawiony) helikopter podlega tym samym regułom:
+  stan > 25 → kwestia lekka; 1–25 → kwestia poważna + powrót do bazy;
+  0 → katastrofa. Stan nigdy nie spada poniżej 0. To zastępuje oryginalną
+  regułę liczby trafień (kwestia, powrót, katastrofa przy trafieniach 1, 2, 3).
+- Ścieżka obrażeń pojazdu (`VehicleTakeDamage`, która ustawia życie < `OKLIFE`
+  na 0) nie jest używana dla trafień SAM; logika helikoptera sama zmienia `bLife`.
 - Zapis: `gubHelicopterHitsTaken` zostaje w rekordzie zapisu (nieużywane albo
   wyliczane); zgodnie z zasadą braku zgodności zapisów może być potrzebna nowa
   gra.
@@ -92,9 +104,18 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
   bazy. Dla naprawy osobna reguła (decyzja D3): najemnik w sektorze
   helikoptera, helikopter **wylądował** (`!fHelicopterIsAirBorne`), nie jest
   między sektorami, nie jest zniszczony.
-- `RepairVehicle` już działa na `bLife` (10 punktów naprawy = 1 punkt stanu,
-  decyzja D4).
-- Zaokrąglanie punktów naprawy w `Faces.cc` już obsługuje pojazdy.
+- Szybkość naprawy (D4): helikopter naprawia się wolniej — **20 punktów
+  naprawy = 1 punkt stanu** (nowa stała `HELICOPTER_REPAIR_POINTS_DIVISOR` 20;
+  Hummer zostaje przy `VEHICLE_REPAIR_POINTS_DIVISOR` 10). `RepairVehicle`
+  wybiera dzielnik wg `IsHelicopter(v)`.
+- `Faces.cc` zaokrągla pokazywane punkty naprawy do wielokrotności
+  `VEHICLE_REPAIR_POINTS_DIVISOR`; musi używać tego samego dzielnika co pojazd.
+- Blokada lotu (D6): **poniżej 25 stanu helikopter nie wystartuje**, dopóki nie
+  zostanie naprawiony — nowy warunek w `CanHelicopterFly()` /
+  `CanHelicopterTakeOff()` z komunikatem Skyridera, dlaczego. Uwaga: po
+  dokładnie trzech trafieniach od pełnego stanu ma 25, więc *nie* jest
+  zablokowany (i tak już wraca do bazy); blokada dotyczy stanu 1–24,
+  osiąganego po trafieniach częściowo naprawionego helikoptera.
 
 ### Etap 4 — limity, teksty, testy
 
@@ -105,19 +126,21 @@ drużyny, panel informacji, menu przydziałów i menu naprawy działają na
 - Tłumaczenia: tylko jeśli dojdą nowe komunikaty (np. „helikopter musi
   wylądować, żeby go naprawić”).
 - Testy w grze: zdobyć Skyridera, sprawdzić wiersz; przelecieć nad sektorem SAM,
-  żeby dostać trafienia; wylądować; naprawić mechanikiem; zniszczyć helikopter
-  (3. trafienie) i sprawdzić, że wiersz znika; zapis/odczyt.
+  żeby dostać trafienia (75 / 50 / 25 i kwestie, powrót do bazy po 3.);
+  wylądować; naprawić mechanikiem (20 punktów na punkt stanu); blokada startu
+  poniżej 25; zniszczyć helikopter (4. trafienie od pełnego stanu) i sprawdzić,
+  że wiersz znika; zapis/odczyt.
 
-## 5. Decyzje dla użytkownika
+## 5. Decyzje (podjęte 2026-10-26)
 
-| # | Pytanie | Propozycja |
+| # | Pytanie | Decyzja |
 |---|---|---|
-| D1 | Czy helikopter zajmuje miejsce w drużynie (jak Hummer)? | tak, jak Hummer |
-| D2 | Obrażenia na trafienie SAM i progi | −34 na trafienie; < 67 kwestia lekka, < 34 kwestia poważna + powrót do bazy, < `OKLIFE` zniszczenie |
-| D3 | Gdzie można go naprawiać? | tylko po wylądowaniu, najemnik w tym samym sektorze (dowolny sektor, nie tylko miejsce tankowania) |
-| D4 | Szybkość naprawy | jak Hummer: 10 punktów naprawy = 1 punkt stanu |
-| D5 | Kliknięcie wiersza helikoptera, by wyznaczyć trasę | otwiera zwykłe wyznaczanie trasy Skyridera |
-| D6 | Czy uszkodzenie blokuje też lot (np. poniżej 34 nie wystartuje do naprawy)? | tak — poniżej 34 helikopter stoi na ziemi do czasu naprawy |
+| D1 | Czy helikopter zajmuje miejsce w drużynie (jak Hummer)? | **tak**, jak Hummer (wg rekomendacji) |
+| D2 | Obrażenia na trafienie SAM i skutki | **−25 na trafienie**; 1. i 2. trafienie: kwestia o lekkim uszkodzeniu; 3. trafienie (stan 25): kwestia o poważnym uszkodzeniu + powrót do bazy; 4. trafienie: oryginalna katastrofa, wszyscy giną (szczegóły w etapie 2) |
+| D3 | Gdzie można go naprawiać? | **tylko po wylądowaniu, najemnik w tym samym sektorze** (dowolny sektor, nie tylko miejsce tankowania), wg rekomendacji |
+| D4 | Szybkość naprawy | **20 punktów naprawy = 1 punkt stanu** (wolniej niż 10 u Hummera, bo to helikopter) |
+| D5 | Kliknięcie wiersza helikoptera, by wyznaczyć trasę | **otwiera zwykłe wyznaczanie trasy Skyridera**, wg rekomendacji |
+| D6 | Czy uszkodzenie blokuje też lot? | **tak, poniżej 25 stanu** helikopter nie wystartuje do czasu naprawy |
 
 ## 6. Rozmiar i ryzyko
 

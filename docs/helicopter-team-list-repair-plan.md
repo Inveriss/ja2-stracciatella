@@ -1,7 +1,8 @@
 # Plan: helicopter on the team list, with Repair
 
 Status: **plan only**, not implemented (requested 2026-10-26 while the user
-worked over Remote Control; the change is too big to make untested). Branch
+worked over Remote Control; the change is too big to make untested).
+Decisions D1–D6 taken by the user on 2026-10-26 (section 5). Branch
 `Vehicles`. Background: [vehicles-current-implementation.md](vehicles-current-implementation.md).
 
 ## 1. Goal
@@ -70,12 +71,23 @@ a second kind of entry would touch far more code.
 
 ### Stage 2 — condition instead of hit count
 
-- Replace `gubHelicopterHitsTaken` by the shell's `bLife` (decision D2 for the
-  numbers). Proposal keeping the original feel: each SAM hit −34 →
-  66 (quote "minor damage"), 32 (quote "major damage", return to base),
-  below `OKLIFE` → destroyed.
-- The thresholds are checked from the condition, so a repaired helicopter can
-  take hits again.
+- Replace `gubHelicopterHitsTaken` by the shell's `bLife` (D2): **each SAM hit
+  −25 condition** (`HELI_SAM_HIT_DAMAGE` 25). From full condition:
+
+  | Hit | Condition after | Effect |
+  |---|---|---|
+  | 1 | 75 | quote `HELI_TOOK_MINOR_DAMAGE` |
+  | 2 | 50 | quote `HELI_TOOK_MINOR_DAMAGE` |
+  | 3 | 25 | quote `HELI_TOOK_MAJOR_DAMAGE`, `MakeHeliReturnToBase()` |
+  | 4 | 0 | the original crash: quote `HELI_GOING_DOWN`, crash sound, `SkyriderDestroyed()` — everyone aboard dies |
+
+- The effect is chosen from the **condition after the hit**, so a repaired (or
+  partly repaired) helicopter follows the same rules:
+  condition > 25 → minor quote; 1–25 → major quote + return to base;
+  0 → crash. Condition never goes below 0. This replaces the original
+  hit-count rule (quote, return, crash on hits 1, 2, 3).
+- The vehicle damage path (`VehicleTakeDamage`, which sets life < `OKLIFE` to 0)
+  is not used for SAM hits; the helicopter logic changes `bLife` itself.
 - Save: `gubHelicopterHitsTaken` stays in the save record (unused or derived);
   per the no-save-compatibility rule a new game may be needed.
 
@@ -89,9 +101,18 @@ a second kind of entry would touch far more code.
   For repair use its own rule (decision D3): merc in the helicopter's sector,
   helicopter **landed** (`!fHelicopterIsAirBorne`), not between sectors,
   not destroyed.
-- `RepairVehicle` already works on `bLife` (10 repair points = 1 condition
-  point, decision D4).
-- `Faces.cc` repair-points rounding already handles vehicles.
+- Repair speed (D4): the helicopter is slower to repair — **20 repair points =
+  1 condition point** (new `HELICOPTER_REPAIR_POINTS_DIVISOR` 20; the Hummer
+  keeps `VEHICLE_REPAIR_POINTS_DIVISOR` 10). `RepairVehicle` picks the divisor
+  by `IsHelicopter(v)`.
+- `Faces.cc` rounds the shown repair points to a multiple of
+  `VEHICLE_REPAIR_POINTS_DIVISOR`; it must use the same per-vehicle divisor.
+- Flight lock (D6): **below 25 condition the helicopter can't take off** until
+  repaired — a new check in `CanHelicopterFly()` / `CanHelicopterTakeOff()`
+  with a Skyrider message why. Note: after exactly three hits from full
+  condition it has 25, so it is *not* locked (it is already returning to base);
+  the lock applies to 1–24, reached after hits on a partly repaired
+  helicopter.
 
 ### Stage 4 — limits, texts, tests
 
@@ -102,19 +123,21 @@ a second kind of entry would touch far more code.
 - Translations: only if new messages are added (e.g. "the helicopter must be
   landed to be repaired").
 - Tests in the game: get Skyrider, check the row; fly over a SAM sector to take
-  hits; land; repair with a mechanic; destroy the heli (3rd hit) and check the
-  row disappears; save/load.
+  hits (75 / 50 / 25 and the quotes, return to base after the 3rd); land;
+  repair with a mechanic (20 points per condition point); take-off lock below
+  25; destroy the heli (4th hit from full) and check the row disappears;
+  save/load.
 
-## 5. Decisions for the user
+## 5. Decisions (taken 2026-10-26)
 
-| # | Question | Proposal |
+| # | Question | Decision |
 |---|---|---|
-| D1 | Does the helicopter take a team slot (like the Hummer)? | yes, same as Hummer |
-| D2 | Damage per SAM hit and thresholds | −34 per hit; < 67 minor quote, < 34 major + return to base, < `OKLIFE` destroyed |
-| D3 | Where can it be repaired? | only landed, merc in the same sector (any sector, not only a refuel site) |
-| D4 | Repair speed | same as Hummer: 10 repair points = 1 condition point |
-| D5 | Clicking the helicopter row to plot a route | open the normal Skyrider route plotting |
-| D6 | Does damage also stop flying (e.g. below 34 it can't take off until repaired)? | yes — below 34 the heli stays grounded until repaired |
+| D1 | Does the helicopter take a team slot (like the Hummer)? | **yes**, same as Hummer (as recommended) |
+| D2 | Damage per SAM hit and effects | **−25 per hit**; hit 1 and hit 2: minor damage quote; hit 3 (condition 25): major damage quote + return to base; hit 4: the original crash, everyone dies (details in stage 2) |
+| D3 | Where can it be repaired? | **only landed, merc in the same sector** (any sector, not only a refuel site), as recommended |
+| D4 | Repair speed | **20 repair points = 1 condition point** (slower than the Hummer's 10, because it is a helicopter) |
+| D5 | Clicking the helicopter row to plot a route | **open the normal Skyrider route plotting**, as recommended |
+| D6 | Does damage also stop flying? | **yes, below 25 condition** the helicopter can't take off until repaired |
 
 ## 6. Size and risk
 
