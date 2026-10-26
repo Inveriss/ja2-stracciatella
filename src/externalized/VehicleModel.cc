@@ -8,10 +8,11 @@
 
 VehicleModel::VehicleModel(ST::string enterSound, ST::string movementSound,
                            ProfileID profile, VehicleMovementType movementType,
-                           uint16_t armourType, uint8_t seats_, uint8_t repairPointsDivisor)
+                           uint16_t armourType, uint8_t seats_, uint8_t repairPointsDivisor,
+                           uint8_t slotLimitMultiplier)
     : enter_sound(std::move(enterSound)), move_sound(std::move(movementSound)), profile(profile),
       movement_type(movementType), armour_type(armourType), seats(seats_),
-      repair_points_divisor(repairPointsDivisor) {}
+      repair_points_divisor(repairPointsDivisor), slot_limit_multiplier(slotLimitMultiplier) {}
 
 static VehicleMovementType toMovementType(const ST::string& typeName)
 {
@@ -56,6 +57,12 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		throw DataError(ST::format("repairPointsDivisor must be 1-100, not {}", repairPointsDivisor));
 	}
 
+	unsigned int const slotLimitMultiplier = obj.getOptionalUInt("slotLimitMultiplier", 1);
+	if (slotLimitMultiplier < 1 || slotLimitMultiplier > 100)
+	{
+		throw DataError(ST::format("slotLimitMultiplier must be 1-100, not {}", slotLimitMultiplier));
+	}
+
 	return new VehicleModel(
 		obj.GetString("enterSound"),
 		obj.GetString("moveSound"),
@@ -63,7 +70,8 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		toMovementType(obj.GetString("movementType")),
 		armour->getItemIndex(),
 		numSeats,
-		repairPointsDivisor
+		repairPointsDivisor,
+		slotLimitMultiplier
 		);
 }
 

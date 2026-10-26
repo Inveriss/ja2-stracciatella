@@ -37,6 +37,8 @@
 #include "CalibreModel.h"
 #include "ContentManager.h"
 #include "GameInstance.h"
+#include "VehicleModel.h"
+#include "Vehicles.h"
 #include "ItemModel.h"
 #include "MagazineModel.h"
 #include "WeaponModels.h"
@@ -45,6 +47,7 @@
 #include <map>
 #include <set>
 #include <stdexcept>
+
 
 
 constexpr UINT8 ANY_MAGSIZE = 255; // magic number for FindAmmo's mag_size parameter
@@ -338,6 +341,19 @@ UINT8 ApplyBigPerPocketOverride( UINT16 usItem, INT8 bSlot, UINT8 ubSlotLimit )
 		}
 	}
 	return ubSlotLimit;
+}
+
+
+UINT8 SoldierSlotLimit(SOLDIERTYPE const& s, UINT16 const usItem, INT8 const bSlot)
+{
+	int limit = std::min(int(ApplyBigPerPocketOverride(usItem, bSlot, ItemSlotLimit(usItem, bSlot))), int(MAX_OBJECTS_PER_SLOT));
+	if (s.uiStatusFlags & SOLDIER_VEHICLE && limit > 1 &&
+			!(GCM->getItem(usItem)->getItemClass() & (IC_WEAPON | IC_PUNCH)))
+	{
+		VEHICLETYPE const& v = pVehicleList[s.bVehicleID];
+		limit = std::min(limit * GCM->getVehicle(v.ubVehicleType)->slot_limit_multiplier, int(MAX_OBJECTS_PER_SLOT));
+	}
+	return static_cast<UINT8>(limit);
 }
 
 
@@ -2162,7 +2178,10 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 	// per user request -- a soldier's own inventory (Inventory_bottom_
 	// panel.sti/Mapinv.sti) can be capped lower than the sector-inventory
 	// stash, which never sees this override.
-	int ubSlotLimit = std::min(int(ApplyBigPerPocketOverride(pObj->usItem, bPos, ItemSlotLimit(pObj->usItem, bPos))), int(MAX_OBJECTS_PER_SLOT));
+	//
+	// SoldierSlotLimit() also gives a vehicle's cargo pockets their larger
+	// limit (vehicles.json slotLimitMultiplier).
+	int ubSlotLimit = SoldierSlotLimit(*pSoldier, pObj->usItem, bPos);
 
 	pInSlot = &(pSoldier->inv[bPos]);
 
@@ -2521,7 +2540,7 @@ static BOOLEAN InternalAutoPlaceObject(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, 
 				}
 				if ( bSlot != bExcludeSlot )
 				{
-					if ( ( (GCM->getItem(pObj->usItem)->getItemClass() == IC_MONEY) && pSoldier->inv[ bSlot ].uiMoneyAmount < MoneySlotLimit( bSlot ) ) || (GCM->getItem(pObj->usItem)->getItemClass() != IC_MONEY && pSoldier->inv[bSlot].ubNumberOfObjects < ItemSlotLimit( pObj->usItem, bSlot ) ) )
+					if ( ( (GCM->getItem(pObj->usItem)->getItemClass() == IC_MONEY) && pSoldier->inv[ bSlot ].uiMoneyAmount < MoneySlotLimit( bSlot ) ) || (GCM->getItem(pObj->usItem)->getItemClass() != IC_MONEY && pSoldier->inv[bSlot].ubNumberOfObjects < SoldierSlotLimit(*pSoldier, pObj->usItem, bSlot) ) )
 					{
 						// NEW: If in SKI, don't auto-place anything into a stackable slot that's currently hatched out!  Such slots
 						// will disappear in their entirety if sold/moved, causing anything added through here to vanish also!

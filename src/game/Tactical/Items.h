@@ -67,6 +67,13 @@ UINT8 ItemSlotLimit( UINT16 usItem, INT8 bSlot );
 // (PlaceObject(), InitItemStackPopup()) should use this.
 UINT8 ApplyBigPerPocketOverride( UINT16 usItem, INT8 bSlot, UINT8 ubSlotLimit );
 
+// How many of this item fit this soldier's own slot: ItemSlotLimit() with the
+// big pocket override, capped at MAX_OBJECTS_PER_SLOT; a vehicle's cargo
+// pockets take its vehicles.json slotLimitMultiplier times that -- not for
+// weapons or brass knuckles, nor for items that go one per slot. Money has
+// its own MoneySlotLimit().
+UINT8 SoldierSlotLimit(SOLDIERTYPE const&, UINT16 usItem, INT8 bSlot);
+
 // Function to put an item in a soldier profile
 // It's very primitive, just finds an empty place!
 BOOLEAN PlaceObjectInSoldierProfile( UINT8 ubProfile, OBJECTTYPE *pObject );

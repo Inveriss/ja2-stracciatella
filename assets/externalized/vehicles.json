@@ -14,6 +14,7 @@
  * - armourType: Determines the vehicle's protection against damage. Use the internal name of any armour items.
  * - seats: Maximum number of soldiers allowed in the vehicle. Must not be greater than 10.
  * - repairPointsDivisor: Repair points that restore one point of the vehicle's condition (1-100, default 10).
+ * - slotLimitMultiplier: The vehicle's cargo pockets hold this many times a merc's limit of an item (1-100, default 1); not for weapons, brass knuckles or money.
  */
 [
     // Eldorado (unused)
@@ -24,7 +25,8 @@
         "movementType": "CAR",
         "armourType": "KEVLAR_VEST",
         "seats": 6,
-        "repairPointsDivisor": 10
+        "repairPointsDivisor": 10,
+        "slotLimitMultiplier": 4
     },
     // Hummer
     {
@@ -34,7 +36,8 @@
         "movementType": "CAR",
         "armourType": "SPECTRA_VEST",
         "seats": 6,
-        "repairPointsDivisor": 10
+        "repairPointsDivisor": 10,
+        "slotLimitMultiplier": 4
     },
     // Ice cream truck
     {
@@ -44,7 +47,8 @@
         "movementType": "CAR",
         "armourType": "KEVLAR_VEST",
         "seats": 6,
-        "repairPointsDivisor": 8
+        "repairPointsDivisor": 8,
+        "slotLimitMultiplier": 4
     },
     // Jeep (unused)
     {
@@ -54,7 +58,8 @@
         "movementType": "CAR",
         "armourType": "KEVLAR_VEST",
         "seats":  6,
-        "repairPointsDivisor": 10
+        "repairPointsDivisor": 10,
+        "slotLimitMultiplier": 4
     },
     // Tank (unused)
     {
@@ -64,7 +69,8 @@
         "movementType": "CAR",
         "armourType": "SPECTRA_VEST",
         "seats": 6,
-        "repairPointsDivisor": 10
+        "repairPointsDivisor": 10,
+        "slotLimitMultiplier": 4
     },
     // Helicopter
     {
@@ -74,6 +80,7 @@
         "movementType": "AIR",
         "armourType": "KEVLAR_VEST",
         "seats":6,
-        "repairPointsDivisor": 12
+        "repairPointsDivisor": 12,
+        "slotLimitMultiplier": 4
     }
 ]

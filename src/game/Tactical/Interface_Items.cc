@@ -6379,7 +6379,8 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 	// itself bounded by it, but gItemPopupRegions[] below is, and a single
 	// OBJECTTYPE can never actually hold more than MAX_OBJECTS_PER_SLOT
 	// units regardless of what ubPerPocket claims.
-	UINT8       const ubLimit = std::min<UINT8>(ApplyBigPerPocketOverride(pObject->usItem, (INT8)ubPosition, ItemSlotLimit( pObject->usItem, ubPosition )), MAX_OBJECTS_PER_SLOT);
+	// SoldierSlotLimit() does both, plus a vehicle's larger cargo limit.
+	UINT8       const ubLimit = SoldierSlotLimit(*pSoldier, pObject->usItem, (INT8)ubPosition);
 
 	// the 1366x768 SM panel: in the key ring's panel, if the stack fits
 	gfTacBigStackPopup = UseTacBigKeyRingPanel() && ubLimit <= TAC_BIG_KEYRING_SLOTS;
