@@ -1,4 +1,5 @@
 #include "ItemModel.h"
+#include "Items.h"
 #include "LoadSaveVehicleType.h"
 #include "Map_Screen_Interface_Map.h"
 #include "SaveLoadGame.h"
@@ -43,6 +44,10 @@
 
 
 INT8 gubVehicleMovementGroups[ MAX_VEHICLES ];
+
+// damage to a destroyed vehicle's cargo: 2 x the blast damage of its
+// GREAT_BIG_EXPLOSION (50), the factor items lying at an explosion get
+#define VEHICLE_CARGO_EXPLOSION_DAMAGE 100
 
 // the list of vehicle slots
 std::vector<VEHICLETYPE> pVehicleList;
@@ -659,6 +664,11 @@ static void HandleCriticalHitForVehicleInLocation(const UINT8 ubID, const INT16 
 	if (vs.bLife == 0 && !v.fDestroyed)
 	{
 		v.fDestroyed = TRUE;
+
+		// The explosion damages the cargo, which is dropped with the wreck: like
+		// items lying where something blows up, twice the blast's damage
+		// (explosives aboard may go off, too). Not for tanks.
+		CheckEquipmentForDamage(&vs, VEHICLE_CARGO_EXPLOSION_DAMAGE);
 
 		// Explode vehicle...
 		IgniteExplosion(att, 0, sGridNo, GREAT_BIG_EXPLOSION, 0);
