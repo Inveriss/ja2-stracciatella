@@ -1905,8 +1905,14 @@ static void HandleRepairBySoldier(SOLDIERTYPE& s)
 			}
 			else if (kit_too_poor_for)
 			{
-				// he could repair the vehicle, but his tool kit is too worn
-				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(gzLateLocalizedString[STR_LATE_59], s.name, pVehicleStrings[kit_too_poor_for->ubVehicleType]));
+				// he could repair the vehicle, but his tool kit is too worn: in the
+				// message log and a box (unless one is already up)
+				ST::string const msg = st_format_printf(gzLateLocalizedString[STR_LATE_59], s.name, pVehicleStrings[kit_too_poor_for->ubVehicleType]);
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, msg);
+				if (guiCurrentScreen != MSG_BOX_SCREEN)
+				{
+					DoScreenIndependantMessageBox(msg, MSG_BOX_FLAG_OK, NULL);
+				}
 				StopTimeCompression();
 				fCharacterInfoPanelDirty = TRUE;
 				fTeamPanelDirty          = TRUE;
