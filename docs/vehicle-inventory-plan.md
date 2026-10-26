@@ -57,7 +57,7 @@ Branch `Vehicles`. Background: [vehicles-current-implementation.md](vehicles-cur
 | V8c | Broken items | **stay in the dropped pile as broken** (status below `USABLE`); in stacks, units at status 1 are removed (existing rule) |
 | V9 | The helicopter (since it got its own soldier, plan docs/helicopter-team-list-repair-plan.md) | **it gets an openable inventory too**; when it crashes, **its cargo is lost completely** (section 4.6) |
 
-| V9a | When can items be moved to / from the helicopter? | only while it has **landed**, with anyone in its sector; and with **its own passengers** at any time, also in flight (as proposed) |
+| V9a | When can items be moved to / from the helicopter? | while it has **landed or hovers over a sector**, with anyone in that sector and the sector inventory; on its way **between sectors** only with **its own passengers** (changed 2026-10-26 from "only landed": it lands only at the refuel sites, everywhere else it hovers) |
 | V9b | Its `slotLimitMultiplier` | **4**, like the ground vehicles (as proposed) |
 
 All decisions V1–V9b are taken; nothing is open.
