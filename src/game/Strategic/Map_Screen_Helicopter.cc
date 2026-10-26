@@ -43,6 +43,7 @@
 #include "WorldMan.h"
 
 #include <algorithm>
+#include <vector>
 
 // SAM hits on the helicopter: each costs this much of its condition (0-100);
 // the condition left picks the outcome -- from HELI_MINOR_DAMAGE_MIN_CONDITION
@@ -129,6 +130,12 @@ BOOLEAN fShowDrassenSAMHighLight = FALSE;
 BOOLEAN fShowCambriaHospitalHighLight = FALSE;
 UINT32 guiTimeOfLastSkyriderMonologue = 0;
 UINT8 gubHelicopterHitsTaken = 0;
+
+// From the hit that brings the helicopter down until it crashes (the crash
+// sound plays in between): who was aboard -- they die in the crash even if
+// they got another assignment meanwhile, which the map screen doesn't allow
+static bool                   gfHelicopterGoingDown = false;
+static std::vector<ProfileID> g_heli_crash_victims;
 BOOLEAN gfSkyriderSaidCongratsOnTakingSAM = FALSE;
 UINT8 gubPlayerProgressSkyriderLastCommentedOn = 0;
 
@@ -179,6 +186,9 @@ void InitializeHelicopter( void )
 	gfSkyriderEmptyHelpGiven = FALSE;
 
 	gubHelicopterHitsTaken = 0;
+
+	gfHelicopterGoingDown = false;
+	g_heli_crash_victims.clear();
 
 	gfSkyriderSaidCongratsOnTakingSAM = FALSE;
 	gubPlayerProgressSkyriderLastCommentedOn = 0;
@@ -352,6 +362,21 @@ static RefuelSite const* FindClosestRefuelSite(bool const must_be_available)
 	return closest_site;
 }
 
+bool IsHelicopterGoingDown()
+{
+	return gfHelicopterGoingDown;
+}
+
+static void StartHelicopterGoingDown()
+{
+	gfHelicopterGoingDown = true;
+	g_heli_crash_victims.clear();
+	CFOR_EACH_PASSENGER(GetHelicopter(), i)
+	{
+		g_heli_crash_victims.push_back((*i)->ubProfile);
+	}
+}
+
 // helicopter shot down, kill all on board
 static void SkyriderDestroyed(void)
 {
@@ -359,6 +384,15 @@ static void SkyriderDestroyed(void)
 	VEHICLETYPE& v = GetHelicopter();
 	DeleteStrategicEvent(EVENT_GROUP_ARRIVAL, v.ubMovementGroup);
 	KillAllInVehicle(v);
+
+	// those aboard when it was hit who left it meanwhile
+	for (ProfileID const id : g_heli_crash_victims)
+	{
+		SOLDIERTYPE* const s = FindSoldierByProfileIDOnPlayerTeam(id);
+		if (s && s->bLife != 0) SoldierTakeDamage(s, 100, 100, TAKE_DAMAGE_BLOODLOSS, 0);
+	}
+	g_heli_crash_victims.clear();
+	gfHelicopterGoingDown = false;
 
 	// kill skyrider
 	gMercProfiles[ SKYRIDER ].bLife = 0;
@@ -1180,6 +1214,9 @@ static BOOLEAN HandleSAMSiteAttackOfHelicopterInSector(const SGPSector& sSector)
 		{
 			// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
 			HeliCharacterDialogue(HELI_GOING_DOWN);
+
+			// nobody gets off now
+			StartHelicopterGoingDown();
 
 			// everyone die die die
 			// play sound

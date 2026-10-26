@@ -5312,6 +5312,9 @@ static void TeamListAssignmentRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, UI
 		// reset list if the clicked character isn't also selected
 		ChangeSelectedInfoChar(iValue, !IsEntryInSelectedListSet(iValue));
 
+		// aboard the helicopter going down: no getting off any more
+		if (InHelicopter(*pSoldier) && IsHelicopterGoingDown()) return;
+
 		// if alive (dead guys keep going, use remove menu instead),
 		// and it's between sectors and it can be reassigned (non-vehicles)
 		if ( ( pSoldier->bAssignment != ASSIGNMENT_DEAD ) && ( pSoldier->bLife > 0 ) && ( pSoldier->fBetweenSectors ) && !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) )

@@ -127,6 +127,10 @@ BOOLEAN IsHelicopterPilotAvailable( void );
 // is the helicopter's condition below the one Skyrider needs to take off
 // (GetHelicopterFlightMinCondition())?
 bool IsHelicopterTooDamagedToFly();
+
+// has the helicopter been shot down, its crash still to come? Those aboard
+// can't change their assignment then.
+bool IsHelicopterGoingDown();
 INT8 GetHelicopterFlightMinCondition();
 
 // have helicopter take off
