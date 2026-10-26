@@ -48,14 +48,18 @@ Control). Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehic
 | V2 | Jeden wspólny mnożnik czy osobny dla pojazdu? | **osobny dla każdego pojazdu**, pole w `vehicles.json` |
 | V3 | Limity pieniędzy | **bez zmian** także dla pojazdów (100000 duża / 50000 mała kieszeń) |
 | V4 | Wykluczone przedmioty | **wszystkie bronie (`IC_WEAPON`) i kastet (`IC_PUNCH`)** zostają przy limicie najemnika; na razie bez innych wyjątków |
-| V5 | Gdzie można otworzyć inwentarz pojazdu? | **wariant B**: ekran mapy w etapach 1–2, **a taktyka jako zupełnie osobny, niezależny etap 3**, rozpoczęty dopiero po zakończeniu etapów 1–2 |
+| V5 | Gdzie można otworzyć inwentarz pojazdu? | **wariant B**: najpierw ekran mapy, **a taktyka jako zupełnie osobny, niezależny etap** (etap 4), rozpoczęty dopiero po zakończeniu etapów ekranu mapy |
+| V6 | Które sloty? | **tylko kieszenie**; dłonie i sloty pancerza/głowy zablokowane |
+| V7 | Uszkodzony pojazd (stan < `OKLIFE` 15) | **inwentarz nadal dostępny**, wg rekomendacji |
+| V8 | Ładunek przy zniszczeniu pojazdu | **przedmioty w środku ulegają uszkodzeniu w wybuchu**, zależnie od jego siły (rozdział 4.5) |
 
-Otwarte (propozycje z analizy, jeszcze bez decyzji):
+Otwarte (propozycje szczegółów V8, jeszcze bez decyzji):
 
 | # | Pytanie | Propozycja |
 |---|---|---|
-| V6 | Które sloty? | tylko kieszenie; dłonie i sloty pancerza/głowy zablokowane (bez efektu dla pojazdu, przedmioty w dłoni mogłyby wpływać na taktykę) |
-| V7 | Uszkodzony pojazd (stan < `OKLIFE` 15) | inwentarz nadal dostępny (dzisiejsza reguła by go zamknęła) |
+| V8a | Siła uszkodzeń | 100 = 2 × siła wybuchu pojazdu (`GREAT_BIG_EXPLOSION` 50), ten sam mnożnik, którego gra używa dla przedmiotów leżących w miejscu wybuchu |
+| V8b | Materiały wybuchowe w ładunku | mogą wybuchnąć reakcją łańcuchową (istniejąca reguła dla przedmiotów najemników) |
+| V8c | Zniszczone przedmioty | zostają w porzuconym stosie jako zepsute (stan poniżej `USABLE`); w stosach sztuki ze stanem 1 są usuwane (istniejąca reguła) |
 
 ## 4. Projekt
 
@@ -114,7 +118,35 @@ sprawdzenia dłoni na mapie/w taktyce (tylko > 0).
 - Sprawdzić asercje wołające `MapCharacterHasAccessibleInventory`
   (`MapScreen.cc`) i logikę włączania przycisku inwentarza.
 
-### 4.5 Przenoszenie na ekranie mapy: walka i podróż
+### 4.5 Uszkodzenie ładunku przy wybuchu pojazdu (V8)
+
+Jak to działa dziś:
+
+- Najemnik trafiony wybuchem dostaje uszkodzenia przedmiotów z
+  `CheckEquipmentForDamage()` (`Items.cc`), wołanej w `SoldierTakeDamage()`;
+  na każdą sztukę `DamageItem()` odejmuje losowo 0…(obrażenia − 1) stanu
+  (o połowę mniej dla przedmiotów metalowych, mniej o ochronę pancerza),
+  amunicja ma szansę = % obrażeń na zniszczenie, słoiki się tłuką, materiały
+  wybuchowe mogą wybuchnąć łańcuchowo.
+- **Pojazdy to omijają**: `SoldierTakeDamage()` wraca wcześniej dla pojazdu
+  (ścieżka `VehicleTakeDamage`), przed uszkodzeniem przedmiotów, a sama
+  `CheckEquipmentForDamage()` od razu kończy się dla czołgów.
+- Przy zniszczeniu `HandleCriticalHitForVehicleInLocation()` odpala
+  `GREAT_BIG_EXPLOSION` (siła 50, promień 5) w miejscu pojazdu; przedmioty
+  trafiają na ziemię później, przy tworzeniu wraku (`Rotting_Corpses.cc`).
+  Przedmioty leżące już na polu trafionym wybuchem są uszkadzane przez
+  `DamageItemOnGround()` siłą 2 × obrażenia.
+- Czołgi wroga są tworzone z działem czołgowym i FN MINIMI w stanie 80–100 %
+  (`Inventory_Choosing.cc`). W kodzie nie ma osobnej reguły uszkadzającej
+  przedmioty czołgu przy jego śmierci; czy przedmioty z wraku dostają
+  dodatkowe uszkodzenia od jego własnego wybuchu, zależy od kolejności wybuchu
+  i upuszczenia — **niepotwierdzone bez testu w grze**.
+
+Plan: gdy pojazd gracza zostaje zniszczony, zaraz po ustawieniu `fDestroyed`
+wywołać `CheckEquipmentForDamage(postać pojazdu, siła V8a)` (nie dla czołgów)
+na jego inwentarzu, a potem zwykłe upuszczenie kładzie na ziemi to, co zostało.
+
+### 4.6 Przenoszenie na ekranie mapy: walka i podróż
 
 - **W trakcie walki** `MapscreenCanPassItemToChar` odmawia każdego przekazania
   między postaciami, gdy we wczytanym sektorze są wrogowie
@@ -136,14 +168,16 @@ sprawdzenia dłoni na mapie/w taktyce (tylko > 0).
 2. **Limity pojazdów**: `slotLimitMultiplier`, `SoldierSlotLimit`, trzy
    miejsca wywołań. Test: 32 magazynki w dużej i 16 w małej kieszeni Hummera;
    najemnik nadal 8/4; bronie i kastet nadal przy limicie najemnika; limity
-   pieniędzy bez zmian; zniszczyć pojazd w taktyce i sprawdzić, że przedmioty
-   spadają na ziemię.
+   pieniędzy bez zmian.
+3. **Uszkodzenie ładunku** (V8): zniszczyć załadowany pojazd w taktyce;
+   przedmioty spadają uszkodzone, amunicja częściowo zniszczona, materiały
+   wybuchowe mogą wybuchnąć (V8b).
 
-Rozmiar etapów 1–2: mały–średni; bez zmiany formatu zapisu.
+Rozmiar etapów 1–3: mały–średni; bez zmiany formatu zapisu.
 
-### Etap 3 — inwentarz pojazdu w taktyce (osobny, niezależny)
+### Etap 4 — inwentarz pojazdu w taktyce (osobny, niezależny)
 
-Rozpoczynany **dopiero po zakończeniu i przetestowaniu etapów 1–2** (V5). Cel:
+Rozpoczynany **dopiero po zakończeniu i przetestowaniu etapów 1–3** (V5). Cel:
 korzystanie z ładunku pojazdu w trakcie walki. Przed wdrożeniem wymaga własnej
 szczegółowej analizy i decyzji; znane punkty wyjścia:
 
@@ -156,4 +190,4 @@ szczegółowej analizy i decyzji; znane punkty wyjścia:
   najemnik stojący obok pojazdu), koszt AP za przeniesienie, co panel pokazuje
   dla pojazdu, zachowanie w walce turowej i przy zniszczeniu pojazdu.
 
-Rozmiar etapu 3: średni–duży, do oszacowania we własnej analizie.
+Rozmiar etapu 4: średni–duży, do oszacowania we własnej analizie.

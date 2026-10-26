@@ -47,14 +47,19 @@ Branch `Vehicles`. Background: [vehicles-current-implementation.md](vehicles-cur
 | V2 | One global multiplier or per vehicle? | **per vehicle**, a field in `vehicles.json` |
 | V3 | Money limits | **unchanged** for vehicles (100000 big / 50000 small pocket) |
 | V4 | Excluded items | **all weapons (`IC_WEAPON`) and brass knuckles (`IC_PUNCH`)** keep the merc limit; no other exceptions for now |
-| V5 | Where can the vehicle inventory be opened? | **variant B**: map screen in stages 1–2, **and tactical as a completely separate, independent stage 3**, started only after stages 1–2 are finished |
+| V5 | Where can the vehicle inventory be opened? | **variant B**: map screen first, **and tactical as a completely separate, independent stage** (stage 4), started only after the map screen stages are finished |
 
-Open (proposals from the analysis, not decided yet):
+| V6 | Which slots? | **pockets only**; hands and armour/head slots blocked |
+| V7 | Damaged vehicle (condition < `OKLIFE` 15) | **inventory still accessible**, as recommended |
+| V8 | Cargo when the vehicle is destroyed | **items inside are damaged by the explosion**, depending on its strength (section 4.5) |
+
+Open (proposals for V8 details, not decided yet):
 
 | # | Question | Proposal |
 |---|---|---|
-| V6 | Which slots? | pockets only; hands and armour/head slots blocked (no effect on a vehicle, hand items could affect tactical) |
-| V7 | Damaged vehicle (condition < `OKLIFE` 15) | inventory still accessible (today's rule would close it) |
+| V8a | Damage strength | 100 = 2 × the vehicle explosion's blast damage (`GREAT_BIG_EXPLOSION` 50), the same factor the game uses for items lying at an explosion |
+| V8b | Explosives in the cargo | can go off in a chain reaction (existing rule for mercs' items) |
+| V8c | Broken items | stay in the dropped pile as broken (status below `USABLE`); in stacks, units at status 1 are removed (existing rule) |
 
 ## 4. Design
 
@@ -112,7 +117,34 @@ checks (> 0 only).
 - Check the asserts that call `MapCharacterHasAccessibleInventory`
   (`MapScreen.cc`) and the inventory-button enable logic.
 
-### 4.5 Map screen transfers: battle and travel
+### 4.5 Cargo damage when the vehicle explodes (V8)
+
+How it works today:
+
+- A merc hit by an explosion gets item damage from
+  `CheckEquipmentForDamage()` (`Items.cc`), called in `SoldierTakeDamage()`;
+  per unit `DamageItem()` removes a random 0…(damage − 1) of status (halved
+  for metal items, reduced by armour protection), ammo has a damage-% chance
+  to be destroyed, jars smash, explosives can chain-react.
+- **Vehicles skip this**: `SoldierTakeDamage()` returns early for a vehicle
+  (`VehicleTakeDamage` path) before the item damage, and
+  `CheckEquipmentForDamage()` itself returns at once for tanks.
+- On destruction `HandleCriticalHitForVehicleInLocation()` ignites
+  `GREAT_BIG_EXPLOSION` (blast damage 50, radius 5) at the vehicle; items
+  are dropped on the ground later, when the corpse is made
+  (`Rotting_Corpses.cc`). Items already lying on a tile hit by an explosion
+  are damaged by `DamageItemOnGround()` with 2 × the wound amount.
+- Enemy tanks are created with a tank cannon and an FN MINIMI at 80–100 %
+  status (`Inventory_Choosing.cc`). The code has no special rule that damages
+  a tank's items on its death; whether the wreck's items get extra damage from
+  its own explosion depends on the order of the explosion and the drop —
+  **not confirmed without a game test**.
+
+Plan: when a player vehicle is destroyed, right after `fDestroyed` is set,
+apply `CheckEquipmentForDamage(vehicle soldier, V8a damage)` (not for tanks)
+to its inventory, then let the normal drop place what is left on the ground.
+
+### 4.6 Map screen transfers: battle and travel
 
 - **During a battle** `MapscreenCanPassItemToChar` refuses every transfer
   between characters when the loaded sector has enemies
@@ -135,14 +167,16 @@ checks (> 0 only).
 2. **Vehicle limits**: `slotLimitMultiplier`, `SoldierSlotLimit`, the three
    call sites. Test: stack 32 magazines in a big pocket and 16 in a small one
    of the Hummer; a merc still 8/4; weapons and brass knuckles still at the
-   merc limit; money limits unchanged; destroy the vehicle in tactical and
-   check the items drop.
+   merc limit; money limits unchanged.
+3. *(before the tactical stage)* **Cargo damage** (V8): destroy a loaded
+   vehicle in tactical; the items drop damaged, ammo partly destroyed,
+   explosives may go off (V8b).
 
-Size of stages 1–2: small–medium; no save format change.
+Size of stages 1–3: small–medium; no save format change.
 
-### Stage 3 — vehicle inventory in tactical (separate, independent)
+### Stage 4 — vehicle inventory in tactical (separate, independent)
 
-Started **only after stages 1–2 are finished and tested** (V5). Purpose: use
+Started **only after stages 1–3 are finished and tested** (V5). Purpose: use
 the vehicle's cargo during a battle. Needs its own detailed analysis and
 decisions before implementation; known starting points:
 
@@ -156,4 +190,4 @@ decisions before implementation; known starting points:
   for a vehicle, behaviour in turn-based combat and when the vehicle is
   destroyed.
 
-Size of stage 3: medium–big, to be estimated in its own analysis.
+Size of stage 4: medium–big, to be estimated in its own analysis.
