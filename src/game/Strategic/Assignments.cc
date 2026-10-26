@@ -3169,6 +3169,15 @@ static void CreateDestroyMouseRegionForRepairMenu(void)
 {
 	static BOOLEAN fCreated = FALSE;
 
+	if (fShowRepairMenu && fInMapMode)
+	{ // hang it right beside the assignment box, at its Repair line, like the
+		// vehicle menu (RepairPosition's own x is the original layout's)
+		SGPBox const& area = GetBoxArea(ghAssignmentBox);
+		RepairPosition.iX = area.x + area.w;
+		RepairPosition.iY = AssignmentPosition.iY + (GetFontHeight(MAP_SCREEN_FONT) + 2) * ASSIGN_MENU_REPAIR;
+		SetBoxXY(ghRepairBox, RepairPosition.iX, RepairPosition.iY);
+	}
+
 	if (fShowRepairMenu && !fCreated)
 	{
 		CheckAndUpdateTacticalAssignmentPopUpPositions();
