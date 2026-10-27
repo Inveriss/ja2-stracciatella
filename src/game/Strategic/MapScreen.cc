@@ -4369,11 +4369,15 @@ static void BltCharInvPanel(void)
 	FindFontRightCoordinates(MAP_ARMOR_X, MAP_ARMOR_Y, MAP_ARMOR_W, MAP_ARMOR_H, sString, stats_font, &usX, &usY);
 	MPrint(usX, usY, sString);
 
-	// Display weight
-	MPrint(MAP_WEIGHT_LABEL_X, MAP_WEIGHT_LABEL_Y, pInvPanelTitleStrings[1]);
-	sString = ST::format("{}%", CalculateCarriedWeight(pSoldier));
-	FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, stats_font, &usX, &usY);
-	MPrint(usX, usY, sString);
+	// Display weight (not for a vehicle: its cargo has no load limit, a
+	// merc's strength-based percentage means nothing there)
+	if (!(pSoldier->uiStatusFlags & SOLDIER_VEHICLE))
+	{
+		MPrint(MAP_WEIGHT_LABEL_X, MAP_WEIGHT_LABEL_Y, pInvPanelTitleStrings[1]);
+		sString = ST::format("{}%", CalculateCarriedWeight(pSoldier));
+		FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, stats_font, &usX, &usY);
+		MPrint(usX, usY, sString);
+	}
 
 	// Display camouflage
 	MPrint(MAP_CAMO_LABEL_X, MAP_CAMO_LABEL_Y, pInvPanelTitleStrings[2]);
