@@ -953,6 +953,11 @@ static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
 	}
 	if (giSMStealthButton) DisableButton(giSMStealthButton);
 
+	// Previous / Next merc: back to the merc first (as with a merc's panel,
+	// not while an item is on the cursor)
+	EnableButton(iSMPanelButtons[PREVMERC_BUTTON], !gpItemPointer);
+	EnableButton(iSMPanelButtons[NEXTMERC_BUTTON], !gpItemPointer);
+
 	if (iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON])
 	{
 		EnableButton(iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON]);
@@ -3160,6 +3165,12 @@ static void BtnPrevMercCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		// a vehicle's cargo panel: back to its merc first
+		if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE)
+		{
+			gSelectSMPanelToMerc = GetSMPanelOwnerMerc();
+			return;
+		}
 		SelectMerc(FindPrevActiveAndAliveMerc(gpSMCurrentMerc, TRUE, TRUE));
 	}
 }
@@ -3169,6 +3180,12 @@ static void BtnNextMercCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
+		// a vehicle's cargo panel: back to its merc first
+		if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE)
+		{
+			gSelectSMPanelToMerc = GetSMPanelOwnerMerc();
+			return;
+		}
 		SelectMerc(FindNextActiveAndAliveMerc(gpSMCurrentMerc, TRUE, TRUE));
 	}
 }
