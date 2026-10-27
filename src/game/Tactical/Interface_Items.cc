@@ -2833,7 +2833,12 @@ void HandleNewlyAddedItems(SOLDIERTYPE& s, DirtyLevel* const dirty_level)
 		if (o.usItem == NOTHING) continue;
 		MOUSE_REGION const& r      = gSMInvRegion[i];
 		UINT16       const  colour = us16BPPItemCyclePlacedItemColors[s.bNewItemCycleCount[i]];
-		INVRenderItem(guiSAVEBUFFER, &s, o, r.X(), r.Y(), r.W(), r.H(), DIRTYLEVEL2, 0, colour);
+		// the same graphic as the slot itself (HandleRenderInvSlots()): the
+		// large one on the 1366x768 SM panel, else both showed
+		BOOLEAN const big = guiCurrentScreen == MAP_SCREEN ? IsMapInvBigImages() : g_ui.isBigSMPanel();
+		InvItemTextLayout big_text{};
+		if (big) big_text = GetMapInvBigItemTextLayout();
+		INVRenderItem(guiSAVEBUFFER, &s, o, r.X(), r.Y(), r.W(), r.H(), DIRTYLEVEL2, 0, colour, big, big ? &big_text : NULL);
 	}
 }
 
