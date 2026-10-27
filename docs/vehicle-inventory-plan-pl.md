@@ -283,8 +283,9 @@ Panel 1280 i pasek oglądanej bitwy bez zmian.
 | # | Pytanie | Decyzja |
 |---|---|---|
 | P1 | Kilka pojazdów w sektorze | okno dla każdego, wszystkie na początku |
-| P2 | Prawy klik, gdy zaznaczony najemnik jest poza zasięgiem (3 pola i widok) | panel otwiera się zakreskowany, tylko podgląd, jak panel dalekiego najemnika; odblokowuje się, gdy najemnik podejdzie |
+| P2 | Prawy klik, gdy zaznaczony najemnik jest poza zasięgiem (3 pola i widok) | ~~panel otwiera się zakreskowany, tylko podgląd~~ — zastąpione przez P7 |
 | P3 | Numery najemników | bez zmian (1, 2, 3…), klawisze też |
 | P4 | Przycisk „Vehicle Cargo” na panelu najemnika | zostaje |
 | P5 | Okna dla najemników | 7 minus pojazdy (np. 3 pojazdy → 4 najemników widocznych), reszta przez przewijanie |
 | P6 | Previous / Next Merc z pojazdami w sektorze (zastępuje T6 w 1366x768) | kolejność panelu drużyny: pojazdy od lewej, potem najemnicy 1, 2, 3…, w kółko; panel pojazdu otwiera się dla zaznaczonego najemnika, wyszarzony, gdy on (lub najemnik trzymający przedmiot na kursorze) jest poza zasięgiem; bez pojazdów i na panelu 1280 T6 jak dotąd |
+| P7 | Jedna zasada dla paneli najemników i pojazdów (2026-10-27) | przedmioty pojazdu zawsze aktywne, jak u najemnika; z przedmiotem na kursorze wyszarzony jest każdy panel, do którego nie można go podać: przedmiot od najemnika trafia do najemników i pojazdów do 3 pól od niego i w jego polu widzenia, przedmiot z pojazdu tylko do najemników do 3 pól od pojazdu, którzy go widzą; w walce turowej płaci biorący udział najemnik, `AP_PICKUP_ITEM` (do pojazdu: dający, z pojazdu: odbierający) |

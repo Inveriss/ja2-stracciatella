@@ -722,23 +722,13 @@ static bool CanOpenVehicleCargo(SOLDIERTYPE const* const merc)
 
 static void OpenVehicleCargoPanel(SOLDIERTYPE& v)
 {
-	// the selected merc reaches into it (from afar: only a look, hatched)
+	// for the selected merc (its items active; passing as between mercs, P7)
 	SOLDIERTYPE* const merc = GetSelectedMan();
 	if (!CanOpenVehicleCargo(merc)) return;
 	gpSMPendingCargoVehicle = &v;
 	gpSMPendingCargoMerc    = merc;
 	guiSMPendingCargoTime   = GetJA2Clock();
 	SetNewPanel(merc);
-}
-
-
-// Who reaches for an item on the cursor: the merc of the vehicle panel when
-// it came out of a vehicle
-static SOLDIERTYPE const* ItemPointerReacher()
-{
-	SOLDIERTYPE const* const s = gpItemPointerSoldier;
-	if (s && s->uiStatusFlags & SOLDIER_VEHICLE && gpSMCargoMerc) return gpSMCargoMerc;
-	return s;
 }
 
 
@@ -783,7 +773,7 @@ void CheckForDisabledForGiveItem(void)
 	}
 	else
 	{
-		const SOLDIERTYPE* src = ItemPointerReacher();
+		const SOLDIERTYPE* src = gpItemPointerSoldier;
 		if (src == NULL)
 		{
 			src = GetSelectedMan();
@@ -798,6 +788,14 @@ void CheckForDisabledForGiveItem(void)
 		if (cur == src)
 		{
 			gfSMDisableForItems = FALSE;
+			return;
+		}
+
+		// Out of a vehicle's cargo: into the pockets of a merc within reach of
+		// it (3 tiles and his sight of it), as between two mercs
+		if (src->uiStatusFlags & SOLDIER_VEHICLE)
+		{
+			gfSMDisableForItems = cur_vehicle || cur->bLife < CONSCIOUSNESS || !IsVehicleInMercReach(*cur, *src);
 			return;
 		}
 
@@ -955,9 +953,10 @@ static void UpdateSMVehicleCargoButton(SOLDIERTYPE const& merc)
 }
 
 
-// The vehicle's panel: only its pockets, nothing a merc does; hatched (a
-// look only) while its merc can't reach into it, back to him when another
-// merc is selected or the vehicle is destroyed
+// The vehicle's panel: only its pockets, nothing a merc does; its items
+// always active, as a merc's (an item on the cursor goes only where it can be
+// passed, CheckForDisabledForGiveItem(), plan P7); back to the merc when
+// another merc is selected or the vehicle is destroyed
 static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
 {
 	// (already on the way to another panel, e.g. Previous / Next merc)
@@ -994,20 +993,6 @@ static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
 	{
 		EnableButton(iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON]);
 		SetButtonState(SM_VEHICLE_CARGO_BUTTON, true);
-	}
-
-	// out of the merc's reach (3 tiles and sight, plan T3 / P2): only a look,
-	// hatched; an item on the cursor has its own check
-	// (CheckForDisabledForGiveItem())
-	if (!gpItemPointer && !gfInItemPickupMenu)
-	{
-		BOOLEAN const disable = !IsVehicleInMercReach(*merc, v);
-		if (disable != gfSMDisableForItems)
-		{
-			gfSMDisableForItems = disable;
-			DisableInvRegions(disable);
-			fInterfacePanelDirty = DIRTYLEVEL2;
-		}
 	}
 
 	if (v.fCheckForNewlyAddedItems)
@@ -3254,7 +3239,7 @@ static void SMPanelPrevNextMerc(bool const next)
 		return;
 	}
 
-	if (gpItemPointer && cur == ItemPointerReacher())
+	if (gpItemPointer && cur == gpItemPointerSoldier)
 	{
 		if (SOLDIERTYPE* const v = VehicleCargoInReach(*cur))
 		{
@@ -3507,8 +3492,8 @@ static bool UpdateBigTeamPanelVehicles()
 // Previous / Next merc on the 1366x768 SM panel with vehicles in the sector
 // (plan T6, stage 4c): the team panel's order -- the vehicles from the left,
 // then the squad's mercs -- round and round. A vehicle's panel opens for the
-// selected merc, hatched while he (or the merc holding the item on the
-// cursor) can't reach into it. False: no vehicles, the usual steps.
+// selected merc; with an item on the cursor every panel it can't be passed
+// to is hatched (P7). False: no vehicles, the usual steps.
 static bool StepSMPanelThroughTeamPanel(bool const next)
 {
 	UpdateBigTeamPanelVehicles();
