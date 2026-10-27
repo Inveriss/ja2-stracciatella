@@ -286,7 +286,7 @@ unchanged.
 | P1 | Several vehicles in the sector | a window for each, all first |
 | P2 | Right click while the selected merc is out of reach (3 tiles and sight) | ~~the panel opens hatched, a look only~~ — replaced by P7 |
 | P3 | Merc numbers | unchanged (1, 2, 3…), the keys too |
-| P4 | The "Vehicle Cargo" button on the merc's panel | stays |
+| P4 | The "Vehicle Cargo" button on the merc's panel | stays on the 1280 panel (its only way to the cargo; 1280 and 1920 get their own graphic / code stage later); **not on 1366x768** (2026-10-27): the vehicle windows and Previous / Next merc (P6) do its work |
 | P5 | Windows left for the mercs | 7 minus the vehicles (e.g. 3 vehicles → 4 mercs shown), the rest by scrolling |
 | P6 | Previous / Next merc with vehicles in the sector (replaces T6 on 1366x768) | the team panel's order: the vehicles from the left, then the mercs 1, 2, 3…, round and round; a vehicle's panel opens for the selected merc, hatched while he (or the merc holding the item on the cursor) is out of reach; without vehicles, and on the 1280 panel, T6 as before |
 | P7 | One rule for mercs' and vehicles' panels (2026-10-27) | a vehicle's items are always active, as a merc's; with an item on the cursor every panel it can't be passed to is hatched: an item out of a merc goes to mercs and vehicles within 3 tiles of him and in his sight, an item out of a vehicle only to mercs within 3 tiles of the vehicle who see it; in turn-based combat the merc taking part pays `AP_PICKUP_ITEM` (into a vehicle: the giver, out of it: the receiver) |

@@ -1683,8 +1683,13 @@ void CreateSMPanelButtons(void)
 		MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
 	}
 	MakeButtonT(SM_SKILLS_BUTTON,      iSMPanelImages[SM_SKILLS_IMAGES],      dx + SM_SKILLSB_X,      dy + SM_SKILLSB_Y,      BtnSkillsCallback,           "Skills");
-	MakeButtonT(SM_VEHICLE_CARGO_BUTTON, iSMPanelImages[SM_VEHICLE_CARGO_IMAGES], dx + SM_VEHICLE_CARGOB_X, dy + SM_VEHICLE_CARGOB_Y, BtnVehicleCargoCallback, "Vehicle Cargo");
-	DisableButton(iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON]);
+	// 1366x768: none, the team panel's vehicle windows and Previous / Next
+	// merc reach the cargo (plan P4); 1280 keeps it
+	if (!g_ui.isBigTeamPanel())
+	{
+		MakeButtonT(SM_VEHICLE_CARGO_BUTTON, iSMPanelImages[SM_VEHICLE_CARGO_IMAGES], dx + SM_VEHICLE_CARGOB_X, dy + SM_VEHICLE_CARGOB_Y, BtnVehicleCargoCallback, "Vehicle Cargo");
+		DisableButton(iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON]);
+	}
 
 	giSMHideEmptySlotsCheckbox = CreateCheckBoxButton(
 		dx + SM_HIDE_EMPTY_SLOTS_X, dy + SM_HIDE_EMPTY_SLOTS_Y,
