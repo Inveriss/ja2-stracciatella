@@ -262,7 +262,7 @@ Decyzje (podjęte 2026-10-27, wszystkie wg propozycji):
 | T3 | Zasięg | 3 pola od pojazdu (`PASSING_ITEM_DISTANCE_OKLIFE`) i pole widzenia, jak przy podawaniu między najemnikami |
 | T4 | Rzucanie przedmiotów do pojazdu z większej odległości? | nie |
 | T5 | Dostęp pasażerów w środku | brak (najpierw wysiadają) |
-| T6 | Strzałki Previous / Next Merc na panelu pojazdu (dodane 2026-10-27) | wariant A: powrót do najemnika, który go otworzył, potem po najemnikach jak zwykle |
+| T6 | Strzałki Previous / Next Merc na panelu pojazdu (dodane 2026-10-27) | wariant A: powrót do najemnika, który go otworzył, potem po najemnikach jak zwykle; rozszerzenie: z przedmiotem na kursorze pojazd w zasięgu najemnika, który go trzyma, jest dodatkowym krokiem (jego panel → panel pojazdu → następny / poprzedni najemnik) |
 
 Rozmiar: średni–duży — panel SM dla ciała innego niż ludzkie (przyciski, układ
 na panelach 1366x768), nowy przełącznik/grafika, reguła odbiorcy podania,

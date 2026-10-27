@@ -931,6 +931,9 @@ static void UpdateSMVehicleCargoButton(SOLDIERTYPE const& merc)
 // selected, the vehicle destroyed)
 static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
 {
+	// (already on the way to another panel, e.g. Previous / Next merc)
+	if (gSelectSMPanelToMerc) return;
+
 	SOLDIERTYPE* const merc = gpSMCargoMerc;
 	if (!merc || merc != GetSelectedMan() || !IsVehicleInMercReach(*merc, v))
 	{
@@ -953,10 +956,10 @@ static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
 	}
 	if (giSMStealthButton) DisableButton(giSMStealthButton);
 
-	// Previous / Next merc: back to the merc first (as with a merc's panel,
-	// not while an item is on the cursor)
-	EnableButton(iSMPanelButtons[PREVMERC_BUTTON], !gpItemPointer);
-	EnableButton(iSMPanelButtons[NEXTMERC_BUTTON], !gpItemPointer);
+	// Previous / Next merc: back to the merc, or with an item on the cursor
+	// on to the merc before / after him (SMPanelPrevNextMerc())
+	EnableButton(iSMPanelButtons[PREVMERC_BUTTON]);
+	EnableButton(iSMPanelButtons[NEXTMERC_BUTTON]);
 
 	if (iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON])
 	{
@@ -3161,17 +3164,54 @@ static void SelectMerc(SOLDIERTYPE* const s)
 }
 
 
+// Previous / Next merc with the vehicle cargo panel (plan, decision T6).
+// Without an item on the cursor: from the vehicle's panel back to its merc.
+// With an item on the cursor the vehicle the merc holding it can reach is a
+// step too: from his panel to the vehicle's, from there on to the merc
+// before / after him.
+static void SMPanelPrevNextMerc(bool const next)
+{
+	SOLDIERTYPE* const cur = gpSMCurrentMerc;
+	if (!cur) return;
+
+	if (cur->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		SOLDIERTYPE* const owner = GetSMPanelOwnerMerc();
+		if (!gpItemPointer || !owner)
+		{
+			gSelectSMPanelToMerc = owner;
+			return;
+		}
+		SOLDIERTYPE* const to = next ? FindNextActiveAndAliveMerc(owner, TRUE, TRUE) : FindPrevActiveAndAliveMerc(owner, TRUE, TRUE);
+		if (!to || to == owner)
+		{ // (he is the only one)
+			gSelectSMPanelToMerc = owner;
+			return;
+		}
+		SelectMerc(to);
+		return;
+	}
+
+	if (gpItemPointer && cur == ItemPointerReacher())
+	{
+		if (SOLDIERTYPE* const v = VehicleCargoInReach(*cur))
+		{
+			gpSMCargoMerc        = cur;
+			gSelectSMPanelToMerc = v;
+			fInterfacePanelDirty = DIRTYLEVEL2;
+			return;
+		}
+	}
+
+	SelectMerc(next ? FindNextActiveAndAliveMerc(cur, TRUE, TRUE) : FindPrevActiveAndAliveMerc(cur, TRUE, TRUE));
+}
+
+
 static void BtnPrevMercCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		// a vehicle's cargo panel: back to its merc first
-		if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE)
-		{
-			gSelectSMPanelToMerc = GetSMPanelOwnerMerc();
-			return;
-		}
-		SelectMerc(FindPrevActiveAndAliveMerc(gpSMCurrentMerc, TRUE, TRUE));
+		SMPanelPrevNextMerc(false);
 	}
 }
 
@@ -3180,13 +3220,7 @@ static void BtnNextMercCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		// a vehicle's cargo panel: back to its merc first
-		if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE)
-		{
-			gSelectSMPanelToMerc = GetSMPanelOwnerMerc();
-			return;
-		}
-		SelectMerc(FindNextActiveAndAliveMerc(gpSMCurrentMerc, TRUE, TRUE));
+		SMPanelPrevNextMerc(true);
 	}
 }
 

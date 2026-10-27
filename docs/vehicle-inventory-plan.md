@@ -263,7 +263,7 @@ Decisions (taken 2026-10-27, all as proposed):
 | T3 | Range | 3 tiles from the vehicle (`PASSING_ITEM_DISTANCE_OKLIFE`) and line of sight, like passing between mercs |
 | T4 | Throwing items into a vehicle from farther away? | no |
 | T5 | Passengers' access while aboard | none (exit first) |
-| T6 | Previous / Next merc arrows on the vehicle's panel (added 2026-10-27) | variant A: back to the merc who opened it, then through the mercs as usual |
+| T6 | Previous / Next merc arrows on the vehicle's panel (added 2026-10-27) | variant A: back to the merc who opened it, then through the mercs as usual; extended: with an item on the cursor the vehicle in reach of the merc holding it is a step too (his panel → the vehicle's → the merc after / before him) |
 
 Size: medium–big — SM panel for a non-human body (buttons, layout on the
 1366x768 panels), a new switch/graphic, the catcher rule, AP handling.
