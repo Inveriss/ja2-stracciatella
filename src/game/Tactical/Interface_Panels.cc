@@ -2844,6 +2844,8 @@ static void HandleMouseOverSoldierFaceForContMove(SOLDIERTYPE* pSoldier, BOOLEAN
 	{
 		return;
 	}
+	// (a vehicle has no face -- its cargo panel on the SM panel)
+	if (!pSoldier->face) return;
 
 	if ( fOn )
 	{
