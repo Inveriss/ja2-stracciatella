@@ -3548,7 +3548,42 @@ static INT32 giBigTeamPanelFirstSlot = 0;
 static SOLDIERTYPE* gBigTeamPanelVehicles[BIG_TEAMPANEL_MAX_VEHICLES];
 static INT32        giBigTeamPanelNumVehicles = 0;
 static MOUSE_REGION gBigTeamPanelVehicleFace[BIG_TEAMPANEL_MAX_VEHICLES];
+// the seat belt in the second hand's window (the low panel: the first's) --
+// everyone aboard gets out
+static MOUSE_REGION gBigTeamPanelVehicleExit[BIG_TEAMPANEL_MAX_VEHICLES];
 static bool         gfBigTeamPanelVehicleRegions = false;
+
+
+// The top of a vehicle window's seat belt window
+static INT32 BigTeamVehicleExitY()
+{
+	return TEAM_PANEL_Y + BIG_TM_INV_Y + (g_ui.isLowTeamPanel() ? 0 : BIG_TM_INV_SEPY);
+}
+
+
+// Everyone aboard this vehicle gets out at once, all into the squad of the
+// first one out (as one by one with the passengers' seat belts otherwise)
+static void ExitEveryoneFromVehicle(SOLDIERTYPE& vs)
+{
+	VEHICLETYPE const& v = GetVehicle(vs.bVehicleID);
+	std::vector<SOLDIERTYPE*> aboard;
+	CFOR_EACH_PASSENGER(v, i) aboard.push_back(*i);
+
+	INT8 squad = -1;
+	for (SOLDIERTYPE* const s : aboard)
+	{
+		if (!ExitVehicle(s)) continue;
+		if (squad == -1)
+		{
+			squad = s->bAssignment;
+		}
+		else if (s->bAssignment != squad)
+		{
+			AddCharacterToSquad(s, squad); // (a full squad: he keeps his own)
+		}
+	}
+	if (squad != -1 && guiCurrentScreen == GAME_SCREEN) SetCurrentSquad(squad, TRUE);
+}
 
 
 // The windows the squad's slots get
@@ -3679,14 +3714,17 @@ static void LayoutBigTEAMPanelRegions()
 		for (INT32 i = 0; i != BIG_TEAMPANEL_MAX_VEHICLES; ++i)
 		{
 			MOUSE_REGION& r = gBigTeamPanelVehicleFace[i];
+			MOUSE_REGION& e = gBigTeamPanelVehicleExit[i];
 			if (i < giBigTeamPanelNumVehicles)
 			{
-				PlaceRegion(r, TEAM_PANEL_X + i * BIG_TEAMPANEL_SLOT_WIDTH + BIG_TM_FACE_X, dy + BIG_TM_FACE_Y,
-						BIG_TM_FACE_WIDTH, BIG_TM_FACE_HEIGHT);
+				INT32 const x = TEAM_PANEL_X + i * BIG_TEAMPANEL_SLOT_WIDTH;
+				PlaceRegion(r, x + BIG_TM_FACE_X, dy + BIG_TM_FACE_Y, BIG_TM_FACE_WIDTH, BIG_TM_FACE_HEIGHT);
+				PlaceRegion(e, x + BIG_TM_INV_X, BigTeamVehicleExitY(), BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
 			}
 			else
 			{
 				PlaceRegion(r, OFF_SCREEN, OFF_SCREEN, 0, 0);
+				PlaceRegion(e, OFF_SCREEN, OFF_SCREEN, 0, 0);
 			}
 		}
 	}
@@ -3800,15 +3838,28 @@ static void BigTeamVehicleFaceCallbackSecondary(MOUSE_REGION* const r, UINT32)
 }
 
 
+// a vehicle's seat belt: everyone aboard gets out
+static void BigTeamVehicleExitCallback(MOUSE_REGION* const r, UINT32)
+{
+	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
+	if (!v || fInMapMode || GetNumberInVehicle(GetVehicle(v->bVehicleID)) == 0) return;
+	ExitEveryoneFromVehicle(*v);
+}
+
+
 static void CreateBigTEAMPanelRegions()
 {
-	// the vehicles' portraits
+	// the vehicles' portraits and seat belts
 	MOUSE_CALLBACK const vehicle_face = MouseCallbackPrimarySecondary(BigTeamVehicleFaceCallbackPrimary, BigTeamVehicleFaceCallbackSecondary, BigTEAMPanelWheelCallback, true);
+	MOUSE_CALLBACK const vehicle_exit = MouseCallbackPrimarySecondary(BigTeamVehicleExitCallback, MSYS_NO_CALLBACK, BigTEAMPanelWheelCallback);
 	for (INT32 i = 0; i != BIG_TEAMPANEL_MAX_VEHICLES; ++i)
 	{
 		MOUSE_REGION& r = gBigTeamPanelVehicleFace[i];
 		MSYS_DefineRegion(&r, 0, 0, 0, 0, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, vehicle_face);
 		MSYS_SetRegionUserData(&r, 0, i);
+		MOUSE_REGION& e = gBigTeamPanelVehicleExit[i];
+		MSYS_DefineRegion(&e, 0, 0, 0, 0, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, vehicle_exit);
+		MSYS_SetRegionUserData(&e, 0, i);
 	}
 	gfBigTeamPanelVehicleRegions = true;
 	UpdateBigTeamPanelVehicles();
@@ -3952,6 +4003,7 @@ void ShutdownTEAMPanel()
 	if (gfBigTeamPanelVehicleRegions)
 	{
 		for (MOUSE_REGION& r : gBigTeamPanelVehicleFace) MSYS_RemoveRegion(&r);
+		for (MOUSE_REGION& r : gBigTeamPanelVehicleExit) MSYS_RemoveRegion(&r);
 		gfBigTeamPanelVehicleRegions = false;
 	}
 
@@ -4111,6 +4163,18 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 			MPrint(vx + BIG_TM_NAME_X, TEAM_PANEL_Y + BIG_TM_NAME_Y, v.name,
 				HCenterVCenterAlign(BIG_TM_NAME_WIDTH, BIG_TM_NAME_HEIGHT));
 			SetFontDestBuffer(FRAME_BUFFER);
+
+			// someone aboard: the seat belt (the passengers' exit picture),
+			// everyone out at once
+			ST::string exit_help;
+			if (GetNumberInVehicle(GetVehicle(v.bVehicleID)) != 0)
+			{
+				INT32 const bx = vx + BIG_TM_INV_X;
+				INT32 const by = BigTeamVehicleExitY();
+				BltVideoObject(guiSAVEBUFFER, guiVEHINV, 1, bx + (BIG_TM_INV_WIDTH - TM_INV_WIDTH) / 2, by + (BIG_TM_INV_HEIGHT - TM_INV_HEIGHT) / 2);
+				exit_help = TacticalStr[EXIT_VEHICLE_POPUPTEXT];
+			}
+			gBigTeamPanelVehicleExit[n].SetFastHelpText(exit_help);
 		}
 
 		// LOOP THROUGH ALL MERCS ON TEAM PANEL

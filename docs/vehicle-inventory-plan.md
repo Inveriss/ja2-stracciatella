@@ -316,6 +316,11 @@ where his items are — his vehicle:
 With everyone aboard (the vehicle selected), a vehicle's cargo panel opens
 for one of the mercs aboard.
 
+Everyone out at once (1366x768, added 2026-10-27): a vehicle's window on the
+team panel shows the passengers' seat belt in its second hand's window (the
+low panel: the first's) while someone is aboard; a click gets them all out,
+into the squad of the first one out (one who doesn't fit keeps his own).
+
 | # | Question | Decision |
 |---|---|---|
 | Q1 | When | out of combat only; in combat T5 stays (no panel for those aboard, no passing with them) |

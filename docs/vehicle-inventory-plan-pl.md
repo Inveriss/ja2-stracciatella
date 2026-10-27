@@ -315,6 +315,11 @@ są jego przedmioty — od jego pojazdu:
 Gdy wszyscy są w środku (zaznaczony pojazd), panel bagażnika otwiera się dla
 jednego z najemników w pojeździe.
 
+Wszyscy wysiadają naraz (1366x768, dodane 2026-10-27): okno pojazdu na panelu
+drużyny pokazuje pas bezpieczeństwa pasażerów w oknie drugiej dłoni (niski
+panel: pierwszej), gdy ktoś jest w środku; kliknięcie wysadza wszystkich, do
+oddziału pierwszego, który wysiadł (kto się nie zmieści, zostaje w swoim).
+
 | # | Pytanie | Decyzja |
 |---|---|---|
 | Q1 | Kiedy | tylko poza walką; w walce zostaje T5 (brak panelu dla osób w pojeździe i podawania z nimi) |
