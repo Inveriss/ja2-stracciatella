@@ -267,3 +267,24 @@ Decisions (taken 2026-10-27, all as proposed):
 
 Size: medium–big — SM panel for a non-human body (buttons, layout on the
 1366x768 panels), a new switch/graphic, the catcher rule, AP handling.
+
+#### Stage 4c: vehicles on the team panel (1366x768, decided 2026-10-27)
+
+The 1366x768 team panels (`BOTTOM_BAR_BIG_1366x768.png`,
+`BOTTOM_BAR_LOW_BIG_1366x768.png`) get a window for each of our vehicles in the
+sector that carries cargo (not destroyed, in the sector, not a tank), always
+first from the left; without a vehicle the panel is as before. The vehicle's
+window shows its portrait, name and condition / fuel bars (no number, AP or
+hands). A right click on its portrait opens its cargo panel, as a merc's
+inventory; a left click shows the vehicle (it is never selected). The windows
+are kept out of the squad's slots (`gTeamPanel`), so the slot numbers and the
+keys 1–9 stay the mercs'. The 1280 panel and the watched battle's bar are
+unchanged.
+
+| # | Question | Decision |
+|---|---|---|
+| P1 | Several vehicles in the sector | a window for each, all first |
+| P2 | Right click while the selected merc is out of reach (3 tiles and sight) | the panel opens hatched, a look only, like a far merc's panel; it unlocks when he comes into reach |
+| P3 | Merc numbers | unchanged (1, 2, 3…), the keys too |
+| P4 | The "Vehicle Cargo" button on the merc's panel | stays |
+| P5 | Windows left for the mercs | 7 minus the vehicles (e.g. 3 vehicles → 4 mercs shown), the rest by scrolling |

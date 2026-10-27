@@ -267,3 +267,23 @@ Decyzje (podjęte 2026-10-27, wszystkie wg propozycji):
 Rozmiar: średni–duży — panel SM dla ciała innego niż ludzkie (przyciski, układ
 na panelach 1366x768), nowy przełącznik/grafika, reguła odbiorcy podania,
 obsługa AP.
+
+#### Etap 4c: pojazdy na panelu drużyny (1366x768, decyzje 2026-10-27)
+
+Panele drużyny 1366x768 (`BOTTOM_BAR_BIG_1366x768.png`,
+`BOTTOM_BAR_LOW_BIG_1366x768.png`) dostają okno dla każdego naszego pojazdu w
+sektorze, który wozi ładunek (niezniszczony, w sektorze, nie czołg), zawsze
+pierwsze od lewej; bez pojazdu panel wygląda jak dotąd. Okno pojazdu pokazuje
+portret, nazwę i paski stanu / paliwa (bez numeru, AP i dłoni). Prawy klik na
+portret otwiera panel ładunku, jak inwentarz najemnika; lewy klik pokazuje
+pojazd (nigdy nie jest zaznaczany). Okna są poza slotami oddziału
+(`gTeamPanel`), więc numery slotów i klawisze 1–9 zostają przy najemnikach.
+Panel 1280 i pasek oglądanej bitwy bez zmian.
+
+| # | Pytanie | Decyzja |
+|---|---|---|
+| P1 | Kilka pojazdów w sektorze | okno dla każdego, wszystkie na początku |
+| P2 | Prawy klik, gdy zaznaczony najemnik jest poza zasięgiem (3 pola i widok) | panel otwiera się zakreskowany, tylko podgląd, jak panel dalekiego najemnika; odblokowuje się, gdy najemnik podejdzie |
+| P3 | Numery najemników | bez zmian (1, 2, 3…), klawisze też |
+| P4 | Przycisk „Vehicle Cargo” na panelu najemnika | zostaje |
+| P5 | Okna dla najemników | 7 minus pojazdy (np. 3 pojazdy → 4 najemników widocznych), reszta przez przewijanie |
