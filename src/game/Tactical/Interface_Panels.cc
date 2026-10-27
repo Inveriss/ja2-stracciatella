@@ -711,15 +711,20 @@ static SOLDIERTYPE* gpSMPendingCargoMerc;
 static UINT32       guiSMPendingCargoTime; // (a request the panel switch didn't follow goes stale)
 
 
+// A merc who may open a vehicle's cargo panel (not aboard, not an EPC, T5)
+static bool CanOpenVehicleCargo(SOLDIERTYPE const* const merc)
+{
+	return merc &&
+		!(merc->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER | SOLDIER_DEAD)) &&
+		IS_MERC_BODY_TYPE(merc) && !AM_AN_EPC(merc);
+}
+
+
 static void OpenVehicleCargoPanel(SOLDIERTYPE& v)
 {
 	// the selected merc reaches into it (from afar: only a look, hatched)
 	SOLDIERTYPE* const merc = GetSelectedMan();
-	if (!merc || merc->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER | SOLDIER_DEAD) ||
-		!IS_MERC_BODY_TYPE(merc) || AM_AN_EPC(merc))
-	{
-		return;
-	}
+	if (!CanOpenVehicleCargo(merc)) return;
 	gpSMPendingCargoVehicle = &v;
 	gpSMPendingCargoMerc    = merc;
 	guiSMPendingCargoTime   = GetJA2Clock();
@@ -3215,15 +3220,21 @@ static void SelectMerc(SOLDIERTYPE* const s)
 }
 
 
+static bool StepSMPanelThroughTeamPanel(bool next);
+
+
 // Previous / Next merc with the vehicle cargo panel (plan, decision T6).
-// Without an item on the cursor: from the vehicle's panel back to its merc.
-// With an item on the cursor the vehicle the merc holding it can reach is a
-// step too: from his panel to the vehicle's, from there on to the merc
-// before / after him.
+// 1366x768 with vehicles in the sector: through the team panel's order,
+// vehicles too (StepSMPanelThroughTeamPanel()). Otherwise, without an item
+// on the cursor: from the vehicle's panel back to its merc; with an item on
+// the cursor the vehicle the merc holding it can reach is a step too: from
+// his panel to the vehicle's, from there on to the merc before / after him.
 static void SMPanelPrevNextMerc(bool const next)
 {
 	SOLDIERTYPE* const cur = gpSMCurrentMerc;
 	if (!cur) return;
+
+	if (g_ui.isBigTeamPanel() && StepSMPanelThroughTeamPanel(next)) return;
 
 	if (cur->uiStatusFlags & SOLDIER_VEHICLE)
 	{
@@ -3489,6 +3500,49 @@ static bool UpdateBigTeamPanelVehicles()
 
 	std::copy(now, now + n, gBigTeamPanelVehicles);
 	giBigTeamPanelNumVehicles = n;
+	return true;
+}
+
+
+// Previous / Next merc on the 1366x768 SM panel with vehicles in the sector
+// (plan T6, stage 4c): the team panel's order -- the vehicles from the left,
+// then the squad's mercs -- round and round. A vehicle's panel opens for the
+// selected merc, hatched while he (or the merc holding the item on the
+// cursor) can't reach into it. False: no vehicles, the usual steps.
+static bool StepSMPanelThroughTeamPanel(bool const next)
+{
+	UpdateBigTeamPanelVehicles();
+	SOLDIERTYPE* const sel = GetSelectedMan();
+	if (giBigTeamPanelNumVehicles == 0 || !CanOpenVehicleCargo(sel)) return false;
+
+	std::vector<SOLDIERTYPE*> order(gBigTeamPanelVehicles, gBigTeamPanelVehicles + giBigTeamPanelNumVehicles);
+	for (TeamPanelSlot const& i : gTeamPanel)
+	{
+		SOLDIERTYPE* const s = i.merc;
+		if (!s || !s->bActive || !s->bInSector || s->bLife < 1) continue;
+		if (AM_AN_EPC(s) || AM_A_ROBOT(s) || !OK_INTERRUPT_MERC(s)) continue;
+		order.push_back(s);
+	}
+
+	SOLDIERTYPE* const cur = gpSMCurrentMerc;
+	auto const at = std::find(order.begin(), order.end(), cur);
+	if (at == order.end()) return false;
+
+	size_t const n   = order.size();
+	size_t const idx = at - order.begin();
+	SOLDIERTYPE* const to = order[next ? (idx + 1) % n : (idx + n - 1) % n];
+	if (to == cur) return true;
+
+	if (to->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		gpSMCargoMerc        = sel;
+		gSelectSMPanelToMerc = to;
+		fInterfacePanelDirty = DIRTYLEVEL2;
+	}
+	else
+	{
+		SelectMerc(to);
+	}
 	return true;
 }
 

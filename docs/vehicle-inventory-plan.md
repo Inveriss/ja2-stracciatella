@@ -288,3 +288,4 @@ unchanged.
 | P3 | Merc numbers | unchanged (1, 2, 3…), the keys too |
 | P4 | The "Vehicle Cargo" button on the merc's panel | stays |
 | P5 | Windows left for the mercs | 7 minus the vehicles (e.g. 3 vehicles → 4 mercs shown), the rest by scrolling |
+| P6 | Previous / Next merc with vehicles in the sector (replaces T6 on 1366x768) | the team panel's order: the vehicles from the left, then the mercs 1, 2, 3…, round and round; a vehicle's panel opens for the selected merc, hatched while he (or the merc holding the item on the cursor) is out of reach; without vehicles, and on the 1280 panel, T6 as before |
