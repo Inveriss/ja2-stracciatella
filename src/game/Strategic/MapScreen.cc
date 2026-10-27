@@ -7868,152 +7868,87 @@ static INT32 GetContractExpiryTime(const SOLDIERTYPE* s);
 static void SwapCharactersInList(INT32 iCharA, INT32 iCharB);
 
 
+// The destination sector a team list sort compares (9999: none)
+static INT16 SortDestinationOfChar(const SOLDIERTYPE* const s)
+{
+	return GetLengthOfMercPath(s) == 0 ? 9999 : GetLastSectorIdInCharactersPath(s);
+}
+
+
+// Whether b, before a in the list, goes after it in the current sort
+// (giSortStateForMapScreenList: the header buttons over the team list)
+static bool TeamListSortsAfter(const SOLDIERTYPE* const b, const SOLDIERTYPE* const a)
+{
+	switch (giSortStateForMapScreenList)
+	{
+		case 0: // by name
+			return b->name.compare(a->name) > 0;
+
+		case 1: // by assignment, in a vehicle also by vehicle
+			return b->bAssignment > a->bAssignment ||
+				(b->bAssignment == a->bAssignment && b->bAssignment == VEHICLE && b->iVehicleId > a->iVehicleId);
+
+		case 2: // by sleep status
+			return b->fMercAsleep && !a->fMercAsleep;
+
+		case 3: // by location
+			return CalcLocationValueForChar(b) > CalcLocationValueForChar(a);
+
+		case 4: // by destination sector
+			return SortDestinationOfChar(b) > SortDestinationOfChar(a);
+
+		case 5: // by contract expiry
+			return GetContractExpiryTime(b) > GetContractExpiryTime(a);
+
+		default:
+			return false;
+	}
+}
+
+
+// Sorts the entries first to end - 1 of the team list among themselves. The
+// people stop at the first empty entry, as they always did; the vehicles
+// (from FIRST_VEHICLE, sorted as the people since the 1366x768 list shows
+// three of them) skip empty ones.
+static void SortTeamListEntries(INT32 const first, INT32 const end, bool const stop_at_empty)
+{
+	for (INT32 i = first + 1; i < end; ++i)
+	{
+		const SOLDIERTYPE* const a = gCharactersList[i].merc;
+		if (a == NULL)
+		{
+			if (stop_at_empty) break;
+			continue;
+		}
+
+		for (INT32 j = first; j < i; ++j)
+		{
+			const SOLDIERTYPE* const b = gCharactersList[j].merc;
+			if (b == NULL)
+			{
+				if (stop_at_empty) break;
+				continue;
+			}
+			if (TeamListSortsAfter(b, a)) SwapCharactersInList(i, j);
+		}
+	}
+}
+
+
 static void SortListOfMercsInTeamPanel(BOOLEAN fRetainSelectedMercs)
 {
-	INT32 iCounter = 0, iCounterA = 0;
-	INT16 sEndSectorA, sEndSectorB;
-	INT32 iExpiryTime, iExpiryTimeA;
+	if (giSortStateForMapScreenList < 0 || giSortStateForMapScreenList > 5)
+	{
+		SLOGA("Invalid sorting mode for Merc List");
+		return;
+	}
 
 	SOLDIERTYPE* prev_selected_char = NULL;
 	if (fRetainSelectedMercs) prev_selected_char = GetSelectedInfoChar();
 
-	// do the sort
-	for( iCounter = 1; iCounter < FIRST_VEHICLE ; iCounter++ )
-	{
-		const SOLDIERTYPE* const a = gCharactersList[iCounter].merc;
-		if (a == NULL) break;
-
-		switch( giSortStateForMapScreenList )
-		{
-			case( 0 ):
-				// by name
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					if (b->name.compare(a->name) > 0 && iCounterA < iCounter)
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			case( 1 ):
-				// by assignment
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					if (b->bAssignment > a->bAssignment && iCounterA < iCounter)
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-					else if (b->bAssignment == a->bAssignment && iCounterA < iCounter)
-					{
-						// same assignment
-
-						// if it's in a vehicle
-						if (b->bAssignment == VEHICLE)
-						{
-							// then also compare vehicle IDs
-							if (b->iVehicleId > a->iVehicleId && iCounterA < iCounter)
-							{
-								SwapCharactersInList( iCounter, iCounterA );
-							}
-						}
-					}
-				}
-				break;
-
-			case( 2 ):
-				// by sleep status
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					if (b->fMercAsleep && !a->fMercAsleep && iCounterA < iCounter)
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			case( 3 ):
-				//by location
-				sEndSectorA = CalcLocationValueForChar(a);
-
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					sEndSectorB = CalcLocationValueForChar(b);
-
-					if( ( sEndSectorB > sEndSectorA ) && ( iCounterA < iCounter ) )
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			case( 4 ):
-				// by destination sector
-				if (GetLengthOfMercPath(a) == 0)
-				{
-					sEndSectorA = 9999;
-				}
-				else
-				{
-					sEndSectorA = GetLastSectorIdInCharactersPath(a);
-				}
-
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					if (GetLengthOfMercPath(b) == 0)
-					{
-						sEndSectorB = 9999;
-					}
-					else
-					{
-						sEndSectorB = GetLastSectorIdInCharactersPath(b);
-					}
-
-					if( ( sEndSectorB > sEndSectorA ) && ( iCounterA < iCounter ) )
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			case( 5 ):
-				iExpiryTime = GetContractExpiryTime(a);
-
-				//by contract expiry
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					iExpiryTimeA = GetContractExpiryTime(b);
-
-					if( ( iExpiryTimeA > iExpiryTime ) && ( iCounterA < iCounter ) )
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			default:
-				SLOGA("Invalid sorting mode for Merc List");
-				return;
-		}
-	}
+	// do the sort: the people, then the vehicles among themselves
+	SortTeamListEntries(0, FIRST_VEHICLE, true);
+	SortTeamListEntries(FIRST_VEHICLE, MAX_CHARACTER_COUNT, false);
 
 
 	if ( fRetainSelectedMercs )
