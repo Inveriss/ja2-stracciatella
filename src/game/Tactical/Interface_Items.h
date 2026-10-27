@@ -51,6 +51,10 @@ void DisableInvRegions( BOOLEAN fDisable );
 void DegradeNewlyAddedItems(void);
 void CheckForAnyNewlyAddedItems( SOLDIERTYPE *pSoldier );
 
+// One of our vehicles whose cargo pockets a merc can reach: not destroyed,
+// here in the sector, not a tank
+bool IsVehicleCargoTarget(SOLDIERTYPE const&);
+
 
 BOOLEAN HandleCompatibleAmmoUI(const SOLDIERTYPE* pSoldier, INT8 bInvPos, BOOLEAN fOn);
 

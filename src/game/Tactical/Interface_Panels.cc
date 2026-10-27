@@ -243,6 +243,11 @@
 // Tune once visible in-game.
 #define SM_SKILLSB_X				SM_BOOKMARK_X(481)
 #define SM_SKILLSB_Y				SM_BOOKMARK_Y(160)
+// Vehicle Cargo (vehicle inventory plan, stage 4b): switches between the
+// merc's panel and the cargo of a vehicle he can reach. 58x32, for now the
+// Keyboard Shortcuts picture; after Show Large Icons
+#define SM_VEHICLE_CARGOB_X			SM_BOOKMARK_X(551)
+#define SM_VEHICLE_CARGOB_Y			SM_BOOKMARK_Y(160)
 
 // Checkbox toggling fHideEmptyAttachmentSlots -- placeholder position.
 #define SM_HIDE_EMPTY_SLOTS_X			274
@@ -449,6 +454,7 @@ enum
 	SM_SHORTCUTS_IMAGES,
 	SM_STATS_IMAGES,
 	SM_SKILLS_IMAGES,
+	SM_VEHICLE_CARGO_IMAGES,
 	NUM_SM_BUTTON_IMAGES
 };
 
@@ -661,11 +667,58 @@ static INT8 GetUIApsToDisplay(SOLDIERTYPE const* s)
 }
 
 
+// Vehicle cargo on the SM panel (vehicle inventory plan, stage 4b): the merc
+// whose panel switched to a vehicle's -- the one reaching into its pockets
+static SOLDIERTYPE* gpSMCargoMerc;
+
+
+static bool IsVehicleInMercReach(SOLDIERTYPE const& merc, SOLDIERTYPE const& v)
+{
+	if (!IsVehicleCargoTarget(v)) return false;
+	if (PythSpacesAway(merc.sGridNo, v.sGridNo) > PASSING_ITEM_DISTANCE_OKLIFE) return false;
+	INT16 const visible = DistanceVisible(&merc, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, v.sGridNo, v.bLevel);
+	return SoldierTo3DLocationLineOfSightTest(&merc, v.sGridNo, v.bLevel, 3, (UINT8)visible, TRUE);
+}
+
+
+// The nearest of our vehicles this merc can reach into, or none
+static SOLDIERTYPE* VehicleCargoInReach(SOLDIERTYPE const& merc)
+{
+	if (merc.uiStatusFlags & SOLDIER_VEHICLE || !IS_MERC_BODY_TYPE(&merc) || AM_AN_EPC(&merc)) return 0;
+	if (merc.bLife < OKLIFE || !merc.bInSector || merc.sGridNo == NOWHERE) return 0;
+	// (passengers stay inside, the vehicle panel is for a merc next to it)
+	if (merc.uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER)) return 0;
+
+	SOLDIERTYPE* best      = 0;
+	INT16        best_dist = 0;
+	FOR_EACH_IN_TEAM(v, OUR_TEAM)
+	{
+		if (!IsVehicleInMercReach(merc, *v)) continue;
+		INT16 const dist = PythSpacesAway(merc.sGridNo, v->sGridNo);
+		if (best && dist >= best_dist) continue;
+		best      = v;
+		best_dist = dist;
+	}
+	return best;
+}
+
+
+// Who reaches for an item on the cursor: the merc of the vehicle panel when
+// it came out of a vehicle
+static SOLDIERTYPE const* ItemPointerReacher()
+{
+	SOLDIERTYPE const* const s = gpItemPointerSoldier;
+	if (s && s->uiStatusFlags & SOLDIER_VEHICLE && gpSMCargoMerc) return gpSMCargoMerc;
+	return s;
+}
+
+
 void CheckForDisabledForGiveItem(void)
 {
 	const SOLDIERTYPE* const cur = gpSMCurrentMerc;
 	Assert(cur != NULL);
 	Assert(cur->sGridNo != NOWHERE);
+	bool const cur_vehicle = cur->uiStatusFlags & SOLDIER_VEHICLE;
 
 	if (guiCurrentScreen == SHOPKEEPER_SCREEN)
 	{
@@ -676,8 +729,8 @@ void CheckForDisabledForGiveItem(void)
 	// Default to true
 	gfSMDisableForItems = TRUE;
 
-	// ATE: Is the current merc unconscious.....
-	if (cur->bLife < OKLIFE && gpItemPointer != NULL)
+	// ATE: Is the current merc unconscious..... (a vehicle's condition isn't)
+	if (cur->bLife < OKLIFE && !cur_vehicle && gpItemPointer != NULL)
 	{
 		// Go through each merc and see if there is one closeby....
 		CFOR_EACH_IN_TEAM(s, OUR_TEAM)
@@ -701,7 +754,7 @@ void CheckForDisabledForGiveItem(void)
 	}
 	else
 	{
-		const SOLDIERTYPE* src = gpItemPointerSoldier;
+		const SOLDIERTYPE* src = ItemPointerReacher();
 		if (src == NULL)
 		{
 			src = GetSelectedMan();
@@ -732,7 +785,7 @@ void CheckForDisabledForGiveItem(void)
 		if (SoldierTo3DLocationLineOfSightTest(src, sDestGridNo, bDestLevel, 3, sDistVisible, TRUE))
 		{
 			// UNCONSCIOUS GUYS ONLY 1 tile AWAY
-			if (cur->bLife < CONSCIOUSNESS)
+			if (cur->bLife < CONSCIOUSNESS && !cur_vehicle)
 			{
 				if (sDist <= PASSING_ITEM_DISTANCE_NOTOKLIFE)
 				{
@@ -849,6 +902,95 @@ static void SetButtonState(UINT const idx, bool const clicked)
 }
 
 
+SOLDIERTYPE* GetSMPanelOwnerMerc()
+{
+	SOLDIERTYPE* const s = gpSMCurrentMerc;
+	if (s && s->uiStatusFlags & SOLDIER_VEHICLE) return gpSMCargoMerc ? gpSMCargoMerc : GetSelectedMan();
+	return s;
+}
+
+
+// The merc's panel: Vehicle Cargo usable while he can reach into a vehicle
+static void UpdateSMVehicleCargoButton(SOLDIERTYPE const& merc)
+{
+	GUIButtonRef const b = iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON];
+	if (!b) return;
+	bool const enable =
+		guiCurrentScreen != SHOPKEEPER_SCREEN &&
+		gTacticalStatus.ubCurrentTeam == OUR_TEAM &&
+		&merc == GetSelectedMan() &&
+		!gfInItemPickupMenu &&
+		VehicleCargoInReach(merc);
+	EnableButton(b, enable);
+	SetButtonState(SM_VEHICLE_CARGO_BUTTON, false);
+}
+
+
+// The vehicle's panel: only its pockets, nothing a merc does; back to the
+// merc as soon as he can't reach into it any more (moved away, another merc
+// selected, the vehicle destroyed)
+static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
+{
+	SOLDIERTYPE* const merc = gpSMCargoMerc;
+	if (!merc || merc != GetSelectedMan() || !IsVehicleInMercReach(*merc, v))
+	{
+		SOLDIERTYPE* const back = GetSMPanelOwnerMerc();
+		if (back && !(back->uiStatusFlags & SOLDIER_VEHICLE))
+		{
+			gSelectSMPanelToMerc = back;
+		}
+		else
+		{
+			SetNewPanel(0);
+		}
+		return;
+	}
+
+	for (UINT const idx : { CLIMB_BUTTON, BURSTMODE_BUTTON, STANCEUP_BUTTON, STANCEDOWN_BUTTON, LOOK_BUTTON,
+		UPDOWN_BUTTON, HANDCURSOR_BUTTON, TALK_BUTTON, MUTE_BUTTON, SM_STATS_BUTTON, SM_SKILLS_BUTTON })
+	{
+		if (iSMPanelButtons[idx]) DisableButton(iSMPanelButtons[idx]);
+	}
+	if (giSMStealthButton) DisableButton(giSMStealthButton);
+
+	if (iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON])
+	{
+		EnableButton(iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON]);
+		SetButtonState(SM_VEHICLE_CARGO_BUTTON, true);
+	}
+
+	if (v.fCheckForNewlyAddedItems)
+	{
+		CheckForAnyNewlyAddedItems(&v);
+		v.fCheckForNewlyAddedItems = FALSE;
+	}
+}
+
+
+// Vehicle Cargo: the merc's panel <-> the cargo of the nearest vehicle he
+// can reach into; items move between them as between two mercs' panels
+static void BtnVehicleCargoCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	SOLDIERTYPE* const s = gpSMCurrentMerc;
+	if (!s) return;
+	if (InItemDescriptionBox() || InItemStackPopup() || InKeyRingPopup()) return;
+
+	if (s->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		gSelectSMPanelToMerc = GetSMPanelOwnerMerc();
+	}
+	else
+	{
+		SOLDIERTYPE* const v = VehicleCargoInReach(*s);
+		if (!v) return;
+		gpSMCargoMerc        = s;
+		gSelectSMPanelToMerc = v;
+	}
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
 static void BtnStealthModeCallback(GUI_BUTTON* btn, UINT32 reason);
 static void CheckForReEvaluateDisabledINVPanelButtons(void);
 
@@ -857,6 +999,13 @@ static void UpdateSMPanel()
 {
 	SOLDIERTYPE& s = *gpSMCurrentMerc;
 	if (s.sGridNo == NOWHERE) return;
+
+	if (s.uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		UpdateSMVehicleCargoPanel(s);
+		return;
+	}
+	UpdateSMVehicleCargoButton(s);
 
 	UINT8 stance_state = s.ubDesiredHeight;
 	if (stance_state == NO_DESIRED_HEIGHT)
@@ -1455,6 +1604,8 @@ void CreateSMPanelButtons(void)
 	iSMPanelImages[SM_SHORTCUTS_IMAGES]   = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 20, 21);
 	iSMPanelImages[SM_STATS_IMAGES]       = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 22, 23);
 	iSMPanelImages[SM_SKILLS_IMAGES]      = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 24, 25);
+	// Vehicle Cargo: for now the Keyboard Shortcuts picture
+	iSMPanelImages[SM_VEHICLE_CARGO_IMAGES] = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 20, 21);
 
 
 	// Create buttons
@@ -1496,6 +1647,8 @@ void CreateSMPanelButtons(void)
 		MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
 	}
 	MakeButtonT(SM_SKILLS_BUTTON,      iSMPanelImages[SM_SKILLS_IMAGES],      dx + SM_SKILLSB_X,      dy + SM_SKILLSB_Y,      BtnSkillsCallback,           "Skills");
+	MakeButtonT(SM_VEHICLE_CARGO_BUTTON, iSMPanelImages[SM_VEHICLE_CARGO_IMAGES], dx + SM_VEHICLE_CARGOB_X, dy + SM_VEHICLE_CARGOB_Y, BtnVehicleCargoCallback, "Vehicle Cargo");
+	DisableButton(iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON]);
 
 	giSMHideEmptySlotsCheckbox = CreateCheckBoxButton(
 		dx + SM_HIDE_EMPTY_SLOTS_X, dy + SM_HIDE_EMPTY_SLOTS_Y,
@@ -1574,7 +1727,7 @@ static UINT32 const g_smBookmarkButtons[] =
 {
 	SM_EMAIL_BUTTON, SM_AIM_MEMBERS_BUTTON, SM_MERC_BUTTON, SM_BOBBYR_BUTTON,
 	SM_HISTORY_BUTTON, SM_PERSONNEL_BUTTON, SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON,
-	SM_STATS_BUTTON, SM_SKILLS_BUTTON
+	SM_STATS_BUTTON, SM_SKILLS_BUTTON, SM_VEHICLE_CARGO_BUTTON
 };
 
 
@@ -1647,7 +1800,7 @@ void ShowSMBookmarkButtons(void)
 // this is narrower than HideSMBookmarkButtons() above.
 static UINT32 const g_smBookmarkButtonsUnderInfoPopups[] =
 {
-	SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON, SM_STATS_BUTTON, SM_SKILLS_BUTTON
+	SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON, SM_STATS_BUTTON, SM_SKILLS_BUTTON, SM_VEHICLE_CARGO_BUTTON
 };
 
 
@@ -2044,9 +2197,10 @@ no_plate:
 
 			// Render Values for stats
 			SetFontDestBuffer(guiSAVEBUFFER);
-			if (SM_BIG)
+			// (a vehicle's cargo panel: no stats, it has none)
+			if (SM_BIG || s.uiStatusFlags & SOLDIER_VEHICLE)
 			{
-				RenderBigSMPanelStats(s, dx, dy);
+				if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) RenderBigSMPanelStats(s, dx, dy);
 				SetFontDestBuffer(FRAME_BUFFER);
 				RestoreExternBackgroundRect(0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
 				goto stats_done;
@@ -2127,18 +2281,18 @@ stats_done:
 	{
 		SetStatsHelp(gSM_SELMERCBarsRegion, s);
 
-		// Display AP
+		// Display AP (a vehicle's cargo panel: only its bars)
 		if (!(s.uiStatusFlags & SOLDIER_DEAD))
 		{
 			if (SM_BIG)
 			{
-				PrintAP(&s, dx + SM_BIG_AP_X, dy + SM_BIG_AP_Y, SM_BIG_AP_WIDTH, SM_BIG_AP_HEIGHT, SM_BIG_FONT);
+				if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) PrintAP(&s,dx + SM_BIG_AP_X, dy + SM_BIG_AP_Y, SM_BIG_AP_WIDTH, SM_BIG_AP_HEIGHT, SM_BIG_FONT);
 				DrawSoldierUIBarsTall(s, dx + SM_BIG_LIFEBAR_X, dx + SM_BIG_BREATHBAR_X, dx + SM_BIG_MORALEBAR_X,
 							dy + SM_BIG_BARS_Y, SM_BIG_BAR_WIDTH, SM_BIG_BAR_HEIGHT, FRAME_BUFFER);
 			}
 			else
 			{
-				PrintAP(&s, dx + SM_SELMERC_AP_X, dy + SM_SELMERC_AP_Y, SM_SELMERC_AP_WIDTH, SM_SELMERC_AP_HEIGHT);
+				if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) PrintAP(&s, dx + SM_SELMERC_AP_X, dy + SM_SELMERC_AP_Y, SM_SELMERC_AP_WIDTH, SM_SELMERC_AP_HEIGHT);
 				DrawSoldierUIBars(s, dx + SM_SELMERC_HEALTH_X, dy + SM_SELMERC_HEALTH_Y, TRUE, FRAME_BUFFER);
 			}
 		}
@@ -2238,6 +2392,7 @@ static void SMInvClickCamoCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 
 		SOLDIERTYPE* const s = gpSMCurrentMerc;
 		if (s->bLife < CONSCIOUSNESS) return;
+		if (s->uiStatusFlags & SOLDIER_VEHICLE) return;
 
 		BOOLEAN fGoodAPs;
 		// Try to apply camo....
@@ -2405,7 +2560,11 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 		if ( gpSMCurrentMerc->inv[ uiHandPos ].usItem == NOTHING )
 			return;
 
-		SelectSoldier(gpSMCurrentMerc, SELSOLDIER_NONE);
+		// (out of a vehicle's cargo: its merc stays selected)
+		if (!(gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE))
+		{
+			SelectSoldier(gpSMCurrentMerc, SELSOLDIER_NONE);
+		}
 
 		// OK, check if this is Nails, and we're in the vest position , don't allow it to come off....
 		if ( HandleNailsVestFetish( gpSMCurrentMerc, uiHandPos, NOTHING ) )
@@ -2443,12 +2602,25 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 	{
 		BOOLEAN fOKToGo = FALSE;
 		BOOLEAN fDeductPoints = FALSE;
+		// into or out of a vehicle's cargo: only the merc reaching in pays,
+		// AP_PICKUP_ITEM in turn-based combat
+		SOLDIERTYPE* cargo_merc = 0;
+		if (gpSMCurrentMerc != gpItemPointerSoldier &&
+			(gpSMCurrentMerc->uiStatusFlags | gpItemPointerSoldier->uiStatusFlags) & SOLDIER_VEHICLE)
+		{
+			cargo_merc = gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE ? gpItemPointerSoldier : gpSMCurrentMerc;
+			if (cargo_merc->uiStatusFlags & SOLDIER_VEHICLE) cargo_merc = gpSMCargoMerc;
+		}
 
 		// ATE: OK, get source, dest guy if different... check for and then charge appropriate APs
 		if (gpSMCurrentMerc == gpItemPointerSoldier)
 		{
 			// We are doing this ourselve, continue
 			fOKToGo = TRUE;
+		}
+		else if (cargo_merc)
+		{
+			fOKToGo = !(gTacticalStatus.uiFlags & INCOMBAT) || EnoughPoints(cargo_merc, AP_PICKUP_ITEM, 0, TRUE);
 		}
 		else
 		{
@@ -2545,6 +2717,11 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 			// try to place the item in the cursor into this inventory slot
 			if ( UIHandleItemPlacement( (UINT8) uiHandPos, usOldItemIndex, usNewItemIndex, fDeductPoints ) )
 			{
+				if (cargo_merc && gTacticalStatus.uiFlags & INCOMBAT)
+				{
+					DeductPoints(cargo_merc, AP_PICKUP_ITEM, 0);
+				}
+
 				// it worked!  if we're in the SKI...
 				if (guiCurrentScreen == SHOPKEEPER_SCREEN)
 				{
@@ -2734,6 +2911,13 @@ static void SelectedMercButtonCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRea
 
 	//if we are in the shop keeper interface
 	if (guiCurrentScreen == SHOPKEEPER_SCREEN) return;
+
+	// a vehicle's cargo panel: back to its merc, the vehicle is never selected
+	if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		gSelectSMPanelToMerc = GetSMPanelOwnerMerc();
+		return;
+	}
 
 	// ATE: Don't if this guy can't....
 	if ( !gfSMDisableForItems )
@@ -5203,6 +5387,7 @@ void ToggleTacticalStatsPopup()
 	bool         const sm = gsCurInterfacePanel == SM_PANEL;
 	SOLDIERTYPE* const s  = sm ? gpSMCurrentMerc : GetSelectedMan();
 	if (!s) return;
+	if (s->uiStatusFlags & SOLDIER_VEHICLE) return; // (no stats)
 	INT16 const y = sm ? INV_INTERFACE_START_Y : TEAM_PANEL_Y;
 	InitStatsPopup(s, 0, y, SCREEN_WIDTH, SCREEN_HEIGHT - y);
 }
@@ -5669,7 +5854,7 @@ static void BtnSkillsCallback(GUI_BUTTON* btn, UINT32 reason)
 		{
 			DeleteSkillsPopup();
 		}
-		else if (gpSMCurrentMerc)
+		else if (gpSMCurrentMerc && !(gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE))
 		{
 			InitSkillsPopup(gpSMCurrentMerc, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
 		}
@@ -5692,6 +5877,9 @@ void BeginKeyPanelFromKeyShortcut(void)
 	{
 		return;
 	}
+
+	// (a vehicle's cargo panel: no key ring)
+	if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE) return;
 
 	if ( gfInKeyRingPopup )
 	{
@@ -5746,6 +5934,8 @@ void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 		{
 			return;
 		}
+		// (a vehicle's cargo panel: no key ring)
+		if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE) return;
 
 		sStartYPosition = INV_INTERFACE_START_Y;
 		sWidth   = SCREEN_WIDTH;
@@ -6076,6 +6266,9 @@ static void SMInvMoneyButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 
 		//If the current merc is to far away, dont allow anything to be done
 		if( gfSMDisableForItems )
+			return;
+		// (a vehicle's cargo panel: no money of its own)
+		if (gpSMCurrentMerc && gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE)
 			return;
 
 		//if the player has an item in his hand,

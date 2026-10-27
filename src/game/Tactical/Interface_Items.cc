@@ -423,7 +423,7 @@ static UINT16 gusItemPointer = 255;
 
 // One of our vehicles an item can be passed into (its cargo pockets): not
 // destroyed, here in the sector; never by a throw
-static bool IsVehicleCargoTarget(SOLDIERTYPE const& tgt)
+bool IsVehicleCargoTarget(SOLDIERTYPE const& tgt)
 {
 	return tgt.uiStatusFlags & SOLDIER_VEHICLE &&
 		tgt.bTeam == OUR_TEAM &&
@@ -5429,6 +5429,15 @@ void DrawItemTileCursor( )
 		// Default to turning adjacent area gridno off....
 		gfUIHandleShowMoveGrid = FALSE;
 
+		// Out of a vehicle's cargo: only into a merc's pockets, on the panel --
+		// no drop, throw or pass from the vehicle, and it is never selected
+		if (gpItemPointerSoldier->uiStatusFlags & SOLDIER_VEHICLE)
+		{
+			EndPhysicsTrajectoryUI();
+			uiCursorId = CURSOR_ITEM_BAD_THROW;
+			goto item_cursor;
+		}
+
 		// If we are over a talkable guy, set flag
 		if (GetValidTalkableNPCFromMouse(TRUE, FALSE, TRUE) != NULL)
 		{
@@ -5673,6 +5682,7 @@ void DrawItemTileCursor( )
 			}
 		}
 
+item_cursor:
 		//Erase any cursor in viewport
 		//gViewportRegion.ChangeCursor(VIDEO_NO_CURSOR);
 
@@ -5765,6 +5775,12 @@ BOOLEAN HandleItemPointerClick( UINT16 usMapPos )
 	if (g_ui_message_overlay != NULL)
 	{
 		EndUIMessage( );
+		return( FALSE );
+	}
+
+	// Out of a vehicle's cargo: only into a merc's pockets, on the panel
+	if (gpItemPointerSoldier->uiStatusFlags & SOLDIER_VEHICLE)
+	{
 		return( FALSE );
 	}
 

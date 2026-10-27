@@ -33,6 +33,7 @@ enum
 	SM_SHORTCUTS_BUTTON,
 	SM_STATS_BUTTON,
 	SM_SKILLS_BUTTON,
+	SM_VEHICLE_CARGO_BUTTON,
 	NUM_SM_BUTTONS
 };
 
@@ -177,6 +178,8 @@ void HandleLocateSelectMerc(SOLDIERTYPE*, bool force_select);
 BOOLEAN HandleNailsVestFetish(const SOLDIERTYPE* pSoldier, UINT32 uiHandPos, UINT16 usReplaceItem);
 
 extern SOLDIERTYPE* gpSMCurrentMerc;
+// The SM panel's merc; on a vehicle's cargo panel the merc who opened it
+SOLDIERTYPE* GetSMPanelOwnerMerc();
 extern GUIButtonRef iSMPanelButtons[NUM_SM_BUTTONS];
 extern GUIButtonRef iTEAMPanelButtons[NUM_TEAM_BUTTONS];
 extern GUIButtonRef giSMStealthButton;
