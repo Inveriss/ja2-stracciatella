@@ -3540,7 +3540,8 @@ static INT32 giBigTeamPanelFirstSlot = 0;
 
 // The 1366x768 team panel's vehicle windows (vehicle inventory plan, stage
 // 4c): one for each of our vehicles in the sector that carries cargo
-// (IsVehicleCargoTarget()), always first from the left; the squad's slots
+// (IsVehicleCargoTarget()), always first from the left, in a fixed order
+// (helicopter, Hummer, ice cream truck, the others); the squad's slots
 // follow in the windows left and scroll there. A right click on a vehicle's
 // portrait opens its cargo panel for the selected merc. Kept out of
 // gTeamPanel: the slot numbers (and the keys 1-9) stay the squad's.
@@ -3607,6 +3608,19 @@ static bool UpdateBigTeamPanelVehicles()
 			if (IsVehicleCargoTarget(*v)) now[n++] = v;
 		}
 	}
+
+	// a fixed order: helicopter, Hummer, ice cream truck, then the others
+	auto const rank = [](SOLDIERTYPE const* const s)
+	{
+		switch (pVehicleList[s->bVehicleID].ubVehicleType)
+		{
+			case HELICOPTER:      return 0;
+			case HUMMER:          return 1;
+			case ICE_CREAM_TRUCK: return 2;
+			default:              return 3;
+		}
+	};
+	std::stable_sort(now, now + n, [&](SOLDIERTYPE const* const a, SOLDIERTYPE const* const b) { return rank(a) < rank(b); });
 
 	bool changed = n != giBigTeamPanelNumVehicles;
 	for (INT32 i = 0; i != n && !changed; ++i)

@@ -292,7 +292,7 @@ unchanged.
 
 | # | Question | Decision |
 |---|---|---|
-| P1 | Several vehicles in the sector | a window for each, all first |
+| P1 | Several vehicles in the sector | a window for each, all first, in a fixed order: helicopter, Hummer, ice cream truck (then any other); the arrows (P6) follow it |
 | P2 | Right click while the selected merc is out of reach (3 tiles and sight) | ~~the panel opens hatched, a look only~~ — replaced by P7 |
 | P3 | Merc numbers | unchanged (1, 2, 3…), the keys too |
 | P4 | The "Vehicle Cargo" button on the merc's panel | stays on the 1280 panel (its only way to the cargo; 1280 and 1920 get their own graphic / code stage later); **not on 1366x768** (2026-10-27): the vehicle windows and Previous / Next merc (P6) do its work |

@@ -292,7 +292,7 @@ Panel 1280 i pasek oglądanej bitwy bez zmian.
 
 | # | Pytanie | Decyzja |
 |---|---|---|
-| P1 | Kilka pojazdów w sektorze | okno dla każdego, wszystkie na początku |
+| P1 | Kilka pojazdów w sektorze | okno dla każdego, wszystkie na początku, w stałej kolejności: helikopter, Hummer, wóz z lodami (potem inne); strzałki (P6) idą tą kolejnością |
 | P2 | Prawy klik, gdy zaznaczony najemnik jest poza zasięgiem (3 pola i widok) | ~~panel otwiera się zakreskowany, tylko podgląd~~ — zastąpione przez P7 |
 | P3 | Numery najemników | bez zmian (1, 2, 3…), klawisze też |
 | P4 | Przycisk „Vehicle Cargo” na panelu najemnika | zostaje na panelu 1280 (jedyna droga do ładunku; 1280 i 1920 dostaną własny etap grafiki / kodu później); **nie ma go w 1366x768** (2026-10-27): jego pracę wykonują okna pojazdów i strzałki Previous / Next (P6) |
