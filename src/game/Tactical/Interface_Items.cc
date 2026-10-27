@@ -5434,9 +5434,9 @@ void DrawItemTileCursor( )
 		// Default to turning adjacent area gridno off....
 		gfUIHandleShowMoveGrid = FALSE;
 
-		// Out of a vehicle's cargo: only into a merc's pockets, on the panel --
-		// no drop, throw or pass from the vehicle, and it is never selected
-		if (gpItemPointerSoldier->uiStatusFlags & SOLDIER_VEHICLE)
+		// Out of a vehicle's cargo or from a merc aboard one: only into pockets,
+		// on the panel -- no drop, throw or pass on the map, nobody selected
+		if (gpItemPointerSoldier->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER))
 		{
 			EndPhysicsTrajectoryUI();
 			uiCursorId = CURSOR_ITEM_BAD_THROW;
@@ -5783,8 +5783,9 @@ BOOLEAN HandleItemPointerClick( UINT16 usMapPos )
 		return( FALSE );
 	}
 
-	// Out of a vehicle's cargo: only into a merc's pockets, on the panel
-	if (gpItemPointerSoldier->uiStatusFlags & SOLDIER_VEHICLE)
+	// Out of a vehicle's cargo or from a merc aboard one: only into pockets,
+	// on the panel
+	if (gpItemPointerSoldier->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER))
 	{
 		return( FALSE );
 	}

@@ -299,3 +299,25 @@ unchanged.
 | P5 | Windows left for the mercs | 7 minus the vehicles (e.g. 3 vehicles → 4 mercs shown), the rest by scrolling |
 | P6 | Previous / Next merc with vehicles in the sector (replaces T6 on 1366x768) | the team panel's order: the vehicles from the left, then the mercs 1, 2, 3…, round and round; a vehicle's panel opens for the selected merc, hatched while he (or the merc holding the item on the cursor) is out of reach; without vehicles, and on the 1280 panel, T6 as before |
 | P7 | One rule for mercs' and vehicles' panels (2026-10-27) | a vehicle's items are always active, as a merc's; with an item on the cursor every panel it can't be passed to is hatched: an item out of a merc goes to mercs and vehicles within 3 tiles of him and in his sight, an item out of a vehicle only to mercs within 3 tiles of the vehicle who see it; in turn-based combat the merc taking part pays `AP_PICKUP_ITEM` (into a vehicle: the giver, out of it: the receiver) |
+
+#### Stage 4d: mercs aboard a vehicle in tactical (decided 2026-10-27)
+
+Replaces T5 out of combat. A right click on a driver's or passenger's
+portrait opens his SM panel (inventory only: he isn't on the map, so stance,
+climb, look, talk and the like are off); an item taken from him goes only
+into pockets on a panel, never onto the map. Passing (P7) is measured from
+where his items are — his vehicle:
+
+- mercs aboard the same vehicle, and its cargo: always;
+- a merc outside: 3 tiles from the vehicle and in his sight (as with its
+  cargo);
+- another vehicle (its cargo, those aboard it): the vehicles 3 tiles apart.
+
+With everyone aboard (the vehicle selected), a vehicle's cargo panel opens
+for one of the mercs aboard.
+
+| # | Question | Decision |
+|---|---|---|
+| Q1 | When | out of combat only; in combat T5 stays (no panel for those aboard, no passing with them) |
+| Q2 | Previous / Next merc (P6) | the team panel's order: vehicles, then the mercs, those aboard too (out of combat); a merc aboard isn't selected, only his panel shown; on the 1280 panel the arrows from his panel go back to the team panel |
+| Q3 | A merc aboard ↔ another vehicle | yes, the vehicles 3 tiles apart |

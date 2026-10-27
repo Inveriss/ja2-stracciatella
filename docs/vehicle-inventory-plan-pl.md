@@ -299,3 +299,24 @@ Panel 1280 i pasek oglądanej bitwy bez zmian.
 | P5 | Okna dla najemników | 7 minus pojazdy (np. 3 pojazdy → 4 najemników widocznych), reszta przez przewijanie |
 | P6 | Previous / Next Merc z pojazdami w sektorze (zastępuje T6 w 1366x768) | kolejność panelu drużyny: pojazdy od lewej, potem najemnicy 1, 2, 3…, w kółko; panel pojazdu otwiera się dla zaznaczonego najemnika, wyszarzony, gdy on (lub najemnik trzymający przedmiot na kursorze) jest poza zasięgiem; bez pojazdów i na panelu 1280 T6 jak dotąd |
 | P7 | Jedna zasada dla paneli najemników i pojazdów (2026-10-27) | przedmioty pojazdu zawsze aktywne, jak u najemnika; z przedmiotem na kursorze wyszarzony jest każdy panel, do którego nie można go podać: przedmiot od najemnika trafia do najemników i pojazdów do 3 pól od niego i w jego polu widzenia, przedmiot z pojazdu tylko do najemników do 3 pól od pojazdu, którzy go widzą; w walce turowej płaci biorący udział najemnik, `AP_PICKUP_ITEM` (do pojazdu: dający, z pojazdu: odbierający) |
+
+#### Etap 4d: najemnicy w pojeździe na ekranie taktycznym (decyzje 2026-10-27)
+
+Zastępuje T5 poza walką. Prawy klik na portret kierowcy lub pasażera otwiera
+jego panel SM (tylko inwentarz: nie ma go na mapie, więc postawa, wspinanie,
+Look, Talk itp. są wyłączone); przedmiot wzięty od niego trafia tylko do
+kieszeni na panelu, nigdy na mapę. Podawanie (P7) liczy się od miejsca, gdzie
+są jego przedmioty — od jego pojazdu:
+
+- najemnicy w tym samym pojeździe i jego bagażnik: zawsze;
+- najemnik na zewnątrz: 3 pola od pojazdu i widzi go (jak przy bagażniku);
+- inny pojazd (jego bagażnik, osoby w nim): pojazdy do 3 pól od siebie.
+
+Gdy wszyscy są w środku (zaznaczony pojazd), panel bagażnika otwiera się dla
+jednego z najemników w pojeździe.
+
+| # | Pytanie | Decyzja |
+|---|---|---|
+| Q1 | Kiedy | tylko poza walką; w walce zostaje T5 (brak panelu dla osób w pojeździe i podawania z nimi) |
+| Q2 | Previous / Next Merc (P6) | kolejność panelu drużyny: pojazdy, potem najemnicy, także ci w pojeździe (poza walką); najemnik w pojeździe nie jest zaznaczany, pokazuje się tylko jego panel; na panelu 1280 strzałki z jego panelu wracają do panelu drużyny |
+| Q3 | Najemnik w pojeździe ↔ inny pojazd | tak, pojazdy do 3 pól od siebie |

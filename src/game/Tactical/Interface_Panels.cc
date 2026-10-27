@@ -681,6 +681,46 @@ static bool IsVehicleInMercReach(SOLDIERTYPE const& merc, SOLDIERTYPE const& v)
 }
 
 
+// A merc aboard a vehicle (driver or passenger)
+static bool IsAboard(SOLDIERTYPE const& s)
+{
+	return s.uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER);
+}
+
+
+// Where a soldier's items are reached from: an aboard merc's vehicle, else
+// himself (a merc aboard isn't on the map; his position is the vehicle's)
+static SOLDIERTYPE const& ReachAnchor(SOLDIERTYPE const& s)
+{
+	return IsAboard(s) ? GetSoldierStructureForVehicle(GetVehicle(s.iVehicleId)) : s;
+}
+
+
+// Passing an item between two soldiers when a vehicle or a merc aboard one
+// is involved (plan P7, stage 4d): aboard only out of combat (Q1); in the
+// same vehicle always; a vehicle and a merc outside: 3 tiles and his sight
+// of it; two vehicles: 3 tiles apart (Q3)
+static bool CanPassViaVehicle(SOLDIERTYPE const& src, SOLDIERTYPE const& dst)
+{
+	if ((IsAboard(src) || IsAboard(dst)) && gTacticalStatus.uiFlags & INCOMBAT) return false;
+
+	SOLDIERTYPE const& a = ReachAnchor(src);
+	SOLDIERTYPE const& b = ReachAnchor(dst);
+	if (&a == &b) return true;
+
+	bool const a_vehicle = a.uiStatusFlags & SOLDIER_VEHICLE;
+	bool const b_vehicle = b.uiStatusFlags & SOLDIER_VEHICLE;
+	if (a_vehicle && b_vehicle)
+	{
+		return IsVehicleCargoTarget(a) && IsVehicleCargoTarget(b) &&
+			PythSpacesAway(a.sGridNo, b.sGridNo) <= PASSING_ITEM_DISTANCE_OKLIFE;
+	}
+	SOLDIERTYPE const& v = a_vehicle ? a : b;
+	SOLDIERTYPE const& m = a_vehicle ? b : a;
+	return m.bLife >= CONSCIOUSNESS && IsVehicleInMercReach(m, v);
+}
+
+
 // The nearest of our vehicles this merc can reach into, or none
 static SOLDIERTYPE* VehicleCargoInReach(SOLDIERTYPE const& merc)
 {
@@ -720,11 +760,28 @@ static bool CanOpenVehicleCargo(SOLDIERTYPE const* const merc)
 }
 
 
+// Whose SM panel a vehicle's cargo panel is opened from: the selected merc;
+// with everyone aboard (the vehicle selected) out of combat, one of the mercs
+// aboard (stage 4d)
+static SOLDIERTYPE* VehicleCargoPanelOwner()
+{
+	SOLDIERTYPE* const sel = GetSelectedMan();
+	if (CanOpenVehicleCargo(sel)) return sel;
+	if (gTacticalStatus.uiFlags & INCOMBAT) return 0;
+	for (TeamPanelSlot const& i : gTeamPanel)
+	{
+		SOLDIERTYPE* const s = i.merc;
+		if (s && s->bActive && s->bLife >= OKLIFE && IsAboard(*s) && !AM_AN_EPC(s)) return s;
+	}
+	return 0;
+}
+
+
 static void OpenVehicleCargoPanel(SOLDIERTYPE& v)
 {
 	// for the selected merc (its items active; passing as between mercs, P7)
-	SOLDIERTYPE* const merc = GetSelectedMan();
-	if (!CanOpenVehicleCargo(merc)) return;
+	SOLDIERTYPE* const merc = VehicleCargoPanelOwner();
+	if (!merc) return;
 	gpSMPendingCargoVehicle = &v;
 	gpSMPendingCargoMerc    = merc;
 	guiSMPendingCargoTime   = GetJA2Clock();
@@ -791,11 +848,10 @@ void CheckForDisabledForGiveItem(void)
 			return;
 		}
 
-		// Out of a vehicle's cargo: into the pockets of a merc within reach of
-		// it (3 tiles and his sight of it), as between two mercs
-		if (src->uiStatusFlags & SOLDIER_VEHICLE)
+		// A vehicle or a merc aboard one on either side (P7, stage 4d)
+		if ((src->uiStatusFlags | cur->uiStatusFlags) & SOLDIER_VEHICLE || IsAboard(*src) || IsAboard(*cur))
 		{
-			gfSMDisableForItems = cur_vehicle || cur->bLife < CONSCIOUSNESS || !IsVehicleInMercReach(*cur, *src);
+			gfSMDisableForItems = !CanPassViaVehicle(*src, *cur);
 			return;
 		}
 
@@ -962,8 +1018,8 @@ static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
 	// (already on the way to another panel, e.g. Previous / Next merc)
 	if (gSelectSMPanelToMerc) return;
 
-	SOLDIERTYPE* const merc = gpSMCargoMerc;
-	if (!merc || merc != GetSelectedMan() || !IsVehicleCargoTarget(v))
+	// (another merc selected switches the panel to him anyway)
+	if (!IsVehicleCargoTarget(v))
 	{
 		SOLDIERTYPE* const back = GetSMPanelOwnerMerc();
 		if (back && !(back->uiStatusFlags & SOLDIER_VEHICLE))
@@ -999,6 +1055,30 @@ static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
 	{
 		CheckForAnyNewlyAddedItems(&v);
 		v.fCheckForNewlyAddedItems = FALSE;
+	}
+}
+
+
+// A merc aboard a vehicle (stage 4d, out of combat): his inventory only --
+// he isn't on the map, so nothing he would do there (stance, climb, look,
+// ...); his items pass as CanPassViaVehicle() says
+static void CheckForReEvaluateDisabledINVPanelButtons(void);
+static void UpdateSMAboardPanel(SOLDIERTYPE& s)
+{
+	for (UINT const idx : { CLIMB_BUTTON, BURSTMODE_BUTTON, STANCEUP_BUTTON, STANCEDOWN_BUTTON, LOOK_BUTTON,
+		UPDOWN_BUTTON, HANDCURSOR_BUTTON, TALK_BUTTON })
+	{
+		if (iSMPanelButtons[idx]) DisableButton(iSMPanelButtons[idx]);
+	}
+	if (giSMStealthButton) DisableButton(giSMStealthButton);
+
+	if (gfAllDisabled) return;
+	CheckForReEvaluateDisabledINVPanelButtons();
+
+	if (s.fCheckForNewlyAddedItems)
+	{
+		CheckForAnyNewlyAddedItems(&s);
+		s.fCheckForNewlyAddedItems = FALSE;
 	}
 }
 
@@ -1042,6 +1122,11 @@ static void UpdateSMPanel()
 		return;
 	}
 	UpdateSMVehicleCargoButton(s);
+	if (IsAboard(s))
+	{
+		UpdateSMAboardPanel(s);
+		return;
+	}
 
 	UINT8 stance_state = s.ubDesiredHeight;
 	if (stance_state == NO_DESIRED_HEIGHT)
@@ -2614,8 +2699,8 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 		if ( gpSMCurrentMerc->inv[ uiHandPos ].usItem == NOTHING )
 			return;
 
-		// (out of a vehicle's cargo: its merc stays selected)
-		if (!(gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE))
+		// (out of a vehicle's cargo or from a merc aboard: the selection stays)
+		if (!(gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE) && !IsAboard(*gpSMCurrentMerc))
 		{
 			SelectSoldier(gpSMCurrentMerc, SELSOLDIER_NONE);
 		}
@@ -3226,6 +3311,13 @@ static void SMPanelPrevNextMerc(bool const next)
 
 	if (g_ui.isBigTeamPanel() && StepSMPanelThroughTeamPanel(next)) return;
 
+	// a merc aboard (stage 4d) isn't stepped from here: back to the team panel
+	if (IsAboard(*cur))
+	{
+		SetNewPanel(0);
+		return;
+	}
+
 	if (cur->uiStatusFlags & SOLDIER_VEHICLE)
 	{
 		SOLDIERTYPE* const owner = GetSMPanelOwnerMerc();
@@ -3496,21 +3588,25 @@ static bool UpdateBigTeamPanelVehicles()
 
 // Previous / Next merc on the 1366x768 SM panel with vehicles in the sector
 // (plan T6, stage 4c): the team panel's order -- the vehicles from the left,
-// then the squad's mercs -- round and round. A vehicle's panel opens for the
-// selected merc; with an item on the cursor every panel it can't be passed
-// to is hatched (P7). False: no vehicles, the usual steps.
+// then the squad's mercs, those aboard too out of combat (stage 4d / Q2) --
+// round and round. A vehicle's panel opens for the selected merc (everyone
+// aboard: for one of them); a merc aboard isn't selected, only his panel
+// shown; with an item on the cursor every panel it can't be passed to is
+// hatched (P7). False: no vehicles, the usual steps.
 static bool StepSMPanelThroughTeamPanel(bool const next)
 {
 	UpdateBigTeamPanelVehicles();
-	SOLDIERTYPE* const sel = GetSelectedMan();
-	if (giBigTeamPanelNumVehicles == 0 || !CanOpenVehicleCargo(sel)) return false;
+	SOLDIERTYPE* const owner = VehicleCargoPanelOwner();
+	if (giBigTeamPanelNumVehicles == 0 || !owner) return false;
 
+	bool const in_combat = gTacticalStatus.uiFlags & INCOMBAT;
 	std::vector<SOLDIERTYPE*> order(gBigTeamPanelVehicles, gBigTeamPanelVehicles + giBigTeamPanelNumVehicles);
 	for (TeamPanelSlot const& i : gTeamPanel)
 	{
 		SOLDIERTYPE* const s = i.merc;
 		if (!s || !s->bActive || !s->bInSector || s->bLife < 1) continue;
 		if (AM_AN_EPC(s) || AM_A_ROBOT(s) || !OK_INTERRUPT_MERC(s)) continue;
+		if (IsAboard(*s) && in_combat) continue;
 		order.push_back(s);
 	}
 
@@ -3525,7 +3621,12 @@ static bool StepSMPanelThroughTeamPanel(bool const next)
 
 	if (to->uiStatusFlags & SOLDIER_VEHICLE)
 	{
-		gpSMCargoMerc        = sel;
+		gpSMCargoMerc        = owner;
+		gSelectSMPanelToMerc = to;
+		fInterfacePanelDirty = DIRTYLEVEL2;
+	}
+	else if (IsAboard(*to))
+	{
 		gSelectSMPanelToMerc = to;
 		fInterfacePanelDirty = DIRTYLEVEL2;
 	}
@@ -4535,10 +4636,11 @@ static void MercFacePanelCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason
 
 	if (!InOverheadMap())
 	{
-		// Only if guy is not dead!
+		// Only if guy is not dead! (a merc aboard a vehicle: out of combat,
+		// vehicle inventory plan stage 4d / Q1)
 		if (!(s->uiStatusFlags & SOLDIER_DEAD) &&
 				!AM_AN_EPC(s) &&
-				!(s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER)))
+				(!IsAboard(*s) || !(gTacticalStatus.uiFlags & INCOMBAT)))
 		{
 			SetNewPanel(s);
 		}
