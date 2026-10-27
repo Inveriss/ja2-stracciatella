@@ -3820,11 +3820,16 @@ static SOLDIERTYPE* BigTeamPanelVehicleOf(MOUSE_REGION* const r)
 }
 
 
-// a vehicle's portrait: the left click shows it (it is never selected)
+// a vehicle's portrait: the left click shows it (it is never selected); with
+// someone aboard the team panel switches to its squad, those aboard it
 static void BigTeamVehicleFaceCallbackPrimary(MOUSE_REGION* const r, UINT32)
 {
 	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
 	if (!v || fInMapMode) return;
+	if (GetNumberInVehicle(GetVehicle(v->bVehicleID)) != 0 && v->bAssignment != CurrentSquad())
+	{
+		SetCurrentSquad(v->bAssignment, FALSE);
+	}
 	LocateSoldier(v, SETLOCATOR);
 }
 

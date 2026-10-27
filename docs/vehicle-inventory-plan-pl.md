@@ -319,6 +319,8 @@ Wszyscy wysiadają naraz (1366x768, dodane 2026-10-27): okno pojazdu na panelu
 drużyny pokazuje pas bezpieczeństwa pasażerów w oknie drugiej dłoni (niski
 panel: pierwszej), gdy ktoś jest w środku; kliknięcie wysadza wszystkich, do
 oddziału pierwszego, który wysiadł (kto się nie zmieści, zostaje w swoim).
+Lewy klik na portret pojazdu, gdy ktoś jest w środku, przełącza panel drużyny
+na oddział pojazdu (osoby w nim), zamiast Change Squad, i pokazuje pojazd.
 
 | # | Pytanie | Decyzja |
 |---|---|---|

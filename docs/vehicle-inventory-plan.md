@@ -320,6 +320,9 @@ Everyone out at once (1366x768, added 2026-10-27): a vehicle's window on the
 team panel shows the passengers' seat belt in its second hand's window (the
 low panel: the first's) while someone is aboard; a click gets them all out,
 into the squad of the first one out (one who doesn't fit keeps his own).
+A left click on a vehicle's portrait with someone aboard switches the team
+panel to the vehicle's squad (those aboard), instead of Change Squad, and
+shows the vehicle.
 
 | # | Question | Decision |
 |---|---|---|
