@@ -8524,6 +8524,12 @@ void ChangeSelectedInfoChar( INT8 bCharNumber, BOOLEAN fResetSelectedList )
 		// make sure we can give it to this guy, otherwise don't allow the change
 		if (s == NULL || !MapscreenCanPassItemToChar(s))
 		{
+			// a battle in the loaded sector refuses every pass: say so (the
+			// original refused silently; vehicle inventory plan, 4.7)
+			if (s && s != GetSelectedInfoChar() && gTacticalStatus.fEnemyInSector)
+			{
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, gzLateLocalizedString[STR_LATE_61]);
+			}
 			return;
 		}
 	}

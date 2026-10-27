@@ -1028,7 +1028,8 @@
         "John und Mary eskortieren?",
         "Schalter betätigt.",
         "Der Werkzeugkasten von %s ist in zu schlechtem Zustand, um das Fahrzeug zu reparieren: %s!",
-        "%s entfernen"
+        "%s entfernen",
+        "Während eines Gefechts können auf dem strategischen Bildschirm keine Gegenstände zwischen Charakteren übergeben werden."
     ],
     "gzMercSkillText": [
         "Keine Fähigkeiten",

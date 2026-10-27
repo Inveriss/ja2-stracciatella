@@ -1028,7 +1028,8 @@
         "Escorter John et Mary ?",
         "Interrupteur activé.",
         "La trousse à outils de %s est en trop mauvais état pour réparer le véhicule : %s !",
-        "Retirer %s"
+        "Retirer %s",
+        "Impossible de transmettre des objets entre personnages sur l'écran stratégique pendant un combat."
     ],
     "gzMercSkillText": [
         "Aucune spécialité",

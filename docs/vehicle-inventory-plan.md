@@ -1,7 +1,10 @@
 # Plan: vehicle inventory (transporting items)
 
-Status: **plan only**, not implemented (2026-10-26, user on Remote Control;
-V9 for the helicopter added later the same day).
+Status: **implemented** — stages 1–4 (4a, 4b, 4c) done and verified in the
+game (2026-10-27), and both points of 4.7. Planned 2026-10-26 (user on
+Remote Control; V9 for the helicopter added later the same day). Left for
+later, outside this plan: the "Vehicle Cargo" button's own graphic, and the
+1280 / 1920 panels (their own graphic and code stage; P4).
 Branch `Vehicles`. Background: [vehicles-current-implementation.md](vehicles-current-implementation.md).
 
 ## 1. Goal
@@ -173,11 +176,17 @@ to its inventory, then let the normal drop place what is left on the ground.
   the existing "You can't use this panel during combat." or a new text).
   Note: the flag is about the sector loaded in tactical, so a battle there
   blocks transfers on the map everywhere (original behaviour).
+  **Done (2026-10-27):** picking an item up in a merc's inventory during such a
+  battle says at once, in the log and a box, that items can't be passed
+  between characters on the strategic screen during a battle (new text
+  `STR_LATE_61`, all 9 languages) — with the item on the cursor neither the
+  arrows nor Done work, and the big inventory panel covers the team list; a
+  click on another character in the list says it too. The refusal stays.
 - **While travelling** transfers are only allowed within the same squad or
   vehicle (`bAssignment` equal). The vehicle soldier has its squad number as
   `bAssignment`, its passengers have `VEHICLE`, so passenger ↔ vehicle on the
   road would be refused — allow it when the passenger's `iVehicleId` is that
-  vehicle.
+  vehicle. **Done** (stage 1, `IsVehicleAndItsPassenger()`).
 
 ## 5. Stages
 

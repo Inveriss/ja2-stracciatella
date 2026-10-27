@@ -1028,7 +1028,8 @@
         "Eskortować Johna i Mary?",
         "Przełącznik aktywowany.",
         "%s ma zestaw narzędzi w zbyt złym stanie, by naprawić pojazd: %s!",
-        "Usuń %s"
+        "Usuń %s",
+        "W czasie bitwy nie można przekazywać przedmiotów między postaciami na ekranie strategicznym."
     ],
     "gzMercSkillText": [
         "Brak umiejętności",

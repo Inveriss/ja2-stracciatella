@@ -1028,7 +1028,8 @@
         "John en Mary escorteren?",
         "Schakelaar geactiveerd.",
         "De gereedschapskist van %s is in te slechte staat om het voertuig te repareren: %s!",
-        "%s verwijderen"
+        "%s verwijderen",
+        "Tijdens een gevecht kunnen op het strategische scherm geen voorwerpen tussen personages worden doorgegeven."
     ],
     "gzMercSkillText": [
         "No Skill",

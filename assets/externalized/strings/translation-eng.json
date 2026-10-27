@@ -1028,7 +1028,8 @@
         "Escort John and Mary?",
         "Switch Activated.",
         "%s's tool kit is in too poor condition to repair %s!",
-        "Remove %s"
+        "Remove %s",
+        "Items can't be passed between characters on the strategic screen during a battle."
     ],
     "gzMercSkillText": [
         "No Skill",

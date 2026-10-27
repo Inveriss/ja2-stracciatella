@@ -2,8 +2,11 @@
 
 Polska wersja dokumentu [vehicle-inventory-plan.md](vehicle-inventory-plan.md).
 
-Status: **tylko plan**, niewdrożony (2026-10-26, użytkownik w trybie Remote
-Control; V9 dla helikoptera dopisane później tego samego dnia). Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehicles-current-implementation-pl.md).
+Status: **wdrożony** — etapy 1–4 (4a, 4b, 4c) zrobione i sprawdzone w grze
+(2026-10-27), oba punkty 4.7 także. Plan z 2026-10-26 (użytkownik w trybie
+Remote Control; V9 dla helikoptera dopisane później tego samego dnia). Na
+później, poza tym planem: własna grafika przycisku „Vehicle Cargo” oraz
+panele 1280 / 1920 (osobny etap grafiki i kodu; P4). Branch `Vehicles`. Tło: [vehicles-current-implementation-pl.md](vehicles-current-implementation-pl.md).
 
 ## 1. Cel
 
@@ -174,10 +177,17 @@ na jego inwentarzu, a potem zwykłe upuszczenie kładzie na ziemi to, co został
   istniejący „Podczas walki nie można korzystać z tego panelu.” albo nowy
   tekst). Uwaga: flaga dotyczy sektora wczytanego w taktyce, więc walka tam
   blokuje przenoszenie na mapie wszędzie (zachowanie oryginalne).
+  **Zrobione (2026-10-27):** podniesienie przedmiotu w inwentarzu najemnika w
+  czasie takiej bitwy od razu mówi, w logu i w okienku, że w czasie bitwy nie
+  można przekazywać przedmiotów między postaciami na ekranie strategicznym
+  (nowy tekst `STR_LATE_61`, wszystkie 9 języków) — z przedmiotem na kursorze
+  nie działają strzałki ani Done, a duży panel inwentarza zasłania listę
+  drużyny; kliknięcie innej postaci na liście też to mówi. Blokada zostaje.
 - **W trakcie podróży** wymiana jest dozwolona tylko w tym samym oddziale lub
   pojeździe (równe `bAssignment`). Postać pojazdu ma jako `bAssignment` numer
   oddziału, a jej pasażerowie `VEHICLE`, więc pasażer ↔ pojazd w drodze
   zostałby odrzucony — dopuścić to, gdy `iVehicleId` pasażera to ten pojazd.
+  **Zrobione** (etap 1, `IsVehicleAndItsPassenger()`).
 
 ## 5. Etapy
 
