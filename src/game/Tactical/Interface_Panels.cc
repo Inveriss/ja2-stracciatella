@@ -41,6 +41,7 @@
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Bottom.h"
+#include "Map_Screen_Helicopter.h"
 #include "MercPortrait.h"
 #include "Message.h"
 #include "MessageBoxScreen.h"
@@ -3879,6 +3880,28 @@ void EndHelicopterPassengersView()
 	if (!gfHelicopterPassengersView) return;
 	gfHelicopterPassengersView = false;
 	fInterfacePanelDirty       = DIRTYLEVEL2;
+}
+
+
+bool ShowHelicopterPassengersViewOnSectorEntry()
+{
+	if (guiCurrentScreen != GAME_SCREEN) return false;
+	if (!g_ui.isBigTeamPanel()) return true;
+	SOLDIERTYPE* const hs = GetHelicopterSoldier();
+	if (!hs || !hs->bInSector || HelicopterPassengersInSector(*hs).empty()) return true;
+
+	// only with nobody of ours on the ground (a ground vehicle's passengers
+	// count: its squad is shown then)
+	CFOR_EACH_IN_TEAM(s, OUR_TEAM)
+	{
+		if (!s->bInSector || s->bLife <= 0) continue;
+		if (s->uiStatusFlags & SOLDIER_VEHICLE || InHelicopter(*s)) continue;
+		return true;
+	}
+
+	ShowHelicopterPassengersView(*hs);
+	LocateSoldier(hs, SETLOCATOR);
+	return true;
 }
 
 

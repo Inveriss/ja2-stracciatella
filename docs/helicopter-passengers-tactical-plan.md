@@ -205,6 +205,11 @@ then getting out (3.4).
   air. Now those aboard a helicopter hovering over the sector count too, if
   the sector has no enemies (`IsHelicopterHoveringOverSafeSector()`) — a
   battle with nobody on the ground would be lost at once (B4).
+- **Entering with nobody on the ground (added 2026-10-28):** as with a ground
+  vehicle's squad, the first tactical frame of a new world shows the
+  helicopter's passengers view at once (its window framed, those aboard in
+  the slots, the screen on it) when nobody of ours is on the ground
+  (`ShowHelicopterPassengersViewOnSectorEntry()`; 1366x768).
 
 ## 7. Checks on the PC before implementing
 

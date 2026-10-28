@@ -1177,6 +1177,8 @@ enum HeliTacticalMode
 	HELI_TACTICAL_BODY     // hovering: its own body at the drop spot
 };
 static HeliTacticalMode g_heli_tactical = HELI_TACTICAL_NONE;
+// a new world: its first tactical frame may show the passengers view
+static bool g_heli_new_world = false;
 
 
 static RefuelSite const* RefuelSiteOfLoadedSector()
@@ -1320,12 +1322,16 @@ void UpdateHelicopterInTactical()
 	}
 	UpdateHelicopterPassengersInTactical(*s);
 	UpdateHelicopterPassengersView();
+
+	// entering the sector with nobody on the ground: those aboard at once
+	if (g_heli_new_world && gfWorldLoaded && ShowHelicopterPassengersViewOnSectorEntry()) g_heli_new_world = false;
 }
 
 
 void ResetHelicopterInTactical()
 {
-	g_heli_tactical = HELI_TACTICAL_NONE;
+	g_heli_tactical  = HELI_TACTICAL_NONE;
+	g_heli_new_world = true;
 	SOLDIERTYPE* const s = GetHelicopterSoldier();
 	if (!s) return;
 	s->pLevelNode = NULL; // (the world went with it)
