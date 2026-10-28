@@ -231,8 +231,9 @@ Stage 1 (driving out of combat) in sub-stages, each verified in the game:
   (`VEHICLE_ENGINE_NOISE`; footsteps are 9 at most) for the enemies to hear,
   instead of footsteps; those aboard (conscious) turn as it faces and look out
   with their own sight (`HandleSight()`, their position is the vehicle's) —
-  the vehicle itself still has none; the screen slides to it when it is the
-  selected one and has left the screen.
+  the vehicle itself still has none. The screen doesn't follow it (a follow
+  when it left the screen was tried and switched off at the user's request,
+  2026-10-29).
 - **1e — mines, people, blocks while moving (D8, D13)**, save / load mid-move.
 
 Then stages 2–5 of section 6.

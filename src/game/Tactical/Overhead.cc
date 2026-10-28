@@ -1888,8 +1888,7 @@ static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving)
 
 	// our driving vehicle (driving plan, stage 1d): its engine is heard far
 	// around, those aboard look out from it (as it faces, their own sight --
-	// D5; the vehicle itself has none) and the screen follows it when it is
-	// the selected one
+	// D5; the vehicle itself has none); the screen doesn't follow it
 	bool const driving = pSoldier->uiStatusFlags & SOLDIER_VEHICLE && pSoldier->bTeam == OUR_TEAM;
 	if (driving && !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))
 	{
@@ -1902,7 +1901,6 @@ static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving)
 			p.bDesiredDirection = pSoldier->bDirection;
 			HandleSight(p, SIGHT_LOOK | SIGHT_RADIO);
 		}
-		if (pSoldier == GetSelectedMan() && !GridNoOnScreen(pSoldier->sGridNo)) SlideTo(pSoldier, FALSE);
 	}
 	else if (!(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))
 	{
