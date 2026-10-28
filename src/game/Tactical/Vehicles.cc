@@ -282,7 +282,9 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 
 void SetSoldierExitHelicopterInsertionData(SOLDIERTYPE* const s)
 {
-	if (s->bInSector) return;
+	// already put on the map (one aboard in the loaded sector has no place on
+	// it yet, UpdateHelicopterInTactical())
+	if (s->bInSector && s->pLevelNode) return;
 
 	auto shippingDest = GCM->getPrimaryShippingDestination();
 	if (s->sSector == shippingDest->deliverySector)

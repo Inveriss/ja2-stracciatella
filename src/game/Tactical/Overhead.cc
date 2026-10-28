@@ -5087,7 +5087,9 @@ static BOOLEAN CheckForLosingEndOfBattle(void)
 	CFOR_EACH_IN_TEAM(pTeamSoldier, OUR_TEAM)
 	{
 		// Are we in sector.....
-		if (pTeamSoldier->bInSector && !(pTeamSoldier->uiStatusFlags & SOLDIER_VEHICLE))
+		// (those aboard the helicopter don't fight)
+		if (pTeamSoldier->bInSector && !(pTeamSoldier->uiStatusFlags & SOLDIER_VEHICLE) &&
+			!InHelicopter(*pTeamSoldier))
 		{
 			bNumInBattle++;
 

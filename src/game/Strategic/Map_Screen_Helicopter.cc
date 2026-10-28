@@ -1266,6 +1266,40 @@ static void PutHelicopterInTactical(SOLDIERTYPE& s, HeliTacticalMode const mode)
 }
 
 
+// Those aboard are in the loaded sector exactly while the helicopter is (as
+// the passengers of the ground vehicles): a merc slot, bInSector, its
+// position, no place on the map -- whether the sector was loaded with the
+// helicopter there or it came / left later. Sightings, battles and the
+// sector checks keep away from them as in the original (InHelicopter(),
+// SoldierAboardAirborneHeli()).
+static void UpdateHelicopterPassengersInTactical(SOLDIERTYPE const& hs)
+{
+	if (iHelicopterVehicleId == -1) return;
+	bool const here = g_heli_tactical != HELI_TACTICAL_NONE;
+	CFOR_EACH_PASSENGER(GetHelicopter(), i)
+	{
+		SOLDIERTYPE& s = **i;
+		if (here)
+		{
+			if (!s.bInSector)
+			{
+				s.sSector = gWorldSector;
+				AddMercSlot(&s);
+				s.bInSector          = TRUE;
+				fInterfacePanelDirty = DIRTYLEVEL2;
+			}
+			if (s.sGridNo != hs.sGridNo) EVENT_SetSoldierPositionXY(&s, hs.dXPos, hs.dYPos, SSP_NONE);
+		}
+		else if (s.bInSector)
+		{
+			RemoveMercSlot(&s);
+			s.bInSector          = FALSE;
+			fInterfacePanelDirty = DIRTYLEVEL2;
+		}
+	}
+}
+
+
 void UpdateHelicopterInTactical()
 {
 	SOLDIERTYPE* const s = GetHelicopterSoldier();
@@ -1276,11 +1310,13 @@ void UpdateHelicopterInTactical()
 	}
 
 	HeliTacticalMode const wanted = WantedHelicopterInTactical(*s);
-	if (wanted == g_heli_tactical && (wanted != HELI_TACTICAL_NONE || !s->bInSector)) return;
-
-	if (g_heli_tactical != HELI_TACTICAL_NONE || s->bInSector) TakeHelicopterOffTactical(*s);
-	g_heli_tactical = HELI_TACTICAL_NONE;
-	if (wanted != HELI_TACTICAL_NONE) PutHelicopterInTactical(*s, wanted);
+	if (wanted != g_heli_tactical || (wanted == HELI_TACTICAL_NONE && s->bInSector))
+	{
+		if (g_heli_tactical != HELI_TACTICAL_NONE || s->bInSector) TakeHelicopterOffTactical(*s);
+		g_heli_tactical = HELI_TACTICAL_NONE;
+		if (wanted != HELI_TACTICAL_NONE) PutHelicopterInTactical(*s, wanted);
+	}
+	UpdateHelicopterPassengersInTactical(*s);
 }
 
 

@@ -19,6 +19,7 @@
 #include "Soldier_Macros.h"
 #include "Squads.h"
 #include "Map_Screen_Interface_Map.h"
+#include "Map_Screen_Helicopter.h"
 #include "PreBattle_Interface.h"
 #include "Strategic.h"
 #include "Fade_Screen.h"
@@ -386,8 +387,9 @@ static void DoneFadeOutWarpCallback(void)
 	// Warp!
 	FOR_EACH_IN_TEAM(pSoldier, OUR_TEAM)
 	{
-		// Are we in this sector, On the current squad?
-		if (pSoldier->bLife >= OKLIFE && pSoldier->bInSector)
+		// Are we in this sector, On the current squad? (not aboard the
+		// helicopter: it stays)
+		if (pSoldier->bLife >= OKLIFE && pSoldier->bInSector && !InHelicopter(*pSoldier))
 		{
 			gfTacticalTraversal = TRUE;
 			SetGroupSectorValue(gsWarpWorld, *GetGroup(pSoldier->ubGroupID));
