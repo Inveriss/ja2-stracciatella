@@ -2250,7 +2250,9 @@ bool CanGoToTacticalInSector(const SGPSector& sector)
 		if (s.bAssignment == IN_TRANSIT)       continue;
 		if (s.bAssignment == ASSIGNMENT_POW)   continue;
 		if (s.bAssignment == ASSIGNMENT_DEAD)  continue;
-		if (SoldierAboardAirborneHeli(s))      continue;
+		// those aboard the helicopter in the air, unless it hovers over this
+		// sector without enemies (landed, they count anyway)
+		if (SoldierAboardAirborneHeli(s) && !IsHelicopterHoveringOverSafeSector(sector)) continue;
 		if (s.fBetweenSectors)                 continue;
 		if (s.sSector != sector)               continue;
 		return true;

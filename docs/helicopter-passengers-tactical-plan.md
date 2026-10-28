@@ -199,6 +199,12 @@ then getting out (3.4).
   helicopter left or is empty, and refills the slots when someone got in or
   out. A click on a ground vehicle's window leaves it, also for the current
   squad's vehicle.
+- **Going to tactical (added 2026-10-28):** with nobody of ours on the ground,
+  the map screen's Tactical button only worked where the helicopter had landed
+  (Drassen, Estoni): `CanGoToTacticalInSector()` skips those aboard it in the
+  air. Now those aboard a helicopter hovering over the sector count too, if
+  the sector has no enemies (`IsHelicopterHoveringOverSafeSector()`) — a
+  battle with nobody on the ground would be lost at once (B4).
 
 ## 7. Checks on the PC before implementing
 

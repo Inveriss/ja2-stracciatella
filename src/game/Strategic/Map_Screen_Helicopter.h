@@ -218,6 +218,9 @@ INT16 GetNumSafeSectorsInPath();
 INT16 GetNumUnSafeSectorsInPath( void );
 
 bool SoldierAboardAirborneHeli(SOLDIERTYPE const&);
+// is it hovering over this sector, which has no enemies? Those aboard then
+// let the player go to tactical there, as when it has landed
+bool IsHelicopterHoveringOverSafeSector(const SGPSector&);
 
 void MoveAllInHelicopterToFootMovementGroup(void);
 

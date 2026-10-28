@@ -1786,3 +1786,11 @@ bool SoldierAboardAirborneHeli(SOLDIERTYPE const& s)
 {
 	return InHelicopter(s) && fHelicopterIsAirBorne;
 }
+
+bool IsHelicopterHoveringOverSafeSector(const SGPSector& sector)
+{
+	if (iHelicopterVehicleId == -1 || fHelicopterDestroyed || gfHelicopterGoingDown) return false;
+	if (!fHelicopterIsAirBorne || !fHoveringHelicopter || sector.z != 0) return false;
+	VEHICLETYPE const& v = GetHelicopter();
+	return !v.fBetweenSectors && v.sSector == sector && NumEnemiesInSector(sector) == 0;
+}
