@@ -213,6 +213,18 @@ then getting out (3.4).
   everyone in them, the first with someone aboard in the windows' order is
   shown: the helicopter, the Hummer, the ice cream truck, the others (a
   ground vehicle: its squad).
+- **Stage 3 (3.4, E1–E4):** the passengers' single seat belts and the
+  "everyone out" belt on the helicopter's window work in tactical.
+  `ExitHelicopterInTactical()` (`Map_Screen_Helicopter.cc`): checks
+  (`CanExitHelicopterInTactical()`: aboard in the loaded sector, not going
+  down — E4, no enemies — E2, message `STR_LATE_62`, the belts shaded with it
+  as their help text), a free spot next to it (E1: sweet spot around its
+  soldier, radius 5 by its body, 10 by the map's scenery helicopter, else
+  20), then `ExitHelicopterAt()` (`Vehicles.cc`): put on the map once by the
+  helicopter branch of `RemoveSoldierFromVehicle()` with that spot as his
+  insertion data (`SetSoldierExitHelicopterInsertionData()` leaves it), onto
+  a squad of his own, selected. `ExitEveryoneFromHelicopterInTactical()`:
+  all into the first one's squad (E3).
 
 ## 7. Checks on the PC before implementing
 

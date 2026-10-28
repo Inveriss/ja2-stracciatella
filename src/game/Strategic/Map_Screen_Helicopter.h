@@ -149,6 +149,13 @@ void ResetHelicopterInTactical();
 // is it hovering with its own body in the loaded sector? Only then can it be
 // hit in tactical (landed at a refuel site the map's scenery draws it)
 bool IsHelicopterBodyInTactical();
+// Getting out of the helicopter in tactical (helicopter passengers plan,
+// 3.4): one aboard in the loaded sector, not while it goes down (E4) nor with
+// enemies in the sector (E2, the message with explain); next to it (E1)
+bool CanExitHelicopterInTactical(SOLDIERTYPE const&, bool explain);
+bool ExitHelicopterInTactical(SOLDIERTYPE&);
+// everyone aboard in the sector, all into the first one's squad (E3)
+void ExitEveryoneFromHelicopterInTactical();
 // is this structure a piece of the helicopter the map draws at the loaded
 // sector's refuel site (AddHelicopterToMaps())? It can't be damaged (the
 // pieces' damaged graphics would make the explosion code recurse endlessly)

@@ -1029,7 +1029,8 @@
         "Interrupteur activé.",
         "La trousse à outils de %s est en trop mauvais état pour réparer le véhicule : %s !",
         "Retirer %s",
-        "Impossible de transmettre des objets entre personnages sur l'écran stratégique pendant un combat."
+        "Impossible de transmettre des objets entre personnages sur l'écran stratégique pendant un combat.",
+        "Personne ne peut descendre de l'hélicoptère tant qu'il y a des ennemis dans le secteur."
     ],
     "gzMercSkillText": [
         "Aucune spécialité",

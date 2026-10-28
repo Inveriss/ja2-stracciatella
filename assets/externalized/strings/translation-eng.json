@@ -1029,7 +1029,8 @@
         "Switch Activated.",
         "%s's tool kit is in too poor condition to repair %s!",
         "Remove %s",
-        "Items can't be passed between characters on the strategic screen during a battle."
+        "Items can't be passed between characters on the strategic screen during a battle.",
+        "Nobody can get out of the helicopter while there are enemies in the sector."
     ],
     "gzMercSkillText": [
         "No Skill",

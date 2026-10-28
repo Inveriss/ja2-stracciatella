@@ -98,6 +98,9 @@ INT32 GetNumberInVehicle(VEHICLETYPE const&);
 INT32 GetNumberOfNonEPCsInVehicle( INT32 iId );
 
 BOOLEAN ExitVehicle( SOLDIERTYPE *pSoldier );
+// one aboard the helicopter in the loaded sector gets out in tactical, at this
+// spot, onto a squad of his own (the checks: CanExitHelicopterInTactical())
+bool ExitHelicopterAt(SOLDIERTYPE&, GridNo);
 
 
 void VehicleTakeDamage(UINT8 ubID, UINT8 ubReason, INT16 sDamage, INT16 sGridNo, SOLDIERTYPE* att);

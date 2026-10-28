@@ -280,11 +280,16 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 }
 
 
+// set while ExitHelicopterAt() takes one out: his insertion data is its spot
+static bool g_exit_helicopter_at = false;
+
+
 void SetSoldierExitHelicopterInsertionData(SOLDIERTYPE* const s)
 {
 	// already put on the map (one aboard in the loaded sector has no place on
 	// it yet, UpdateHelicopterInTactical())
 	if (s->bInSector && s->pLevelNode) return;
+	if (g_exit_helicopter_at) return;
 
 	auto shippingDest = GCM->getPrimaryShippingDestination();
 	if (s->sSector == shippingDest->deliverySector)
@@ -530,6 +535,36 @@ BOOLEAN TakeSoldierOutOfVehicle(SOLDIERTYPE* const s)
 	{
 		return RemoveSoldierFromVehicle(*s);
 	}
+}
+
+
+bool ExitHelicopterAt(SOLDIERTYPE& s, GridNo const grid_no)
+{
+	if (!InHelicopter(s)) return false;
+
+	// put on the map once, at the spot, by the helicopter branch of
+	// RemoveSoldierFromVehicle() (UpdateMercInSector(), which gives him a merc
+	// slot again)
+	s.ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+	s.usStrategicInsertionData = grid_no;
+	s.sInsertionGridNo         = grid_no;
+	RemoveMercSlot(&s);
+	g_exit_helicopter_at = true;
+	bool const out = RemoveSoldierFromVehicle(s);
+	g_exit_helicopter_at = false;
+	if (!out) return false;
+
+	s.iVehicleId = -1;
+	HandleSight(s, SIGHT_LOOK | SIGHT_RADIO);
+	AddCharacterToUniqueSquad(&s);
+
+	// can't call SetCurrentSquad OR SelectSoldier in mapscreen, that will initialize interface panels!!!
+	if (guiCurrentScreen == GAME_SCREEN)
+	{
+		SetCurrentSquad(s.bAssignment, TRUE);
+		SelectSoldier(&s, SELSOLDIER_FORCE_RESELECT);
+	}
+	return true;
 }
 
 

@@ -21,6 +21,9 @@
 #include "Overhead.h"
 #include "Interface.h"
 #include "Interface_Panels.h"
+#include "Animation_Control.h"
+#include "JAScreens.h"
+#include "ScreenIDs.h"
 #include "Soldier_Add.h"
 #include "Soldier_Control.h"
 #include "Strategic.h"
@@ -1338,6 +1341,71 @@ void ResetHelicopterInTactical()
 	RemoveMercSlot(s);
 	s->bInSector = FALSE;
 	s->sGridNo   = NOWHERE;
+}
+
+
+bool CanExitHelicopterInTactical(SOLDIERTYPE const& s, bool const explain)
+{
+	if (!InHelicopter(s) || !s.bInSector || g_heli_tactical == HELI_TACTICAL_NONE) return false;
+	if (gfHelicopterGoingDown) return false; // (E4: no getting out then)
+	if (NumEnemiesInSector(gWorldSector) > 0 || gTacticalStatus.fEnemyInSector)
+	{
+		// E2: as on the map screen
+		if (explain) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, gzLateLocalizedString[STR_LATE_62]);
+		return false;
+	}
+	return true;
+}
+
+
+// E1: a free spot next to it -- its body hovering, the map's scenery
+// helicopter at a refuel site (its soldier stands at the site's gridno)
+static GridNo HelicopterExitSpot(SOLDIERTYPE const& s, SOLDIERTYPE const& hs)
+{
+	INT8   const radius = g_heli_tactical == HELI_TACTICAL_SCENERY ? 10 : 5;
+	GridNo       g      = FindGridNoFromSweetSpotWithStructDataFromSoldier(&s, STANDING, radius, FALSE, &hs);
+	if (g == NOWHERE) g = FindGridNoFromSweetSpotWithStructDataFromSoldier(&s, STANDING, 20, FALSE, &hs);
+	return g;
+}
+
+
+bool ExitHelicopterInTactical(SOLDIERTYPE& s)
+{
+	if (!CanExitHelicopterInTactical(s, true)) return false;
+	SOLDIERTYPE const* const hs = GetHelicopterSoldier();
+	if (!hs) return false;
+	GridNo const g = HelicopterExitSpot(s, *hs);
+	if (g == NOWHERE) return false;
+	return ExitHelicopterAt(s, g);
+}
+
+
+void ExitEveryoneFromHelicopterInTactical()
+{
+	if (iHelicopterVehicleId == -1) return;
+	std::vector<SOLDIERTYPE*> aboard;
+	CFOR_EACH_PASSENGER(GetHelicopter(), i)
+	{
+		if ((*i)->bInSector) aboard.push_back(*i);
+	}
+	if (aboard.empty() || !CanExitHelicopterInTactical(*aboard.front(), true)) return;
+
+	// E3: all into the squad of the first one out (one who doesn't fit keeps
+	// his own)
+	INT8 squad = -1;
+	for (SOLDIERTYPE* const s : aboard)
+	{
+		if (!ExitHelicopterInTactical(*s)) continue;
+		if (squad == -1)
+		{
+			squad = s->bAssignment;
+		}
+		else if (s->bAssignment != squad)
+		{
+			AddCharacterToSquad(s, squad);
+		}
+	}
+	if (squad != -1 && guiCurrentScreen == GAME_SCREEN) SetCurrentSquad(squad, TRUE);
 }
 
 
