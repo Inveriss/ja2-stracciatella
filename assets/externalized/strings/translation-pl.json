@@ -1029,7 +1029,8 @@
         "Przełącznik aktywowany.",
         "%s ma zestaw narzędzi w zbyt złym stanie, by naprawić pojazd: %s!",
         "Usuń %s",
-        "W czasie bitwy nie można przekazywać przedmiotów między postaciami na ekranie strategicznym."
+        "W czasie bitwy nie można przekazywać przedmiotów między postaciami na ekranie strategicznym.",
+        "W pojeździe skończyło się paliwo i nie może jechać dalej."
     ],
     "gzMercSkillText": [
         "Brak umiejętności",

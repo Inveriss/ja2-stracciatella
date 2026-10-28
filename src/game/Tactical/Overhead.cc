@@ -1476,8 +1476,7 @@ BOOLEAN HandleGotoNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving, BOOLEA
 		*pfKeepMoving = FALSE;
 		if (pSoldier->bTeam == OUR_TEAM)
 		{
-			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format(gzLateLocalizedString[STR_LATE_05].c_str(),
-				pVehicleStrings[pVehicleList[pSoldier->bVehicleID].ubVehicleType], gWorldSector.AsShortString()));
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, gzLateLocalizedString[STR_LATE_62]);
 		}
 		return FALSE;
 	}
