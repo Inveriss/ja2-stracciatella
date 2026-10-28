@@ -149,6 +149,10 @@ void ResetHelicopterInTactical();
 // is it hovering with its own body in the loaded sector? Only then can it be
 // hit in tactical (landed at a refuel site the map's scenery draws it)
 bool IsHelicopterBodyInTactical();
+// is this structure a piece of the helicopter the map draws at the loaded
+// sector's refuel site (AddHelicopterToMaps())? It can't be damaged (the
+// pieces' damaged graphics would make the explosion code recurse endlessly)
+bool IsHelicopterSceneryStructure(STRUCTURE*);
 // it was destroyed in tactical (its wreck and cargo are already on the
 // ground): the same as being shot down -- Skyrider and those aboard die
 void HelicopterDestroyedInTactical();

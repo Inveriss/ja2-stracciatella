@@ -380,5 +380,10 @@ Implementation:
   damage, explosion, corpse with the cargo dropped, those aboard killed),
   then `HelicopterDestroyedInTactical()`: hovering stopped (no hover events),
   `SkyriderDestroyed()`.
+- The helicopter the map draws at a refuel site (`AddHelicopterToMaps()`
+  pieces) can't be damaged either (`DamageStructure()` →
+  `IsHelicopterSceneryStructure()`): an explosion next to it at Drassen
+  crashed the game with a stack overflow — `ExplosiveDamageGridNo()` kept
+  recursing between its multi-tile pieces, swapping their damaged graphics.
 - Temporary graphics (user-made `HELI_WRECK.STI` / `.JSD`); the final
   high-resolution PNG destruction animation is a later stage.

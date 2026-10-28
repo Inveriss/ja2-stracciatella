@@ -47,6 +47,7 @@
 #include "Vehicles.h"
 #include "WorldDef.h"
 #include "WorldMan.h"
+#include "Structure.h"
 
 #include <algorithm>
 #include <vector>
@@ -1298,6 +1299,20 @@ void ResetHelicopterInTactical()
 bool IsHelicopterBodyInTactical()
 {
 	return g_heli_tactical == HELI_TACTICAL_BODY;
+}
+
+
+bool IsHelicopterSceneryStructure(STRUCTURE* const s)
+{
+	RefuelSite const* const r = RefuelSiteOfLoadedSector();
+	if (!r) return false;
+
+	// its pieces stand at the site's gridno and 800 tiles before it
+	STRUCTURE const* const base = FindBaseStructure(s);
+	if (!base || (base->sGridNo != r->grid_no && base->sGridNo != r->grid_no - 800)) return false;
+
+	LEVELNODE const* const n = FindLevelNodeBasedOnStructure(base);
+	return n && r->heli_ostruct <= n->usIndex && n->usIndex <= r->heli_ostruct + 5;
 }
 
 
