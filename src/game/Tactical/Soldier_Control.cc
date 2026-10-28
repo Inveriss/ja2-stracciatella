@@ -4237,10 +4237,12 @@ void TurnSoldier( SOLDIERTYPE *pSoldier)
 {
 	INT16 sDirection;
 
-	// If we are a vehicle... DON'T TURN!
+	// If we are a vehicle... DON'T TURN! (the tanks, and the cars that drive in
+	// tactical -- driving plan, stage 1 -- do)
 	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE )
 	{
-		if ( pSoldier->ubBodyType != TANK_NW && pSoldier->ubBodyType != TANK_NE )
+		if ( pSoldier->ubBodyType != TANK_NW && pSoldier->ubBodyType != TANK_NE &&
+			pSoldier->ubBodyType != HUMVEE && pSoldier->ubBodyType != ICECREAMTRUCK )
 		{
 			return;
 		}

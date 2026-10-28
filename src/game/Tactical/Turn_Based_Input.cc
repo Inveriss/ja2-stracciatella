@@ -3087,11 +3087,23 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 	SOLDIERTYPE* const sel = GetSelectedMan();
 	if (!sel) return 0;
 
-	// ATE: If we are a vehicle, no moving!
+	// ATE: If we are a vehicle, no moving! -- unless it may drive (driving plan,
+	// stage 1: the Hummer and the ice cream truck out of combat, with someone
+	// aboard who can drive); it only drives, no getting into vehicles,
+	// swapping places or using things
 	if (sel->uiStatusFlags & SOLDIER_VEHICLE)
 	{
-		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, TacticalStr[VEHICLE_CANT_MOVE_IN_TACTICAL]);
-		return -3;
+		if (!CanVehicleDriveInTactical(*sel))
+		{
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, TacticalStr[VEHICLE_CANT_MOVE_IN_TACTICAL]);
+			return -3;
+		}
+		if (gpWorldLevelData[usMapPos].sHeight != gpWorldLevelData[sel->sGridNo].sHeight)
+		{
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, TacticalStr[CANT_GET_THERE]);
+			return -1;
+		}
+		return 0;
 	}
 
 	// OK, check for height differences

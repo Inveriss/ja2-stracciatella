@@ -1003,6 +1003,30 @@ static bool OnlyThisSoldierCanDriveVehicle(SOLDIERTYPE const& s, INT32 const veh
 }
 
 
+bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs)
+{
+	if (!(vs.uiStatusFlags & SOLDIER_VEHICLE) || vs.bLife <= 0) return false;
+	// D1: the Hummer and the ice cream truck
+	if (vs.ubBodyType != HUMVEE && vs.ubBodyType != ICECREAMTRUCK) return false;
+	// D2: out of combat (in combat it stays, until turn-based driving)
+	if (gTacticalStatus.uiFlags & INCOMBAT) return false;
+
+	VEHICLETYPE const& v = pVehicleList[vs.bVehicleID];
+	if (v.fDestroyed || !OKUseVehicle(GCM->getVehicle(v.ubVehicleType)->profile)) return false;
+	if (vs.sBreathRed <= 0) return false; // (no fuel)
+
+	// someone aboard who can drive
+	CFOR_EACH_PASSENGER(v, i)
+	{
+		SOLDIERTYPE const& s = **i;
+		if (s.bLife < OKLIFE || s.fMercAsleep || s.bCollapsed) continue;
+		if (AM_AN_EPC(&s) || AM_A_ROBOT(&s)) continue;
+		return true;
+	}
+	return false;
+}
+
+
 bool SoldierMustDriveVehicle(SOLDIERTYPE const& s, bool const trying_to_travel)
 {
 	INT32       const  vehicle_id = s.iVehicleId;

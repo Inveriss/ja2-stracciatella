@@ -527,6 +527,9 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT16 sBPCost )
 		sBPCost = 0;
 	}
 
+	// a vehicle has no breath: its breath fields hold its fuel (driving plan)
+	if (pSoldier->uiStatusFlags & SOLDIER_VEHICLE) sBPCost = 0;
+
 	// is there a BREATH deduction/transaction to be made?  (REMEMBER: could be a GAIN!)
 	if (sBPCost)
 	{

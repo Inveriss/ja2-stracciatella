@@ -145,6 +145,10 @@ void AddVehicleFuelToSave(void);
 
 bool SoldierMustDriveVehicle(SOLDIERTYPE const&, bool trying_to_travel);
 
+// may this vehicle drive on the tactical map now? (driving plan, stage 1:
+// Hummer / ice cream truck, out of combat, fuel, someone aboard who can drive)
+bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs);
+
 bool IsEnoughSpaceInVehicle(VEHICLETYPE const&);
 
 BOOLEAN IsSoldierInThisVehicleSquad(const SOLDIERTYPE* pSoldier, INT8 bSquadNumber);
