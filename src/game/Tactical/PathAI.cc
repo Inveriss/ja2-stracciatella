@@ -451,6 +451,31 @@ static void RestorePathAIToDefaults(void)
 ///////////////////////////////////////////////////////////////////////
 //	FINDBESTPATH                                                   /
 ////////////////////////////////////////////////////////////////////////
+// Driving vehicles (driving plan, D4): no tile of the vehicle's footprint in
+// water (shore, knee-deep, deep) or inside a building (under a roof); fences,
+// walls, trees and the like already stop it as obstacles of its footprint, and
+// the usual costs make bushes, rubble and grass slower than a road.
+static bool VehicleFootprintTerrainOK(INT16 const base, DB_STRUCTURE_REF const& ref)
+{
+	DB_STRUCTURE const& db = *ref.pDBStructure;
+	for (UINT8 i = 0; i != db.ubNumberOfTiles; ++i)
+	{
+		INT32 const g = base + ref.ppTile[i]->sPosRelToBase;
+		if (g < 0 || WORLD_MAX <= g) return false;
+		MAP_ELEMENT const& m = gpWorldLevelData[g];
+		switch (m.ubTerrainID)
+		{
+			case LOW_WATER:
+			case MED_WATER:
+			case DEEP_WATER: return false;
+			default:         break;
+		}
+		if (m.pRoofHead) return false;
+	}
+	return true;
+}
+
+
 INT32 FindBestPath(SOLDIERTYPE* s, INT16 sDestination, INT8 ubLevel, INT16 usMovementMode, INT8 bCopy, UINT8 fFlags)
 {
 	INT32 iDestination = sDestination, iOrigination;
@@ -1201,6 +1226,14 @@ INT32 FindBestPath(SOLDIERTYPE* s, INT16 sDestination, INT8 ubLevel, INT16 usMov
 				// ATE: Send in our existing structure ID so it's ignored!
 
 				if (!OkayToAddStructureToWorld( (INT16) newLoc, ubLevel, &(pStructureFileRef->pDBStructureRef[ ubStructIndex ]), usOKToAddStructID ) )
+				{
+					goto NEXTDIR;
+				}
+
+				// a driving vehicle (driving plan, D4): its whole footprint stays
+				// out of water and buildings
+				if (s->uiStatusFlags & SOLDIER_VEHICLE &&
+					!VehicleFootprintTerrainOK((INT16) newLoc, pStructureFileRef->pDBStructureRef[ubStructIndex]))
 				{
 					goto NEXTDIR;
 				}

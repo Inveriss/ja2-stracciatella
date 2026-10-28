@@ -204,8 +204,18 @@ Stage 1 (driving out of combat) in sub-stages, each verified in the game:
   (`Soldier_Control.cc`) lets them turn (the 32-direction step is there).
   `DeductPoints()` (`Points.cc`) charges a vehicle no breath — its breath
   field is the fuel.
-- **1b — terrain (D4):** a vehicle cost table in `TerrainActionPoints()` and
-  the path cost (`PathAI.cc`).
+- **1a fix — the move cursor:** the original showed a red X for every selected
+  vehicle and never plotted its path (`Handle_UI.cc`, "just show an X"), so a
+  click used a stale path cost ("Path Blocked" at random); a vehicle that may
+  drive now gets the usual path and the vehicle move cursor.
+- **1b — terrain (D4):** `FindBestPath()` (`PathAI.cc`) already keeps
+  non-person bodies out of water and away from fences, and the vehicle's
+  footprint (`OkayToAddStructureToWorld()`) stops it at walls, trees, fences,
+  people and other vehicles. Added: `VehicleFootprintTerrainOK()` — no tile of
+  the footprint in water (shore, knee-deep, deep) or under a roof (inside a
+  building). Bushes, rubble and grass stay allowed at their usual higher path
+  costs, so the path prefers roads. AP costs per tile (`TerrainActionPoints()`)
+  wait for turn-based driving (stage 2).
 - **1c — fuel (D11):** the cost per tile, the stop with an empty tank (a new
   message), `tacticalFuelPerTile` in `vehicles.json`.
 - **1d — sight, noise, camera (D5):** those aboard look from its position
