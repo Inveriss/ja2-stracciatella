@@ -607,6 +607,7 @@ const char* Internals::getBodyTypeName(enum SoldierBodyType type)
 		case ELDORADO:							return "ELDORADO";
 		case ICECREAMTRUCK:						return "ICECREAMTRUCK";
 		case JEEP:								return "JEEP";
+		case HELICOPTERBODY:					return "HELICOPTERBODY";
 		default:								return "???";
 	}
 }
@@ -642,6 +643,7 @@ SoldierBodyType Internals::getBodyTypeEnumFromString(const ST::string& s)
 	else if (s == "ELDORADO") return SoldierBodyType::ELDORADO;
 	else if (s == "ICECREAMTRUCK") return SoldierBodyType::ICECREAMTRUCK;
 	else if (s == "JEEP") return SoldierBodyType::JEEP;
+	else if (s == "HELICOPTERBODY") return SoldierBodyType::HELICOPTERBODY;
 	else throw DataError(ST::format("unknown body type value: {}", s));
 }
 

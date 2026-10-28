@@ -17,6 +17,7 @@
 #include "Debug.h"
 #include "Structure.h"
 #include "Vehicles.h"
+#include "Map_Screen_Helicopter.h"
 
 #include "Soldier.h"
 
@@ -865,8 +866,8 @@ static void InternalAddSoldierToSector(SOLDIERTYPE* const s, BOOLEAN calculate_d
 {
 	if (!s->bActive) return;
 
-	// the helicopter's soldier has no tactical body
-	if (IsHelicopterSoldier(*s)) return;
+	// the helicopter's soldier: only put in by UpdateHelicopterInTactical()
+	if (IsHelicopterSoldier(*s) && !gfPlacingHelicopterInTactical) return;
 
 	// ATE: Make sure life of elliot is OK if from a meanwhile
 	if (AreInMeanwhile() && s->ubProfile == ELLIOT && s->bLife < OKLIFE)

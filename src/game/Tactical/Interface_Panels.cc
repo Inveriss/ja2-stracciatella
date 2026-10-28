@@ -3862,6 +3862,7 @@ static void BigTeamVehicleExitCallback(MOUSE_REGION* const r, UINT32)
 {
 	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
 	if (!v || fInMapMode || GetNumberInVehicle(GetVehicle(v->bVehicleID)) == 0) return;
+	if (IsHelicopterSoldier(*v)) return; // (getting out of it: on the map screen)
 	ExitEveryoneFromVehicle(*v);
 }
 
@@ -4186,7 +4187,8 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 			// someone aboard: the seat belt (the passengers' exit picture),
 			// everyone out at once
 			ST::string exit_help;
-			if (GetNumberInVehicle(GetVehicle(v.bVehicleID)) != 0)
+			// (not the helicopter's: getting out of it stays on the map screen)
+			if (GetNumberInVehicle(GetVehicle(v.bVehicleID)) != 0 && !IsHelicopterSoldier(v))
 			{
 				INT32 const bx = vx + BIG_TM_INV_X;
 				INT32 const by = BigTeamVehicleExitY();

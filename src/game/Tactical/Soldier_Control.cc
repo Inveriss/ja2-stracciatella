@@ -317,7 +317,8 @@ static const UINT8 gubMaxActionPoints[] =
 	AP_VEHICLE_MAXIMUM, // TANK2
 	AP_VEHICLE_MAXIMUM, // ELDORADO
 	AP_VEHICLE_MAXIMUM, // ICECREAMTRUCK
-	AP_VEHICLE_MAXIMUM  // JEEP
+	AP_VEHICLE_MAXIMUM, // JEEP
+	AP_VEHICLE_MAXIMUM  // HELICOPTERBODY
 };
 
 
@@ -5547,6 +5548,10 @@ UINT8 SoldierTakeDamage(SOLDIERTYPE* const pSoldier, INT16 sLifeDeduct, INT16 sB
 	// OK, If we are a vehicle.... damage vehicle...( people inside... )
 	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE )
 	{
+		// the helicopter takes no damage in tactical yet (its wreck: a later
+		// sub-stage of the tactical helicopter)
+		if (IsHelicopterSoldier(*pSoldier)) return( 0 );
+
 		if ( TANK( pSoldier ) )
 		{
 			//sLifeDeduct = (sLifeDeduct * 2) / 3;

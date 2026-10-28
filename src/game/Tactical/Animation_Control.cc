@@ -379,6 +379,7 @@ const ANI_SPEED_DEF gubAnimWalkSpeeds[TOTALBODYTYPES] =
 	{ -10, 4.0f },// ELDORADO
 	{ -10, 4.0f },// ICECREAMTRUCK
 	{ -10, 4.0f },// JEEP
+	{ -10, 4.0f },// HELICOPTERBODY
 };
 
 
@@ -2395,6 +2396,11 @@ void InitAnimationSurfacesPerBodytype( )
 	gubAnimSurfaceIndex[JEEP][STANDING] = HUMVEE_BASIC;
 	gubAnimSurfaceIndex[JEEP][WALKING] = HUMVEE_BASIC;
 	gubAnimSurfaceIndex[JEEP][VEHICLE_DIE] = HUMVEE_DIE;
+
+	// HELICOPTERBODY (no wreck yet: no VEHICLE_DIE, it takes no damage in
+	// tactical -- see SoldierTakeDamage())
+	gubAnimSurfaceIndex[HELICOPTERBODY][STANDING] = HELICOPTER_BASIC;
+	gubAnimSurfaceIndex[HELICOPTERBODY][WALKING] = HELICOPTER_BASIC;
 }
 
 
@@ -2524,6 +2530,7 @@ char const* GetBodyTypePaletteSubstitution(SOLDIERTYPE const* const s, UINT8 con
 		case ELDORADO:
 		case ICECREAMTRUCK:
 		case JEEP:
+		case HELICOPTERBODY:
 		case ROBOTNOWEAPON:
 		case TANK_NW:
 		case TANK_NE:

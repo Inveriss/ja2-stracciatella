@@ -138,6 +138,18 @@ bool IsHelicopterGoingDown();
 bool IsHelicopterSoldierInFlight(SOLDIERTYPE const&);
 INT8 GetHelicopterFlightMinCondition();
 
+// The helicopter's soldier in tactical (vehicle inventory plan, tactical
+// helicopter): put into the loaded sector while the helicopter is there --
+// landed at its refuel site (off the world, the map draws it) or hovering
+// over another sector (at the drop spot, heli.sti) -- and taken out when it
+// leaves; called every frame of the tactical screen.
+void UpdateHelicopterInTactical();
+// a new world: the helicopter's soldier isn't in it (TrashWorld())
+void ResetHelicopterInTactical();
+// set while UpdateHelicopterInTactical() puts it in, so the usual sector
+// entry, which keeps away from it (IsHelicopterSoldier()), lets it through
+extern bool gfPlacingHelicopterInTactical;
+
 // have helicopter take off
 void TakeOffHelicopter( void );
 

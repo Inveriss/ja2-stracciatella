@@ -329,3 +329,31 @@ shows the vehicle.
 | Q1 | When | out of combat only; in combat T5 stays (no panel for those aboard, no passing with them) |
 | Q2 | Previous / Next merc (P6) | the team panel's order: vehicles, then the mercs, those aboard too (out of combat); a merc aboard isn't selected, only his panel shown; on the 1280 panel the arrows from his panel go back to the team panel |
 | Q3 | A merc aboard ↔ another vehicle | yes, the vehicles 3 tiles apart |
+
+#### Stage 4e: the helicopter in tactical (decided 2026-10-28, variant A / 3)
+
+Goal: the same item exchange with the helicopter as with the other vehicles
+(stages 4a–4d), in tactical. The original shows a landed helicopter only as
+map scenery (`AddHelicopterToMaps()`, tileset pieces) and it lands only at its
+two refuel sites (Drassen B13, Estoni I6); elsewhere it only hovers.
+
+- **Where (variant 3):** while the helicopter is in the loaded sector its
+  soldier is there too (`UpdateHelicopterInTactical()`, every tactical frame):
+  - landed at the sector's refuel site: the map's own picture stays; the
+    soldier is off the world at the site's gridno (no body, no structure);
+  - hovering over any other sector: its own body, `anims/vehicles/heli.sti`
+    with `anims/STRUCTDATA/HELI.JSD`, at the mercs' drop spot (the map's
+    centre entry point, H3); picture 0 when it came from the west or the
+    north, picture 1 from the east or the south;
+  - taken out when it leaves, crashes or is going down, and on a new world.
+- **Body:** new body type `HELICOPTERBODY` (animation `HELICOPTER_BASIC`, 8
+  directions, structure `HELI`); the helicopter's soldier is created with it.
+  The user's 2 pictures / 2 structures became 8 frames / 8 structures (one per
+  direction; the engine indexes both by direction), frame data shared;
+  vehicle structure flags (VEHICLE | TRANSPARENT | MOBILE, as the Hummer).
+- **Rules:** all of stages 4a–4d and P1–P7 apply (team panel window first in
+  the fixed order, cargo, passing, arrows). Getting out of it stays on the map
+  screen (no seat belt on its window).
+- **H5:** no damage in tactical (`SoldierTakeDamage()` skips it), no wreck —
+  wreck and destruction are the last sub-stage.
+- Temporary graphic; the final high-resolution PNG is a later stage.

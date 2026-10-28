@@ -327,3 +327,32 @@ na oddział pojazdu (osoby w nim), zamiast Change Squad, i pokazuje pojazd.
 | Q1 | Kiedy | tylko poza walką; w walce zostaje T5 (brak panelu dla osób w pojeździe i podawania z nimi) |
 | Q2 | Previous / Next Merc (P6) | kolejność panelu drużyny: pojazdy, potem najemnicy, także ci w pojeździe (poza walką); najemnik w pojeździe nie jest zaznaczany, pokazuje się tylko jego panel; na panelu 1280 strzałki z jego panelu wracają do panelu drużyny |
 | Q3 | Najemnik w pojeździe ↔ inny pojazd | tak, pojazdy do 3 pól od siebie |
+
+#### Etap 4e: helikopter na ekranie taktycznym (decyzje 2026-10-28, wariant A / 3)
+
+Cel: ta sama wymiana przedmiotów z helikopterem co z innymi pojazdami (etapy
+4a–4d), na ekranie taktycznym. Oryginał pokazuje wylądowany helikopter tylko
+jako scenerię mapy (`AddHelicopterToMaps()`, kawałki z zestawu kafli), a ląduje
+on tylko przy swoich dwóch miejscach tankowania (Drassen B13, Estoni I6); gdzie
+indziej tylko wisi nad sektorem.
+
+- **Gdzie (wariant 3):** gdy helikopter jest w załadowanym sektorze, jest tam
+  też jego żołnierz (`UpdateHelicopterInTactical()`, co klatkę taktyki):
+  - wylądował przy miejscu tankowania sektora: zostaje obrazek z mapy; żołnierz
+    jest poza światem, na polu tego miejsca (bez ciała i bez struktury);
+  - wisi nad innym sektorem: własne ciało, `anims/vehicles/heli.sti` z
+    `anims/STRUCTDATA/HELI.JSD`, w miejscu zrzutu najemników (środkowy punkt
+    wejścia mapy, H3); obrazek 0, gdy przyleciał z zachodu lub północy,
+    obrazek 1 ze wschodu lub południa;
+  - zdejmowany, gdy odleci, rozbije się lub spada, i przy nowej mapie.
+- **Ciało:** nowy typ ciała `HELICOPTERBODY` (animacja `HELICOPTER_BASIC`, 8
+  kierunków, struktura `HELI`); z nim tworzony jest żołnierz helikoptera. Dwa
+  obrazki / dwie struktury użytkownika stały się 8 klatkami / 8 strukturami
+  (po jednej na kierunek; silnik indeksuje oba kierunkiem), dane klatek
+  wspólne; flagi struktury pojazdu (VEHICLE | TRANSPARENT | MOBILE, jak Hummer).
+- **Zasady:** obowiązują wszystkie z etapów 4a–4d i P1–P7 (okno na panelu
+  drużyny w stałej kolejności, bagażnik, podawanie, strzałki). Wysiadanie
+  zostaje na ekranie strategicznym (bez pasa na jego oknie).
+- **H5:** bez obrażeń w taktyce (`SoldierTakeDamage()` go pomija), bez wraku —
+  wrak i zniszczenie to ostatni podetap.
+- Grafika tymczasowa; docelowe PNG wysokiej rozdzielczości to późniejszy etap.

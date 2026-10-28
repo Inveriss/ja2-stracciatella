@@ -16,7 +16,13 @@
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Border.h"
 #include "Map_Screen_Interface_Map.h"
+#include "Map_Information.h"
 #include "Meanwhile.h"
+#include "Overhead.h"
+#include "Interface.h"
+#include "Soldier_Add.h"
+#include "Soldier_Control.h"
+#include "Strategic.h"
 #include "Message.h"
 #include "Queen_Command.h"
 #include "Quests.h"
@@ -167,6 +173,8 @@ void InitializeHelicopter( void )
 
 	fHoveringHelicopter = FALSE;
 	uiStartHoverTime = 0;
+
+	ResetHelicopterInTactical();
 
 	fPlotForHelicopter = FALSE;
 	pTempHelicopterPath = NULL;
@@ -719,14 +727,15 @@ void UpdateRefuelSiteAvailability( void )
 }
 
 // The helicopter's own soldier on the player's team, like the Hummer's, so it
-// gets a team list row with its condition. Strategic only: it has no tactical
-// body and is never put into a sector (IsHelicopterSoldier() checks).
+// gets a team list row with its condition. Put into the loaded sector only by
+// UpdateHelicopterInTactical() (IsHelicopterSoldier() keeps the usual sector
+// entry away from it).
 static void CreateHelicopterSoldier(const SGPSector& sMap)
 {
 	SOLDIERCREATE_STRUCT c{};
 	c.bTeam              = OUR_TEAM;
 	c.ubProfile          = NO_PROFILE;
-	c.bBodyType          = HUMVEE; // any vehicle body, never drawn
+	c.bBodyType          = HELICOPTERBODY;
 	c.sSector            = sMap;
 	c.sInsertionGridNo   = NOWHERE;
 	c.bLife              = 100;
@@ -1144,6 +1153,144 @@ static bool IsHelicopterOnGroundAtRefuelingSite(RefuelSite const& r)
 	// on the ground, but is it at this site or at another one?
 	VEHICLETYPE const& v = GetHelicopter();
 	return v.sSector.AsStrategicIndex() == r.sector;
+}
+
+
+// The helicopter in tactical (vehicle inventory plan, tactical helicopter):
+// while it is in the loaded sector its soldier is there too, so the vehicle
+// rules (cargo, team panel window, passing) work for it. Landed at a refuel
+// site the map already draws it (AddHelicopterToMaps()): the soldier stays
+// off the world, at the site's gridno. Hovering over any other sector it
+// stands at the mercs' drop spot (the map's centre, as
+// SetSoldierExitHelicopterInsertionData()) with its own picture, heli.sti --
+// frame 0 when it came from the west or the north, frame 1 from the east or
+// the south. No damage and no wreck in tactical yet (a later sub-stage).
+bool gfPlacingHelicopterInTactical = false;
+
+enum HeliTacticalMode
+{
+	HELI_TACTICAL_NONE,
+	HELI_TACTICAL_SCENERY, // landed at the loaded sector's refuel site
+	HELI_TACTICAL_BODY     // hovering: its own body at the drop spot
+};
+static HeliTacticalMode g_heli_tactical = HELI_TACTICAL_NONE;
+
+
+static RefuelSite const* RefuelSiteOfLoadedSector()
+{
+	if (gWorldSector.z != 0) return 0;
+	for (RefuelSite const& r : g_refuel_site)
+	{
+		if (gWorldSector.AsStrategicIndex() == r.sector) return &r;
+	}
+	return 0;
+}
+
+
+static HeliTacticalMode WantedHelicopterInTactical(SOLDIERTYPE const& s)
+{
+	if (!gfWorldLoaded || gWorldSector.z != 0) return HELI_TACTICAL_NONE;
+	if (iHelicopterVehicleId == -1 || fHelicopterDestroyed || gfHelicopterGoingDown) return HELI_TACTICAL_NONE;
+	if (s.bLife <= 0) return HELI_TACTICAL_NONE;
+
+	VEHICLETYPE const& v = GetHelicopter();
+	if (v.fBetweenSectors || !(v.sSector == gWorldSector)) return HELI_TACTICAL_NONE;
+
+	RefuelSite const* const r = RefuelSiteOfLoadedSector();
+	if (r && IsHelicopterOnGroundAtRefuelingSite(*r)) return HELI_TACTICAL_SCENERY;
+	if (fHelicopterIsAirBorne && fHoveringHelicopter) return HELI_TACTICAL_BODY;
+	return HELI_TACTICAL_NONE;
+}
+
+
+static void TakeHelicopterOffTactical(SOLDIERTYPE& s)
+{
+	if (s.pLevelNode) RemoveSoldierFromGridNo(s);
+	RemoveMercSlot(&s);
+	s.bInSector = FALSE;
+	s.sGridNo   = NOWHERE;
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+// the map's drop spot: its centre entry point, else any other, else the
+// middle of the map
+static GridNo HelicopterDropSpot()
+{
+	for (GridNo const g : { gMapInformation.sCenterGridNo, gMapInformation.sNorthGridNo, gMapInformation.sEastGridNo,
+		gMapInformation.sSouthGridNo, gMapInformation.sWestGridNo })
+	{
+		if (g != -1) return g;
+	}
+	return CENTER_GRIDNO;
+}
+
+
+static void PutHelicopterInTactical(SOLDIERTYPE& s, HeliTacticalMode const mode)
+{
+	s.sSector = gWorldSector;
+	if (mode == HELI_TACTICAL_SCENERY)
+	{
+		// the map's own helicopter: no body, no structure, only its place
+		RefuelSite const& r = *RefuelSiteOfLoadedSector();
+		INT16 x;
+		INT16 y;
+		ConvertGridNoToCenterCellXY(r.grid_no, &x, &y);
+		s.sGridNo   = r.grid_no;
+		s.dXPos     = x;
+		s.dYPos     = y;
+		s.sX        = x;
+		s.sY        = y;
+		s.bLevel    = 0;
+		s.bInSector = TRUE;
+	}
+	else
+	{
+		// came from the west or the north: frame 0 (NORTH), else frame 1 (EAST)
+		GROUP const* const g = GetGroup(GetHelicopter().ubMovementGroup);
+		bool const from_west_or_north = !g || g->ubPrev.x < g->ubSector.x || g->ubPrev.y < g->ubSector.y ||
+			g->ubPrev == g->ubSector;
+		s.ubBodyType               = HELICOPTERBODY; // (a game started before it had its own)
+		s.sInsertionGridNo         = HelicopterDropSpot();
+		s.ubInsertionDirection     = from_west_or_north ? NORTH : EAST;
+		s.ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+		s.usStrategicInsertionData = s.sInsertionGridNo;
+		gfPlacingHelicopterInTactical = true;
+		AddSoldierToSector(&s);
+		gfPlacingHelicopterInTactical = false;
+	}
+	g_heli_tactical      = mode;
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+void UpdateHelicopterInTactical()
+{
+	SOLDIERTYPE* const s = GetHelicopterSoldier();
+	if (!s)
+	{
+		g_heli_tactical = HELI_TACTICAL_NONE;
+		return;
+	}
+
+	HeliTacticalMode const wanted = WantedHelicopterInTactical(*s);
+	if (wanted == g_heli_tactical && (wanted != HELI_TACTICAL_NONE || !s->bInSector)) return;
+
+	if (g_heli_tactical != HELI_TACTICAL_NONE || s->bInSector) TakeHelicopterOffTactical(*s);
+	g_heli_tactical = HELI_TACTICAL_NONE;
+	if (wanted != HELI_TACTICAL_NONE) PutHelicopterInTactical(*s, wanted);
+}
+
+
+void ResetHelicopterInTactical()
+{
+	g_heli_tactical = HELI_TACTICAL_NONE;
+	SOLDIERTYPE* const s = GetHelicopterSoldier();
+	if (!s) return;
+	s->pLevelNode = NULL; // (the world went with it)
+	RemoveMercSlot(s);
+	s->bInSector = FALSE;
+	s->sGridNo   = NOWHERE;
 }
 
 static void HeliCrashSoundStopCallback(void* pData)
