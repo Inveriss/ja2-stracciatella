@@ -3834,13 +3834,90 @@ static SOLDIERTYPE* BigTeamPanelVehicleOf(MOUSE_REGION* const r)
 }
 
 
+// The helicopter's passengers view (helicopter passengers plan, 3.1): it has no
+// squad, so the team panel's slots are filled with those aboard it in the
+// sector, in seat order, while the current squad stays as it is. Any squad
+// change (SetCurrentSquad(), RebuildCurrentSquad()) ends it.
+static bool gfHelicopterPassengersView = false;
+
+
+static void AddPlayerToInterfaceTeamSlot(SOLDIERTYPE*);
+
+
+// those aboard the helicopter in the loaded sector, in seat order
+static std::vector<SOLDIERTYPE*> HelicopterPassengersInSector(SOLDIERTYPE const& hs)
+{
+	std::vector<SOLDIERTYPE*> aboard;
+	CFOR_EACH_PASSENGER(GetVehicle(hs.bVehicleID), i)
+	{
+		if ((*i)->bInSector) aboard.push_back(*i);
+	}
+	return aboard;
+}
+
+
+static void ShowHelicopterPassengersView(SOLDIERTYPE const& hs)
+{
+	RemoveAllPlayersFromSlot();
+	SetAllAutoFacesInactive();
+	for (SOLDIERTYPE* const s : HelicopterPassengersInSector(hs)) AddPlayerToInterfaceTeamSlot(s);
+	gfHelicopterPassengersView = true;
+	giBigTeamPanelFirstSlot    = 0;
+	LayoutBigTEAMPanelRegions();
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+bool IsHelicopterPassengersView()
+{
+	return gfHelicopterPassengersView;
+}
+
+
+void EndHelicopterPassengersView()
+{
+	if (!gfHelicopterPassengersView) return;
+	gfHelicopterPassengersView = false;
+	fInterfacePanelDirty       = DIRTYLEVEL2;
+}
+
+
+void UpdateHelicopterPassengersView()
+{
+	if (!gfHelicopterPassengersView || guiCurrentScreen != GAME_SCREEN) return;
+
+	// the helicopter left, or nobody is aboard: back to the current squad
+	SOLDIERTYPE const* const hs = GetHelicopterSoldier();
+	std::vector<SOLDIERTYPE*> const aboard = hs && hs->bInSector ? HelicopterPassengersInSector(*hs) : std::vector<SOLDIERTYPE*>();
+	if (aboard.empty())
+	{
+		SetCurrentSquad(CurrentSquad(), TRUE);
+		return;
+	}
+
+	// someone got in or out: the slots again
+	std::vector<SOLDIERTYPE*> shown;
+	for (TeamPanelSlot const& i : gTeamPanel)
+	{
+		if (i.merc) shown.push_back(i.merc);
+	}
+	if (shown != aboard) ShowHelicopterPassengersView(*hs);
+}
+
+
 // a vehicle's portrait: the left click shows it (it is never selected); with
-// someone aboard the team panel switches to its squad, those aboard it
+// someone aboard the team panel switches to its squad, those aboard it -- for
+// the helicopter, which has no squad, to its passengers view
 static void BigTeamVehicleFaceCallbackPrimary(MOUSE_REGION* const r, UINT32)
 {
 	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
 	if (!v || fInMapMode) return;
-	if (GetNumberInVehicle(GetVehicle(v->bVehicleID)) != 0 && v->bAssignment != CurrentSquad())
+	if (IsHelicopterSoldier(*v))
+	{
+		if (!HelicopterPassengersInSector(*v).empty()) ShowHelicopterPassengersView(*v);
+	}
+	else if (GetNumberInVehicle(GetVehicle(v->bVehicleID)) != 0 &&
+		(v->bAssignment != CurrentSquad() || gfHelicopterPassengersView))
 	{
 		SetCurrentSquad(v->bAssignment, FALSE);
 	}
@@ -4111,6 +4188,8 @@ static void RenderBigTeamPortrait(SOLDIERTYPE const& s, INT16 const x, INT16 con
 // the selected merc's portrait gets a 1 px frame, and outside the player's
 // turn (or a merc that already moved while an interrupt is queued) the
 // portrait is shaded instead of hatched.
+// The helicopter's window gets the frame, too, while its passengers view is
+// shown (plan option O1).
 static void RenderBigTeamSlotBorder(SOLDIERTYPE const* const s, INT32 const dx, INT32 const dy)
 {
 	INT32 const x = dx + BIG_TM_FACE_X;
@@ -4121,7 +4200,7 @@ static void RenderBigTeamSlotBorder(SOLDIERTYPE const* const s, INT32 const dx, 
 	{
 		guiSAVEBUFFER->ShadowRect(x, y, x + w, y + h);
 	}
-	else if (s && s == GetSelectedMan())
+	else if (s && (s == GetSelectedMan() || (gfHelicopterPassengersView && IsHelicopterSoldier(*s))))
 	{
 		SGPVSurface::Lock l(guiSAVEBUFFER);
 		SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);

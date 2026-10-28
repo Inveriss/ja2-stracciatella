@@ -190,6 +190,15 @@ then getting out (3.4).
   (`CheckForLosingEndOfBattle()`), blasts and gas
   (`DamageSoldierFromBlast()`, `DishOutGasDamage()`), the warp to another
   level (`DoneFadeOutWarpCallback()`).
+- **Stage 2 (3.1, O1):** `Interface_Panels.cc` — a left click on the
+  helicopter's window with someone aboard in the sector fills the slots with
+  them (`ShowHelicopterPassengersView()`), the current squad unchanged; the
+  helicopter's window gets the gold frame meanwhile. `SetCurrentSquad()` (then
+  always refilling) and `RebuildCurrentSquad()` end it; every tactical frame
+  `UpdateHelicopterPassengersView()` goes back to the squad when the
+  helicopter left or is empty, and refills the slots when someone got in or
+  out. A click on a ground vehicle's window leaves it, also for the current
+  squad's vehicle.
 
 ## 7. Checks on the PC before implementing
 

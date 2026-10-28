@@ -457,6 +457,13 @@ BOOLEAN SetCurrentSquad( INT32 iCurrentSquad, BOOLEAN fForce )
 		return( FALSE );
 	}
 
+	// the helicopter's passengers view ends: the squad's slots again
+	if (IsHelicopterPassengersView())
+	{
+		EndHelicopterPassengersView();
+		fForce = TRUE;
+	}
+
 	// ATE; Added to allow us to have NO current squad
 	if ( iCurrentSquad == NO_CURRENT_SQUAD )
 	{
@@ -525,6 +532,8 @@ void RebuildCurrentSquad( void )
 		// no
 		return;
 	}
+
+	EndHelicopterPassengersView();
 
 	// set default squad..just inc ase we no longer have a valid squad
 	SetDefaultSquadOnSectorEntry( TRUE );

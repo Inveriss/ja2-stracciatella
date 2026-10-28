@@ -115,6 +115,14 @@ void    RemoveAllPlayersFromSlot();
 BOOLEAN      RemovePlayerFromTeamSlot(const SOLDIERTYPE* s);
 void    CheckForAndAddMercToTeamPanel(SOLDIERTYPE* s);
 
+// The 1366x768 team panel showing those aboard the helicopter (a left click
+// on its window) instead of the current squad; a squad change ends it.
+bool IsHelicopterPassengersView();
+void EndHelicopterPassengersView();
+// every tactical frame: back to the squad when the helicopter left or is
+// empty, the slots again when someone got in or out
+void UpdateHelicopterPassengersView();
+
 void DisableTacticalTeamPanelButtons(BOOLEAN fDisable);
 void RenderTownIDString(void);
 

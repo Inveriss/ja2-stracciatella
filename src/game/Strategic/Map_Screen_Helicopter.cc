@@ -20,6 +20,7 @@
 #include "Meanwhile.h"
 #include "Overhead.h"
 #include "Interface.h"
+#include "Interface_Panels.h"
 #include "Soldier_Add.h"
 #include "Soldier_Control.h"
 #include "Strategic.h"
@@ -1306,6 +1307,7 @@ void UpdateHelicopterInTactical()
 	if (!s)
 	{
 		g_heli_tactical = HELI_TACTICAL_NONE;
+		UpdateHelicopterPassengersView();
 		return;
 	}
 
@@ -1317,6 +1319,7 @@ void UpdateHelicopterInTactical()
 		if (wanted != HELI_TACTICAL_NONE) PutHelicopterInTactical(*s, wanted);
 	}
 	UpdateHelicopterPassengersInTactical(*s);
+	UpdateHelicopterPassengersView();
 }
 
 
