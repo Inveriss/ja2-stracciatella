@@ -7070,7 +7070,8 @@ void EVENT_SoldierBeginFirstAid( SOLDIERTYPE *pSoldier, INT16 sGridNo, UINT8 ubD
 void EVENT_SoldierEnterVehicle(SOLDIERTYPE& s, GridNo const gridno)
 {
 	SOLDIERTYPE const* const tgt = FindSoldier(gridno, FIND_SOLDIER_GRIDNO);
-	if (tgt && tgt->uiStatusFlags & SOLDIER_VEHICLE)
+	// (D13: nobody gets in while it drives)
+	if (tgt && tgt->uiStatusFlags & SOLDIER_VEHICLE && !IsVehicleMoving(*tgt))
 	{
 		VEHICLETYPE& v = GetVehicle(tgt->bVehicleID);
 		PutSoldierInVehicle(s, v);

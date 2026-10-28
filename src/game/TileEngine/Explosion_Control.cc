@@ -735,8 +735,9 @@ static BOOLEAN DamageSoldierFromBlast(SOLDIERTYPE* const pSoldier, SOLDIERTYPE* 
 	if (!pSoldier->bActive || !pSoldier->bInSector || !pSoldier->bLife )
 		return( FALSE );
 
-	// those aboard the helicopter aren't on the ground
-	if (InHelicopter(*pSoldier)) return( FALSE );
+	// those aboard a vehicle aren't hit while it holds (it takes the blast,
+	// D9), nor those aboard the helicopter
+	if (pSoldier->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) || InHelicopter(*pSoldier)) return( FALSE );
 
 	if ( pSoldier->ubMiscSoldierFlags & SOLDIER_MISC_HURT_BY_EXPLOSION )
 	{

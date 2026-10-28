@@ -22,6 +22,7 @@
 #include "Text.h"
 #include "Explosion_Control.h"
 #include "TileDef.h"
+#include "Animation_Control.h"
 #include "WorldDef.h"
 #include "StrategicMap.h"
 #include "Campaign_Types.h"
@@ -1023,6 +1024,13 @@ void SpendVehicleFuelInTactical(SOLDIERTYPE& vs, INT16 const fuel)
 	vs.sBreathRed = std::max(0, vs.sBreathRed - fuel);
 	vs.bBreath    = (vs.sBreathRed + 99) / 100;
 	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+bool IsVehicleMoving(SOLDIERTYPE const& vs)
+{
+	if (!(vs.uiStatusFlags & SOLDIER_VEHICLE) || !vs.bInSector) return false;
+	return vs.sGridNo != vs.sFinalDestination || !(gAnimControl[vs.usAnimState].uiFlags & ANIM_STATIONARY);
 }
 
 

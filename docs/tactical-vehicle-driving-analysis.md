@@ -234,6 +234,19 @@ Stage 1 (driving out of combat) in sub-stages, each verified in the game:
   the vehicle itself still has none. The screen doesn't follow it (a follow
   when it left the screen was tried and switched off at the user's request,
   2026-10-29).
-- **1e — mines, people, blocks while moving (D8, D13)**, save / load mid-move.
+- **1e — mines, people, blocks while moving (D8, D9, D13):**
+  - mines: `HandleAtNewGridNo()` sets off the pressure mines under every tile
+    of its footprint (`SetOffBombsUnderVehicle()`), not only its base tile;
+    the blast damages the vehicle (`VehicleTakeDamage()`) and stops it;
+  - those aboard any vehicle aren't hit by blasts while it holds
+    (`DamageSoldierFromBlast()`, D9; its destruction kills them as before);
+  - people: already — the path goes around them and its footprint can't
+    enter their tiles;
+  - D13: `IsVehicleMoving()` (`Vehicles.cc`: away from its final destination
+    or in a moving animation) — no getting in (`EVENT_SoldierEnterVehicle()`,
+    the click on it), no getting out (the seat belts), no passing items, also
+    inside it, and no cargo panel by reach (`CanPassViaVehicle()`,
+    `IsVehicleInMercReach()`) while it drives;
+  - save / load mid-move: to be tested.
 
 Then stages 2–5 of section 6.

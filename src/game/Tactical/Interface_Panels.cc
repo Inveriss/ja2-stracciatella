@@ -676,6 +676,7 @@ static SOLDIERTYPE* gpSMCargoMerc;
 static bool IsVehicleInMercReach(SOLDIERTYPE const& merc, SOLDIERTYPE const& v)
 {
 	if (!IsVehicleCargoTarget(v)) return false;
+	if (IsVehicleMoving(v)) return false; // (D13: not while it drives)
 	if (PythSpacesAway(merc.sGridNo, v.sGridNo) > PASSING_ITEM_DISTANCE_OKLIFE) return false;
 	INT16 const visible = DistanceVisible(&merc, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, v.sGridNo, v.bLevel);
 	return SoldierTo3DLocationLineOfSightTest(&merc, v.sGridNo, v.bLevel, 3, (UINT8)visible, TRUE);
@@ -707,6 +708,8 @@ static bool CanPassViaVehicle(SOLDIERTYPE const& src, SOLDIERTYPE const& dst)
 
 	SOLDIERTYPE const& a = ReachAnchor(src);
 	SOLDIERTYPE const& b = ReachAnchor(dst);
+	// D13: nothing is passed while a vehicle involved drives, also inside it
+	if (IsVehicleMoving(a) || IsVehicleMoving(b)) return false;
 	if (&a == &b) return true;
 
 	bool const a_vehicle = a.uiStatusFlags & SOLDIER_VEHICLE;
@@ -3982,6 +3985,7 @@ static void BigTeamVehicleExitCallback(MOUSE_REGION* const r, UINT32)
 {
 	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
 	if (!v || fInMapMode || GetNumberInVehicle(GetVehicle(v->bVehicleID)) == 0) return;
+	if (IsVehicleMoving(*v)) return; // (D13: nobody gets out while it drives)
 	if (IsHelicopterSoldier(*v))
 	{
 		ExitEveryoneFromHelicopterInTactical();
@@ -5225,7 +5229,8 @@ static void TMClickSecondHandInvCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iR
 	}
 	else if (s->uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER))
 	{
-		ExitVehicle(s);
+		// D13: nobody gets out while it drives
+		if (!IsVehicleMoving(GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId)))) ExitVehicle(s);
 	}
 }
 

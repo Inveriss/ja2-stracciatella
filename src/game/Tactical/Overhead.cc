@@ -1800,6 +1800,23 @@ static void HandleJohnArrival(SOLDIERTYPE* pSoldier)
 }
 
 
+// the mines under the other tiles of a vehicle's footprint
+static bool SetOffBombsUnderVehicle(SOLDIERTYPE& vs)
+{
+	if (!vs.pLevelNode || !vs.pLevelNode->pStructureData) return false;
+	STRUCTURE const* const base = FindBaseStructure(vs.pLevelNode->pStructureData);
+	if (!base) return false;
+	DB_STRUCTURE_REF const& ref = *base->pDBStructureRef;
+	for (UINT8 i = 0; i != ref.pDBStructure->ubNumberOfTiles; ++i)
+	{
+		GridNo const g = base->sGridNo + ref.ppTile[i]->sPosRelToBase;
+		if (g == vs.sGridNo || g < 0 || WORLD_MAX <= g) continue;
+		if (SetOffBombsInGridNo(&vs, g, FALSE, vs.bLevel)) return true;
+	}
+	return false;
+}
+
+
 static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving)
 {
 	// ATE; Handle bad guys, as they fade, to cancel it if
@@ -1873,8 +1890,10 @@ static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving)
 		return FALSE;
 	}
 
-	// see if a mine gets set off...
-	if (SetOffBombsInGridNo(pSoldier, pSoldier->sGridNo, FALSE, pSoldier->bLevel))
+	// see if a mine gets set off... (a driving vehicle: under any tile of it,
+	// D8)
+	if (SetOffBombsInGridNo(pSoldier, pSoldier->sGridNo, FALSE, pSoldier->bLevel) ||
+		(pSoldier->uiStatusFlags & SOLDIER_VEHICLE && SetOffBombsUnderVehicle(*pSoldier)))
 	{
 		*pfKeepMoving = FALSE;
 		EVENT_StopMerc(pSoldier);

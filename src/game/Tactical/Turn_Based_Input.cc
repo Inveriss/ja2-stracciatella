@@ -2948,6 +2948,7 @@ static bool CheckForAndHandleHandleVehicleInteractiveClick(SOLDIERTYPE& s, BOOLE
 	if (!OK_ENTERABLE_VEHICLE(tgt))    return false;
 	if (tgt->bVisible == -1)           return false;
 	if (!OKUseVehicle(tgt->ubProfile)) return false;
+	if (IsVehicleMoving(*tgt))         return false; // (D13: not while it drives)
 
 	VEHICLETYPE& v = GetVehicle(tgt->bVehicleID);
 	if (GetNumberInVehicle(v) != 0 && fMovementMode) return false;
