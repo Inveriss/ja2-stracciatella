@@ -1,8 +1,9 @@
 # Plan: the helicopter's passengers on the tactical team panel (variant B)
 
-Status: **plan only**, not implemented (2026-10-28, written over Remote Control,
-no code changed). Decisions B1–B6 taken; checks C1 / C2 (section 6) come
-first. Branch `Vehicles`. Follows the vehicle inventory plan
+Status: **implemented** (2026-10-28, stages 1–3 and the additions in
+section 6, each verified in the game). Written as a plan over Remote Control;
+decisions B1–B6 and E1–E4 taken (E2 changed later, section 4). Branch
+`Vehicles`. Follows the vehicle inventory plan
 [vehicle-inventory-plan.md](vehicle-inventory-plan.md), stages 4c–4e.
 
 ## 1. Goal
