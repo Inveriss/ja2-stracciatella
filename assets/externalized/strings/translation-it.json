@@ -1029,8 +1029,7 @@
         "Interruttore attivato.",
         "Il kit attrezzi di %s è in condizioni troppo cattive per riparare il veicolo: %s!",
         "Rimuovi %s",
-        "Durante una battaglia non è possibile passare oggetti tra i personaggi nella schermata strategica.",
-        "Nessuno può scendere dall'elicottero finché ci sono nemici nel settore."
+        "Durante una battaglia non è possibile passare oggetti tra i personaggi nella schermata strategica."
     ],
     "gzMercSkillText": [
         "Nessuna abilità",

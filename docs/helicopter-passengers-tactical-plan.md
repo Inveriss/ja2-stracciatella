@@ -149,7 +149,7 @@ Getting out in tactical (3.4), taken 2026-10-28, all as proposed:
 | # | Question | Decision |
 |---|---|---|
 | E1 | Where do they stand? | next to the helicopter: by its picture when hovering (its body), by the map's scenery helicopter at a refuel site (its soldier's gridno) — a free spot found around it |
-| E2 | A sector with enemies | blocked, as on the map screen: the belts are inactive, a click says why |
+| E2 | A sector with enemies | ~~blocked, as on the map screen~~ — **changed 2026-10-28:** one rule with the ground vehicles: those aboard may get out in tactical also with enemies in the sector and fight (the map screen's own rule unchanged) |
 | E3 | Squad when everyone gets out | one common squad (the first one out's), as with the Hummer; one who doesn't fit keeps his own |
 | E4 | The helicopter going down | no getting out, as on the map screen |
 
@@ -217,8 +217,8 @@ then getting out (3.4).
   "everyone out" belt on the helicopter's window work in tactical.
   `ExitHelicopterInTactical()` (`Map_Screen_Helicopter.cc`): checks
   (`CanExitHelicopterInTactical()`: aboard in the loaded sector, not going
-  down — E4, no enemies — E2, message `STR_LATE_62`, the belts shaded with it
-  as their help text), a free spot next to it (E1: sweet spot around its
+  down — E4; enemies don't block it, E2 changed below), a free spot next to
+  it (E1: sweet spot around its
   soldier, radius 5 by its body, 10 by the map's scenery helicopter, else
   20), then `ExitHelicopterAt()` (`Vehicles.cc`): put on the map once by the
   helicopter branch of `RemoveSoldierFromVehicle()` with that spot as his

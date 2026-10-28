@@ -1029,8 +1029,7 @@
         "Schalter betätigt.",
         "Der Werkzeugkasten von %s ist in zu schlechtem Zustand, um das Fahrzeug zu reparieren: %s!",
         "%s entfernen",
-        "Während eines Gefechts können auf dem strategischen Bildschirm keine Gegenstände zwischen Charakteren übergeben werden.",
-        "Niemand kann aus dem Hubschrauber aussteigen, solange sich Feinde im Sektor befinden."
+        "Während eines Gefechts können auf dem strategischen Bildschirm keine Gegenstände zwischen Charakteren übergeben werden."
     ],
     "gzMercSkillText": [
         "Keine Fähigkeiten",

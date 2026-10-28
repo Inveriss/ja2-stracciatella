@@ -1344,17 +1344,12 @@ void ResetHelicopterInTactical()
 }
 
 
-bool CanExitHelicopterInTactical(SOLDIERTYPE const& s, bool const explain)
+bool CanExitHelicopterInTactical(SOLDIERTYPE const& s)
 {
 	if (!InHelicopter(s) || !s.bInSector || g_heli_tactical == HELI_TACTICAL_NONE) return false;
-	if (gfHelicopterGoingDown) return false; // (E4: no getting out then)
-	if (NumEnemiesInSector(gWorldSector) > 0 || gTacticalStatus.fEnemyInSector)
-	{
-		// E2: as on the map screen
-		if (explain) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, gzLateLocalizedString[STR_LATE_62]);
-		return false;
-	}
-	return true;
+	// E4: no getting out while it goes down; enemies in the sector don't stop
+	// it, as with the ground vehicles (those aboard get out and fight)
+	return !gfHelicopterGoingDown;
 }
 
 
@@ -1371,7 +1366,7 @@ static GridNo HelicopterExitSpot(SOLDIERTYPE const& s, SOLDIERTYPE const& hs)
 
 bool ExitHelicopterInTactical(SOLDIERTYPE& s)
 {
-	if (!CanExitHelicopterInTactical(s, true)) return false;
+	if (!CanExitHelicopterInTactical(s)) return false;
 	SOLDIERTYPE const* const hs = GetHelicopterSoldier();
 	if (!hs) return false;
 	GridNo const g = HelicopterExitSpot(s, *hs);
@@ -1388,7 +1383,7 @@ void ExitEveryoneFromHelicopterInTactical()
 	{
 		if ((*i)->bInSector) aboard.push_back(*i);
 	}
-	if (aboard.empty() || !CanExitHelicopterInTactical(*aboard.front(), true)) return;
+	if (aboard.empty() || !CanExitHelicopterInTactical(*aboard.front())) return;
 
 	// E3: all into the squad of the first one out (one who doesn't fit keeps
 	// his own)

@@ -4313,21 +4313,15 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 			// someone aboard: the seat belt (the passengers' exit picture),
 			// everyone out at once
 			ST::string exit_help;
-			// (the helicopter's: those aboard in the sector; shaded while they
-			// can't get out, enemies in the sector)
-			bool const heli  = IsHelicopterSoldier(v);
-			std::vector<SOLDIERTYPE*> const heli_aboard = heli ? HelicopterPassengersInSector(v) : std::vector<SOLDIERTYPE*>();
-			if (heli ? !heli_aboard.empty() : GetNumberInVehicle(GetVehicle(v.bVehicleID)) != 0)
+			// (the helicopter's: those aboard in the sector)
+			bool const aboard = IsHelicopterSoldier(v) ? !HelicopterPassengersInSector(v).empty() :
+				GetNumberInVehicle(GetVehicle(v.bVehicleID)) != 0;
+			if (aboard)
 			{
 				INT32 const bx = vx + BIG_TM_INV_X;
 				INT32 const by = BigTeamVehicleExitY();
 				BltVideoObject(guiSAVEBUFFER, guiVEHINV, 1, bx + (BIG_TM_INV_WIDTH - TM_INV_WIDTH) / 2, by + (BIG_TM_INV_HEIGHT - TM_INV_HEIGHT) / 2);
 				exit_help = TacticalStr[EXIT_VEHICLE_POPUPTEXT];
-				if (heli && !CanExitHelicopterInTactical(*heli_aboard.front(), false))
-				{
-					guiSAVEBUFFER->ShadowRect(bx, by, bx + BIG_TM_INV_WIDTH, by + BIG_TM_INV_HEIGHT);
-					exit_help = gzLateLocalizedString[STR_LATE_62];
-				}
 			}
 			gBigTeamPanelVehicleExit[n].SetFastHelpText(exit_help);
 		}
@@ -4397,8 +4391,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 				// Add text for seonc hand popup
 				if (s->uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER))
 				{
-					help = InHelicopter(*s) && !CanExitHelicopterInTactical(*s, false) ?
-						gzLateLocalizedString[STR_LATE_62] : TacticalStr[EXIT_VEHICLE_POPUPTEXT];
+					help = TacticalStr[EXIT_VEHICLE_POPUPTEXT];
 				}
 				else if (s->uiStatusFlags & SOLDIER_DEAD)
 				{
@@ -5187,8 +5180,6 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const& s, INT16 const x, INT16 y, D
 	if (s.uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER))
 	{
 		BltVideoObject(buf, guiVEHINV, 1, x + vx, y + vy);
-		// shaded while he can't get out of the helicopter (enemies in the sector)
-		if (InHelicopter(s) && !CanExitHelicopterInTactical(s, false)) buf->ShadowRect(x, y, x + w, y + h);
 		RestoreExternBackgroundRect(x, y, w, h);
 	}
 	else
