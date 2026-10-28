@@ -355,5 +355,30 @@ two refuel sites (Drassen B13, Estoni I6); elsewhere it only hovers.
   the fixed order, cargo, passing, arrows). Getting out of it stays on the map
   screen (no seat belt on its window).
 - **H5:** no damage in tactical (`SoldierTakeDamage()` skips it), no wreck —
-  wreck and destruction are the last sub-stage.
+  wreck and destruction are the last sub-stage (4f).
 - Temporary graphic; the final high-resolution PNG is a later stage.
+
+#### Stage 4f: the helicopter's wreck and destruction in tactical (decided 2026-10-28)
+
+| # | Question | Decision |
+|---|---|---|
+| W1 | How can it be destroyed? | as the Hummer: hovering with its own body it takes gunfire (/3) and explosions (×2 over 50); at 0 condition it is destroyed. Landed at a refuel site (the map's scenery) it can't be hit |
+| W2 | Consequences | as being shot down by a SAM (`SkyriderDestroyed()`): Skyrider and all aboard die, his balance is zeroed, the helicopter stays on the team list as destroyed; plus the vehicle explosion (`GREAT_BIG_EXPLOSION`) as for the Hummer |
+| W3 | Its cargo | damaged by the explosion and dropped by the wreck, as the other vehicles (V8); the strategic SAM crash stays as V9 (cargo lost) |
+| W4 | The wreck | an ordinary vehicle corpse, `HELI_DEAD`: saved with the sector, gone after 3 days like every corpse and wreck |
+
+Implementation:
+
+- The graphic changes at once (no dying animation): new corpse type
+  `HELI_DEAD` (`anims/vehicles/heli_wreck.sti`, 8 directions as the body,
+  the wreck keeps the helicopter's direction), its structure
+  `tilecache/heli_wreck.jsd` (corpse structures are read from the tilecache
+  folder); `gubAnimSurfaceCorpseID[HELICOPTERBODY]` → `HELI_DEAD`.
+- `SoldierTakeDamage()` skips the helicopter only while it isn't hovering with
+  its body (`IsHelicopterBodyInTactical()`); the rest is the vehicles' path
+  (`VehicleTakeDamage()` → `HandleCriticalHitForVehicleInLocation()`: cargo
+  damage, explosion, corpse with the cargo dropped, those aboard killed),
+  then `HelicopterDestroyedInTactical()`: hovering stopped (no hover events),
+  `SkyriderDestroyed()`.
+- Temporary graphics (user-made `HELI_WRECK.STI` / `.JSD`); the final
+  high-resolution PNG destruction animation is a later stage.

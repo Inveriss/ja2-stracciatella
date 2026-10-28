@@ -146,6 +146,12 @@ INT8 GetHelicopterFlightMinCondition();
 void UpdateHelicopterInTactical();
 // a new world: the helicopter's soldier isn't in it (TrashWorld())
 void ResetHelicopterInTactical();
+// is it hovering with its own body in the loaded sector? Only then can it be
+// hit in tactical (landed at a refuel site the map's scenery draws it)
+bool IsHelicopterBodyInTactical();
+// it was destroyed in tactical (its wreck and cargo are already on the
+// ground): the same as being shot down -- Skyrider and those aboard die
+void HelicopterDestroyedInTactical();
 // set while UpdateHelicopterInTactical() puts it in, so the usual sector
 // entry, which keeps away from it (IsHelicopterSoldier()), lets it through
 extern bool gfPlacingHelicopterInTactical;

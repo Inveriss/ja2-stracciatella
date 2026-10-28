@@ -120,6 +120,8 @@ static const char* const zCorpseFilenames[NUM_CORPSES] =
 	ANIMSDIR "/corpses/j_dead.sti",
 	ANIMSDIR "/corpses/s_burnt.sti",
 	ANIMSDIR "/corpses/s_expld.sti",
+
+	ANIMSDIR "/vehicles/heli_wreck.sti", // (its structure: tilecache/heli_wreck.jsd)
 };
 
 
@@ -187,6 +189,8 @@ static const char* const zNoBloodCorpseFilenames[NUM_CORPSES] =
 	ANIMSDIR "/corpses/j_dead.sti",
 	ANIMSDIR "/corpses/s_burnt.sti",
 	ANIMSDIR "/corpses/s_expld.sti",
+
+	ANIMSDIR "/vehicles/heli_wreck.sti",
 };
 
 UINT8 const gb4DirectionsFrom8[8]
@@ -716,7 +720,11 @@ BOOLEAN TurnSoldierIntoCorpse(SOLDIERTYPE& s)
 	{
 		Corpse.usFlags |= ROTTING_CORPSE_VEHICLE;
 
-		if (s.ubBodyType != ICECREAMTRUCK && s.ubBodyType != HUMVEE)
+		if (s.ubBodyType == HELICOPTERBODY)
+		{
+			// the helicopter's wreck has its 8 directions, as its body
+		}
+		else if (s.ubBodyType != ICECREAMTRUCK && s.ubBodyType != HUMVEE)
 		{
 			Corpse.bDirection = 7;
 		}

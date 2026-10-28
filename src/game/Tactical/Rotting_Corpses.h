@@ -72,6 +72,8 @@ enum RottingCorpseDefines
 	BURNT_DEAD,
 	EXPLODE_DEAD,
 
+	HELI_DEAD, // Skyrider's helicopter destroyed in tactical
+
 	NUM_CORPSES
 };
 

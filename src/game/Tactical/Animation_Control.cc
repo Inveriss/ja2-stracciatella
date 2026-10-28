@@ -2397,10 +2397,11 @@ void InitAnimationSurfacesPerBodytype( )
 	gubAnimSurfaceIndex[JEEP][WALKING] = HUMVEE_BASIC;
 	gubAnimSurfaceIndex[JEEP][VEHICLE_DIE] = HUMVEE_DIE;
 
-	// HELICOPTERBODY (no wreck yet: no VEHICLE_DIE, it takes no damage in
-	// tactical -- see SoldierTakeDamage())
+	// HELICOPTERBODY (no VEHICLE_DIE: destroyed, it turns into its wreck at once)
 	gubAnimSurfaceIndex[HELICOPTERBODY][STANDING] = HELICOPTER_BASIC;
 	gubAnimSurfaceIndex[HELICOPTERBODY][WALKING] = HELICOPTER_BASIC;
+	gubAnimSurfaceCorpseID[HELICOPTERBODY][STANDING] = HELI_DEAD;
+	gubAnimSurfaceCorpseID[HELICOPTERBODY][WALKING] = HELI_DEAD;
 }
 
 

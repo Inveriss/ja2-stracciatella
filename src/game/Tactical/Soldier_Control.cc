@@ -34,6 +34,7 @@
 #include "Logger.h"
 #include "MapScreen.h"
 #include "Map_Information.h"
+#include "Map_Screen_Helicopter.h"
 #include "Meanwhile.h"
 #include "MercProfile.h"
 #include "Message.h"
@@ -5548,9 +5549,9 @@ UINT8 SoldierTakeDamage(SOLDIERTYPE* const pSoldier, INT16 sLifeDeduct, INT16 sB
 	// OK, If we are a vehicle.... damage vehicle...( people inside... )
 	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE )
 	{
-		// the helicopter takes no damage in tactical yet (its wreck: a later
-		// sub-stage of the tactical helicopter)
-		if (IsHelicopterSoldier(*pSoldier)) return( 0 );
+		// the helicopter is only hit while hovering with its own body (landed at
+		// a refuel site the map's scenery draws it)
+		if (IsHelicopterSoldier(*pSoldier) && !IsHelicopterBodyInTactical()) return( 0 );
 
 		if ( TANK( pSoldier ) )
 		{

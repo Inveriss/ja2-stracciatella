@@ -676,6 +676,10 @@ static void HandleCriticalHitForVehicleInLocation(const UINT8 ubID, const INT16 
 		CheckForAndHandleSoldierDeath(&vs, &fMadeCorpse);
 
 		KillAllInVehicle(v);
+
+		// the helicopter's wreck and cargo are on the ground now; the rest as
+		// when it is shot down (Skyrider dies)
+		if (IsHelicopter(v)) HelicopterDestroyedInTactical();
 	}
 }
 

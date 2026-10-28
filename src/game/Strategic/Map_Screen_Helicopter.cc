@@ -1164,7 +1164,8 @@ static bool IsHelicopterOnGroundAtRefuelingSite(RefuelSite const& r)
 // stands at the mercs' drop spot (the map's centre, as
 // SetSoldierExitHelicopterInsertionData()) with its own picture, heli.sti --
 // frame 0 when it came from the west or the north, frame 1 from the east or
-// the south. No damage and no wreck in tactical yet (a later sub-stage).
+// the south. Only there can it be hit; destroyed, it turns into its wreck
+// (HELI_DEAD) and the rest is as when it is shot down.
 bool gfPlacingHelicopterInTactical = false;
 
 enum HeliTacticalMode
@@ -1291,6 +1292,24 @@ void ResetHelicopterInTactical()
 	RemoveMercSlot(s);
 	s->bInSector = FALSE;
 	s->sGridNo   = NOWHERE;
+}
+
+
+bool IsHelicopterBodyInTactical()
+{
+	return g_heli_tactical == HELI_TACTICAL_BODY;
+}
+
+
+void HelicopterDestroyedInTactical()
+{
+	if (iHelicopterVehicleId == -1 || fHelicopterDestroyed) return;
+	// no more waiting over the sector (the hover events check this)
+	fHoveringHelicopter = FALSE;
+	uiStartHoverTime    = 0;
+	SkyriderDestroyed();
+	fTeamPanelDirty          = TRUE;
+	fCharacterInfoPanelDirty = TRUE;
 }
 
 static void HeliCrashSoundStopCallback(void* pData)
