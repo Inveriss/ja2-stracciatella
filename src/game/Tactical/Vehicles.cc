@@ -21,6 +21,8 @@
 #include "Random.h"
 #include "Text.h"
 #include "Explosion_Control.h"
+#include "TileDef.h"
+#include "WorldDef.h"
 #include "StrategicMap.h"
 #include "Campaign_Types.h"
 #include "Sys_Globals.h"
@@ -1000,6 +1002,27 @@ static bool OnlyThisSoldierCanDriveVehicle(SOLDIERTYPE const& s, INT32 const veh
 		return false;
 	}
 	return true;
+}
+
+
+INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo const grid_no)
+{
+	INT16 cost = GCM->getVehicle(pVehicleList[vs.bVehicleID].ubVehicleType)->tactical_fuel_per_tile;
+	switch (gpWorldLevelData[grid_no].ubTerrainID)
+	{
+		case PAVED_ROAD:
+		case DIRT_ROAD: break;
+		default:        cost *= 2; break; // off the road (D4)
+	}
+	return cost;
+}
+
+
+void SpendVehicleFuelInTactical(SOLDIERTYPE& vs, INT16 const fuel)
+{
+	vs.sBreathRed = std::max(0, vs.sBreathRed - fuel);
+	vs.bBreath    = (vs.sBreathRed + 99) / 100;
+	fInterfacePanelDirty = DIRTYLEVEL2;
 }
 
 

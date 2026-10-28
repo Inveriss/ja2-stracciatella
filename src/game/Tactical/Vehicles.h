@@ -148,6 +148,10 @@ bool SoldierMustDriveVehicle(SOLDIERTYPE const&, bool trying_to_travel);
 // may this vehicle drive on the tactical map now? (driving plan, stage 1:
 // Hummer / ice cream truck, out of combat, fuel, someone aboard who can drive)
 bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs);
+// fuel one tile of driving to this gridno costs (vehicles.json
+// tacticalFuelPerTile, twice off the road), and spending it (D11)
+INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo);
+void  SpendVehicleFuelInTactical(SOLDIERTYPE& vs, INT16 fuel);
 
 bool IsEnoughSpaceInVehicle(VEHICLETYPE const&);
 

@@ -1467,6 +1467,21 @@ BOOLEAN HandleGotoNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving, BOOLEA
 	const INT16 sAPCost = ActionPointCost(    pSoldier, usNewGridNo, (INT8)pSoldier->ubPathingData[pSoldier->ubPathIndex], usAnimState);
 	const INT16 sBPCost = TerrainBreathPoints(pSoldier, usNewGridNo, (INT8)pSoldier->ubPathingData[pSoldier->ubPathIndex], usAnimState);
 
+	// a driving vehicle needs fuel for the tile (driving plan, D11): with too
+	// little it stops, out of gas
+	INT16 const sFuelCost = pSoldier->uiStatusFlags & SOLDIER_VEHICLE ? VehicleTacticalFuelCost(*pSoldier, usNewGridNo) : 0;
+	if (sFuelCost > 0 && pSoldier->sBreathRed < sFuelCost)
+	{
+		HaltGuyFromNewGridNoBecauseOfNoAPs(*pSoldier);
+		*pfKeepMoving = FALSE;
+		if (pSoldier->bTeam == OUR_TEAM)
+		{
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format(gzLateLocalizedString[STR_LATE_05].c_str(),
+				pVehicleStrings[pVehicleList[pSoldier->bVehicleID].ubVehicleType], gWorldSector.AsShortString()));
+		}
+		return FALSE;
+	}
+
 	// CHECK IF THIS TILE IS A GOOD ONE!
 	if (!HandleNextTile(pSoldier, (INT8)pSoldier->ubPathingData[pSoldier->ubPathIndex], usNewGridNo, pSoldier->sFinalDestination))
 	{
@@ -1641,6 +1656,7 @@ BOOLEAN HandleGotoNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving, BOOLEA
 				// Adjust AP/Breathing points to move
 				DeductPoints(pSoldier, sAPCost, sBPCost);
 			}
+			if (sFuelCost > 0) SpendVehicleFuelInTactical(*pSoldier, sFuelCost);
 
 			// OK, let's check for monsters....
 			if (pSoldier->uiStatusFlags & SOLDIER_MONSTER)

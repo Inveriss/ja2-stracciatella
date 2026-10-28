@@ -9,10 +9,11 @@
 VehicleModel::VehicleModel(ST::string enterSound, ST::string movementSound,
                            ProfileID profile, VehicleMovementType movementType,
                            uint16_t armourType, uint8_t seats_, uint8_t repairPointsDivisor,
-                           uint8_t slotLimitMultiplier)
+                           uint8_t slotLimitMultiplier, uint8_t tacticalFuelPerTile)
     : enter_sound(std::move(enterSound)), move_sound(std::move(movementSound)), profile(profile),
       movement_type(movementType), armour_type(armourType), seats(seats_),
-      repair_points_divisor(repairPointsDivisor), slot_limit_multiplier(slotLimitMultiplier) {}
+      repair_points_divisor(repairPointsDivisor), slot_limit_multiplier(slotLimitMultiplier),
+      tactical_fuel_per_tile(tacticalFuelPerTile) {}
 
 static VehicleMovementType toMovementType(const ST::string& typeName)
 {
@@ -63,6 +64,12 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		throw DataError(ST::format("slotLimitMultiplier must be 1-100, not {}", slotLimitMultiplier));
 	}
 
+	unsigned int const tacticalFuelPerTile = obj.getOptionalUInt("tacticalFuelPerTile", 2);
+	if (tacticalFuelPerTile > 100)
+	{
+		throw DataError(ST::format("tacticalFuelPerTile must be 0-100, not {}", tacticalFuelPerTile));
+	}
+
 	return new VehicleModel(
 		obj.GetString("enterSound"),
 		obj.GetString("moveSound"),
@@ -71,7 +78,8 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		armour->getItemIndex(),
 		numSeats,
 		repairPointsDivisor,
-		slotLimitMultiplier
+		slotLimitMultiplier,
+		tacticalFuelPerTile
 		);
 }
 

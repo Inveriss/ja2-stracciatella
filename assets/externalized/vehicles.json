@@ -15,6 +15,7 @@
  * - seats: Maximum number of soldiers allowed in the vehicle. Must not be greater than 10.
  * - repairPointsDivisor: Repair points that restore one point of the vehicle's condition (1-100, default 10).
  * - slotLimitMultiplier: The vehicle's cargo pockets hold this many times a merc's limit of an item (1-100, default 1); not for weapons, brass knuckles or money.
+ * - tacticalFuelPerTile: Fuel (of 10000, a full tank) one tile of driving on the tactical map costs on a road, twice that off the road (0-100, default 2).
  */
 [
     // Eldorado (unused)
@@ -26,7 +27,8 @@
         "armourType": "KEVLAR_VEST",
         "seats": 6,
         "repairPointsDivisor": 10,
-        "slotLimitMultiplier": 4
+        "slotLimitMultiplier": 4,
+        "tacticalFuelPerTile": 2
     },
     // Hummer
     {
@@ -37,7 +39,8 @@
         "armourType": "SPECTRA_VEST",
         "seats": 6,
         "repairPointsDivisor": 10,
-        "slotLimitMultiplier": 4
+        "slotLimitMultiplier": 4,
+        "tacticalFuelPerTile": 2
     },
     // Ice cream truck
     {
@@ -48,7 +51,8 @@
         "armourType": "KEVLAR_VEST",
         "seats": 6,
         "repairPointsDivisor": 8,
-        "slotLimitMultiplier": 4
+        "slotLimitMultiplier": 4,
+        "tacticalFuelPerTile": 2
     },
     // Jeep (unused)
     {
@@ -59,7 +63,8 @@
         "armourType": "KEVLAR_VEST",
         "seats":  6,
         "repairPointsDivisor": 10,
-        "slotLimitMultiplier": 4
+        "slotLimitMultiplier": 4,
+        "tacticalFuelPerTile": 2
     },
     // Tank (unused)
     {
@@ -70,7 +75,8 @@
         "armourType": "SPECTRA_VEST",
         "seats": 6,
         "repairPointsDivisor": 10,
-        "slotLimitMultiplier": 4
+        "slotLimitMultiplier": 4,
+        "tacticalFuelPerTile": 2
     },
     // Helicopter
     {
@@ -81,6 +87,7 @@
         "armourType": "KEVLAR_VEST",
         "seats":6,
         "repairPointsDivisor": 12,
-        "slotLimitMultiplier": 4
+        "slotLimitMultiplier": 4,
+        "tacticalFuelPerTile": 2
     }
 ]

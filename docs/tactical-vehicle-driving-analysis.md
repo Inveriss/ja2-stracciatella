@@ -216,8 +216,15 @@ Stage 1 (driving out of combat) in sub-stages, each verified in the game:
   building). Bushes, rubble and grass stay allowed at their usual higher path
   costs, so the path prefers roads. AP costs per tile (`TerrainActionPoints()`)
   wait for turn-based driving (stage 2).
-- **1c — fuel (D11):** the cost per tile, the stop with an empty tank (a new
-  message), `tacticalFuelPerTile` in `vehicles.json`.
+- **1c — fuel (D11):** `HandleGotoNewGridNo()` (`Overhead.cc`): each tile a
+  vehicle drives into costs `VehicleTacticalFuelCost()` — `tacticalFuelPerTile`
+  of `vehicles.json` (default 2 of 10000, a full tank; the strategic rate is
+  about 2 a tile too) on a paved / dirt road, twice that off the road — spent
+  by `SpendVehicleFuelInTactical()` (the fuel bar follows). With too little
+  for the next tile it stops there and says it is out of gas (the existing
+  `STR_LATE_05`, "... is out of gas and is now stranded in ..."); a gas can
+  refuels it as before, and `CanVehicleDriveInTactical()` keeps an empty one
+  from starting.
 - **1d — sight, noise, camera (D5):** those aboard look from its position
   after each tile, engine noise for the enemies, the camera follows it.
 - **1e — mines, people, blocks while moving (D8, D13)**, save / load mid-move.
