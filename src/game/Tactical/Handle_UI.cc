@@ -1222,11 +1222,12 @@ static ScreenID UIHandleMOnTerrain(UI_EVENT* pUIEvent)
 
 	gUIActionModeChangeDueToMouseOver = FALSE;
 
-	// If we are a vehicle..... just show an X
+	// If we are a vehicle..... just show an X -- unless it may drive (driving
+	// plan): then the usual path and the vehicle's move cursor
 	SOLDIERTYPE* const sel = GetSelectedMan();
 	if (sel != NULL)
 	{
-		if (OK_ENTERABLE_VEHICLE(sel))
+		if (OK_ENTERABLE_VEHICLE(sel) && !CanVehicleDriveInTactical(*sel))
 		{
 			if ( !UIHandleOnMerc( TRUE ) )
 			{
