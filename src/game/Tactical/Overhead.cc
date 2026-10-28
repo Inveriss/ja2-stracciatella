@@ -125,6 +125,9 @@ BOOLEAN gfSurrendered = FALSE;
 
 #define NEW_FADE_DELAY			60
 
+// a driving vehicle's engine, each tile (footsteps are 9 at most)
+#define VEHICLE_ENGINE_NOISE		25
+
 
 // Soldier List used for all soldier overhead interaction
 SOLDIERTYPE  Menptr[TOTAL_SOLDIERS];
@@ -1883,7 +1886,25 @@ static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving)
 	// particular call* to HandleSight caused an interrupt
 	gTacticalStatus.fInterruptOccurred = FALSE;
 
-	if (!(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))
+	// our driving vehicle (driving plan, stage 1d): its engine is heard far
+	// around, those aboard look out from it (as it faces, their own sight --
+	// D5; the vehicle itself has none) and the screen follows it when it is
+	// the selected one
+	bool const driving = pSoldier->uiStatusFlags & SOLDIER_VEHICLE && pSoldier->bTeam == OUR_TEAM;
+	if (driving && !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))
+	{
+		MakeNoise(pSoldier, pSoldier->sGridNo, pSoldier->bLevel, VEHICLE_ENGINE_NOISE, NOISE_MOVEMENT);
+		CFOR_EACH_PASSENGER(pVehicleList[pSoldier->bVehicleID], i)
+		{
+			SOLDIERTYPE& p = **i;
+			if (p.bLife < OKLIFE) continue;
+			p.bDirection        = pSoldier->bDirection;
+			p.bDesiredDirection = pSoldier->bDirection;
+			HandleSight(p, SIGHT_LOOK | SIGHT_RADIO);
+		}
+		if (pSoldier == GetSelectedMan() && !GridNoOnScreen(pSoldier->sGridNo)) SlideTo(pSoldier, FALSE);
+	}
+	else if (!(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))
 	{
 		const UINT8 ubVolume = MovementNoise(pSoldier);
 		if (ubVolume > 0)

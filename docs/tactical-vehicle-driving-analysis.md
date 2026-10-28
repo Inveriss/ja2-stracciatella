@@ -221,12 +221,18 @@ Stage 1 (driving out of combat) in sub-stages, each verified in the game:
   of `vehicles.json` (default 2 of 10000, a full tank; the strategic rate is
   about 2 a tile too) on a paved / dirt road, twice that off the road — spent
   by `SpendVehicleFuelInTactical()` (the fuel bar follows). With too little
-  for the next tile it stops there and says it is out of gas (the existing
-  `STR_LATE_05`, "... is out of gas and is now stranded in ..."); a gas can
+  for the next tile it stops there and says it is out of fuel (`STR_LATE_62`,
+  "The vehicle has run out of fuel and cannot continue driving.", also when
+  told to drive with an empty tank); a gas can
   refuels it as before, and `CanVehicleDriveInTactical()` keeps an empty one
   from starting.
-- **1d — sight, noise, camera (D5):** those aboard look from its position
-  after each tile, engine noise for the enemies, the camera follows it.
+- **1d — sight, noise, camera (D5):** `HandleAtNewGridNo()` (`Overhead.cc`),
+  for our driving vehicle on each new tile: an engine noise of 25
+  (`VEHICLE_ENGINE_NOISE`; footsteps are 9 at most) for the enemies to hear,
+  instead of footsteps; those aboard (conscious) turn as it faces and look out
+  with their own sight (`HandleSight()`, their position is the vehicle's) —
+  the vehicle itself still has none; the screen slides to it when it is the
+  selected one and has left the screen.
 - **1e — mines, people, blocks while moving (D8, D13)**, save / load mid-move.
 
 Then stages 2–5 of section 6.
