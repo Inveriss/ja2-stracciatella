@@ -3595,6 +3595,20 @@ static INT32 BigTeamPanelMercWindows()
 }
 
 
+// The vehicles' fixed order: helicopter, Hummer, ice cream truck, then the
+// others (their windows; which one is shown entering a sector)
+static int BigTeamPanelVehicleRank(SOLDIERTYPE const& s)
+{
+	switch (pVehicleList[s.bVehicleID].ubVehicleType)
+	{
+		case HELICOPTER:      return 0;
+		case HUMMER:          return 1;
+		case ICE_CREAM_TRUCK: return 2;
+		default:              return 3;
+	}
+}
+
+
 // Gathers the vehicles for the windows; whether they changed
 static bool UpdateBigTeamPanelVehicles()
 {
@@ -3610,18 +3624,10 @@ static bool UpdateBigTeamPanelVehicles()
 		}
 	}
 
-	// a fixed order: helicopter, Hummer, ice cream truck, then the others
-	auto const rank = [](SOLDIERTYPE const* const s)
+	std::stable_sort(now, now + n, [](SOLDIERTYPE const* const a, SOLDIERTYPE const* const b)
 	{
-		switch (pVehicleList[s->bVehicleID].ubVehicleType)
-		{
-			case HELICOPTER:      return 0;
-			case HUMMER:          return 1;
-			case ICE_CREAM_TRUCK: return 2;
-			default:              return 3;
-		}
-	};
-	std::stable_sort(now, now + n, [&](SOLDIERTYPE const* const a, SOLDIERTYPE const* const b) { return rank(a) < rank(b); });
+		return BigTeamPanelVehicleRank(*a) < BigTeamPanelVehicleRank(*b);
+	});
 
 	bool changed = n != giBigTeamPanelNumVehicles;
 	for (INT32 i = 0; i != n && !changed; ++i)
@@ -3883,24 +3889,38 @@ void EndHelicopterPassengersView()
 }
 
 
-bool ShowHelicopterPassengersViewOnSectorEntry()
+bool ShowVehicleOnSectorEntry()
 {
 	if (guiCurrentScreen != GAME_SCREEN) return false;
 	if (!g_ui.isBigTeamPanel()) return true;
-	SOLDIERTYPE* const hs = GetHelicopterSoldier();
-	if (!hs || !hs->bInSector || HelicopterPassengersInSector(*hs).empty()) return true;
 
-	// only with nobody of ours on the ground (a ground vehicle's passengers
-	// count: its squad is shown then)
+	// only with nobody of ours on the ground, everyone aboard a vehicle
 	CFOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
 		if (!s->bInSector || s->bLife <= 0) continue;
-		if (s->uiStatusFlags & SOLDIER_VEHICLE || InHelicopter(*s)) continue;
+		if (s->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER)) continue;
 		return true;
 	}
 
-	ShowHelicopterPassengersView(*hs);
-	LocateSoldier(hs, SETLOCATOR);
+	// the helicopter first (its passengers view)
+	SOLDIERTYPE* const hs = GetHelicopterSoldier();
+	if (hs && hs->bInSector && !HelicopterPassengersInSector(*hs).empty())
+	{
+		ShowHelicopterPassengersView(*hs);
+		LocateSoldier(hs, SETLOCATOR);
+		return true;
+	}
+
+	// then the ground vehicle first in the windows' order (Hummer, ice cream
+	// truck, the others): its squad
+	SOLDIERTYPE const* best = NULL;
+	CFOR_EACH_IN_TEAM(v, OUR_TEAM)
+	{
+		if (!(v->uiStatusFlags & SOLDIER_VEHICLE) || IsHelicopterSoldier(*v)) continue;
+		if (!v->bInSector || v->bLife <= 0 || GetNumberInVehicle(GetVehicle(v->bVehicleID)) == 0) continue;
+		if (!best || BigTeamPanelVehicleRank(*v) < BigTeamPanelVehicleRank(*best)) best = v;
+	}
+	if (best && best->bAssignment != CurrentSquad()) SetCurrentSquad(best->bAssignment, TRUE);
 	return true;
 }
 

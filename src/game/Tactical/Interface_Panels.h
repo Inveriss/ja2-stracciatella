@@ -122,10 +122,11 @@ void EndHelicopterPassengersView();
 // every tactical frame: back to the squad when the helicopter left or is
 // empty, the slots again when someone got in or out
 void UpdateHelicopterPassengersView();
-// entering a sector with nobody of ours on the ground and the helicopter
-// there with someone aboard: its passengers view at once (as the ground
-// vehicles' squad); false: not on the tactical screen yet
-bool ShowHelicopterPassengersViewOnSectorEntry();
+// entering a sector with nobody of ours on the ground, everyone aboard a
+// vehicle: the first one with someone aboard -- the helicopter (its
+// passengers view), the Hummer, the ice cream truck (its squad) -- at once;
+// false: not on the tactical screen yet
+bool ShowVehicleOnSectorEntry();
 
 void DisableTacticalTeamPanelButtons(BOOLEAN fDisable);
 void RenderTownIDString(void);

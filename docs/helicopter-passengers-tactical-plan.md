@@ -209,7 +209,10 @@ then getting out (3.4).
   vehicle's squad, the first tactical frame of a new world shows the
   helicopter's passengers view at once (its window framed, those aboard in
   the slots, the screen on it) when nobody of ours is on the ground
-  (`ShowHelicopterPassengersViewOnSectorEntry()`; 1366x768).
+  (`ShowVehicleOnSectorEntry()`; 1366x768). With several vehicles, all
+  everyone in them, the first with someone aboard in the windows' order is
+  shown: the helicopter, the Hummer, the ice cream truck, the others (a
+  ground vehicle: its squad).
 
 ## 7. Checks on the PC before implementing
 

@@ -1323,8 +1323,8 @@ void UpdateHelicopterInTactical()
 	UpdateHelicopterPassengersInTactical(*s);
 	UpdateHelicopterPassengersView();
 
-	// entering the sector with nobody on the ground: those aboard at once
-	if (g_heli_new_world && gfWorldLoaded && ShowHelicopterPassengersViewOnSectorEntry()) g_heli_new_world = false;
+	// entering the sector with nobody on the ground: a vehicle shown at once
+	if (g_heli_new_world && gfWorldLoaded && ShowVehicleOnSectorEntry()) g_heli_new_world = false;
 }
 
 
