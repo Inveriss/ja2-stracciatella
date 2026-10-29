@@ -316,5 +316,13 @@ Stage 2 (turn-based driving and battles) in sub-stages:
   squad: it looped forever, the game hung on "OK"); the vehicle doesn't walk
   off — it leaves from where it stands at the edge (its footprint can't go
   off the map, and the edge-tile search for it was slow).
-- **2d — fighting a vehicle:** enemies shooting it, its destruction, the end
-  of a battle with people aboard.
+- **2d — fighting a vehicle:** checked in the code (2026-10-29), nothing to
+  add: enemies see our vehicle (`OtherTeamsLookForMan()` — only its own sight
+  is off) and may interrupt it and shoot it, the AI doesn't leave vehicles out
+  as targets (`Attacks.cc`); gunfire costs it a third, explosions over 50
+  double (`SoldierTakeDamage()` → `VehicleTakeDamage()`); those aboard have no
+  place on the map, so shots can't reach them, and blasts don't (D9);
+  destroyed, it explodes, its cargo drops damaged, those aboard die
+  (`KillAllInVehicle()`), the wreck stays; those aboard count as fighting
+  for the end of a battle (they can get out and fight, it can drive), so a
+  battle is lost only when they are gone too. To be verified in the game.
