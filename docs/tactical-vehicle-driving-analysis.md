@@ -283,8 +283,12 @@ Stage 2 (turn-based driving and battles) in sub-stages:
   merc's interrupt, for the AP of one step on flat ground (2,
   `AP_EXIT_VEHICLE`), else "Not enough action points"; for the passengers'
   seat belts and the "everyone out" belts of the ground vehicles and the
-  helicopter (the ones without the APs stay aboard). Q1 stays (no panel /
-  passing with those aboard in combat). Fix: `IsVehicleMoving()` only counts
+  helicopter (the ones without the APs stay aboard). **Q1 lifted
+  (2026-10-29, user's request):** in combat, too, the inventories of those
+  aboard and the vehicle's cargo panel open, and items pass with them and
+  between them at the usual AP costs (`CanPassViaVehicle()`,
+  `VehicleCargoPanelOwner()`, the portrait click, Previous / Next); D13 still
+  blocks it while the vehicle drives. Fix: `IsVehicleMoving()` only counts
   its moving animation, not held by `fNoAPToFinishMove` — a vehicle out of APs
   keeps the rest of its path for the next turn, and its passengers (with
   their own APs) couldn't get out.
