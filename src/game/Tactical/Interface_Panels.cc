@@ -660,7 +660,9 @@ static std::vector<TeamPanelSlot> gTeamPanel;
 // Wraps up check for AP-s get from a different soldier for in a vehicle...
 static INT8 GetUIApsToDisplay(SOLDIERTYPE const* s)
 {
-	if (s->uiStatusFlags & SOLDIER_DRIVER)
+	// (the 1366x768 team panel shows the vehicle's own in its window, the
+	// driver his)
+	if (s->uiStatusFlags & SOLDIER_DRIVER && !g_ui.isBigTeamPanel())
 	{
 		return GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId)).bActionPoints;
 	}
@@ -2017,7 +2019,8 @@ static void PrintAP(SOLDIERTYPE* const s, INT16 const x, INT16 const y, INT16 co
 		return;
 
 	INT8  const ap         = GetUIApsToDisplay(s);
-	UINT8 const min_ap     = MinAPsToAttack(s, s->sLastTarget, TRUE);
+	// (a vehicle doesn't attack: red only with no APs left)
+	UINT8 const min_ap     = s->uiStatusFlags & SOLDIER_VEHICLE ? 1 : MinAPsToAttack(s, s->sLastTarget, TRUE);
 	UINT8 const foreground =
 		!EnoughPoints(s, min_ap, 0, FALSE) ? FONT_MCOLOR_DKRED    :
 		ap < 0                             ? FONT_MCOLOR_DKRED    :
@@ -4443,14 +4446,20 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 		RenderTownIDString();
 	}
 
-	// the vehicles' bars (condition and fuel)
+	// the vehicles' bars (condition and fuel), and in combat the APs of the
+	// ones that drive in tactical, where a merc's are (its driver shows his own)
 	if (dirty_level != DIRTYLEVEL0)
 	{
 		for (INT32 n = 0; big && n != giBigTeamPanelNumVehicles; ++n)
 		{
-			INT32 const vx = TEAM_PANEL_X + n * BIG_TEAMPANEL_SLOT_WIDTH;
-			DrawSoldierUIBarsTall(*gBigTeamPanelVehicles[n], vx + BIG_TM_LIFEBAR_X, vx + BIG_TM_BREATHBAR_X, vx + BIG_TM_MORALEBAR_X,
+			SOLDIERTYPE* const v  = gBigTeamPanelVehicles[n];
+			INT32        const vx = TEAM_PANEL_X + n * BIG_TEAMPANEL_SLOT_WIDTH;
+			DrawSoldierUIBarsTall(*v, vx + BIG_TM_LIFEBAR_X, vx + BIG_TM_BREATHBAR_X, vx + BIG_TM_MORALEBAR_X,
 						TEAM_PANEL_Y + BIG_TM_BARS_Y, BIG_TM_BAR_WIDTH, BIG_TM_BAR_HEIGHT, FRAME_BUFFER);
+			if (v->ubBodyType == HUMVEE || v->ubBodyType == ICECREAMTRUCK)
+			{
+				PrintAP(v, vx + BIG_TM_AP_X, TEAM_PANEL_Y + BIG_TM_AP_Y, BIG_TM_AP_WIDTH, BIG_TM_AP_HEIGHT, BIG_TM_FONT);
+			}
 		}
 	}
 
