@@ -10,6 +10,7 @@
 #include "FOV.h"
 #include "GameInstance.h"
 #include "GameSettings.h"
+#include "Map_Screen_Helicopter.h"
 #include "Handle_Doors.h"
 #include "Handle_Items.h"
 #include "Handle_UI.h"
@@ -734,6 +735,10 @@ static BOOLEAN DamageSoldierFromBlast(SOLDIERTYPE* const pSoldier, SOLDIERTYPE* 
 	if (!pSoldier->bActive || !pSoldier->bInSector || !pSoldier->bLife )
 		return( FALSE );
 
+	// those aboard a vehicle aren't hit while it holds (it takes the blast,
+	// D9), nor those aboard the helicopter
+	if (pSoldier->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) || InHelicopter(*pSoldier)) return( FALSE );
+
 	if ( pSoldier->ubMiscSoldierFlags & SOLDIER_MISC_HURT_BY_EXPLOSION )
 	{
 		// don't want to damage the guy twice
@@ -771,7 +776,7 @@ BOOLEAN DishOutGasDamage(SOLDIERTYPE* const pSoldier, const SmokeEffectModel* sm
 	INT16 sWoundAmt = smokeEffect->getDamage() + PreRandom(smokeEffect->getDamage());
 	INT16 sBreathAmt = 100 * (smokeEffect->getBreathDamage() + PreRandom(smokeEffect->getBreathDamage() / 2));
 
-	if (!pSoldier->bActive || !pSoldier->bInSector || !pSoldier->bLife || AM_A_ROBOT( pSoldier ) )
+	if (!pSoldier->bActive || !pSoldier->bInSector || !pSoldier->bLife || AM_A_ROBOT( pSoldier ) || InHelicopter(*pSoldier))
 	{
 		return fRecompileMovementCosts;
 	}

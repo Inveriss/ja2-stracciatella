@@ -117,7 +117,8 @@ void HandleTacticalPanelSwitch()
 		}
 		else if (gsCurInterfacePanel == SM_PANEL && gpSMCurrentMerc)
 		{
-			SOLDIERTYPE* const s = gpSMCurrentMerc;
+			// (a vehicle's cargo panel: its merc's)
+			SOLDIERTYPE* const s = GetSMPanelOwnerMerc();
 			ShutdownCurrentPanel();
 			// the other SM panel's layout, between the two
 			if (g_toggle_sm_large_icons) g_ui.setSMLargeIcons(!g_ui.isSMLargeIcons());

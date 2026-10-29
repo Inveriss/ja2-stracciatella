@@ -1340,9 +1340,9 @@ void UpdateCharRegionHelpText(void)
 			pMapScreenStatusStrings[2]
 		);
 	}
-	else if (AM_A_ROBOT(s))
+	else if (AM_A_ROBOT(s) || IsHelicopterSoldier(*s))
 	{
-		// robot (condition only)
+		// robot, helicopter (condition only)
 		status = ST::format("{}: {}/{}",
 			pMapScreenStatusStrings[3], s->bLife, s->bLifeMax
 		);
@@ -1526,6 +1526,19 @@ static bool ValidSelectableCharForNextOrPrev(SOLDIERTYPE const& s)
 }
 
 
+// Is one of them a vehicle (its soldier) and the other one aboard it?
+static bool IsVehicleAndItsPassenger(SOLDIERTYPE const& a, SOLDIERTYPE const& b)
+{
+	auto const carries = [](SOLDIERTYPE const& vehicle, SOLDIERTYPE const& passenger)
+	{
+		return vehicle.uiStatusFlags & SOLDIER_VEHICLE &&
+			passenger.bAssignment == VEHICLE &&
+			passenger.iVehicleId == vehicle.bVehicleID;
+	};
+	return carries(a, b) || carries(b, a);
+}
+
+
 BOOLEAN MapscreenCanPassItemToChar(const SOLDIERTYPE* const pNewSoldier)
 {
 	SOLDIERTYPE *pOldSoldier;
@@ -1592,17 +1605,34 @@ BOOLEAN MapscreenCanPassItemToChar(const SOLDIERTYPE* const pNewSoldier)
 				return( FALSE );
 			}
 
-			// only exchanges between those is the same squad or vehicle are permitted
-			if ( pNewSoldier->bAssignment != pOldSoldier->bAssignment )
+			// a vehicle and its own passenger may swap cargo on the road, too
+			if (!IsVehicleAndItsPassenger(*pNewSoldier, *pOldSoldier))
 			{
-				return( FALSE );
-			}
+				// only exchanges between those is the same squad or vehicle are permitted
+				if ( pNewSoldier->bAssignment != pOldSoldier->bAssignment )
+				{
+					return( FALSE );
+				}
 
-			// if in vehicles, make sure it's the same one
-			if ( ( pNewSoldier->bAssignment == VEHICLE ) && ( pNewSoldier->iVehicleId != pOldSoldier->iVehicleId ) )
-			{
-				return( FALSE );
+				// if in vehicles, make sure it's the same one
+				if ( ( pNewSoldier->bAssignment == VEHICLE ) && ( pNewSoldier->iVehicleId != pOldSoldier->iVehicleId ) )
+				{
+					return( FALSE );
+				}
 			}
+		}
+	}
+
+	// the helicopter flying between sectors: its cargo only goes to / comes
+	// from its own passengers (not the sector inventory, not anyone on the
+	// ground); landed or hovering over a sector, it is in that sector
+	bool const new_heli_in_flight = IsHelicopterSoldierInFlight(*pNewSoldier);
+	bool const old_heli_in_flight = pOldSoldier && IsHelicopterSoldierInFlight(*pOldSoldier);
+	if (new_heli_in_flight || old_heli_in_flight)
+	{
+		if (!pOldSoldier || !IsVehicleAndItsPassenger(*pNewSoldier, *pOldSoldier))
+		{
+			return( FALSE );
 		}
 	}
 
@@ -2323,6 +2353,8 @@ void SetUpMovingListsForSector(const SGPSector& sSector)
 		if (s.bAssignment == IN_TRANSIT)     continue;
 		if (s.bAssignment == ASSIGNMENT_POW) continue;
 		if (s.sSector != sSector) continue;
+
+		if (IsHelicopterSoldier(s)) continue; // Skyrider isn't moved with the move box
 
 		if (s.uiStatusFlags & SOLDIER_VEHICLE)
 		{
@@ -4062,6 +4094,10 @@ void NotifyPlayerOfInvasionByEnemyForces(const SGPSector& sector, MSGBOX_CALLBAC
 static MoveError CanCharacterMoveInStrategic(SOLDIERTYPE& s)
 {
 	Assert(s.bActive);
+
+	/* The helicopter's soldier travels with the helicopter, whose flights are
+	 * checked by RequestGiveSkyriderNewDestination() (it can fly empty) */
+	if (IsHelicopterSoldier(s)) return ME_OK;
 
 	/* NOTE: Check for the most permanent conditions first, and the most easily
 	 * remedied ones last. In case several cases apply, only the reason found

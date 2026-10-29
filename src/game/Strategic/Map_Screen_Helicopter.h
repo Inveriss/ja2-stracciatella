@@ -124,6 +124,49 @@ BOOLEAN CanHelicopterFly( void );
 // is the pilot alive and on our side?
 BOOLEAN IsHelicopterPilotAvailable( void );
 
+// is the helicopter's condition below the one Skyrider needs to take off
+// (GetHelicopterFlightMinCondition())?
+bool IsHelicopterTooDamagedToFly();
+
+// has the helicopter been shot down, its crash still to come? Those aboard
+// can't change their assignment then.
+bool IsHelicopterGoingDown();
+
+// is this the helicopter's soldier while the helicopter flies between two
+// sectors? Its cargo then only moves to / from its own passengers, not the
+// sector. Landed or hovering over a sector, it is in that sector.
+bool IsHelicopterSoldierInFlight(SOLDIERTYPE const&);
+INT8 GetHelicopterFlightMinCondition();
+
+// The helicopter's soldier in tactical (vehicle inventory plan, tactical
+// helicopter): put into the loaded sector while the helicopter is there --
+// landed at its refuel site (off the world, the map draws it) or hovering
+// over another sector (at the drop spot, heli.sti) -- and taken out when it
+// leaves; called every frame of the tactical screen.
+void UpdateHelicopterInTactical();
+// a new world: the helicopter's soldier isn't in it (TrashWorld())
+void ResetHelicopterInTactical();
+// is it hovering with its own body in the loaded sector? Only then can it be
+// hit in tactical (landed at a refuel site the map's scenery draws it)
+bool IsHelicopterBodyInTactical();
+// Getting out of the helicopter in tactical (helicopter passengers plan,
+// 3.4): one aboard in the loaded sector, not while it goes down (E4), also
+// with enemies in the sector (E2, as the ground vehicles); next to it (E1)
+bool CanExitHelicopterInTactical(SOLDIERTYPE const&);
+bool ExitHelicopterInTactical(SOLDIERTYPE&);
+// everyone aboard in the sector, all into the first one's squad (E3)
+void ExitEveryoneFromHelicopterInTactical();
+// is this structure a piece of the helicopter the map draws at the loaded
+// sector's refuel site (AddHelicopterToMaps())? It can't be damaged (the
+// pieces' damaged graphics would make the explosion code recurse endlessly)
+bool IsHelicopterSceneryStructure(STRUCTURE*);
+// it was destroyed in tactical (its wreck and cargo are already on the
+// ground): the same as being shot down -- Skyrider and those aboard die
+void HelicopterDestroyedInTactical();
+// set while UpdateHelicopterInTactical() puts it in, so the usual sector
+// entry, which keeps away from it (IsHelicopterSoldier()), lets it through
+extern bool gfPlacingHelicopterInTactical;
+
 // have helicopter take off
 void TakeOffHelicopter( void );
 
@@ -182,6 +225,9 @@ INT16 GetNumSafeSectorsInPath();
 INT16 GetNumUnSafeSectorsInPath( void );
 
 bool SoldierAboardAirborneHeli(SOLDIERTYPE const&);
+// is it hovering over this sector, which has no enemies? Those aboard then
+// let the player go to tactical there, as when it has landed
+bool IsHelicopterHoveringOverSafeSector(const SGPSector&);
 
 void MoveAllInHelicopterToFootMovementGroup(void);
 

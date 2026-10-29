@@ -1026,7 +1026,12 @@
         "Die Zeit kann nicht komprimiert werden, während das Sektorinventar eingesehen wird.",
         "Aktueller/Maximaler Fortschritt: %d%%/%d%%",
         "John und Mary eskortieren?",
-        "Schalter betätigt."
+        "Schalter betätigt.",
+        "Der Werkzeugkasten von %s ist in zu schlechtem Zustand, um das Fahrzeug zu reparieren: %s!",
+        "%s entfernen",
+        "Während eines Gefechts können auf dem strategischen Bildschirm keine Gegenstände zwischen Charakteren übergeben werden.",
+        "Dem Fahrzeug ist der Treibstoff ausgegangen, es kann nicht weiterfahren.",
+        "Fahrzeuge können nicht in Minen fahren."
     ],
     "gzMercSkillText": [
         "Keine Fähigkeiten",
@@ -2048,7 +2053,8 @@
     "pSkyriderText": [
         "Skyrider wurden $%d gezahlt",
         "Skyrider bekommt noch $%d",
-        "Skyrider hat keine Passagiere. Wenn Sie Söldner in den Sektor transportieren wollen, weisen Sie sie einem Fahrzeug/Helikopter zu."
+        "Skyrider hat keine Passagiere. Wenn Sie Söldner in den Sektor transportieren wollen, weisen Sie sie einem Fahrzeug/Helikopter zu.",
+        "Skyrider fliegt nicht: Der Helikopter ist zu stark beschädigt (Zustand %d). Reparieren Sie ihn zuerst auf mindestens %d."
     ],
     "pSquadMenuStrings": [
         "Trupp  1",

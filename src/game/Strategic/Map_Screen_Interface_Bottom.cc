@@ -60,6 +60,7 @@
 #include "UILayout.h"
 
 #include <algorithm>
+#include <stdexcept>
 #include <string_theory/string>
 
 
@@ -510,8 +511,19 @@ void RenderMapScreenInterfaceBottom( void )
 
 		if (GetSectorFlagStatus(sMap, SF_ALREADY_VISITED))
 		{
-			LoadRadarScreenBitmap(GetMapFileName(sMap, TRUE));
-			LoadBigRadarScreenBitmap(GetMapFileName(sMap, TRUE));
+			// A visited sector without a map (e.g. revealed by a testing switch)
+			// has no radar map either: show it like an unvisited one
+			try
+			{
+				LoadRadarScreenBitmap(GetMapFileName(sMap, TRUE));
+				LoadBigRadarScreenBitmap(GetMapFileName(sMap, TRUE));
+			}
+			catch (std::exception const& e)
+			{
+				SLOGW("No radar map for sector {}: {}", sMap.AsShortString(), e.what());
+				ClearOutRadarMapImage();
+				ClearOutBigRadarMapImage();
+			}
 		}
 		else
 		{
@@ -1270,6 +1282,23 @@ static void EnableDisableBottomButtonsAndRegions(void)
 	{
 		// and an item is in the cursor
 		EnableButton(giMapInvDoneButton, !fMapInventoryItem && !InKeyRingPopup() && !InItemStackPopup());
+
+		// A battle in the loaded sector: an item picked up here can't be passed
+		// to anyone and the inventory doesn't close with it (the team list may
+		// be under the big panel) -- say so at once, in the log and a box
+		// (vehicle inventory plan, 4.7)
+		static bool held_before = false;
+		bool const held = gpItemPointer || fMapInventoryItem;
+		if (held && !held_before && gTacticalStatus.fEnemyInSector)
+		{
+			ST::string const msg = gzLateLocalizedString[STR_LATE_61];
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, msg);
+			if (guiCurrentScreen != MSG_BOX_SCREEN)
+			{
+				DoScreenIndependantMessageBox(msg, MSG_BOX_FLAG_OK, NULL);
+			}
+		}
+		held_before = held;
 
 		if( fShowDescriptionFlag )
 		{

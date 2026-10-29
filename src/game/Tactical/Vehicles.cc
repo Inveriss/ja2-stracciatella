@@ -1,4 +1,5 @@
 #include "ItemModel.h"
+#include "Items.h"
 #include "LoadSaveVehicleType.h"
 #include "Map_Screen_Interface_Map.h"
 #include "SaveLoadGame.h"
@@ -14,12 +15,18 @@
 #include "Sound_Control.h"
 #include "SoundMan.h"
 #include "Soldier_Add.h"
+#include "PathAI.h"
 #include "Strategic.h"
 #include "Isometric_Utils.h"
 #include "Interface.h"
 #include "Random.h"
 #include "Text.h"
 #include "Explosion_Control.h"
+#include "TileDef.h"
+#include "Animation_Control.h"
+#include "Points.h"
+#include "Overhead_Types.h"
+#include "WorldDef.h"
 #include "StrategicMap.h"
 #include "Campaign_Types.h"
 #include "Sys_Globals.h"
@@ -43,6 +50,10 @@
 
 
 INT8 gubVehicleMovementGroups[ MAX_VEHICLES ];
+
+// damage to a destroyed vehicle's cargo: 2 x the blast damage of its
+// GREAT_BIG_EXPLOSION (50), the factor items lying at an explosion get
+#define VEHICLE_CARGO_EXPLOSION_DAMAGE 100
 
 // the list of vehicle slots
 std::vector<VEHICLETYPE> pVehicleList;
@@ -275,9 +286,16 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 }
 
 
+// set while ExitHelicopterAt() takes one out: his insertion data is its spot
+static bool g_exit_helicopter_at = false;
+
+
 void SetSoldierExitHelicopterInsertionData(SOLDIERTYPE* const s)
 {
-	if (s->bInSector) return;
+	// already put on the map (one aboard in the loaded sector has no place on
+	// it yet, UpdateHelicopterInTactical())
+	if (s->bInSector && s->pLevelNode) return;
+	if (g_exit_helicopter_at) return;
 
 	auto shippingDest = GCM->getPrimaryShippingDestination();
 	if (s->sSector == shippingDest->deliverySector)
@@ -526,6 +544,36 @@ BOOLEAN TakeSoldierOutOfVehicle(SOLDIERTYPE* const s)
 }
 
 
+bool ExitHelicopterAt(SOLDIERTYPE& s, GridNo const grid_no)
+{
+	if (!InHelicopter(s)) return false;
+
+	// put on the map once, at the spot, by the helicopter branch of
+	// RemoveSoldierFromVehicle() (UpdateMercInSector(), which gives him a merc
+	// slot again)
+	s.ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+	s.usStrategicInsertionData = grid_no;
+	s.sInsertionGridNo         = grid_no;
+	RemoveMercSlot(&s);
+	g_exit_helicopter_at = true;
+	bool const out = RemoveSoldierFromVehicle(s);
+	g_exit_helicopter_at = false;
+	if (!out) return false;
+
+	s.iVehicleId = -1;
+	HandleSight(s, SIGHT_LOOK | SIGHT_RADIO);
+	AddCharacterToUniqueSquad(&s);
+
+	// can't call SetCurrentSquad OR SelectSoldier in mapscreen, that will initialize interface panels!!!
+	if (guiCurrentScreen == GAME_SCREEN)
+	{
+		SetCurrentSquad(s.bAssignment, TRUE);
+		SelectSoldier(&s, SELSOLDIER_FORCE_RESELECT);
+	}
+	return true;
+}
+
+
 bool PutSoldierInVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 {
 	if (!AddSoldierToVehicle(s, v)) return false;
@@ -660,24 +708,43 @@ static void HandleCriticalHitForVehicleInLocation(const UINT8 ubID, const INT16 
 	{
 		v.fDestroyed = TRUE;
 
+		// The explosion damages the cargo, which is dropped with the wreck: like
+		// items lying where something blows up, twice the blast's damage
+		// (explosives aboard may go off, too). Not for tanks.
+		CheckEquipmentForDamage(&vs, VEHICLE_CARGO_EXPLOSION_DAMAGE);
+
 		// Explode vehicle...
 		IgniteExplosion(att, 0, sGridNo, GREAT_BIG_EXPLOSION, 0);
 
 		CheckForAndHandleSoldierDeath(&vs, &fMadeCorpse);
 
 		KillAllInVehicle(v);
+
+		// the helicopter's wreck and cargo are on the ground now; the rest as
+		// when it is shot down (Skyrider dies)
+		if (IsHelicopter(v)) HelicopterDestroyedInTactical();
 	}
 }
 
 
 bool DoesVehicleNeedAnyRepairs(VEHICLETYPE const& v)
 {
-	// Skyrider isn't damagable/repairable
-	if (IsHelicopter(v)) return false;
+	// the helicopter's condition is its soldier's (if it got one)
+	if (IsHelicopter(v))
+	{
+		SOLDIERTYPE const* const hs = GetHelicopterSoldier();
+		return hs && hs->bLife != hs->bLifeMax;
+	}
 
 	// get the vehicle soldiertype
 	SOLDIERTYPE const& vs = GetSoldierStructureForVehicle(v);
 	return vs.bLife != vs.bLifeMax;
+}
+
+
+UINT8 GetVehicleRepairPointsDivisor(VEHICLETYPE const& v)
+{
+	return GCM->getVehicle(v.ubVehicleType)->repair_points_divisor;
 }
 
 
@@ -694,13 +761,14 @@ INT8 RepairVehicle(VEHICLETYPE const& v, INT8 const bRepairPtsLeft, BOOLEAN* con
 	bOldLife = vs.bLife;
 
 	// Repair
-	vs.bLife += bRepairPtsLeft / VEHICLE_REPAIR_POINTS_DIVISOR;
+	INT8 const divisor = GetVehicleRepairPointsDivisor(v);
+	vs.bLife += bRepairPtsLeft / divisor;
 
 	// Check
 	if (vs.bLife > vs.bLifeMax) vs.bLife = vs.bLifeMax;
 
 	// Calculate pts used;
-	bRepairPtsUsed = (vs.bLife - bOldLife) * VEHICLE_REPAIR_POINTS_DIVISOR;
+	bRepairPtsUsed = (vs.bLife - bOldLife) * divisor;
 
 	// ARM: personally, I'd love to know where in Arulco the mechanic gets the PARTS to do this stuff, but hey, it's a game!
 	*pfNothingToRepair = !DoesVehicleNeedAnyRepairs(v);
@@ -773,6 +841,15 @@ void SetVehicleSectorValues(VEHICLETYPE& v, const SGPSector& sMap)
 	ProfileID vehicleProfile = GCM->getVehicle(v.ubVehicleType)->profile;
 	MERCPROFILESTRUCT& p = GetProfile(vehicleProfile);
 	p.sSector = sMap;
+
+	if (IsHelicopter(v))
+	{ // its soldier shows the helicopter's position in the team list
+		if (SOLDIERTYPE* const hs = GetHelicopterSoldier())
+		{
+			hs->sSector         = sMap;
+			hs->fBetweenSectors = FALSE;
+		}
+	}
 
 	// Go through list of mercs in vehicle and set all their states as arrived
 	CFOR_EACH_PASSENGER(v, i)
@@ -932,6 +1009,105 @@ static bool OnlyThisSoldierCanDriveVehicle(SOLDIERTYPE const& s, INT32 const veh
 }
 
 
+INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo const grid_no)
+{
+	INT16 cost = GCM->getVehicle(pVehicleList[vs.bVehicleID].ubVehicleType)->tactical_fuel_per_tile;
+	switch (gpWorldLevelData[grid_no].ubTerrainID)
+	{
+		case PAVED_ROAD:
+		case DIRT_ROAD: break;
+		default:        cost *= 2; break; // off the road (D4)
+	}
+	return cost;
+}
+
+
+void SpendVehicleFuelInTactical(SOLDIERTYPE& vs, INT16 const fuel)
+{
+	vs.sBreathRed = std::max(0, vs.sBreathRed - fuel);
+	vs.bBreath    = (vs.sBreathRed + 99) / 100;
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+// D15 (changed 2026-10-29): in combat getting in or out takes the merc's own
+// turn and AP_ENTER_EXIT_VEHICLE (5); getting in, also the walk up to it
+bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool const explain)
+{
+	if (!(gTacticalStatus.uiFlags & INCOMBAT)) return true;
+	if (gTacticalStatus.ubCurrentTeam != OUR_TEAM || !OK_INTERRUPT_MERC(&s)) return false;
+	return EnoughPoints(&s, AP_ENTER_EXIT_VEHICLE, 0, explain);
+}
+
+
+void ChargeVehicleExit(SOLDIERTYPE& s)
+{
+	if (gTacticalStatus.uiFlags & INCOMBAT) DeductPoints(&s, AP_ENTER_EXIT_VEHICLE, 0);
+}
+
+
+void ChargeVehicleEntry(SOLDIERTYPE& s)
+{
+	if (gTacticalStatus.uiFlags & INCOMBAT) DeductPoints(&s, AP_ENTER_EXIT_VEHICLE, 0);
+}
+
+
+INT16 GetAPsToEnterVehicle(SOLDIERTYPE& s, SOLDIERTYPE const& vs, GridNo* const action_pos)
+{
+	GridNo const pos = FindGridNoFromSweetSpotWithStructDataFromSoldier(&s, s.usUIMovementMode, 5, 0, &vs);
+	if (action_pos) *action_pos = pos;
+	if (pos == NOWHERE) return -1;
+	INT16 walk = 0;
+	if (pos != s.sGridNo)
+	{
+		walk = PlotPath(&s, pos, NO_COPYROUTE, FALSE, s.usUIMovementMode, s.bActionPoints);
+		if (walk == 0) return -1; // (no way there)
+	}
+	return walk + (gTacticalStatus.uiFlags & INCOMBAT ? AP_ENTER_EXIT_VEHICLE : 0);
+}
+
+
+bool VehicleDrivesInTactical(VEHICLETYPE const& v)
+{
+	return v.ubVehicleType == HUMMER || v.ubVehicleType == ICE_CREAM_TRUCK;
+}
+
+
+bool IsVehicleMoving(SOLDIERTYPE const& vs)
+{
+	if (!(vs.uiStatusFlags & SOLDIER_VEHICLE) || !vs.bInSector) return false;
+	// only while it is in its moving animation: stopped short of its final
+	// destination -- no APs left in combat (it keeps the rest of its path for
+	// the next turn), blocked, out of fuel -- it isn't moving
+	// (out of APs it stays in that animation, held by fNoAPToFinishMove)
+	return !(gAnimControl[vs.usAnimState].uiFlags & ANIM_STATIONARY) && !vs.fNoAPToFinishMove;
+}
+
+
+bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs)
+{
+	if (!(vs.uiStatusFlags & SOLDIER_VEHICLE) || vs.bLife <= 0) return false;
+	// D1: the Hummer and the ice cream truck
+	if (vs.ubBodyType != HUMVEE && vs.ubBodyType != ICECREAMTRUCK) return false;
+	// in combat: on our turn, for its own AP (stage 2a, D3)
+	if (gTacticalStatus.uiFlags & INCOMBAT && gTacticalStatus.ubCurrentTeam != OUR_TEAM) return false;
+
+	VEHICLETYPE const& v = pVehicleList[vs.bVehicleID];
+	if (v.fDestroyed || !OKUseVehicle(GCM->getVehicle(v.ubVehicleType)->profile)) return false;
+	if (vs.sBreathRed <= 0) return false; // (no fuel)
+
+	// someone aboard who can drive
+	CFOR_EACH_PASSENGER(v, i)
+	{
+		SOLDIERTYPE const& s = **i;
+		if (s.bLife < OKLIFE || s.fMercAsleep || s.bCollapsed) continue;
+		if (AM_AN_EPC(&s) || AM_A_ROBOT(&s)) continue;
+		return true;
+	}
+	return false;
+}
+
+
 bool SoldierMustDriveVehicle(SOLDIERTYPE const& s, bool const trying_to_travel)
 {
 	INT32       const  vehicle_id = s.iVehicleId;
@@ -1029,4 +1205,25 @@ UINT16 GetVehicleArmour(const UINT8 vehicle_id)
 UINT8 GetVehicleSeats(VEHICLETYPE const& v)
 {
 	return GCM->getVehicle(v.ubVehicleType)->seats;
+}
+
+
+bool IsHelicopterSoldier(SOLDIERTYPE const& s)
+{
+	// by the vehicle's type, so it holds for the crashed helicopter's soldier,
+	// left on the team list until removed, too (iHelicopterVehicleId is -1 then)
+	if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) return false;
+	if (s.bVehicleID < 0 || s.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[s.bVehicleID];
+	return v.fValid && v.ubVehicleType == HELICOPTER;
+}
+
+
+SOLDIERTYPE* GetHelicopterSoldier()
+{
+	FOR_EACH_IN_TEAM(s, OUR_TEAM)
+	{
+		if (IsHelicopterSoldier(*s)) return s;
+	}
+	return nullptr;
 }

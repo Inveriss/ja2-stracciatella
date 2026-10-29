@@ -33,6 +33,7 @@ enum
 	SM_SHORTCUTS_BUTTON,
 	SM_STATS_BUTTON,
 	SM_SKILLS_BUTTON,
+	SM_VEHICLE_CARGO_BUTTON,
 	NUM_SM_BUTTONS
 };
 
@@ -114,6 +115,19 @@ void    RemoveAllPlayersFromSlot();
 BOOLEAN      RemovePlayerFromTeamSlot(const SOLDIERTYPE* s);
 void    CheckForAndAddMercToTeamPanel(SOLDIERTYPE* s);
 
+// The 1366x768 team panel showing those aboard the helicopter (a left click
+// on its window) instead of the current squad; a squad change ends it.
+bool IsHelicopterPassengersView();
+void EndHelicopterPassengersView();
+// every tactical frame: back to the squad when the helicopter left or is
+// empty, the slots again when someone got in or out
+void UpdateHelicopterPassengersView();
+// entering a sector with nobody of ours on the ground, everyone aboard a
+// vehicle: the first one with someone aboard -- the helicopter (its
+// passengers view), the Hummer, the ice cream truck (its squad) -- at once;
+// false: not on the tactical screen yet
+bool ShowVehicleOnSectorEntry();
+
 void DisableTacticalTeamPanelButtons(BOOLEAN fDisable);
 void RenderTownIDString(void);
 
@@ -177,6 +191,8 @@ void HandleLocateSelectMerc(SOLDIERTYPE*, bool force_select);
 BOOLEAN HandleNailsVestFetish(const SOLDIERTYPE* pSoldier, UINT32 uiHandPos, UINT16 usReplaceItem);
 
 extern SOLDIERTYPE* gpSMCurrentMerc;
+// The SM panel's merc; on a vehicle's cargo panel the merc who opened it
+SOLDIERTYPE* GetSMPanelOwnerMerc();
 extern GUIButtonRef iSMPanelButtons[NUM_SM_BUTTONS];
 extern GUIButtonRef iTEAMPanelButtons[NUM_TEAM_BUTTONS];
 extern GUIButtonRef giSMStealthButton;

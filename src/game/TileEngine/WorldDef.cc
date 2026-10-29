@@ -32,6 +32,7 @@
 #include "Meanwhile.h"
 #include "OppList.h"
 #include "Overhead.h"
+#include "Map_Screen_Helicopter.h"
 #include "Overhead_Map.h"
 #include "Overhead_Types.h"
 #include "PathAI.h"
@@ -2617,6 +2618,9 @@ void TrashWorld(void)
 	DecayLightEffects(0xffffff, false);
 	ResetSmokeEffects();
 	ResetLightEffects();
+
+	// the helicopter's soldier, put in by UpdateHelicopterInTactical()
+	ResetHelicopterInTactical();
 
 	// Set soldiers to not active!
 	FOR_EACH_SOLDIER(s)

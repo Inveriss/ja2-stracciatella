@@ -1197,7 +1197,14 @@ static void GoToSectorCallback(GUI_BUTTON* btn, UINT32 reason)
 			if( gfPersistantPBI )
 			{
 				// put everyone on duty, and remove mercs from vehicles, too
+				// (not from the ones that drive in tactical, D6)
 				PutNonSquadMercsInBattleSectorOnSquads( TRUE );
+
+				// with everyone aboard such vehicles nobody is placed (D16)
+				if (gfEnterTacticalPlacementGUI && !AnyMercForTacticalPlacement())
+				{
+					gfEnterTacticalPlacementGUI = FALSE;
+				}
 
 				// we nuke the groups existing route & destination in advance
 				ClearMovementForAllInvolvedPlayerGroups( );
@@ -1397,8 +1404,12 @@ static void PutNonSquadMercsInBattleSectorOnSquads(BOOLEAN fExitVehicles)
 }
 
 
-static void PutNonSquadMercsInPlayerGroupOnSquads(GROUP* const pGroup, const BOOLEAN fExitVehicles)
+static void PutNonSquadMercsInPlayerGroupOnSquads(GROUP* const pGroup, BOOLEAN fExitVehicles)
 {
+	// those aboard a vehicle that drives in tactical stay in it (driving plan,
+	// D6): it takes part in the battle with them
+	if (pGroup->fVehicle && VehicleDrivesInTactical(GetVehicleFromMvtGroup(*pGroup))) fExitVehicles = FALSE;
+
 	std::optional<INT8> bUniqueVehicleSquad;
 	if (pGroup->fVehicle)
 	{

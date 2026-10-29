@@ -62,6 +62,7 @@ enum SoldierBodyType
 	ELDORADO,
 	ICECREAMTRUCK,
 	JEEP,
+	HELICOPTERBODY, // Skyrider's helicopter in tactical (anims/vehicles/heli.sti)
 
 	TOTALBODYTYPES
 };
@@ -502,6 +503,9 @@ enum AnimationSurfaceTypes
 	// alongside the other RGF* entries) so no existing animation surface
 	// index shifts.
 	RGFHANDGUN_1H,
+
+	// Skyrider's helicopter standing in tactical (8 directions, no frames)
+	HELICOPTER_BASIC,
 
 	NUMANIMATIONSURFACETYPES
 };

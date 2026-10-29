@@ -986,6 +986,9 @@ void UpdateMercInSector(SOLDIERTYPE& s, const SGPSector& sSector)
 
 	if (s.bAssignment == IN_TRANSIT) return;
 
+	// the helicopter's soldier has no tactical body
+	if (IsHelicopterSoldier(s)) return;
+
 	if (s.ubProfile != NO_PROFILE && GetProfile(s.ubProfile).ubMiscFlags3 & PROFILE_MISC_FLAG3_PERMANENT_INSERTION_CODE)
 	{ // Override orders
 		s.bOrders = STATIONARY;
@@ -1456,6 +1459,15 @@ void JumpIntoAdjacentSector( UINT8 ubTacticalDirection, UINT8 ubJumpCode, INT16 
 
 		CFOR_EACH_PLAYER_IN_GROUP(curr, pGroup)
 		{
+			// a vehicle at the edge (driving plan): it leaves from where it is,
+			// those aboard with it -- no walk off (its footprint can't go off the
+			// map, and searching an edge tile for it is slow)
+			if (curr->pSoldier->uiStatusFlags & SOLDIER_VEHICLE)
+			{
+				curr->pSoldier->sPreTraversalGridNo = curr->pSoldier->sGridNo;
+				continue;
+			}
+
 			if ( OK_CONTROLLABLE_MERC( curr->pSoldier) )
 			{
 				if ( ubTacticalDirection != 255 )
@@ -1516,6 +1528,9 @@ void JumpIntoAdjacentSector( UINT8 ubTacticalDirection, UINT8 ubJumpCode, INT16 
 BEGINNING_LOOP:
 		CFOR_EACH_PLAYER_IN_GROUP(curr, pGroup)
 		{
+			// (those aboard a vehicle go with it: they are in its group, on no
+			// squad -- removing them from squads would loop forever)
+			if (curr->pSoldier->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER)) continue;
 			if ( !OK_CONTROLLABLE_MERC( curr->pSoldier ) )
 			{
 				RemoveCharacterFromSquads( curr->pSoldier );
@@ -1713,9 +1728,22 @@ static void SetupTacticalTraversalInformation(void)
 static void DoneFadeOutAdjacentSector(void);
 
 
+// set for the next jump: go to the map screen after it, even if the way is
+// short (a vehicle with everyone aboard leaving a battle, driving plan)
+static bool g_adjacent_jump_to_map_screen = false;
+
+
+void SetAdjacentJumpToMapScreen()
+{
+	g_adjacent_jump_to_map_screen = true;
+}
+
+
 void AllMercsHaveWalkedOffSector( )
 {
 	BOOLEAN fEnemiesInLoadedSector = FALSE;
+	bool const to_map_screen = g_adjacent_jump_to_map_screen;
+	g_adjacent_jump_to_map_screen = false;
 
 	if (NumEnemiesInAnySector(gWorldSector))
 	{
@@ -1728,7 +1756,7 @@ void AllMercsHaveWalkedOffSector( )
 	}
 
 	//Setup strategic traversal information
-	if( guiAdjacentTraverseTime <= 5 )
+	if( guiAdjacentTraverseTime <= 5 && !to_map_screen )
 	{
 		gfTacticalTraversal = TRUE;
 		gpTacticalTraversalGroup = gpAdjacentGroup;
@@ -1774,7 +1802,7 @@ void AllMercsHaveWalkedOffSector( )
 				WarpGameTime( 300, WARPTIME_NO_PROCESSING_OF_EVENTS );
 			}
 		}
-		if( guiAdjacentTraverseTime <= 5 )
+		if( guiAdjacentTraverseTime <= 5 && !to_map_screen )
 		{
 			//Case 2:  Immediatly loading the next sector
 			if (!gsAdjacentSector.z)
@@ -2026,6 +2054,15 @@ BOOLEAN OKForSectorExit( INT8 bExitDirection, UINT16 usAdditionalData, UINT32 *p
 	*/
 
 	gfInvalidTraversal = FALSE;
+
+	// a vehicle drives off the map's edges only, never through an exit grid
+	// (stairs, cave and mine entrances, underground: driving plan, D7)
+	if (sel->uiStatusFlags & SOLDIER_VEHICLE && bExitDirection == -1)
+	{
+		gfInvalidTraversal = TRUE;
+		return FALSE;
+	}
+
 	gfLoneEPCAttemptingTraversal = FALSE;
 	gubLoneMercAttemptingToAbandonEPCs = 0;
 	gPotentiallyAbandonedEPC = NULL;
@@ -2247,7 +2284,9 @@ bool CanGoToTacticalInSector(const SGPSector& sector)
 		if (s.bAssignment == IN_TRANSIT)       continue;
 		if (s.bAssignment == ASSIGNMENT_POW)   continue;
 		if (s.bAssignment == ASSIGNMENT_DEAD)  continue;
-		if (SoldierAboardAirborneHeli(s))      continue;
+		// those aboard the helicopter in the air, unless it hovers over this
+		// sector without enemies (landed, they count anyway)
+		if (SoldierAboardAirborneHeli(s) && !IsHelicopterHoveringOverSafeSector(sector)) continue;
 		if (s.fBetweenSectors)                 continue;
 		if (s.sSector != sector)               continue;
 		return true;

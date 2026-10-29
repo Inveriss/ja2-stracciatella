@@ -19,6 +19,7 @@
 #include "Soldier_Macros.h"
 #include "Squads.h"
 #include "Map_Screen_Interface_Map.h"
+#include "Map_Screen_Helicopter.h"
 #include "PreBattle_Interface.h"
 #include "Strategic.h"
 #include "Fade_Screen.h"
@@ -65,6 +66,7 @@ struct EXIT_DIALOG_STRUCT
 	BOOLEAN fRender;
 	BOOLEAN fGotoSector;
 	BOOLEAN fGotoSectorText;
+	BOOLEAN fVehicleToMapScreen; // everyone aboard the vehicle leaving a battle
 	BOOLEAN fSingleMove;
 	BOOLEAN fAllMove;
 	BOOLEAN fSingleMoveDisabled;
@@ -212,6 +214,10 @@ static void InternalInitSectorExitMenu(UINT8 const ubDirection, INT16 const sAdd
 	CFOR_EACH_IN_TEAM(pSoldier, OUR_TEAM)
 	{
 		if (pSoldier == sel) continue;
+		// (those aboard the selected vehicle leave with it: not another squad)
+		if (sel->uiStatusFlags & SOLDIER_VEHICLE &&
+			pSoldier->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) &&
+			pSoldier->iVehicleId == sel->bVehicleID) continue;
 		if( !pSoldier->fBetweenSectors &&
 			pSoldier->sSector == gWorldSector &&
 			pSoldier->bLife >= OKLIFE &&
@@ -228,9 +234,19 @@ static void InternalInitSectorExitMenu(UINT8 const ubDirection, INT16 const sAdd
 		}
 	}
 
+	// a vehicle leaves only with its squad -- its movement group, those aboard
+	// (driving plan): alone it would leave them behind
+	if (sel->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		gExitDialog.fSingleMoveOn       = FALSE;
+		gExitDialog.fSingleMove         = FALSE;
+		gExitDialog.fSingleMoveDisabled = TRUE;
+		gExitDialog.fAllMoveOn          = TRUE;
+		gExitDialog.fAllMove            = TRUE;
+	}
 	// Double check that ...
 	// if we are a EPC and are the selected guy, make single move off and disable it....
-	if (AM_AN_EPC(sel))
+	else if (AM_AN_EPC(sel))
 	{
 		// Check if there are more than one in this squad
 		if ( gExitDialog.ubNumPeopleOnSquad > 1 )
@@ -306,6 +322,17 @@ static void InternalInitSectorExitMenu(UINT8 const ubDirection, INT16 const sAdd
 
 	if( !gExitDialog.fMultipleSquadsInSector && gExitDialog.fAllMoveOn )
 	{
+		gExitDialog.fGotoSectorDisabled = TRUE;
+	}
+
+	// a vehicle with everyone of ours aboard leaving a battle (driving plan):
+	// to the map screen, as when the way takes too long
+	if (sel->uiStatusFlags & SOLDIER_VEHICLE && gTacticalStatus.fEnemyInSector &&
+		!gExitDialog.fMultipleSquadsInSector && gExitDialog.fAllMoveOn)
+	{
+		gExitDialog.fVehicleToMapScreen = TRUE;
+		gExitDialog.fGotoSectorText     = FALSE; // ("Go to Map")
+		gExitDialog.fGotoSector         = TRUE;
 		gExitDialog.fGotoSectorDisabled = TRUE;
 	}
 
@@ -386,8 +413,9 @@ static void DoneFadeOutWarpCallback(void)
 	// Warp!
 	FOR_EACH_IN_TEAM(pSoldier, OUR_TEAM)
 	{
-		// Are we in this sector, On the current squad?
-		if (pSoldier->bLife >= OKLIFE && pSoldier->bInSector)
+		// Are we in this sector, On the current squad? (not aboard the
+		// helicopter: it stays)
+		if (pSoldier->bLife >= OKLIFE && pSoldier->bInSector && !InHelicopter(*pSoldier))
 		{
 			gfTacticalTraversal = TRUE;
 			SetGroupSectorValue(gsWarpWorld, *GetGroup(pSoldier->ubGroupID));
@@ -724,7 +752,8 @@ void RemoveSectorExitMenu(BOOLEAN const fOk)
 	}
 
 	UINT8      jump_code;
-	bool const do_load = d.fGotoSector && d.fGotoSectorText;
+	bool const do_load = (d.fGotoSector && d.fGotoSectorText) || d.fVehicleToMapScreen;
+	if (d.fVehicleToMapScreen) SetAdjacentJumpToMapScreen();
 	if (d.fAllMove)
 	{
 		jump_code = do_load ? JUMP_ALL_LOAD_NEW : JUMP_ALL_NO_LOAD;

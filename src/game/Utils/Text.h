@@ -330,7 +330,12 @@ enum
 	STR_LATE_55,
 	STR_LATE_56,
 	STR_LATE_57,
-	STR_LATE_58
+	STR_LATE_58,
+	STR_LATE_59, // "%s's tool kit is in too poor condition to repair %s!"
+	STR_LATE_60, // "Remove %s" (a destroyed vehicle)
+	STR_LATE_61, // map screen: no passing items between characters during a battle
+	STR_LATE_62, // tactical: a driving vehicle out of fuel
+	STR_LATE_63  // tactical: a vehicle at an exit grid (mines, caves, stairs)
 };
 
 

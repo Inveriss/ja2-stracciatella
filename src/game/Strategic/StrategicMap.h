@@ -78,6 +78,9 @@ UINT8 GetTownSectorSize(INT8 town_id);
 UINT8 GetTownSectorsUnderControl(INT8 town_id);
 
 
+// the next adjacent jump ends on the map screen (a vehicle with everyone
+// aboard leaving a battle)
+void SetAdjacentJumpToMapScreen();
 BOOLEAN OKForSectorExit(INT8 bExitDirection, UINT16 usAdditionalData, UINT32* puiTraverseTimeInMinutes = 0);
 void SetupNewStrategicGame();
 

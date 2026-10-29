@@ -419,6 +419,18 @@ BOOLEAN gfItemPointerDifferentThanDefault = FALSE;
 SOLDIERTYPE *gpItemPointerSoldier;
 INT8 gbItemPointerSrcSlot;
 static UINT16 gusItemPointer = 255;
+
+
+// One of our vehicles an item can be passed into (its cargo pockets): not
+// destroyed, here in the sector; never by a throw
+bool IsVehicleCargoTarget(SOLDIERTYPE const& tgt)
+{
+	return tgt.uiStatusFlags & SOLDIER_VEHICLE &&
+		tgt.bTeam == OUR_TEAM &&
+		tgt.bLife > 0         &&
+		tgt.bInSector         &&
+		!TANK(&tgt);
+}
 static UINT32 guiNewlyPlacedItemTimer = 0;
 static BOOLEAN gfBadThrowItemCTGH;
 BOOLEAN gfDontChargeAPsToPickup = FALSE;
@@ -2063,6 +2075,10 @@ void ShutdownInvSlotInterface()
 
 void RenderInvBodyPanel(const SOLDIERTYPE* pSoldier, INT16 sX, INT16 sY)
 {
+	// Only the merc bodies have a figure (guiBodyInvVO) -- not vehicles, whose
+	// cargo inventory opens here too
+	if (!IS_MERC_BODY_TYPE(pSoldier)) return;
+
 	// Blit body inv, based on body type
 	INT8 bSubImageIndex = gbCompatibleApplyItem;
 
@@ -2817,7 +2833,12 @@ void HandleNewlyAddedItems(SOLDIERTYPE& s, DirtyLevel* const dirty_level)
 		if (o.usItem == NOTHING) continue;
 		MOUSE_REGION const& r      = gSMInvRegion[i];
 		UINT16       const  colour = us16BPPItemCyclePlacedItemColors[s.bNewItemCycleCount[i]];
-		INVRenderItem(guiSAVEBUFFER, &s, o, r.X(), r.Y(), r.W(), r.H(), DIRTYLEVEL2, 0, colour);
+		// the same graphic as the slot itself (HandleRenderInvSlots()): the
+		// large one on the 1366x768 SM panel, else both showed
+		BOOLEAN const big = guiCurrentScreen == MAP_SCREEN ? IsMapInvBigImages() : g_ui.isBigSMPanel();
+		InvItemTextLayout big_text{};
+		if (big) big_text = GetMapInvBigItemTextLayout();
+		INVRenderItem(guiSAVEBUFFER, &s, o, r.X(), r.Y(), r.W(), r.H(), DIRTYLEVEL2, 0, colour, big, big ? &big_text : NULL);
 	}
 }
 
@@ -5413,6 +5434,15 @@ void DrawItemTileCursor( )
 		// Default to turning adjacent area gridno off....
 		gfUIHandleShowMoveGrid = FALSE;
 
+		// Out of a vehicle's cargo or from a merc aboard one: only into pockets,
+		// on the panel -- no drop, throw or pass on the map, nobody selected
+		if (gpItemPointerSoldier->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER))
+		{
+			EndPhysicsTrajectoryUI();
+			uiCursorId = CURSOR_ITEM_BAD_THROW;
+			goto item_cursor;
+		}
+
 		// If we are over a talkable guy, set flag
 		if (GetValidTalkableNPCFromMouse(TRUE, FALSE, TRUE) != NULL)
 		{
@@ -5469,9 +5499,18 @@ void DrawItemTileCursor( )
 				const SOLDIERTYPE* const tgt = gUIFullTarget;
 				if (tgt != NULL)
 				{
+					// One of our vehicles: a pass into its cargo, only from close by
+					if (IsVehicleCargoTarget(*tgt))
+					{
+						if (sDist <= PASSING_ITEM_DISTANCE_OKLIFE)
+						{
+							gfUIMouseOnValidCatcher = 4;
+							gUIValidCatcher         = tgt;
+						}
+					}
 					// Are they on our team?
 					// ATE: Can't be an EPC
-					if (tgt->bTeam == OUR_TEAM && !AM_AN_EPC(tgt) && !(tgt->uiStatusFlags & SOLDIER_VEHICLE))
+					else if (tgt->bTeam == OUR_TEAM && !AM_AN_EPC(tgt) && !(tgt->uiStatusFlags & SOLDIER_VEHICLE))
 					{
 						if ( sDist <= PASSING_ITEM_DISTANCE_OKLIFE )
 						{
@@ -5648,6 +5687,7 @@ void DrawItemTileCursor( )
 			}
 		}
 
+item_cursor:
 		//Erase any cursor in viewport
 		//gViewportRegion.ChangeCursor(VIDEO_NO_CURSOR);
 
@@ -5682,6 +5722,42 @@ static bool IsValidAmmoToReloadRobot(SOLDIERTYPE const& s, OBJECTTYPE const& amm
 }
 
 
+// The item on the cursor into this vehicle's cargo pockets: the merc holding
+// it stands within passing distance and can see the vehicle; in turn-based
+// combat it costs him AP_PICKUP_ITEM, the vehicle nothing
+static BOOLEAN PassItemIntoVehicleCargo(SOLDIERTYPE& vehicle)
+{
+	SOLDIERTYPE& merc = *gpItemPointerSoldier;
+	bool const   in_combat = gTacticalStatus.uiFlags & INCOMBAT;
+
+	if (in_combat && !EnoughPoints(&merc, AP_PICKUP_ITEM, 0, TRUE)) return FALSE;
+
+	INT16 const visible = DistanceVisible(&merc, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, vehicle.sGridNo, vehicle.bLevel);
+	if (!SoldierTo3DLocationLineOfSightTest(&merc, vehicle.sGridNo, vehicle.bLevel, 3, (UINT8)visible, TRUE)) return FALSE;
+
+	UINT16 const usItem = gpItemPointer->usItem;
+	if (!AutoPlaceObject(&vehicle, gpItemPointer, TRUE))
+	{
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMessageStrings[MSG_NO_ROOM_TO_PASS_ITEM], GCM->getItem(usItem)->getShortName(), vehicle.name));
+		return FALSE;
+	}
+
+	if (in_combat) DeductPoints(&merc, AP_PICKUP_ITEM, 0);
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pMessageStrings[MSG_ITEM_PASSED_TO_MERC], GCM->getItem(usItem)->getShortName(), vehicle.name));
+	if (gpItemPointer->ubNumberOfObjects == 0) EndItemPointer();
+
+	// he turns to the vehicle and hands it over (the vehicle doesn't move)
+	EVENT_StopMerc(&merc);
+	if (gAnimControl[merc.usAnimState].ubEndHeight == ANIM_STAND && !MercInWater(&merc))
+	{
+		EVENT_SetSoldierDesiredDirection(&merc, (UINT8)GetDirectionFromGridNo(vehicle.sGridNo, &merc));
+		merc.fTurningUntilDone = TRUE;
+		merc.usPendingAnimation = PASS_OBJECT;
+	}
+	return TRUE;
+}
+
+
 BOOLEAN HandleItemPointerClick( UINT16 usMapPos )
 {
 	// Determine what to do
@@ -5704,6 +5780,13 @@ BOOLEAN HandleItemPointerClick( UINT16 usMapPos )
 	if (g_ui_message_overlay != NULL)
 	{
 		EndUIMessage( );
+		return( FALSE );
+	}
+
+	// Out of a vehicle's cargo or from a merc aboard one: only into pockets,
+	// on the panel
+	if (gpItemPointerSoldier->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER))
+	{
 		return( FALSE );
 	}
 
@@ -5959,7 +6042,11 @@ BOOLEAN HandleItemPointerClick( UINT16 usMapPos )
 		sGridNo = usMapPos;
 
 		SOLDIERTYPE* const pSoldier = gUIFullTarget;
-		if (sDist <= PASSING_ITEM_DISTANCE_OKLIFE &&
+		if (sDist <= PASSING_ITEM_DISTANCE_OKLIFE && pSoldier != NULL && IsVehicleCargoTarget(*pSoldier))
+		{
+			return PassItemIntoVehicleCargo(*pSoldier);
+		}
+		else if (sDist <= PASSING_ITEM_DISTANCE_OKLIFE &&
 			pSoldier != NULL &&
 			pSoldier->bTeam == OUR_TEAM &&
 			!AM_AN_EPC(pSoldier) &&
@@ -6375,7 +6462,8 @@ void InitItemStackPopup(SOLDIERTYPE* const pSoldier, UINT8 const ubPosition, INT
 	// itself bounded by it, but gItemPopupRegions[] below is, and a single
 	// OBJECTTYPE can never actually hold more than MAX_OBJECTS_PER_SLOT
 	// units regardless of what ubPerPocket claims.
-	UINT8       const ubLimit = std::min<UINT8>(ApplyBigPerPocketOverride(pObject->usItem, (INT8)ubPosition, ItemSlotLimit( pObject->usItem, ubPosition )), MAX_OBJECTS_PER_SLOT);
+	// SoldierSlotLimit() does both, plus a vehicle's larger cargo limit.
+	UINT8       const ubLimit = SoldierSlotLimit(*pSoldier, pObject->usItem, (INT8)ubPosition);
 
 	// the 1366x768 SM panel: in the key ring's panel, if the stack fits
 	gfTacBigStackPopup = UseTacBigKeyRingPanel() && ubLimit <= TAC_BIG_KEYRING_SLOTS;

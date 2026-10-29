@@ -16,6 +16,8 @@
 #include "Exit_Grids.h"
 #include "Debug.h"
 #include "Structure.h"
+#include "Vehicles.h"
+#include "Map_Screen_Helicopter.h"
 
 #include "Soldier.h"
 
@@ -863,6 +865,9 @@ static void AddSoldierToSectorGridNo(SOLDIERTYPE* pSoldier, INT16 sGridNo, UINT8
 static void InternalAddSoldierToSector(SOLDIERTYPE* const s, BOOLEAN calculate_direction, BOOLEAN const use_animation, UINT16 const anim_state, UINT16 const anim_code)
 {
 	if (!s->bActive) return;
+
+	// the helicopter's soldier: only put in by UpdateHelicopterInTactical()
+	if (IsHelicopterSoldier(*s) && !gfPlacingHelicopterInTactical) return;
 
 	// ATE: Make sure life of elliot is OK if from a meanwhile
 	if (AreInMeanwhile() && s->ubProfile == ELLIOT && s->bLife < OKLIFE)

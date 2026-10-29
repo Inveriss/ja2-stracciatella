@@ -1026,7 +1026,12 @@
         "Kan tijd niet versneller tijdens bekijken van sector inventaris.",
         "Huidig/Max Voortgang: %d%%/%d%%",
         "John en Mary escorteren?",
-        "Schakelaar geactiveerd."
+        "Schakelaar geactiveerd.",
+        "De gereedschapskist van %s is in te slechte staat om het voertuig te repareren: %s!",
+        "%s verwijderen",
+        "Tijdens een gevecht kunnen op het strategische scherm geen voorwerpen tussen personages worden doorgegeven.",
+        "Het voertuig heeft geen brandstof meer en kan niet verder rijden.",
+        "Voertuigen kunnen geen mijnen in rijden."
     ],
     "gzMercSkillText": [
         "No Skill",
@@ -2048,7 +2053,8 @@
     "pSkyriderText": [
         "Skyrider is $%d betaald.",
         "Skyrider heeft $%d tegoed.",
-        "Skyrider heeft geen passagiers. Als je huurlingen in deze sector wil vervoeren, wijs ze dan eerst toe aan Voertuig/Helikopter."
+        "Skyrider heeft geen passagiers. Als je huurlingen in deze sector wil vervoeren, wijs ze dan eerst toe aan Voertuig/Helikopter.",
+        "Skyrider vliegt niet: de helikopter is te zwaar beschadigd (staat %d). Repareer hem eerst tot minstens %d."
     ],
     "pSquadMenuStrings": [
         "Team  1",

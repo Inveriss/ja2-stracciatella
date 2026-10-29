@@ -7,6 +7,7 @@
 #include "Interface.h"
 #include "Isometric_Utils.h"
 #include "ItemModel.h"
+#include "Map_Screen_Helicopter.h"
 #include "Map_Screen_Interface_Bottom.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "MessageBoxScreen.h"
@@ -1388,10 +1389,12 @@ static void MapInvenPoolSlotsPrimary(MOUSE_REGION* const pRegion, const UINT32 i
 	}
 
 	// Check if selected merc is in this sector, if not, warn them and leave
+	// (the helicopter: landed or hovering there, not on its way)
 	if (s->sSector.x != sSelMap.x           ||
 			s->sSector.y != sSelMap.y           ||
 			s->sSector.z != iCurrentMapSectorZ ||
-			s->fBetweenSectors)
+			s->fBetweenSectors                  ||
+			IsHelicopterSoldierInFlight(*s))
 	{
 		ST::string msg = (gpItemPointer == NULL ? pMapInventoryErrorString[1] : pMapInventoryErrorString[4]);
 		ST::string buf = st_format_printf(msg, s->name);
@@ -2239,7 +2242,7 @@ static void StackSplitSlotPrimary(MOUSE_REGION* const pRegion, const UINT32 iRea
 		DoMapMessageBox(MSG_BOX_BASIC_STYLE, pMapInventoryErrorString[0], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL);
 		return;
 	}
-	else if (s->sSector.x != sSelMap.x || s->sSector.y != sSelMap.y || s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors)
+	else if (s->sSector.x != sSelMap.x || s->sSector.y != sSelMap.y || s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors || IsHelicopterSoldierInFlight(*s))
 	{
 		ST::string const msg = (gpItemPointer == NULL ? pMapInventoryErrorString[1] : pMapInventoryErrorString[4]);
 		ST::string const buf = st_format_printf(msg, s->name);
@@ -3439,7 +3442,8 @@ static SOLDIERTYPE* GetSoldierForInventoryTransfer(void)
 	if (s == NULL) return NULL;
 
 	if (s->sSector.x != sSelMap.x || s->sSector.y != sSelMap.y ||
-		s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors)
+		s->sSector.z != iCurrentMapSectorZ || s->fBetweenSectors ||
+		IsHelicopterSoldierInFlight(*s))
 	{
 		return NULL;
 	}
@@ -3459,6 +3463,7 @@ static SOLDIERTYPE* GetSoldierForStackSplitToSector(void)
 	if (gStackSplitSourceIndex != STACK_SPLIT_MERC_SOURCE && gStackSplitSourceIndex != STACK_SPLIT_KEYRING_SOURCE) return NULL;
 	SOLDIERTYPE* const s = gStackSplitSoldier;
 	if (s->fBetweenSectors) return NULL;
+	if (IsHelicopterSoldierInFlight(*s)) return NULL;
 
 	SGPSector battle;
 	if (GetCurrentBattleSectorXYZAndReturnTRUEIfThereIsABattle(battle) && battle == s->sSector) return NULL;

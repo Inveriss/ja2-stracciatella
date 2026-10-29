@@ -8,9 +8,12 @@
 
 VehicleModel::VehicleModel(ST::string enterSound, ST::string movementSound,
                            ProfileID profile, VehicleMovementType movementType,
-                           uint16_t armourType, uint8_t seats_)
+                           uint16_t armourType, uint8_t seats_, uint8_t repairPointsDivisor,
+                           uint8_t slotLimitMultiplier, uint8_t tacticalFuelPerTile)
     : enter_sound(std::move(enterSound)), move_sound(std::move(movementSound)), profile(profile),
-      movement_type(movementType), armour_type(armourType), seats(seats_) {}
+      movement_type(movementType), armour_type(armourType), seats(seats_),
+      repair_points_divisor(repairPointsDivisor), slot_limit_multiplier(slotLimitMultiplier),
+      tactical_fuel_per_tile(tacticalFuelPerTile) {}
 
 static VehicleMovementType toMovementType(const ST::string& typeName)
 {
@@ -49,13 +52,34 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		throw DataError(ST::format("Vehicles cannot have more than {} seats", MAX_PASSENGERS_IN_VEHICLE));
 	}
 
+	unsigned int const repairPointsDivisor = obj.getOptionalUInt("repairPointsDivisor", 10);
+	if (repairPointsDivisor < 1 || repairPointsDivisor > 100)
+	{
+		throw DataError(ST::format("repairPointsDivisor must be 1-100, not {}", repairPointsDivisor));
+	}
+
+	unsigned int const slotLimitMultiplier = obj.getOptionalUInt("slotLimitMultiplier", 1);
+	if (slotLimitMultiplier < 1 || slotLimitMultiplier > 100)
+	{
+		throw DataError(ST::format("slotLimitMultiplier must be 1-100, not {}", slotLimitMultiplier));
+	}
+
+	unsigned int const tacticalFuelPerTile = obj.getOptionalUInt("tacticalFuelPerTile", 2);
+	if (tacticalFuelPerTile > 100)
+	{
+		throw DataError(ST::format("tacticalFuelPerTile must be 0-100, not {}", tacticalFuelPerTile));
+	}
+
 	return new VehicleModel(
 		obj.GetString("enterSound"),
 		obj.GetString("moveSound"),
 		mercProfile->profileID,
 		toMovementType(obj.GetString("movementType")),
 		armour->getItemIndex(),
-		numSeats
+		numSeats,
+		repairPointsDivisor,
+		slotLimitMultiplier,
+		tacticalFuelPerTile
 		);
 }
 

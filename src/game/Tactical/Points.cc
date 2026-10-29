@@ -38,6 +38,16 @@ INT16 TerrainActionPoints(const SOLDIERTYPE* const pSoldier, const INT16 sGridno
 	INT16 sAPCost = 0;
 	INT16 sSwitchValue;
 
+	// a driving vehicle (driving plan, D14): 1 AP a tile on a road, 2 off it
+	// (with its 25 APs) -- as its walking cost (the walking adjustment is taken
+	// off again)
+	if (pSoldier->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		UINT8 const terrain = gpWorldLevelData[sGridno].ubTerrainID;
+		INT16 const cost    = terrain == PAVED_ROAD || terrain == DIRT_ROAD ? 1 : 2;
+		return cost - WALKCOST;
+	}
+
 	if ( pSoldier->bStealthMode )
 		sAPCost += AP_STEALTH_MODIFIER;
 
@@ -526,6 +536,9 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT16 sBPCost )
 		// zap all breath costs for robot
 		sBPCost = 0;
 	}
+
+	// a vehicle has no breath: its breath fields hold its fuel (driving plan)
+	if (pSoldier->uiStatusFlags & SOLDIER_VEHICLE) sBPCost = 0;
 
 	// is there a BREATH deduction/transaction to be made?  (REMEMBER: could be a GAIN!)
 	if (sBPCost)

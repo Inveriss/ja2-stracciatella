@@ -21,9 +21,6 @@
 #define BREATHMAX_FULLY_RESTED			95
 
 
-#define VEHICLE_REPAIR_POINTS_DIVISOR		10
-
-
 // Assignments Defines
 enum Assignments : int8_t
 {
@@ -222,5 +219,10 @@ void CreateContractBox(const SOLDIERTYPE* s);
 void ClearScreenMaskForMapScreenExit(void);
 
 void CreateMercRemoveAssignBox(void);
+
+// "Remove Merc", or for a destroyed vehicle "Remove <its short name>"; the
+// remove box rebuilt with that label for this soldier
+ST::string GetRemoveMercString(SOLDIERTYPE const&);
+void SetRemoveMercAssignBoxFor(SOLDIERTYPE const&);
 
 #endif

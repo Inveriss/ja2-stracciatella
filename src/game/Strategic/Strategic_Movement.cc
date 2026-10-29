@@ -1535,6 +1535,10 @@ static void PrepareGroupsForSimultaneousArrival()
 			SOLDIERTYPE& vs = GetSoldierStructureForVehicle(v);
 			vs.fBetweenSectors = TRUE;
 		}
+		else if (SOLDIERTYPE* const hs = GetHelicopterSoldier())
+		{
+			hs->fBetweenSectors = TRUE;
+		}
 	}
 
 	AddStrategicEvent(EVENT_GROUP_ARRIVAL, first_group.uiArrivalTime, first_group.ubGroupID);
@@ -1774,6 +1778,10 @@ static void InitiateGroupMovementToNextSector(GROUP* pGroup)
 			SOLDIERTYPE& vs = GetSoldierStructureForVehicle(v);
 			vs.fBetweenSectors = TRUE;
 			RemoveSoldierFromTacticalSector(vs);
+		}
+		else if (SOLDIERTYPE* const hs = GetHelicopterSoldier())
+		{
+			hs->fBetweenSectors = TRUE;
 		}
 	}
 
@@ -2838,6 +2846,10 @@ void RetreatGroupToPreviousSector(GROUP& g)
 	{ // Vehicle, set fact it is between sectors too
 		VEHICLETYPE& v = GetVehicleFromMvtGroup(g);
 		v.fBetweenSectors = TRUE;
+		if (IsHelicopter(v))
+		{
+			if (SOLDIERTYPE* const hs = GetHelicopterSoldier()) hs->fBetweenSectors = TRUE;
+		}
 	}
 
 	if (!AddStrategicEvent(EVENT_GROUP_ARRIVAL, g.uiArrivalTime, g.ubGroupID))

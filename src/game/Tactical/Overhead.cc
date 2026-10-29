@@ -125,6 +125,9 @@ BOOLEAN gfSurrendered = FALSE;
 
 #define NEW_FADE_DELAY			60
 
+// a driving vehicle's engine, each tile (footsteps are 9 at most)
+#define VEHICLE_ENGINE_NOISE		25
+
 
 // Soldier List used for all soldier overhead interaction
 SOLDIERTYPE  Menptr[TOTAL_SOLDIERS];
@@ -1467,6 +1470,20 @@ BOOLEAN HandleGotoNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving, BOOLEA
 	const INT16 sAPCost = ActionPointCost(    pSoldier, usNewGridNo, (INT8)pSoldier->ubPathingData[pSoldier->ubPathIndex], usAnimState);
 	const INT16 sBPCost = TerrainBreathPoints(pSoldier, usNewGridNo, (INT8)pSoldier->ubPathingData[pSoldier->ubPathIndex], usAnimState);
 
+	// a driving vehicle needs fuel for the tile (driving plan, D11): with too
+	// little it stops, out of gas
+	INT16 const sFuelCost = pSoldier->uiStatusFlags & SOLDIER_VEHICLE ? VehicleTacticalFuelCost(*pSoldier, usNewGridNo) : 0;
+	if (sFuelCost > 0 && pSoldier->sBreathRed < sFuelCost)
+	{
+		HaltGuyFromNewGridNoBecauseOfNoAPs(*pSoldier);
+		*pfKeepMoving = FALSE;
+		if (pSoldier->bTeam == OUR_TEAM)
+		{
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, gzLateLocalizedString[STR_LATE_62]);
+		}
+		return FALSE;
+	}
+
 	// CHECK IF THIS TILE IS A GOOD ONE!
 	if (!HandleNextTile(pSoldier, (INT8)pSoldier->ubPathingData[pSoldier->ubPathIndex], usNewGridNo, pSoldier->sFinalDestination))
 	{
@@ -1641,6 +1658,7 @@ BOOLEAN HandleGotoNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving, BOOLEA
 				// Adjust AP/Breathing points to move
 				DeductPoints(pSoldier, sAPCost, sBPCost);
 			}
+			if (sFuelCost > 0) SpendVehicleFuelInTactical(*pSoldier, sFuelCost);
 
 			// OK, let's check for monsters....
 			if (pSoldier->uiStatusFlags & SOLDIER_MONSTER)
@@ -1782,6 +1800,23 @@ static void HandleJohnArrival(SOLDIERTYPE* pSoldier)
 }
 
 
+// the mines under the other tiles of a vehicle's footprint
+static bool SetOffBombsUnderVehicle(SOLDIERTYPE& vs)
+{
+	if (!vs.pLevelNode || !vs.pLevelNode->pStructureData) return false;
+	STRUCTURE const* const base = FindBaseStructure(vs.pLevelNode->pStructureData);
+	if (!base) return false;
+	DB_STRUCTURE_REF const& ref = *base->pDBStructureRef;
+	for (UINT8 i = 0; i != ref.pDBStructure->ubNumberOfTiles; ++i)
+	{
+		GridNo const g = base->sGridNo + ref.ppTile[i]->sPosRelToBase;
+		if (g == vs.sGridNo || g < 0 || WORLD_MAX <= g) continue;
+		if (SetOffBombsInGridNo(&vs, g, FALSE, vs.bLevel)) return true;
+	}
+	return false;
+}
+
+
 static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving)
 {
 	// ATE; Handle bad guys, as they fade, to cancel it if
@@ -1855,8 +1890,10 @@ static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving)
 		return FALSE;
 	}
 
-	// see if a mine gets set off...
-	if (SetOffBombsInGridNo(pSoldier, pSoldier->sGridNo, FALSE, pSoldier->bLevel))
+	// see if a mine gets set off... (a driving vehicle: under any tile of it,
+	// D8)
+	if (SetOffBombsInGridNo(pSoldier, pSoldier->sGridNo, FALSE, pSoldier->bLevel) ||
+		(pSoldier->uiStatusFlags & SOLDIER_VEHICLE && SetOffBombsUnderVehicle(*pSoldier)))
 	{
 		*pfKeepMoving = FALSE;
 		EVENT_StopMerc(pSoldier);
@@ -1868,7 +1905,25 @@ static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving)
 	// particular call* to HandleSight caused an interrupt
 	gTacticalStatus.fInterruptOccurred = FALSE;
 
-	if (!(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))
+	// our driving vehicle (driving plan, stage 1d): its engine is heard far
+	// around, those aboard look out from it (as it faces, their own sight --
+	// D5; the vehicle itself has none); the screen doesn't follow it
+	bool const driving = pSoldier->uiStatusFlags & SOLDIER_VEHICLE && pSoldier->bTeam == OUR_TEAM;
+	if (driving && !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))
+	{
+		MakeNoise(pSoldier, pSoldier->sGridNo, pSoldier->bLevel, VEHICLE_ENGINE_NOISE, NOISE_MOVEMENT);
+		CFOR_EACH_PASSENGER(pVehicleList[pSoldier->bVehicleID], i)
+		{
+			SOLDIERTYPE& p = **i;
+			if (p.bLife < OKLIFE) continue;
+			p.bDirection        = pSoldier->bDirection;
+			p.bDesiredDirection = pSoldier->bDirection;
+			// in combat with interrupts: an enemy spotted stops it (D17)
+			HandleSight(p, gTacticalStatus.uiFlags & INCOMBAT ?
+				SIGHT_LOOK | SIGHT_RADIO | SIGHT_INTERRUPT : SIGHT_LOOK | SIGHT_RADIO);
+		}
+	}
+	else if (!(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))
 	{
 		const UINT8 ubVolume = MovementNoise(pSoldier);
 		if (ubVolume > 0)
@@ -5087,7 +5142,9 @@ static BOOLEAN CheckForLosingEndOfBattle(void)
 	CFOR_EACH_IN_TEAM(pTeamSoldier, OUR_TEAM)
 	{
 		// Are we in sector.....
-		if (pTeamSoldier->bInSector && !(pTeamSoldier->uiStatusFlags & SOLDIER_VEHICLE))
+		// (those aboard the helicopter don't fight)
+		if (pTeamSoldier->bInSector && !(pTeamSoldier->uiStatusFlags & SOLDIER_VEHICLE) &&
+			!InHelicopter(*pTeamSoldier))
 		{
 			bNumInBattle++;
 

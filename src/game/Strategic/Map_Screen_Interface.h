@@ -61,16 +61,17 @@
 // TEAM_LIST_VEHICLE_ROWS for the vehicles (from FIRST_VEHICLE) -- see
 // TeamListRowOfEntry() for which entry shows in which row.
 // 20 people on the 1366x768 interface (newgoldpiece3_1366x768.png has room
-// for them above its vehicle rows), 18 on the original graphics.
+// for them above its vehicle rows), 18 on the original graphics; 3 vehicles
+// on the 1366x768 interface (its 3 vehicle rows), 2 on the original.
 #define TEAM_LIST_PEOPLE_ROWS   (g_ui.isExtraWideStrategicScreen() ? 20 : 18)
-#define TEAM_LIST_VEHICLE_ROWS  2
+#define TEAM_LIST_VEHICLE_ROWS  (g_ui.isExtraWideStrategicScreen() ? 3 : 2)
 #define TEAM_LIST_ROWS          (TEAM_LIST_PEOPLE_ROWS + TEAM_LIST_VEHICLE_ROWS)
 // Extra y of row `r` (a vehicle row, r >= TEAM_LIST_PEOPLE_ROWS) on top of
 // r * TEAM_LIST_ROW_PITCH: 6 px -- on the 1366x768 interface each vehicle gets its
-// own row at the bottom of newgoldpiece3_1366x768.png (22 px tall at y 458
-// and 483 of it), its text centred there.
+// own row at the bottom of newgoldpiece3_1366x768.png (22 px tall at y 433,
+// 458 and 483 of it), its text centred there.
 #define TEAM_LIST_VEHICLE_DY(r) (g_ui.isExtraWideStrategicScreen() \
-	? (TEAM_LIST_Y + 458 + ((r) - TEAM_LIST_PEOPLE_ROWS) * 25 + (22 - Y_SIZE) / 2) - (Y_START + (r) * TEAM_LIST_ROW_PITCH + 1) \
+	? (TEAM_LIST_Y + 433 + ((r) - TEAM_LIST_PEOPLE_ROWS) * 25 + (22 - Y_SIZE) / 2) - (Y_START + (r) * TEAM_LIST_ROW_PITCH + 1) \
 	: 6)
 // Height of the team list's rows, vehicles included (from Y_START - 1).
 #define TEAM_LIST_ROWS_HEIGHT   (g_ui.isExtraWideStrategicScreen() \

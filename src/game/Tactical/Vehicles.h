@@ -98,6 +98,9 @@ INT32 GetNumberInVehicle(VEHICLETYPE const&);
 INT32 GetNumberOfNonEPCsInVehicle( INT32 iId );
 
 BOOLEAN ExitVehicle( SOLDIERTYPE *pSoldier );
+// one aboard the helicopter in the loaded sector gets out in tactical, at this
+// spot, onto a squad of his own (the checks: CanExitHelicopterInTactical())
+bool ExitHelicopterAt(SOLDIERTYPE&, GridNo);
 
 
 void VehicleTakeDamage(UINT8 ubID, UINT8 ubReason, INT16 sDamage, INT16 sGridNo, SOLDIERTYPE* att);
@@ -110,6 +113,9 @@ bool DoesVehicleNeedAnyRepairs(VEHICLETYPE const&);
 
 // repair the vehicle
 INT8 RepairVehicle(VEHICLETYPE const&, INT8 bTotalPts, BOOLEAN* pfNothingToRepair);
+
+// repair points that restore one condition point of this vehicle
+UINT8 GetVehicleRepairPointsDivisor(VEHICLETYPE const&);
 
 
 //Save all the vehicle information to the saved game file
@@ -139,6 +145,29 @@ void AddVehicleFuelToSave(void);
 
 bool SoldierMustDriveVehicle(SOLDIERTYPE const&, bool trying_to_travel);
 
+// may this vehicle drive on the tactical map now? (driving plan, stage 1:
+// Hummer / ice cream truck, out of combat, fuel, someone aboard who can drive)
+bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs);
+// is this vehicle driving on the tactical map now? (D13: nobody gets in or
+// out and no items are passed then)
+bool IsVehicleMoving(SOLDIERTYPE const& vs);
+// the vehicle types that drive in tactical (D1: Hummer, ice cream truck)
+bool VehicleDrivesInTactical(VEHICLETYPE const&);
+// getting out in tactical (D15): out of combat always; in combat on our turn,
+// his interrupt, and the AP (the message with explain) -- charged after
+bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool explain);
+void ChargeVehicleExit(SOLDIERTYPE& s);
+// getting in or out of a vehicle in combat (D15, changed 2026-10-29)
+#define AP_ENTER_EXIT_VEHICLE 5
+void ChargeVehicleEntry(SOLDIERTYPE& s);
+// the APs this merc needs to get into this vehicle: the walk up to it (his
+// movement mode) plus AP_ENTER_EXIT_VEHICLE in combat; -1 if he can't get there
+INT16 GetAPsToEnterVehicle(SOLDIERTYPE& s, SOLDIERTYPE const& vs, GridNo* action_pos);
+// fuel one tile of driving to this gridno costs (vehicles.json
+// tacticalFuelPerTile, twice off the road), and spending it (D11)
+INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo);
+void  SpendVehicleFuelInTactical(SOLDIERTYPE& vs, INT16 fuel);
+
 bool IsEnoughSpaceInVehicle(VEHICLETYPE const&);
 
 BOOLEAN IsSoldierInThisVehicleSquad(const SOLDIERTYPE* pSoldier, INT8 bSquadNumber);
@@ -154,6 +183,11 @@ void HandleVehicleMovementSound(const SOLDIERTYPE*, BOOLEAN fOn);
 UINT16 GetVehicleArmour(UINT8 vehicle_id);
 
 UINT8 GetVehicleSeats(VEHICLETYPE const&);
+
+// The helicopter's soldier: strategic only (team list row, condition), it never
+// enters tactical
+bool IsHelicopterSoldier(SOLDIERTYPE const&);
+SOLDIERTYPE* GetHelicopterSoldier();
 
 void InitVehicles(void);
 

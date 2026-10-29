@@ -1,5 +1,6 @@
 #include "Map_Screen_Helicopter.h"
 
+#include "Animation_Data.h"
 #include "ContentManager.h"
 #include "Debug.h"
 #include "Dialogue_Control.h"
@@ -15,7 +16,17 @@
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Border.h"
 #include "Map_Screen_Interface_Map.h"
+#include "Map_Information.h"
 #include "Meanwhile.h"
+#include "Overhead.h"
+#include "Interface.h"
+#include "Interface_Panels.h"
+#include "Animation_Control.h"
+#include "JAScreens.h"
+#include "ScreenIDs.h"
+#include "Soldier_Add.h"
+#include "Soldier_Control.h"
+#include "Strategic.h"
 #include "Message.h"
 #include "Queen_Command.h"
 #include "Quests.h"
@@ -40,6 +51,20 @@
 #include "Vehicles.h"
 #include "WorldDef.h"
 #include "WorldMan.h"
+#include "Structure.h"
+
+#include <algorithm>
+#include <vector>
+
+// SAM hits on the helicopter: each costs this much of its condition (0-100);
+// the condition left picks the outcome -- from HELI_MINOR_DAMAGE_MIN_CONDITION
+// up Skyrider reports minor damage, from HELI_MAJOR_DAMAGE_MIN_CONDITION up
+// major damage and flies back to base, below that the helicopter goes down
+#define HELI_SAM_HIT_DAMAGE             25
+#define HELI_MINOR_DAMAGE_MIN_CONDITION 50
+#define HELI_MAJOR_DAMAGE_MIN_CONDITION 25
+// below this condition Skyrider won't take off until the helicopter is repaired
+#define HELI_FLIGHT_MIN_CONDITION       50
 
 // the amounts of time to wait for hover stuff
 #define TIME_DELAY_FOR_HOVER_WAIT						10		// minutes
@@ -116,6 +141,12 @@ BOOLEAN fShowDrassenSAMHighLight = FALSE;
 BOOLEAN fShowCambriaHospitalHighLight = FALSE;
 UINT32 guiTimeOfLastSkyriderMonologue = 0;
 UINT8 gubHelicopterHitsTaken = 0;
+
+// From the hit that brings the helicopter down until it crashes (the crash
+// sound plays in between): who was aboard -- they die in the crash even if
+// they got another assignment meanwhile, which the map screen doesn't allow
+static bool                   gfHelicopterGoingDown = false;
+static std::vector<ProfileID> g_heli_crash_victims;
 BOOLEAN gfSkyriderSaidCongratsOnTakingSAM = FALSE;
 UINT8 gubPlayerProgressSkyriderLastCommentedOn = 0;
 
@@ -148,6 +179,8 @@ void InitializeHelicopter( void )
 	fHoveringHelicopter = FALSE;
 	uiStartHoverTime = 0;
 
+	ResetHelicopterInTactical();
+
 	fPlotForHelicopter = FALSE;
 	pTempHelicopterPath = NULL;
 
@@ -166,6 +199,9 @@ void InitializeHelicopter( void )
 	gfSkyriderEmptyHelpGiven = FALSE;
 
 	gubHelicopterHitsTaken = 0;
+
+	gfHelicopterGoingDown = false;
+	g_heli_crash_victims.clear();
 
 	gfSkyriderSaidCongratsOnTakingSAM = FALSE;
 	gubPlayerProgressSkyriderLastCommentedOn = 0;
@@ -339,6 +375,28 @@ static RefuelSite const* FindClosestRefuelSite(bool const must_be_available)
 	return closest_site;
 }
 
+bool IsHelicopterGoingDown()
+{
+	return gfHelicopterGoingDown;
+}
+
+bool IsHelicopterSoldierInFlight(SOLDIERTYPE const& s)
+{
+	// landed or hovering over a sector, it is in that sector; only on its way
+	// between two sectors is it out of reach
+	return IsHelicopterSoldier(s) && iHelicopterVehicleId != -1 && GetHelicopter().fBetweenSectors;
+}
+
+static void StartHelicopterGoingDown()
+{
+	gfHelicopterGoingDown = true;
+	g_heli_crash_victims.clear();
+	CFOR_EACH_PASSENGER(GetHelicopter(), i)
+	{
+		g_heli_crash_victims.push_back((*i)->ubProfile);
+	}
+}
+
 // helicopter shot down, kill all on board
 static void SkyriderDestroyed(void)
 {
@@ -346,6 +404,15 @@ static void SkyriderDestroyed(void)
 	VEHICLETYPE& v = GetHelicopter();
 	DeleteStrategicEvent(EVENT_GROUP_ARRIVAL, v.ubMovementGroup);
 	KillAllInVehicle(v);
+
+	// those aboard when it was hit who left it meanwhile
+	for (ProfileID const id : g_heli_crash_victims)
+	{
+		SOLDIERTYPE* const s = FindSoldierByProfileIDOnPlayerTeam(id);
+		if (s && s->bLife != 0) SoldierTakeDamage(s, 100, 100, TAKE_DAMAGE_BLOODLOSS, 0);
+	}
+	g_heli_crash_victims.clear();
+	gfHelicopterGoingDown = false;
 
 	// kill skyrider
 	gMercProfiles[ SKYRIDER ].bLife = 0;
@@ -357,8 +424,22 @@ static void SkyriderDestroyed(void)
 	gMercProfiles[ SKYRIDER ].iBalance = 0;
 	iTotalAccumulatedCostByPlayer = 0;
 
-	// remove vehicle and reset
-	RemoveVehicleFromList(v);
+	// The helicopter's soldier stays on the team list as destroyed, like a
+	// destroyed Hummer, until the player removes it ("Remove Heli") -- its
+	// cargo is lost (never dropped), and the vehicle stays (destroyed) for it.
+	// Without one, the vehicle goes now.
+	if (SOLDIERTYPE* const hs = GetHelicopterSoldier())
+	{
+		std::fill_n(hs->inv, static_cast<size_t>(NUM_INV_SLOTS), OBJECTTYPE{});
+		hs->bLife       = 0;
+		hs->bAssignment = ASSIGNMENT_DEAD;
+		v.fDestroyed    = TRUE;
+		fReBuildCharacterList = TRUE;
+	}
+	else
+	{
+		RemoveVehicleFromList(v);
+	}
 	iHelicopterVehicleId = -1;
 }
 
@@ -374,11 +455,25 @@ BOOLEAN CanHelicopterFly( void )
 
 	if (fHeliReturnStraightToBase) return FALSE;
 
+	// too damaged?
+	if (IsHelicopterTooDamagedToFly()) return FALSE;
+
 	// grounded by enemies in sector?
 	if (!CanHelicopterTakeOff()) return FALSE;
 
 	// everything A-OK!
 	return( TRUE );
+}
+
+bool IsHelicopterTooDamagedToFly()
+{
+	SOLDIERTYPE const* const hs = GetHelicopterSoldier();
+	return hs && hs->bLife < HELI_FLIGHT_MIN_CONDITION;
+}
+
+INT8 GetHelicopterFlightMinCondition()
+{
+	return HELI_FLIGHT_MIN_CONDITION;
 }
 
 BOOLEAN IsHelicopterPilotAvailable( void )
@@ -636,11 +731,40 @@ void UpdateRefuelSiteAvailability( void )
 	}
 }
 
+// The helicopter's own soldier on the player's team, like the Hummer's, so it
+// gets a team list row with its condition. Put into the loaded sector only by
+// UpdateHelicopterInTactical() (IsHelicopterSoldier() keeps the usual sector
+// entry away from it).
+static void CreateHelicopterSoldier(const SGPSector& sMap)
+{
+	SOLDIERCREATE_STRUCT c{};
+	c.bTeam              = OUR_TEAM;
+	c.ubProfile          = NO_PROFILE;
+	c.bBodyType          = HELICOPTERBODY;
+	c.sSector            = sMap;
+	c.sInsertionGridNo   = NOWHERE;
+	c.bLife              = 100;
+	c.bLifeMax           = 100;
+	c.fUseGivenVehicle   = TRUE;
+	c.bUseGivenVehicleID = static_cast<INT8>(iHelicopterVehicleId);
+
+	SOLDIERTYPE* const s = TacticalCreateSoldier(c);
+	if (!s)
+	{
+		SLOGE("No free player team slot for the helicopter's soldier");
+		return;
+	}
+	s->bAssignment = ASSIGNMENT_EMPTY;
+	fReBuildCharacterList = TRUE;
+}
+
+
 void SetUpHelicopterForPlayer(const SGPSector& sMap)
 {
 	if (!fSkyRiderSetUp)
 	{
 		iHelicopterVehicleId = AddVehicleToList(sMap, 0, HELICOPTER);
+		CreateHelicopterSoldier(sMap);
 
 		// set up for movement
 		SetUpHelicopterForMovement( );
@@ -1036,6 +1160,407 @@ static bool IsHelicopterOnGroundAtRefuelingSite(RefuelSite const& r)
 	return v.sSector.AsStrategicIndex() == r.sector;
 }
 
+
+// The helicopter in tactical (vehicle inventory plan, tactical helicopter):
+// while it is in the loaded sector its soldier is there too, so the vehicle
+// rules (cargo, team panel window, passing) work for it. Landed at a refuel
+// site the map already draws it (AddHelicopterToMaps()): the soldier stays
+// off the world, at the site's gridno. Hovering over any other sector it
+// stands at the mercs' drop spot (the map's centre, as
+// SetSoldierExitHelicopterInsertionData()) with its own picture, heli.sti --
+// frame 0 when it came from the west or the north, frame 1 from the east or
+// the south. Only there can it be hit; destroyed, it turns into its wreck
+// (HELI_DEAD) and the rest is as when it is shot down.
+bool gfPlacingHelicopterInTactical = false;
+
+enum HeliTacticalMode
+{
+	HELI_TACTICAL_NONE,
+	HELI_TACTICAL_SCENERY, // landed at the loaded sector's refuel site
+	HELI_TACTICAL_BODY     // hovering: its own body at the drop spot
+};
+static HeliTacticalMode g_heli_tactical = HELI_TACTICAL_NONE;
+// a new world: its first tactical frame may show the passengers view
+static bool g_heli_new_world = false;
+
+
+static RefuelSite const* RefuelSiteOfLoadedSector()
+{
+	if (gWorldSector.z != 0) return 0;
+	for (RefuelSite const& r : g_refuel_site)
+	{
+		if (gWorldSector.AsStrategicIndex() == r.sector) return &r;
+	}
+	return 0;
+}
+
+
+static HeliTacticalMode WantedHelicopterInTactical(SOLDIERTYPE const& s)
+{
+	if (!gfWorldLoaded || gWorldSector.z != 0) return HELI_TACTICAL_NONE;
+	if (iHelicopterVehicleId == -1 || fHelicopterDestroyed || gfHelicopterGoingDown) return HELI_TACTICAL_NONE;
+	if (s.bLife <= 0) return HELI_TACTICAL_NONE;
+
+	VEHICLETYPE const& v = GetHelicopter();
+	if (v.fBetweenSectors || !(v.sSector == gWorldSector)) return HELI_TACTICAL_NONE;
+
+	RefuelSite const* const r = RefuelSiteOfLoadedSector();
+	if (r && IsHelicopterOnGroundAtRefuelingSite(*r)) return HELI_TACTICAL_SCENERY;
+	if (fHelicopterIsAirBorne && fHoveringHelicopter) return HELI_TACTICAL_BODY;
+	return HELI_TACTICAL_NONE;
+}
+
+
+static void TakeHelicopterOffTactical(SOLDIERTYPE& s)
+{
+	if (s.pLevelNode) RemoveSoldierFromGridNo(s);
+	RemoveMercSlot(&s);
+	s.bInSector = FALSE;
+	s.sGridNo   = NOWHERE;
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+// the map's drop spot: its centre entry point, else any other, else the
+// middle of the map
+static GridNo HelicopterDropSpot()
+{
+	for (GridNo const g : { gMapInformation.sCenterGridNo, gMapInformation.sNorthGridNo, gMapInformation.sEastGridNo,
+		gMapInformation.sSouthGridNo, gMapInformation.sWestGridNo })
+	{
+		if (g != -1) return g;
+	}
+	return CENTER_GRIDNO;
+}
+
+
+static void PutHelicopterInTactical(SOLDIERTYPE& s, HeliTacticalMode const mode)
+{
+	s.sSector = gWorldSector;
+	if (mode == HELI_TACTICAL_SCENERY)
+	{
+		// the map's own helicopter: no body, no structure, only its place
+		RefuelSite const& r = *RefuelSiteOfLoadedSector();
+		INT16 x;
+		INT16 y;
+		ConvertGridNoToCenterCellXY(r.grid_no, &x, &y);
+		s.sGridNo   = r.grid_no;
+		s.dXPos     = x;
+		s.dYPos     = y;
+		s.sX        = x;
+		s.sY        = y;
+		s.bLevel    = 0;
+		s.bInSector = TRUE;
+	}
+	else
+	{
+		// came from the west or the north: frame 0 (NORTH), else frame 1 (EAST)
+		GROUP const* const g = GetGroup(GetHelicopter().ubMovementGroup);
+		bool const from_west_or_north = !g || g->ubPrev.x < g->ubSector.x || g->ubPrev.y < g->ubSector.y ||
+			g->ubPrev == g->ubSector;
+		s.ubBodyType               = HELICOPTERBODY; // (a game started before it had its own)
+		s.sInsertionGridNo         = HelicopterDropSpot();
+		s.ubInsertionDirection     = from_west_or_north ? NORTH : EAST;
+		s.ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+		s.usStrategicInsertionData = s.sInsertionGridNo;
+		gfPlacingHelicopterInTactical = true;
+		AddSoldierToSector(&s);
+		gfPlacingHelicopterInTactical = false;
+	}
+	g_heli_tactical      = mode;
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+// Those aboard are in the loaded sector exactly while the helicopter is (as
+// the passengers of the ground vehicles): a merc slot, bInSector, its
+// position, no place on the map -- whether the sector was loaded with the
+// helicopter there or it came / left later. Sightings, battles and the
+// sector checks keep away from them as in the original (InHelicopter(),
+// SoldierAboardAirborneHeli()).
+static void UpdateHelicopterPassengersInTactical(SOLDIERTYPE const& hs)
+{
+	if (iHelicopterVehicleId == -1) return;
+	bool const here = g_heli_tactical != HELI_TACTICAL_NONE;
+	CFOR_EACH_PASSENGER(GetHelicopter(), i)
+	{
+		SOLDIERTYPE& s = **i;
+		if (here)
+		{
+			if (!s.bInSector)
+			{
+				s.sSector = gWorldSector;
+				AddMercSlot(&s);
+				s.bInSector          = TRUE;
+				fInterfacePanelDirty = DIRTYLEVEL2;
+			}
+			if (s.sGridNo != hs.sGridNo) EVENT_SetSoldierPositionXY(&s, hs.dXPos, hs.dYPos, SSP_NONE);
+		}
+		else if (s.bInSector)
+		{
+			RemoveMercSlot(&s);
+			s.bInSector          = FALSE;
+			fInterfacePanelDirty = DIRTYLEVEL2;
+		}
+	}
+}
+
+
+// Skyrider next to his helicopter (Skyrider plan): once it is set up for the
+// player, he stands by it in the loaded sector -- landed at its refuel site
+// (3.1 / 3.2) and hovering with its own body in any other sector (3.4) --
+// put in by the code when the map doesn't (S1: one already there stays where
+// he is), also with enemies in the sector (S3, S7). He goes with it: landed,
+// HandleHelicopterOnGround() takes him out at take-off, as before; hovering,
+// TakeSkyriderAwayFromHelicopter() when its body leaves.
+//
+// His spot, facing it: landed, the nearest free spot just outside the area the
+// helicopter bumps mercs out of (5 tiles around its gridno), on the side of
+// the map's centre (S2); hovering, the nearest free spot by its body, taken
+// before anyone gets out of it (S6).
+static GridNo SkyriderSpotByHelicopter(SOLDIERTYPE const& sk, SOLDIERTYPE const& hs)
+{
+	if (g_heli_tactical == HELI_TACTICAL_BODY)
+	{
+		GridNo spot = FindGridNoFromSweetSpotWithStructDataFromSoldier(&sk, STANDING, 5, FALSE, &hs);
+		if (spot == NOWHERE) spot = FindGridNoFromSweetSpotWithStructDataFromSoldier(&sk, STANDING, 15, FALSE, &hs);
+		return spot;
+	}
+	INT16 x;
+	INT16 y;
+	INT16 cx;
+	INT16 cy;
+	ConvertGridNoToXY(hs.sGridNo, &x, &y);
+	ConvertGridNoToXY(CENTER_GRIDNO, &cx, &cy);
+	INT16 const dx = cx > x ? 6 : cx < x ? -6 : 0;
+	INT16 const dy = cy > y ? 6 : cy < y ? -6 : 0;
+	GridNo spot = FindGridNoFromSweetSpot(&sk, MAPROWCOLTOPOS(y + dy, x + dx), 5);
+	if (spot == NOWHERE) spot = FindGridNoFromSweetSpot(&sk, hs.sGridNo, 15);
+	return spot;
+}
+
+
+// checked once each time the helicopter is there (a landing, a new world)
+static bool g_skyrider_checked = false;
+
+
+static bool SkyriderCanStandByHelicopter()
+{
+	if (!fSkyRiderSetUp || iHelicopterVehicleId == -1) return false; // (S4)
+	MERCPROFILESTRUCT const& p = GetProfile(SKYRIDER);
+	if (p.bLife == 0 || p.bMercStatus == MERC_IS_DEAD) return false;
+	return !(p.ubMiscFlags & (PROFILE_MISC_FLAG_RECRUITED | PROFILE_MISC_FLAG_EPCACTIVE));
+}
+
+
+static void UpdateSkyriderInTactical(SOLDIERTYPE const& hs)
+{
+	if (g_heli_tactical == HELI_TACTICAL_NONE)
+	{
+		g_skyrider_checked = false;
+		return;
+	}
+	if (!SkyriderCanStandByHelicopter()) return;
+
+	// hovering: his profile is in the sector while he stands there (landed,
+	// HandleHelicopterOnGround() does it)
+	if (g_heli_tactical == HELI_TACTICAL_BODY) GetProfile(SKYRIDER).sSector = gWorldSector;
+
+	SOLDIERTYPE* sk = FindSoldierByProfileID(SKYRIDER);
+	if (sk && sk->bInSector)
+	{
+		// S1: one already there stays -- unless he stands far away: the game
+		// keeps the spot he had in the last sector (his profile's insertion
+		// data), e.g. Drassen's in Estoni; then he goes next to it, once
+		if (g_skyrider_checked) return;
+		g_skyrider_checked = true;
+		if (sk->bLife <= 0 || PythSpacesAway(sk->sGridNo, hs.sGridNo) <= 10) return;
+		GridNo const spot = SkyriderSpotByHelicopter(*sk, hs);
+		if (spot == NOWHERE) return;
+		sk->bOrders = STATIONARY;
+		EVENT_SetSoldierPosition(sk, spot, SSP_NONE);
+		EVENT_SetSoldierDirection(sk, GetDirectionToGridNoFromGridNo(spot, hs.sGridNo));
+		EVENT_SetSoldierDesiredDirectionForward(sk, sk->bDirection);
+		return;
+	}
+	if (!sk)
+	{
+		SOLDIERCREATE_STRUCT c{};
+		c.bTeam     = CIV_TEAM;
+		c.ubProfile = SKYRIDER;
+		c.sSector   = gWorldSector;
+		sk = TacticalCreateSoldier(c);
+		if (!sk) return;
+	}
+
+	GridNo const spot = SkyriderSpotByHelicopter(*sk, hs);
+	if (spot == NOWHERE) return;
+	g_skyrider_checked = true;
+
+	sk->bOrders                  = STATIONARY;
+	sk->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+	sk->usStrategicInsertionData = spot;
+	sk->ubInsertionDirection     = 100 + GetDirectionToGridNoFromGridNo(spot, hs.sGridNo); // (as given)
+	UpdateMercInSector(*sk, gWorldSector);
+}
+
+
+// the hovering helicopter's body leaves (flies on, back to base, a new world):
+// Skyrider goes with it -- his character (alive, not on our team) and his
+// profile's sector, as HandleHelicopterOnGround() at take-off
+static void TakeSkyriderAwayFromHelicopter(bool const world_gone)
+{
+	MERCPROFILESTRUCT& p = GetProfile(SKYRIDER);
+	if (p.sSector == gWorldSector) p.sSector.x = p.sSector.y = 0;
+	if (world_gone) return;
+	SOLDIERTYPE* const sk = FindSoldierByProfileID(SKYRIDER);
+	if (sk && sk->bTeam != OUR_TEAM && sk->bInSector && sk->bLife > 0) TacticalRemoveSoldier(*sk);
+}
+
+
+void UpdateHelicopterInTactical()
+{
+	SOLDIERTYPE* const s = GetHelicopterSoldier();
+	if (!s)
+	{
+		g_heli_tactical = HELI_TACTICAL_NONE;
+		UpdateHelicopterPassengersView();
+		return;
+	}
+
+	HeliTacticalMode const wanted = WantedHelicopterInTactical(*s);
+	if (wanted != g_heli_tactical || (wanted == HELI_TACTICAL_NONE && s->bInSector))
+	{
+		if (g_heli_tactical == HELI_TACTICAL_BODY) TakeSkyriderAwayFromHelicopter(false);
+		if (g_heli_tactical != HELI_TACTICAL_NONE || s->bInSector) TakeHelicopterOffTactical(*s);
+		g_heli_tactical = HELI_TACTICAL_NONE;
+		if (wanted != HELI_TACTICAL_NONE) PutHelicopterInTactical(*s, wanted);
+	}
+	UpdateHelicopterPassengersInTactical(*s);
+	UpdateSkyriderInTactical(*s);
+	UpdateHelicopterPassengersView();
+
+	// entering the sector with nobody on the ground: a vehicle shown at once
+	if (g_heli_new_world && gfWorldLoaded && ShowVehicleOnSectorEntry()) g_heli_new_world = false;
+}
+
+
+void ResetHelicopterInTactical()
+{
+	// (the sector's civilians go with the world; his profile isn't there now)
+	if (g_heli_tactical == HELI_TACTICAL_BODY) TakeSkyriderAwayFromHelicopter(true);
+	g_heli_tactical  = HELI_TACTICAL_NONE;
+	g_heli_new_world = true;
+	g_skyrider_checked = false;
+	SOLDIERTYPE* const s = GetHelicopterSoldier();
+	if (!s) return;
+	s->pLevelNode = NULL; // (the world went with it)
+	RemoveMercSlot(s);
+	s->bInSector = FALSE;
+	s->sGridNo   = NOWHERE;
+}
+
+
+bool CanExitHelicopterInTactical(SOLDIERTYPE const& s)
+{
+	if (!InHelicopter(s) || !s.bInSector || g_heli_tactical == HELI_TACTICAL_NONE) return false;
+	// E4: no getting out while it goes down; enemies in the sector don't stop
+	// it, as with the ground vehicles (those aboard get out and fight)
+	return !gfHelicopterGoingDown;
+}
+
+
+// E1: a free spot next to it -- its body hovering, the map's scenery
+// helicopter at a refuel site (its soldier stands at the site's gridno)
+static GridNo HelicopterExitSpot(SOLDIERTYPE const& s, SOLDIERTYPE const& hs)
+{
+	INT8   const radius = g_heli_tactical == HELI_TACTICAL_SCENERY ? 10 : 5;
+	GridNo       g      = FindGridNoFromSweetSpotWithStructDataFromSoldier(&s, STANDING, radius, FALSE, &hs);
+	if (g == NOWHERE) g = FindGridNoFromSweetSpotWithStructDataFromSoldier(&s, STANDING, 20, FALSE, &hs);
+	return g;
+}
+
+
+bool ExitHelicopterInTactical(SOLDIERTYPE& s)
+{
+	if (!CanExitHelicopterInTactical(s)) return false;
+	SOLDIERTYPE const* const hs = GetHelicopterSoldier();
+	if (!hs) return false;
+	GridNo const g = HelicopterExitSpot(s, *hs);
+	if (g == NOWHERE) return false;
+	return ExitHelicopterAt(s, g);
+}
+
+
+void ExitEveryoneFromHelicopterInTactical()
+{
+	if (iHelicopterVehicleId == -1) return;
+	std::vector<SOLDIERTYPE*> aboard;
+	CFOR_EACH_PASSENGER(GetHelicopter(), i)
+	{
+		if ((*i)->bInSector) aboard.push_back(*i);
+	}
+	if (aboard.empty() || !CanExitHelicopterInTactical(*aboard.front())) return;
+
+	// E3: all into the squad of the first one out (one who doesn't fit keeps
+	// his own)
+	INT8 squad = -1;
+	for (SOLDIERTYPE* const s : aboard)
+	{
+		if (!MayExitVehicleInTactical(*s, aboard.size() == 1) || !ExitHelicopterInTactical(*s)) continue;
+		ChargeVehicleExit(*s);
+		if (squad == -1)
+		{
+			squad = s->bAssignment;
+		}
+		else if (s->bAssignment != squad)
+		{
+			AddCharacterToSquad(s, squad);
+		}
+	}
+	if (squad != -1 && guiCurrentScreen == GAME_SCREEN) SetCurrentSquad(squad, TRUE);
+}
+
+
+bool IsHelicopterBodyInTactical()
+{
+	return g_heli_tactical == HELI_TACTICAL_BODY;
+}
+
+
+bool IsHelicopterSceneryStructure(STRUCTURE* const s)
+{
+	RefuelSite const* const r = RefuelSiteOfLoadedSector();
+	if (!r) return false;
+
+	// its pieces stand at the site's gridno and 800 tiles before it
+	STRUCTURE const* const base = FindBaseStructure(s);
+	if (!base || (base->sGridNo != r->grid_no && base->sGridNo != r->grid_no - 800)) return false;
+
+	LEVELNODE const* const n = FindLevelNodeBasedOnStructure(base);
+	return n && r->heli_ostruct <= n->usIndex && n->usIndex <= r->heli_ostruct + 5;
+}
+
+
+void HelicopterDestroyedInTactical()
+{
+	if (iHelicopterVehicleId == -1 || fHelicopterDestroyed) return;
+	// no more waiting over the sector (the hover events check this)
+	fHoveringHelicopter = FALSE;
+	uiStartHoverTime    = 0;
+
+	// S8: Skyrider standing by it dies with it (his body stays by the wreck)
+	SOLDIERTYPE* const sk = FindSoldierByProfileID(SKYRIDER);
+	if (sk && sk->bTeam != OUR_TEAM && sk->bInSector && sk->bLife > 0)
+	{
+		SoldierTakeDamage(sk, 100, 100, TAKE_DAMAGE_BLOODLOSS, 0);
+	}
+
+	SkyriderDestroyed();
+	fTeamPanelDirty          = TRUE;
+	fCharacterInfoPanelDirty = TRUE;
+}
+
 static void HeliCrashSoundStopCallback(void* pData)
 {
 	SkyriderDestroyed( );
@@ -1090,26 +1615,38 @@ static BOOLEAN HandleSAMSiteAttackOfHelicopterInSector(const SGPSector& sSector)
 		// another hit!
 		gubHelicopterHitsTaken++;
 
+		// The hit costs condition: the helicopter soldier's, or -- without one
+		// (no free team slot) -- the one the hits taken so far leave
+		SOLDIERTYPE* const hs = GetHelicopterSoldier();
+		INT32 condition = hs ? hs->bLife : 100 - (gubHelicopterHitsTaken - 1) * HELI_SAM_HIT_DAMAGE;
+		condition = std::max(0, condition - HELI_SAM_HIT_DAMAGE);
+		if (hs)
+		{
+			hs->bLife                = static_cast<INT8>(condition);
+			fTeamPanelDirty          = TRUE;
+			fCharacterInfoPanelDirty = TRUE;
+		}
+
 		// Took a hit!  Pause time so player can reconsider
 		StopTimeCompression();
 
-		// first hit?
-		if ( gubHelicopterHitsTaken == 1 )
+		if (condition >= HELI_MINOR_DAMAGE_MIN_CONDITION)
 		{
 			HeliCharacterDialogue(HELI_TOOK_MINOR_DAMAGE);
 		}
-		// second hit?
-		else if ( gubHelicopterHitsTaken == 2 )
+		else if (condition >= HELI_MAJOR_DAMAGE_MIN_CONDITION)
 		{
 			// going back to base (no choice, dialogue says so)
 			HeliCharacterDialogue(HELI_TOOK_MAJOR_DAMAGE);
 			MakeHeliReturnToBase();
 		}
-		// third hit!
-		else
+		else // going down
 		{
 			// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
 			HeliCharacterDialogue(HELI_GOING_DOWN);
+
+			// nobody gets off now
+			StartHelicopterGoingDown();
 
 			// everyone die die die
 			// play sound
@@ -1443,4 +1980,12 @@ static void MakeHeliReturnToBase(void)
 bool SoldierAboardAirborneHeli(SOLDIERTYPE const& s)
 {
 	return InHelicopter(s) && fHelicopterIsAirBorne;
+}
+
+bool IsHelicopterHoveringOverSafeSector(const SGPSector& sector)
+{
+	if (iHelicopterVehicleId == -1 || fHelicopterDestroyed || gfHelicopterGoingDown) return false;
+	if (!fHelicopterIsAirBorne || !fHoveringHelicopter || sector.z != 0) return false;
+	VEHICLETYPE const& v = GetHelicopter();
+	return !v.fBetweenSectors && v.sSector == sector && NumEnemiesInSector(sector) == 0;
 }

@@ -58,6 +58,7 @@
 #include "SkillCheck.h"
 #include "Soldier_Add.h"
 #include "Soldier_Control.h"
+#include "Soldier_Create.h"
 #include "Soldier_Find.h"
 #include "Soldier_Macros.h"
 #include "Soldier_Profile.h"
@@ -95,11 +96,10 @@ enum AssignmentAbortReason
 	NUM_ASSIGN_ABORT_REASONS
 };
 
+// a repair menu line's choice: a vehicle by its id (0 to MAX_VEHICLES - 1),
+// or one of these
 enum{
-	REPAIR_MENU_VEHICLE1 = 0,
-	REPAIR_MENU_VEHICLE2,
-	REPAIR_MENU_VEHICLE3,
-	REPAIR_MENU_ROBOT,
+	REPAIR_MENU_ROBOT = MAX_VEHICLES,
 	REPAIR_MENU_ITEMS,
 	REPAIR_MENU_CANCEL,
 };
@@ -378,6 +378,24 @@ static BOOLEAN CanCharacterDoctor(SOLDIERTYPE const* const pSoldier)
 
 static BOOLEAN CanCharacterRepairRobot(SOLDIERTYPE const*);
 static bool CanCharacterRepairVehicle(SOLDIERTYPE const&, VEHICLETYPE const&);
+
+
+// Is this vehicle where the merc can work on it? The helicopter only when it
+// has landed in the merc's sector (it doesn't need to be able to fly, unlike
+// boarding it); the others in the same sector and owned by the player.
+static bool IsVehicleInRepairReach(SOLDIERTYPE const& s, VEHICLETYPE const& v)
+{
+	if (IsHelicopter(v))
+	{
+		return GetHelicopterSoldier() != nullptr &&
+			!fHelicopterIsAirBorne &&
+			!v.fDestroyed          &&
+			!v.fBetweenSectors     &&
+			!s.fBetweenSectors     &&
+			s.sSector == v.sSector;
+	}
+	return IsThisVehicleAccessibleToSoldier(s, v);
+}
 static BOOLEAN DoesCharacterHaveAnyItemsToRepair(SOLDIERTYPE const*, INT8 bHighestPass);
 
 
@@ -394,10 +412,8 @@ static bool IsAnythingAroundForSoldierToRepair(SOLDIERTYPE const& s)
 	{
 		CFOR_EACH_VEHICLE(v)
 		{
-			// The helicopter, is NEVER repairable
-			if (IsHelicopter(v))                         continue;
-			if (!IsThisVehicleAccessibleToSoldier(s, v)) continue;
-			if (!CanCharacterRepairVehicle(s, v))        continue;
+			if (!IsVehicleInRepairReach(s, v))    continue;
+			if (!CanCharacterRepairVehicle(s, v)) continue;
 			// There is a repairable vehicle here
 			return true;
 		}
@@ -1075,13 +1091,24 @@ UINT16 CalculateHealingPointsForDoctor(SOLDIERTYPE *pDoctor, UINT16 *pusMaxPts, 
 
 
 static UINT16 ToolKitPoints(SOLDIERTYPE* pSoldier);
+
+
+// % of his repair points the shape of all his tool kits together leaves
+static UINT8 ToolKitEffectiveness(SOLDIERTYPE* const s)
+{
+	UINT16 const kit_pts = ToolKitPoints(s);
+	if (kit_pts < 25) return  50; // kit(s) in extremely bad shape
+	if (kit_pts < 50) return  75; // kit(s) in pretty bad shape
+	return 100;
+}
+
+
 static void MakeSureToolKitIsInHand(SOLDIERTYPE* pSoldier);
 
 
 UINT8 CalculateRepairPointsForRepairman(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts, BOOLEAN fMakeSureKitIsInHand )
 {
 	UINT16 usRepairPts;
-	UINT16 usKitPts;
 	UINT8  ubKitEffectiveness;
 
 	// make sure toolkit in hand?
@@ -1110,22 +1137,7 @@ UINT8 CalculateRepairPointsForRepairman(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts
 
 
 	// figure out what shape his "equipment" is in ("coming" in JA3: Viagra - improves the "shape" your "equipment" is in)
-	usKitPts = ToolKitPoints( pSoldier );
-
-	// if kit(s) in extremely bad shape
-	if ( usKitPts < 25 )
-	{
-		ubKitEffectiveness = 50;
-	}
-	// if kit(s) in pretty bad shape
-	else if ( usKitPts < 50 )
-	{
-		ubKitEffectiveness = 75;
-	}
-	else
-	{
-		ubKitEffectiveness = 100;
-	}
+	ubKitEffectiveness = ToolKitEffectiveness(pSoldier);
 
 	// adjust for equipment
 	usRepairPts = (usRepairPts * ubKitEffectiveness) / 100;
@@ -1771,6 +1783,9 @@ static void HandleRepairBySoldier(SOLDIERTYPE& s)
 	}
 	UINT8 repair_pts_left = initial_repair_pts;
 
+	// set if a vehicle got nothing only because of the tool kit's shape
+	VEHICLETYPE const* kit_too_poor_for = nullptr;
+
 	// check if we are repairing a vehicle
 	if (s.bVehicleUnderRepairID != -1)
 	{
@@ -1778,6 +1793,15 @@ static void HandleRepairBySoldier(SOLDIERTYPE& s)
 		if (CanCharacterRepairVehicle(s, v))
 		{ // Attempt to fix vehicle
 			repair_pts_left -= RepairVehicle(v, repair_pts_left, &nothing_left_to_repair);
+
+			// nothing fixed, but his skill alone (a kit in good shape) would have
+			UINT8 const kit_effectiveness = ToolKitEffectiveness(&s);
+			if (repair_pts_left == initial_repair_pts &&
+					kit_effectiveness < 100 &&
+					initial_repair_pts * 100 / kit_effectiveness >= GetVehicleRepairPointsDivisor(v))
+			{
+				kit_too_poor_for = &v;
+			}
 		}
 	}
 	// check if we are repairing a robot
@@ -1879,6 +1903,21 @@ static void HandleRepairBySoldier(SOLDIERTYPE& s)
 			{
 				// he could (maybe) repair something, but can't because he doesn't have a tool kit!
 				AssignmentAborted(s, NO_MORE_TOOL_KITS);
+			}
+			else if (kit_too_poor_for)
+			{
+				// he could repair the vehicle, but his tool kit is too worn: in the
+				// message log and a box (unless one is already up)
+				ST::string const msg = st_format_printf(gzLateLocalizedString[STR_LATE_59], s.name, pVehicleStrings[kit_too_poor_for->ubVehicleType]);
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, msg);
+				if (guiCurrentScreen != MSG_BOX_SCREEN)
+				{
+					DoScreenIndependantMessageBox(msg, MSG_BOX_FLAG_OK, NULL);
+				}
+				StopTimeCompression();
+				fCharacterInfoPanelDirty = TRUE;
+				fTeamPanelDirty          = TRUE;
+				fMapScreenBottomDirty    = TRUE;
 			}
 			else
 			{
@@ -3081,9 +3120,7 @@ static void DisplayRepairMenu(SOLDIERTYPE const& s)
 	{ // Run through list of vehicles in sector and add them to pop up box
 		CFOR_EACH_VEHICLE(v)
 		{
-			// Don't even list the helicopter, because it's never repairable
-			if (IsHelicopter(v))                         continue;
-			if (!IsThisVehicleAccessibleToSoldier(s, v)) continue;
+			if (!IsVehicleInRepairReach(s, v)) continue;
 			AddMonoString(box, pVehicleStrings[v.ubVehicleType]);
 		}
 	}
@@ -3120,9 +3157,7 @@ static void HandleShadingOfLinesForRepairMenu()
 	{
 		CFOR_EACH_VEHICLE(v)
 		{
-			// don't even list the helicopter, because it's NEVER repairable...
-			if (IsHelicopter(v))                         continue;
-			if (!IsThisVehicleAccessibleToSoldier(s, v)) continue;
+			if (!IsVehicleInRepairReach(s, v)) continue;
 			ShadeStringInBox(box, line++, !CanCharacterRepairVehicle(s, v));
 		}
 	}
@@ -3158,6 +3193,15 @@ static void CreateDestroyMouseRegionForRepairMenu(void)
 {
 	static BOOLEAN fCreated = FALSE;
 
+	if (fShowRepairMenu && fInMapMode)
+	{ // hang it right beside the assignment box, at its Repair line, like the
+		// vehicle menu (RepairPosition's own x is the original layout's)
+		SGPBox const& area = GetBoxArea(ghAssignmentBox);
+		RepairPosition.iX = area.x + area.w;
+		RepairPosition.iY = AssignmentPosition.iY + (GetFontHeight(MAP_SCREEN_FONT) + 2) * ASSIGN_MENU_REPAIR;
+		SetBoxXY(ghRepairBox, RepairPosition.iX, RepairPosition.iY);
+	}
+
 	if (fShowRepairMenu && !fCreated)
 	{
 		CheckAndUpdateTacticalAssignmentPopUpPositions();
@@ -3181,11 +3225,8 @@ static void CreateDestroyMouseRegionForRepairMenu(void)
 			// vehicles
 			CFOR_EACH_VEHICLE(v)
 			{
-				// don't even list the helicopter, because it's NEVER repairable...
-				if (IsHelicopter(v)) continue;
-
-				// other vehicles *in the sector* are listed, but later shaded dark if they're not repairable
-				if (!IsThisVehicleAccessibleToSoldier(s, v)) continue;
+				// vehicles *in the sector* (the helicopter: landed there) are listed, but later shaded dark if they're not repairable
+				if (!IsVehicleInRepairReach(s, v)) continue;
 
 				// add mouse region for each line of text..and set user data
 				MakeRepairRegion(idx++, regionArea, VEHICLE2ID(v), s);
@@ -3258,7 +3299,7 @@ static void RepairMenuBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	if (iReason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		if( ( iRepairWhat >= REPAIR_MENU_VEHICLE1 ) && ( iRepairWhat <= REPAIR_MENU_VEHICLE3 ) )
+		if (0 <= iRepairWhat && iRepairWhat < REPAIR_MENU_ROBOT)
 		{
 			// repair VEHICLE
 			SetSoldierAssignmentRepair(pSoldier, false, iRepairWhat);
@@ -4347,7 +4388,13 @@ static void RemoveMercMenuBtnCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 				break;
 			case( REMOVE_MERC ):
 				auto * const deadMerc{ gCharactersList[bSelectedInfoChar].merc };
-				if (deadMerc)
+				if (deadMerc && deadMerc->uiStatusFlags & SOLDIER_VEHICLE)
+				{
+					// a destroyed vehicle: just off the team (frees its vehicle slot)
+					TacticalRemoveSoldier(*deadMerc);
+					if (fInMapMode) ReBuildCharactersList();
+				}
+				else if (deadMerc)
 				{
 					StrategicRemoveMerc(*deadMerc);
 				}
@@ -5418,19 +5465,41 @@ static void CreateAssignmentsBox()
 }
 
 
-// create remove mercbox to be placed in assignment area
-void CreateMercRemoveAssignBox()
+static void MakeRemoveMercAssignBox(ST::string const& remove_label)
 {
 	PopUpBox* const box = MakeBox(AssignmentPosition, POPUP_BOX_FLAG_CENTER_TEXT);
 	ghRemoveMercAssignBox = box;
 
-	for (UINT32 i = 0; i < MAX_REMOVE_MERC_COUNT; ++i)
-	{
-		AddMonoString(box, pRemoveMercStrings[i]);
-	}
+	AddMonoString(box, remove_label);
+	AddMonoString(box, pRemoveMercStrings[REMOVE_MERC_CANCEL]);
 
 	SetBoxTextAttrs(box);
 	ResizeBoxToText(box);
+}
+
+
+// create remove mercbox to be placed in assignment area
+void CreateMercRemoveAssignBox()
+{
+	MakeRemoveMercAssignBox(pRemoveMercStrings[REMOVE_MERC]);
+}
+
+
+ST::string GetRemoveMercString(SOLDIERTYPE const& s)
+{
+	// a destroyed vehicle: "Remove Hummer"
+	if (s.uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		return st_format_printf(gzLateLocalizedString[STR_LATE_60], pShortVehicleStrings[GetVehicle(s.bVehicleID).ubVehicleType]);
+	}
+	return pRemoveMercStrings[REMOVE_MERC];
+}
+
+
+void SetRemoveMercAssignBoxFor(SOLDIERTYPE const& s)
+{
+	RemoveBox(ghRemoveMercAssignBox);
+	MakeRemoveMercAssignBox(GetRemoveMercString(s));
 }
 
 
@@ -5845,8 +5914,9 @@ static bool CanCharacterRepairVehicle(SOLDIERTYPE const& s, VEHICLETYPE const& v
 	// is it damaged at all?
 	if (!DoesVehicleNeedAnyRepairs(v)) return false;
 
-	// same sector, neither is between sectors, and OK To Use (player owns it) ?
-	if (!IsThisVehicleAccessibleToSoldier(s, v)) return false;
+	// same sector, neither is between sectors, and OK To Use (player owns it;
+	// the helicopter: landed)?
+	if (!IsVehicleInRepairReach(s, v)) return false;
 
 	return true;
 }
@@ -7058,9 +7128,10 @@ static SOLDIERTYPE* GetSelectedAssignSoldier(BOOLEAN fNullOK)
 
 	if ( pSoldier != NULL )
 	{
-		// better be an active person, not a vehicle
+		// better be an active person, not a vehicle -- except a destroyed one,
+		// which gets the Remove menu
 		Assert( pSoldier->bActive );
-		Assert( !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) );
+		Assert( !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) || pSoldier->bLife == 0 );
 	}
 
 	return( pSoldier );

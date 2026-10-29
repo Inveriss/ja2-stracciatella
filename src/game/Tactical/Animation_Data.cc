@@ -465,6 +465,11 @@ AnimationSurfaceType gAnimSurfaceDatabase[NUMANIMATIONSURFACETYPES] =
 	// Added for the Infobox.sti merc preview picture -- see RGFHANDGUN_1H in
 	// Animation_Data.h.
 	M(RGFHANDGUN_1H,        ANIMSDIR "/f_merc/1_hnd_n.sti",     S_STRUCT,  0,                        8, -1),
+
+	// Skyrider's helicopter in tactical: 8 directions (frames by
+	// OneCDirection(), as its structures in HELI.JSD and the z-strips of a
+	// multi-tile sprite), 2 pictures -- one for N/NE/S/NW, one for E/SE/SW/W
+	M(HELICOPTER_BASIC,     ANIMSDIR "/vehicles/heli.sti",      S_STRUCT,  ANIM_DATA_FLAG_NOFRAMES,  8, -1),
 };
 
 #undef M
@@ -521,7 +526,8 @@ static AnimationStructureType gAnimStructureDatabase[TOTALBODYTYPES][NUM_STRUCT_
 	AAAAAB("TNK2_ROT",  "M_CROUCH"),                                                // tank 2
 	AAAAAB("HMMV",      "M_CROUCH"),                                                // ELDORADO
 	AAAAAB("HMMV",      "M_CROUCH"),                                                // ICECREAMTRUCK
-	AAAAAB("HMMV",      "M_CROUCH")                                                 // JEEP
+	AAAAAB("HMMV",      "M_CROUCH"),                                                // JEEP
+	AAAAAB("HELI",      "M_CROUCH")                                                 // HELICOPTERBODY
 };
 
 #undef ABCCCD
@@ -730,6 +736,7 @@ AnimationColours GetAnimationSurfaceColours(UINT16 const usSurfaceIndex)
 		case ICECREAMTRUCK_DIE:
 		case JEEP_BASIC:
 		case JEEP_DIE:
+		case HELICOPTER_BASIC:
 			return AnimationColours::FullColour;
 
 		default:

@@ -179,6 +179,7 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 				case HUMVEE:
 				case ICECREAMTRUCK:
 				case JEEP:
+				case HELICOPTERBODY:
 					vehicle = true;
 					break;
 			}
@@ -418,6 +419,7 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 		case JEEP:
 		case TANK_NW:
 		case TANK_NE:
+		case HELICOPTERBODY:
 		{
 			s->uiStatusFlags |= SOLDIER_VEHICLE;
 
@@ -446,6 +448,11 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 				case TANK_NW:
 				case TANK_NE:
 					ubVehicleID = TANK_CAR;
+					break;
+
+				case HELICOPTERBODY:
+					ubVehicleID = HELICOPTER;
+					s->bNeutral = TRUE;
 					break;
 			}
 
@@ -530,7 +537,7 @@ SOLDIERTYPE* TacticalCreateSoldierFromExisting(const SOLDIERTYPE* const existing
 		InitSoldierFace(s);
 	}
 
-	if (s.ubBodyType == HUMVEE || s.ubBodyType == ICECREAMTRUCK)
+	if (s.ubBodyType == HUMVEE || s.ubBodyType == ICECREAMTRUCK || s.ubBodyType == HELICOPTERBODY)
 	{
 		s.bNeutral = TRUE;
 	}

@@ -1026,7 +1026,12 @@
         "Compression du temps impossible dans l'écran d'inventaire.",
         "Actuel/Maximum : %d%%/%d%%",
         "Escorter John et Mary ?",
-        "Interrupteur activé."
+        "Interrupteur activé.",
+        "La trousse à outils de %s est en trop mauvais état pour réparer le véhicule : %s !",
+        "Retirer %s",
+        "Impossible de transmettre des objets entre personnages sur l'écran stratégique pendant un combat.",
+        "Le véhicule est à court de carburant et ne peut pas continuer à rouler.",
+        "Les véhicules ne peuvent pas entrer dans les mines."
     ],
     "gzMercSkillText": [
         "Aucune spécialité",
@@ -2048,7 +2053,8 @@
     "pSkyriderText": [
         "Skyrider a reçu %d $",
         "Skyrider attend toujours ses %d $",
-        "Skyrider n'a pas de passagers. Si vous voulez envoyer des mercenaires dans ce secteur, n'oubliez pas de les assigner à l'hélicoptère."
+        "Skyrider n'a pas de passagers. Si vous voulez envoyer des mercenaires dans ce secteur, n'oubliez pas de les assigner à l'hélicoptère.",
+        "Skyrider ne volera pas : l'hélicoptère est trop endommagé (état %d). Réparez-le d'abord jusqu'à au moins %d."
     ],
     "pSquadMenuStrings": [
         "Esc. 1",

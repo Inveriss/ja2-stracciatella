@@ -2498,7 +2498,13 @@ BOOLEAN HandleCheckForExitArrowsInput( BOOLEAN fAdjustConfirm )
 		guiCurrentUICursor == NOEXIT_GRID_UICURSOR )
 	{
 		// Yeah, but add a message....
-		if( gfInvalidTraversal )
+		if (guiCurrentUICursor == NOEXIT_GRID_UICURSOR && sel->uiStatusFlags & SOLDIER_VEHICLE)
+		{
+			// a vehicle at an exit grid (driving plan, D7)
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, gzLateLocalizedString[STR_LATE_63]);
+			gfInvalidTraversal = FALSE;
+		}
+		else if( gfInvalidTraversal )
 		{
 			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, TacticalStr[ CANNOT_LEAVE_SECTOR_FROM_SIDE_STR ] );
 			gfInvalidTraversal = FALSE;
@@ -2948,17 +2954,19 @@ static bool CheckForAndHandleHandleVehicleInteractiveClick(SOLDIERTYPE& s, BOOLE
 	if (!OK_ENTERABLE_VEHICLE(tgt))    return false;
 	if (tgt->bVisible == -1)           return false;
 	if (!OKUseVehicle(tgt->ubProfile)) return false;
+	if (IsVehicleMoving(*tgt))         return false; // (D13: not while it drives)
 
 	VEHICLETYPE& v = GetVehicle(tgt->bVehicleID);
 	if (GetNumberInVehicle(v) != 0 && fMovementMode) return false;
 
-	// Find a gridno closest to sweetspot
-	GridNo const action_pos = FindGridNoFromSweetSpotWithStructDataFromSoldier(&s, s.usUIMovementMode, 5, 0, tgt);
-	if (action_pos == NOWHERE) return false;
-
-	// Calculate AP costs
-	INT16 const ap_cost = PlotPath(&s, action_pos, NO_COPYROUTE, FALSE, s.usUIMovementMode, s.bActionPoints);
-	if (!EnoughPoints(&s, ap_cost, 0, TRUE)) return false;
+	// Find a gridno closest to sweetspot, and the AP costs: the walk there
+	// and, in combat, getting in (D15)
+	GridNo      action_pos;
+	INT16 const ap_cost = GetAPsToEnterVehicle(s, *tgt, &action_pos);
+	if (action_pos == NOWHERE || ap_cost < 0) return false;
+	// not enough APs: the message, and the click is done with (not taken for
+	// a search of the vehicle's tile, which locked the UI in combat)
+	if (!EnoughPoints(&s, ap_cost, 0, TRUE)) return true;
 
 	DoMercBattleSound(&s, BATTLE_SOUND_OK1);
 
@@ -2971,9 +2979,9 @@ static bool CheckForAndHandleHandleVehicleInteractiveClick(SOLDIERTYPE& s, BOOLE
 		EVENT_InternalGetNewSoldierPath(&s, action_pos, s.usUIMovementMode, 3, s.fNoAPToFinishMove);
 		SetUIBusy(&s);
 	}
-	else
+	else if (PutSoldierInVehicle(s, v))
 	{
-		PutSoldierInVehicle(s, v);
+		ChargeVehicleEntry(s);
 	}
 	return true;
 }
@@ -3087,11 +3095,26 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 	SOLDIERTYPE* const sel = GetSelectedMan();
 	if (!sel) return 0;
 
-	// ATE: If we are a vehicle, no moving!
+	// ATE: If we are a vehicle, no moving! -- unless it may drive (driving plan,
+	// stage 1: the Hummer and the ice cream truck out of combat, with someone
+	// aboard who can drive); it only drives, no getting into vehicles,
+	// swapping places or using things
 	if (sel->uiStatusFlags & SOLDIER_VEHICLE)
 	{
-		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, TacticalStr[VEHICLE_CANT_MOVE_IN_TACTICAL]);
-		return -3;
+		if (!CanVehicleDriveInTactical(*sel))
+		{
+			// a car out of fuel says so; anything else, as before
+			bool const out_of_fuel = (sel->ubBodyType == HUMVEE || sel->ubBodyType == ICECREAMTRUCK) && sel->sBreathRed <= 0;
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK,
+				out_of_fuel ? gzLateLocalizedString[STR_LATE_62] : TacticalStr[VEHICLE_CANT_MOVE_IN_TACTICAL]);
+			return -3;
+		}
+		if (gpWorldLevelData[usMapPos].sHeight != gpWorldLevelData[sel->sGridNo].sHeight)
+		{
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, TacticalStr[CANT_GET_THERE]);
+			return -1;
+		}
+		return 0;
 	}
 
 	// OK, check for height differences

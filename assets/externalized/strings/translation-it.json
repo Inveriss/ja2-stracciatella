@@ -1026,7 +1026,12 @@
         "Non potete comprimere il tempo mentre visualizzate l'inventario del settore.",
         "Attuale/Massimo Progresso: %d%%/%d%%",
         "Accompagnate John e Mary?",
-        "Interruttore attivato."
+        "Interruttore attivato.",
+        "Il kit attrezzi di %s è in condizioni troppo cattive per riparare il veicolo: %s!",
+        "Rimuovi %s",
+        "Durante una battaglia non è possibile passare oggetti tra i personaggi nella schermata strategica.",
+        "Il veicolo ha finito il carburante e non può proseguire.",
+        "I veicoli non possono entrare nelle miniere."
     ],
     "gzMercSkillText": [
         "Nessuna abilità",
@@ -2048,7 +2053,8 @@
     "pSkyriderText": [
         "Skyrider è stato pagato $%d",
         "A Skyrider bisogna ancora dare $%d",
-        "Skyrider non ha passeggeri. Se avete intenzione di trasportare mercenari in questo settore, assegnateli prima al Veicolo/Elicottero."
+        "Skyrider non ha passeggeri. Se avete intenzione di trasportare mercenari in questo settore, assegnateli prima al Veicolo/Elicottero.",
+        "Skyrider non volerà: l'elicottero è troppo danneggiato (condizioni %d). Riparatelo prima almeno fino a %d."
     ],
     "pSquadMenuStrings": [
         "Squadra  1",

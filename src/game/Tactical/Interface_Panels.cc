@@ -41,6 +41,7 @@
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Bottom.h"
+#include "Map_Screen_Helicopter.h"
 #include "MercPortrait.h"
 #include "Message.h"
 #include "MessageBoxScreen.h"
@@ -243,6 +244,11 @@
 // Tune once visible in-game.
 #define SM_SKILLSB_X				SM_BOOKMARK_X(481)
 #define SM_SKILLSB_Y				SM_BOOKMARK_Y(160)
+// Vehicle Cargo (vehicle inventory plan, stage 4b): switches between the
+// merc's panel and the cargo of a vehicle he can reach. 58x32, for now the
+// Keyboard Shortcuts picture; after Show Large Icons
+#define SM_VEHICLE_CARGOB_X			SM_BOOKMARK_X(551)
+#define SM_VEHICLE_CARGOB_Y			SM_BOOKMARK_Y(160)
 
 // Checkbox toggling fHideEmptyAttachmentSlots -- placeholder position.
 #define SM_HIDE_EMPTY_SLOTS_X			274
@@ -449,6 +455,7 @@ enum
 	SM_SHORTCUTS_IMAGES,
 	SM_STATS_IMAGES,
 	SM_SKILLS_IMAGES,
+	SM_VEHICLE_CARGO_IMAGES,
 	NUM_SM_BUTTON_IMAGES
 };
 
@@ -653,11 +660,137 @@ static std::vector<TeamPanelSlot> gTeamPanel;
 // Wraps up check for AP-s get from a different soldier for in a vehicle...
 static INT8 GetUIApsToDisplay(SOLDIERTYPE const* s)
 {
-	if (s->uiStatusFlags & SOLDIER_DRIVER)
+	// (the 1366x768 team panel shows the vehicle's own in its window, the
+	// driver his)
+	if (s->uiStatusFlags & SOLDIER_DRIVER && !g_ui.isBigTeamPanel())
 	{
 		return GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId)).bActionPoints;
 	}
 	return s->bActionPoints;
+}
+
+
+// Vehicle cargo on the SM panel (vehicle inventory plan, stage 4b): the merc
+// whose panel switched to a vehicle's -- the one reaching into its pockets
+static SOLDIERTYPE* gpSMCargoMerc;
+
+
+static bool IsVehicleInMercReach(SOLDIERTYPE const& merc, SOLDIERTYPE const& v)
+{
+	if (!IsVehicleCargoTarget(v)) return false;
+	if (IsVehicleMoving(v)) return false; // (D13: not while it drives)
+	if (PythSpacesAway(merc.sGridNo, v.sGridNo) > PASSING_ITEM_DISTANCE_OKLIFE) return false;
+	INT16 const visible = DistanceVisible(&merc, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, v.sGridNo, v.bLevel);
+	return SoldierTo3DLocationLineOfSightTest(&merc, v.sGridNo, v.bLevel, 3, (UINT8)visible, TRUE);
+}
+
+
+// A merc aboard a vehicle (driver or passenger)
+static bool IsAboard(SOLDIERTYPE const& s)
+{
+	return s.uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER);
+}
+
+
+// Where a soldier's items are reached from: an aboard merc's vehicle, else
+// himself (a merc aboard isn't on the map; his position is the vehicle's)
+static SOLDIERTYPE const& ReachAnchor(SOLDIERTYPE const& s)
+{
+	return IsAboard(s) ? GetSoldierStructureForVehicle(GetVehicle(s.iVehicleId)) : s;
+}
+
+
+// Passing an item between two soldiers when a vehicle or a merc aboard one
+// is involved (plan P7, stage 4d): in combat, too (Q1 lifted by the driving
+// plan, 2026-10-29: those aboard pass at the usual AP cost); in the same
+// vehicle always; a vehicle and a merc outside: 3 tiles and his sight
+// of it; two vehicles: 3 tiles apart (Q3)
+static bool CanPassViaVehicle(SOLDIERTYPE const& src, SOLDIERTYPE const& dst)
+{
+
+	SOLDIERTYPE const& a = ReachAnchor(src);
+	SOLDIERTYPE const& b = ReachAnchor(dst);
+	// D13: nothing is passed while a vehicle involved drives, also inside it
+	if (IsVehicleMoving(a) || IsVehicleMoving(b)) return false;
+	if (&a == &b) return true;
+
+	bool const a_vehicle = a.uiStatusFlags & SOLDIER_VEHICLE;
+	bool const b_vehicle = b.uiStatusFlags & SOLDIER_VEHICLE;
+	if (a_vehicle && b_vehicle)
+	{
+		return IsVehicleCargoTarget(a) && IsVehicleCargoTarget(b) &&
+			PythSpacesAway(a.sGridNo, b.sGridNo) <= PASSING_ITEM_DISTANCE_OKLIFE;
+	}
+	SOLDIERTYPE const& v = a_vehicle ? a : b;
+	SOLDIERTYPE const& m = a_vehicle ? b : a;
+	return m.bLife >= CONSCIOUSNESS && IsVehicleInMercReach(m, v);
+}
+
+
+// The nearest of our vehicles this merc can reach into, or none
+static SOLDIERTYPE* VehicleCargoInReach(SOLDIERTYPE const& merc)
+{
+	if (merc.uiStatusFlags & SOLDIER_VEHICLE || !IS_MERC_BODY_TYPE(&merc) || AM_AN_EPC(&merc)) return 0;
+	if (merc.bLife < OKLIFE || !merc.bInSector || merc.sGridNo == NOWHERE) return 0;
+	// (passengers stay inside, the vehicle panel is for a merc next to it)
+	if (merc.uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER)) return 0;
+
+	SOLDIERTYPE* best      = 0;
+	INT16        best_dist = 0;
+	FOR_EACH_IN_TEAM(v, OUR_TEAM)
+	{
+		if (!IsVehicleInMercReach(merc, *v)) continue;
+		INT16 const dist = PythSpacesAway(merc.sGridNo, v->sGridNo);
+		if (best && dist >= best_dist) continue;
+		best      = v;
+		best_dist = dist;
+	}
+	return best;
+}
+
+
+// A vehicle's cargo panel asked for from the team panel (its portrait's right
+// click, stage 4c): the SM panel opens for the selected merc and switches to
+// the vehicle at once (RenderSMPanel())
+static SOLDIERTYPE* gpSMPendingCargoVehicle;
+static SOLDIERTYPE* gpSMPendingCargoMerc;
+static UINT32       guiSMPendingCargoTime; // (a request the panel switch didn't follow goes stale)
+
+
+// A merc who may open a vehicle's cargo panel (not aboard, not an EPC, T5)
+static bool CanOpenVehicleCargo(SOLDIERTYPE const* const merc)
+{
+	return merc &&
+		!(merc->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER | SOLDIER_DEAD)) &&
+		IS_MERC_BODY_TYPE(merc) && !AM_AN_EPC(merc);
+}
+
+
+// Whose SM panel a vehicle's cargo panel is opened from: the selected merc;
+// with everyone aboard (the vehicle selected), one of the mercs aboard (stage
+// 4d; also in combat since the driving plan -- he pays the APs)
+static SOLDIERTYPE* VehicleCargoPanelOwner()
+{
+	SOLDIERTYPE* const sel = GetSelectedMan();
+	if (CanOpenVehicleCargo(sel)) return sel;
+	for (TeamPanelSlot const& i : gTeamPanel)
+	{
+		SOLDIERTYPE* const s = i.merc;
+		if (s && s->bActive && s->bLife >= OKLIFE && IsAboard(*s) && !AM_AN_EPC(s)) return s;
+	}
+	return 0;
+}
+
+
+static void OpenVehicleCargoPanel(SOLDIERTYPE& v)
+{
+	// for the selected merc (its items active; passing as between mercs, P7)
+	SOLDIERTYPE* const merc = VehicleCargoPanelOwner();
+	if (!merc) return;
+	gpSMPendingCargoVehicle = &v;
+	gpSMPendingCargoMerc    = merc;
+	guiSMPendingCargoTime   = GetJA2Clock();
+	SetNewPanel(merc);
 }
 
 
@@ -666,6 +799,7 @@ void CheckForDisabledForGiveItem(void)
 	const SOLDIERTYPE* const cur = gpSMCurrentMerc;
 	Assert(cur != NULL);
 	Assert(cur->sGridNo != NOWHERE);
+	bool const cur_vehicle = cur->uiStatusFlags & SOLDIER_VEHICLE;
 
 	if (guiCurrentScreen == SHOPKEEPER_SCREEN)
 	{
@@ -676,8 +810,8 @@ void CheckForDisabledForGiveItem(void)
 	// Default to true
 	gfSMDisableForItems = TRUE;
 
-	// ATE: Is the current merc unconscious.....
-	if (cur->bLife < OKLIFE && gpItemPointer != NULL)
+	// ATE: Is the current merc unconscious..... (a vehicle's condition isn't)
+	if (cur->bLife < OKLIFE && !cur_vehicle && gpItemPointer != NULL)
 	{
 		// Go through each merc and see if there is one closeby....
 		CFOR_EACH_IN_TEAM(s, OUR_TEAM)
@@ -719,6 +853,13 @@ void CheckForDisabledForGiveItem(void)
 			return;
 		}
 
+		// A vehicle or a merc aboard one on either side (P7, stage 4d)
+		if ((src->uiStatusFlags | cur->uiStatusFlags) & SOLDIER_VEHICLE || IsAboard(*src) || IsAboard(*cur))
+		{
+			gfSMDisableForItems = !CanPassViaVehicle(*src, *cur);
+			return;
+		}
+
 		const INT16 sDestGridNo = cur->sGridNo;
 		const INT8  bDestLevel  = cur->bLevel;
 
@@ -732,7 +873,7 @@ void CheckForDisabledForGiveItem(void)
 		if (SoldierTo3DLocationLineOfSightTest(src, sDestGridNo, bDestLevel, 3, sDistVisible, TRUE))
 		{
 			// UNCONSCIOUS GUYS ONLY 1 tile AWAY
-			if (cur->bLife < CONSCIOUSNESS)
+			if (cur->bLife < CONSCIOUSNESS && !cur_vehicle)
 			{
 				if (sDist <= PASSING_ITEM_DISTANCE_NOTOKLIFE)
 				{
@@ -849,6 +990,128 @@ static void SetButtonState(UINT const idx, bool const clicked)
 }
 
 
+SOLDIERTYPE* GetSMPanelOwnerMerc()
+{
+	SOLDIERTYPE* const s = gpSMCurrentMerc;
+	if (s && s->uiStatusFlags & SOLDIER_VEHICLE) return gpSMCargoMerc ? gpSMCargoMerc : GetSelectedMan();
+	return s;
+}
+
+
+// The merc's panel: Vehicle Cargo usable while he can reach into a vehicle
+static void UpdateSMVehicleCargoButton(SOLDIERTYPE const& merc)
+{
+	GUIButtonRef const b = iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON];
+	if (!b) return;
+	bool const enable =
+		guiCurrentScreen != SHOPKEEPER_SCREEN &&
+		gTacticalStatus.ubCurrentTeam == OUR_TEAM &&
+		&merc == GetSelectedMan() &&
+		!gfInItemPickupMenu &&
+		VehicleCargoInReach(merc);
+	EnableButton(b, enable);
+	SetButtonState(SM_VEHICLE_CARGO_BUTTON, false);
+}
+
+
+// The vehicle's panel: only its pockets, nothing a merc does; its items
+// always active, as a merc's (an item on the cursor goes only where it can be
+// passed, CheckForDisabledForGiveItem(), plan P7); back to the merc when
+// another merc is selected or the vehicle is destroyed
+static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
+{
+	// (already on the way to another panel, e.g. Previous / Next merc)
+	if (gSelectSMPanelToMerc) return;
+
+	// (another merc selected switches the panel to him anyway)
+	if (!IsVehicleCargoTarget(v))
+	{
+		SOLDIERTYPE* const back = GetSMPanelOwnerMerc();
+		if (back && !(back->uiStatusFlags & SOLDIER_VEHICLE))
+		{
+			gSelectSMPanelToMerc = back;
+		}
+		else
+		{
+			SetNewPanel(0);
+		}
+		return;
+	}
+
+	for (UINT const idx : { CLIMB_BUTTON, BURSTMODE_BUTTON, STANCEUP_BUTTON, STANCEDOWN_BUTTON, LOOK_BUTTON,
+		UPDOWN_BUTTON, HANDCURSOR_BUTTON, TALK_BUTTON, MUTE_BUTTON, SM_STATS_BUTTON, SM_SKILLS_BUTTON })
+	{
+		if (iSMPanelButtons[idx]) DisableButton(iSMPanelButtons[idx]);
+	}
+	if (giSMStealthButton) DisableButton(giSMStealthButton);
+
+	// Previous / Next merc: back to the merc, or with an item on the cursor
+	// on to the merc before / after him (SMPanelPrevNextMerc())
+	EnableButton(iSMPanelButtons[PREVMERC_BUTTON]);
+	EnableButton(iSMPanelButtons[NEXTMERC_BUTTON]);
+
+	if (iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON])
+	{
+		EnableButton(iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON]);
+		SetButtonState(SM_VEHICLE_CARGO_BUTTON, true);
+	}
+
+	if (v.fCheckForNewlyAddedItems)
+	{
+		CheckForAnyNewlyAddedItems(&v);
+		v.fCheckForNewlyAddedItems = FALSE;
+	}
+}
+
+
+// A merc aboard a vehicle (stage 4d; also in combat): his inventory only --
+// he isn't on the map, so nothing he would do there (stance, climb, look,
+// ...); his items pass as CanPassViaVehicle() says
+static void CheckForReEvaluateDisabledINVPanelButtons(void);
+static void UpdateSMAboardPanel(SOLDIERTYPE& s)
+{
+	for (UINT const idx : { CLIMB_BUTTON, BURSTMODE_BUTTON, STANCEUP_BUTTON, STANCEDOWN_BUTTON, LOOK_BUTTON,
+		UPDOWN_BUTTON, HANDCURSOR_BUTTON, TALK_BUTTON })
+	{
+		if (iSMPanelButtons[idx]) DisableButton(iSMPanelButtons[idx]);
+	}
+	if (giSMStealthButton) DisableButton(giSMStealthButton);
+
+	if (gfAllDisabled) return;
+	CheckForReEvaluateDisabledINVPanelButtons();
+
+	if (s.fCheckForNewlyAddedItems)
+	{
+		CheckForAnyNewlyAddedItems(&s);
+		s.fCheckForNewlyAddedItems = FALSE;
+	}
+}
+
+
+// Vehicle Cargo: the merc's panel <-> the cargo of the nearest vehicle he
+// can reach into; items move between them as between two mercs' panels
+static void BtnVehicleCargoCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	SOLDIERTYPE* const s = gpSMCurrentMerc;
+	if (!s) return;
+	if (InItemDescriptionBox() || InItemStackPopup() || InKeyRingPopup()) return;
+
+	if (s->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		gSelectSMPanelToMerc = GetSMPanelOwnerMerc();
+	}
+	else
+	{
+		SOLDIERTYPE* const v = VehicleCargoInReach(*s);
+		if (!v) return;
+		gpSMCargoMerc        = s;
+		gSelectSMPanelToMerc = v;
+	}
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
 static void BtnStealthModeCallback(GUI_BUTTON* btn, UINT32 reason);
 static void CheckForReEvaluateDisabledINVPanelButtons(void);
 
@@ -857,6 +1120,18 @@ static void UpdateSMPanel()
 {
 	SOLDIERTYPE& s = *gpSMCurrentMerc;
 	if (s.sGridNo == NOWHERE) return;
+
+	if (s.uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		UpdateSMVehicleCargoPanel(s);
+		return;
+	}
+	UpdateSMVehicleCargoButton(s);
+	if (IsAboard(s))
+	{
+		UpdateSMAboardPanel(s);
+		return;
+	}
 
 	UINT8 stance_state = s.ubDesiredHeight;
 	if (stance_state == NO_DESIRED_HEIGHT)
@@ -1455,6 +1730,8 @@ void CreateSMPanelButtons(void)
 	iSMPanelImages[SM_SHORTCUTS_IMAGES]   = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 20, 21);
 	iSMPanelImages[SM_STATS_IMAGES]       = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 22, 23);
 	iSMPanelImages[SM_SKILLS_IMAGES]      = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 24, 25);
+	// Vehicle Cargo: for now the Keyboard Shortcuts picture
+	iSMPanelImages[SM_VEHICLE_CARGO_IMAGES] = UseLoadedButtonImage(iSMPanelImages[SM_EMAIL_IMAGES], 20, 21);
 
 
 	// Create buttons
@@ -1496,6 +1773,13 @@ void CreateSMPanelButtons(void)
 		MakeButtonT(SM_STATS_BUTTON,       iSMPanelImages[SM_STATS_IMAGES],       dx + SM_STATSB_X,       dy + SM_STATSB_Y,       BtnStatsCallback,            "Statistics");
 	}
 	MakeButtonT(SM_SKILLS_BUTTON,      iSMPanelImages[SM_SKILLS_IMAGES],      dx + SM_SKILLSB_X,      dy + SM_SKILLSB_Y,      BtnSkillsCallback,           "Skills");
+	// 1366x768: none, the team panel's vehicle windows and Previous / Next
+	// merc reach the cargo (plan P4); 1280 keeps it
+	if (!g_ui.isBigTeamPanel())
+	{
+		MakeButtonT(SM_VEHICLE_CARGO_BUTTON, iSMPanelImages[SM_VEHICLE_CARGO_IMAGES], dx + SM_VEHICLE_CARGOB_X, dy + SM_VEHICLE_CARGOB_Y, BtnVehicleCargoCallback, "Vehicle Cargo");
+		DisableButton(iSMPanelButtons[SM_VEHICLE_CARGO_BUTTON]);
+	}
 
 	giSMHideEmptySlotsCheckbox = CreateCheckBoxButton(
 		dx + SM_HIDE_EMPTY_SLOTS_X, dy + SM_HIDE_EMPTY_SLOTS_Y,
@@ -1574,7 +1858,7 @@ static UINT32 const g_smBookmarkButtons[] =
 {
 	SM_EMAIL_BUTTON, SM_AIM_MEMBERS_BUTTON, SM_MERC_BUTTON, SM_BOBBYR_BUTTON,
 	SM_HISTORY_BUTTON, SM_PERSONNEL_BUTTON, SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON,
-	SM_STATS_BUTTON, SM_SKILLS_BUTTON
+	SM_STATS_BUTTON, SM_SKILLS_BUTTON, SM_VEHICLE_CARGO_BUTTON
 };
 
 
@@ -1647,7 +1931,7 @@ void ShowSMBookmarkButtons(void)
 // this is narrower than HideSMBookmarkButtons() above.
 static UINT32 const g_smBookmarkButtonsUnderInfoPopups[] =
 {
-	SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON, SM_STATS_BUTTON, SM_SKILLS_BUTTON
+	SM_STRATSCREEN_BUTTON, SM_SHORTCUTS_BUTTON, SM_STATS_BUTTON, SM_SKILLS_BUTTON, SM_VEHICLE_CARGO_BUTTON
 };
 
 
@@ -1734,7 +2018,8 @@ static void PrintAP(SOLDIERTYPE* const s, INT16 const x, INT16 const y, INT16 co
 		return;
 
 	INT8  const ap         = GetUIApsToDisplay(s);
-	UINT8 const min_ap     = MinAPsToAttack(s, s->sLastTarget, TRUE);
+	// (a vehicle doesn't attack: red only with no APs left)
+	UINT8 const min_ap     = s->uiStatusFlags & SOLDIER_VEHICLE ? 1 : MinAPsToAttack(s, s->sLastTarget, TRUE);
 	UINT8 const foreground =
 		!EnoughPoints(s, min_ap, 0, FALSE) ? FONT_MCOLOR_DKRED    :
 		ap < 0                             ? FONT_MCOLOR_DKRED    :
@@ -1940,6 +2225,19 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 	// Give him the panel
 	if (gSelectSMPanelToMerc) SetSMPanelCurrentMerc(gSelectSMPanelToMerc);
 
+	// ... or straight on the vehicle's cargo asked for from the team panel
+	if (gpSMPendingCargoVehicle)
+	{
+		SOLDIERTYPE* const v = gpSMPendingCargoVehicle;
+		gpSMPendingCargoVehicle = 0;
+		if (gpSMCurrentMerc && gpSMCurrentMerc == gpSMPendingCargoMerc && IsVehicleCargoTarget(*v) &&
+			GetJA2Clock() - guiSMPendingCargoTime < 1000)
+		{
+			gpSMCargoMerc = gpSMCurrentMerc;
+			SetSMPanelCurrentMerc(v);
+		}
+	}
+
 	// ATE: Don't do anything if we are in stack popup and are refreshing stuff
 	if ((InItemStackPopup() || InKeyRingPopup() || InStatsPopup() || InSkillsPopup()) && *dirty_level == DIRTYLEVEL1)
 		return;
@@ -2044,9 +2342,10 @@ no_plate:
 
 			// Render Values for stats
 			SetFontDestBuffer(guiSAVEBUFFER);
-			if (SM_BIG)
+			// (a vehicle's cargo panel: no stats, it has none)
+			if (SM_BIG || s.uiStatusFlags & SOLDIER_VEHICLE)
 			{
-				RenderBigSMPanelStats(s, dx, dy);
+				if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) RenderBigSMPanelStats(s, dx, dy);
 				SetFontDestBuffer(FRAME_BUFFER);
 				RestoreExternBackgroundRect(0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
 				goto stats_done;
@@ -2127,18 +2426,18 @@ stats_done:
 	{
 		SetStatsHelp(gSM_SELMERCBarsRegion, s);
 
-		// Display AP
+		// Display AP (a vehicle's cargo panel: only its bars)
 		if (!(s.uiStatusFlags & SOLDIER_DEAD))
 		{
 			if (SM_BIG)
 			{
-				PrintAP(&s, dx + SM_BIG_AP_X, dy + SM_BIG_AP_Y, SM_BIG_AP_WIDTH, SM_BIG_AP_HEIGHT, SM_BIG_FONT);
+				if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) PrintAP(&s,dx + SM_BIG_AP_X, dy + SM_BIG_AP_Y, SM_BIG_AP_WIDTH, SM_BIG_AP_HEIGHT, SM_BIG_FONT);
 				DrawSoldierUIBarsTall(s, dx + SM_BIG_LIFEBAR_X, dx + SM_BIG_BREATHBAR_X, dx + SM_BIG_MORALEBAR_X,
 							dy + SM_BIG_BARS_Y, SM_BIG_BAR_WIDTH, SM_BIG_BAR_HEIGHT, FRAME_BUFFER);
 			}
 			else
 			{
-				PrintAP(&s, dx + SM_SELMERC_AP_X, dy + SM_SELMERC_AP_Y, SM_SELMERC_AP_WIDTH, SM_SELMERC_AP_HEIGHT);
+				if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) PrintAP(&s, dx + SM_SELMERC_AP_X, dy + SM_SELMERC_AP_Y, SM_SELMERC_AP_WIDTH, SM_SELMERC_AP_HEIGHT);
 				DrawSoldierUIBars(s, dx + SM_SELMERC_HEALTH_X, dy + SM_SELMERC_HEALTH_Y, TRUE, FRAME_BUFFER);
 			}
 		}
@@ -2238,6 +2537,7 @@ static void SMInvClickCamoCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 
 		SOLDIERTYPE* const s = gpSMCurrentMerc;
 		if (s->bLife < CONSCIOUSNESS) return;
+		if (s->uiStatusFlags & SOLDIER_VEHICLE) return;
 
 		BOOLEAN fGoodAPs;
 		// Try to apply camo....
@@ -2405,7 +2705,11 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 		if ( gpSMCurrentMerc->inv[ uiHandPos ].usItem == NOTHING )
 			return;
 
-		SelectSoldier(gpSMCurrentMerc, SELSOLDIER_NONE);
+		// (out of a vehicle's cargo or from a merc aboard: the selection stays)
+		if (!(gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE) && !IsAboard(*gpSMCurrentMerc))
+		{
+			SelectSoldier(gpSMCurrentMerc, SELSOLDIER_NONE);
+		}
 
 		// OK, check if this is Nails, and we're in the vest position , don't allow it to come off....
 		if ( HandleNailsVestFetish( gpSMCurrentMerc, uiHandPos, NOTHING ) )
@@ -2443,12 +2747,25 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 	{
 		BOOLEAN fOKToGo = FALSE;
 		BOOLEAN fDeductPoints = FALSE;
+		// into or out of a vehicle's cargo: only the merc reaching in pays,
+		// AP_PICKUP_ITEM in turn-based combat
+		SOLDIERTYPE* cargo_merc = 0;
+		if (gpSMCurrentMerc != gpItemPointerSoldier &&
+			(gpSMCurrentMerc->uiStatusFlags | gpItemPointerSoldier->uiStatusFlags) & SOLDIER_VEHICLE)
+		{
+			cargo_merc = gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE ? gpItemPointerSoldier : gpSMCurrentMerc;
+			if (cargo_merc->uiStatusFlags & SOLDIER_VEHICLE) cargo_merc = gpSMCargoMerc;
+		}
 
 		// ATE: OK, get source, dest guy if different... check for and then charge appropriate APs
 		if (gpSMCurrentMerc == gpItemPointerSoldier)
 		{
 			// We are doing this ourselve, continue
 			fOKToGo = TRUE;
+		}
+		else if (cargo_merc)
+		{
+			fOKToGo = !(gTacticalStatus.uiFlags & INCOMBAT) || EnoughPoints(cargo_merc, AP_PICKUP_ITEM, 0, TRUE);
 		}
 		else
 		{
@@ -2545,6 +2862,11 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 			// try to place the item in the cursor into this inventory slot
 			if ( UIHandleItemPlacement( (UINT8) uiHandPos, usOldItemIndex, usNewItemIndex, fDeductPoints ) )
 			{
+				if (cargo_merc && gTacticalStatus.uiFlags & INCOMBAT)
+				{
+					DeductPoints(cargo_merc, AP_PICKUP_ITEM, 0);
+				}
+
 				// it worked!  if we're in the SKI...
 				if (guiCurrentScreen == SHOPKEEPER_SCREEN)
 				{
@@ -2667,6 +2989,8 @@ static void HandleMouseOverSoldierFaceForContMove(SOLDIERTYPE* pSoldier, BOOLEAN
 	{
 		return;
 	}
+	// (a vehicle has no face -- its cargo panel on the SM panel)
+	if (!pSoldier->face) return;
 
 	if ( fOn )
 	{
@@ -2734,6 +3058,13 @@ static void SelectedMercButtonCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRea
 
 	//if we are in the shop keeper interface
 	if (guiCurrentScreen == SHOPKEEPER_SCREEN) return;
+
+	// a vehicle's cargo panel: back to its merc, the vehicle is never selected
+	if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		gSelectSMPanelToMerc = GetSMPanelOwnerMerc();
+		return;
+	}
 
 	// ATE: Don't if this guy can't....
 	if ( !gfSMDisableForItems )
@@ -2970,11 +3301,67 @@ static void SelectMerc(SOLDIERTYPE* const s)
 }
 
 
+static bool StepSMPanelThroughTeamPanel(bool next);
+
+
+// Previous / Next merc with the vehicle cargo panel (plan, decision T6).
+// 1366x768 with vehicles in the sector: through the team panel's order,
+// vehicles too (StepSMPanelThroughTeamPanel()). Otherwise, without an item
+// on the cursor: from the vehicle's panel back to its merc; with an item on
+// the cursor the vehicle the merc holding it can reach is a step too: from
+// his panel to the vehicle's, from there on to the merc before / after him.
+static void SMPanelPrevNextMerc(bool const next)
+{
+	SOLDIERTYPE* const cur = gpSMCurrentMerc;
+	if (!cur) return;
+
+	if (g_ui.isBigTeamPanel() && StepSMPanelThroughTeamPanel(next)) return;
+
+	// a merc aboard (stage 4d) isn't stepped from here: back to the team panel
+	if (IsAboard(*cur))
+	{
+		SetNewPanel(0);
+		return;
+	}
+
+	if (cur->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		SOLDIERTYPE* const owner = GetSMPanelOwnerMerc();
+		if (!gpItemPointer || !owner)
+		{
+			gSelectSMPanelToMerc = owner;
+			return;
+		}
+		SOLDIERTYPE* const to = next ? FindNextActiveAndAliveMerc(owner, TRUE, TRUE) : FindPrevActiveAndAliveMerc(owner, TRUE, TRUE);
+		if (!to || to == owner)
+		{ // (he is the only one)
+			gSelectSMPanelToMerc = owner;
+			return;
+		}
+		SelectMerc(to);
+		return;
+	}
+
+	if (gpItemPointer && cur == gpItemPointerSoldier)
+	{
+		if (SOLDIERTYPE* const v = VehicleCargoInReach(*cur))
+		{
+			gpSMCargoMerc        = cur;
+			gSelectSMPanelToMerc = v;
+			fInterfacePanelDirty = DIRTYLEVEL2;
+			return;
+		}
+	}
+
+	SelectMerc(next ? FindNextActiveAndAliveMerc(cur, TRUE, TRUE) : FindPrevActiveAndAliveMerc(cur, TRUE, TRUE));
+}
+
+
 static void BtnPrevMercCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		SelectMerc(FindPrevActiveAndAliveMerc(gpSMCurrentMerc, TRUE, TRUE));
+		SMPanelPrevNextMerc(false);
 	}
 }
 
@@ -2983,7 +3370,7 @@ static void BtnNextMercCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		SelectMerc(FindNextActiveAndAliveMerc(gpSMCurrentMerc, TRUE, TRUE));
+		SMPanelPrevNextMerc(true);
 	}
 }
 
@@ -3157,6 +3544,160 @@ static void TMClickSecondHandInvCallbackSecondary(MOUSE_REGION* pRegion, UINT32 
 static INT32 giBigTeamPanelFirstSlot = 0;
 
 
+// The 1366x768 team panel's vehicle windows (vehicle inventory plan, stage
+// 4c): one for each of our vehicles in the sector that carries cargo
+// (IsVehicleCargoTarget()), always first from the left, in a fixed order
+// (helicopter, Hummer, ice cream truck, the others); the squad's slots
+// follow in the windows left and scroll there. A right click on a vehicle's
+// portrait opens its cargo panel for the selected merc. Kept out of
+// gTeamPanel: the slot numbers (and the keys 1-9) stay the squad's.
+#define BIG_TEAMPANEL_MAX_VEHICLES (BIG_TEAMPANEL_NUM_SLOTS - 1)
+static SOLDIERTYPE* gBigTeamPanelVehicles[BIG_TEAMPANEL_MAX_VEHICLES];
+static INT32        giBigTeamPanelNumVehicles = 0;
+static MOUSE_REGION gBigTeamPanelVehicleFace[BIG_TEAMPANEL_MAX_VEHICLES];
+// the seat belt in the second hand's window (the low panel: the first's) --
+// everyone aboard gets out
+static MOUSE_REGION gBigTeamPanelVehicleExit[BIG_TEAMPANEL_MAX_VEHICLES];
+static bool         gfBigTeamPanelVehicleRegions = false;
+
+
+// The top of a vehicle window's seat belt window
+static INT32 BigTeamVehicleExitY()
+{
+	return TEAM_PANEL_Y + BIG_TM_INV_Y + (g_ui.isLowTeamPanel() ? 0 : BIG_TM_INV_SEPY);
+}
+
+
+// Everyone aboard this vehicle gets out at once, all into the squad of the
+// first one out (as one by one with the passengers' seat belts otherwise)
+static void ExitEveryoneFromVehicle(SOLDIERTYPE& vs)
+{
+	VEHICLETYPE const& v = GetVehicle(vs.bVehicleID);
+	std::vector<SOLDIERTYPE*> aboard;
+	CFOR_EACH_PASSENGER(v, i) aboard.push_back(*i);
+
+	INT8 squad = -1;
+	for (SOLDIERTYPE* const s : aboard)
+	{
+		if (!MayExitVehicleInTactical(*s, aboard.size() == 1) || !ExitVehicle(s)) continue;
+		ChargeVehicleExit(*s);
+		if (squad == -1)
+		{
+			squad = s->bAssignment;
+		}
+		else if (s->bAssignment != squad)
+		{
+			AddCharacterToSquad(s, squad); // (a full squad: he keeps his own)
+		}
+	}
+	if (squad != -1 && guiCurrentScreen == GAME_SCREEN) SetCurrentSquad(squad, TRUE);
+}
+
+
+// The windows the squad's slots get
+static INT32 BigTeamPanelMercWindows()
+{
+	return BIG_TEAMPANEL_NUM_SLOTS - giBigTeamPanelNumVehicles;
+}
+
+
+// The vehicles' fixed order: helicopter, Hummer, ice cream truck, then the
+// others (their windows; which one is shown entering a sector)
+static int BigTeamPanelVehicleRank(SOLDIERTYPE const& s)
+{
+	switch (pVehicleList[s.bVehicleID].ubVehicleType)
+	{
+		case HELICOPTER:      return 0;
+		case HUMMER:          return 1;
+		case ICE_CREAM_TRUCK: return 2;
+		default:              return 3;
+	}
+}
+
+
+// Gathers the vehicles for the windows; whether they changed
+static bool UpdateBigTeamPanelVehicles()
+{
+	SOLDIERTYPE* now[BIG_TEAMPANEL_MAX_VEHICLES];
+	INT32        n = 0;
+	// (the watched battle's bar has no slots)
+	if (!g_ui.isWatchBar())
+	{
+		FOR_EACH_IN_TEAM(v, OUR_TEAM)
+		{
+			if (n == BIG_TEAMPANEL_MAX_VEHICLES) break;
+			if (IsVehicleCargoTarget(*v)) now[n++] = v;
+		}
+	}
+
+	std::stable_sort(now, now + n, [](SOLDIERTYPE const* const a, SOLDIERTYPE const* const b)
+	{
+		return BigTeamPanelVehicleRank(*a) < BigTeamPanelVehicleRank(*b);
+	});
+
+	bool changed = n != giBigTeamPanelNumVehicles;
+	for (INT32 i = 0; i != n && !changed; ++i)
+	{
+		changed = now[i] != gBigTeamPanelVehicles[i];
+	}
+	if (!changed) return false;
+
+	std::copy(now, now + n, gBigTeamPanelVehicles);
+	giBigTeamPanelNumVehicles = n;
+	return true;
+}
+
+
+// Previous / Next merc on the 1366x768 SM panel with vehicles in the sector
+// (plan T6, stage 4c): the team panel's order -- the vehicles from the left,
+// then the squad's mercs, those aboard too (stage 4d / Q2, also in combat) --
+// round and round. A vehicle's panel opens for the selected merc (everyone
+// aboard: for one of them); a merc aboard isn't selected, only his panel
+// shown; with an item on the cursor every panel it can't be passed to is
+// hatched (P7). False: no vehicles, the usual steps.
+static bool StepSMPanelThroughTeamPanel(bool const next)
+{
+	UpdateBigTeamPanelVehicles();
+	SOLDIERTYPE* const owner = VehicleCargoPanelOwner();
+	if (giBigTeamPanelNumVehicles == 0 || !owner) return false;
+
+	std::vector<SOLDIERTYPE*> order(gBigTeamPanelVehicles, gBigTeamPanelVehicles + giBigTeamPanelNumVehicles);
+	for (TeamPanelSlot const& i : gTeamPanel)
+	{
+		SOLDIERTYPE* const s = i.merc;
+		if (!s || !s->bActive || !s->bInSector || s->bLife < 1) continue;
+		if (AM_AN_EPC(s) || AM_A_ROBOT(s) || !OK_INTERRUPT_MERC(s)) continue;
+		order.push_back(s);
+	}
+
+	SOLDIERTYPE* const cur = gpSMCurrentMerc;
+	auto const at = std::find(order.begin(), order.end(), cur);
+	if (at == order.end()) return false;
+
+	size_t const n   = order.size();
+	size_t const idx = at - order.begin();
+	SOLDIERTYPE* const to = order[next ? (idx + 1) % n : (idx + n - 1) % n];
+	if (to == cur) return true;
+
+	if (to->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		gpSMCargoMerc        = owner;
+		gSelectSMPanelToMerc = to;
+		fInterfacePanelDirty = DIRTYLEVEL2;
+	}
+	else if (IsAboard(*to))
+	{
+		gSelectSMPanelToMerc = to;
+		fInterfacePanelDirty = DIRTYLEVEL2;
+	}
+	else
+	{
+		SelectMerc(to);
+	}
+	return true;
+}
+
+
 // The furthest the panel scrolls: up to its last merc.
 static INT32 BigTeamPanelMaxFirstSlot()
 {
@@ -3165,7 +3706,7 @@ static INT32 BigTeamPanelMaxFirstSlot()
 	{
 		if (gTeamPanel[i].merc) last = i;
 	}
-	return std::max(0, last + 1 - BIG_TEAMPANEL_NUM_SLOTS);
+	return std::max(0, last + 1 - BigTeamPanelMercWindows());
 }
 
 
@@ -3191,12 +3732,34 @@ static void LayoutBigTEAMPanelRegions()
 	giBigTeamPanelFirstSlot = std::clamp(giBigTeamPanelFirstSlot, 0, BigTeamPanelMaxFirstSlot());
 
 	INT32 const dy = TEAM_PANEL_Y;
+
+	// the vehicles' portraits, first
+	if (gfBigTeamPanelVehicleRegions)
+	{
+		for (INT32 i = 0; i != BIG_TEAMPANEL_MAX_VEHICLES; ++i)
+		{
+			MOUSE_REGION& r = gBigTeamPanelVehicleFace[i];
+			MOUSE_REGION& e = gBigTeamPanelVehicleExit[i];
+			if (i < giBigTeamPanelNumVehicles)
+			{
+				INT32 const x = TEAM_PANEL_X + i * BIG_TEAMPANEL_SLOT_WIDTH;
+				PlaceRegion(r, x + BIG_TM_FACE_X, dy + BIG_TM_FACE_Y, BIG_TM_FACE_WIDTH, BIG_TM_FACE_HEIGHT);
+				PlaceRegion(e, x + BIG_TM_INV_X, BigTeamVehicleExitY(), BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
+			}
+			else
+			{
+				PlaceRegion(r, OFF_SCREEN, OFF_SCREEN, 0, 0);
+				PlaceRegion(e, OFF_SCREEN, OFF_SCREEN, 0, 0);
+			}
+		}
+	}
+
 	for (INT32 i = 0; i != (INT32)gTeamPanel.size(); ++i)
 	{
 		TeamPanelSlot& tp  = gTeamPanel[i];
 		INT32   const  pos = i - giBigTeamPanelFirstSlot;
 		// the watched battle's bar has no slots
-		if (pos < 0 || BIG_TEAMPANEL_NUM_SLOTS <= pos || g_ui.isWatchBar())
+		if (pos < 0 || BigTeamPanelMercWindows() <= pos || g_ui.isWatchBar())
 		{
 			for (MOUSE_REGION* const r : { &tp.face, &tp.enemy_indicator, &tp.bars, &tp.left_bars, &tp.first_hand, &tp.second_hand })
 			{
@@ -3205,7 +3768,7 @@ static void LayoutBigTEAMPanelRegions()
 			continue;
 		}
 
-		INT32 const dx     = TEAM_PANEL_X + pos * BIG_TEAMPANEL_SLOT_WIDTH;
+		INT32 const dx     = TEAM_PANEL_X + (giBigTeamPanelNumVehicles + pos) * BIG_TEAMPANEL_SLOT_WIDTH;
 		INT32 const face_x = dx + BIG_TM_FACE_X;
 		INT32 const face_y = dy + BIG_TM_FACE_Y;
 		PlaceRegion(tp.face, face_x, face_y, BIG_TM_FACE_WIDTH, BIG_TM_FACE_HEIGHT);
@@ -3239,10 +3802,10 @@ static void ScrollBigTEAMPanel(INT32 const slots)
 }
 
 
-// One slot a notch, with Shift a whole panel (BIG_TEAMPANEL_NUM_SLOTS).
+// One slot a notch, with Shift a whole panel (its merc windows).
 static void BigTEAMPanelWheelCallback(MOUSE_REGION*, UINT32 const reason)
 {
-	INT32 const step = _KeyDown(SHIFT) ? BIG_TEAMPANEL_NUM_SLOTS : 1;
+	INT32 const step = _KeyDown(SHIFT) ? BigTeamPanelMercWindows() : 1;
 	if (reason & MSYS_CALLBACK_REASON_WHEEL_UP)   ScrollBigTEAMPanel(-step);
 	if (reason & MSYS_CALLBACK_REASON_WHEEL_DOWN) ScrollBigTEAMPanel(+step);
 }
@@ -3263,7 +3826,7 @@ static bool FollowSelectedMercOnBigTEAMPanel()
 		if (gTeamPanel[i].merc != sel) continue;
 		INT32 first = giBigTeamPanelFirstSlot;
 		if (i < first)                                  first = i;
-		else if (first + BIG_TEAMPANEL_NUM_SLOTS <= i) first = i - BIG_TEAMPANEL_NUM_SLOTS + 1;
+		else if (first + BigTeamPanelMercWindows() <= i) first = i - BigTeamPanelMercWindows() + 1;
 		if (first == giBigTeamPanelFirstSlot) return false;
 		giBigTeamPanelFirstSlot = first;
 		LayoutBigTEAMPanelRegions();
@@ -3275,8 +3838,181 @@ static bool FollowSelectedMercOnBigTEAMPanel()
 
 // The 1366x768 interface's team panel: the old panel's regions for every
 // slot, plus the mouse wheel, laid out by LayoutBigTEAMPanelRegions().
+static SOLDIERTYPE* BigTeamPanelVehicleOf(MOUSE_REGION* const r)
+{
+	INT32 const i = MSYS_GetRegionUserData(r, 0);
+	return 0 <= i && i < giBigTeamPanelNumVehicles ? gBigTeamPanelVehicles[i] : 0;
+}
+
+
+// The helicopter's passengers view (helicopter passengers plan, 3.1): it has no
+// squad, so the team panel's slots are filled with those aboard it in the
+// sector, in seat order, while the current squad stays as it is. Any squad
+// change (SetCurrentSquad(), RebuildCurrentSquad()) ends it.
+static bool gfHelicopterPassengersView = false;
+
+
+static void AddPlayerToInterfaceTeamSlot(SOLDIERTYPE*);
+
+
+// those aboard the helicopter in the loaded sector, in seat order
+static std::vector<SOLDIERTYPE*> HelicopterPassengersInSector(SOLDIERTYPE const& hs)
+{
+	std::vector<SOLDIERTYPE*> aboard;
+	CFOR_EACH_PASSENGER(GetVehicle(hs.bVehicleID), i)
+	{
+		if ((*i)->bInSector) aboard.push_back(*i);
+	}
+	return aboard;
+}
+
+
+static void ShowHelicopterPassengersView(SOLDIERTYPE const& hs)
+{
+	RemoveAllPlayersFromSlot();
+	SetAllAutoFacesInactive();
+	for (SOLDIERTYPE* const s : HelicopterPassengersInSector(hs)) AddPlayerToInterfaceTeamSlot(s);
+	gfHelicopterPassengersView = true;
+	giBigTeamPanelFirstSlot    = 0;
+	LayoutBigTEAMPanelRegions();
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+bool IsHelicopterPassengersView()
+{
+	return gfHelicopterPassengersView;
+}
+
+
+void EndHelicopterPassengersView()
+{
+	if (!gfHelicopterPassengersView) return;
+	gfHelicopterPassengersView = false;
+	fInterfacePanelDirty       = DIRTYLEVEL2;
+}
+
+
+bool ShowVehicleOnSectorEntry()
+{
+	if (guiCurrentScreen != GAME_SCREEN) return false;
+	if (!g_ui.isBigTeamPanel()) return true;
+
+	// only with nobody of ours on the ground, everyone aboard a vehicle
+	CFOR_EACH_IN_TEAM(s, OUR_TEAM)
+	{
+		if (!s->bInSector || s->bLife <= 0) continue;
+		if (s->uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER)) continue;
+		return true;
+	}
+
+	// the helicopter first (its passengers view)
+	SOLDIERTYPE* const hs = GetHelicopterSoldier();
+	if (hs && hs->bInSector && !HelicopterPassengersInSector(*hs).empty())
+	{
+		ShowHelicopterPassengersView(*hs);
+		LocateSoldier(hs, SETLOCATOR);
+		return true;
+	}
+
+	// then the ground vehicle first in the windows' order (Hummer, ice cream
+	// truck, the others): its squad
+	SOLDIERTYPE const* best = NULL;
+	CFOR_EACH_IN_TEAM(v, OUR_TEAM)
+	{
+		if (!(v->uiStatusFlags & SOLDIER_VEHICLE) || IsHelicopterSoldier(*v)) continue;
+		if (!v->bInSector || v->bLife <= 0 || GetNumberInVehicle(GetVehicle(v->bVehicleID)) == 0) continue;
+		if (!best || BigTeamPanelVehicleRank(*v) < BigTeamPanelVehicleRank(*best)) best = v;
+	}
+	if (best && best->bAssignment != CurrentSquad()) SetCurrentSquad(best->bAssignment, TRUE);
+	return true;
+}
+
+
+void UpdateHelicopterPassengersView()
+{
+	if (!gfHelicopterPassengersView || guiCurrentScreen != GAME_SCREEN) return;
+
+	// the helicopter left, or nobody is aboard: back to the current squad
+	SOLDIERTYPE const* const hs = GetHelicopterSoldier();
+	std::vector<SOLDIERTYPE*> const aboard = hs && hs->bInSector ? HelicopterPassengersInSector(*hs) : std::vector<SOLDIERTYPE*>();
+	if (aboard.empty())
+	{
+		SetCurrentSquad(CurrentSquad(), TRUE);
+		return;
+	}
+
+	// someone got in or out: the slots again
+	std::vector<SOLDIERTYPE*> shown;
+	for (TeamPanelSlot const& i : gTeamPanel)
+	{
+		if (i.merc) shown.push_back(i.merc);
+	}
+	if (shown != aboard) ShowHelicopterPassengersView(*hs);
+}
+
+
+// a vehicle's portrait: the left click shows it (it is never selected); with
+// someone aboard the team panel switches to its squad, those aboard it -- for
+// the helicopter, which has no squad, to its passengers view
+static void BigTeamVehicleFaceCallbackPrimary(MOUSE_REGION* const r, UINT32)
+{
+	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
+	if (!v || fInMapMode) return;
+	if (IsHelicopterSoldier(*v))
+	{
+		if (!HelicopterPassengersInSector(*v).empty()) ShowHelicopterPassengersView(*v);
+	}
+	else if (GetNumberInVehicle(GetVehicle(v->bVehicleID)) != 0 &&
+		(v->bAssignment != CurrentSquad() || gfHelicopterPassengersView))
+	{
+		SetCurrentSquad(v->bAssignment, FALSE);
+	}
+	LocateSoldier(v, SETLOCATOR);
+}
+
+
+// ... the right click opens its cargo panel, as a merc's inventory
+static void BigTeamVehicleFaceCallbackSecondary(MOUSE_REGION* const r, UINT32)
+{
+	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
+	if (!v || fInMapMode || InOverheadMap()) return;
+	OpenVehicleCargoPanel(*v);
+}
+
+
+// a vehicle's seat belt: everyone aboard gets out
+static void BigTeamVehicleExitCallback(MOUSE_REGION* const r, UINT32)
+{
+	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
+	if (!v || fInMapMode || GetNumberInVehicle(GetVehicle(v->bVehicleID)) == 0) return;
+	if (IsVehicleMoving(*v)) return; // (D13: nobody gets out while it drives)
+	if (IsHelicopterSoldier(*v))
+	{
+		ExitEveryoneFromHelicopterInTactical();
+		return;
+	}
+	ExitEveryoneFromVehicle(*v);
+}
+
+
 static void CreateBigTEAMPanelRegions()
 {
+	// the vehicles' portraits and seat belts
+	MOUSE_CALLBACK const vehicle_face = MouseCallbackPrimarySecondary(BigTeamVehicleFaceCallbackPrimary, BigTeamVehicleFaceCallbackSecondary, BigTEAMPanelWheelCallback, true);
+	MOUSE_CALLBACK const vehicle_exit = MouseCallbackPrimarySecondary(BigTeamVehicleExitCallback, MSYS_NO_CALLBACK, BigTEAMPanelWheelCallback);
+	for (INT32 i = 0; i != BIG_TEAMPANEL_MAX_VEHICLES; ++i)
+	{
+		MOUSE_REGION& r = gBigTeamPanelVehicleFace[i];
+		MSYS_DefineRegion(&r, 0, 0, 0, 0, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, vehicle_face);
+		MSYS_SetRegionUserData(&r, 0, i);
+		MOUSE_REGION& e = gBigTeamPanelVehicleExit[i];
+		MSYS_DefineRegion(&e, 0, 0, 0, 0, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, vehicle_exit);
+		MSYS_SetRegionUserData(&e, 0, i);
+	}
+	gfBigTeamPanelVehicleRegions = true;
+	UpdateBigTeamPanelVehicles();
+
 	for (TeamPanelSlot& tp : gTeamPanel)
 	{
 		MOUSE_CALLBACK mercFacePanelCallback = MouseCallbackPrimarySecondary(MercFacePanelCallbackPrimary, MercFacePanelCallbackSecondary, BigTEAMPanelWheelCallback, true);
@@ -3413,6 +4149,13 @@ void ShutdownTEAMPanel()
 	MSYS_RemoveRegion(&gTEAM_PanelRegion);
 	MSYS_RemoveRegion(&gViewportRegion);
 
+	if (gfBigTeamPanelVehicleRegions)
+	{
+		for (MOUSE_REGION& r : gBigTeamPanelVehicleFace) MSYS_RemoveRegion(&r);
+		for (MOUSE_REGION& r : gBigTeamPanelVehicleExit) MSYS_RemoveRegion(&r);
+		gfBigTeamPanelVehicleRegions = false;
+	}
+
 	for (TeamPanelSlot& i : gTeamPanel)
 	{
 		MSYS_RemoveRegion(&i.face);
@@ -3497,6 +4240,8 @@ static void RenderBigTeamPortrait(SOLDIERTYPE const& s, INT16 const x, INT16 con
 // the selected merc's portrait gets a 1 px frame, and outside the player's
 // turn (or a merc that already moved while an interrupt is queued) the
 // portrait is shaded instead of hatched.
+// The helicopter's window gets the frame, too, while its passengers view is
+// shown (plan option O1).
 static void RenderBigTeamSlotBorder(SOLDIERTYPE const* const s, INT32 const dx, INT32 const dy)
 {
 	INT32 const x = dx + BIG_TM_FACE_X;
@@ -3507,7 +4252,7 @@ static void RenderBigTeamSlotBorder(SOLDIERTYPE const* const s, INT32 const dx, 
 	{
 		guiSAVEBUFFER->ShadowRect(x, y, x + w, y + h);
 	}
-	else if (s && s == GetSelectedMan())
+	else if (s && (s == GetSelectedMan() || (gfHelicopterPassengersView && IsHelicopterSoldier(*s))))
 	{
 		SGPVSurface::Lock l(guiSAVEBUFFER);
 		SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -3526,6 +4271,12 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 	// it -- and then everything is drawn again.
 	if (big)
 	{
+		// vehicles came or went: the squad's windows move
+		if (UpdateBigTeamPanelVehicles())
+		{
+			LayoutBigTEAMPanelRegions();
+			dirty_level = DIRTYLEVEL2;
+		}
 		INT32 const old_first = giBigTeamPanelFirstSlot;
 		bool  const followed  = FollowSelectedMercOnBigTEAMPanel();
 		if (giBigTeamPanelFirstSlot > BigTeamPanelMaxFirstSlot()) LayoutBigTEAMPanelRegions();
@@ -3533,7 +4284,9 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 	}
 	size_t const first_slot = big ? (size_t)giBigTeamPanelFirstSlot : 0;
 	size_t const end_slot   = g_ui.isWatchBar() ? first_slot : // no slots on the watched battle's bar
-		big ? std::min(gTeamPanel.size(), first_slot + BIG_TEAMPANEL_NUM_SLOTS) : gTeamPanel.size();
+		big ? std::min(gTeamPanel.size(), first_slot + BigTeamPanelMercWindows()) : gTeamPanel.size();
+	// (the squad's windows after the vehicles')
+	INT32 const vehicles_w = big ? giBigTeamPanelNumVehicles * BIG_TEAMPANEL_SLOT_WIDTH : 0;
 
 	if (dirty_level == DIRTYLEVEL2)
 	{
@@ -3548,8 +4301,38 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 
 		BltVideoSurface(guiSAVEBUFFER, guiTEAMPanel, TEAM_PANEL_X, TEAM_PANEL_Y, NULL);
 
+		// the vehicles' windows: portrait and name (no number, AP or hands)
+		for (INT32 n = 0; big && n != giBigTeamPanelNumVehicles; ++n)
+		{
+			SOLDIERTYPE const& v  = *gBigTeamPanelVehicles[n];
+			INT32       const  vx = TEAM_PANEL_X + n * BIG_TEAMPANEL_SLOT_WIDTH;
+			RenderBigTeamPortrait(v, vx + BIG_TM_FACE_X, TEAM_PANEL_Y + BIG_TM_FACE_Y);
+			RenderBigTeamSlotBorder(&v, vx, TEAM_PANEL_Y);
+			SetStatsHelp(gBigTeamPanelVehicleFace[n], v);
+			SetFontAttributes(BIG_TM_FONT, BIG_TM_NAME_COLOR);
+			SetFontDestBuffer(guiSAVEBUFFER);
+			MPrint(vx + BIG_TM_NAME_X, TEAM_PANEL_Y + BIG_TM_NAME_Y, v.name,
+				HCenterVCenterAlign(BIG_TM_NAME_WIDTH, BIG_TM_NAME_HEIGHT));
+			SetFontDestBuffer(FRAME_BUFFER);
+
+			// someone aboard: the seat belt (the passengers' exit picture),
+			// everyone out at once
+			ST::string exit_help;
+			// (the helicopter's: those aboard in the sector)
+			bool const aboard = IsHelicopterSoldier(v) ? !HelicopterPassengersInSector(v).empty() :
+				GetNumberInVehicle(GetVehicle(v.bVehicleID)) != 0;
+			if (aboard)
+			{
+				INT32 const bx = vx + BIG_TM_INV_X;
+				INT32 const by = BigTeamVehicleExitY();
+				BltVideoObject(guiSAVEBUFFER, guiVEHINV, 1, bx + (BIG_TM_INV_WIDTH - TM_INV_WIDTH) / 2, by + (BIG_TM_INV_HEIGHT - TM_INV_HEIGHT) / 2);
+				exit_help = TacticalStr[EXIT_VEHICLE_POPUPTEXT];
+			}
+			gBigTeamPanelVehicleExit[n].SetFastHelpText(exit_help);
+		}
+
 		// LOOP THROUGH ALL MERCS ON TEAM PANEL
-		INT32       dx = TEAM_PANEL_X;
+		INT32       dx = TEAM_PANEL_X + vehicles_w;
 		INT32 const dy = TEAM_PANEL_Y;
 		for (size_t n = first_slot; n != end_slot; ++n)
 		{
@@ -3660,8 +4443,25 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 		RenderTownIDString();
 	}
 
+	// the vehicles' bars (condition and fuel), and in combat the APs of the
+	// ones that drive in tactical, where a merc's are (its driver shows his own)
+	if (dirty_level != DIRTYLEVEL0)
+	{
+		for (INT32 n = 0; big && n != giBigTeamPanelNumVehicles; ++n)
+		{
+			SOLDIERTYPE* const v  = gBigTeamPanelVehicles[n];
+			INT32        const vx = TEAM_PANEL_X + n * BIG_TEAMPANEL_SLOT_WIDTH;
+			DrawSoldierUIBarsTall(*v, vx + BIG_TM_LIFEBAR_X, vx + BIG_TM_BREATHBAR_X, vx + BIG_TM_MORALEBAR_X,
+						TEAM_PANEL_Y + BIG_TM_BARS_Y, BIG_TM_BAR_WIDTH, BIG_TM_BAR_HEIGHT, FRAME_BUFFER);
+			if (v->ubBodyType == HUMVEE || v->ubBodyType == ICECREAMTRUCK)
+			{
+				PrintAP(v, vx + BIG_TM_AP_X, TEAM_PANEL_Y + BIG_TM_AP_Y, BIG_TM_AP_WIDTH, BIG_TM_AP_HEIGHT, BIG_TM_FONT);
+			}
+		}
+	}
+
 	// Loop through all mercs and make go
-	INT32       dx = TEAM_PANEL_X;
+	INT32       dx = TEAM_PANEL_X + vehicles_w;
 	INT32 const dy = TEAM_PANEL_Y;
 	for (size_t n = first_slot; n != end_slot; ++n)
 	{
@@ -4060,10 +4860,9 @@ static void MercFacePanelCallbackSecondary(MOUSE_REGION* pRegion, UINT32 iReason
 
 	if (!InOverheadMap())
 	{
-		// Only if guy is not dead!
-		if (!(s->uiStatusFlags & SOLDIER_DEAD) &&
-				!AM_AN_EPC(s) &&
-				!(s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER)))
+		// Only if guy is not dead! (a merc aboard a vehicle too, also in combat
+		// since the driving plan lifted Q1)
+		if (!(s->uiStatusFlags & SOLDIER_DEAD) && !AM_AN_EPC(s))
 		{
 			SetNewPanel(s);
 		}
@@ -4429,9 +5228,18 @@ static void TMClickSecondHandInvCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iR
 	SOLDIERTYPE* const s = pRegion->GetUserPtr<TeamPanelSlot>()->merc;
 	if (!s) return;
 
-	if (s->uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER))
+	if (InHelicopter(*s))
 	{
-		ExitVehicle(s);
+		if (MayExitVehicleInTactical(*s, true) && ExitHelicopterInTactical(*s)) ChargeVehicleExit(*s);
+	}
+	else if (s->uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER))
+	{
+		// D13: nobody gets out while it drives
+		if (!IsVehicleMoving(GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId))) &&
+			MayExitVehicleInTactical(*s, true) && ExitVehicle(s))
+		{
+			ChargeVehicleExit(*s);
+		}
 	}
 }
 
@@ -5203,6 +6011,7 @@ void ToggleTacticalStatsPopup()
 	bool         const sm = gsCurInterfacePanel == SM_PANEL;
 	SOLDIERTYPE* const s  = sm ? gpSMCurrentMerc : GetSelectedMan();
 	if (!s) return;
+	if (s->uiStatusFlags & SOLDIER_VEHICLE) return; // (no stats)
 	INT16 const y = sm ? INV_INTERFACE_START_Y : TEAM_PANEL_Y;
 	InitStatsPopup(s, 0, y, SCREEN_WIDTH, SCREEN_HEIGHT - y);
 }
@@ -5669,7 +6478,7 @@ static void BtnSkillsCallback(GUI_BUTTON* btn, UINT32 reason)
 		{
 			DeleteSkillsPopup();
 		}
-		else if (gpSMCurrentMerc)
+		else if (gpSMCurrentMerc && !(gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE))
 		{
 			InitSkillsPopup(gpSMCurrentMerc, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT - INV_INTERFACE_START_Y);
 		}
@@ -5692,6 +6501,9 @@ void BeginKeyPanelFromKeyShortcut(void)
 	{
 		return;
 	}
+
+	// (a vehicle's cargo panel: no key ring)
+	if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE) return;
 
 	if ( gfInKeyRingPopup )
 	{
@@ -5746,6 +6558,8 @@ void KeyRingItemPanelButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 		{
 			return;
 		}
+		// (a vehicle's cargo panel: no key ring)
+		if (gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE) return;
 
 		sStartYPosition = INV_INTERFACE_START_Y;
 		sWidth   = SCREEN_WIDTH;
@@ -6076,6 +6890,9 @@ static void SMInvMoneyButtonCallback(MOUSE_REGION* pRegion, UINT32 iReason)
 
 		//If the current merc is to far away, dont allow anything to be done
 		if( gfSMDisableForItems )
+			return;
+		// (a vehicle's cargo panel: no money of its own)
+		if (gpSMCurrentMerc && gpSMCurrentMerc->uiStatusFlags & SOLDIER_VEHICLE)
 			return;
 
 		//if the player has an item in his hand,

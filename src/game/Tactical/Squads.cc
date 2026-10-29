@@ -1,4 +1,5 @@
 #include "Squads.h"
+#include "Vehicles.h"
 #include "Assignments.h"
 #include "ContentManager.h"
 #include "Debug.h"
@@ -457,6 +458,13 @@ BOOLEAN SetCurrentSquad( INT32 iCurrentSquad, BOOLEAN fForce )
 		return( FALSE );
 	}
 
+	// the helicopter's passengers view ends: the squad's slots again
+	if (IsHelicopterPassengersView())
+	{
+		EndHelicopterPassengersView();
+		fForce = TRUE;
+	}
+
 	// ATE; Added to allow us to have NO current squad
 	if ( iCurrentSquad == NO_CURRENT_SQUAD )
 	{
@@ -525,6 +533,8 @@ void RebuildCurrentSquad( void )
 		// no
 		return;
 	}
+
+	EndHelicopterPassengersView();
 
 	// set default squad..just inc ase we no longer have a valid squad
 	SetDefaultSquadOnSectorEntry( TRUE );
@@ -907,7 +917,10 @@ INT8 NumberOfPlayerControllableMercsInSquad( INT8 bSquadValue )
 		//Kris:  This breaks the CLIENT of this function, tactical traversal.
 		//       Do NOT check for EPCS or ROBOT here.
 		//if ( !AM_AN_EPC( pSoldier ) && !AM_A_ROBOT( pSoldier ) &&
-		if( !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) )
+		// (a vehicle that drives in tactical counts: it leaves the sector with
+		// those aboard as its squad, driving plan)
+		if (!(pSoldier->uiStatusFlags & SOLDIER_VEHICLE) ||
+			VehicleDrivesInTactical(GetVehicle(pSoldier->bVehicleID)))
 		{
 			bSquadCount++;
 		}

@@ -1026,7 +1026,12 @@
         "Nie można kompresować czasu, gdy otwarty jest inwentarz sektora.",
         "Bieżący/Maks. postęp: %d%%/%d%%",
         "Eskortować Johna i Mary?",
-        "Przełącznik aktywowany."
+        "Przełącznik aktywowany.",
+        "%s ma zestaw narzędzi w zbyt złym stanie, by naprawić pojazd: %s!",
+        "Usuń %s",
+        "W czasie bitwy nie można przekazywać przedmiotów między postaciami na ekranie strategicznym.",
+        "W pojeździe skończyło się paliwo i nie może jechać dalej.",
+        "Pojazdy nie mogą wjeżdżać do kopalni."
     ],
     "gzMercSkillText": [
         "Brak umiejętności",
@@ -2048,7 +2053,8 @@
     "pSkyriderText": [
         "Skyriderowi zapłacono %d$",
         "Skyriderowi trzeba jeszcze zapłacić %d$",
-        "Skyrider nie ma pasażerów. Jeśli chcesz przetransportować najemników, zmień ich przydział na POJAZD/HELIKOPTER."
+        "Skyrider nie ma pasażerów. Jeśli chcesz przetransportować najemników, zmień ich przydział na POJAZD/HELIKOPTER.",
+        "Skyrider nie poleci: helikopter jest zbyt uszkodzony (stan %d). Najpierw napraw go co najmniej do %d."
     ],
     "pSquadMenuStrings": [
         "Oddział  1",

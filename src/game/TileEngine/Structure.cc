@@ -22,6 +22,7 @@
 #include "Editor_Undo.h" //for access to AddToUndoList( iMapIndex )
 
 #include "Explosion_Control.h"
+#include "Map_Screen_Helicopter.h"
 #include "Buildings.h"
 #include "Random.h"
 #include "Tile_Animation.h"
@@ -1187,6 +1188,9 @@ StructureDamageResult DamageStructure(STRUCTURE* const s, UINT8 damage, Structur
 	{ // Don't hurt this structure, it's used for hit detection only
 		return STRUCTURE_NOT_DAMAGED;
 	}
+
+	// the landed helicopter the map draws at a refuel site can't be hit
+	if (IsHelicopterSceneryStructure(s)) return STRUCTURE_NOT_DAMAGED;
 
 	UINT8 const armour_kind = s->pDBStructureRef->pDBStructure->ubArmour;
 	if (armour_kind == MATERIAL_INDESTRUCTABLE_METAL) return STRUCTURE_NOT_DAMAGED;

@@ -1222,11 +1222,12 @@ static ScreenID UIHandleMOnTerrain(UI_EVENT* pUIEvent)
 
 	gUIActionModeChangeDueToMouseOver = FALSE;
 
-	// If we are a vehicle..... just show an X
+	// If we are a vehicle..... just show an X -- unless it may drive (driving
+	// plan): then the usual path and the vehicle's move cursor
 	SOLDIERTYPE* const sel = GetSelectedMan();
 	if (sel != NULL)
 	{
-		if (OK_ENTERABLE_VEHICLE(sel))
+		if (OK_ENTERABLE_VEHICLE(sel) && !CanVehicleDriveInTactical(*sel))
 		{
 			if ( !UIHandleOnMerc( TRUE ) )
 			{
@@ -4916,6 +4917,37 @@ void BeginDisplayTimedCursor(UICursorID const uiCursorID, UINT32 const uiDelay)
 }
 
 
+// In combat the enter-vehicle cursor shows the APs getting in costs: the walk
+// up to it in his movement mode plus getting in (D15) -- worked out again only
+// when the merc, his place, his mode or the vehicle change
+static void ShowAPsToEnterVehicle(SOLDIERTYPE& s, SOLDIERTYPE const& vs)
+{
+	if (!(gTacticalStatus.uiFlags & INCOMBAT)) return;
+
+	static SoldierID last_merc    = NOBODY;
+	static GridNo    last_gridno  = NOWHERE;
+	static UINT16    last_mode    = 0;
+	static SoldierID last_vehicle = NOBODY;
+	static GridNo    last_v_grid  = NOWHERE;
+	static INT16     last_cost    = -1;
+	if (last_merc != s.ubID || last_gridno != s.sGridNo || last_mode != s.usUIMovementMode ||
+		last_vehicle != vs.ubID || last_v_grid != vs.sGridNo)
+	{
+		last_merc    = s.ubID;
+		last_gridno  = s.sGridNo;
+		last_mode    = s.usUIMovementMode;
+		last_vehicle = vs.ubID;
+		last_v_grid  = vs.sGridNo;
+		last_cost    = GetAPsToEnterVehicle(s, vs, 0);
+	}
+	if (last_cost < 0) return;
+
+	gsCurrentActionPoints   = last_cost;
+	gfUIDisplayActionPoints = TRUE;
+	if (!EnoughPoints(&s, last_cost, 0, FALSE)) gfUIDisplayActionPointsInvalid = TRUE;
+}
+
+
 static bool UIHandleInteractiveTilesAndItemsOnTerrain(SOLDIERTYPE* const pSoldier, INT16 const usMapPos, BOOLEAN const fUseOKCursor, BOOLEAN const fItemsOnlyIfOnIntTiles)
 {
 	static BOOLEAN fOverPool  = FALSE;
@@ -4941,6 +4973,7 @@ static bool UIHandleInteractiveTilesAndItemsOnTerrain(SOLDIERTYPE* const pSoldie
 			if (!fItemsOnlyIfOnIntTiles)
 			{
 				guiNewUICursor = ENTER_VEHICLE_UICURSOR;
+				ShowAPsToEnterVehicle(*pSoldier, *tgt);
 				return true;
 			}
 			else if (!OKUseVehicle(tgt->ubProfile))
@@ -4953,6 +4986,7 @@ static bool UIHandleInteractiveTilesAndItemsOnTerrain(SOLDIERTYPE* const pSoldie
 			{
 				guiNewUICursor       = ENTER_VEHICLE_UICURSOR;
 				gfBeginVehicleCursor = TRUE;
+				ShowAPsToEnterVehicle(*pSoldier, *tgt);
 				return true;
 			}
 		}

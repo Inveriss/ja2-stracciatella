@@ -32,6 +32,7 @@
 #include "Cursor_Control.h"
 #include "Strategic_Turns.h"
 #include "Merc_Entering.h"
+#include "Map_Screen_Helicopter.h"
 #include "Map_Information.h"
 #include "Squads.h"
 #include "Interface_Dialogue.h"
@@ -415,6 +416,9 @@ ScreenID MainGameScreenHandle(void)
 
 
 	HandleHeliDrop( );
+
+	// the helicopter in the loaded sector, landed or hovering, or no longer
+	UpdateHelicopterInTactical();
 
 	if ( !ARE_IN_FADE_IN( ) )
 	{

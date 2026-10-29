@@ -1026,7 +1026,12 @@
         "Can't compress time while viewing sector inventory.",
         "Current/Max Progress: %d%%/%d%%",
         "Escort John and Mary?",
-        "Switch Activated."
+        "Switch Activated.",
+        "%s's tool kit is in too poor condition to repair %s!",
+        "Remove %s",
+        "Items can't be passed between characters on the strategic screen during a battle.",
+        "The vehicle has run out of fuel and cannot continue driving.",
+        "Vehicles cannot drive into mines."
     ],
     "gzMercSkillText": [
         "No Skill",
@@ -2048,7 +2053,8 @@
     "pSkyriderText": [
         "Skyrider was paid $%d",
         "Skyrider is still owed $%d",
-        "Skyrider has no passengers.  If it is your intention to transport mercs in this sector, assign them to Vehicle/Helicopter first."
+        "Skyrider has no passengers.  If it is your intention to transport mercs in this sector, assign them to Vehicle/Helicopter first.",
+        "Skyrider won't fly: the helicopter is too badly damaged (condition %d). Repair it to at least %d first."
     ],
     "pSquadMenuStrings": [
         "Squad  1",

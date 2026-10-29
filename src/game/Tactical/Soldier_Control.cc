@@ -34,6 +34,7 @@
 #include "Logger.h"
 #include "MapScreen.h"
 #include "Map_Information.h"
+#include "Map_Screen_Helicopter.h"
 #include "Meanwhile.h"
 #include "MercProfile.h"
 #include "Message.h"
@@ -312,12 +313,13 @@ static const UINT8 gubMaxActionPoints[] =
 	AP_MAXIMUM,         // CROW
 	AP_MAXIMUM,         // BLOOD CAT
 	AP_MAXIMUM,         // ROBOT1
-	AP_VEHICLE_MAXIMUM, // HUMVEE
+	AP_MAXIMUM,         // HUMVEE (drives in tactical, as a merc)
 	AP_VEHICLE_MAXIMUM, // TANK1
 	AP_VEHICLE_MAXIMUM, // TANK2
 	AP_VEHICLE_MAXIMUM, // ELDORADO
-	AP_VEHICLE_MAXIMUM, // ICECREAMTRUCK
-	AP_VEHICLE_MAXIMUM  // JEEP
+	AP_MAXIMUM,         // ICECREAMTRUCK (drives in tactical, as a merc)
+	AP_VEHICLE_MAXIMUM, // JEEP
+	AP_VEHICLE_MAXIMUM  // HELICOPTERBODY
 };
 
 
@@ -411,8 +413,13 @@ INT8 CalcActionPoints(const SOLDIERTYPE* const pSold)
 	// Adjusat APs due to drugs...
 	HandleAPEffectDueToDrugs( pSold, &ubPoints );
 
-	// If we are a vehicle, adjust APS...
-	if (pSold->uiStatusFlags & SOLDIER_VEHICLE) ubPoints += 35;
+	// If we are a vehicle, adjust APS... -- the ones that drive in tactical
+	// get a merc's maximum, as a full turn of driving (driving plan, D14)
+	if (pSold->ubBodyType == HUMVEE || pSold->ubBodyType == ICECREAMTRUCK)
+	{
+		ubPoints = AP_MAXIMUM;
+	}
+	else if (pSold->uiStatusFlags & SOLDIER_VEHICLE) ubPoints += 35;
 
 	// if we are in boxing mode, adjust APs... THIS MUST BE LAST!
 	if ( gTacticalStatus.bBoxingState == BOXING || gTacticalStatus.bBoxingState == PRE_BOXING )
@@ -4235,10 +4242,12 @@ void TurnSoldier( SOLDIERTYPE *pSoldier)
 {
 	INT16 sDirection;
 
-	// If we are a vehicle... DON'T TURN!
+	// If we are a vehicle... DON'T TURN! (the tanks, and the cars that drive in
+	// tactical -- driving plan, stage 1 -- do)
 	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE )
 	{
-		if ( pSoldier->ubBodyType != TANK_NW && pSoldier->ubBodyType != TANK_NE )
+		if ( pSoldier->ubBodyType != TANK_NW && pSoldier->ubBodyType != TANK_NE &&
+			pSoldier->ubBodyType != HUMVEE && pSoldier->ubBodyType != ICECREAMTRUCK )
 		{
 			return;
 		}
@@ -5547,6 +5556,10 @@ UINT8 SoldierTakeDamage(SOLDIERTYPE* const pSoldier, INT16 sLifeDeduct, INT16 sB
 	// OK, If we are a vehicle.... damage vehicle...( people inside... )
 	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE )
 	{
+		// the helicopter is only hit while hovering with its own body (landed at
+		// a refuel site the map's scenery draws it)
+		if (IsHelicopterSoldier(*pSoldier) && !IsHelicopterBodyInTactical()) return( 0 );
+
 		if ( TANK( pSoldier ) )
 		{
 			//sLifeDeduct = (sLifeDeduct * 2) / 3;
@@ -7061,13 +7074,17 @@ void EVENT_SoldierBeginFirstAid( SOLDIERTYPE *pSoldier, INT16 sGridNo, UINT8 ubD
 
 void EVENT_SoldierEnterVehicle(SOLDIERTYPE& s, GridNo const gridno)
 {
+	// unlock the UI while he is still the selected one: getting in selects the
+	// vehicle, and the lock (combat, our turn) only comes off for the selected
+	UnSetUIBusy(&s);
+
 	SOLDIERTYPE const* const tgt = FindSoldier(gridno, FIND_SOLDIER_GRIDNO);
-	if (tgt && tgt->uiStatusFlags & SOLDIER_VEHICLE)
+	// (D13: nobody gets in while it drives)
+	if (tgt && tgt->uiStatusFlags & SOLDIER_VEHICLE && !IsVehicleMoving(*tgt))
 	{
 		VEHICLETYPE& v = GetVehicle(tgt->bVehicleID);
-		PutSoldierInVehicle(s, v);
+		if (PutSoldierInVehicle(s, v)) ChargeVehicleEntry(s);
 	}
-	UnSetUIBusy(&s);
 }
 
 

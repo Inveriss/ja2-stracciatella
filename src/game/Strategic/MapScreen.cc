@@ -1999,7 +1999,28 @@ static void DisplayCharacterList(void)
 			SetFontForeground(FONT_RED);
 		}
 		ST::string assignment = GetMapscreenMercAssignmentString(s);
-		DrawStringCentered(assignment, ASSIGN_X + 1, y, ASSIGN_WIDTH, Y_SIZE, MAP_SCREEN_FONT);
+		// 1366x768: Repair shows what is being repaired, in brackets in
+		// FONT12ARIAL -- "Repair (Heli)" -- centred together if it fits
+		ST::string repairing;
+		if (s.bAssignment == REPAIR && g_ui.isExtraWideStrategicScreen())
+		{
+			repairing = ST::format(" ({})",
+				s.fFixingRobot                ? pRepairStrings[3] : // Robot
+				s.bVehicleUnderRepairID != -1 ? pShortVehicleStrings[GetVehicle(s.bVehicleUnderRepairID).ubVehicleType] :
+				pRepairStrings[0]); // Items
+		}
+		UINT16 const assignment_w = StringPixLength(assignment, MAP_SCREEN_FONT);
+		UINT16 const repairing_w  = repairing.empty() ? 0 : StringPixLength(repairing, FONT12ARIAL);
+		if (repairing_w != 0 && assignment_w + repairing_w <= ASSIGN_WIDTH)
+		{
+			UINT16 const x = ASSIGN_X + 1 + (ASSIGN_WIDTH - assignment_w - repairing_w) / 2;
+			DrawStringCentered(assignment, x,                y, assignment_w, Y_SIZE, MAP_SCREEN_FONT);
+			DrawStringCentered(repairing,  x + assignment_w, y, repairing_w,  Y_SIZE, FONT12ARIAL);
+		}
+		else
+		{
+			DrawStringCentered(assignment, ASSIGN_X + 1, y, ASSIGN_WIDTH, Y_SIZE, MAP_SCREEN_FONT);
+		}
 
 		// Remaining contract time
 		str = GetMapscreenMercDepartureString(s, foreground != FONT_WHITE ? &foreground : 0);
@@ -4348,11 +4369,15 @@ static void BltCharInvPanel(void)
 	FindFontRightCoordinates(MAP_ARMOR_X, MAP_ARMOR_Y, MAP_ARMOR_W, MAP_ARMOR_H, sString, stats_font, &usX, &usY);
 	MPrint(usX, usY, sString);
 
-	// Display weight
-	MPrint(MAP_WEIGHT_LABEL_X, MAP_WEIGHT_LABEL_Y, pInvPanelTitleStrings[1]);
-	sString = ST::format("{}%", CalculateCarriedWeight(pSoldier));
-	FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, stats_font, &usX, &usY);
-	MPrint(usX, usY, sString);
+	// Display weight (not for a vehicle: its cargo has no load limit, a
+	// merc's strength-based percentage means nothing there)
+	if (!(pSoldier->uiStatusFlags & SOLDIER_VEHICLE))
+	{
+		MPrint(MAP_WEIGHT_LABEL_X, MAP_WEIGHT_LABEL_Y, pInvPanelTitleStrings[1]);
+		sString = ST::format("{}%", CalculateCarriedWeight(pSoldier));
+		FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, stats_font, &usX, &usY);
+		MPrint(usX, usY, sString);
+	}
 
 	// Display camouflage
 	MPrint(MAP_CAMO_LABEL_X, MAP_CAMO_LABEL_Y, pInvPanelTitleStrings[2]);
@@ -5312,6 +5337,9 @@ static void TeamListAssignmentRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, UI
 		// reset list if the clicked character isn't also selected
 		ChangeSelectedInfoChar(iValue, !IsEntryInSelectedListSet(iValue));
 
+		// aboard the helicopter going down: no getting off any more
+		if (InHelicopter(*pSoldier) && IsHelicopterGoingDown()) return;
+
 		// if alive (dead guys keep going, use remove menu instead),
 		// and it's between sectors and it can be reassigned (non-vehicles)
 		if ( ( pSoldier->bAssignment != ASSIGNMENT_DEAD ) && ( pSoldier->bLife > 0 ) && ( pSoldier->fBetweenSectors ) && !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) )
@@ -5340,8 +5368,14 @@ static void TeamListAssignmentRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, UI
 		fMapPanelDirty = TRUE;
 		gfRenderPBInterface = TRUE;
 
-		// if this thing can be re-assigned
-		if( !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) )
+		// dead (a destroyed vehicle, too) or POW: the Remove box, labelled for him
+		if (pSoldier->bLife == 0 || pSoldier->bAssignment == ASSIGNMENT_POW)
+		{
+			SetRemoveMercAssignBoxFor(*pSoldier);
+		}
+
+		// if this thing can be re-assigned (or a destroyed vehicle removed)
+		if (!(pSoldier->uiStatusFlags & SOLDIER_VEHICLE) || pSoldier->bLife == 0)
 		{
 			giAssignHighLine = iValue;
 
@@ -5458,6 +5492,14 @@ static void TeamListDestinationRegionBtnCallBackPrimary(MOUSE_REGION* pRegion, U
 
 		// reset list if the clicked character isn't also selected
 		ChangeSelectedInfoChar(iValue, !IsEntryInSelectedListSet(iValue));
+
+		if (IsHelicopterSoldier(*s))
+		{ // the helicopter's row: plot Skyrider's route, like a click on its icon
+			if (s->bLife == 0) return; // crashed
+			MakeMapModesSuitableForDestPlotting(s);
+			RequestGiveSkyriderNewDestination();
+			return;
+		}
 
 		// deselect any characters/vehicles that can't accompany the clicked merc
 		DeselectSelectedListMercsWhoCantMoveWithThisGuy(s);
@@ -6519,8 +6561,17 @@ static void EnableDisableTeamListRegionsAndHelpText(void)
 			// valid character.  If it's a vehicle, however
 			if (s->uiStatusFlags & SOLDIER_VEHICLE)
 			{
-				// Can't change assignment for vehicles
-				r.assignment.Disable();
+				// Can't change assignment for vehicles -- a destroyed one can be
+				// removed ("Remove Hummer")
+				if (s->bLife == 0)
+				{
+					r.assignment.Enable();
+					r.assignment.SetFastHelpText(GetRemoveMercString(*s));
+				}
+				else
+				{
+					r.assignment.Disable();
+				}
 			}
 			else
 			{
@@ -7821,152 +7872,87 @@ static INT32 GetContractExpiryTime(const SOLDIERTYPE* s);
 static void SwapCharactersInList(INT32 iCharA, INT32 iCharB);
 
 
+// The destination sector a team list sort compares (9999: none)
+static INT16 SortDestinationOfChar(const SOLDIERTYPE* const s)
+{
+	return GetLengthOfMercPath(s) == 0 ? 9999 : GetLastSectorIdInCharactersPath(s);
+}
+
+
+// Whether b, before a in the list, goes after it in the current sort
+// (giSortStateForMapScreenList: the header buttons over the team list)
+static bool TeamListSortsAfter(const SOLDIERTYPE* const b, const SOLDIERTYPE* const a)
+{
+	switch (giSortStateForMapScreenList)
+	{
+		case 0: // by name
+			return b->name.compare(a->name) > 0;
+
+		case 1: // by assignment, in a vehicle also by vehicle
+			return b->bAssignment > a->bAssignment ||
+				(b->bAssignment == a->bAssignment && b->bAssignment == VEHICLE && b->iVehicleId > a->iVehicleId);
+
+		case 2: // by sleep status
+			return b->fMercAsleep && !a->fMercAsleep;
+
+		case 3: // by location
+			return CalcLocationValueForChar(b) > CalcLocationValueForChar(a);
+
+		case 4: // by destination sector
+			return SortDestinationOfChar(b) > SortDestinationOfChar(a);
+
+		case 5: // by contract expiry
+			return GetContractExpiryTime(b) > GetContractExpiryTime(a);
+
+		default:
+			return false;
+	}
+}
+
+
+// Sorts the entries first to end - 1 of the team list among themselves. The
+// people stop at the first empty entry, as they always did; the vehicles
+// (from FIRST_VEHICLE, sorted as the people since the 1366x768 list shows
+// three of them) skip empty ones.
+static void SortTeamListEntries(INT32 const first, INT32 const end, bool const stop_at_empty)
+{
+	for (INT32 i = first + 1; i < end; ++i)
+	{
+		const SOLDIERTYPE* const a = gCharactersList[i].merc;
+		if (a == NULL)
+		{
+			if (stop_at_empty) break;
+			continue;
+		}
+
+		for (INT32 j = first; j < i; ++j)
+		{
+			const SOLDIERTYPE* const b = gCharactersList[j].merc;
+			if (b == NULL)
+			{
+				if (stop_at_empty) break;
+				continue;
+			}
+			if (TeamListSortsAfter(b, a)) SwapCharactersInList(i, j);
+		}
+	}
+}
+
+
 static void SortListOfMercsInTeamPanel(BOOLEAN fRetainSelectedMercs)
 {
-	INT32 iCounter = 0, iCounterA = 0;
-	INT16 sEndSectorA, sEndSectorB;
-	INT32 iExpiryTime, iExpiryTimeA;
+	if (giSortStateForMapScreenList < 0 || giSortStateForMapScreenList > 5)
+	{
+		SLOGA("Invalid sorting mode for Merc List");
+		return;
+	}
 
 	SOLDIERTYPE* prev_selected_char = NULL;
 	if (fRetainSelectedMercs) prev_selected_char = GetSelectedInfoChar();
 
-	// do the sort
-	for( iCounter = 1; iCounter < FIRST_VEHICLE ; iCounter++ )
-	{
-		const SOLDIERTYPE* const a = gCharactersList[iCounter].merc;
-		if (a == NULL) break;
-
-		switch( giSortStateForMapScreenList )
-		{
-			case( 0 ):
-				// by name
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					if (b->name.compare(a->name) > 0 && iCounterA < iCounter)
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			case( 1 ):
-				// by assignment
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					if (b->bAssignment > a->bAssignment && iCounterA < iCounter)
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-					else if (b->bAssignment == a->bAssignment && iCounterA < iCounter)
-					{
-						// same assignment
-
-						// if it's in a vehicle
-						if (b->bAssignment == VEHICLE)
-						{
-							// then also compare vehicle IDs
-							if (b->iVehicleId > a->iVehicleId && iCounterA < iCounter)
-							{
-								SwapCharactersInList( iCounter, iCounterA );
-							}
-						}
-					}
-				}
-				break;
-
-			case( 2 ):
-				// by sleep status
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					if (b->fMercAsleep && !a->fMercAsleep && iCounterA < iCounter)
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			case( 3 ):
-				//by location
-				sEndSectorA = CalcLocationValueForChar(a);
-
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					sEndSectorB = CalcLocationValueForChar(b);
-
-					if( ( sEndSectorB > sEndSectorA ) && ( iCounterA < iCounter ) )
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			case( 4 ):
-				// by destination sector
-				if (GetLengthOfMercPath(a) == 0)
-				{
-					sEndSectorA = 9999;
-				}
-				else
-				{
-					sEndSectorA = GetLastSectorIdInCharactersPath(a);
-				}
-
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					if (GetLengthOfMercPath(b) == 0)
-					{
-						sEndSectorB = 9999;
-					}
-					else
-					{
-						sEndSectorB = GetLastSectorIdInCharactersPath(b);
-					}
-
-					if( ( sEndSectorB > sEndSectorA ) && ( iCounterA < iCounter ) )
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			case( 5 ):
-				iExpiryTime = GetContractExpiryTime(a);
-
-				//by contract expiry
-				for( iCounterA = 0; iCounterA < FIRST_VEHICLE; iCounterA++ )
-				{
-					const SOLDIERTYPE* const b = gCharactersList[iCounterA].merc;
-					if (b == NULL) break;
-
-					iExpiryTimeA = GetContractExpiryTime(b);
-
-					if( ( iExpiryTimeA > iExpiryTime ) && ( iCounterA < iCounter ) )
-					{
-						SwapCharactersInList( iCounter, iCounterA );
-					}
-				}
-				break;
-
-			default:
-				SLOGA("Invalid sorting mode for Merc List");
-				return;
-		}
-	}
+	// do the sort: the people, then the vehicles among themselves
+	SortTeamListEntries(0, FIRST_VEHICLE, true);
+	SortTeamListEntries(FIRST_VEHICLE, MAX_CHARACTER_COUNT, false);
 
 
 	if ( fRetainSelectedMercs )
@@ -8178,12 +8164,15 @@ static bool CanToggleSelectedCharInventory()
 
 bool MapCharacterHasAccessibleInventory(SOLDIERTYPE const& s)
 {
+	// vehicles carry cargo (in their pockets, see CanItemFitInPosition()), also
+	// when badly damaged; the robot has no inventory to open
+	bool const vehicle = s.uiStatusFlags & SOLDIER_VEHICLE;
 	return
 		s.bAssignment         != IN_TRANSIT     &&
 		s.bAssignment         != ASSIGNMENT_POW &&
-		!IsMechanical(s)                        &&
+		!AM_A_ROBOT(&s)                         &&
 		s.ubWhatKindOfMercAmI != MERC_TYPE__EPC &&
-		s.bLife               >= OKLIFE;
+		(vehicle ? s.bLife > 0 : s.bLife >= OKLIFE);
 }
 
 
@@ -8474,6 +8463,12 @@ void ChangeSelectedInfoChar( INT8 bCharNumber, BOOLEAN fResetSelectedList )
 		// make sure we can give it to this guy, otherwise don't allow the change
 		if (s == NULL || !MapscreenCanPassItemToChar(s))
 		{
+			// a battle in the loaded sector refuses every pass: say so (the
+			// original refused silently; vehicle inventory plan, 4.7)
+			if (s && s != GetSelectedInfoChar() && gTacticalStatus.fEnemyInSector)
+			{
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, gzLateLocalizedString[STR_LATE_61]);
+			}
 			return;
 		}
 	}
@@ -8663,7 +8658,7 @@ static void MakeMapModesSuitableForDestPlotting(const SOLDIERTYPE* const pSoldie
 
 	TurnOnShowTeamsMode();
 
-	if (InHelicopter(*pSoldier))
+	if (InHelicopter(*pSoldier) || IsHelicopterSoldier(*pSoldier))
 	{
 		if (!fShowAircraftFlag)
 		{
@@ -8787,6 +8782,14 @@ static void ExplainWhySkyriderCantFly(void)
 	{
 		// returning to base
 		SkyRiderTalk( RETURN_TO_BASE );
+		return;
+	}
+
+	// too damaged to take off?
+	if (IsHelicopterTooDamagedToFly())
+	{
+		ST::string const msg = st_format_printf(pSkyriderText[3], GetHelicopterSoldier()->bLife, GetHelicopterFlightMinCondition());
+		DoMapMessageBox(MSG_BOX_BASIC_STYLE, msg, MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback);
 		return;
 	}
 
