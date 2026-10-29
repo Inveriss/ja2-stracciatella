@@ -283,7 +283,10 @@ Stage 2 (turn-based driving and battles) in sub-stages:
   `AP_EXIT_VEHICLE`), else "Not enough action points"; for the passengers'
   seat belts and the "everyone out" belts of the ground vehicles and the
   helicopter (the ones without the APs stay aboard). Q1 stays (no panel /
-  passing with those aboard in combat).
+  passing with those aboard in combat). Fix: `IsVehicleMoving()` only counts
+  its moving animation, not held by `fNoAPToFinishMove` — a vehicle out of APs
+  keeps the rest of its path for the next turn, and its passengers (with
+  their own APs) couldn't get out.
 - **2c — arriving in a battle without getting out (D6, D16):** the pre-battle
   exit kept off for the cars, the placement screen without those aboard, the
   vehicle at its edge; auto-resolve and retreat checked.

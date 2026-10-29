@@ -1051,7 +1051,11 @@ void ChargeVehicleExit(SOLDIERTYPE& s)
 bool IsVehicleMoving(SOLDIERTYPE const& vs)
 {
 	if (!(vs.uiStatusFlags & SOLDIER_VEHICLE) || !vs.bInSector) return false;
-	return vs.sGridNo != vs.sFinalDestination || !(gAnimControl[vs.usAnimState].uiFlags & ANIM_STATIONARY);
+	// only while it is in its moving animation: stopped short of its final
+	// destination -- no APs left in combat (it keeps the rest of its path for
+	// the next turn), blocked, out of fuel -- it isn't moving
+	// (out of APs it stays in that animation, held by fNoAPToFinishMove)
+	return !(gAnimControl[vs.usAnimState].uiFlags & ANIM_STATIONARY) && !vs.fNoAPToFinishMove;
 }
 
 
