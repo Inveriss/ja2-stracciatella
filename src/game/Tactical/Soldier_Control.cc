@@ -313,11 +313,11 @@ static const UINT8 gubMaxActionPoints[] =
 	AP_MAXIMUM,         // CROW
 	AP_MAXIMUM,         // BLOOD CAT
 	AP_MAXIMUM,         // ROBOT1
-	AP_VEHICLE_MAXIMUM, // HUMVEE
+	AP_MAXIMUM,         // HUMVEE (drives in tactical, as a merc)
 	AP_VEHICLE_MAXIMUM, // TANK1
 	AP_VEHICLE_MAXIMUM, // TANK2
 	AP_VEHICLE_MAXIMUM, // ELDORADO
-	AP_VEHICLE_MAXIMUM, // ICECREAMTRUCK
+	AP_MAXIMUM,         // ICECREAMTRUCK (drives in tactical, as a merc)
 	AP_VEHICLE_MAXIMUM, // JEEP
 	AP_VEHICLE_MAXIMUM  // HELICOPTERBODY
 };
@@ -413,8 +413,13 @@ INT8 CalcActionPoints(const SOLDIERTYPE* const pSold)
 	// Adjusat APs due to drugs...
 	HandleAPEffectDueToDrugs( pSold, &ubPoints );
 
-	// If we are a vehicle, adjust APS...
-	if (pSold->uiStatusFlags & SOLDIER_VEHICLE) ubPoints += 35;
+	// If we are a vehicle, adjust APS... -- the ones that drive in tactical
+	// get a merc's maximum, as a full turn of driving (driving plan, D14)
+	if (pSold->ubBodyType == HUMVEE || pSold->ubBodyType == ICECREAMTRUCK)
+	{
+		ubPoints = AP_MAXIMUM;
+	}
+	else if (pSold->uiStatusFlags & SOLDIER_VEHICLE) ubPoints += 35;
 
 	// if we are in boxing mode, adjust APs... THIS MUST BE LAST!
 	if ( gTacticalStatus.bBoxingState == BOXING || gTacticalStatus.bBoxingState == PRE_BOXING )

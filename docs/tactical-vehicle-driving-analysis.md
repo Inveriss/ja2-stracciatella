@@ -157,7 +157,7 @@ Stage 2 decisions, taken 2026-10-29 as proposed:
 
 | # | Question | Decision |
 |---|---|---|
-| D14 | AP per tile, turn-based | road 2 AP, off the road 3 AP (with 50 AP: about 25 / 16 tiles a turn) |
+| D14 | AP per tile, turn-based | road 2 AP, off the road 3 AP (with 50 AP: about 25 / 16 tiles a turn) — **changed 2026-10-29 (variant A):** the Hummer and the ice cream truck get a merc's maximum, 25 AP (also its cap, `gubMaxActionPoints`, so the up to 5 carried over don't make 30), at 1 AP a tile on a road and 2 off it (25 / about 12 tiles a turn) |
 | D15 | Getting in / out in combat | allowed on the merc's turn, at the AP getting in costs today; without the AP the usual message |
 | D16 | The placement screen when arriving in a vehicle | those aboard skip it, the vehicle comes in at its map edge by itself; with everyone aboard the screen isn't shown |
 | D17 | Interrupts while driving | those aboard look out with interrupts: the vehicle stops when they spot an enemy, like a walking merc, and enemies may interrupt it |
@@ -267,9 +267,10 @@ Then stages 2–5 of section 6.
 Stage 2 (turn-based driving and battles) in sub-stages:
 
 - **2a — driving in a running battle (D3, D14, D17):** `CanVehicleDriveInTactical()`
-  lets it drive in combat on our turn, for its own AP (+35, at most 50);
-  `TerrainActionPoints()` (`Points.cc`) gives a vehicle 2 AP a tile on a
-  paved / dirt road and 3 off it — used alike by the plotted path's AP and by
+  lets it drive in combat on our turn, for its own AP (since the D14 change:
+  25, `CalcActionPoints()`); `TerrainActionPoints()` (`Points.cc`) gives a
+  vehicle 1 AP a tile on a paved / dirt road and 2 off it (first 2 / 3 with
+  50 AP) — used alike by the plotted path's AP and by
   the move (`ActionPointCost()`); in combat those aboard look out with
   interrupts (`HandleSight(... SIGHT_INTERRUPT)` in `HandleAtNewGridNo()`), so
   an enemy they spot stops it.

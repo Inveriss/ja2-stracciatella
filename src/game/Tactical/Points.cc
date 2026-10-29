@@ -38,12 +38,13 @@ INT16 TerrainActionPoints(const SOLDIERTYPE* const pSoldier, const INT16 sGridno
 	INT16 sAPCost = 0;
 	INT16 sSwitchValue;
 
-	// a driving vehicle (driving plan, D14): 2 AP a tile on a road, 3 off it --
-	// as its walking cost (the walking adjustment is taken off again)
+	// a driving vehicle (driving plan, D14): 1 AP a tile on a road, 2 off it
+	// (with its 25 APs) -- as its walking cost (the walking adjustment is taken
+	// off again)
 	if (pSoldier->uiStatusFlags & SOLDIER_VEHICLE)
 	{
 		UINT8 const terrain = gpWorldLevelData[sGridno].ubTerrainID;
-		INT16 const cost    = terrain == PAVED_ROAD || terrain == DIRT_ROAD ? 2 : 3;
+		INT16 const cost    = terrain == PAVED_ROAD || terrain == DIRT_ROAD ? 1 : 2;
 		return cost - WALKCOST;
 	}
 
