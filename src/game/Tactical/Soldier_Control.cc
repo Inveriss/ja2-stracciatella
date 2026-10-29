@@ -7069,6 +7069,10 @@ void EVENT_SoldierBeginFirstAid( SOLDIERTYPE *pSoldier, INT16 sGridNo, UINT8 ubD
 
 void EVENT_SoldierEnterVehicle(SOLDIERTYPE& s, GridNo const gridno)
 {
+	// unlock the UI while he is still the selected one: getting in selects the
+	// vehicle, and the lock (combat, our turn) only comes off for the selected
+	UnSetUIBusy(&s);
+
 	SOLDIERTYPE const* const tgt = FindSoldier(gridno, FIND_SOLDIER_GRIDNO);
 	// (D13: nobody gets in while it drives)
 	if (tgt && tgt->uiStatusFlags & SOLDIER_VEHICLE && !IsVehicleMoving(*tgt))
@@ -7076,7 +7080,6 @@ void EVENT_SoldierEnterVehicle(SOLDIERTYPE& s, GridNo const gridno)
 		VEHICLETYPE& v = GetVehicle(tgt->bVehicleID);
 		PutSoldierInVehicle(s, v);
 	}
-	UnSetUIBusy(&s);
 }
 
 
