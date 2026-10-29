@@ -1030,7 +1030,8 @@
         "De gereedschapskist van %s is in te slechte staat om het voertuig te repareren: %s!",
         "%s verwijderen",
         "Tijdens een gevecht kunnen op het strategische scherm geen voorwerpen tussen personages worden doorgegeven.",
-        "Het voertuig heeft geen brandstof meer en kan niet verder rijden."
+        "Het voertuig heeft geen brandstof meer en kan niet verder rijden.",
+        "Voertuigen kunnen geen mijnen in rijden."
     ],
     "gzMercSkillText": [
         "No Skill",

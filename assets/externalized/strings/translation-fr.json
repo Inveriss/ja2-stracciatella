@@ -1030,7 +1030,8 @@
         "La trousse à outils de %s est en trop mauvais état pour réparer le véhicule : %s !",
         "Retirer %s",
         "Impossible de transmettre des objets entre personnages sur l'écran stratégique pendant un combat.",
-        "Le véhicule est à court de carburant et ne peut pas continuer à rouler."
+        "Le véhicule est à court de carburant et ne peut pas continuer à rouler.",
+        "Les véhicules ne peuvent pas entrer dans les mines."
     ],
     "gzMercSkillText": [
         "Aucune spécialité",

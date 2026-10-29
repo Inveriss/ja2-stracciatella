@@ -2498,7 +2498,13 @@ BOOLEAN HandleCheckForExitArrowsInput( BOOLEAN fAdjustConfirm )
 		guiCurrentUICursor == NOEXIT_GRID_UICURSOR )
 	{
 		// Yeah, but add a message....
-		if( gfInvalidTraversal )
+		if (guiCurrentUICursor == NOEXIT_GRID_UICURSOR && sel->uiStatusFlags & SOLDIER_VEHICLE)
+		{
+			// a vehicle at an exit grid (driving plan, D7)
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, gzLateLocalizedString[STR_LATE_63]);
+			gfInvalidTraversal = FALSE;
+		}
+		else if( gfInvalidTraversal )
 		{
 			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, TacticalStr[ CANNOT_LEAVE_SECTOR_FROM_SIDE_STR ] );
 			gfInvalidTraversal = FALSE;

@@ -1030,7 +1030,8 @@
         "%s's tool kit is in too poor condition to repair %s!",
         "Remove %s",
         "Items can't be passed between characters on the strategic screen during a battle.",
-        "The vehicle has run out of fuel and cannot continue driving."
+        "The vehicle has run out of fuel and cannot continue driving.",
+        "Vehicles cannot drive into mines."
     ],
     "gzMercSkillText": [
         "No Skill",

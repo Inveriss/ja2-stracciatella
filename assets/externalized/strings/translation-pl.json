@@ -1030,7 +1030,8 @@
         "%s ma zestaw narzędzi w zbyt złym stanie, by naprawić pojazd: %s!",
         "Usuń %s",
         "W czasie bitwy nie można przekazywać przedmiotów między postaciami na ekranie strategicznym.",
-        "W pojeździe skończyło się paliwo i nie może jechać dalej."
+        "W pojeździe skończyło się paliwo i nie może jechać dalej.",
+        "Pojazdy nie mogą wjeżdżać do kopalni."
     ],
     "gzMercSkillText": [
         "Brak umiejętności",

@@ -2041,6 +2041,15 @@ BOOLEAN OKForSectorExit( INT8 bExitDirection, UINT16 usAdditionalData, UINT32 *p
 	*/
 
 	gfInvalidTraversal = FALSE;
+
+	// a vehicle drives off the map's edges only, never through an exit grid
+	// (stairs, cave and mine entrances, underground: driving plan, D7)
+	if (sel->uiStatusFlags & SOLDIER_VEHICLE && bExitDirection == -1)
+	{
+		gfInvalidTraversal = TRUE;
+		return FALSE;
+	}
+
 	gfLoneEPCAttemptingTraversal = FALSE;
 	gubLoneMercAttemptingToAbandonEPCs = 0;
 	gPotentiallyAbandonedEPC = NULL;

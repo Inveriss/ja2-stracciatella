@@ -1030,7 +1030,8 @@
         "Il kit attrezzi di %s è in condizioni troppo cattive per riparare il veicolo: %s!",
         "Rimuovi %s",
         "Durante una battaglia non è possibile passare oggetti tra i personaggi nella schermata strategica.",
-        "Il veicolo ha finito il carburante e non può proseguire."
+        "Il veicolo ha finito il carburante e non può proseguire.",
+        "I veicoli non possono entrare nelle miniere."
     ],
     "gzMercSkillText": [
         "Nessuna abilità",

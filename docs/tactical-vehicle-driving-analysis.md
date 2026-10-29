@@ -316,6 +316,14 @@ Stage 2 (turn-based driving and battles) in sub-stages:
   squad: it looped forever, the game hung on "OK"); the vehicle doesn't walk
   off — it leaves from where it stands at the edge (its footprint can't go
   off the map, and the edge-tile search for it was slow).
+- **Stage 3 completed (2026-10-29):** besides the above, a vehicle never
+  leaves through an exit grid (stairs, cave and mine entrances,
+  underground): `OKForSectorExit()` refuses it, and a click there says
+  "Vehicles cannot drive into mines." (`STR_LATE_63`, all nine translations;
+  the game's generic "... is too far away." came up before). Where a car may go stays the strategic rule (a road
+  between the two sectors, `GetSectorMvtTimeForGroup()`), not the exact tile
+  of the edge; arriving, it comes in at the edge it entered from, those
+  aboard with it, also into a battle (2c).
 - **2d — fighting a vehicle:** checked in the code (2026-10-29), nothing to
   add: enemies see our vehicle (`OtherTeamsLookForMan()` — only its own sight
   is off) and may interrupt it and shoot it, the AI doesn't leave vehicles out
