@@ -324,6 +324,13 @@ Stage 2 (turn-based driving and battles) in sub-stages:
   between the two sectors, `GetSectorMvtTimeForGroup()`), not the exact tile
   of the edge; arriving, it comes in at the edge it entered from, those
   aboard with it, also into a battle (2c).
+  Leaving a battle with everyone of ours aboard: the exit dialog took those
+  aboard the selected vehicle for another squad (`fMultipleSquadsInSector`),
+  so the go-to choice was off and "OK" left an empty tactical screen. They
+  are now left out of that count, and the dialog goes to the map screen
+  ("Go to Map", checked; `SetAdjacentJumpToMapScreen()` makes
+  `AllMercsHaveWalkedOffSector()` take the map screen case also for a short
+  way).
 - **2d — fighting a vehicle:** checked in the code (2026-10-29), nothing to
   add: enemies see our vehicle (`OtherTeamsLookForMan()` — only its own sight
   is off) and may interrupt it and shoot it, the AI doesn't leave vehicles out

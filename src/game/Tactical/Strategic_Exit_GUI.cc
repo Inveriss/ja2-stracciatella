@@ -66,6 +66,7 @@ struct EXIT_DIALOG_STRUCT
 	BOOLEAN fRender;
 	BOOLEAN fGotoSector;
 	BOOLEAN fGotoSectorText;
+	BOOLEAN fVehicleToMapScreen; // everyone aboard the vehicle leaving a battle
 	BOOLEAN fSingleMove;
 	BOOLEAN fAllMove;
 	BOOLEAN fSingleMoveDisabled;
@@ -213,6 +214,10 @@ static void InternalInitSectorExitMenu(UINT8 const ubDirection, INT16 const sAdd
 	CFOR_EACH_IN_TEAM(pSoldier, OUR_TEAM)
 	{
 		if (pSoldier == sel) continue;
+		// (those aboard the selected vehicle leave with it: not another squad)
+		if (sel->uiStatusFlags & SOLDIER_VEHICLE &&
+			pSoldier->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) &&
+			pSoldier->iVehicleId == sel->bVehicleID) continue;
 		if( !pSoldier->fBetweenSectors &&
 			pSoldier->sSector == gWorldSector &&
 			pSoldier->bLife >= OKLIFE &&
@@ -317,6 +322,17 @@ static void InternalInitSectorExitMenu(UINT8 const ubDirection, INT16 const sAdd
 
 	if( !gExitDialog.fMultipleSquadsInSector && gExitDialog.fAllMoveOn )
 	{
+		gExitDialog.fGotoSectorDisabled = TRUE;
+	}
+
+	// a vehicle with everyone of ours aboard leaving a battle (driving plan):
+	// to the map screen, as when the way takes too long
+	if (sel->uiStatusFlags & SOLDIER_VEHICLE && gTacticalStatus.fEnemyInSector &&
+		!gExitDialog.fMultipleSquadsInSector && gExitDialog.fAllMoveOn)
+	{
+		gExitDialog.fVehicleToMapScreen = TRUE;
+		gExitDialog.fGotoSectorText     = FALSE; // ("Go to Map")
+		gExitDialog.fGotoSector         = TRUE;
 		gExitDialog.fGotoSectorDisabled = TRUE;
 	}
 
@@ -736,7 +752,8 @@ void RemoveSectorExitMenu(BOOLEAN const fOk)
 	}
 
 	UINT8      jump_code;
-	bool const do_load = d.fGotoSector && d.fGotoSectorText;
+	bool const do_load = (d.fGotoSector && d.fGotoSectorText) || d.fVehicleToMapScreen;
+	if (d.fVehicleToMapScreen) SetAdjacentJumpToMapScreen();
 	if (d.fAllMove)
 	{
 		jump_code = do_load ? JUMP_ALL_LOAD_NEW : JUMP_ALL_NO_LOAD;

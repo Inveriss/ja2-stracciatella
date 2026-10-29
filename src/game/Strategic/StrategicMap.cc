@@ -1728,9 +1728,22 @@ static void SetupTacticalTraversalInformation(void)
 static void DoneFadeOutAdjacentSector(void);
 
 
+// set for the next jump: go to the map screen after it, even if the way is
+// short (a vehicle with everyone aboard leaving a battle, driving plan)
+static bool g_adjacent_jump_to_map_screen = false;
+
+
+void SetAdjacentJumpToMapScreen()
+{
+	g_adjacent_jump_to_map_screen = true;
+}
+
+
 void AllMercsHaveWalkedOffSector( )
 {
 	BOOLEAN fEnemiesInLoadedSector = FALSE;
+	bool const to_map_screen = g_adjacent_jump_to_map_screen;
+	g_adjacent_jump_to_map_screen = false;
 
 	if (NumEnemiesInAnySector(gWorldSector))
 	{
@@ -1743,7 +1756,7 @@ void AllMercsHaveWalkedOffSector( )
 	}
 
 	//Setup strategic traversal information
-	if( guiAdjacentTraverseTime <= 5 )
+	if( guiAdjacentTraverseTime <= 5 && !to_map_screen )
 	{
 		gfTacticalTraversal = TRUE;
 		gpTacticalTraversalGroup = gpAdjacentGroup;
@@ -1789,7 +1802,7 @@ void AllMercsHaveWalkedOffSector( )
 				WarpGameTime( 300, WARPTIME_NO_PROCESSING_OF_EVENTS );
 			}
 		}
-		if( guiAdjacentTraverseTime <= 5 )
+		if( guiAdjacentTraverseTime <= 5 && !to_map_screen )
 		{
 			//Case 2:  Immediatly loading the next sector
 			if (!gsAdjacentSector.z)
