@@ -1459,6 +1459,15 @@ void JumpIntoAdjacentSector( UINT8 ubTacticalDirection, UINT8 ubJumpCode, INT16 
 
 		CFOR_EACH_PLAYER_IN_GROUP(curr, pGroup)
 		{
+			// a vehicle at the edge (driving plan): it leaves from where it is,
+			// those aboard with it -- no walk off (its footprint can't go off the
+			// map, and searching an edge tile for it is slow)
+			if (curr->pSoldier->uiStatusFlags & SOLDIER_VEHICLE)
+			{
+				curr->pSoldier->sPreTraversalGridNo = curr->pSoldier->sGridNo;
+				continue;
+			}
+
 			if ( OK_CONTROLLABLE_MERC( curr->pSoldier) )
 			{
 				if ( ubTacticalDirection != 255 )
@@ -1519,6 +1528,9 @@ void JumpIntoAdjacentSector( UINT8 ubTacticalDirection, UINT8 ubJumpCode, INT16 
 BEGINNING_LOOP:
 		CFOR_EACH_PLAYER_IN_GROUP(curr, pGroup)
 		{
+			// (those aboard a vehicle go with it: they are in its group, on no
+			// squad -- removing them from squads would loop forever)
+			if (curr->pSoldier->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER)) continue;
 			if ( !OK_CONTROLLABLE_MERC( curr->pSoldier ) )
 			{
 				RemoveCharacterFromSquads( curr->pSoldier );

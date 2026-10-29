@@ -229,9 +229,19 @@ static void InternalInitSectorExitMenu(UINT8 const ubDirection, INT16 const sAdd
 		}
 	}
 
+	// a vehicle leaves only with its squad -- its movement group, those aboard
+	// (driving plan): alone it would leave them behind
+	if (sel->uiStatusFlags & SOLDIER_VEHICLE)
+	{
+		gExitDialog.fSingleMoveOn       = FALSE;
+		gExitDialog.fSingleMove         = FALSE;
+		gExitDialog.fSingleMoveDisabled = TRUE;
+		gExitDialog.fAllMoveOn          = TRUE;
+		gExitDialog.fAllMove            = TRUE;
+	}
 	// Double check that ...
 	// if we are a EPC and are the selected guy, make single move off and disable it....
-	if (AM_AN_EPC(sel))
+	else if (AM_AN_EPC(sel))
 	{
 		// Check if there are more than one in this squad
 		if ( gExitDialog.ubNumPeopleOnSquad > 1 )

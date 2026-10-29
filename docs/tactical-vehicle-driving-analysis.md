@@ -301,5 +301,20 @@ Stage 2 (turn-based driving and battles) in sub-stages:
   edge; with nobody left to place (`AnyMercForTacticalPlacement()`) the screen
   isn't shown. Retreat already left them aboard; auto-resolve counts them as
   before (it never took them out).
+- **Leaving the sector by driving (part of stage 3 / D7, 2026-10-29):** the
+  exit dialog offered a driving vehicle only "Selected Merc" — its squad
+  seemed empty (`NumberOfPlayerControllableMercsInSquad()` left out vehicles)
+  — and leaving alone put the vehicle on a squad of its own, out of its
+  movement group with those aboard, which broke the vehicle and its group.
+  Now a vehicle that drives in tactical counts as a member of its squad, so
+  "All Mercs in Squad" (and the go-to-sector choice, as for any squad) moves
+  its movement group — the vehicle and those aboard; "Selected Merc" is
+  disabled for a vehicle. The strategic movement decides where it may go (a
+  car only by road; otherwise the usual "can't go" message).
+  `JumpIntoAdjacentSector()` fixes: the round that takes the uncontrollable
+  off their squads skips those aboard (they are in the vehicle's group, on no
+  squad: it looped forever, the game hung on "OK"); the vehicle doesn't walk
+  off — it leaves from where it stands at the edge (its footprint can't go
+  off the map, and the edge-tile search for it was slow).
 - **2d — fighting a vehicle:** enemies shooting it, its destruction, the end
   of a battle with people aboard.

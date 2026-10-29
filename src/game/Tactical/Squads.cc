@@ -1,4 +1,5 @@
 #include "Squads.h"
+#include "Vehicles.h"
 #include "Assignments.h"
 #include "ContentManager.h"
 #include "Debug.h"
@@ -916,7 +917,10 @@ INT8 NumberOfPlayerControllableMercsInSquad( INT8 bSquadValue )
 		//Kris:  This breaks the CLIENT of this function, tactical traversal.
 		//       Do NOT check for EPCS or ROBOT here.
 		//if ( !AM_AN_EPC( pSoldier ) && !AM_A_ROBOT( pSoldier ) &&
-		if( !( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) )
+		// (a vehicle that drives in tactical counts: it leaves the sector with
+		// those aboard as its squad, driving plan)
+		if (!(pSoldier->uiStatusFlags & SOLDIER_VEHICLE) ||
+			VehicleDrivesInTactical(GetVehicle(pSoldier->bVehicleID)))
 		{
 			bSquadCount++;
 		}
