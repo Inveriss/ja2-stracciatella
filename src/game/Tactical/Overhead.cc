@@ -1918,7 +1918,9 @@ static BOOLEAN HandleAtNewGridNo(SOLDIERTYPE* pSoldier, BOOLEAN* pfKeepMoving)
 			if (p.bLife < OKLIFE) continue;
 			p.bDirection        = pSoldier->bDirection;
 			p.bDesiredDirection = pSoldier->bDirection;
-			HandleSight(p, SIGHT_LOOK | SIGHT_RADIO);
+			// in combat with interrupts: an enemy spotted stops it (D17)
+			HandleSight(p, gTacticalStatus.uiFlags & INCOMBAT ?
+				SIGHT_LOOK | SIGHT_RADIO | SIGHT_INTERRUPT : SIGHT_LOOK | SIGHT_RADIO);
 		}
 	}
 	else if (!(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))

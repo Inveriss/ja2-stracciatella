@@ -149,6 +149,19 @@ gridnos) — the soldier save already holds these fields; to be tested.
 All taken 2026-10-28 as proposed. D2 in practice: in combat the vehicle
 stays where it is (the message) until stage 2.
 
+D6 taken 2026-10-29: **vehicles may drive in a battle sector, and the
+pre-battle "everyone out of the vehicles" rule is dropped** (for the vehicles
+that can drive in tactical).
+
+Stage 2 decisions, taken 2026-10-29 as proposed:
+
+| # | Question | Decision |
+|---|---|---|
+| D14 | AP per tile, turn-based | road 2 AP, off the road 3 AP (with 50 AP: about 25 / 16 tiles a turn) |
+| D15 | Getting in / out in combat | allowed on the merc's turn, at the AP getting in costs today; without the AP the usual message |
+| D16 | The placement screen when arriving in a vehicle | those aboard skip it, the vehicle comes in at its map edge by itself; with everyone aboard the screen isn't shown |
+| D17 | Interrupts while driving | those aboard look out with interrupts: the vehicle stops when they spot an enemy, like a walking merc, and enemies may interrupt it |
+
 ## 5. Assets — (d)
 
 **Already there (enough for stage 1):** 32-direction sprites of the Hummer and
@@ -247,6 +260,23 @@ Stage 1 (driving out of combat) in sub-stages, each verified in the game:
     the click on it), no getting out (the seat belts), no passing items, also
     inside it, and no cargo panel by reach (`CanPassViaVehicle()`,
     `IsVehicleInMercReach()`) while it drives;
-  - save / load mid-move: to be tested.
+  - save / load mid-move: verified in the game (2026-10-29).
 
 Then stages 2–5 of section 6.
+
+Stage 2 (turn-based driving and battles) in sub-stages:
+
+- **2a — driving in a running battle (D3, D14, D17):** `CanVehicleDriveInTactical()`
+  lets it drive in combat on our turn, for its own AP (+35, at most 50);
+  `TerrainActionPoints()` (`Points.cc`) gives a vehicle 2 AP a tile on a
+  paved / dirt road and 3 off it — used alike by the plotted path's AP and by
+  the move (`ActionPointCost()`); in combat those aboard look out with
+  interrupts (`HandleSight(... SIGHT_INTERRUPT)` in `HandleAtNewGridNo()`), so
+  an enemy they spot stops it.
+- **2b — getting in / out in combat (D15)**; Q1 stays (no panel / passing
+  with those aboard in combat).
+- **2c — arriving in a battle without getting out (D6, D16):** the pre-battle
+  exit kept off for the cars, the placement screen without those aboard, the
+  vehicle at its edge; auto-resolve and retreat checked.
+- **2d — fighting a vehicle:** enemies shooting it, its destruction, the end
+  of a battle with people aboard.

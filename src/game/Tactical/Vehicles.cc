@@ -1039,8 +1039,8 @@ bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs)
 	if (!(vs.uiStatusFlags & SOLDIER_VEHICLE) || vs.bLife <= 0) return false;
 	// D1: the Hummer and the ice cream truck
 	if (vs.ubBodyType != HUMVEE && vs.ubBodyType != ICECREAMTRUCK) return false;
-	// D2: out of combat (in combat it stays, until turn-based driving)
-	if (gTacticalStatus.uiFlags & INCOMBAT) return false;
+	// in combat: on our turn, for its own AP (stage 2a, D3)
+	if (gTacticalStatus.uiFlags & INCOMBAT && gTacticalStatus.ubCurrentTeam != OUR_TEAM) return false;
 
 	VEHICLETYPE const& v = pVehicleList[vs.bVehicleID];
 	if (v.fDestroyed || !OKUseVehicle(GCM->getVehicle(v.ubVehicleType)->profile)) return false;
