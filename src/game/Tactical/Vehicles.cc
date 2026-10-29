@@ -15,6 +15,7 @@
 #include "Sound_Control.h"
 #include "SoundMan.h"
 #include "Soldier_Add.h"
+#include "PathAI.h"
 #include "Strategic.h"
 #include "Isometric_Utils.h"
 #include "Interface.h"
@@ -1029,22 +1030,40 @@ void SpendVehicleFuelInTactical(SOLDIERTYPE& vs, INT16 const fuel)
 }
 
 
-// D15: in combat getting out takes the merc's own turn and the AP of one step
-// on flat ground (as walking up to the vehicle, which getting in costs)
-#define AP_EXIT_VEHICLE (AP_MOVEMENT_FLAT + WALKCOST)
-
-
+// D15 (changed 2026-10-29): in combat getting in or out takes the merc's own
+// turn and AP_ENTER_EXIT_VEHICLE (5); getting in, also the walk up to it
 bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool const explain)
 {
 	if (!(gTacticalStatus.uiFlags & INCOMBAT)) return true;
 	if (gTacticalStatus.ubCurrentTeam != OUR_TEAM || !OK_INTERRUPT_MERC(&s)) return false;
-	return EnoughPoints(&s, AP_EXIT_VEHICLE, 0, explain);
+	return EnoughPoints(&s, AP_ENTER_EXIT_VEHICLE, 0, explain);
 }
 
 
 void ChargeVehicleExit(SOLDIERTYPE& s)
 {
-	if (gTacticalStatus.uiFlags & INCOMBAT) DeductPoints(&s, AP_EXIT_VEHICLE, 0);
+	if (gTacticalStatus.uiFlags & INCOMBAT) DeductPoints(&s, AP_ENTER_EXIT_VEHICLE, 0);
+}
+
+
+void ChargeVehicleEntry(SOLDIERTYPE& s)
+{
+	if (gTacticalStatus.uiFlags & INCOMBAT) DeductPoints(&s, AP_ENTER_EXIT_VEHICLE, 0);
+}
+
+
+INT16 GetAPsToEnterVehicle(SOLDIERTYPE& s, SOLDIERTYPE const& vs, GridNo* const action_pos)
+{
+	GridNo const pos = FindGridNoFromSweetSpotWithStructDataFromSoldier(&s, s.usUIMovementMode, 5, 0, &vs);
+	if (action_pos) *action_pos = pos;
+	if (pos == NOWHERE) return -1;
+	INT16 walk = 0;
+	if (pos != s.sGridNo)
+	{
+		walk = PlotPath(&s, pos, NO_COPYROUTE, FALSE, s.usUIMovementMode, s.bActionPoints);
+		if (walk == 0) return -1; // (no way there)
+	}
+	return walk + (gTacticalStatus.uiFlags & INCOMBAT ? AP_ENTER_EXIT_VEHICLE : 0);
 }
 
 

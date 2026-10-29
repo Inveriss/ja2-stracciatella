@@ -158,7 +158,7 @@ Stage 2 decisions, taken 2026-10-29 as proposed:
 | # | Question | Decision |
 |---|---|---|
 | D14 | AP per tile, turn-based | road 2 AP, off the road 3 AP (with 50 AP: about 25 / 16 tiles a turn) — **changed 2026-10-29 (variant A):** the Hummer and the ice cream truck get a merc's maximum, 25 AP (also its cap, `gubMaxActionPoints`, so the up to 5 carried over don't make 30), at 1 AP a tile on a road and 2 off it (25 / about 12 tiles a turn) |
-| D15 | Getting in / out in combat | allowed on the merc's turn, at the AP getting in costs today; without the AP the usual message |
+| D15 | Getting in / out in combat | allowed on the merc's turn, at the AP getting in costs today; without the AP the usual message — **changed 2026-10-29:** getting in or out costs 5 AP (`AP_ENTER_EXIT_VEHICLE`), getting in also the walk up to it in his movement mode; the enter-vehicle cursor shows that total (`GetAPsToEnterVehicle()`, `ShowAPsToEnterVehicle()`) |
 | D16 | The placement screen when arriving in a vehicle | those aboard skip it, the vehicle comes in at its map edge by itself; with everyone aboard the screen isn't shown |
 | D17 | Interrupts while driving | those aboard look out with interrupts: the vehicle stops when they spot an enemy, like a walking merc, and enemies may interrupt it |
 

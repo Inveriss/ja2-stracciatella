@@ -381,6 +381,15 @@ void DrawUICursor()
 					gUIDisplayActionPointsOffY = 9;
 					break;
 
+				case ENTER_VEHICLE_UICURSOR:
+
+					// Set position for APS: above the steering wheel (driving plan;
+					// 12 px above the walking cursor's)
+					gfUIDisplayActionPointsCenter = FALSE;
+					gUIDisplayActionPointsOffX = 16;
+					gUIDisplayActionPointsOffY = 2;
+					break;
+
 			}
 
 			gViewportRegion.ChangeCursor(gUICursors[guiCurUICursor].usFreeCursorName);

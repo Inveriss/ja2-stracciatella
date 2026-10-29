@@ -157,6 +157,12 @@ bool VehicleDrivesInTactical(VEHICLETYPE const&);
 // his interrupt, and the AP (the message with explain) -- charged after
 bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool explain);
 void ChargeVehicleExit(SOLDIERTYPE& s);
+// getting in or out of a vehicle in combat (D15, changed 2026-10-29)
+#define AP_ENTER_EXIT_VEHICLE 5
+void ChargeVehicleEntry(SOLDIERTYPE& s);
+// the APs this merc needs to get into this vehicle: the walk up to it (his
+// movement mode) plus AP_ENTER_EXIT_VEHICLE in combat; -1 if he can't get there
+INT16 GetAPsToEnterVehicle(SOLDIERTYPE& s, SOLDIERTYPE const& vs, GridNo* action_pos);
 // fuel one tile of driving to this gridno costs (vehicles.json
 // tacticalFuelPerTile, twice off the road), and spending it (D11)
 INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo);

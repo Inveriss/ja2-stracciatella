@@ -2959,12 +2959,11 @@ static bool CheckForAndHandleHandleVehicleInteractiveClick(SOLDIERTYPE& s, BOOLE
 	VEHICLETYPE& v = GetVehicle(tgt->bVehicleID);
 	if (GetNumberInVehicle(v) != 0 && fMovementMode) return false;
 
-	// Find a gridno closest to sweetspot
-	GridNo const action_pos = FindGridNoFromSweetSpotWithStructDataFromSoldier(&s, s.usUIMovementMode, 5, 0, tgt);
-	if (action_pos == NOWHERE) return false;
-
-	// Calculate AP costs
-	INT16 const ap_cost = PlotPath(&s, action_pos, NO_COPYROUTE, FALSE, s.usUIMovementMode, s.bActionPoints);
+	// Find a gridno closest to sweetspot, and the AP costs: the walk there
+	// and, in combat, getting in (D15)
+	GridNo      action_pos;
+	INT16 const ap_cost = GetAPsToEnterVehicle(s, *tgt, &action_pos);
+	if (action_pos == NOWHERE || ap_cost < 0) return false;
 	// not enough APs: the message, and the click is done with (not taken for
 	// a search of the vehicle's tile, which locked the UI in combat)
 	if (!EnoughPoints(&s, ap_cost, 0, TRUE)) return true;
@@ -2980,9 +2979,9 @@ static bool CheckForAndHandleHandleVehicleInteractiveClick(SOLDIERTYPE& s, BOOLE
 		EVENT_InternalGetNewSoldierPath(&s, action_pos, s.usUIMovementMode, 3, s.fNoAPToFinishMove);
 		SetUIBusy(&s);
 	}
-	else
+	else if (PutSoldierInVehicle(s, v))
 	{
-		PutSoldierInVehicle(s, v);
+		ChargeVehicleEntry(s);
 	}
 	return true;
 }

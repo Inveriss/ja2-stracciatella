@@ -7083,7 +7083,7 @@ void EVENT_SoldierEnterVehicle(SOLDIERTYPE& s, GridNo const gridno)
 	if (tgt && tgt->uiStatusFlags & SOLDIER_VEHICLE && !IsVehicleMoving(*tgt))
 	{
 		VEHICLETYPE& v = GetVehicle(tgt->bVehicleID);
-		PutSoldierInVehicle(s, v);
+		if (PutSoldierInVehicle(s, v)) ChargeVehicleEntry(s);
 	}
 }
 
