@@ -2271,8 +2271,9 @@ INT16 PlotPath(SOLDIERTYPE* const pSold, const INT16 sDestGridno, const INT8 bCo
 					// Are we a vehicle?
 					if ( pSold->uiStatusFlags & SOLDIER_VEHICLE )
 					{
-						// did we exceed WALK cost?
-						if ( sPointsSwat > sAPBudget)
+						// did we exceed WALK cost? (the walking cost, which its move
+						// is charged -- not the crouched one, 1 AP more a tile)
+						if ( sPointsWalk > sAPBudget)
 						{
 							sFootOrderIndex = 4;
 						}
