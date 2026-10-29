@@ -23,6 +23,8 @@
 #include "Explosion_Control.h"
 #include "TileDef.h"
 #include "Animation_Control.h"
+#include "Points.h"
+#include "Overhead_Types.h"
 #include "WorldDef.h"
 #include "StrategicMap.h"
 #include "Campaign_Types.h"
@@ -1024,6 +1026,25 @@ void SpendVehicleFuelInTactical(SOLDIERTYPE& vs, INT16 const fuel)
 	vs.sBreathRed = std::max(0, vs.sBreathRed - fuel);
 	vs.bBreath    = (vs.sBreathRed + 99) / 100;
 	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+// D15: in combat getting out takes the merc's own turn and the AP of one step
+// on flat ground (as walking up to the vehicle, which getting in costs)
+#define AP_EXIT_VEHICLE (AP_MOVEMENT_FLAT + WALKCOST)
+
+
+bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool const explain)
+{
+	if (!(gTacticalStatus.uiFlags & INCOMBAT)) return true;
+	if (gTacticalStatus.ubCurrentTeam != OUR_TEAM || !OK_INTERRUPT_MERC(&s)) return false;
+	return EnoughPoints(&s, AP_EXIT_VEHICLE, 0, explain);
+}
+
+
+void ChargeVehicleExit(SOLDIERTYPE& s)
+{
+	if (gTacticalStatus.uiFlags & INCOMBAT) DeductPoints(&s, AP_EXIT_VEHICLE, 0);
 }
 
 

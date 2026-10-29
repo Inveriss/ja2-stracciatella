@@ -273,8 +273,17 @@ Stage 2 (turn-based driving and battles) in sub-stages:
   the move (`ActionPointCost()`); in combat those aboard look out with
   interrupts (`HandleSight(... SIGHT_INTERRUPT)` in `HandleAtNewGridNo()`), so
   an enemy they spot stops it.
-- **2b — getting in / out in combat (D15)**; Q1 stays (no panel / passing
-  with those aboard in combat).
+- **2b — getting in / out in combat (D15):** getting in already costs the
+  walk up to the vehicle (as before); two fixes on the way: the UI lock is
+  lifted before getting in selects the vehicle (`EVENT_SoldierEnterVehicle()`),
+  and a click without the APs to walk up ends with the message instead of a
+  search of the vehicle's tile. Getting out (`MayExitVehicleInTactical()`,
+  `ChargeVehicleExit()`, `Vehicles.cc`): in combat only on our turn, with the
+  merc's interrupt, for the AP of one step on flat ground (2,
+  `AP_EXIT_VEHICLE`), else "Not enough action points"; for the passengers'
+  seat belts and the "everyone out" belts of the ground vehicles and the
+  helicopter (the ones without the APs stay aboard). Q1 stays (no panel /
+  passing with those aboard in combat).
 - **2c — arriving in a battle without getting out (D6, D16):** the pre-battle
   exit kept off for the cars, the placement screen without those aboard, the
   vehicle at its edge; auto-resolve and retreat checked.

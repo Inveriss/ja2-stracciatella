@@ -151,6 +151,10 @@ bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs);
 // is this vehicle driving on the tactical map now? (D13: nobody gets in or
 // out and no items are passed then)
 bool IsVehicleMoving(SOLDIERTYPE const& vs);
+// getting out in tactical (D15): out of combat always; in combat on our turn,
+// his interrupt, and the AP (the message with explain) -- charged after
+bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool explain);
+void ChargeVehicleExit(SOLDIERTYPE& s);
 // fuel one tile of driving to this gridno costs (vehicles.json
 // tacticalFuelPerTile, twice off the road), and spending it (D11)
 INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo);

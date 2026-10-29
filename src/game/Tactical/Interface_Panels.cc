@@ -3577,7 +3577,8 @@ static void ExitEveryoneFromVehicle(SOLDIERTYPE& vs)
 	INT8 squad = -1;
 	for (SOLDIERTYPE* const s : aboard)
 	{
-		if (!ExitVehicle(s)) continue;
+		if (!MayExitVehicleInTactical(*s, aboard.size() == 1) || !ExitVehicle(s)) continue;
+		ChargeVehicleExit(*s);
 		if (squad == -1)
 		{
 			squad = s->bAssignment;
@@ -5225,12 +5226,16 @@ static void TMClickSecondHandInvCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iR
 
 	if (InHelicopter(*s))
 	{
-		ExitHelicopterInTactical(*s);
+		if (MayExitVehicleInTactical(*s, true) && ExitHelicopterInTactical(*s)) ChargeVehicleExit(*s);
 	}
 	else if (s->uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER))
 	{
 		// D13: nobody gets out while it drives
-		if (!IsVehicleMoving(GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId)))) ExitVehicle(s);
+		if (!IsVehicleMoving(GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId))) &&
+			MayExitVehicleInTactical(*s, true) && ExitVehicle(s))
+		{
+			ChargeVehicleExit(*s);
+		}
 	}
 }
 

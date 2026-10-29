@@ -1507,7 +1507,8 @@ void ExitEveryoneFromHelicopterInTactical()
 	INT8 squad = -1;
 	for (SOLDIERTYPE* const s : aboard)
 	{
-		if (!ExitHelicopterInTactical(*s)) continue;
+		if (!MayExitVehicleInTactical(*s, aboard.size() == 1) || !ExitHelicopterInTactical(*s)) continue;
+		ChargeVehicleExit(*s);
 		if (squad == -1)
 		{
 			squad = s->bAssignment;
