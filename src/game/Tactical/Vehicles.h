@@ -151,6 +151,8 @@ bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs);
 // is this vehicle driving on the tactical map now? (D13: nobody gets in or
 // out and no items are passed then)
 bool IsVehicleMoving(SOLDIERTYPE const& vs);
+// the vehicle types that drive in tactical (D1: Hummer, ice cream truck)
+bool VehicleDrivesInTactical(VEHICLETYPE const&);
 // getting out in tactical (D15): out of combat always; in combat on our turn,
 // his interrupt, and the AP (the message with explain) -- charged after
 bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool explain);

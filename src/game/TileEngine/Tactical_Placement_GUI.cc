@@ -103,6 +103,31 @@ SOLDIERTYPE *gpTacticalPlacementSelectedSoldier = NULL;
 SOLDIERTYPE *gpTacticalPlacementHilightedSoldier = NULL;
 
 // 1366x768: placement in the 1:1 tactical view above a full width panel
+// Who the player places: our mercs arriving in the battle sector -- not the
+// vehicles, nor those aboard one (they stay in it, driving plan D6 / D16)
+static bool IsPlacedInTacticalPlacement(SOLDIERTYPE const& s, GROUP const& bg)
+{
+	if (s.fBetweenSectors)                 return false;
+	if (s.sSector != bg.ubSector)          return false;
+	if (s.uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_DRIVER | SOLDIER_PASSENGER)) return false; // ATE Ignore vehicles
+	if (s.bAssignment == ASSIGNMENT_POW)   return false;
+	if (s.bAssignment == IN_TRANSIT)       return false;
+	if (s.sSector.z != 0)                  return false;
+	return true;
+}
+
+
+bool AnyMercForTacticalPlacement()
+{
+	if (!gpBattleGroup) return false;
+	CFOR_EACH_IN_TEAM(s, OUR_TEAM)
+	{
+		if (s->bLife != 0 && IsPlacedInTacticalPlacement(*s, *gpBattleGroup)) return true;
+	}
+	return false;
+}
+
+
 static bool gfPlacementFullView = false;
 static BOOLEAN gfPlacementOldVideoScroll;
 // Where the 1366x768 panel is, by the entry edges (see InitTacticalPlacementGUI()):
@@ -621,12 +646,7 @@ void InitTacticalPlacementGUI()
 		CFOR_EACH_IN_TEAM(s, OUR_TEAM)
 		{
 			if (s->bLife == 0)                      continue;
-			if (s->fBetweenSectors)                 continue;
-			if (s->sSector != bg.ubSector)          continue;
-			if (s->uiStatusFlags & SOLDIER_VEHICLE) continue;
-			if (s->bAssignment == ASSIGNMENT_POW)   continue;
-			if (s->bAssignment == IN_TRANSIT)       continue;
-			if (s->sSector.z != 0)                  continue;
+			if (!IsPlacedInTacticalPlacement(*s, bg)) continue;
 			// as the insertion code is taken below
 			UINT8 const code =
 				s->ubStrategicInsertionCode == INSERTION_CODE_PRIMARY_EDGEINDEX ||
@@ -705,12 +725,7 @@ void InitTacticalPlacementGUI()
 	size_t n = 0;
 	CFOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
-		if (s->fBetweenSectors)                 continue;
-		if (s->sSector != bg.ubSector)          continue;
-		if (s->uiStatusFlags & SOLDIER_VEHICLE) continue; // ATE Ignore vehicles
-		if (s->bAssignment == ASSIGNMENT_POW)   continue;
-		if (s->bAssignment == IN_TRANSIT)       continue;
-		if (s->sSector.z != 0)                  continue;
+		if (!IsPlacedInTacticalPlacement(*s, bg)) continue;
 		++n;
 	}
 	// Allocate the array based on how many mercs there are.
@@ -725,12 +740,7 @@ void InitTacticalPlacementGUI()
 	FOR_EACH_IN_TEAM(s, OUR_TEAM)
 	{
 		if (s->bLife == 0)                      continue;
-		if (s->fBetweenSectors)                 continue;
-		if (s->sSector != bg.ubSector)          continue;
-		if (s->uiStatusFlags & SOLDIER_VEHICLE) continue; // ATE Ignore vehicles
-		if (s->bAssignment == ASSIGNMENT_POW)   continue;
-		if (s->bAssignment == IN_TRANSIT)       continue;
-		if (s->sSector.z != 0)                  continue;
+		if (!IsPlacedInTacticalPlacement(*s, bg)) continue;
 
 		if (s->ubStrategicInsertionCode == INSERTION_CODE_PRIMARY_EDGEINDEX ||
 				s->ubStrategicInsertionCode == INSERTION_CODE_SECONDARY_EDGEINDEX)

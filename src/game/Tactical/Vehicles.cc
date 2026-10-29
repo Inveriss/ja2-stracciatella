@@ -1048,6 +1048,12 @@ void ChargeVehicleExit(SOLDIERTYPE& s)
 }
 
 
+bool VehicleDrivesInTactical(VEHICLETYPE const& v)
+{
+	return v.ubVehicleType == HUMMER || v.ubVehicleType == ICE_CREAM_TRUCK;
+}
+
+
 bool IsVehicleMoving(SOLDIERTYPE const& vs)
 {
 	if (!(vs.uiStatusFlags & SOLDIER_VEHICLE) || !vs.bInSector) return false;

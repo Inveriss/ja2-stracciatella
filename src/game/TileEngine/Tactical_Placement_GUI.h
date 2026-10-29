@@ -6,6 +6,9 @@
 
 
 void InitTacticalPlacementGUI();
+// is anybody to be placed? (not with everyone aboard vehicles that stay
+// in the battle, driving plan D16)
+bool AnyMercForTacticalPlacement();
 void TacticalPlacementHandle(void);
 
 void HandleTacticalPlacementClicksInOverheadMap(INT32 reason);

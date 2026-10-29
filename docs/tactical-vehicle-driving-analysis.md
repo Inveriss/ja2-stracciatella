@@ -292,8 +292,14 @@ Stage 2 (turn-based driving and battles) in sub-stages:
   its moving animation, not held by `fNoAPToFinishMove` — a vehicle out of APs
   keeps the rest of its path for the next turn, and its passengers (with
   their own APs) couldn't get out.
-- **2c — arriving in a battle without getting out (D6, D16):** the pre-battle
-  exit kept off for the cars, the placement screen without those aboard, the
-  vehicle at its edge; auto-resolve and retreat checked.
+- **2c — arriving in a battle without getting out (D6, D16):**
+  `PutNonSquadMercsInPlayerGroupOnSquads()` (`PreBattle_Interface.cc`) keeps
+  those aboard a vehicle that drives in tactical (`VehicleDrivesInTactical()`:
+  Hummer, ice cream truck) in it when entering the battle; the placement
+  screen (`IsPlacedInTacticalPlacement()`, `Tactical_Placement_GUI.cc`) leaves
+  out the vehicles and those aboard, who come in with the vehicle at its map
+  edge; with nobody left to place (`AnyMercForTacticalPlacement()`) the screen
+  isn't shown. Retreat already left them aboard; auto-resolve counts them as
+  before (it never took them out).
 - **2d — fighting a vehicle:** enemies shooting it, its destruction, the end
   of a battle with people aboard.
