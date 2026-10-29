@@ -12,14 +12,14 @@ void InitMapSecrets();
 
 // TEMPORARY FOR TESTING: every surface sector visited, every map secret found
 // (called for a new game and after loading a game while this is enabled)
-#define REVEAL_WHOLE_MAP_FOR_TESTING 1
+#define REVEAL_WHOLE_MAP_FOR_TESTING 0
 void RevealWholeMapForTesting();
 
 // TEMPORARY FOR TESTING: on Expert the counterattack after the capture of the
 // D15 SAM site is 20 elites instead of 6 (+ progress bonus); in tactical 4 of
 // them carry only LAWs and 3 only a mortar with shells (Strategic_AI.cc,
 // Queen_Command.cc, Inventory_Choosing.cc)
-#define SAM_D15_COUNTERATTACK_FOR_TESTING 1
+#define SAM_D15_COUNTERATTACK_FOR_TESTING 0
 
 // Whether the town was found by the player. Returns TRUE if the town is not hidden (i.e. not defined in map secrets)
 BOOLEAN IsTownFound(INT8 bTownID);
