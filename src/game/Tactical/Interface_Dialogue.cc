@@ -187,9 +187,28 @@ enum
 static void InternalInitiateConversation(SOLDIERTYPE* pDestSoldier, SOLDIERTYPE* pSrcSoldier, Approach, UINT8 approach_record, OBJECTTYPE* approach_object);
 
 
-BOOLEAN InitiateConversationFull(SOLDIERTYPE* const pDestSoldier, SOLDIERTYPE* const pSrcSoldier, Approach const bApproach, UINT8 const approach_record, OBJECTTYPE* const approach_object)
+// A vehicle doesn't talk: its driver does (else the first one aboard who is
+// conscious) -- his approach stats and his voice (driving plan)
+static SOLDIERTYPE* TalkerFor(SOLDIERTYPE* const s)
+{
+	if (!s || !(s->uiStatusFlags & SOLDIER_VEHICLE)) return s;
+	SOLDIERTYPE* other = 0;
+	CFOR_EACH_PASSENGER(GetVehicle(s->bVehicleID), i)
+	{
+		SOLDIERTYPE* const p = *i;
+		if (p->bLife < OKLIFE) continue;
+		if (p->uiStatusFlags & SOLDIER_DRIVER) return p;
+		if (!other) other = p;
+	}
+	return other ? other : s;
+}
+
+
+BOOLEAN InitiateConversationFull(SOLDIERTYPE* const pDestSoldier, SOLDIERTYPE* pSrcSoldier, Approach const bApproach, UINT8 const approach_record, OBJECTTYPE* const approach_object)
 try
 {
+	pSrcSoldier = TalkerFor(pSrcSoldier);
+
 	// ATE: OK, let's check the status of the Q
 	// If it has something in it....delay this until after....
 	if (DialogueQueueIsEmptyAndNobodyIsTalking())
