@@ -2959,7 +2959,9 @@ static bool CheckForAndHandleHandleVehicleInteractiveClick(SOLDIERTYPE& s, BOOLE
 
 	// Calculate AP costs
 	INT16 const ap_cost = PlotPath(&s, action_pos, NO_COPYROUTE, FALSE, s.usUIMovementMode, s.bActionPoints);
-	if (!EnoughPoints(&s, ap_cost, 0, TRUE)) return false;
+	// not enough APs: the message, and the click is done with (not taken for
+	// a search of the vehicle's tile, which locked the UI in combat)
+	if (!EnoughPoints(&s, ap_cost, 0, TRUE)) return true;
 
 	DoMercBattleSound(&s, BATTLE_SOUND_OK1);
 
