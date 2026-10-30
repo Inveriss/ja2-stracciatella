@@ -895,6 +895,121 @@ void CheckForDisabledForGiveItem(void)
 static void UpdateSMPanel();
 
 
+// The helicopter panel's texts (pHeliTacticalInvStrings), in the fonts and
+// colours of the big weapon box (iteminfoc_weapons_big): the headers
+// FONT14HUMANIST in the colour of its values, the titles FONT14ARIAL and the
+// lines FONT12ARIAL in the colour of its labels. They never change: drawn
+// once onto guiSMPanelHeli. Panel coordinates (the top 37 px are the
+// bookmark strip) -- see
+// tools/interface_preview/layouts/heli_tactical_inv_1366x768.json.
+#define HELI_SM_TEXT_LABEL_COLOUR  126
+#define HELI_SM_TEXT_HEADER_COLOUR FONT_BEIGE
+
+enum
+{
+	HELI_SM_TXT_UPGRADES = 0,
+	HELI_SM_TXT_BLADES,
+	HELI_SM_TXT_ENGINE,
+	HELI_SM_TXT_DEFENSE,
+	HELI_SM_TXT_FLIGHT_OPERATIONS,
+	HELI_SM_TXT_LANDING_OPTIONS,
+	HELI_SM_TXT_ENEMY_SECTORS,
+	HELI_SM_TXT_MAP_EDGES,      // label, then its price
+	HELI_SM_TXT_MAP_EDGES_COST,
+	HELI_SM_TXT_ANYWHERE,
+	HELI_SM_TXT_ANYWHERE_COST,
+	HELI_SM_TXT_FLIGHT_STATUS,
+	HELI_SM_TXT_SAM_HIT,        // four label / value pairs
+	HELI_SM_TXT_SAM_HIT_VALUE,
+	HELI_SM_TXT_MINIMUM_HP,
+	HELI_SM_TXT_MINIMUM_HP_VALUE,
+	HELI_SM_TXT_FORCED_RETURN,
+	HELI_SM_TXT_FORCED_RETURN_VALUE,
+	HELI_SM_TXT_CRASH,
+	HELI_SM_TXT_CRASH_VALUE,
+	HELI_SM_TXT_MAINTENANCE,
+	HELI_SM_TXT_WHO_CAN_REPAIR,
+	HELI_SM_TXT_MERCENARIES,
+	HELI_SM_TXT_WALDO,
+	HELI_SM_TXT_WALDO_DRASSEN,  // Waldo's three indented lines
+	HELI_SM_TXT_WALDO_RATE,
+	HELI_SM_TXT_WALDO_COST
+};
+
+static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
+{
+	SetFontDestBuffer(panel);
+	INT16 x;
+	INT16 y;
+
+	// centred in a box, both ways
+	auto const centred = [&](INT32 const i, SGPFont const font, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
+	{
+		ST::string const& str = pHeliTacticalInvStrings[i];
+		FindFontCenterCoordinates(bx, by, bw, bh, str, font, &x, &y);
+		MPrint(x, y, str);
+	};
+	// centred across a box, at a given height
+	auto const title = [&](INT32 const i, INT16 const bx, INT16 const bw, INT16 const ty)
+	{
+		ST::string const& str = pHeliTacticalInvStrings[i];
+		MPrint(bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, ty, str);
+	};
+	auto const line = [&](INT32 const i, INT16 const lx, INT16 const ly)
+	{
+		MPrint(lx, ly, pHeliTacticalInvStrings[i]);
+	};
+	// a label, and its value right-aligned to x + w (10 px from the wall)
+	auto const label_value = [&](INT32 const i, INT16 const lx, INT16 const w, INT16 const ly)
+	{
+		line(i, lx, ly);
+		ST::string const& value = pHeliTacticalInvStrings[i + 1];
+		FindFontRightCoordinates(lx, ly, w, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
+		MPrint(x, ly, value);
+	};
+
+	// the headers, in the title bars
+	SetFontAttributes(FONT14HUMANIST, HELI_SM_TEXT_HEADER_COLOUR);
+	centred(HELI_SM_TXT_UPGRADES,          FONT14HUMANIST, 265, 66, 118, 25);
+	centred(HELI_SM_TXT_FLIGHT_OPERATIONS, FONT14HUMANIST, 422, 66, 411, 25);
+	centred(HELI_SM_TXT_MAINTENANCE,       FONT14HUMANIST, 871, 66, 243, 25);
+
+	// upgrades: one in each of the three 124x52 boxes; the section titles
+	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	for (INT32 i = 0; i != 3; ++i)
+	{
+		centred(HELI_SM_TXT_BLADES + i, FONT14ARIAL, 262, 97 + 55 * i, 124, 52);
+	}
+	title(HELI_SM_TXT_LANDING_OPTIONS, 422, 188, 117);
+	title(HELI_SM_TXT_FLIGHT_STATUS,   626, 207, 117);
+	title(HELI_SM_TXT_WHO_CAN_REPAIR,  871, 243, 117);
+
+	SetFontAttributes(FONT12ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	// landing options (box 422,107 188x126): the enemy sectors option centred,
+	// its check box under it, the two landing places at the bottom
+	ST::string const& enemy = pHeliTacticalInvStrings[HELI_SM_TXT_ENEMY_SECTORS];
+	MPrint(422 + (188 - StringPixLength(enemy, FONT12ARIAL)) / 2, 143, enemy);
+	label_value(HELI_SM_TXT_MAP_EDGES, 432, 168, 193);
+	label_value(HELI_SM_TXT_ANYWHERE,  432, 168, 213);
+
+	// flight status (box 626,107 207x126)
+	label_value(HELI_SM_TXT_SAM_HIT,       636, 187, 143);
+	label_value(HELI_SM_TXT_MINIMUM_HP,    636, 187, 173);
+	label_value(HELI_SM_TXT_FORCED_RETURN, 636, 187, 193);
+	label_value(HELI_SM_TXT_CRASH,         636, 187, 213);
+
+	// maintenance (box 871,107 243x148): 22 px apart, Waldo's lines indented
+	line(HELI_SM_TXT_MERCENARIES, 879, 140);
+	line(HELI_SM_TXT_WALDO,       879, 162);
+	for (INT32 i = HELI_SM_TXT_WALDO_DRASSEN; i <= HELI_SM_TXT_WALDO_COST; ++i)
+	{
+		line(i, 889, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
+	}
+
+	SetFontDestBuffer(FRAME_BUFFER);
+}
+
+
 // The panel shows the helicopter on its own graphic
 static bool IsHeliSMPanel(SOLDIERTYPE const* const s)
 {
@@ -1526,6 +1641,11 @@ void InitializeSMPanel()
 			guiSMPanelHeli->Fill(0);
 			AutoSGPVObject const heli_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HELI_SMPANEL_FILE) };
 			BltVideoObject(guiSMPanelHeli, heli_panel.get(), 0, 0, 0);
+			// "Allow Landing in Enemy Sectors"' check box: only its picture
+			// (17x17, unchecked) for now
+			AutoSGPVObject const check_box{ AddVideoObjectFromFile(INTERFACEDIR "/sector_inventory_popupcheck.sti") };
+			BltVideoObject(guiSMPanelHeli, check_box.get(), 4, 508, 165);
+			DrawHeliSMPanelTexts(guiSMPanelHeli);
 		}
 	}
 	SGPVObject* voSMPanel = SM_BIG ? 0 : AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");

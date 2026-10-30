@@ -419,8 +419,8 @@ void UILayout::recalculatePositions()
 	UINT16 const mapHeliY = invY + 107;
 	for (INT32 i = 0; i != 4; ++i)
 	{
-		m_invSlotPositionTacHeli[SMALLPOCK1POS + i].set(startX + 756, tacHeliY + 15 + 55 * i);
-		m_invSlotPositionTacHeli[BIGPOCK1POS   + i].set(startX + 839, tacHeliY + 15 + 55 * i);
+		m_invSlotPositionTacHeli[SMALLPOCK1POS + i].set(startX + 1144, tacHeliY + 15 + 55 * i);
+		m_invSlotPositionTacHeli[BIGPOCK1POS   + i].set(startX + 1227, tacHeliY + 15 + 55 * i);
 		m_invSlotPositionMapHeli[SMALLPOCK1POS + i].set(m_mapScreenOffsetX + 513, mapHeliY +  17 + 55 * i);
 		m_invSlotPositionMapHeli[BIGPOCK1POS   + i].set(m_mapScreenOffsetX + 463, mapHeliY + 254 + 55 * i);
 	}
