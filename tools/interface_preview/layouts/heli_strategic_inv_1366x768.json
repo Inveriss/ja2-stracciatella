@@ -1,0 +1,22 @@
+{
+  "comment": "HELI_STRATEGIC_INV_1366x768.png -- RenderMapInvHeliTexts() (MapScreen.cc), pHeliInventoryStrings. Fonts/colours as iteminfoc_weapons_big.",
+  "background": "Interface/HELI_STRATEGIC_INV_1366x768.png",
+  "defaults": { "font": "FONT12ARIAL", "colour": 126, "shadow": 2 },
+  "boxes": [
+    { "name": "title bar", "x": 30, "y": 267, "w": 340, "h": 25 },
+    { "name": "landing",   "x": 30, "y": 308, "w": 340, "h": 50 },
+    { "name": "status",    "x": 30, "y": 369, "w": 340, "h": 87 }
+  ],
+  "items": [
+    { "text": "FLIGHT OPERATIONS", "x": 30, "y": 267, "w": 340, "h": 25, "align": "center", "valign": "center", "font": "FONT14HUMANIST", "colour": 130 },
+    { "text": "Landing Options", "x": 30, "y": 310, "w": 340, "align": "center", "font": "FONT14ARIAL" },
+    { "text": "Allow Landing in Enemy Sectors", "x": 38, "y": 336 },
+    { "text": "Land at Map Edges: +$1,000", "x": 215, "y": 328 },
+    { "text": "Land Anywhere: +$2,500", "x": 215, "y": 343 },
+    { "text": "Flight Status", "x": 30, "y": 372, "w": 340, "align": "center", "font": "FONT14ARIAL" },
+    { "text": "SAM Site Missile Hit: 25 HP damage", "x": 38, "y": 391 },
+    { "text": "Minimum HP for Flight: 50 HP", "x": 38, "y": 407 },
+    { "text": "Forced Return to Base: 25-49 HP", "x": 38, "y": 423 },
+    { "text": "Crash: Below 25 HP", "x": 38, "y": 439 }
+  ]
+}

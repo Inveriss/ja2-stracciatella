@@ -4344,6 +4344,70 @@ static void CreateMapInvPanelControls(void);
 static void DestroyMapInvPanelControls(void);
 
 
+// The helicopter panel's texts (pHeliInventoryStrings) in the gold-framed
+// block, in the fonts and colours of the big weapon box (iteminfoc_weapons_big):
+// the header FONT14HUMANIST in the colour of its values, the section titles
+// FONT14ARIAL and the lines FONT12ARIAL in the colour of its labels. Panel
+// coordinates; the boxes' insides (without their 3 px frames): title bar
+// 30,267 340x25, landing 30,308 340x50, flight status 30,369 340x87 -- see
+// tools/interface_preview/layouts/heli_strategic_inv_1366x768.json.
+#define MAP_INV_HELI_TEXT_LABEL_COLOUR  126
+#define MAP_INV_HELI_TEXT_HEADER_COLOUR FONT_BEIGE
+
+enum
+{
+	HELI_INV_TXT_FLIGHT_OPERATIONS = 0,
+	HELI_INV_TXT_LANDING_OPTIONS,
+	HELI_INV_TXT_ENEMY_SECTORS,
+	HELI_INV_TXT_MAP_EDGES,
+	HELI_INV_TXT_ANYWHERE,
+	HELI_INV_TXT_FLIGHT_STATUS,
+	HELI_INV_TXT_SAM_HIT,
+	HELI_INV_TXT_MINIMUM_HP,
+	HELI_INV_TXT_FORCED_RETURN,
+	HELI_INV_TXT_CRASH
+};
+
+static void RenderMapInvHeliTexts()
+{
+	INT16 const dx = PLAYER_INFO_X;
+	INT16 const dy = PLAYER_INFO_Y;
+	INT16 x;
+	INT16 y;
+
+	// centred in the title bar
+	ST::string const& header = pHeliInventoryStrings[HELI_INV_TXT_FLIGHT_OPERATIONS];
+	SetFontAttributes(FONT14HUMANIST, MAP_INV_HELI_TEXT_HEADER_COLOUR);
+	FindFontCenterCoordinates(dx + 30, dy + 267, 340, 25, header, FONT14HUMANIST, &x, &y);
+	MPrint(x, y, header);
+
+	// section titles, centred across their box at the top
+	SetFontAttributes(FONT14ARIAL, MAP_INV_HELI_TEXT_LABEL_COLOUR);
+	auto const title = [&](INT32 const i, INT16 const ty)
+	{
+		ST::string const& str = pHeliInventoryStrings[i];
+		MPrint(dx + 30 + (340 - StringPixLength(str, FONT14ARIAL)) / 2, dy + ty, str);
+	};
+	title(HELI_INV_TXT_LANDING_OPTIONS, 310);
+	title(HELI_INV_TXT_FLIGHT_STATUS,   372);
+
+	SetFontAttributes(FONT12ARIAL, MAP_INV_HELI_TEXT_LABEL_COLOUR);
+	auto const line = [&](INT32 const i, INT16 const lx, INT16 const ly)
+	{
+		MPrint(dx + lx, dy + ly, pHeliInventoryStrings[i]);
+	};
+	// landing: the enemy sectors option left, the two landing places right
+	line(HELI_INV_TXT_ENEMY_SECTORS, 38, 336);
+	line(HELI_INV_TXT_MAP_EDGES,    215, 328);
+	line(HELI_INV_TXT_ANYWHERE,     215, 343);
+	// flight status: 16 px apart
+	for (INT32 i = HELI_INV_TXT_SAM_HIT; i <= HELI_INV_TXT_CRASH; ++i)
+	{
+		line(i, 38, 391 + 16 * (i - HELI_INV_TXT_SAM_HIT));
+	}
+}
+
+
 // gMPanelRegion again, for a new panel size. Re-defined BEFORE the slot,
 // camo and keyring regions are: regions of equal priority defined later
 // take precedence (MSYS_AddRegionToList()), and those share its
@@ -4432,8 +4496,12 @@ static void BltCharInvPanel(void)
 	// render items in each of chars slots
 	HandleRenderInvSlots(*pSoldier, DIRTYLEVEL2);
 
-	// the helicopter's panel: its slots only
-	if (!gfMapInvHeliPanel)
+	// the helicopter's panel: its slots and texts only
+	if (gfMapInvHeliPanel)
+	{
+		RenderMapInvHeliTexts();
+	}
+	else
 	{
 		RenderMapInvBookmarkIcons();
 

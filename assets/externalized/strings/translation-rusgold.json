@@ -1829,6 +1829,18 @@
         "ВЫХОД",
         "ПАУЗА"
     ],
+    "pHeliInventoryStrings": [
+        "FLIGHT OPERATIONS",
+        "Landing Options",
+        "Allow Landing in Enemy Sectors",
+        "Land at Map Edges: +$1,000",
+        "Land Anywhere: +$2,500",
+        "Flight Status",
+        "SAM Site Missile Hit: 25 HP damage",
+        "Minimum HP for Flight: 50 HP",
+        "Forced Return to Base: 25-49 HP",
+        "Crash: Below 25 HP"
+    ],
     "pMilitiaConfirmStrings": [
         "Тренировка отряда ополчения будет стоить $",
         "Оплатить расходы?",
