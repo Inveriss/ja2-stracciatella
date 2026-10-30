@@ -522,13 +522,22 @@ static SGPVSurface* guiSMPanel;
 // The helicopter's own big SM panel (HELI_SMPANEL_FILE, UILayout.h) -- only
 // with the big SM panel, and when its file is there
 static SGPVSurface* guiSMPanelHeli;
-// Its "Allow Landing in Enemy Sectors" check box (sector_inventory_popupcheck.sti
-// 4 unchecked / 6 checked): for now it only shows or hides Waldo's three
-// lines in MAINTENANCE. Not saved -- unchecked in every new session.
-static GUIButtonRef giSMHeliEnemyLandingCheckbox;
-static bool         gfSMHeliEnemyLanding = false;
-#define HELI_SM_ENEMY_LANDING_CHECKBOX_X 567
-#define HELI_SM_ENEMY_LANDING_CHECKBOX_Y 165
+// Its check boxes (sector_inventory_popupcheck.sti 4 unchecked / 6
+// checked), for now each only showing or hiding the lines under it: the one
+// under "Allow Landing in Enemy Sectors" the two landing places, the one next
+// to "Waldo:" his three repair lines. Not saved -- unchecked in every new
+// session.
+enum
+{
+	HELI_SM_CHECK_ENEMY_LANDING = 0,
+	HELI_SM_CHECK_WALDO,
+	NUM_HELI_SM_CHECKS
+};
+static GUIButtonRef giSMHeliCheckbox[NUM_HELI_SM_CHECKS];
+static bool         gfSMHeliChecked[NUM_HELI_SM_CHECKS];
+// their panel positions
+static INT16 const  gHeliSMCheckboxX[NUM_HELI_SM_CHECKS] = { 567, 994 };
+static INT16 const  gHeliSMCheckboxY[NUM_HELI_SM_CHECKS] = { 165, 159 };
 static SGPVObject* guiSMObjects;
 static SGPVObject* guiSMObjects2;
 
@@ -996,8 +1005,12 @@ static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
 	// its check box under it, the two landing places at the bottom
 	ST::string const& enemy = pHeliTacticalInvStrings[HELI_SM_TXT_ENEMY_SECTORS];
 	MPrint(481 + (188 - StringPixLength(enemy, FONT12ARIAL)) / 2, 143, enemy);
-	label_value(HELI_SM_TXT_MAP_EDGES, 491, 168, 193);
-	label_value(HELI_SM_TXT_ANYWHERE,  491, 168, 213);
+	// ... those two only while its check box is checked
+	if (gfSMHeliChecked[HELI_SM_CHECK_ENEMY_LANDING])
+	{
+		label_value(HELI_SM_TXT_MAP_EDGES, 491, 168, 193);
+		label_value(HELI_SM_TXT_ANYWHERE,  491, 168, 213);
+	}
 
 	// flight status (box 685,107 207x126)
 	label_value(HELI_SM_TXT_SAM_HIT,       695, 187, 143);
@@ -1008,8 +1021,8 @@ static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
 	// maintenance (box 940,107 164x148): 22 px apart, Waldo's lines indented
 	line(HELI_SM_TXT_MERCENARIES, 950, 140);
 	line(HELI_SM_TXT_WALDO,       950, 162);
-	// ... the three of them only while the check box is checked
-	if (gfSMHeliEnemyLanding)
+	// ... the three of them only while the check box next to "Waldo:" is checked
+	if (gfSMHeliChecked[HELI_SM_CHECK_WALDO])
 	{
 		for (INT32 i = HELI_SM_TXT_WALDO_DRASSEN; i <= HELI_SM_TXT_WALDO_COST; ++i)
 		{
@@ -1032,10 +1045,10 @@ static void BuildHeliSMPanelSurface()
 }
 
 
-static void HeliEnemyLandingCheckboxCallback(GUI_BUTTON* const btn, UINT32 const reason)
+static void HeliSMCheckboxCallback(INT32 const check, GUI_BUTTON* const btn, UINT32 const reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
-	gfSMHeliEnemyLanding = (btn->uiFlags & BUTTON_CLICKED_ON) != 0;
+	gfSMHeliChecked[check] = (btn->uiFlags & BUTTON_CLICKED_ON) != 0;
 	BuildHeliSMPanelSurface();
 	fInterfacePanelDirty = DIRTYLEVEL2;
 }
@@ -1963,19 +1976,23 @@ void CreateSMPanelButtons(void)
 		ToggleHideEmptyAttachmentSlotsCallback); // sub-images 0-3, per user request
 	giSMHideEmptySlotsCheckbox->SetFastHelpText("Hide empty attachment slots");
 
-	// the helicopter panel's check box -- shown only over that panel (see
-	// UpdateHeliSMPanelCheckbox())
+	// the helicopter panel's check boxes -- shown only over that panel (see
+	// UpdateHeliSMPanelCheckboxes())
 	if (guiSMPanelHeli)
 	{
-		// a toggle with sub-images 4 (unchecked) and 6 (checked) only -- a
-		// check box button would show 5 / 7 under the mouse
-		BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", 4, 6);
-		giSMHeliEnemyLandingCheckbox = QuickCreateButtonToggle(img,
-			dx + HELI_SM_ENEMY_LANDING_CHECKBOX_X, dy + HELI_SM_ENEMY_LANDING_CHECKBOX_Y,
-			MSYS_PRIORITY_HIGHEST, HeliEnemyLandingCheckboxCallback);
-		giSMHeliEnemyLandingCheckbox->uiFlags |= BUTTON_SELFDELETE_IMAGE;
-		if (gfSMHeliEnemyLanding) giSMHeliEnemyLandingCheckbox->uiFlags |= BUTTON_CLICKED_ON;
-		HideButton(giSMHeliEnemyLandingCheckbox);
+		for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+		{
+			// a toggle with sub-images 4 (unchecked) and 6 (checked) only -- a
+			// check box button would show 5 / 7 under the mouse
+			BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", 4, 6);
+			GUIButtonRef const b   = QuickCreateButtonToggle(img,
+				dx + gHeliSMCheckboxX[i], dy + gHeliSMCheckboxY[i], MSYS_PRIORITY_HIGHEST,
+				[i](GUI_BUTTON* const btn, UINT32 const reason) { HeliSMCheckboxCallback(i, btn, reason); });
+			b->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+			if (gfSMHeliChecked[i]) b->uiFlags |= BUTTON_CLICKED_ON;
+			HideButton(b);
+			giSMHeliCheckbox[i] = b;
+		}
 	}
 
 	if (SM_BIG)
@@ -2036,7 +2053,10 @@ void RemoveSMPanelButtons(void)
 	// BUTTON_SELFDELETE_IMAGE (set by CreateCheckBoxButton()) means
 	// RemoveButton() also frees its image -- no separate UnloadButtonImage().
 	if (giSMHideEmptySlotsCheckbox) RemoveButton(giSMHideEmptySlotsCheckbox);
-	if (giSMHeliEnemyLandingCheckbox) RemoveButton(giSMHeliEnemyLandingCheckbox);
+	for (GUIButtonRef& b : giSMHeliCheckbox)
+	{
+		if (b) RemoveButton(b);
+	}
 
 	UnloadButtonImage(iBurstButtonImages[WM_NORMAL]);
 	UnloadButtonImage(iBurstButtonImages[WM_BURST_SHORT]);
@@ -2417,25 +2437,28 @@ static void BtnSMRadarMapCallback(GUI_BUTTON* btn, UINT32 reason)
 }
 
 
-// The helicopter panel's check box: shown over that panel, unless a box or
-// popup lies over it (buttons are drawn on top of them)
-static void UpdateHeliSMPanelCheckbox()
+// The helicopter panel's check boxes: shown over that panel, unless a box or
+// popup lies over them (buttons are drawn on top of them)
+static void UpdateHeliSMPanelCheckboxes()
 {
-	if (!giSMHeliEnemyLandingCheckbox) return;
 	bool const show = IsHeliSMPanel(gpSMCurrentMerc) && !gfSMPanelUnderItemDesc &&
 		!InItemDescriptionBox() && !InItemStackPopup() && !InKeyRingPopup() &&
 		!InStatsPopup() && !InSkillsPopup();
-	// hidden = its mouse region disabled (GUI_BUTTON::Hide())
-	bool const shown = (giSMHeliEnemyLandingCheckbox->Area.uiFlags & MSYS_REGION_ENABLED) != 0;
-	if (show == shown) return;
-	if (show) ShowButton(giSMHeliEnemyLandingCheckbox);
-	else      HideButton(giSMHeliEnemyLandingCheckbox);
+	for (GUIButtonRef const b : giSMHeliCheckbox)
+	{
+		if (!b) continue;
+		// hidden = its mouse region disabled (GUI_BUTTON::Hide())
+		bool const shown = (b->Area.uiFlags & MSYS_REGION_ENABLED) != 0;
+		if (show == shown) continue;
+		if (show) ShowButton(b);
+		else      HideButton(b);
+	}
 }
 
 
 void RenderSMPanel(DirtyLevel* const dirty_level)
 {
-	UpdateHeliSMPanelCheckbox();
+	UpdateHeliSMPanelCheckboxes();
 
 	// Give him the panel
 	if (gSelectSMPanelToMerc) SetSMPanelCurrentMerc(gSelectSMPanelToMerc);
