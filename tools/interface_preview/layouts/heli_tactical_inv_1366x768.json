@@ -1,48 +1,267 @@
 {
   "comment": "HELI_TACTICAL_INV_1366x768.png -- RenderHeliSMPanelTexts() (Interface_Panels.cc), pHeliTacticalInvStrings. Panel coordinates (the top 37 px are the bookmark strip). Fonts/colours as iteminfoc_weapons_big.",
   "background": "Interface/HELI_TACTICAL_INV_1366x768.png",
-  "defaults": { "font": "FONT12ARIAL", "colour": 126, "shadow": 2 },
+  "defaults": {
+    "font": "FONT12ARIAL",
+    "colour": 126,
+    "shadow": 2
+  },
   "boxes": [
-    { "name": "upgrades bar",    "x": 265, "y": 66,  "w": 118, "h": 25 },
-    { "name": "blades",          "x": 262, "y": 97,  "w": 124, "h": 52 },
-    { "name": "engine",          "x": 262, "y": 152, "w": 124, "h": 52 },
-    { "name": "defense",         "x": 262, "y": 207, "w": 124, "h": 52 },
-    { "name": "flight bar",      "x": 422, "y": 66,  "w": 411, "h": 25 },
-    { "name": "landing",         "x": 422, "y": 107, "w": 188, "h": 126 },
-    { "name": "flight status",   "x": 626, "y": 107, "w": 207, "h": 126 },
-    { "name": "maintenance bar", "x": 871, "y": 66,  "w": 243, "h": 25 },
-    { "name": "maintenance",     "x": 871, "y": 107, "w": 243, "h": 148 }
+    {
+      "name": "upgrades bar",
+      "x": 265,
+      "y": 66,
+      "w": 168,
+      "h": 25
+    },
+    {
+      "name": "blades",
+      "x": 262,
+      "y": 97,
+      "w": 174,
+      "h": 52
+    },
+    {
+      "name": "engine",
+      "x": 262,
+      "y": 152,
+      "w": 174,
+      "h": 52
+    },
+    {
+      "name": "defense",
+      "x": 262,
+      "y": 207,
+      "w": 174,
+      "h": 52
+    },
+    {
+      "name": "flight bar",
+      "x": 481,
+      "y": 66,
+      "w": 411,
+      "h": 25
+    },
+    {
+      "name": "landing",
+      "x": 481,
+      "y": 107,
+      "w": 188,
+      "h": 126
+    },
+    {
+      "name": "flight status",
+      "x": 685,
+      "y": 107,
+      "w": 207,
+      "h": 126
+    },
+    {
+      "name": "maintenance bar",
+      "x": 940,
+      "y": 66,
+      "w": 164,
+      "h": 25
+    },
+    {
+      "name": "maintenance",
+      "x": 940,
+      "y": 107,
+      "w": 164,
+      "h": 148
+    }
   ],
   "items": [
-    { "text": "UPGRADES", "x": 265, "y": 66, "w": 118, "h": 25, "align": "center", "valign": "center", "font": "FONT14HUMANIST", "colour": 130 },
-    { "text": "Blades",  "x": 262, "y": 97,  "w": 124, "h": 52, "align": "center", "valign": "center", "font": "FONT14ARIAL" },
-    { "text": "Engine",  "x": 262, "y": 152, "w": 124, "h": 52, "align": "center", "valign": "center", "font": "FONT14ARIAL" },
-    { "text": "Defense", "x": 262, "y": 207, "w": 124, "h": 52, "align": "center", "valign": "center", "font": "FONT14ARIAL" },
-
-    { "text": "FLIGHT OPERATIONS", "x": 422, "y": 66, "w": 411, "h": 25, "align": "center", "valign": "center", "font": "FONT14HUMANIST", "colour": 130 },
-    { "text": "Landing Options", "x": 422, "y": 117, "w": 188, "align": "center", "font": "FONT14ARIAL" },
-    { "text": "Allow Landing in Enemy Sectors", "x": 422, "y": 143, "w": 188, "align": "center" },
-    { "text": "Land at Map Edges:", "x": 432, "y": 193 },
-    { "text": "+$1,000", "x": 432, "y": 193, "w": 168, "align": "right" },
-    { "text": "Land Anywhere:", "x": 432, "y": 213 },
-    { "text": "+$2,500", "x": 432, "y": 213, "w": 168, "align": "right" },
-
-    { "text": "Flight Status", "x": 626, "y": 117, "w": 207, "align": "center", "font": "FONT14ARIAL" },
-    { "text": "SAM Site damage:", "x": 636, "y": 143 },
-    { "text": "25 HP", "x": 636, "y": 143, "w": 187, "align": "right" },
-    { "text": "Minimum HP for Flight:", "x": 636, "y": 173 },
-    { "text": "50 HP", "x": 636, "y": 173, "w": 187, "align": "right" },
-    { "text": "Forced Return to Base:", "x": 636, "y": 193 },
-    { "text": "25-49 HP", "x": 636, "y": 193, "w": 187, "align": "right" },
-    { "text": "Crash:", "x": 636, "y": 213 },
-    { "text": "Below 25 HP", "x": 636, "y": 213, "w": 187, "align": "right" },
-
-    { "text": "MAINTENANCE", "x": 871, "y": 66, "w": 243, "h": 25, "align": "center", "valign": "center", "font": "FONT14HUMANIST", "colour": 130 },
-    { "text": "Who Can Repair", "x": 871, "y": 117, "w": 243, "align": "center", "font": "FONT14ARIAL" },
-    { "text": "Mercenaries: mechanics only", "x": 881, "y": 140 },
-    { "text": "Waldo:", "x": 881, "y": 162 },
-    { "text": "- auto-repairs in Drassen", "x": 891, "y": 184 },
-    { "text": "- repair rate: 3 HP/hour", "x": 891, "y": 206 },
-    { "text": "- repair cost: $200/hour", "x": 891, "y": 228 }
+    {
+      "text": "UPGRADES",
+      "x": 265,
+      "y": 66,
+      "w": 168,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "Blades",
+      "x": 262,
+      "y": 97,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Engine",
+      "x": 262,
+      "y": 152,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Defense",
+      "x": 262,
+      "y": 207,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "FLIGHT OPERATIONS",
+      "x": 481,
+      "y": 66,
+      "w": 411,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "Landing Options",
+      "x": 481,
+      "y": 117,
+      "w": 188,
+      "align": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Allow Landing in Enemy Sectors",
+      "x": 481,
+      "y": 143,
+      "w": 188,
+      "align": "center"
+    },
+    {
+      "text": "Land at Map Edges:",
+      "x": 491,
+      "y": 193
+    },
+    {
+      "text": "+$1,000",
+      "x": 491,
+      "y": 193,
+      "w": 168,
+      "align": "right"
+    },
+    {
+      "text": "Land Anywhere:",
+      "x": 491,
+      "y": 213
+    },
+    {
+      "text": "+$2,500",
+      "x": 491,
+      "y": 213,
+      "w": 168,
+      "align": "right"
+    },
+    {
+      "text": "Flight Status",
+      "x": 685,
+      "y": 117,
+      "w": 207,
+      "align": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "SAM Site damage:",
+      "x": 695,
+      "y": 143
+    },
+    {
+      "text": "25 HP",
+      "x": 695,
+      "y": 143,
+      "w": 187,
+      "align": "right"
+    },
+    {
+      "text": "Minimum HP for Flight:",
+      "x": 695,
+      "y": 173
+    },
+    {
+      "text": "50 HP",
+      "x": 695,
+      "y": 173,
+      "w": 187,
+      "align": "right"
+    },
+    {
+      "text": "Forced Return to Base:",
+      "x": 695,
+      "y": 193
+    },
+    {
+      "text": "25-49 HP",
+      "x": 695,
+      "y": 193,
+      "w": 187,
+      "align": "right"
+    },
+    {
+      "text": "Crash:",
+      "x": 695,
+      "y": 213
+    },
+    {
+      "text": "Below 25 HP",
+      "x": 695,
+      "y": 213,
+      "w": 187,
+      "align": "right"
+    },
+    {
+      "text": "MAINTENANCE",
+      "x": 940,
+      "y": 66,
+      "w": 164,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "Who Can Repair",
+      "x": 940,
+      "y": 117,
+      "w": 164,
+      "align": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Mercenaries: mechanics only",
+      "x": 950,
+      "y": 140
+    },
+    {
+      "text": "Waldo:",
+      "x": 950,
+      "y": 162
+    },
+    {
+      "text": "- auto-repairs in Drassen",
+      "x": 960,
+      "y": 184
+    },
+    {
+      "text": "- repair rate: 3 HP/hour",
+      "x": 960,
+      "y": 206
+    },
+    {
+      "text": "- repair cost: $200/hour",
+      "x": 960,
+      "y": 228
+    }
   ]
 }

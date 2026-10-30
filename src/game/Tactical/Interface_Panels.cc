@@ -970,40 +970,40 @@ static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
 
 	// the headers, in the title bars
 	SetFontAttributes(FONT14HUMANIST, HELI_SM_TEXT_HEADER_COLOUR);
-	centred(HELI_SM_TXT_UPGRADES,          FONT14HUMANIST, 265, 66, 118, 25);
-	centred(HELI_SM_TXT_FLIGHT_OPERATIONS, FONT14HUMANIST, 422, 66, 411, 25);
-	centred(HELI_SM_TXT_MAINTENANCE,       FONT14HUMANIST, 871, 66, 243, 25);
+	centred(HELI_SM_TXT_UPGRADES,          FONT14HUMANIST, 265, 66, 168, 25);
+	centred(HELI_SM_TXT_FLIGHT_OPERATIONS, FONT14HUMANIST, 481, 66, 411, 25);
+	centred(HELI_SM_TXT_MAINTENANCE,       FONT14HUMANIST, 940, 66, 164, 25);
 
-	// upgrades: one in each of the three 124x52 boxes; the section titles
+	// upgrades: one in each of the three 174x52 boxes; the section titles
 	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
 	for (INT32 i = 0; i != 3; ++i)
 	{
-		centred(HELI_SM_TXT_BLADES + i, FONT14ARIAL, 262, 97 + 55 * i, 124, 52);
+		centred(HELI_SM_TXT_BLADES + i, FONT14ARIAL, 262, 97 + 55 * i, 174, 52);
 	}
-	title(HELI_SM_TXT_LANDING_OPTIONS, 422, 188, 117);
-	title(HELI_SM_TXT_FLIGHT_STATUS,   626, 207, 117);
-	title(HELI_SM_TXT_WHO_CAN_REPAIR,  871, 243, 117);
+	title(HELI_SM_TXT_LANDING_OPTIONS, 481, 188, 117);
+	title(HELI_SM_TXT_FLIGHT_STATUS,   685, 207, 117);
+	title(HELI_SM_TXT_WHO_CAN_REPAIR,  940, 164, 117);
 
 	SetFontAttributes(FONT12ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
-	// landing options (box 422,107 188x126): the enemy sectors option centred,
+	// landing options (box 481,107 188x126): the enemy sectors option centred,
 	// its check box under it, the two landing places at the bottom
 	ST::string const& enemy = pHeliTacticalInvStrings[HELI_SM_TXT_ENEMY_SECTORS];
-	MPrint(422 + (188 - StringPixLength(enemy, FONT12ARIAL)) / 2, 143, enemy);
-	label_value(HELI_SM_TXT_MAP_EDGES, 432, 168, 193);
-	label_value(HELI_SM_TXT_ANYWHERE,  432, 168, 213);
+	MPrint(481 + (188 - StringPixLength(enemy, FONT12ARIAL)) / 2, 143, enemy);
+	label_value(HELI_SM_TXT_MAP_EDGES, 491, 168, 193);
+	label_value(HELI_SM_TXT_ANYWHERE,  491, 168, 213);
 
-	// flight status (box 626,107 207x126)
-	label_value(HELI_SM_TXT_SAM_HIT,       636, 187, 143);
-	label_value(HELI_SM_TXT_MINIMUM_HP,    636, 187, 173);
-	label_value(HELI_SM_TXT_FORCED_RETURN, 636, 187, 193);
-	label_value(HELI_SM_TXT_CRASH,         636, 187, 213);
+	// flight status (box 685,107 207x126)
+	label_value(HELI_SM_TXT_SAM_HIT,       695, 187, 143);
+	label_value(HELI_SM_TXT_MINIMUM_HP,    695, 187, 173);
+	label_value(HELI_SM_TXT_FORCED_RETURN, 695, 187, 193);
+	label_value(HELI_SM_TXT_CRASH,         695, 187, 213);
 
-	// maintenance (box 871,107 243x148): 22 px apart, Waldo's lines indented
-	line(HELI_SM_TXT_MERCENARIES, 881, 140);
-	line(HELI_SM_TXT_WALDO,       881, 162);
+	// maintenance (box 940,107 164x148): 22 px apart, Waldo's lines indented
+	line(HELI_SM_TXT_MERCENARIES, 950, 140);
+	line(HELI_SM_TXT_WALDO,       950, 162);
 	for (INT32 i = HELI_SM_TXT_WALDO_DRASSEN; i <= HELI_SM_TXT_WALDO_COST; ++i)
 	{
-		line(i, 891, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
+		line(i, 960, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
 	}
 
 	SetFontDestBuffer(FRAME_BUFFER);
@@ -1644,7 +1644,7 @@ void InitializeSMPanel()
 			// "Allow Landing in Enemy Sectors"' check box: only its picture
 			// (17x17, unchecked) for now
 			AutoSGPVObject const check_box{ AddVideoObjectFromFile(INTERFACEDIR "/sector_inventory_popupcheck.sti") };
-			BltVideoObject(guiSMPanelHeli, check_box.get(), 4, 508, 165);
+			BltVideoObject(guiSMPanelHeli, check_box.get(), 4, 567, 165);
 			DrawHeliSMPanelTexts(guiSMPanelHeli);
 		}
 	}
