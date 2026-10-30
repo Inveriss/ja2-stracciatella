@@ -39,10 +39,10 @@
 
     { "text": "MAINTENANCE", "x": 871, "y": 66, "w": 243, "h": 25, "align": "center", "valign": "center", "font": "FONT14HUMANIST", "colour": 130 },
     { "text": "Who Can Repair", "x": 871, "y": 117, "w": 243, "align": "center", "font": "FONT14ARIAL" },
-    { "text": "Mercenaries: mechanics only", "x": 879, "y": 140 },
-    { "text": "Waldo:", "x": 879, "y": 162 },
-    { "text": "- auto-repairs in Drassen", "x": 889, "y": 184 },
-    { "text": "- repair rate: 3 HP/hour", "x": 889, "y": 206 },
-    { "text": "- repair cost: $200/hour", "x": 889, "y": 228 }
+    { "text": "Mercenaries: mechanics only", "x": 881, "y": 140 },
+    { "text": "Waldo:", "x": 881, "y": 162 },
+    { "text": "- auto-repairs in Drassen", "x": 891, "y": 184 },
+    { "text": "- repair rate: 3 HP/hour", "x": 891, "y": 206 },
+    { "text": "- repair cost: $200/hour", "x": 891, "y": 228 }
   ]
 }

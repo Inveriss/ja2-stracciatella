@@ -999,11 +999,11 @@ static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
 	label_value(HELI_SM_TXT_CRASH,         636, 187, 213);
 
 	// maintenance (box 871,107 243x148): 22 px apart, Waldo's lines indented
-	line(HELI_SM_TXT_MERCENARIES, 879, 140);
-	line(HELI_SM_TXT_WALDO,       879, 162);
+	line(HELI_SM_TXT_MERCENARIES, 881, 140);
+	line(HELI_SM_TXT_WALDO,       881, 162);
 	for (INT32 i = HELI_SM_TXT_WALDO_DRASSEN; i <= HELI_SM_TXT_WALDO_COST; ++i)
 	{
-		line(i, 889, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
+		line(i, 891, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
 	}
 
 	SetFontDestBuffer(FRAME_BUFFER);
