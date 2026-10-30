@@ -525,8 +525,8 @@ static SGPVSurface* guiSMPanel;
 static SGPVSurface* guiSMPanelHeli;
 // Its check boxes (sector_inventory_popupcheck.sti 4 unchecked / 6
 // checked), for now each only showing or hiding the lines under it: the one
-// under "Allow Landing in Enemy Sectors" the two landing places, the one next
-// to "Waldo:" his three repair lines. Unchecked in a new game, saved with
+// under "Allow Landing in Enemy Sectors" the two landing places and the
+// damage risk, the one next to "Waldo:" his three repair lines. Unchecked in a new game, saved with
 // the game (g_gameStates; a save without them loads them unchecked).
 enum
 {
@@ -940,6 +940,8 @@ enum
 	HELI_SM_TXT_MAP_EDGES_COST,
 	HELI_SM_TXT_ANYWHERE,
 	HELI_SM_TXT_ANYWHERE_COST,
+	HELI_SM_TXT_DAMAGE_RISK,    // label, then its value
+	HELI_SM_TXT_DAMAGE_RISK_VALUE,
 	HELI_SM_TXT_FLIGHT_STATUS,
 	HELI_SM_TXT_SAM_HIT,        // four label / value pairs
 	HELI_SM_TXT_SAM_HIT_VALUE,
@@ -1011,11 +1013,12 @@ static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
 	// its check box under it, the two landing places at the bottom
 	ST::string const& enemy = pHeliTacticalInvStrings[HELI_SM_TXT_ENEMY_SECTORS];
 	MPrint(481 + (188 - StringPixLength(enemy, FONT12ARIAL)) / 2, 143, enemy);
-	// ... those two only while its check box is checked
+	// ... those three only while its check box is checked
 	if (gfSMHeliChecked[HELI_SM_CHECK_ENEMY_LANDING])
 	{
-		label_value(HELI_SM_TXT_MAP_EDGES, 491, 168, 193);
-		label_value(HELI_SM_TXT_ANYWHERE,  491, 168, 213);
+		label_value(HELI_SM_TXT_MAP_EDGES,   491, 168, 193);
+		label_value(HELI_SM_TXT_ANYWHERE,    491, 168, 213);
+		label_value(HELI_SM_TXT_DAMAGE_RISK, 491, 168, 233);
 	}
 
 	// flight status (box 685,107 207x126)
