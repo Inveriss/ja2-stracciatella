@@ -7,6 +7,7 @@
 #include "GameSettings.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "MapScreen.h"
+#include "Interface_Panels.h"
 #include "Strategic_AI.h"
 #include "Strategic_Movement.h"
 #include "Strategic_Movement_Costs.h"
@@ -138,4 +139,7 @@ void InitNewCampaign()
 
 	// Merc inventory panel's "Show Large Icons" toggle -- ON for a new game.
 	InitMapInvBigImagesForNewGame();
+
+	// The helicopter panel's check boxes -- unchecked for a new game.
+	InitHeliSMCheckboxesForNewGame();
 }

@@ -90,6 +90,12 @@ bool IsSMPanelUnderItemDesc(void);
 // InitStatsPopup()/DeleteStatsPopup(), InitSkillsPopup()/DeleteSkillsPopup()
 // (this file) and InitKeyRingPopup()/DeleteKeyRingPopup() (Interface_Items.cc).
 void HideSMBookmarkButtonsUnderInfoPopups(void);
+
+// The helicopter panel's check boxes (1366x768): unchecked in a new game,
+// saved with the game (g_gameStates; missing = unchecked).
+void InitHeliSMCheckboxesForNewGame();
+void SaveHeliSMCheckboxesToSaveGameFile();
+void LoadHeliSMCheckboxesFromSaveGameFile();
 void ShowSMBookmarkButtonsUnderInfoPopups(void);
 
 // The key ring popup only ever covers the checkbox, none of the bookmark

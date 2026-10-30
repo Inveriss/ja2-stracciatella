@@ -1,4 +1,5 @@
 #include "Interface_Panels.h"
+#include "SaveLoadGameStates.h"
 #include "AIMSort.h"
 #include "Animation_Control.h"
 #include "Assignments.h"
@@ -525,8 +526,8 @@ static SGPVSurface* guiSMPanelHeli;
 // Its check boxes (sector_inventory_popupcheck.sti 4 unchecked / 6
 // checked), for now each only showing or hiding the lines under it: the one
 // under "Allow Landing in Enemy Sectors" the two landing places, the one next
-// to "Waldo:" his three repair lines. Not saved -- unchecked in every new
-// session.
+// to "Waldo:" his three repair lines. Unchecked in a new game, saved with
+// the game (g_gameStates; a save without them loads them unchecked).
 enum
 {
 	HELI_SM_CHECK_ENEMY_LANDING = 0,
@@ -538,6 +539,11 @@ static bool         gfSMHeliChecked[NUM_HELI_SM_CHECKS];
 // their panel positions
 static INT16 const  gHeliSMCheckboxX[NUM_HELI_SM_CHECKS] = { 567, 994 };
 static INT16 const  gHeliSMCheckboxY[NUM_HELI_SM_CHECKS] = { 165, 159 };
+static ST::string const gHeliSMCheckKeys[NUM_HELI_SM_CHECKS] =
+{
+	"HeliInventory::enemyLanding",
+	"HeliInventory::waldo"
+};
 static SGPVObject* guiSMObjects;
 static SGPVObject* guiSMObjects2;
 
@@ -1051,6 +1057,57 @@ static void HeliSMCheckboxCallback(INT32 const check, GUI_BUTTON* const btn, UIN
 	gfSMHeliChecked[check] = (btn->uiFlags & BUTTON_CLICKED_ON) != 0;
 	BuildHeliSMPanelSurface();
 	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+// The check boxes and the panel's lines follow gfSMHeliChecked again --
+// after a new game or a load changed it while the panel is up
+static void ApplyHeliSMCheckboxes()
+{
+	for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+	{
+		GUIButtonRef const b = giSMHeliCheckbox[i];
+		if (!b) continue;
+		if (gfSMHeliChecked[i]) b->uiFlags |=  BUTTON_CLICKED_ON;
+		else                    b->uiFlags &= ~BUTTON_CLICKED_ON;
+		b->uiFlags |= BUTTON_DIRTY;
+	}
+	if (guiSMPanelHeli)
+	{
+		BuildHeliSMPanelSurface();
+		fInterfacePanelDirty = DIRTYLEVEL2;
+	}
+}
+
+
+void InitHeliSMCheckboxesForNewGame()
+{
+	for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+	{
+		gfSMHeliChecked[i] = false;
+		g_gameStates.Set(gHeliSMCheckKeys[i], false);
+	}
+	ApplyHeliSMCheckboxes();
+}
+
+
+void SaveHeliSMCheckboxesToSaveGameFile()
+{
+	for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+	{
+		g_gameStates.Set(gHeliSMCheckKeys[i], gfSMHeliChecked[i]);
+	}
+}
+
+
+void LoadHeliSMCheckboxesFromSaveGameFile()
+{
+	for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+	{
+		ST::string const& key = gHeliSMCheckKeys[i];
+		gfSMHeliChecked[i] = g_gameStates.HasKey(key) && g_gameStates.Get<bool>(key);
+	}
+	ApplyHeliSMCheckboxes();
 }
 
 

@@ -474,6 +474,9 @@ BOOLEAN SaveGame(const ST::string& saveName, const ST::string& gameDesc)
 		// Icons" toggle (MapScreen.cc) -- per user request.
 		SaveMapInvBigImagesToSaveGameFile();
 
+		// Same convention, for the helicopter panel's check boxes.
+		SaveHeliSMCheckboxesToSaveGameFile();
+
 		SaveStrategicAI(f);
 
 		SaveWatchedLocsToSavedGame(f);
@@ -1082,6 +1085,9 @@ void LoadSavedGame(const ST::string &saveName)
 
 	// Merc inventory panel's "Show Large Icons" toggle -- falls back to ON.
 	LoadMapInvBigImagesFromSaveGameFile();
+
+	// The helicopter panel's check boxes -- fall back to unchecked.
+	LoadHeliSMCheckboxesFromSaveGameFile();
 
 	BAR(1, "Final Checks...");
 
