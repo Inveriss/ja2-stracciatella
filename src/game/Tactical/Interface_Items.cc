@@ -132,7 +132,11 @@
 #define MAP_ITEM_BAR_HEIGHT_BIG				50
 #define MAP_ITEM_BAR_WIDTH_BIG				2
 
-#define MAP_INV_BAR_DX      (IsMapInvBigImages() ? MAP_INV_BAR_DX_BIG      : MAP_INV_BAR_DX_NORMAL)
+// the helicopter's panel (heli_strategic_inv_1366x768.png, "Show Large
+// Icons" only): its bars 1 px further right, the rest as the big mode
+#define MAP_INV_BAR_DX_HELI				6
+
+#define MAP_INV_BAR_DX      (IsMapInvHeliPanel() ? MAP_INV_BAR_DX_HELI : IsMapInvBigImages() ? MAP_INV_BAR_DX_BIG : MAP_INV_BAR_DX_NORMAL)
 #define MAP_INV_BAR_DY      (IsMapInvBigImages() ? MAP_INV_BAR_DY_BIG      : MAP_INV_BAR_DY_NORMAL)
 #define MAP_ITEM_BAR_HEIGHT (IsMapInvBigImages() ? MAP_ITEM_BAR_HEIGHT_BIG : MAP_ITEM_BAR_HEIGHT_NORMAL)
 #define MAP_ITEM_BAR_WIDTH  (IsMapInvBigImages() ? MAP_ITEM_BAR_WIDTH_BIG  : MAP_ITEM_BAR_WIDTH_NORMAL)

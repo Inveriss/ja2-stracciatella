@@ -76,6 +76,10 @@ void MAPEndItemPointer(void);
 // strategic screen (1280+), the only one the button exists on.
 BOOLEAN IsMapInvBigImages(void);
 
+// The helicopter's own merc inventory panel (heli_strategic_inv_1366x768.png)
+// is the one showing.
+bool IsMapInvHeliPanel(void);
+
 // Size of mapinv_big_1280_720/768.sti, the "Show Large Icons" merc inventory panel.
 // Drawn at MAP_SCREEN_X, MAP_SCREEN_Y + 107 on every 1280+ resolution,
 // whatever the screen height -- so it reaches down over the left part of

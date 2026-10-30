@@ -738,6 +738,11 @@ BOOLEAN IsMapInvBigImages(void)
 	return gfMapInvBigImages && g_ui.isWideStrategicScreen();
 }
 
+bool IsMapInvHeliPanel(void)
+{
+	return fShowInventoryFlag && gfMapInvHeliPanel;
+}
+
 BOOLEAN MapInvBigPanelCoversBottomStrip(void)
 {
 	// map_screen_bottom's strip starts at MAP_SCREEN_BOTTOM - 121 (MAP_BOTTOM_Y,
