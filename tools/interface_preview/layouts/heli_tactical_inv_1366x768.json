@@ -133,14 +133,14 @@
       "font": "FONT14ARIAL"
     },
     {
-      "text": "Allow Landing in Enemy Sectors",
+      "text": "Allow landing in enemy sectors",
       "x": 481,
       "y": 143,
       "w": 188,
       "align": "center"
     },
     {
-      "text": "Land at Map Edges:",
+      "text": "Land at map edges:",
       "x": 491,
       "y": 193
     },
@@ -152,7 +152,7 @@
       "align": "right"
     },
     {
-      "text": "Land Anywhere:",
+      "text": "Land anywhere:",
       "x": 491,
       "y": 213
     },
@@ -172,7 +172,7 @@
       "font": "FONT14ARIAL"
     },
     {
-      "text": "SAM Site damage:",
+      "text": "SAM site damage:",
       "x": 695,
       "y": 143
     },
@@ -184,7 +184,7 @@
       "align": "right"
     },
     {
-      "text": "Minimum HP for Flight:",
+      "text": "Minimum HP for flight:",
       "x": 695,
       "y": 173
     },
@@ -196,7 +196,7 @@
       "align": "right"
     },
     {
-      "text": "Forced Return to Base:",
+      "text": "Forced return to base:",
       "x": 695,
       "y": 193
     },

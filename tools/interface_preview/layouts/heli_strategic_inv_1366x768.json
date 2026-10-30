@@ -10,13 +10,13 @@
   "items": [
     { "text": "FLIGHT OPERATIONS", "x": 30, "y": 267, "w": 340, "h": 25, "align": "center", "valign": "center", "font": "FONT14HUMANIST", "colour": 130 },
     { "text": "Landing Options", "x": 30, "y": 310, "w": 340, "align": "center", "font": "FONT14ARIAL" },
-    { "text": "Allow Landing in Enemy Sectors", "x": 38, "y": 336 },
-    { "text": "Land at Map Edges: +$1,000", "x": 215, "y": 328 },
-    { "text": "Land Anywhere: +$2,500", "x": 215, "y": 343 },
+    { "text": "Allow landing in enemy sectors", "x": 38, "y": 336 },
+    { "text": "Land at map edges: +$1,000", "x": 215, "y": 328 },
+    { "text": "Land anywhere: +$2,500", "x": 215, "y": 343 },
     { "text": "Flight Status", "x": 30, "y": 372, "w": 340, "align": "center", "font": "FONT14ARIAL" },
     { "text": "SAM Site Missile Hit: 25 HP damage", "x": 38, "y": 391 },
-    { "text": "Minimum HP for Flight: 50 HP", "x": 38, "y": 407 },
-    { "text": "Forced Return to Base: 25-49 HP", "x": 38, "y": 423 },
+    { "text": "Minimum HP for flight: 50 HP", "x": 38, "y": 407 },
+    { "text": "Forced return to base: 25-49 HP", "x": 38, "y": 423 },
     { "text": "Crash: Below 25 HP", "x": 38, "y": 439 }
   ]
 }
