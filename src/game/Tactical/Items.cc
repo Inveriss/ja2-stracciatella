@@ -2010,6 +2010,11 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos,
 	{
 		return( FALSE );
 	}
+	// ... and the helicopter in 8 of them
+	if (IsHelicopterSoldier(*pSoldier) && !IsHelicopterCargoSlot(bPos))
+	{
+		return( FALSE );
+	}
 
 	auto item = GCM->getItem(pObj->usItem);
 	switch( bPos )

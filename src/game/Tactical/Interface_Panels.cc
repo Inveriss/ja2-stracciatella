@@ -519,6 +519,9 @@ GUIButtonRef iTEAMPanelButtons[NUM_TEAM_BUTTONS];
 
 // Video Surface for Single Merc Panel
 static SGPVSurface* guiSMPanel;
+// The helicopter's own big SM panel (HELI_SMPANEL_FILE, UILayout.h) -- only
+// with the big SM panel, and when its file is there
+static SGPVSurface* guiSMPanelHeli;
 static SGPVObject* guiSMObjects;
 static SGPVObject* guiSMObjects2;
 
@@ -892,11 +895,30 @@ void CheckForDisabledForGiveItem(void)
 static void UpdateSMPanel();
 
 
+// The panel shows the helicopter on its own graphic
+static bool IsHeliSMPanel(SOLDIERTYPE const* const s)
+{
+	return guiSMPanelHeli && s && IsHelicopterSoldier(*s);
+}
+
+
+// The slot regions in the current merc's layout: the helicopter's 8 cargo
+// slots on its own panel, else the usual ones. Only while the SM panel's
+// slots are up -- the map screen's inventory has the same regions.
+static void LayoutSMPanelSlots()
+{
+	if (!guiSMPanel) return;
+	bool const heli = IsHeliSMPanel(gpSMCurrentMerc);
+	LayoutInvSlotRegions(heli ? g_ui.m_invSlotPositionTacHeli : g_ui.m_invSlotPositionTac, heli);
+}
+
+
 void SetSMPanelCurrentMerc(SOLDIERTYPE* s)
 {
 	gSelectSMPanelToMerc = NULL;
 
 	gpSMCurrentMerc = s;
+	LayoutSMPanelSlots();
 
 	// Disable all faces
 	SetAllAutoFacesInactive( );
@@ -1496,6 +1518,15 @@ void InitializeSMPanel()
 		// the 1366x768 one, one piece
 		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" BIG_SMPANEL_FILE) };
 		BltVideoObject(guiSMPanel, big_panel.get(), 0, 0, 0);
+
+		// ... and the helicopter's
+		if (GCM->doesGameResExists(INTERFACEDIR "/" HELI_SMPANEL_FILE))
+		{
+			guiSMPanelHeli = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+			guiSMPanelHeli->Fill(0);
+			AutoSGPVObject const heli_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HELI_SMPANEL_FILE) };
+			BltVideoObject(guiSMPanelHeli, heli_panel.get(), 0, 0, 0);
+		}
 	}
 	SGPVObject* voSMPanel = SM_BIG ? 0 : AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
 	// a graphic as wide as the panel (1366x768: the user's 1366 px
@@ -1590,6 +1621,7 @@ void InitializeSMPanel()
 
 	MOUSE_CALLBACK smInvClickCallback = MouseCallbackPrimarySecondary(SMInvClickCallbackPrimary, SMInvClickCallbackSecondary, MSYS_NO_CALLBACK, true);
 	InitInvSlotInterface(g_ui.m_invSlotPositionTac, &g_ui.m_invCamoRegion, SMInvMoveCallback, smInvClickCallback, SMInvMoveCamoCallback, SMInvClickCamoCallback, false, SM_BIG);
+	LayoutSMPanelSlots();
 	InitKeyRingInterface(KeyRingItemPanelButtonCallback);
 
 	// Trash can drop target -- see SM_TRASHCAN_* above.
@@ -1977,6 +2009,9 @@ void ShutdownSMPanel()
 	// All buttons and regions and video objects and video surfaces will be deleted at shutddown of SGM
 	// We may want to delete them at the interm as well, to free up room for other panels
 	delete guiSMPanel;
+	guiSMPanel = 0;
+	delete guiSMPanelHeli;
+	guiSMPanelHeli = 0;
 	DeleteVideoObject(guiSMObjects);
 	DeleteVideoObject(guiSMObjects2);
 
@@ -2194,6 +2229,8 @@ static void RenderBigSMPanelStats(SOLDIERTYPE const& s, INT32 const dx, INT32 co
 	PrintStat(s.uiChangeMechanicalTime,   MECH_INCREASE,     s.bMechanical,   x1, dy + SM_BIG_STATS_Y(3), p.sMechanicGain*4);
 	PrintStat(s.uiChangeMedicalTime,      MED_INCREASE,      s.bMedical,      x1, dy + SM_BIG_STATS_Y(4), p.sMedicalGain*4);
 
+	// the helicopter's panel has no armour/weight/camo boxes
+	if (IsHeliSMPanel(&s)) return;
 	UINT8 const value_colour = s.bLife >= OKLIFE ? SM_BIG_VALUE_COLOR : FONT_MCOLOR_DKGRAY;
 	PrintBigSMInfoBox(dx + SM_BIG_ARMOR_BOX_X,  dy + SM_BIG_ARMOR_BOX_Y,  pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)),          value_colour);
 	PrintBigSMInfoBox(dx + SM_BIG_WEIGHT_BOX_X, dy + SM_BIG_WEIGHT_BOX_Y, pInvPanelTitleStrings[1], ST::format("{}%", CalculateCarriedWeight(&s)), value_colour);
@@ -2268,7 +2305,7 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 
 	if (*dirty_level == DIRTYLEVEL2)
 	{
-		BltVideoSurface(guiSAVEBUFFER, guiSMPanel, dx, dy, NULL);
+		BltVideoSurface(guiSAVEBUFFER, IsHeliSMPanel(&s) ? guiSMPanelHeli : guiSMPanel, dx, dy, NULL);
 
 		{
 			SGPVObject const* gfx;

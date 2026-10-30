@@ -84,6 +84,7 @@
 #include "Militia_Deployment_Panel.h"
 #include "Militia_Watch.h"
 #include "UILayout.h"
+#include "Vehicles.h"
 #include "Video.h"
 #include "VObject.h"
 #include "VObject_Blitters.h"
@@ -669,12 +670,18 @@ cache_key_t GetCharInfoGraphicsFilename()
 //   mapinv_big_1280_768.sti  -- "Show Large Icons", 1280+ wide, 768+ high
 // ("Show Large Icons" only exists on the wide strategic screen -- see
 // IsMapInvBigImages(); the height split is isCompactStrategicScreen()).
+// The helicopter's own merc inventory panel (HELI_MAPINV_FILE, UILayout.h)
+// is what the panel's regions and controls are laid out for now -- see
+// UpdateMapInvHeliPanel().
+bool gfMapInvHeliPanel = false;
+
 cache_key_t GetMapInvGraphicsFilename()
 {
 	// 1366x768: its own panels, same slot layouts as mapinv_big_1280_720.sti
 	// and mapinv_1280.sti (fallbacks); drawn at PLAYER_INFO_Y (y 133)
 	if (g_ui.isExtraWideStrategicScreen())
 	{
+		if (gfMapInvHeliPanel) return INTERFACEDIR "/" HELI_MAPINV_FILE;
 		return IsMapInvBigImages()
 			? FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_1366x768.png", INTERFACEDIR "/mapinv_big_1280_720.sti" })
 			: FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_small_1366x768.png", INTERFACEDIR "/mapinv_1280.sti" });
@@ -735,7 +742,8 @@ BOOLEAN MapInvBigPanelCoversBottomStrip(void)
 {
 	// map_screen_bottom's strip starts at MAP_SCREEN_BOTTOM - 121 (MAP_BOTTOM_Y,
 	// Map_Screen_Interface_Bottom.cc).
-	return fShowInventoryFlag && IsMapInvBigImages() &&
+	// (the helicopter's panel ends right above the strip)
+	return fShowInventoryFlag && IsMapInvBigImages() && !gfMapInvHeliPanel &&
 		PLAYER_INFO_Y + MAP_INV_BIG_PANEL_HEIGHT > MAP_SCREEN_BOTTOM - 121;
 }
 
@@ -821,14 +829,23 @@ static MOUSE_REGION gCharInfoFaceRegion;
 static MOUSE_REGION gCharInfoHandRegion;
 static MOUSE_REGION gMPanelRegion;
 
+// heli_strategic_inv_1366x768.png, the helicopter's panel: its size, and its
+// Done button (mapinv_done_buttons.sti 2/3, as on mapinv_1366x768.png), the
+// only control on it -- no money, key ring or trash can
+#define MAP_INV_HELI_PANEL_WIDTH   604
+#define MAP_INV_HELI_PANEL_HEIGHT  514
+#define MAP_INV_HELI_DONE_BTN_X    (PLAYER_INFO_X + 395)
+#define MAP_INV_HELI_DONE_BTN_Y    (PLAYER_INFO_Y + 420)
+
 // gMPanelRegion blocks clicks over the whole merc inventory panel -- sized
 // to the current mode's graphic (normal: INV_REGION_WIDTH/HEIGHT,
-// "Show Large Icons": MAP_INV_BIG_PANEL_WIDTH/HEIGHT, MapScreen.h).
+// "Show Large Icons": MAP_INV_BIG_PANEL_WIDTH/HEIGHT, MapScreen.h; the
+// helicopter's panel: MAP_INV_HELI_PANEL_WIDTH/HEIGHT).
 static void DefineMapInvPanelRegion()
 {
 	bool const big = IsMapInvBigImages();
-	UINT16 const w = big ? MAP_INV_BIG_PANEL_WIDTH  : INV_REGION_WIDTH;
-	UINT16 const h = big ? MAP_INV_BIG_PANEL_HEIGHT : INV_REGION_HEIGHT;
+	UINT16 const w = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_WIDTH  : big ? MAP_INV_BIG_PANEL_WIDTH  : INV_REGION_WIDTH;
+	UINT16 const h = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_HEIGHT : big ? MAP_INV_BIG_PANEL_HEIGHT : INV_REGION_HEIGHT;
 	MSYS_DefineRegion(&gMPanelRegion, INV_REGION_X, INV_REGION_Y, INV_REGION_X + w, INV_REGION_Y + h, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 }
 static MOUSE_REGION gMapViewRegion;
@@ -4250,12 +4267,17 @@ static void InitMapInvSlotRegions()
 	INV_REGION_DESC gSCamoXY = {INV_BODY_X, INV_BODY_Y};
 	bool const big = IsMapInvBigImages();
 	InitInvSlotInterface(big ? g_ui.m_invSlotPositionMapBig : g_ui.m_invSlotPositionMap, &gSCamoXY, MAPInvMoveCallback, MouseCallbackPrimarySecondary(MAPInvClickCallbackPrimary, MAPInvClickCallbackSecondary, MAPInvClickCallbackCancelMessage), MAPInvMoveCamoCallback, MAPInvClickCamoCallback, big);
+	if (gfMapInvHeliPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapHeli, true);
 }
 
 
+// the merc inventory panel's slot regions (CreateDestroyMapInvButton()) and
+// its controls (CreateDestroyTrashCanRegion()) are up
+static BOOLEAN fOldShowInventoryFlag = FALSE;
+static BOOLEAN gfMapInvControlsCreated = FALSE;
+
 void CreateDestroyMapInvButton()
 {
-	static BOOLEAN fOldShowInventoryFlag=FALSE;
 
 	if( fShowInventoryFlag && !fOldShowInventoryFlag )
 	{
@@ -4313,6 +4335,61 @@ static void RenderMapInvBookmarkIcons()
 }
 
 
+static void CreateMapInvPanelControls(void);
+static void DestroyMapInvPanelControls(void);
+
+
+// gMPanelRegion again, for a new panel size. Re-defined BEFORE the slot,
+// camo and keyring regions are: regions of equal priority defined later
+// take precedence (MSYS_AddRegionToList()), and those share its
+// MSYS_PRIORITY_HIGH -- defined after them it would sit on top and swallow
+// every click on the slots.
+static void RedefineMapInvPanelRegion()
+{
+	bool const panel_region_enabled = (gMPanelRegion.uiFlags & MSYS_REGION_ENABLED) != 0;
+	MSYS_RemoveRegion(&gMPanelRegion);
+	DefineMapInvPanelRegion();
+	if (panel_region_enabled) gMPanelRegion.Enable(); else gMPanelRegion.Disable();
+	if (fMapInventoryItem) gMPanelRegion.ChangeCursor(EXTERN_CURSOR);
+}
+
+
+// The helicopter gets its own merc inventory panel: 1366x768, "Show Large
+// Icons", the file there
+static bool WantMapInvHeliPanel()
+{
+	if (!g_ui.isExtraWideStrategicScreen() || !IsMapInvBigImages()) return false;
+	SOLDIERTYPE const* const s = GetSelectedInfoChar();
+	return s && IsHelicopterSoldier(*s) && IsInterfaceAssetUsable(INTERFACEDIR "/" HELI_MAPINV_FILE);
+}
+
+
+// Follows the selected character with the panel: the helicopter's own one
+// or the usual one -- its size, slots and controls laid out again when that
+// changes (also with the inventory open, when the selected character changes)
+static void UpdateMapInvHeliPanel()
+{
+	bool const want = WantMapInvHeliPanel();
+	if (want == gfMapInvHeliPanel) return;
+	gfMapInvHeliPanel = want;
+
+	RedefineMapInvPanelRegion();
+	if (fOldShowInventoryFlag)
+	{
+		ShutdownInvSlotInterface();
+		InitMapInvSlotRegions();
+	}
+	if (gfMapInvControlsCreated)
+	{
+		DestroyMapInvPanelControls();
+		CreateMapInvPanelControls();
+	}
+	fShowTrashCanHighLight   = FALSE;
+	fMapScreenBottomDirty    = TRUE;
+	fCharacterInfoPanelDirty = TRUE;
+}
+
+
 static void BltCharInvPanel(void)
 {
 	ST::string sString;
@@ -4321,6 +4398,7 @@ static void BltCharInvPanel(void)
 	Assert(pSoldier);
 	Assert(MapCharacterHasAccessibleInventory(*pSoldier));
 
+	UpdateMapInvHeliPanel();
 	BltVideoObject(guiSAVEBUFFER, GetMapInvGraphicsFilename(), 0, PLAYER_INFO_X, PLAYER_INFO_Y);
 
 	CreateDestroyMapInvButton();
@@ -4349,41 +4427,45 @@ static void BltCharInvPanel(void)
 	// render items in each of chars slots
 	HandleRenderInvSlots(*pSoldier, DIRTYLEVEL2);
 
-	RenderMapInvBookmarkIcons();
-
-	// Render Values for stats! The big panel's own font is used only if it has
-	// every character needed (labels are localized; "100%" covers digits and
-	// the percent sign) -- otherwise BLOCKFONT2, like the normal panel.
-	bool const fBigPanel = IsMapInvBigImages();
-	bool const fBigFont  = fBigPanel &&
-		FontHasGlyphsFor(MAP_INV_STATS_FONT_BIG, pInvPanelTitleStrings[0] + pInvPanelTitleStrings[1] + pInvPanelTitleStrings[2] + "0123456789% ");
-	SGPFont const stats_font = fBigFont ? MAP_INV_STATS_FONT_BIG : BLOCKFONT2;
-	SetFontAttributes(stats_font, fBigPanel ? MAP_INV_STATS_FONT_COLOR_BIG : MAP_INV_STATS_TITLE_FONT_COLOR);
-
-	INT16 usX;
-	INT16 usY;
-
-	// Display armor
-	MPrint(MAP_ARMOR_LABEL_X, MAP_ARMOR_LABEL_Y, pInvPanelTitleStrings[0]);
-	sString = ST::format("{3d}%", ArmourPercent(pSoldier));
-	FindFontRightCoordinates(MAP_ARMOR_X, MAP_ARMOR_Y, MAP_ARMOR_W, MAP_ARMOR_H, sString, stats_font, &usX, &usY);
-	MPrint(usX, usY, sString);
-
-	// Display weight (not for a vehicle: its cargo has no load limit, a
-	// merc's strength-based percentage means nothing there)
-	if (!(pSoldier->uiStatusFlags & SOLDIER_VEHICLE))
+	// the helicopter's panel: its slots only
+	if (!gfMapInvHeliPanel)
 	{
-		MPrint(MAP_WEIGHT_LABEL_X, MAP_WEIGHT_LABEL_Y, pInvPanelTitleStrings[1]);
-		sString = ST::format("{}%", CalculateCarriedWeight(pSoldier));
-		FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, stats_font, &usX, &usY);
+		RenderMapInvBookmarkIcons();
+
+		// Render Values for stats! The big panel's own font is used only if it has
+		// every character needed (labels are localized; "100%" covers digits and
+		// the percent sign) -- otherwise BLOCKFONT2, like the normal panel.
+		bool const fBigPanel = IsMapInvBigImages();
+		bool const fBigFont  = fBigPanel &&
+			FontHasGlyphsFor(MAP_INV_STATS_FONT_BIG, pInvPanelTitleStrings[0] + pInvPanelTitleStrings[1] + pInvPanelTitleStrings[2] + "0123456789% ");
+		SGPFont const stats_font = fBigFont ? MAP_INV_STATS_FONT_BIG : BLOCKFONT2;
+		SetFontAttributes(stats_font, fBigPanel ? MAP_INV_STATS_FONT_COLOR_BIG : MAP_INV_STATS_TITLE_FONT_COLOR);
+
+		INT16 usX;
+		INT16 usY;
+
+		// Display armor
+		MPrint(MAP_ARMOR_LABEL_X, MAP_ARMOR_LABEL_Y, pInvPanelTitleStrings[0]);
+		sString = ST::format("{3d}%", ArmourPercent(pSoldier));
+		FindFontRightCoordinates(MAP_ARMOR_X, MAP_ARMOR_Y, MAP_ARMOR_W, MAP_ARMOR_H, sString, stats_font, &usX, &usY);
+		MPrint(usX, usY, sString);
+
+		// Display weight (not for a vehicle: its cargo has no load limit, a
+		// merc's strength-based percentage means nothing there)
+		if (!(pSoldier->uiStatusFlags & SOLDIER_VEHICLE))
+		{
+			MPrint(MAP_WEIGHT_LABEL_X, MAP_WEIGHT_LABEL_Y, pInvPanelTitleStrings[1]);
+			sString = ST::format("{}%", CalculateCarriedWeight(pSoldier));
+			FindFontRightCoordinates(MAP_WEIGHT_X, MAP_WEIGHT_Y, MAP_WEIGHT_W, MAP_WEIGHT_H, sString, stats_font, &usX, &usY);
+			MPrint(usX, usY, sString);
+		}
+
+		// Display camouflage
+		MPrint(MAP_CAMO_LABEL_X, MAP_CAMO_LABEL_Y, pInvPanelTitleStrings[2]);
+		sString = ST::format("{}%", pSoldier->bCamo);
+		FindFontRightCoordinates(MAP_CAMO_X, MAP_CAMO_Y, MAP_CAMO_W, MAP_CAMO_H, sString, stats_font, &usX, &usY);
 		MPrint(usX, usY, sString);
 	}
-
-	// Display camouflage
-	MPrint(MAP_CAMO_LABEL_X, MAP_CAMO_LABEL_Y, pInvPanelTitleStrings[2]);
-	sString = ST::format("{}%", pSoldier->bCamo);
-	FindFontRightCoordinates(MAP_CAMO_X, MAP_CAMO_Y, MAP_CAMO_W, MAP_CAMO_H, sString, stats_font, &usX, &usY);
-	MPrint(usX, usY, sString);
 
 	if( InKeyRingPopup() || InItemStackPopup() )
 	{
@@ -7294,10 +7376,6 @@ static void UpdateStatusOfMapSortButtons(void)
 static void DoneInventoryMapBtnCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
-static void CreateMapInvPanelControls(void);
-static void DestroyMapInvPanelControls(void);
-
-
 BOOLEAN ToggleMapBigImages(void)
 {
 	// Not while something sits on top of the slots -- but an item
@@ -7313,17 +7391,12 @@ BOOLEAN ToggleMapBigImages(void)
 	if (fSectorInventoryToo) BeginSectorInventoryBigImagesChange();
 
 	gfMapInvBigImages = !gfMapInvBigImages;
+	// the helicopter's panel only in "Show Large Icons"
+	gfMapInvHeliPanel = WantMapInvHeliPanel();
 
-	// The panel's click-blocking region follows the new mode's panel size.
-	// Re-defined FIRST: regions of equal priority defined later take
-	// precedence (MSYS_AddRegionToList()), and the slot, camo and keyring
-	// regions below share its MSYS_PRIORITY_HIGH -- defined after them it
-	// would sit on top and swallow every click on the slots.
-	bool const panel_region_enabled = (gMPanelRegion.uiFlags & MSYS_REGION_ENABLED) != 0;
-	MSYS_RemoveRegion(&gMPanelRegion);
-	DefineMapInvPanelRegion();
-	if (panel_region_enabled) gMPanelRegion.Enable(); else gMPanelRegion.Disable();
-	if (fMapInventoryItem) gMPanelRegion.ChangeCursor(EXTERN_CURSOR);
+	// The panel's click-blocking region follows the new mode's panel size --
+	// re-defined first.
+	RedefineMapInvPanelRegion();
 
 	// Rebuild the slot regions and the panel's other regions/buttons at the
 	// new mode's positions. Removing this very button from inside its own
@@ -7369,8 +7442,16 @@ static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
 // positions (normal / "Show Large Icons", see IsMapInvBigImages()).
 static void CreateMapInvPanelControls(void)
 {
+	// the helicopter's panel has only the Done button: the trash can, money
+	// and key ring regions are out of the mouse's reach there
+	bool   const heli    = gfMapInvHeliPanel;
+	UINT16 const trash_x = heli ? INV_SLOT_HIDDEN_POS : TRASH_CAN_X;
+	UINT16 const trash_y = heli ? INV_SLOT_HIDDEN_POS : TRASH_CAN_Y;
+	UINT16 const money_x = heli ? INV_SLOT_HIDDEN_POS : MAP_INV_MONEY_X;
+	UINT16 const money_y = heli ? INV_SLOT_HIDDEN_POS : MAP_INV_MONEY_Y;
+
 	// trash can
-	MSYS_DefineRegion( &gTrashCanRegion, 	TRASH_CAN_X, TRASH_CAN_Y, TRASH_CAN_X + TRASH_CAN_WIDTH, TRASH_CAN_Y + TRASH_CAN_HEIGHT , MSYS_PRIORITY_HIGHEST - 4 ,
+	MSYS_DefineRegion( &gTrashCanRegion, 	trash_x, trash_y, trash_x + TRASH_CAN_WIDTH, trash_y + TRASH_CAN_HEIGHT , MSYS_PRIORITY_HIGHEST - 4 ,
 				MSYS_NO_CURSOR, TrashCanMoveCallback, TrashCanBtnCallback );
 
 	// done inventory button define
@@ -7378,7 +7459,8 @@ static void CreateMapInvPanelControls(void)
 	// both "Show Large Icons" panels (mapinv_big_1280_720/768.sti);
 	// 0 = ready, 1 = pressed on the normal ones (mapinv_1024/1280.sti).
 	bool const big = IsMapInvBigImages();
-	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big ? 2 : 0, big ? 3 : 1, INV_BTN_X, INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
+	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big ? 2 : 0, big ? 3 : 1,
+		heli ? MAP_INV_HELI_DONE_BTN_X : INV_BTN_X, heli ? MAP_INV_HELI_DONE_BTN_Y : INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
 	if (big && (giMapInvDoneButton->W() != MAP_INV_DONE_BTN_W_BIG || giMapInvDoneButton->H() != MAP_INV_DONE_BTN_H_BIG))
 	{
 		SLOGW("mapinv_done_buttons.sti sub-image 2 is {}x{}, expected {}x{} (MAP_INV_DONE_BTN_W/H_BIG)",
@@ -7389,14 +7471,15 @@ static void CreateMapInvPanelControls(void)
 	gTrashCanRegion.SetFastHelpText(pMiscMapScreenMouseRegionHelpText[1]);
 
 	// money: deposit to / withdraw from the player's account
-	MSYS_DefineRegion(&gMapInvMoneyRegion, MAP_INV_MONEY_X, MAP_INV_MONEY_Y,
-		MAP_INV_MONEY_X + MAP_INV_MONEY_WIDTH, MAP_INV_MONEY_Y + MAP_INV_MONEY_HEIGHT,
+	MSYS_DefineRegion(&gMapInvMoneyRegion, money_x, money_y,
+		money_x + MAP_INV_MONEY_WIDTH, money_y + MAP_INV_MONEY_HEIGHT,
 		MSYS_PRIORITY_HIGHEST - 4, MSYS_NO_CURSOR, MapInvMoneyMoveCallback, MapInvMoneyBtnCallback);
 	gMapInvMoneyRegion.SetFastHelpText(TacticalStr[MONEY_BUTTON_HELP_TEXT]);
 	fMapInvMoneyIconPressed = FALSE;
 	fMapInvTrashIconPressed = FALSE;
 
 	InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
+	if (heli) HideKeyRingRegion();
 
 	// "Show Large Icons" -- wide strategic screen (1280+) only, per user request
 	// Not on the 1366x768 interface: its one "Show Large Icons" button is
@@ -7426,7 +7509,7 @@ static void DestroyMapInvPanelControls(void)
 
 static void CreateDestroyTrashCanRegion(void)
 {
-	static BOOLEAN fCreated = FALSE;
+	BOOLEAN& fCreated = gfMapInvControlsCreated;
 
 	if (fShowInventoryFlag && !fCreated)
 	{
@@ -7612,6 +7695,7 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(INTERFACEDIR "/mapinv_big_1280_768.sti");
 	RemoveVObject(INTERFACEDIR "/mapinv_1366x768.png");
 	RemoveVObject(INTERFACEDIR "/mapinv_small_1366x768.png");
+	RemoveVObject(INTERFACEDIR "/" HELI_MAPINV_FILE);
 	RemoveVObject(GetMapMiddleBackgroundGraphicsFilename());
 	RemoveVObject(guiULICONS);
 

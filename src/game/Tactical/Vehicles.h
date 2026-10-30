@@ -188,6 +188,8 @@ UINT8 GetVehicleSeats(VEHICLETYPE const&);
 // enters tactical
 bool IsHelicopterSoldier(SOLDIERTYPE const&);
 SOLDIERTYPE* GetHelicopterSoldier();
+// The helicopter's cargo has 8 slots: small pockets 1-4 and big pockets 1-4
+bool IsHelicopterCargoSlot(INT8 slot);
 
 void InitVehicles(void);
 

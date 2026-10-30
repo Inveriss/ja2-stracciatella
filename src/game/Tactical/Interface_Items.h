@@ -41,6 +41,14 @@ BOOLEAN HandleItemPickupMenu(void);
 // (gSMInvDataMapBig[] in Interface_Items.cc) instead of the shared ones.
 // fTacticalBigImages: the 1366x768 interface's tactical SM panel (UILayout::isBigSMPanel()), its own slot sizes
 void InitInvSlotInterface(INV_REGION_DESC const* pRegionDesc, INV_REGION_DESC const* pCamoRegion, MOUSE_CALLBACK INVMoveCallback, MOUSE_CALLBACK INVClickCallback, MOUSE_CALLBACK INVMoveCamoCallback, MOUSE_CALLBACK INVClickCamoCallback, bool fMapBigImages = false, bool fTacticalBigImages = false);
+// Lays the slot regions out again at pRegionDesc (a slot at
+// INV_SLOT_HIDDEN_POS is hidden: not drawn, out of the mouse's reach), with
+// the sizes InitInvSlotInterface() was given -- the helicopter's (8 cargo
+// slots) with all its big pockets equally wide.
+void LayoutInvSlotRegions(INV_REGION_DESC const* pRegionDesc, bool fHelicopter);
+// The key ring's region (InitKeyRingInterface()/InitMapKeyRingInterface())
+// out of the mouse's reach -- a panel without a key ring icon
+void HideKeyRingRegion();
 void ShutdownInvSlotInterface();
 void HandleRenderInvSlots(SOLDIERTYPE const&, DirtyLevel);
 void RenderSMKeyringIcon(void);

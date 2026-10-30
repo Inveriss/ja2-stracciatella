@@ -1665,6 +1665,11 @@ struct REMOVE_MONEY
 static REMOVE_MONEY gRemoveMoney;
 
 static MOUSE_REGION gSMInvRegion[NUM_INV_SLOTS];
+// the slot sizes InitInvSlotInterface() was given -- LayoutInvSlotRegions()
+// lays the same regions out again
+static INV_REGIONS const* gpSMInvRegionSizes;
+// ... and the camo (body) region's position
+static INV_REGION_DESC gSMInvCamoPos;
 static MOUSE_REGION gKeyRingPanel;
 static MOUSE_REGION gSMInvCamoRegion;
 static INT8 gbCompatibleAmmo[NUM_INV_SLOTS];
@@ -1932,6 +1937,7 @@ void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 		fMapBigImages      ? gSMInvDataMapBig :
 		fTacticalBigImages ? gSMInvDataTacBig :
 		gSMInvData;
+	gpSMInvRegionSizes = sizes;
 
 	// Load all four body type images
 	guiBodyInvVO[0][0] = AddVideoObjectFromFile(INTERFACEDIR "/inventory_normal_male.sti");
@@ -1944,6 +1950,7 @@ void InitInvSlotInterface(INV_REGION_DESC const* const pRegionDesc,
 	guiBodyInvVO[3][1] = AddVideoObjectFromFile(INTERFACEDIR "/inventory_figure_female_h.sti");
 
 	// Add camo region
+	gSMInvCamoPos = *pCamoRegion;
 	UINT16 const x = pCamoRegion->uX;
 	UINT16 const y = pCamoRegion->uY;
 	MSYS_DefineRegion(&gSMInvCamoRegion, x, y, x + CAMO_REGION_WIDTH,
@@ -1994,6 +2001,36 @@ void InitKeyRingInterface(MOUSE_CALLBACK KeyRingClickCallback)
 }
 
 
+void LayoutInvSlotRegions(INV_REGION_DESC const* const pRegionDesc, bool const fHelicopter)
+{
+	for (INT32 i = 0; i != NUM_INV_SLOTS; ++i)
+	{
+		// the helicopter's big pockets 1-2 are as wide as the others
+		INV_REGIONS const& r = gpSMInvRegionSizes[fHelicopter && BIGPOCK1POS <= i && i < SMALLPOCK1POS ? BIGPOCK3POS : i];
+		MOUSE_REGION&      m = gSMInvRegion[i];
+		m.RegionTopLeftX     = pRegionDesc[i].uX;
+		m.RegionTopLeftY     = pRegionDesc[i].uY;
+		m.RegionBottomRightX = pRegionDesc[i].uX + r.w;
+		m.RegionBottomRightY = pRegionDesc[i].uY + r.h;
+	}
+
+	// the helicopter has no body figure to put camouflage on
+	UINT16 const camo_x = fHelicopter ? INV_SLOT_HIDDEN_POS : gSMInvCamoPos.uX;
+	UINT16 const camo_y = fHelicopter ? INV_SLOT_HIDDEN_POS : gSMInvCamoPos.uY;
+	gSMInvCamoRegion.RegionTopLeftX     = camo_x;
+	gSMInvCamoRegion.RegionTopLeftY     = camo_y;
+	gSMInvCamoRegion.RegionBottomRightX = camo_x + CAMO_REGION_WIDTH;
+	gSMInvCamoRegion.RegionBottomRightY = camo_y + CAMO_REGION_HEIGHT;
+}
+
+
+// a slot laid out at INV_SLOT_HIDDEN_POS (its coordinates wrap negative)
+static bool IsInvSlotHidden(INT32 const slot)
+{
+	return gSMInvRegion[slot].X() < 0;
+}
+
+
 void InitMapKeyRingInterface( MOUSE_CALLBACK KeyRingClickCallback )
 {
 	MSYS_DefineRegion(&gKeyRingPanel, MAP_KEYRING_X, MAP_KEYRING_Y,
@@ -2001,6 +2038,16 @@ void InitMapKeyRingInterface( MOUSE_CALLBACK KeyRingClickCallback )
 		MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, KeyRingMoveCallback,
 		std::move(KeyRingClickCallback));
 	gKeyRingPanel.SetFastHelpText(TacticalStr[KEYRING_HELP_TEXT]);
+}
+
+
+void HideKeyRingRegion()
+{
+	INT16 const hidden = static_cast<INT16>(static_cast<UINT16>(INV_SLOT_HIDDEN_POS));
+	gKeyRingPanel.RegionTopLeftX     = hidden;
+	gKeyRingPanel.RegionTopLeftY     = hidden;
+	gKeyRingPanel.RegionBottomRightX = hidden;
+	gKeyRingPanel.RegionBottomRightY = hidden;
 }
 
 
@@ -2213,6 +2260,7 @@ void HandleRenderInvSlots(SOLDIERTYPE const& s, DirtyLevel const dirty_level)
 
 	for (INT32 i = 0; i != NUM_INV_SLOTS; ++i)
 	{
+		if (IsInvSlotHidden(i)) continue;
 		INVRenderINVPanelItem(s, i, dirty_level);
 	}
 
@@ -2830,7 +2878,7 @@ void HandleNewlyAddedItems(SOLDIERTYPE& s, DirtyLevel* const dirty_level)
 
 		if (new_item_count <= 0) continue;
 		OBJECTTYPE const& o        = s.inv[i];
-		if (o.usItem == NOTHING) continue;
+		if (o.usItem == NOTHING || IsInvSlotHidden(i)) continue;
 		MOUSE_REGION const& r      = gSMInvRegion[i];
 		UINT16       const  colour = us16BPPItemCyclePlacedItemColors[s.bNewItemCycleCount[i]];
 		// the same graphic as the slot itself (HandleRenderInvSlots()): the

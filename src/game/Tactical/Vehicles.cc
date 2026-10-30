@@ -1208,6 +1208,13 @@ UINT8 GetVehicleSeats(VEHICLETYPE const& v)
 }
 
 
+bool IsHelicopterCargoSlot(INT8 const slot)
+{
+	return (BIGPOCK1POS   <= slot && slot <= BIGPOCK4POS) ||
+		(SMALLPOCK1POS <= slot && slot <= SMALLPOCK4POS);
+}
+
+
 bool IsHelicopterSoldier(SOLDIERTYPE const& s)
 {
 	// by the vehicle's type, so it holds for the crashed helicopter's soldier,

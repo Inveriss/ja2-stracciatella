@@ -26,6 +26,15 @@
 #define BIG_SMPANEL_WIDTH               (1366)
 #define BIG_SMPANEL_HEIGHT              (284)  // its top 37 px: the bookmark buttons' strip
 #define BIG_SMPANEL_TOP                 (37)
+// The helicopter's own SM panel on the 1366x768 interface, same size and
+// left block as the big one, its 8 cargo slots in m_invSlotPositionTacHeli
+#define HELI_SMPANEL_FILE               "heli_tactical_inv_1366x768.png"
+// ... and its own merc inventory panel on the 1366x768 strategic screen
+// ("Show Large Icons" only), 604x514 at PLAYER_INFO_X/Y, slots in
+// m_invSlotPositionMapHeli
+#define HELI_MAPINV_FILE                "heli_strategic_inv_1366x768.png"
+// position of a slot a layout has no place for: off the screen
+#define INV_SLOT_HIDDEN_POS             (60000)
 
 // Infobox.sti (the weapon/item description popup) is blitted straight to the
 // screen buffer, independently of guiSMPanel/inventory_bottom_panel.sti --
@@ -216,6 +225,8 @@ public:
 	INV_REGION_DESC       m_invSlotPositionMap[NUM_INVENTORY_SLOTS];      /**< Map screen inventory slots positions  */
 	INV_REGION_DESC       m_invSlotPositionMapBig[NUM_INVENTORY_SLOTS];   /**< Map screen inventory slots positions, "Show Large Icons" mode (mapinv_big_1280_720/768.sti) */
 	INV_REGION_DESC       m_invSlotPositionTac[NUM_INVENTORY_SLOTS];      /**< Tactical screen Inventory slots positions */
+	INV_REGION_DESC       m_invSlotPositionTacHeli[NUM_INVENTORY_SLOTS];  /**< The helicopter's big SM panel (HELI_SMPANEL_FILE): its 8 cargo slots, the rest INV_SLOT_HIDDEN_POS */
+	INV_REGION_DESC       m_invSlotPositionMapHeli[NUM_INVENTORY_SLOTS];  /**< The helicopter's map inventory panel (HELI_MAPINV_FILE): its 8 cargo slots, the rest INV_SLOT_HIDDEN_POS */
 	INV_REGION_DESC       m_invCamoRegion;                                /**< Camo (body) region in the inventory. */
 
 	SGPBox                m_progress_bar_box;

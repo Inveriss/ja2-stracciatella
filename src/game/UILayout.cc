@@ -404,6 +404,27 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionMapBig[SMALLPOCK19POS      ].set(m_mapScreenOffsetX + 114, invY + 595);
 	m_invSlotPositionMapBig[SMALLPOCK20POS      ].set(m_mapScreenOffsetX + 114, invY + 650);
 
+	// The helicopter's panels: its 8 cargo slots (IsHelicopterCargoSlot(),
+	// Vehicles.cc) -- small pockets 1-4 and big pockets 1-4, one column each,
+	// row step 55 -- nothing else
+	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
+	{
+		m_invSlotPositionTacHeli[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		m_invSlotPositionMapHeli[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	}
+	// heli_tactical_inv_1366x768.png: slot = the field (as the big SM panel)
+	UINT16 const tacHeliY = startInvY + BIG_SMPANEL_TOP;
+	// heli_strategic_inv_1366x768.png at PLAYER_INFO_Y (invY + 107): slot =
+	// the field 1 px in (as mapinv_1366x768.png)
+	UINT16 const mapHeliY = invY + 107;
+	for (INT32 i = 0; i != 4; ++i)
+	{
+		m_invSlotPositionTacHeli[SMALLPOCK1POS + i].set(startX + 756, tacHeliY + 15 + 55 * i);
+		m_invSlotPositionTacHeli[BIGPOCK1POS   + i].set(startX + 839, tacHeliY + 15 + 55 * i);
+		m_invSlotPositionMapHeli[SMALLPOCK1POS + i].set(m_mapScreenOffsetX + 513, mapHeliY +  17 + 55 * i);
+		m_invSlotPositionMapHeli[BIGPOCK1POS   + i].set(m_mapScreenOffsetX + 463, mapHeliY + 254 + 55 * i);
+	}
+
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);
 	else m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);
