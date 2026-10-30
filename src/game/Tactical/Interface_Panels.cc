@@ -522,6 +522,13 @@ static SGPVSurface* guiSMPanel;
 // The helicopter's own big SM panel (HELI_SMPANEL_FILE, UILayout.h) -- only
 // with the big SM panel, and when its file is there
 static SGPVSurface* guiSMPanelHeli;
+// Its "Allow Landing in Enemy Sectors" check box (sector_inventory_popupcheck.sti
+// 4 unchecked / 6 checked): for now it only shows or hides Waldo's three
+// lines in MAINTENANCE. Not saved -- unchecked in every new session.
+static GUIButtonRef giSMHeliEnemyLandingCheckbox;
+static bool         gfSMHeliEnemyLanding = false;
+#define HELI_SM_ENEMY_LANDING_CHECKBOX_X 567
+#define HELI_SM_ENEMY_LANDING_CHECKBOX_Y 165
 static SGPVObject* guiSMObjects;
 static SGPVObject* guiSMObjects2;
 
@@ -1001,12 +1008,36 @@ static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
 	// maintenance (box 940,107 164x148): 22 px apart, Waldo's lines indented
 	line(HELI_SM_TXT_MERCENARIES, 950, 140);
 	line(HELI_SM_TXT_WALDO,       950, 162);
-	for (INT32 i = HELI_SM_TXT_WALDO_DRASSEN; i <= HELI_SM_TXT_WALDO_COST; ++i)
+	// ... the three of them only while the check box is checked
+	if (gfSMHeliEnemyLanding)
 	{
-		line(i, 960, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
+		for (INT32 i = HELI_SM_TXT_WALDO_DRASSEN; i <= HELI_SM_TXT_WALDO_COST; ++i)
+		{
+			line(i, 960, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
+		}
 	}
 
 	SetFontDestBuffer(FRAME_BUFFER);
+}
+
+
+// The helicopter's panel surface: its graphic and texts -- again after the
+// check box changes what is shown
+static void BuildHeliSMPanelSurface()
+{
+	guiSMPanelHeli->Fill(0);
+	AutoSGPVObject const heli_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HELI_SMPANEL_FILE) };
+	BltVideoObject(guiSMPanelHeli, heli_panel.get(), 0, 0, 0);
+	DrawHeliSMPanelTexts(guiSMPanelHeli);
+}
+
+
+static void HeliEnemyLandingCheckboxCallback(GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	gfSMHeliEnemyLanding = (btn->uiFlags & BUTTON_CLICKED_ON) != 0;
+	BuildHeliSMPanelSurface();
+	fInterfacePanelDirty = DIRTYLEVEL2;
 }
 
 
@@ -1638,14 +1669,7 @@ void InitializeSMPanel()
 		if (GCM->doesGameResExists(INTERFACEDIR "/" HELI_SMPANEL_FILE))
 		{
 			guiSMPanelHeli = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
-			guiSMPanelHeli->Fill(0);
-			AutoSGPVObject const heli_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HELI_SMPANEL_FILE) };
-			BltVideoObject(guiSMPanelHeli, heli_panel.get(), 0, 0, 0);
-			// "Allow Landing in Enemy Sectors"' check box: only its picture
-			// (17x17, unchecked) for now
-			AutoSGPVObject const check_box{ AddVideoObjectFromFile(INTERFACEDIR "/sector_inventory_popupcheck.sti") };
-			BltVideoObject(guiSMPanelHeli, check_box.get(), 4, 567, 165);
-			DrawHeliSMPanelTexts(guiSMPanelHeli);
+			BuildHeliSMPanelSurface();
 		}
 	}
 	SGPVObject* voSMPanel = SM_BIG ? 0 : AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
@@ -1939,6 +1963,21 @@ void CreateSMPanelButtons(void)
 		ToggleHideEmptyAttachmentSlotsCallback); // sub-images 0-3, per user request
 	giSMHideEmptySlotsCheckbox->SetFastHelpText("Hide empty attachment slots");
 
+	// the helicopter panel's check box -- shown only over that panel (see
+	// UpdateHeliSMPanelCheckbox())
+	if (guiSMPanelHeli)
+	{
+		// a toggle with sub-images 4 (unchecked) and 6 (checked) only -- a
+		// check box button would show 5 / 7 under the mouse
+		BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", 4, 6);
+		giSMHeliEnemyLandingCheckbox = QuickCreateButtonToggle(img,
+			dx + HELI_SM_ENEMY_LANDING_CHECKBOX_X, dy + HELI_SM_ENEMY_LANDING_CHECKBOX_Y,
+			MSYS_PRIORITY_HIGHEST, HeliEnemyLandingCheckboxCallback);
+		giSMHeliEnemyLandingCheckbox->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+		if (gfSMHeliEnemyLanding) giSMHeliEnemyLandingCheckbox->uiFlags |= BUTTON_CLICKED_ON;
+		HideButton(giSMHeliEnemyLandingCheckbox);
+	}
+
 	if (SM_BIG)
 	{
 		// no place for it on the big panel yet: hidden (and kept hidden, see
@@ -1997,6 +2036,7 @@ void RemoveSMPanelButtons(void)
 	// BUTTON_SELFDELETE_IMAGE (set by CreateCheckBoxButton()) means
 	// RemoveButton() also frees its image -- no separate UnloadButtonImage().
 	if (giSMHideEmptySlotsCheckbox) RemoveButton(giSMHideEmptySlotsCheckbox);
+	if (giSMHeliEnemyLandingCheckbox) RemoveButton(giSMHeliEnemyLandingCheckbox);
 
 	UnloadButtonImage(iBurstButtonImages[WM_NORMAL]);
 	UnloadButtonImage(iBurstButtonImages[WM_BURST_SHORT]);
@@ -2377,8 +2417,26 @@ static void BtnSMRadarMapCallback(GUI_BUTTON* btn, UINT32 reason)
 }
 
 
+// The helicopter panel's check box: shown over that panel, unless a box or
+// popup lies over it (buttons are drawn on top of them)
+static void UpdateHeliSMPanelCheckbox()
+{
+	if (!giSMHeliEnemyLandingCheckbox) return;
+	bool const show = IsHeliSMPanel(gpSMCurrentMerc) && !gfSMPanelUnderItemDesc &&
+		!InItemDescriptionBox() && !InItemStackPopup() && !InKeyRingPopup() &&
+		!InStatsPopup() && !InSkillsPopup();
+	// hidden = its mouse region disabled (GUI_BUTTON::Hide())
+	bool const shown = (giSMHeliEnemyLandingCheckbox->Area.uiFlags & MSYS_REGION_ENABLED) != 0;
+	if (show == shown) return;
+	if (show) ShowButton(giSMHeliEnemyLandingCheckbox);
+	else      HideButton(giSMHeliEnemyLandingCheckbox);
+}
+
+
 void RenderSMPanel(DirtyLevel* const dirty_level)
 {
+	UpdateHeliSMPanelCheckbox();
+
 	// Give him the panel
 	if (gSelectSMPanelToMerc) SetSMPanelCurrentMerc(gSelectSMPanelToMerc);
 
