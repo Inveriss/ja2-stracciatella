@@ -1620,7 +1620,21 @@ void HelicopterRunFinished()
 {
 	if (!gfHeliEnemyDropRunning) return;
 	gfHeliEnemyDropRunning = false;
-	// all down: now everybody looks around, a fight starting as usual
+
+	// all down: Skyrider doesn't wait among enemies -- off to the nearest
+	// refuel site (Drassen, or Estoni when it is available and closer) at
+	// once, no hovering time (its pending events go, so they can't fire
+	// during a later hover)
+	giHeliEnemyLandingSector = -1;
+	if (iHelicopterVehicleId != -1 && !fHelicopterDestroyed && fHoveringHelicopter)
+	{
+		DeleteAllStrategicEventsOfType(EVENT_HELICOPTER_HOVER_TOO_LONG);
+		DeleteAllStrategicEventsOfType(EVENT_HELICOPTER_HOVER_WAY_TOO_LONG);
+		uiStartHoverTime = 0;
+		MakeHeliReturnToBase();
+	}
+
+	// now everybody looks around, a fight starting as usual
 	if (gfWorldLoaded) AllTeamsLookForAll(TRUE);
 }
 
