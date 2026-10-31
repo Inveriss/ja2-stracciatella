@@ -730,13 +730,39 @@ void HandleHeliHoverTooLong( void )
 	// hovered too long, inform player heli is returning to base
 	HeliCharacterDialogue(RETURN_TO_BASE);
 	VEHICLETYPE const& v = GetHelicopter();
+	// a landing among enemies agreed on (the zone chosen, but nobody went down
+	// -- e.g. grounded by the debt): he doesn't take them back either
+	bool const enemy_landing = giHeliEnemyLandingSector == v.sSector.AsByte();
+	SOLDIERTYPE* first_passenger = nullptr;
+	SGPSector    prev;
+	SGPSector    here;
 	// If the sector is safe
-	if (NumEnemiesInSector(v.sSector) == 0)
+	if (NumEnemiesInSector(v.sSector) == 0 || enemy_landing)
 	{
+		CFOR_EACH_PASSENGER(v, i)
+		{
+			first_passenger = *i;
+			break;
+		}
+		GROUP const* const hg = GetGroup(v.ubMovementGroup);
+		prev = hg->ubPrev;
+		here = hg->ubSector;
+
 		// kick everyone out!
 		MoveAllInHelicopterToFootMovementGroup( );
 	}
 	MakeHeliReturnToBase();
+
+	if (enemy_landing)
+	{
+		giHeliEnemyLandingSector = -1;
+		gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
+		// the dropped squad arrives among the enemies: battle (Pre-Battle panel)
+		if (first_passenger && NumEnemiesInSector(here) > 0)
+		{
+			PlaceGroupInSector(*GetGroup(first_passenger->ubGroupID), prev, here, true);
+		}
+	}
 }
 
 // check if anyone in the chopper sees any baddies in sector
