@@ -421,8 +421,8 @@ void UILayout::recalculatePositions()
 	{
 		m_invSlotPositionTacHeli[SMALLPOCK1POS + i].set(startX + 1144, tacHeliY + 15 + 55 * i);
 		m_invSlotPositionTacHeli[BIGPOCK1POS   + i].set(startX + 1227, tacHeliY + 15 + 55 * i);
-		m_invSlotPositionMapHeli[SMALLPOCK1POS + i].set(m_mapScreenOffsetX + 513, mapHeliY +  17 + 55 * i);
-		m_invSlotPositionMapHeli[BIGPOCK1POS   + i].set(m_mapScreenOffsetX + 463, mapHeliY + 254 + 55 * i);
+		m_invSlotPositionMapHeli[SMALLPOCK1POS + i].set(m_mapScreenOffsetX + 469, mapHeliY +  17 + 55 * i);
+		m_invSlotPositionMapHeli[BIGPOCK1POS   + i].set(m_mapScreenOffsetX + 469, mapHeliY + 254 + 55 * i);
 	}
 
 	// the big SM panel has no place for the body figure yet: off the screen

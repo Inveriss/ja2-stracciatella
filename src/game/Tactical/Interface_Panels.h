@@ -91,8 +91,20 @@ bool IsSMPanelUnderItemDesc(void);
 // (this file) and InitKeyRingPopup()/DeleteKeyRingPopup() (Interface_Items.cc).
 void HideSMBookmarkButtonsUnderInfoPopups(void);
 
-// The helicopter panel's check boxes (1366x768): unchecked in a new game,
-// saved with the game (g_gameStates; missing = unchecked).
+// The helicopter inventory panels (1366x768, tactical and strategic): their
+// texts (tactical panel coordinates, moved by block on the map panel) and
+// their two check boxes -- one state for both panels, unchecked in a new
+// game, saved with the game (g_gameStates; missing = unchecked).
+enum
+{
+	HELI_INV_CHECK_ENEMY_LANDING = 0, // shows the landing places and the damage risk
+	HELI_INV_CHECK_WALDO,             // shows Waldo's three repair lines
+	NUM_HELI_INV_CHECKS
+};
+void DrawHeliInventoryTexts(SGPVSurface* dst, INT16 x, INT16 y, bool map);
+void GetHeliInventoryCheckboxPos(INT32 check, bool map, INT16* x, INT16* y);
+bool IsHeliInventoryChecked(INT32 check);
+void SetHeliInventoryChecked(INT32 check, bool checked);
 void InitHeliSMCheckboxesForNewGame();
 void SaveHeliSMCheckboxesToSaveGameFile();
 void LoadHeliSMCheckboxesFromSaveGameFile();

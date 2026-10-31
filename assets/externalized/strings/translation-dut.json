@@ -1830,18 +1830,6 @@
         "PAUZE"
     ],
     "pHeliInventoryStrings": [
-        "FLIGHT OPERATIONS",
-        "Landing Options",
-        "Allow landing in enemy sectors",
-        "Land at map edges: +$1,000",
-        "Land anywhere: +$2,500",
-        "Flight Status",
-        "SAM Site Missile Hit: 25 HP damage",
-        "Minimum HP for flight: 50 HP",
-        "Forced return to base: 25-49 HP",
-        "Crash: Below 25 HP"
-    ],
-    "pHeliTacticalInvStrings": [
         "UPGRADES",
         "Blades",
         "Engine",

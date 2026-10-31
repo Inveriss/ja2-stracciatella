@@ -1,5 +1,5 @@
 {
-  "comment": "HELI_TACTICAL_INV_1366x768.png -- RenderHeliSMPanelTexts() (Interface_Panels.cc), pHeliTacticalInvStrings. Panel coordinates (the top 37 px are the bookmark strip). Fonts/colours as iteminfoc_weapons_big.",
+  "comment": "HELI_TACTICAL_INV_1366x768.png -- DrawHeliInventoryTexts(..., map = false) (Interface_Panels.cc), pHeliInventoryStrings. All check boxes checked. Panel coordinates (the top 37 px are the bookmark strip). Fonts/colours as iteminfoc_weapons_big.",
   "background": "Interface/HELI_TACTICAL_INV_1366x768.png",
   "defaults": {
     "font": "FONT12ARIAL",

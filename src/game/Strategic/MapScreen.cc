@@ -835,12 +835,14 @@ static MOUSE_REGION gCharInfoHandRegion;
 static MOUSE_REGION gMPanelRegion;
 
 // heli_strategic_inv_1366x768.png, the helicopter's panel: its size, and its
-// Done button (mapinv_done_buttons.sti 2/3, as on mapinv_1366x768.png), the
-// only control on it -- no money, key ring or trash can
+// controls -- the Done button (mapinv_done_buttons.sti 2/3, as on
+// mapinv_1366x768.png) and the two check boxes the tactical panel has too
+// (Interface_Panels.cc); no money, key ring or trash can
 #define MAP_INV_HELI_PANEL_WIDTH   604
 #define MAP_INV_HELI_PANEL_HEIGHT  514
-#define MAP_INV_HELI_DONE_BTN_X    (PLAYER_INFO_X + 395)
-#define MAP_INV_HELI_DONE_BTN_Y    (PLAYER_INFO_Y + 420)
+#define MAP_INV_HELI_DONE_BTN_X    (PLAYER_INFO_X + 545)
+#define MAP_INV_HELI_DONE_BTN_Y    (PLAYER_INFO_Y + 183)
+static GUIButtonRef giMapInvHeliCheckbox[NUM_HELI_INV_CHECKS];
 
 // gMPanelRegion blocks clicks over the whole merc inventory panel -- sized
 // to the current mode's graphic (normal: INV_REGION_WIDTH/HEIGHT,
@@ -2742,6 +2744,10 @@ ScreenID MapScreenHandle(void)
 
 		UnMarkButtonDirty( giMapInvDoneButton );
 		if (giMapInvBigImagesButton) UnMarkButtonDirty(giMapInvBigImagesButton);
+		for (GUIButtonRef const b : giMapInvHeliCheckbox)
+		{
+			if (b) UnMarkButtonDirty(b);
+		}
 		//UnMarkButtonDirty( giCharInfoButton[ 0 ] );
 		//UnMarkButtonDirty( giCharInfoButton[ 1 ] );
 		// none on the 1366x768 item / money boxes
@@ -2753,6 +2759,10 @@ ScreenID MapScreenHandle(void)
 		{
 			MarkAButtonDirty( giMapInvDoneButton );
 			if (giMapInvBigImagesButton) MarkAButtonDirty(giMapInvBigImagesButton);
+			for (GUIButtonRef const b : giMapInvHeliCheckbox)
+			{
+				if (b) MarkAButtonDirty(b);
+			}
 			MarkAButtonDirty( giCharInfoButton[ 1 ] );
 			MarkAButtonDirty( giCharInfoButton[ 0 ] );
 		}
@@ -4344,70 +4354,6 @@ static void CreateMapInvPanelControls(void);
 static void DestroyMapInvPanelControls(void);
 
 
-// The helicopter panel's texts (pHeliInventoryStrings) in the gold-framed
-// block, in the fonts and colours of the big weapon box (iteminfoc_weapons_big):
-// the header FONT14HUMANIST in the colour of its values, the section titles
-// FONT14ARIAL and the lines FONT12ARIAL in the colour of its labels. Panel
-// coordinates; the boxes' insides (without their 3 px frames): title bar
-// 30,267 340x25, landing 30,308 340x50, flight status 30,369 340x87 -- see
-// tools/interface_preview/layouts/heli_strategic_inv_1366x768.json.
-#define MAP_INV_HELI_TEXT_LABEL_COLOUR  126
-#define MAP_INV_HELI_TEXT_HEADER_COLOUR FONT_BEIGE
-
-enum
-{
-	HELI_INV_TXT_FLIGHT_OPERATIONS = 0,
-	HELI_INV_TXT_LANDING_OPTIONS,
-	HELI_INV_TXT_ENEMY_SECTORS,
-	HELI_INV_TXT_MAP_EDGES,
-	HELI_INV_TXT_ANYWHERE,
-	HELI_INV_TXT_FLIGHT_STATUS,
-	HELI_INV_TXT_SAM_HIT,
-	HELI_INV_TXT_MINIMUM_HP,
-	HELI_INV_TXT_FORCED_RETURN,
-	HELI_INV_TXT_CRASH
-};
-
-static void RenderMapInvHeliTexts()
-{
-	INT16 const dx = PLAYER_INFO_X;
-	INT16 const dy = PLAYER_INFO_Y;
-	INT16 x;
-	INT16 y;
-
-	// centred in the title bar
-	ST::string const& header = pHeliInventoryStrings[HELI_INV_TXT_FLIGHT_OPERATIONS];
-	SetFontAttributes(FONT14HUMANIST, MAP_INV_HELI_TEXT_HEADER_COLOUR);
-	FindFontCenterCoordinates(dx + 30, dy + 267, 340, 25, header, FONT14HUMANIST, &x, &y);
-	MPrint(x, y, header);
-
-	// section titles, centred across their box at the top
-	SetFontAttributes(FONT14ARIAL, MAP_INV_HELI_TEXT_LABEL_COLOUR);
-	auto const title = [&](INT32 const i, INT16 const ty)
-	{
-		ST::string const& str = pHeliInventoryStrings[i];
-		MPrint(dx + 30 + (340 - StringPixLength(str, FONT14ARIAL)) / 2, dy + ty, str);
-	};
-	title(HELI_INV_TXT_LANDING_OPTIONS, 310);
-	title(HELI_INV_TXT_FLIGHT_STATUS,   372);
-
-	SetFontAttributes(FONT12ARIAL, MAP_INV_HELI_TEXT_LABEL_COLOUR);
-	auto const line = [&](INT32 const i, INT16 const lx, INT16 const ly)
-	{
-		MPrint(dx + lx, dy + ly, pHeliInventoryStrings[i]);
-	};
-	// landing: the enemy sectors option left, the two landing places right
-	line(HELI_INV_TXT_ENEMY_SECTORS, 38, 336);
-	line(HELI_INV_TXT_MAP_EDGES,    215, 328);
-	line(HELI_INV_TXT_ANYWHERE,     215, 343);
-	// flight status: 16 px apart
-	for (INT32 i = HELI_INV_TXT_SAM_HIT; i <= HELI_INV_TXT_CRASH; ++i)
-	{
-		line(i, 38, 391 + 16 * (i - HELI_INV_TXT_SAM_HIT));
-	}
-}
-
-
 // gMPanelRegion again, for a new panel size. Re-defined BEFORE the slot,
 // camo and keyring regions are: regions of equal priority defined later
 // take precedence (MSYS_AddRegionToList()), and those share its
@@ -4499,7 +4445,17 @@ static void BltCharInvPanel(void)
 	// the helicopter's panel: its slots and texts only
 	if (gfMapInvHeliPanel)
 	{
-		RenderMapInvHeliTexts();
+		DrawHeliInventoryTexts(guiSAVEBUFFER, PLAYER_INFO_X, PLAYER_INFO_Y, true);
+		SetFontDestBuffer(guiSAVEBUFFER);
+		// the check boxes follow the state (the tactical panel shares it)
+		for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
+		{
+			GUIButtonRef const b = giMapInvHeliCheckbox[i];
+			if (!b) continue;
+			if (IsHeliInventoryChecked(i)) b->uiFlags |=  BUTTON_CLICKED_ON;
+			else                           b->uiFlags &= ~BUTTON_CLICKED_ON;
+			b->uiFlags |= BUTTON_DIRTY;
+		}
 	}
 	else
 	{
@@ -7554,6 +7510,28 @@ static void CreateMapInvPanelControls(void)
 	InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
 	if (heli) HideKeyRingRegion();
 
+	// the helicopter panel's check boxes (sub-images 4 unchecked / 6 checked)
+	if (heli)
+	{
+		for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
+		{
+			INT16 x;
+			INT16 y;
+			GetHeliInventoryCheckboxPos(i, true, &x, &y);
+			BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", 4, 6);
+			GUIButtonRef const b   = QuickCreateButtonToggle(img, PLAYER_INFO_X + x, PLAYER_INFO_Y + y, MSYS_PRIORITY_HIGHEST - 1,
+				[i](GUI_BUTTON* const btn, UINT32 const reason)
+				{
+					if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+					SetHeliInventoryChecked(i, (btn->uiFlags & BUTTON_CLICKED_ON) != 0);
+					fTeamPanelDirty = TRUE;
+				});
+			b->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+			if (IsHeliInventoryChecked(i)) b->uiFlags |= BUTTON_CLICKED_ON;
+			giMapInvHeliCheckbox[i] = b;
+		}
+	}
+
 	// "Show Large Icons" -- wide strategic screen (1280+) only, per user request
 	// Not on the 1366x768 interface: its one "Show Large Icons" button is
 	// the sector inventory's.
@@ -7575,6 +7553,10 @@ static void DestroyMapInvPanelControls(void)
 
 	RemoveButton( giMapInvDoneButton );
 	if (giMapInvBigImagesButton) RemoveButton(giMapInvBigImagesButton);
+	for (GUIButtonRef& b : giMapInvHeliCheckbox)
+	{
+		if (b) RemoveButton(b);
+	}
 
 	ShutdownKeyRingInterface( );
 }

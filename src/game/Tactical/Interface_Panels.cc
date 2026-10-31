@@ -528,18 +528,10 @@ static SGPVSurface* guiSMPanelHeli;
 // under "Allow Landing in Enemy Sectors" the two landing places and the
 // damage risk, the one next to "Waldo:" his three repair lines. Unchecked in a new game, saved with
 // the game (g_gameStates; a save without them loads them unchecked).
-enum
-{
-	HELI_SM_CHECK_ENEMY_LANDING = 0,
-	HELI_SM_CHECK_WALDO,
-	NUM_HELI_SM_CHECKS
-};
-static GUIButtonRef giSMHeliCheckbox[NUM_HELI_SM_CHECKS];
-static bool         gfSMHeliChecked[NUM_HELI_SM_CHECKS];
-// their panel positions
-static INT16 const  gHeliSMCheckboxX[NUM_HELI_SM_CHECKS] = { 567, 994 };
-static INT16 const  gHeliSMCheckboxY[NUM_HELI_SM_CHECKS] = { 165, 159 };
-static ST::string const gHeliSMCheckKeys[NUM_HELI_SM_CHECKS] =
+// The map's inventory panel has its own two (MapScreen.cc), sharing this state.
+static GUIButtonRef giSMHeliCheckbox[NUM_HELI_INV_CHECKS];
+static bool         gfSMHeliChecked[NUM_HELI_INV_CHECKS];
+static ST::string const gHeliSMCheckKeys[NUM_HELI_INV_CHECKS] =
 {
 	"HeliInventory::enemyLanding",
 	"HeliInventory::waldo"
@@ -917,13 +909,15 @@ void CheckForDisabledForGiveItem(void)
 static void UpdateSMPanel();
 
 
-// The helicopter panel's texts (pHeliTacticalInvStrings), in the fonts and
+// The helicopter panels' texts (pHeliInventoryStrings), in the fonts and
 // colours of the big weapon box (iteminfoc_weapons_big): the headers
 // FONT14HUMANIST in the colour of its values, the titles FONT14ARIAL and the
-// lines FONT12ARIAL in the colour of its labels. They never change: drawn
-// once onto guiSMPanelHeli. Panel coordinates (the top 37 px are the
-// bookmark strip) -- see
-// tools/interface_preview/layouts/heli_tactical_inv_1366x768.json.
+// lines FONT12ARIAL in the colour of its labels. On the tactical panel drawn
+// onto guiSMPanelHeli (again when a check box changes), on the strategic one
+// with the rest of the merc inventory panel. Tactical panel coordinates (the
+// top 37 px are the bookmark strip) -- see
+// tools/interface_preview/layouts/heli_tactical_inv_1366x768.json and
+// heli_strategic_inv_1366x768.json.
 #define HELI_SM_TEXT_LABEL_COLOUR  126
 #define HELI_SM_TEXT_HEADER_COLOUR FONT_BEIGE
 
@@ -962,83 +956,110 @@ enum
 	HELI_SM_TXT_WALDO_COST
 };
 
-static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
+// The blocks' places on the strategic panel (heli_strategic_inv_1366x768.png):
+// the same boxes as on the tactical one, each block moved -- these are added
+// to the tactical panel's coordinates.
+struct HeliInvBlockShift { INT16 x, y; };
+static HeliInvBlockShift const g_heli_map_upgrades    = { -235,  -36 };
+static HeliInvBlockShift const g_heli_map_flight      = { -451,  201 };
+static HeliInvBlockShift const g_heli_map_maintenance = { -694,  -36 };
+
+// The check boxes' tactical panel positions, and the blocks they are in
+static INT16 const gHeliSMCheckboxX[NUM_HELI_INV_CHECKS] = { 567, 994 };
+static INT16 const gHeliSMCheckboxY[NUM_HELI_INV_CHECKS] = { 165, 159 };
+
+void GetHeliInventoryCheckboxPos(INT32 const check, bool const map, INT16* const x, INT16* const y)
 {
-	SetFontDestBuffer(panel);
+	HeliInvBlockShift const shift = !map ? HeliInvBlockShift{ 0, 0 } :
+		check == HELI_INV_CHECK_ENEMY_LANDING ? g_heli_map_flight : g_heli_map_maintenance;
+	*x = gHeliSMCheckboxX[check] + shift.x;
+	*y = gHeliSMCheckboxY[check] + shift.y;
+}
+
+
+void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const y0, bool const map)
+{
+	SetFontDestBuffer(dst);
 	INT16 x;
 	INT16 y;
 
+	// the tactical panel's coordinates; on the map moved with their block
+	HeliInvBlockShift const none{ 0, 0 };
+	HeliInvBlockShift const up = map ? g_heli_map_upgrades    : none;
+	HeliInvBlockShift const fl = map ? g_heli_map_flight      : none;
+	HeliInvBlockShift const mt = map ? g_heli_map_maintenance : none;
+
 	// centred in a box, both ways
-	auto const centred = [&](INT32 const i, SGPFont const font, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
+	auto const centred = [&](INT32 const i, SGPFont const font, HeliInvBlockShift const b, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
 	{
-		ST::string const& str = pHeliTacticalInvStrings[i];
-		FindFontCenterCoordinates(bx, by, bw, bh, str, font, &x, &y);
+		ST::string const& str = pHeliInventoryStrings[i];
+		FindFontCenterCoordinates(x0 + b.x + bx, y0 + b.y + by, bw, bh, str, font, &x, &y);
 		MPrint(x, y, str);
 	};
 	// centred across a box, at a given height
-	auto const title = [&](INT32 const i, INT16 const bx, INT16 const bw, INT16 const ty)
+	auto const title = [&](INT32 const i, HeliInvBlockShift const b, INT16 const bx, INT16 const bw, INT16 const ty)
 	{
-		ST::string const& str = pHeliTacticalInvStrings[i];
-		MPrint(bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, ty, str);
+		ST::string const& str = pHeliInventoryStrings[i];
+		MPrint(x0 + b.x + bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, y0 + b.y + ty, str);
 	};
-	auto const line = [&](INT32 const i, INT16 const lx, INT16 const ly)
+	auto const line = [&](INT32 const i, HeliInvBlockShift const b, INT16 const lx, INT16 const ly)
 	{
-		MPrint(lx, ly, pHeliTacticalInvStrings[i]);
+		MPrint(x0 + b.x + lx, y0 + b.y + ly, pHeliInventoryStrings[i]);
 	};
 	// a label, and its value right-aligned to x + w (10 px from the wall)
-	auto const label_value = [&](INT32 const i, INT16 const lx, INT16 const w, INT16 const ly)
+	auto const label_value = [&](INT32 const i, HeliInvBlockShift const b, INT16 const lx, INT16 const w, INT16 const ly)
 	{
-		line(i, lx, ly);
-		ST::string const& value = pHeliTacticalInvStrings[i + 1];
-		FindFontRightCoordinates(lx, ly, w, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
-		MPrint(x, ly, value);
+		line(i, b, lx, ly);
+		ST::string const& value = pHeliInventoryStrings[i + 1];
+		FindFontRightCoordinates(x0 + b.x + lx, y0 + b.y + ly, w, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
+		MPrint(x, y0 + b.y + ly, value);
 	};
 
 	// the headers, in the title bars
 	SetFontAttributes(FONT14HUMANIST, HELI_SM_TEXT_HEADER_COLOUR);
-	centred(HELI_SM_TXT_UPGRADES,          FONT14HUMANIST, 265, 66, 168, 25);
-	centred(HELI_SM_TXT_FLIGHT_OPERATIONS, FONT14HUMANIST, 481, 66, 411, 25);
-	centred(HELI_SM_TXT_MAINTENANCE,       FONT14HUMANIST, 940, 66, 164, 25);
+	centred(HELI_SM_TXT_UPGRADES,          FONT14HUMANIST, up, 265, 66, 168, 25);
+	centred(HELI_SM_TXT_FLIGHT_OPERATIONS, FONT14HUMANIST, fl, 481, 66, 411, 25);
+	centred(HELI_SM_TXT_MAINTENANCE,       FONT14HUMANIST, mt, 940, 66, 164, 25);
 
 	// upgrades: one in each of the three 174x52 boxes; the section titles
 	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
 	for (INT32 i = 0; i != 3; ++i)
 	{
-		centred(HELI_SM_TXT_BLADES + i, FONT14ARIAL, 262, 97 + 55 * i, 174, 52);
+		centred(HELI_SM_TXT_BLADES + i, FONT14ARIAL, up, 262, 97 + 55 * i, 174, 52);
 	}
-	title(HELI_SM_TXT_LANDING_OPTIONS, 481, 188, 117);
-	title(HELI_SM_TXT_FLIGHT_STATUS,   685, 207, 117);
-	title(HELI_SM_TXT_WHO_CAN_REPAIR,  940, 164, 117);
+	title(HELI_SM_TXT_LANDING_OPTIONS, fl, 481, 188, 117);
+	title(HELI_SM_TXT_FLIGHT_STATUS,   fl, 685, 207, 117);
+	title(HELI_SM_TXT_WHO_CAN_REPAIR,  mt, 940, 164, 117);
 
 	SetFontAttributes(FONT12ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
 	// landing options (box 481,107 188x148): the enemy sectors option centred,
 	// its check box under it, the two landing places at the bottom
-	ST::string const& enemy = pHeliTacticalInvStrings[HELI_SM_TXT_ENEMY_SECTORS];
-	MPrint(481 + (188 - StringPixLength(enemy, FONT12ARIAL)) / 2, 143, enemy);
+	ST::string const& enemy = pHeliInventoryStrings[HELI_SM_TXT_ENEMY_SECTORS];
+	MPrint(x0 + fl.x + 481 + (188 - StringPixLength(enemy, FONT12ARIAL)) / 2, y0 + fl.y + 143, enemy);
 	// ... those three only while its check box is checked
-	if (gfSMHeliChecked[HELI_SM_CHECK_ENEMY_LANDING])
+	if (gfSMHeliChecked[HELI_INV_CHECK_ENEMY_LANDING])
 	{
-		label_value(HELI_SM_TXT_MAP_EDGES,   491, 168, 193);
-		label_value(HELI_SM_TXT_ANYWHERE,    491, 168, 213);
-		label_value(HELI_SM_TXT_DAMAGE_RISK, 491, 168, 233);
+		label_value(HELI_SM_TXT_MAP_EDGES,   fl, 491, 168, 193);
+		label_value(HELI_SM_TXT_ANYWHERE,    fl, 491, 168, 213);
+		label_value(HELI_SM_TXT_DAMAGE_RISK, fl, 491, 168, 233);
 	}
 
 	// flight status (box 685,107 207x148)
-	label_value(HELI_SM_TXT_FLIGHT_SPEED,  695, 187, 143);
-	label_value(HELI_SM_TXT_SAM_HIT,       695, 187, 165);
-	label_value(HELI_SM_TXT_MINIMUM_HP,    695, 187, 195);
-	label_value(HELI_SM_TXT_FORCED_RETURN, 695, 187, 215);
-	label_value(HELI_SM_TXT_CRASH,         695, 187, 235);
+	label_value(HELI_SM_TXT_FLIGHT_SPEED,  fl, 695, 187, 143);
+	label_value(HELI_SM_TXT_SAM_HIT,       fl, 695, 187, 165);
+	label_value(HELI_SM_TXT_MINIMUM_HP,    fl, 695, 187, 195);
+	label_value(HELI_SM_TXT_FORCED_RETURN, fl, 695, 187, 215);
+	label_value(HELI_SM_TXT_CRASH,         fl, 695, 187, 235);
 
 	// maintenance (box 940,107 164x148): 22 px apart, Waldo's lines indented
-	line(HELI_SM_TXT_MERCENARIES, 950, 140);
-	line(HELI_SM_TXT_WALDO,       950, 162);
+	line(HELI_SM_TXT_MERCENARIES, mt, 950, 140);
+	line(HELI_SM_TXT_WALDO,       mt, 950, 162);
 	// ... the three of them only while the check box next to "Waldo:" is checked
-	if (gfSMHeliChecked[HELI_SM_CHECK_WALDO])
+	if (gfSMHeliChecked[HELI_INV_CHECK_WALDO])
 	{
 		for (INT32 i = HELI_SM_TXT_WALDO_DRASSEN; i <= HELI_SM_TXT_WALDO_COST; ++i)
 		{
-			line(i, 960, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
+			line(i, mt, 960, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
 		}
 	}
 
@@ -1053,7 +1074,7 @@ static void BuildHeliSMPanelSurface()
 	guiSMPanelHeli->Fill(0);
 	AutoSGPVObject const heli_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HELI_SMPANEL_FILE) };
 	BltVideoObject(guiSMPanelHeli, heli_panel.get(), 0, 0, 0);
-	DrawHeliSMPanelTexts(guiSMPanelHeli);
+	DrawHeliInventoryTexts(guiSMPanelHeli, 0, 0, false);
 }
 
 
@@ -1066,11 +1087,27 @@ static void HeliSMCheckboxCallback(INT32 const check, GUI_BUTTON* const btn, UIN
 }
 
 
+static void ApplyHeliSMCheckboxes();
+
+
+bool IsHeliInventoryChecked(INT32 const check)
+{
+	return gfSMHeliChecked[check];
+}
+
+
+void SetHeliInventoryChecked(INT32 const check, bool const checked)
+{
+	gfSMHeliChecked[check] = checked;
+	ApplyHeliSMCheckboxes();
+}
+
+
 // The check boxes and the panel's lines follow gfSMHeliChecked again --
 // after a new game or a load changed it while the panel is up
 static void ApplyHeliSMCheckboxes()
 {
-	for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+	for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
 	{
 		GUIButtonRef const b = giSMHeliCheckbox[i];
 		if (!b) continue;
@@ -1088,7 +1125,7 @@ static void ApplyHeliSMCheckboxes()
 
 void InitHeliSMCheckboxesForNewGame()
 {
-	for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+	for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
 	{
 		gfSMHeliChecked[i] = false;
 		g_gameStates.Set(gHeliSMCheckKeys[i], false);
@@ -1099,7 +1136,7 @@ void InitHeliSMCheckboxesForNewGame()
 
 void SaveHeliSMCheckboxesToSaveGameFile()
 {
-	for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+	for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
 	{
 		g_gameStates.Set(gHeliSMCheckKeys[i], gfSMHeliChecked[i]);
 	}
@@ -1108,7 +1145,7 @@ void SaveHeliSMCheckboxesToSaveGameFile()
 
 void LoadHeliSMCheckboxesFromSaveGameFile()
 {
-	for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+	for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
 	{
 		ST::string const& key = gHeliSMCheckKeys[i];
 		gfSMHeliChecked[i] = g_gameStates.HasKey(key) && g_gameStates.Get<bool>(key);
@@ -2043,13 +2080,16 @@ void CreateSMPanelButtons(void)
 	// UpdateHeliSMPanelCheckboxes())
 	if (guiSMPanelHeli)
 	{
-		for (INT32 i = 0; i != NUM_HELI_SM_CHECKS; ++i)
+		for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
 		{
 			// a toggle with sub-images 4 (unchecked) and 6 (checked) only -- a
 			// check box button would show 5 / 7 under the mouse
 			BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", 4, 6);
+			INT16 cx;
+			INT16 cy;
+			GetHeliInventoryCheckboxPos(i, false, &cx, &cy);
 			GUIButtonRef const b   = QuickCreateButtonToggle(img,
-				dx + gHeliSMCheckboxX[i], dy + gHeliSMCheckboxY[i], MSYS_PRIORITY_HIGHEST,
+				dx + cx, dy + cy, MSYS_PRIORITY_HIGHEST,
 				[i](GUI_BUTTON* const btn, UINT32 const reason) { HeliSMCheckboxCallback(i, btn, reason); });
 			b->uiFlags |= BUTTON_SELFDELETE_IMAGE;
 			if (gfSMHeliChecked[i]) b->uiFlags |= BUTTON_CLICKED_ON;
