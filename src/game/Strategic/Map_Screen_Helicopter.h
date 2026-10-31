@@ -244,6 +244,9 @@ enum HeliLandingZone
 	HELI_LANDING_ZONE_ANYWHERE
 };
 HeliLandingZone GetHeliLandingZone();
+// Would he land among enemies at a destination (the check box, those
+// aboard, its condition)?
+bool WouldHelicopterLandAmongEnemies();
 // "Anywhere": the player is picking the landing spot in tactical (nobody is
 // drawn meanwhile)
 bool IsHeliLandingSelectionActive();

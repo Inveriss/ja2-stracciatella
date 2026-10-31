@@ -9006,8 +9006,10 @@ static void HandleNewDestConfirmation(const SGPSector& sMap)
 		}
 		else
 		{
-			// ok, but... you know there are enemies there...
-			SkyRiderTalk( BELIEVED_ENEMY_SECTOR );
+			// ok, but... you know there are enemies there... -- unless he'll land
+			// among them (the heli panels' check box): "High risk, big fee"
+			SkyRiderTalk(WouldHelicopterLandAmongEnemies() ?
+				SECOND_HALF_OF_MENTION_DRASSEN_SAM_SITE : BELIEVED_ENEMY_SECTOR);
 		}
 	}
 	else

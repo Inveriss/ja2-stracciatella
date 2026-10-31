@@ -267,6 +267,15 @@ HeliLandingZone GetHeliLandingZone()
 }
 
 
+bool WouldHelicopterLandAmongEnemies()
+{
+	return iHelicopterVehicleId != -1 &&
+		IsHeliInventoryChecked(HELI_INV_CHECK_ENEMY_LANDING) &&
+		GetNumberInVehicle(GetHelicopter()) > 0 &&
+		!IsHelicopterTooDamagedToFly();
+}
+
+
 void InitHeliEnemyLandingForNewGame()
 {
 	giHeliEnemyLandingSector = -1;
