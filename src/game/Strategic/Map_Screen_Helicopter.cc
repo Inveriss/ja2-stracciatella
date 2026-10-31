@@ -72,6 +72,10 @@
 // up Skyrider reports minor damage, from HELI_MAJOR_DAMAGE_MIN_CONDITION up
 // major damage and flies back to base, below that the helicopter goes down
 #define HELI_SAM_HIT_DAMAGE             25
+// a landing among enemies (a rope drop): this chance (percent) of costing
+// this much condition -- never below 1, it doesn't bring it down
+#define HELI_ENEMY_LANDING_DAMAGE_CHANCE 25
+#define HELI_ENEMY_LANDING_DAMAGE        10
 #define HELI_MINOR_DAMAGE_MIN_CONDITION 50
 #define HELI_MAJOR_DAMAGE_MIN_CONDITION 25
 // below this condition Skyrider won't take off until the helicopter is repaired
@@ -424,7 +428,8 @@ BOOLEAN HandleHeliEnteringSector(const SGPSector& sMap)
 		// for goes onto the debt
 		bool const enemy_landing = ubNumEnemies > 0 && !fHeliReturnStraightToBase &&
 			GetNumberInVehicle(v) > 0 &&
-			IsHeliInventoryChecked(HELI_INV_CHECK_ENEMY_LANDING);
+			IsHeliInventoryChecked(HELI_INV_CHECK_ENEMY_LANDING) &&
+			!IsHelicopterTooDamagedToFly();
 
 		// if sector is safe, or Skyrider MUST land anyway (returning to base)
 		if ( ( ubNumEnemies == 0 ) || fHeliReturnStraightToBase || enemy_landing )
@@ -1670,6 +1675,17 @@ void HelicopterRunFinished()
 		DeleteAllStrategicEventsOfType(EVENT_HELICOPTER_HOVER_TOO_LONG);
 		DeleteAllStrategicEventsOfType(EVENT_HELICOPTER_HOVER_WAY_TOO_LONG);
 		uiStartHoverTime = 0;
+
+		// the landing's risk: damaged, he says so as he leaves
+		SOLDIERTYPE* const hs = GetHelicopterSoldier();
+		if (hs && PreRandom(100) < HELI_ENEMY_LANDING_DAMAGE_CHANCE)
+		{
+			hs->bLife                = static_cast<INT8>(std::max(1, hs->bLife - HELI_ENEMY_LANDING_DAMAGE));
+			fTeamPanelDirty          = TRUE;
+			fCharacterInfoPanelDirty = TRUE;
+			HeliCharacterDialogue(hs->bLife >= HELI_MINOR_DAMAGE_MIN_CONDITION ?
+				HELI_TOOK_MINOR_DAMAGE : HELI_TOOK_MAJOR_DAMAGE);
+		}
 		MakeHeliReturnToBase();
 	}
 
