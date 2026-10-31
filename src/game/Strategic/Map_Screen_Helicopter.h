@@ -11,6 +11,9 @@
 // costs of flying through sectors
 #define COST_AIRSPACE_SAFE    100
 #define COST_AIRSPACE_UNSAFE  1000		// VERY dangerous
+// landing among enemies: the chosen landing zone's surcharge
+#define COST_HELI_LANDING_MAP_EDGES 1000
+#define COST_HELI_LANDING_ANYWHERE  2500
 #define MIN_PROGRESS_FOR_SKYRIDER_QUOTE_DOING_WELL 25	// scale of 0-100
 #define MIN_REGRESS_FOR_SKYRIDER_QUOTE_DOING_BADLY 10	// scale of 0-100
 

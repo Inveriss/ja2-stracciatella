@@ -305,9 +305,39 @@ static INT32 HeliArrivalEdge(SGPSector const& sector)
 }
 
 
+// Landing among enemies: the trip and the landing zone's surcharge are paid
+// as far as the money goes; the rest goes onto the debt to Skyrider (grounded
+// until it is paid off, hourly -- PayOffSkyriderDebtIfAny()), nobody is put
+// out and the landing takes place anyway.
+static void PaySkyriderOnCredit(INT32 const cost, bool const talk)
+{
+	if (cost <= 0) return;
+	if (LaptopSaveInfo.iCurrentBalance >= cost)
+	{
+		AddTransactionToPlayersBook(PAYMENT_TO_NPC, SKYRIDER, GetWorldTotalMin(), -cost);
+		ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, st_format_printf(pSkyriderText[0], cost));
+		return;
+	}
+
+	INT32 const paid = std::max(0, LaptopSaveInfo.iCurrentBalance);
+	if (paid > 0)
+	{
+		AddTransactionToPlayersBook(PAYMENT_TO_NPC, SKYRIDER, GetWorldTotalMin(), -paid);
+		ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, st_format_printf(pSkyriderText[0], paid));
+	}
+	// (onto any debt there is already)
+	gMercProfiles[SKYRIDER].iBalance -= cost - paid;
+	if (talk) HeliCharacterDialogue(OWED_MONEY_TO_SKYRIDER);
+	ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, st_format_printf(pSkyriderText[1], -gMercProfiles[SKYRIDER].iBalance));
+}
+
+
 static void HeliLandingZoneCallback(MessageBoxReturnValue const ret)
 {
 	gHeliLandingZone = ret == MSG_BOX_RETURN_YES ? HELI_LANDING_ZONE_MAP_EDGES : HELI_LANDING_ZONE_ANYWHERE;
+	// the landing zone's surcharge, due when it is chosen
+	PaySkyriderOnCredit(gHeliLandingZone == HELI_LANDING_ZONE_MAP_EDGES ?
+		COST_HELI_LANDING_MAP_EDGES : COST_HELI_LANDING_ANYWHERE, true);
 }
 
 
@@ -390,12 +420,11 @@ BOOLEAN HandleHeliEnteringSector(const SGPSector& sMap)
 		StartHoverTime( );
 
 		// Enemies below, but the player allows landing among them: with
-		// passengers aboard (without, he still refuses) and the trip paid for
-		// -- unpaid, the passengers would be put down among the enemies
+		// passengers aboard (without, he still refuses); what can't be paid
+		// for goes onto the debt
 		bool const enemy_landing = ubNumEnemies > 0 && !fHeliReturnStraightToBase &&
 			GetNumberInVehicle(v) > 0 &&
-			IsHeliInventoryChecked(HELI_INV_CHECK_ENEMY_LANDING) &&
-			LaptopSaveInfo.iCurrentBalance >= iTotalAccumulatedCostByPlayer;
+			IsHeliInventoryChecked(HELI_INV_CHECK_ENEMY_LANDING);
 
 		// if sector is safe, or Skyrider MUST land anyway (returning to base)
 		if ( ( ubNumEnemies == 0 ) || fHeliReturnStraightToBase || enemy_landing )
@@ -410,7 +439,17 @@ BOOLEAN HandleHeliEnteringSector(const SGPSector& sMap)
 			}
 
 			// destination reached, payment due.  If player can't pay, mercs get kicked off and heli flies to base!
-			PaySkyriderBill();
+			// -- among enemies the unpaid rest goes onto the debt instead (his
+			// quote comes with the surcharge's)
+			if (enemy_landing)
+			{
+				PaySkyriderOnCredit(iTotalAccumulatedCostByPlayer, false);
+				iTotalAccumulatedCostByPlayer = 0;
+			}
+			else
+			{
+				PaySkyriderBill();
+			}
 
 			// among enemies: the player picks the landing zone
 			if (enemy_landing)
