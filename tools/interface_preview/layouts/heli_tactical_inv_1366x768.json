@@ -164,7 +164,7 @@
       "align": "right"
     },
     {
-      "text": "Risk of Heli Damage:",
+      "text": "Risk of heli damage:",
       "x": 491,
       "y": 233
     },
@@ -184,50 +184,62 @@
       "font": "FONT14ARIAL"
     },
     {
-      "text": "SAM site damage:",
+      "text": "Flight speed:",
       "x": 695,
       "y": 143
     },
     {
-      "text": "25 HP",
+      "text": "10 min/sector",
       "x": 695,
       "y": 143,
       "w": 187,
       "align": "right"
     },
     {
+      "text": "SAM site damage:",
+      "x": 695,
+      "y": 165
+    },
+    {
+      "text": "25 HP",
+      "x": 695,
+      "y": 165,
+      "w": 187,
+      "align": "right"
+    },
+    {
       "text": "Minimum HP for flight:",
       "x": 695,
-      "y": 173
+      "y": 195
     },
     {
       "text": "50 HP",
       "x": 695,
-      "y": 173,
+      "y": 195,
       "w": 187,
       "align": "right"
     },
     {
       "text": "Forced return to base:",
       "x": 695,
-      "y": 193
+      "y": 215
     },
     {
       "text": "25-49 HP",
       "x": 695,
-      "y": 193,
+      "y": 215,
       "w": 187,
       "align": "right"
     },
     {
       "text": "Crash:",
       "x": 695,
-      "y": 213
+      "y": 235
     },
     {
       "text": "Below 25 HP",
       "x": 695,
-      "y": 213,
+      "y": 235,
       "w": 187,
       "align": "right"
     },

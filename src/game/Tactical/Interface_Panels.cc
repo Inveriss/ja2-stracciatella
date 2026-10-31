@@ -943,7 +943,9 @@ enum
 	HELI_SM_TXT_DAMAGE_RISK,    // label, then its value
 	HELI_SM_TXT_DAMAGE_RISK_VALUE,
 	HELI_SM_TXT_FLIGHT_STATUS,
-	HELI_SM_TXT_SAM_HIT,        // four label / value pairs
+	HELI_SM_TXT_FLIGHT_SPEED,   // five label / value pairs
+	HELI_SM_TXT_FLIGHT_SPEED_VALUE,
+	HELI_SM_TXT_SAM_HIT,
 	HELI_SM_TXT_SAM_HIT_VALUE,
 	HELI_SM_TXT_MINIMUM_HP,
 	HELI_SM_TXT_MINIMUM_HP_VALUE,
@@ -1009,7 +1011,7 @@ static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
 	title(HELI_SM_TXT_WHO_CAN_REPAIR,  940, 164, 117);
 
 	SetFontAttributes(FONT12ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
-	// landing options (box 481,107 188x126): the enemy sectors option centred,
+	// landing options (box 481,107 188x148): the enemy sectors option centred,
 	// its check box under it, the two landing places at the bottom
 	ST::string const& enemy = pHeliTacticalInvStrings[HELI_SM_TXT_ENEMY_SECTORS];
 	MPrint(481 + (188 - StringPixLength(enemy, FONT12ARIAL)) / 2, 143, enemy);
@@ -1021,11 +1023,12 @@ static void DrawHeliSMPanelTexts(SGPVSurface* const panel)
 		label_value(HELI_SM_TXT_DAMAGE_RISK, 491, 168, 233);
 	}
 
-	// flight status (box 685,107 207x126)
-	label_value(HELI_SM_TXT_SAM_HIT,       695, 187, 143);
-	label_value(HELI_SM_TXT_MINIMUM_HP,    695, 187, 173);
-	label_value(HELI_SM_TXT_FORCED_RETURN, 695, 187, 193);
-	label_value(HELI_SM_TXT_CRASH,         695, 187, 213);
+	// flight status (box 685,107 207x148)
+	label_value(HELI_SM_TXT_FLIGHT_SPEED,  695, 187, 143);
+	label_value(HELI_SM_TXT_SAM_HIT,       695, 187, 165);
+	label_value(HELI_SM_TXT_MINIMUM_HP,    695, 187, 195);
+	label_value(HELI_SM_TXT_FORCED_RETURN, 695, 187, 215);
+	label_value(HELI_SM_TXT_CRASH,         695, 187, 235);
 
 	// maintenance (box 940,107 164x148): 22 px apart, Waldo's lines indented
 	line(HELI_SM_TXT_MERCENARIES, 950, 140);
