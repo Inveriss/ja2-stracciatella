@@ -1813,6 +1813,9 @@ static void HandleHeliAnywhereSelection()
 	if (HelicopterPassengersHere().empty()) return;
 
 	gfHeliLandingSelection = true;
+	// always starting on the ground (the roofs' level, left from before or
+	// a loaded game, would hide the circle where there are no buildings)
+	ChangeInterfaceLevel(I_GROUND_LEVEL);
 	MSYS_DefineRegion(&gHeliLandingRegion, 0, 0, gsVIEWPORT_END_X, gsVIEWPORT_WINDOW_END_Y,
 		MSYS_PRIORITY_HIGH, CURSOR_NORMAL, TacticalViewPortMovementCallback, HeliLandingRegionCallback);
 	PauseGame();
