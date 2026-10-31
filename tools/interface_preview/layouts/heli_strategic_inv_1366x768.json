@@ -270,22 +270,22 @@
     {
       "text": "Waldo:",
       "x": 256,
-      "y": 126
+      "y": 129
     },
     {
       "text": "- auto-repairs in Drassen",
       "x": 266,
-      "y": 148
+      "y": 151
     },
     {
       "text": "- repair rate: 3 HP/hour",
       "x": 266,
-      "y": 170
+      "y": 173
     },
     {
       "text": "- repair cost: $200/hour",
       "x": 266,
-      "y": 192
+      "y": 195
     }
   ]
 }

@@ -966,7 +966,7 @@ static HeliInvBlockShift const g_heli_map_maintenance = { -694,  -36 };
 
 // The check boxes' tactical panel positions, and the blocks they are in
 static INT16 const gHeliSMCheckboxX[NUM_HELI_INV_CHECKS] = { 567, 994 };
-static INT16 const gHeliSMCheckboxY[NUM_HELI_INV_CHECKS] = { 165, 159 };
+static INT16 const gHeliSMCheckboxY[NUM_HELI_INV_CHECKS] = { 165, 162 };
 
 void GetHeliInventoryCheckboxPos(INT32 const check, bool const map, INT16* const x, INT16* const y)
 {
@@ -1051,15 +1051,15 @@ void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const 
 	label_value(HELI_SM_TXT_FORCED_RETURN, fl, 695, 187, 215);
 	label_value(HELI_SM_TXT_CRASH,         fl, 695, 187, 235);
 
-	// maintenance (box 940,107 164x148): 22 px apart, Waldo's lines indented
+	// maintenance (box 940,107 164x148): Waldo's lines 22 px apart, indented
 	line(HELI_SM_TXT_MERCENARIES, mt, 950, 140);
-	line(HELI_SM_TXT_WALDO,       mt, 950, 162);
+	line(HELI_SM_TXT_WALDO,       mt, 950, 165);
 	// ... the three of them only while the check box next to "Waldo:" is checked
 	if (gfSMHeliChecked[HELI_INV_CHECK_WALDO])
 	{
 		for (INT32 i = HELI_SM_TXT_WALDO_DRASSEN; i <= HELI_SM_TXT_WALDO_COST; ++i)
 		{
-			line(i, mt, 960, 184 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
+			line(i, mt, 960, 187 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
 		}
 	}
 
