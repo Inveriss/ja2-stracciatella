@@ -263,6 +263,42 @@ static ST::string const gHeliEnemyLandingSectorKey{ "Helicopter::enemyLandingSec
 static ST::string const gHeliLandingZoneKey{ "Helicopter::landingZone" };
 static ST::string const gHeliEnemyLandingEdgeKey{ "Helicopter::enemyLandingEdge" };
 
+// "Silent Skyrider" (the strategic heli panel's toggle): he skips his routine
+// quotes -- 23 (hi), 27 (roger), 32 (hovering a while), 34/35 (enemies
+// spotted en route, then he doesn't stop time compression either). Off in a
+// new game, saved with the game (g_gameStates).
+static bool             gfSilentSkyrider = false;
+static ST::string const gSilentSkyriderKey{ "Helicopter::silentSkyrider" };
+
+
+bool IsSkyriderSilent()
+{
+	return gfSilentSkyrider;
+}
+
+
+void SetSkyriderSilent(bool const silent)
+{
+	gfSilentSkyrider = silent;
+}
+
+
+static bool IsQuoteSilenced(UINT16 const quote)
+{
+	if (!gfSilentSkyrider) return false;
+	switch (quote)
+	{
+		case SKYRIDER_SAYS_HI:
+		case CONFIRM_DESTINATION:
+		case HOVERING_A_WHILE:
+		case ENEMIES_SPOTTED_EN_ROUTE_IN_FRIENDLY_SECTOR_A:
+		case ENEMIES_SPOTTED_EN_ROUTE_IN_FRIENDLY_SECTOR_B:
+			return true;
+		default:
+			return false;
+	}
+}
+
 
 HeliLandingZone GetHeliLandingZone()
 {
@@ -285,6 +321,7 @@ void InitHeliEnemyLandingForNewGame()
 	gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
 	giHeliEnemyLandingEdge   = INSERTION_CODE_CENTER;
 	gfHeliEnterLandingSector = false;
+	gfSilentSkyrider         = false;
 	SaveHeliEnemyLandingToSaveGameFile();
 }
 
@@ -294,6 +331,7 @@ void SaveHeliEnemyLandingToSaveGameFile()
 	g_gameStates.Set(gHeliEnemyLandingSectorKey, giHeliEnemyLandingSector);
 	g_gameStates.Set(gHeliLandingZoneKey, static_cast<INT32>(gHeliLandingZone));
 	g_gameStates.Set(gHeliEnemyLandingEdgeKey, giHeliEnemyLandingEdge);
+	g_gameStates.Set(gSilentSkyriderKey, gfSilentSkyrider);
 }
 
 
@@ -305,6 +343,7 @@ void LoadHeliEnemyLandingFromSaveGameFile()
 		? static_cast<HeliLandingZone>(g_gameStates.Get<INT32>(gHeliLandingZoneKey)) : HELI_LANDING_ZONE_NONE;
 	giHeliEnemyLandingEdge = g_gameStates.HasKey(gHeliEnemyLandingEdgeKey)
 		? g_gameStates.Get<INT32>(gHeliEnemyLandingEdgeKey) : INSERTION_CODE_CENTER;
+	gfSilentSkyrider = g_gameStates.HasKey(gSilentSkyriderKey) && g_gameStates.Get<bool>(gSilentSkyriderKey);
 }
 
 
@@ -442,7 +481,8 @@ BOOLEAN HandleHeliEnteringSector(const SGPSector& sMap)
 				if( !endOfHelicoptersPath )
 				{
 					// stop time compression and inform player that there are enemies in the sector below
-					StopTimeCompression();
+					// (silent: he just flies on)
+					if (!gfSilentSkyrider) StopTimeCompression();
 
 					if( Random( 2 ) )
 					{
@@ -913,6 +953,7 @@ static void HeliCharacterDialogue(UINT16 const usQuoteNum)
 {
 	// ARM: we could just return, but since various flags are often being set it's safer to honk so it gets fixed right!
 	Assert(iHelicopterVehicleId != -1);
+	if (IsQuoteSilenced(usQuoteNum)) return;
 	SkyriderDialogue(usQuoteNum);
 }
 

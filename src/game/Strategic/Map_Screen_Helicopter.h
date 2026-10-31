@@ -262,6 +262,10 @@ void CancelHeliLandingSelection();
 bool IsHeliEnemyDropRunning();
 // Merc_Entering.cc: a helicopter run is over
 void HelicopterRunFinished();
+// "Silent Skyrider" (the strategic heli panel's toggle): no routine quotes
+bool IsSkyriderSilent();
+void SetSkyriderSilent(bool silent);
+
 void InitHeliEnemyLandingForNewGame();
 void SaveHeliEnemyLandingToSaveGameFile();
 void LoadHeliEnemyLandingFromSaveGameFile();

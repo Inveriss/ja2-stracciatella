@@ -843,6 +843,11 @@ static MOUSE_REGION gMPanelRegion;
 #define MAP_INV_HELI_DONE_BTN_X    (PLAYER_INFO_X + 545)
 #define MAP_INV_HELI_DONE_BTN_Y    (PLAYER_INFO_Y + 183)
 static GUIButtonRef giMapInvHeliCheckbox[NUM_HELI_INV_CHECKS];
+// ... and its "Silent Skyrider" toggle, top right (for now the Done
+// button's pictures: 2 off / 3 on)
+#define MAP_INV_HELI_SILENT_BTN_X  (PLAYER_INFO_X + 545)
+#define MAP_INV_HELI_SILENT_BTN_Y  (PLAYER_INFO_Y + 16)
+static GUIButtonRef giMapInvHeliSilentButton;
 
 // gMPanelRegion blocks clicks over the whole merc inventory panel -- sized
 // to the current mode's graphic (normal: INV_REGION_WIDTH/HEIGHT,
@@ -4458,6 +4463,12 @@ static void BltCharInvPanel(void)
 			else                           b->uiFlags &= ~BUTTON_CLICKED_ON;
 			b->uiFlags |= BUTTON_DIRTY;
 		}
+		if (GUIButtonRef const b = giMapInvHeliSilentButton)
+		{
+			if (IsSkyriderSilent()) b->uiFlags |=  BUTTON_CLICKED_ON;
+			else                    b->uiFlags &= ~BUTTON_CLICKED_ON;
+			b->uiFlags |= BUTTON_DIRTY;
+		}
 	}
 	else
 	{
@@ -7532,6 +7543,18 @@ static void CreateMapInvPanelControls(void)
 			if (IsHeliInventoryChecked(i)) b->uiFlags |= BUTTON_CLICKED_ON;
 			giMapInvHeliCheckbox[i] = b;
 		}
+
+		BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/mapinv_done_buttons.sti", 2, 3);
+		GUIButtonRef const b   = QuickCreateButtonToggle(img, MAP_INV_HELI_SILENT_BTN_X, MAP_INV_HELI_SILENT_BTN_Y, MSYS_PRIORITY_HIGHEST - 1,
+			[](GUI_BUTTON* const btn, UINT32 const reason)
+			{
+				if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+				SetSkyriderSilent((btn->uiFlags & BUTTON_CLICKED_ON) != 0);
+			});
+		b->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+		if (IsSkyriderSilent()) b->uiFlags |= BUTTON_CLICKED_ON;
+		b->SetFastHelpText("Silent Skyrider");
+		giMapInvHeliSilentButton = b;
 	}
 
 	// "Show Large Icons" -- wide strategic screen (1280+) only, per user request
@@ -7559,6 +7582,7 @@ static void DestroyMapInvPanelControls(void)
 	{
 		if (b) RemoveButton(b);
 	}
+	if (giMapInvHeliSilentButton) RemoveButton(giMapInvHeliSilentButton);
 
 	ShutdownKeyRingInterface( );
 }
