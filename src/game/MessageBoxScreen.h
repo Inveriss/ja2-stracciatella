@@ -20,7 +20,8 @@ enum MessageBoxFlags
 	MSG_BOX_FLAG_CONTINUESTOP,          // continue stop box
 	MSG_BOX_FLAG_OKSKIP,                // Displays ok or skip (meanwhile) buttons
 	MSG_BOX_FLAG_GENERICCONTRACT,       // displays contract buttoin + 2 user-defined text buttons
-	MSG_BOX_FLAG_GENERIC                // 2 user-defined text buttons
+	MSG_BOX_FLAG_GENERIC,               // 2 user-defined text buttons
+	MSG_BOX_FLAG_GENERIC_CANCEL         // 2 user-defined text buttons + Cancel (also ESC)
 };
 
 // message box return codes
@@ -32,6 +33,7 @@ enum MessageBoxReturnValue
 	MSG_BOX_RETURN_NO       = 3, // ESC, Right Click or NO button
 	MSG_BOX_RETURN_CONTRACT = 4, // contract button
 	MSG_BOX_RETURN_LIE      = 5, // LIE BUTTON
+	MSG_BOX_RETURN_CANCEL   = 6, // Cancel button (MSG_BOX_FLAG_GENERIC_CANCEL) or ESC
 
 	MSG_BOX_RETURN_1        = 1,
 	MSG_BOX_RETURN_2        = 2,

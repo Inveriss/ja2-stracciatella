@@ -351,8 +351,23 @@ static void PaySkyriderOnCredit(INT32 const cost, bool const talk)
 
 static void HeliLandingZoneCallback(MessageBoxReturnValue const ret)
 {
+	if (ret == MSG_BOX_RETURN_CANCEL)
+	{
+		// no landing after all: as without the check box -- "Gonna have to
+		// abort. Enemies below", he hovers with them aboard and the trip
+		// stays unpaid
+		giHeliEnemyLandingSector = -1;
+		gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
+		HeliCharacterDialogue(ARRIVED_IN_HOSTILE_SECTOR);
+		return;
+	}
+
 	gHeliLandingZone = ret == MSG_BOX_RETURN_YES ? HELI_LANDING_ZONE_MAP_EDGES : HELI_LANDING_ZONE_ANYWHERE;
-	// the landing zone's surcharge, due when it is chosen
+	// arrived: the trip is due (what can't be paid goes onto the debt), then
+	// the landing zone's surcharge
+	HeliCharacterDialogue(ARRIVED_IN_NON_HOSTILE_SECTOR);
+	PaySkyriderOnCredit(iTotalAccumulatedCostByPlayer, false);
+	iTotalAccumulatedCostByPlayer = 0;
 	PaySkyriderOnCredit(gHeliLandingZone == HELI_LANDING_ZONE_MAP_EDGES ?
 		COST_HELI_LANDING_MAP_EDGES : COST_HELI_LANDING_ANYWHERE, true);
 
@@ -383,12 +398,12 @@ void HandleHeliEnterLandingSector()
 
 
 // "Choose Landing Zone": Map Edges / Anywhere, on the big buttons with the
-// surcharge on a second line
+// surcharge on a second line, or Cancel (no landing)
 static void AskForHeliLandingZone()
 {
 	gzUserDefinedButton1 = ST::format("{}\n(+{}$)", pHeliLandingZoneStrings[1], COST_HELI_LANDING_MAP_EDGES);
 	gzUserDefinedButton2 = ST::format("{}\n(+{}$)", pHeliLandingZoneStrings[2], COST_HELI_LANDING_ANYWHERE);
-	DoScreenIndependantMessageBox(pHeliLandingZoneStrings[0], MSG_BOX_FLAG_GENERIC, HeliLandingZoneCallback,
+	DoScreenIndependantMessageBox(pHeliLandingZoneStrings[0], MSG_BOX_FLAG_GENERIC_CANCEL, HeliLandingZoneCallback,
 		MSG_BOX_BASIC_BIG_BUTTONS);
 }
 
@@ -475,25 +490,18 @@ BOOLEAN HandleHeliEnteringSector(const SGPSector& sMap)
 		{
 			// if he has passengers, or he's not going straight to base, tell player he's arrived
 			// (i.e. don't say anything nor stop time compression if he's empty and just returning to base)
+			// (among enemies he says it once the landing zone is chosen)
 			if ( ( GetNumberInVehicle(v) > 0 ) || !fHeliReturnStraightToBase )
 			{
 				// arrived at destination
-				HeliCharacterDialogue(ARRIVED_IN_NON_HOSTILE_SECTOR);
+				if (!enemy_landing) HeliCharacterDialogue(ARRIVED_IN_NON_HOSTILE_SECTOR);
 				StopTimeCompression();
 			}
 
 			// destination reached, payment due.  If player can't pay, mercs get kicked off and heli flies to base!
-			// -- among enemies the unpaid rest goes onto the debt instead (his
-			// quote comes with the surcharge's)
-			if (enemy_landing)
-			{
-				PaySkyriderOnCredit(iTotalAccumulatedCostByPlayer, false);
-				iTotalAccumulatedCostByPlayer = 0;
-			}
-			else
-			{
-				PaySkyriderBill();
-			}
+			// -- among enemies only once a landing zone is chosen (Cancel: no
+			// landing, nothing due yet)
+			if (!enemy_landing) PaySkyriderBill();
 
 			// among enemies: the player picks the landing zone
 			if (enemy_landing)

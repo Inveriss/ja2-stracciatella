@@ -117,8 +117,23 @@ void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiE
 	UINT16 usTextBoxWidth;
 	UINT16 usTextBoxHeight;
 	bool const big_buttons{ ubStyle == MSG_BOX_BASIC_BIG_BUTTONS };
+	// the big buttons take their size from their picture
+	INT16 const btn_w{ big_buttons ? MSGBOX_BIG_BUTTON_WIDTH  : MSGBOX_BUTTON_WIDTH  };
+	INT16 const btn_h{ big_buttons ? MSGBOX_BIG_BUTTON_HEIGHT : MSGBOX_BUTTON_HEIGHT };
+	UINT16 const margin_bottom = big_buttons ? MSGBOX_BIG_BUTTON_HEIGHT + 10 : 30;
 	gMsgBox.box = PrepareMercPopupBox(0, style.background, style.border, str, MSGBOX_DEFAULT_WIDTH, 40, 10,
-		big_buttons ? MSGBOX_BIG_BUTTON_HEIGHT + 10 : 30, &usTextBoxWidth, &usTextBoxHeight);
+		margin_bottom, &usTextBoxWidth, &usTextBoxHeight);
+	if (usFlags == MSG_BOX_FLAG_GENERIC_CANCEL)
+	{
+		// a short text: the box widens to fit its three buttons
+		UINT16 const needed = 3 * btn_w + 2 * MSGBOX_BUTTON_X_SEP + 2 * 20;
+		if (usTextBoxWidth < needed)
+		{
+			UINT16 const margin_x = 40 + (needed - usTextBoxWidth + 1) / 2;
+			gMsgBox.box = PrepareMercPopupBox(gMsgBox.box, style.background, style.border, str,
+				MSGBOX_DEFAULT_WIDTH, margin_x, 10, margin_bottom, &usTextBoxWidth, &usTextBoxHeight);
+		}
+	}
 
 	// Save height,width
 	gMsgBox.usWidth  = usTextBoxWidth;
@@ -180,10 +195,6 @@ void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiE
 		GetRestrictedClipCursor(&MessageBoxRestrictedCursorRegion);
 		FreeMouseCursor();
 	}
-
-	// the big buttons take their size from their picture
-	INT16 const btn_w{ big_buttons ? MSGBOX_BIG_BUTTON_WIDTH  : MSGBOX_BUTTON_WIDTH  };
-	INT16 const btn_h{ big_buttons ? MSGBOX_BIG_BUTTON_HEIGHT : MSGBOX_BUTTON_HEIGHT };
 
 	UINT16       x = gMsgBox.uX;
 	const UINT16 y = gMsgBox.uY + usTextBoxHeight - btn_h - 10;
@@ -287,6 +298,13 @@ void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiE
 			gMsgBox.uiNOButton  = MakeButton(gzUserDefinedButton2, x + dx, MSG_BOX_RETURN_NO);
 			break;
 
+		case MSG_BOX_FLAG_GENERIC_CANCEL:
+			x += (usTextBoxWidth - (btn_w + dx * 2)) / 2;
+			gMsgBox.uiYESButton = MakeButton(gzUserDefinedButton1,        x,          MSG_BOX_RETURN_YES);
+			gMsgBox.uiNOButton  = MakeButton(gzUserDefinedButton2,        x + dx,     MSG_BOX_RETURN_NO);
+			gMsgBox.uiOKButton  = MakeButton(pMessageStrings[MSG_CANCEL], x + dx * 2, MSG_BOX_RETURN_CANCEL);
+			break;
+
 		case MSG_BOX_FLAG_YESNOLIE:
 			x += (usTextBoxWidth - (MSGBOX_BUTTON_WIDTH + dx * 2)) / 2;
 			gMsgBox.uiYESButton = MakeButton(pMessageStrings[MSG_YES], x,          MSG_BOX_RETURN_YES);
@@ -346,6 +364,7 @@ static ScreenID ExitMsgBox(MessageBoxReturnValue const ubExitCode)
 			break;
 
 		case MSG_BOX_FLAG_GENERICCONTRACT:
+		case MSG_BOX_FLAG_GENERIC_CANCEL:
 		case MSG_BOX_FLAG_YESNOLIE:
 			RemoveButton(gMsgBox.uiYESButton);
 			RemoveButton(gMsgBox.uiNOButton);
@@ -471,6 +490,7 @@ ScreenID MessageBoxScreenHandle()
 				break;
 
 			case MSG_BOX_FLAG_GENERICCONTRACT:
+			case MSG_BOX_FLAG_GENERIC_CANCEL:
 			case MSG_BOX_FLAG_YESNOLIE:
 				MarkAButtonDirty(gMsgBox.uiYESButton);
 				MarkAButtonDirty(gMsgBox.uiNOButton);
@@ -502,6 +522,10 @@ ScreenID MessageBoxScreenHandle()
 					case 'y':
 					case SDLK_RETURN: gMsgBox.bHandled = MSG_BOX_RETURN_YES; break;
 				}
+				break;
+
+			case MSG_BOX_FLAG_GENERIC_CANCEL:
+				if (InputEvent.usParam == SDLK_ESCAPE) gMsgBox.bHandled = MSG_BOX_RETURN_CANCEL;
 				break;
 
 			case MSG_BOX_FLAG_OK:
