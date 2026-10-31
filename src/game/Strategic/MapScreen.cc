@@ -8712,8 +8712,9 @@ void CancelPathsOfAllSelectedCharacters()
 		// and he has a route set
 		if ( GetLengthOfMercPath( pSoldier ) > 0 )
 		{
-			// if he's in the chopper, but player can't redirect it
-			if (InHelicopter(*pSoldier) && !CanHelicopterFly())
+			// if he's in the chopper (or is the chopper's own row), but player
+			// can't redirect it -- e.g. Skyrider returning to base
+			if ((InHelicopter(*pSoldier) || IsHelicopterSoldier(*pSoldier)) && !CanHelicopterFly())
 			{
 				if ( !fSkyriderMsgShown )
 				{
