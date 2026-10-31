@@ -12,6 +12,7 @@
 #include "RenderWorld.h"
 #include "Tile_Animation.h"
 #include "Merc_Entering.h"
+#include "Map_Screen_Helicopter.h"
 #include "Sound_Control.h"
 #include "Strategic.h"
 #include "StrategicMap.h"
@@ -532,6 +533,7 @@ void HandleHeliDrop( )
 			//UIHandleLUIEndLock( NULL );
 
 			HandleFirstHeliDropOfGame( );
+			HelicopterRunFinished();
 			return;
 
 		}
@@ -579,6 +581,7 @@ void HandleHeliDrop( )
 						RebuildCurrentSquad( );
 
 						HandleFirstHeliDropOfGame( );
+						HelicopterRunFinished();
 					}
 				}
 				else
@@ -594,6 +597,7 @@ void HandleHeliDrop( )
 					RebuildCurrentSquad( );
 
 					HandleFirstHeliDropOfGame( );
+					HelicopterRunFinished();
 				}
 			}
 

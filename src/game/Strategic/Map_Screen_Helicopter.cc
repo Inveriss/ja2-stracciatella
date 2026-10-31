@@ -14,6 +14,7 @@
 #include "LaptopSave.h"
 #include "MapScreen.h"
 #include "Map_Screen_Interface.h"
+#include "OppList.h"
 #include "Map_Screen_Interface_Border.h"
 #include "Map_Screen_Interface_Map.h"
 #include "Map_Information.h"
@@ -1605,6 +1606,25 @@ bool IsHeliLandingSelectionActive()
 }
 
 
+// a rope drop among enemies is going on
+static bool gfHeliEnemyDropRunning = false;
+
+
+bool IsHeliEnemyDropRunning()
+{
+	return gfHeliEnemyDropRunning;
+}
+
+
+void HelicopterRunFinished()
+{
+	if (!gfHeliEnemyDropRunning) return;
+	gfHeliEnemyDropRunning = false;
+	// all down: now everybody looks around, a fight starting as usual
+	if (gfWorldLoaded) AllTeamsLookForAll(TRUE);
+}
+
+
 static void EndHeliLandingSelection(bool world_gone);
 
 
@@ -1743,6 +1763,7 @@ static void LandHelicopterPassengersAt(GridNo const centre, INT8 const level)
 
 	EndHeliLandingSelection(false);
 	if (!PutHelicopterPassengersOnRope(spots)) return;
+	gfHeliEnemyDropRunning = true;
 	StartHelicopterRunAt(centre, gWorldSector, INSERTION_CODE_GRIDNO, level);
 
 	// done: one boarding it here later isn't put down again
@@ -1818,6 +1839,7 @@ static void HandleHeliMapEdgesDrop()
 		g    = gMapInformation.sCenterGridNo;
 	}
 	InternalLocateGridNo(g, TRUE);
+	gfHeliEnemyDropRunning = true;
 	StartHelicopterRunAt(g, gWorldSector, code);
 
 	// done: one boarding it here later isn't put down again
@@ -1858,6 +1880,7 @@ void ResetHelicopterInTactical()
 {
 	// the circle's tiles went with the world
 	EndHeliLandingSelection(true);
+	gfHeliEnemyDropRunning = false;
 	// (the sector's civilians go with the world; his profile isn't there now)
 	if (g_heli_tactical == HELI_TACTICAL_BODY) TakeSkyriderAwayFromHelicopter(true);
 	g_heli_tactical  = HELI_TACTICAL_NONE;

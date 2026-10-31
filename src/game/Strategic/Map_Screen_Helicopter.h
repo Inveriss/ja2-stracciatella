@@ -246,6 +246,12 @@ HeliLandingZone GetHeliLandingZone();
 bool IsHeliLandingSelectionActive();
 // ... given up (tactical left)
 void CancelHeliLandingSelection();
+// A rope drop among enemies (Map Edges / Anywhere) is going on: until its
+// helicopter run is over nobody sees anybody (OppList.cc), so no fight starts
+// with some of them still on the rope
+bool IsHeliEnemyDropRunning();
+// Merc_Entering.cc: a helicopter run is over
+void HelicopterRunFinished();
 void InitHeliEnemyLandingForNewGame();
 void SaveHeliEnemyLandingToSaveGameFile();
 void LoadHeliEnemyLandingFromSaveGameFile();
