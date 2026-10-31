@@ -477,6 +477,9 @@ BOOLEAN SaveGame(const ST::string& saveName, const ST::string& gameDesc)
 		// Same convention, for the helicopter panel's check boxes.
 		SaveHeliSMCheckboxesToSaveGameFile();
 
+		// ... and a landing among enemies (sector, chosen zone).
+		SaveHeliEnemyLandingToSaveGameFile();
+
 		SaveStrategicAI(f);
 
 		SaveWatchedLocsToSavedGame(f);
@@ -1088,6 +1091,9 @@ void LoadSavedGame(const ST::string &saveName)
 
 	// The helicopter panel's check boxes -- fall back to unchecked.
 	LoadHeliSMCheckboxesFromSaveGameFile();
+
+	// A landing among enemies -- falls back to none.
+	LoadHeliEnemyLandingFromSaveGameFile();
 
 	BAR(1, "Final Checks...");
 

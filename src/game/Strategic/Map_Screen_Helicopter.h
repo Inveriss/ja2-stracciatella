@@ -225,9 +225,25 @@ INT16 GetNumSafeSectorsInPath();
 INT16 GetNumUnSafeSectorsInPath( void );
 
 bool SoldierAboardAirborneHeli(SOLDIERTYPE const&);
-// is it hovering over this sector, which has no enemies? Those aboard then
-// let the player go to tactical there, as when it has landed
+// is it hovering over this sector, which has no enemies -- or one with
+// enemies it has landed in (the heli panels' "Allow landing in enemy
+// sectors")? Those aboard then let the player go to tactical there, as when
+// it has landed
 bool IsHelicopterHoveringOverSafeSector(const SGPSector&);
+
+// Landing in a sector with enemies: the zone the player chose when Skyrider
+// arrived there with passengers (for now only remembered), saved with the
+// game; unset in a new game.
+enum HeliLandingZone
+{
+	HELI_LANDING_ZONE_NONE = 0,
+	HELI_LANDING_ZONE_MAP_EDGES,
+	HELI_LANDING_ZONE_ANYWHERE
+};
+HeliLandingZone GetHeliLandingZone();
+void InitHeliEnemyLandingForNewGame();
+void SaveHeliEnemyLandingToSaveGameFile();
+void LoadHeliEnemyLandingFromSaveGameFile();
 
 void MoveAllInHelicopterToFootMovementGroup(void);
 

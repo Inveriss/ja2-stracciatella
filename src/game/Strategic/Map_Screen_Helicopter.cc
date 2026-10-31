@@ -21,6 +21,8 @@
 #include "Overhead.h"
 #include "Interface.h"
 #include "Interface_Panels.h"
+#include "MessageBoxScreen.h"
+#include "SaveLoadGameStates.h"
 #include "Animation_Control.h"
 #include "JAScreens.h"
 #include "ScreenIDs.h"
@@ -232,8 +234,66 @@ BOOLEAN RemoveSoldierFromHelicopter( SOLDIERTYPE *pSoldier )
 	return( TakeSoldierOutOfVehicle( pSoldier ) );
 }
 
+// Landing in a sector with enemies (the heli panels' "Allow landing in enemy
+// sectors", Interface_Panels.cc): the sector Skyrider has landed in that way
+// (SGPSector::AsByte(), -1 none) -- valid while he hovers there -- and the
+// landing zone the player chose. Saved with the game (g_gameStates).
+static INT32           giHeliEnemyLandingSector = -1;
+static HeliLandingZone gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
+static ST::string const gHeliEnemyLandingSectorKey{ "Helicopter::enemyLandingSector" };
+static ST::string const gHeliLandingZoneKey{ "Helicopter::landingZone" };
+
+
+HeliLandingZone GetHeliLandingZone()
+{
+	return gHeliLandingZone;
+}
+
+
+void InitHeliEnemyLandingForNewGame()
+{
+	giHeliEnemyLandingSector = -1;
+	gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
+	SaveHeliEnemyLandingToSaveGameFile();
+}
+
+
+void SaveHeliEnemyLandingToSaveGameFile()
+{
+	g_gameStates.Set(gHeliEnemyLandingSectorKey, giHeliEnemyLandingSector);
+	g_gameStates.Set(gHeliLandingZoneKey, static_cast<INT32>(gHeliLandingZone));
+}
+
+
+void LoadHeliEnemyLandingFromSaveGameFile()
+{
+	giHeliEnemyLandingSector = g_gameStates.HasKey(gHeliEnemyLandingSectorKey)
+		? g_gameStates.Get<INT32>(gHeliEnemyLandingSectorKey) : -1;
+	gHeliLandingZone = g_gameStates.HasKey(gHeliLandingZoneKey)
+		? static_cast<HeliLandingZone>(g_gameStates.Get<INT32>(gHeliLandingZoneKey)) : HELI_LANDING_ZONE_NONE;
+}
+
+
+static void HeliLandingZoneCallback(MessageBoxReturnValue const ret)
+{
+	gHeliLandingZone = ret == MSG_BOX_RETURN_YES ? HELI_LANDING_ZONE_MAP_EDGES : HELI_LANDING_ZONE_ANYWHERE;
+}
+
+
+// "Choose Landing Zone": Map Edges / Anywhere
+static void AskForHeliLandingZone()
+{
+	gzUserDefinedButton1 = pHeliLandingZoneStrings[1];
+	gzUserDefinedButton2 = pHeliLandingZoneStrings[2];
+	DoScreenIndependantMessageBox(pHeliLandingZoneStrings[0], MSG_BOX_FLAG_GENERIC, HeliLandingZoneCallback);
+}
+
+
 BOOLEAN HandleHeliEnteringSector(const SGPSector& sMap)
 {
+	// a landing among enemies holds only for the sector it was made in
+	giHeliEnemyLandingSector = -1;
+
 	UINT8 ubNumEnemies;
 	BOOLEAN endOfHelicoptersPath;
 
@@ -298,8 +358,16 @@ BOOLEAN HandleHeliEnteringSector(const SGPSector& sMap)
 		// start hovering
 		StartHoverTime( );
 
+		// Enemies below, but the player allows landing among them: with
+		// passengers aboard (without, he still refuses) and the trip paid for
+		// -- unpaid, the passengers would be put down among the enemies
+		bool const enemy_landing = ubNumEnemies > 0 && !fHeliReturnStraightToBase &&
+			GetNumberInVehicle(v) > 0 &&
+			IsHeliInventoryChecked(HELI_INV_CHECK_ENEMY_LANDING) &&
+			LaptopSaveInfo.iCurrentBalance >= iTotalAccumulatedCostByPlayer;
+
 		// if sector is safe, or Skyrider MUST land anyway (returning to base)
-		if ( ( ubNumEnemies == 0 ) || fHeliReturnStraightToBase )
+		if ( ( ubNumEnemies == 0 ) || fHeliReturnStraightToBase || enemy_landing )
 		{
 			// if he has passengers, or he's not going straight to base, tell player he's arrived
 			// (i.e. don't say anything nor stop time compression if he's empty and just returning to base)
@@ -312,6 +380,14 @@ BOOLEAN HandleHeliEnteringSector(const SGPSector& sMap)
 
 			// destination reached, payment due.  If player can't pay, mercs get kicked off and heli flies to base!
 			PaySkyriderBill();
+
+			// among enemies: the player picks the landing zone
+			if (enemy_landing)
+			{
+				giHeliEnemyLandingSector = sMap.AsByte();
+				gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
+				AskForHeliLandingZone();
+			}
 		}
 		else
 		{
@@ -1987,5 +2063,6 @@ bool IsHelicopterHoveringOverSafeSector(const SGPSector& sector)
 	if (iHelicopterVehicleId == -1 || fHelicopterDestroyed || gfHelicopterGoingDown) return false;
 	if (!fHelicopterIsAirBorne || !fHoveringHelicopter || sector.z != 0) return false;
 	VEHICLETYPE const& v = GetHelicopter();
-	return !v.fBetweenSectors && v.sSector == sector && NumEnemiesInSector(sector) == 0;
+	return !v.fBetweenSectors && v.sSector == sector &&
+		(NumEnemiesInSector(sector) == 0 || giHeliEnemyLandingSector == sector.AsByte());
 }

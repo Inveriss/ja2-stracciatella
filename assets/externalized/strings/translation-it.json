@@ -1865,6 +1865,11 @@
         "- repair cost:",
         "$200/hour"
     ],
+    "pHeliLandingZoneStrings": [
+        "Choose Landing Zone",
+        "Map Edges",
+        "Anywhere"
+    ],
     "pMilitiaConfirmStrings": [
         "Addestrare una squadra dell'esercito cittadino costerà $",
         "Approvate la spesa?",

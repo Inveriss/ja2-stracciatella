@@ -1865,6 +1865,11 @@
         "- repair cost:",
         "$200/hour"
     ],
+    "pHeliLandingZoneStrings": [
+        "Choose Landing Zone",
+        "Map Edges",
+        "Anywhere"
+    ],
     "pMilitiaConfirmStrings": [
         "训练一队民兵要花费$",
         "同意支付吗?",

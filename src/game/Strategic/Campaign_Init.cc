@@ -7,6 +7,7 @@
 #include "GameSettings.h"
 #include "Map_Screen_Interface_Map_Inventory.h"
 #include "MapScreen.h"
+#include "Map_Screen_Helicopter.h"
 #include "Interface_Panels.h"
 #include "Strategic_AI.h"
 #include "Strategic_Movement.h"
@@ -142,4 +143,7 @@ void InitNewCampaign()
 
 	// The helicopter panel's check boxes -- unchecked for a new game.
 	InitHeliSMCheckboxesForNewGame();
+
+	// No landing among enemies yet, no landing zone chosen.
+	InitHeliEnemyLandingForNewGame();
 }
