@@ -82,6 +82,12 @@
 // below this condition Skyrider won't take off until the helicopter is repaired
 #define HELI_FLIGHT_MIN_CONDITION       50
 
+// Waldo, the helicopter's mechanic at the Drassen airport (the heli panels'
+// check box): his own terms, not his stats -- condition points per hour of
+// work, and its price, paid when the hour starts
+#define WALDO_HELI_REPAIR_PER_HOUR      3
+#define WALDO_HELI_REPAIR_COST          200
+
 // the amounts of time to wait for hover stuff
 #define TIME_DELAY_FOR_HOVER_WAIT						10		// minutes
 #define TIME_DELAY_FOR_HOVER_WAIT_TOO_LONG	20		// mintues
@@ -270,6 +276,28 @@ static ST::string const gHeliEnemyLandingEdgeKey{ "Helicopter::enemyLandingEdge"
 static bool             gfSilentSkyrider = false;
 static ST::string const gSilentSkyriderKey{ "Helicopter::silentSkyrider" };
 
+// Waldo has started (and been paid for) an hour of work on the helicopter:
+// credited at the next full hour, or at once when it takes off. False in a
+// new game, saved with the game (g_gameStates).
+static bool             gfWaldoHourStarted = false;
+static ST::string const gWaldoHourStartedKey{ "HeliWaldo::hourStarted" };
+
+
+bool CanWaldoRepairHelicopter(bool const check_money)
+{
+	if (iHelicopterVehicleId == -1 || fHelicopterDestroyed) return false;
+	if (!IsHeliInventoryChecked(HELI_INV_CHECK_WALDO))       return false;
+	// no helicopter soldier (its condition comes from the hits taken): not him
+	if (!GetHelicopterSoldier())                             return false;
+	// on the ground at the Drassen airport, while it is the player's
+	if (fHelicopterIsAirBorne)                               return false;
+	if (!fRefuelingSiteAvailable[DRASSEN_REFUELING_SITE])    return false;
+	if (!IsHelicopterOnGroundAtRefuelingSite(g_refuel_site[DRASSEN_REFUELING_SITE])) return false;
+	if (!DoesVehicleNeedAnyRepairs(GetHelicopter()))         return false;
+	if (!CheckFact(FACT_WALDO_ALIVE, 0))                     return false;
+	return !check_money || LaptopSaveInfo.iCurrentBalance >= WALDO_HELI_REPAIR_COST;
+}
+
 
 bool IsSkyriderSilent()
 {
@@ -322,6 +350,7 @@ void InitHeliEnemyLandingForNewGame()
 	giHeliEnemyLandingEdge   = INSERTION_CODE_CENTER;
 	gfHeliEnterLandingSector = false;
 	gfSilentSkyrider         = false;
+	gfWaldoHourStarted       = false;
 	SaveHeliEnemyLandingToSaveGameFile();
 }
 
@@ -332,6 +361,7 @@ void SaveHeliEnemyLandingToSaveGameFile()
 	g_gameStates.Set(gHeliLandingZoneKey, static_cast<INT32>(gHeliLandingZone));
 	g_gameStates.Set(gHeliEnemyLandingEdgeKey, giHeliEnemyLandingEdge);
 	g_gameStates.Set(gSilentSkyriderKey, gfSilentSkyrider);
+	g_gameStates.Set(gWaldoHourStartedKey, gfWaldoHourStarted);
 }
 
 
@@ -344,6 +374,7 @@ void LoadHeliEnemyLandingFromSaveGameFile()
 	giHeliEnemyLandingEdge = g_gameStates.HasKey(gHeliEnemyLandingEdgeKey)
 		? g_gameStates.Get<INT32>(gHeliEnemyLandingEdgeKey) : INSERTION_CODE_CENTER;
 	gfSilentSkyrider = g_gameStates.HasKey(gSilentSkyriderKey) && g_gameStates.Get<bool>(gSilentSkyriderKey);
+	gfWaldoHourStarted = g_gameStates.HasKey(gWaldoHourStartedKey) && g_gameStates.Get<bool>(gWaldoHourStartedKey);
 }
 
 

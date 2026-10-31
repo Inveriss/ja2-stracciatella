@@ -266,6 +266,11 @@ void HelicopterRunFinished();
 bool IsSkyriderSilent();
 void SetSkyriderSilent(bool silent);
 
+// Waldo, the helicopter's mechanic: may he work on it now -- check box,
+// on the ground at the Drassen airport (the player's), in need of repair,
+// he alive; with check_money also the price of an hour in the account?
+bool CanWaldoRepairHelicopter(bool check_money);
+
 void InitHeliEnemyLandingForNewGame();
 void SaveHeliEnemyLandingToSaveGameFile();
 void LoadHeliEnemyLandingFromSaveGameFile();
