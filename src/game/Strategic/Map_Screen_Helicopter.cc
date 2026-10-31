@@ -16,6 +16,7 @@
 #include "Map_Screen_Interface.h"
 #include "OppList.h"
 #include "Map_Screen_Interface_Border.h"
+#include "Map_Screen_Interface_Bottom.h"
 #include "Map_Screen_Interface_Map.h"
 #include "Map_Information.h"
 #include "Merc_Entering.h"
@@ -252,6 +253,8 @@ BOOLEAN RemoveSoldierFromHelicopter( SOLDIERTYPE *pSoldier )
 // (SGPSector::AsByte(), -1 none) -- valid while he hovers there -- and the
 // landing zone the player chose. Saved with the game (g_gameStates).
 static INT32           giHeliEnemyLandingSector = -1;
+// the landing zone chosen on the map screen: enter that sector as soon as possible
+static bool            gfHeliEnterLandingSector = false;
 static HeliLandingZone gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
 // ... and the side it came from: the entry point (INSERTION_CODE_NORTH...)
 // its passengers are put down at by "Map Edges"
@@ -281,6 +284,7 @@ void InitHeliEnemyLandingForNewGame()
 	giHeliEnemyLandingSector = -1;
 	gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
 	giHeliEnemyLandingEdge   = INSERTION_CODE_CENTER;
+	gfHeliEnterLandingSector = false;
 	SaveHeliEnemyLandingToSaveGameFile();
 }
 
@@ -351,6 +355,30 @@ static void HeliLandingZoneCallback(MessageBoxReturnValue const ret)
 	// the landing zone's surcharge, due when it is chosen
 	PaySkyriderOnCredit(gHeliLandingZone == HELI_LANDING_ZONE_MAP_EDGES ?
 		COST_HELI_LANDING_MAP_EDGES : COST_HELI_LANDING_ANYWHERE, true);
+
+	// straight on to the sector (its loading screen), the drop starts there --
+	// on the map screen, once Skyrider is done talking
+	gfHeliEnterLandingSector = fInMapMode && giHeliEnemyLandingSector != -1;
+	if (gfHeliEnterLandingSector)
+	{
+		ChangeSelectedMapSector(SGPSector(static_cast<UINT32>(giHeliEnemyLandingSector)));
+	}
+}
+
+
+void HandleHeliEnterLandingSector()
+{
+	if (!gfHeliEnterLandingSector) return;
+	// the landing called off meanwhile (hovered too long, ...)
+	if (giHeliEnemyLandingSector == -1 || gHeliLandingZone == HELI_LANDING_ZONE_NONE)
+	{
+		gfHeliEnterLandingSector = false;
+		return;
+	}
+	if (!AllowedToExitFromMapscreenTo(MAP_EXIT_TO_TACTICAL)) return;
+
+	gfHeliEnterLandingSector = false;
+	RequestTriggerExitFromMapscreen(MAP_EXIT_TO_TACTICAL);
 }
 
 

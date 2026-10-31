@@ -2883,6 +2883,8 @@ ScreenID MapScreenHandle(void)
 	}
 
 
+	HandleHeliEnterLandingSector();
+
 	if( gfFirstMapscreenFrame )
 	{
 		gfFirstMapscreenFrame = FALSE;

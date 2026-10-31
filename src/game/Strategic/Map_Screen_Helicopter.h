@@ -194,6 +194,10 @@ void HandleHeliHoverLong( void );
 // handle a LONG wait in hover mode
 void HandleHeliHoverTooLong( void );
 
+// map screen, every frame: after a landing zone choice, on to that sector's
+// tactical screen once nothing holds it up (Skyrider talking, ...)
+void HandleHeliEnterLandingSector();
+
 // drop off everyone in helicopter
 void DropOffEveryOneInHelicopter( void );
 
