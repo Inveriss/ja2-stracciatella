@@ -4,6 +4,7 @@
 #include "SoundMan.h"
 #include "Timer_Control.h"
 #include "Soldier_Control.h"
+#include "Interface.h"
 #include "WorldDef.h"
 #include "Isometric_Utils.h"
 #include "Animation_Control.h"
@@ -378,6 +379,18 @@ BOOLEAN gfFirstHeliRun;
 // where the run's mercs are put: the sector and its entry point
 static SGPSector gHeliDropSector;
 static UINT8     gubHeliDropInsertionCode = INSERTION_CODE_NORTH;
+static INT8      gbHeliDropLevel          = 0;
+
+
+// one of the run's mercs onto the map
+static void PutHeliDropMercInSector(SOLDIERTYPE& s)
+{
+	// INSERTION_CODE_GRIDNO: his own spot is already in usStrategicInsertionData
+	s.ubStrategicInsertionCode = gubHeliDropInsertionCode;
+	// onto a roof: on its level before the spot is looked for
+	if (gbHeliDropLevel == SECOND_LEVEL) SetSoldierHeight(&s, ROOF_LEVEL_HEIGHT);
+	UpdateMercInSector(s, gHeliDropSector);
+}
 
 
 void ResetHeliSeats( )
@@ -414,13 +427,14 @@ bool IsHelicopterRunActive()
 }
 
 
-void StartHelicopterRunAt(INT16 const sGridNoSweetSpot, SGPSector const& sector, UINT8 const insertion_code)
+void StartHelicopterRunAt(INT16 const sGridNoSweetSpot, SGPSector const& sector, UINT8 const insertion_code, INT8 const level)
 {
 	INT16 sX, sY;
 
 	gsGridNoSweetSpot        = sGridNoSweetSpot;
 	gHeliDropSector          = sector;
 	gubHeliDropInsertionCode = insertion_code;
+	gbHeliDropLevel          = level;
 
 	if ( gbNumHeliSeatsOccupied == 0 )
 	{
@@ -484,8 +498,7 @@ void HandleHeliDrop( )
 			{
 				// Add merc to sector
 				SOLDIERTYPE& s = *gHeliSeats[cnt];
-				s.ubStrategicInsertionCode = gubHeliDropInsertionCode;
-				UpdateMercInSector(s, gHeliDropSector);
+				PutHeliDropMercInSector(s);
 
 				// Check for merc arrives quotes...
 				HandleMercArrivesQuotes(s);
@@ -612,9 +625,7 @@ void HandleHeliDrop( )
 						EVENT_InitNewSoldierAnim(&s, HELIDROP, 0 , FALSE);
 
 						// Change insertion code
-						s.ubStrategicInsertionCode = gubHeliDropInsertionCode;
-
-						UpdateMercInSector(s, gHeliDropSector);
+						PutHeliDropMercInSector(s);
 
 						// IF the first guy down, set squad!
 						if ( gfFirstGuyDown )

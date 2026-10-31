@@ -18,6 +18,13 @@
 #include "Map_Screen_Interface_Map.h"
 #include "Map_Information.h"
 #include "Merc_Entering.h"
+#include "Cursors.h"
+#include "Handle_UI.h"
+#include "Isometric_Utils.h"
+#include "Structure_Wrap.h"
+#include "TileDat.h"
+#include "Viewport_Zoom.h"
+#include "WorldMan.h"
 #include "Meanwhile.h"
 #include "Overhead.h"
 #include "Interface.h"
@@ -1277,7 +1284,10 @@ enum HeliTacticalMode
 {
 	HELI_TACTICAL_NONE,
 	HELI_TACTICAL_SCENERY, // landed at the loaded sector's refuel site
-	HELI_TACTICAL_BODY     // hovering: its own body at the drop spot
+	HELI_TACTICAL_BODY,    // hovering: its own body at the drop spot
+	HELI_TACTICAL_ROPE     // hovering over the sector it landed in among
+	                       // enemies: no body, no Skyrider -- the only
+	                       // helicopter shown is the rope drop's (Merc_Entering)
 };
 static HeliTacticalMode g_heli_tactical = HELI_TACTICAL_NONE;
 // a new world: its first tactical frame may show the passengers view
@@ -1306,7 +1316,10 @@ static HeliTacticalMode WantedHelicopterInTactical(SOLDIERTYPE const& s)
 
 	RefuelSite const* const r = RefuelSiteOfLoadedSector();
 	if (r && IsHelicopterOnGroundAtRefuelingSite(*r)) return HELI_TACTICAL_SCENERY;
-	if (fHelicopterIsAirBorne && fHoveringHelicopter) return HELI_TACTICAL_BODY;
+	if (fHelicopterIsAirBorne && fHoveringHelicopter)
+	{
+		return giHeliEnemyLandingSector == gWorldSector.AsByte() ? HELI_TACTICAL_ROPE : HELI_TACTICAL_BODY;
+	}
 	return HELI_TACTICAL_NONE;
 }
 
@@ -1337,7 +1350,22 @@ static GridNo HelicopterDropSpot()
 static void PutHelicopterInTactical(SOLDIERTYPE& s, HeliTacticalMode const mode)
 {
 	s.sSector = gWorldSector;
-	if (mode == HELI_TACTICAL_SCENERY)
+	if (mode == HELI_TACTICAL_ROPE)
+	{
+		// only its place (those aboard are there), nothing on the map
+		GridNo const g = HelicopterDropSpot();
+		INT16 x;
+		INT16 y;
+		ConvertGridNoToCenterCellXY(g, &x, &y);
+		s.sGridNo   = g;
+		s.dXPos     = x;
+		s.dYPos     = y;
+		s.sX        = x;
+		s.sY        = y;
+		s.bLevel    = 0;
+		s.bInSector = TRUE;
+	}
+	else if (mode == HELI_TACTICAL_SCENERY)
 	{
 		// the map's own helicopter: no body, no structure, only its place
 		RefuelSite const& r = *RefuelSiteOfLoadedSector();
@@ -1455,7 +1483,8 @@ static bool SkyriderCanStandByHelicopter()
 
 static void UpdateSkyriderInTactical(SOLDIERTYPE const& hs)
 {
-	if (g_heli_tactical == HELI_TACTICAL_NONE)
+	// (among enemies he stays aboard)
+	if (g_heli_tactical == HELI_TACTICAL_NONE || g_heli_tactical == HELI_TACTICAL_ROPE)
 	{
 		g_skyrider_checked = false;
 		return;
@@ -1518,28 +1547,31 @@ static void TakeSkyriderAwayFromHelicopter(bool const world_gone)
 }
 
 
-// "Map Edges" (stage 2 of landing among enemies): in the loaded sector it
-// landed in that way, those aboard go down a rope at the entry point of the
-// side it came from, as the mercs at the game's start (Merc_Entering.cc) --
-// all into one squad
-static void HandleHeliMapEdgesDrop()
+// those aboard (in the loaded sector) in the order they get out
+static std::vector<SOLDIERTYPE*> HelicopterPassengersHere()
 {
-	if (guiCurrentScreen != GAME_SCREEN || IsHelicopterRunActive()) return;
-	if (g_heli_tactical != HELI_TACTICAL_BODY) return;
-	if (gHeliLandingZone != HELI_LANDING_ZONE_MAP_EDGES) return;
-	if (gWorldSector.z != 0 || giHeliEnemyLandingSector != gWorldSector.AsByte()) return;
-
 	std::vector<SOLDIERTYPE*> aboard;
 	CFOR_EACH_PASSENGER(GetHelicopter(), i)
 	{
 		if ((*i)->bInSector) aboard.push_back(*i);
 	}
-	if (aboard.empty()) return;
+	return aboard;
+}
 
-	INT8 squad = -1;
+
+// All aboard onto the run's rope, into one squad; with `spots`, each his own
+// spot (INSERTION_CODE_GRIDNO data; the last one again when they run out).
+// False when nobody got out.
+static bool PutHelicopterPassengersOnRope(std::vector<GridNo> const& spots)
+{
+	std::vector<SOLDIERTYPE*> const aboard = HelicopterPassengersHere();
+	INT8   squad = -1;
+	size_t n     = 0;
 	for (SOLDIERTYPE* const s : aboard)
 	{
+		if (!spots.empty()) s->usStrategicInsertionData = spots[std::min(n, spots.size() - 1)];
 		if (!PutHelicopterPassengerOnRope(*s)) continue;
+		++n;
 		if (squad == -1)
 		{
 			squad = s->bAssignment;
@@ -1549,7 +1581,225 @@ static void HandleHeliMapEdgesDrop()
 			AddCharacterToSquad(s, squad);
 		}
 	}
-	if (squad == -1) return;
+	return squad != -1;
+}
+
+
+// "Anywhere" (stage 3 of landing among enemies): in the loaded sector it
+// landed in that way, the player picks the spot -- the game paused, the
+// whole map with its buildings only (nobody drawn, RenderWorld.cc), scrolling,
+// zoom and the level switch (TAB) as usual; under the mouse a circle of
+// tiles 6 wide in the LOS display's green (SPECIALTILE_COVER_5) on the tiles
+// one can stand on, on the ground or on a flat roof; a click on one of them
+// puts those aboard down a rope there, the map's placement limits not
+// applying.
+static bool                gfHeliLandingSelection = false;
+static MOUSE_REGION        gHeliLandingRegion;
+static std::vector<GridNo> gHeliLandingCircle;
+static GridNo              gsHeliLandingCircleCentre = NOWHERE;
+static INT8                gbHeliLandingCircleLevel  = 0;
+
+bool IsHeliLandingSelectionActive()
+{
+	return gfHeliLandingSelection;
+}
+
+
+static void EndHeliLandingSelection(bool world_gone);
+
+
+void CancelHeliLandingSelection()
+{
+	EndHeliLandingSelection(false);
+}
+
+
+static bool HeliLandingSpotOK(SOLDIERTYPE const& s, GridNo const g, INT8 const level)
+{
+	if (g < 0 || g >= WORLD_MAX) return false;
+	if (level == SECOND_LEVEL) return FlatRoofAboveGridNo(g) && NewOKDestination(&s, g, TRUE, SECOND_LEVEL);
+	return !DeepWater(g) && NewOKDestination(&s, g, TRUE, FIRST_LEVEL);
+}
+
+
+// the circle's tiles around `centre`: 6 wide, around its top left corner
+// (offsets -3..2, distance from the corner's middle at most 3)
+static std::vector<GridNo> HeliLandingCircleTiles(GridNo const centre)
+{
+	std::vector<GridNo> tiles;
+	INT16 const row = centre / WORLD_COLS;
+	INT16 const col = centre % WORLD_COLS;
+	for (INT16 dy = -3; dy <= 2; ++dy)
+	{
+		for (INT16 dx = -3; dx <= 2; ++dx)
+		{
+			FLOAT const fx = dx + 0.5f;
+			FLOAT const fy = dy + 0.5f;
+			if (fx * fx + fy * fy > 9.0f) continue;
+			INT16 const r = row + dy;
+			INT16 const c = col + dx;
+			if (r < 0 || r >= WORLD_ROWS || c < 0 || c >= WORLD_COLS) continue;
+			tiles.push_back(r * WORLD_COLS + c);
+		}
+	}
+	return tiles;
+}
+
+
+static void EraseHeliLandingCircle(bool const world_gone)
+{
+	if (!world_gone)
+	{
+		for (GridNo const g : gHeliLandingCircle)
+		{
+			if (gbHeliLandingCircleLevel == SECOND_LEVEL) RemoveOnRoof(g, SPECIALTILE_COVER_5);
+			else                                          RemoveObject(g, SPECIALTILE_COVER_5);
+		}
+	}
+	gHeliLandingCircle.clear();
+	gsHeliLandingCircleCentre = NOWHERE;
+	SetRenderFlags(RENDER_FLAG_FULL);
+}
+
+
+// the circle under the mouse, at the interface's level
+static void UpdateHeliLandingCircle()
+{
+	GridNo centre = NOWHERE;
+	INT16  x;
+	INT16  y;
+	MOUSE_REGION const& r = gHeliLandingRegion;
+	bool const over = r.RegionTopLeftX <= gusMouseXPos && gusMouseXPos < r.RegionBottomRightX &&
+		r.RegionTopLeftY <= gusMouseYPos && gusMouseYPos < r.RegionBottomRightY;
+	if (over)
+	{
+		// GetMouseXY() works only while the viewport's region has the mouse --
+		// ours, above it, has it now
+		UINT32 const flags = gViewportRegion.uiFlags;
+		gViewportRegion.uiFlags |= MSYS_MOUSE_IN_AREA;
+		if (GetMouseXY(&x, &y)) centre = MAPROWCOLTOPOS(y, x);
+		gViewportRegion.uiFlags = flags;
+	}
+	INT8 const level = static_cast<INT8>(gsInterfaceLevel);
+	if (centre == gsHeliLandingCircleCentre && level == gbHeliLandingCircleLevel) return;
+
+	EraseHeliLandingCircle(false);
+	gsHeliLandingCircleCentre = centre;
+	gbHeliLandingCircleLevel  = level;
+	if (centre == NOWHERE) return;
+
+	std::vector<SOLDIERTYPE*> const aboard = HelicopterPassengersHere();
+	if (aboard.empty()) return;
+	for (GridNo const g : HeliLandingCircleTiles(centre))
+	{
+		if (!HeliLandingSpotOK(*aboard.front(), g, level)) continue;
+		LEVELNODE* const n = level == SECOND_LEVEL ?
+			AddOnRoofToHead(g, SPECIALTILE_COVER_5) :
+			AddObjectToHead(g, SPECIALTILE_COVER_5);
+		n->uiFlags |= LEVELNODE_REVEAL;
+		gHeliLandingCircle.push_back(g);
+	}
+	SetRenderFlags(RENDER_FLAG_FULL);
+}
+
+
+static void EndHeliLandingSelection(bool const world_gone)
+{
+	if (!gfHeliLandingSelection) return;
+	gfHeliLandingSelection = false;
+	EraseHeliLandingCircle(world_gone);
+	MSYS_RemoveRegion(&gHeliLandingRegion);
+	UnLockPauseState();
+	UnPauseGame();
+}
+
+
+// a click: those aboard down a rope at the spot (each his own free spot
+// nearest to it)
+static void LandHelicopterPassengersAt(GridNo const centre, INT8 const level)
+{
+	std::vector<SOLDIERTYPE*> const aboard = HelicopterPassengersHere();
+	if (aboard.empty() || !HeliLandingSpotOK(*aboard.front(), centre, level)) return;
+
+	// free spots by distance, in a wider square than the circle
+	std::vector<GridNo> spots{ centre };
+	INT16 const row = centre / WORLD_COLS;
+	INT16 const col = centre % WORLD_COLS;
+	for (INT16 dist = 1; dist <= 5 && spots.size() < aboard.size(); ++dist)
+	{
+		for (INT16 dy = -dist; dy <= dist && spots.size() < aboard.size(); ++dy)
+		{
+			for (INT16 dx = -dist; dx <= dist && spots.size() < aboard.size(); ++dx)
+			{
+				if (std::max(std::abs(dx), std::abs(dy)) != dist) continue;
+				INT16 const r = row + dy;
+				INT16 const c = col + dx;
+				if (r < 0 || r >= WORLD_ROWS || c < 0 || c >= WORLD_COLS) continue;
+				GridNo const g = r * WORLD_COLS + c;
+				if (HeliLandingSpotOK(*aboard.front(), g, level)) spots.push_back(g);
+			}
+		}
+	}
+
+	EndHeliLandingSelection(false);
+	if (!PutHelicopterPassengersOnRope(spots)) return;
+	StartHelicopterRunAt(centre, gWorldSector, INSERTION_CODE_GRIDNO, level);
+
+	// done: one boarding it here later isn't put down again
+	gHeliLandingZone = HELI_LANDING_ZONE_NONE;
+}
+
+
+static void HeliLandingRegionCallback(MOUSE_REGION* const r, UINT32 const reason)
+{
+	if (reason & (MSYS_CALLBACK_REASON_WHEEL_UP | MSYS_CALLBACK_REASON_WHEEL_DOWN))
+	{
+		ViewportZoomHandleWheel(reason & MSYS_CALLBACK_REASON_WHEEL_UP);
+		return;
+	}
+	if (reason & MSYS_CALLBACK_REASON_POINTER_UP && gsHeliLandingCircleCentre != NOWHERE)
+	{
+		LandHelicopterPassengersAt(gsHeliLandingCircleCentre, gbHeliLandingCircleLevel);
+	}
+}
+
+
+static void HandleHeliAnywhereSelection()
+{
+	if (gfHeliLandingSelection)
+	{
+		UpdateHeliLandingCircle();
+		return;
+	}
+	if (guiCurrentScreen != GAME_SCREEN || IsHelicopterRunActive()) return;
+	if (g_heli_tactical != HELI_TACTICAL_ROPE) return;
+	if (gHeliLandingZone != HELI_LANDING_ZONE_ANYWHERE) return;
+	if (gWorldSector.z != 0 || giHeliEnemyLandingSector != gWorldSector.AsByte()) return;
+	if (HelicopterPassengersHere().empty()) return;
+
+	gfHeliLandingSelection = true;
+	MSYS_DefineRegion(&gHeliLandingRegion, 0, 0, gsVIEWPORT_END_X, gsVIEWPORT_WINDOW_END_Y,
+		MSYS_PRIORITY_HIGH, CURSOR_NORMAL, TacticalViewPortMovementCallback, HeliLandingRegionCallback);
+	PauseGame();
+	LockPauseState(LOCK_PAUSE_START_HELI);
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pHeliLandingZoneStrings[0]);
+	SetRenderFlags(RENDER_FLAG_FULL);
+	UpdateHeliLandingCircle();
+}
+
+
+// "Map Edges" (stage 2 of landing among enemies): in the loaded sector it
+// landed in that way, those aboard go down a rope at the entry point of the
+// side it came from, as the mercs at the game's start (Merc_Entering.cc) --
+// all into one squad
+static void HandleHeliMapEdgesDrop()
+{
+	if (guiCurrentScreen != GAME_SCREEN || IsHelicopterRunActive()) return;
+	if (g_heli_tactical != HELI_TACTICAL_ROPE) return;
+	if (gHeliLandingZone != HELI_LANDING_ZONE_MAP_EDGES) return;
+	if (gWorldSector.z != 0 || giHeliEnemyLandingSector != gWorldSector.AsByte()) return;
+
+	if (!PutHelicopterPassengersOnRope({})) return;
 
 	// the entry point -- the map's centre when it hasn't got that one
 	UINT8  code = static_cast<UINT8>(giHeliEnemyLandingEdge);
@@ -1595,6 +1845,7 @@ void UpdateHelicopterInTactical()
 	}
 	UpdateHelicopterPassengersInTactical(*s);
 	HandleHeliMapEdgesDrop();
+	HandleHeliAnywhereSelection();
 	UpdateSkyriderInTactical(*s);
 	UpdateHelicopterPassengersView();
 
@@ -1605,6 +1856,8 @@ void UpdateHelicopterInTactical()
 
 void ResetHelicopterInTactical()
 {
+	// the circle's tiles went with the world
+	EndHeliLandingSelection(true);
 	// (the sector's civilians go with the world; his profile isn't there now)
 	if (g_heli_tactical == HELI_TACTICAL_BODY) TakeSkyriderAwayFromHelicopter(true);
 	g_heli_tactical  = HELI_TACTICAL_NONE;
@@ -1622,6 +1875,8 @@ void ResetHelicopterInTactical()
 bool CanExitHelicopterInTactical(SOLDIERTYPE const& s)
 {
 	if (!InHelicopter(s) || !s.bInSector || g_heli_tactical == HELI_TACTICAL_NONE) return false;
+	// among enemies: only down the rope (Map Edges / Anywhere)
+	if (g_heli_tactical == HELI_TACTICAL_ROPE) return false;
 	// E4: no getting out while it goes down; enemies in the sector don't stop
 	// it, as with the ground vehicles (those aboard get out and fight)
 	return !gfHelicopterGoingDown;

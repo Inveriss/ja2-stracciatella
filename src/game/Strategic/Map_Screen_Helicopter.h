@@ -241,6 +241,11 @@ enum HeliLandingZone
 	HELI_LANDING_ZONE_ANYWHERE
 };
 HeliLandingZone GetHeliLandingZone();
+// "Anywhere": the player is picking the landing spot in tactical (nobody is
+// drawn meanwhile)
+bool IsHeliLandingSelectionActive();
+// ... given up (tactical left)
+void CancelHeliLandingSelection();
 void InitHeliEnemyLandingForNewGame();
 void SaveHeliEnemyLandingToSaveGameFile();
 void LoadHeliEnemyLandingFromSaveGameFile();
