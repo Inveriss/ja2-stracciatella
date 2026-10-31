@@ -382,6 +382,10 @@ static SGPSector gHeliDropSector;
 static UINT8     gubHeliDropInsertionCode = INSERTION_CODE_NORTH;
 static INT8      gbHeliDropLevel          = 0;
 
+// ESC was already down when the run started (e.g. the map screen left with
+// it, its key up lost on the way): only a new press skips the run
+static BOOLEAN gfHeliEscHeldAtStart = FALSE;
+
 
 // one of the run's mercs onto the map
 static void PutHeliDropMercInSector(SOLDIERTYPE& s)
@@ -467,6 +471,7 @@ void StartHelicopterRunAt(INT16 const sGridNoSweetSpot, SGPSector const& sector,
 	fFadingHeliIn = TRUE;
 
 	gfHandleHeli = TRUE;
+	gfHeliEscHeldAtStart = _KeyDown(SDLK_ESCAPE);
 
 	gfFirstGuyDown = TRUE;
 
@@ -492,7 +497,9 @@ void HandleHeliDrop( )
 			guiPendingOverrideEvent = LU_BEGINUILOCK;
 		}
 
-		if (_KeyDown(SDLK_ESCAPE))
+		BOOLEAN const esc = _KeyDown(SDLK_ESCAPE);
+		if (!esc) gfHeliEscHeldAtStart = FALSE;
+		if (esc && !gfHeliEscHeldAtStart)
 		{
 			// Loop through all mercs not yet placed
 			for ( cnt = gbCurDrop; cnt < gbNumHeliSeatsOccupied; cnt++ )
