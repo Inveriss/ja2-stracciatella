@@ -354,12 +354,14 @@ static void HeliLandingZoneCallback(MessageBoxReturnValue const ret)
 }
 
 
-// "Choose Landing Zone": Map Edges / Anywhere
+// "Choose Landing Zone": Map Edges / Anywhere, on the big buttons with the
+// surcharge on a second line
 static void AskForHeliLandingZone()
 {
-	gzUserDefinedButton1 = pHeliLandingZoneStrings[1];
-	gzUserDefinedButton2 = pHeliLandingZoneStrings[2];
-	DoScreenIndependantMessageBox(pHeliLandingZoneStrings[0], MSG_BOX_FLAG_GENERIC, HeliLandingZoneCallback);
+	gzUserDefinedButton1 = ST::format("{}\n(+{}$)", pHeliLandingZoneStrings[1], COST_HELI_LANDING_MAP_EDGES);
+	gzUserDefinedButton2 = ST::format("{}\n(+{}$)", pHeliLandingZoneStrings[2], COST_HELI_LANDING_ANYWHERE);
+	DoScreenIndependantMessageBox(pHeliLandingZoneStrings[0], MSG_BOX_FLAG_GENERIC, HeliLandingZoneCallback,
+		MSG_BOX_BASIC_BIG_BUTTONS);
 }
 
 

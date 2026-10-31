@@ -51,6 +51,7 @@ enum MessageBoxStyleID
 	MSG_BOX_BASIC_SMALL_BUTTONS,
 	MSG_BOX_IMP_STYLE,
 	MSG_BOX_LAPTOP_DEFAULT,
+	MSG_BOX_BASIC_BIG_BUTTONS, // basic style, 90x40 buttons; a "\n" in a button text splits it into two lines
 	NUMBER_OF_MSG_BOX_STYLES
 };
 
@@ -94,6 +95,7 @@ extern ST::string gzUserDefinedButton2;
  * pCenteringRect Rect to center in. Can be NULL */
 void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiExitScreen, MessageBoxFlags usFlags, MSGBOX_CALLBACK ReturnCallback = nullptr, const SGPBox* centering_rect = nullptr);
 void DoScreenIndependantMessageBox(const ST::string& msg, MessageBoxFlags flags, MSGBOX_CALLBACK callback);
+void DoScreenIndependantMessageBox(const ST::string& msg, MessageBoxFlags flags, MSGBOX_CALLBACK callback, MessageBoxStyleID style);
 
 //wrappers for other screens
 void DoMapMessageBoxWithRect(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiExitScreen, MessageBoxFlags usFlags, MSGBOX_CALLBACK ReturnCallback, const SGPBox* centering_rect);
