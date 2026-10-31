@@ -478,6 +478,7 @@ GUI_BUTTON::GUI_BUTTON(UINT32 const flags, INT16 const left, INT16 const top, IN
 	bTextYSubOffSet(-1),
 	fShiftText(TRUE),
 	sWrappedWidth(-1),
+	ubWrappedLineGap(1),
 	icon(0),
 	usIconIndex(-1),
 	bIconXOffset(-1),
@@ -680,6 +681,12 @@ void GUI_BUTTON::SpecifyTextSubOffsets(INT8 const text_x_offset, INT8 const text
 void GUI_BUTTON::SpecifyTextWrappedWidth(INT16 const wrapped_width)
 {
 	sWrappedWidth = wrapped_width;
+}
+
+
+void GUI_BUTTON::SpecifyTextWrappedLineGap(UINT8 const gap)
+{
+	ubWrappedLineGap = gap;
 }
 
 
@@ -1438,7 +1445,7 @@ static void DrawTextOnButton(const GUI_BUTTON* b)
 		}
 		yp += b->bTextYSubOffSet;
 		xp += b->bTextXSubOffSet;
-		DisplayWrappedString(xp, yp, b->sWrappedWidth, 1, b->usFont, sForeColor, b->codepoints, FONT_MCOLOR_BLACK, bJustified);
+		DisplayWrappedString(xp, yp, b->sWrappedWidth, b->ubWrappedLineGap, b->usFont, sForeColor, b->codepoints, FONT_MCOLOR_BLACK, bJustified);
 	}
 	else
 	{

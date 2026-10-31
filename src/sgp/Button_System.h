@@ -91,6 +91,8 @@ struct GUI_BUTTON
 	void SpecifyTextOffsets(INT8 text_x_offset, INT8 text_y_offset, BOOLEAN shift_text);
 	void SpecifyTextSubOffsets(INT8 text_x_offset, INT8 text_y_offset, BOOLEAN shift_text);
 	void SpecifyTextWrappedWidth(INT16 wrapped_width);
+	// pixels between the lines of a wrapped text (default 1)
+	void SpecifyTextWrappedLineGap(UINT8 gap);
 
 	void AllowDisabledFastHelp();
 
@@ -161,6 +163,7 @@ struct GUI_BUTTON
 	INT8         bTextYSubOffSet;
 	BOOLEAN      fShiftText;
 	INT16        sWrappedWidth;
+	UINT8        ubWrappedLineGap;
 
 	// For buttons with icons (don't confuse this with quickbuttons which have up to 5 states)
 	const SGPVObject* icon;

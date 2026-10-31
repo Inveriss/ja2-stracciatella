@@ -41,6 +41,8 @@
 
 #define MSGBOX_BIG_BUTTON_WIDTH    90
 #define MSGBOX_BIG_BUTTON_HEIGHT   40
+// pixels between the two lines of a button text (1 + 3 extra)
+#define MSGBOX_BUTTON_LINE_GAP      4
 
 // old mouse x and y positions
 static SGPPoint pOldMousePosition;
@@ -222,9 +224,11 @@ void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiE
 
 		if (wrap_w != -1)
 		{
+			UINT8 const gap{ MSGBOX_BUTTON_LINE_GAP };
 			btn->SpecifyTextWrappedWidth(wrap_w);
+			btn->SpecifyTextWrappedLineGap(gap);
 			btn->SpecifyTextOffsets((btn_w - wrap_w) / 2,
-				(btn_h - 2 * (GetFontHeight(FONT12ARIAL) + 1)) / 2, TRUE);
+				(btn_h - (2 * GetFontHeight(FONT12ARIAL) + gap)) / 2, TRUE);
 		}
 		btn->SetCursor(style.cursor);
 		ForceButtonUnDirty(btn);
