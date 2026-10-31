@@ -177,6 +177,10 @@ SOLDIERTYPE*  PickRandomPassengerFromVehicle( SOLDIERTYPE *pSoldier );
 bool DoesVehicleGroupHaveAnyPassengers(GROUP const&);
 
 void SetSoldierExitHelicopterInsertionData(SOLDIERTYPE*);
+// Takes one aboard the helicopter out onto a helicopter run's rope
+// (INSERTION_CODE_CHOPPER -> AddMercToHeli(), placed by HandleHeliDrop()),
+// into a squad of his own
+bool PutHelicopterPassengerOnRope(SOLDIERTYPE&);
 
 void HandleVehicleMovementSound(const SOLDIERTYPE*, BOOLEAN fOn);
 

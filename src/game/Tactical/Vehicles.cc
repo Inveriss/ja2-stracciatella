@@ -574,6 +574,25 @@ bool ExitHelicopterAt(SOLDIERTYPE& s, GridNo const grid_no)
 }
 
 
+bool PutHelicopterPassengerOnRope(SOLDIERTYPE& s)
+{
+	if (!InHelicopter(s)) return false;
+
+	// the helicopter branch of RemoveSoldierFromVehicle() hands him to the
+	// run (UpdateMercInSector()); the run puts him on the map
+	s.ubStrategicInsertionCode = INSERTION_CODE_CHOPPER;
+	RemoveMercSlot(&s);
+	g_exit_helicopter_at = true;
+	bool const out = RemoveSoldierFromVehicle(s);
+	g_exit_helicopter_at = false;
+	if (!out) return false;
+
+	s.iVehicleId = -1;
+	AddCharacterToUniqueSquad(&s);
+	return true;
+}
+
+
 bool PutSoldierInVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 {
 	if (!AddSoldierToVehicle(s, v)) return false;

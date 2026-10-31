@@ -375,6 +375,10 @@ BOOLEAN gfIngagedInDrop = FALSE;
 static ANITILE* gpHeli;
 BOOLEAN gfFirstHeliRun;
 
+// where the run's mercs are put: the sector and its entry point
+static SGPSector gHeliDropSector;
+static UINT8     gubHeliDropInsertionCode = INSERTION_CODE_NORTH;
+
 
 void ResetHeliSeats( )
 {
@@ -400,9 +404,23 @@ void AddMercToHeli(SOLDIERTYPE* const s)
 
 void StartHelicopterRun( INT16 sGridNoSweetSpot )
 {
+	StartHelicopterRunAt(sGridNoSweetSpot, SGPSector(gamepolicy(start_sector)), INSERTION_CODE_NORTH);
+}
+
+
+bool IsHelicopterRunActive()
+{
+	return gfHandleHeli;
+}
+
+
+void StartHelicopterRunAt(INT16 const sGridNoSweetSpot, SGPSector const& sector, UINT8 const insertion_code)
+{
 	INT16 sX, sY;
 
-	gsGridNoSweetSpot = sGridNoSweetSpot;
+	gsGridNoSweetSpot        = sGridNoSweetSpot;
+	gHeliDropSector          = sector;
+	gubHeliDropInsertionCode = insertion_code;
 
 	if ( gbNumHeliSeatsOccupied == 0 )
 	{
@@ -466,8 +484,8 @@ void HandleHeliDrop( )
 			{
 				// Add merc to sector
 				SOLDIERTYPE& s = *gHeliSeats[cnt];
-				s.ubStrategicInsertionCode = INSERTION_CODE_NORTH;
-				UpdateMercInSector(s, SGPSector(gamepolicy(start_sector)));
+				s.ubStrategicInsertionCode = gubHeliDropInsertionCode;
+				UpdateMercInSector(s, gHeliDropSector);
 
 				// Check for merc arrives quotes...
 				HandleMercArrivesQuotes(s);
@@ -594,9 +612,9 @@ void HandleHeliDrop( )
 						EVENT_InitNewSoldierAnim(&s, HELIDROP, 0 , FALSE);
 
 						// Change insertion code
-						s.ubStrategicInsertionCode = INSERTION_CODE_NORTH;
+						s.ubStrategicInsertionCode = gubHeliDropInsertionCode;
 
-						UpdateMercInSector(s, SGPSector(gamepolicy(start_sector)));
+						UpdateMercInSector(s, gHeliDropSector);
 
 						// IF the first guy down, set squad!
 						if ( gfFirstGuyDown )

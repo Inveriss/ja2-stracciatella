@@ -17,6 +17,7 @@
 #include "Map_Screen_Interface_Border.h"
 #include "Map_Screen_Interface_Map.h"
 #include "Map_Information.h"
+#include "Merc_Entering.h"
 #include "Meanwhile.h"
 #include "Overhead.h"
 #include "Interface.h"
@@ -240,8 +241,12 @@ BOOLEAN RemoveSoldierFromHelicopter( SOLDIERTYPE *pSoldier )
 // landing zone the player chose. Saved with the game (g_gameStates).
 static INT32           giHeliEnemyLandingSector = -1;
 static HeliLandingZone gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
+// ... and the side it came from: the entry point (INSERTION_CODE_NORTH...)
+// its passengers are put down at by "Map Edges"
+static INT32           giHeliEnemyLandingEdge   = INSERTION_CODE_CENTER;
 static ST::string const gHeliEnemyLandingSectorKey{ "Helicopter::enemyLandingSector" };
 static ST::string const gHeliLandingZoneKey{ "Helicopter::landingZone" };
+static ST::string const gHeliEnemyLandingEdgeKey{ "Helicopter::enemyLandingEdge" };
 
 
 HeliLandingZone GetHeliLandingZone()
@@ -254,6 +259,7 @@ void InitHeliEnemyLandingForNewGame()
 {
 	giHeliEnemyLandingSector = -1;
 	gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
+	giHeliEnemyLandingEdge   = INSERTION_CODE_CENTER;
 	SaveHeliEnemyLandingToSaveGameFile();
 }
 
@@ -262,6 +268,7 @@ void SaveHeliEnemyLandingToSaveGameFile()
 {
 	g_gameStates.Set(gHeliEnemyLandingSectorKey, giHeliEnemyLandingSector);
 	g_gameStates.Set(gHeliLandingZoneKey, static_cast<INT32>(gHeliLandingZone));
+	g_gameStates.Set(gHeliEnemyLandingEdgeKey, giHeliEnemyLandingEdge);
 }
 
 
@@ -271,6 +278,22 @@ void LoadHeliEnemyLandingFromSaveGameFile()
 		? g_gameStates.Get<INT32>(gHeliEnemyLandingSectorKey) : -1;
 	gHeliLandingZone = g_gameStates.HasKey(gHeliLandingZoneKey)
 		? static_cast<HeliLandingZone>(g_gameStates.Get<INT32>(gHeliLandingZoneKey)) : HELI_LANDING_ZONE_NONE;
+	giHeliEnemyLandingEdge = g_gameStates.HasKey(gHeliEnemyLandingEdgeKey)
+		? g_gameStates.Get<INT32>(gHeliEnemyLandingEdgeKey) : INSERTION_CODE_CENTER;
+}
+
+
+// The map edge it came in over: from the group's previous sector
+static INT32 HeliArrivalEdge(SGPSector const& sector)
+{
+	GROUP const* const g = GetGroup(GetHelicopter().ubMovementGroup);
+	if (!g) return INSERTION_CODE_CENTER;
+	SGPSector const& prev = g->ubPrev;
+	if (prev.y < sector.y) return INSERTION_CODE_NORTH;
+	if (prev.y > sector.y) return INSERTION_CODE_SOUTH;
+	if (prev.x < sector.x) return INSERTION_CODE_WEST;
+	if (prev.x > sector.x) return INSERTION_CODE_EAST;
+	return INSERTION_CODE_CENTER;
 }
 
 
@@ -385,6 +408,7 @@ BOOLEAN HandleHeliEnteringSector(const SGPSector& sMap)
 			if (enemy_landing)
 			{
 				giHeliEnemyLandingSector = sMap.AsByte();
+				giHeliEnemyLandingEdge   = HeliArrivalEdge(sMap);
 				gHeliLandingZone         = HELI_LANDING_ZONE_NONE;
 				AskForHeliLandingZone();
 			}
@@ -1494,6 +1518,63 @@ static void TakeSkyriderAwayFromHelicopter(bool const world_gone)
 }
 
 
+// "Map Edges" (stage 2 of landing among enemies): in the loaded sector it
+// landed in that way, those aboard go down a rope at the entry point of the
+// side it came from, as the mercs at the game's start (Merc_Entering.cc) --
+// all into one squad
+static void HandleHeliMapEdgesDrop()
+{
+	if (guiCurrentScreen != GAME_SCREEN || IsHelicopterRunActive()) return;
+	if (g_heli_tactical != HELI_TACTICAL_BODY) return;
+	if (gHeliLandingZone != HELI_LANDING_ZONE_MAP_EDGES) return;
+	if (gWorldSector.z != 0 || giHeliEnemyLandingSector != gWorldSector.AsByte()) return;
+
+	std::vector<SOLDIERTYPE*> aboard;
+	CFOR_EACH_PASSENGER(GetHelicopter(), i)
+	{
+		if ((*i)->bInSector) aboard.push_back(*i);
+	}
+	if (aboard.empty()) return;
+
+	INT8 squad = -1;
+	for (SOLDIERTYPE* const s : aboard)
+	{
+		if (!PutHelicopterPassengerOnRope(*s)) continue;
+		if (squad == -1)
+		{
+			squad = s->bAssignment;
+		}
+		else if (s->bAssignment != squad)
+		{
+			AddCharacterToSquad(s, squad);
+		}
+	}
+	if (squad == -1) return;
+
+	// the entry point -- the map's centre when it hasn't got that one
+	UINT8  code = static_cast<UINT8>(giHeliEnemyLandingEdge);
+	INT16  g;
+	switch (code)
+	{
+		case INSERTION_CODE_NORTH: g = gMapInformation.sNorthGridNo; break;
+		case INSERTION_CODE_SOUTH: g = gMapInformation.sSouthGridNo; break;
+		case INSERTION_CODE_WEST:  g = gMapInformation.sWestGridNo;  break;
+		case INSERTION_CODE_EAST:  g = gMapInformation.sEastGridNo;  break;
+		default:                   g = -1;                           break;
+	}
+	if (g == -1)
+	{
+		code = INSERTION_CODE_CENTER;
+		g    = gMapInformation.sCenterGridNo;
+	}
+	InternalLocateGridNo(g, TRUE);
+	StartHelicopterRunAt(g, gWorldSector, code);
+
+	// done: one boarding it here later isn't put down again
+	gHeliLandingZone = HELI_LANDING_ZONE_NONE;
+}
+
+
 void UpdateHelicopterInTactical()
 {
 	SOLDIERTYPE* const s = GetHelicopterSoldier();
@@ -1513,6 +1594,7 @@ void UpdateHelicopterInTactical()
 		if (wanted != HELI_TACTICAL_NONE) PutHelicopterInTactical(*s, wanted);
 	}
 	UpdateHelicopterPassengersInTactical(*s);
+	HandleHeliMapEdgesDrop();
 	UpdateSkyriderInTactical(*s);
 	UpdateHelicopterPassengersView();
 
