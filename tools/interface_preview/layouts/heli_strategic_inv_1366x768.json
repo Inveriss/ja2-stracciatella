@@ -273,19 +273,40 @@
       "y": 129
     },
     {
-      "text": "- auto-repairs in Drassen",
+      "text": "- auto-repairs:",
       "x": 266,
       "y": 151
     },
     {
-      "text": "- repair rate: 3 HP/hour",
+      "text": "in Drassen",
+      "x": 266,
+      "y": 151,
+      "w": 134,
+      "align": "right"
+    },
+    {
+      "text": "- repair rate:",
       "x": 266,
       "y": 173
     },
     {
-      "text": "- repair cost: $200/hour",
+      "text": "3 HP/hour",
+      "x": 266,
+      "y": 173,
+      "w": 134,
+      "align": "right"
+    },
+    {
+      "text": "- repair cost:",
       "x": 266,
       "y": 195
+    },
+    {
+      "text": "$200/hour",
+      "x": 266,
+      "y": 195,
+      "w": 134,
+      "align": "right"
     }
   ]
 }

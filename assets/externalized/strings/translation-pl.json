@@ -1858,9 +1858,12 @@
         "Who Can Repair",
         "Mercenaries: mechanics only",
         "Waldo:",
-        "- auto-repairs in Drassen",
-        "- repair rate: 3 HP/hour",
-        "- repair cost: $200/hour"
+        "- auto-repairs:",
+        "in Drassen",
+        "- repair rate:",
+        "3 HP/hour",
+        "- repair cost:",
+        "$200/hour"
     ],
     "pMilitiaConfirmStrings": [
         "Szkolenie oddziału samoobrony będzie kosztowało $",

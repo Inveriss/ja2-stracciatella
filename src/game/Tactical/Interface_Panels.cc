@@ -951,9 +951,12 @@ enum
 	HELI_SM_TXT_WHO_CAN_REPAIR,
 	HELI_SM_TXT_MERCENARIES,
 	HELI_SM_TXT_WALDO,
-	HELI_SM_TXT_WALDO_DRASSEN,  // Waldo's three indented lines
+	HELI_SM_TXT_WALDO_DRASSEN,  // Waldo's three indented label / value pairs
+	HELI_SM_TXT_WALDO_DRASSEN_VALUE,
 	HELI_SM_TXT_WALDO_RATE,
-	HELI_SM_TXT_WALDO_COST
+	HELI_SM_TXT_WALDO_RATE_VALUE,
+	HELI_SM_TXT_WALDO_COST,
+	HELI_SM_TXT_WALDO_COST_VALUE
 };
 
 // The blocks' places on the strategic panel (heli_strategic_inv_1366x768.png):
@@ -1057,10 +1060,9 @@ void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const 
 	// ... the three of them only while the check box next to "Waldo:" is checked
 	if (gfSMHeliChecked[HELI_INV_CHECK_WALDO])
 	{
-		for (INT32 i = HELI_SM_TXT_WALDO_DRASSEN; i <= HELI_SM_TXT_WALDO_COST; ++i)
-		{
-			line(i, mt, 960, 187 + 22 * (i - HELI_SM_TXT_WALDO_DRASSEN));
-		}
+		label_value(HELI_SM_TXT_WALDO_DRASSEN, mt, 960, 134, 187);
+		label_value(HELI_SM_TXT_WALDO_RATE,    mt, 960, 134, 209);
+		label_value(HELI_SM_TXT_WALDO_COST,    mt, 960, 134, 231);
 	}
 
 	SetFontDestBuffer(FRAME_BUFFER);
