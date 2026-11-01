@@ -1,6 +1,6 @@
 {
-  "comment": "ICETRUCK_STRATEGIC_INV.png -- DrawHummerInventoryTexts(..., map = true) (Interface_Panels.cc), pHummerInventoryStrings. Ice cream truck: no ARMAMENT, FUEL 167 px further left.",
-  "background": "Interface/ICETRUCK_STRATEGIC_INV.png",
+  "comment": "ICETRUCK_STRATEGIC_INV_1366x768.png -- DrawHummerInventoryTexts(..., map = true) (Interface_Panels.cc), pHummerInventoryStrings. Ice cream truck: no ARMAMENT, FUEL 167 px further left.",
+  "background": "Interface/ICETRUCK_STRATEGIC_INV_1366x768.png",
   "defaults": {
     "font": "FONT12ARIAL",
     "colour": 126,

@@ -869,7 +869,7 @@ static GUIButtonRef giMapInvHeliSilentButton;
 
 // hummer_strategic_inv_1366x768.png, the Hummer's panel: its size and its
 // only control, the Done button -- the ice cream truck's
-// (icetruck_strategic_inv.png) the same
+// (icetruck_strategic_inv_1366x768.png) the same
 #define MAP_INV_HUMMER_PANEL_WIDTH   654
 #define MAP_INV_HUMMER_PANEL_HEIGHT  514
 #define MAP_INV_HUMMER_DONE_BTN_X    (PLAYER_INFO_X + 560)

@@ -40,8 +40,8 @@
 #define HUMMER_MAPINV_FILE              "hummer_strategic_inv_1366x768.png"
 // ... and the ice cream truck's: the Hummer's layout with its FUEL block
 // further left (no ARMAMENT block)
-#define ICETRUCK_SMPANEL_FILE           "icetruck_tactical_inv.png"
-#define ICETRUCK_MAPINV_FILE            "icetruck_strategic_inv.png"
+#define ICETRUCK_SMPANEL_FILE           "icetruck_tactical_inv_1366x768.png"
+#define ICETRUCK_MAPINV_FILE            "icetruck_strategic_inv_1366x768.png"
 #define ICETRUCK_FUEL_SHIFT_X           (-167)
 // ... and the Eldorado's: the ice cream truck's UPGRADES and FUEL blocks,
 // 8 cargo slots only (m_invSlotPositionTac/MapEldorado)
