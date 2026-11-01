@@ -1169,7 +1169,8 @@ void GroupArrivedAtSector(GROUP& g, BOOLEAN const check_for_battle, BOOLEAN cons
 
 			SpendVehicleFuel(vs, g.uiTraverseTime * 6);
 
-			if (VehicleFuelRemaining(vs) == 0)
+			// run dry: the Hummer's gas cans first, if it carries any
+			if (VehicleFuelRemaining(vs) == 0 && !RefuelVehicleFromGasCansIfEmpty(vs))
 			{
 				ReportVehicleOutOfGas(v, cSector);
 				// Nuke the group's path, so they don't continue moving.

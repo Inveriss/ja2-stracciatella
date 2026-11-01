@@ -194,10 +194,15 @@ bool IsHelicopterSoldier(SOLDIERTYPE const&);
 SOLDIERTYPE* GetHelicopterSoldier();
 // The helicopter's cargo has 8 slots: small pockets 1-4 and big pockets 1-4
 bool IsHelicopterCargoSlot(INT8 slot);
-// The Hummer's soldier, and its 24 cargo slots: big pockets 1-8 and small
-// pockets 1-16
+// The Hummer's soldier, and its 27 cargo slots: big pockets 1-8, small
+// pockets 1-16 and its 3 fuel slots, small pockets 17-19 (gas cans only)
 bool IsHummerSoldier(SOLDIERTYPE const&);
 bool IsHummerCargoSlot(INT8 slot);
+bool IsHummerFuelSlot(INT8 slot);
+// An empty tank is filled up from the gas cans in the Hummer's fuel slots
+// (top to bottom, a stack's last can first; empty cans go), with a message.
+// True if any fuel went in.
+bool RefuelVehicleFromGasCansIfEmpty(SOLDIERTYPE& vs);
 
 void InitVehicles(void);
 

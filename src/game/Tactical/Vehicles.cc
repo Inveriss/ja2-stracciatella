@@ -21,6 +21,9 @@
 #include "Interface.h"
 #include "Random.h"
 #include "Text.h"
+#include "Message.h"
+#include "MapScreen.h"
+#include "Font_Control.h"
 #include "Explosion_Control.h"
 #include "TileDef.h"
 #include "Animation_Control.h"
@@ -1046,6 +1049,8 @@ void SpendVehicleFuelInTactical(SOLDIERTYPE& vs, INT16 const fuel)
 	vs.sBreathRed = std::max(0, vs.sBreathRed - fuel);
 	vs.bBreath    = (vs.sBreathRed + 99) / 100;
 	fInterfacePanelDirty = DIRTYLEVEL2;
+	// run dry: the Hummer's gas cans, if it carries any
+	RefuelVehicleFromGasCansIfEmpty(vs);
 }
 
 
@@ -1237,7 +1242,50 @@ bool IsHelicopterCargoSlot(INT8 const slot)
 bool IsHummerCargoSlot(INT8 const slot)
 {
 	return (BIGPOCK1POS   <= slot && slot <= BIGPOCK8POS) ||
-		(SMALLPOCK1POS <= slot && slot <= SMALLPOCK16POS);
+		(SMALLPOCK1POS <= slot && slot <= SMALLPOCK16POS) ||
+		IsHummerFuelSlot(slot);
+}
+
+
+bool IsHummerFuelSlot(INT8 const slot)
+{
+	return SMALLPOCK17POS <= slot && slot <= SMALLPOCK19POS;
+}
+
+
+// the tank's capacity (sBreathRed); a gas can at 100% holds half of it
+#define VEHICLE_FULL_TANK 10000
+
+bool RefuelVehicleFromGasCansIfEmpty(SOLDIERTYPE& vs)
+{
+	if (!IsHummerSoldier(vs) || vs.sBreathRed > 0) return false;
+
+	INT16 added = 0;
+	for (INT8 slot = SMALLPOCK17POS; slot <= SMALLPOCK19POS && vs.sBreathRed < VEHICLE_FULL_TANK; ++slot)
+	{
+		OBJECTTYPE& o = vs.inv[slot];
+		while (o.usItem == GAS_CAN && o.ubNumberOfObjects > 0 && vs.sBreathRed < VEHICLE_FULL_TANK)
+		{
+			// as a merc pouring it in (AddFuelToVehicle()): 50 per status point
+			UINT8 const last      = o.ubNumberOfObjects - 1;
+			INT16 const available = o.bStatus[last] * 50;
+			INT16 const fuel      = std::min<INT16>(VEHICLE_FULL_TANK - vs.sBreathRed, available);
+			vs.sBreathRed      += fuel;
+			added              += fuel;
+			o.bStatus[last]     = static_cast<INT8>(o.bStatus[last] - fuel / 50);
+			if (o.bStatus[last] <= 0) RemoveObjFrom(&o, last); // empty: it goes
+			else break; // the tank is full
+		}
+	}
+	if (added == 0) return false;
+
+	vs.bBreath = (vs.sBreathRed + 99) / 100;
+	VEHICLETYPE const& v = pVehicleList[vs.bVehicleID];
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pVehicleFuelStrings[0], pVehicleStrings[v.ubVehicleType]));
+	fInterfacePanelDirty     = DIRTYLEVEL2;
+	fTeamPanelDirty          = TRUE;
+	fCharacterInfoPanelDirty = TRUE;
+	return true;
 }
 
 

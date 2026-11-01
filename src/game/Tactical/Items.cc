@@ -2015,8 +2015,9 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos,
 	{
 		return( FALSE );
 	}
-	// ... and the Hummer in 24
-	if (IsHummerSoldier(*pSoldier) && !IsHummerCargoSlot(bPos))
+	// ... and the Hummer in 27, its 3 fuel slots for gas cans only
+	if (IsHummerSoldier(*pSoldier) &&
+		(!IsHummerCargoSlot(bPos) || (IsHummerFuelSlot(bPos) && pObj->usItem != GAS_CAN)))
 	{
 		return( FALSE );
 	}
@@ -2140,7 +2141,21 @@ static void CollectKey(SOLDIERTYPE const& s, OBJECTTYPE const& o)
 }
 
 
+static BOOLEAN PlaceObjectInSlot(SOLDIERTYPE* pSoldier, INT8 bPos, OBJECTTYPE* pObj);
+
 BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
+{
+	BOOLEAN const placed = PlaceObjectInSlot(pSoldier, bPos, pObj);
+	// a gas can into the Hummer's fuel slot: an empty tank gets it at once
+	if (IsHummerFuelSlot(bPos) && IsHummerSoldier(*pSoldier))
+	{
+		RefuelVehicleFromGasCansIfEmpty(*pSoldier);
+	}
+	return placed;
+}
+
+
+static BOOLEAN PlaceObjectInSlot(SOLDIERTYPE* pSoldier, INT8 bPos, OBJECTTYPE* pObj)
 {
 	// returns object to have in hand after placement... same as original in the
 	// case of error

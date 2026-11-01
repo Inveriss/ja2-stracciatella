@@ -1883,6 +1883,9 @@
         "ARMAMENT",
         "FUEL"
     ],
+    "pVehicleFuelStrings": [
+        "The %s was refueled from gas cans."
+    ],
     "pMilitiaConfirmStrings": [
         "Szkolenie oddziału samoobrony będzie kosztowało $",
         "Zatwierdzasz wydatek?",

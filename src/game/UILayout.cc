@@ -447,6 +447,13 @@ void UILayout::recalculatePositions()
 			m_invSlotPositionTacHummer[slot].set(startX + hummerTacSmallX[col], tacHeliY + 15 + 55 * row);
 			m_invSlotPositionMapHummer[slot].set(m_mapScreenOffsetX + hummerMapSmallX[col], mapHeliY + 254 + 55 * row);
 		}
+		// its 3 fuel slots (the FUEL block's boxes), small pockets 17-19
+		if (row != 3)
+		{
+			INT32 const slot = SMALLPOCK17POS + row;
+			m_invSlotPositionTacHummer[slot].set(startX + 651, tacHeliY + 60 + 55 * row);
+			m_invSlotPositionMapHummer[slot].set(m_mapScreenOffsetX + 417, mapHeliY + 62 + 55 * row);
+		}
 		for (INT32 col = 0; col != 2; ++col)
 		{
 			INT32 const slot = BIGPOCK1POS + 4 * col + row;
