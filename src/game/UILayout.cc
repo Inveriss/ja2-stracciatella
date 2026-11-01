@@ -462,6 +462,19 @@ void UILayout::recalculatePositions()
 		}
 	}
 
+	// The ice cream truck's panels: the Hummer's slots, its FUEL block
+	// further left
+	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
+	{
+		m_invSlotPositionTacIceTruck[i] = m_invSlotPositionTacHummer[i];
+		m_invSlotPositionMapIceTruck[i] = m_invSlotPositionMapHummer[i];
+	}
+	for (INT32 slot = SMALLPOCK17POS; slot <= SMALLPOCK19POS; ++slot)
+	{
+		m_invSlotPositionTacIceTruck[slot].uX += ICETRUCK_FUEL_SHIFT_X;
+		m_invSlotPositionMapIceTruck[slot].uX += ICETRUCK_FUEL_SHIFT_X;
+	}
+
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);
 	else m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);

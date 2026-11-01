@@ -1273,7 +1273,7 @@ bool TopUpVehicleFromGasCans(SOLDIERTYPE& vs)
 // fills the tank up from the fuel slots' gas cans
 static bool RefuelVehicleFromGasCans(SOLDIERTYPE& vs)
 {
-	if (!IsHummerSoldier(vs) || vs.sBreathRed >= VEHICLE_FULL_TANK) return false;
+	if (!HasVehicleCargoSlots(vs) || vs.sBreathRed >= VEHICLE_FULL_TANK) return false;
 
 	INT16 added = 0;
 	for (INT8 slot = SMALLPOCK17POS; slot <= SMALLPOCK19POS && vs.sBreathRed < VEHICLE_FULL_TANK; ++slot)
@@ -1304,12 +1304,31 @@ static bool RefuelVehicleFromGasCans(SOLDIERTYPE& vs)
 }
 
 
+// the type of the vehicle a soldier is (-1: none)
+static INT32 VehicleTypeOfSoldier(SOLDIERTYPE const& s)
+{
+	if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) return -1;
+	if (s.bVehicleID < 0 || s.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return -1;
+	VEHICLETYPE const& v = pVehicleList[s.bVehicleID];
+	return v.fValid ? v.ubVehicleType : -1;
+}
+
+
 bool IsHummerSoldier(SOLDIERTYPE const& s)
 {
-	if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) return false;
-	if (s.bVehicleID < 0 || s.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return false;
-	VEHICLETYPE const& v = pVehicleList[s.bVehicleID];
-	return v.fValid && v.ubVehicleType == HUMMER;
+	return VehicleTypeOfSoldier(s) == HUMMER;
+}
+
+
+bool IsIceTruckSoldier(SOLDIERTYPE const& s)
+{
+	return VehicleTypeOfSoldier(s) == ICE_CREAM_TRUCK;
+}
+
+
+bool HasVehicleCargoSlots(SOLDIERTYPE const& s)
+{
+	return IsHummerSoldier(s) || IsIceTruckSoldier(s);
 }
 
 

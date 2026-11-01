@@ -2015,8 +2015,9 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos,
 	{
 		return( FALSE );
 	}
-	// ... and the Hummer in 27, its 3 fuel slots for gas cans only
-	if (IsHummerSoldier(*pSoldier) &&
+	// ... and the Hummer and the ice cream truck in 27, their 3 fuel slots
+	// for gas cans only
+	if (HasVehicleCargoSlots(*pSoldier) &&
 		(!IsHummerCargoSlot(bPos) || (IsHummerFuelSlot(bPos) && pObj->usItem != GAS_CAN)))
 	{
 		return( FALSE );
@@ -2148,7 +2149,7 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 	BOOLEAN const placed = PlaceObjectInSlot(pSoldier, bPos, pObj);
 	// a gas can into the Hummer's fuel slot: a tank not yet full gets it at
 	// once, up to full
-	if (IsHummerFuelSlot(bPos) && IsHummerSoldier(*pSoldier))
+	if (IsHummerFuelSlot(bPos) && HasVehicleCargoSlots(*pSoldier))
 	{
 		TopUpVehicleFromGasCans(*pSoldier);
 	}

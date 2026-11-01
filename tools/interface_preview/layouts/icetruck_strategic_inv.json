@@ -1,0 +1,100 @@
+{
+  "comment": "ICETRUCK_STRATEGIC_INV.png -- DrawHummerInventoryTexts(..., map = true) (Interface_Panels.cc), pHummerInventoryStrings. Ice cream truck: no ARMAMENT, FUEL 167 px further left.",
+  "background": "Interface/ICETRUCK_STRATEGIC_INV.png",
+  "defaults": {
+    "font": "FONT12ARIAL",
+    "colour": 126,
+    "shadow": 2
+  },
+  "boxes": [
+    {
+      "name": "upgrades bar",
+      "x": 30,
+      "y": 30,
+      "w": 168,
+      "h": 25
+    },
+    {
+      "name": "fuel bar",
+      "x": 246,
+      "y": 30,
+      "w": 76,
+      "h": 25
+    },
+    {
+      "name": "defense",
+      "x": 27,
+      "y": 61,
+      "w": 174,
+      "h": 52
+    },
+    {
+      "name": "engine",
+      "x": 27,
+      "y": 116,
+      "w": 174,
+      "h": 52
+    },
+    {
+      "name": "tyres",
+      "x": 27,
+      "y": 171,
+      "w": 174,
+      "h": 52
+    }
+  ],
+  "items": [
+    {
+      "text": "UPGRADES",
+      "x": 30,
+      "y": 30,
+      "w": 168,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "FUEL",
+      "x": 246,
+      "y": 30,
+      "w": 76,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "Defense",
+      "x": 27,
+      "y": 61,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Engine",
+      "x": 27,
+      "y": 116,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Tyres",
+      "x": 27,
+      "y": 171,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    }
+  ]
+}

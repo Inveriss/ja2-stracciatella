@@ -38,6 +38,11 @@
 // at PLAYER_INFO_X/Y (m_invSlotPositionMapHummer)
 #define HUMMER_SMPANEL_FILE             "hummer_tactical_inv_1366x768.png"
 #define HUMMER_MAPINV_FILE              "hummer_strategic_inv_1366x768.png"
+// ... and the ice cream truck's: the Hummer's layout with its FUEL block
+// further left (no ARMAMENT block)
+#define ICETRUCK_SMPANEL_FILE           "icetruck_tactical_inv.png"
+#define ICETRUCK_MAPINV_FILE            "icetruck_strategic_inv.png"
+#define ICETRUCK_FUEL_SHIFT_X           (-167)
 // position of a slot a layout has no place for: off the screen
 #define INV_SLOT_HIDDEN_POS             (60000)
 
@@ -234,6 +239,8 @@ public:
 	INV_REGION_DESC       m_invSlotPositionMapHeli[NUM_INVENTORY_SLOTS];  /**< The helicopter's map inventory panel (HELI_MAPINV_FILE): its 8 cargo slots, the rest INV_SLOT_HIDDEN_POS */
 	INV_REGION_DESC       m_invSlotPositionTacHummer[NUM_INVENTORY_SLOTS]; /**< The Hummer's big SM panel (HUMMER_SMPANEL_FILE): its 24 cargo slots, the rest INV_SLOT_HIDDEN_POS */
 	INV_REGION_DESC       m_invSlotPositionMapHummer[NUM_INVENTORY_SLOTS]; /**< The Hummer's map inventory panel (HUMMER_MAPINV_FILE): its 24 cargo slots, the rest INV_SLOT_HIDDEN_POS */
+	INV_REGION_DESC       m_invSlotPositionTacIceTruck[NUM_INVENTORY_SLOTS]; /**< The ice cream truck's big SM panel (ICETRUCK_SMPANEL_FILE): the Hummer's slots, fuel further left */
+	INV_REGION_DESC       m_invSlotPositionMapIceTruck[NUM_INVENTORY_SLOTS]; /**< The ice cream truck's map inventory panel (ICETRUCK_MAPINV_FILE): the same */
 	INV_REGION_DESC       m_invCamoRegion;                                /**< Camo (body) region in the inventory. */
 
 	SGPBox                m_progress_bar_box;
