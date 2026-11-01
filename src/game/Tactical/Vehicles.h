@@ -204,6 +204,9 @@ bool IsIceTruckSoldier(SOLDIERTYPE const&);
 bool IsEldoradoSoldier(SOLDIERTYPE const&);
 // ... the Jeep's (the Eldorado's slots)
 bool IsJeepSoldier(SOLDIERTYPE const&);
+// ... the tank's (12 cargo slots: big pockets 1-8, small pockets 1-4, and
+// the fuel slots)
+bool IsTankSoldier(SOLDIERTYPE const&);
 // any of them: the vehicles with cargo and fuel slots
 bool HasVehicleCargoSlots(SOLDIERTYPE const&);
 // a slot the vehicle can hold items in

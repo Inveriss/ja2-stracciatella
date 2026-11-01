@@ -1,0 +1,118 @@
+{
+  "comment": "TANK_STRATEGIC_INV_1366x768.png -- DrawHummerInventoryTexts(..., map = true) (Interface_Panels.cc), pHummerInventoryStrings. Tank: the Hummer's blocks, Tracks in place of Tyres.",
+  "background": "Interface/TANK_STRATEGIC_INV_1366x768.png",
+  "defaults": {
+    "font": "FONT12ARIAL",
+    "colour": 126,
+    "shadow": 2
+  },
+  "boxes": [
+    {
+      "name": "upgrades bar",
+      "x": 30,
+      "y": 30,
+      "w": 168,
+      "h": 25
+    },
+    {
+      "name": "armament bar",
+      "x": 246,
+      "y": 30,
+      "w": 120,
+      "h": 25
+    },
+    {
+      "name": "fuel bar",
+      "x": 413,
+      "y": 30,
+      "w": 76,
+      "h": 25
+    },
+    {
+      "name": "defense",
+      "x": 27,
+      "y": 61,
+      "w": 174,
+      "h": 52
+    },
+    {
+      "name": "engine",
+      "x": 27,
+      "y": 116,
+      "w": 174,
+      "h": 52
+    },
+    {
+      "name": "tracks",
+      "x": 27,
+      "y": 171,
+      "w": 174,
+      "h": 52
+    }
+  ],
+  "items": [
+    {
+      "text": "UPGRADES",
+      "x": 30,
+      "y": 30,
+      "w": 168,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "ARMAMENT",
+      "x": 246,
+      "y": 30,
+      "w": 120,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "FUEL",
+      "x": 413,
+      "y": 30,
+      "w": 76,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "Defense",
+      "x": 27,
+      "y": 61,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Engine",
+      "x": 27,
+      "y": 116,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Tracks",
+      "x": 27,
+      "y": 171,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    }
+  ]
+}

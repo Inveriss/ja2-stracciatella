@@ -1881,7 +1881,8 @@
         "Engine",
         "Tyres",
         "ARMAMENT",
-        "FUEL"
+        "FUEL",
+        "Tracks"
     ],
     "pVehicleFuelStrings": [
         "The %s was refueled from gas cans."
