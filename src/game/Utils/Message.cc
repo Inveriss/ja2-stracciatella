@@ -24,6 +24,7 @@
 #include "Side_Strips.h"
 #include "UILayout.h"
 
+#include <algorithm>
 #include <string_theory/string>
 
 
@@ -57,6 +58,27 @@ struct ScrollStringSt
 
 // the strategic screen's own font on the 1366x768 interface
 #define MAP_SCREEN_MESSAGE_FONT StrategicTooltipFontAs(TINYFONT1)
+
+// the map screen's message log: its first line and the bottom of its text area
+#define MAP_MSG_FIRST_LINE_Y (MAP_SCREEN_BOTTOM - 103)
+#define MAP_MSG_CLIP_BOTTOM  (MAP_SCREEN_BOTTOM - 19)
+
+// 3 px more between the rows on the 1366x768 interface
+static UINT16 MapMessageLineSpacing()
+{
+	return GetFontHeight(MAP_SCREEN_MESSAGE_FONT) + (g_ui.isExtraWideStrategicScreen() ? 3 : 0);
+}
+
+
+UINT8 GetMaxMessagesOnMapBottom()
+{
+	// the original 9 lines; with the wider spacing only as many as fit whole
+	// (more were drawn below the box: the newest ones out of sight)
+	if (!g_ui.isExtraWideStrategicScreen()) return 9;
+	INT32 const area = MAP_MSG_CLIP_BOTTOM - MAP_MSG_FIRST_LINE_Y;
+	INT32 const n    = (area - GetFontHeight(MAP_SCREEN_MESSAGE_FONT)) / MapMessageLineSpacing() + 1;
+	return static_cast<UINT8>(std::clamp(n, 1, 9));
+}
 
 UINT8 gubStartOfMapScreenMessageList = 0;
 static UINT8 gubEndOfMapScreenMessageList = 0;
@@ -501,7 +523,7 @@ void DisplayStringsInMapScreenMessageList(void)
 	// the text at a different on-screen spot than the box it's supposed to sit
 	// in. Y offsets are also now bottom-anchored (MAP_SCREEN_BOTTOM), matching
 	// MESSAGE_BOX_Y, instead of the old fixed offset from the canvas top.
-	SetFontDestBuffer(FRAME_BUFFER, MAP_SCREEN_X + 17, MAP_SCREEN_BOTTOM - 114, MAP_SCREEN_X + 407, MAP_SCREEN_BOTTOM - 19);
+	SetFontDestBuffer(FRAME_BUFFER, MAP_SCREEN_X + 17, MAP_SCREEN_BOTTOM - 114, MAP_SCREEN_X + 407, MAP_MSG_CLIP_BOTTOM);
 
 	SetFont(MAP_SCREEN_MESSAGE_FONT);
 	SetFontBackground(FONT_BLACK);
@@ -509,9 +531,8 @@ void DisplayStringsInMapScreenMessageList(void)
 
 	UINT8 ubCurrentStringIndex = gubCurrentMapMessageString;
 
-	INT16 sY = MAP_SCREEN_BOTTOM - 103;
-	// 3 px more between the rows on the 1366x768 interface
-	UINT16 usSpacing = GetFontHeight(MAP_SCREEN_MESSAGE_FONT) + (g_ui.isExtraWideStrategicScreen() ? 3 : 0);
+	INT16 sY = MAP_MSG_FIRST_LINE_Y;
+	UINT16 const usSpacing = MapMessageLineSpacing();
 
 	for (UINT8 ubLinesPrinted = 0; ubLinesPrinted < MAX_MESSAGES_ON_MAP_BOTTOM; ubLinesPrinted++)
 	{
