@@ -1332,15 +1332,21 @@ bool IsEldoradoSoldier(SOLDIERTYPE const& s)
 }
 
 
+bool IsJeepSoldier(SOLDIERTYPE const& s)
+{
+	return VehicleTypeOfSoldier(s) == JEEP_CAR;
+}
+
+
 bool HasVehicleCargoSlots(SOLDIERTYPE const& s)
 {
-	return IsHummerSoldier(s) || IsIceTruckSoldier(s) || IsEldoradoSoldier(s);
+	return IsHummerSoldier(s) || IsIceTruckSoldier(s) || IsEldoradoSoldier(s) || IsJeepSoldier(s);
 }
 
 
 bool IsVehicleCargoSlot(SOLDIERTYPE const& s, INT8 const slot)
 {
-	if (IsEldoradoSoldier(s)) return IsHelicopterCargoSlot(slot) || IsHummerFuelSlot(slot);
+	if (IsEldoradoSoldier(s) || IsJeepSoldier(s)) return IsHelicopterCargoSlot(slot) || IsHummerFuelSlot(slot);
 	return IsHummerCargoSlot(slot);
 }
 

@@ -47,6 +47,9 @@
 // 8 cargo slots only (m_invSlotPositionTac/MapEldorado)
 #define ELDORADO_SMPANEL_FILE           "eldorado_tactical_inv_1366x768.png"
 #define ELDORADO_MAPINV_FILE            "eldorado_strategic_inv_1366x768.png"
+// ... and the Jeep's: the Eldorado's layout (its slots too)
+#define JEEP_SMPANEL_FILE               "jeep_tactical_inv_1366x768.png"
+#define JEEP_MAPINV_FILE                "jeep_strategic_inv_1366x768.png"
 // position of a slot a layout has no place for: off the screen
 #define INV_SLOT_HIDDEN_POS             (60000)
 
@@ -245,8 +248,8 @@ public:
 	INV_REGION_DESC       m_invSlotPositionMapHummer[NUM_INVENTORY_SLOTS]; /**< The Hummer's map inventory panel (HUMMER_MAPINV_FILE): its 24 cargo slots, the rest INV_SLOT_HIDDEN_POS */
 	INV_REGION_DESC       m_invSlotPositionTacIceTruck[NUM_INVENTORY_SLOTS]; /**< The ice cream truck's big SM panel (ICETRUCK_SMPANEL_FILE): the Hummer's slots, fuel further left */
 	INV_REGION_DESC       m_invSlotPositionMapIceTruck[NUM_INVENTORY_SLOTS]; /**< The ice cream truck's map inventory panel (ICETRUCK_MAPINV_FILE): the same */
-	INV_REGION_DESC       m_invSlotPositionTacEldorado[NUM_INVENTORY_SLOTS]; /**< The Eldorado's big SM panel (ELDORADO_SMPANEL_FILE): its 8 cargo slots, the ice cream truck's fuel slots */
-	INV_REGION_DESC       m_invSlotPositionMapEldorado[NUM_INVENTORY_SLOTS]; /**< The Eldorado's map inventory panel (ELDORADO_MAPINV_FILE): the same */
+	INV_REGION_DESC       m_invSlotPositionTacEldorado[NUM_INVENTORY_SLOTS]; /**< The Eldorado's big SM panel (ELDORADO_SMPANEL_FILE): its 8 cargo slots, the ice cream truck's fuel slots; the Jeep's (JEEP_SMPANEL_FILE) too */
+	INV_REGION_DESC       m_invSlotPositionMapEldorado[NUM_INVENTORY_SLOTS]; /**< The Eldorado's map inventory panel (ELDORADO_MAPINV_FILE): the same; the Jeep's (JEEP_MAPINV_FILE) too */
 	INV_REGION_DESC       m_invCamoRegion;                                /**< Camo (body) region in the inventory. */
 
 	SGPBox                m_progress_bar_box;

@@ -530,6 +530,8 @@ static SGPVSurface* guiSMPanelHummer;
 static SGPVSurface* guiSMPanelIceTruck;
 // ... and the Eldorado's (ELDORADO_SMPANEL_FILE)
 static SGPVSurface* guiSMPanelEldorado;
+// ... and the Jeep's (JEEP_SMPANEL_FILE)
+static SGPVSurface* guiSMPanelJeep;
 // Its check boxes (sector_inventory_popupcheck.sti 4 unchecked / 6
 // checked), for now each only showing or hiding the lines under it: the one
 // under "Allow Landing in Enemy Sectors" the two landing places and the
@@ -1166,6 +1168,16 @@ static void BuildEldoradoSMPanelSurface()
 }
 
 
+// The Jeep's panel surface (laid out as the Eldorado's)
+static void BuildJeepSMPanelSurface()
+{
+	guiSMPanelJeep->Fill(0);
+	AutoSGPVObject const jeep_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" JEEP_SMPANEL_FILE) };
+	BltVideoObject(guiSMPanelJeep, jeep_panel.get(), 0, 0, 0);
+	DrawHummerInventoryTexts(guiSMPanelJeep, 0, 0, false, true);
+}
+
+
 // The helicopter's panel surface: its graphic and texts -- again after the
 // check box changes what is shown
 static void BuildHeliSMPanelSurface()
@@ -1281,6 +1293,13 @@ static bool IsEldoradoSMPanel(SOLDIERTYPE const* const s)
 }
 
 
+// ... and the Jeep on its own
+static bool IsJeepSMPanel(SOLDIERTYPE const* const s)
+{
+	return guiSMPanelJeep && s && IsJeepSoldier(*s);
+}
+
+
 // The slot regions in the current merc's layout: the helicopter's 8 cargo
 // slots on its own panel, else the usual ones. Only while the SM panel's
 // slots are up -- the map screen's inventory has the same regions.
@@ -1290,7 +1309,8 @@ static void LayoutSMPanelSlots()
 	bool const heli   = IsHeliSMPanel(gpSMCurrentMerc);
 	bool const hummer = IsHummerSMPanel(gpSMCurrentMerc);
 	bool const truck  = IsIceTruckSMPanel(gpSMCurrentMerc);
-	bool const car    = IsEldoradoSMPanel(gpSMCurrentMerc);
+	// (the Jeep's slots are the Eldorado's)
+	bool const car    = IsEldoradoSMPanel(gpSMCurrentMerc) || IsJeepSMPanel(gpSMCurrentMerc);
 	LayoutInvSlotRegions(heli ? g_ui.m_invSlotPositionTacHeli : hummer ? g_ui.m_invSlotPositionTacHummer :
 		truck ? g_ui.m_invSlotPositionTacIceTruck : car ? g_ui.m_invSlotPositionTacEldorado : g_ui.m_invSlotPositionTac,
 		heli || hummer || truck || car);
@@ -1927,6 +1947,12 @@ void InitializeSMPanel()
 			guiSMPanelEldorado = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
 			BuildEldoradoSMPanelSurface();
 		}
+		// ... and the Jeep's
+		if (GCM->doesGameResExists(INTERFACEDIR "/" JEEP_SMPANEL_FILE))
+		{
+			guiSMPanelJeep = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+			BuildJeepSMPanelSurface();
+		}
 	}
 	SGPVObject* voSMPanel = SM_BIG ? 0 : AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
 	// a graphic as wide as the panel (1366x768: the user's 1366 px
@@ -2444,6 +2470,8 @@ void ShutdownSMPanel()
 	guiSMPanelIceTruck = 0;
 	delete guiSMPanelEldorado;
 	guiSMPanelEldorado = 0;
+	delete guiSMPanelJeep;
+	guiSMPanelJeep = 0;
 	DeleteVideoObject(guiSMObjects);
 	DeleteVideoObject(guiSMObjects2);
 
@@ -2661,9 +2689,9 @@ static void RenderBigSMPanelStats(SOLDIERTYPE const& s, INT32 const dx, INT32 co
 	PrintStat(s.uiChangeMechanicalTime,   MECH_INCREASE,     s.bMechanical,   x1, dy + SM_BIG_STATS_Y(3), p.sMechanicGain*4);
 	PrintStat(s.uiChangeMedicalTime,      MED_INCREASE,      s.bMedical,      x1, dy + SM_BIG_STATS_Y(4), p.sMedicalGain*4);
 
-	// the helicopter's, the Hummer's, the ice cream truck's and the
-	// Eldorado's panels have no armour/weight/camo boxes
-	if (IsHeliSMPanel(&s) || IsHummerSMPanel(&s) || IsIceTruckSMPanel(&s) || IsEldoradoSMPanel(&s)) return;
+	// the helicopter's, the Hummer's, the ice cream truck's, the Eldorado's
+	// and the Jeep's panels have no armour/weight/camo boxes
+	if (IsHeliSMPanel(&s) || IsHummerSMPanel(&s) || IsIceTruckSMPanel(&s) || IsEldoradoSMPanel(&s) || IsJeepSMPanel(&s)) return;
 	UINT8 const value_colour = s.bLife >= OKLIFE ? SM_BIG_VALUE_COLOR : FONT_MCOLOR_DKGRAY;
 	PrintBigSMInfoBox(dx + SM_BIG_ARMOR_BOX_X,  dy + SM_BIG_ARMOR_BOX_Y,  pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)),          value_colour);
 	PrintBigSMInfoBox(dx + SM_BIG_WEIGHT_BOX_X, dy + SM_BIG_WEIGHT_BOX_Y, pInvPanelTitleStrings[1], ST::format("{}%", CalculateCarriedWeight(&s)), value_colour);
@@ -2760,7 +2788,8 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 	if (*dirty_level == DIRTYLEVEL2)
 	{
 		BltVideoSurface(guiSAVEBUFFER, IsHeliSMPanel(&s) ? guiSMPanelHeli : IsHummerSMPanel(&s) ? guiSMPanelHummer :
-			IsIceTruckSMPanel(&s) ? guiSMPanelIceTruck : IsEldoradoSMPanel(&s) ? guiSMPanelEldorado : guiSMPanel, dx, dy, NULL);
+			IsIceTruckSMPanel(&s) ? guiSMPanelIceTruck : IsEldoradoSMPanel(&s) ? guiSMPanelEldorado :
+			IsJeepSMPanel(&s) ? guiSMPanelJeep : guiSMPanel, dx, dy, NULL);
 
 		{
 			SGPVObject const* gfx;
