@@ -1870,6 +1870,11 @@
         "Map Edges",
         "Anywhere"
     ],
+    "pWaldoHeliRepairStrings": [
+        "Waldo has finished repairing the helicopter.",
+        "Waldo was paid $%d for repairs.",
+        "Waldo stopped repairing the helicopter: not enough money."
+    ],
     "pMilitiaConfirmStrings": [
         "Szkolenie oddziału samoobrony będzie kosztowało $",
         "Zatwierdzasz wydatek?",

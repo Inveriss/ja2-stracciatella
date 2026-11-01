@@ -179,6 +179,7 @@ L10n_t::L10n_t(SGPFile * const translationFile)
 	GetArray(pMilitiaWatchStrings);
 	GetArray(pHeliInventoryStrings);
 	GetArray(pHeliLandingZoneStrings);
+	GetArray(pWaldoHeliRepairStrings);
 	GetString(pMapScreenJustStartedHelpText);
 	GetString(pLandMarkInSectorString);
 	GetArray(gzMercSkillText);

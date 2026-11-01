@@ -154,6 +154,7 @@ constexpr std::size_t pMilitiaRecruitStrings_SIZE = 60;
 constexpr std::size_t pMilitiaWatchStrings_SIZE = 4;
 constexpr std::size_t pHeliInventoryStrings_SIZE = 34;
 constexpr std::size_t pHeliLandingZoneStrings_SIZE = 3;
+constexpr std::size_t pWaldoHeliRepairStrings_SIZE = 3;
 constexpr std::size_t gzLaptopHelpText_SIZE = 17;
 constexpr std::size_t gzNonPersistantPBIText_SIZE = 10;
 constexpr std::size_t gzMiscString_SIZE = 5;
@@ -348,6 +349,7 @@ struct L10n_t
 	STRARRAY(pMilitiaWatchStrings);
 	STRARRAY(pHeliInventoryStrings);
 	STRARRAY(pHeliLandingZoneStrings);
+	STRARRAY(pWaldoHeliRepairStrings);
 	ST::string pMapScreenJustStartedHelpText;
 	ST::string pLandMarkInSectorString;
 	STRARRAY(gzMercSkillText);

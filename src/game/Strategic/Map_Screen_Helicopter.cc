@@ -322,8 +322,7 @@ static void CreditWaldoHour()
 	}
 	if (hs->bLife >= hs->bLifeMax)
 	{
-		// TODO stage 3: pWaldoHeliRepairStrings[0]
-		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, "Waldo has finished repairing the helicopter.");
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pWaldoHeliRepairStrings[0]);
 	}
 }
 
@@ -340,8 +339,7 @@ void HandleWaldoHelicopterRepairHourly()
 		// he pauses until the money is there (D3)
 		if (!gfWaldoNoMoneyTold)
 		{
-			// TODO stage 3: pWaldoHeliRepairStrings[2]
-			ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, "Waldo stopped repairing the helicopter: not enough money.");
+			ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, pWaldoHeliRepairStrings[2]);
 			gfWaldoNoMoneyTold = true;
 		}
 		return;
@@ -349,8 +347,7 @@ void HandleWaldoHelicopterRepairHourly()
 	gfWaldoNoMoneyTold = false;
 
 	AddTransactionToPlayersBook(PAYMENT_TO_NPC, WALDO, GetWorldTotalMin(), -WALDO_HELI_REPAIR_COST);
-	// TODO stage 3: pWaldoHeliRepairStrings[1]
-	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("Waldo was paid ${} for repairs.", WALDO_HELI_REPAIR_COST));
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pWaldoHeliRepairStrings[1], WALDO_HELI_REPAIR_COST));
 	gfWaldoHourStarted = true;
 }
 
