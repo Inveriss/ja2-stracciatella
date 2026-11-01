@@ -674,6 +674,8 @@ cache_key_t GetCharInfoGraphicsFilename()
 // is what the panel's regions and controls are laid out for now -- see
 // UpdateMapInvHeliPanel().
 bool gfMapInvHeliPanel = false;
+// ... and the Hummer's (HUMMER_MAPINV_FILE), the same way
+static bool gfMapInvHummerPanel = false;
 
 cache_key_t GetMapInvGraphicsFilename()
 {
@@ -681,7 +683,8 @@ cache_key_t GetMapInvGraphicsFilename()
 	// and mapinv_1280.sti (fallbacks); drawn at PLAYER_INFO_Y (y 133)
 	if (g_ui.isExtraWideStrategicScreen())
 	{
-		if (gfMapInvHeliPanel) return INTERFACEDIR "/" HELI_MAPINV_FILE;
+		if (gfMapInvHeliPanel)   return INTERFACEDIR "/" HELI_MAPINV_FILE;
+		if (gfMapInvHummerPanel) return INTERFACEDIR "/" HUMMER_MAPINV_FILE;
 		return IsMapInvBigImages()
 			? FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_1366x768.png", INTERFACEDIR "/mapinv_big_1280_720.sti" })
 			: FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_small_1366x768.png", INTERFACEDIR "/mapinv_1280.sti" });
@@ -743,12 +746,17 @@ bool IsMapInvHeliPanel(void)
 	return fShowInventoryFlag && gfMapInvHeliPanel;
 }
 
+bool IsMapInvVehiclePanel(void)
+{
+	return fShowInventoryFlag && (gfMapInvHeliPanel || gfMapInvHummerPanel);
+}
+
 BOOLEAN MapInvBigPanelCoversBottomStrip(void)
 {
 	// map_screen_bottom's strip starts at MAP_SCREEN_BOTTOM - 121 (MAP_BOTTOM_Y,
 	// Map_Screen_Interface_Bottom.cc).
 	// (the helicopter's panel ends right above the strip)
-	return fShowInventoryFlag && IsMapInvBigImages() && !gfMapInvHeliPanel &&
+	return fShowInventoryFlag && IsMapInvBigImages() && !gfMapInvHeliPanel && !gfMapInvHummerPanel &&
 		PLAYER_INFO_Y + MAP_INV_BIG_PANEL_HEIGHT > MAP_SCREEN_BOTTOM - 121;
 }
 
@@ -849,6 +857,13 @@ static GUIButtonRef giMapInvHeliCheckbox[NUM_HELI_INV_CHECKS];
 #define MAP_INV_HELI_SILENT_BTN_Y  (PLAYER_INFO_Y + 16)
 static GUIButtonRef giMapInvHeliSilentButton;
 
+// hummer_strategic_inv_1366x768.png, the Hummer's panel: its size and its
+// only control, the Done button
+#define MAP_INV_HUMMER_PANEL_WIDTH   654
+#define MAP_INV_HUMMER_PANEL_HEIGHT  514
+#define MAP_INV_HUMMER_DONE_BTN_X    (PLAYER_INFO_X + 560)
+#define MAP_INV_HUMMER_DONE_BTN_Y    (PLAYER_INFO_Y + 183)
+
 // gMPanelRegion blocks clicks over the whole merc inventory panel -- sized
 // to the current mode's graphic (normal: INV_REGION_WIDTH/HEIGHT,
 // "Show Large Icons": MAP_INV_BIG_PANEL_WIDTH/HEIGHT, MapScreen.h; the
@@ -856,8 +871,8 @@ static GUIButtonRef giMapInvHeliSilentButton;
 static void DefineMapInvPanelRegion()
 {
 	bool const big = IsMapInvBigImages();
-	UINT16 const w = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_WIDTH  : big ? MAP_INV_BIG_PANEL_WIDTH  : INV_REGION_WIDTH;
-	UINT16 const h = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_HEIGHT : big ? MAP_INV_BIG_PANEL_HEIGHT : INV_REGION_HEIGHT;
+	UINT16 const w = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_WIDTH  : gfMapInvHummerPanel ? MAP_INV_HUMMER_PANEL_WIDTH  : big ? MAP_INV_BIG_PANEL_WIDTH  : INV_REGION_WIDTH;
+	UINT16 const h = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_HEIGHT : gfMapInvHummerPanel ? MAP_INV_HUMMER_PANEL_HEIGHT : big ? MAP_INV_BIG_PANEL_HEIGHT : INV_REGION_HEIGHT;
 	MSYS_DefineRegion(&gMPanelRegion, INV_REGION_X, INV_REGION_Y, INV_REGION_X + w, INV_REGION_Y + h, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 }
 static MOUSE_REGION gMapViewRegion;
@@ -4289,7 +4304,8 @@ static void InitMapInvSlotRegions()
 	INV_REGION_DESC gSCamoXY = {INV_BODY_X, INV_BODY_Y};
 	bool const big = IsMapInvBigImages();
 	InitInvSlotInterface(big ? g_ui.m_invSlotPositionMapBig : g_ui.m_invSlotPositionMap, &gSCamoXY, MAPInvMoveCallback, MouseCallbackPrimarySecondary(MAPInvClickCallbackPrimary, MAPInvClickCallbackSecondary, MAPInvClickCallbackCancelMessage), MAPInvMoveCamoCallback, MAPInvClickCamoCallback, big);
-	if (gfMapInvHeliPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapHeli, true);
+	if (gfMapInvHeliPanel)   LayoutInvSlotRegions(g_ui.m_invSlotPositionMapHeli, true);
+	if (gfMapInvHummerPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapHummer, true);
 }
 
 
@@ -4386,14 +4402,25 @@ static bool WantMapInvHeliPanel()
 }
 
 
+// ... and the Hummer its own, the same way
+static bool WantMapInvHummerPanel()
+{
+	if (!g_ui.isExtraWideStrategicScreen() || !IsMapInvBigImages()) return false;
+	SOLDIERTYPE const* const s = GetSelectedInfoChar();
+	return s && IsHummerSoldier(*s) && IsInterfaceAssetUsable(INTERFACEDIR "/" HUMMER_MAPINV_FILE);
+}
+
+
 // Follows the selected character with the panel: the helicopter's own one
 // or the usual one -- its size, slots and controls laid out again when that
 // changes (also with the inventory open, when the selected character changes)
 static void UpdateMapInvHeliPanel()
 {
-	bool const want = WantMapInvHeliPanel();
-	if (want == gfMapInvHeliPanel) return;
-	gfMapInvHeliPanel = want;
+	bool const want        = WantMapInvHeliPanel();
+	bool const want_hummer = WantMapInvHummerPanel();
+	if (want == gfMapInvHeliPanel && want_hummer == gfMapInvHummerPanel) return;
+	gfMapInvHeliPanel   = want;
+	gfMapInvHummerPanel = want_hummer;
 
 	RedefineMapInvPanelRegion();
 	if (fOldShowInventoryFlag)
@@ -4469,6 +4496,12 @@ static void BltCharInvPanel(void)
 			else                    b->uiFlags &= ~BUTTON_CLICKED_ON;
 			b->uiFlags |= BUTTON_DIRTY;
 		}
+	}
+	// ... the Hummer's: its slots and texts only
+	else if (gfMapInvHummerPanel)
+	{
+		DrawHummerInventoryTexts(guiSAVEBUFFER, PLAYER_INFO_X, PLAYER_INFO_Y, true);
+		SetFontDestBuffer(guiSAVEBUFFER);
 	}
 	else
 	{
@@ -7434,7 +7467,8 @@ BOOLEAN ToggleMapBigImages(void)
 
 	gfMapInvBigImages = !gfMapInvBigImages;
 	// the helicopter's panel only in "Show Large Icons"
-	gfMapInvHeliPanel = WantMapInvHeliPanel();
+	gfMapInvHeliPanel   = WantMapInvHeliPanel();
+	gfMapInvHummerPanel = WantMapInvHummerPanel();
 
 	// The panel's click-blocking region follows the new mode's panel size --
 	// re-defined first.
@@ -7484,13 +7518,15 @@ static void MapInvBigImagesBtnCallback(GUI_BUTTON* btn, UINT32 const reason)
 // positions (normal / "Show Large Icons", see IsMapInvBigImages()).
 static void CreateMapInvPanelControls(void)
 {
-	// the helicopter's panel has only the Done button: the trash can, money
-	// and key ring regions are out of the mouse's reach there
+	// the helicopter's and the Hummer's panels have only the Done button: the
+	// trash can, money and key ring regions are out of the mouse's reach there
 	bool   const heli    = gfMapInvHeliPanel;
-	UINT16 const trash_x = heli ? INV_SLOT_HIDDEN_POS : TRASH_CAN_X;
-	UINT16 const trash_y = heli ? INV_SLOT_HIDDEN_POS : TRASH_CAN_Y;
-	UINT16 const money_x = heli ? INV_SLOT_HIDDEN_POS : MAP_INV_MONEY_X;
-	UINT16 const money_y = heli ? INV_SLOT_HIDDEN_POS : MAP_INV_MONEY_Y;
+	bool   const hummer  = gfMapInvHummerPanel;
+	bool   const vehicle = heli || hummer;
+	UINT16 const trash_x = vehicle ? INV_SLOT_HIDDEN_POS : TRASH_CAN_X;
+	UINT16 const trash_y = vehicle ? INV_SLOT_HIDDEN_POS : TRASH_CAN_Y;
+	UINT16 const money_x = vehicle ? INV_SLOT_HIDDEN_POS : MAP_INV_MONEY_X;
+	UINT16 const money_y = vehicle ? INV_SLOT_HIDDEN_POS : MAP_INV_MONEY_Y;
 
 	// trash can
 	MSYS_DefineRegion( &gTrashCanRegion, 	trash_x, trash_y, trash_x + TRASH_CAN_WIDTH, trash_y + TRASH_CAN_HEIGHT , MSYS_PRIORITY_HIGHEST - 4 ,
@@ -7502,7 +7538,8 @@ static void CreateMapInvPanelControls(void)
 	// 0 = ready, 1 = pressed on the normal ones (mapinv_1024/1280.sti).
 	bool const big = IsMapInvBigImages();
 	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big ? 2 : 0, big ? 3 : 1,
-		heli ? MAP_INV_HELI_DONE_BTN_X : INV_BTN_X, heli ? MAP_INV_HELI_DONE_BTN_Y : INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
+		heli ? MAP_INV_HELI_DONE_BTN_X : hummer ? MAP_INV_HUMMER_DONE_BTN_X : INV_BTN_X,
+		heli ? MAP_INV_HELI_DONE_BTN_Y : hummer ? MAP_INV_HUMMER_DONE_BTN_Y : INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
 	if (big && (giMapInvDoneButton->W() != MAP_INV_DONE_BTN_W_BIG || giMapInvDoneButton->H() != MAP_INV_DONE_BTN_H_BIG))
 	{
 		SLOGW("mapinv_done_buttons.sti sub-image 2 is {}x{}, expected {}x{} (MAP_INV_DONE_BTN_W/H_BIG)",
@@ -7521,7 +7558,7 @@ static void CreateMapInvPanelControls(void)
 	fMapInvTrashIconPressed = FALSE;
 
 	InitMapKeyRingInterface( KeyRingItemPanelButtonCallback );
-	if (heli) HideKeyRingRegion();
+	if (vehicle) HideKeyRingRegion();
 
 	// the helicopter panel's check boxes (sub-images 4 unchecked / 6 checked)
 	if (heli)
@@ -7777,6 +7814,7 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(INTERFACEDIR "/mapinv_1366x768.png");
 	RemoveVObject(INTERFACEDIR "/mapinv_small_1366x768.png");
 	RemoveVObject(INTERFACEDIR "/" HELI_MAPINV_FILE);
+	RemoveVObject(INTERFACEDIR "/" HUMMER_MAPINV_FILE);
 	RemoveVObject(GetMapMiddleBackgroundGraphicsFilename());
 	RemoveVObject(guiULICONS);
 

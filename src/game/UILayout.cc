@@ -425,6 +425,36 @@ void UILayout::recalculatePositions()
 		m_invSlotPositionMapHeli[BIGPOCK1POS   + i].set(m_mapScreenOffsetX + 469, mapHeliY + 254 + 55 * i);
 	}
 
+	// The Hummer's panels: its 24 cargo slots (IsHummerCargoSlot()) -- four
+	// columns of small pockets (1-4, 5-8, ...) and two of big ones (1-4, 5-8),
+	// row step 55, as the helicopter's
+	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
+	{
+		m_invSlotPositionTacHummer[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		m_invSlotPositionMapHummer[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	}
+	// hummer_tactical_inv_1366x768.png: slot = the field; on
+	// hummer_strategic_inv_1366x768.png the field 1 px in
+	static UINT16 const hummerTacSmallX[4] = { 763, 846, 929, 1012 };
+	static UINT16 const hummerTacBigX[2]   = { 1094, 1227 };
+	static UINT16 const hummerMapSmallX[4] = { 23, 106, 189, 272 };
+	static UINT16 const hummerMapBigX[2]   = { 354, 487 };
+	for (INT32 row = 0; row != 4; ++row)
+	{
+		for (INT32 col = 0; col != 4; ++col)
+		{
+			INT32 const slot = SMALLPOCK1POS + 4 * col + row;
+			m_invSlotPositionTacHummer[slot].set(startX + hummerTacSmallX[col], tacHeliY + 15 + 55 * row);
+			m_invSlotPositionMapHummer[slot].set(m_mapScreenOffsetX + hummerMapSmallX[col], mapHeliY + 254 + 55 * row);
+		}
+		for (INT32 col = 0; col != 2; ++col)
+		{
+			INT32 const slot = BIGPOCK1POS + 4 * col + row;
+			m_invSlotPositionTacHummer[slot].set(startX + hummerTacBigX[col], tacHeliY + 15 + 55 * row);
+			m_invSlotPositionMapHummer[slot].set(m_mapScreenOffsetX + hummerMapBigX[col], mapHeliY + 254 + 55 * row);
+		}
+	}
+
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);
 	else m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);

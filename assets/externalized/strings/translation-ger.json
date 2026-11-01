@@ -1875,6 +1875,14 @@
         "Waldo was paid $%d for repairs.",
         "Waldo stopped repairing the helicopter: not enough money."
     ],
+    "pHummerInventoryStrings": [
+        "UPGRADES",
+        "Defense",
+        "Engine",
+        "Tyres",
+        "ARMAMENT",
+        "FUEL"
+    ],
     "pMilitiaConfirmStrings": [
         "Eine Milizeinheit für diese Stadt zu trainieren kostet $",
         "Ausgabe genehmigen?",

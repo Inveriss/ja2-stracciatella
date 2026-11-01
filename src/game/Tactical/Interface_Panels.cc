@@ -524,6 +524,8 @@ static SGPVSurface* guiSMPanel;
 // The helicopter's own big SM panel (HELI_SMPANEL_FILE, UILayout.h) -- only
 // with the big SM panel, and when its file is there
 static SGPVSurface* guiSMPanelHeli;
+// ... and the Hummer's (HUMMER_SMPANEL_FILE), the same way
+static SGPVSurface* guiSMPanelHummer;
 // Its check boxes (sector_inventory_popupcheck.sti 4 unchecked / 6
 // checked), for now each only showing or hiding the lines under it: the one
 // under "Allow Landing in Enemy Sectors" the two landing places and the
@@ -1086,6 +1088,59 @@ void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const 
 }
 
 
+// The Hummer panels' texts (pHummerInventoryStrings), as the helicopter's:
+// the three blocks' headers and the upgrades. Tactical panel coordinates;
+// on the strategic panel (hummer_strategic_inv_1366x768.png) every block is
+// moved by the same amount.
+#define HUMMER_MAP_SHIFT_X  (-235)
+#define HUMMER_MAP_SHIFT_Y  (-36)
+
+void DrawHummerInventoryTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map)
+{
+	SetFontDestBuffer(dst);
+	if (map)
+	{
+		x0 += HUMMER_MAP_SHIFT_X;
+		y0 += HUMMER_MAP_SHIFT_Y;
+	}
+
+	// centred in a box, both ways
+	auto const centred = [&](INT32 const i, SGPFont const font, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
+	{
+		ST::string const& str = pHummerInventoryStrings[i];
+		INT16 x;
+		INT16 y;
+		FindFontCenterCoordinates(x0 + bx, y0 + by, bw, bh, str, font, &x, &y);
+		MPrint(x, y, str);
+	};
+
+	// the headers, in the title bars: Upgrades, Armament, Fuel
+	SetFontAttributes(FONT14HUMANIST, HELI_SM_TEXT_HEADER_COLOUR);
+	centred(0, FONT14HUMANIST, 265, 66, 168, 25);
+	centred(4, FONT14HUMANIST, 481, 66, 120, 25);
+	centred(5, FONT14HUMANIST, 648, 66,  76, 25);
+
+	// the upgrades: one in each of the three 174x52 boxes
+	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	for (INT32 i = 0; i != 3; ++i)
+	{
+		centred(1 + i, FONT14ARIAL, 262, 97 + 55 * i, 174, 52);
+	}
+
+	SetFontDestBuffer(FRAME_BUFFER);
+}
+
+
+// The Hummer's panel surface: its graphic and texts
+static void BuildHummerSMPanelSurface()
+{
+	guiSMPanelHummer->Fill(0);
+	AutoSGPVObject const hummer_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HUMMER_SMPANEL_FILE) };
+	BltVideoObject(guiSMPanelHummer, hummer_panel.get(), 0, 0, 0);
+	DrawHummerInventoryTexts(guiSMPanelHummer, 0, 0, false);
+}
+
+
 // The helicopter's panel surface: its graphic and texts -- again after the
 // check box changes what is shown
 static void BuildHeliSMPanelSurface()
@@ -1180,14 +1235,23 @@ static bool IsHeliSMPanel(SOLDIERTYPE const* const s)
 }
 
 
+// ... and the Hummer on its own
+static bool IsHummerSMPanel(SOLDIERTYPE const* const s)
+{
+	return guiSMPanelHummer && s && IsHummerSoldier(*s);
+}
+
+
 // The slot regions in the current merc's layout: the helicopter's 8 cargo
 // slots on its own panel, else the usual ones. Only while the SM panel's
 // slots are up -- the map screen's inventory has the same regions.
 static void LayoutSMPanelSlots()
 {
 	if (!guiSMPanel) return;
-	bool const heli = IsHeliSMPanel(gpSMCurrentMerc);
-	LayoutInvSlotRegions(heli ? g_ui.m_invSlotPositionTacHeli : g_ui.m_invSlotPositionTac, heli);
+	bool const heli   = IsHeliSMPanel(gpSMCurrentMerc);
+	bool const hummer = IsHummerSMPanel(gpSMCurrentMerc);
+	LayoutInvSlotRegions(heli ? g_ui.m_invSlotPositionTacHeli : hummer ? g_ui.m_invSlotPositionTacHummer : g_ui.m_invSlotPositionTac,
+		heli || hummer);
 }
 
 
@@ -1803,6 +1867,12 @@ void InitializeSMPanel()
 			guiSMPanelHeli = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
 			BuildHeliSMPanelSurface();
 		}
+		// ... and the Hummer's
+		if (GCM->doesGameResExists(INTERFACEDIR "/" HUMMER_SMPANEL_FILE))
+		{
+			guiSMPanelHummer = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+			BuildHummerSMPanelSurface();
+		}
 	}
 	SGPVObject* voSMPanel = SM_BIG ? 0 : AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
 	// a graphic as wide as the panel (1366x768: the user's 1366 px
@@ -2314,6 +2384,8 @@ void ShutdownSMPanel()
 	guiSMPanel = 0;
 	delete guiSMPanelHeli;
 	guiSMPanelHeli = 0;
+	delete guiSMPanelHummer;
+	guiSMPanelHummer = 0;
 	DeleteVideoObject(guiSMObjects);
 	DeleteVideoObject(guiSMObjects2);
 
@@ -2531,8 +2603,8 @@ static void RenderBigSMPanelStats(SOLDIERTYPE const& s, INT32 const dx, INT32 co
 	PrintStat(s.uiChangeMechanicalTime,   MECH_INCREASE,     s.bMechanical,   x1, dy + SM_BIG_STATS_Y(3), p.sMechanicGain*4);
 	PrintStat(s.uiChangeMedicalTime,      MED_INCREASE,      s.bMedical,      x1, dy + SM_BIG_STATS_Y(4), p.sMedicalGain*4);
 
-	// the helicopter's panel has no armour/weight/camo boxes
-	if (IsHeliSMPanel(&s)) return;
+	// the helicopter's and the Hummer's panels have no armour/weight/camo boxes
+	if (IsHeliSMPanel(&s) || IsHummerSMPanel(&s)) return;
 	UINT8 const value_colour = s.bLife >= OKLIFE ? SM_BIG_VALUE_COLOR : FONT_MCOLOR_DKGRAY;
 	PrintBigSMInfoBox(dx + SM_BIG_ARMOR_BOX_X,  dy + SM_BIG_ARMOR_BOX_Y,  pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)),          value_colour);
 	PrintBigSMInfoBox(dx + SM_BIG_WEIGHT_BOX_X, dy + SM_BIG_WEIGHT_BOX_Y, pInvPanelTitleStrings[1], ST::format("{}%", CalculateCarriedWeight(&s)), value_colour);
@@ -2628,7 +2700,7 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 
 	if (*dirty_level == DIRTYLEVEL2)
 	{
-		BltVideoSurface(guiSAVEBUFFER, IsHeliSMPanel(&s) ? guiSMPanelHeli : guiSMPanel, dx, dy, NULL);
+		BltVideoSurface(guiSAVEBUFFER, IsHeliSMPanel(&s) ? guiSMPanelHeli : IsHummerSMPanel(&s) ? guiSMPanelHummer : guiSMPanel, dx, dy, NULL);
 
 		{
 			SGPVObject const* gfx;

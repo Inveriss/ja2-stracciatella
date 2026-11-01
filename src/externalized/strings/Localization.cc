@@ -180,6 +180,7 @@ L10n_t::L10n_t(SGPFile * const translationFile)
 	GetArray(pHeliInventoryStrings);
 	GetArray(pHeliLandingZoneStrings);
 	GetArray(pWaldoHeliRepairStrings);
+	GetArray(pHummerInventoryStrings);
 	GetString(pMapScreenJustStartedHelpText);
 	GetString(pLandMarkInSectorString);
 	GetArray(gzMercSkillText);

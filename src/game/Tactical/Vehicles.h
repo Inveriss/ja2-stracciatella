@@ -194,6 +194,10 @@ bool IsHelicopterSoldier(SOLDIERTYPE const&);
 SOLDIERTYPE* GetHelicopterSoldier();
 // The helicopter's cargo has 8 slots: small pockets 1-4 and big pockets 1-4
 bool IsHelicopterCargoSlot(INT8 slot);
+// The Hummer's soldier, and its 24 cargo slots: big pockets 1-8 and small
+// pockets 1-16
+bool IsHummerSoldier(SOLDIERTYPE const&);
+bool IsHummerCargoSlot(INT8 slot);
 
 void InitVehicles(void);
 

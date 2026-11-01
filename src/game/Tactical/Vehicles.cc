@@ -1234,6 +1234,22 @@ bool IsHelicopterCargoSlot(INT8 const slot)
 }
 
 
+bool IsHummerCargoSlot(INT8 const slot)
+{
+	return (BIGPOCK1POS   <= slot && slot <= BIGPOCK8POS) ||
+		(SMALLPOCK1POS <= slot && slot <= SMALLPOCK16POS);
+}
+
+
+bool IsHummerSoldier(SOLDIERTYPE const& s)
+{
+	if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) return false;
+	if (s.bVehicleID < 0 || s.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[s.bVehicleID];
+	return v.fValid && v.ubVehicleType == HUMMER;
+}
+
+
 bool IsHelicopterSoldier(SOLDIERTYPE const& s)
 {
 	// by the vehicle's type, so it holds for the crashed helicopter's soldier,

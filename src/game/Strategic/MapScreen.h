@@ -79,6 +79,8 @@ BOOLEAN IsMapInvBigImages(void);
 // The helicopter's own merc inventory panel (heli_strategic_inv_1366x768.png)
 // is the one showing.
 bool IsMapInvHeliPanel(void);
+// the helicopter's or the Hummer's own panel is up
+bool IsMapInvVehiclePanel(void);
 
 // Size of mapinv_big_1280_720/768.sti, the "Show Large Icons" merc inventory panel.
 // Drawn at MAP_SCREEN_X, MAP_SCREEN_Y + 107 on every 1280+ resolution,

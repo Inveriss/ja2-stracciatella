@@ -33,6 +33,11 @@
 // ("Show Large Icons" only), 604x514 at PLAYER_INFO_X/Y, slots in
 // m_invSlotPositionMapHeli
 #define HELI_MAPINV_FILE                "heli_strategic_inv_1366x768.png"
+// The Hummer's own panels on the 1366x768 interface, the same way: tactical
+// (its 24 cargo slots in m_invSlotPositionTacHummer) and strategic, 654x514
+// at PLAYER_INFO_X/Y (m_invSlotPositionMapHummer)
+#define HUMMER_SMPANEL_FILE             "hummer_tactical_inv_1366x768.png"
+#define HUMMER_MAPINV_FILE              "hummer_strategic_inv_1366x768.png"
 // position of a slot a layout has no place for: off the screen
 #define INV_SLOT_HIDDEN_POS             (60000)
 
@@ -227,6 +232,8 @@ public:
 	INV_REGION_DESC       m_invSlotPositionTac[NUM_INVENTORY_SLOTS];      /**< Tactical screen Inventory slots positions */
 	INV_REGION_DESC       m_invSlotPositionTacHeli[NUM_INVENTORY_SLOTS];  /**< The helicopter's big SM panel (HELI_SMPANEL_FILE): its 8 cargo slots, the rest INV_SLOT_HIDDEN_POS */
 	INV_REGION_DESC       m_invSlotPositionMapHeli[NUM_INVENTORY_SLOTS];  /**< The helicopter's map inventory panel (HELI_MAPINV_FILE): its 8 cargo slots, the rest INV_SLOT_HIDDEN_POS */
+	INV_REGION_DESC       m_invSlotPositionTacHummer[NUM_INVENTORY_SLOTS]; /**< The Hummer's big SM panel (HUMMER_SMPANEL_FILE): its 24 cargo slots, the rest INV_SLOT_HIDDEN_POS */
+	INV_REGION_DESC       m_invSlotPositionMapHummer[NUM_INVENTORY_SLOTS]; /**< The Hummer's map inventory panel (HUMMER_MAPINV_FILE): its 24 cargo slots, the rest INV_SLOT_HIDDEN_POS */
 	INV_REGION_DESC       m_invCamoRegion;                                /**< Camo (body) region in the inventory. */
 
 	SGPBox                m_progress_bar_box;
