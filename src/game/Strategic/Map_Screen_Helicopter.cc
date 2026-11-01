@@ -299,6 +299,60 @@ bool CanWaldoRepairHelicopter(bool const check_money)
 }
 
 
+// "not enough money" said once per pause (not saved: after a load it may
+// come once more)
+static bool gfWaldoNoMoneyTold = false;
+
+// Waldo's started hour is done: its points (capped at the maximum) -- even
+// with the check box unchecked meanwhile (D1), paid is paid
+static void CreditWaldoHour()
+{
+	if (!gfWaldoHourStarted) return;
+	gfWaldoHourStarted = false;
+
+	SOLDIERTYPE* const hs = GetHelicopterSoldier();
+	if (!hs) return;
+	if (hs->bLife < hs->bLifeMax)
+	{
+		hs->bLife = static_cast<INT8>(std::min<INT32>(hs->bLifeMax, hs->bLife + WALDO_HELI_REPAIR_PER_HOUR));
+		fTeamPanelDirty          = TRUE;
+		fCharacterInfoPanelDirty = TRUE;
+	}
+	if (hs->bLife >= hs->bLifeMax)
+	{
+		// TODO stage 3: pWaldoHeliRepairStrings[0]
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, "Waldo has finished repairing the helicopter.");
+	}
+}
+
+
+void HandleWaldoHelicopterRepairHourly()
+{
+	// 1. the hour he started ends
+	CreditWaldoHour();
+
+	// 2. the next one starts -- paid now, the full price (D4)
+	if (!CanWaldoRepairHelicopter(false)) return;
+	if (LaptopSaveInfo.iCurrentBalance < WALDO_HELI_REPAIR_COST)
+	{
+		// he pauses until the money is there (D3)
+		if (!gfWaldoNoMoneyTold)
+		{
+			// TODO stage 3: pWaldoHeliRepairStrings[2]
+			ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, "Waldo stopped repairing the helicopter: not enough money.");
+			gfWaldoNoMoneyTold = true;
+		}
+		return;
+	}
+	gfWaldoNoMoneyTold = false;
+
+	AddTransactionToPlayersBook(PAYMENT_TO_NPC, WALDO, GetWorldTotalMin(), -WALDO_HELI_REPAIR_COST);
+	// TODO stage 3: pWaldoHeliRepairStrings[1]
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("Waldo was paid ${} for repairs.", WALDO_HELI_REPAIR_COST));
+	gfWaldoHourStarted = true;
+}
+
+
 bool IsSkyriderSilent()
 {
 	return gfSilentSkyrider;
@@ -786,6 +840,9 @@ static void LandHelicopter(void)
 
 void TakeOffHelicopter( void )
 {
+	// Waldo's paid hour counts at once, it isn't lost
+	CreditWaldoHour();
+
 	// heli in the air
 	fHelicopterIsAirBorne = TRUE;
 

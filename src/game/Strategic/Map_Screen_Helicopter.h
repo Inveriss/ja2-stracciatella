@@ -270,6 +270,9 @@ void SetSkyriderSilent(bool silent);
 // on the ground at the Drassen airport (the player's), in need of repair,
 // he alive; with check_money also the price of an hour in the account?
 bool CanWaldoRepairHelicopter(bool check_money);
+// every full hour (after the mercs' assignments and Skyrider's debt): the
+// hour Waldo started is credited (+3), the next one starts and is paid ($200)
+void HandleWaldoHelicopterRepairHourly();
 
 void InitHeliEnemyLandingForNewGame();
 void SaveHeliEnemyLandingToSaveGameFile();
