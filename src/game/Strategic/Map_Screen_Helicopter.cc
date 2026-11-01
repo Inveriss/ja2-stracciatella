@@ -289,9 +289,11 @@ bool CanWaldoRepairHelicopter(bool const check_money)
 	if (!IsHeliInventoryChecked(HELI_INV_CHECK_WALDO))       return false;
 	// no helicopter soldier (its condition comes from the hits taken): not him
 	if (!GetHelicopterSoldier())                             return false;
-	// on the ground at the Drassen airport, while it is the player's
+	// on the ground at the Drassen airport, while it is the player's -- only
+	// the sector counts, not the airspace (a red sky over Drassen, the SAM
+	// site still the enemy's, doesn't stop him working on the ground)
 	if (fHelicopterIsAirBorne)                               return false;
-	if (!fRefuelingSiteAvailable[DRASSEN_REFUELING_SITE])    return false;
+	if (StrategicMap[g_refuel_site[DRASSEN_REFUELING_SITE].sector].fEnemyControlled) return false;
 	if (!IsHelicopterOnGroundAtRefuelingSite(g_refuel_site[DRASSEN_REFUELING_SITE])) return false;
 	if (!DoesVehicleNeedAnyRepairs(GetHelicopter()))         return false;
 	if (!CheckFact(FACT_WALDO_ALIVE, 0))                     return false;
