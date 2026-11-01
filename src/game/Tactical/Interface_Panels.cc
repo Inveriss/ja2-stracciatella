@@ -43,6 +43,7 @@
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Bottom.h"
 #include "Map_Screen_Helicopter.h"
+#include "Strategic_Movement.h"
 #include "MercPortrait.h"
 #include "Message.h"
 #include "MessageBoxScreen.h"
@@ -1045,17 +1046,27 @@ void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const 
 	// ... those three only while its check box is checked
 	if (gfSMHeliChecked[HELI_INV_CHECK_ENEMY_LANDING])
 	{
-		label_value(HELI_SM_TXT_MAP_EDGES,   fl, 491, 168, 193);
-		label_value(HELI_SM_TXT_ANYWHERE,    fl, 491, 168, 213);
-		label_value(HELI_SM_TXT_DAMAGE_RISK, fl, 491, 168, 233);
+		label_value_of(HELI_SM_TXT_MAP_EDGES,   fl, 491, 168, 193,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_MAP_EDGES_COST], SPrintMoney(COST_HELI_LANDING_MAP_EDGES)));
+		label_value_of(HELI_SM_TXT_ANYWHERE,    fl, 491, 168, 213,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_ANYWHERE_COST], SPrintMoney(COST_HELI_LANDING_ANYWHERE)));
+		label_value_of(HELI_SM_TXT_DAMAGE_RISK, fl, 491, 168, 233,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_DAMAGE_RISK_VALUE], HELI_ENEMY_LANDING_DAMAGE_CHANCE));
 	}
 
 	// flight status (box 685,107 207x148)
-	label_value(HELI_SM_TXT_FLIGHT_SPEED,  fl, 695, 187, 143);
-	label_value(HELI_SM_TXT_SAM_HIT,       fl, 695, 187, 165);
-	label_value(HELI_SM_TXT_MINIMUM_HP,    fl, 695, 187, 195);
-	label_value(HELI_SM_TXT_FORCED_RETURN, fl, 695, 187, 215);
-	label_value(HELI_SM_TXT_CRASH,         fl, 695, 187, 235);
+	// (all the values from the constants the helicopter's code uses)
+	label_value_of(HELI_SM_TXT_FLIGHT_SPEED,  fl, 695, 187, 143,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_FLIGHT_SPEED_VALUE], AIR_TRAVEL_TIME));
+	label_value_of(HELI_SM_TXT_SAM_HIT,       fl, 695, 187, 165,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_SAM_HIT_VALUE], HELI_SAM_HIT_DAMAGE));
+	label_value_of(HELI_SM_TXT_MINIMUM_HP,    fl, 695, 187, 195,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_MINIMUM_HP_VALUE], GetHelicopterFlightMinCondition()));
+	label_value_of(HELI_SM_TXT_FORCED_RETURN, fl, 695, 187, 215,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_FORCED_RETURN_VALUE],
+			HELI_MAJOR_DAMAGE_MIN_CONDITION, HELI_MINOR_DAMAGE_MIN_CONDITION - 1));
+	label_value_of(HELI_SM_TXT_CRASH,         fl, 695, 187, 235,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_CRASH_VALUE], HELI_MAJOR_DAMAGE_MIN_CONDITION));
 
 	// maintenance (box 940,107 164x148): Waldo's lines 22 px apart, indented
 	line(HELI_SM_TXT_MERCENARIES, mt, 950, 140);

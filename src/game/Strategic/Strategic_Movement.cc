@@ -2076,7 +2076,6 @@ INT32 FindTravelTimeBetweenWaypoints(WAYPOINT const* const pSource, WAYPOINT con
 #define CAR_TRAVEL_TIME     30
 #define TRUCK_TRAVEL_TIME   32
 #define TRACKED_TRAVEL_TIME 46
-#define AIR_TRAVEL_TIME     10
 
 
 // Changes: direction contains the strategic move value, not the delta value.

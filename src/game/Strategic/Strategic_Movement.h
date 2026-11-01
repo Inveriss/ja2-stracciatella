@@ -67,6 +67,9 @@ struct ENEMYGROUP
 
 //NOTE:  ALL FLAGS ARE CLEARED WHENEVER A GROUP ARRIVES IN A SECTOR, OR ITS WAYPOINTS ARE
 //       DELETED!!!
+// minutes the helicopter takes per sector (the heli panels show it)
+#define AIR_TRAVEL_TIME     10
+
 #define GROUPFLAG_SIMULTANEOUSARRIVAL_APPROVED	0x00000001
 #define GROUPFLAG_SIMULTANEOUSARRIVAL_CHECKED		0x00000002
 //I use this flag when traversing through a list to determine which groups meet whatever conditions,

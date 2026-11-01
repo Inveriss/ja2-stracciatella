@@ -15,6 +15,21 @@
 #define COST_HELI_LANDING_MAP_EDGES 1000
 #define COST_HELI_LANDING_ANYWHERE  2500
 
+// (the heli panels show these values too)
+// SAM hits on the helicopter: each costs this much of its condition (0-100);
+// the condition left picks the outcome -- from HELI_MINOR_DAMAGE_MIN_CONDITION
+// up Skyrider reports minor damage, from HELI_MAJOR_DAMAGE_MIN_CONDITION up
+// major damage and flies back to base, below that the helicopter goes down
+#define HELI_SAM_HIT_DAMAGE             25
+// a landing among enemies (a rope drop): this chance (percent) of costing
+// this much condition -- never below 1, it doesn't bring it down
+#define HELI_ENEMY_LANDING_DAMAGE_CHANCE 25
+#define HELI_ENEMY_LANDING_DAMAGE        10
+#define HELI_MINOR_DAMAGE_MIN_CONDITION 50
+#define HELI_MAJOR_DAMAGE_MIN_CONDITION 25
+// below this condition Skyrider won't take off until the helicopter is repaired
+#define HELI_FLIGHT_MIN_CONDITION       50
+
 // Waldo, the helicopter's mechanic at the Drassen airport (the heli panels'
 // check box): his own terms, not his stats -- condition points per hour of
 // work, and its price, paid when the hour starts (the panels show both)
