@@ -58,7 +58,7 @@
     {
         "enterSound": "sounds/into vehicle.wav",
         "moveSound": "sounds/driving 01.wav",
-        "profile": "NPC164",
+        "profile": "PROF_JEEP",
         "movementType": "CAR",
         "armourType": "KEVLAR_VEST",
         "seats":  6,
@@ -70,7 +70,7 @@
     {
         "enterSound": "sounds/into vehicle.wav",
         "moveSound": "sounds/driving 01.wav",
-        "profile": "NPC164",
+        "profile": "PROF_TANK",
         "movementType": "CAR",
         "armourType": "SPECTRA_VEST",
         "seats": 6,

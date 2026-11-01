@@ -19619,5 +19619,127 @@
         "effectiveness": 300
       }
     ]
+  },
+  {
+    "profileID": 231,
+    "internalName": "PROF_JEEP",
+    "type": "VEHICLE",
+    "sex": "M",
+    "bodyType": "JEEP",
+    "skinColor": "PINKSKIN",
+    "hairColor": "BLONDHEAD",
+    "vestColor": "BROWNVEST",
+    "pantsColor": "GREENPANTS",
+    "stats": {
+      "agility": 1,
+      "dexterity": 1,
+      "experience": 1,
+      "explosive": 0,
+      "health": 100,
+      "leadership": 1,
+      "marksmanship": 0,
+      "mechanical": 0,
+      "medical": 0,
+      "sleepiness": 7,
+      "strength": 1,
+      "wisdom": 1
+    },
+    "toleranceForPlayersReputation": 101,
+    "toleranceForPlayersDeathRate": 0,
+    "dialogue": [
+      {
+        "approach": "FRIENDLY",
+        "effectiveness": 0,
+        "desireToTalk": 100,
+        "friendlyMod": 100,
+        "directMod": 100,
+        "threatenMod": 100
+      },
+      {
+        "approach": "DIRECT",
+        "effectiveness": 0,
+        "desireToTalk": 100,
+        "friendlyMod": 100,
+        "directMod": 100,
+        "threatenMod": 100
+      },
+      {
+        "approach": "THREATEN",
+        "effectiveness": 0,
+        "desireToTalk": 100,
+        "friendlyMod": 100,
+        "directMod": 100,
+        "threatenMod": 100
+      },
+      {
+        "approach": "RECRUIT",
+        "effectiveness": 0,
+        "desireToTalk": 100,
+        "friendlyMod": 100,
+        "directMod": 100,
+        "threatenMod": 100
+      }
+    ]
+  },
+  {
+    "profileID": 232,
+    "internalName": "PROF_TANK",
+    "type": "VEHICLE",
+    "sex": "M",
+    "bodyType": "TANK_NE",
+    "skinColor": "PINKSKIN",
+    "hairColor": "BLONDHEAD",
+    "vestColor": "BROWNVEST",
+    "pantsColor": "GREENPANTS",
+    "stats": {
+      "agility": 1,
+      "dexterity": 1,
+      "experience": 1,
+      "explosive": 0,
+      "health": 100,
+      "leadership": 1,
+      "marksmanship": 0,
+      "mechanical": 0,
+      "medical": 0,
+      "sleepiness": 7,
+      "strength": 1,
+      "wisdom": 1
+    },
+    "toleranceForPlayersReputation": 101,
+    "toleranceForPlayersDeathRate": 0,
+    "dialogue": [
+      {
+        "approach": "FRIENDLY",
+        "effectiveness": 0,
+        "desireToTalk": 100,
+        "friendlyMod": 100,
+        "directMod": 100,
+        "threatenMod": 100
+      },
+      {
+        "approach": "DIRECT",
+        "effectiveness": 0,
+        "desireToTalk": 100,
+        "friendlyMod": 100,
+        "directMod": 100,
+        "threatenMod": 100
+      },
+      {
+        "approach": "THREATEN",
+        "effectiveness": 0,
+        "desireToTalk": 100,
+        "friendlyMod": 100,
+        "directMod": 100,
+        "threatenMod": 100
+      },
+      {
+        "approach": "RECRUIT",
+        "effectiveness": 0,
+        "desireToTalk": 100,
+        "friendlyMod": 100,
+        "directMod": 100,
+        "threatenMod": 100
+      }
+    ]
   }
 ]
