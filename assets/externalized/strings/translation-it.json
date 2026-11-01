@@ -1888,7 +1888,9 @@
         "The %s was refueled from gas cans."
     ],
     "pVehiclePassengerStrings": [
-        "%s is inside the vehicle and can't walk. Use the exit button to get out."
+        "%s is inside the vehicle and can't walk. Use the exit button to get out.",
+        "%s can't shoot while the vehicle is moving.",
+        "%s can only shoot a gun from inside the vehicle."
     ],
     "pMilitiaConfirmStrings": [
         "Addestrare una squadra dell'esercito cittadino costerà $",

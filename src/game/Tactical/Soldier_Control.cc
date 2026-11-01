@@ -4484,7 +4484,11 @@ void TurnSoldier( SOLDIERTYPE *pSoldier)
 
 	// CHECK FOR A VALID TURN DIRECTION
 	// This is needed for prone animations as well as any multi-tiled structs
-	if (OKToAddMercToWorld(pSoldier, (INT8)sDirection))
+	// -- not for one aboard a vehicle: he is off the map, on the vehicle's
+	// tile, where its structure would never let him turn (passenger shooting,
+	// stage 3)
+	if (pSoldier->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) ||
+		OKToAddMercToWorld(pSoldier, (INT8)sDirection))
 	{
 		// Don't do this if we are walkoing off screen...
 		if (gubWaitingForAllMercsToExitCode == WAIT_FOR_MERCS_TO_WALKOFF_SCREEN || gubWaitingForAllMercsToExitCode == WAIT_FOR_MERCS_TO_WALK_TO_GRIDNO)

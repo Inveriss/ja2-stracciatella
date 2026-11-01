@@ -3109,6 +3109,9 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 	// swapping places or using things
 	if (sel->uiStatusFlags & SOLDIER_VEHICLE)
 	{
+		// not while a passenger's shot is under way (passenger shooting,
+		// stage 3)
+		if (gTacticalStatus.ubAttackBusyCount > 0) return -3;
 		if (!CanVehicleDriveInTactical(*sel))
 		{
 			// a car out of fuel says so; anything else, as before
