@@ -14,6 +14,12 @@
 // landing among enemies: the chosen landing zone's surcharge
 #define COST_HELI_LANDING_MAP_EDGES 1000
 #define COST_HELI_LANDING_ANYWHERE  2500
+
+// Waldo, the helicopter's mechanic at the Drassen airport (the heli panels'
+// check box): his own terms, not his stats -- condition points per hour of
+// work, and its price, paid when the hour starts (the panels show both)
+#define WALDO_HELI_REPAIR_PER_HOUR  3
+#define WALDO_HELI_REPAIR_COST      200
 #define MIN_PROGRESS_FOR_SKYRIDER_QUOTE_DOING_WELL 25	// scale of 0-100
 #define MIN_REGRESS_FOR_SKYRIDER_QUOTE_DOING_BADLY 10	// scale of 0-100
 

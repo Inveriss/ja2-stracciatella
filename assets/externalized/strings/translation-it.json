@@ -1861,9 +1861,9 @@
         "- auto-repairs:",
         "in Drassen",
         "- repair rate:",
-        "3 HP/hour",
+        "%d HP/hour",
         "- repair cost:",
-        "$200/hour"
+        "$%d/hour"
     ],
     "pHeliLandingZoneStrings": [
         "Choose Landing Zone",

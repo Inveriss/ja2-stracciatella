@@ -82,12 +82,6 @@
 // below this condition Skyrider won't take off until the helicopter is repaired
 #define HELI_FLIGHT_MIN_CONDITION       50
 
-// Waldo, the helicopter's mechanic at the Drassen airport (the heli panels'
-// check box): his own terms, not his stats -- condition points per hour of
-// work, and its price, paid when the hour starts
-#define WALDO_HELI_REPAIR_PER_HOUR      3
-#define WALDO_HELI_REPAIR_COST          200
-
 // the amounts of time to wait for hover stuff
 #define TIME_DELAY_FOR_HOVER_WAIT						10		// minutes
 #define TIME_DELAY_FOR_HOVER_WAIT_TOO_LONG	20		// mintues

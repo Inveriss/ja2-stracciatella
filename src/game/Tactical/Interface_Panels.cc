@@ -1010,12 +1010,15 @@ void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const 
 		MPrint(x0 + b.x + lx, y0 + b.y + ly, pHeliInventoryStrings[i]);
 	};
 	// a label, and its value right-aligned to x + w (10 px from the wall)
-	auto const label_value = [&](INT32 const i, HeliInvBlockShift const b, INT16 const lx, INT16 const w, INT16 const ly)
+	auto const label_value_of = [&](INT32 const i, HeliInvBlockShift const b, INT16 const lx, INT16 const w, INT16 const ly, ST::string const& value)
 	{
 		line(i, b, lx, ly);
-		ST::string const& value = pHeliInventoryStrings[i + 1];
 		FindFontRightCoordinates(x0 + b.x + lx, y0 + b.y + ly, w, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
 		MPrint(x, y0 + b.y + ly, value);
+	};
+	auto const label_value = [&](INT32 const i, HeliInvBlockShift const b, INT16 const lx, INT16 const w, INT16 const ly)
+	{
+		label_value_of(i, b, lx, w, ly, pHeliInventoryStrings[i + 1]);
 	};
 
 	// the headers, in the title bars
@@ -1061,8 +1064,11 @@ void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const 
 	if (gfSMHeliChecked[HELI_INV_CHECK_WALDO])
 	{
 		label_value(HELI_SM_TXT_WALDO_DRASSEN, mt, 960, 134, 187);
-		label_value(HELI_SM_TXT_WALDO_RATE,    mt, 960, 134, 209);
-		label_value(HELI_SM_TXT_WALDO_COST,    mt, 960, 134, 231);
+		// his rate and price from the very constants his work uses
+		label_value_of(HELI_SM_TXT_WALDO_RATE, mt, 960, 134, 209,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_WALDO_RATE_VALUE], WALDO_HELI_REPAIR_PER_HOUR));
+		label_value_of(HELI_SM_TXT_WALDO_COST, mt, 960, 134, 231,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_WALDO_COST_VALUE], WALDO_HELI_REPAIR_COST));
 	}
 
 	SetFontDestBuffer(FRAME_BUFFER);
