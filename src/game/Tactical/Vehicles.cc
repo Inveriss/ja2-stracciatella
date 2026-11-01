@@ -325,11 +325,12 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 
 	// now look for the grunt
 	INT32 const seats = GetVehicleSeats(v);
-	for (INT32 i = 0;; ++i)
+	INT32 seat = 0;
+	for (;; ++seat)
 	{
-		if (i == seats) return false;
-		if (v.pPassengers[i] != &s) continue;
-		v.pPassengers[i] = 0;
+		if (seat == seats) return false;
+		if (v.pPassengers[seat] != &s) continue;
+		v.pPassengers[seat] = 0;
 		break;
 	}
 
@@ -337,7 +338,31 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 
 	s.ubGroupID      = 0;
 	s.sSector        = v.sSector;
+	bool const was_driver = s.uiStatusFlags & SOLDIER_DRIVER;
 	s.uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
+
+	// The driver got out of a ground vehicle: the passenger in the next seat
+	// takes the wheel (else nobody would be the driver until the vehicle is
+	// emptied)
+	if (was_driver && !IsHelicopter(v))
+	{
+		for (INT32 k = 1; k != seats; ++k)
+		{
+			SOLDIERTYPE* const p = v.pPassengers[(seat + k) % seats];
+			if (!p) continue;
+			p->uiStatusFlags &= ~SOLDIER_PASSENGER;
+			p->uiStatusFlags |= SOLDIER_DRIVER;
+			// selected as a passenger (passenger shooting, stage 1): the driver
+			// is not selectable on his own, the vehicle is selected instead
+			if (p == GetSelectedMan() && guiCurrentScreen == GAME_SCREEN)
+			{
+				SelectSoldier(&GetSoldierStructureForVehicle(v), SELSOLDIER_FORCE_RESELECT);
+			}
+			fInterfacePanelDirty = DIRTYLEVEL2;
+			fTeamPanelDirty      = TRUE;
+			break;
+		}
+	}
 
 	if (IsHelicopter(v))
 	{
