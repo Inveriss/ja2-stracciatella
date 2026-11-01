@@ -1363,6 +1363,16 @@ bool IsVehicleCargoSlot(SOLDIERTYPE const& s, INT8 const slot)
 }
 
 
+bool CanShootFromVehicle(SOLDIERTYPE const& s)
+{
+	if (!(s.uiStatusFlags & SOLDIER_PASSENGER) || s.uiStatusFlags & SOLDIER_DRIVER) return false;
+	if (s.iVehicleId < 0 || s.iVehicleId >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[s.iVehicleId];
+	if (!v.fValid || v.fDestroyed) return false;
+	return v.ubVehicleType != HELICOPTER && v.ubVehicleType != TANK_CAR;
+}
+
+
 bool IsHelicopterSoldier(SOLDIERTYPE const& s)
 {
 	// by the vehicle's type, so it holds for the crashed helicopter's soldier,

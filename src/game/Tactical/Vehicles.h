@@ -211,6 +211,10 @@ bool IsTankSoldier(SOLDIERTYPE const&);
 bool HasVehicleCargoSlots(SOLDIERTYPE const&);
 // a slot the vehicle can hold items in
 bool IsVehicleCargoSlot(SOLDIERTYPE const&, INT8 slot);
+// A passenger (not the driver) of a ground vehicle other than the tank: he
+// may be selected on his own and shoot from inside (passenger shooting plan,
+// docs/vehicle-passenger-shooting-plan.md)
+bool CanShootFromVehicle(SOLDIERTYPE const&);
 bool IsHummerCargoSlot(INT8 slot);
 bool IsHummerFuelSlot(INT8 slot);
 // An empty tank is filled up from the gas cans in the Hummer's fuel slots

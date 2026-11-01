@@ -3622,7 +3622,13 @@ static void SelectedMercButtonCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRea
 	// ATE: Don't if this guy can't....
 	if ( !gfSMDisableForItems )
 	{
-		if ( gpSMCurrentMerc->uiStatusFlags & ( SOLDIER_DRIVER | SOLDIER_PASSENGER ) )
+		// a passenger who may shoot from inside is selected himself (the driver
+		// still selects the vehicle)
+		if (CanShootFromVehicle(*gpSMCurrentMerc))
+		{
+			HandleLocateSelectMerc(gpSMCurrentMerc, false);
+		}
+		else if ( gpSMCurrentMerc->uiStatusFlags & ( SOLDIER_DRIVER | SOLDIER_PASSENGER ) )
 		{
 			SOLDIERTYPE& vs = GetSoldierStructureForVehicle(GetVehicle(gpSMCurrentMerc->iVehicleId));
 			HandleLocateSelectMerc(&vs, false);
@@ -5370,7 +5376,13 @@ static void MercFacePanelCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	if (!gfInItemPickupMenu && gpItemPointer == NULL)
 	{
-		if (s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER))
+		// a passenger who may shoot from inside is selected himself (the driver
+		// still selects the vehicle)
+		if (CanShootFromVehicle(*s))
+		{
+			HandleLocateSelectMerc(s, false);
+		}
+		else if (s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER))
 		{
 			SOLDIERTYPE& vs = GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId));
 			HandleLocateSelectMerc(&vs, false);
@@ -6006,6 +6018,9 @@ SOLDIERTYPE* FindNextMercInTeamPanel(SOLDIERTYPE* const prev)
 		if (!OK_CONTROLLABLE_MERC(s))            continue;
 		if (!OK_INTERRUPT_MERC(s))               continue;
 		if (s->bAssignment != prev->bAssignment) continue;
+		// aboard a vehicle: only the passengers who may shoot, of the same one
+		if (s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) &&
+			(!CanShootFromVehicle(*s) || s->iVehicleId != prev->iVehicleId)) continue;
 		if (seen_prev) return s;
 		if (!before) before = s;
 	}
