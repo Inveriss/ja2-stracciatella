@@ -1256,9 +1256,24 @@ bool IsHummerFuelSlot(INT8 const slot)
 // the tank's capacity (sBreathRed); a gas can at 100% holds half of it
 #define VEHICLE_FULL_TANK 10000
 
+static bool RefuelVehicleFromGasCans(SOLDIERTYPE& vs);
+
 bool RefuelVehicleFromGasCansIfEmpty(SOLDIERTYPE& vs)
 {
-	if (!IsHummerSoldier(vs) || vs.sBreathRed > 0) return false;
+	return vs.sBreathRed <= 0 && RefuelVehicleFromGasCans(vs);
+}
+
+
+bool TopUpVehicleFromGasCans(SOLDIERTYPE& vs)
+{
+	return RefuelVehicleFromGasCans(vs);
+}
+
+
+// fills the tank up from the fuel slots' gas cans
+static bool RefuelVehicleFromGasCans(SOLDIERTYPE& vs)
+{
+	if (!IsHummerSoldier(vs) || vs.sBreathRed >= VEHICLE_FULL_TANK) return false;
 
 	INT16 added = 0;
 	for (INT8 slot = SMALLPOCK17POS; slot <= SMALLPOCK19POS && vs.sBreathRed < VEHICLE_FULL_TANK; ++slot)

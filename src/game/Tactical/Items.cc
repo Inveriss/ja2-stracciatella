@@ -2146,10 +2146,11 @@ static BOOLEAN PlaceObjectInSlot(SOLDIERTYPE* pSoldier, INT8 bPos, OBJECTTYPE* p
 BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 {
 	BOOLEAN const placed = PlaceObjectInSlot(pSoldier, bPos, pObj);
-	// a gas can into the Hummer's fuel slot: an empty tank gets it at once
+	// a gas can into the Hummer's fuel slot: a tank not yet full gets it at
+	// once, up to full
 	if (IsHummerFuelSlot(bPos) && IsHummerSoldier(*pSoldier))
 	{
-		RefuelVehicleFromGasCansIfEmpty(*pSoldier);
+		TopUpVehicleFromGasCans(*pSoldier);
 	}
 	return placed;
 }

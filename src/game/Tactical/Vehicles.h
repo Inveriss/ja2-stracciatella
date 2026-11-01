@@ -203,6 +203,8 @@ bool IsHummerFuelSlot(INT8 slot);
 // (top to bottom, a stack's last can first; empty cans go), with a message.
 // True if any fuel went in.
 bool RefuelVehicleFromGasCansIfEmpty(SOLDIERTYPE& vs);
+// ... and a tank not yet full, when a can is put into a fuel slot
+bool TopUpVehicleFromGasCans(SOLDIERTYPE& vs);
 
 void InitVehicles(void);
 
