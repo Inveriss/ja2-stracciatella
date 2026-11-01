@@ -475,6 +475,28 @@ void UILayout::recalculatePositions()
 		m_invSlotPositionMapIceTruck[slot].uX += ICETRUCK_FUEL_SHIFT_X;
 	}
 
+	// The Eldorado's panels: the ice cream truck's fuel slots and 8 cargo
+	// slots (IsEldoradoCargoSlot()) -- a column of small pockets 1-4 and one
+	// of big pockets 1-4
+	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
+	{
+		bool const fuel = SMALLPOCK17POS <= i && i <= SMALLPOCK19POS;
+		m_invSlotPositionTacEldorado[i] = m_invSlotPositionTacIceTruck[i];
+		m_invSlotPositionMapEldorado[i] = m_invSlotPositionMapIceTruck[i];
+		if (!fuel)
+		{
+			m_invSlotPositionTacEldorado[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+			m_invSlotPositionMapEldorado[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		}
+	}
+	for (INT32 row = 0; row != 4; ++row)
+	{
+		m_invSlotPositionTacEldorado[SMALLPOCK1POS + row].set(startX + 1145, tacHeliY + 15 + 55 * row);
+		m_invSlotPositionTacEldorado[BIGPOCK1POS   + row].set(startX + 1227, tacHeliY + 15 + 55 * row);
+		m_invSlotPositionMapEldorado[SMALLPOCK1POS + row].set(m_mapScreenOffsetX +  23, mapHeliY + 254 + 55 * row);
+		m_invSlotPositionMapEldorado[BIGPOCK1POS   + row].set(m_mapScreenOffsetX + 106, mapHeliY + 254 + 55 * row);
+	}
+
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);
 	else m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);

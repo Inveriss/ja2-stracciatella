@@ -199,8 +199,13 @@ bool IsHelicopterCargoSlot(INT8 slot);
 bool IsHummerSoldier(SOLDIERTYPE const&);
 // ... the ice cream truck's (the same slots, fuel too)
 bool IsIceTruckSoldier(SOLDIERTYPE const&);
-// either of them: the vehicles with those slots
+// ... the Eldorado's (8 cargo slots only: big and small pockets 1-4, and
+// the fuel slots)
+bool IsEldoradoSoldier(SOLDIERTYPE const&);
+// any of them: the vehicles with cargo and fuel slots
 bool HasVehicleCargoSlots(SOLDIERTYPE const&);
+// a slot the vehicle can hold items in
+bool IsVehicleCargoSlot(SOLDIERTYPE const&, INT8 slot);
 bool IsHummerCargoSlot(INT8 slot);
 bool IsHummerFuelSlot(INT8 slot);
 // An empty tank is filled up from the gas cans in the Hummer's fuel slots

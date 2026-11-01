@@ -2015,10 +2015,10 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos,
 	{
 		return( FALSE );
 	}
-	// ... and the Hummer and the ice cream truck in 27, their 3 fuel slots
-	// for gas cans only
+	// ... the Hummer and the ice cream truck in 27, the Eldorado in 11, their
+	// 3 fuel slots for gas cans only
 	if (HasVehicleCargoSlots(*pSoldier) &&
-		(!IsHummerCargoSlot(bPos) || (IsHummerFuelSlot(bPos) && pObj->usItem != GAS_CAN)))
+		(!IsVehicleCargoSlot(*pSoldier, bPos) || (IsHummerFuelSlot(bPos) && pObj->usItem != GAS_CAN)))
 	{
 		return( FALSE );
 	}

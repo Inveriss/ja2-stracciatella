@@ -1,0 +1,100 @@
+{
+  "comment": "ELDORADO_TACTICAL_INV_1366x768.png -- DrawHummerInventoryTexts(..., map = false) (Interface_Panels.cc), pHummerInventoryStrings. Eldorado: laid out as the ice cream truck's (no ARMAMENT, FUEL 167 px further left).",
+  "background": "Interface/ELDORADO_TACTICAL_INV_1366x768.png",
+  "defaults": {
+    "font": "FONT12ARIAL",
+    "colour": 126,
+    "shadow": 2
+  },
+  "boxes": [
+    {
+      "name": "upgrades bar",
+      "x": 265,
+      "y": 66,
+      "w": 168,
+      "h": 25
+    },
+    {
+      "name": "fuel bar",
+      "x": 481,
+      "y": 66,
+      "w": 76,
+      "h": 25
+    },
+    {
+      "name": "defense",
+      "x": 262,
+      "y": 97,
+      "w": 174,
+      "h": 52
+    },
+    {
+      "name": "engine",
+      "x": 262,
+      "y": 152,
+      "w": 174,
+      "h": 52
+    },
+    {
+      "name": "tyres",
+      "x": 262,
+      "y": 207,
+      "w": 174,
+      "h": 52
+    }
+  ],
+  "items": [
+    {
+      "text": "UPGRADES",
+      "x": 265,
+      "y": 66,
+      "w": 168,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "FUEL",
+      "x": 481,
+      "y": 66,
+      "w": 76,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "Defense",
+      "x": 262,
+      "y": 97,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Engine",
+      "x": 262,
+      "y": 152,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Tyres",
+      "x": 262,
+      "y": 207,
+      "w": 174,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    }
+  ]
+}

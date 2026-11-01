@@ -678,6 +678,8 @@ bool gfMapInvHeliPanel = false;
 static bool gfMapInvHummerPanel = false;
 // ... and the ice cream truck's (ICETRUCK_MAPINV_FILE)
 static bool gfMapInvIceTruckPanel = false;
+// ... and the Eldorado's (ELDORADO_MAPINV_FILE)
+static bool gfMapInvEldoradoPanel = false;
 
 cache_key_t GetMapInvGraphicsFilename()
 {
@@ -688,6 +690,7 @@ cache_key_t GetMapInvGraphicsFilename()
 		if (gfMapInvHeliPanel)   return INTERFACEDIR "/" HELI_MAPINV_FILE;
 		if (gfMapInvHummerPanel) return INTERFACEDIR "/" HUMMER_MAPINV_FILE;
 		if (gfMapInvIceTruckPanel) return INTERFACEDIR "/" ICETRUCK_MAPINV_FILE;
+		if (gfMapInvEldoradoPanel) return INTERFACEDIR "/" ELDORADO_MAPINV_FILE;
 		return IsMapInvBigImages()
 			? FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_1366x768.png", INTERFACEDIR "/mapinv_big_1280_720.sti" })
 			: FirstUsableInterfaceAsset({ INTERFACEDIR "/mapinv_small_1366x768.png", INTERFACEDIR "/mapinv_1280.sti" });
@@ -751,7 +754,7 @@ bool IsMapInvHeliPanel(void)
 
 bool IsMapInvVehiclePanel(void)
 {
-	return fShowInventoryFlag && (gfMapInvHeliPanel || gfMapInvHummerPanel || gfMapInvIceTruckPanel);
+	return fShowInventoryFlag && (gfMapInvHeliPanel || gfMapInvHummerPanel || gfMapInvIceTruckPanel || gfMapInvEldoradoPanel);
 }
 
 BOOLEAN MapInvBigPanelCoversBottomStrip(void)
@@ -759,7 +762,7 @@ BOOLEAN MapInvBigPanelCoversBottomStrip(void)
 	// map_screen_bottom's strip starts at MAP_SCREEN_BOTTOM - 121 (MAP_BOTTOM_Y,
 	// Map_Screen_Interface_Bottom.cc).
 	// (the helicopter's panel ends right above the strip)
-	return fShowInventoryFlag && IsMapInvBigImages() && !gfMapInvHeliPanel && !gfMapInvHummerPanel && !gfMapInvIceTruckPanel &&
+	return fShowInventoryFlag && IsMapInvBigImages() && !gfMapInvHeliPanel && !gfMapInvHummerPanel && !gfMapInvIceTruckPanel && !gfMapInvEldoradoPanel &&
 		PLAYER_INFO_Y + MAP_INV_BIG_PANEL_HEIGHT > MAP_SCREEN_BOTTOM - 121;
 }
 
@@ -875,7 +878,7 @@ static GUIButtonRef giMapInvHeliSilentButton;
 static void DefineMapInvPanelRegion()
 {
 	bool const big = IsMapInvBigImages();
-	bool   const ground_vehicle = gfMapInvHummerPanel || gfMapInvIceTruckPanel;
+	bool   const ground_vehicle = gfMapInvHummerPanel || gfMapInvIceTruckPanel || gfMapInvEldoradoPanel;
 	UINT16 const w = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_WIDTH  : ground_vehicle ? MAP_INV_HUMMER_PANEL_WIDTH  : big ? MAP_INV_BIG_PANEL_WIDTH  : INV_REGION_WIDTH;
 	UINT16 const h = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_HEIGHT : ground_vehicle ? MAP_INV_HUMMER_PANEL_HEIGHT : big ? MAP_INV_BIG_PANEL_HEIGHT : INV_REGION_HEIGHT;
 	MSYS_DefineRegion(&gMPanelRegion, INV_REGION_X, INV_REGION_Y, INV_REGION_X + w, INV_REGION_Y + h, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
@@ -4312,6 +4315,7 @@ static void InitMapInvSlotRegions()
 	if (gfMapInvHeliPanel)   LayoutInvSlotRegions(g_ui.m_invSlotPositionMapHeli, true);
 	if (gfMapInvHummerPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapHummer, true);
 	if (gfMapInvIceTruckPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapIceTruck, true);
+	if (gfMapInvEldoradoPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapEldorado, true);
 }
 
 
@@ -4426,6 +4430,15 @@ static bool WantMapInvIceTruckPanel()
 }
 
 
+// ... and the Eldorado its own
+static bool WantMapInvEldoradoPanel()
+{
+	if (!g_ui.isExtraWideStrategicScreen() || !IsMapInvBigImages()) return false;
+	SOLDIERTYPE const* const s = GetSelectedInfoChar();
+	return s && IsEldoradoSoldier(*s) && IsInterfaceAssetUsable(INTERFACEDIR "/" ELDORADO_MAPINV_FILE);
+}
+
+
 // Follows the selected character with the panel: the helicopter's own one
 // or the usual one -- its size, slots and controls laid out again when that
 // changes (also with the inventory open, when the selected character changes)
@@ -4434,10 +4447,13 @@ static void UpdateMapInvHeliPanel()
 	bool const want        = WantMapInvHeliPanel();
 	bool const want_hummer = WantMapInvHummerPanel();
 	bool const want_truck  = WantMapInvIceTruckPanel();
-	if (want == gfMapInvHeliPanel && want_hummer == gfMapInvHummerPanel && want_truck == gfMapInvIceTruckPanel) return;
+	bool const want_car    = WantMapInvEldoradoPanel();
+	if (want == gfMapInvHeliPanel && want_hummer == gfMapInvHummerPanel && want_truck == gfMapInvIceTruckPanel &&
+		want_car == gfMapInvEldoradoPanel) return;
 	gfMapInvHeliPanel     = want;
 	gfMapInvHummerPanel   = want_hummer;
 	gfMapInvIceTruckPanel = want_truck;
+	gfMapInvEldoradoPanel = want_car;
 
 	RedefineMapInvPanelRegion();
 	if (fOldShowInventoryFlag)
@@ -4515,9 +4531,10 @@ static void BltCharInvPanel(void)
 		}
 	}
 	// ... the Hummer's: its slots and texts only
-	else if (gfMapInvHummerPanel || gfMapInvIceTruckPanel)
+	// (the Eldorado's laid out as the ice cream truck's)
+	else if (gfMapInvHummerPanel || gfMapInvIceTruckPanel || gfMapInvEldoradoPanel)
 	{
-		DrawHummerInventoryTexts(guiSAVEBUFFER, PLAYER_INFO_X, PLAYER_INFO_Y, true, gfMapInvIceTruckPanel);
+		DrawHummerInventoryTexts(guiSAVEBUFFER, PLAYER_INFO_X, PLAYER_INFO_Y, true, gfMapInvIceTruckPanel || gfMapInvEldoradoPanel);
 		SetFontDestBuffer(guiSAVEBUFFER);
 	}
 	else
@@ -7487,6 +7504,7 @@ BOOLEAN ToggleMapBigImages(void)
 	gfMapInvHeliPanel   = WantMapInvHeliPanel();
 	gfMapInvHummerPanel = WantMapInvHummerPanel();
 	gfMapInvIceTruckPanel = WantMapInvIceTruckPanel();
+	gfMapInvEldoradoPanel = WantMapInvEldoradoPanel();
 
 	// The panel's click-blocking region follows the new mode's panel size --
 	// re-defined first.
@@ -7539,8 +7557,8 @@ static void CreateMapInvPanelControls(void)
 	// the helicopter's and the Hummer's panels have only the Done button: the
 	// trash can, money and key ring regions are out of the mouse's reach there
 	bool   const heli    = gfMapInvHeliPanel;
-	// (the ice cream truck's panel as the Hummer's)
-	bool   const hummer  = gfMapInvHummerPanel || gfMapInvIceTruckPanel;
+	// (the ice cream truck's and the Eldorado's panels as the Hummer's)
+	bool   const hummer  = gfMapInvHummerPanel || gfMapInvIceTruckPanel || gfMapInvEldoradoPanel;
 	bool   const vehicle = heli || hummer;
 	UINT16 const trash_x = vehicle ? INV_SLOT_HIDDEN_POS : TRASH_CAN_X;
 	UINT16 const trash_y = vehicle ? INV_SLOT_HIDDEN_POS : TRASH_CAN_Y;
@@ -7835,6 +7853,7 @@ void HandleRemovalOfPreLoadedMapGraphics( void )
 	RemoveVObject(INTERFACEDIR "/" HELI_MAPINV_FILE);
 	RemoveVObject(INTERFACEDIR "/" HUMMER_MAPINV_FILE);
 	RemoveVObject(INTERFACEDIR "/" ICETRUCK_MAPINV_FILE);
+	RemoveVObject(INTERFACEDIR "/" ELDORADO_MAPINV_FILE);
 	RemoveVObject(GetMapMiddleBackgroundGraphicsFilename());
 	RemoveVObject(guiULICONS);
 
