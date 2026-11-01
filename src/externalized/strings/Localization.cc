@@ -182,6 +182,7 @@ L10n_t::L10n_t(SGPFile * const translationFile)
 	GetArray(pWaldoHeliRepairStrings);
 	GetArray(pHummerInventoryStrings);
 	GetArray(pVehicleFuelStrings);
+	GetArray(pVehiclePassengerStrings);
 	GetString(pMapScreenJustStartedHelpText);
 	GetString(pLandMarkInSectorString);
 	GetArray(gzMercSkillText);

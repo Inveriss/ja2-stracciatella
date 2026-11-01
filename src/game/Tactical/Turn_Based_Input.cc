@@ -3096,8 +3096,12 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 	if (!sel) return 0;
 
 	// a passenger selected on his own (passenger shooting plan, stage 1) does
-	// not walk out of the vehicle; the message comes with stage 2
-	if (sel->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER)) return -3;
+	// not walk out of the vehicle (stage 2: says so)
+	if (sel->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER))
+	{
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, st_format_printf(pVehiclePassengerStrings[0], sel->name));
+		return -3;
+	}
 
 	// ATE: If we are a vehicle, no moving! -- unless it may drive (driving plan,
 	// stage 1: the Hummer and the ice cream truck out of combat, with someone

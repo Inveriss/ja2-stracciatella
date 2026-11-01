@@ -3704,8 +3704,10 @@ void ChangeSoldierStance( SOLDIERTYPE *pSoldier, UINT8 ubDesiredStance )
 {
 	UINT16 usNewState;
 
-	// Check if they are the same!
-	if ( ubDesiredStance == gAnimControl[ pSoldier->usAnimState ].ubEndHeight )
+	// Check if they are the same! -- a passenger shooting from inside stays
+	// crouched (stage 2), whatever asks him to stand
+	if ( ubDesiredStance == gAnimControl[ pSoldier->usAnimState ].ubEndHeight ||
+		(CanShootFromVehicle(*pSoldier) && ubDesiredStance != ANIM_CROUCH) )
 	{
 		// Free up from stance change
 		FreeUpNPCFromStanceChange( pSoldier );
@@ -7729,6 +7731,13 @@ BOOLEAN InternalIsValidStance(const SOLDIERTYPE* pSoldier, INT8 bDirection, INT8
 
 	// If we are a vehicle, we can only 'stand'
 	if ( ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) && bNewStance != ANIM_STAND )
+	{
+		return( FALSE );
+	}
+
+	// ... and a passenger shooting from inside only crouch (passenger
+	// shooting, stage 2)
+	if (CanShootFromVehicle(*pSoldier) && bNewStance != ANIM_CROUCH)
 	{
 		return( FALSE );
 	}

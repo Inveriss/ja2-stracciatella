@@ -2131,6 +2131,8 @@ void SelectSoldier(SOLDIERTYPE* const s, const SelSoldierFlags flags)
 	bool const shooting_passenger = s->bActive && s->bLife >= OKLIFE && s->bInSector &&
 		s->bTeam == OUR_TEAM && CanShootFromVehicle(*s);
 	if (!OK_CONTROLLABLE_MERC(s) && !shooting_passenger) return;
+	// (crouched inside, stage 2 -- also one who got in on the map screen)
+	if (shooting_passenger) CrouchShootingPassenger(*s);
 
 	// Don't do it if we don't have an interrupt
 	if (!OK_INTERRUPT_MERC(s))

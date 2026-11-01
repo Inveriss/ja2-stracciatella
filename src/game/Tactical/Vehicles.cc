@@ -273,6 +273,9 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 			// Stop from any movement.....
 			EVENT_StopMerc(&s);
 
+			// a passenger who may shoot from inside crouches
+			CrouchShootingPassenger(s);
+
 			// can't call SetCurrentSquad OR SelectSoldier in mapscreen,
 			// that will initialize interface panels!!!
 			if (guiCurrentScreen == GAME_SCREEN)
@@ -659,6 +662,12 @@ BOOLEAN ExitVehicle(SOLDIERTYPE* const s)
 
 	// Add to sector....
 	EVENT_SetSoldierPosition(s, sGridNo, SSP_NONE);
+
+	// out of the vehicle standing (a passenger crouched inside, stage 2)
+	if (gAnimControl[s->usAnimState].ubEndHeight != ANIM_STAND)
+	{
+		EVENT_InitNewSoldierAnim(s, STANDING, 0, TRUE);
+	}
 
 	// Update visiblity.....
 	HandleSight(*s, SIGHT_LOOK | SIGHT_RADIO);
@@ -1395,6 +1404,14 @@ bool CanShootFromVehicle(SOLDIERTYPE const& s)
 	VEHICLETYPE const& v = pVehicleList[s.iVehicleId];
 	if (!v.fValid || v.fDestroyed) return false;
 	return v.ubVehicleType != HELICOPTER && v.ubVehicleType != TANK_CAR;
+}
+
+
+void CrouchShootingPassenger(SOLDIERTYPE& s)
+{
+	if (!CanShootFromVehicle(s) || guiCurrentScreen != GAME_SCREEN || !s.bInSector) return;
+	if (gAnimControl[s.usAnimState].ubEndHeight == ANIM_CROUCH) return;
+	EVENT_InitNewSoldierAnim(&s, CROUCHING, 0, TRUE);
 }
 
 

@@ -1887,6 +1887,9 @@
     "pVehicleFuelStrings": [
         "The %s was refueled from gas cans."
     ],
+    "pVehiclePassengerStrings": [
+        "%s is inside the vehicle and can't walk. Use the exit button to get out."
+    ],
     "pMilitiaConfirmStrings": [
         "Eine Milizeinheit für diese Stadt zu trainieren kostet $",
         "Ausgabe genehmigen?",

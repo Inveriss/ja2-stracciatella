@@ -157,6 +157,7 @@ constexpr std::size_t pHeliLandingZoneStrings_SIZE = 3;
 constexpr std::size_t pWaldoHeliRepairStrings_SIZE = 3;
 constexpr std::size_t pHummerInventoryStrings_SIZE = 7;
 constexpr std::size_t pVehicleFuelStrings_SIZE = 1;
+constexpr std::size_t pVehiclePassengerStrings_SIZE = 1;
 constexpr std::size_t gzLaptopHelpText_SIZE = 17;
 constexpr std::size_t gzNonPersistantPBIText_SIZE = 10;
 constexpr std::size_t gzMiscString_SIZE = 5;
@@ -354,6 +355,7 @@ struct L10n_t
 	STRARRAY(pWaldoHeliRepairStrings);
 	STRARRAY(pHummerInventoryStrings);
 	STRARRAY(pVehicleFuelStrings);
+	STRARRAY(pVehiclePassengerStrings);
 	ST::string pMapScreenJustStartedHelpText;
 	ST::string pLandMarkInSectorString;
 	STRARRAY(gzMercSkillText);
