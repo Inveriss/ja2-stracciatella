@@ -27,6 +27,7 @@
 #include "Interface_Dialogue.h"
 #include "Quests.h"
 #include "Message.h"
+#include "Vehicles.h"
 #include "Isometric_Utils.h"
 #include "LOS.h"
 #include "Dialogue_Control.h"
@@ -190,6 +191,23 @@ ItemHandleResult HandleItem(SOLDIERTYPE* const s, INT16 usGridNo, const INT8 bLe
 {
 	Soldier soldier{s};
 	soldier.removePendingAction();
+
+	// a passenger shooting from inside (passenger shooting, stage 3): a gun
+	// only (nothing that would make him walk or throw), and not while the
+	// vehicle moves
+	if (CanShootFromVehicle(*s))
+	{
+		if (!GCM->getItem(usHandItem)->isGun())
+		{
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, st_format_printf(pVehiclePassengerStrings[2], s->name));
+			return ITEM_HANDLE_REFUSAL;
+		}
+		if (IsVehicleMoving(GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId))))
+		{
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, st_format_printf(pVehiclePassengerStrings[1], s->name));
+			return ITEM_HANDLE_REFUSAL;
+		}
+	}
 
 	// here is where we would set a different value if the weapon mode is on
 	// "attached weapon"

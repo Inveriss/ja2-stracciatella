@@ -65,6 +65,10 @@ void HandleHourlyUpdate()
 
 	PayOffSkyriderDebtIfAny();
 
+	// Waldo, the helicopter's mechanic in Drassen (after the mercs' repairs
+	// and Skyrider's debt)
+	HandleWaldoHelicopterRepairHourly();
+
 
 	if ( GetWorldHour() % 6 == 0 ) // 4 times a day
 	{

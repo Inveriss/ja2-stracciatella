@@ -26,6 +26,7 @@
 #include "Video.h"
 #include "UILayout.h"
 
+#include <algorithm>
 #include <string_theory/format>
 #include <string_theory/string>
 
@@ -37,6 +38,11 @@
 
 #define MSGBOX_SMALL_BUTTON_WIDTH  31
 #define MSGBOX_SMALL_BUTTON_X_SEP   8
+
+#define MSGBOX_BIG_BUTTON_WIDTH    90
+#define MSGBOX_BIG_BUTTON_HEIGHT   40
+// pixels between the two lines of a button text (1 + 3 extra)
+#define MSGBOX_BUTTON_LINE_GAP      4
 
 // old mouse x and y positions
 static SGPPoint pOldMousePosition;
@@ -80,7 +86,8 @@ static MessageBoxStyle const g_msg_box_style[] =
 	{ GREY_MERC_POPUP_BACKGROUND,   BLUE_MERC_POPUP_BORDER,   INTERFACEDIR "/msgboxgreybuttons.sti", 0, 1, 2,                 FONT_MCOLOR_WHITE, CURSOR_LAPTOP_SCREEN }, // MSG_BOX_BLUE_ON_GREY
 	{ DIALOG_MERC_POPUP_BACKGROUND, DIALOG_MERC_POPUP_BORDER, INTERFACEDIR "/popupbuttons.sti",      2, 3, FONT_MCOLOR_WHITE, DEFAULT_SHADOW,    CURSOR_NORMAL        }, // MSG_BOX_BASIC_SMALL_BUTTONS
 	{ IMP_POPUP_BACKGROUND,         DIALOG_MERC_POPUP_BORDER, INTERFACEDIR "/msgboxgreybuttons.sti", 0, 1, 2,                 FONT_MCOLOR_WHITE, CURSOR_LAPTOP_SCREEN }, // MSG_BOX_IMP_STYLE
-	{ LAPTOP_POPUP_BACKGROUND,      LAPTOP_POP_BORDER,        INTERFACEDIR "/popupbuttons.sti",      0, 1, FONT_MCOLOR_WHITE, DEFAULT_SHADOW,    CURSOR_LAPTOP_SCREEN }  // MSG_BOX_LAPTOP_DEFAULT
+	{ LAPTOP_POPUP_BACKGROUND,      LAPTOP_POP_BORDER,        INTERFACEDIR "/popupbuttons.sti",      0, 1, FONT_MCOLOR_WHITE, DEFAULT_SHADOW,    CURSOR_LAPTOP_SCREEN }, // MSG_BOX_LAPTOP_DEFAULT
+	{ DIALOG_MERC_POPUP_BACKGROUND, DIALOG_MERC_POPUP_BORDER, INTERFACEDIR "/popupbuttons.sti",      4, 5, FONT_MCOLOR_WHITE, DEFAULT_SHADOW,    CURSOR_NORMAL        }  // MSG_BOX_BASIC_BIG_BUTTONS
 };
 static_assert(NUMBER_OF_MSG_BOX_STYLES == std::size(g_msg_box_style));
 
@@ -109,7 +116,24 @@ void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiE
 	// Init message box
 	UINT16 usTextBoxWidth;
 	UINT16 usTextBoxHeight;
-	gMsgBox.box = PrepareMercPopupBox(0, style.background, style.border, str, MSGBOX_DEFAULT_WIDTH, 40, 10, 30, &usTextBoxWidth, &usTextBoxHeight);
+	bool const big_buttons{ ubStyle == MSG_BOX_BASIC_BIG_BUTTONS };
+	// the big buttons take their size from their picture
+	INT16 const btn_w{ big_buttons ? MSGBOX_BIG_BUTTON_WIDTH  : MSGBOX_BUTTON_WIDTH  };
+	INT16 const btn_h{ big_buttons ? MSGBOX_BIG_BUTTON_HEIGHT : MSGBOX_BUTTON_HEIGHT };
+	UINT16 const margin_bottom = big_buttons ? MSGBOX_BIG_BUTTON_HEIGHT + 10 : 30;
+	gMsgBox.box = PrepareMercPopupBox(0, style.background, style.border, str, MSGBOX_DEFAULT_WIDTH, 40, 10,
+		margin_bottom, &usTextBoxWidth, &usTextBoxHeight);
+	if (usFlags == MSG_BOX_FLAG_GENERIC_CANCEL)
+	{
+		// a short text: the box widens to fit its three buttons
+		UINT16 const needed = 3 * btn_w + 2 * MSGBOX_BUTTON_X_SEP + 2 * 20;
+		if (usTextBoxWidth < needed)
+		{
+			UINT16 const margin_x = 40 + (needed - usTextBoxWidth + 1) / 2;
+			gMsgBox.box = PrepareMercPopupBox(gMsgBox.box, style.background, style.border, str,
+				MSGBOX_DEFAULT_WIDTH, margin_x, 10, margin_bottom, &usTextBoxWidth, &usTextBoxHeight);
+		}
+	}
 
 	// Save height,width
 	gMsgBox.usWidth  = usTextBoxWidth;
@@ -173,17 +197,30 @@ void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiE
 	}
 
 	UINT16       x = gMsgBox.uX;
-	const UINT16 y = gMsgBox.uY + usTextBoxHeight - MSGBOX_BUTTON_HEIGHT - 10;
+	const UINT16 y = gMsgBox.uY + usTextBoxHeight - btn_h - 10;
 
 	gMsgBox.iButtonImages = LoadButtonImage(style.btn_image, style.btn_off, style.btn_on);
 
-	INT16 const dx            = MSGBOX_BUTTON_WIDTH + MSGBOX_BUTTON_X_SEP;
+	INT16 const dx            = btn_w + MSGBOX_BUTTON_X_SEP;
 
-	auto const MakeButton{ [style, y](ST::string const& text,
+	auto const MakeButton{ [style, y, btn_w, btn_h](ST::string const& text,
 		int const x, MessageBoxReturnValue const returnValue)
 	{
+		// "first line\nsecond line": the button wraps the text exactly between
+		// the two lines (the wrap width is the wider line), centred on it
+		ST::string label{ text };
+		INT16      wrap_w{ -1 };
+		ST_ssize_t const nl{ text.find("\n") };
+		if (nl != -1)
+		{
+			ST::string const line1{ text.substr(0, nl) };
+			ST::string const line2{ text.substr(nl + 1) };
+			label  = line1 + " " + line2;
+			wrap_w = std::max(StringPixLength(line1, FONT12ARIAL), StringPixLength(line2, FONT12ARIAL));
+		}
+
 		auto const btn{ CreateIconAndTextButton(
-			gMsgBox.iButtonImages, text, FONT12ARIAL,
+			gMsgBox.iButtonImages, label, FONT12ARIAL,
 			style.font_colour, style.shadow_colour,
 			style.font_colour, style.shadow_colour,
 			static_cast<INT16>(x), static_cast<INT16>(y),
@@ -196,6 +233,14 @@ void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiE
 				}
 			})};
 
+		if (wrap_w != -1)
+		{
+			UINT8 const gap{ MSGBOX_BUTTON_LINE_GAP };
+			btn->SpecifyTextWrappedWidth(wrap_w);
+			btn->SpecifyTextWrappedLineGap(gap);
+			btn->SpecifyTextOffsets((btn_w - wrap_w) / 2,
+				(btn_h - (2 * GetFontHeight(FONT12ARIAL) + gap)) / 2, TRUE);
+		}
 		btn->SetCursor(style.cursor);
 		ForceButtonUnDirty(btn);
 		return btn;
@@ -248,9 +293,16 @@ void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiE
 			break;
 
 		case MSG_BOX_FLAG_GENERIC:
-			x += (usTextBoxWidth - (MSGBOX_BUTTON_WIDTH + dx)) / 2;
+			x += (usTextBoxWidth - (btn_w + dx)) / 2;
 			gMsgBox.uiYESButton = MakeButton(gzUserDefinedButton1, x,      MSG_BOX_RETURN_YES);
 			gMsgBox.uiNOButton  = MakeButton(gzUserDefinedButton2, x + dx, MSG_BOX_RETURN_NO);
+			break;
+
+		case MSG_BOX_FLAG_GENERIC_CANCEL:
+			x += (usTextBoxWidth - (btn_w + dx * 2)) / 2;
+			gMsgBox.uiYESButton = MakeButton(gzUserDefinedButton1,        x,          MSG_BOX_RETURN_YES);
+			gMsgBox.uiNOButton  = MakeButton(gzUserDefinedButton2,        x + dx,     MSG_BOX_RETURN_NO);
+			gMsgBox.uiOKButton  = MakeButton(pMessageStrings[MSG_CANCEL], x + dx * 2, MSG_BOX_RETURN_CANCEL);
 			break;
 
 		case MSG_BOX_FLAG_YESNOLIE:
@@ -312,6 +364,7 @@ static ScreenID ExitMsgBox(MessageBoxReturnValue const ubExitCode)
 			break;
 
 		case MSG_BOX_FLAG_GENERICCONTRACT:
+		case MSG_BOX_FLAG_GENERIC_CANCEL:
 		case MSG_BOX_FLAG_YESNOLIE:
 			RemoveButton(gMsgBox.uiYESButton);
 			RemoveButton(gMsgBox.uiNOButton);
@@ -437,6 +490,7 @@ ScreenID MessageBoxScreenHandle()
 				break;
 
 			case MSG_BOX_FLAG_GENERICCONTRACT:
+			case MSG_BOX_FLAG_GENERIC_CANCEL:
 			case MSG_BOX_FLAG_YESNOLIE:
 				MarkAButtonDirty(gMsgBox.uiYESButton);
 				MarkAButtonDirty(gMsgBox.uiNOButton);
@@ -468,6 +522,10 @@ ScreenID MessageBoxScreenHandle()
 					case 'y':
 					case SDLK_RETURN: gMsgBox.bHandled = MSG_BOX_RETURN_YES; break;
 				}
+				break;
+
+			case MSG_BOX_FLAG_GENERIC_CANCEL:
+				if (InputEvent.usParam == SDLK_ESCAPE) gMsgBox.bHandled = MSG_BOX_RETURN_CANCEL;
 				break;
 
 			case MSG_BOX_FLAG_OK:
@@ -519,11 +577,16 @@ void MessageBoxScreenShutdown()
 // a basic box that don't care what screen we came from
 void DoScreenIndependantMessageBox(const ST::string& msg, MessageBoxFlags flags, MSGBOX_CALLBACK callback)
 {
+	DoScreenIndependantMessageBox(msg, flags, callback, MSG_BOX_BASIC_STYLE);
+}
+
+void DoScreenIndependantMessageBox(const ST::string& msg, MessageBoxFlags flags, MSGBOX_CALLBACK callback, MessageBoxStyleID const style)
+{
 	SGPBox const centering_rect = {0, 0, SCREEN_WIDTH, INV_INTERFACE_START_Y };
 	switch (ScreenID const screen = guiCurrentScreen)
 	{
 		case AUTORESOLVE_SCREEN:
-		case GAME_SCREEN:        DoMessageBox(                    MSG_BOX_BASIC_STYLE,    msg, screen, flags, callback, &centering_rect); break;
+		case GAME_SCREEN:        DoMessageBox(                    style,                  msg, screen, flags, callback, &centering_rect); break;
 		case LAPTOP_SCREEN:      DoLapTopSystemMessageBoxWithRect(MSG_BOX_LAPTOP_DEFAULT, msg, screen, flags, callback, &centering_rect); break;
 		case MAP_SCREEN:
 		{
@@ -532,7 +595,7 @@ void DoScreenIndependantMessageBox(const ST::string& msg, MessageBoxFlags flags,
 			// for why, and so this stays in sync with DoMapMessageBox()'s own
 			// default centering.
 			SGPBox const map_centering_rect = GetMapScreenPopupCenteringRect();
-			DoMapMessageBoxWithRect(MSG_BOX_BASIC_STYLE, msg, screen, flags, callback, &map_centering_rect);
+			DoMapMessageBoxWithRect(style, msg, screen, flags, callback, &map_centering_rect);
 			break;
 		}
 		case OPTIONS_SCREEN:     DoOptionsMessageBoxWithRect(                             msg, screen, flags, callback, &centering_rect); break;

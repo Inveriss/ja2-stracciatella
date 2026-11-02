@@ -4,6 +4,7 @@
 #include "SoundMan.h"
 #include "Timer_Control.h"
 #include "Soldier_Control.h"
+#include "Interface.h"
 #include "WorldDef.h"
 #include "Isometric_Utils.h"
 #include "Animation_Control.h"
@@ -11,6 +12,7 @@
 #include "RenderWorld.h"
 #include "Tile_Animation.h"
 #include "Merc_Entering.h"
+#include "Map_Screen_Helicopter.h"
 #include "Sound_Control.h"
 #include "Strategic.h"
 #include "StrategicMap.h"
@@ -375,6 +377,26 @@ BOOLEAN gfIngagedInDrop = FALSE;
 static ANITILE* gpHeli;
 BOOLEAN gfFirstHeliRun;
 
+// where the run's mercs are put: the sector and its entry point
+static SGPSector gHeliDropSector;
+static UINT8     gubHeliDropInsertionCode = INSERTION_CODE_NORTH;
+static INT8      gbHeliDropLevel          = 0;
+
+// ESC was already down when the run started (e.g. the map screen left with
+// it, its key up lost on the way): only a new press skips the run
+static BOOLEAN gfHeliEscHeldAtStart = FALSE;
+
+
+// one of the run's mercs onto the map
+static void PutHeliDropMercInSector(SOLDIERTYPE& s)
+{
+	// INSERTION_CODE_GRIDNO: his own spot is already in usStrategicInsertionData
+	s.ubStrategicInsertionCode = gubHeliDropInsertionCode;
+	// onto a roof: on its level before the spot is looked for
+	if (gbHeliDropLevel == SECOND_LEVEL) SetSoldierHeight(&s, ROOF_LEVEL_HEIGHT);
+	UpdateMercInSector(s, gHeliDropSector);
+}
+
 
 void ResetHeliSeats( )
 {
@@ -400,9 +422,24 @@ void AddMercToHeli(SOLDIERTYPE* const s)
 
 void StartHelicopterRun( INT16 sGridNoSweetSpot )
 {
+	StartHelicopterRunAt(sGridNoSweetSpot, SGPSector(gamepolicy(start_sector)), INSERTION_CODE_NORTH);
+}
+
+
+bool IsHelicopterRunActive()
+{
+	return gfHandleHeli;
+}
+
+
+void StartHelicopterRunAt(INT16 const sGridNoSweetSpot, SGPSector const& sector, UINT8 const insertion_code, INT8 const level)
+{
 	INT16 sX, sY;
 
-	gsGridNoSweetSpot = sGridNoSweetSpot;
+	gsGridNoSweetSpot        = sGridNoSweetSpot;
+	gHeliDropSector          = sector;
+	gubHeliDropInsertionCode = insertion_code;
+	gbHeliDropLevel          = level;
 
 	if ( gbNumHeliSeatsOccupied == 0 )
 	{
@@ -434,6 +471,7 @@ void StartHelicopterRun( INT16 sGridNoSweetSpot )
 	fFadingHeliIn = TRUE;
 
 	gfHandleHeli = TRUE;
+	gfHeliEscHeldAtStart = _KeyDown(SDLK_ESCAPE);
 
 	gfFirstGuyDown = TRUE;
 
@@ -459,15 +497,16 @@ void HandleHeliDrop( )
 			guiPendingOverrideEvent = LU_BEGINUILOCK;
 		}
 
-		if (_KeyDown(SDLK_ESCAPE))
+		BOOLEAN const esc = _KeyDown(SDLK_ESCAPE);
+		if (!esc) gfHeliEscHeldAtStart = FALSE;
+		if (esc && !gfHeliEscHeldAtStart)
 		{
 			// Loop through all mercs not yet placed
 			for ( cnt = gbCurDrop; cnt < gbNumHeliSeatsOccupied; cnt++ )
 			{
 				// Add merc to sector
 				SOLDIERTYPE& s = *gHeliSeats[cnt];
-				s.ubStrategicInsertionCode = INSERTION_CODE_NORTH;
-				UpdateMercInSector(s, SGPSector(gamepolicy(start_sector)));
+				PutHeliDropMercInSector(s);
 
 				// Check for merc arrives quotes...
 				HandleMercArrivesQuotes(s);
@@ -501,6 +540,7 @@ void HandleHeliDrop( )
 			//UIHandleLUIEndLock( NULL );
 
 			HandleFirstHeliDropOfGame( );
+			HelicopterRunFinished();
 			return;
 
 		}
@@ -548,6 +588,7 @@ void HandleHeliDrop( )
 						RebuildCurrentSquad( );
 
 						HandleFirstHeliDropOfGame( );
+						HelicopterRunFinished();
 					}
 				}
 				else
@@ -563,6 +604,7 @@ void HandleHeliDrop( )
 					RebuildCurrentSquad( );
 
 					HandleFirstHeliDropOfGame( );
+					HelicopterRunFinished();
 				}
 			}
 
@@ -594,9 +636,7 @@ void HandleHeliDrop( )
 						EVENT_InitNewSoldierAnim(&s, HELIDROP, 0 , FALSE);
 
 						// Change insertion code
-						s.ubStrategicInsertionCode = INSERTION_CODE_NORTH;
-
-						UpdateMercInSector(s, SGPSector(gamepolicy(start_sector)));
+						PutHeliDropMercInSector(s);
 
 						// IF the first guy down, set squad!
 						if ( gfFirstGuyDown )

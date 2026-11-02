@@ -1670,10 +1670,32 @@ INT8 FindAmmoToReload( const SOLDIERTYPE * pSoldier, INT8 bWeaponIn, INT8 bExclu
 	return NO_SLOT;
 }
 
+OBJECTTYPE* FindAmmoObjToReload(SOLDIERTYPE* const pSoldier, INT8 const bWeaponIn, INT8 const bExcludeSlot)
+{
+	INT8 const bSlot = FindAmmoToReload(pSoldier, bWeaponIn, bExcludeSlot);
+	if (bSlot != NO_SLOT) return &pSoldier->inv[bSlot];
+	if (!pSoldier || !CanShootFromVehicle(*pSoldier)) return NULL;
+
+	// a gun's ammo, searched for as in FindAmmoToReload(), in the cargo
+	OBJECTTYPE const& gun = pSoldier->inv[bWeaponIn];
+	auto item = GCM->getItem(gun.usItem, ItemSystem::nothrow);
+	if (!item || !item->isWeapon()) return NULL;
+	auto weapon = item->asWeapon();
+	if (weapon->getItemClass() != IC_GUN || weapon->shootsExplosiveCalibre()) return NULL;
+
+	SOLDIERTYPE& vs = GetSoldierStructureForVehicle(GetVehicle(pSoldier->iVehicleId));
+	INT8 vSlot = gun.usGunAmmoItem != NOTHING ? FindObjExcludingSlot(&vs, gun.usGunAmmoItem, NO_SLOT) : NO_SLOT;
+	if (vSlot == NO_SLOT) vSlot = FindAmmo(&vs, weapon->calibre, weapon->ubMagSize, NO_SLOT);
+	if (vSlot == NO_SLOT) vSlot = FindAmmo(&vs, weapon->calibre, ANY_MAGSIZE, NO_SLOT);
+	if (vSlot == NO_SLOT || !IsVehicleCargoSlot(vs, vSlot) || IsHummerFuelSlot(vSlot)) return NULL;
+	return &vs.inv[vSlot];
+}
+
+
 BOOLEAN AutoReload( SOLDIERTYPE * pSoldier )
 {
 	OBJECTTYPE *pObj;
-	INT8    bSlot, bAPCost;
+	INT8    bAPCost;
 	BOOLEAN fRet;
 
 	CHECKF( pSoldier );
@@ -1681,25 +1703,26 @@ BOOLEAN AutoReload( SOLDIERTYPE * pSoldier )
 
 	if (GCM->getItem(pObj->usItem)->getItemClass() == IC_GUN || GCM->getItem(pObj->usItem)->getItemClass() == IC_LAUNCHER)
 	{
-		bSlot = FindAmmoToReload( pSoldier, HANDPOS, NO_SLOT );
-		if (bSlot != NO_SLOT)
+		// (a passenger shooting from inside: from the vehicle's cargo, too)
+		OBJECTTYPE* pAmmo = FindAmmoObjToReload( pSoldier, HANDPOS, NO_SLOT );
+		if (pAmmo != NULL)
 		{
 			// reload using this ammo!
-			fRet = ReloadGun( pSoldier, pObj, &(pSoldier->inv[bSlot]) );
+			fRet = ReloadGun( pSoldier, pObj, pAmmo );
 			// if we are valid for two-pistol shooting (reloading) and we have enough APs still
 			// then do a reload of both guns!
 			if (fRet && IsValidSecondHandShotForReloadingPurposes(pSoldier))
 			{
 				pObj = &(pSoldier->inv[SECONDHANDPOS]);
-				bSlot = FindAmmoToReload( pSoldier, SECONDHANDPOS, NO_SLOT );
-				if (bSlot != NO_SLOT)
+				pAmmo = FindAmmoObjToReload( pSoldier, SECONDHANDPOS, NO_SLOT );
+				if (pAmmo != NULL)
 				{
 					// ce would reload using this ammo!
-					bAPCost = GetAPsToReloadGunWithAmmo( pObj, &(pSoldier->inv[bSlot] ) );
+					bAPCost = GetAPsToReloadGunWithAmmo( pObj, pAmmo );
 					if ( EnoughPoints( pSoldier, (INT16) bAPCost, 0, FALSE ) )
 					{
 						// reload the 2nd gun too
-						fRet = ReloadGun( pSoldier, pObj, &(pSoldier->inv[bSlot]) );
+						fRet = ReloadGun( pSoldier, pObj, pAmmo );
 					}
 					else
 					{
@@ -1709,6 +1732,8 @@ BOOLEAN AutoReload( SOLDIERTYPE * pSoldier )
 			}
 
 			DirtyMercPanelInterface( pSoldier, DIRTYLEVEL2 );
+			// (the vehicle's cargo may have changed)
+			fInterfacePanelDirty = DIRTYLEVEL2;
 			return( fRet );
 		}
 	}
@@ -2010,6 +2035,18 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos,
 	{
 		return( FALSE );
 	}
+	// ... and the helicopter in 8 of them
+	if (IsHelicopterSoldier(*pSoldier) && !IsHelicopterCargoSlot(bPos))
+	{
+		return( FALSE );
+	}
+	// ... the Hummer in 18, the ice cream truck in 14, the Eldorado in 10, the
+	// Jeep in 8, the tank in 10, their fuel slots for gas cans only
+	if (HasVehicleCargoSlots(*pSoldier) &&
+		(!IsVehicleCargoSlot(*pSoldier, bPos) || (IsHummerFuelSlot(bPos) && pObj->usItem != GAS_CAN)))
+	{
+		return( FALSE );
+	}
 
 	auto item = GCM->getItem(pObj->usItem);
 	switch( bPos )
@@ -2130,7 +2167,22 @@ static void CollectKey(SOLDIERTYPE const& s, OBJECTTYPE const& o)
 }
 
 
+static BOOLEAN PlaceObjectInSlot(SOLDIERTYPE* pSoldier, INT8 bPos, OBJECTTYPE* pObj);
+
 BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
+{
+	BOOLEAN const placed = PlaceObjectInSlot(pSoldier, bPos, pObj);
+	// a gas can into the Hummer's fuel slot: a tank not yet full gets it at
+	// once, up to full
+	if (IsHummerFuelSlot(bPos) && HasVehicleCargoSlots(*pSoldier))
+	{
+		TopUpVehicleFromGasCans(*pSoldier);
+	}
+	return placed;
+}
+
+
+static BOOLEAN PlaceObjectInSlot(SOLDIERTYPE* pSoldier, INT8 bPos, OBJECTTYPE* pObj)
 {
 	// returns object to have in hand after placement... same as original in the
 	// case of error

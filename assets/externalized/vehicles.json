@@ -15,7 +15,9 @@
  * - seats: Maximum number of soldiers allowed in the vehicle. Must not be greater than 10.
  * - repairPointsDivisor: Repair points that restore one point of the vehicle's condition (1-100, default 10).
  * - slotLimitMultiplier: The vehicle's cargo pockets hold this many times a merc's limit of an item (1-100, default 1); not for weapons, brass knuckles or money.
- * - tacticalFuelPerTile: Fuel (of 10000, a full tank) one tile of driving on the tactical map costs on a road, twice that off the road (0-100, default 2).
+ * - tacticalFuelPer100Tiles: Fuel (of 10000, a full tank) 100 tiles of driving on the tactical map cost on a road, twice that off the road (0-10000, default 200).
+ * - travelTimePerSector: Minutes a CAR vehicle takes for a road sector on the strategic map (1-200, default 30); through a town always 5.
+ * - fuelPerTravelMinute: Fuel (of 10000, a full tank) one minute of travel on the strategic map costs (0-100, default 6).
  */
 [
     // Eldorado (unused)
@@ -24,11 +26,13 @@
         "moveSound": "sounds/driving 01.wav", // S_VECH1_MOVE
         "profile": "PROF_ELDERODO",
         "movementType": "CAR",
-        "armourType": "KEVLAR_VEST",
+        "armourType": "KEVLAR2_VEST_Y",
         "seats": 6,
-        "repairPointsDivisor": 10,
+        "repairPointsDivisor": 8,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 400,
+        "travelTimePerSector": 20,
+        "fuelPerTravelMinute": 18
     },
     // Hummer
     {
@@ -36,11 +40,13 @@
         "moveSound": "sounds/driving 01.wav",
         "profile": "PROF_HUMMER",
         "movementType": "CAR",
-        "armourType": "SPECTRA_VEST",
+        "armourType": "SPECTRA_VEST_Y",
         "seats": 6,
         "repairPointsDivisor": 10,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 200,
+        "travelTimePerSector": 30,
+        "fuelPerTravelMinute": 6
     },
     // Ice cream truck
     {
@@ -48,35 +54,41 @@
         "moveSound": "sounds/driving 01.wav",
         "profile": "PROF_ICECREAM",
         "movementType": "CAR",
-        "armourType": "KEVLAR_VEST",
+        "armourType": "FLAK_JACKET_Y",
         "seats": 6,
-        "repairPointsDivisor": 8,
+        "repairPointsDivisor": 4,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 133,
+        "travelTimePerSector": 40,
+        "fuelPerTravelMinute": 3
     },
     // Jeep (unused)
     {
         "enterSound": "sounds/into vehicle.wav",
         "moveSound": "sounds/driving 01.wav",
-        "profile": "NPC164",
+        "profile": "PROF_JEEP",
         "movementType": "CAR",
-        "armourType": "KEVLAR_VEST",
+        "armourType": "KEVLAR_VEST_Y",
         "seats":  6,
-        "repairPointsDivisor": 10,
+        "repairPointsDivisor": 6,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 200,
+        "travelTimePerSector": 30,
+        "fuelPerTravelMinute": 6
     },
     // Tank (unused)
     {
         "enterSound": "sounds/into vehicle.wav",
         "moveSound": "sounds/driving 01.wav",
-        "profile": "NPC164",
+        "profile": "PROF_TANK",
         "movementType": "CAR",
         "armourType": "SPECTRA_VEST",
         "seats": 6,
-        "repairPointsDivisor": 10,
+        "repairPointsDivisor": 12,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 800,
+        "travelTimePerSector": 60,
+        "fuelPerTravelMinute": 12
     },
     // Helicopter
     {
@@ -88,6 +100,6 @@
         "seats":6,
         "repairPointsDivisor": 12,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 200
     }
 ]

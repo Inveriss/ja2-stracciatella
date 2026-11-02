@@ -1,4 +1,5 @@
 #include "Interface_Panels.h"
+#include "SaveLoadGameStates.h"
 #include "AIMSort.h"
 #include "Animation_Control.h"
 #include "Assignments.h"
@@ -16,6 +17,8 @@
 #include "Font.h"
 #include "Font_Control.h"
 #include "GameInstance.h"
+#include "ArmourModel.h"
+#include "VehicleModel.h"
 #include "GamePolicy.h"
 #include "GameScreen.h"
 #include "GameSettings.h"
@@ -42,6 +45,7 @@
 #include "Map_Screen_Interface.h"
 #include "Map_Screen_Interface_Bottom.h"
 #include "Map_Screen_Helicopter.h"
+#include "Strategic_Movement.h"
 #include "MercPortrait.h"
 #include "Message.h"
 #include "MessageBoxScreen.h"
@@ -519,6 +523,32 @@ GUIButtonRef iTEAMPanelButtons[NUM_TEAM_BUTTONS];
 
 // Video Surface for Single Merc Panel
 static SGPVSurface* guiSMPanel;
+// The helicopter's own big SM panel (HELI_SMPANEL_FILE, UILayout.h) -- only
+// with the big SM panel, and when its file is there
+static SGPVSurface* guiSMPanelHeli;
+// ... and the Hummer's (HUMMER_SMPANEL_FILE), the same way
+static SGPVSurface* guiSMPanelHummer;
+// ... and the ice cream truck's (ICETRUCK_SMPANEL_FILE)
+static SGPVSurface* guiSMPanelIceTruck;
+// ... and the Eldorado's (ELDORADO_SMPANEL_FILE)
+static SGPVSurface* guiSMPanelEldorado;
+// ... and the Jeep's (JEEP_SMPANEL_FILE)
+static SGPVSurface* guiSMPanelJeep;
+// ... and the tank's (TANK_SMPANEL_FILE)
+static SGPVSurface* guiSMPanelTank;
+// Its check boxes (sector_inventory_popupcheck.sti 4 unchecked / 6
+// checked), for now each only showing or hiding the lines under it: the one
+// under "Allow Landing in Enemy Sectors" the two landing places and the
+// damage risk, the one next to "Waldo:" his three repair lines. Unchecked in a new game, saved with
+// the game (g_gameStates; a save without them loads them unchecked).
+// The map's inventory panel has its own two (MapScreen.cc), sharing this state.
+static GUIButtonRef giSMHeliCheckbox[NUM_HELI_INV_CHECKS];
+static bool         gfSMHeliChecked[NUM_HELI_INV_CHECKS];
+static ST::string const gHeliSMCheckKeys[NUM_HELI_INV_CHECKS] =
+{
+	"HeliInventory::enemyLanding",
+	"HeliInventory::waldo"
+};
 static SGPVObject* guiSMObjects;
 static SGPVObject* guiSMObjects2;
 
@@ -892,11 +922,471 @@ void CheckForDisabledForGiveItem(void)
 static void UpdateSMPanel();
 
 
+// The helicopter panels' texts (pHeliInventoryStrings), in the fonts and
+// colours of the big weapon box (iteminfoc_weapons_big): the headers
+// FONT14HUMANIST in the colour of its values, the titles FONT14ARIAL and the
+// lines FONT12ARIAL in the colour of its labels. On the tactical panel drawn
+// onto guiSMPanelHeli (again when a check box changes), on the strategic one
+// with the rest of the merc inventory panel. Tactical panel coordinates (the
+// top 37 px are the bookmark strip) -- see
+// tools/interface_preview/layouts/heli_tactical_inv_1366x768.json and
+// heli_strategic_inv_1366x768.json.
+#define HELI_SM_TEXT_LABEL_COLOUR  126
+#define HELI_SM_TEXT_HEADER_COLOUR FONT_BEIGE
+
+enum
+{
+	HELI_SM_TXT_UPGRADES = 0,
+	HELI_SM_TXT_BLADES,
+	HELI_SM_TXT_ENGINE,
+	HELI_SM_TXT_DEFENSE,
+	HELI_SM_TXT_FLIGHT_OPERATIONS,
+	HELI_SM_TXT_LANDING_OPTIONS,
+	HELI_SM_TXT_ENEMY_SECTORS,
+	HELI_SM_TXT_MAP_EDGES,      // label, then its price
+	HELI_SM_TXT_MAP_EDGES_COST,
+	HELI_SM_TXT_ANYWHERE,
+	HELI_SM_TXT_ANYWHERE_COST,
+	HELI_SM_TXT_DAMAGE_RISK,    // label, then its value
+	HELI_SM_TXT_DAMAGE_RISK_VALUE,
+	HELI_SM_TXT_FLIGHT_STATUS,
+	HELI_SM_TXT_FLIGHT_SPEED,   // five label / value pairs
+	HELI_SM_TXT_FLIGHT_SPEED_VALUE,
+	HELI_SM_TXT_SAM_HIT,
+	HELI_SM_TXT_SAM_HIT_VALUE,
+	HELI_SM_TXT_MINIMUM_HP,
+	HELI_SM_TXT_MINIMUM_HP_VALUE,
+	HELI_SM_TXT_FORCED_RETURN,
+	HELI_SM_TXT_FORCED_RETURN_VALUE,
+	HELI_SM_TXT_CRASH,
+	HELI_SM_TXT_CRASH_VALUE,
+	HELI_SM_TXT_MAINTENANCE,
+	HELI_SM_TXT_WHO_CAN_REPAIR,
+	HELI_SM_TXT_MERCENARIES,
+	HELI_SM_TXT_WALDO,
+	HELI_SM_TXT_WALDO_DRASSEN,  // Waldo's three indented label / value pairs
+	HELI_SM_TXT_WALDO_DRASSEN_VALUE,
+	HELI_SM_TXT_WALDO_RATE,
+	HELI_SM_TXT_WALDO_RATE_VALUE,
+	HELI_SM_TXT_WALDO_COST,
+	HELI_SM_TXT_WALDO_COST_VALUE
+};
+
+// The blocks' places on the strategic panel (heli_strategic_inv_1366x768.png):
+// the same boxes as on the tactical one, each block moved -- these are added
+// to the tactical panel's coordinates.
+struct HeliInvBlockShift { INT16 x, y; };
+static HeliInvBlockShift const g_heli_map_upgrades    = { -235,  -36 };
+static HeliInvBlockShift const g_heli_map_flight      = { -451,  201 };
+static HeliInvBlockShift const g_heli_map_maintenance = { -694,  -36 };
+
+// The check boxes' tactical panel positions, and the blocks they are in
+static INT16 const gHeliSMCheckboxX[NUM_HELI_INV_CHECKS] = { 567, 994 };
+static INT16 const gHeliSMCheckboxY[NUM_HELI_INV_CHECKS] = { 165, 162 };
+
+void GetHeliInventoryCheckboxPos(INT32 const check, bool const map, INT16* const x, INT16* const y)
+{
+	HeliInvBlockShift const shift = !map ? HeliInvBlockShift{ 0, 0 } :
+		check == HELI_INV_CHECK_ENEMY_LANDING ? g_heli_map_flight : g_heli_map_maintenance;
+	*x = gHeliSMCheckboxX[check] + shift.x;
+	*y = gHeliSMCheckboxY[check] + shift.y;
+}
+
+
+void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const y0, bool const map)
+{
+	SetFontDestBuffer(dst);
+	INT16 x;
+	INT16 y;
+
+	// the tactical panel's coordinates; on the map moved with their block
+	HeliInvBlockShift const none{ 0, 0 };
+	HeliInvBlockShift const up = map ? g_heli_map_upgrades    : none;
+	HeliInvBlockShift const fl = map ? g_heli_map_flight      : none;
+	HeliInvBlockShift const mt = map ? g_heli_map_maintenance : none;
+
+	// centred in a box, both ways
+	auto const centred = [&](INT32 const i, SGPFont const font, HeliInvBlockShift const b, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
+	{
+		ST::string const& str = pHeliInventoryStrings[i];
+		FindFontCenterCoordinates(x0 + b.x + bx, y0 + b.y + by, bw, bh, str, font, &x, &y);
+		MPrint(x, y, str);
+	};
+	// centred across a box, at a given height
+	auto const title = [&](INT32 const i, HeliInvBlockShift const b, INT16 const bx, INT16 const bw, INT16 const ty)
+	{
+		ST::string const& str = pHeliInventoryStrings[i];
+		MPrint(x0 + b.x + bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, y0 + b.y + ty, str);
+	};
+	auto const line = [&](INT32 const i, HeliInvBlockShift const b, INT16 const lx, INT16 const ly)
+	{
+		MPrint(x0 + b.x + lx, y0 + b.y + ly, pHeliInventoryStrings[i]);
+	};
+	// a label, and its value right-aligned to x + w (10 px from the wall)
+	auto const label_value_of = [&](INT32 const i, HeliInvBlockShift const b, INT16 const lx, INT16 const w, INT16 const ly, ST::string const& value)
+	{
+		line(i, b, lx, ly);
+		FindFontRightCoordinates(x0 + b.x + lx, y0 + b.y + ly, w, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
+		MPrint(x, y0 + b.y + ly, value);
+	};
+	auto const label_value = [&](INT32 const i, HeliInvBlockShift const b, INT16 const lx, INT16 const w, INT16 const ly)
+	{
+		label_value_of(i, b, lx, w, ly, pHeliInventoryStrings[i + 1]);
+	};
+
+	// the headers, in the title bars
+	SetFontAttributes(FONT14HUMANIST, HELI_SM_TEXT_HEADER_COLOUR);
+	centred(HELI_SM_TXT_UPGRADES,          FONT14HUMANIST, up, 265, 66, 168, 25);
+	centred(HELI_SM_TXT_FLIGHT_OPERATIONS, FONT14HUMANIST, fl, 481, 66, 411, 25);
+	centred(HELI_SM_TXT_MAINTENANCE,       FONT14HUMANIST, mt, 940, 66, 164, 25);
+
+	// upgrades: one in each of the three 174x52 boxes; the section titles
+	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	for (INT32 i = 0; i != 3; ++i)
+	{
+		centred(HELI_SM_TXT_BLADES + i, FONT14ARIAL, up, 262, 97 + 55 * i, 174, 52);
+	}
+	title(HELI_SM_TXT_LANDING_OPTIONS, fl, 481, 188, 117);
+	title(HELI_SM_TXT_FLIGHT_STATUS,   fl, 685, 207, 117);
+	title(HELI_SM_TXT_WHO_CAN_REPAIR,  mt, 940, 164, 117);
+
+	SetFontAttributes(FONT12ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	// landing options (box 481,107 188x148): the enemy sectors option centred,
+	// its check box under it, the two landing places at the bottom
+	ST::string const& enemy = pHeliInventoryStrings[HELI_SM_TXT_ENEMY_SECTORS];
+	MPrint(x0 + fl.x + 481 + (188 - StringPixLength(enemy, FONT12ARIAL)) / 2, y0 + fl.y + 143, enemy);
+	// ... those three only while its check box is checked
+	if (gfSMHeliChecked[HELI_INV_CHECK_ENEMY_LANDING])
+	{
+		label_value_of(HELI_SM_TXT_MAP_EDGES,   fl, 491, 168, 193,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_MAP_EDGES_COST], SPrintMoney(COST_HELI_LANDING_MAP_EDGES)));
+		label_value_of(HELI_SM_TXT_ANYWHERE,    fl, 491, 168, 213,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_ANYWHERE_COST], SPrintMoney(COST_HELI_LANDING_ANYWHERE)));
+		label_value_of(HELI_SM_TXT_DAMAGE_RISK, fl, 491, 168, 233,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_DAMAGE_RISK_VALUE], HELI_ENEMY_LANDING_DAMAGE_CHANCE));
+	}
+
+	// flight status (box 685,107 207x148)
+	// (all the values from the constants the helicopter's code uses)
+	label_value_of(HELI_SM_TXT_FLIGHT_SPEED,  fl, 695, 187, 143,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_FLIGHT_SPEED_VALUE], AIR_TRAVEL_TIME));
+	label_value_of(HELI_SM_TXT_SAM_HIT,       fl, 695, 187, 165,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_SAM_HIT_VALUE], HELI_SAM_HIT_DAMAGE));
+	label_value_of(HELI_SM_TXT_MINIMUM_HP,    fl, 695, 187, 195,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_MINIMUM_HP_VALUE], GetHelicopterFlightMinCondition()));
+	label_value_of(HELI_SM_TXT_FORCED_RETURN, fl, 695, 187, 215,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_FORCED_RETURN_VALUE],
+			HELI_MAJOR_DAMAGE_MIN_CONDITION, HELI_MINOR_DAMAGE_MIN_CONDITION - 1));
+	label_value_of(HELI_SM_TXT_CRASH,         fl, 695, 187, 235,
+		st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_CRASH_VALUE], HELI_MAJOR_DAMAGE_MIN_CONDITION));
+
+	// maintenance (box 940,107 164x148): Waldo's lines 22 px apart, indented
+	line(HELI_SM_TXT_MERCENARIES, mt, 950, 140);
+	line(HELI_SM_TXT_WALDO,       mt, 950, 165);
+	// ... the three of them only while the check box next to "Waldo:" is checked
+	if (gfSMHeliChecked[HELI_INV_CHECK_WALDO])
+	{
+		label_value(HELI_SM_TXT_WALDO_DRASSEN, mt, 960, 134, 187);
+		// his rate and price from the very constants his work uses
+		label_value_of(HELI_SM_TXT_WALDO_RATE, mt, 960, 134, 209,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_WALDO_RATE_VALUE], WALDO_HELI_REPAIR_PER_HOUR));
+		label_value_of(HELI_SM_TXT_WALDO_COST, mt, 960, 134, 231,
+			st_format_printf(pHeliInventoryStrings[HELI_SM_TXT_WALDO_COST_VALUE], WALDO_HELI_REPAIR_COST));
+	}
+
+	SetFontDestBuffer(FRAME_BUFFER);
+}
+
+
+// The panels' texts below are in tactical panel coordinates; on the strategic
+// panels (hummer_strategic_inv_1366x768.png, ...) every block is moved by the
+// same amount.
+#define HUMMER_MAP_SHIFT_X  (-235)
+#define HUMMER_MAP_SHIFT_Y  (-36)
+
+// The texts of the panels with the narrower UPGRADES block and the common
+// VEHICLE DETAILS block: the Hummer's, the ice cream truck's, the Jeep's, the
+// Eldorado's, the tank's
+void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map, UINT8 const vehicle_type)
+{
+	VehicleModel const* const model = GCM->getVehicle(vehicle_type);
+
+	SetFontDestBuffer(dst);
+	if (map)
+	{
+		x0 += HUMMER_MAP_SHIFT_X;
+		y0 += HUMMER_MAP_SHIFT_Y;
+	}
+
+	// centred in a box, both ways
+	auto const centred = [&](INT32 const i, SGPFont const font, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
+	{
+		ST::string const& str = pHummerInventoryStrings[i];
+		INT16 x;
+		INT16 y;
+		FindFontCenterCoordinates(x0 + bx, y0 + by, bw, bh, str, font, &x, &y);
+		MPrint(x, y, str);
+	};
+	// centred across a box, at a given height
+	auto const title = [&](INT32 const i, INT16 const bx, INT16 const bw)
+	{
+		ST::string const& str = pHummerInventoryStrings[i];
+		MPrint(x0 + bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, y0 + 112, str);
+	};
+
+	// the headers, in the title bars: Upgrades, Vehicle Details
+	SetFontAttributes(FONT14HUMANIST, HELI_SM_TEXT_HEADER_COLOUR);
+	centred(0, FONT14HUMANIST, 265, 66, 124, 25);
+	centred(7, FONT14HUMANIST, 437, 66, 406, 25);
+
+	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	// the upgrades: one in each of the three 130x52 boxes (the tank: Tracks in
+	// place of Tyres)
+	for (INT32 i = 0; i != 3; ++i)
+	{
+		centred(i == 2 && vehicle_type == TANK_CAR ? 6 : 1 + i, FONT14ARIAL, 262, 97 + 55 * i, 130, 52);
+	}
+	// the two boxes' titles, and in Systems its fields
+	title(8, 434, 189);
+	title(9, 633, 213);
+	centred(10, FONT14ARIAL, 453, 136, 157, 52);
+	centred(5,  FONT14ARIAL, 453, 198,  74, 52);
+	centred(5,  FONT14ARIAL, 536, 198,  74, 52);
+
+	// Specification (box 633,99 213x159): a label, and its value right-aligned
+	// 10 px from the wall
+	SetFontAttributes(FONT12ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	auto const label_value = [&](INT32 const i, INT16 const ly, ST::string const& value)
+	{
+		MPrint(x0 + 643, y0 + ly, pHummerInventoryStrings[i]);
+		if (value.empty()) return;
+		INT16 x;
+		INT16 y;
+		FindFontRightCoordinates(x0 + 643, y0 + ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
+		MPrint(x, y0 + ly, value);
+	};
+	label_value(11, 136, pHummerInventoryStrings[vehicle_type == ICE_CREAM_TRUCK ? 19 : vehicle_type == JEEP_CAR ? 20 : vehicle_type == ELDORADO_CAR ? 21 : vehicle_type == TANK_CAR ? 22 : 12]);
+	// (from the constant its travel uses)
+	label_value(13, 167, st_format_printf(pHummerInventoryStrings[14], static_cast<INT32>(model->travel_time_per_sector)));
+	// the sectors outside towns a full tank lasts for, the last one reached
+	// with what is left (through towns it lasts longer)
+	INT32 const fuel_per_sector = model->travel_time_per_sector * model->fuel_per_travel_minute;
+	label_value(15, 187, st_format_printf(pHummerInventoryStrings[18], (VEHICLE_FULL_TANK + fuel_per_sector - 1) / fuel_per_sector));
+	// the protection of its armour (vehicles.json), which stops the bullets
+	label_value(16, 219, ST::format("{}", GCM->getArmour(model->armour_type)->getProtection()));
+	// its repair points per point of condition (vehicles.json), shown negative
+	// like a weapon's Repair Ease: the lower, the harder to repair
+	label_value(17, 239, ST::format("{}", -static_cast<INT32>(model->repair_points_divisor)));
+
+	SetFontDestBuffer(FRAME_BUFFER);
+}
+
+
+// The Hummer's panel surface: its graphic and texts
+static void BuildHummerSMPanelSurface()
+{
+	guiSMPanelHummer->Fill(0);
+	AutoSGPVObject const hummer_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HUMMER_SMPANEL_FILE) };
+	BltVideoObject(guiSMPanelHummer, hummer_panel.get(), 0, 0, 0);
+	DrawHummerDetailsTexts(guiSMPanelHummer, 0, 0, false, HUMMER);
+}
+
+
+// The ice cream truck's panel surface
+static void BuildIceTruckSMPanelSurface()
+{
+	guiSMPanelIceTruck->Fill(0);
+	AutoSGPVObject const truck_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" ICETRUCK_SMPANEL_FILE) };
+	BltVideoObject(guiSMPanelIceTruck, truck_panel.get(), 0, 0, 0);
+	DrawHummerDetailsTexts(guiSMPanelIceTruck, 0, 0, false, ICE_CREAM_TRUCK);
+}
+
+
+// The Eldorado's panel surface (laid out as the Hummer's)
+static void BuildEldoradoSMPanelSurface()
+{
+	guiSMPanelEldorado->Fill(0);
+	AutoSGPVObject const car_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" ELDORADO_SMPANEL_FILE) };
+	BltVideoObject(guiSMPanelEldorado, car_panel.get(), 0, 0, 0);
+	DrawHummerDetailsTexts(guiSMPanelEldorado, 0, 0, false, ELDORADO_CAR);
+}
+
+
+// The Jeep's panel surface (laid out as the Hummer's)
+static void BuildJeepSMPanelSurface()
+{
+	guiSMPanelJeep->Fill(0);
+	AutoSGPVObject const jeep_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" JEEP_SMPANEL_FILE) };
+	BltVideoObject(guiSMPanelJeep, jeep_panel.get(), 0, 0, 0);
+	DrawHummerDetailsTexts(guiSMPanelJeep, 0, 0, false, JEEP_CAR);
+}
+
+
+// The tank's panel surface (laid out as the Hummer's, Tracks in place of
+// Tyres)
+static void BuildTankSMPanelSurface()
+{
+	guiSMPanelTank->Fill(0);
+	AutoSGPVObject const tank_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" TANK_SMPANEL_FILE) };
+	BltVideoObject(guiSMPanelTank, tank_panel.get(), 0, 0, 0);
+	DrawHummerDetailsTexts(guiSMPanelTank, 0, 0, false, TANK_CAR);
+}
+
+
+// The helicopter's panel surface: its graphic and texts -- again after the
+// check box changes what is shown
+static void BuildHeliSMPanelSurface()
+{
+	guiSMPanelHeli->Fill(0);
+	AutoSGPVObject const heli_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HELI_SMPANEL_FILE) };
+	BltVideoObject(guiSMPanelHeli, heli_panel.get(), 0, 0, 0);
+	DrawHeliInventoryTexts(guiSMPanelHeli, 0, 0, false);
+}
+
+
+static void HeliSMCheckboxCallback(INT32 const check, GUI_BUTTON* const btn, UINT32 const reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	gfSMHeliChecked[check] = (btn->uiFlags & BUTTON_CLICKED_ON) != 0;
+	BuildHeliSMPanelSurface();
+	fInterfacePanelDirty = DIRTYLEVEL2;
+}
+
+
+static void ApplyHeliSMCheckboxes();
+
+
+bool IsHeliInventoryChecked(INT32 const check)
+{
+	return gfSMHeliChecked[check];
+}
+
+
+void SetHeliInventoryChecked(INT32 const check, bool const checked)
+{
+	gfSMHeliChecked[check] = checked;
+	ApplyHeliSMCheckboxes();
+}
+
+
+// The check boxes and the panel's lines follow gfSMHeliChecked again --
+// after a new game or a load changed it while the panel is up
+static void ApplyHeliSMCheckboxes()
+{
+	for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
+	{
+		GUIButtonRef const b = giSMHeliCheckbox[i];
+		if (!b) continue;
+		if (gfSMHeliChecked[i]) b->uiFlags |=  BUTTON_CLICKED_ON;
+		else                    b->uiFlags &= ~BUTTON_CLICKED_ON;
+		b->uiFlags |= BUTTON_DIRTY;
+	}
+	if (guiSMPanelHeli)
+	{
+		BuildHeliSMPanelSurface();
+		fInterfacePanelDirty = DIRTYLEVEL2;
+	}
+}
+
+
+void InitHeliSMCheckboxesForNewGame()
+{
+	for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
+	{
+		gfSMHeliChecked[i] = false;
+		g_gameStates.Set(gHeliSMCheckKeys[i], false);
+	}
+	ApplyHeliSMCheckboxes();
+}
+
+
+void SaveHeliSMCheckboxesToSaveGameFile()
+{
+	for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
+	{
+		g_gameStates.Set(gHeliSMCheckKeys[i], gfSMHeliChecked[i]);
+	}
+}
+
+
+void LoadHeliSMCheckboxesFromSaveGameFile()
+{
+	for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
+	{
+		ST::string const& key = gHeliSMCheckKeys[i];
+		gfSMHeliChecked[i] = g_gameStates.HasKey(key) && g_gameStates.Get<bool>(key);
+	}
+	ApplyHeliSMCheckboxes();
+}
+
+
+// The panel shows the helicopter on its own graphic
+static bool IsHeliSMPanel(SOLDIERTYPE const* const s)
+{
+	return guiSMPanelHeli && s && IsHelicopterSoldier(*s);
+}
+
+
+// ... and the Hummer on its own
+static bool IsHummerSMPanel(SOLDIERTYPE const* const s)
+{
+	return guiSMPanelHummer && s && IsHummerSoldier(*s);
+}
+
+
+// ... and the ice cream truck on its own
+static bool IsIceTruckSMPanel(SOLDIERTYPE const* const s)
+{
+	return guiSMPanelIceTruck && s && IsIceTruckSoldier(*s);
+}
+
+
+// ... and the Eldorado on its own
+static bool IsEldoradoSMPanel(SOLDIERTYPE const* const s)
+{
+	return guiSMPanelEldorado && s && IsEldoradoSoldier(*s);
+}
+
+
+// ... and the Jeep on its own
+static bool IsJeepSMPanel(SOLDIERTYPE const* const s)
+{
+	return guiSMPanelJeep && s && IsJeepSoldier(*s);
+}
+
+
+// ... and the tank on its own
+static bool IsTankSMPanel(SOLDIERTYPE const* const s)
+{
+	return guiSMPanelTank && s && IsTankSoldier(*s);
+}
+
+
+// The slot regions in the current merc's layout: the helicopter's 8 cargo
+// slots on its own panel, else the usual ones. Only while the SM panel's
+// slots are up -- the map screen's inventory has the same regions.
+static void LayoutSMPanelSlots()
+{
+	if (!guiSMPanel) return;
+	bool const heli   = IsHeliSMPanel(gpSMCurrentMerc);
+	bool const hummer = IsHummerSMPanel(gpSMCurrentMerc);
+	bool const truck  = IsIceTruckSMPanel(gpSMCurrentMerc);
+	bool const car    = IsEldoradoSMPanel(gpSMCurrentMerc);
+	bool const jeep   = IsJeepSMPanel(gpSMCurrentMerc);
+	bool const tank   = IsTankSMPanel(gpSMCurrentMerc);
+	LayoutInvSlotRegions(heli ? g_ui.m_invSlotPositionTacHeli : hummer ? g_ui.m_invSlotPositionTacHummer :
+		truck ? g_ui.m_invSlotPositionTacIceTruck : car ? g_ui.m_invSlotPositionTacEldorado :
+		jeep ? g_ui.m_invSlotPositionTacJeep : tank ? g_ui.m_invSlotPositionTacTank : g_ui.m_invSlotPositionTac,
+		heli || hummer || truck || car || jeep || tank);
+}
+
+
 void SetSMPanelCurrentMerc(SOLDIERTYPE* s)
 {
 	gSelectSMPanelToMerc = NULL;
 
 	gpSMCurrentMerc = s;
+	LayoutSMPanelSlots();
 
 	// Disable all faces
 	SetAllAutoFacesInactive( );
@@ -1076,6 +1566,24 @@ static void UpdateSMAboardPanel(SOLDIERTYPE& s)
 		if (iSMPanelButtons[idx]) DisableButton(iSMPanelButtons[idx]);
 	}
 	if (giSMStealthButton) DisableButton(giSMStealthButton);
+
+	// ... except the weapon mode for a passenger who shoots from inside
+	// (passenger shooting): as for a merc on the map (the B key follows it)
+	GUIButtonRef const burst = iSMPanelButtons[BURSTMODE_BUTTON];
+	if (burst && CanShootFromVehicle(s))
+	{
+		if (burst->image != iBurstButtonImages[s.bWeaponMode])
+		{
+			burst->image    = iBurstButtonImages[s.bWeaponMode];
+			burst->uiFlags |= BUTTON_DIRTY;
+		}
+		if (&s == GetSelectedMan() && s.bLife >= OKLIFE && gTacticalStatus.ubCurrentTeam == OUR_TEAM &&
+			!gfSMDisableForItems)
+		{
+			EnableButton(burst, IsGunBurstCapable(&s, HANDPOS) ||
+				FindAttachment(&s.inv[HANDPOS], UNDER_GLAUNCHER) != ITEM_NOT_FOUND);
+		}
+	}
 
 	if (gfAllDisabled) return;
 	CheckForReEvaluateDisabledINVPanelButtons();
@@ -1496,6 +2004,43 @@ void InitializeSMPanel()
 		// the 1366x768 one, one piece
 		AutoSGPVObject const big_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" BIG_SMPANEL_FILE) };
 		BltVideoObject(guiSMPanel, big_panel.get(), 0, 0, 0);
+
+		// ... and the helicopter's
+		if (GCM->doesGameResExists(INTERFACEDIR "/" HELI_SMPANEL_FILE))
+		{
+			guiSMPanelHeli = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+			BuildHeliSMPanelSurface();
+		}
+		// ... and the Hummer's
+		if (GCM->doesGameResExists(INTERFACEDIR "/" HUMMER_SMPANEL_FILE))
+		{
+			guiSMPanelHummer = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+			BuildHummerSMPanelSurface();
+		}
+		// ... and the ice cream truck's
+		if (GCM->doesGameResExists(INTERFACEDIR "/" ICETRUCK_SMPANEL_FILE))
+		{
+			guiSMPanelIceTruck = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+			BuildIceTruckSMPanelSurface();
+		}
+		// ... and the Eldorado's
+		if (GCM->doesGameResExists(INTERFACEDIR "/" ELDORADO_SMPANEL_FILE))
+		{
+			guiSMPanelEldorado = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+			BuildEldoradoSMPanelSurface();
+		}
+		// ... and the Jeep's
+		if (GCM->doesGameResExists(INTERFACEDIR "/" JEEP_SMPANEL_FILE))
+		{
+			guiSMPanelJeep = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+			BuildJeepSMPanelSurface();
+		}
+		// ... and the tank's
+		if (GCM->doesGameResExists(INTERFACEDIR "/" TANK_SMPANEL_FILE))
+		{
+			guiSMPanelTank = new SGPVSurface(g_ui.m_smPanelWidth, INV_INTERFACE_HEIGHT, PIXEL_DEPTH);
+			BuildTankSMPanelSurface();
+		}
 	}
 	SGPVObject* voSMPanel = SM_BIG ? 0 : AddVideoObjectFromFile(INTERFACEDIR "/inventory_bottom_panel.sti");
 	// a graphic as wide as the panel (1366x768: the user's 1366 px
@@ -1590,6 +2135,7 @@ void InitializeSMPanel()
 
 	MOUSE_CALLBACK smInvClickCallback = MouseCallbackPrimarySecondary(SMInvClickCallbackPrimary, SMInvClickCallbackSecondary, MSYS_NO_CALLBACK, true);
 	InitInvSlotInterface(g_ui.m_invSlotPositionTac, &g_ui.m_invCamoRegion, SMInvMoveCallback, smInvClickCallback, SMInvMoveCamoCallback, SMInvClickCamoCallback, false, SM_BIG);
+	LayoutSMPanelSlots();
 	InitKeyRingInterface(KeyRingItemPanelButtonCallback);
 
 	// Trash can drop target -- see SM_TRASHCAN_* above.
@@ -1787,6 +2333,28 @@ void CreateSMPanelButtons(void)
 		ToggleHideEmptyAttachmentSlotsCallback); // sub-images 0-3, per user request
 	giSMHideEmptySlotsCheckbox->SetFastHelpText("Hide empty attachment slots");
 
+	// the helicopter panel's check boxes -- shown only over that panel (see
+	// UpdateHeliSMPanelCheckboxes())
+	if (guiSMPanelHeli)
+	{
+		for (INT32 i = 0; i != NUM_HELI_INV_CHECKS; ++i)
+		{
+			// a toggle with sub-images 4 (unchecked) and 6 (checked) only -- a
+			// check box button would show 5 / 7 under the mouse
+			BUTTON_PICS* const img = LoadButtonImage(INTERFACEDIR "/Sector_Inventory_PopupCheck.sti", 4, 6);
+			INT16 cx;
+			INT16 cy;
+			GetHeliInventoryCheckboxPos(i, false, &cx, &cy);
+			GUIButtonRef const b   = QuickCreateButtonToggle(img,
+				dx + cx, dy + cy, MSYS_PRIORITY_HIGHEST,
+				[i](GUI_BUTTON* const btn, UINT32 const reason) { HeliSMCheckboxCallback(i, btn, reason); });
+			b->uiFlags |= BUTTON_SELFDELETE_IMAGE;
+			if (gfSMHeliChecked[i]) b->uiFlags |= BUTTON_CLICKED_ON;
+			HideButton(b);
+			giSMHeliCheckbox[i] = b;
+		}
+	}
+
 	if (SM_BIG)
 	{
 		// no place for it on the big panel yet: hidden (and kept hidden, see
@@ -1845,6 +2413,10 @@ void RemoveSMPanelButtons(void)
 	// BUTTON_SELFDELETE_IMAGE (set by CreateCheckBoxButton()) means
 	// RemoveButton() also frees its image -- no separate UnloadButtonImage().
 	if (giSMHideEmptySlotsCheckbox) RemoveButton(giSMHideEmptySlotsCheckbox);
+	for (GUIButtonRef& b : giSMHeliCheckbox)
+	{
+		if (b) RemoveButton(b);
+	}
 
 	UnloadButtonImage(iBurstButtonImages[WM_NORMAL]);
 	UnloadButtonImage(iBurstButtonImages[WM_BURST_SHORT]);
@@ -1977,6 +2549,19 @@ void ShutdownSMPanel()
 	// All buttons and regions and video objects and video surfaces will be deleted at shutddown of SGM
 	// We may want to delete them at the interm as well, to free up room for other panels
 	delete guiSMPanel;
+	guiSMPanel = 0;
+	delete guiSMPanelHeli;
+	guiSMPanelHeli = 0;
+	delete guiSMPanelHummer;
+	guiSMPanelHummer = 0;
+	delete guiSMPanelIceTruck;
+	guiSMPanelIceTruck = 0;
+	delete guiSMPanelEldorado;
+	guiSMPanelEldorado = 0;
+	delete guiSMPanelJeep;
+	guiSMPanelJeep = 0;
+	delete guiSMPanelTank;
+	guiSMPanelTank = 0;
 	DeleteVideoObject(guiSMObjects);
 	DeleteVideoObject(guiSMObjects2);
 
@@ -2194,6 +2779,10 @@ static void RenderBigSMPanelStats(SOLDIERTYPE const& s, INT32 const dx, INT32 co
 	PrintStat(s.uiChangeMechanicalTime,   MECH_INCREASE,     s.bMechanical,   x1, dy + SM_BIG_STATS_Y(3), p.sMechanicGain*4);
 	PrintStat(s.uiChangeMedicalTime,      MED_INCREASE,      s.bMedical,      x1, dy + SM_BIG_STATS_Y(4), p.sMedicalGain*4);
 
+	// the helicopter's, the Hummer's, the ice cream truck's, the Eldorado's
+	// the Jeep's and the tank's panels have no armour/weight/camo boxes
+	if (IsHeliSMPanel(&s) || IsHummerSMPanel(&s) || IsIceTruckSMPanel(&s) || IsEldoradoSMPanel(&s) || IsJeepSMPanel(&s) ||
+		IsTankSMPanel(&s)) return;
 	UINT8 const value_colour = s.bLife >= OKLIFE ? SM_BIG_VALUE_COLOR : FONT_MCOLOR_DKGRAY;
 	PrintBigSMInfoBox(dx + SM_BIG_ARMOR_BOX_X,  dy + SM_BIG_ARMOR_BOX_Y,  pInvPanelTitleStrings[0], ST::format("{}%", ArmourPercent(&s)),          value_colour);
 	PrintBigSMInfoBox(dx + SM_BIG_WEIGHT_BOX_X, dy + SM_BIG_WEIGHT_BOX_Y, pInvPanelTitleStrings[1], ST::format("{}%", CalculateCarriedWeight(&s)), value_colour);
@@ -2220,8 +2809,29 @@ static void BtnSMRadarMapCallback(GUI_BUTTON* btn, UINT32 reason)
 }
 
 
+// The helicopter panel's check boxes: shown over that panel, unless a box or
+// popup lies over them (buttons are drawn on top of them)
+static void UpdateHeliSMPanelCheckboxes()
+{
+	bool const show = IsHeliSMPanel(gpSMCurrentMerc) && !gfSMPanelUnderItemDesc &&
+		!InItemDescriptionBox() && !InItemStackPopup() && !InKeyRingPopup() &&
+		!InStatsPopup() && !InSkillsPopup();
+	for (GUIButtonRef const b : giSMHeliCheckbox)
+	{
+		if (!b) continue;
+		// hidden = its mouse region disabled (GUI_BUTTON::Hide())
+		bool const shown = (b->Area.uiFlags & MSYS_REGION_ENABLED) != 0;
+		if (show == shown) continue;
+		if (show) ShowButton(b);
+		else      HideButton(b);
+	}
+}
+
+
 void RenderSMPanel(DirtyLevel* const dirty_level)
 {
+	UpdateHeliSMPanelCheckboxes();
+
 	// Give him the panel
 	if (gSelectSMPanelToMerc) SetSMPanelCurrentMerc(gSelectSMPanelToMerc);
 
@@ -2268,7 +2878,9 @@ void RenderSMPanel(DirtyLevel* const dirty_level)
 
 	if (*dirty_level == DIRTYLEVEL2)
 	{
-		BltVideoSurface(guiSAVEBUFFER, guiSMPanel, dx, dy, NULL);
+		BltVideoSurface(guiSAVEBUFFER, IsHeliSMPanel(&s) ? guiSMPanelHeli : IsHummerSMPanel(&s) ? guiSMPanelHummer :
+			IsIceTruckSMPanel(&s) ? guiSMPanelIceTruck : IsEldoradoSMPanel(&s) ? guiSMPanelEldorado :
+			IsJeepSMPanel(&s) ? guiSMPanelJeep : IsTankSMPanel(&s) ? guiSMPanelTank : guiSMPanel, dx, dy, NULL);
 
 		{
 			SGPVObject const* gfx;
@@ -3069,7 +3681,13 @@ static void SelectedMercButtonCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRea
 	// ATE: Don't if this guy can't....
 	if ( !gfSMDisableForItems )
 	{
-		if ( gpSMCurrentMerc->uiStatusFlags & ( SOLDIER_DRIVER | SOLDIER_PASSENGER ) )
+		// a passenger who may shoot from inside is selected himself (the driver
+		// still selects the vehicle)
+		if (CanShootFromVehicle(*gpSMCurrentMerc))
+		{
+			HandleLocateSelectMerc(gpSMCurrentMerc, false);
+		}
+		else if ( gpSMCurrentMerc->uiStatusFlags & ( SOLDIER_DRIVER | SOLDIER_PASSENGER ) )
 		{
 			SOLDIERTYPE& vs = GetSoldierStructureForVehicle(GetVehicle(gpSMCurrentMerc->iVehicleId));
 			HandleLocateSelectMerc(&vs, false);
@@ -3952,9 +4570,10 @@ void UpdateHelicopterPassengersView()
 }
 
 
-// a vehicle's portrait: the left click shows it (it is never selected); with
-// someone aboard the team panel switches to its squad, those aboard it -- for
-// the helicopter, which has no squad, to its passengers view
+// a vehicle's portrait: the left click shows it; with someone aboard the team
+// panel switches to its squad, those aboard it, and it is selected (with its
+// driver, to drive it) -- for the helicopter, which has no squad and is never
+// selected, to its passengers view
 static void BigTeamVehicleFaceCallbackPrimary(MOUSE_REGION* const r, UINT32)
 {
 	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
@@ -3963,10 +4582,13 @@ static void BigTeamVehicleFaceCallbackPrimary(MOUSE_REGION* const r, UINT32)
 	{
 		if (!HelicopterPassengersInSector(*v).empty()) ShowHelicopterPassengersView(*v);
 	}
-	else if (GetNumberInVehicle(GetVehicle(v->bVehicleID)) != 0 &&
-		(v->bAssignment != CurrentSquad() || gfHelicopterPassengersView))
+	else if (GetNumberInVehicle(GetVehicle(v->bVehicleID)) != 0)
 	{
-		SetCurrentSquad(v->bAssignment, FALSE);
+		if (v->bAssignment != CurrentSquad() || gfHelicopterPassengersView)
+		{
+			SetCurrentSquad(v->bAssignment, FALSE);
+		}
+		SelectSoldier(v, SELSOLDIER_ACKNOWLEDGE | SELSOLDIER_FROM_UI);
 	}
 	LocateSoldier(v, SETLOCATOR);
 }
@@ -4176,12 +4798,24 @@ void ShutdownTEAMPanel()
 }
 
 
+// Shown as selected in the team panel: the selected merc, and the driver of
+// the selected vehicle with it (the vehicle is what is selected to drive)
+static bool IsShownSelected(SOLDIERTYPE const* const s)
+{
+	if (!s) return false;
+	SOLDIERTYPE const* const sel = GetSelectedMan();
+	if (s == sel) return true;
+	return sel && sel->uiStatusFlags & SOLDIER_VEHICLE && s->uiStatusFlags & SOLDIER_DRIVER &&
+		s->iVehicleId == sel->bVehicleID;
+}
+
+
 static void RenderTeamSlotBorder(const SOLDIERTYPE* const s, const INT32 dx, const INT32 dy)
 {
 	UINT16 region;
 	if      (gTacticalStatus.ubCurrentTeam != OUR_TEAM) region = 1; // Hatch out
 	else if (INTERRUPT_QUEUED && (!s || s->bMoved))     region = 1; // Hatch out
-	else if (s && s == GetSelectedMan())                region = 0; // Active border
+	else if (IsShownSelected(s))                        region = 0; // Active border
 	else                                                return;
 	const INT32 x = dx + TM_FACEHIGHTL_X;
 	const INT32 y = dy + TM_FACEHIGHTL_Y;
@@ -4252,7 +4886,7 @@ static void RenderBigTeamSlotBorder(SOLDIERTYPE const* const s, INT32 const dx, 
 	{
 		guiSAVEBUFFER->ShadowRect(x, y, x + w, y + h);
 	}
-	else if (s && (s == GetSelectedMan() || (gfHelicopterPassengersView && IsHelicopterSoldier(*s))))
+	else if (s && (IsShownSelected(s) || (gfHelicopterPassengersView && IsHelicopterSoldier(*s))))
 	{
 		SGPVSurface::Lock l(guiSAVEBUFFER);
 		SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -4817,7 +5451,13 @@ static void MercFacePanelCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	if (!gfInItemPickupMenu && gpItemPointer == NULL)
 	{
-		if (s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER))
+		// a passenger who may shoot from inside is selected himself (the driver
+		// still selects the vehicle)
+		if (CanShootFromVehicle(*s))
+		{
+			HandleLocateSelectMerc(s, false);
+		}
+		else if (s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER))
 		{
 			SOLDIERTYPE& vs = GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId));
 			HandleLocateSelectMerc(&vs, false);
@@ -5453,6 +6093,9 @@ SOLDIERTYPE* FindNextMercInTeamPanel(SOLDIERTYPE* const prev)
 		if (!OK_CONTROLLABLE_MERC(s))            continue;
 		if (!OK_INTERRUPT_MERC(s))               continue;
 		if (s->bAssignment != prev->bAssignment) continue;
+		// aboard a vehicle: only the passengers who may shoot, of the same one
+		if (s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) &&
+			(!CanShootFromVehicle(*s) || s->iVehicleId != prev->iVehicleId)) continue;
 		if (seen_prev) return s;
 		if (!before) before = s;
 	}

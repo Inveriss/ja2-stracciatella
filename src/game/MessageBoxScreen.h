@@ -20,7 +20,8 @@ enum MessageBoxFlags
 	MSG_BOX_FLAG_CONTINUESTOP,          // continue stop box
 	MSG_BOX_FLAG_OKSKIP,                // Displays ok or skip (meanwhile) buttons
 	MSG_BOX_FLAG_GENERICCONTRACT,       // displays contract buttoin + 2 user-defined text buttons
-	MSG_BOX_FLAG_GENERIC                // 2 user-defined text buttons
+	MSG_BOX_FLAG_GENERIC,               // 2 user-defined text buttons
+	MSG_BOX_FLAG_GENERIC_CANCEL         // 2 user-defined text buttons + Cancel (also ESC)
 };
 
 // message box return codes
@@ -32,6 +33,7 @@ enum MessageBoxReturnValue
 	MSG_BOX_RETURN_NO       = 3, // ESC, Right Click or NO button
 	MSG_BOX_RETURN_CONTRACT = 4, // contract button
 	MSG_BOX_RETURN_LIE      = 5, // LIE BUTTON
+	MSG_BOX_RETURN_CANCEL   = 6, // Cancel button (MSG_BOX_FLAG_GENERIC_CANCEL) or ESC
 
 	MSG_BOX_RETURN_1        = 1,
 	MSG_BOX_RETURN_2        = 2,
@@ -51,6 +53,7 @@ enum MessageBoxStyleID
 	MSG_BOX_BASIC_SMALL_BUTTONS,
 	MSG_BOX_IMP_STYLE,
 	MSG_BOX_LAPTOP_DEFAULT,
+	MSG_BOX_BASIC_BIG_BUTTONS, // basic style, 90x40 buttons; a "\n" in a button text splits it into two lines
 	NUMBER_OF_MSG_BOX_STYLES
 };
 
@@ -94,6 +97,7 @@ extern ST::string gzUserDefinedButton2;
  * pCenteringRect Rect to center in. Can be NULL */
 void DoMessageBox(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiExitScreen, MessageBoxFlags usFlags, MSGBOX_CALLBACK ReturnCallback = nullptr, const SGPBox* centering_rect = nullptr);
 void DoScreenIndependantMessageBox(const ST::string& msg, MessageBoxFlags flags, MSGBOX_CALLBACK callback);
+void DoScreenIndependantMessageBox(const ST::string& msg, MessageBoxFlags flags, MSGBOX_CALLBACK callback, MessageBoxStyleID style);
 
 //wrappers for other screens
 void DoMapMessageBoxWithRect(MessageBoxStyleID ubStyle, const ST::string& str, ScreenID uiExitScreen, MessageBoxFlags usFlags, MSGBOX_CALLBACK ReturnCallback, const SGPBox* centering_rect);

@@ -5,7 +5,10 @@
 #include "Types.h"
 
 
-#define MAX_MESSAGES_ON_MAP_BOTTOM  9
+// the lines the map screen's message log shows: 9, fewer on the 1366x768
+// interface (its wider line spacing) -- the newest ones must stay in view
+UINT8 GetMaxMessagesOnMapBottom();
+#define MAX_MESSAGES_ON_MAP_BOTTOM  (int(GetMaxMessagesOnMapBottom()))
 
 
 enum ExitToWhere

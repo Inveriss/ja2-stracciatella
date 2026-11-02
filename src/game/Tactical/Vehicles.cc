@@ -21,6 +21,9 @@
 #include "Interface.h"
 #include "Random.h"
 #include "Text.h"
+#include "Message.h"
+#include "MapScreen.h"
+#include "Font_Control.h"
 #include "Explosion_Control.h"
 #include "TileDef.h"
 #include "Animation_Control.h"
@@ -214,10 +217,25 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 		PlayLocationJA2Sample(vs->sGridNo, GCM->getVehicle(v.ubVehicleType)->enter_sound, HIGHVOLUME, 1);
 	}
 
+	// A newcomer sits behind those aboard (the team panel shows them in seat
+	// order), not in a seat someone before them left: only when the last seat is
+	// taken do they all move up, closing those gaps
 	INT32 const seats = GetVehicleSeats(v);
-	for (INT32 i = 0; i < seats; ++i)
+	INT32 first_seat = seats;
+	while (first_seat > 0 && !v.pPassengers[first_seat - 1]) --first_seat;
+	if (first_seat == seats)
 	{
-		if (v.pPassengers[i]) continue;
+		first_seat = 0;
+		for (INT32 i = 0; i < seats; ++i)
+		{
+			SOLDIERTYPE* const aboard = v.pPassengers[i];
+			if (!aboard) continue;
+			v.pPassengers[i] = 0;
+			v.pPassengers[first_seat++] = aboard;
+		}
+	}
+	for (INT32 i = first_seat; i < seats; ++i)
+	{
 		v.pPassengers[i] = &s;
 
 		if (s.bAssignment == VEHICLE)
@@ -269,6 +287,9 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 
 			// Stop from any movement.....
 			EVENT_StopMerc(&s);
+
+			// a passenger who may shoot from inside crouches
+			CrouchShootingPassenger(s);
 
 			// can't call SetCurrentSquad OR SelectSoldier in mapscreen,
 			// that will initialize interface panels!!!
@@ -322,11 +343,12 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 
 	// now look for the grunt
 	INT32 const seats = GetVehicleSeats(v);
-	for (INT32 i = 0;; ++i)
+	INT32 seat = 0;
+	for (;; ++seat)
 	{
-		if (i == seats) return false;
-		if (v.pPassengers[i] != &s) continue;
-		v.pPassengers[i] = 0;
+		if (seat == seats) return false;
+		if (v.pPassengers[seat] != &s) continue;
+		v.pPassengers[seat] = 0;
 		break;
 	}
 
@@ -334,7 +356,31 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 
 	s.ubGroupID      = 0;
 	s.sSector        = v.sSector;
+	bool const was_driver = s.uiStatusFlags & SOLDIER_DRIVER;
 	s.uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
+
+	// The driver got out of a ground vehicle: the passenger in the next seat
+	// takes the wheel (else nobody would be the driver until the vehicle is
+	// emptied)
+	if (was_driver && !IsHelicopter(v))
+	{
+		for (INT32 k = 1; k != seats; ++k)
+		{
+			SOLDIERTYPE* const p = v.pPassengers[(seat + k) % seats];
+			if (!p) continue;
+			p->uiStatusFlags &= ~SOLDIER_PASSENGER;
+			p->uiStatusFlags |= SOLDIER_DRIVER;
+			// selected as a passenger (passenger shooting, stage 1): the driver
+			// is not selectable on his own, the vehicle is selected instead
+			if (p == GetSelectedMan() && guiCurrentScreen == GAME_SCREEN)
+			{
+				SelectSoldier(&GetSoldierStructureForVehicle(v), SELSOLDIER_FORCE_RESELECT);
+			}
+			fInterfacePanelDirty = DIRTYLEVEL2;
+			fTeamPanelDirty      = TRUE;
+			break;
+		}
+	}
 
 	if (IsHelicopter(v))
 	{
@@ -531,6 +577,18 @@ BOOLEAN TakeSoldierOutOfVehicle(SOLDIERTYPE* const s)
 	// if not in vehicle, don't take out, not much point, now is there?
 	if (s->bAssignment != VEHICLE) return FALSE;
 
+	// A dead one (killed with the vehicle) is only taken off it: getting out
+	// onto the map would give him a squad of his own, whose group placed in
+	// the sector unloads it at once when nobody is left alive -- in the
+	// middle of the attack, without the lost battle's handling (the map
+	// screen stayed locked, the battle music on)
+	if (s->bLife == 0 && !InHelicopter(*s))
+	{
+		if (!RemoveSoldierFromVehicle(*s)) return FALSE;
+		s->iVehicleId = -1;
+		return TRUE;
+	}
+
 	if (s->sSector == gWorldSector &&
 		s->bInSector &&
 		!InHelicopter(*s)) // helicopter isn't a soldiertype instance
@@ -574,6 +632,25 @@ bool ExitHelicopterAt(SOLDIERTYPE& s, GridNo const grid_no)
 }
 
 
+bool PutHelicopterPassengerOnRope(SOLDIERTYPE& s)
+{
+	if (!InHelicopter(s)) return false;
+
+	// the helicopter branch of RemoveSoldierFromVehicle() hands him to the
+	// run (UpdateMercInSector()); the run puts him on the map
+	s.ubStrategicInsertionCode = INSERTION_CODE_CHOPPER;
+	RemoveMercSlot(&s);
+	g_exit_helicopter_at = true;
+	bool const out = RemoveSoldierFromVehicle(s);
+	g_exit_helicopter_at = false;
+	if (!out) return false;
+
+	s.iVehicleId = -1;
+	AddCharacterToUniqueSquad(&s);
+	return true;
+}
+
+
 bool PutSoldierInVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 {
 	if (!AddSoldierToVehicle(s, v)) return false;
@@ -612,6 +689,12 @@ BOOLEAN ExitVehicle(SOLDIERTYPE* const s)
 
 	// Add to sector....
 	EVENT_SetSoldierPosition(s, sGridNo, SSP_NONE);
+
+	// out of the vehicle standing (a passenger crouched inside, stage 2)
+	if (gAnimControl[s->usAnimState].ubEndHeight != ANIM_STAND)
+	{
+		EVENT_InitNewSoldierAnim(s, STANDING, 0, TRUE);
+	}
 
 	// Update visiblity.....
 	HandleSight(*s, SIGHT_LOOK | SIGHT_RADIO);
@@ -1011,14 +1094,17 @@ static bool OnlyThisSoldierCanDriveVehicle(SOLDIERTYPE const& s, INT32 const veh
 
 INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo const grid_no)
 {
-	INT16 cost = GCM->getVehicle(pVehicleList[vs.bVehicleID].ubVehicleType)->tactical_fuel_per_tile;
+	INT32 per_100_tiles = GCM->getVehicle(pVehicleList[vs.bVehicleID].ubVehicleType)->tactical_fuel_per_100_tiles;
 	switch (gpWorldLevelData[grid_no].ubTerrainID)
 	{
 		case PAVED_ROAD:
 		case DIRT_ROAD: break;
-		default:        cost *= 2; break; // off the road (D4)
+		default:        per_100_tiles *= 2; break; // off the road (D4)
 	}
-	return cost;
+	// a fraction of a unit (the tank counts whole ones): now and then one more,
+	// right on average
+	INT32 const remainder = per_100_tiles % 100;
+	return static_cast<INT16>(per_100_tiles / 100 + (remainder != 0 && Random(100) < static_cast<UINT32>(remainder) ? 1 : 0));
 }
 
 
@@ -1027,6 +1113,8 @@ void SpendVehicleFuelInTactical(SOLDIERTYPE& vs, INT16 const fuel)
 	vs.sBreathRed = std::max(0, vs.sBreathRed - fuel);
 	vs.bBreath    = (vs.sBreathRed + 99) / 100;
 	fInterfacePanelDirty = DIRTYLEVEL2;
+	// run dry: the Hummer's gas cans, if it carries any
+	RefuelVehicleFromGasCansIfEmpty(vs);
 }
 
 
@@ -1205,6 +1293,177 @@ UINT16 GetVehicleArmour(const UINT8 vehicle_id)
 UINT8 GetVehicleSeats(VEHICLETYPE const& v)
 {
 	return GCM->getVehicle(v.ubVehicleType)->seats;
+}
+
+
+bool IsHelicopterCargoSlot(INT8 const slot)
+{
+	return (BIGPOCK1POS   <= slot && slot <= BIGPOCK4POS) ||
+		(SMALLPOCK1POS <= slot && slot <= SMALLPOCK4POS);
+}
+
+
+bool IsHummerCargoSlot(INT8 const slot)
+{
+	return (BIGPOCK1POS   <= slot && slot <= BIGPOCK8POS) ||
+		(SMALLPOCK1POS <= slot && slot <= SMALLPOCK16POS) ||
+		IsHummerFuelSlot(slot);
+}
+
+
+bool IsHummerFuelSlot(INT8 const slot)
+{
+	return SMALLPOCK17POS <= slot && slot <= SMALLPOCK19POS;
+}
+
+
+static bool RefuelVehicleFromGasCans(SOLDIERTYPE& vs);
+
+bool RefuelVehicleFromGasCansIfEmpty(SOLDIERTYPE& vs)
+{
+	return vs.sBreathRed <= 0 && RefuelVehicleFromGasCans(vs);
+}
+
+
+bool TopUpVehicleFromGasCans(SOLDIERTYPE& vs)
+{
+	return RefuelVehicleFromGasCans(vs);
+}
+
+
+// fills the tank up from the fuel slots' gas cans
+static bool RefuelVehicleFromGasCans(SOLDIERTYPE& vs)
+{
+	if (!HasVehicleCargoSlots(vs) || vs.sBreathRed >= VEHICLE_FULL_TANK) return false;
+
+	INT16 added = 0;
+	for (INT8 slot = SMALLPOCK17POS; slot <= SMALLPOCK19POS && vs.sBreathRed < VEHICLE_FULL_TANK; ++slot)
+	{
+		OBJECTTYPE& o = vs.inv[slot];
+		while (o.usItem == GAS_CAN && o.ubNumberOfObjects > 0 && vs.sBreathRed < VEHICLE_FULL_TANK)
+		{
+			// as a merc pouring it in (AddFuelToVehicle()): 50 per status point
+			UINT8 const last      = o.ubNumberOfObjects - 1;
+			INT16 const available = o.bStatus[last] * 50;
+			INT16 const fuel      = std::min<INT16>(VEHICLE_FULL_TANK - vs.sBreathRed, available);
+			vs.sBreathRed      += fuel;
+			added              += fuel;
+			o.bStatus[last]     = static_cast<INT8>(o.bStatus[last] - fuel / 50);
+			if (o.bStatus[last] <= 0) RemoveObjFrom(&o, last); // empty: it goes
+			else break; // the tank is full
+		}
+	}
+	if (added == 0) return false;
+
+	vs.bBreath = (vs.sBreathRed + 99) / 100;
+	VEHICLETYPE const& v = pVehicleList[vs.bVehicleID];
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(pVehicleFuelStrings[0], pVehicleStrings[v.ubVehicleType]));
+	fInterfacePanelDirty     = DIRTYLEVEL2;
+	fTeamPanelDirty          = TRUE;
+	fCharacterInfoPanelDirty = TRUE;
+	return true;
+}
+
+
+// the type of the vehicle a soldier is (-1: none)
+static INT32 VehicleTypeOfSoldier(SOLDIERTYPE const& s)
+{
+	if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) return -1;
+	if (s.bVehicleID < 0 || s.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return -1;
+	VEHICLETYPE const& v = pVehicleList[s.bVehicleID];
+	return v.fValid ? v.ubVehicleType : -1;
+}
+
+
+bool IsHummerSoldier(SOLDIERTYPE const& s)
+{
+	return VehicleTypeOfSoldier(s) == HUMMER;
+}
+
+
+bool IsIceTruckSoldier(SOLDIERTYPE const& s)
+{
+	return VehicleTypeOfSoldier(s) == ICE_CREAM_TRUCK;
+}
+
+
+bool IsEldoradoSoldier(SOLDIERTYPE const& s)
+{
+	return VehicleTypeOfSoldier(s) == ELDORADO_CAR;
+}
+
+
+bool IsJeepSoldier(SOLDIERTYPE const& s)
+{
+	return VehicleTypeOfSoldier(s) == JEEP_CAR;
+}
+
+
+bool IsTankSoldier(SOLDIERTYPE const& s)
+{
+	return VehicleTypeOfSoldier(s) == TANK_CAR;
+}
+
+
+bool HasVehicleCargoSlots(SOLDIERTYPE const& s)
+{
+	return IsHummerSoldier(s) || IsIceTruckSoldier(s) || IsEldoradoSoldier(s) || IsJeepSoldier(s) || IsTankSoldier(s);
+}
+
+
+bool IsVehicleCargoSlot(SOLDIERTYPE const& s, INT8 const slot)
+{
+	if (IsHummerSoldier(s))
+	{
+		// (16 cargo slots and 2 fuel slots)
+		return (BIGPOCK1POS <= slot && slot <= BIGPOCK8POS) ||
+			(SMALLPOCK1POS <= slot && slot <= SMALLPOCK8POS) ||
+			slot == SMALLPOCK17POS || slot == SMALLPOCK18POS;
+	}
+	if (IsIceTruckSoldier(s))
+	{
+		// (12 cargo slots and 2 fuel slots)
+		return (BIGPOCK1POS <= slot && slot <= BIGPOCK4POS) ||
+			(SMALLPOCK1POS <= slot && slot <= SMALLPOCK8POS) ||
+			slot == SMALLPOCK17POS || slot == SMALLPOCK18POS;
+	}
+	if (IsJeepSoldier(s))
+	{
+		// (6 cargo slots and 2 fuel slots)
+		return slot == BIGPOCK1POS || slot == BIGPOCK2POS ||
+			(SMALLPOCK1POS <= slot && slot <= SMALLPOCK4POS) ||
+			slot == SMALLPOCK17POS || slot == SMALLPOCK18POS;
+	}
+	if (IsEldoradoSoldier(s))
+	{
+		// (8 cargo slots and 2 fuel slots)
+		return IsHelicopterCargoSlot(slot) || slot == SMALLPOCK17POS || slot == SMALLPOCK18POS;
+	}
+	if (IsTankSoldier(s))
+	{
+		// (8 cargo slots and 2 fuel slots)
+		return (BIGPOCK1POS <= slot && slot <= BIGPOCK8POS) ||
+			slot == SMALLPOCK17POS || slot == SMALLPOCK18POS;
+	}
+	return IsHummerCargoSlot(slot);
+}
+
+
+bool CanShootFromVehicle(SOLDIERTYPE const& s)
+{
+	if (!(s.uiStatusFlags & SOLDIER_PASSENGER) || s.uiStatusFlags & SOLDIER_DRIVER) return false;
+	if (s.iVehicleId < 0 || s.iVehicleId >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[s.iVehicleId];
+	if (!v.fValid || v.fDestroyed) return false;
+	return v.ubVehicleType != HELICOPTER && v.ubVehicleType != TANK_CAR;
+}
+
+
+void CrouchShootingPassenger(SOLDIERTYPE& s)
+{
+	if (!CanShootFromVehicle(s) || guiCurrentScreen != GAME_SCREEN || !s.bInSector) return;
+	if (gAnimControl[s.usAnimState].ubEndHeight == ANIM_CROUCH) return;
+	EVENT_InitNewSoldierAnim(&s, CROUCHING, 0, TRUE);
 }
 
 

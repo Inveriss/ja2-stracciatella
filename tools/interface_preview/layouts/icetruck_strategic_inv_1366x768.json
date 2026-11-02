@@ -1,0 +1,199 @@
+{
+  "comment": "ICETRUCK_STRATEGIC_INV_1366x768.png -- DrawHummerDetailsTexts(..., map = true, ICE_CREAM_TRUCK) (Interface_Panels.cc), pHummerInventoryStrings.",
+  "background": "Interface/ICETRUCK_STRATEGIC_INV_1366x768.png",
+  "defaults": {
+    "font": "FONT12ARIAL",
+    "colour": 126,
+    "shadow": 2
+  },
+  "boxes": [
+    {
+      "name": "upgrades bar",
+      "x": 30,
+      "y": 30,
+      "w": 124,
+      "h": 25
+    },
+    {
+      "name": "details bar",
+      "x": 202,
+      "y": 30,
+      "w": 406,
+      "h": 25
+    },
+    {
+      "name": "systems",
+      "x": 199,
+      "y": 63,
+      "w": 189,
+      "h": 159
+    },
+    {
+      "name": "specification",
+      "x": 398,
+      "y": 63,
+      "w": 213,
+      "h": 159
+    }
+  ],
+  "items": [
+    {
+      "text": "UPGRADES",
+      "x": 30,
+      "y": 30,
+      "w": 124,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "VEHICLE DETAILS",
+      "x": 202,
+      "y": 30,
+      "w": 406,
+      "h": 25,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14HUMANIST",
+      "colour": 130
+    },
+    {
+      "text": "Defense",
+      "x": 27,
+      "y": 61,
+      "w": 130,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Engine",
+      "x": 27,
+      "y": 116,
+      "w": 130,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Tyres",
+      "x": 27,
+      "y": 171,
+      "w": 130,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Systems",
+      "x": 199,
+      "y": 76,
+      "w": 189,
+      "align": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Specifications",
+      "x": 398,
+      "y": 76,
+      "w": 213,
+      "align": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Armament",
+      "x": 218,
+      "y": 100,
+      "w": 157,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "FUEL",
+      "x": 218,
+      "y": 162,
+      "w": 74,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "FUEL",
+      "x": 301,
+      "y": 162,
+      "w": 74,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Model:",
+      "x": 408,
+      "y": 100
+    },
+    {
+      "text": "Chevrolet P10 Step-Van 7",
+      "x": 408,
+      "y": 100,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Travel speed:",
+      "x": 408,
+      "y": 131
+    },
+    {
+      "text": "40 min/sector",
+      "x": 408,
+      "y": 131,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Range on full tank:",
+      "x": 408,
+      "y": 151
+    },
+    {
+      "text": "84 sectors",
+      "x": 408,
+      "y": 151,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Damage resistance:",
+      "x": 408,
+      "y": 183
+    },
+    {
+      "text": "16",
+      "x": 408,
+      "y": 183,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Repair ease:",
+      "x": 408,
+      "y": 203
+    },
+    {
+      "text": "-4",
+      "x": 408,
+      "y": 203,
+      "w": 193,
+      "align": "right"
+    }
+  ]
+}

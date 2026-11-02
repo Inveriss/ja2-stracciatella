@@ -6,8 +6,9 @@
 #include <string_theory/string>
 
 
-// Profile IDs 0-169 are used by the original game (see mercs-profile-info.json; 164 also stands in
-// for two vehicle types in vehicles.json). The IDs above them are free for additional characters
+// Profile IDs 0-169 are used by the original game (see mercs-profile-info.json; the Jeep and the
+// tank, unused there, have their own vehicle profiles 231 PROF_JEEP and 232 PROF_TANK in
+// vehicles.json). The IDs above them are free for additional characters
 // (e.g. more A.I.M. mercs), except NO_PROFILE (200): that value is stored in the original sector
 // map files as "no profile" and must not be used for a character. 255 is used as "none" in a few
 // places as well (IRRELEVANT of the NPC quotes, the owner of an item in the shop), so the

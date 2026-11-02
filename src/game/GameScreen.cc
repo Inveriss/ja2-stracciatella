@@ -215,6 +215,9 @@ void InternalLeaveTacticalScreen(ScreenID const uiNewScreen)
 {
 	gpCustomizableTimerCallback = NULL;
 
+	// a helicopter landing spot being picked: given up, picked again next time
+	CancelHeliLandingSelection();
+
 	// unload the sector they teleported out of
 	if ( !gfAutomaticallyStartAutoResolve )
 	{

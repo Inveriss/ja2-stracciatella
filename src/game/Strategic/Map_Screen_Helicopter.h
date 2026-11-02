@@ -11,6 +11,30 @@
 // costs of flying through sectors
 #define COST_AIRSPACE_SAFE    100
 #define COST_AIRSPACE_UNSAFE  1000		// VERY dangerous
+// landing among enemies: the chosen landing zone's surcharge
+#define COST_HELI_LANDING_MAP_EDGES 1000
+#define COST_HELI_LANDING_ANYWHERE  2500
+
+// (the heli panels show these values too)
+// SAM hits on the helicopter: each costs this much of its condition (0-100);
+// the condition left picks the outcome -- from HELI_MINOR_DAMAGE_MIN_CONDITION
+// up Skyrider reports minor damage, from HELI_MAJOR_DAMAGE_MIN_CONDITION up
+// major damage and flies back to base, below that the helicopter goes down
+#define HELI_SAM_HIT_DAMAGE             25
+// a landing among enemies (a rope drop): this chance (percent) of costing
+// this much condition -- never below 1, it doesn't bring it down
+#define HELI_ENEMY_LANDING_DAMAGE_CHANCE 25
+#define HELI_ENEMY_LANDING_DAMAGE        10
+#define HELI_MINOR_DAMAGE_MIN_CONDITION 50
+#define HELI_MAJOR_DAMAGE_MIN_CONDITION 25
+// below this condition Skyrider won't take off until the helicopter is repaired
+#define HELI_FLIGHT_MIN_CONDITION       50
+
+// Waldo, the helicopter's mechanic at the Drassen airport (the heli panels'
+// check box): his own terms, not his stats -- condition points per hour of
+// work, and its price, paid when the hour starts (the panels show both)
+#define WALDO_HELI_REPAIR_PER_HOUR  3
+#define WALDO_HELI_REPAIR_COST      200
 #define MIN_PROGRESS_FOR_SKYRIDER_QUOTE_DOING_WELL 25	// scale of 0-100
 #define MIN_REGRESS_FOR_SKYRIDER_QUOTE_DOING_BADLY 10	// scale of 0-100
 
@@ -191,6 +215,10 @@ void HandleHeliHoverLong( void );
 // handle a LONG wait in hover mode
 void HandleHeliHoverTooLong( void );
 
+// map screen, every frame: after a landing zone choice, on to that sector's
+// tactical screen once nothing holds it up (Skyrider talking, ...)
+void HandleHeliEnterLandingSector();
+
 // drop off everyone in helicopter
 void DropOffEveryOneInHelicopter( void );
 
@@ -225,9 +253,51 @@ INT16 GetNumSafeSectorsInPath();
 INT16 GetNumUnSafeSectorsInPath( void );
 
 bool SoldierAboardAirborneHeli(SOLDIERTYPE const&);
-// is it hovering over this sector, which has no enemies? Those aboard then
-// let the player go to tactical there, as when it has landed
+// is it hovering over this sector, which has no enemies -- or one with
+// enemies it has landed in (the heli panels' "Allow landing in enemy
+// sectors")? Those aboard then let the player go to tactical there, as when
+// it has landed
 bool IsHelicopterHoveringOverSafeSector(const SGPSector&);
+
+// Landing in a sector with enemies: the zone the player chose when Skyrider
+// arrived there with passengers (for now only remembered), saved with the
+// game; unset in a new game.
+enum HeliLandingZone
+{
+	HELI_LANDING_ZONE_NONE = 0,
+	HELI_LANDING_ZONE_MAP_EDGES,
+	HELI_LANDING_ZONE_ANYWHERE
+};
+HeliLandingZone GetHeliLandingZone();
+// Would he land among enemies at a destination (the check box, those
+// aboard, its condition)?
+bool WouldHelicopterLandAmongEnemies();
+// "Anywhere": the player is picking the landing spot in tactical (nobody is
+// drawn meanwhile)
+bool IsHeliLandingSelectionActive();
+// ... given up (tactical left)
+void CancelHeliLandingSelection();
+// A rope drop among enemies (Map Edges / Anywhere) is going on: until its
+// helicopter run is over nobody sees anybody (OppList.cc), so no fight starts
+// with some of them still on the rope
+bool IsHeliEnemyDropRunning();
+// Merc_Entering.cc: a helicopter run is over
+void HelicopterRunFinished();
+// "Silent Skyrider" (the strategic heli panel's toggle): no routine quotes
+bool IsSkyriderSilent();
+void SetSkyriderSilent(bool silent);
+
+// Waldo, the helicopter's mechanic: may he work on it now -- check box,
+// on the ground at the Drassen airport (the player's), in need of repair,
+// he alive; with check_money also the price of an hour in the account?
+bool CanWaldoRepairHelicopter(bool check_money);
+// every full hour (after the mercs' assignments and Skyrider's debt): the
+// hour Waldo started is credited (+3), the next one starts and is paid ($200)
+void HandleWaldoHelicopterRepairHourly();
+
+void InitHeliEnemyLandingForNewGame();
+void SaveHeliEnemyLandingToSaveGameFile();
+void LoadHeliEnemyLandingFromSaveGameFile();
 
 void MoveAllInHelicopterToFootMovementGroup(void);
 

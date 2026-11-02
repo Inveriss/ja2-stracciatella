@@ -2,6 +2,7 @@
 #include "AI.h"
 #include "Debug_Pages.h"
 #include "Isometric_Utils.h"
+#include "Map_Screen_Helicopter.h"
 #include "ItemModel.h"
 #include "Overhead.h"
 #include "Event_Pump.h"
@@ -632,7 +633,9 @@ static bool IsSoldierValidForSightings(SOLDIERTYPE const& s)
 	      || s.sGridNo == NOWHERE
 	      || s.uiStatusFlags & SOLDIER_DEAD
 	      || s.bLife <= 0 // should be redundant, but who knows?
-	      || (s.bAssignment == VEHICLE && s.iVehicleId == iHelicopterVehicleId));
+	      || (s.bAssignment == VEHICLE && s.iVehicleId == iHelicopterVehicleId)
+	      // a rope drop among enemies: nobody until all are down
+	      || IsHeliEnemyDropRunning());
 }
 
 

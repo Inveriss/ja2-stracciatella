@@ -9,6 +9,8 @@
 
 #define MAX_VEHICLES 10
 #define MAX_PASSENGERS_IN_VEHICLE 10
+// the tank's capacity (sBreathRed); a gas can at 100% holds half of it
+#define VEHICLE_FULL_TANK 10000
 
 // type of vehicles
 enum{
@@ -177,6 +179,10 @@ SOLDIERTYPE*  PickRandomPassengerFromVehicle( SOLDIERTYPE *pSoldier );
 bool DoesVehicleGroupHaveAnyPassengers(GROUP const&);
 
 void SetSoldierExitHelicopterInsertionData(SOLDIERTYPE*);
+// Takes one aboard the helicopter out onto a helicopter run's rope
+// (INSERTION_CODE_CHOPPER -> AddMercToHeli(), placed by HandleHeliDrop()),
+// into a squad of his own
+bool PutHelicopterPassengerOnRope(SOLDIERTYPE&);
 
 void HandleVehicleMovementSound(const SOLDIERTYPE*, BOOLEAN fOn);
 
@@ -188,6 +194,41 @@ UINT8 GetVehicleSeats(VEHICLETYPE const&);
 // enters tactical
 bool IsHelicopterSoldier(SOLDIERTYPE const&);
 SOLDIERTYPE* GetHelicopterSoldier();
+// The helicopter's cargo has 8 slots: small pockets 1-4 and big pockets 1-4
+bool IsHelicopterCargoSlot(INT8 slot);
+// The Hummer's soldier; the slots a vehicle may have: big pockets 1-8, small
+// pockets 1-16 and the fuel slots, small pockets 17-19 (gas cans only) -- which
+// of them each vehicle has: IsVehicleCargoSlot()
+bool IsHummerSoldier(SOLDIERTYPE const&);
+// ... the ice cream truck's (the same slots, fuel too)
+bool IsIceTruckSoldier(SOLDIERTYPE const&);
+// ... the Eldorado's (8 cargo slots only: big and small pockets 1-4, and
+// the fuel slots)
+bool IsEldoradoSoldier(SOLDIERTYPE const&);
+// ... the Jeep's (6 cargo slots: big pockets 1-2, small pockets 1-4, and 2 fuel
+// slots)
+bool IsJeepSoldier(SOLDIERTYPE const&);
+// ... the tank's (8 cargo slots: big pockets 1-8, and 2 fuel slots)
+bool IsTankSoldier(SOLDIERTYPE const&);
+// any of them: the vehicles with cargo and fuel slots
+bool HasVehicleCargoSlots(SOLDIERTYPE const&);
+// a slot the vehicle can hold items in
+bool IsVehicleCargoSlot(SOLDIERTYPE const&, INT8 slot);
+// A passenger (not the driver) of a ground vehicle other than the tank: he
+// may be selected on his own and shoot from inside (passenger shooting plan,
+// docs/vehicle-passenger-shooting-plan.md)
+bool CanShootFromVehicle(SOLDIERTYPE const&);
+// ... and such a passenger is crouched (passenger shooting, stage 2): set at
+// once, without the kneeling animation; only in the tactical screen
+void CrouchShootingPassenger(SOLDIERTYPE&);
+bool IsHummerCargoSlot(INT8 slot);
+bool IsHummerFuelSlot(INT8 slot);
+// An empty tank is filled up from the gas cans in the Hummer's fuel slots
+// (top to bottom, a stack's last can first; empty cans go), with a message.
+// True if any fuel went in.
+bool RefuelVehicleFromGasCansIfEmpty(SOLDIERTYPE& vs);
+// ... and a tank not yet full, when a can is put into a fuel slot
+bool TopUpVehicleFromGasCans(SOLDIERTYPE& vs);
 
 void InitVehicles(void);
 

@@ -19,6 +19,7 @@
 #include "Render_Dirty.h"
 #include "Render_Fun.h"
 #include "RenderWorld.h"
+#include "Map_Screen_Helicopter.h"
 #include "Rotting_Corpses.h"
 #include "Shading.h"
 #include "Soldier_Find.h"
@@ -967,6 +968,8 @@ zlevel_topmost:
 
 								// Skip if we cannot see the guy!
 								if (s.bLastRenderVisibleValue == -1 && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS)) goto next_node;
+								// ... and everybody while a helicopter landing spot is picked
+								if (IsHeliLandingSelectionActive()) goto next_node;
 
 								// Get animation surface....
 								UINT16 const usAnimSurface = GetSoldierAnimationSurface(&s);

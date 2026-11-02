@@ -3704,8 +3704,10 @@ void ChangeSoldierStance( SOLDIERTYPE *pSoldier, UINT8 ubDesiredStance )
 {
 	UINT16 usNewState;
 
-	// Check if they are the same!
-	if ( ubDesiredStance == gAnimControl[ pSoldier->usAnimState ].ubEndHeight )
+	// Check if they are the same! -- a passenger shooting from inside stays
+	// crouched (stage 2), whatever asks him to stand
+	if ( ubDesiredStance == gAnimControl[ pSoldier->usAnimState ].ubEndHeight ||
+		(CanShootFromVehicle(*pSoldier) && ubDesiredStance != ANIM_CROUCH) )
 	{
 		// Free up from stance change
 		FreeUpNPCFromStanceChange( pSoldier );
@@ -4482,7 +4484,11 @@ void TurnSoldier( SOLDIERTYPE *pSoldier)
 
 	// CHECK FOR A VALID TURN DIRECTION
 	// This is needed for prone animations as well as any multi-tiled structs
-	if (OKToAddMercToWorld(pSoldier, (INT8)sDirection))
+	// -- not for one aboard a vehicle: he is off the map, on the vehicle's
+	// tile, where its structure would never let him turn (passenger shooting,
+	// stage 3)
+	if (pSoldier->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) ||
+		OKToAddMercToWorld(pSoldier, (INT8)sDirection))
 	{
 		// Don't do this if we are walkoing off screen...
 		if (gubWaitingForAllMercsToExitCode == WAIT_FOR_MERCS_TO_WALKOFF_SCREEN || gubWaitingForAllMercsToExitCode == WAIT_FOR_MERCS_TO_WALK_TO_GRIDNO)
@@ -7729,6 +7735,13 @@ BOOLEAN InternalIsValidStance(const SOLDIERTYPE* pSoldier, INT8 bDirection, INT8
 
 	// If we are a vehicle, we can only 'stand'
 	if ( ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE ) && bNewStance != ANIM_STAND )
+	{
+		return( FALSE );
+	}
+
+	// ... and a passenger shooting from inside only crouch (passenger
+	// shooting, stage 2)
+	if (CanShootFromVehicle(*pSoldier) && bNewStance != ANIM_CROUCH)
 	{
 		return( FALSE );
 	}

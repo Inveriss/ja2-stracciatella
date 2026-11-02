@@ -1587,5 +1587,19 @@
     "nickname": "Mike",
     "biography": "Little can be said about Mike, the Mystery Mercenary, simply because little is known. Persistent rumours, however, do place him in Dallas on the day Kennedy was shot and at Stormin' Norman's pool party in Kuwait. A known fact - he only works for the extremely experienced!",
     "additionalInfo": "Mike loves laying down long bursts with machine guns.  "
+  },
+  {
+    "profileID": 231,
+    "fullName": "Jeep",
+    "nickname": "Jeep",
+    "biography": "",
+    "additionalInfo": ""
+  },
+  {
+    "profileID": 232,
+    "fullName": "Tank",
+    "nickname": "Tank",
+    "biography": "",
+    "additionalInfo": ""
   }
 ]
