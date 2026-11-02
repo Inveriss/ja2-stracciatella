@@ -217,10 +217,25 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 		PlayLocationJA2Sample(vs->sGridNo, GCM->getVehicle(v.ubVehicleType)->enter_sound, HIGHVOLUME, 1);
 	}
 
+	// A newcomer sits behind those aboard (the team panel shows them in seat
+	// order), not in a seat someone before them left: only when the last seat is
+	// taken do they all move up, closing those gaps
 	INT32 const seats = GetVehicleSeats(v);
-	for (INT32 i = 0; i < seats; ++i)
+	INT32 first_seat = seats;
+	while (first_seat > 0 && !v.pPassengers[first_seat - 1]) --first_seat;
+	if (first_seat == seats)
 	{
-		if (v.pPassengers[i]) continue;
+		first_seat = 0;
+		for (INT32 i = 0; i < seats; ++i)
+		{
+			SOLDIERTYPE* const aboard = v.pPassengers[i];
+			if (!aboard) continue;
+			v.pPassengers[i] = 0;
+			v.pPassengers[first_seat++] = aboard;
+		}
+	}
+	for (INT32 i = first_seat; i < seats; ++i)
+	{
 		v.pPassengers[i] = &s;
 
 		if (s.bAssignment == VEHICLE)
