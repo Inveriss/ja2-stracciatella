@@ -1204,7 +1204,9 @@ static void DrawHummerDetailsTexts(SGPVSurface* const dst)
 	label_value(15, 176, st_format_printf(pHummerInventoryStrings[18], (VEHICLE_FULL_TANK + fuel_per_sector - 1) / fuel_per_sector));
 	// the protection of its armour (vehicles.json), which stops the bullets
 	label_value(16, 196, ST::format("{}", GCM->getArmour(GCM->getVehicle(HUMMER)->armour_type)->getProtection()));
-	label_value(17, 216, ST::string());
+	// its repair points per point of condition (vehicles.json), shown negative
+	// like a weapon's Repair Ease: the lower, the harder to repair
+	label_value(17, 216, ST::format("{}", -static_cast<INT32>(GCM->getVehicle(HUMMER)->repair_points_divisor)));
 
 	SetFontDestBuffer(FRAME_BUFFER);
 }
