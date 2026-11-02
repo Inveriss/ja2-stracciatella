@@ -4753,12 +4753,24 @@ void ShutdownTEAMPanel()
 }
 
 
+// Shown as selected in the team panel: the selected merc, and the driver of
+// the selected vehicle with it (the vehicle is what is selected to drive)
+static bool IsShownSelected(SOLDIERTYPE const* const s)
+{
+	if (!s) return false;
+	SOLDIERTYPE const* const sel = GetSelectedMan();
+	if (s == sel) return true;
+	return sel && sel->uiStatusFlags & SOLDIER_VEHICLE && s->uiStatusFlags & SOLDIER_DRIVER &&
+		s->iVehicleId == sel->bVehicleID;
+}
+
+
 static void RenderTeamSlotBorder(const SOLDIERTYPE* const s, const INT32 dx, const INT32 dy)
 {
 	UINT16 region;
 	if      (gTacticalStatus.ubCurrentTeam != OUR_TEAM) region = 1; // Hatch out
 	else if (INTERRUPT_QUEUED && (!s || s->bMoved))     region = 1; // Hatch out
-	else if (s && s == GetSelectedMan())                region = 0; // Active border
+	else if (IsShownSelected(s))                        region = 0; // Active border
 	else                                                return;
 	const INT32 x = dx + TM_FACEHIGHTL_X;
 	const INT32 y = dy + TM_FACEHIGHTL_Y;
@@ -4829,7 +4841,7 @@ static void RenderBigTeamSlotBorder(SOLDIERTYPE const* const s, INT32 const dx, 
 	{
 		guiSAVEBUFFER->ShadowRect(x, y, x + w, y + h);
 	}
-	else if (s && (s == GetSelectedMan() || (gfHelicopterPassengersView && IsHelicopterSoldier(*s))))
+	else if (s && (IsShownSelected(s) || (gfHelicopterPassengersView && IsHelicopterSoldier(*s))))
 	{
 		SGPVSurface::Lock l(guiSAVEBUFFER);
 		SetClippingRegionAndImageWidth(l.Pitch(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
