@@ -17,6 +17,8 @@
 #include "Font.h"
 #include "Font_Control.h"
 #include "GameInstance.h"
+#include "ArmourModel.h"
+#include "VehicleModel.h"
 #include "GamePolicy.h"
 #include "GameScreen.h"
 #include "GameSettings.h"
@@ -1200,7 +1202,8 @@ static void DrawHummerDetailsTexts(SGPVSurface* const dst)
 	// with what is left (through towns it lasts longer)
 	INT32 const fuel_per_sector = CAR_TRAVEL_TIME * VEHICLE_FUEL_PER_TRAVEL_MINUTE;
 	label_value(15, 176, st_format_printf(pHummerInventoryStrings[18], (VEHICLE_FULL_TANK + fuel_per_sector - 1) / fuel_per_sector));
-	label_value(16, 196, ST::string());
+	// the protection of its armour (vehicles.json), which stops the bullets
+	label_value(16, 196, ST::format("{}", GCM->getArmour(GCM->getVehicle(HUMMER)->armour_type)->getProtection()));
 	label_value(17, 216, ST::string());
 
 	SetFontDestBuffer(FRAME_BUFFER);
