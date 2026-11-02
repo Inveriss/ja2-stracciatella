@@ -420,8 +420,9 @@ static UICursorID HandleNonActivatedTargetCursor(SOLDIERTYPE* const s, GridNo co
 
 		if (!EnoughAmmo(s, FALSE, HANDPOS))
 		{
-			// Check if ANY ammo exists
-			if (FindAmmoToReload(s, HANDPOS, NO_SLOT) == NO_SLOT) return BAD_RELOAD_UICURSOR;
+			// Check if ANY ammo exists (a passenger shooting from inside: in the
+			// vehicle's cargo, too)
+			if (FindAmmoObjToReload(s, HANDPOS, NO_SLOT) == NULL) return BAD_RELOAD_UICURSOR;
 
 			gsCurrentActionPoints   = GetAPsToAutoReload(s);
 			gfUIDisplayActionPoints = TRUE;
@@ -802,8 +803,9 @@ static UICursorID HandleNonActivatedTossCursor(SOLDIERTYPE* const s, GridNo cons
 	{
 		if (!EnoughAmmo(s, FALSE, HANDPOS))
 		{
-			// Check if ANY ammo exists
-			if (FindAmmoToReload(s, HANDPOS, NO_SLOT) == NO_SLOT) return BAD_RELOAD_UICURSOR;
+			// Check if ANY ammo exists (a passenger shooting from inside: in the
+			// vehicle's cargo, too)
+			if (FindAmmoObjToReload(s, HANDPOS, NO_SLOT) == NULL) return BAD_RELOAD_UICURSOR;
 
 			gsCurrentActionPoints   = GetAPsToAutoReload(s);
 			gfUIDisplayActionPoints = TRUE;

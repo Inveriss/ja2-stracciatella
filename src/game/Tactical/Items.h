@@ -153,6 +153,10 @@ BOOLEAN IsMedicalKitItem(const OBJECTTYPE* pObject);
 
 BOOLEAN AutoReload( SOLDIERTYPE * pSoldier );
 INT8 FindAmmoToReload( const SOLDIERTYPE * pSoldier, INT8 bWeaponIn, INT8 bExcludeSlot );
+// The ammo to reload a gun with, as FindAmmoToReload(); a passenger who
+// shoots from inside a vehicle and has none of his own takes it from the
+// vehicle's cargo (passenger shooting, stage 5). NULL: none.
+OBJECTTYPE* FindAmmoObjToReload(SOLDIERTYPE* pSoldier, INT8 bWeaponIn, INT8 bExcludeSlot);
 
 void SwapHandItems( SOLDIERTYPE * pSoldier );
 

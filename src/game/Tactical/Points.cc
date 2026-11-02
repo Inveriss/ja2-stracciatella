@@ -1493,8 +1493,26 @@ INT8 GetAPsToAutoReload( SOLDIERTYPE * pSoldier )
 		bSlot = FindAmmoToReload( pSoldier, HANDPOS, NO_SLOT );
 		if (bSlot == NO_SLOT)
 		{
-			// we would not reload
-			return( 0 );
+			// a passenger shooting from inside: from the vehicle's cargo
+			// (passenger shooting, stage 5) -- the 2nd gun is then counted from
+			// there as well
+			OBJECTTYPE* const pAmmo = FindAmmoObjToReload( pSoldier, HANDPOS, NO_SLOT );
+			if (pAmmo == NULL)
+			{
+				// we would not reload
+				return( 0 );
+			}
+			bAPCost += GetAPsToReloadGunWithAmmo( pObj, pAmmo );
+			if ( IsValidSecondHandShotForReloadingPurposes( pSoldier ) )
+			{
+				OBJECTTYPE* const pAmmo2 = FindAmmoObjToReload( pSoldier, SECONDHANDPOS, NO_SLOT );
+				if (pAmmo2 != NULL)
+				{
+					bAPCost2 = GetAPsToReloadGunWithAmmo( &(pSoldier->inv[SECONDHANDPOS]), pAmmo2 );
+					if ( EnoughPoints( pSoldier, (INT16) (bAPCost + bAPCost2), 0, FALSE ) ) bAPCost += bAPCost2;
+				}
+			}
+			return( bAPCost );
 		}
 
 		// we would reload using this ammo!
@@ -1522,15 +1540,17 @@ INT8 GetAPsToAutoReload( SOLDIERTYPE * pSoldier )
 				}
 			}
 
-			if (bSlot2 == NO_SLOT)
+			OBJECTTYPE* pAmmo2 = bSlot2 != NO_SLOT ? &(pSoldier->inv[bSlot2]) : NULL;
+			if (pAmmo2 == NULL)
 			{
-				bSlot2 = FindAmmoToReload( pSoldier, SECONDHANDPOS, bExcludeSlot );
+				// (a passenger shooting from inside: the vehicle's cargo, too)
+				pAmmo2 = FindAmmoObjToReload( pSoldier, SECONDHANDPOS, bExcludeSlot );
 			}
 
-			if (bSlot2 != NO_SLOT)
+			if (pAmmo2 != NULL)
 			{
 				// we would reload using this ammo!
-				bAPCost2 = GetAPsToReloadGunWithAmmo( pObj, &(pSoldier->inv[bSlot2] ) );
+				bAPCost2 = GetAPsToReloadGunWithAmmo( pObj, pAmmo2 );
 				if ( EnoughPoints( pSoldier, (INT16) (bAPCost + bAPCost2), 0, FALSE ) )
 				{
 					// we can afford to reload both guns; otherwise display just for 1 gun
