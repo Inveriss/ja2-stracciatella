@@ -4328,7 +4328,8 @@ static void InitMapInvSlotRegions()
 	if (gfMapInvHeliPanel)   LayoutInvSlotRegions(g_ui.m_invSlotPositionMapHeli, true);
 	if (gfMapInvHummerPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapHummer, true);
 	if (gfMapInvIceTruckPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapIceTruck, true);
-	if (gfMapInvEldoradoPanel || gfMapInvJeepPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapEldorado, true);
+	if (gfMapInvEldoradoPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapEldorado, true);
+	if (gfMapInvJeepPanel)     LayoutInvSlotRegions(g_ui.m_invSlotPositionMapJeep, true);
 	if (gfMapInvTankPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapTank, true);
 }
 

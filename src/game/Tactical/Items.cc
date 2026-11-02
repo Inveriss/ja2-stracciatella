@@ -2040,8 +2040,8 @@ BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos,
 	{
 		return( FALSE );
 	}
-	// ... the Hummer in 18, the ice cream truck in 14, the Eldorado and the
-	// Jeep in 11, the tank in 15, their fuel slots for gas cans only
+	// ... the Hummer in 18, the ice cream truck in 14, the Eldorado in 11, the
+	// Jeep in 8, the tank in 15, their fuel slots for gas cans only
 	if (HasVehicleCargoSlots(*pSoldier) &&
 		(!IsVehicleCargoSlot(*pSoldier, bPos) || (IsHummerFuelSlot(bPos) && pObj->usItem != GAS_CAN)))
 	{

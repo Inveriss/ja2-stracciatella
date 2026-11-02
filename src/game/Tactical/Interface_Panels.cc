@@ -1144,7 +1144,7 @@ void DrawHummerInventoryTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool c
 
 
 // The texts of the panels with the narrower UPGRADES block and the common
-// VEHICLE DETAILS block: the Hummer's and the ice cream truck's
+// VEHICLE DETAILS block: the Hummer's, the ice cream truck's, the Jeep's
 void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map, UINT8 const vehicle_type)
 {
 	VehicleModel const* const model = GCM->getVehicle(vehicle_type);
@@ -1202,7 +1202,7 @@ void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool con
 		FindFontRightCoordinates(x0 + 643, y0 + ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
 		MPrint(x, y0 + ly, value);
 	};
-	label_value(11, 136, pHummerInventoryStrings[vehicle_type == ICE_CREAM_TRUCK ? 19 : 12]);
+	label_value(11, 136, pHummerInventoryStrings[vehicle_type == ICE_CREAM_TRUCK ? 19 : vehicle_type == JEEP_CAR ? 20 : 12]);
 	// (from the constant its travel uses)
 	label_value(13, 167, st_format_printf(pHummerInventoryStrings[14], static_cast<INT32>(model->travel_time_per_sector)));
 	// the sectors outside towns a full tank lasts for, the last one reached
@@ -1249,13 +1249,13 @@ static void BuildEldoradoSMPanelSurface()
 }
 
 
-// The Jeep's panel surface (laid out as the Eldorado's)
+// The Jeep's panel surface (laid out as the Hummer's)
 static void BuildJeepSMPanelSurface()
 {
 	guiSMPanelJeep->Fill(0);
 	AutoSGPVObject const jeep_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" JEEP_SMPANEL_FILE) };
 	BltVideoObject(guiSMPanelJeep, jeep_panel.get(), 0, 0, 0);
-	DrawHummerInventoryTexts(guiSMPanelJeep, 0, 0, false, true, false);
+	DrawHummerDetailsTexts(guiSMPanelJeep, 0, 0, false, JEEP_CAR);
 }
 
 
@@ -1408,13 +1408,13 @@ static void LayoutSMPanelSlots()
 	bool const heli   = IsHeliSMPanel(gpSMCurrentMerc);
 	bool const hummer = IsHummerSMPanel(gpSMCurrentMerc);
 	bool const truck  = IsIceTruckSMPanel(gpSMCurrentMerc);
-	// (the Jeep's slots are the Eldorado's)
-	bool const car    = IsEldoradoSMPanel(gpSMCurrentMerc) || IsJeepSMPanel(gpSMCurrentMerc);
+	bool const car    = IsEldoradoSMPanel(gpSMCurrentMerc);
+	bool const jeep   = IsJeepSMPanel(gpSMCurrentMerc);
 	bool const tank   = IsTankSMPanel(gpSMCurrentMerc);
 	LayoutInvSlotRegions(heli ? g_ui.m_invSlotPositionTacHeli : hummer ? g_ui.m_invSlotPositionTacHummer :
 		truck ? g_ui.m_invSlotPositionTacIceTruck : car ? g_ui.m_invSlotPositionTacEldorado :
-		tank ? g_ui.m_invSlotPositionTacTank : g_ui.m_invSlotPositionTac,
-		heli || hummer || truck || car || tank);
+		jeep ? g_ui.m_invSlotPositionTacJeep : tank ? g_ui.m_invSlotPositionTacTank : g_ui.m_invSlotPositionTac,
+		heli || hummer || truck || car || jeep || tank);
 }
 
 

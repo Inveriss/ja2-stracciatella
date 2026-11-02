@@ -66,11 +66,13 @@
         "moveSound": "sounds/driving 01.wav",
         "profile": "PROF_JEEP",
         "movementType": "CAR",
-        "armourType": "KEVLAR_VEST",
+        "armourType": "KEVLAR_VEST_Y",
         "seats":  6,
-        "repairPointsDivisor": 10,
+        "repairPointsDivisor": 6,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPer100Tiles": 200
+        "tacticalFuelPer100Tiles": 200,
+        "travelTimePerSector": 30,
+        "fuelPerTravelMinute": 6
     },
     // Tank (unused)
     {
