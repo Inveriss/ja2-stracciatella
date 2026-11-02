@@ -562,6 +562,18 @@ BOOLEAN TakeSoldierOutOfVehicle(SOLDIERTYPE* const s)
 	// if not in vehicle, don't take out, not much point, now is there?
 	if (s->bAssignment != VEHICLE) return FALSE;
 
+	// A dead one (killed with the vehicle) is only taken off it: getting out
+	// onto the map would give him a squad of his own, whose group placed in
+	// the sector unloads it at once when nobody is left alive -- in the
+	// middle of the attack, without the lost battle's handling (the map
+	// screen stayed locked, the battle music on)
+	if (s->bLife == 0 && !InHelicopter(*s))
+	{
+		if (!RemoveSoldierFromVehicle(*s)) return FALSE;
+		s->iVehicleId = -1;
+		return TRUE;
+	}
+
 	if (s->sSector == gWorldSector &&
 		s->bInSector &&
 		!InHelicopter(*s)) // helicopter isn't a soldiertype instance
