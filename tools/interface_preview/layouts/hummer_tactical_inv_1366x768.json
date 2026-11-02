@@ -160,9 +160,16 @@
       "align": "right"
     },
     {
-      "text": "Fuel use:",
+      "text": "Range on full tank:",
       "x": 643,
       "y": 176
+    },
+    {
+      "text": "56 sectors",
+      "x": 643,
+      "y": 176,
+      "w": 193,
+      "align": "right"
     },
     {
       "text": "Durability:",

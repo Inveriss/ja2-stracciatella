@@ -1891,9 +1891,10 @@
         "HMMWV M1025 \"Slantback\"",
         "Travel speed:",
         "%d min/sector",
-        "Fuel use:",
+        "Range on full tank:",
         "Durability:",
-        "Repair Ease:"
+        "Repair Ease:",
+        "%d sectors"
     ],
     "pVehicleFuelStrings": [
         "The %s was refueled from gas cans."

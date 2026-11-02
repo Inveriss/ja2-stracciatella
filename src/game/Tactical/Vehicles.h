@@ -9,6 +9,8 @@
 
 #define MAX_VEHICLES 10
 #define MAX_PASSENGERS_IN_VEHICLE 10
+// the tank's capacity (sBreathRed); a gas can at 100% holds half of it
+#define VEHICLE_FULL_TANK 10000
 
 // type of vehicles
 enum{

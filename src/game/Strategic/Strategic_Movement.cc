@@ -1167,7 +1167,7 @@ void GroupArrivedAtSector(GROUP& g, BOOLEAN const check_for_battle, BOOLEAN cons
 			VEHICLETYPE const& v  = GetVehicleFromMvtGroup(g);
 			SOLDIERTYPE&       vs = GetSoldierStructureForVehicle(v);
 
-			SpendVehicleFuel(vs, g.uiTraverseTime * 6);
+			SpendVehicleFuel(vs, g.uiTraverseTime * VEHICLE_FUEL_PER_TRAVEL_MINUTE);
 
 			// run dry: the Hummer's gas cans first, if it carries any
 			if (VehicleFuelRemaining(vs) == 0 && !RefuelVehicleFromGasCansIfEmpty(vs))

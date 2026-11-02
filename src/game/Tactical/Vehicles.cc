@@ -1299,9 +1299,6 @@ bool IsHummerFuelSlot(INT8 const slot)
 }
 
 
-// the tank's capacity (sBreathRed); a gas can at 100% holds half of it
-#define VEHICLE_FULL_TANK 10000
-
 static bool RefuelVehicleFromGasCans(SOLDIERTYPE& vs);
 
 bool RefuelVehicleFromGasCansIfEmpty(SOLDIERTYPE& vs)

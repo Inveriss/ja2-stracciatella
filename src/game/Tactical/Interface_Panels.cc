@@ -1196,7 +1196,10 @@ static void DrawHummerDetailsTexts(SGPVSurface* const dst)
 	label_value(11, 136, pHummerInventoryStrings[12]);
 	// (from the constant its travel uses)
 	label_value(13, 156, st_format_printf(pHummerInventoryStrings[14], CAR_TRAVEL_TIME));
-	label_value(15, 176, ST::string());
+	// the sectors outside towns a full tank lasts for, the last one reached
+	// with what is left (through towns it lasts longer)
+	INT32 const fuel_per_sector = CAR_TRAVEL_TIME * VEHICLE_FUEL_PER_TRAVEL_MINUTE;
+	label_value(15, 176, st_format_printf(pHummerInventoryStrings[18], (VEHICLE_FULL_TANK + fuel_per_sector - 1) / fuel_per_sector));
 	label_value(16, 196, ST::string());
 	label_value(17, 216, ST::string());
 
