@@ -1160,7 +1160,7 @@ static void DrawHummerDetailsTexts(SGPVSurface* const dst)
 	auto const title = [](INT32 const i, INT16 const bx, INT16 const bw)
 	{
 		ST::string const& str = pHummerInventoryStrings[i];
-		MPrint(bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, 117, str);
+		MPrint(bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, 112, str);
 	};
 
 	// the headers, in the title bars: Upgrades, Vehicle Details
@@ -1193,12 +1193,12 @@ static void DrawHummerDetailsTexts(SGPVSurface* const dst)
 		FindFontRightCoordinates(643, ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
 		MPrint(x, ly, value);
 	};
-	label_value(11, 143, pHummerInventoryStrings[12]);
+	label_value(11, 136, pHummerInventoryStrings[12]);
 	// (from the constant its travel uses)
-	label_value(13, 163, st_format_printf(pHummerInventoryStrings[14], CAR_TRAVEL_TIME));
-	label_value(15, 183, ST::string());
-	label_value(16, 203, ST::string());
-	label_value(17, 223, ST::string());
+	label_value(13, 156, st_format_printf(pHummerInventoryStrings[14], CAR_TRAVEL_TIME));
+	label_value(15, 176, ST::string());
+	label_value(16, 196, ST::string());
+	label_value(17, 216, ST::string());
 
 	SetFontDestBuffer(FRAME_BUFFER);
 }

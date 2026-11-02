@@ -92,15 +92,15 @@
     {
       "text": "Systems",
       "x": 434,
-      "y": 117,
+      "y": 112,
       "w": 189,
       "align": "center",
       "font": "FONT14ARIAL"
     },
     {
-      "text": "Specification",
+      "text": "Specifications",
       "x": 633,
-      "y": 117,
+      "y": 112,
       "w": 213,
       "align": "center",
       "font": "FONT14ARIAL"
@@ -138,41 +138,41 @@
     {
       "text": "Model:",
       "x": 643,
-      "y": 143
+      "y": 136
     },
     {
       "text": "HMMWV M1025 \"Slantback\"",
       "x": 643,
-      "y": 143,
+      "y": 136,
       "w": 193,
       "align": "right"
     },
     {
       "text": "Travel speed:",
       "x": 643,
-      "y": 163
+      "y": 156
     },
     {
       "text": "30 min/sector",
       "x": 643,
-      "y": 163,
+      "y": 156,
       "w": 193,
       "align": "right"
     },
     {
       "text": "Fuel use:",
       "x": 643,
-      "y": 183
+      "y": 176
     },
     {
       "text": "Durability:",
       "x": 643,
-      "y": 203
+      "y": 196
     },
     {
       "text": "Repair Ease:",
       "x": 643,
-      "y": 223
+      "y": 216
     }
   ]
 }
