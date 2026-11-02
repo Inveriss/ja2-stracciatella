@@ -1144,7 +1144,7 @@ void DrawHummerInventoryTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool c
 
 
 // The texts of the panels with the narrower UPGRADES block and the common
-// VEHICLE DETAILS block: the Hummer's, the ice cream truck's tactical one
+// VEHICLE DETAILS block: the Hummer's and the ice cream truck's
 void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map, UINT8 const vehicle_type)
 {
 	VehicleModel const* const model = GCM->getVehicle(vehicle_type);

@@ -876,7 +876,9 @@ static GUIButtonRef giMapInvHeliSilentButton;
 #define MAP_INV_VEHICLE_PANEL_HEIGHT 514
 #define MAP_INV_VEHICLE_DONE_BTN_X   (PLAYER_INFO_X + 560)
 #define MAP_INV_VEHICLE_DONE_BTN_Y   (PLAYER_INFO_Y + 183)
-// ... and the Hummer's own (hummer_strategic_inv_1366x768.png)
+// ... and those with VEHICLE DETAILS: the Hummer's
+// (hummer_strategic_inv_1366x768.png) and the ice cream truck's
+// (icetruck_strategic_inv_1366x768.png)
 #define MAP_INV_HUMMER_PANEL_WIDTH   638
 #define MAP_INV_HUMMER_DONE_BTN_X    (PLAYER_INFO_X + 572)
 #define MAP_INV_HUMMER_DONE_BTN_Y    (PLAYER_INFO_Y + 420)
@@ -888,9 +890,10 @@ static GUIButtonRef giMapInvHeliSilentButton;
 static void DefineMapInvPanelRegion()
 {
 	bool const big = IsMapInvBigImages();
-	bool   const ground_vehicle = gfMapInvIceTruckPanel || gfMapInvEldoradoPanel || gfMapInvJeepPanel || gfMapInvTankPanel;
-	UINT16 const w = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_WIDTH  : gfMapInvHummerPanel ? MAP_INV_HUMMER_PANEL_WIDTH : ground_vehicle ? MAP_INV_VEHICLE_PANEL_WIDTH  : big ? MAP_INV_BIG_PANEL_WIDTH  : INV_REGION_WIDTH;
-	UINT16 const h = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_HEIGHT : gfMapInvHummerPanel || ground_vehicle ? MAP_INV_VEHICLE_PANEL_HEIGHT : big ? MAP_INV_BIG_PANEL_HEIGHT : INV_REGION_HEIGHT;
+	bool   const details_panel  = gfMapInvHummerPanel || gfMapInvIceTruckPanel;
+	bool   const ground_vehicle = gfMapInvEldoradoPanel || gfMapInvJeepPanel || gfMapInvTankPanel;
+	UINT16 const w = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_WIDTH  : details_panel ? MAP_INV_HUMMER_PANEL_WIDTH : ground_vehicle ? MAP_INV_VEHICLE_PANEL_WIDTH  : big ? MAP_INV_BIG_PANEL_WIDTH  : INV_REGION_WIDTH;
+	UINT16 const h = gfMapInvHeliPanel ? MAP_INV_HELI_PANEL_HEIGHT : details_panel || ground_vehicle ? MAP_INV_VEHICLE_PANEL_HEIGHT : big ? MAP_INV_BIG_PANEL_HEIGHT : INV_REGION_HEIGHT;
 	MSYS_DefineRegion(&gMPanelRegion, INV_REGION_X, INV_REGION_Y, INV_REGION_X + w, INV_REGION_Y + h, MSYS_PRIORITY_HIGH, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK);
 }
 static MOUSE_REGION gMapViewRegion;
@@ -4563,19 +4566,19 @@ static void BltCharInvPanel(void)
 			b->uiFlags |= BUTTON_DIRTY;
 		}
 	}
-	// ... the Hummer's: its slots and texts only
-	else if (gfMapInvHummerPanel)
+	// ... the Hummer's and the ice cream truck's: their slots and texts only
+	else if (gfMapInvHummerPanel || gfMapInvIceTruckPanel)
 	{
-		DrawHummerDetailsTexts(guiSAVEBUFFER, PLAYER_INFO_X, PLAYER_INFO_Y, true, HUMMER);
+		DrawHummerDetailsTexts(guiSAVEBUFFER, PLAYER_INFO_X, PLAYER_INFO_Y, true, gfMapInvIceTruckPanel ? ICE_CREAM_TRUCK : HUMMER);
 		SetFontDestBuffer(guiSAVEBUFFER);
 	}
 	// ... the other ground vehicles' the same way (the Eldorado's and the
-	// Jeep's laid out as the ice cream truck's, the tank's with Armament and
+	// Jeep's without Armament, Fuel further left; the tank's with Armament and
 	// Tracks)
-	else if (gfMapInvIceTruckPanel || gfMapInvEldoradoPanel || gfMapInvJeepPanel || gfMapInvTankPanel)
+	else if (gfMapInvEldoradoPanel || gfMapInvJeepPanel || gfMapInvTankPanel)
 	{
 		DrawHummerInventoryTexts(guiSAVEBUFFER, PLAYER_INFO_X, PLAYER_INFO_Y, true,
-			gfMapInvIceTruckPanel || gfMapInvEldoradoPanel || gfMapInvJeepPanel, gfMapInvTankPanel);
+			gfMapInvEldoradoPanel || gfMapInvJeepPanel, gfMapInvTankPanel);
 		SetFontDestBuffer(guiSAVEBUFFER);
 	}
 	else
@@ -7620,8 +7623,8 @@ static void CreateMapInvPanelControls(void)
 	// 0 = ready, 1 = pressed on the normal ones (mapinv_1024/1280.sti).
 	bool const big = IsMapInvBigImages();
 	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big ? 2 : 0, big ? 3 : 1,
-		heli ? MAP_INV_HELI_DONE_BTN_X : gfMapInvHummerPanel ? MAP_INV_HUMMER_DONE_BTN_X : hummer ? MAP_INV_VEHICLE_DONE_BTN_X : INV_BTN_X,
-		heli ? MAP_INV_HELI_DONE_BTN_Y : gfMapInvHummerPanel ? MAP_INV_HUMMER_DONE_BTN_Y : hummer ? MAP_INV_VEHICLE_DONE_BTN_Y : INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
+		heli ? MAP_INV_HELI_DONE_BTN_X : gfMapInvHummerPanel || gfMapInvIceTruckPanel ? MAP_INV_HUMMER_DONE_BTN_X : hummer ? MAP_INV_VEHICLE_DONE_BTN_X : INV_BTN_X,
+		heli ? MAP_INV_HELI_DONE_BTN_Y : gfMapInvHummerPanel || gfMapInvIceTruckPanel ? MAP_INV_HUMMER_DONE_BTN_Y : hummer ? MAP_INV_VEHICLE_DONE_BTN_Y : INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
 	if (big && (giMapInvDoneButton->W() != MAP_INV_DONE_BTN_W_BIG || giMapInvDoneButton->H() != MAP_INV_DONE_BTN_H_BIG))
 	{
 		SLOGW("mapinv_done_buttons.sti sub-image 2 is {}x{}, expected {}x{} (MAP_INV_DONE_BTN_W/H_BIG)",

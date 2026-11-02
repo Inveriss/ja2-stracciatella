@@ -558,18 +558,14 @@ void UILayout::recalculatePositions()
 
 	// The ice cream truck's tactical panel since VEHICLE DETAILS: as the
 	// Hummer's, 12 cargo slots -- two columns of small pockets 1-4, 5-8 and one
-	// of big pockets 1-4. On its strategic panel, whose graphic still has more
-	// fields, the slots it no longer has are out of reach
+	// of big pockets 1-4. Its strategic panel the same, as the Hummer's, without
+	// its last column
 	static UINT16 const truckTacDetailsSmallX[2] = { 1061, 1144 };
 	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
 	{
 		m_invSlotPositionTacIceTruck[i] = m_invSlotPositionTacHummer[i];
+		m_invSlotPositionMapIceTruck[i] = m_invSlotPositionMapHummer[i];
 	}
-	for (INT32 slot = SMALLPOCK9POS; slot <= SMALLPOCK16POS; ++slot)
-	{
-		m_invSlotPositionMapIceTruck[slot].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
-	}
-	m_invSlotPositionMapIceTruck[SMALLPOCK19POS].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
 	for (INT32 row = 0; row != 4; ++row)
 	{
 		for (INT32 col = 0; col != 2; ++col)
