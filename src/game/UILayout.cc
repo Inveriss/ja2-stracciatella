@@ -580,24 +580,30 @@ void UILayout::recalculatePositions()
 	// The Jeep's tactical panel since VEHICLE DETAILS: as the Hummer's, 6 cargo
 	// slots -- small pockets 1-4 in two rows of two, under them big pockets 1-2,
 	// each in the middle of its field, which is wider than the slot. Its
-	// strategic panel the Eldorado's, whose graphic still has more fields: the
-	// slots it doesn't have are out of reach
+	// strategic panel the same, the fuel slots the Hummer's
 	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
 	{
 		bool const fuel = i == SMALLPOCK17POS || i == SMALLPOCK18POS;
 		m_invSlotPositionTacJeep[i] = m_invSlotPositionTacHummer[i];
-		m_invSlotPositionMapJeep[i] = m_invSlotPositionMapEldorado[i];
-		if (!fuel) m_invSlotPositionTacJeep[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		m_invSlotPositionMapJeep[i] = m_invSlotPositionMapHummer[i];
+		if (!fuel)
+		{
+			m_invSlotPositionTacJeep[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+			m_invSlotPositionMapJeep[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		}
 	}
-	m_invSlotPositionMapJeep[SMALLPOCK19POS].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
-	m_invSlotPositionMapJeep[BIGPOCK3POS].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
-	m_invSlotPositionMapJeep[BIGPOCK4POS].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
 	m_invSlotPositionTacJeep[SMALLPOCK1POS].set(startX + 1194, tacHeliY + 15);
 	m_invSlotPositionTacJeep[SMALLPOCK2POS].set(startX + 1277, tacHeliY + 15);
 	m_invSlotPositionTacJeep[SMALLPOCK3POS].set(startX + 1194, tacHeliY + 70);
 	m_invSlotPositionTacJeep[SMALLPOCK4POS].set(startX + 1277, tacHeliY + 70);
 	m_invSlotPositionTacJeep[BIGPOCK1POS].set(startX + 1211, tacHeliY + 125);
 	m_invSlotPositionTacJeep[BIGPOCK2POS].set(startX + 1211, tacHeliY + 180);
+	m_invSlotPositionMapJeep[SMALLPOCK1POS].set(m_mapScreenOffsetX +  23, mapHeliY + 254);
+	m_invSlotPositionMapJeep[SMALLPOCK2POS].set(m_mapScreenOffsetX + 106, mapHeliY + 254);
+	m_invSlotPositionMapJeep[SMALLPOCK3POS].set(m_mapScreenOffsetX +  23, mapHeliY + 309);
+	m_invSlotPositionMapJeep[SMALLPOCK4POS].set(m_mapScreenOffsetX + 106, mapHeliY + 309);
+	m_invSlotPositionMapJeep[BIGPOCK1POS].set(m_mapScreenOffsetX + 40, mapHeliY + 364);
+	m_invSlotPositionMapJeep[BIGPOCK2POS].set(m_mapScreenOffsetX + 40, mapHeliY + 419);
 
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);
