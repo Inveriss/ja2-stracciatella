@@ -462,49 +462,6 @@ void UILayout::recalculatePositions()
 		}
 	}
 
-	// The ice cream truck's panels: the Hummer's slots, its FUEL block
-	// further left
-	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
-	{
-		m_invSlotPositionTacIceTruck[i] = m_invSlotPositionTacHummer[i];
-		m_invSlotPositionMapIceTruck[i] = m_invSlotPositionMapHummer[i];
-	}
-	for (INT32 slot = SMALLPOCK17POS; slot <= SMALLPOCK19POS; ++slot)
-	{
-		m_invSlotPositionTacIceTruck[slot].uX += ICETRUCK_FUEL_SHIFT_X;
-		m_invSlotPositionMapIceTruck[slot].uX += ICETRUCK_FUEL_SHIFT_X;
-	}
-
-	// The tank's panels: 12 cargo slots (IsVehicleCargoSlot()) -- a column of
-	// small pockets 1-4 and two of big pockets 1-4, 5-8; its fuel slots the
-	// Hummer's
-	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
-	{
-		bool const fuel = SMALLPOCK17POS <= i && i <= SMALLPOCK19POS;
-		m_invSlotPositionTacTank[i] = m_invSlotPositionTacHummer[i];
-		m_invSlotPositionMapTank[i] = m_invSlotPositionMapHummer[i];
-		if (!fuel)
-		{
-			m_invSlotPositionTacTank[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
-			m_invSlotPositionMapTank[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
-		}
-	}
-	// tank_tactical_inv_1366x768.png: slot = the field; on
-	// tank_strategic_inv_1366x768.png the field 1 px in
-	static UINT16 const tankTacBigX[2] = { 1094, 1227 };
-	static UINT16 const tankMapBigX[2] = { 106, 239 };
-	for (INT32 row = 0; row != 4; ++row)
-	{
-		m_invSlotPositionTacTank[SMALLPOCK1POS + row].set(startX + 1012, tacHeliY + 15 + 55 * row);
-		m_invSlotPositionMapTank[SMALLPOCK1POS + row].set(m_mapScreenOffsetX + 23, mapHeliY + 254 + 55 * row);
-		for (INT32 col = 0; col != 2; ++col)
-		{
-			INT32 const slot = BIGPOCK1POS + 4 * col + row;
-			m_invSlotPositionTacTank[slot].set(startX + tankTacBigX[col], tacHeliY + 15 + 55 * row);
-			m_invSlotPositionMapTank[slot].set(m_mapScreenOffsetX + tankMapBigX[col], mapHeliY + 254 + 55 * row);
-		}
-	}
-
 	// The Hummer's panels since VEHICLE DETAILS: 16 cargo slots
 	// (IsVehicleCargoSlot()) -- two columns of small pockets 1-4, 5-8 and two
 	// of big ones -- and 2 fuel slots, small pockets 17-18, in its Systems box.
@@ -605,22 +562,25 @@ void UILayout::recalculatePositions()
 		m_invSlotPositionMapEldorado[BIGPOCK1POS   + row].set(m_mapScreenOffsetX + 106, mapHeliY + 254 + 55 * row);
 	}
 
-	// The tank's tactical panel since VEHICLE DETAILS: as the Hummer's, its 8
-	// cargo slots in two columns of big pockets 1-4, 5-8. On its strategic
-	// panel, whose graphic still has more fields, the slots it doesn't have are
-	// out of reach
+	// The tank's panels since VEHICLE DETAILS: as the Hummer's, its 8 cargo slots
+	// in two columns of big pockets 1-4, 5-8
 	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
 	{
 		bool const fuel = i == SMALLPOCK17POS || i == SMALLPOCK18POS;
 		m_invSlotPositionTacTank[i] = m_invSlotPositionTacHummer[i];
-		if (!fuel) m_invSlotPositionTacTank[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		m_invSlotPositionMapTank[i] = m_invSlotPositionMapHummer[i];
+		if (!fuel)
+		{
+			m_invSlotPositionTacTank[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+			m_invSlotPositionMapTank[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		}
 	}
-	m_invSlotPositionMapTank[SMALLPOCK19POS].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
 	for (INT32 row = 0; row != 4; ++row)
 	{
 		m_invSlotPositionTacTank[BIGPOCK1POS + row].set(startX + 1094, tacHeliY + 15 + 55 * row);
 		m_invSlotPositionTacTank[BIGPOCK5POS + row].set(startX + 1227, tacHeliY + 15 + 55 * row);
-		m_invSlotPositionMapTank[SMALLPOCK1POS + row].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		m_invSlotPositionMapTank[BIGPOCK1POS + row].set(m_mapScreenOffsetX +  23, mapHeliY + 254 + 55 * row);
+		m_invSlotPositionMapTank[BIGPOCK5POS + row].set(m_mapScreenOffsetX + 156, mapHeliY + 254 + 55 * row);
 	}
 
 	// the big SM panel has no place for the body figure yet: off the screen

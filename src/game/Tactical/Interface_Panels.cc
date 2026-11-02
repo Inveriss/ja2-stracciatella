@@ -1098,50 +1098,11 @@ void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const 
 }
 
 
-// The Hummer panels' texts (pHummerInventoryStrings), as the helicopter's:
-// the three blocks' headers and the upgrades. Tactical panel coordinates;
-// on the strategic panel (hummer_strategic_inv_1366x768.png) every block is
-// moved by the same amount.
+// The panels' texts below are in tactical panel coordinates; on the strategic
+// panels (hummer_strategic_inv_1366x768.png, ...) every block is moved by the
+// same amount.
 #define HUMMER_MAP_SHIFT_X  (-235)
 #define HUMMER_MAP_SHIFT_Y  (-36)
-
-void DrawHummerInventoryTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map, bool const ice_truck, bool const tracks)
-{
-	SetFontDestBuffer(dst);
-	if (map)
-	{
-		x0 += HUMMER_MAP_SHIFT_X;
-		y0 += HUMMER_MAP_SHIFT_Y;
-	}
-
-	// centred in a box, both ways
-	auto const centred = [&](INT32 const i, SGPFont const font, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
-	{
-		ST::string const& str = pHummerInventoryStrings[i];
-		INT16 x;
-		INT16 y;
-		FindFontCenterCoordinates(x0 + bx, y0 + by, bw, bh, str, font, &x, &y);
-		MPrint(x, y, str);
-	};
-
-	// the headers, in the title bars: Upgrades, Armament, Fuel
-	SetFontAttributes(FONT14HUMANIST, HELI_SM_TEXT_HEADER_COLOUR);
-	centred(0, FONT14HUMANIST, 265, 66, 168, 25);
-	// (the ice cream truck: no Armament, its Fuel block further left)
-	if (!ice_truck) centred(4, FONT14HUMANIST, 481, 66, 120, 25);
-	centred(5, FONT14HUMANIST, 648 + (ice_truck ? ICETRUCK_FUEL_SHIFT_X : 0), 66, 76, 25);
-
-	// the upgrades: one in each of the three 174x52 boxes (the tank: Tracks
-	// in place of Tyres)
-	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
-	for (INT32 i = 0; i != 3; ++i)
-	{
-		centred(i == 2 && tracks ? 6 : 1 + i, FONT14ARIAL, 262, 97 + 55 * i, 174, 52);
-	}
-
-	SetFontDestBuffer(FRAME_BUFFER);
-}
-
 
 // The texts of the panels with the narrower UPGRADES block and the common
 // VEHICLE DETAILS block: the Hummer's, the ice cream truck's, the Jeep's, the
