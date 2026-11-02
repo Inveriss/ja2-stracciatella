@@ -1143,26 +1143,31 @@ void DrawHummerInventoryTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool c
 }
 
 
-// The Hummer's tactical panel's texts (HUMMER_SMPANEL_FILE): the narrower
-// UPGRADES block and the common VEHICLE DETAILS block
-static void DrawHummerDetailsTexts(SGPVSurface* const dst)
+// The Hummer's panels' texts (HUMMER_SMPANEL_FILE, HUMMER_MAPINV_FILE): the
+// narrower UPGRADES block and the common VEHICLE DETAILS block
+void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map)
 {
 	SetFontDestBuffer(dst);
+	if (map)
+	{
+		x0 += HUMMER_MAP_SHIFT_X;
+		y0 += HUMMER_MAP_SHIFT_Y;
+	}
 
 	// centred in a box, both ways
-	auto const centred = [](INT32 const i, SGPFont const font, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
+	auto const centred = [&](INT32 const i, SGPFont const font, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
 	{
 		ST::string const& str = pHummerInventoryStrings[i];
 		INT16 x;
 		INT16 y;
-		FindFontCenterCoordinates(bx, by, bw, bh, str, font, &x, &y);
+		FindFontCenterCoordinates(x0 + bx, y0 + by, bw, bh, str, font, &x, &y);
 		MPrint(x, y, str);
 	};
 	// centred across a box, at a given height
-	auto const title = [](INT32 const i, INT16 const bx, INT16 const bw)
+	auto const title = [&](INT32 const i, INT16 const bx, INT16 const bw)
 	{
 		ST::string const& str = pHummerInventoryStrings[i];
-		MPrint(bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, 112, str);
+		MPrint(x0 + bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, y0 + 112, str);
 	};
 
 	// the headers, in the title bars: Upgrades, Vehicle Details
@@ -1186,27 +1191,27 @@ static void DrawHummerDetailsTexts(SGPVSurface* const dst)
 	// Specification (box 633,99 213x159): a label, and its value right-aligned
 	// 10 px from the wall
 	SetFontAttributes(FONT12ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
-	auto const label_value = [](INT32 const i, INT16 const ly, ST::string const& value)
+	auto const label_value = [&](INT32 const i, INT16 const ly, ST::string const& value)
 	{
-		MPrint(643, ly, pHummerInventoryStrings[i]);
+		MPrint(x0 + 643, y0 + ly, pHummerInventoryStrings[i]);
 		if (value.empty()) return;
 		INT16 x;
 		INT16 y;
-		FindFontRightCoordinates(643, ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
-		MPrint(x, ly, value);
+		FindFontRightCoordinates(x0 + 643, y0 + ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
+		MPrint(x, y0 + ly, value);
 	};
 	label_value(11, 136, pHummerInventoryStrings[12]);
 	// (from the constant its travel uses)
-	label_value(13, 156, st_format_printf(pHummerInventoryStrings[14], CAR_TRAVEL_TIME));
+	label_value(13, 167, st_format_printf(pHummerInventoryStrings[14], CAR_TRAVEL_TIME));
 	// the sectors outside towns a full tank lasts for, the last one reached
 	// with what is left (through towns it lasts longer)
 	INT32 const fuel_per_sector = CAR_TRAVEL_TIME * VEHICLE_FUEL_PER_TRAVEL_MINUTE;
-	label_value(15, 176, st_format_printf(pHummerInventoryStrings[18], (VEHICLE_FULL_TANK + fuel_per_sector - 1) / fuel_per_sector));
+	label_value(15, 187, st_format_printf(pHummerInventoryStrings[18], (VEHICLE_FULL_TANK + fuel_per_sector - 1) / fuel_per_sector));
 	// the protection of its armour (vehicles.json), which stops the bullets
-	label_value(16, 196, ST::format("{}", GCM->getArmour(GCM->getVehicle(HUMMER)->armour_type)->getProtection()));
+	label_value(16, 219, ST::format("{}", GCM->getArmour(GCM->getVehicle(HUMMER)->armour_type)->getProtection()));
 	// its repair points per point of condition (vehicles.json), shown negative
 	// like a weapon's Repair Ease: the lower, the harder to repair
-	label_value(17, 216, ST::format("{}", -static_cast<INT32>(GCM->getVehicle(HUMMER)->repair_points_divisor)));
+	label_value(17, 239, ST::format("{}", -static_cast<INT32>(GCM->getVehicle(HUMMER)->repair_points_divisor)));
 
 	SetFontDestBuffer(FRAME_BUFFER);
 }
@@ -1218,7 +1223,7 @@ static void BuildHummerSMPanelSurface()
 	guiSMPanelHummer->Fill(0);
 	AutoSGPVObject const hummer_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HUMMER_SMPANEL_FILE) };
 	BltVideoObject(guiSMPanelHummer, hummer_panel.get(), 0, 0, 0);
-	DrawHummerDetailsTexts(guiSMPanelHummer);
+	DrawHummerDetailsTexts(guiSMPanelHummer, 0, 0, false);
 }
 
 

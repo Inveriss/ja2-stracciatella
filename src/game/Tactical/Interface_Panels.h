@@ -102,11 +102,14 @@ enum
 	NUM_HELI_INV_CHECKS
 };
 void DrawHeliInventoryTexts(SGPVSurface* dst, INT16 x, INT16 y, bool map);
-// The Hummer's panels (1366x768, tactical and strategic) the same way: their
-// texts, tactical panel coordinates (moved on the map panel); the ice cream
-// truck's too (no Armament, Fuel further left) and so the Eldorado's and
-// the Jeep's; the tank's with Tracks in place of Tyres
+// The ground vehicles' panels (1366x768, tactical and strategic) the same way:
+// their texts, tactical panel coordinates (moved on the map panel); the ice
+// cream truck's (no Armament, Fuel further left) and so the Eldorado's and the
+// Jeep's; the tank's with Armament and Tracks in place of Tyres
 void DrawHummerInventoryTexts(SGPVSurface* dst, INT16 x, INT16 y, bool map, bool ice_truck, bool tracks);
+// The Hummer's own panels (narrower UPGRADES, VEHICLE DETAILS): their texts,
+// tactical panel coordinates (moved on the map panel)
+void DrawHummerDetailsTexts(SGPVSurface* dst, INT16 x, INT16 y, bool map);
 void GetHeliInventoryCheckboxPos(INT32 check, bool map, INT16* x, INT16* y);
 bool IsHeliInventoryChecked(INT32 check);
 void SetHeliInventoryChecked(INT32 check, bool checked);

@@ -150,48 +150,48 @@
     {
       "text": "Travel speed:",
       "x": 643,
-      "y": 156
+      "y": 167
     },
     {
       "text": "30 min/sector",
       "x": 643,
-      "y": 156,
+      "y": 167,
       "w": 193,
       "align": "right"
     },
     {
       "text": "Range on full tank:",
       "x": 643,
-      "y": 176
+      "y": 187
     },
     {
       "text": "56 sectors",
       "x": 643,
-      "y": 176,
+      "y": 187,
       "w": 193,
       "align": "right"
     },
     {
       "text": "Damage resistance:",
       "x": 643,
-      "y": 196
+      "y": 219
     },
     {
       "text": "42",
       "x": 643,
-      "y": 196,
+      "y": 219,
       "w": 193,
       "align": "right"
     },
     {
-      "text": "Repair Ease:",
+      "text": "Repair ease:",
       "x": 643,
-      "y": 216
+      "y": 239
     },
     {
       "text": "-10",
       "x": 643,
-      "y": 216,
+      "y": 239,
       "w": 193,
       "align": "right"
     }
