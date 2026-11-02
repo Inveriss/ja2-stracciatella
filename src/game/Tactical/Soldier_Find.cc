@@ -142,7 +142,9 @@ SOLDIERTYPE* FindSoldier(GridNo const gridno, UINT32 flags)
 			bool in_screen_rect = IsPointInScreenRect(screen_x, screen_y, soldier_rect);
 
 			// ATE: If we are an enemy
-			if (!gGameSettings.fOptions[TOPTION_SMART_CURSOR] && IsOnOurTeam(s))
+			// (a vehicle is found by its whole body, not only on its centre tile:
+			// a click anywhere on it selects it)
+			if (!gGameSettings.fOptions[TOPTION_SMART_CURSOR] && IsOnOurTeam(s) && !(s.uiStatusFlags & SOLDIER_VEHICLE))
 			{
 				// ATE: NOT if we are in action or comfirm action mode
 				if ((gCurrentUIMode != ACTION_MODE && gCurrentUIMode != CONFIRM_ACTION_MODE) || gUIActionModeChangeDueToMouseOver)

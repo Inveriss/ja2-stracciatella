@@ -4570,9 +4570,10 @@ void UpdateHelicopterPassengersView()
 }
 
 
-// a vehicle's portrait: the left click shows it (it is never selected); with
-// someone aboard the team panel switches to its squad, those aboard it -- for
-// the helicopter, which has no squad, to its passengers view
+// a vehicle's portrait: the left click shows it; with someone aboard the team
+// panel switches to its squad, those aboard it, and it is selected (with its
+// driver, to drive it) -- for the helicopter, which has no squad and is never
+// selected, to its passengers view
 static void BigTeamVehicleFaceCallbackPrimary(MOUSE_REGION* const r, UINT32)
 {
 	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
@@ -4581,10 +4582,13 @@ static void BigTeamVehicleFaceCallbackPrimary(MOUSE_REGION* const r, UINT32)
 	{
 		if (!HelicopterPassengersInSector(*v).empty()) ShowHelicopterPassengersView(*v);
 	}
-	else if (GetNumberInVehicle(GetVehicle(v->bVehicleID)) != 0 &&
-		(v->bAssignment != CurrentSquad() || gfHelicopterPassengersView))
+	else if (GetNumberInVehicle(GetVehicle(v->bVehicleID)) != 0)
 	{
-		SetCurrentSquad(v->bAssignment, FALSE);
+		if (v->bAssignment != CurrentSquad() || gfHelicopterPassengersView)
+		{
+			SetCurrentSquad(v->bAssignment, FALSE);
+		}
+		SelectSoldier(v, SELSOLDIER_ACKNOWLEDGE | SELSOLDIER_FROM_UI);
 	}
 	LocateSoldier(v, SETLOCATOR);
 }
