@@ -1526,6 +1526,24 @@ static void UpdateSMAboardPanel(SOLDIERTYPE& s)
 	}
 	if (giSMStealthButton) DisableButton(giSMStealthButton);
 
+	// ... except the weapon mode for a passenger who shoots from inside
+	// (passenger shooting): as for a merc on the map (the B key follows it)
+	GUIButtonRef const burst = iSMPanelButtons[BURSTMODE_BUTTON];
+	if (burst && CanShootFromVehicle(s))
+	{
+		if (burst->image != iBurstButtonImages[s.bWeaponMode])
+		{
+			burst->image    = iBurstButtonImages[s.bWeaponMode];
+			burst->uiFlags |= BUTTON_DIRTY;
+		}
+		if (&s == GetSelectedMan() && s.bLife >= OKLIFE && gTacticalStatus.ubCurrentTeam == OUR_TEAM &&
+			!gfSMDisableForItems)
+		{
+			EnableButton(burst, IsGunBurstCapable(&s, HANDPOS) ||
+				FindAttachment(&s.inv[HANDPOS], UNDER_GLAUNCHER) != ITEM_NOT_FOUND);
+		}
+	}
+
 	if (gfAllDisabled) return;
 	CheckForReEvaluateDisabledINVPanelButtons();
 
