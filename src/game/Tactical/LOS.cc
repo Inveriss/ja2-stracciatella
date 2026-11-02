@@ -13,6 +13,7 @@
 #include "Soldier_Control.h"
 #include "Overhead.h"
 #include "Weapons.h"
+#include "Vehicles.h"
 #include "OppList.h"
 #include "Bullets.h"
 #include "Items.h"
@@ -147,6 +148,18 @@ static const UINT32 guiStructureHitChance[MAX_DIST_FOR_LESS_THAN_MAX_CHANCE_TO_H
 
 #define MIN_DIST_FOR_HIT_FRIENDS				30
 #define MIN_DIST_FOR_HIT_FRIENDS_UNAIMED			15
+
+
+// The ground vehicle a firer is aboard (passenger shooting, stage 4): his
+// bullets start inside it and pass through it, as through the firer himself
+static SOLDIERTYPE const* FirersVehicle(SOLDIERTYPE const* const firer)
+{
+	if (!firer || !(firer->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER))) return NULL;
+	if (firer->iVehicleId < 0 || firer->iVehicleId >= static_cast<INT32>(pVehicleList.size())) return NULL;
+	VEHICLETYPE const& v = pVehicleList[firer->iVehicleId];
+	if (!v.fValid || v.ubVehicleType == HELICOPTER) return NULL;
+	return &GetSoldierStructureForVehicle(v);
+}
 #define MIN_CHANCE_TO_ACCIDENTALLY_HIT_SOMEONE			3
 
 #define RADIANS_IN_CIRCLE					6.283
@@ -2574,7 +2587,8 @@ static UINT8 CalcChanceToGetThrough(BULLET* pBullet)
 			else if (pStructure->fFlags & STRUCTURE_PERSON)
 			{
 				SOLDIERTYPE const& person = GetMan(pStructure->usStructureID);
-				if (&person != pBullet->pFirer && &person != pBullet->target)
+				if (&person != pBullet->pFirer && &person != pBullet->target &&
+					&person != FirersVehicle(pBullet->pFirer))
 				{
 					// ignore intended target since we will get closure upon reaching the center
 					// of the destination tile
@@ -3712,7 +3726,7 @@ void MoveBullet(BULLET* const pBullet)
 			else if (pStructure->fFlags & STRUCTURE_PERSON)
 			{
 				SOLDIERTYPE& tgt = GetMan(pStructure->usStructureID);
-				if (&tgt != pBullet->pFirer)
+				if (&tgt != pBullet->pFirer && &tgt != FirersVehicle(pBullet->pFirer))
 				{
 					// in actually moving the bullet, we consider only count friends as targets if the bullet is unaimed
 					// (buckshot), if they are the intended target, or beyond the range of automatic friendly fire hits
