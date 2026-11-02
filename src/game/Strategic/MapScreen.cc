@@ -4566,7 +4566,7 @@ static void BltCharInvPanel(void)
 	// ... the Hummer's: its slots and texts only
 	else if (gfMapInvHummerPanel)
 	{
-		DrawHummerDetailsTexts(guiSAVEBUFFER, PLAYER_INFO_X, PLAYER_INFO_Y, true);
+		DrawHummerDetailsTexts(guiSAVEBUFFER, PLAYER_INFO_X, PLAYER_INFO_Y, true, HUMMER);
 		SetFontDestBuffer(guiSAVEBUFFER);
 	}
 	// ... the other ground vehicles' the same way (the Eldorado's and the

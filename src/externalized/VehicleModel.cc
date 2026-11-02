@@ -9,11 +9,13 @@
 VehicleModel::VehicleModel(ST::string enterSound, ST::string movementSound,
                            ProfileID profile, VehicleMovementType movementType,
                            uint16_t armourType, uint8_t seats_, uint8_t repairPointsDivisor,
-                           uint8_t slotLimitMultiplier, uint8_t tacticalFuelPerTile)
+                           uint8_t slotLimitMultiplier, uint8_t tacticalFuelPerTile,
+                           uint8_t travelTimePerSector, uint8_t fuelPerTravelMinute)
     : enter_sound(std::move(enterSound)), move_sound(std::move(movementSound)), profile(profile),
       movement_type(movementType), armour_type(armourType), seats(seats_),
       repair_points_divisor(repairPointsDivisor), slot_limit_multiplier(slotLimitMultiplier),
-      tactical_fuel_per_tile(tacticalFuelPerTile) {}
+      tactical_fuel_per_tile(tacticalFuelPerTile), travel_time_per_sector(travelTimePerSector),
+      fuel_per_travel_minute(fuelPerTravelMinute) {}
 
 static VehicleMovementType toMovementType(const ST::string& typeName)
 {
@@ -70,6 +72,18 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		throw DataError(ST::format("tacticalFuelPerTile must be 0-100, not {}", tacticalFuelPerTile));
 	}
 
+	unsigned int const travelTimePerSector = obj.getOptionalUInt("travelTimePerSector", 30);
+	if (travelTimePerSector < 1 || travelTimePerSector > 200)
+	{
+		throw DataError(ST::format("travelTimePerSector must be 1-200, not {}", travelTimePerSector));
+	}
+
+	unsigned int const fuelPerTravelMinute = obj.getOptionalUInt("fuelPerTravelMinute", 6);
+	if (fuelPerTravelMinute > 100)
+	{
+		throw DataError(ST::format("fuelPerTravelMinute must be 0-100, not {}", fuelPerTravelMinute));
+	}
+
 	return new VehicleModel(
 		obj.GetString("enterSound"),
 		obj.GetString("moveSound"),
@@ -79,7 +93,9 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		numSeats,
 		repairPointsDivisor,
 		slotLimitMultiplier,
-		tacticalFuelPerTile
+		tacticalFuelPerTile,
+		travelTimePerSector,
+		fuelPerTravelMinute
 		);
 }
 

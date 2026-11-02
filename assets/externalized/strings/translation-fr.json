@@ -1894,7 +1894,8 @@
         "Range on full tank:",
         "Damage resistance:",
         "Repair ease:",
-        "%d sectors"
+        "%d sectors",
+        "Chevrolet P10 Step-Van 7"
     ],
     "pVehicleFuelStrings": [
         "The %s was refueled from gas cans."

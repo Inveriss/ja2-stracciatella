@@ -1143,10 +1143,12 @@ void DrawHummerInventoryTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool c
 }
 
 
-// The Hummer's panels' texts (HUMMER_SMPANEL_FILE, HUMMER_MAPINV_FILE): the
-// narrower UPGRADES block and the common VEHICLE DETAILS block
-void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map)
+// The texts of the panels with the narrower UPGRADES block and the common
+// VEHICLE DETAILS block: the Hummer's, the ice cream truck's tactical one
+void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map, UINT8 const vehicle_type)
 {
+	VehicleModel const* const model = GCM->getVehicle(vehicle_type);
+
 	SetFontDestBuffer(dst);
 	if (map)
 	{
@@ -1200,18 +1202,18 @@ void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool con
 		FindFontRightCoordinates(x0 + 643, y0 + ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
 		MPrint(x, y0 + ly, value);
 	};
-	label_value(11, 136, pHummerInventoryStrings[12]);
+	label_value(11, 136, pHummerInventoryStrings[vehicle_type == ICE_CREAM_TRUCK ? 19 : 12]);
 	// (from the constant its travel uses)
-	label_value(13, 167, st_format_printf(pHummerInventoryStrings[14], CAR_TRAVEL_TIME));
+	label_value(13, 167, st_format_printf(pHummerInventoryStrings[14], static_cast<INT32>(model->travel_time_per_sector)));
 	// the sectors outside towns a full tank lasts for, the last one reached
 	// with what is left (through towns it lasts longer)
-	INT32 const fuel_per_sector = CAR_TRAVEL_TIME * VEHICLE_FUEL_PER_TRAVEL_MINUTE;
+	INT32 const fuel_per_sector = model->travel_time_per_sector * model->fuel_per_travel_minute;
 	label_value(15, 187, st_format_printf(pHummerInventoryStrings[18], (VEHICLE_FULL_TANK + fuel_per_sector - 1) / fuel_per_sector));
 	// the protection of its armour (vehicles.json), which stops the bullets
-	label_value(16, 219, ST::format("{}", GCM->getArmour(GCM->getVehicle(HUMMER)->armour_type)->getProtection()));
+	label_value(16, 219, ST::format("{}", GCM->getArmour(model->armour_type)->getProtection()));
 	// its repair points per point of condition (vehicles.json), shown negative
 	// like a weapon's Repair Ease: the lower, the harder to repair
-	label_value(17, 239, ST::format("{}", -static_cast<INT32>(GCM->getVehicle(HUMMER)->repair_points_divisor)));
+	label_value(17, 239, ST::format("{}", -static_cast<INT32>(model->repair_points_divisor)));
 
 	SetFontDestBuffer(FRAME_BUFFER);
 }
@@ -1223,7 +1225,7 @@ static void BuildHummerSMPanelSurface()
 	guiSMPanelHummer->Fill(0);
 	AutoSGPVObject const hummer_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HUMMER_SMPANEL_FILE) };
 	BltVideoObject(guiSMPanelHummer, hummer_panel.get(), 0, 0, 0);
-	DrawHummerDetailsTexts(guiSMPanelHummer, 0, 0, false);
+	DrawHummerDetailsTexts(guiSMPanelHummer, 0, 0, false, HUMMER);
 }
 
 
@@ -1233,7 +1235,7 @@ static void BuildIceTruckSMPanelSurface()
 	guiSMPanelIceTruck->Fill(0);
 	AutoSGPVObject const truck_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" ICETRUCK_SMPANEL_FILE) };
 	BltVideoObject(guiSMPanelIceTruck, truck_panel.get(), 0, 0, 0);
-	DrawHummerInventoryTexts(guiSMPanelIceTruck, 0, 0, false, true, false);
+	DrawHummerDetailsTexts(guiSMPanelIceTruck, 0, 0, false, ICE_CREAM_TRUCK);
 }
 
 

@@ -69,9 +69,6 @@ struct ENEMYGROUP
 //       DELETED!!!
 // minutes the helicopter takes per sector (the heli panels show it)
 #define AIR_TRAVEL_TIME     10
-#define CAR_TRAVEL_TIME     30
-// a ground vehicle's fuel (of VEHICLE_FULL_TANK) per minute of strategic travel
-#define VEHICLE_FUEL_PER_TRAVEL_MINUTE 6
 
 #define GROUPFLAG_SIMULTANEOUSARRIVAL_APPROVED	0x00000001
 #define GROUPFLAG_SIMULTANEOUSARRIVAL_CHECKED		0x00000002

@@ -556,6 +556,31 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionMapHummer[SMALLPOCK17POS].set(m_mapScreenOffsetX + 219, mapHeliY + 163);
 	m_invSlotPositionMapHummer[SMALLPOCK18POS].set(m_mapScreenOffsetX + 302, mapHeliY + 163);
 
+	// The ice cream truck's tactical panel since VEHICLE DETAILS: as the
+	// Hummer's, 12 cargo slots -- two columns of small pockets 1-4, 5-8 and one
+	// of big pockets 1-4. On its strategic panel, whose graphic still has more
+	// fields, the slots it no longer has are out of reach
+	static UINT16 const truckTacDetailsSmallX[2] = { 1061, 1144 };
+	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
+	{
+		m_invSlotPositionTacIceTruck[i] = m_invSlotPositionTacHummer[i];
+	}
+	for (INT32 slot = SMALLPOCK9POS; slot <= SMALLPOCK16POS; ++slot)
+	{
+		m_invSlotPositionMapIceTruck[slot].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	}
+	m_invSlotPositionMapIceTruck[SMALLPOCK19POS].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	for (INT32 row = 0; row != 4; ++row)
+	{
+		for (INT32 col = 0; col != 2; ++col)
+		{
+			m_invSlotPositionTacIceTruck[SMALLPOCK1POS + 4 * col + row].set(startX + truckTacDetailsSmallX[col], tacHeliY + 15 + 55 * row);
+		}
+		m_invSlotPositionTacIceTruck[BIGPOCK1POS + row].set(startX + 1227, tacHeliY + 15 + 55 * row);
+		m_invSlotPositionTacIceTruck[BIGPOCK5POS + row].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		m_invSlotPositionMapIceTruck[BIGPOCK5POS + row].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	}
+
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);
 	else m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);

@@ -1402,6 +1402,13 @@ bool IsVehicleCargoSlot(SOLDIERTYPE const& s, INT8 const slot)
 			(SMALLPOCK1POS <= slot && slot <= SMALLPOCK8POS) ||
 			slot == SMALLPOCK17POS || slot == SMALLPOCK18POS;
 	}
+	if (IsIceTruckSoldier(s))
+	{
+		// (12 cargo slots and 2 fuel slots)
+		return (BIGPOCK1POS <= slot && slot <= BIGPOCK4POS) ||
+			(SMALLPOCK1POS <= slot && slot <= SMALLPOCK8POS) ||
+			slot == SMALLPOCK17POS || slot == SMALLPOCK18POS;
+	}
 	if (IsEldoradoSoldier(s) || IsJeepSoldier(s)) return IsHelicopterCargoSlot(slot) || IsHummerFuelSlot(slot);
 	if (IsTankSoldier(s))
 	{

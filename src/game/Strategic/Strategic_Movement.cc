@@ -10,6 +10,8 @@
 #include "Game_Clock.h"
 #include "Game_Events.h"
 #include "GameInstance.h"
+#include "VehicleModel.h"
+#include "Vehicles.h"
 #include "GameSettings.h"
 #include "Inventory_Choosing.h"
 #include "Items.h"
@@ -1167,7 +1169,7 @@ void GroupArrivedAtSector(GROUP& g, BOOLEAN const check_for_battle, BOOLEAN cons
 			VEHICLETYPE const& v  = GetVehicleFromMvtGroup(g);
 			SOLDIERTYPE&       vs = GetSoldierStructureForVehicle(v);
 
-			SpendVehicleFuel(vs, g.uiTraverseTime * VEHICLE_FUEL_PER_TRAVEL_MINUTE);
+			SpendVehicleFuel(vs, g.uiTraverseTime * GCM->getVehicle(v.ubVehicleType)->fuel_per_travel_minute);
 
 			// run dry: the Hummer's gas cans first, if it carries any
 			if (VehicleFuelRemaining(vs) == 0 && !RefuelVehicleFromGasCansIfEmpty(vs))
@@ -2074,8 +2076,24 @@ INT32 FindTravelTimeBetweenWaypoints(WAYPOINT const* const pSource, WAYPOINT con
 
 
 #define FOOT_TRAVEL_TIME    89
+#define CAR_TRAVEL_TIME     30
 #define TRUCK_TRAVEL_TIME   32
 #define TRACKED_TRAVEL_TIME 46
+
+
+// The minutes for a road sector: a vehicle's own (vehicles.json), else the
+// usual time of cars
+static INT32 CarTravelTime(GROUP const& g)
+{
+	if (g.fVehicle)
+	{
+		for (VEHICLETYPE const& v : pVehicleList)
+		{
+			if (v.fValid && v.ubMovementGroup == g.ubGroupID) return GCM->getVehicle(v.ubVehicleType)->travel_time_per_sector;
+		}
+	}
+	return CAR_TRAVEL_TIME;
+}
 
 
 // Changes: direction contains the strategic move value, not the delta value.
@@ -2147,7 +2165,7 @@ INT32 GetSectorMvtTimeForGroup(UINT8 const ubSector, UINT8 const direction, GROU
 			case ROAD: traverse_mod = 100; break;
 			default:   return TRAVERSE_TIME_IMPOSSIBLE;
 		}
-		INT32 const traverse_time = CAR_TRAVEL_TIME * 100 / traverse_mod;
+		INT32 const traverse_time = CarTravelTime(*g) * 100 / traverse_mod;
 		if (best_traverse_time > traverse_time)
 			best_traverse_time = traverse_time;
 	}
