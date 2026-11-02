@@ -1,5 +1,5 @@
 {
-  "comment": "HUMMER_TACTICAL_INV_1366x768.png -- DrawHummerInventoryTexts(..., map = false) (Interface_Panels.cc), pHummerInventoryStrings.",
+  "comment": "HUMMER_TACTICAL_INV_1366x768.png -- DrawHummerDetailsTexts() (Interface_Panels.cc), pHummerInventoryStrings.",
   "background": "Interface/HUMMER_TACTICAL_INV_1366x768.png",
   "defaults": {
     "font": "FONT12ARIAL",
@@ -11,43 +11,29 @@
       "name": "upgrades bar",
       "x": 265,
       "y": 66,
-      "w": 168,
+      "w": 124,
       "h": 25
     },
     {
-      "name": "armament bar",
-      "x": 481,
+      "name": "details bar",
+      "x": 437,
       "y": 66,
-      "w": 120,
+      "w": 406,
       "h": 25
     },
     {
-      "name": "fuel bar",
-      "x": 648,
-      "y": 66,
-      "w": 76,
-      "h": 25
+      "name": "systems",
+      "x": 434,
+      "y": 99,
+      "w": 189,
+      "h": 159
     },
     {
-      "name": "defense",
-      "x": 262,
-      "y": 97,
-      "w": 174,
-      "h": 52
-    },
-    {
-      "name": "engine",
-      "x": 262,
-      "y": 152,
-      "w": 174,
-      "h": 52
-    },
-    {
-      "name": "tyres",
-      "x": 262,
-      "y": 207,
-      "w": 174,
-      "h": 52
+      "name": "specification",
+      "x": 633,
+      "y": 99,
+      "w": 213,
+      "h": 159
     }
   ],
   "items": [
@@ -55,7 +41,7 @@
       "text": "UPGRADES",
       "x": 265,
       "y": 66,
-      "w": 168,
+      "w": 124,
       "h": 25,
       "align": "center",
       "valign": "center",
@@ -63,21 +49,10 @@
       "colour": 130
     },
     {
-      "text": "ARMAMENT",
-      "x": 481,
+      "text": "VEHICLE DETAILS",
+      "x": 437,
       "y": 66,
-      "w": 120,
-      "h": 25,
-      "align": "center",
-      "valign": "center",
-      "font": "FONT14HUMANIST",
-      "colour": 130
-    },
-    {
-      "text": "FUEL",
-      "x": 648,
-      "y": 66,
-      "w": 76,
+      "w": 406,
       "h": 25,
       "align": "center",
       "valign": "center",
@@ -88,7 +63,7 @@
       "text": "Defense",
       "x": 262,
       "y": 97,
-      "w": 174,
+      "w": 130,
       "h": 52,
       "align": "center",
       "valign": "center",
@@ -98,7 +73,7 @@
       "text": "Engine",
       "x": 262,
       "y": 152,
-      "w": 174,
+      "w": 130,
       "h": 52,
       "align": "center",
       "valign": "center",
@@ -108,11 +83,96 @@
       "text": "Tyres",
       "x": 262,
       "y": 207,
-      "w": 174,
+      "w": 130,
       "h": 52,
       "align": "center",
       "valign": "center",
       "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Systems",
+      "x": 434,
+      "y": 117,
+      "w": 189,
+      "align": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Specification",
+      "x": 633,
+      "y": 117,
+      "w": 213,
+      "align": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Armament",
+      "x": 453,
+      "y": 136,
+      "w": 157,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "FUEL",
+      "x": 453,
+      "y": 198,
+      "w": 74,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "FUEL",
+      "x": 536,
+      "y": 198,
+      "w": 74,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Model:",
+      "x": 643,
+      "y": 143
+    },
+    {
+      "text": "HMMWV M1025 \"Slantback\"",
+      "x": 643,
+      "y": 143,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Travel speed:",
+      "x": 643,
+      "y": 163
+    },
+    {
+      "text": "30 min/sector",
+      "x": 643,
+      "y": 163,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Fuel use:",
+      "x": 643,
+      "y": 183
+    },
+    {
+      "text": "Durability:",
+      "x": 643,
+      "y": 203
+    },
+    {
+      "text": "Repair Ease:",
+      "x": 643,
+      "y": 223
     }
   ]
 }

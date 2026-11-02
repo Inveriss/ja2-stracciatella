@@ -69,6 +69,7 @@ struct ENEMYGROUP
 //       DELETED!!!
 // minutes the helicopter takes per sector (the heli panels show it)
 #define AIR_TRAVEL_TIME     10
+#define CAR_TRAVEL_TIME     30
 
 #define GROUPFLAG_SIMULTANEOUSARRIVAL_APPROVED	0x00000001
 #define GROUPFLAG_SIMULTANEOUSARRIVAL_CHECKED		0x00000002

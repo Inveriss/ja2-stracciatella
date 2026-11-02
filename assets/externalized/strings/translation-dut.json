@@ -1882,7 +1882,18 @@
         "Tyres",
         "ARMAMENT",
         "FUEL",
-        "Tracks"
+        "Tracks",
+        "VEHICLE DETAILS",
+        "Systems",
+        "Specification",
+        "Armament",
+        "Model:",
+        "HMMWV M1025 \"Slantback\"",
+        "Travel speed:",
+        "%d min/sector",
+        "Fuel use:",
+        "Durability:",
+        "Repair Ease:"
     ],
     "pVehicleFuelStrings": [
         "The %s was refueled from gas cans."

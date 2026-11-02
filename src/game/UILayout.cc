@@ -527,6 +527,29 @@ void UILayout::recalculatePositions()
 		}
 	}
 
+	// The Hummer's tactical panel since VEHICLE DETAILS: 16 cargo slots
+	// (IsVehicleCargoSlot()) -- two columns of small pockets 1-4, 5-8 and two
+	// of big ones -- and 2 fuel slots, small pockets 17-18, in its Systems box.
+	// On its strategic panel, whose graphic still has more fields, the slots it
+	// no longer has are out of reach
+	static UINT16 const hummerTacDetailsSmallX[2] = { 929, 1012 };
+	for (INT32 slot = SMALLPOCK9POS; slot <= SMALLPOCK16POS; ++slot)
+	{
+		m_invSlotPositionTacHummer[slot].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+		m_invSlotPositionMapHummer[slot].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	}
+	m_invSlotPositionTacHummer[SMALLPOCK19POS].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	m_invSlotPositionMapHummer[SMALLPOCK19POS].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	for (INT32 row = 0; row != 4; ++row)
+	{
+		for (INT32 col = 0; col != 2; ++col)
+		{
+			m_invSlotPositionTacHummer[SMALLPOCK1POS + 4 * col + row].set(startX + hummerTacDetailsSmallX[col], tacHeliY + 15 + 55 * row);
+		}
+	}
+	m_invSlotPositionTacHummer[SMALLPOCK17POS].set(startX + 453, tacHeliY + 161);
+	m_invSlotPositionTacHummer[SMALLPOCK18POS].set(startX + 536, tacHeliY + 161);
+
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);
 	else m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);

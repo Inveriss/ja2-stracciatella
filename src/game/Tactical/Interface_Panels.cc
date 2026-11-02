@@ -1141,13 +1141,76 @@ void DrawHummerInventoryTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool c
 }
 
 
+// The Hummer's tactical panel's texts (HUMMER_SMPANEL_FILE): the narrower
+// UPGRADES block and the common VEHICLE DETAILS block
+static void DrawHummerDetailsTexts(SGPVSurface* const dst)
+{
+	SetFontDestBuffer(dst);
+
+	// centred in a box, both ways
+	auto const centred = [](INT32 const i, SGPFont const font, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
+	{
+		ST::string const& str = pHummerInventoryStrings[i];
+		INT16 x;
+		INT16 y;
+		FindFontCenterCoordinates(bx, by, bw, bh, str, font, &x, &y);
+		MPrint(x, y, str);
+	};
+	// centred across a box, at a given height
+	auto const title = [](INT32 const i, INT16 const bx, INT16 const bw)
+	{
+		ST::string const& str = pHummerInventoryStrings[i];
+		MPrint(bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, 117, str);
+	};
+
+	// the headers, in the title bars: Upgrades, Vehicle Details
+	SetFontAttributes(FONT14HUMANIST, HELI_SM_TEXT_HEADER_COLOUR);
+	centred(0, FONT14HUMANIST, 265, 66, 124, 25);
+	centred(7, FONT14HUMANIST, 437, 66, 406, 25);
+
+	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	// the upgrades: one in each of the three 130x52 boxes
+	for (INT32 i = 0; i != 3; ++i)
+	{
+		centred(1 + i, FONT14ARIAL, 262, 97 + 55 * i, 130, 52);
+	}
+	// the two boxes' titles, and in Systems its fields
+	title(8, 434, 189);
+	title(9, 633, 213);
+	centred(10, FONT14ARIAL, 453, 136, 157, 52);
+	centred(5,  FONT14ARIAL, 453, 198,  74, 52);
+	centred(5,  FONT14ARIAL, 536, 198,  74, 52);
+
+	// Specification (box 633,99 213x159): a label, and its value right-aligned
+	// 10 px from the wall
+	SetFontAttributes(FONT12ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	auto const label_value = [](INT32 const i, INT16 const ly, ST::string const& value)
+	{
+		MPrint(643, ly, pHummerInventoryStrings[i]);
+		if (value.empty()) return;
+		INT16 x;
+		INT16 y;
+		FindFontRightCoordinates(643, ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
+		MPrint(x, ly, value);
+	};
+	label_value(11, 143, pHummerInventoryStrings[12]);
+	// (from the constant its travel uses)
+	label_value(13, 163, st_format_printf(pHummerInventoryStrings[14], CAR_TRAVEL_TIME));
+	label_value(15, 183, ST::string());
+	label_value(16, 203, ST::string());
+	label_value(17, 223, ST::string());
+
+	SetFontDestBuffer(FRAME_BUFFER);
+}
+
+
 // The Hummer's panel surface: its graphic and texts
 static void BuildHummerSMPanelSurface()
 {
 	guiSMPanelHummer->Fill(0);
 	AutoSGPVObject const hummer_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" HUMMER_SMPANEL_FILE) };
 	BltVideoObject(guiSMPanelHummer, hummer_panel.get(), 0, 0, 0);
-	DrawHummerInventoryTexts(guiSMPanelHummer, 0, 0, false, false, false);
+	DrawHummerDetailsTexts(guiSMPanelHummer);
 }
 
 

@@ -2074,7 +2074,6 @@ INT32 FindTravelTimeBetweenWaypoints(WAYPOINT const* const pSource, WAYPOINT con
 
 
 #define FOOT_TRAVEL_TIME    89
-#define CAR_TRAVEL_TIME     30
 #define TRUCK_TRAVEL_TIME   32
 #define TRACKED_TRAVEL_TIME 46
 
