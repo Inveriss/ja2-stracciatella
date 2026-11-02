@@ -12,6 +12,10 @@
 // the tank's capacity (sBreathRed); a gas can at 100% holds half of it
 #define VEHICLE_FULL_TANK 10000
 
+// TEMPORARY FOR TESTING: in a new game the tank's profile is in A9, Omerta, so
+// its placement in that sector's map file (a civilian, profile 232) gets added
+#define TANK_IN_A9_FOR_TESTING 1
+
 // type of vehicles
 enum{
 	ELDORADO_CAR = 0,

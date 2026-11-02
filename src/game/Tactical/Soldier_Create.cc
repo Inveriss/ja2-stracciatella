@@ -448,6 +448,7 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 				case TANK_NW:
 				case TANK_NE:
 					ubVehicleID = TANK_CAR;
+					if (team_id != ENEMY_TEAM) s->bNeutral = TRUE;
 					break;
 
 				case HELICOPTERBODY:

@@ -59,6 +59,7 @@
 #include "StrategicMap_Secrets.h"
 #include "Tactical_Save.h"
 #include "Timer_Control.h"
+#include "VehicleModel.h"
 #include "Vehicles.h"
 #include "WorldDef.h"
 #include <stdexcept>
@@ -169,6 +170,9 @@ void InitStrategicLayer( void )
 	InitMapSecrets();
 #if REVEAL_WHOLE_MAP_FOR_TESTING
 	RevealWholeMapForTesting();
+#endif
+#if TANK_IN_A9_FOR_TESTING
+	GetProfile(GCM->getVehicle(TANK_CAR)->profile).sSector = SGPSector(9, MAP_ROW_A);
 #endif
 
 
