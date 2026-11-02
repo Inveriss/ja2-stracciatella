@@ -1145,7 +1145,7 @@ void DrawHummerInventoryTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool c
 
 // The texts of the panels with the narrower UPGRADES block and the common
 // VEHICLE DETAILS block: the Hummer's, the ice cream truck's, the Jeep's, the
-// Eldorado's
+// Eldorado's, the tank's
 void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map, UINT8 const vehicle_type)
 {
 	VehicleModel const* const model = GCM->getVehicle(vehicle_type);
@@ -1179,10 +1179,11 @@ void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool con
 	centred(7, FONT14HUMANIST, 437, 66, 406, 25);
 
 	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
-	// the upgrades: one in each of the three 130x52 boxes
+	// the upgrades: one in each of the three 130x52 boxes (the tank: Tracks in
+	// place of Tyres)
 	for (INT32 i = 0; i != 3; ++i)
 	{
-		centred(1 + i, FONT14ARIAL, 262, 97 + 55 * i, 130, 52);
+		centred(i == 2 && vehicle_type == TANK_CAR ? 6 : 1 + i, FONT14ARIAL, 262, 97 + 55 * i, 130, 52);
 	}
 	// the two boxes' titles, and in Systems its fields
 	title(8, 434, 189);
@@ -1203,7 +1204,7 @@ void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool con
 		FindFontRightCoordinates(x0 + 643, y0 + ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
 		MPrint(x, y0 + ly, value);
 	};
-	label_value(11, 136, pHummerInventoryStrings[vehicle_type == ICE_CREAM_TRUCK ? 19 : vehicle_type == JEEP_CAR ? 20 : vehicle_type == ELDORADO_CAR ? 21 : 12]);
+	label_value(11, 136, pHummerInventoryStrings[vehicle_type == ICE_CREAM_TRUCK ? 19 : vehicle_type == JEEP_CAR ? 20 : vehicle_type == ELDORADO_CAR ? 21 : vehicle_type == TANK_CAR ? 22 : 12]);
 	// (from the constant its travel uses)
 	label_value(13, 167, st_format_printf(pHummerInventoryStrings[14], static_cast<INT32>(model->travel_time_per_sector)));
 	// the sectors outside towns a full tank lasts for, the last one reached
@@ -1267,7 +1268,7 @@ static void BuildTankSMPanelSurface()
 	guiSMPanelTank->Fill(0);
 	AutoSGPVObject const tank_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" TANK_SMPANEL_FILE) };
 	BltVideoObject(guiSMPanelTank, tank_panel.get(), 0, 0, 0);
-	DrawHummerInventoryTexts(guiSMPanelTank, 0, 0, false, false, true);
+	DrawHummerDetailsTexts(guiSMPanelTank, 0, 0, false, TANK_CAR);
 }
 
 

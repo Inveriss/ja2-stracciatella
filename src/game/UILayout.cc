@@ -605,6 +605,24 @@ void UILayout::recalculatePositions()
 		m_invSlotPositionMapEldorado[BIGPOCK1POS   + row].set(m_mapScreenOffsetX + 106, mapHeliY + 254 + 55 * row);
 	}
 
+	// The tank's tactical panel since VEHICLE DETAILS: as the Hummer's, its 8
+	// cargo slots in two columns of big pockets 1-4, 5-8. On its strategic
+	// panel, whose graphic still has more fields, the slots it doesn't have are
+	// out of reach
+	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
+	{
+		bool const fuel = i == SMALLPOCK17POS || i == SMALLPOCK18POS;
+		m_invSlotPositionTacTank[i] = m_invSlotPositionTacHummer[i];
+		if (!fuel) m_invSlotPositionTacTank[i].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	}
+	m_invSlotPositionMapTank[SMALLPOCK19POS].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	for (INT32 row = 0; row != 4; ++row)
+	{
+		m_invSlotPositionTacTank[BIGPOCK1POS + row].set(startX + 1094, tacHeliY + 15 + 55 * row);
+		m_invSlotPositionTacTank[BIGPOCK5POS + row].set(startX + 1227, tacHeliY + 15 + 55 * row);
+		m_invSlotPositionMapTank[SMALLPOCK1POS + row].set(INV_SLOT_HIDDEN_POS, INV_SLOT_HIDDEN_POS);
+	}
+
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);
 	else m_invCamoRegion.set(SM_BODYINV_X, SM_BODYINV_Y);

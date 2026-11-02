@@ -208,8 +208,7 @@ bool IsEldoradoSoldier(SOLDIERTYPE const&);
 // ... the Jeep's (6 cargo slots: big pockets 1-2, small pockets 1-4, and 2 fuel
 // slots)
 bool IsJeepSoldier(SOLDIERTYPE const&);
-// ... the tank's (12 cargo slots: big pockets 1-8, small pockets 1-4, and
-// the fuel slots)
+// ... the tank's (8 cargo slots: big pockets 1-8, and 2 fuel slots)
 bool IsTankSoldier(SOLDIERTYPE const&);
 // any of them: the vehicles with cargo and fuel slots
 bool HasVehicleCargoSlots(SOLDIERTYPE const&);

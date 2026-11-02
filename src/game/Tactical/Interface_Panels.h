@@ -107,7 +107,8 @@ void DrawHeliInventoryTexts(SGPVSurface* dst, INT16 x, INT16 y, bool map);
 // Tracks in place of Tyres
 void DrawHummerInventoryTexts(SGPVSurface* dst, INT16 x, INT16 y, bool map, bool ice_truck, bool tracks);
 // The panels with VEHICLE DETAILS (narrower UPGRADES) of the Hummer, the ice
-// cream truck, the Jeep and the Eldorado: their texts, the values of the given vehicle type,
+// cream truck, the Jeep, the Eldorado and the tank (its tactical one): their
+// texts, the values of the given vehicle type,
 // tactical panel coordinates (moved on the map panel)
 void DrawHummerDetailsTexts(SGPVSurface* dst, INT16 x, INT16 y, bool map, UINT8 vehicle_type);
 void GetHeliInventoryCheckboxPos(INT32 check, bool map, INT16* x, INT16* y);

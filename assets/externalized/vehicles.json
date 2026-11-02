@@ -84,9 +84,11 @@
         "movementType": "CAR",
         "armourType": "SPECTRA_VEST",
         "seats": 6,
-        "repairPointsDivisor": 10,
+        "repairPointsDivisor": 12,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPer100Tiles": 200
+        "tacticalFuelPer100Tiles": 800,
+        "travelTimePerSector": 60,
+        "fuelPerTravelMinute": 12
     },
     // Helicopter
     {

@@ -255,8 +255,8 @@ public:
 	INV_REGION_DESC       m_invSlotPositionMapEldorado[NUM_INVENTORY_SLOTS]; /**< The Eldorado's map inventory panel (ELDORADO_MAPINV_FILE): its 8 cargo slots, the Hummer's fuel slots */
 	INV_REGION_DESC       m_invSlotPositionTacJeep[NUM_INVENTORY_SLOTS];   /**< The Jeep's big SM panel (JEEP_SMPANEL_FILE): its 6 cargo slots, the Hummer's fuel slots */
 	INV_REGION_DESC       m_invSlotPositionMapJeep[NUM_INVENTORY_SLOTS];   /**< The Jeep's map inventory panel (JEEP_MAPINV_FILE): its 6 cargo slots, the Hummer's fuel slots */
-	INV_REGION_DESC       m_invSlotPositionTacTank[NUM_INVENTORY_SLOTS];   /**< The tank's big SM panel (TANK_SMPANEL_FILE): its 12 cargo slots, the Hummer's fuel slots */
-	INV_REGION_DESC       m_invSlotPositionMapTank[NUM_INVENTORY_SLOTS];   /**< The tank's map inventory panel (TANK_MAPINV_FILE): its 12 cargo slots, the Hummer's fuel slots */
+	INV_REGION_DESC       m_invSlotPositionTacTank[NUM_INVENTORY_SLOTS];   /**< The tank's big SM panel (TANK_SMPANEL_FILE): its 8 cargo slots, the Hummer's fuel slots */
+	INV_REGION_DESC       m_invSlotPositionMapTank[NUM_INVENTORY_SLOTS];   /**< The tank's map inventory panel (TANK_MAPINV_FILE): its 8 cargo slots, the Hummer's old fuel slots */
 	INV_REGION_DESC       m_invCamoRegion;                                /**< Camo (body) region in the inventory. */
 
 	SGPBox                m_progress_bar_box;
