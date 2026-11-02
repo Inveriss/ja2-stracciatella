@@ -1144,7 +1144,8 @@ void DrawHummerInventoryTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool c
 
 
 // The texts of the panels with the narrower UPGRADES block and the common
-// VEHICLE DETAILS block: the Hummer's, the ice cream truck's, the Jeep's
+// VEHICLE DETAILS block: the Hummer's, the ice cream truck's, the Jeep's, the
+// Eldorado's
 void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool const map, UINT8 const vehicle_type)
 {
 	VehicleModel const* const model = GCM->getVehicle(vehicle_type);
@@ -1202,7 +1203,7 @@ void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool con
 		FindFontRightCoordinates(x0 + 643, y0 + ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
 		MPrint(x, y0 + ly, value);
 	};
-	label_value(11, 136, pHummerInventoryStrings[vehicle_type == ICE_CREAM_TRUCK ? 19 : vehicle_type == JEEP_CAR ? 20 : 12]);
+	label_value(11, 136, pHummerInventoryStrings[vehicle_type == ICE_CREAM_TRUCK ? 19 : vehicle_type == JEEP_CAR ? 20 : vehicle_type == ELDORADO_CAR ? 21 : 12]);
 	// (from the constant its travel uses)
 	label_value(13, 167, st_format_printf(pHummerInventoryStrings[14], static_cast<INT32>(model->travel_time_per_sector)));
 	// the sectors outside towns a full tank lasts for, the last one reached
@@ -1239,13 +1240,13 @@ static void BuildIceTruckSMPanelSurface()
 }
 
 
-// The Eldorado's panel surface (its texts laid out as the ice cream truck's)
+// The Eldorado's panel surface (laid out as the Hummer's)
 static void BuildEldoradoSMPanelSurface()
 {
 	guiSMPanelEldorado->Fill(0);
 	AutoSGPVObject const car_panel{ AddVideoObjectFromFile(INTERFACEDIR "/" ELDORADO_SMPANEL_FILE) };
 	BltVideoObject(guiSMPanelEldorado, car_panel.get(), 0, 0, 0);
-	DrawHummerInventoryTexts(guiSMPanelEldorado, 0, 0, false, true, false);
+	DrawHummerDetailsTexts(guiSMPanelEldorado, 0, 0, false, ELDORADO_CAR);
 }
 
 

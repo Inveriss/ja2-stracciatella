@@ -1,5 +1,5 @@
 {
-  "comment": "ELDORADO_TACTICAL_INV_1366x768.png -- DrawHummerInventoryTexts(..., map = false) (Interface_Panels.cc), pHummerInventoryStrings. Eldorado: laid out as the ice cream truck's (no ARMAMENT, FUEL 167 px further left).",
+  "comment": "ELDORADO_TACTICAL_INV_1366x768.png -- DrawHummerDetailsTexts(..., map = false, ELDORADO_CAR) (Interface_Panels.cc), pHummerInventoryStrings.",
   "background": "Interface/ELDORADO_TACTICAL_INV_1366x768.png",
   "defaults": {
     "font": "FONT12ARIAL",
@@ -11,36 +11,29 @@
       "name": "upgrades bar",
       "x": 265,
       "y": 66,
-      "w": 168,
+      "w": 124,
       "h": 25
     },
     {
-      "name": "fuel bar",
-      "x": 481,
+      "name": "details bar",
+      "x": 437,
       "y": 66,
-      "w": 76,
+      "w": 406,
       "h": 25
     },
     {
-      "name": "defense",
-      "x": 262,
-      "y": 97,
-      "w": 174,
-      "h": 52
+      "name": "systems",
+      "x": 434,
+      "y": 99,
+      "w": 189,
+      "h": 159
     },
     {
-      "name": "engine",
-      "x": 262,
-      "y": 152,
-      "w": 174,
-      "h": 52
-    },
-    {
-      "name": "tyres",
-      "x": 262,
-      "y": 207,
-      "w": 174,
-      "h": 52
+      "name": "specification",
+      "x": 633,
+      "y": 99,
+      "w": 213,
+      "h": 159
     }
   ],
   "items": [
@@ -48,7 +41,7 @@
       "text": "UPGRADES",
       "x": 265,
       "y": 66,
-      "w": 168,
+      "w": 124,
       "h": 25,
       "align": "center",
       "valign": "center",
@@ -56,10 +49,10 @@
       "colour": 130
     },
     {
-      "text": "FUEL",
-      "x": 481,
+      "text": "VEHICLE DETAILS",
+      "x": 437,
       "y": 66,
-      "w": 76,
+      "w": 406,
       "h": 25,
       "align": "center",
       "valign": "center",
@@ -70,7 +63,7 @@
       "text": "Defense",
       "x": 262,
       "y": 97,
-      "w": 174,
+      "w": 130,
       "h": 52,
       "align": "center",
       "valign": "center",
@@ -80,7 +73,7 @@
       "text": "Engine",
       "x": 262,
       "y": 152,
-      "w": 174,
+      "w": 130,
       "h": 52,
       "align": "center",
       "valign": "center",
@@ -90,11 +83,117 @@
       "text": "Tyres",
       "x": 262,
       "y": 207,
-      "w": 174,
+      "w": 130,
       "h": 52,
       "align": "center",
       "valign": "center",
       "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Systems",
+      "x": 434,
+      "y": 112,
+      "w": 189,
+      "align": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Specifications",
+      "x": 633,
+      "y": 112,
+      "w": 213,
+      "align": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Armament",
+      "x": 453,
+      "y": 136,
+      "w": 157,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "FUEL",
+      "x": 453,
+      "y": 198,
+      "w": 74,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "FUEL",
+      "x": 536,
+      "y": 198,
+      "w": 74,
+      "h": 52,
+      "align": "center",
+      "valign": "center",
+      "font": "FONT14ARIAL"
+    },
+    {
+      "text": "Model:",
+      "x": 643,
+      "y": 136
+    },
+    {
+      "text": "Cadillac Eldorado '76",
+      "x": 643,
+      "y": 136,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Travel speed:",
+      "x": 643,
+      "y": 167
+    },
+    {
+      "text": "20 min/sector",
+      "x": 643,
+      "y": 167,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Range on full tank:",
+      "x": 643,
+      "y": 187
+    },
+    {
+      "text": "28 sectors",
+      "x": 643,
+      "y": 187,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Damage resistance:",
+      "x": 643,
+      "y": 219
+    },
+    {
+      "text": "32",
+      "x": 643,
+      "y": 219,
+      "w": 193,
+      "align": "right"
+    },
+    {
+      "text": "Repair ease:",
+      "x": 643,
+      "y": 239
+    },
+    {
+      "text": "-8",
+      "x": 643,
+      "y": 239,
+      "w": 193,
+      "align": "right"
     }
   ]
 }

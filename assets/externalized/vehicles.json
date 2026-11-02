@@ -26,11 +26,13 @@
         "moveSound": "sounds/driving 01.wav", // S_VECH1_MOVE
         "profile": "PROF_ELDERODO",
         "movementType": "CAR",
-        "armourType": "KEVLAR_VEST",
+        "armourType": "KEVLAR2_VEST_Y",
         "seats": 6,
-        "repairPointsDivisor": 10,
+        "repairPointsDivisor": 8,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPer100Tiles": 200
+        "tacticalFuelPer100Tiles": 400,
+        "travelTimePerSector": 20,
+        "fuelPerTravelMinute": 18
     },
     // Hummer
     {

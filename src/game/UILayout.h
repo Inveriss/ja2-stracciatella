@@ -43,8 +43,7 @@
 #define ICETRUCK_SMPANEL_FILE           "icetruck_tactical_inv_1366x768.png"
 #define ICETRUCK_MAPINV_FILE            "icetruck_strategic_inv_1366x768.png"
 #define ICETRUCK_FUEL_SHIFT_X           (-167)
-// ... and the Eldorado's: the ice cream truck's UPGRADES and FUEL blocks,
-// 8 cargo slots only (m_invSlotPositionTac/MapEldorado)
+// ... and the Eldorado's (m_invSlotPositionTac/MapEldorado)
 #define ELDORADO_SMPANEL_FILE           "eldorado_tactical_inv_1366x768.png"
 #define ELDORADO_MAPINV_FILE            "eldorado_strategic_inv_1366x768.png"
 // ... and the Jeep's (m_invSlotPositionTac/MapJeep)
@@ -252,8 +251,8 @@ public:
 	INV_REGION_DESC       m_invSlotPositionMapHummer[NUM_INVENTORY_SLOTS]; /**< The Hummer's map inventory panel (HUMMER_MAPINV_FILE): its 24 cargo slots, the rest INV_SLOT_HIDDEN_POS */
 	INV_REGION_DESC       m_invSlotPositionTacIceTruck[NUM_INVENTORY_SLOTS]; /**< The ice cream truck's big SM panel (ICETRUCK_SMPANEL_FILE): the Hummer's slots, fuel further left */
 	INV_REGION_DESC       m_invSlotPositionMapIceTruck[NUM_INVENTORY_SLOTS]; /**< The ice cream truck's map inventory panel (ICETRUCK_MAPINV_FILE): the same */
-	INV_REGION_DESC       m_invSlotPositionTacEldorado[NUM_INVENTORY_SLOTS]; /**< The Eldorado's big SM panel (ELDORADO_SMPANEL_FILE): its 8 cargo slots, the ice cream truck's fuel slots */
-	INV_REGION_DESC       m_invSlotPositionMapEldorado[NUM_INVENTORY_SLOTS]; /**< The Eldorado's map inventory panel (ELDORADO_MAPINV_FILE): the same */
+	INV_REGION_DESC       m_invSlotPositionTacEldorado[NUM_INVENTORY_SLOTS]; /**< The Eldorado's big SM panel (ELDORADO_SMPANEL_FILE): its 8 cargo slots, the Hummer's fuel slots */
+	INV_REGION_DESC       m_invSlotPositionMapEldorado[NUM_INVENTORY_SLOTS]; /**< The Eldorado's map inventory panel (ELDORADO_MAPINV_FILE): its 8 cargo slots, its 2 fuel slots */
 	INV_REGION_DESC       m_invSlotPositionTacJeep[NUM_INVENTORY_SLOTS];   /**< The Jeep's big SM panel (JEEP_SMPANEL_FILE): its 6 cargo slots, the Hummer's fuel slots */
 	INV_REGION_DESC       m_invSlotPositionMapJeep[NUM_INVENTORY_SLOTS];   /**< The Jeep's map inventory panel (JEEP_MAPINV_FILE): its 6 cargo slots, the Hummer's fuel slots */
 	INV_REGION_DESC       m_invSlotPositionTacTank[NUM_INVENTORY_SLOTS];   /**< The tank's big SM panel (TANK_SMPANEL_FILE): its 12 cargo slots, the Hummer's fuel slots */
