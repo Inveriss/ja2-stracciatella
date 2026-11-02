@@ -1079,14 +1079,17 @@ static bool OnlyThisSoldierCanDriveVehicle(SOLDIERTYPE const& s, INT32 const veh
 
 INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo const grid_no)
 {
-	INT16 cost = GCM->getVehicle(pVehicleList[vs.bVehicleID].ubVehicleType)->tactical_fuel_per_tile;
+	INT32 per_100_tiles = GCM->getVehicle(pVehicleList[vs.bVehicleID].ubVehicleType)->tactical_fuel_per_100_tiles;
 	switch (gpWorldLevelData[grid_no].ubTerrainID)
 	{
 		case PAVED_ROAD:
 		case DIRT_ROAD: break;
-		default:        cost *= 2; break; // off the road (D4)
+		default:        per_100_tiles *= 2; break; // off the road (D4)
 	}
-	return cost;
+	// a fraction of a unit (the tank counts whole ones): now and then one more,
+	// right on average
+	INT32 const remainder = per_100_tiles % 100;
+	return static_cast<INT16>(per_100_tiles / 100 + (remainder != 0 && Random(100) < static_cast<UINT32>(remainder) ? 1 : 0));
 }
 
 

@@ -15,7 +15,7 @@
  * - seats: Maximum number of soldiers allowed in the vehicle. Must not be greater than 10.
  * - repairPointsDivisor: Repair points that restore one point of the vehicle's condition (1-100, default 10).
  * - slotLimitMultiplier: The vehicle's cargo pockets hold this many times a merc's limit of an item (1-100, default 1); not for weapons, brass knuckles or money.
- * - tacticalFuelPerTile: Fuel (of 10000, a full tank) one tile of driving on the tactical map costs on a road, twice that off the road (0-100, default 2).
+ * - tacticalFuelPer100Tiles: Fuel (of 10000, a full tank) 100 tiles of driving on the tactical map cost on a road, twice that off the road (0-10000, default 200).
  * - travelTimePerSector: Minutes a CAR vehicle takes for a road sector on the strategic map (1-200, default 30); through a town always 5.
  * - fuelPerTravelMinute: Fuel (of 10000, a full tank) one minute of travel on the strategic map costs (0-100, default 6).
  */
@@ -30,7 +30,7 @@
         "seats": 6,
         "repairPointsDivisor": 10,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 200
     },
     // Hummer
     {
@@ -42,7 +42,7 @@
         "seats": 6,
         "repairPointsDivisor": 10,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2,
+        "tacticalFuelPer100Tiles": 200,
         "travelTimePerSector": 30,
         "fuelPerTravelMinute": 6
     },
@@ -56,7 +56,7 @@
         "seats": 6,
         "repairPointsDivisor": 4,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2,
+        "tacticalFuelPer100Tiles": 133,
         "travelTimePerSector": 40,
         "fuelPerTravelMinute": 3
     },
@@ -70,7 +70,7 @@
         "seats":  6,
         "repairPointsDivisor": 10,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 200
     },
     // Tank (unused)
     {
@@ -82,7 +82,7 @@
         "seats": 6,
         "repairPointsDivisor": 10,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 200
     },
     // Helicopter
     {
@@ -94,6 +94,6 @@
         "seats":6,
         "repairPointsDivisor": 12,
         "slotLimitMultiplier": 4,
-        "tacticalFuelPerTile": 2
+        "tacticalFuelPer100Tiles": 200
     }
 ]

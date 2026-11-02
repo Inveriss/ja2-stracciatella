@@ -9,12 +9,12 @@
 VehicleModel::VehicleModel(ST::string enterSound, ST::string movementSound,
                            ProfileID profile, VehicleMovementType movementType,
                            uint16_t armourType, uint8_t seats_, uint8_t repairPointsDivisor,
-                           uint8_t slotLimitMultiplier, uint8_t tacticalFuelPerTile,
+                           uint8_t slotLimitMultiplier, uint16_t tacticalFuelPer100Tiles,
                            uint8_t travelTimePerSector, uint8_t fuelPerTravelMinute)
     : enter_sound(std::move(enterSound)), move_sound(std::move(movementSound)), profile(profile),
       movement_type(movementType), armour_type(armourType), seats(seats_),
       repair_points_divisor(repairPointsDivisor), slot_limit_multiplier(slotLimitMultiplier),
-      tactical_fuel_per_tile(tacticalFuelPerTile), travel_time_per_sector(travelTimePerSector),
+      tactical_fuel_per_100_tiles(tacticalFuelPer100Tiles), travel_time_per_sector(travelTimePerSector),
       fuel_per_travel_minute(fuelPerTravelMinute) {}
 
 static VehicleMovementType toMovementType(const ST::string& typeName)
@@ -66,10 +66,10 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		throw DataError(ST::format("slotLimitMultiplier must be 1-100, not {}", slotLimitMultiplier));
 	}
 
-	unsigned int const tacticalFuelPerTile = obj.getOptionalUInt("tacticalFuelPerTile", 2);
-	if (tacticalFuelPerTile > 100)
+	unsigned int const tacticalFuelPer100Tiles = obj.getOptionalUInt("tacticalFuelPer100Tiles", 200);
+	if (tacticalFuelPer100Tiles > 10000)
 	{
-		throw DataError(ST::format("tacticalFuelPerTile must be 0-100, not {}", tacticalFuelPerTile));
+		throw DataError(ST::format("tacticalFuelPer100Tiles must be 0-10000, not {}", tacticalFuelPer100Tiles));
 	}
 
 	unsigned int const travelTimePerSector = obj.getOptionalUInt("travelTimePerSector", 30);
@@ -93,7 +93,7 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		numSeats,
 		repairPointsDivisor,
 		slotLimitMultiplier,
-		tacticalFuelPerTile,
+		tacticalFuelPer100Tiles,
 		travelTimePerSector,
 		fuelPerTravelMinute
 		);

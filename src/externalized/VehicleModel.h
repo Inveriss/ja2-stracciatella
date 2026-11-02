@@ -12,7 +12,7 @@ class ItemSystem;
 class VehicleModel
 {
 public:
-	VehicleModel(ST::string enterSound, ST::string movementSound, ProfileID profileID, VehicleMovementType movementType, uint16_t armourType, uint8_t seats, uint8_t repairPointsDivisor, uint8_t slotLimitMultiplier, uint8_t tacticalFuelPerTile, uint8_t travelTimePerSector, uint8_t fuelPerTravelMinute);
+	VehicleModel(ST::string enterSound, ST::string movementSound, ProfileID profileID, VehicleMovementType movementType, uint16_t armourType, uint8_t seats, uint8_t repairPointsDivisor, uint8_t slotLimitMultiplier, uint16_t tacticalFuelPer100Tiles, uint8_t travelTimePerSector, uint8_t fuelPerTravelMinute);
 	static const VehicleModel* deserialize(const JsonValue& obj, const ItemSystem* itemSystem, const MercSystem* mercSystem);
 	static void validateData(const std::vector<const VehicleModel*>& vehicles);
 
@@ -26,9 +26,9 @@ public:
 	const uint8_t   repair_points_divisor;
 	// a merc's per-pocket item limit times this is the vehicle's (cargo)
 	const uint8_t   slot_limit_multiplier;
-	// fuel (of 10000, a full tank) one tile of driving on the tactical map
-	// costs on a road; twice that off the road
-	const uint8_t   tactical_fuel_per_tile;
+	// fuel (of 10000, a full tank) 100 tiles of driving on the tactical map
+	// cost on a road; twice that off the road
+	const uint16_t  tactical_fuel_per_100_tiles;
 	// minutes a CAR vehicle takes for a road sector on the strategic map
 	const uint8_t   travel_time_per_sector;
 	// fuel (of 10000, a full tank) one minute of strategic travel costs
