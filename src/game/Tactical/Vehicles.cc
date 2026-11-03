@@ -793,7 +793,7 @@ static void HandleCriticalHitForVehicleInLocation(const UINT8 ubID, const INT16 
 
 		// The explosion damages the cargo, which is dropped with the wreck: like
 		// items lying where something blows up, twice the blast's damage
-		// (explosives aboard may go off, too). Not for tanks.
+		// (explosives aboard may go off, too). Not for the enemy's tanks.
 		CheckEquipmentForDamage(&vs, VEHICLE_CARGO_EXPLOSION_DAMAGE);
 
 		// Explode vehicle...

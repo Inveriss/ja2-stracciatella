@@ -3509,7 +3509,8 @@ void CheckEquipmentForDamage( SOLDIERTYPE *pSoldier, INT32 iDamage )
 	BOOLEAN fBlowsUp;
 	UINT8   ubNumberOfObjects;
 
-	if ( TANK( pSoldier ) )
+	// (the player's tank carries cargo, as the other vehicles do)
+	if ( TANK( pSoldier ) && pSoldier->bTeam == ENEMY_TEAM )
 	{
 		return;
 	}
