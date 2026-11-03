@@ -1191,10 +1191,14 @@ void EquipPlayerTank(SOLDIERTYPE& s)
 {
 	CreateItem(TANK_CANNON, 100, &s.inv[HANDPOS]);
 	s.inv[HANDPOS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(MINIMI, 100, &s.inv[SECONDHANDPOS]);
+	s.inv[SECONDHANDPOS].fFlags |= OBJECT_UNDROPPABLE;
 
 #if TANK_IN_A9_FOR_TESTING
 	// nothing sells shells yet (G6)
 	CreateItems(TANK_SHELL, 100, SoldierSlotLimit(s, TANK_SHELL, BIGPOCK1POS), &s.inv[BIGPOCK1POS]);
+	UINT16 const magazine = s.inv[SECONDHANDPOS].usGunAmmoItem;
+	CreateItems(magazine, 100, SoldierSlotLimit(s, magazine, BIGPOCK2POS), &s.inv[BIGPOCK2POS]);
 #endif
 }
 

@@ -1213,7 +1213,7 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	InvItemTextLayout const big_text = GetMapInvBigItemTextLayout();
 	for (EquipSlot const& slot : slots)
 	{
-		if (slot.pocket == HANDPOS && IsPlayerTank(s)) continue; // its cannon is not shown
+		if ((slot.pocket == HANDPOS || slot.pocket == SECONDHANDPOS) && IsPlayerTank(s)) continue; // its weapons are not shown
 		INVRenderItem(guiSAVEBUFFER, &s, s.inv[slot.pocket], slot.x, slot.y, slot.w, CHARINFO_EQUIP_HEIGHT, DIRTYLEVEL2, 0, SGP_TRANSPARENT, TRUE, &big_text);
 	}
 
@@ -4329,7 +4329,8 @@ static void InitMapInvSlotRegions()
 	if (gfMapInvTankPanel)
 	{
 		LayoutInvSlotRegions(g_ui.m_invSlotPositionMapTank, true);
-		LayoutTankCannonSlot();
+		SOLDIERTYPE const* const tank = GetSelectedInfoChar();
+		if (tank) LayoutTankWeaponSlots(*tank);
 	}
 }
 
@@ -4732,8 +4733,8 @@ static void MAPInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 	SOLDIERTYPE* const pSoldier = GetSelectedInfoChar();
 	Assert(MapCharacterHasAccessibleInventory(*pSoldier));
 
-	// the tank's cannon stays where it is
-	if (uiHandPos == HANDPOS && IsPlayerTank(*pSoldier)) return;
+	// the tank's weapons stay where they are
+	if ((uiHandPos == HANDPOS || uiHandPos == SECONDHANDPOS) && IsPlayerTank(*pSoldier)) return;
 
 	// If we do not have an item in hand, start moving it
 	if ( gpItemPointer == NULL )

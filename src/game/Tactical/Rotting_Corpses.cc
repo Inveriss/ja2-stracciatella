@@ -780,8 +780,8 @@ BOOLEAN TurnSoldierIntoCorpse(SOLDIERTYPE& s)
 		// OK, Place what objects this guy was carrying on the ground!
 		FOR_EACH_SOLDIER_INV_SLOT(pObj, s)
 		{
-			// the cannon of the player's tank stays in the wreck
-			if ( pObj->usItem != NOTHING && !(pObj == &s.inv[HANDPOS] && IsPlayerTank(s)) )
+			// the weapons of the player's tank stay in the wreck
+			if ( pObj->usItem != NOTHING && !((pObj == &s.inv[HANDPOS] || pObj == &s.inv[SECONDHANDPOS]) && IsPlayerTank(s)) )
 			{
 				// Check if it's supposed to be dropped
 				if (!(pObj->fFlags & OBJECT_UNDROPPABLE)

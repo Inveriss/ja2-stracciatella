@@ -1398,7 +1398,7 @@ static void LayoutSMPanelSlots()
 		truck ? g_ui.m_invSlotPositionTacIceTruck : car ? g_ui.m_invSlotPositionTacEldorado :
 		jeep ? g_ui.m_invSlotPositionTacJeep : tank ? g_ui.m_invSlotPositionTacTank : g_ui.m_invSlotPositionTac,
 		heli || hummer || truck || car || jeep || tank);
-	if (tank) LayoutTankCannonSlot();
+	if (tank) LayoutTankWeaponSlots(*gpSMCurrentMerc);
 }
 
 
@@ -3317,8 +3317,8 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	if (fInMapMode) return; // XXX necessary?
 
-	// the tank's cannon stays where it is
-	if (uiHandPos == HANDPOS && IsPlayerTank(*gpSMCurrentMerc)) return;
+	// the tank's weapons stay where they are
+	if ((uiHandPos == HANDPOS || uiHandPos == SECONDHANDPOS) && IsPlayerTank(*gpSMCurrentMerc)) return;
 
 	//if we are in the shop keeper interface
 	if (guiCurrentScreen == SHOPKEEPER_SCREEN)
@@ -5055,7 +5055,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 				{
 					help = TacticalStr[EXIT_VEHICLE_POPUPTEXT];
 				}
-				else if (s->uiStatusFlags & SOLDIER_DEAD)
+				else if (s->uiStatusFlags & SOLDIER_DEAD || IsPlayerTank(*s))
 				{
 					help.clear();
 				}
@@ -5853,7 +5853,7 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const& s, INT16 const x, INT16 y, D
 		BltVideoObject(buf, guiVEHINV, 1, x + vx, y + vy);
 		RestoreExternBackgroundRect(x, y, w, h);
 	}
-	else
+	else if (!IsPlayerTank(s)) // its machine gun is not shown
 	{
 		// Do secondary hand
 		INVRenderItem(buf, &s, s.inv[SECONDHANDPOS], x, y, w, h, dirty_level, 0, SGP_TRANSPARENT, big, text);

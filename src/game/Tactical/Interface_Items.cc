@@ -41,6 +41,7 @@
 #include "Interface_Cursors.h"
 #include "Interface_Utils.h"
 #include "Interface_Items.h"
+#include "Vehicles.h"
 #include "WordWrap.h"
 #include "Interface_Control.h"
 #include "VObject_Blitters.h"
@@ -2029,10 +2030,19 @@ void LayoutInvSlotRegions(INV_REGION_DESC const* const pRegionDesc, bool const f
 }
 
 
-void LayoutTankCannonSlot()
+void LayoutTankWeaponSlots(SOLDIERTYPE const& s)
 {
-	MOUSE_REGION& m = gSMInvRegion[HANDPOS];
-	m.RegionBottomRightX = m.RegionTopLeftX + 157;
+	MOUSE_REGION& hand   = gSMInvRegion[HANDPOS];
+	MOUSE_REGION& second = gSMInvRegion[SECONDHANDPOS];
+	// laid out for the cannon in the main hand
+	if (s.inv[HANDPOS].usItem != TANK_CANNON)
+	{
+		std::swap(hand.RegionTopLeftX,     second.RegionTopLeftX);
+		std::swap(hand.RegionTopLeftY,     second.RegionTopLeftY);
+		std::swap(hand.RegionBottomRightY, second.RegionBottomRightY);
+	}
+	hand.RegionBottomRightX   = hand.RegionTopLeftX   + 157;
+	second.RegionBottomRightX = second.RegionTopLeftX + 157;
 }
 
 
@@ -2161,7 +2171,7 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 
 		// If it's the second hand and this hand cannot contain anything, remove the
 		// second hand position graphic
-		if (pocket == SECONDHANDPOS && GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded())
+		if (pocket == SECONDHANDPOS && GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded() && !IsPlayerTank(s))
 		{
 			// Checked once -- secondary_gun_hidden_big.sti is optional.
 			static bool const big_cover_exists = GCM->doesGameResExists(INTERFACEDIR "/secondary_gun_hidden_big.sti");
