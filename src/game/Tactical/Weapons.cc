@@ -937,7 +937,7 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 		DeductAmmo( pSoldier, pSoldier->ubAttackingHand );
 
 		// ATE: Check if we should say quote...
-		if ( pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunShotsLeft == 0 && pSoldier->usAttackingWeapon != ROCKET_LAUNCHER )
+		if ( pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunShotsLeft == 0 && !EXPLOSIVE_GUN( pSoldier->usAttackingWeapon ) )
 		{
 			if ( pSoldier->bTeam == OUR_TEAM )
 			{
@@ -1117,7 +1117,7 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 	// CJC: since jamming is no longer affected by reliability, increase chance of status going down for really unreliabile guns
 	uiDepreciateTest = BASIC_DEPRECIATE_CHANCE + 3 * GCM->getItem(usItemNum)->getReliability();
 
-	if ( !PreRandom( uiDepreciateTest ) && ( pSoldier->inv[ pSoldier->ubAttackingHand ].bStatus[0] > 1) )
+	if ( !IsPlayerTank( *pSoldier ) && !PreRandom( uiDepreciateTest ) && ( pSoldier->inv[ pSoldier->ubAttackingHand ].bStatus[0] > 1) )
 	{
 		pSoldier->inv[ pSoldier->ubAttackingHand ].bStatus[ 0 ]--;
 	}

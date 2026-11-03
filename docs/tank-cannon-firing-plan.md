@@ -77,13 +77,51 @@ shells in a cargo slot.
 
 ### Stage 1: checks
 
-Read and try with debug output, before changing behaviour:
-- does an enemy see and shoot a neutral tank with a crew (G5; the driving analysis,
-  2d, says yes, the neutral checks in `OppList.cc` suggest otherwise);
-- is the tank `SOLDIER_PC`: `ReduceAttackBusyCount` picks `UnSetUIBusy` by it, and a
-  wrong branch locks the interface;
-- the cannon's item cursor (`weapons.json` names none for it) and the turning AP for a
-  vehicle (`GetAPChargeForShootOrStabWRTGunRaises`).
+The code reading is done (2026-11-03). One game test is still open.
+
+**1. Enemies and a tank with a crew (G5).**
+
+- A neutral vehicle is not a target: `CalcBestShot` and its neighbours in `Attacks.cc`
+  skip it through `CONSIDERED_NEUTRAL`, and no opponent is counted in `ManSeesMan`. So the
+  driving analysis, 2d, is wrong that the AI "doesn't leave vehicles out".
+- The crew is a target: `IsSoldierValidForSightings` only leaves out the helicopter's
+  crew, those aboard stand on the vehicle's tile, and they are not neutral. By the code,
+  enemies see the crew and shoot at that tile. The shot should then hit the vehicle, as
+  the crew has no place on the map. **Not proven by the code: to test in the game.**
+- `AnEnemySeesAMerc` has no neutral check and counts vehicles on our team, so an empty
+  tank that was boarded once can also start the turns when seen.
+- The neutral flag matters for the cannon itself: `HearNoise` handles interrupts only
+  between mutual hostiles (`OppList.cc`), so a neutral tank firing gives no such
+  interrupts. G5 stays.
+- For G5: the flip needs `RecalculateOppCntsDueToNoLongerNeutral` and
+  `RecalculateOppCntsDueToBecomingNeutral`, not only the setters. A tank's flag survives
+  a load (`TacticalCreateSoldierFromExisting` forces neutral only on the Hummer, the
+  truck and the helicopter).
+
+Game test, no code needed: drive a crewed tank up to enemies. Do they shoot it, does it
+lose health, does the crew stay unhurt, do the turns start?
+
+**2. `SOLDIER_PC`: yes.** Boarding goes through `ChangeSoldierTeam` →
+`TacticalCreateSoldier`, which sets the flag for `OUR_TEAM`, and nothing removes it. So
+`InternalReduceAttackBusyCount` takes `UnSetUIBusy`, which only acts for the selected
+soldier, and that is the tank. There is no difficulty modifier on the chance to hit
+either (`CalcChanceToHitGun`). `ChangeSoldierTeam` also copies the inventory, as stage 2
+expects. An attack that starts while another soldier is selected is the case to try in
+stage 5.
+
+**3. The cursor: `TARGETCURS`.** The cannon's model passes it in its constructor
+(`WeaponModels.cc`), so `weapons.json` needs no entry. Only the vehicle exit in
+`GetActionModeCursor` stands in the way.
+
+**4. The turning AP.** A tank stands in a non ready animation, so
+`GetAPChargeForShootOrStabWRTGunRaises` charges the raise and `MinAPsToShootOrStab`
+drops the turn. The cannon's `ubReadyTime` is 0, so the shown cost has no turn or raise
+in it. The real turn may still take `AP_LOOK_STANDING` (1 AP) at its start
+(`Soldier_Control.cc`), by the animation's flags. To compare in stage 5: the AP shown
+against the AP taken, with a turn.
+
+**Also found: no jam work is needed.** `CheckForGunJam` already leaves out
+`EXPLOSIVE_GUN`, which includes the cannon. Stage 2 only has to stop the wear.
 
 ### Stage 2: the cannon and the shells
 
@@ -94,7 +132,19 @@ Read and try with debug output, before changing behaviour:
 - `Points.cc`, `EnoughAmmo`: for the player's tank a shell in the cargo
   (`FindLaunchable`), not an attachment. `DeductAmmo`: takes one shell from that stack
   and refreshes the panel; enemy behaviour stays.
-- `Weapons.cc`: no wear and no jam for this cannon (`uiDepreciateTest`, `OKFireWeapon`).
+- `Weapons.cc`: no wear for this cannon (`uiDepreciateTest`); jams already skip it.
+
+Implemented and game-verified (2026-11-03), with these differences and
+additions:
+- Shells are found with `FindObj`, not `FindLaunchable`: nothing but the cargo can hold
+  them in a player's tank.
+- `UseGun` no longer queues the out of ammo quote after each cannon shot, because
+  `ubGunShotsLeft` is always 0 on a cannon.
+- `Rotting_Corpses.cc`: the cannon doesn't drop with the wreck. `OUR_TEAM` soldiers drop
+  undroppable items too, so the flag alone isn't enough.
+- The cannon is hidden where the panels show a hand: the team panel with its help text,
+  and the map's equipment row. The hand swap (click, key) is off for the tank.
+- G5 has no stage of its own yet: it goes in with the aiming, stage 4.
 
 ### Stage 3: the gunner's numbers
 

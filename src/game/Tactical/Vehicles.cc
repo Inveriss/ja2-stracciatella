@@ -1163,8 +1163,38 @@ bool VehicleDrivesInTactical(VEHICLETYPE const& v)
 
 bool IsDrivingVehicleBody(SOLDIERTYPE const& vs)
 {
-	return vs.ubBodyType == HUMVEE || vs.ubBodyType == ICECREAMTRUCK ||
-		(TANK(&vs) && vs.bTeam != ENEMY_TEAM);
+	return vs.ubBodyType == HUMVEE || vs.ubBodyType == ICECREAMTRUCK || IsPlayerTank(vs);
+}
+
+
+bool IsPlayerTank(SOLDIERTYPE const& s)
+{
+	return TANK(&s) && s.bTeam != ENEMY_TEAM;
+}
+
+
+void EquipPlayerTank(SOLDIERTYPE& s)
+{
+	CreateItem(TANK_CANNON, 100, &s.inv[HANDPOS]);
+	s.inv[HANDPOS].fFlags |= OBJECT_UNDROPPABLE;
+
+#if TANK_IN_A9_FOR_TESTING
+	// nothing sells shells yet (G6)
+	CreateItems(TANK_SHELL, 100, SoldierSlotLimit(s, TANK_SHELL, BIGPOCK1POS), &s.inv[BIGPOCK1POS]);
+#endif
+}
+
+
+SOLDIERTYPE const* GetTankGunner(SOLDIERTYPE const& tank)
+{
+	SOLDIERTYPE const* gunner = NULL;
+	CFOR_EACH_PASSENGER(GetVehicle(tank.bVehicleID), i)
+	{
+		SOLDIERTYPE const& s = **i;
+		if (s.bLife < OKLIFE || s.bMarksmanship == 0 || AM_AN_EPC(&s) || AM_A_ROBOT(&s)) continue;
+		if (!gunner || s.bMarksmanship > gunner->bMarksmanship) gunner = &s;
+	}
+	return gunner;
 }
 
 

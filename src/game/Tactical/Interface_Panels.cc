@@ -5016,7 +5016,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 							vs.bLifeMax, vs.bBreath, vs.bBreathMax);
 					help = help_buf;
 				}
-				else if (s->uiStatusFlags & SOLDIER_DEAD)
+				else if (s->uiStatusFlags & SOLDIER_DEAD || IsPlayerTank(*s))
 				{
 					help.clear();
 				}
@@ -5818,7 +5818,7 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const& s, INT16 const x, INT16 y, D
 		BltVideoObject(buf, guiVEHINV, 0, x + vx, y + vy);
 		RestoreExternBackgroundRect(x, y, w, h);
 	}
-	else
+	else if (!IsPlayerTank(s)) // its cannon is not shown
 	{
 		// Look in primary hand
 		INVRenderItem(buf, &s, s.inv[HANDPOS], x, y, w, h, dirty_level, 0, SGP_TRANSPARENT, big, text);
@@ -5853,7 +5853,7 @@ static void TMClickFirstHandInvCallbackSecondary(MOUSE_REGION* pRegion, UINT32 i
 	SOLDIERTYPE* const s = pRegion->GetUserPtr<TeamPanelSlot>()->merc;
 	if (!s) return;
 
-	if (!AM_A_ROBOT(s))
+	if (!AM_A_ROBOT(s) && !IsPlayerTank(*s))
 	{
 		const UINT16 usOldHandItem = s->inv[HANDPOS].usItem;
 		SwapHandItems(s);
@@ -5888,7 +5888,7 @@ static void TMClickSecondHandInvCallbackSecondary(MOUSE_REGION* pRegion, UINT32 
 	SOLDIERTYPE* const s = pRegion->GetUserPtr<TeamPanelSlot>()->merc;
 	if (!s) return;
 
-	if (!(s->uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER)) && !AM_A_ROBOT(s))
+	if (!(s->uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER)) && !AM_A_ROBOT(s) && !IsPlayerTank(*s))
 	{
 		const UINT16 usOldHandItem = s->inv[HANDPOS].usItem;
 		SwapHandItems(s);

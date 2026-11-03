@@ -3,6 +3,7 @@
 #include "Lighting.h"
 #include "Overhead.h"
 #include "Soldier_Find.h"
+#include "Vehicles.h"
 #include "TileDef.h"
 #include "VObject.h"
 #include "Debug.h"
@@ -779,7 +780,8 @@ BOOLEAN TurnSoldierIntoCorpse(SOLDIERTYPE& s)
 		// OK, Place what objects this guy was carrying on the ground!
 		FOR_EACH_SOLDIER_INV_SLOT(pObj, s)
 		{
-			if ( pObj->usItem != NOTHING )
+			// the cannon of the player's tank stays in the wreck
+			if ( pObj->usItem != NOTHING && !(pObj == &s.inv[HANDPOS] && IsPlayerTank(s)) )
 			{
 				// Check if it's supposed to be dropped
 				if (!(pObj->fFlags & OBJECT_UNDROPPABLE)

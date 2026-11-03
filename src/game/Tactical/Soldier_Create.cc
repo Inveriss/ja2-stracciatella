@@ -463,6 +463,7 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 				c.fUseGivenVehicle ? c.bUseGivenVehicleID :
 				(INT8) AddVehicleToList(s->sSector, s->sGridNo, ubVehicleID);
 			SetVehicleValuesIntoSoldierType(s);
+			if (IsPlayerTank(*s) && !gfEditMode) EquipPlayerTank(*s);
 			break;
 		}
 

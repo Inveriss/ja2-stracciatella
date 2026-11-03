@@ -161,6 +161,13 @@ bool IsVehicleMoving(SOLDIERTYPE const& vs);
 bool VehicleDrivesInTactical(VEHICLETYPE const&);
 // D1: the Hummer, the ice cream truck and the player's tank (not the enemy's)
 bool IsDrivingVehicleBody(SOLDIERTYPE const&);
+// The tank on the player's side, not the enemy's (tank cannon plan,
+// docs/tank-cannon-firing-plan.md)
+bool IsPlayerTank(SOLDIERTYPE const&);
+// Gives a newly created player's tank its cannon (G3)
+void EquipPlayerTank(SOLDIERTYPE&);
+// The best marksman aboard, who aims the cannon (G1); NULL if nobody is able
+SOLDIERTYPE const* GetTankGunner(SOLDIERTYPE const& tank);
 // getting out in tactical (D15): out of combat always; in combat on our turn,
 // his interrupt, and the AP (the message with explain) -- charged after
 bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool explain);

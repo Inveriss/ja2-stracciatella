@@ -1212,6 +1212,7 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	InvItemTextLayout const big_text = GetMapInvBigItemTextLayout();
 	for (EquipSlot const& slot : slots)
 	{
+		if (slot.pocket == HANDPOS && IsPlayerTank(s)) continue; // its cannon is not shown
 		INVRenderItem(guiSAVEBUFFER, &s, s.inv[slot.pocket], slot.x, slot.y, slot.w, CHARINFO_EQUIP_HEIGHT, DIRTYLEVEL2, 0, SGP_TRANSPARENT, TRUE, &big_text);
 	}
 
@@ -1219,7 +1220,7 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	// cover the second hand's slot (its whole 124x52 frame) like the merc
 	// inventory does -- charinfo_second_hand_hide_1366x768.png is optional.
 	static cache_key_t const second_hand_hide = INTERFACEDIR "/charinfo_second_hand_hide_1366x768.png";
-	if (GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded() && IsInterfaceAssetUsable(second_hand_hide))
+	if (GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded() && !IsPlayerTank(s) && IsInterfaceAssetUsable(second_hand_hide))
 	{
 		INT16 const x = CHARINFO_SECOND_HAND_HIDE_X;
 		INT16 const y = CHARINFO_SECOND_HAND_HIDE_Y;
@@ -1279,6 +1280,7 @@ static void RenderHandPosItem()
 		return;
 	}
 
+	if (IsPlayerTank(*s)) return; // its cannon is not shown
 	INVRenderItem(guiSAVEBUFFER, s, s->inv[HANDPOS], SOLDIER_HAND_X, SOLDIER_HAND_Y, 58, 23, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
 }
 

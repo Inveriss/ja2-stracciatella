@@ -12,6 +12,7 @@
 #include "Animation_Control.h"
 #include "Dialogue_Control.h"
 #include "Items.h"
+#include "Vehicles.h"
 #include "Weapons.h"
 #include "RT_Time_Defines.h"
 #include "AI.h"
@@ -1361,7 +1362,12 @@ BOOLEAN EnoughAmmo(SOLDIERTYPE* const s, BOOLEAN const fDisplay, INT8 const inv_
 	if (item_idx == ROCKET_LAUNCHER) return TRUE;
 
 	const ItemModel * item = GCM->getItem(item_idx);
-	if (item->getItemClass() == IC_LAUNCHER || item_idx == TANK_CANNON)
+	if (item_idx == TANK_CANNON && IsPlayerTank(*s))
+	{
+		// shells come from the cargo, without loading (G2)
+		if (FindObj(s, TANK_SHELL) != NO_SLOT) return TRUE;
+	}
+	else if (item->getItemClass() == IC_LAUNCHER || item_idx == TANK_CANNON)
 	{
 		if (FindAttachmentByClass(&o, IC_GRENADE) != ITEM_NOT_FOUND) return TRUE;
 		if (FindAttachmentByClass(&o, IC_BOMB)    != ITEM_NOT_FOUND) return TRUE;
@@ -1396,6 +1402,12 @@ void DeductAmmo( SOLDIERTYPE *pSoldier, INT8 bInvPos )
 	{
 		if ( pObj->usItem == TANK_CANNON )
 		{
+			// the enemy's shells are endless, the player's tank uses one from its cargo
+			if (IsPlayerTank(*pSoldier))
+			{
+				INT8 const bShellPos = FindObj(pSoldier, TANK_SHELL);
+				if (bShellPos != NO_SLOT) RemoveObjs(&pSoldier->inv[bShellPos], 1);
+			}
 		}
 		else if ( GCM->getItem(pObj->usItem)->getItemClass() == IC_GUN && pObj->usItem != TANK_CANNON )
 		{
