@@ -1217,6 +1217,22 @@ SOLDIERTYPE* GetTankGunner(SOLDIERTYPE const& tank)
 }
 
 
+bool SeesCurrently(SOLDIERTYPE const& s, SOLDIERTYPE const& target)
+{
+	if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) return s.bOppList[target.ubID] == SEEN_CURRENTLY;
+
+	if (s.bVehicleID < 0 || s.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[s.bVehicleID];
+	if (!v.fValid) return false;
+
+	CFOR_EACH_PASSENGER(v, i)
+	{
+		if ((*i)->bOppList[target.ubID] == SEEN_CURRENTLY) return true;
+	}
+	return false;
+}
+
+
 SOLDIERTYPE* ShooterFor(SOLDIERTYPE* const s)
 {
 	if (!s || !IsPlayerTank(*s)) return s;

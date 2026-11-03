@@ -171,6 +171,9 @@ SOLDIERTYPE* GetTankGunner(SOLDIERTYPE const& tank);
 // Who gets the credit for a shot: the gunner for the player's tank (or the tank
 // if nobody is able), everyone else himself
 SOLDIERTYPE* ShooterFor(SOLDIERTYPE*);
+// Whether a soldier sees the target now; a vehicle has no sight of its own, so
+// for it, whether anyone aboard does
+bool SeesCurrently(SOLDIERTYPE const& s, SOLDIERTYPE const& target);
 // getting out in tactical (D15): out of combat always; in combat on our turn,
 // his interrupt, and the AP (the message with explain) -- charged after
 bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool explain);

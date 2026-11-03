@@ -19,6 +19,7 @@
 #include "Render_Dirty.h"
 #include "Render_Fun.h"
 #include "RenderWorld.h"
+#include "Vehicles.h"
 #include "Map_Screen_Helicopter.h"
 #include "Rotting_Corpses.h"
 #include "Shading.h"
@@ -1029,7 +1030,7 @@ zlevel_topmost:
 
 											const SOLDIERTYPE* const sel = GetSelectedMan();
 											if (sel                                       &&
-													sel->bOppList[s.ubID] != SEEN_CURRENTLY   &&
+													!SeesCurrently(*sel, s)                   &&
 													s.usAnimState         != CHARIOTS_OF_FIRE &&
 													s.usAnimState         != BODYEXPLODING)
 											{
