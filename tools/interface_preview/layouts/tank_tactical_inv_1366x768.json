@@ -18,19 +18,26 @@
       "name": "details bar",
       "x": 437,
       "y": 66,
-      "w": 406,
+      "w": 523,
       "h": 25
     },
     {
-      "name": "systems",
+      "name": "armament",
       "x": 434,
       "y": 99,
       "w": 189,
       "h": 159
     },
     {
-      "name": "specification",
+      "name": "fuel",
       "x": 633,
+      "y": 99,
+      "w": 107,
+      "h": 159
+    },
+    {
+      "name": "specification",
+      "x": 750,
       "y": 99,
       "w": 213,
       "h": 159
@@ -52,7 +59,7 @@
       "text": "VEHICLE DETAILS",
       "x": 437,
       "y": 66,
-      "w": 406,
+      "w": 523,
       "h": 25,
       "align": "center",
       "valign": "center",
@@ -90,7 +97,7 @@
       "font": "FONT14ARIAL"
     },
     {
-      "text": "Systems",
+      "text": "Armament",
       "x": 434,
       "y": 112,
       "w": 189,
@@ -99,101 +106,79 @@
     },
     {
       "text": "Specifications",
-      "x": 633,
+      "x": 750,
       "y": 112,
       "w": 213,
       "align": "center",
       "font": "FONT14ARIAL"
     },
     {
-      "text": "Armament",
-      "x": 453,
-      "y": 136,
-      "w": 157,
-      "h": 52,
-      "align": "center",
-      "valign": "center",
-      "font": "FONT14ARIAL"
-    },
-    {
-      "text": "FUEL",
-      "x": 453,
-      "y": 198,
-      "w": 74,
-      "h": 52,
-      "align": "center",
-      "valign": "center",
-      "font": "FONT14ARIAL"
-    },
-    {
-      "text": "FUEL",
-      "x": 536,
-      "y": 198,
-      "w": 74,
-      "h": 52,
-      "align": "center",
-      "valign": "center",
-      "font": "FONT14ARIAL"
-    },
-    {
       "text": "Model:",
-      "x": 643,
+      "x": 760,
       "y": 136
     },
     {
       "text": "T-55 Main Battle Tank",
-      "x": 643,
+      "x": 760,
       "y": 136,
       "w": 193,
       "align": "right"
     },
     {
       "text": "Travel speed:",
-      "x": 643,
+      "x": 760,
       "y": 167
     },
     {
       "text": "60 min/sector",
-      "x": 643,
+      "x": 760,
       "y": 167,
       "w": 193,
       "align": "right"
     },
     {
       "text": "Range on full tank:",
-      "x": 643,
+      "x": 760,
       "y": 187
     },
     {
       "text": "14 sectors",
-      "x": 643,
+      "x": 760,
       "y": 187,
       "w": 193,
       "align": "right"
     },
     {
       "text": "Damage resistance:",
-      "x": 643,
+      "x": 760,
       "y": 219
     },
     {
       "text": "30",
-      "x": 643,
+      "x": 760,
       "y": 219,
       "w": 193,
       "align": "right"
     },
     {
       "text": "Repair ease:",
-      "x": 643,
+      "x": 760,
       "y": 239
     },
     {
       "text": "-12",
-      "x": 643,
+      "x": 760,
       "y": 239,
       "w": 193,
       "align": "right"
+    },
+    {
+      "text": "Fuel",
+      "x": 633,
+      "y": 112,
+      "w": 107,
+      "align": "center",
+      "font": "FONT14ARIAL"
     }
   ]
 }

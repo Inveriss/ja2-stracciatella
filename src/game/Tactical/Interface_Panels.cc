@@ -1103,6 +1103,9 @@ void DrawHeliInventoryTexts(SGPVSurface* const dst, INT16 const x0, INT16 const 
 // same amount.
 #define HUMMER_MAP_SHIFT_X  (-235)
 #define HUMMER_MAP_SHIFT_Y  (-36)
+// ... and the tank's VEHICLE DETAILS block by this much more
+#define TANK_MAP_DETAILS_SHIFT_X  (-172)
+#define TANK_MAP_DETAILS_SHIFT_Y  237
 
 // The texts of the panels with the narrower UPGRADES block and the common
 // VEHICLE DETAILS block: the Hummer's, the ice cream truck's, the Jeep's, the
@@ -1118,6 +1121,12 @@ void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool con
 		y0 += HUMMER_MAP_SHIFT_Y;
 	}
 
+	// the tank's VEHICLE DETAILS block has three boxes, and on its strategic
+	// panel it lies under the UPGRADES block
+	bool  const tank = vehicle_type == TANK_CAR;
+	INT16 const dx   = tank && map ? TANK_MAP_DETAILS_SHIFT_X : 0;
+	INT16 const dy   = tank && map ? TANK_MAP_DETAILS_SHIFT_Y : 0;
+
 	// centred in a box, both ways
 	auto const centred = [&](INT32 const i, SGPFont const font, INT16 const bx, INT16 const by, INT16 const bw, INT16 const bh)
 	{
@@ -1131,13 +1140,13 @@ void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool con
 	auto const title = [&](INT32 const i, INT16 const bx, INT16 const bw)
 	{
 		ST::string const& str = pHummerInventoryStrings[i];
-		MPrint(x0 + bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, y0 + 112, str);
+		MPrint(x0 + dx + bx + (bw - StringPixLength(str, FONT14ARIAL)) / 2, y0 + dy + 112, str);
 	};
 
 	// the headers, in the title bars: Upgrades, Vehicle Details
 	SetFontAttributes(FONT14HUMANIST, HELI_SM_TEXT_HEADER_COLOUR);
 	centred(0, FONT14HUMANIST, 265, 66, 124, 25);
-	centred(7, FONT14HUMANIST, 437, 66, 406, 25);
+	centred(7, FONT14HUMANIST, 437 + dx, 66 + dy, tank ? 523 : 406, 25);
 
 	SetFontAttributes(FONT14ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
 	// the upgrades: one in each of the three 130x52 boxes (the tank: Tracks in
@@ -1146,24 +1155,35 @@ void DrawHummerDetailsTexts(SGPVSurface* const dst, INT16 x0, INT16 y0, bool con
 	{
 		centred(i == 2 && vehicle_type == TANK_CAR ? 6 : 1 + i, FONT14ARIAL, 262, 97 + 55 * i, 130, 52);
 	}
-	// the two boxes' titles, and in Systems its fields
-	title(8, 434, 189);
-	title(9, 633, 213);
-	centred(10, FONT14ARIAL, 453, 136, 157, 52);
-	centred(5,  FONT14ARIAL, 453, 198,  74, 52);
-	centred(5,  FONT14ARIAL, 536, 198,  74, 52);
+	if (tank)
+	{
+		// the boxes' titles, the slots without texts
+		title(10, 434, 189);
+		title(23, 633, 107);
+		title(9,  750, 213);
+	}
+	else
+	{
+		// the two boxes' titles, and in Systems its fields
+		title(8, 434, 189);
+		title(9, 633, 213);
+		centred(10, FONT14ARIAL, 453, 136, 157, 52);
+		centred(5,  FONT14ARIAL, 453, 198,  74, 52);
+		centred(5,  FONT14ARIAL, 536, 198,  74, 52);
+	}
 
-	// Specification (box 633,99 213x159): a label, and its value right-aligned
-	// 10 px from the wall
+	// Specification (box 633,99 213x159, the tank's 750,99): a label, and its
+	// value right-aligned 10 px from the wall
 	SetFontAttributes(FONT12ARIAL, HELI_SM_TEXT_LABEL_COLOUR);
+	INT16 const spec_x = x0 + dx + (tank ? 760 : 643);
 	auto const label_value = [&](INT32 const i, INT16 const ly, ST::string const& value)
 	{
-		MPrint(x0 + 643, y0 + ly, pHummerInventoryStrings[i]);
+		MPrint(spec_x, y0 + dy + ly, pHummerInventoryStrings[i]);
 		if (value.empty()) return;
 		INT16 x;
 		INT16 y;
-		FindFontRightCoordinates(x0 + 643, y0 + ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
-		MPrint(x, y0 + ly, value);
+		FindFontRightCoordinates(spec_x, y0 + dy + ly, 193, GetFontHeight(FONT12ARIAL), value, FONT12ARIAL, &x, &y);
+		MPrint(x, y0 + dy + ly, value);
 	};
 	label_value(11, 136, pHummerInventoryStrings[vehicle_type == ICE_CREAM_TRUCK ? 19 : vehicle_type == JEEP_CAR ? 20 : vehicle_type == ELDORADO_CAR ? 21 : vehicle_type == TANK_CAR ? 22 : 12]);
 	// (from the constant its travel uses)

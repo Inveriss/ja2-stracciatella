@@ -876,6 +876,7 @@ static GUIButtonRef giMapInvHeliSilentButton;
 #define MAP_INV_VEHICLE_PANEL_HEIGHT 514
 #define MAP_INV_VEHICLE_DONE_BTN_X   (PLAYER_INFO_X + 572)
 #define MAP_INV_VEHICLE_DONE_BTN_Y   (PLAYER_INFO_Y + 420)
+#define MAP_INV_TANK_DONE_BTN_X      (PLAYER_INFO_X + 575)
 
 // gMPanelRegion blocks clicks over the whole merc inventory panel -- sized
 // to the current mode's graphic (normal: INV_REGION_WIDTH/HEIGHT,
@@ -7612,7 +7613,7 @@ static void CreateMapInvPanelControls(void)
 	// 0 = ready, 1 = pressed on the normal ones (mapinv_1024/1280.sti).
 	bool const big = IsMapInvBigImages();
 	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big ? 2 : 0, big ? 3 : 1,
-		heli ? MAP_INV_HELI_DONE_BTN_X : hummer ? MAP_INV_VEHICLE_DONE_BTN_X : INV_BTN_X,
+		heli ? MAP_INV_HELI_DONE_BTN_X : gfMapInvTankPanel ? MAP_INV_TANK_DONE_BTN_X : hummer ? MAP_INV_VEHICLE_DONE_BTN_X : INV_BTN_X,
 		heli ? MAP_INV_HELI_DONE_BTN_Y : hummer ? MAP_INV_VEHICLE_DONE_BTN_Y : INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
 	if (big && (giMapInvDoneButton->W() != MAP_INV_DONE_BTN_W_BIG || giMapInvDoneButton->H() != MAP_INV_DONE_BTN_H_BIG))
 	{

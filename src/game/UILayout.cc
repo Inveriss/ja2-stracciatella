@@ -562,8 +562,8 @@ void UILayout::recalculatePositions()
 		m_invSlotPositionMapEldorado[BIGPOCK1POS   + row].set(m_mapScreenOffsetX + 106, mapHeliY + 254 + 55 * row);
 	}
 
-	// The tank's panels since VEHICLE DETAILS: as the Hummer's, its 8 cargo slots
-	// in two columns of big pockets 1-4, 5-8
+	// The tank's panels: its 2 fuel slots in their own box, its 8 cargo slots in
+	// two columns of big pockets 1-4, 5-8
 	for (INT32 i = 0; i != NUM_INVENTORY_SLOTS; ++i)
 	{
 		bool const fuel = i == SMALLPOCK17POS || i == SMALLPOCK18POS;
@@ -579,9 +579,13 @@ void UILayout::recalculatePositions()
 	{
 		m_invSlotPositionTacTank[BIGPOCK1POS + row].set(startX + 1094, tacHeliY + 15 + 55 * row);
 		m_invSlotPositionTacTank[BIGPOCK5POS + row].set(startX + 1227, tacHeliY + 15 + 55 * row);
-		m_invSlotPositionMapTank[BIGPOCK1POS + row].set(m_mapScreenOffsetX +  23, mapHeliY + 254 + 55 * row);
-		m_invSlotPositionMapTank[BIGPOCK5POS + row].set(m_mapScreenOffsetX + 156, mapHeliY + 254 + 55 * row);
+		m_invSlotPositionMapTank[BIGPOCK1POS + row].set(m_mapScreenOffsetX + 195, mapHeliY + 17 + 55 * row);
+		m_invSlotPositionMapTank[BIGPOCK5POS + row].set(m_mapScreenOffsetX + 328, mapHeliY + 17 + 55 * row);
 	}
+	m_invSlotPositionTacTank[SMALLPOCK17POS].set(startX + 652, tacHeliY +  99);
+	m_invSlotPositionTacTank[SMALLPOCK18POS].set(startX + 652, tacHeliY + 161);
+	m_invSlotPositionMapTank[SMALLPOCK17POS].set(m_mapScreenOffsetX + 246, mapHeliY + 338);
+	m_invSlotPositionMapTank[SMALLPOCK18POS].set(m_mapScreenOffsetX + 246, mapHeliY + 400);
 
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);

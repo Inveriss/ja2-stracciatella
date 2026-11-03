@@ -1898,7 +1898,8 @@
         "Chevrolet P10 Step-Van 7",
         "Jeep Wrangler YJ \"Soft-top\"",
         "Cadillac Eldorado '76",
-        "T-55 Main Battle Tank"
+        "T-55 Main Battle Tank",
+        "Fuel"
     ],
     "pVehicleFuelStrings": [
         "The %s was refueled from gas cans."
