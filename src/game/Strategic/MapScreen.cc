@@ -1126,8 +1126,7 @@ static void RenderCharInfoPortrait(SOLDIERTYPE const& s)
 
 	if (s.uiStatusFlags & SOLDIER_VEHICLE)
 	{
-		// 48x43 small vehicle portrait (FACE_WIDTH/HEIGHT, Interface_Utils.cc)
-		RenderSoldierFace(s, x + (w - 48) / 2, y + (h - 43) / 2);
+		RenderVehiclePortrait(s, x, y, w, h);
 	}
 	else if (s.ubProfile != NO_PROFILE)
 	{

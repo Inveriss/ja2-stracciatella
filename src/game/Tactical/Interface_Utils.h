@@ -25,6 +25,8 @@ void DrawSoldierLifeBarTall(SOLDIERTYPE const&, INT16 x, INT16 top_y, INT16 widt
 void DrawItemUIBarEx(OBJECTTYPE const&, UINT8 ubStatus, INT16 sXPos, INT16 sYPos, INT16 sHeight, INT16 sColor1, INT16 sColor2, SGPVSurface* buffer, INT16 sWidth = 2);
 
 void RenderSoldierFace(SOLDIERTYPE const&, INT16 sFaceX, INT16 sFaceY);
+// A vehicle's portrait, centred in a window of the given place and size
+void RenderVehiclePortrait(SOLDIERTYPE const&, INT16 x, INT16 y, INT16 w, INT16 h);
 
 // get rid of the loaded portraits for cars
 void UnLoadCarPortraits( void );

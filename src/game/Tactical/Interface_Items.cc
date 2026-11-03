@@ -432,8 +432,7 @@ bool IsVehicleCargoTarget(SOLDIERTYPE const& tgt)
 	return tgt.uiStatusFlags & SOLDIER_VEHICLE &&
 		tgt.bTeam == OUR_TEAM &&
 		tgt.bLife > 0         &&
-		tgt.bInSector         &&
-		!TANK(&tgt);
+		tgt.bInSector;
 }
 static UINT32 guiNewlyPlacedItemTimer = 0;
 static BOOLEAN gfBadThrowItemCTGH;

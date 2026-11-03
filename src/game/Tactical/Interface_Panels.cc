@@ -2675,7 +2675,7 @@ static void RenderBigSMPortrait(SOLDIERTYPE const& s, INT16 const x, INT16 const
 
 	if (s.uiStatusFlags & SOLDIER_VEHICLE)
 	{
-		RenderSoldierFace(s, x + (w - TM_FACE_WIDTH) / 2, y + (h - TM_FACE_HEIGHT) / 2);
+		RenderVehiclePortrait(s, x, y, w, h);
 	}
 	else if (s.ubProfile != NO_PROFILE)
 	{
@@ -4841,7 +4841,7 @@ static void RenderBigTeamPortrait(SOLDIERTYPE const& s, INT16 const x, INT16 con
 
 	if (s.uiStatusFlags & SOLDIER_VEHICLE)
 	{
-		RenderSoldierFace(s, x + (w - TM_FACE_WIDTH) / 2, y + (h - TM_FACE_HEIGHT) / 2);
+		RenderVehiclePortrait(s, x, y, w, h);
 	}
 	else if (s.ubProfile != NO_PROFILE)
 	{
