@@ -189,7 +189,7 @@ static void InternalInitiateConversation(SOLDIERTYPE* pDestSoldier, SOLDIERTYPE*
 
 // A vehicle doesn't talk: its driver does (else the first one aboard who is
 // conscious) -- his approach stats and his voice (driving plan)
-static SOLDIERTYPE* TalkerFor(SOLDIERTYPE* const s)
+SOLDIERTYPE* TalkerFor(SOLDIERTYPE* const s)
 {
 	if (!s || !(s->uiStatusFlags & SOLDIER_VEHICLE)) return s;
 	SOLDIERTYPE* other = 0;

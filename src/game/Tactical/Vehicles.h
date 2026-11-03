@@ -167,7 +167,10 @@ bool IsPlayerTank(SOLDIERTYPE const&);
 // Gives a newly created player's tank its cannon (G3)
 void EquipPlayerTank(SOLDIERTYPE&);
 // The best marksman aboard, who aims the cannon (G1); NULL if nobody is able
-SOLDIERTYPE const* GetTankGunner(SOLDIERTYPE const& tank);
+SOLDIERTYPE* GetTankGunner(SOLDIERTYPE const& tank);
+// Who gets the credit for a shot: the gunner for the player's tank (or the tank
+// if nobody is able), everyone else himself
+SOLDIERTYPE* ShooterFor(SOLDIERTYPE*);
 // getting out in tactical (D15): out of combat always; in combat on our turn,
 // his interrupt, and the AP (the message with explain) -- charged after
 bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool explain);

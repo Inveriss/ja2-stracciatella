@@ -15,6 +15,7 @@
 #include "Isometric_Utils.h"
 #include "Animation_Data.h"
 #include "UI_Cursors.h"
+#include "Vehicles.h"
 #include "LOS.h"
 #include "Interface.h"
 #include "Cursors.h"
@@ -1244,8 +1245,8 @@ ItemCursor GetActionModeCursor(SOLDIERTYPE const* const pSoldier)
 		return( INVALIDCURS );
 	}
 
-	// ATE: if a vehicle.... same thing
-	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE )
+	// ATE: if a vehicle.... same thing, except the player's tank and its cannon
+	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE && !IsPlayerTank( *pSoldier ) )
 	{
 		return( INVALIDCURS );
 	}

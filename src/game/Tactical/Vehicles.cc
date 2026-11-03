@@ -175,6 +175,13 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 			fReBuildCharacterList = TRUE;
 		}
 
+		// with a crew, the player's tank can fire and be fought (G5)
+		if (IsPlayerTank(*vs) && vs->bNeutral)
+		{
+			SetSoldierNonNeutral(vs);
+			RecalculateOppCntsDueToNoLongerNeutral(vs);
+		}
+
 		// If vehicle is empty, add to unique squad now that it has somebody in it!
 		if (GetNumberInVehicle(v) == 0)
 		{
@@ -407,6 +414,13 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 		CFOR_EACH_PASSENGER(v, i) return true;
 
 		SOLDIERTYPE& vs = GetSoldierStructureForVehicle(v);
+
+		// an empty tank is neutral again (G5)
+		if (IsPlayerTank(vs) && vs.bLife > 0 && !vs.bNeutral)
+		{
+			SetSoldierNeutral(&vs);
+			RecalculateOppCntsDueToBecomingNeutral(&vs);
+		}
 
 		// and he has a route set
 		if (GetLengthOfMercPath(&vs) > 0)
@@ -1185,16 +1199,29 @@ void EquipPlayerTank(SOLDIERTYPE& s)
 }
 
 
-SOLDIERTYPE const* GetTankGunner(SOLDIERTYPE const& tank)
+SOLDIERTYPE* GetTankGunner(SOLDIERTYPE const& tank)
 {
-	SOLDIERTYPE const* gunner = NULL;
-	CFOR_EACH_PASSENGER(GetVehicle(tank.bVehicleID), i)
+	// the credit for a shot can come after the wreck's vehicle is gone
+	if (tank.bVehicleID < 0 || tank.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return NULL;
+	VEHICLETYPE const& v = pVehicleList[tank.bVehicleID];
+	if (!v.fValid) return NULL;
+
+	SOLDIERTYPE* gunner = NULL;
+	CFOR_EACH_PASSENGER(v, i)
 	{
-		SOLDIERTYPE const& s = **i;
-		if (s.bLife < OKLIFE || s.bMarksmanship == 0 || AM_AN_EPC(&s) || AM_A_ROBOT(&s)) continue;
-		if (!gunner || s.bMarksmanship > gunner->bMarksmanship) gunner = &s;
+		SOLDIERTYPE* const s = *i;
+		if (s->bLife < OKLIFE || s->bMarksmanship == 0 || AM_AN_EPC(s) || AM_A_ROBOT(s)) continue;
+		if (!gunner || s->bMarksmanship > gunner->bMarksmanship) gunner = s;
 	}
 	return gunner;
+}
+
+
+SOLDIERTYPE* ShooterFor(SOLDIERTYPE* const s)
+{
+	if (!s || !IsPlayerTank(*s)) return s;
+	SOLDIERTYPE* const gunner = GetTankGunner(*s);
+	return gunner ? gunner : s;
 }
 
 

@@ -3228,7 +3228,7 @@ BOOLEAN HandleUIReloading(SOLDIERTYPE* pSoldier)
 		//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, "No ammo to reload." );
 		if ( Random( 3 ) == 0 )
 		{
-			TacticalCharacterDialogue( pSoldier, QUOTE_OUT_OF_AMMO );
+			TacticalCharacterDialogue( TalkerFor( pSoldier ), QUOTE_OUT_OF_AMMO );
 		}
 		return( TRUE );
 	}

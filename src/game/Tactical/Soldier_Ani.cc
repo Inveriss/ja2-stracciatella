@@ -59,6 +59,7 @@
 #include "Strategic_Movement.h"
 
 #include "Soldier.h"
+#include "Vehicles.h"
 
 #include "ContentManager.h"
 #include "GameInstance.h"
@@ -2955,7 +2956,7 @@ BOOLEAN HandleSoldierDeath( SOLDIERTYPE *pSoldier , BOOLEAN *pfMadeCorpse )
 		else
 		{
 			// IF this guy has an attacker and he's a good guy, play sound
-			SOLDIERTYPE* const attacker = pSoldier->attacker;
+			SOLDIERTYPE* const attacker = ShooterFor(pSoldier->attacker);
 			if (attacker != NULL)
 			{
 				if (attacker->bTeam == OUR_TEAM && gTacticalStatus.ubAttackBusyCount > 0)
@@ -2964,7 +2965,7 @@ BOOLEAN HandleSoldierDeath( SOLDIERTYPE *pSoldier , BOOLEAN *pfMadeCorpse )
 					gTacticalStatus.enemy_killed_on_attack        = pSoldier;
 					gTacticalStatus.ubEnemyKilledOnAttackLocation = pSoldier->sGridNo;
 					gTacticalStatus.bEnemyKilledOnAttackLevel     = pSoldier->bLevel;
-					gTacticalStatus.enemy_killed_on_attack_killer = pSoldier->attacker;
+					gTacticalStatus.enemy_killed_on_attack_killer = attacker;
 
 					// also check if we are in mapscreen, if so update soldier's list
 					if( guiCurrentScreen == MAP_SCREEN )
@@ -3003,8 +3004,8 @@ BOOLEAN HandleSoldierDeath( SOLDIERTYPE *pSoldier , BOOLEAN *pfMadeCorpse )
 			}
 
 			// JA2 Gold: if previous and current attackers are the same, the next-to-previous attacker gets the assist
-			SOLDIERTYPE* assister = pSoldier->previous_attacker;
-			if (assister == attacker) assister = pSoldier->next_to_previous_attacker;
+			SOLDIERTYPE* assister = ShooterFor(pSoldier->previous_attacker);
+			if (assister == attacker) assister = ShooterFor(pSoldier->next_to_previous_attacker);
 
 			if (assister != NULL && assister->bActive && assister != attacker)
 			{

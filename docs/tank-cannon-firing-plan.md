@@ -155,6 +155,12 @@ additions:
 - `UseGun`: experience (`StatChange` ignores vehicles) and kill credit to the gunner.
 - Quotes through `TalkerFor` (the driver speaks for the vehicle).
 
+Implemented and game-verified with stage 4 (2026-11-03).
+`ShooterFor()` gives the credit for a shot. `CalcChanceToHitGun` reads the gunner's skills
+and condition, also wounds and breath, so a damaged tank fires as usual (G3). Also
+credited to the gunner: shot statistics (`LOS.cc`), kills and assists (`Soldier_Ani.cc`),
+morale and experience of a kill (`Overhead.cc`), the kill quote and laugh.
+
 ### Stage 4: aiming
 
 - `GetActionModeCursor`: the player's tank with a gunner gets its target cursor, with
@@ -166,6 +172,12 @@ additions:
 - `Turn_Based_Input.cc`: the same for the clicks, including the checks that exclude
   vehicle targets, which remain about targets, not shooters.
 - Refusal messages (no gunner, driving, no shells): new strings in all translations.
+
+Implemented and game-verified (2026-11-03). The mode swap already works by right
+click, so only the vehicle exit in `GetActionModeCursor` had to go. The cursor shows for
+every player's tank, also with no gunner: `HandleItem` refuses with a message, which a
+cursor without a click could not give. Out of shells: the driver's quote, no new string.
+G5 is in `AddSoldierToVehicle` and `RemoveSoldierFromVehicle`.
 
 ### Stage 5: the shot in play
 

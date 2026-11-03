@@ -11,6 +11,7 @@
 #include "Message.h"
 #include "Animation_Control.h"
 #include "Dialogue_Control.h"
+#include "Interface_Dialogue.h"
 #include "Items.h"
 #include "Vehicles.h"
 #include "Weapons.h"
@@ -1031,8 +1032,11 @@ static INT8 CalcAimSkill(SOLDIERTYPE const& s, UINT16 const weapon)
 	{
 		case IC_GUN:
 		case IC_LAUNCHER:
+		{
 			// Guns: Modify aiming cost by shooter's marksmanship
-			return EffectiveMarksmanship(&s);
+			SOLDIERTYPE const* const aimer = IsPlayerTank(s) ? GetTankGunner(s) : &s;
+			return aimer ? EffectiveMarksmanship(aimer) : 0;
+		}
 
 		default:
 			// Knives: Modify aiming cost by avg of attacker's dexterity & agility
@@ -1381,7 +1385,7 @@ BOOLEAN EnoughAmmo(SOLDIERTYPE* const s, BOOLEAN const fDisplay, INT8 const inv_
 		return TRUE;
 	}
 
-	if (fDisplay) TacticalCharacterDialogue(s, QUOTE_OUT_OF_AMMO);
+	if (fDisplay) TacticalCharacterDialogue(TalkerFor(s), QUOTE_OUT_OF_AMMO);
 	return FALSE;
 }
 
