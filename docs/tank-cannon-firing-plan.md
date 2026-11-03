@@ -64,7 +64,7 @@ the full implementation (user, 2026-11-03).
 | G4 | Who pays AP? | The tank's own 25 AP, as for driving, with the existing formula and the gunner's aim skill | **decided** (user, 2026-11-03) |
 | G5 | Neutrality | With anyone aboard the tank is not neutral (`SetSoldierNonNeutral`); empty it is neutral again. Stage 1 confirms that enemies really ignore a neutral tank | **decided** (user, 2026-11-03) |
 | G6 | Where do shells come from? | For now only the test switch (below). Whether Bobby Ray's, a dealer or finds sell them is a later campaign decision. The tank itself has no campaign source yet either | **decided** (user, 2026-11-03) |
-| G7 | Passengers | `CanShootFromVehicle` stays closed: nobody shoots small arms from inside a tank | **decided** (user, 2026-11-03) |
+| G7 | Passengers | `CanShootFromVehicle` stays closed: nobody shoots small arms from inside a tank. They are selected and crouched as in the Hummer (`IsSelectablePassenger`) | **decided** (user, 2026-11-03) |
 | G8 | While driving | Refused in turn-based and in real time here (`IsVehicleMoving`). Firing on the move is its own plan | **decided** (user, 2026-11-03) |
 | G9 | Close range | Keep the original penalties (`Weapons.cc`, under `MIN_TANK_RANGE` and the max visible distance), so a very close target is close to 0%. Tune in the game | **decided** (user, 2026-11-03) |
 | G10 | Real time | The usual rule: the first noticed shot starts the turns. The exception (F1) belongs to shots on the move only | **decided** (user, 2026-11-03) |

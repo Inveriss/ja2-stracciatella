@@ -307,7 +307,7 @@ INT8 GunCrouchStanceBonus(SOLDIERTYPE const* const s)
 	// involved, unlike the other display bonuses: this is a soldier-stance
 	// check, not a weapon stat. A passenger shooting from a vehicle is kept
 	// crouched, but gets no aiming bonus for it.
-	if (CanShootFromVehicle(*s)) return 0;
+	if (IsSelectablePassenger(*s)) return 0;
 	return gAnimControl[s->usAnimState].ubEndHeight == ANIM_CROUCH ? CROUCH_STANCE_DISPLAY_BONUS : 0;
 }
 

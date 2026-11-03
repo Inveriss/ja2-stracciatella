@@ -2125,11 +2125,11 @@ void SelectSoldier(SOLDIERTYPE* const s, const SelSoldierFlags flags)
 		return;
 	}
 
-	// If we are dead, ignore -- a passenger who may shoot from inside the
-	// vehicle (assignment VEHICLE, not a squad) is selectable as well
-	// (passenger shooting plan, stage 1)
+	// If we are dead, ignore -- a passenger inside the vehicle (assignment
+	// VEHICLE, not a squad) is selectable as well (passenger shooting plan,
+	// stage 1)
 	bool const shooting_passenger = s->bActive && s->bLife >= OKLIFE && s->bInSector &&
-		s->bTeam == OUR_TEAM && CanShootFromVehicle(*s);
+		s->bTeam == OUR_TEAM && IsSelectablePassenger(*s);
 	if (!OK_CONTROLLABLE_MERC(s) && !shooting_passenger) return;
 	// (crouched inside, stage 2 -- also one who got in on the map screen)
 	if (shooting_passenger) CrouchShootingPassenger(*s);
@@ -3013,9 +3013,9 @@ static SOLDIERTYPE* FindActiveAndAliveMerc(const SOLDIERTYPE* const curr, const 
 
 		if (fOnlyRegularMercs && (AM_AN_EPC(s) || AM_A_ROBOT(s))) continue;
 		if (s->bAssignment != curr->bAssignment)                  continue;
-		// aboard a vehicle: only the passengers who may shoot, of the same one
+		// aboard a vehicle: only the passengers of the same one
 		if (s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) &&
-			(!CanShootFromVehicle(*s) || s->iVehicleId != curr->iVehicleId)) continue;
+			(!IsSelectablePassenger(*s) || s->iVehicleId != curr->iVehicleId)) continue;
 		if (!OK_INTERRUPT_MERC(s))                                continue;
 		if (!s->bInSector)                                        continue;
 		if (s->bLife < (fGoodForLessOKLife ? 1 : OKLIFE))         continue;

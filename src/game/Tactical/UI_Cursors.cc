@@ -1251,6 +1251,12 @@ ItemCursor GetActionModeCursor(SOLDIERTYPE const* const pSoldier)
 		return( INVALIDCURS );
 	}
 
+	// A passenger of the tank is selected, but doesn't shoot from inside (G7)
+	if ( IsSelectablePassenger( *pSoldier ) && !CanShootFromVehicle( *pSoldier ) )
+	{
+		return( INVALIDCURS );
+	}
+
 	// If we can't be controlled, returninvalid...
 	if ( pSoldier->uiStatusFlags & SOLDIER_ROBOT )
 	{

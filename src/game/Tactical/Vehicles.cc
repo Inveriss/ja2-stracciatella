@@ -1528,19 +1528,25 @@ bool IsVehicleCargoSlot(SOLDIERTYPE const& s, INT8 const slot)
 }
 
 
-bool CanShootFromVehicle(SOLDIERTYPE const& s)
+bool IsSelectablePassenger(SOLDIERTYPE const& s)
 {
 	if (!(s.uiStatusFlags & SOLDIER_PASSENGER) || s.uiStatusFlags & SOLDIER_DRIVER) return false;
 	if (s.iVehicleId < 0 || s.iVehicleId >= static_cast<INT32>(pVehicleList.size())) return false;
 	VEHICLETYPE const& v = pVehicleList[s.iVehicleId];
 	if (!v.fValid || v.fDestroyed) return false;
-	return v.ubVehicleType != HELICOPTER && v.ubVehicleType != TANK_CAR;
+	return v.ubVehicleType != HELICOPTER;
+}
+
+
+bool CanShootFromVehicle(SOLDIERTYPE const& s)
+{
+	return IsSelectablePassenger(s) && pVehicleList[s.iVehicleId].ubVehicleType != TANK_CAR;
 }
 
 
 void CrouchShootingPassenger(SOLDIERTYPE& s)
 {
-	if (!CanShootFromVehicle(s) || guiCurrentScreen != GAME_SCREEN || !s.bInSector) return;
+	if (!IsSelectablePassenger(s) || guiCurrentScreen != GAME_SCREEN || !s.bInSector) return;
 	if (gAnimControl[s.usAnimState].ubEndHeight == ANIM_CROUCH) return;
 	EVENT_InitNewSoldierAnim(&s, CROUCHING, 0, TRUE);
 }

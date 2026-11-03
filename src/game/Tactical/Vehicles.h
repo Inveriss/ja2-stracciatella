@@ -233,9 +233,10 @@ bool IsTankSoldier(SOLDIERTYPE const&);
 bool HasVehicleCargoSlots(SOLDIERTYPE const&);
 // a slot the vehicle can hold items in
 bool IsVehicleCargoSlot(SOLDIERTYPE const&, INT8 slot);
-// A passenger (not the driver) of a ground vehicle other than the tank: he
-// may be selected on his own and shoot from inside (passenger shooting plan,
-// docs/vehicle-passenger-shooting-plan.md)
+// A passenger (not the driver) of a ground vehicle: he may be selected on his
+// own (passenger shooting plan, docs/vehicle-passenger-shooting-plan.md)
+bool IsSelectablePassenger(SOLDIERTYPE const&);
+// ... and, except in the tank, shoot from inside
 bool CanShootFromVehicle(SOLDIERTYPE const&);
 // ... and such a passenger is crouched (passenger shooting, stage 2): set at
 // once, without the kneeling animation; only in the tactical screen
