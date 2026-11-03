@@ -3344,8 +3344,9 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	if (fInMapMode) return; // XXX necessary?
 
-	// the tank's weapons stay where they are
-	if ((uiHandPos == HANDPOS || uiHandPos == SECONDHANDPOS) && IsPlayerTank(*gpSMCurrentMerc)) return;
+	// the tank's weapons stay where they are, its gun only takes magazines
+	if ((uiHandPos == HANDPOS || uiHandPos == SECONDHANDPOS) && IsPlayerTank(*gpSMCurrentMerc) &&
+		(!gpItemPointer || _KeyDown(CTRL) || !IsTankGunReload(*gpSMCurrentMerc, *gpItemPointer, (INT8)uiHandPos))) return;
 
 	//if we are in the shop keeper interface
 	if (guiCurrentScreen == SHOPKEEPER_SCREEN)

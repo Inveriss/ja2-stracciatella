@@ -4733,8 +4733,9 @@ static void MAPInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 	SOLDIERTYPE* const pSoldier = GetSelectedInfoChar();
 	Assert(MapCharacterHasAccessibleInventory(*pSoldier));
 
-	// the tank's weapons stay where they are
-	if ((uiHandPos == HANDPOS || uiHandPos == SECONDHANDPOS) && IsPlayerTank(*pSoldier)) return;
+	// the tank's weapons stay where they are, its gun only takes magazines
+	if ((uiHandPos == HANDPOS || uiHandPos == SECONDHANDPOS) && IsPlayerTank(*pSoldier) &&
+		(!gpItemPointer || _KeyDown(CTRL) || !IsTankGunReload(*pSoldier, *gpItemPointer, (INT8)uiHandPos))) return;
 
 	// If we do not have an item in hand, start moving it
 	if ( gpItemPointer == NULL )

@@ -2024,10 +2024,21 @@ default_merge:
 }
 
 
+bool IsTankGunReload(SOLDIERTYPE const& s, OBJECTTYPE const& ammo, INT8 const slot)
+{
+	if (!IsPlayerTank(s) || (slot != HANDPOS && slot != SECONDHANDPOS)) return false;
+	UINT16 const gun = s.inv[slot].usItem;
+	return GCM->getItem(gun)->getItemClass() == IC_GUN && GCM->getItem(ammo.usItem)->getItemClass() == IC_AMMO &&
+		GCM->getWeapon(gun)->matches(GCM->getItem(ammo.usItem)->asAmmo()->calibre);
+}
+
+
 BOOLEAN CanItemFitInPosition(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, INT8 bPos, BOOLEAN fDoingPlacement)
 {
 	UINT8 ubSlotLimit;
 	INT8  bNewPos;
+
+	if (IsTankGunReload(*pSoldier, *pObj, bPos)) return TRUE;
 
 	// vehicles carry cargo in their pockets only -- nothing in hands, armour or
 	// head slots

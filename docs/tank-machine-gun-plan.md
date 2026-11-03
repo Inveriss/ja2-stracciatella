@@ -138,6 +138,9 @@ Found in the game, and what answers 1.4:
 - Primary click handlers: a magazine on the cursor reloads the gun in the slot (M5).
   The old magazine goes to the cursor as usual.
 
+Implemented and game-verified (2026-11-04): `IsTankGunReload()`, through
+`CanItemFitInPosition`.
+
 Check: bullets run out, the reload cursors, reloading in combat and out, a partial
 magazine, the wrong calibre refused, no magazines left.
 
