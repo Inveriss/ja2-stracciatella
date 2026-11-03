@@ -57,8 +57,8 @@ With `turnbased_starts_when_spotted: true` (`game.json`):
 - `docs/tank-rotating-hull-plan.md`: the `TANK_PLAYER` body and the 32 hull frames.
   The mechanics of this plan can be built before the art, but they aim by the hull's
   direction, which only looks right with those frames.
-- **Firing a tank at all has no plan yet** (D7 of the hull plan). F6 and F7 below
-  are shared with it and should be decided once, for both.
+- **Firing a tank at all:** `docs/tank-cannon-firing-plan.md`. Stages 2 and 3 of that
+  plan replace stage 2 here. F6 and F7 below are shared with it.
 
 ## 4. Decisions
 

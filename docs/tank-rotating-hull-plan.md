@@ -75,7 +75,7 @@ bodies, also when the hull turns.
 | D4 | Footprint | Keep 18 tiles / 3x6 on the straight directions, centred on the base tile; diagonals modelled on `HMMV.JSD`; see section 5 | **decided** (user, 2026-11-03) |
 | D5 | Wreck | First the existing `tk2_wrek.sti` in its one position; later 2 directions, as the Hummer | **decided** (user, 2026-11-03) |
 | D6 | Turning sound | No turret sounds for the new body; the driving sound stays as it is | **decided** (user, 2026-11-03) |
-| D7 | Firing | Not in this plan: the player's tank has no firing yet. Only the art format is fixed here; the rules (ammunition, AP, who fires, interface) get their own plan | **decided** (user, 2026-11-03) |
+| D7 | Firing | Not in this plan: the player's tank has no firing yet. Only the art format is fixed here; the rules are in `docs/tank-cannon-firing-plan.md` | **decided** (user, 2026-11-03) |
 
 Save compatibility: not kept, as in the whole project; test with a new game.
 
