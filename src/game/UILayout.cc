@@ -586,6 +586,9 @@ void UILayout::recalculatePositions()
 	m_invSlotPositionTacTank[SMALLPOCK18POS].set(startX + 652, tacHeliY + 161);
 	m_invSlotPositionMapTank[SMALLPOCK17POS].set(m_mapScreenOffsetX + 246, mapHeliY + 338);
 	m_invSlotPositionMapTank[SMALLPOCK18POS].set(m_mapScreenOffsetX + 246, mapHeliY + 400);
+	// its cannon in the lower Armament slot (LayoutTankCannonSlot())
+	m_invSlotPositionTacTank[HANDPOS].set(startX + 453, tacHeliY + 161);
+	m_invSlotPositionMapTank[HANDPOS].set(m_mapScreenOffsetX + 47, mapHeliY + 400);
 
 	// the big SM panel has no place for the body figure yet: off the screen
 	if (m_bigSMPanel) m_invCamoRegion.set(60000, 60000);

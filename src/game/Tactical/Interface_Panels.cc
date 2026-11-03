@@ -1398,6 +1398,7 @@ static void LayoutSMPanelSlots()
 		truck ? g_ui.m_invSlotPositionTacIceTruck : car ? g_ui.m_invSlotPositionTacEldorado :
 		jeep ? g_ui.m_invSlotPositionTacJeep : tank ? g_ui.m_invSlotPositionTacTank : g_ui.m_invSlotPositionTac,
 		heli || hummer || truck || car || jeep || tank);
+	if (tank) LayoutTankCannonSlot();
 }
 
 
@@ -3315,6 +3316,9 @@ static void SMInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 	UINT32 uiHandPos = MSYS_GetRegionUserData( pRegion, 0 );
 
 	if (fInMapMode) return; // XXX necessary?
+
+	// the tank's cannon stays where it is
+	if (uiHandPos == HANDPOS && IsPlayerTank(*gpSMCurrentMerc)) return;
 
 	//if we are in the shop keeper interface
 	if (guiCurrentScreen == SHOPKEEPER_SCREEN)

@@ -2029,6 +2029,13 @@ void LayoutInvSlotRegions(INV_REGION_DESC const* const pRegionDesc, bool const f
 }
 
 
+void LayoutTankCannonSlot()
+{
+	MOUSE_REGION& m = gSMInvRegion[HANDPOS];
+	m.RegionBottomRightX = m.RegionTopLeftX + 157;
+}
+
+
 // a slot laid out at INV_SLOT_HIDDEN_POS (its coordinates wrap negative)
 static bool IsInvSlotHidden(INT32 const slot)
 {
@@ -3021,7 +3028,7 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 		SetFont(text_font);
 		SetFontBackground(FONT_MCOLOR_BLACK);
 
-		if (item->getItemClass() == IC_GUN && o.usItem != ROCKET_LAUNCHER)
+		if (item->getItemClass() == IC_GUN && o.usItem != ROCKET_LAUNCHER && o.usItem != TANK_CANNON)
 		{
 			// Display free rounds remianing
 			UINT8 colour;

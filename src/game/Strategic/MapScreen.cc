@@ -4326,7 +4326,11 @@ static void InitMapInvSlotRegions()
 	if (gfMapInvIceTruckPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapIceTruck, true);
 	if (gfMapInvEldoradoPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapEldorado, true);
 	if (gfMapInvJeepPanel)     LayoutInvSlotRegions(g_ui.m_invSlotPositionMapJeep, true);
-	if (gfMapInvTankPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapTank, true);
+	if (gfMapInvTankPanel)
+	{
+		LayoutInvSlotRegions(g_ui.m_invSlotPositionMapTank, true);
+		LayoutTankCannonSlot();
+	}
 }
 
 
@@ -4727,6 +4731,9 @@ static void MAPInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	SOLDIERTYPE* const pSoldier = GetSelectedInfoChar();
 	Assert(MapCharacterHasAccessibleInventory(*pSoldier));
+
+	// the tank's cannon stays where it is
+	if (uiHandPos == HANDPOS && IsPlayerTank(*pSoldier)) return;
 
 	// If we do not have an item in hand, start moving it
 	if ( gpItemPointer == NULL )
