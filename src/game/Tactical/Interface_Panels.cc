@@ -1402,6 +1402,25 @@ static void LayoutSMPanelSlots()
 }
 
 
+void SwapTankWeapons(SOLDIERTYPE& s)
+{
+	if (IsVehicleMoving(s) || gTacticalStatus.ubAttackBusyCount > 0) return;
+
+	// not SwapHandItems(), which moves the main hand's item out for a two handed
+	// one; no raising or lowering either, a mounted gun is always ready
+	SwapObjs(&s.inv[HANDPOS], &s.inv[SECONDHANDPOS]);
+	if (!GCM->getWeapon(s.inv[HANDPOS].usItem)->canBurst())
+	{
+		s.bDoBurst    = FALSE;
+		s.bWeaponMode = WM_NORMAL;
+	}
+	if (gsCurInterfacePanel == SM_PANEL && gpSMCurrentMerc == &s) LayoutSMPanelSlots();
+	DirtyMercPanelInterface(&s, DIRTYLEVEL2);
+	fInterfacePanelDirty        = DIRTYLEVEL2;
+	gfUIForceReExamineCursorData = TRUE;
+}
+
+
 void SetSMPanelCurrentMerc(SOLDIERTYPE* s)
 {
 	gSelectSMPanelToMerc = NULL;
@@ -1525,6 +1544,25 @@ static void UpdateSMVehicleCargoButton(SOLDIERTYPE const& merc)
 }
 
 
+// The weapon mode button of a merc who has no other buttons on his panel
+static void UpdateSMBurstButton(SOLDIERTYPE const& s)
+{
+	GUIButtonRef const burst = iSMPanelButtons[BURSTMODE_BUTTON];
+	if (!burst) return;
+	if (burst->image != iBurstButtonImages[s.bWeaponMode])
+	{
+		burst->image    = iBurstButtonImages[s.bWeaponMode];
+		burst->uiFlags |= BUTTON_DIRTY;
+	}
+	if (&s == GetSelectedMan() && s.bLife >= OKLIFE && gTacticalStatus.ubCurrentTeam == OUR_TEAM &&
+		!gfSMDisableForItems)
+	{
+		EnableButton(burst, IsGunBurstCapable(&s, HANDPOS) ||
+			FindAttachment(&s.inv[HANDPOS], UNDER_GLAUNCHER) != ITEM_NOT_FOUND);
+	}
+}
+
+
 // The vehicle's panel: only its pockets, nothing a merc does; its items
 // always active, as a merc's (an item on the cursor goes only where it can be
 // passed, CheckForDisabledForGiveItem(), plan P7); back to the merc when
@@ -1555,6 +1593,9 @@ static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
 		if (iSMPanelButtons[idx]) DisableButton(iSMPanelButtons[idx]);
 	}
 	if (giSMStealthButton) DisableButton(giSMStealthButton);
+
+	// ... except the weapon mode of the player's tank (the B key follows it)
+	if (IsPlayerTank(v)) UpdateSMBurstButton(v);
 
 	// Previous / Next merc: back to the merc, or with an item on the cursor
 	// on to the merc before / after him (SMPanelPrevNextMerc())
@@ -1590,21 +1631,7 @@ static void UpdateSMAboardPanel(SOLDIERTYPE& s)
 
 	// ... except the weapon mode for a passenger who shoots from inside
 	// (passenger shooting): as for a merc on the map (the B key follows it)
-	GUIButtonRef const burst = iSMPanelButtons[BURSTMODE_BUTTON];
-	if (burst && CanShootFromVehicle(s))
-	{
-		if (burst->image != iBurstButtonImages[s.bWeaponMode])
-		{
-			burst->image    = iBurstButtonImages[s.bWeaponMode];
-			burst->uiFlags |= BUTTON_DIRTY;
-		}
-		if (&s == GetSelectedMan() && s.bLife >= OKLIFE && gTacticalStatus.ubCurrentTeam == OUR_TEAM &&
-			!gfSMDisableForItems)
-		{
-			EnableButton(burst, IsGunBurstCapable(&s, HANDPOS) ||
-				FindAttachment(&s.inv[HANDPOS], UNDER_GLAUNCHER) != ITEM_NOT_FOUND);
-		}
-	}
+	if (CanShootFromVehicle(s)) UpdateSMBurstButton(s);
 
 	if (gfAllDisabled) return;
 	CheckForReEvaluateDisabledINVPanelButtons();
@@ -5039,7 +5066,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 							vs.bLifeMax, vs.bBreath, vs.bBreathMax);
 					help = help_buf;
 				}
-				else if (s->uiStatusFlags & SOLDIER_DEAD || IsPlayerTank(*s))
+				else if (s->uiStatusFlags & SOLDIER_DEAD)
 				{
 					help.clear();
 				}
@@ -5055,7 +5082,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 				{
 					help = TacticalStr[EXIT_VEHICLE_POPUPTEXT];
 				}
-				else if (s->uiStatusFlags & SOLDIER_DEAD || IsPlayerTank(*s))
+				else if (s->uiStatusFlags & SOLDIER_DEAD)
 				{
 					help.clear();
 				}
@@ -5840,7 +5867,7 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const& s, INT16 const x, INT16 y, D
 		BltVideoObject(buf, guiVEHINV, 0, x + vx, y + vy);
 		RestoreExternBackgroundRect(x, y, w, h);
 	}
-	else if (!IsPlayerTank(s)) // its cannon is not shown
+	else
 	{
 		// Look in primary hand
 		INVRenderItem(buf, &s, s.inv[HANDPOS], x, y, w, h, dirty_level, 0, SGP_TRANSPARENT, big, text);
@@ -5853,7 +5880,7 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const& s, INT16 const x, INT16 y, D
 		BltVideoObject(buf, guiVEHINV, 1, x + vx, y + vy);
 		RestoreExternBackgroundRect(x, y, w, h);
 	}
-	else if (!IsPlayerTank(s)) // its machine gun is not shown
+	else
 	{
 		// Do secondary hand
 		INVRenderItem(buf, &s, s.inv[SECONDHANDPOS], x, y, w, h, dirty_level, 0, SGP_TRANSPARENT, big, text);
@@ -5875,7 +5902,11 @@ static void TMClickFirstHandInvCallbackSecondary(MOUSE_REGION* pRegion, UINT32 i
 	SOLDIERTYPE* const s = pRegion->GetUserPtr<TeamPanelSlot>()->merc;
 	if (!s) return;
 
-	if (!AM_A_ROBOT(s) && !IsPlayerTank(*s))
+	if (IsPlayerTank(*s))
+	{
+		SwapTankWeapons(*s);
+	}
+	else if (!AM_A_ROBOT(s))
 	{
 		const UINT16 usOldHandItem = s->inv[HANDPOS].usItem;
 		SwapHandItems(s);
@@ -5910,7 +5941,11 @@ static void TMClickSecondHandInvCallbackSecondary(MOUSE_REGION* pRegion, UINT32 
 	SOLDIERTYPE* const s = pRegion->GetUserPtr<TeamPanelSlot>()->merc;
 	if (!s) return;
 
-	if (!(s->uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER)) && !AM_A_ROBOT(s) && !IsPlayerTank(*s))
+	if (IsPlayerTank(*s))
+	{
+		SwapTankWeapons(*s);
+	}
+	else if (!(s->uiStatusFlags & (SOLDIER_PASSENGER | SOLDIER_DRIVER)) && !AM_A_ROBOT(s))
 	{
 		const UINT16 usOldHandItem = s->inv[HANDPOS].usItem;
 		SwapHandItems(s);

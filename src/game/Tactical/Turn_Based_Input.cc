@@ -3396,7 +3396,11 @@ void HandleTBReload( void )
 void HandleTBSwapHands()
 {
 	SOLDIERTYPE* const pSoldier = GetSelectedMan();
-	if (pSoldier && !AM_A_ROBOT(pSoldier) && !IsPlayerTank(*pSoldier))
+	if (pSoldier && IsPlayerTank(*pSoldier))
+	{
+		SwapTankWeapons(*pSoldier);
+	}
+	else if (pSoldier && !AM_A_ROBOT(pSoldier))
 	{
 		UINT16 usOldItem = pSoldier->inv[HANDPOS].usItem;
 		if(pSoldier->inv[SECONDHANDPOS].usItem==NOTHING)

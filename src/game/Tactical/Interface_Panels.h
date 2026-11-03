@@ -127,6 +127,8 @@ void RemoveTEAMPanelButtons(void);
 void InitializeTEAMPanel();
 void ShutdownTEAMPanel();
 void RenderTEAMPanel(DirtyLevel);
+// The player's tank changes the weapon it fires: not while it drives or shoots
+void SwapTankWeapons(SOLDIERTYPE&);
 
 
 void SetSMPanelCurrentMerc(SOLDIERTYPE* s);

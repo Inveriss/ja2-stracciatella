@@ -2,6 +2,7 @@
 #include "ItemModel.h"
 #include "Soldier_Control.h"
 #include "Animation_Control.h"
+#include "Vehicles.h"
 #include "Animation_Data.h"
 #include "Structure.h"
 #include "WorldDef.h"
@@ -2627,6 +2628,14 @@ UINT16 DetermineSoldierAnimationSurface(const SOLDIERTYPE* pSoldier, UINT16 usAn
 	if ( usAnimSurface == FOUND_INVALID_ANIMATION	)
 	{
 		return( INVALID_ANIMATION_SURFACE );
+	}
+
+	// The shot frames show the cannon firing: for the machine gun of the player's
+	// tank the tank stays as it stands, the animation only times the shots
+	if ( ( usAnimState == TANK_SHOOT || usAnimState == TANK_BURST ) && IsPlayerTank( *pSoldier ) &&
+		pSoldier->inv[ HANDPOS ].usItem != TANK_CANNON )
+	{
+		return( gubAnimSurfaceIndex[ pSoldier->ubBodyType ][ STANDING ] );
 	}
 
 

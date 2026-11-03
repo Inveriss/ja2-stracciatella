@@ -477,8 +477,8 @@ static void AdjustImpactByHitLocation(INT32 iImpact, UINT8 ubHitLocation, INT32*
 
 FireWeaponResult CheckForGunJam(SOLDIERTYPE * const pSoldier)
 {
-	// should jams apply to enemies?
-	if (pSoldier->uiStatusFlags & SOLDIER_PC)
+	// should jams apply to enemies? (nor to the player's tank: nobody can reach its gun)
+	if (pSoldier->uiStatusFlags & SOLDIER_PC && !IsPlayerTank(*pSoldier))
 	{
 		if ( GCM->getItem(pSoldier->usAttackingWeapon)->getItemClass() == IC_GUN && !EXPLOSIVE_GUN( pSoldier->usAttackingWeapon ) )
 		{
@@ -2190,6 +2190,9 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	pInHand = &(pSoldier->inv[pSoldier->ubAttackingHand]);
 	usInHand = pSoldier->usAttackingWeapon;
 
+	// the penalties of a tank's cannon; the enemy's tanks have them with any weapon
+	bool const fTankPenalties = TANK( pSoldier ) && ( usInHand == TANK_CANNON || !IsPlayerTank( *pSoldier ) );
+
 	// DETERMINE BASE CHANCE OF HITTING
 	iGunCondition = WEAPON_STATUS_MOD( pInHand->bGunStatus );
 
@@ -2310,7 +2313,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 		iPenalty = GCM->getWeapon(usInHand)->ubBurstPenalty * (pSoldier->bDoBurst - 1);
 
 		// halve the penalty for people with the autofire trait
-		UINT AutoWeaponsSkill = NUM_SKILL_TRAITS(pSoldier, AUTO_WEAPS);
+		UINT AutoWeaponsSkill = NUM_SKILL_TRAITS(aimer, AUTO_WEAPS);
 		if (AutoWeaponsSkill != 0)
 		{
 			iPenalty /= 2 * AutoWeaponsSkill;
@@ -2501,7 +2504,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	}
 	//iChance -= 20 * iRange / iMaxRange;
 
-	if ( TANK( pSoldier ) && ( iRange / CELL_X_SIZE < MaxDistanceVisible() ) )
+	if ( fTankPenalties && ( iRange / CELL_X_SIZE < MaxDistanceVisible() ) )
 	{
 		// tank; penalize at close range!
 		// 2 percent per tile closer than max visible distance
@@ -2563,7 +2566,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 		switch( gAnimControl[ pTarget->usAnimState ].ubHeight )
 		{
 			case ANIM_CROUCH:
-				if ( TANK( pSoldier ) && iRange < MIN_TANK_RANGE )
+				if ( fTankPenalties && iRange < MIN_TANK_RANGE )
 				{
 					// 13% penalty per tile closer than min range
 					iChance -= 13 * ( ( MIN_TANK_RANGE - iRange ) / CELL_X_SIZE );
@@ -2583,7 +2586,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 				}
 				break;
 			case ANIM_PRONE:
-				if ( TANK( pSoldier ) && iRange < MIN_TANK_RANGE )
+				if ( fTankPenalties && iRange < MIN_TANK_RANGE )
 				{
 					// 25% penalty per tile closer than min range
 					iChance -= 25 * ( ( MIN_TANK_RANGE - iRange ) / CELL_X_SIZE );
@@ -2657,7 +2660,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 			}
 		}
 	}
-	else if ( TANK( pSoldier ) && iRange < MIN_TANK_RANGE )
+	else if ( fTankPenalties && iRange < MIN_TANK_RANGE )
 	{
 		// 25% penalty per tile closer than min range
 		iChance -= 25 * ( ( MIN_TANK_RANGE - iRange ) / CELL_X_SIZE );
@@ -2709,7 +2712,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	// MAKE SURE CHANCE TO HIT IS WITHIN DEFINED LIMITS
 	if (iChance < MINCHANCETOHIT)
 	{
-		if ( TANK( pSoldier ) )
+		if ( fTankPenalties )
 		{
 			// allow absolute minimums
 			iChance = 0;

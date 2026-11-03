@@ -112,12 +112,27 @@ description opens for each.
 Check: one shot, Short, Long, Full; the AP against the table in 1.3; the look of
 `TANK_BURST` (1.4); no interface lock; the second hand never fires.
 
-If the frames look wrong, the fallback is a stationary `TANK_BURST` with no shot frames,
-and a new animation later.
+Implemented and game-verified (2026-11-03). `SwapTankWeapons()` does the swap:
+`SwapHandItems()` would move the cannon out for a two handed gun, and
+`ReLoadSoldierAnimationDueToHandItemChange()` would play the raise and lower rifle
+animations. It refuses while the tank drives or shoots. The two refusal messages no
+longer name the cannon.
+
+Found in the game, and what answers 1.4:
+- `TANK_BURST` repeats until `bDoBurst` passes the burst length, so a single shot never
+  ended. A single shot uses `TANK_SHOOT` now.
+- Both animations use the cannon's frames, so for the machine gun
+  `DetermineSoldierAnimationSurface` gives the standing picture; the script only times
+  the shots. The gun has no muzzle flash of its own yet.
+- `TANK_SHOOT` moves the hull by its script (`ja2bin.dat`, codes 412 and 413). They are
+  skipped for the machine gun.
+- `IsValidSecondHandShotForReloadingPurposes` took the cannon for a second gun to reload
+  and crashed on its shell: false for the player's tank.
+- The burst button works on the tank's panel, with `B`.
 
 ### Stage 3: ammunition
 
-- `DeductAmmo`: the early return for enemy tanks only.
+- `DeductAmmo`: the early return for enemy tanks only. Done with stage 2.
 - `FindAmmoObjToReload`, `GetAPsToAutoReload`, `AutoReload`: confirm for a vehicle, with
   the panel refreshed.
 - Primary click handlers: a magazine on the cursor reloads the gun in the slot (M5).

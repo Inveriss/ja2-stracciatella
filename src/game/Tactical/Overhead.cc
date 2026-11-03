@@ -5886,7 +5886,7 @@ static SOLDIERTYPE* InternalReduceAttackBusyCount(SOLDIERTYPE* const pSoldier, c
 		if ( pSoldier->fSayAmmoQuotePending )
 		{
 			pSoldier->fSayAmmoQuotePending = FALSE;
-			TacticalCharacterDialogue( pSoldier, QUOTE_OUT_OF_AMMO );
+			TacticalCharacterDialogue( TalkerFor( pSoldier ), QUOTE_OUT_OF_AMMO );
 		}
 
 		if (pSoldier->uiStatusFlags & SOLDIER_PC)

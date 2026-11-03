@@ -313,11 +313,18 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 
 				case 412:
 
+					// (TANK_SHOOT's recoil: only the cannon's, not the machine gun's of
+					// the player's tank)
+					if ( IsPlayerTank( *pSoldier ) && pSoldier->inv[ HANDPOS ].usItem != TANK_CANNON ) break;
+
 					// CODE: HANDLING PRONE DOWN - NEED TO MOVE GUY BACKWARDS!
 					MoveMercFacingDirection( pSoldier , FALSE, (FLOAT).2 );
 					break;
 
 				case 413:
+
+					// (TANK_SHOOT's recoil, as above)
+					if ( IsPlayerTank( *pSoldier ) && pSoldier->inv[ HANDPOS ].usItem != TANK_CANNON ) break;
 
 					// CODE: HANDLING PRONE UP - NEED TO MOVE GUY FORWARDS!
 					MoveMercFacingDirection( pSoldier , TRUE, (FLOAT).2 );

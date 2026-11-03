@@ -1908,8 +1908,8 @@
         "%s is inside the vehicle and can't walk. Use the exit button to get out.",
         "%s can't shoot while the vehicle is moving.",
         "%s can only shoot a gun from inside the vehicle.",
-        "%s has nobody aboard able to aim the cannon.",
-        "%s can't fire the cannon while driving."
+        "%s has nobody aboard able to aim.",
+        "%s can't fire while driving."
     ],
     "pMilitiaConfirmStrings": [
         "L'entraînement de la milice vous coûtera $",

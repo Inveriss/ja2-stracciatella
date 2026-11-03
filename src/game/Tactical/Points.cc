@@ -1106,8 +1106,10 @@ void GetAPChargeForShootOrStabWRTGunRaises(SOLDIERTYPE const* const s, GridNo gr
 	*charge_turning = adding_turning_cost;
 
 	// Do we need to ready weapon?
+	// (the player's tank: its weapons are mounted, always ready)
 	*charge_raise = GCM->getItem(s->inv[HANDPOS].usItem)->getItemClass() != IC_THROWING_KNIFE &&
-			!(gAnimControl[s->usAnimState].uiFlags & (ANIM_FIREREADY | ANIM_FIRE));
+			!(gAnimControl[s->usAnimState].uiFlags & (ANIM_FIREREADY | ANIM_FIRE)) &&
+			!IsPlayerTank(*s);
 }
 
 
@@ -1394,9 +1396,9 @@ void DeductAmmo( SOLDIERTYPE *pSoldier, INT8 bInvPos )
 {
 	OBJECTTYPE *pObj;
 
-	// tanks never run out of MG ammo!
+	// enemy tanks never run out of MG ammo!
 	// unlimited cannon ammo is handled in AI
-	if ( TANK( pSoldier ) && pSoldier->inv[bInvPos].usItem != TANK_CANNON )
+	if ( TANK( pSoldier ) && !IsPlayerTank( *pSoldier ) && pSoldier->inv[bInvPos].usItem != TANK_CANNON )
 	{
 		return;
 	}

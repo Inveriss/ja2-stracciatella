@@ -2304,8 +2304,10 @@ static UINT16 SelectFireAnimation(SOLDIERTYPE* pSoldier, UINT8 ubHeight)
 		return( SHOOT_MORTAR );
 	}
 
-	// Check for tank cannon
-	if ( pSoldier->inv[ HANDPOS ].usItem == TANK_CANNON )
+	// Check for tank cannon -- also one shot of the player's tank's machine gun:
+	// TANK_BURST repeats until the burst is over (enemy tanks always burst)
+	if ( pSoldier->inv[ HANDPOS ].usItem == TANK_CANNON ||
+		( IsPlayerTank( *pSoldier ) && !pSoldier->bDoBurst ) )
 	{
 		return( TANK_SHOOT );
 	}
@@ -8761,7 +8763,8 @@ bool IsValidSecondHandShot(SOLDIERTYPE const* const s)
 bool IsValidSecondHandShotForReloadingPurposes(SOLDIERTYPE const* const s)
 {
 	// Should be maintained as same as function above with line about ammo taken
-	// out!
+	// out! (the player's tank: its other weapon is no second hand's)
+	if (IsPlayerTank(*s)) return false;
 	OBJECTTYPE const& o = s->inv[SECONDHANDPOS];
 	return GCM->getItem(o.usItem)->getItemClass() == IC_GUN &&
 		!s->bDoBurst &&
