@@ -1157,7 +1157,14 @@ INT16 GetAPsToEnterVehicle(SOLDIERTYPE& s, SOLDIERTYPE const& vs, GridNo* const 
 
 bool VehicleDrivesInTactical(VEHICLETYPE const& v)
 {
-	return v.ubVehicleType == HUMMER || v.ubVehicleType == ICE_CREAM_TRUCK;
+	return v.ubVehicleType == HUMMER || v.ubVehicleType == ICE_CREAM_TRUCK || v.ubVehicleType == TANK_CAR;
+}
+
+
+bool IsDrivingVehicleBody(SOLDIERTYPE const& vs)
+{
+	return vs.ubBodyType == HUMVEE || vs.ubBodyType == ICECREAMTRUCK ||
+		(TANK(&vs) && vs.bTeam != ENEMY_TEAM);
 }
 
 
@@ -1175,8 +1182,7 @@ bool IsVehicleMoving(SOLDIERTYPE const& vs)
 bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs)
 {
 	if (!(vs.uiStatusFlags & SOLDIER_VEHICLE) || vs.bLife <= 0) return false;
-	// D1: the Hummer and the ice cream truck
-	if (vs.ubBodyType != HUMVEE && vs.ubBodyType != ICECREAMTRUCK) return false;
+	if (!IsDrivingVehicleBody(vs)) return false;
 	// in combat: on our turn, for its own AP (stage 2a, D3)
 	if (gTacticalStatus.uiFlags & INCOMBAT && gTacticalStatus.ubCurrentTeam != OUR_TEAM) return false;
 

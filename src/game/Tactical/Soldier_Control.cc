@@ -415,7 +415,7 @@ INT8 CalcActionPoints(const SOLDIERTYPE* const pSold)
 
 	// If we are a vehicle, adjust APS... -- the ones that drive in tactical
 	// get a merc's maximum, as a full turn of driving (driving plan, D14)
-	if (pSold->ubBodyType == HUMVEE || pSold->ubBodyType == ICECREAMTRUCK)
+	if (IsDrivingVehicleBody(*pSold))
 	{
 		ubPoints = AP_MAXIMUM;
 	}
@@ -453,7 +453,7 @@ void CalcNewActionPoints( SOLDIERTYPE *pSoldier )
 	// Don't max out if we are drugged....
 	if ( !GetDrugEffect( pSoldier, DRUG_TYPE_ADRENALINE ) )
 	{
-		pSoldier->bActionPoints = std::min(int(pSoldier->bActionPoints), int(gubMaxActionPoints[pSoldier->ubBodyType]));
+		pSoldier->bActionPoints = std::min(int(pSoldier->bActionPoints), IsDrivingVehicleBody(*pSoldier) ? int(AP_MAXIMUM) : int(gubMaxActionPoints[pSoldier->ubBodyType]));
 	}
 
 	pSoldier->bInitialActionPoints	= pSoldier->bActionPoints;

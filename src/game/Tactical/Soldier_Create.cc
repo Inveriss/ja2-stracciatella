@@ -179,6 +179,8 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 				case HUMVEE:
 				case ICECREAMTRUCK:
 				case JEEP:
+				case TANK_NW:
+				case TANK_NE:
 				case HELICOPTERBODY:
 					vehicle = true;
 					break;

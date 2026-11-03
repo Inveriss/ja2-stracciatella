@@ -5087,7 +5087,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 			INT32        const vx = TEAM_PANEL_X + n * BIG_TEAMPANEL_SLOT_WIDTH;
 			DrawSoldierUIBarsTall(*v, vx + BIG_TM_LIFEBAR_X, vx + BIG_TM_BREATHBAR_X, vx + BIG_TM_MORALEBAR_X,
 						TEAM_PANEL_Y + BIG_TM_BARS_Y, BIG_TM_BAR_WIDTH, BIG_TM_BAR_HEIGHT, FRAME_BUFFER);
-			if (v->ubBodyType == HUMVEE || v->ubBodyType == ICECREAMTRUCK)
+			if (IsDrivingVehicleBody(*v))
 			{
 				PrintAP(v, vx + BIG_TM_AP_X, TEAM_PANEL_Y + BIG_TM_AP_Y, BIG_TM_AP_WIDTH, BIG_TM_AP_HEIGHT, BIG_TM_FONT);
 			}

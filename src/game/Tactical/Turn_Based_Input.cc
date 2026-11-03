@@ -3115,7 +3115,7 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 		if (!CanVehicleDriveInTactical(*sel))
 		{
 			// a car out of fuel says so; anything else, as before
-			bool const out_of_fuel = (sel->ubBodyType == HUMVEE || sel->ubBodyType == ICECREAMTRUCK) && sel->sBreathRed <= 0;
+			bool const out_of_fuel = IsDrivingVehicleBody(*sel) && sel->sBreathRed <= 0;
 			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK,
 				out_of_fuel ? gzLateLocalizedString[STR_LATE_62] : TacticalStr[VEHICLE_CANT_MOVE_IN_TACTICAL]);
 			return -3;

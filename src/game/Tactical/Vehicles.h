@@ -152,13 +152,15 @@ void AddVehicleFuelToSave(void);
 bool SoldierMustDriveVehicle(SOLDIERTYPE const&, bool trying_to_travel);
 
 // may this vehicle drive on the tactical map now? (driving plan, stage 1:
-// Hummer / ice cream truck, out of combat, fuel, someone aboard who can drive)
+// IsDrivingVehicleBody(), fuel, someone aboard who can drive)
 bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs);
 // is this vehicle driving on the tactical map now? (D13: nobody gets in or
 // out and no items are passed then)
 bool IsVehicleMoving(SOLDIERTYPE const& vs);
-// the vehicle types that drive in tactical (D1: Hummer, ice cream truck)
+// the vehicle types that drive in tactical (D1: Hummer, ice cream truck, tank)
 bool VehicleDrivesInTactical(VEHICLETYPE const&);
+// D1: the Hummer, the ice cream truck and the player's tank (not the enemy's)
+bool IsDrivingVehicleBody(SOLDIERTYPE const&);
 // getting out in tactical (D15): out of combat always; in combat on our turn,
 // his interrupt, and the AP (the message with explain) -- charged after
 bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool explain);
