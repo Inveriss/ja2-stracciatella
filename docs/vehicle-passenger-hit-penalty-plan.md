@@ -1,14 +1,14 @@
 # Passengers shooting from vehicles: a hit chance penalty — plan
 
-Status: **plan, not implemented, all decisions taken** (written 2026-11-03 on Remote
-Control). Changes the rules of `docs/vehicle-passenger-shooting-plan.md`.
+Status: **implemented, game-verified** (written 2026-11-03 on Remote
+Control; the penalty lowered from 30 to 25 by the user before implementing). Changes the rules of `docs/vehicle-passenger-shooting-plan.md`.
 
 ## 1. Goal (user's requirements)
 
 For passengers who can shoot from inside a vehicle:
 
 1. No bonus for the crouched stance.
-2. A penalty of 30 to the chance to hit.
+2. A penalty of 25 to the chance to hit.
 3. The penalty is part of the formula of the **Base** field in the weapon boxes
    (`Infobox_...` and `ItemInfoC_...`).
 
@@ -38,12 +38,12 @@ Checked in the code; nothing here has been tried in the game.
 
 | | Today | After |
 |---|---|---|
-| Passenger, real chance | +5 for crouching | no bonus, -30 |
-| Passenger, Base field | +5 for crouching | no bonus, -30 |
+| Passenger, real chance | +5 for crouching | no bonus, -25 |
+| Passenger, Base field | +5 for crouching | no bonus, -25 |
 | Everyone else | | no change |
 
-"-30" means 30 percentage points off the chance, as all the penalties here: 70% becomes
-40%. It does not mean 30% of the chance. The chance stays within the usual limits
+"-25" means 25 percentage points off the chance, as all the penalties here: 70% becomes
+45%. It does not mean 25% of the chance. The chance stays within the usual limits
 (`MINCHANCETOHIT`), so a poor shot from a vehicle ends at the minimum.
 
 Unchanged: the passenger stays crouched. For someone sitting in a vehicle the stance is
@@ -52,10 +52,10 @@ existing mechanisms (user, 2026-11-03). Only the aiming bonus goes.
 
 Where the penalty is taken in the formula: **at the end, right before the limits**. Taken
 at the stance bonus, later steps (wounds, fatigue, range halving) would scale it, and it
-would no longer be the 30 the Base field shows.
+would no longer be the 25 the Base field shows.
 
 The value goes in one place, used by both the real chance and the display:
-`AIM_PENALTY_VEHICLE_PASSENGER` (30) in `Weapons.h`.
+`AIM_PENALTY_VEHICLE_PASSENGER` (25) in `Weapons.h`.
 
 ## 4. Decision
 
@@ -68,7 +68,7 @@ The value goes in one place, used by both the real chance and the display:
 One stage, about 15 lines.
 
 `Weapons.h`:
-- `#define AIM_PENALTY_VEHICLE_PASSENGER 30`
+- `#define AIM_PENALTY_VEHICLE_PASSENGER 25`
 - `INT8 GunVehiclePassengerPenalty(SOLDIERTYPE const*);`
 
 `Weapons.cc`:
@@ -92,9 +92,9 @@ No new strings, assets or save changes.
 ## 6. Tests in the game
 
 - A passenger in the Hummer and in the ice cream truck, in a battle: the cursor's chance is
-  about 35 lower than the same merc crouched on the ground (5 + 30), at the same distance.
+  about 30 lower than the same merc crouched on the ground (5 + 25), at the same distance.
 - The Base field, tactical and map, normal and big boxes (`Show Large Icons`):
-  - no scope, aboard: `-30%`, on the ground crouched: `+5%`, standing: `+0%`;
+  - no scope, aboard: `-25%`, on the ground crouched: `+5%`, standing: `+0%`;
   - with a laser scope: its bonus is added;
   - out of the vehicle the same merc's field returns to normal, with the box reopened.
 - A driver, the tank (no passenger shots) and the helicopter: no change.

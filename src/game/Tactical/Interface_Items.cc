@@ -1068,10 +1068,11 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
 
 	// Combined LASERSCOPE aim bonus + merc's live CROUCH-stance bonus +
-	// merc's live roof/elevation bonus (see GunLaserScopeBonus() +
-	// GunCrouchStanceBonus() + GunRoofBonus()). Label and value always
-	// shown (0 when none apply).
-	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus
+	// merc's live roof/elevation bonus + vehicle passenger penalty (see
+	// GunLaserScopeBonus() + GunCrouchStanceBonus() + GunRoofBonus() +
+	// GunVehiclePassengerPenalty()). Label and value always shown (0 when
+	// none apply).
+	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus + vehicle passenger penalty
 
 	// Combined LASERSCOPE + BIPOD + PRONE stance + roof/elevation aim
 	// bonus (see GunLaserScopeBonus() + GunBipodDisplayBonus() +
@@ -1208,10 +1209,11 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
 
 	// Combined LASERSCOPE aim bonus + merc's live CROUCH-stance bonus +
-	// merc's live roof/elevation bonus (see GunLaserScopeBonus() +
-	// GunCrouchStanceBonus() + GunRoofBonus()). Label and value always
-	// shown (0 when none apply).
-	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus
+	// merc's live roof/elevation bonus + vehicle passenger penalty (see
+	// GunLaserScopeBonus() + GunCrouchStanceBonus() + GunRoofBonus() +
+	// GunVehiclePassengerPenalty()). Label and value always shown (0 when
+	// none apply).
+	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus + vehicle passenger penalty
 
 	// Combined LASERSCOPE + BIPOD + PRONE stance + roof/elevation aim
 	// bonus (see GunLaserScopeBonus() + GunBipodDisplayBonus() +
@@ -4784,12 +4786,13 @@ void RenderItemDescriptionBox(void)
 			// Combined LASERSCOPE aim bonus (see GunLaserScopeBonus()) + the
 			// merc's own live crouch-stance bonus (see
 			// GunCrouchStanceBonus()) + the merc's own live roof/elevation
-			// bonus (see GunRoofBonus()). Always shown (0 when none apply),
-			// always signed: "+" when the net effect helps, "-" when a
-			// badly damaged laser scope is hurting aim more than the other
-			// bonuses offset.
+			// bonus (see GunRoofBonus()) + the penalty of a passenger shooting
+			// from a vehicle (see GunVehiclePassengerPenalty()). Always shown
+			// (0 when none apply), always signed: "+" when the net effect
+			// helps, "-" when that penalty or a badly damaged laser scope is
+			// hurting aim more than the other bonuses offset.
 			{
-				INT8 const baseBonus = GunLaserScopeBonus(obj) + GunCrouchStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier);
+				INT8 const baseBonus = GunLaserScopeBonus(obj) + GunCrouchStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier) + GunVehiclePassengerPenalty(gpItemDescSoldier);
 				pStr = ST::format("{}{}%", baseBonus >= 0 ? "+" : "", baseBonus);
 				FindFontRightCoordinates(dx + ids[20].sX + ids[20].sValDx, dy + ids[20].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 				MPrint(usX, usY, pStr);

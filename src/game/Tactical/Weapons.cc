@@ -305,7 +305,9 @@ INT8 GunCrouchStanceBonus(SOLDIERTYPE const* const s)
 	// AIM_BONUS_CROUCHING) crouch stance bonus applied in
 	// CalcChanceToHitGun() — display purposes only. No item/condition
 	// involved, unlike the other display bonuses: this is a soldier-stance
-	// check, not a weapon stat.
+	// check, not a weapon stat. A passenger shooting from a vehicle is kept
+	// crouched, but gets no aiming bonus for it.
+	if (CanShootFromVehicle(*s)) return 0;
 	return gAnimControl[s->usAnimState].ubEndHeight == ANIM_CROUCH ? CROUCH_STANCE_DISPLAY_BONUS : 0;
 }
 
@@ -323,6 +325,14 @@ INT8 GunRoofBonus(SOLDIERTYPE const* const s)
 	// bonuses. Deliberately excludes the separate, target-independent
 	// ONROOF skill trait bonus also applied there.
 	return s->bLevel > 0 ? AIM_BONUS_FIRING_DOWN : 0;
+}
+
+
+INT8 GunVehiclePassengerPenalty(SOLDIERTYPE const* const s)
+{
+	// The real penalty, used by CalcChanceToHitGun() and shown as it is by
+	// the item description box's "Base:" readout.
+	return s && CanShootFromVehicle(*s) ? -AIM_PENALTY_VEHICLE_PASSENGER : 0;
 }
 
 
@@ -2227,8 +2237,9 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	// calculate actual range (in units, 10 units = 1 tile)
 	iRange = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, sGridNo );
 
-	// if shooter is crouched, he aims slightly better (to max of AIM_BONUS_CROUCHING)
-	if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH )
+	// if shooter is crouched, he aims slightly better (to max of AIM_BONUS_CROUCHING),
+	// except a passenger shooting from a vehicle, who is only kept crouched
+	if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH && !CanShootFromVehicle( *pSoldier ) )
 	{
 		iBonus = iRange / 2;
 		if (iBonus > AIM_BONUS_CROUCHING)
@@ -2687,6 +2698,9 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 		// penalize out of sight shots, cumulative to effective range penalty
 		iChance /= 2;
 	}
+
+	// taken last, so nothing above scales it and it stays what the "Base:" field shows
+	iChance += GunVehiclePassengerPenalty(pSoldier);
 
 	// MAKE SURE CHANCE TO HIT IS WITHIN DEFINED LIMITS
 	if (iChance < MINCHANCETOHIT)
