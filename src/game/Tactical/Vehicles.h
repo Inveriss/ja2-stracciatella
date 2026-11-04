@@ -183,6 +183,10 @@ bool TankCanTravel(VEHICLETYPE const&);
 bool TankCanFire(VEHICLETYPE const&); // all four
 // SOLDIER_DRIVER for the Driver's seat, SOLDIER_PASSENGER for the others
 void UpdateTankCrewFlags(VEHICLETYPE const&);
+// A car: the first merc aboard drives
+void UpdateCarDriverFlags(VEHICLETYPE const&);
+// The tank without its Commander or Driver goes nowhere: its route is cancelled
+void CancelTankRouteWithoutCrew(VEHICLETYPE&);
 // Gives a newly created player's tank its cannon (G3)
 void EquipPlayerTank(SOLDIERTYPE&);
 // The one in the Gunner's seat, who aims; NULL if he isn't able

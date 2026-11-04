@@ -4553,6 +4553,11 @@ static SOLDIERTYPE* BigTeamPanelVehicleOf(MOUSE_REGION* const r)
 // sector, in seat order, while the current squad stays as it is. Any squad
 // change (SetCurrentSquad(), RebuildCurrentSquad()) ends it.
 static bool gfHelicopterPassengersView = false;
+// Whom the arrows move where the selection doesn't say (not saved):
+// the helicopter's passenger marked by a click (nobody aboard it can be selected) ...
+static SOLDIERTYPE* gpHelicopterOrderMerc = NULL;
+// ... and with the tank selected its Gunner, if clicked last; else its Driver
+static SOLDIERTYPE const* gpTankOrderGunner = NULL;
 
 
 static void AddPlayerToInterfaceTeamSlot(SOLDIERTYPE*);
@@ -4619,6 +4624,7 @@ void EndHelicopterPassengersView()
 {
 	if (!gfHelicopterPassengersView) return;
 	gfHelicopterPassengersView = false;
+	gpHelicopterOrderMerc      = NULL;
 	fInterfacePanelDirty       = DIRTYLEVEL2;
 }
 
@@ -4700,6 +4706,7 @@ static void BigTeamVehicleFaceCallbackPrimary(MOUSE_REGION* const r, UINT32)
 		{
 			SetCurrentSquad(v->bAssignment, FALSE);
 		}
+		gpTankOrderGunner = NULL;
 		SelectSoldier(v, SELSOLDIER_ACKNOWLEDGE | SELSOLDIER_FROM_UI);
 	}
 	LocateSoldier(v, SETLOCATOR);
@@ -4932,6 +4939,7 @@ static bool IsShownSelected(SOLDIERTYPE const* const s)
 	if (!s) return false;
 	SOLDIERTYPE const* const sel = GetSelectedMan();
 	if (s == sel) return true;
+	if (gfHelicopterPassengersView && s == gpHelicopterOrderMerc) return true;
 	return sel && sel->uiStatusFlags & SOLDIER_VEHICLE &&
 		(s->uiStatusFlags & SOLDIER_DRIVER || SelectsTankAsGunner(*s)) &&
 		s->iVehicleId == sel->bVehicleID;
@@ -5442,6 +5450,12 @@ void RemoveTEAMPanelButtons(void)
 
 // The big team panel's full / low toggle: the panel is built again, in the
 // other form, next frame (HandleTacticalPanelSwitch(), Interface_Control.cc).
+void NoteTeamPanelOrderChoice(SOLDIERTYPE const& s)
+{
+	gpTankOrderGunner = SelectsTankAsGunner(s) ? &s : NULL;
+}
+
+
 // The slots an arrow works on for this merc, 0 if he isn't on the panel
 static INT32 TeamPanelMoveRange(SOLDIERTYPE const& s)
 {
@@ -5463,10 +5477,37 @@ static INT32 TeamPanelMoveRange(SOLDIERTYPE const& s)
 // Whom the arrows move now, NULL if nobody can be moved
 static SOLDIERTYPE const* TeamPanelOrderMerc()
 {
-	SOLDIERTYPE const* const sel = GetSelectedMan();
-	if (!sel || sel->uiStatusFlags & SOLDIER_VEHICLE || IsAboard(*sel)) return NULL; // (vehicles: next stage)
-	if (gfHelicopterPassengersView || gTacticalStatus.ubAttackBusyCount > 0) return NULL;
-	return TeamPanelMoveRange(*sel) >= 2 ? sel : NULL;
+	if (gTacticalStatus.ubAttackBusyCount > 0) return NULL;
+
+	SOLDIERTYPE const* s;
+	if (gfHelicopterPassengersView)
+	{
+		s = gpHelicopterOrderMerc;
+	}
+	else
+	{
+		s = GetSelectedMan();
+		if (s && s->uiStatusFlags & SOLDIER_VEHICLE)
+		{
+			// the vehicle selected: its driver, or the tank's Gunner if clicked last
+			if (IsVehicleMoving(*s)) return NULL;
+			VEHICLETYPE const& v = GetVehicle(s->bVehicleID);
+			s = NULL;
+			if (IsTankVehicle(v))
+			{
+				s = gpTankOrderGunner && SelectsTankAsGunner(*gpTankOrderGunner) ?
+					gpTankOrderGunner : GetTankCrewMember(v, TANK_DRIVER);
+			}
+			else
+			{
+				CFOR_EACH_PASSENGER(v, i)
+				{
+					if ((*i)->uiStatusFlags & SOLDIER_DRIVER) s = *i;
+				}
+			}
+		}
+	}
+	return s && TeamPanelMoveRange(*s) >= 2 ? s : NULL;
 }
 
 
@@ -5686,6 +5727,15 @@ static void MercFacePanelCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	if (!gfInItemPickupMenu && gpItemPointer == NULL)
 	{
+		// the helicopter's passengers: nobody aboard is selected, a click marks him for the arrows
+		if (gfHelicopterPassengersView)
+		{
+			gpHelicopterOrderMerc = s;
+			fInterfacePanelDirty  = DIRTYLEVEL2;
+			return;
+		}
+		NoteTeamPanelOrderChoice(*s);
+
 		// a passenger is selected himself (the driver still selects the vehicle)
 		if (IsSelectablePassenger(*s))
 		{
@@ -6319,11 +6369,26 @@ static void SyncTeamPanelOrderWithSquad()
 
 bool MoveMercOnTeamPanel(SOLDIERTYPE const& s, bool const right)
 {
-	if (!g_ui.isBigTeamPanel() || gfHelicopterPassengersView) return false;
+	if (!g_ui.isBigTeamPanel()) return false;
 	if (gTacticalStatus.ubAttackBusyCount > 0) return false;
 
 	bool const aboard = IsAboard(s);
-	if (aboard && IsVehicleMoving(GetSoldierStructureForVehicle(GetVehicle(s.iVehicleId)))) return false;
+	if (aboard)
+	{
+		VEHICLETYPE const& v = GetVehicle(s.iVehicleId);
+		if (v.ubVehicleType == HELICOPTER)
+		{
+			// one aboard not in the sector has a seat but no slot: nothing can move
+			CFOR_EACH_PASSENGER(v, i)
+			{
+				if (!(*i)->bInSector) return false;
+			}
+		}
+		else if (IsVehicleMoving(GetSoldierStructureForVehicle(v)))
+		{
+			return false; // (D13: not while it drives)
+		}
+	}
 
 	INT32 const size = (INT32)gTeamPanel.size();
 	INT32 slot = -1;
@@ -6366,7 +6431,22 @@ bool MoveMercOnTeamPanel(SOLDIERTYPE const& s, bool const right)
 			SOLDIERTYPE* const m = gTeamPanel[seat].merc;
 			v.pPassengers[seat] = m && IsAboard(*m) && m->iVehicleId == s.iVehicleId ? m : 0;
 		}
-		if (IsTankVehicle(v)) UpdateTankCrewFlags(v);
+
+		if (v.ubVehicleType != HELICOPTER)
+		{
+			// who drives, by seat; the first aboard in the cars
+			if (IsTankVehicle(v)) UpdateTankCrewFlags(v);
+			else UpdateCarDriverFlags(v);
+			CancelTankRouteWithoutCrew(v);
+
+			CFOR_EACH_PASSENGER(v, i) CrouchShootingPassenger(**i);
+
+			// he stays the one shown as selected: himself, or the vehicle if he
+			// became its driver or the tank's Gunner, and the arrows go on with him
+			SOLDIERTYPE* const moved = gTeamPanel[new_slot].merc;
+			NoteTeamPanelOrderChoice(*moved);
+			SelectSoldier(IsSelectablePassenger(*moved) ? moved : &GetSoldierStructureForVehicle(v), SELSOLDIER_NONE);
+		}
 	}
 	else
 	{

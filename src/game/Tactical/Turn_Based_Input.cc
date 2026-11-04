@@ -3271,6 +3271,8 @@ static void HandleSelectMercSlot(UINT8 const ubPanelSlot, bool const force_selec
 	SOLDIERTYPE* s = GetPlayerFromInterfaceTeamSlot(ubPanelSlot);
 	if (s != NULL)
 	{
+		NoteTeamPanelOrderChoice(*s);
+
 		// the tank's Driver and Gunner select the tank, as a click on them does
 		if (IsTankCrewMember(*s) && !IsSelectablePassenger(*s))
 		{

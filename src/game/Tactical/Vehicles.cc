@@ -428,13 +428,7 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 	}
 	else
 	{
-		// the tank without its Commander or Driver goes nowhere
-		if (IsTankVehicle(v) &&
-			(!GetTankCrewMember(v, TANK_COMMANDER) || !GetTankCrewMember(v, TANK_DRIVER)) &&
-			GetLengthOfMercPath(&GetSoldierStructureForVehicle(v)) > 0)
-		{
-			CancelPathForVehicle(v, FALSE);
-		}
+		CancelTankRouteWithoutCrew(v);
 
 		// check if anyone left in vehicle
 		CFOR_EACH_PASSENGER(v, i) return true;
@@ -1301,6 +1295,27 @@ void UpdateTankCrewFlags(VEHICLETYPE const& v)
 		if (!s) continue;
 		s->uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
 		s->uiStatusFlags |= seat == TANK_DRIVER ? SOLDIER_DRIVER : SOLDIER_PASSENGER;
+	}
+}
+
+
+void CancelTankRouteWithoutCrew(VEHICLETYPE& v)
+{
+	if (!IsTankVehicle(v)) return;
+	if (GetTankCrewMember(v, TANK_COMMANDER) && GetTankCrewMember(v, TANK_DRIVER)) return;
+	if (GetLengthOfMercPath(&GetSoldierStructureForVehicle(v)) > 0) CancelPathForVehicle(v, FALSE);
+}
+
+
+void UpdateCarDriverFlags(VEHICLETYPE const& v)
+{
+	bool first = true;
+	CFOR_EACH_PASSENGER(v, i)
+	{
+		SOLDIERTYPE& s = **i;
+		s.uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
+		s.uiStatusFlags |= first ? SOLDIER_DRIVER : SOLDIER_PASSENGER;
+		first = false;
 	}
 }
 
