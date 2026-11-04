@@ -227,31 +227,11 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 		PlayLocationJA2Sample(vs->sGridNo, GCM->getVehicle(v.ubVehicleType)->enter_sound, HIGHVOLUME, 1);
 	}
 
-	// A newcomer sits behind those aboard (the team panel shows them in seat
-	// order), not in a seat someone before them left: only when the last seat is
-	// taken do they all move up, closing those gaps.
-	// The tank's seats are its crew's roles: the first empty one, and nobody ever
-	// changes seats (crew plan, R8)
-	bool  const tank  = IsTankVehicle(v);
+	// A newcomer takes the first empty seat, and nobody ever changes seats (the
+	// team panel's slots are the seats; in the tank they are its roles, crew plan, R8)
 	INT32 const seats = GetVehicleSeats(v);
-	INT32 first_seat = seats;
-	if (tank)
-	{
-		first_seat = 0;
-		while (first_seat < seats && v.pPassengers[first_seat]) ++first_seat;
-	}
-	else while (first_seat > 0 && !v.pPassengers[first_seat - 1]) --first_seat;
-	if (!tank && first_seat == seats)
-	{
-		first_seat = 0;
-		for (INT32 i = 0; i < seats; ++i)
-		{
-			SOLDIERTYPE* const aboard = v.pPassengers[i];
-			if (!aboard) continue;
-			v.pPassengers[i] = 0;
-			v.pPassengers[first_seat++] = aboard;
-		}
-	}
+	INT32 first_seat = 0;
+	while (first_seat < seats && v.pPassengers[first_seat]) ++first_seat;
 	for (INT32 i = first_seat; i < seats; ++i)
 	{
 		v.pPassengers[i] = &s;
@@ -292,15 +272,19 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 			AddPlayerToGroup(*GetGroup(v.ubMovementGroup), s);
 		}
 
-		// Are we the first? (in the tank, the seat decides)
-		if (tank)
+		// Who drives: in the tank the seat decides, in the cars the first merc aboard
+		if (IsTankVehicle(v))
 		{
 			UpdateTankCrewFlags(v);
 		}
-		else
+		else if (IsHelicopter(v))
 		{
 			s.uiStatusFlags |= GetNumberInVehicle(v) == 1 ?
 				SOLDIER_DRIVER : SOLDIER_PASSENGER;
+		}
+		else
+		{
+			UpdateCarDriverFlags(v);
 		}
 
 		RemoveSoldierFromGridNo(s);
@@ -313,8 +297,9 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 			// Stop from any movement.....
 			EVENT_StopMerc(&s);
 
-			// a passenger who may shoot from inside crouches
-			CrouchShootingPassenger(s);
+			// a passenger who may shoot from inside crouches (also a driver the
+			// newcomer took the first seat from)
+			CFOR_EACH_PASSENGER(v, i) CrouchShootingPassenger(**i);
 
 			// can't call SetCurrentSquad OR SelectSoldier in mapscreen,
 			// that will initialize interface panels!!!
