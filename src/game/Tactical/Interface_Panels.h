@@ -127,6 +127,8 @@ void RemoveTEAMPanelButtons(void);
 void InitializeTEAMPanel();
 void ShutdownTEAMPanel();
 void RenderTEAMPanel(DirtyLevel);
+// The player's tank changes the weapon it fires: not while it drives or shoots
+void SwapTankWeapons(SOLDIERTYPE&);
 
 
 void SetSMPanelCurrentMerc(SOLDIERTYPE* s);
@@ -137,6 +139,12 @@ SOLDIERTYPE* GetPlayerFromInterfaceTeamSlot(UINT8 ubPanelSlot);
 void    RemoveAllPlayersFromSlot();
 BOOLEAN      RemovePlayerFromTeamSlot(const SOLDIERTYPE* s);
 void    CheckForAndAddMercToTeamPanel(SOLDIERTYPE* s);
+// Moves him to the next or previous slot of the 1366x768 panel, and his order into
+// the squad or the vehicle's seats; false if he can't move now
+bool    MoveMercOnTeamPanel(SOLDIERTYPE const&, bool right);
+// He was clicked or his slot's key pressed: with the tank selected the arrows move
+// its Gunner if it was him, else its Driver
+void    NoteTeamPanelOrderChoice(SOLDIERTYPE const&);
 
 // The 1366x768 team panel showing those aboard the helicopter (a left click
 // on its window) instead of the current squad; a squad change ends it.

@@ -195,6 +195,8 @@ extern void ActivateXRayDevice( SOLDIERTYPE * pSoldier );
 extern void TurnOffXRayEffects( SOLDIERTYPE * pSoldier );
 INT8 FindLaunchableAttachment(const OBJECTTYPE* pObj, UINT16 usWeapon);
 
+// A magazine for the gun of the player's tank, which reloads it where it sits
+bool IsTankGunReload(SOLDIERTYPE const&, OBJECTTYPE const& ammo, INT8 slot);
 BOOLEAN CanItemFitInPosition(SOLDIERTYPE* s, OBJECTTYPE* pObj, INT8 bPos, BOOLEAN fDoingPlacement);
 
 void SetNewItem(SOLDIERTYPE* pSoldier, UINT8 ubInvPos, BOOLEAN fNewItem);

@@ -59,6 +59,7 @@
 #include "Strategic_Movement.h"
 
 #include "Soldier.h"
+#include "Vehicles.h"
 
 #include "ContentManager.h"
 #include "GameInstance.h"
@@ -312,11 +313,18 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 
 				case 412:
 
+					// (TANK_SHOOT's recoil: only the cannon's, not the machine gun's of
+					// the player's tank)
+					if ( IsPlayerTank( *pSoldier ) && pSoldier->inv[ HANDPOS ].usItem != TANK_CANNON ) break;
+
 					// CODE: HANDLING PRONE DOWN - NEED TO MOVE GUY BACKWARDS!
 					MoveMercFacingDirection( pSoldier , FALSE, (FLOAT).2 );
 					break;
 
 				case 413:
+
+					// (TANK_SHOOT's recoil, as above)
+					if ( IsPlayerTank( *pSoldier ) && pSoldier->inv[ HANDPOS ].usItem != TANK_CANNON ) break;
 
 					// CODE: HANDLING PRONE UP - NEED TO MOVE GUY FORWARDS!
 					MoveMercFacingDirection( pSoldier , TRUE, (FLOAT).2 );
@@ -722,7 +730,9 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 						// END: GOTO AIM STANCE BASED ON HEIGHT
 						// If we are a robot - we need to do stuff different here
 						UINT16 state;
-						if ( AM_A_ROBOT( pSoldier ) )
+						// -- as the player's tank: it has no aiming animation, so its burst
+						// would run on to the end of TANK_BURST's 6 shots
+						if ( AM_A_ROBOT( pSoldier ) || IsPlayerTank( *pSoldier ) )
 						{
 							state = STANDING;
 						}
@@ -2955,7 +2965,7 @@ BOOLEAN HandleSoldierDeath( SOLDIERTYPE *pSoldier , BOOLEAN *pfMadeCorpse )
 		else
 		{
 			// IF this guy has an attacker and he's a good guy, play sound
-			SOLDIERTYPE* const attacker = pSoldier->attacker;
+			SOLDIERTYPE* const attacker = ShooterFor(pSoldier->attacker);
 			if (attacker != NULL)
 			{
 				if (attacker->bTeam == OUR_TEAM && gTacticalStatus.ubAttackBusyCount > 0)
@@ -2964,7 +2974,7 @@ BOOLEAN HandleSoldierDeath( SOLDIERTYPE *pSoldier , BOOLEAN *pfMadeCorpse )
 					gTacticalStatus.enemy_killed_on_attack        = pSoldier;
 					gTacticalStatus.ubEnemyKilledOnAttackLocation = pSoldier->sGridNo;
 					gTacticalStatus.bEnemyKilledOnAttackLevel     = pSoldier->bLevel;
-					gTacticalStatus.enemy_killed_on_attack_killer = pSoldier->attacker;
+					gTacticalStatus.enemy_killed_on_attack_killer = attacker;
 
 					// also check if we are in mapscreen, if so update soldier's list
 					if( guiCurrentScreen == MAP_SCREEN )
@@ -3003,8 +3013,8 @@ BOOLEAN HandleSoldierDeath( SOLDIERTYPE *pSoldier , BOOLEAN *pfMadeCorpse )
 			}
 
 			// JA2 Gold: if previous and current attackers are the same, the next-to-previous attacker gets the assist
-			SOLDIERTYPE* assister = pSoldier->previous_attacker;
-			if (assister == attacker) assister = pSoldier->next_to_previous_attacker;
+			SOLDIERTYPE* assister = ShooterFor(pSoldier->previous_attacker);
+			if (assister == attacker) assister = ShooterFor(pSoldier->next_to_previous_attacker);
 
 			if (assister != NULL && assister->bActive && assister != attacker)
 			{

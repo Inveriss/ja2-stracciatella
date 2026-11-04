@@ -2038,7 +2038,7 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 		if (pFirer->bTeam == 0)
 		{
 			// issue #1140 : sync usShotsFired with usShotsHit and so that merc statistic <= 100%
-			if (pFirer->target && pFirer->target->bLife > 0) gMercProfiles[ pFirer->ubProfile ].usShotsHit++;
+			if (pFirer->target && pFirer->target->bLife > 0) gMercProfiles[ ShooterFor(pFirer)->ubProfile ].usShotsHit++;
 		}
 
 		// intentionally shot
@@ -3237,7 +3237,7 @@ static INT8 FireBullet(BULLET* pBullet, BOOLEAN fFake)
 			if (pFirer->target)
 			{
 				// Do not count shots fired at nothing in particular because it skews hit %. It would always counts as a miss
-				if (pFirer->target->bLife > 0) gMercProfiles[pFirer->ubProfile].usShotsFired++;
+				if (pFirer->target->bLife > 0) gMercProfiles[ShooterFor(pFirer)->ubProfile].usShotsFired++;
 			}
 		}
 

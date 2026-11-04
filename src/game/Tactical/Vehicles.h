@@ -12,6 +12,13 @@
 // the tank's capacity (sBreathRed); a gas can at 100% holds half of it
 #define VEHICLE_FULL_TANK 10000
 
+// TEMPORARY FOR TESTING: in a new game the tank's profile is in A9, Omerta, so
+// its placement in that sector's map file (a civilian, profile 232) gets added
+#define TANK_IN_A9_FOR_TESTING 0
+// TEMPORARY FOR TESTING: the same for the Eldorado and the Jeep (civilians, profiles
+// 161 and 231, in that map file)
+#define CARS_IN_A9_FOR_TESTING 0
+
 // type of vehicles
 enum{
 	ELDORADO_CAR = 0,
@@ -148,13 +155,59 @@ void AddVehicleFuelToSave(void);
 bool SoldierMustDriveVehicle(SOLDIERTYPE const&, bool trying_to_travel);
 
 // may this vehicle drive on the tactical map now? (driving plan, stage 1:
-// Hummer / ice cream truck, out of combat, fuel, someone aboard who can drive)
+// IsDrivingVehicleBody(), fuel, someone aboard who can drive)
 bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs);
 // is this vehicle driving on the tactical map now? (D13: nobody gets in or
 // out and no items are passed then)
 bool IsVehicleMoving(SOLDIERTYPE const& vs);
-// the vehicle types that drive in tactical (D1: Hummer, ice cream truck)
+// the vehicle types that drive in tactical (D1: Hummer, ice cream truck, tank; also
+// the Eldorado and the Jeep)
 bool VehicleDrivesInTactical(VEHICLETYPE const&);
+// D1: the Hummer, the ice cream truck, the Eldorado, the Jeep and the player's tank
+// (not the enemy's)
+bool IsDrivingVehicleBody(SOLDIERTYPE const&);
+// The tank on the player's side, not the enemy's (tank cannon plan,
+// docs/tank-cannon-firing-plan.md)
+bool IsPlayerTank(SOLDIERTYPE const&);
+// The tank's crew (docs/tank-crew-roles-plan.md): a seat is a role, seat 0 the
+// Commander and so on, so nothing about it is saved but pPassengers
+enum TankRole { TANK_COMMANDER, TANK_DRIVER, TANK_GUNNER, TANK_LOADER, NUM_TANK_ROLES };
+bool IsTankVehicle(VEHICLETYPE const&);
+// Aboard the tank
+bool IsTankCrewMember(SOLDIERTYPE const&);
+// The tank's Gunner: not selected himself, a click on him selects the tank
+bool SelectsTankAsGunner(SOLDIERTYPE const&);
+// Who sits in that role's seat, or NULL
+SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const&, TankRole);
+// Someone sits there and can do the job: awake, able, not an EPC or the robot
+bool IsTankRoleManned(VEHICLETYPE const&, TankRole);
+bool TankCanMove(VEHICLETYPE const&); // Commander and Driver
+// The same on the strategic map, where one asleep counts: a route wakes him, and
+// PlayerSoldierTooTiredToTravel() answers for one who can't be woken
+bool TankCanTravel(VEHICLETYPE const&);
+bool TankCanFire(VEHICLETYPE const&); // all four
+// SOLDIER_DRIVER for the Driver's seat, SOLDIER_PASSENGER for the others
+void UpdateTankCrewFlags(VEHICLETYPE const&);
+// A car: the first seat is the Driver's, and nobody else drives
+void UpdateCarDriverFlags(VEHICLETYPE const&);
+bool CarCanMove(VEHICLETYPE const&);
+// The same on the strategic map, as TankCanTravel()
+bool CarCanTravel(VEHICLETYPE const&);
+// A vehicle without its Driver, or the tank's Commander, goes nowhere: its route is
+// cancelled
+void CancelRouteWithoutDriver(VEHICLETYPE&);
+// Gives a newly created player's tank its cannon (G3)
+void EquipPlayerTank(SOLDIERTYPE&);
+// The one in the Gunner's seat, who aims; NULL if he isn't able
+SOLDIERTYPE* GetTankGunner(SOLDIERTYPE const& tank);
+// The whole crew is able: the cannon and the machine gun need all four
+bool PlayerTankCanFire(SOLDIERTYPE const& tank);
+// Who gets the credit for a shot: the gunner for the player's tank (or the tank
+// if nobody is able), everyone else himself
+SOLDIERTYPE* ShooterFor(SOLDIERTYPE*);
+// Whether a soldier sees the target now; a vehicle has no sight of its own, so
+// for it, whether anyone aboard does
+bool SeesCurrently(SOLDIERTYPE const& s, SOLDIERTYPE const& target);
 // getting out in tactical (D15): out of combat always; in combat on our turn,
 // his interrupt, and the AP (the message with explain) -- charged after
 bool MayExitVehicleInTactical(SOLDIERTYPE const& s, bool explain);
@@ -214,9 +267,10 @@ bool IsTankSoldier(SOLDIERTYPE const&);
 bool HasVehicleCargoSlots(SOLDIERTYPE const&);
 // a slot the vehicle can hold items in
 bool IsVehicleCargoSlot(SOLDIERTYPE const&, INT8 slot);
-// A passenger (not the driver) of a ground vehicle other than the tank: he
-// may be selected on his own and shoot from inside (passenger shooting plan,
-// docs/vehicle-passenger-shooting-plan.md)
+// A passenger (not the driver) of a ground vehicle: he may be selected on his
+// own (passenger shooting plan, docs/vehicle-passenger-shooting-plan.md)
+bool IsSelectablePassenger(SOLDIERTYPE const&);
+// ... and, except in the tank, shoot from inside
 bool CanShootFromVehicle(SOLDIERTYPE const&);
 // ... and such a passenger is crouched (passenger shooting, stage 2): set at
 // once, without the kneeling animation; only in the tactical screen

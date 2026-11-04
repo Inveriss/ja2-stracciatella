@@ -49,6 +49,9 @@ struct NPC_DIALOGUE_TYPE
 extern NPC_DIALOGUE_TYPE gTalkPanel;
 
 
+// Who speaks for a soldier: the driver, or someone aboard, for a vehicle
+SOLDIERTYPE* TalkerFor(SOLDIERTYPE*);
+
 BOOLEAN InitiateConversationFull(SOLDIERTYPE* pDestSoldier, SOLDIERTYPE* pSrcSoldier, Approach bApproach, UINT8 approach_record, OBJECTTYPE* approach_object);
 BOOLEAN InitiateConversation(SOLDIERTYPE* pDestSoldier, SOLDIERTYPE* pSrcSoldier, Approach);
 

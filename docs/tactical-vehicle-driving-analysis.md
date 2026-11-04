@@ -132,7 +132,7 @@ gridnos) — the soldier save already holds these fields; to be tested.
 
 | # | Question | Proposal |
 |---|---|---|
-| D1 | Which vehicles | Hummer and ice cream truck first; the tank as a later stage (D10) |
+| D1 | Which vehicles | Hummer and ice cream truck first; the tank as a later stage (D10). The player's tank drives too since 2026-11-03 |
 | D2 | Real time only, or turn-based too? | real time first (stage 1), turn-based next (stage 2) |
 | D3 | Whose AP in turn-based | the vehicle's own (+35, max 50), as the engine has it; the driver's shown |
 | D4 | Bushes / rubble / sand | allowed, slower (higher AP / fuel cost); water, fences, stairs, buildings never |
@@ -341,3 +341,10 @@ Stage 2 (turn-based driving and battles) in sub-stages:
   (`KillAllInVehicle()`), the wreck stays; those aboard count as fighting
   for the end of a battle (they can get out and fight, it can drive), so a
   battle is lost only when they are gone too. To be verified in the game.
+
+- **The player's tank (2026-11-03, branch `Tanks`):** drives by the same rules
+  as the Hummer (`IsDrivingVehicleBody()`, `TANK_CAR` in
+  `VehicleDrivesInTactical()`): 25 AP, 1 AP a tile on a road and 2 off it, fuel
+  from `vehicles.json`, its 8-direction structures `TNK_SHT` / `TNK2_ROT`.
+  The enemy's tanks stay as they were. Its turret sounds play when it turns.
+  To be verified in the game.

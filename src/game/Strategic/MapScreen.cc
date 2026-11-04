@@ -876,6 +876,7 @@ static GUIButtonRef giMapInvHeliSilentButton;
 #define MAP_INV_VEHICLE_PANEL_HEIGHT 514
 #define MAP_INV_VEHICLE_DONE_BTN_X   (PLAYER_INFO_X + 572)
 #define MAP_INV_VEHICLE_DONE_BTN_Y   (PLAYER_INFO_Y + 420)
+#define MAP_INV_TANK_DONE_BTN_X      (PLAYER_INFO_X + 575)
 
 // gMPanelRegion blocks clicks over the whole merc inventory panel -- sized
 // to the current mode's graphic (normal: INV_REGION_WIDTH/HEIGHT,
@@ -1126,8 +1127,7 @@ static void RenderCharInfoPortrait(SOLDIERTYPE const& s)
 
 	if (s.uiStatusFlags & SOLDIER_VEHICLE)
 	{
-		// 48x43 small vehicle portrait (FACE_WIDTH/HEIGHT, Interface_Utils.cc)
-		RenderSoldierFace(s, x + (w - 48) / 2, y + (h - 43) / 2);
+		RenderVehiclePortrait(s, x, y, w, h);
 	}
 	else if (s.ubProfile != NO_PROFILE)
 	{
@@ -1213,6 +1213,7 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	InvItemTextLayout const big_text = GetMapInvBigItemTextLayout();
 	for (EquipSlot const& slot : slots)
 	{
+		if ((slot.pocket == HANDPOS || slot.pocket == SECONDHANDPOS) && IsPlayerTank(s)) continue; // its weapons are not shown
 		INVRenderItem(guiSAVEBUFFER, &s, s.inv[slot.pocket], slot.x, slot.y, slot.w, CHARINFO_EQUIP_HEIGHT, DIRTYLEVEL2, 0, SGP_TRANSPARENT, TRUE, &big_text);
 	}
 
@@ -1220,7 +1221,7 @@ static void RenderCharInfoEquipment(SOLDIERTYPE const& s)
 	// cover the second hand's slot (its whole 124x52 frame) like the merc
 	// inventory does -- charinfo_second_hand_hide_1366x768.png is optional.
 	static cache_key_t const second_hand_hide = INTERFACEDIR "/charinfo_second_hand_hide_1366x768.png";
-	if (GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded() && IsInterfaceAssetUsable(second_hand_hide))
+	if (GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded() && !IsPlayerTank(s) && IsInterfaceAssetUsable(second_hand_hide))
 	{
 		INT16 const x = CHARINFO_SECOND_HAND_HIDE_X;
 		INT16 const y = CHARINFO_SECOND_HAND_HIDE_Y;
@@ -1280,6 +1281,7 @@ static void RenderHandPosItem()
 		return;
 	}
 
+	if (IsPlayerTank(*s)) return; // its cannon is not shown
 	INVRenderItem(guiSAVEBUFFER, s, s->inv[HANDPOS], SOLDIER_HAND_X, SOLDIER_HAND_Y, 58, 23, DIRTYLEVEL2, 0, SGP_TRANSPARENT);
 }
 
@@ -3180,8 +3182,15 @@ static UINT32 HandleMapUI(void)
 					}
 					else
 					{
-						// means it's a vehicle and we've clicked an off-road sector
-						BeginMapUIMessage(0, pMapErrorString[40]);
+						// means it's a vehicle and we've clicked an off-road sector, or
+						// the tank and a swamp, or one it has no way to (K4, among swamps)
+						UINT8 const through = SectorInfo[gsHighlightSector.AsByte()].ubTraversability[THROUGH_STRATEGIC_MOVE];
+						bool  const tank    = s->uiStatusFlags & SOLDIER_VEHICLE ?
+							IsPlayerTank(*s) : IsTankCrewMember(*s);
+						BeginMapUIMessage(0,
+							!tank ? pMapErrorString[40] :
+							through == SWAMP || through == SWAMP_ROAD ? pVehiclePassengerStrings[8] :
+							pVehiclePassengerStrings[9]);
 					}
 				}
 			}
@@ -4324,7 +4333,12 @@ static void InitMapInvSlotRegions()
 	if (gfMapInvIceTruckPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapIceTruck, true);
 	if (gfMapInvEldoradoPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapEldorado, true);
 	if (gfMapInvJeepPanel)     LayoutInvSlotRegions(g_ui.m_invSlotPositionMapJeep, true);
-	if (gfMapInvTankPanel) LayoutInvSlotRegions(g_ui.m_invSlotPositionMapTank, true);
+	if (gfMapInvTankPanel)
+	{
+		LayoutInvSlotRegions(g_ui.m_invSlotPositionMapTank, true);
+		SOLDIERTYPE const* const tank = GetSelectedInfoChar();
+		if (tank) LayoutTankWeaponSlots(*tank);
+	}
 }
 
 
@@ -4725,6 +4739,10 @@ static void MAPInvClickCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iReason)
 
 	SOLDIERTYPE* const pSoldier = GetSelectedInfoChar();
 	Assert(MapCharacterHasAccessibleInventory(*pSoldier));
+
+	// the tank's weapons stay where they are, its gun only takes magazines
+	if ((uiHandPos == HANDPOS || uiHandPos == SECONDHANDPOS) && IsPlayerTank(*pSoldier) &&
+		(!gpItemPointer || _KeyDown(CTRL) || !IsTankGunReload(*pSoldier, *gpItemPointer, (INT8)uiHandPos))) return;
 
 	// If we do not have an item in hand, start moving it
 	if ( gpItemPointer == NULL )
@@ -7611,7 +7629,7 @@ static void CreateMapInvPanelControls(void)
 	// 0 = ready, 1 = pressed on the normal ones (mapinv_1024/1280.sti).
 	bool const big = IsMapInvBigImages();
 	giMapInvDoneButton = QuickCreateButtonImg(INTERFACEDIR "/mapinv_done_buttons.sti", big ? 2 : 0, big ? 3 : 1,
-		heli ? MAP_INV_HELI_DONE_BTN_X : hummer ? MAP_INV_VEHICLE_DONE_BTN_X : INV_BTN_X,
+		heli ? MAP_INV_HELI_DONE_BTN_X : gfMapInvTankPanel ? MAP_INV_TANK_DONE_BTN_X : hummer ? MAP_INV_VEHICLE_DONE_BTN_X : INV_BTN_X,
 		heli ? MAP_INV_HELI_DONE_BTN_Y : hummer ? MAP_INV_VEHICLE_DONE_BTN_Y : INV_BTN_Y, MSYS_PRIORITY_HIGHEST - 1, DoneInventoryMapBtnCallback);
 	if (big && (giMapInvDoneButton->W() != MAP_INV_DONE_BTN_W_BIG || giMapInvDoneButton->H() != MAP_INV_DONE_BTN_H_BIG))
 	{
@@ -9357,6 +9375,20 @@ static void WakeUpAnySleepingSelectedMercsOnFootOrDriving()
 	CFOR_EACH_SELECTED_IN_CHAR_LIST(i)
 	{
 		SOLDIERTYPE& s = *i->merc;
+
+		// a vehicle's Driver and the tank's Commander, even with only the vehicle
+		// selected
+		if (s.uiStatusFlags & SOLDIER_VEHICLE && !IsHelicopterSoldier(s))
+		{
+			VEHICLETYPE const& v = GetVehicle(s.bVehicleID);
+			SOLDIERTYPE* const seats[] = { v.pPassengers[0], IsTankVehicle(v) ? GetTankCrewMember(v, TANK_DRIVER) : NULL };
+			for (SOLDIERTYPE* const p : seats)
+			{
+				if (p && p->fMercAsleep) SetMercAwake(p, TRUE, FALSE);
+			}
+			continue;
+		}
+
 		if (!s.fMercAsleep) continue;
 
 		// On foot or driving?

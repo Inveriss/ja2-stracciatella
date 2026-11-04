@@ -6,6 +6,7 @@
 #include "HImage.h"
 #include "JAScreens.h"
 #include "Line.h"
+#include "Local.h"
 #include "MagazineModel.h"
 #include "Object_Cache.h"
 #include "Overhead.h"
@@ -18,6 +19,7 @@
 #include "VObject.h"
 #include "VSurface.h"
 #include <algorithm>
+#include <memory>
 #include <stdexcept>
 #include <string_theory/format>
 #include <string_theory/string>
@@ -56,6 +58,10 @@ cache_key_t const giCarPortraits[]
 cache_key_t const guiHelicopterPortrait{ INTERFACEDIR "/helicopter.png" };
 cache_key_t const guiHelicopterMapIcon{ INTERFACEDIR "/helicop.sti" };
 
+// the tank's portrait: an optional 106x55 one in the game data, cut to the
+// window it is drawn in
+cache_key_t const guiTankPortrait{ INTERFACEDIR "/tank.png" };
+
 // backgrounds for breath max background
 cache_key_t const guiBrownBackgroundForTeamPanel{ INTERFACEDIR "/bars.sti" };
 }
@@ -69,6 +75,7 @@ void UnLoadCarPortraits(void)
 		RemoveVObject(portraitName);
 	}
 	RemoveVObject(guiHelicopterPortrait);
+	RemoveVObject(guiTankPortrait);
 }
 
 
@@ -325,12 +332,43 @@ void DrawItemUIBarEx(OBJECTTYPE const& o, const UINT8 ubStatus, const INT16 x, c
 }
 
 
+// Centred in the window, what doesn't fit cut off evenly
+static void RenderTankPortrait(INT16 const x, INT16 const y, INT16 const w, INT16 const h)
+{
+	if (!GCM->doesGameResExists(guiTankPortrait)) return;
+
+	ETRLEObject const& e = GetVObject(guiTankPortrait)->SubregionProperties(0);
+	std::unique_ptr<SGPVSurface> const whole{ new SGPVSurface(e.usWidth, e.usHeight, PIXEL_DEPTH) };
+	whole->Fill(0);
+	BltVideoObject(whole.get(), guiTankPortrait, 0, -e.sOffsetX, -e.sOffsetY);
+
+	INT16 const cut_w = std::min<INT16>(w, e.usWidth);
+	INT16 const cut_h = std::min<INT16>(h, e.usHeight);
+	SGPBox const cut = { (UINT16)((e.usWidth - cut_w) / 2), (UINT16)((e.usHeight - cut_h) / 2), (UINT16)cut_w, (UINT16)cut_h };
+	BltVideoSurface(guiSAVEBUFFER, whole.get(), x + (w - cut_w) / 2, y + (h - cut_h) / 2, &cut);
+}
+
+
+void RenderVehiclePortrait(SOLDIERTYPE const& s, INT16 const x, INT16 const y, INT16 const w, INT16 const h)
+{
+	if (pVehicleList[s.bVehicleID].ubVehicleType == TANK_CAR)
+	{
+		RenderTankPortrait(x, y, w, h);
+		RestoreExternBackgroundRect(x, y, w, h);
+	}
+	else
+	{
+		RenderSoldierFace(s, x + (w - FACE_WIDTH) / 2, y + (h - FACE_HEIGHT) / 2);
+	}
+}
+
+
 void RenderSoldierFace(SOLDIERTYPE const& s, INT16 const sFaceX, INT16 const sFaceY)
 {
 	if (s.uiStatusFlags & SOLDIER_VEHICLE)
 	{
 		// just draw the vehicle (only the first ones have a car portrait -- not
-		// the tank or the helicopter)
+		// the tank or the helicopter, they have their own)
 		const UINT8 vehicle_type = pVehicleList[s.bVehicleID].ubVehicleType;
 		if (vehicle_type < lengthof(giCarPortraits))
 		{
@@ -344,6 +382,10 @@ void RenderSoldierFace(SOLDIERTYPE const& s, INT16 const sFaceX, INT16 const sFa
 			INT16 const x = sFaceX + (FACE_WIDTH  - e.usWidth)  / 2;
 			INT16 const y = sFaceY + (FACE_HEIGHT - e.usHeight) / 2;
 			BltVideoObject(guiSAVEBUFFER, portrait, 0, x, y);
+		}
+		else if (vehicle_type == TANK_CAR)
+		{
+			RenderTankPortrait(sFaceX, sFaceY, FACE_WIDTH, FACE_HEIGHT);
 		}
 		RestoreExternBackgroundRect(sFaceX, sFaceY, FACE_WIDTH, FACE_HEIGHT);
 	}

@@ -316,9 +316,9 @@ static const UINT8 gubMaxActionPoints[] =
 	AP_MAXIMUM,         // HUMVEE (drives in tactical, as a merc)
 	AP_VEHICLE_MAXIMUM, // TANK1
 	AP_VEHICLE_MAXIMUM, // TANK2
-	AP_VEHICLE_MAXIMUM, // ELDORADO
+	AP_MAXIMUM,         // ELDORADO (drives in tactical, as a merc)
 	AP_MAXIMUM,         // ICECREAMTRUCK (drives in tactical, as a merc)
-	AP_VEHICLE_MAXIMUM, // JEEP
+	AP_MAXIMUM,         // JEEP (drives in tactical, as a merc)
 	AP_VEHICLE_MAXIMUM  // HELICOPTERBODY
 };
 
@@ -415,7 +415,7 @@ INT8 CalcActionPoints(const SOLDIERTYPE* const pSold)
 
 	// If we are a vehicle, adjust APS... -- the ones that drive in tactical
 	// get a merc's maximum, as a full turn of driving (driving plan, D14)
-	if (pSold->ubBodyType == HUMVEE || pSold->ubBodyType == ICECREAMTRUCK)
+	if (IsDrivingVehicleBody(*pSold))
 	{
 		ubPoints = AP_MAXIMUM;
 	}
@@ -453,7 +453,7 @@ void CalcNewActionPoints( SOLDIERTYPE *pSoldier )
 	// Don't max out if we are drugged....
 	if ( !GetDrugEffect( pSoldier, DRUG_TYPE_ADRENALINE ) )
 	{
-		pSoldier->bActionPoints = std::min(int(pSoldier->bActionPoints), int(gubMaxActionPoints[pSoldier->ubBodyType]));
+		pSoldier->bActionPoints = std::min(int(pSoldier->bActionPoints), IsDrivingVehicleBody(*pSoldier) ? int(AP_MAXIMUM) : int(gubMaxActionPoints[pSoldier->ubBodyType]));
 	}
 
 	pSoldier->bInitialActionPoints	= pSoldier->bActionPoints;
@@ -2304,8 +2304,10 @@ static UINT16 SelectFireAnimation(SOLDIERTYPE* pSoldier, UINT8 ubHeight)
 		return( SHOOT_MORTAR );
 	}
 
-	// Check for tank cannon
-	if ( pSoldier->inv[ HANDPOS ].usItem == TANK_CANNON )
+	// Check for tank cannon -- also one shot of the player's tank's machine gun:
+	// TANK_BURST repeats until the burst is over (enemy tanks always burst)
+	if ( pSoldier->inv[ HANDPOS ].usItem == TANK_CANNON ||
+		( IsPlayerTank( *pSoldier ) && !pSoldier->bDoBurst ) )
 	{
 		return( TANK_SHOOT );
 	}
@@ -3704,10 +3706,10 @@ void ChangeSoldierStance( SOLDIERTYPE *pSoldier, UINT8 ubDesiredStance )
 {
 	UINT16 usNewState;
 
-	// Check if they are the same! -- a passenger shooting from inside stays
-	// crouched (stage 2), whatever asks him to stand
+	// Check if they are the same! -- a passenger inside stays crouched (stage
+	// 2), whatever asks him to stand
 	if ( ubDesiredStance == gAnimControl[ pSoldier->usAnimState ].ubEndHeight ||
-		(CanShootFromVehicle(*pSoldier) && ubDesiredStance != ANIM_CROUCH) )
+		(IsSelectablePassenger(*pSoldier) && ubDesiredStance != ANIM_CROUCH) )
 	{
 		// Free up from stance change
 		FreeUpNPCFromStanceChange( pSoldier );
@@ -4249,7 +4251,8 @@ void TurnSoldier( SOLDIERTYPE *pSoldier)
 	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE )
 	{
 		if ( pSoldier->ubBodyType != TANK_NW && pSoldier->ubBodyType != TANK_NE &&
-			pSoldier->ubBodyType != HUMVEE && pSoldier->ubBodyType != ICECREAMTRUCK )
+			pSoldier->ubBodyType != HUMVEE && pSoldier->ubBodyType != ICECREAMTRUCK &&
+			!IsDrivingVehicleBody( *pSoldier ) )
 		{
 			return;
 		}
@@ -5584,6 +5587,8 @@ UINT8 SoldierTakeDamage(SOLDIERTYPE* const pSoldier, INT16 sLifeDeduct, INT16 sB
 		}
 
 		VehicleTakeDamage(pSoldier->bVehicleID, ubReason, sLifeDeduct, pSoldier->sGridNo, attacker);
+		// gas does nothing to the tank: no sounds from those aboard, who breathe none
+		if ( ubReason == TAKE_DAMAGE_GAS && IsPlayerTank( *pSoldier ) ) return( 0 );
 		HandleTakeDamageDeath( pSoldier, bOldLife, ubReason );
 		return( 0 );
 	}
@@ -7739,9 +7744,8 @@ BOOLEAN InternalIsValidStance(const SOLDIERTYPE* pSoldier, INT8 bDirection, INT8
 		return( FALSE );
 	}
 
-	// ... and a passenger shooting from inside only crouch (passenger
-	// shooting, stage 2)
-	if (CanShootFromVehicle(*pSoldier) && bNewStance != ANIM_CROUCH)
+	// ... and a passenger inside only crouch (passenger shooting, stage 2)
+	if (IsSelectablePassenger(*pSoldier) && bNewStance != ANIM_CROUCH)
 	{
 		return( FALSE );
 	}
@@ -8762,7 +8766,8 @@ bool IsValidSecondHandShot(SOLDIERTYPE const* const s)
 bool IsValidSecondHandShotForReloadingPurposes(SOLDIERTYPE const* const s)
 {
 	// Should be maintained as same as function above with line about ammo taken
-	// out!
+	// out! (the player's tank: its other weapon is no second hand's)
+	if (IsPlayerTank(*s)) return false;
 	OBJECTTYPE const& o = s->inv[SECONDHANDPOS];
 	return GCM->getItem(o.usItem)->getItemClass() == IC_GUN &&
 		!s->bDoBurst &&

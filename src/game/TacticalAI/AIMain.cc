@@ -248,7 +248,8 @@ void HandleSoldierAI( SOLDIERTYPE *pSoldier )
 		return;
 	}
 
-	if (IsMechanical(*pSoldier) && !TANK(pSoldier))
+	// (only the enemy's tanks act on their own)
+	if (IsMechanical(*pSoldier) && !(TANK(pSoldier) && pSoldier->bTeam == ENEMY_TEAM))
 	{
 		// bail out!
 		if (gfTurnBasedAI)

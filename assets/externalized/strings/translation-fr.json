@@ -1898,7 +1898,8 @@
         "Chevrolet P10 Step-Van 7",
         "Jeep Wrangler YJ \"Soft-top\"",
         "Cadillac Eldorado '76",
-        "T-55 Main Battle Tank"
+        "T-55 Main Battle Tank",
+        "Fuel"
     ],
     "pVehicleFuelStrings": [
         "The %s was refueled from gas cans."
@@ -1906,7 +1907,24 @@
     "pVehiclePassengerStrings": [
         "%s is inside the vehicle and can't walk. Use the exit button to get out.",
         "%s can't shoot while the vehicle is moving.",
-        "%s can only shoot a gun from inside the vehicle."
+        "%s can only shoot a gun from inside the vehicle.",
+        "%s has nobody aboard able to aim.",
+        "%s can't fire while driving.",
+        "An active Commander and Driver are required to drive the tank.",
+        "All four crew members must be inside the tank to use its weapons.",
+        "The vehicle cannot move without an active Driver.",
+        "The tank cannot travel through swamp terrain.",
+        "The tank cannot reach this sector."
+    ],
+    "pTeamPanelOrderStrings": [
+        "Move merc left",
+        "Move merc right"
+    ],
+    "pTankCrewStrings": [
+        "COMMANDER",
+        "DRIVER",
+        "GUNNER",
+        "LOADER"
     ],
     "pMilitiaConfirmStrings": [
         "L'entraînement de la milice vous coûtera $",

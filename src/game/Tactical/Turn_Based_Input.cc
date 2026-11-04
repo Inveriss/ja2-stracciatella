@@ -2958,6 +2958,8 @@ static bool CheckForAndHandleHandleVehicleInteractiveClick(SOLDIERTYPE& s, BOOLE
 
 	VEHICLETYPE& v = GetVehicle(tgt->bVehicleID);
 	if (GetNumberInVehicle(v) != 0 && fMovementMode) return false;
+	// a full vehicle (the cursor's red X): the click is done with, nobody walks up
+	if (!IsEnoughSpaceInVehicle(v)) return true;
 
 	// Find a gridno closest to sweetspot, and the AP costs: the walk there
 	// and, in combat, getting in (D15)
@@ -3115,7 +3117,18 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 		if (!CanVehicleDriveInTactical(*sel))
 		{
 			// a car out of fuel says so; anything else, as before
-			bool const out_of_fuel = (sel->ubBodyType == HUMVEE || sel->ubBodyType == ICECREAMTRUCK) && sel->sBreathRed <= 0;
+			bool const out_of_fuel = IsDrivingVehicleBody(*sel) && sel->sBreathRed <= 0;
+			VEHICLETYPE const& v = GetVehicle(sel->bVehicleID);
+			if (!out_of_fuel && IsTankVehicle(v) && !TankCanMove(v))
+			{
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, pVehiclePassengerStrings[5]);
+				return -3;
+			}
+			if (!out_of_fuel && !IsTankVehicle(v) && IsDrivingVehicleBody(*sel) && !CarCanMove(v))
+			{
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, pVehiclePassengerStrings[7]);
+				return -3;
+			}
 			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK,
 				out_of_fuel ? gzLateLocalizedString[STR_LATE_62] : TacticalStr[VEHICLE_CANT_MOVE_IN_TACTICAL]);
 			return -3;
@@ -3198,6 +3211,14 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 
 BOOLEAN HandleUIReloading(SOLDIERTYPE* pSoldier)
 {
+	// (the first thing a click in action mode asks, in turns and real time: it
+	// takes the click) the player's tank without its whole crew
+	if (IsPlayerTank(*pSoldier) && !PlayerTankCanFire(*pSoldier))
+	{
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, pVehiclePassengerStrings[6]);
+		return TRUE;
+	}
+
 	INT8 bAPs = 0;
 
 	// CHECK OUR CURRENT CURSOR...
@@ -3228,7 +3249,7 @@ BOOLEAN HandleUIReloading(SOLDIERTYPE* pSoldier)
 		//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, "No ammo to reload." );
 		if ( Random( 3 ) == 0 )
 		{
-			TacticalCharacterDialogue( pSoldier, QUOTE_OUT_OF_AMMO );
+			TacticalCharacterDialogue( TalkerFor( pSoldier ), QUOTE_OUT_OF_AMMO );
 		}
 		return( TRUE );
 	}
@@ -3252,9 +3273,16 @@ static void ChangeCurrentSquad(INT32 iSquad)
 
 static void HandleSelectMercSlot(UINT8 const ubPanelSlot, bool const force_select)
 {
-	SOLDIERTYPE* const s = GetPlayerFromInterfaceTeamSlot(ubPanelSlot);
+	SOLDIERTYPE* s = GetPlayerFromInterfaceTeamSlot(ubPanelSlot);
 	if (s != NULL)
 	{
+		NoteTeamPanelOrderChoice(*s);
+
+		// the tank's Driver and Gunner select the tank, as a click on them does
+		if (IsTankCrewMember(*s) && !IsSelectablePassenger(*s))
+		{
+			s = &GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId));
+		}
 		HandleLocateSelectMerc(s, force_select);
 		ErasePath();
 		gfPlotNewMovement = TRUE;
@@ -3396,7 +3424,11 @@ void HandleTBReload( void )
 void HandleTBSwapHands()
 {
 	SOLDIERTYPE* const pSoldier = GetSelectedMan();
-	if (pSoldier && !AM_A_ROBOT(pSoldier))
+	if (pSoldier && IsPlayerTank(*pSoldier))
+	{
+		SwapTankWeapons(*pSoldier);
+	}
+	else if (pSoldier && !AM_A_ROBOT(pSoldier))
 	{
 		UINT16 usOldItem = pSoldier->inv[HANDPOS].usItem;
 		if(pSoldier->inv[SECONDHANDPOS].usItem==NOTHING)

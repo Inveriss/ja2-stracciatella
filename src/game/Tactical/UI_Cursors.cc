@@ -15,6 +15,7 @@
 #include "Isometric_Utils.h"
 #include "Animation_Data.h"
 #include "UI_Cursors.h"
+#include "Vehicles.h"
 #include "LOS.h"
 #include "Interface.h"
 #include "Cursors.h"
@@ -180,7 +181,10 @@ UICursorID GetProperItemCursor(SOLDIERTYPE* const s, GridNo const map_pos, BOOLE
 		case JARCURS:     cursor = HandleJarCursor(       s, tgt_grid_no,            cursor_flags); break;
 		case TINCANCURS:  cursor = HandleTinCanCursor(    s, tgt_grid_no,            cursor_flags); break;
 		case REFUELCURS:  cursor = HandleRefuelCursor(    s, tgt_grid_no,            cursor_flags); break;
-		case INVALIDCURS: cursor = INVALID_ACTION_UICURSOR; break;
+		case INVALIDCURS:
+			// the player's tank without its whole crew: the X, as for moving
+			cursor = IsPlayerTank(*s) && !PlayerTankCanFire(*s) ? FLOATING_X_UICURSOR : INVALID_ACTION_UICURSOR;
+			break;
 		default:
 			break;
 	}
@@ -1244,8 +1248,21 @@ ItemCursor GetActionModeCursor(SOLDIERTYPE const* const pSoldier)
 		return( INVALIDCURS );
 	}
 
-	// ATE: if a vehicle.... same thing
-	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE )
+	// ATE: if a vehicle.... same thing, except the player's tank and its cannon
+	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE && !IsPlayerTank( *pSoldier ) )
+	{
+		return( INVALIDCURS );
+	}
+
+	// The player's tank fires with its whole crew: else the X, and a click says
+	// why (HandleUIReloading())
+	if ( IsPlayerTank( *pSoldier ) && !PlayerTankCanFire( *pSoldier ) )
+	{
+		return( INVALIDCURS );
+	}
+
+	// A passenger of the tank is selected, but doesn't shoot from inside (G7)
+	if ( IsSelectablePassenger( *pSoldier ) && !CanShootFromVehicle( *pSoldier ) )
 	{
 		return( INVALIDCURS );
 	}

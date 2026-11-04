@@ -2,6 +2,7 @@
 #include "ItemModel.h"
 #include "Soldier_Control.h"
 #include "Animation_Control.h"
+#include "Vehicles.h"
 #include "Animation_Data.h"
 #include "Structure.h"
 #include "WorldDef.h"
@@ -372,13 +373,13 @@ const ANI_SPEED_DEF gubAnimWalkSpeeds[TOTALBODYTYPES] =
 	{  20, 1.6f },// CROW
 	{   0, 1.2f },// BLOOD CAT
 	{  20, 1.1f },// ROBOT1
-	{ -10, 4.0f },// HUMVEE
+	{ -10, 3.0f },// HUMVEE
 
-	{ -10, 4.0f },// TANK_NW
-	{ -10, 4.0f },// TANK_NE
+	{ -10, 1.0f },// TANK_NW
+	{ -10, 1.0f },// TANK_NE
 	{ -10, 4.0f },// ELDORADO
 	{ -10, 4.0f },// ICECREAMTRUCK
-	{ -10, 4.0f },// JEEP
+	{ -10, 2.0f },// JEEP
 	{ -10, 4.0f },// HELICOPTERBODY
 };
 
@@ -2382,8 +2383,8 @@ void InitAnimationSurfacesPerBodytype( )
 	gubAnimSurfaceCorpseID[TANK_NE][STANDING] = TANK2_DEAD;
 
 	// ELDORADO
-	gubAnimSurfaceIndex[ELDORADO][STANDING] = HUMVEE_BASIC;
-	gubAnimSurfaceIndex[ELDORADO][WALKING] = HUMVEE_BASIC;
+	gubAnimSurfaceIndex[ELDORADO][STANDING] = ELDORADO_BASIC;
+	gubAnimSurfaceIndex[ELDORADO][WALKING] = ELDORADO_BASIC;
 	gubAnimSurfaceIndex[ELDORADO][VEHICLE_DIE] = HUMVEE_DIE;
 
 	// ICECREAMTRUCK
@@ -2393,8 +2394,8 @@ void InitAnimationSurfacesPerBodytype( )
 	gubAnimSurfaceCorpseID[ICECREAMTRUCK][STANDING] = ICECREAM_DEAD;
 
 	// JEEP
-	gubAnimSurfaceIndex[JEEP][STANDING] = HUMVEE_BASIC;
-	gubAnimSurfaceIndex[JEEP][WALKING] = HUMVEE_BASIC;
+	gubAnimSurfaceIndex[JEEP][STANDING] = JEEP_BASIC;
+	gubAnimSurfaceIndex[JEEP][WALKING] = JEEP_BASIC;
 	gubAnimSurfaceIndex[JEEP][VEHICLE_DIE] = HUMVEE_DIE;
 
 	// HELICOPTERBODY (no VEHICLE_DIE: destroyed, it turns into its wreck at once)
@@ -2627,6 +2628,14 @@ UINT16 DetermineSoldierAnimationSurface(const SOLDIERTYPE* pSoldier, UINT16 usAn
 	if ( usAnimSurface == FOUND_INVALID_ANIMATION	)
 	{
 		return( INVALID_ANIMATION_SURFACE );
+	}
+
+	// The shot frames show the cannon firing: for the machine gun of the player's
+	// tank the tank stays as it stands, the animation only times the shots
+	if ( ( usAnimState == TANK_SHOOT || usAnimState == TANK_BURST ) && IsPlayerTank( *pSoldier ) &&
+		pSoldier->inv[ HANDPOS ].usItem != TANK_CANNON )
+	{
+		return( gubAnimSurfaceIndex[ pSoldier->ubBodyType ][ STANDING ] );
 	}
 
 

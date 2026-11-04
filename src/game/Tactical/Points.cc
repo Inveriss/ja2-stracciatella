@@ -11,7 +11,9 @@
 #include "Message.h"
 #include "Animation_Control.h"
 #include "Dialogue_Control.h"
+#include "Interface_Dialogue.h"
 #include "Items.h"
+#include "Vehicles.h"
 #include "Weapons.h"
 #include "RT_Time_Defines.h"
 #include "AI.h"
@@ -1030,8 +1032,11 @@ static INT8 CalcAimSkill(SOLDIERTYPE const& s, UINT16 const weapon)
 	{
 		case IC_GUN:
 		case IC_LAUNCHER:
+		{
 			// Guns: Modify aiming cost by shooter's marksmanship
-			return EffectiveMarksmanship(&s);
+			SOLDIERTYPE const* const aimer = IsPlayerTank(s) ? GetTankGunner(s) : &s;
+			return aimer ? EffectiveMarksmanship(aimer) : 0;
+		}
 
 		default:
 			// Knives: Modify aiming cost by avg of attacker's dexterity & agility
@@ -1101,8 +1106,10 @@ void GetAPChargeForShootOrStabWRTGunRaises(SOLDIERTYPE const* const s, GridNo gr
 	*charge_turning = adding_turning_cost;
 
 	// Do we need to ready weapon?
+	// (the player's tank: its weapons are mounted, always ready)
 	*charge_raise = GCM->getItem(s->inv[HANDPOS].usItem)->getItemClass() != IC_THROWING_KNIFE &&
-			!(gAnimControl[s->usAnimState].uiFlags & (ANIM_FIREREADY | ANIM_FIRE));
+			!(gAnimControl[s->usAnimState].uiFlags & (ANIM_FIREREADY | ANIM_FIRE)) &&
+			!IsPlayerTank(*s);
 }
 
 
@@ -1361,7 +1368,12 @@ BOOLEAN EnoughAmmo(SOLDIERTYPE* const s, BOOLEAN const fDisplay, INT8 const inv_
 	if (item_idx == ROCKET_LAUNCHER) return TRUE;
 
 	const ItemModel * item = GCM->getItem(item_idx);
-	if (item->getItemClass() == IC_LAUNCHER || item_idx == TANK_CANNON)
+	if (item_idx == TANK_CANNON && IsPlayerTank(*s))
+	{
+		// shells come from the cargo, without loading (G2)
+		if (FindObj(s, TANK_SHELL) != NO_SLOT) return TRUE;
+	}
+	else if (item->getItemClass() == IC_LAUNCHER || item_idx == TANK_CANNON)
 	{
 		if (FindAttachmentByClass(&o, IC_GRENADE) != ITEM_NOT_FOUND) return TRUE;
 		if (FindAttachmentByClass(&o, IC_BOMB)    != ITEM_NOT_FOUND) return TRUE;
@@ -1375,7 +1387,7 @@ BOOLEAN EnoughAmmo(SOLDIERTYPE* const s, BOOLEAN const fDisplay, INT8 const inv_
 		return TRUE;
 	}
 
-	if (fDisplay) TacticalCharacterDialogue(s, QUOTE_OUT_OF_AMMO);
+	if (fDisplay) TacticalCharacterDialogue(TalkerFor(s), QUOTE_OUT_OF_AMMO);
 	return FALSE;
 }
 
@@ -1384,9 +1396,9 @@ void DeductAmmo( SOLDIERTYPE *pSoldier, INT8 bInvPos )
 {
 	OBJECTTYPE *pObj;
 
-	// tanks never run out of MG ammo!
+	// enemy tanks never run out of MG ammo!
 	// unlimited cannon ammo is handled in AI
-	if ( TANK( pSoldier ) && pSoldier->inv[bInvPos].usItem != TANK_CANNON )
+	if ( TANK( pSoldier ) && !IsPlayerTank( *pSoldier ) && pSoldier->inv[bInvPos].usItem != TANK_CANNON )
 	{
 		return;
 	}
@@ -1396,6 +1408,12 @@ void DeductAmmo( SOLDIERTYPE *pSoldier, INT8 bInvPos )
 	{
 		if ( pObj->usItem == TANK_CANNON )
 		{
+			// the enemy's shells are endless, the player's tank uses one from its cargo
+			if (IsPlayerTank(*pSoldier))
+			{
+				INT8 const bShellPos = FindObj(pSoldier, TANK_SHELL);
+				if (bShellPos != NO_SLOT) RemoveObjs(&pSoldier->inv[bShellPos], 1);
+			}
 		}
 		else if ( GCM->getItem(pObj->usItem)->getItemClass() == IC_GUN && pObj->usItem != TANK_CANNON )
 		{

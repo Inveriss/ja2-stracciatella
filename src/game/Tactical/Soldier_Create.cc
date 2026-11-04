@@ -179,6 +179,8 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 				case HUMVEE:
 				case ICECREAMTRUCK:
 				case JEEP:
+				case TANK_NW:
+				case TANK_NE:
 				case HELICOPTERBODY:
 					vehicle = true;
 					break;
@@ -443,11 +445,15 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 
 				case JEEP:
 					ubVehicleID = JEEP_CAR;
+#if CARS_IN_A9_FOR_TESTING
+					s->bNeutral = TRUE;
+#endif
 					break;
 
 				case TANK_NW:
 				case TANK_NE:
 					ubVehicleID = TANK_CAR;
+					if (team_id != ENEMY_TEAM) s->bNeutral = TRUE;
 					break;
 
 				case HELICOPTERBODY:
@@ -460,6 +466,7 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 				c.fUseGivenVehicle ? c.bUseGivenVehicleID :
 				(INT8) AddVehicleToList(s->sSector, s->sGridNo, ubVehicleID);
 			SetVehicleValuesIntoSoldierType(s);
+			if (IsPlayerTank(*s) && !gfEditMode) EquipPlayerTank(*s);
 			break;
 		}
 
@@ -1063,6 +1070,12 @@ static void InitSoldierStruct(SOLDIERTYPE& s)
 
 void InternalTacticalRemoveSoldier(SOLDIERTYPE& s, BOOLEAN const fRemoveVehicle)
 {
+	// a tank leaving the map while it drives takes its tracks' sound with it
+	if (IsPlayerTank(s) && 0 <= s.bVehicleID && s.bVehicleID < static_cast<INT32>(pVehicleList.size()))
+	{
+		HandleVehicleMovementSound(&s, FALSE);
+	}
+
 	if (GetSelectedMan() == &s) SetSelectedMan(0);
 	if (gUIFullTarget    == &s)
 	{

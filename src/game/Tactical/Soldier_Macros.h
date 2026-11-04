@@ -65,6 +65,7 @@ static inline BOOLEAN OkControllableMerc(const SOLDIERTYPE* const s)
 
 #define TANK(p)			((p)->ubBodyType == TANK_NE || (p)->ubBodyType == TANK_NW)
 
-#define OK_ENTERABLE_VEHICLE(p)	((p)->uiStatusFlags & SOLDIER_VEHICLE && !TANK((p)) && (p)->bLife >= OKLIFE)
+// (an enemy tank is no vehicle to get into)
+#define OK_ENTERABLE_VEHICLE(p)	((p)->uiStatusFlags & SOLDIER_VEHICLE && (!TANK((p)) || (p)->bTeam != ENEMY_TEAM) && (p)->bLife >= OKLIFE)
 
 #endif

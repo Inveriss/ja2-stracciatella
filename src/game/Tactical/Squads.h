@@ -101,6 +101,11 @@ INT32 CurrentSquad( void );
 
 // add character to unique squad, returns the squad #
 INT8 AddCharacterToUniqueSquad( SOLDIERTYPE *pCharacter );
+// These members, in this order, in the places they hold in the squad
+void SetSquadOrderOfMembers(INT8 squad, std::vector<SOLDIERTYPE*> const& members);
+// The first squad in his sector that can take him, else a new one: getting out of
+// a vehicle on the tactical screen
+INT8 AddCharacterToSquadInSector(SOLDIERTYPE*);
 
 // is this squad empty?
 BOOLEAN SquadIsEmpty( INT8 bSquadValue );

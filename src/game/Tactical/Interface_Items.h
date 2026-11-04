@@ -46,6 +46,9 @@ void InitInvSlotInterface(INV_REGION_DESC const* pRegionDesc, INV_REGION_DESC co
 // the sizes InitInvSlotInterface() was given -- the helicopter's (8 cargo
 // slots) with all its big pockets equally wide.
 void LayoutInvSlotRegions(INV_REGION_DESC const* pRegionDesc, bool fHelicopter);
+// The tank's weapons fill its wide Armament slots, each in its own, whichever
+// hand holds it; after LayoutInvSlotRegions()
+void LayoutTankWeaponSlots(SOLDIERTYPE const&);
 // The key ring's region (InitKeyRingInterface()/InitMapKeyRingInterface())
 // out of the mouse's reach -- a panel without a key ring icon
 void HideKeyRingRegion();

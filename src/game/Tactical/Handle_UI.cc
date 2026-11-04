@@ -4972,6 +4972,12 @@ static bool UIHandleInteractiveTilesAndItemsOnTerrain(SOLDIERTYPE* const pSoldie
 			// grab number of occupants in vehicles
 			if (!fItemsOnlyIfOnIntTiles)
 			{
+				// a full vehicle: nobody more can get in
+				if (!IsEnoughSpaceInVehicle(GetVehicle(tgt->bVehicleID)))
+				{
+					guiNewUICursor = CANNOT_MOVE_UICURSOR;
+					return true;
+				}
 				guiNewUICursor = ENTER_VEHICLE_UICURSOR;
 				ShowAPsToEnterVehicle(*pSoldier, *tgt);
 				return true;

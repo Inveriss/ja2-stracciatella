@@ -175,6 +175,13 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 			fReBuildCharacterList = TRUE;
 		}
 
+		// with a crew, the player's tank can fire and be fought (G5)
+		if (IsPlayerTank(*vs) && vs->bNeutral)
+		{
+			SetSoldierNonNeutral(vs);
+			RecalculateOppCntsDueToNoLongerNeutral(vs);
+		}
+
 		// If vehicle is empty, add to unique squad now that it has somebody in it!
 		if (GetNumberInVehicle(v) == 0)
 		{
@@ -206,6 +213,9 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 		if (*i == &s) return true; // guy found, no need to add
 	}
 
+	// no seat for him: no selection of the vehicle and no sound of getting in
+	if (!IsEnoughSpaceInVehicle(v)) return false;
+
 	if (vs)
 	{
 		// can't call SelectSoldier in mapscreen, that will initialize interface panels!!!
@@ -217,23 +227,11 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 		PlayLocationJA2Sample(vs->sGridNo, GCM->getVehicle(v.ubVehicleType)->enter_sound, HIGHVOLUME, 1);
 	}
 
-	// A newcomer sits behind those aboard (the team panel shows them in seat
-	// order), not in a seat someone before them left: only when the last seat is
-	// taken do they all move up, closing those gaps
+	// A newcomer takes the first empty seat, and nobody ever changes seats (the
+	// team panel's slots are the seats; in the tank they are its roles, crew plan, R8)
 	INT32 const seats = GetVehicleSeats(v);
-	INT32 first_seat = seats;
-	while (first_seat > 0 && !v.pPassengers[first_seat - 1]) --first_seat;
-	if (first_seat == seats)
-	{
-		first_seat = 0;
-		for (INT32 i = 0; i < seats; ++i)
-		{
-			SOLDIERTYPE* const aboard = v.pPassengers[i];
-			if (!aboard) continue;
-			v.pPassengers[i] = 0;
-			v.pPassengers[first_seat++] = aboard;
-		}
-	}
+	INT32 first_seat = 0;
+	while (first_seat < seats && v.pPassengers[first_seat]) ++first_seat;
 	for (INT32 i = first_seat; i < seats; ++i)
 	{
 		v.pPassengers[i] = &s;
@@ -274,9 +272,20 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 			AddPlayerToGroup(*GetGroup(v.ubMovementGroup), s);
 		}
 
-		// Are we the first?
-		s.uiStatusFlags |= GetNumberInVehicle(v) == 1 ?
-			SOLDIER_DRIVER : SOLDIER_PASSENGER;
+		// Who drives: the seat decides, in the cars the first one
+		if (IsTankVehicle(v))
+		{
+			UpdateTankCrewFlags(v);
+		}
+		else if (IsHelicopter(v))
+		{
+			s.uiStatusFlags |= GetNumberInVehicle(v) == 1 ?
+				SOLDIER_DRIVER : SOLDIER_PASSENGER;
+		}
+		else
+		{
+			UpdateCarDriverFlags(v);
+		}
 
 		RemoveSoldierFromGridNo(s);
 
@@ -356,31 +365,7 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 
 	s.ubGroupID      = 0;
 	s.sSector        = v.sSector;
-	bool const was_driver = s.uiStatusFlags & SOLDIER_DRIVER;
 	s.uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
-
-	// The driver got out of a ground vehicle: the passenger in the next seat
-	// takes the wheel (else nobody would be the driver until the vehicle is
-	// emptied)
-	if (was_driver && !IsHelicopter(v))
-	{
-		for (INT32 k = 1; k != seats; ++k)
-		{
-			SOLDIERTYPE* const p = v.pPassengers[(seat + k) % seats];
-			if (!p) continue;
-			p->uiStatusFlags &= ~SOLDIER_PASSENGER;
-			p->uiStatusFlags |= SOLDIER_DRIVER;
-			// selected as a passenger (passenger shooting, stage 1): the driver
-			// is not selectable on his own, the vehicle is selected instead
-			if (p == GetSelectedMan() && guiCurrentScreen == GAME_SCREEN)
-			{
-				SelectSoldier(&GetSoldierStructureForVehicle(v), SELSOLDIER_FORCE_RESELECT);
-			}
-			fInterfacePanelDirty = DIRTYLEVEL2;
-			fTeamPanelDirty      = TRUE;
-			break;
-		}
-	}
 
 	if (IsHelicopter(v))
 	{
@@ -403,10 +388,19 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 	}
 	else
 	{
+		CancelRouteWithoutDriver(v);
+
 		// check if anyone left in vehicle
 		CFOR_EACH_PASSENGER(v, i) return true;
 
 		SOLDIERTYPE& vs = GetSoldierStructureForVehicle(v);
+
+		// an empty tank is neutral again (G5)
+		if (IsPlayerTank(vs) && vs.bLife > 0 && !vs.bNeutral)
+		{
+			SetSoldierNeutral(&vs);
+			RecalculateOppCntsDueToBecomingNeutral(&vs);
+		}
 
 		// and he has a route set
 		if (GetLengthOfMercPath(&vs) > 0)
@@ -620,7 +614,8 @@ bool ExitHelicopterAt(SOLDIERTYPE& s, GridNo const grid_no)
 
 	s.iVehicleId = -1;
 	HandleSight(s, SIGHT_LOOK | SIGHT_RADIO);
-	AddCharacterToUniqueSquad(&s);
+	if (guiCurrentScreen == GAME_SCREEN) AddCharacterToSquadInSector(&s);
+	else AddCharacterToUniqueSquad(&s);
 
 	// can't call SetCurrentSquad OR SelectSoldier in mapscreen, that will initialize interface panels!!!
 	if (guiCurrentScreen == GAME_SCREEN)
@@ -699,7 +694,8 @@ BOOLEAN ExitVehicle(SOLDIERTYPE* const s)
 	// Update visiblity.....
 	HandleSight(*s, SIGHT_LOOK | SIGHT_RADIO);
 
-	AddCharacterToUniqueSquad(s);
+	if (guiCurrentScreen == GAME_SCREEN) AddCharacterToSquadInSector(s);
+	else AddCharacterToUniqueSquad(s);
 
 	// can't call SetCurrentSquad OR SelectSoldier in mapscreen, that will initialize interface panels!!!
 	if (guiCurrentScreen == GAME_SCREEN)
@@ -793,7 +789,7 @@ static void HandleCriticalHitForVehicleInLocation(const UINT8 ubID, const INT16 
 
 		// The explosion damages the cargo, which is dropped with the wreck: like
 		// items lying where something blows up, twice the blast's damage
-		// (explosives aboard may go off, too). Not for tanks.
+		// (explosives aboard may go off, too). Not for the enemy's tanks.
 		CheckEquipmentForDamage(&vs, VEHICLE_CARGO_EXPLOSION_DAMAGE);
 
 		// Explode vehicle...
@@ -1076,22 +1072,6 @@ static bool CanSoldierDriveVehicle(SOLDIERTYPE const& s, INT32 const vehicle_id,
 }
 
 
-static bool OnlyThisSoldierCanDriveVehicle(SOLDIERTYPE const& s, INT32 const vehicle_id)
-{
-	CFOR_EACH_IN_TEAM(i, OUR_TEAM)
-	{
-		SOLDIERTYPE const& other = *i;
-		// Skip checking this soldier, we want to know about everyone else
-		if (&other == &s) continue;
-		// Don't count mercs who are asleep here
-		if (!CanSoldierDriveVehicle(other, vehicle_id, false)) continue;
-		// This guy can drive it, too
-		return false;
-	}
-	return true;
-}
-
-
 INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo const grid_no)
 {
 	INT32 per_100_tiles = GCM->getVehicle(pVehicleList[vs.bVehicleID].ubVehicleType)->tactical_fuel_per_100_tiles;
@@ -1157,7 +1137,197 @@ INT16 GetAPsToEnterVehicle(SOLDIERTYPE& s, SOLDIERTYPE const& vs, GridNo* const 
 
 bool VehicleDrivesInTactical(VEHICLETYPE const& v)
 {
-	return v.ubVehicleType == HUMMER || v.ubVehicleType == ICE_CREAM_TRUCK;
+	return v.ubVehicleType == HUMMER || v.ubVehicleType == ICE_CREAM_TRUCK || v.ubVehicleType == TANK_CAR ||
+		v.ubVehicleType == ELDORADO_CAR || v.ubVehicleType == JEEP_CAR;
+}
+
+
+bool IsDrivingVehicleBody(SOLDIERTYPE const& vs)
+{
+	return vs.ubBodyType == HUMVEE || vs.ubBodyType == ICECREAMTRUCK || vs.ubBodyType == ELDORADO ||
+		vs.ubBodyType == JEEP || IsPlayerTank(vs);
+}
+
+
+bool IsPlayerTank(SOLDIERTYPE const& s)
+{
+	return TANK(&s) && s.bTeam != ENEMY_TEAM;
+}
+
+
+void EquipPlayerTank(SOLDIERTYPE& s)
+{
+	CreateItem(TANK_CANNON, 100, &s.inv[HANDPOS]);
+	s.inv[HANDPOS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(MINIMI, 100, &s.inv[SECONDHANDPOS]);
+	s.inv[SECONDHANDPOS].fFlags |= OBJECT_UNDROPPABLE;
+
+#if TANK_IN_A9_FOR_TESTING
+	// nothing sells shells yet (G6)
+	CreateItems(TANK_SHELL, 100, SoldierSlotLimit(s, TANK_SHELL, BIGPOCK1POS), &s.inv[BIGPOCK1POS]);
+	UINT16 const magazine = s.inv[SECONDHANDPOS].usGunAmmoItem;
+	CreateItems(magazine, 100, SoldierSlotLimit(s, magazine, BIGPOCK2POS), &s.inv[BIGPOCK2POS]);
+#endif
+}
+
+
+bool IsTankVehicle(VEHICLETYPE const& v)
+{
+	return v.ubVehicleType == TANK_CAR;
+}
+
+
+bool IsTankCrewMember(SOLDIERTYPE const& s)
+{
+	if (!(s.uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER))) return false;
+	if (s.iVehicleId < 0 || s.iVehicleId >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[s.iVehicleId];
+	return v.fValid && IsTankVehicle(v);
+}
+
+
+SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const& v, TankRole const role)
+{
+	return v.pPassengers[role];
+}
+
+
+static bool IsCrewSeatAble(VEHICLETYPE const& v, INT32 const seat, bool const ignore_asleep)
+{
+	SOLDIERTYPE const* const s = v.pPassengers[seat];
+	if (!s) return false;
+	if (s->bLife < OKLIFE) return false;
+	if (!ignore_asleep && (s->fMercAsleep || s->bCollapsed)) return false;
+	if (s->bBreathMax <= BREATHMAX_ABSOLUTE_MINIMUM) return false;
+	return !AM_AN_EPC(s) && !AM_A_ROBOT(s);
+}
+
+
+static bool IsTankSeatAble(VEHICLETYPE const& v, TankRole const role, bool const ignore_asleep)
+{
+	if (!IsCrewSeatAble(v, role, ignore_asleep)) return false;
+	return role != TANK_GUNNER || GetTankCrewMember(v, role)->bMarksmanship > 0;
+}
+
+
+bool CarCanMove(VEHICLETYPE const& v)
+{
+	return IsCrewSeatAble(v, 0, false);
+}
+
+
+bool CarCanTravel(VEHICLETYPE const& v)
+{
+	return IsCrewSeatAble(v, 0, true);
+}
+
+
+bool IsTankRoleManned(VEHICLETYPE const& v, TankRole const role)
+{
+	return IsTankSeatAble(v, role, false);
+}
+
+
+bool TankCanMove(VEHICLETYPE const& v)
+{
+	return IsTankRoleManned(v, TANK_COMMANDER) && IsTankRoleManned(v, TANK_DRIVER);
+}
+
+
+bool TankCanTravel(VEHICLETYPE const& v)
+{
+	return IsTankSeatAble(v, TANK_COMMANDER, true) && IsTankSeatAble(v, TANK_DRIVER, true);
+}
+
+
+bool TankCanFire(VEHICLETYPE const& v)
+{
+	for (INT32 role = 0; role != NUM_TANK_ROLES; ++role)
+	{
+		if (!IsTankRoleManned(v, static_cast<TankRole>(role))) return false;
+	}
+	return true;
+}
+
+
+void UpdateTankCrewFlags(VEHICLETYPE const& v)
+{
+	INT32 const seats = GetVehicleSeats(v);
+	for (INT32 seat = 0; seat != seats; ++seat)
+	{
+		SOLDIERTYPE* const s = v.pPassengers[seat];
+		if (!s) continue;
+		s->uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
+		s->uiStatusFlags |= seat == TANK_DRIVER ? SOLDIER_DRIVER : SOLDIER_PASSENGER;
+	}
+}
+
+
+void CancelRouteWithoutDriver(VEHICLETYPE& v)
+{
+	bool const crewed = IsTankVehicle(v) ?
+		GetTankCrewMember(v, TANK_COMMANDER) && GetTankCrewMember(v, TANK_DRIVER) :
+		v.pPassengers[0] != NULL;
+	if (crewed) return;
+	if (GetLengthOfMercPath(&GetSoldierStructureForVehicle(v)) > 0) CancelPathForVehicle(v, FALSE);
+}
+
+
+void UpdateCarDriverFlags(VEHICLETYPE const& v)
+{
+	INT32 const seats = GetVehicleSeats(v);
+	for (INT32 seat = 0; seat != seats; ++seat)
+	{
+		SOLDIERTYPE* const s = v.pPassengers[seat];
+		if (!s) continue;
+		s->uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
+		s->uiStatusFlags |= seat == 0 ? SOLDIER_DRIVER : SOLDIER_PASSENGER;
+	}
+}
+
+
+SOLDIERTYPE* GetTankGunner(SOLDIERTYPE const& tank)
+{
+	// the credit for a shot can come after the wreck's vehicle is gone
+	if (tank.bVehicleID < 0 || tank.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return NULL;
+	VEHICLETYPE const& v = pVehicleList[tank.bVehicleID];
+	if (!v.fValid) return NULL;
+
+	// the one in the Gunner's seat, whatever the others' skill (crew plan)
+	return IsTankRoleManned(v, TANK_GUNNER) ? GetTankCrewMember(v, TANK_GUNNER) : NULL;
+}
+
+
+bool PlayerTankCanFire(SOLDIERTYPE const& tank)
+{
+	// (the wreck's vehicle is gone)
+	if (tank.bVehicleID < 0 || tank.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[tank.bVehicleID];
+	return v.fValid && TankCanFire(v);
+}
+
+
+bool SeesCurrently(SOLDIERTYPE const& s, SOLDIERTYPE const& target)
+{
+	if (!(s.uiStatusFlags & SOLDIER_VEHICLE)) return s.bOppList[target.ubID] == SEEN_CURRENTLY;
+
+	if (s.bVehicleID < 0 || s.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[s.bVehicleID];
+	if (!v.fValid) return false;
+
+	CFOR_EACH_PASSENGER(v, i)
+	{
+		if ((*i)->bOppList[target.ubID] == SEEN_CURRENTLY) return true;
+	}
+	return false;
+}
+
+
+SOLDIERTYPE* ShooterFor(SOLDIERTYPE* const s)
+{
+	if (!s || !IsPlayerTank(*s)) return s;
+	SOLDIERTYPE* const gunner = GetTankGunner(*s);
+	return gunner ? gunner : s;
 }
 
 
@@ -1175,8 +1345,7 @@ bool IsVehicleMoving(SOLDIERTYPE const& vs)
 bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs)
 {
 	if (!(vs.uiStatusFlags & SOLDIER_VEHICLE) || vs.bLife <= 0) return false;
-	// D1: the Hummer and the ice cream truck
-	if (vs.ubBodyType != HUMVEE && vs.ubBodyType != ICECREAMTRUCK) return false;
+	if (!IsDrivingVehicleBody(vs)) return false;
 	// in combat: on our turn, for its own AP (stage 2a, D3)
 	if (gTacticalStatus.uiFlags & INCOMBAT && gTacticalStatus.ubCurrentTeam != OUR_TEAM) return false;
 
@@ -1184,15 +1353,7 @@ bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs)
 	if (v.fDestroyed || !OKUseVehicle(GCM->getVehicle(v.ubVehicleType)->profile)) return false;
 	if (vs.sBreathRed <= 0) return false; // (no fuel)
 
-	// someone aboard who can drive
-	CFOR_EACH_PASSENGER(v, i)
-	{
-		SOLDIERTYPE const& s = **i;
-		if (s.bLife < OKLIFE || s.fMercAsleep || s.bCollapsed) continue;
-		if (AM_AN_EPC(&s) || AM_A_ROBOT(&s)) continue;
-		return true;
-	}
-	return false;
+	return IsTankVehicle(v) ? TankCanMove(v) : CarCanMove(v);
 }
 
 
@@ -1210,8 +1371,13 @@ bool SoldierMustDriveVehicle(SOLDIERTYPE const& s, bool const trying_to_travel)
 	// one aboard who can do so? If there are multiple possible drivers, than the
 	// assumption is that this guy isn't driving, so he can sleep.
 	if (!CanSoldierDriveVehicle(s, vehicle_id, true))   return false;
-	if (!OnlyThisSoldierCanDriveVehicle(s, vehicle_id)) return false;
-	return true;
+	// the tank needs both its Commander and its Driver, a car the first seat's,
+	// whoever else is aboard
+	if (IsTankVehicle(v))
+	{
+		return &s == GetTankCrewMember(v, TANK_COMMANDER) || &s == GetTankCrewMember(v, TANK_DRIVER);
+	}
+	return &s == v.pPassengers[0];
 }
 
 
@@ -1270,7 +1436,10 @@ void HandleVehicleMovementSound(const SOLDIERTYPE* const s, const BOOLEAN fOn)
 	{
 		if (v->uiMovementSoundID == NO_SAMPLE)
 		{
-			v->uiMovementSoundID = PlayLocationJA2Sample(s->sGridNo, GCM->getVehicle(v->ubVehicleType)->move_sound, HIGHVOLUME, 1);
+			// (the tank's tracks last as long as the drive; a high count, not endless,
+			// as nothing but the drive's end stops them)
+			UINT32 const loops = v->ubVehicleType == TANK_CAR ? 100 : 1;
+			v->uiMovementSoundID = PlayLocationJA2Sample(s->sGridNo, GCM->getVehicle(v->ubVehicleType)->move_sound, HIGHVOLUME, loops);
 		}
 	}
 	else
@@ -1449,19 +1618,34 @@ bool IsVehicleCargoSlot(SOLDIERTYPE const& s, INT8 const slot)
 }
 
 
-bool CanShootFromVehicle(SOLDIERTYPE const& s)
+bool IsSelectablePassenger(SOLDIERTYPE const& s)
 {
 	if (!(s.uiStatusFlags & SOLDIER_PASSENGER) || s.uiStatusFlags & SOLDIER_DRIVER) return false;
 	if (s.iVehicleId < 0 || s.iVehicleId >= static_cast<INT32>(pVehicleList.size())) return false;
 	VEHICLETYPE const& v = pVehicleList[s.iVehicleId];
 	if (!v.fValid || v.fDestroyed) return false;
-	return v.ubVehicleType != HELICOPTER && v.ubVehicleType != TANK_CAR;
+	// the tank's Gunner selects the tank, as its Driver does: the tank's weapons
+	// are his
+	if (IsTankVehicle(v) && GetTankCrewMember(v, TANK_GUNNER) == &s) return false;
+	return v.ubVehicleType != HELICOPTER;
+}
+
+
+bool SelectsTankAsGunner(SOLDIERTYPE const& s)
+{
+	return IsTankCrewMember(s) && GetTankCrewMember(pVehicleList[s.iVehicleId], TANK_GUNNER) == &s;
+}
+
+
+bool CanShootFromVehicle(SOLDIERTYPE const& s)
+{
+	return IsSelectablePassenger(s) && pVehicleList[s.iVehicleId].ubVehicleType != TANK_CAR;
 }
 
 
 void CrouchShootingPassenger(SOLDIERTYPE& s)
 {
-	if (!CanShootFromVehicle(s) || guiCurrentScreen != GAME_SCREEN || !s.bInSector) return;
+	if (!IsSelectablePassenger(s) || guiCurrentScreen != GAME_SCREEN || !s.bInSector) return;
 	if (gAnimControl[s.usAnimState].ubEndHeight == ANIM_CROUCH) return;
 	EVENT_InitNewSoldierAnim(&s, CROUCHING, 0, TRUE);
 }

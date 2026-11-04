@@ -116,6 +116,7 @@ enum
 #define AIM_BONUS_FIRING_DOWN			15
 #define AIM_PENALTY_ONE_HANDED_PISTOL		5
 #define AIM_PENALTY_DUAL_PISTOLS		20
+#define AIM_PENALTY_VEHICLE_PASSENGER		25
 #define AIM_PENALTY_SMG				5
 #define AIM_PENALTY_GASSED			50
 #define AIM_PENALTY_GETTINGAID			20
@@ -192,6 +193,7 @@ INT8   GunSniperScopeDisplayBonus(OBJECTTYPE const&);
 INT8   GunProneStanceBonus(SOLDIERTYPE const*);
 INT8   GunCrouchStanceBonus(SOLDIERTYPE const*);
 INT8   GunRoofBonus(SOLDIERTYPE const*);
+INT8   GunVehiclePassengerPenalty(SOLDIERTYPE const*);
 
 extern BOOLEAN gfNextFireJam;
 extern BOOLEAN gfNextShotKills;

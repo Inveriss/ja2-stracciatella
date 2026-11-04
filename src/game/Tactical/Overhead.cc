@@ -2125,11 +2125,11 @@ void SelectSoldier(SOLDIERTYPE* const s, const SelSoldierFlags flags)
 		return;
 	}
 
-	// If we are dead, ignore -- a passenger who may shoot from inside the
-	// vehicle (assignment VEHICLE, not a squad) is selectable as well
-	// (passenger shooting plan, stage 1)
+	// If we are dead, ignore -- a passenger inside the vehicle (assignment
+	// VEHICLE, not a squad) is selectable as well (passenger shooting plan,
+	// stage 1)
 	bool const shooting_passenger = s->bActive && s->bLife >= OKLIFE && s->bInSector &&
-		s->bTeam == OUR_TEAM && CanShootFromVehicle(*s);
+		s->bTeam == OUR_TEAM && IsSelectablePassenger(*s);
 	if (!OK_CONTROLLABLE_MERC(s) && !shooting_passenger) return;
 	// (crouched inside, stage 2 -- also one who got in on the map screen)
 	if (shooting_passenger) CrouchShootingPassenger(*s);
@@ -2428,7 +2428,7 @@ void HandleNPCTeamMemberDeath(SOLDIERTYPE* const pSoldierOld)
 
 	VerifyPublicOpplistDueToDeath(pSoldierOld);
 
-	SOLDIERTYPE* const killer = pSoldierOld->attacker;
+	SOLDIERTYPE* const killer = ShooterFor(pSoldierOld->attacker);
 
 	if (pSoldierOld->ubProfile != NO_PROFILE)
 	{
@@ -2653,8 +2653,8 @@ void HandleNPCTeamMemberDeath(SOLDIERTYPE* const pSoldierOld)
 		}
 
 		// JA2 Gold: if previous and current attackers are the same, the next-to-previous attacker gets the assist
-		SOLDIERTYPE* assister = pSoldierOld->previous_attacker;
-		if (assister == killer) assister = pSoldierOld->next_to_previous_attacker;
+		SOLDIERTYPE* assister = ShooterFor(pSoldierOld->previous_attacker);
+		if (assister == killer) assister = ShooterFor(pSoldierOld->next_to_previous_attacker);
 
 		// if it was assisted by a player's merc
 		if (assister != NULL && assister->bActive && assister->bTeam == OUR_TEAM)
@@ -3013,9 +3013,9 @@ static SOLDIERTYPE* FindActiveAndAliveMerc(const SOLDIERTYPE* const curr, const 
 
 		if (fOnlyRegularMercs && (AM_AN_EPC(s) || AM_A_ROBOT(s))) continue;
 		if (s->bAssignment != curr->bAssignment)                  continue;
-		// aboard a vehicle: only the passengers who may shoot, of the same one
+		// aboard a vehicle: only the passengers of the same one
 		if (s->uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER) &&
-			(!CanShootFromVehicle(*s) || s->iVehicleId != curr->iVehicleId)) continue;
+			(!IsSelectablePassenger(*s) || s->iVehicleId != curr->iVehicleId)) continue;
 		if (!OK_INTERRUPT_MERC(s))                                continue;
 		if (!s->bInSector)                                        continue;
 		if (s->bLife < (fGoodForLessOKLife ? 1 : OKLIFE))         continue;
@@ -5886,7 +5886,7 @@ static SOLDIERTYPE* InternalReduceAttackBusyCount(SOLDIERTYPE* const pSoldier, c
 		if ( pSoldier->fSayAmmoQuotePending )
 		{
 			pSoldier->fSayAmmoQuotePending = FALSE;
-			TacticalCharacterDialogue( pSoldier, QUOTE_OUT_OF_AMMO );
+			TacticalCharacterDialogue( TalkerFor( pSoldier ), QUOTE_OUT_OF_AMMO );
 		}
 
 		if (pSoldier->uiStatusFlags & SOLDIER_PC)

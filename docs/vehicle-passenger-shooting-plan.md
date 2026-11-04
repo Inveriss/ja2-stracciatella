@@ -10,7 +10,8 @@ Status: plan only, nothing implemented (2026-11-01). Branch: `Vehicle_Inventorie
    only allows driving it in tactical, by the current rules.
 3. Passengers with a weapon shoot by the current procedures and code.
 4. Only the bullets flying from the vehicle are shown (no visible shooter).
-5. A passenger shooting from a vehicle counts as crouched.
+5. A passenger shooting from a vehicle counts as crouched, without the aiming bonus
+   and with a penalty of 25 (`docs/vehicle-passenger-hit-penalty-plan.md`).
 6. Turning to shoot in turn-based combat costs the crouched cost, 2 AP.
 7. An empty weapon reloads from the vehicle's cargo as if the ammo were in the
    merc's own inventory.

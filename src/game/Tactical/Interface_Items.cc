@@ -41,6 +41,7 @@
 #include "Interface_Cursors.h"
 #include "Interface_Utils.h"
 #include "Interface_Items.h"
+#include "Vehicles.h"
 #include "WordWrap.h"
 #include "Interface_Control.h"
 #include "VObject_Blitters.h"
@@ -432,8 +433,7 @@ bool IsVehicleCargoTarget(SOLDIERTYPE const& tgt)
 	return tgt.uiStatusFlags & SOLDIER_VEHICLE &&
 		tgt.bTeam == OUR_TEAM &&
 		tgt.bLife > 0         &&
-		tgt.bInSector         &&
-		!TANK(&tgt);
+		tgt.bInSector;
 }
 static UINT32 guiNewlyPlacedItemTimer = 0;
 static BOOLEAN gfBadThrowItemCTGH;
@@ -1069,10 +1069,11 @@ static const INV_DESC_STATS gWeaponStats[] =
 	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
 
 	// Combined LASERSCOPE aim bonus + merc's live CROUCH-stance bonus +
-	// merc's live roof/elevation bonus (see GunLaserScopeBonus() +
-	// GunCrouchStanceBonus() + GunRoofBonus()). Label and value always
-	// shown (0 when none apply).
-	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus
+	// merc's live roof/elevation bonus + vehicle passenger penalty (see
+	// GunLaserScopeBonus() + GunCrouchStanceBonus() + GunRoofBonus() +
+	// GunVehiclePassengerPenalty()). Label and value always shown (0 when
+	// none apply).
+	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus + vehicle passenger penalty
 
 	// Combined LASERSCOPE + BIPOD + PRONE stance + roof/elevation aim
 	// bonus (see GunLaserScopeBonus() + GunBipodDisplayBonus() +
@@ -1209,10 +1210,11 @@ static const INV_DESC_STATS gMapWeaponBoxStats[] =
 	{ 410,  89,  0 },  // [19] "Rounds" (decorative)
 
 	// Combined LASERSCOPE aim bonus + merc's live CROUCH-stance bonus +
-	// merc's live roof/elevation bonus (see GunLaserScopeBonus() +
-	// GunCrouchStanceBonus() + GunRoofBonus()). Label and value always
-	// shown (0 when none apply).
-	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus
+	// merc's live roof/elevation bonus + vehicle passenger penalty (see
+	// GunLaserScopeBonus() + GunCrouchStanceBonus() + GunRoofBonus() +
+	// GunVehiclePassengerPenalty()). Label and value always shown (0 when
+	// none apply).
+	{ 14, 14, 48 },  // [20] "Base:" — LASERSCOPE aim bonus + CROUCH stance bonus + roof bonus + vehicle passenger penalty
 
 	// Combined LASERSCOPE + BIPOD + PRONE stance + roof/elevation aim
 	// bonus (see GunLaserScopeBonus() + GunBipodDisplayBonus() +
@@ -2028,6 +2030,22 @@ void LayoutInvSlotRegions(INV_REGION_DESC const* const pRegionDesc, bool const f
 }
 
 
+void LayoutTankWeaponSlots(SOLDIERTYPE const& s)
+{
+	MOUSE_REGION& hand   = gSMInvRegion[HANDPOS];
+	MOUSE_REGION& second = gSMInvRegion[SECONDHANDPOS];
+	// laid out for the cannon in the main hand
+	if (s.inv[HANDPOS].usItem != TANK_CANNON)
+	{
+		std::swap(hand.RegionTopLeftX,     second.RegionTopLeftX);
+		std::swap(hand.RegionTopLeftY,     second.RegionTopLeftY);
+		std::swap(hand.RegionBottomRightY, second.RegionBottomRightY);
+	}
+	hand.RegionBottomRightX   = hand.RegionTopLeftX   + 157;
+	second.RegionBottomRightX = second.RegionTopLeftX + 157;
+}
+
+
 // a slot laid out at INV_SLOT_HIDDEN_POS (its coordinates wrap negative)
 static bool IsInvSlotHidden(INT32 const slot)
 {
@@ -2153,7 +2171,7 @@ static void INVRenderINVPanelItem(SOLDIERTYPE const& s, INT16 const pocket, Dirt
 
 		// If it's the second hand and this hand cannot contain anything, remove the
 		// second hand position graphic
-		if (pocket == SECONDHANDPOS && GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded())
+		if (pocket == SECONDHANDPOS && GCM->getItem(s.inv[HANDPOS].usItem)->isTwoHanded() && !IsPlayerTank(s))
 		{
 			// Checked once -- secondary_gun_hidden_big.sti is optional.
 			static bool const big_cover_exists = GCM->doesGameResExists(INTERFACEDIR "/secondary_gun_hidden_big.sti");
@@ -3020,7 +3038,7 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 		SetFont(text_font);
 		SetFontBackground(FONT_MCOLOR_BLACK);
 
-		if (item->getItemClass() == IC_GUN && o.usItem != ROCKET_LAUNCHER)
+		if (item->getItemClass() == IC_GUN && o.usItem != ROCKET_LAUNCHER && o.usItem != TANK_CANNON)
 		{
 			// Display free rounds remianing
 			UINT8 colour;
@@ -4785,12 +4803,13 @@ void RenderItemDescriptionBox(void)
 			// Combined LASERSCOPE aim bonus (see GunLaserScopeBonus()) + the
 			// merc's own live crouch-stance bonus (see
 			// GunCrouchStanceBonus()) + the merc's own live roof/elevation
-			// bonus (see GunRoofBonus()). Always shown (0 when none apply),
-			// always signed: "+" when the net effect helps, "-" when a
-			// badly damaged laser scope is hurting aim more than the other
-			// bonuses offset.
+			// bonus (see GunRoofBonus()) + the penalty of a passenger shooting
+			// from a vehicle (see GunVehiclePassengerPenalty()). Always shown
+			// (0 when none apply), always signed: "+" when the net effect
+			// helps, "-" when that penalty or a badly damaged laser scope is
+			// hurting aim more than the other bonuses offset.
 			{
-				INT8 const baseBonus = GunLaserScopeBonus(obj) + GunCrouchStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier);
+				INT8 const baseBonus = GunLaserScopeBonus(obj) + GunCrouchStanceBonus(gpItemDescSoldier) + GunRoofBonus(gpItemDescSoldier) + GunVehiclePassengerPenalty(gpItemDescSoldier);
 				pStr = ST::format("{}{}%", baseBonus >= 0 ? "+" : "", baseBonus);
 				FindFontRightCoordinates(dx + ids[20].sX + ids[20].sValDx, dy + ids[20].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 				MPrint(usX, usY, pStr);

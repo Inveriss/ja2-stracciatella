@@ -305,7 +305,9 @@ INT8 GunCrouchStanceBonus(SOLDIERTYPE const* const s)
 	// AIM_BONUS_CROUCHING) crouch stance bonus applied in
 	// CalcChanceToHitGun() — display purposes only. No item/condition
 	// involved, unlike the other display bonuses: this is a soldier-stance
-	// check, not a weapon stat.
+	// check, not a weapon stat. A passenger shooting from a vehicle is kept
+	// crouched, but gets no aiming bonus for it.
+	if (IsSelectablePassenger(*s)) return 0;
 	return gAnimControl[s->usAnimState].ubEndHeight == ANIM_CROUCH ? CROUCH_STANCE_DISPLAY_BONUS : 0;
 }
 
@@ -323,6 +325,14 @@ INT8 GunRoofBonus(SOLDIERTYPE const* const s)
 	// bonuses. Deliberately excludes the separate, target-independent
 	// ONROOF skill trait bonus also applied there.
 	return s->bLevel > 0 ? AIM_BONUS_FIRING_DOWN : 0;
+}
+
+
+INT8 GunVehiclePassengerPenalty(SOLDIERTYPE const* const s)
+{
+	// The real penalty, used by CalcChanceToHitGun() and shown as it is by
+	// the item description box's "Base:" readout.
+	return s && CanShootFromVehicle(*s) ? -AIM_PENALTY_VEHICLE_PASSENGER : 0;
 }
 
 
@@ -467,8 +477,8 @@ static void AdjustImpactByHitLocation(INT32 iImpact, UINT8 ubHitLocation, INT32*
 
 FireWeaponResult CheckForGunJam(SOLDIERTYPE * const pSoldier)
 {
-	// should jams apply to enemies?
-	if (pSoldier->uiStatusFlags & SOLDIER_PC)
+	// should jams apply to enemies? (nor to the player's tank: nobody can reach its gun)
+	if (pSoldier->uiStatusFlags & SOLDIER_PC && !IsPlayerTank(*pSoldier))
 	{
 		if ( GCM->getItem(pSoldier->usAttackingWeapon)->getItemClass() == IC_GUN && !EXPLOSIVE_GUN( pSoldier->usAttackingWeapon ) )
 		{
@@ -927,7 +937,7 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 		DeductAmmo( pSoldier, pSoldier->ubAttackingHand );
 
 		// ATE: Check if we should say quote...
-		if ( pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunShotsLeft == 0 && pSoldier->usAttackingWeapon != ROCKET_LAUNCHER )
+		if ( pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunShotsLeft == 0 && !EXPLOSIVE_GUN( pSoldier->usAttackingWeapon ) )
 		{
 			if ( pSoldier->bTeam == OUR_TEAM )
 			{
@@ -973,7 +983,7 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 				usExpGain = ModifyExpGainByTarget(usExpGain, tgt);
 
 				// MARKSMANSHIP GAIN: gun attack
-				StatChange(*pSoldier, MARKAMT, usExpGain, fGonnaHit ? FROM_SUCCESS : FROM_FAILURE);
+				StatChange(*ShooterFor(pSoldier), MARKAMT, usExpGain, fGonnaHit ? FROM_SUCCESS : FROM_FAILURE);
 			}
 		}
 
@@ -1107,7 +1117,7 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 	// CJC: since jamming is no longer affected by reliability, increase chance of status going down for really unreliabile guns
 	uiDepreciateTest = BASIC_DEPRECIATE_CHANCE + 3 * GCM->getItem(usItemNum)->getReliability();
 
-	if ( !PreRandom( uiDepreciateTest ) && ( pSoldier->inv[ pSoldier->ubAttackingHand ].bStatus[0] > 1) )
+	if ( !IsPlayerTank( *pSoldier ) && !PreRandom( uiDepreciateTest ) && ( pSoldier->inv[ pSoldier->ubAttackingHand ].bStatus[0] > 1) )
 	{
 		pSoldier->inv[ pSoldier->ubAttackingHand ].bStatus[ 0 ]--;
 	}
@@ -2166,7 +2176,11 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	INT16 sDistVis;
 	UINT8 ubAdjAimPos;
 
-	if ( pSoldier->bMarksmanship == 0 )
+	// the player's tank aims with the best marksman aboard: his skills and
+	// condition count, not the tank's (a damaged tank fires as usual)
+	SOLDIERTYPE const* const aimer = IsPlayerTank(*pSoldier) ? GetTankGunner(*pSoldier) : pSoldier;
+
+	if ( !aimer || aimer->bMarksmanship == 0 )
 	{
 		// always min chance
 		return( MINCHANCETOHIT );
@@ -2175,6 +2189,9 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	// make sure the guy's actually got a weapon in his hand!
 	pInHand = &(pSoldier->inv[pSoldier->ubAttackingHand]);
 	usInHand = pSoldier->usAttackingWeapon;
+
+	// the penalties of a tank's cannon; the enemy's tanks have them with any weapon
+	bool const fTankPenalties = TANK( pSoldier ) && ( usInHand == TANK_CANNON || !IsPlayerTank( *pSoldier ) );
 
 	// DETERMINE BASE CHANCE OF HITTING
 	iGunCondition = WEAPON_STATUS_MOD( pInHand->bGunStatus );
@@ -2188,7 +2205,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	}
 	else
 	{
-		iMarksmanship = EffectiveMarksmanship( pSoldier );
+		iMarksmanship = EffectiveMarksmanship( aimer );
 
 		if ( AM_A_ROBOT( pSoldier ) )
 		{
@@ -2203,10 +2220,10 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	}
 
 	// modify chance to hit by morale
-	iMarksmanship += GetMoraleModifier( pSoldier );
+	iMarksmanship += GetMoraleModifier( aimer );
 
 	// penalize marksmanship for fatigue
-	iMarksmanship -= GetSkillCheckPenaltyForFatigue( pSoldier, iMarksmanship );
+	iMarksmanship -= GetSkillCheckPenaltyForFatigue( aimer, iMarksmanship );
 
 	if (iGunCondition >= iMarksmanship)
 		// base chance is equal to the shooter's marksmanship skill
@@ -2219,7 +2236,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	if (sGridNo == pSoldier->sLastTarget )
 		iChance += AIM_BONUS_SAME_TARGET; // give a bonus to hit
 
-	if ( pSoldier->ubProfile != NO_PROFILE && gMercProfiles[ pSoldier->ubProfile ].bPersonalityTrait == PSYCHO )
+	if ( aimer->ubProfile != NO_PROFILE && gMercProfiles[ aimer->ubProfile ].bPersonalityTrait == PSYCHO )
 	{
 		iChance += AIM_BONUS_PSYCHO;
 	}
@@ -2227,8 +2244,9 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	// calculate actual range (in units, 10 units = 1 tile)
 	iRange = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, sGridNo );
 
-	// if shooter is crouched, he aims slightly better (to max of AIM_BONUS_CROUCHING)
-	if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH )
+	// if shooter is crouched, he aims slightly better (to max of AIM_BONUS_CROUCHING),
+	// except a passenger shooting from a vehicle, who is only kept crouched
+	if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH && !CanShootFromVehicle( *pSoldier ) )
 	{
 		iBonus = iRange / 2;
 		if (iBonus > AIM_BONUS_CROUCHING)
@@ -2295,7 +2313,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 		iPenalty = GCM->getWeapon(usInHand)->ubBurstPenalty * (pSoldier->bDoBurst - 1);
 
 		// halve the penalty for people with the autofire trait
-		UINT AutoWeaponsSkill = NUM_SKILL_TRAITS(pSoldier, AUTO_WEAPS);
+		UINT AutoWeaponsSkill = NUM_SKILL_TRAITS(aimer, AUTO_WEAPS);
 		if (AutoWeaponsSkill != 0)
 		{
 			iPenalty /= 2 * AutoWeaponsSkill;
@@ -2361,18 +2379,18 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	}
 
 	// if shooter is being affected by gas
-	if ( pSoldier->uiStatusFlags & SOLDIER_GASSED )
+	if ( aimer->uiStatusFlags & SOLDIER_GASSED )
 	{
 		iChance -= AIM_PENALTY_GASSED;
 	}
 
 	// if shooter is being bandaged at the same time, his concentration is off
-	if (pSoldier->ubServiceCount > 0)
+	if (aimer->ubServiceCount > 0)
 		iChance -= AIM_PENALTY_GETTINGAID;
 
 	// if shooter is still in shock
-	if (pSoldier->bShock)
-		iChance -= (pSoldier->bShock * AIM_PENALTY_PER_SHOCK);
+	if (aimer->bShock)
+		iChance -= (aimer->bShock * AIM_PENALTY_PER_SHOCK);
 
 	if ( GCM->getItem(usInHand)->getItemClass() == IC_GUN )
 	{
@@ -2486,7 +2504,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	}
 	//iChance -= 20 * iRange / iMaxRange;
 
-	if ( TANK( pSoldier ) && ( iRange / CELL_X_SIZE < MaxDistanceVisible() ) )
+	if ( fTankPenalties && ( iRange / CELL_X_SIZE < MaxDistanceVisible() ) )
 	{
 		// tank; penalize at close range!
 		// 2 percent per tile closer than max visible distance
@@ -2548,7 +2566,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 		switch( gAnimControl[ pTarget->usAnimState ].ubHeight )
 		{
 			case ANIM_CROUCH:
-				if ( TANK( pSoldier ) && iRange < MIN_TANK_RANGE )
+				if ( fTankPenalties && iRange < MIN_TANK_RANGE )
 				{
 					// 13% penalty per tile closer than min range
 					iChance -= 13 * ( ( MIN_TANK_RANGE - iRange ) / CELL_X_SIZE );
@@ -2568,7 +2586,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 				}
 				break;
 			case ANIM_PRONE:
-				if ( TANK( pSoldier ) && iRange < MIN_TANK_RANGE )
+				if ( fTankPenalties && iRange < MIN_TANK_RANGE )
 				{
 					// 25% penalty per tile closer than min range
 					iChance -= 25 * ( ( MIN_TANK_RANGE - iRange ) / CELL_X_SIZE );
@@ -2629,7 +2647,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 			}
 
 			// reduce dodge ability by the attacker's stats
-			iBonus = ( EffectiveDexterity( pSoldier ) / 5 + EffectiveExpLevel( pSoldier ) * 2);
+			iBonus = ( EffectiveDexterity( aimer ) / 5 + EffectiveExpLevel( aimer ) * 2);
 			if ( TANK( pTarget ) || (pSoldier->ubBodyType != QUEENMONSTER) )
 			{
 				// reduce ability to track shots
@@ -2642,33 +2660,33 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 			}
 		}
 	}
-	else if ( TANK( pSoldier ) && iRange < MIN_TANK_RANGE )
+	else if ( fTankPenalties && iRange < MIN_TANK_RANGE )
 	{
 		// 25% penalty per tile closer than min range
 		iChance -= 25 * ( ( MIN_TANK_RANGE - iRange ) / CELL_X_SIZE );
 	}
 
 	// IF CHANCE EXISTS, BUT SHOOTER IS INJURED
-	if ((iChance > 0) && (pSoldier->bLife < pSoldier->bLifeMax))
+	if ((iChance > 0) && (aimer->bLife < aimer->bLifeMax))
 	{
 		// if bandaged, give 1/2 of the bandaged life points back into equation
-		bBandaged = pSoldier->bLifeMax - pSoldier->bLife - pSoldier->bBleeding;
+		bBandaged = aimer->bLifeMax - aimer->bLife - aimer->bBleeding;
 
 		// injury penalty is based on % damage taken (max 2/3rds chance)
-		iPenalty = (iChance * 2 * (pSoldier->bLifeMax - pSoldier->bLife + (bBandaged / 2))) /
-						(3 * pSoldier->bLifeMax);
+		iPenalty = (iChance * 2 * (aimer->bLifeMax - aimer->bLife + (bBandaged / 2))) /
+						(3 * aimer->bLifeMax);
 
 		// reduce injury penalty due to merc's experience level (he can take it!)
-		iChance -= (iPenalty * (100 - (10 * ( EffectiveExpLevel( pSoldier ) - 1)))) / 100;
+		iChance -= (iPenalty * (100 - (10 * ( EffectiveExpLevel( aimer ) - 1)))) / 100;
 	}
 
 	// IF CHANCE EXISTS, BUT SHOOTER IS LOW ON BREATH
-	if ((iChance > 0) && (pSoldier->bBreath < 100))
+	if ((iChance > 0) && (aimer->bBreath < 100))
 	{
 		// breath penalty is based on % breath missing (max 1/2 chance)
-		iPenalty = (iChance * (100 - pSoldier->bBreath)) / 200;
+		iPenalty = (iChance * (100 - aimer->bBreath)) / 200;
 		// reduce breath penalty due to merc's dexterity (he can compensate!)
-		iChance -= (iPenalty * (100 - ( EffectiveDexterity( pSoldier ) - 10))) / 100;
+		iChance -= (iPenalty * (100 - ( EffectiveDexterity( aimer ) - 10))) / 100;
 	}
 
 
@@ -2688,10 +2706,13 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 		iChance /= 2;
 	}
 
+	// taken last, so nothing above scales it and it stays what the "Base:" field shows
+	iChance += GunVehiclePassengerPenalty(pSoldier);
+
 	// MAKE SURE CHANCE TO HIT IS WITHIN DEFINED LIMITS
 	if (iChance < MINCHANCETOHIT)
 	{
-		if ( TANK( pSoldier ) )
+		if ( fTankPenalties )
 		{
 			// allow absolute minimums
 			iChance = 0;
