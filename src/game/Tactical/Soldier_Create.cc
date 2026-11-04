@@ -1067,6 +1067,12 @@ static void InitSoldierStruct(SOLDIERTYPE& s)
 
 void InternalTacticalRemoveSoldier(SOLDIERTYPE& s, BOOLEAN const fRemoveVehicle)
 {
+	// a tank leaving the map while it drives takes its tracks' sound with it
+	if (IsPlayerTank(s) && 0 <= s.bVehicleID && s.bVehicleID < static_cast<INT32>(pVehicleList.size()))
+	{
+		HandleVehicleMovementSound(&s, FALSE);
+	}
+
 	if (GetSelectedMan() == &s) SetSelectedMan(0);
 	if (gUIFullTarget    == &s)
 	{

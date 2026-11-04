@@ -79,7 +79,7 @@
     // Tank (unused)
     {
         "enterSound": "sounds/into vehicle.wav",
-        "moveSound": "sounds/driving 01.wav",
+        "moveSound": "sounds/tank_tracks.wav",
         "profile": "PROF_TANK",
         "movementType": "CAR",
         "armourType": "SPECTRA_VEST",

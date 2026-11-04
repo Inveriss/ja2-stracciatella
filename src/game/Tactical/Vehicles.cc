@@ -1353,7 +1353,10 @@ void HandleVehicleMovementSound(const SOLDIERTYPE* const s, const BOOLEAN fOn)
 	{
 		if (v->uiMovementSoundID == NO_SAMPLE)
 		{
-			v->uiMovementSoundID = PlayLocationJA2Sample(s->sGridNo, GCM->getVehicle(v->ubVehicleType)->move_sound, HIGHVOLUME, 1);
+			// (the tank's tracks last as long as the drive; a high count, not endless,
+			// as nothing but the drive's end stops them)
+			UINT32 const loops = v->ubVehicleType == TANK_CAR ? 100 : 1;
+			v->uiMovementSoundID = PlayLocationJA2Sample(s->sGridNo, GCM->getVehicle(v->ubVehicleType)->move_sound, HIGHVOLUME, loops);
 		}
 	}
 	else
