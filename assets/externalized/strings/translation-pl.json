@@ -1912,7 +1912,8 @@
         "%s can't fire while driving.",
         "An active Commander and Driver are required to drive the tank.",
         "All four crew members must be inside the tank to use its weapons.",
-        "The vehicle cannot move without an active Driver."
+        "The vehicle cannot move without an active Driver.",
+        "The tank cannot travel through swamp terrain."
     ],
     "pTeamPanelOrderStrings": [
         "Move merc left",

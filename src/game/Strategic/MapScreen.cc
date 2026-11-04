@@ -3182,8 +3182,13 @@ static UINT32 HandleMapUI(void)
 					}
 					else
 					{
-						// means it's a vehicle and we've clicked an off-road sector
-						BeginMapUIMessage(0, pMapErrorString[40]);
+						// means it's a vehicle and we've clicked an off-road sector, or
+						// the tank and a swamp
+						UINT8 const through = SectorInfo[gsHighlightSector.AsByte()].ubTraversability[THROUGH_STRATEGIC_MOVE];
+						bool  const tank    = s->uiStatusFlags & SOLDIER_VEHICLE ?
+							IsPlayerTank(*s) : IsTankCrewMember(*s);
+						BeginMapUIMessage(0, tank && (through == SWAMP || through == SWAMP_ROAD) ?
+							pVehiclePassengerStrings[8] : pMapErrorString[40]);
 					}
 				}
 			}
