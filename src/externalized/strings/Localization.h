@@ -159,6 +159,7 @@ constexpr std::size_t pHummerInventoryStrings_SIZE = 24;
 constexpr std::size_t pVehicleFuelStrings_SIZE = 1;
 constexpr std::size_t pVehiclePassengerStrings_SIZE = 7;
 constexpr std::size_t pTankCrewStrings_SIZE = 4;
+constexpr std::size_t pTeamPanelOrderStrings_SIZE = 2;
 constexpr std::size_t gzLaptopHelpText_SIZE = 17;
 constexpr std::size_t gzNonPersistantPBIText_SIZE = 10;
 constexpr std::size_t gzMiscString_SIZE = 5;
@@ -358,6 +359,7 @@ struct L10n_t
 	STRARRAY(pVehicleFuelStrings);
 	STRARRAY(pVehiclePassengerStrings);
 	STRARRAY(pTankCrewStrings);
+	STRARRAY(pTeamPanelOrderStrings);
 	ST::string pMapScreenJustStartedHelpText;
 	ST::string pLandMarkInSectorString;
 	STRARRAY(gzMercSkillText);

@@ -419,6 +419,10 @@
 // from (1029, 7) on the full panel, 31 x 31 from (1028, 7) on the low one.
 #define BIG_TM_BUTTON_X(col)			(g_ui.isLowTeamPanel() ? 1028 + (col) * 31 : 1029 + (col) * 37)
 #define BIG_TM_BUTTON_Y(row)			(7 + (row) * (g_ui.isLowTeamPanel() ? 31 : 33))
+// The arrows moving a merc between the slots: for now under Previous / Next merc,
+// over the sector box on the low panel (docs/team-panel-merc-order-plan.md)
+#define BIG_TM_ORDER_BUTTON_X(n)		BIG_TM_BUTTON_X(n)
+#define BIG_TM_ORDER_BUTTON_Y			BIG_TM_BUTTON_Y(2)
 #define BIG_TM_SECTOR_X			1031 // sector box, above the clock's
 #define BIG_TM_SECTOR_Y			(g_ui.isLowTeamPanel() ? 73 : 123)
 #define BIG_TM_SECTOR_WIDTH			79
@@ -481,6 +485,9 @@ static BUTTON_PICS* iTEAMPanelImages[NUM_TEAM_BUTTON_IMAGES];
 // pictures), in the two 27x27 windows under Done and Map Screen.
 static GUIButtonRef giBigTeamPanelMercButtons[2];
 static BUTTON_PICS* giBigTeamPanelMercImages[2];
+// Its arrows moving the selected merc to the slot before / after him
+static GUIButtonRef giBigTeamPanelOrderButtons[2];
+static BUTTON_PICS* giBigTeamPanelOrderImages[2];
 // Its toggle between the full and the low panel (for now Map Screen's
 // picture), in the window under Change Squad.
 static GUIButtonRef giBigTeamPanelLowButton;
@@ -4825,6 +4832,7 @@ void InitializeTEAMPanel()
 		// nothing on the watched battle's bar but its EXIT button (Militia_Watch.cc)
 		for (GUIButtonRef const b : iTEAMPanelButtons)         if (b) b->Hide();
 		for (GUIButtonRef const b : giBigTeamPanelMercButtons) if (b) b->Hide();
+		for (GUIButtonRef const b : giBigTeamPanelOrderButtons) if (b) b->Hide();
 		if (giBigTeamPanelLowButton) giBigTeamPanelLowButton->Hide();
 	}
 
@@ -5063,6 +5071,10 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 		MarkAButtonDirty(iTEAMPanelButtons[TEAM_MAP_SCREEN_BUTTON]);
 		MarkAButtonDirty(iTEAMPanelButtons[CHANGE_SQUAD_BUTTON]);
 		for (GUIButtonRef const b : giBigTeamPanelMercButtons)
+		{
+			if (b) MarkAButtonDirty(b);
+		}
+		for (GUIButtonRef const b : giBigTeamPanelOrderButtons)
 		{
 			if (b) MarkAButtonDirty(b);
 		}
@@ -5351,6 +5363,7 @@ static void BtnSquadCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnTeamPrevMercCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnTeamNextMercCallback(GUI_BUTTON* btn, UINT32 reason);
 static void BtnTeamLowPanelCallback(GUI_BUTTON* btn, UINT32 reason);
+static void BtnTeamOrderCallback(GUI_BUTTON* btn, UINT32 reason);
 
 
 void CreateTEAMPanelButtons(void)
@@ -5384,6 +5397,14 @@ void CreateTEAMPanelButtons(void)
 		giBigTeamPanelMercButtons[1] = QuickCreateButton(giBigTeamPanelMercImages[1], dx + BIG_TM_BUTTON_X(1), dy + BIG_TM_BUTTON_Y(1), MSYS_PRIORITY_HIGH - 1, BtnTeamNextMercCallback);
 		giBigTeamPanelMercButtons[1]->SetFastHelpText(TacticalStr[NEXT_MERC_POPUPTEXT]);
 
+		for (INT32 i = 0; i != 2; ++i)
+		{
+			giBigTeamPanelOrderImages[i]  = UseLoadedButtonImage(giBigTeamPanelMercImages[0], 20 + i, 22 + i);
+			giBigTeamPanelOrderButtons[i] = QuickCreateButton(giBigTeamPanelOrderImages[i], dx + BIG_TM_ORDER_BUTTON_X(i), dy + BIG_TM_ORDER_BUTTON_Y, MSYS_PRIORITY_HIGH - 1, BtnTeamOrderCallback);
+			giBigTeamPanelOrderButtons[i]->SetUserData(i);
+			giBigTeamPanelOrderButtons[i]->SetFastHelpText(pTeamPanelOrderStrings[i]);
+		}
+
 		// the low panel toggle, pressed while the low panel shows
 		giBigTeamPanelLowImage  = UseLoadedButtonImage(iTEAMPanelImages[ENDTURN_IMAGES], 1, 4);
 		giBigTeamPanelLowButton = QuickCreateButtonToggle(giBigTeamPanelLowImage, dx + BIG_TM_BUTTON_X(2), dy + BIG_TM_BUTTON_Y(1), MSYS_PRIORITY_HIGH - 1, BtnTeamLowPanelCallback);
@@ -5401,6 +5422,12 @@ void RemoveTEAMPanelButtons(void)
 	}
 	for (UINT32 i = 0; i != 2; ++i)
 	{
+		if (!giBigTeamPanelOrderButtons[i]) continue;
+		RemoveButton(giBigTeamPanelOrderButtons[i]);
+		UnloadButtonImage(giBigTeamPanelOrderImages[i]);
+	}
+	for (UINT32 i = 0; i != 2; ++i)
+	{
 		if (!giBigTeamPanelMercButtons[i]) continue;
 		RemoveButton(giBigTeamPanelMercButtons[i]);
 		UnloadButtonImage(giBigTeamPanelMercImages[i]);
@@ -5415,6 +5442,42 @@ void RemoveTEAMPanelButtons(void)
 
 // The big team panel's full / low toggle: the panel is built again, in the
 // other form, next frame (HandleTacticalPanelSwitch(), Interface_Control.cc).
+// The slots an arrow works on for this merc, 0 if he isn't on the panel
+static INT32 TeamPanelMoveRange(SOLDIERTYPE const& s)
+{
+	INT32 const size = (INT32)gTeamPanel.size();
+	INT32 last = -1;
+	bool  shown = false;
+	for (INT32 i = 0; i != size; ++i)
+	{
+		if (!gTeamPanel[i].merc) continue;
+		last = i;
+		if (gTeamPanel[i].merc == &s) shown = true;
+	}
+	if (!shown) return 0;
+	// the tank: always its roles, even empty ones; else up to the last one shown
+	return IsTankCrewMember(s) ? std::min<INT32>(NUM_TANK_ROLES, size) : last + 1;
+}
+
+
+// Whom the arrows move now, NULL if nobody can be moved
+static SOLDIERTYPE const* TeamPanelOrderMerc()
+{
+	SOLDIERTYPE const* const sel = GetSelectedMan();
+	if (!sel || sel->uiStatusFlags & SOLDIER_VEHICLE || IsAboard(*sel)) return NULL; // (vehicles: next stage)
+	if (gfHelicopterPassengersView || gTacticalStatus.ubAttackBusyCount > 0) return NULL;
+	return TeamPanelMoveRange(*sel) >= 2 ? sel : NULL;
+}
+
+
+static void BtnTeamOrderCallback(GUI_BUTTON* btn, UINT32 reason)
+{
+	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
+	SOLDIERTYPE const* const s = TeamPanelOrderMerc();
+	if (s) MoveMercOnTeamPanel(*s, btn->GetUserData() != 0);
+}
+
+
 static void BtnTeamLowPanelCallback(GUI_BUTTON* btn, UINT32 reason)
 {
 	if (!(reason & MSYS_CALLBACK_REASON_POINTER_UP)) return;
@@ -5525,6 +5588,10 @@ static void UpdateTEAMPanel(void)
 		{
 			if (b) DisableButton(b);
 		}
+		for (GUIButtonRef const b : giBigTeamPanelOrderButtons)
+		{
+			if (b) DisableButton(b);
+		}
 		if (giBigTeamPanelLowButton) DisableButton(giBigTeamPanelLowButton);
 
 		// OK, disable item regions.......
@@ -5545,6 +5612,10 @@ static void UpdateTEAMPanel(void)
 		for (GUIButtonRef const b : giBigTeamPanelMercButtons)
 		{
 			if (b) EnableButton(b, !(gTacticalStatus.uiFlags & ENGAGED_IN_CONV));
+		}
+		for (GUIButtonRef const b : giBigTeamPanelOrderButtons)
+		{
+			if (b) EnableButton(b, !(gTacticalStatus.uiFlags & ENGAGED_IN_CONV) && TeamPanelOrderMerc());
 		}
 		if (giBigTeamPanelLowButton) EnableButton(giBigTeamPanelLowButton);
 
@@ -6256,19 +6327,12 @@ bool MoveMercOnTeamPanel(SOLDIERTYPE const& s, bool const right)
 
 	INT32 const size = (INT32)gTeamPanel.size();
 	INT32 slot = -1;
-	INT32 last = -1;
 	for (INT32 i = 0; i != size; ++i)
 	{
-		if (!gTeamPanel[i].merc) continue;
-		last = i;
 		if (gTeamPanel[i].merc == &s) slot = i;
 	}
-	if (slot == -1) return false;
-
-	// the tank: always its roles, even empty ones; else up to the last one shown
-	INT32 const range = aboard && IsTankVehicle(GetVehicle(s.iVehicleId)) ?
-		std::min<INT32>(NUM_TANK_ROLES, size) : last + 1;
-	if (range < 2) return false;
+	INT32 const range = TeamPanelMoveRange(s);
+	if (slot == -1 || range < 2) return false;
 
 	// a swap with the neighbour; from an end to the other, the others shift by one
 	std::vector<SOLDIERTYPE*> order;
