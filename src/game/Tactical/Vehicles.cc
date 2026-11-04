@@ -428,6 +428,14 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 	}
 	else
 	{
+		// the tank without its Commander or Driver goes nowhere
+		if (IsTankVehicle(v) &&
+			(!GetTankCrewMember(v, TANK_COMMANDER) || !GetTankCrewMember(v, TANK_DRIVER)) &&
+			GetLengthOfMercPath(&GetSoldierStructureForVehicle(v)) > 0)
+		{
+			CancelPathForVehicle(v, FALSE);
+		}
+
 		// check if anyone left in vehicle
 		CFOR_EACH_PASSENGER(v, i) return true;
 
@@ -1242,20 +1250,33 @@ SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const& v, TankRole const role)
 }
 
 
-bool IsTankRoleManned(VEHICLETYPE const& v, TankRole const role)
+static bool IsTankSeatAble(VEHICLETYPE const& v, TankRole const role, bool const ignore_asleep)
 {
 	SOLDIERTYPE const* const s = GetTankCrewMember(v, role);
 	if (!s) return false;
-	if (s->bLife < OKLIFE || s->fMercAsleep || s->bCollapsed) return false;
+	if (s->bLife < OKLIFE) return false;
+	if (!ignore_asleep && (s->fMercAsleep || s->bCollapsed)) return false;
 	if (s->bBreathMax <= BREATHMAX_ABSOLUTE_MINIMUM) return false;
 	if (AM_AN_EPC(s) || AM_A_ROBOT(s)) return false;
 	return role != TANK_GUNNER || s->bMarksmanship > 0;
 }
 
 
+bool IsTankRoleManned(VEHICLETYPE const& v, TankRole const role)
+{
+	return IsTankSeatAble(v, role, false);
+}
+
+
 bool TankCanMove(VEHICLETYPE const& v)
 {
 	return IsTankRoleManned(v, TANK_COMMANDER) && IsTankRoleManned(v, TANK_DRIVER);
+}
+
+
+bool TankCanTravel(VEHICLETYPE const& v)
+{
+	return IsTankSeatAble(v, TANK_COMMANDER, true) && IsTankSeatAble(v, TANK_DRIVER, true);
 }
 
 
@@ -1346,6 +1367,8 @@ bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs)
 	if (v.fDestroyed || !OKUseVehicle(GCM->getVehicle(v.ubVehicleType)->profile)) return false;
 	if (vs.sBreathRed <= 0) return false; // (no fuel)
 
+	if (IsTankVehicle(v)) return TankCanMove(v);
+
 	// someone aboard who can drive
 	CFOR_EACH_PASSENGER(v, i)
 	{
@@ -1372,6 +1395,11 @@ bool SoldierMustDriveVehicle(SOLDIERTYPE const& s, bool const trying_to_travel)
 	// one aboard who can do so? If there are multiple possible drivers, than the
 	// assumption is that this guy isn't driving, so he can sleep.
 	if (!CanSoldierDriveVehicle(s, vehicle_id, true))   return false;
+	// the tank needs both its Commander and its Driver, whoever else is aboard
+	if (IsTankVehicle(v))
+	{
+		return &s == GetTankCrewMember(v, TANK_COMMANDER) || &s == GetTankCrewMember(v, TANK_DRIVER);
+	}
 	if (!OnlyThisSoldierCanDriveVehicle(s, vehicle_id)) return false;
 	return true;
 }

@@ -3118,6 +3118,13 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 		{
 			// a car out of fuel says so; anything else, as before
 			bool const out_of_fuel = IsDrivingVehicleBody(*sel) && sel->sBreathRed <= 0;
+			VEHICLETYPE const& v = GetVehicle(sel->bVehicleID);
+			if (!out_of_fuel && IsTankVehicle(v) && !TankCanMove(v))
+			{
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK,
+					st_format_printf(pVehiclePassengerStrings[5], pVehicleStrings[v.ubVehicleType]));
+				return -3;
+			}
 			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK,
 				out_of_fuel ? gzLateLocalizedString[STR_LATE_62] : TacticalStr[VEHICLE_CANT_MOVE_IN_TACTICAL]);
 			return -3;

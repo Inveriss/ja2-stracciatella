@@ -1909,7 +1909,8 @@
         "%s can't shoot while the vehicle is moving.",
         "%s can only shoot a gun from inside the vehicle.",
         "%s has nobody aboard able to aim.",
-        "%s can't fire while driving."
+        "%s can't fire while driving.",
+        "%s needs an active commander and driver."
     ],
     "pTankCrewStrings": [
         "COMMANDER",

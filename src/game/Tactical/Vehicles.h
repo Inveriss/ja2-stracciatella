@@ -175,6 +175,9 @@ SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const&, TankRole);
 // Someone sits there and can do the job: awake, able, not an EPC or the robot
 bool IsTankRoleManned(VEHICLETYPE const&, TankRole);
 bool TankCanMove(VEHICLETYPE const&); // Commander and Driver
+// The same on the strategic map, where one asleep counts: a route wakes him, and
+// PlayerSoldierTooTiredToTravel() answers for one who can't be woken
+bool TankCanTravel(VEHICLETYPE const&);
 bool TankCanFire(VEHICLETYPE const&); // all four
 // SOLDIER_DRIVER for the Driver's seat, SOLDIER_PASSENGER for the others
 void UpdateTankCrewFlags(VEHICLETYPE const&);

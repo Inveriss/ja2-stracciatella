@@ -9368,6 +9368,19 @@ static void WakeUpAnySleepingSelectedMercsOnFootOrDriving()
 	CFOR_EACH_SELECTED_IN_CHAR_LIST(i)
 	{
 		SOLDIERTYPE& s = *i->merc;
+
+		// the tank's Commander and Driver, even with only the tank selected
+		if (s.uiStatusFlags & SOLDIER_VEHICLE && IsTankVehicle(GetVehicle(s.bVehicleID)))
+		{
+			VEHICLETYPE const& v = GetVehicle(s.bVehicleID);
+			for (TankRole const role : { TANK_COMMANDER, TANK_DRIVER })
+			{
+				SOLDIERTYPE* const p = GetTankCrewMember(v, role);
+				if (p && p->fMercAsleep) SetMercAwake(p, TRUE, FALSE);
+			}
+			continue;
+		}
+
 		if (!s.fMercAsleep) continue;
 
 		// On foot or driving?

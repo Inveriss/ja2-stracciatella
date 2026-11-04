@@ -4120,6 +4120,12 @@ static MoveError CanCharacterMoveInStrategic(SOLDIERTYPE& s)
 		if (s.bLife < OKLIFE) return ME_VEHICLE_DAMAGED;
 		// Out of fuel?
 		if (s.sBreathRed == 0) return ME_VEHICLE_NO_GAS;
+		// The tank without its Commander and Driver?
+		if (IsTankVehicle(v) && !TankCanTravel(v))
+		{
+			gsCustomErrorString = st_format_printf(pVehiclePassengerStrings[5], pVehicleStrings[v.ubVehicleType]);
+			return ME_CUSTOM;
+		}
 	}
 	else // Non-vehicle
 	{
