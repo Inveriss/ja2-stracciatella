@@ -2383,8 +2383,8 @@ void InitAnimationSurfacesPerBodytype( )
 	gubAnimSurfaceCorpseID[TANK_NE][STANDING] = TANK2_DEAD;
 
 	// ELDORADO
-	gubAnimSurfaceIndex[ELDORADO][STANDING] = HUMVEE_BASIC;
-	gubAnimSurfaceIndex[ELDORADO][WALKING] = HUMVEE_BASIC;
+	gubAnimSurfaceIndex[ELDORADO][STANDING] = ELDORADO_BASIC;
+	gubAnimSurfaceIndex[ELDORADO][WALKING] = ELDORADO_BASIC;
 	gubAnimSurfaceIndex[ELDORADO][VEHICLE_DIE] = HUMVEE_DIE;
 
 	// ICECREAMTRUCK
@@ -2394,8 +2394,8 @@ void InitAnimationSurfacesPerBodytype( )
 	gubAnimSurfaceCorpseID[ICECREAMTRUCK][STANDING] = ICECREAM_DEAD;
 
 	// JEEP
-	gubAnimSurfaceIndex[JEEP][STANDING] = HUMVEE_BASIC;
-	gubAnimSurfaceIndex[JEEP][WALKING] = HUMVEE_BASIC;
+	gubAnimSurfaceIndex[JEEP][STANDING] = JEEP_BASIC;
+	gubAnimSurfaceIndex[JEEP][WALKING] = JEEP_BASIC;
 	gubAnimSurfaceIndex[JEEP][VEHICLE_DIE] = HUMVEE_DIE;
 
 	// HELICOPTERBODY (no VEHICLE_DIE: destroyed, it turns into its wreck at once)

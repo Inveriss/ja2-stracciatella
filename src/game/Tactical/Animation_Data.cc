@@ -451,13 +451,13 @@ AnimationSurfaceType gAnimSurfaceDatabase[NUMANIMATIONSURFACETYPES] =
 	M(TANKNE_SHOOT,         ANIMSDIR "/vehicles/tnk2_sht.sti",  S_STRUCT,  0,                        8, -1),
 	M(TANKNE_DIE,           ANIMSDIR "/vehicles/tk2_wrek.sti",  S_STRUCT,  0,                        1, -1),
 
-	M(ELDORADO_BASIC,       ANIMSDIR "/vehicles/hummer.sti",    S_STRUCT,  ANIM_DATA_FLAG_NOFRAMES, 32, -1),
+	M(ELDORADO_BASIC,       ANIMSDIR "/vehicles/eldrdo.sti",    S_STRUCT,  ANIM_DATA_FLAG_NOFRAMES, 32, -1),
 	M(ELDORADO_DIE,         ANIMSDIR "/vehicles/hm_wrek.sti",   NO_STRUCT, 0,                        2, -1),
 
 	M(ICECREAMTRUCK_BASIC,  ANIMSDIR "/vehicles/icecrm.sti",    S_STRUCT,  ANIM_DATA_FLAG_NOFRAMES, 32, -1),
 	M(ICECREAMTRUCK_DIE,    ANIMSDIR "/vehicles/hm_wrek.sti",   NO_STRUCT, 0,                        2, -1),
 
-	M(JEEP_BASIC,           ANIMSDIR "/vehicles/hummer.sti",    S_STRUCT,  ANIM_DATA_FLAG_NOFRAMES, 32, -1),
+	M(JEEP_BASIC,           ANIMSDIR "/vehicles/jeep.sti",      S_STRUCT,  ANIM_DATA_FLAG_NOFRAMES, 32, -1),
 	M(JEEP_DIE,             ANIMSDIR "/vehicles/hm_wrek.sti",   NO_STRUCT, 0,                        2, -1),
 
 	M(BODYEXPLODE,          ANIMSDIR "/s_merc/bod_blow.sti",    NO_STRUCT, 0,                        1, -1),
