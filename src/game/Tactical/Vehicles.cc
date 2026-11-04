@@ -1227,6 +1227,15 @@ bool IsTankVehicle(VEHICLETYPE const& v)
 }
 
 
+bool IsTankCrewMember(SOLDIERTYPE const& s)
+{
+	if (!(s.uiStatusFlags & (SOLDIER_DRIVER | SOLDIER_PASSENGER))) return false;
+	if (s.iVehicleId < 0 || s.iVehicleId >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[s.iVehicleId];
+	return v.fValid && IsTankVehicle(v);
+}
+
+
 SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const& v, TankRole const role)
 {
 	return v.pPassengers[role];

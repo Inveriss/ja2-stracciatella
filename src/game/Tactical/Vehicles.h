@@ -168,6 +168,8 @@ bool IsPlayerTank(SOLDIERTYPE const&);
 // Commander and so on, so nothing about it is saved but pPassengers
 enum TankRole { TANK_COMMANDER, TANK_DRIVER, TANK_GUNNER, TANK_LOADER, NUM_TANK_ROLES };
 bool IsTankVehicle(VEHICLETYPE const&);
+// Aboard the tank
+bool IsTankCrewMember(SOLDIERTYPE const&);
 // Who sits in that role's seat, or NULL
 SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const&, TankRole);
 // Someone sits there and can do the job: awake, able, not an EPC or the robot

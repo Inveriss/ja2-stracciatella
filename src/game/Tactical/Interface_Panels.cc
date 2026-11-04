@@ -4875,6 +4875,21 @@ static void RenderTeamSlotBorder(const SOLDIERTYPE* const s, const INT32 dx, con
 
 
 static void RenderSoldierTeamInv(SOLDIERTYPE const&, INT16 x, INT16 y, DirtyLevel);
+
+
+// The current squad is a tank's: its first slots are its crew's roles, whoever
+// sits there or nobody (crew plan, R4)
+static bool TeamPanelShowsTankRoles()
+{
+	if (gfHelicopterPassengersView) return false;
+	INT32 const squad = CurrentSquad();
+	if (squad < 0 || squad >= NUMBER_OF_SQUADS) return false;
+	FOR_EACH_IN_SQUAD(i, squad)
+	{
+		if (IsPlayerTank(**i)) return true;
+	}
+	return false;
+}
 static void UpdateTEAMPanel(void);
 
 
@@ -5016,6 +5031,8 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 			gBigTeamPanelVehicleExit[n].SetFastHelpText(exit_help);
 		}
 
+		bool const tank_roles = TeamPanelShowsTankRoles();
+
 		// LOOP THROUGH ALL MERCS ON TEAM PANEL
 		INT32       dx = TEAM_PANEL_X + vehicles_w;
 		INT32 const dy = TEAM_PANEL_Y;
@@ -5023,6 +5040,7 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 		{
 			TeamPanelSlot& i = gTeamPanel[n];
 			SOLDIERTYPE const* const s  = i.merc;
+			bool const tank_role = tank_roles && n < NUM_TANK_ROLES;
 			if (big)
 			{
 				// an empty slot keeps the panel's black window
@@ -5116,6 +5134,24 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 						HCenterVCenterAlign(TM_NAME_WIDTH, TM_NAME_HEIGHT));
 				}
 				// reset to frame buffer!
+				SetFontDestBuffer(FRAME_BUFFER);
+			}
+			else
+			{
+				i.first_hand.SetFastHelpText(ST::string());
+				i.second_hand.SetFastHelpText(ST::string());
+			}
+
+			// the tank: the role in the first hand's window, also of an empty seat
+			if (tank_role)
+			{
+				i.first_hand.SetFastHelpText(pTankCrewStrings[n]);
+
+				SetFontAttributes(big ? BIG_TM_FONT : TINYFONT1, big ? BIG_TM_NAME_COLOR : FONT_MCOLOR_LTGRAY);
+				SetFontDestBuffer(guiSAVEBUFFER);
+				MPrint(dx + (big ? BIG_TM_INV_X : TM_INV_HAND1STARTX), dy + (big ? BIG_TM_INV_Y : TM_INV_HAND1STARTY),
+					pTankCrewStrings[n],
+					HCenterVCenterAlign(big ? BIG_TM_INV_WIDTH : TM_INV_WIDTH, big ? BIG_TM_INV_HEIGHT : TM_INV_HEIGHT));
 				SetFontDestBuffer(FRAME_BUFFER);
 			}
 
@@ -5863,7 +5899,11 @@ static void RenderSoldierTeamInv(SOLDIERTYPE const& s, INT16 const x, INT16 y, D
 		static InvItemTextLayout const big_text = GetMapInvBigItemTextLayout();
 		text = &big_text;
 	}
-	if (s.uiStatusFlags & SOLDIER_DRIVER)
+	if (IsTankCrewMember(s))
+	{
+		// (the window holds his role, RenderTEAMPanel())
+	}
+	else if (s.uiStatusFlags & SOLDIER_DRIVER)
 	{
 		BltVideoObject(buf, guiVEHINV, 0, x + vx, y + vy);
 		RestoreExternBackgroundRect(x, y, w, h);
@@ -5907,7 +5947,7 @@ static void TMClickFirstHandInvCallbackSecondary(MOUSE_REGION* pRegion, UINT32 i
 	{
 		SwapTankWeapons(*s);
 	}
-	else if (!AM_A_ROBOT(s))
+	else if (!AM_A_ROBOT(s) && !IsTankCrewMember(*s)) // (crew plan, R7: the window holds his role)
 	{
 		const UINT16 usOldHandItem = s->inv[HANDPOS].usItem;
 		SwapHandItems(s);

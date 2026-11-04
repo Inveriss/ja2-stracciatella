@@ -1,6 +1,6 @@
 # Player's tank: a crew of four with fixed roles — plan
 
-Status: **stage 1 done and verified in the game, stages 2-5 not implemented; all decisions
+Status: **stages 1-2 done and verified in the game, stages 3-5 not implemented; all decisions
 taken by the user (2026-11-04)**
 (written on Remote Control, branch `Tanks`). Changes
 decisions G1 and F6 (the gunner) of `docs/tank-cannon-firing-plan.md` and
@@ -123,7 +123,7 @@ out and the others stay in their slots; a newcomer takes that role.
 
 ### Stage 2: roles on the panels
 
-- New strings `pTankCrewStrings` (4): Commander, Driver, Gunner, Loader; `Localization.h`
+- New strings `pTankCrewStrings` (4): COMMANDER, DRIVER, GUNNER, LOADER (capitals, user); `Localization.h`
   and all translations, in English as the rest of these arrays.
 - `RenderSoldierTeamInv`: for a tank crew member the role, centred in the first hand window,
   in place of the wheel or the item. Render with `tools/interface_preview` first.

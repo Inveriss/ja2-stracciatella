@@ -183,6 +183,7 @@ L10n_t::L10n_t(SGPFile * const translationFile)
 	GetArray(pHummerInventoryStrings);
 	GetArray(pVehicleFuelStrings);
 	GetArray(pVehiclePassengerStrings);
+	GetArray(pTankCrewStrings);
 	GetString(pMapScreenJustStartedHelpText);
 	GetString(pLandMarkInSectorString);
 	GetArray(gzMercSkillText);

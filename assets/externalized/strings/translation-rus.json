@@ -1911,6 +1911,12 @@
         "%s has nobody aboard able to aim.",
         "%s can't fire while driving."
     ],
+    "pTankCrewStrings": [
+        "COMMANDER",
+        "DRIVER",
+        "GUNNER",
+        "LOADER"
+    ],
     "pMilitiaConfirmStrings": [
         "Тренировка отряда ополчения будет стоить $",
         "Оплатить расходы?",
