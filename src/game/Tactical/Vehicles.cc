@@ -1310,14 +1310,17 @@ SOLDIERTYPE* GetTankGunner(SOLDIERTYPE const& tank)
 	VEHICLETYPE const& v = pVehicleList[tank.bVehicleID];
 	if (!v.fValid) return NULL;
 
-	SOLDIERTYPE* gunner = NULL;
-	CFOR_EACH_PASSENGER(v, i)
-	{
-		SOLDIERTYPE* const s = *i;
-		if (s->bLife < OKLIFE || s->bMarksmanship == 0 || AM_AN_EPC(s) || AM_A_ROBOT(s)) continue;
-		if (!gunner || s->bMarksmanship > gunner->bMarksmanship) gunner = s;
-	}
-	return gunner;
+	// the one in the Gunner's seat, whatever the others' skill (crew plan)
+	return IsTankRoleManned(v, TANK_GUNNER) ? GetTankCrewMember(v, TANK_GUNNER) : NULL;
+}
+
+
+bool PlayerTankCanFire(SOLDIERTYPE const& tank)
+{
+	// (the wreck's vehicle is gone)
+	if (tank.bVehicleID < 0 || tank.bVehicleID >= static_cast<INT32>(pVehicleList.size())) return false;
+	VEHICLETYPE const& v = pVehicleList[tank.bVehicleID];
+	return v.fValid && TankCanFire(v);
 }
 
 

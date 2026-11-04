@@ -183,8 +183,10 @@ bool TankCanFire(VEHICLETYPE const&); // all four
 void UpdateTankCrewFlags(VEHICLETYPE const&);
 // Gives a newly created player's tank its cannon (G3)
 void EquipPlayerTank(SOLDIERTYPE&);
-// The best marksman aboard, who aims the cannon (G1); NULL if nobody is able
+// The one in the Gunner's seat, who aims; NULL if he isn't able
 SOLDIERTYPE* GetTankGunner(SOLDIERTYPE const& tank);
+// The whole crew is able: the cannon and the machine gun need all four
+bool PlayerTankCanFire(SOLDIERTYPE const& tank);
 // Who gets the credit for a shot: the gunner for the player's tank (or the tank
 // if nobody is able), everyone else himself
 SOLDIERTYPE* ShooterFor(SOLDIERTYPE*);

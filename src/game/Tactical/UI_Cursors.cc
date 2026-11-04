@@ -1251,6 +1251,12 @@ ItemCursor GetActionModeCursor(SOLDIERTYPE const* const pSoldier)
 		return( INVALIDCURS );
 	}
 
+	// The player's tank fires with its whole crew: else the question mark
+	if ( IsPlayerTank( *pSoldier ) && !PlayerTankCanFire( *pSoldier ) )
+	{
+		return( INVALIDCURS );
+	}
+
 	// A passenger of the tank is selected, but doesn't shoot from inside (G7)
 	if ( IsSelectablePassenger( *pSoldier ) && !CanShootFromVehicle( *pSoldier ) )
 	{

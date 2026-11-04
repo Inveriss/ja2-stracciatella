@@ -71,7 +71,7 @@ All decided as proposed (user, 2026-11-03). F1 may be revisited after stage 1.
 | F3 | During a turn? | Not while the hull is between world directions (`ubHiResDirection % 4 != 0`): it is short, and the flash has only 8 directions |
 | F4 | How does the shot look? | An overlay at the muzzle: flash and smoke, no recoil; the hull keeps driving (section 5) |
 | F5 | Rate of fire | No AP in real time, so a reload timer: a constant, first 3 seconds, tuned in the game; shown by a refusal message when clicked too early |
-| F6 | Who aims? | The tank's own stats are almost all 1 or 0 (`mercs-profile-info.json`), so the chance to hit is taken from the best marksman aboard. Nobody able aboard: no shot. Shared with stationary firing |
+| F6 | Who aims? | The tank's own stats are almost all 1 or 0 (`mercs-profile-info.json`), so the chance to hit is taken from the best marksman aboard. Nobody able aboard: no shot. **Replaced by `docs/tank-crew-roles-plan.md`, stage 4: the merc in the Gunner's seat aims, and firing needs all four.** Shared with stationary firing |
 | F7 | Ammunition | `TANK_SHELL` from the tank's cargo slots, as a passenger's reload takes ammunition from cargo; the cannon sits in `HANDPOS` (not a cargo slot) and can't be dropped. Today shells are not deducted for tanks by the AI's rule, so `Points.cc` must take the player's tank apart. Shared with stationary firing |
 | F8 | Controls | The existing action cursor toggle, for a selected tank in real time: a left click on a target fires without touching the path; a move click stays a move click |
 | F9 | Machine gun | Not in this plan |

@@ -58,7 +58,7 @@ the full implementation (user, 2026-11-03).
 
 | # | Question | Decision | State |
 |---|---|---|---|
-| G1 | Who aims? | The best marksman aboard (`F6`): his marksmanship, dexterity, experience; experience gain goes to him. Nobody able aboard: no shot | decided (F6) |
+| G1 | Who aims? | The best marksman aboard (`F6`): his marksmanship, dexterity, experience; experience gain goes to him. Nobody able aboard: no shot. **Replaced by `docs/tank-crew-roles-plan.md`, stage 4: the merc in the Gunner's seat aims, and firing needs all four** | decided (F6) |
 | G2 | Ammunition | `TANK_SHELL` from the tank's cargo slots (`F7`), one for each shot, no loading step. Out of shells: refusal with the driver's out of ammo quote | decided (F7) |
 | G3 | The cannon | Created in `HANDPOS` when the tank is created for a non-enemy team, `OBJECT_UNDROPPABLE`. It shows in the lower Armament slot of both tank panels, can't be picked up, and right click opens its description; hidden on the team panel and the map's equipment row. No repairs, no wear, no jams; a damaged tank fires as usual | **decided** (user, 2026-11-03) |
 | G4 | Who pays AP? | The tank's own 25 AP, as for driving, with the existing formula and the gunner's aim skill | **decided** (user, 2026-11-03) |

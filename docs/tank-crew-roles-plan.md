@@ -1,6 +1,6 @@
 # Player's tank: a crew of four with fixed roles — plan
 
-Status: **stages 1-3 done and verified in the game, stages 4-5 not implemented; all decisions
+Status: **stages 1-4 done and verified in the game, stage 5 not done; all decisions
 taken by the user (2026-11-04)**
 (written on Remote Control, branch `Tanks`). Changes
 decisions G1 and F6 (the gunner) of `docs/tank-cannon-firing-plan.md` and
@@ -136,8 +136,8 @@ item in the merc's hand doesn't show there and does in his inventory.
 ### Stage 3: moving
 
 - `CanVehicleDriveInTactical`: `TankCanMove` for the tank.
-- `HandleMoveModeInteractiveClick`: a new message, as a car out of fuel has: "%s needs an
-  active commander and driver." (`pVehiclePassengerStrings[5]`).
+- `HandleMoveModeInteractiveClick`: a new message, as a car out of fuel has: "An active
+  Commander and Driver are required to drive the tank." (`pVehiclePassengerStrings[5]`).
 - `CanCharacterMoveInStrategic`: for the tank, `ME_CUSTOM` with that message, counting a merc
   who can be woken (section 4).
 - `RemoveSoldierFromVehicle`: without a Commander or a Driver, a planned route is cancelled,
