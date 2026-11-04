@@ -93,7 +93,7 @@ enum VehicleMovementType
 	FOOT = 0x01,		//anywhere
 	CAR = 0x02,		//roads
 	TRUCK = 0x04,		//roads, plains, sparse
-	TRACKED = 0x08,		//roads, plains, sand, sparse
+	TRACKED = 0x08,		//anywhere on the ground but into a swamp
 	AIR = 0x10		//can traverse all terrains at 100%
 };
 

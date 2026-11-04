@@ -29,7 +29,7 @@ public:
 	// fuel (of 10000, a full tank) 100 tiles of driving on the tactical map
 	// cost on a road; twice that off the road
 	const uint16_t  tactical_fuel_per_100_tiles;
-	// minutes a CAR vehicle takes for a road sector on the strategic map
+	// minutes a CAR or TRACKED vehicle takes for a road sector on the strategic map
 	const uint8_t   travel_time_per_sector;
 	// fuel (of 10000, a full tank) one minute of strategic travel costs
 	const uint8_t   fuel_per_travel_minute;

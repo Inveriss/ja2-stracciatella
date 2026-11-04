@@ -2078,11 +2078,10 @@ INT32 FindTravelTimeBetweenWaypoints(WAYPOINT const* const pSource, WAYPOINT con
 #define FOOT_TRAVEL_TIME    89
 #define CAR_TRAVEL_TIME     30
 #define TRUCK_TRAVEL_TIME   32
-#define TRACKED_TRAVEL_TIME 46
 
 
-// The minutes for a road sector: a vehicle's own (vehicles.json), else the
-// usual time of cars
+// The minutes for a road sector: a vehicle's own (vehicles.json), cars' and
+// tracked ones', else the usual time of cars
 static INT32 CarTravelTime(GROUP const& g)
 {
 	if (g.fVehicle)
@@ -2106,6 +2105,21 @@ INT32 GetSectorMvtTimeForGroup(UINT8 const ubSector, UINT8 const direction, GROU
 	INT32       best_traverse_time = 1000000;
 
 	if (traverse_type == EDGEOFWORLD) return TRAVERSE_TIME_IMPOSSIBLE;
+
+	// Tracks go anywhere but into a swamp, whatever the way in looks like (even
+	// a road or a town's edge)
+	if (transport_mask & TRACKED && direction != THROUGH_STRATEGIC_MOVE)
+	{
+		INT32 const next = ubSector + (
+			direction == NORTH_STRATEGIC_MOVE ? -16 :
+			direction == SOUTH_STRATEGIC_MOVE ?  16 :
+			direction == EAST_STRATEGIC_MOVE  ?   1 : -1);
+		if (0 <= next && next < 256)
+		{
+			UINT8 const through = SectorInfo[next].ubTraversability[THROUGH_STRATEGIC_MOVE];
+			if (through == SWAMP || through == SWAMP_ROAD) return TRAVERSE_TIME_IMPOSSIBLE;
+		}
+	}
 
 	/* ARM: Made air-only travel take its normal time per sector even through
 	 * towns.  Because Skyrider charges by the sector, not by flying time, it's
@@ -2195,13 +2209,14 @@ INT32 GetSectorMvtTimeForGroup(UINT8 const ubSector, UINT8 const direction, GROU
 			case PLAINS:   traverse_mod = 100; break;
 			case SAND:     traverse_mod =  70; break;
 			case SPARSE:   traverse_mod =  60; break;
+			case DENSE:    traverse_mod =  50; break;
 			case HILLS:    traverse_mod =  60; break;
 			case NS_RIVER: traverse_mod =  20; break;
 			case EW_RIVER: traverse_mod =  20; break;
 			case WATER:    traverse_mod =  10; break;
 			default:       return TRAVERSE_TIME_IMPOSSIBLE;
 		}
-		INT32 const traverse_time = TRACKED_TRAVEL_TIME * 100 / traverse_mod;
+		INT32 const traverse_time = CarTravelTime(*g) * 100 / traverse_mod;
 		if (best_traverse_time > traverse_time)
 			best_traverse_time = traverse_time;
 	}
