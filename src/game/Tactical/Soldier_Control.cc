@@ -316,9 +316,17 @@ static const UINT8 gubMaxActionPoints[] =
 	AP_MAXIMUM,         // HUMVEE (drives in tactical, as a merc)
 	AP_VEHICLE_MAXIMUM, // TANK1
 	AP_VEHICLE_MAXIMUM, // TANK2
+#if CARS_IN_A9_FOR_TESTING
+	AP_MAXIMUM,         // ELDORADO
+#else
 	AP_VEHICLE_MAXIMUM, // ELDORADO
+#endif
 	AP_MAXIMUM,         // ICECREAMTRUCK (drives in tactical, as a merc)
+#if CARS_IN_A9_FOR_TESTING
+	AP_MAXIMUM,         // JEEP
+#else
 	AP_VEHICLE_MAXIMUM, // JEEP
+#endif
 	AP_VEHICLE_MAXIMUM  // HELICOPTERBODY
 };
 
@@ -4251,7 +4259,8 @@ void TurnSoldier( SOLDIERTYPE *pSoldier)
 	if ( pSoldier->uiStatusFlags & SOLDIER_VEHICLE )
 	{
 		if ( pSoldier->ubBodyType != TANK_NW && pSoldier->ubBodyType != TANK_NE &&
-			pSoldier->ubBodyType != HUMVEE && pSoldier->ubBodyType != ICECREAMTRUCK )
+			pSoldier->ubBodyType != HUMVEE && pSoldier->ubBodyType != ICECREAMTRUCK &&
+			!IsDrivingVehicleBody( *pSoldier ) )
 		{
 			return;
 		}

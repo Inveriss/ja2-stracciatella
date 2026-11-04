@@ -1,6 +1,6 @@
 # Vehicles with 8 directions — plan
 
-Status: **stage 1 done and verified in the game, stage 2 postponed to the new vehicles (E2), stage 3 done but not seen in the game, as neither vehicle is active yet: to check when they are; all decisions taken by the user (2026-11-04)** (written on
+Status: **stage 1 done and verified in the game, stage 2 postponed to the new vehicles (E2), stage 3 done and verified in the game with the switch CARS_IN_A9_FOR_TESTING; all decisions taken by the user (2026-11-04)** (written on
 Remote Control). Work goes on the branch **`Tanks`**, by the user's decision. Everything rests on reading the code and the file headers. The only thing seen in
 the game is the user's test: an APC under the Hummer's file stayed in one position.
 

@@ -174,6 +174,10 @@ void InitStrategicLayer( void )
 #if TANK_IN_A9_FOR_TESTING
 	GetProfile(GCM->getVehicle(TANK_CAR)->profile).sSector = SGPSector(9, MAP_ROW_A);
 #endif
+#if CARS_IN_A9_FOR_TESTING
+	GetProfile(GCM->getVehicle(ELDORADO_CAR)->profile).sSector = SGPSector(9, MAP_ROW_A);
+	GetProfile(GCM->getVehicle(JEEP_CAR)->profile).sSector     = SGPSector(9, MAP_ROW_A);
+#endif
 
 
 	// free up any leave list arrays that were left allocated

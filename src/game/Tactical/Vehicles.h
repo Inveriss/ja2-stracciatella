@@ -15,6 +15,9 @@
 // TEMPORARY FOR TESTING: in a new game the tank's profile is in A9, Omerta, so
 // its placement in that sector's map file (a civilian, profile 232) gets added
 #define TANK_IN_A9_FOR_TESTING 1
+// TEMPORARY FOR TESTING: the same for the Eldorado and the Jeep (civilians, profiles
+// 161 and 231, in that map file), and they drive in tactical as the Hummer does
+#define CARS_IN_A9_FOR_TESTING 1
 
 // type of vehicles
 enum{

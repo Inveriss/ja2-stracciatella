@@ -445,6 +445,9 @@ static SOLDIERTYPE* TacticalCreateSoldierImpl(SOLDIERCREATE_STRUCT const& c, SOL
 
 				case JEEP:
 					ubVehicleID = JEEP_CAR;
+#if CARS_IN_A9_FOR_TESTING
+					s->bNeutral = TRUE;
+#endif
 					break;
 
 				case TANK_NW:
