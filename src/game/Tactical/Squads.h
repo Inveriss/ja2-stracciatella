@@ -101,6 +101,9 @@ INT32 CurrentSquad( void );
 
 // add character to unique squad, returns the squad #
 INT8 AddCharacterToUniqueSquad( SOLDIERTYPE *pCharacter );
+// The first squad in his sector that can take him, else a new one: getting out of
+// a vehicle on the tactical screen
+INT8 AddCharacterToSquadInSector(SOLDIERTYPE*);
 
 // is this squad empty?
 BOOLEAN SquadIsEmpty( INT8 bSquadValue );

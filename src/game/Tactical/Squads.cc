@@ -264,6 +264,19 @@ INT8 AddCharacterToUniqueSquad(SOLDIERTYPE* const s)
 }
 
 
+INT8 AddCharacterToSquadInSector(SOLDIERTYPE* const s)
+{
+	RemoveCharacterFromSquads(s); // REDUNDANT AddCharacterToSquad()
+	for (INT8 squad = 0; squad != NUMBER_OF_SQUADS; ++squad)
+	{
+		// (AddCharacterToSquad() refuses another sector, a squad on the move, a
+		// full one, and a vehicle's to one on foot)
+		if (!SquadIsEmpty(squad) && AddCharacterToSquad(s, squad)) return squad;
+	}
+	return AddCharacterToUniqueSquad(s);
+}
+
+
 BOOLEAN SquadIsEmpty(INT8 bSquadValue)
 {
 	if (bSquadValue < 0 || bSquadValue >= NUMBER_OF_SQUADS)

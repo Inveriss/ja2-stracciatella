@@ -660,7 +660,8 @@ bool ExitHelicopterAt(SOLDIERTYPE& s, GridNo const grid_no)
 
 	s.iVehicleId = -1;
 	HandleSight(s, SIGHT_LOOK | SIGHT_RADIO);
-	AddCharacterToUniqueSquad(&s);
+	if (guiCurrentScreen == GAME_SCREEN) AddCharacterToSquadInSector(&s);
+	else AddCharacterToUniqueSquad(&s);
 
 	// can't call SetCurrentSquad OR SelectSoldier in mapscreen, that will initialize interface panels!!!
 	if (guiCurrentScreen == GAME_SCREEN)
@@ -739,7 +740,8 @@ BOOLEAN ExitVehicle(SOLDIERTYPE* const s)
 	// Update visiblity.....
 	HandleSight(*s, SIGHT_LOOK | SIGHT_RADIO);
 
-	AddCharacterToUniqueSquad(s);
+	if (guiCurrentScreen == GAME_SCREEN) AddCharacterToSquadInSector(s);
+	else AddCharacterToUniqueSquad(s);
 
 	// can't call SetCurrentSquad OR SelectSoldier in mapscreen, that will initialize interface panels!!!
 	if (guiCurrentScreen == GAME_SCREEN)
