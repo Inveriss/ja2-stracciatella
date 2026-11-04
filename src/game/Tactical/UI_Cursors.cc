@@ -181,7 +181,10 @@ UICursorID GetProperItemCursor(SOLDIERTYPE* const s, GridNo const map_pos, BOOLE
 		case JARCURS:     cursor = HandleJarCursor(       s, tgt_grid_no,            cursor_flags); break;
 		case TINCANCURS:  cursor = HandleTinCanCursor(    s, tgt_grid_no,            cursor_flags); break;
 		case REFUELCURS:  cursor = HandleRefuelCursor(    s, tgt_grid_no,            cursor_flags); break;
-		case INVALIDCURS: cursor = INVALID_ACTION_UICURSOR; break;
+		case INVALIDCURS:
+			// the player's tank without its whole crew: the X, as for moving
+			cursor = IsPlayerTank(*s) && !PlayerTankCanFire(*s) ? FLOATING_X_UICURSOR : INVALID_ACTION_UICURSOR;
+			break;
 		default:
 			break;
 	}
@@ -1251,7 +1254,8 @@ ItemCursor GetActionModeCursor(SOLDIERTYPE const* const pSoldier)
 		return( INVALIDCURS );
 	}
 
-	// The player's tank fires with its whole crew: else the question mark
+	// The player's tank fires with its whole crew: else the X, and a click says
+	// why (HandleUIReloading())
 	if ( IsPlayerTank( *pSoldier ) && !PlayerTankCanFire( *pSoldier ) )
 	{
 		return( INVALIDCURS );

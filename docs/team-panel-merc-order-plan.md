@@ -161,7 +161,7 @@ stays with the slot; a click on an arrow doesn't reach the map beneath.
 Check, the tank above all: Loader to Gunner with one click, then firing with him; a merc into
 an empty role; Commander left to Loader and Loader right to Commander, the others shifting;
 the Driver moved from the tank selected, then clicked further; `TankCanMove` and `TankCanFire`
-turning at once, with the question mark; experience to the new Gunner.
+turning at once, with the red X; experience to the new Gunner.
 
 ### Stage 4: the whole in play
 

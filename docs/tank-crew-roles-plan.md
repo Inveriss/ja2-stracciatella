@@ -19,8 +19,8 @@ The tank is run by a crew, as closely to the real thing as the game allows.
 5. In tactical, those getting in take the next role in the fixed order. On the strategic
    screen they get in by the current rules.
 6. Moving needs at least Commander and Driver, in tactical and on the strategic map.
-7. The cannon and the machine gun need all four. With fewer, a question mark replaces the
-   firing cursor. Turn-based and real time alike.
+7. The cannon and the machine gun need all four. With fewer, the red X replaces the
+   firing cursor, and a click says why. Turn-based and real time alike.
 
 The earlier requirement that those behind move up when someone gets out is removed from the
 plan (user, 2026-11-04). R8 says where a newcomer sits instead.
@@ -43,8 +43,8 @@ Checked in the code; nothing here has been tried in the game.
 | Who aims | `GetTankGunner` | Best marksman aboard | The Gunner's seat |
 | Firing | `GetActionModeCursor`, `HandleItem` | Refuses with no gunner, by a message | Question mark with fewer than four |
 
-The question mark exists: `INVALIDCURS` gives `INVALID_ACTION_UICURSOR`, drawn from
-`cursors/que.sti` (the graphic was checked). The tank itself takes no slot in `gTeamPanel`,
+The red X (`FLOATING_X_UICURSOR`) is the one moving already shows; the user chose it over the
+question mark after stage 4. The tank itself takes no slot in `gTeamPanel`,
 so slots 0-3 are free for the crew; the 1366x768 panel shows its portrait in a window of
 its own, before the slots.
 
@@ -149,7 +149,7 @@ and the Driver gets out; Commander asleep when the route is given; an EPC in the
 
 ### Stage 4: firing
 
-- `GetActionModeCursor`: `INVALIDCURS`, the question mark, for a tank without
+- `GetActionModeCursor`: `INVALIDCURS`, shown as the red X, for a tank without
   `TankCanFire`. This also covers the machine gun and `HandleUIReloading`.
 - `GetTankGunner`: the Gunner's seat, not the best marksman (G1, F6), if
   `IsTankRoleManned`, else `NULL`. The guard for a shot credited after the wreck's vehicle
@@ -158,7 +158,7 @@ and the Driver gets out; Commander asleep when the route is given; an EPC in the
   so "nobody aboard able to aim" should now never show.
 
 Check: 1, 2, 3 and 4 aboard with both weapons, in turns and real time; a member knocked out
-or put to sleep turns the cursor back to the question mark; experience and kills to the
+or put to sleep turns the cursor back to the red X; experience and kills to the
 third seat's merc, whatever the others' skill.
 
 ### Stage 5: the whole in play

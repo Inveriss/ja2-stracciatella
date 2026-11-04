@@ -201,7 +201,7 @@ ItemHandleResult HandleItem(SOLDIERTYPE* const s, INT16 usGridNo, const INT8 bLe
 			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, st_format_printf(pVehiclePassengerStrings[3], s->name));
 			return ITEM_HANDLE_REFUSAL;
 		}
-		// the cursor's question mark already says so
+		// the cursor's X and the click's message already say so
 		if (!PlayerTankCanFire(*s)) return ITEM_HANDLE_REFUSAL;
 		if (IsVehicleMoving(*s))
 		{

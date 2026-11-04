@@ -3206,6 +3206,14 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 
 BOOLEAN HandleUIReloading(SOLDIERTYPE* pSoldier)
 {
+	// (the first thing a click in action mode asks, in turns and real time: it
+	// takes the click) the player's tank without its whole crew
+	if (IsPlayerTank(*pSoldier) && !PlayerTankCanFire(*pSoldier))
+	{
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, pVehiclePassengerStrings[6]);
+		return TRUE;
+	}
+
 	INT8 bAPs = 0;
 
 	// CHECK OUR CURRENT CURSOR...
