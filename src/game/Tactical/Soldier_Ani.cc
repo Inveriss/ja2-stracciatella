@@ -730,7 +730,9 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 						// END: GOTO AIM STANCE BASED ON HEIGHT
 						// If we are a robot - we need to do stuff different here
 						UINT16 state;
-						if ( AM_A_ROBOT( pSoldier ) )
+						// -- as the player's tank: it has no aiming animation, so its burst
+						// would run on to the end of TANK_BURST's 6 shots
+						if ( AM_A_ROBOT( pSoldier ) || IsPlayerTank( *pSoldier ) )
 						{
 							state = STANDING;
 						}
