@@ -1,6 +1,6 @@
 # Team panel: moving a merc between slots with two arrows — plan
 
-Status: **plan, not implemented, all decisions taken by the user (2026-11-04)**
+Status: **done, all stages verified in the game by the user (2026-11-04); the arrows keep their placeholder position for now**
 (written on Remote Control). Work goes on the branch **`Tanks`**, by
 the user's decision. Above all, this is **how a tank's crew chooses its roles**: it is the
 "next change" of `docs/tank-crew-roles-plan.md`. A merc in the wrong role, Loader instead of
