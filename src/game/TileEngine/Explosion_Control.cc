@@ -868,7 +868,9 @@ BOOLEAN DishOutGasDamage(SOLDIERTYPE* const pSoldier, const SmokeEffectModel* sm
 		}
 		// a gas effect, take damage directly...
 		SoldierTakeDamage(pSoldier, sWoundAmt, sBreathAmt, TAKE_DAMAGE_GAS, NULL);
-		if ( pSoldier->bLife >= CONSCIOUSNESS )
+		// (not the tank: a sound for a vehicle comes from someone aboard, who breathes
+		// no gas in there)
+		if ( pSoldier->bLife >= CONSCIOUSNESS && !IsPlayerTank( *pSoldier ) )
 		{
 			DoMercBattleSound(pSoldier, BATTLE_SOUND_HIT1);
 		}

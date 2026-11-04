@@ -5595,6 +5595,8 @@ UINT8 SoldierTakeDamage(SOLDIERTYPE* const pSoldier, INT16 sLifeDeduct, INT16 sB
 		}
 
 		VehicleTakeDamage(pSoldier->bVehicleID, ubReason, sLifeDeduct, pSoldier->sGridNo, attacker);
+		// gas does nothing to the tank: no sounds from those aboard, who breathe none
+		if ( ubReason == TAKE_DAMAGE_GAS && IsPlayerTank( *pSoldier ) ) return( 0 );
 		HandleTakeDamageDeath( pSoldier, bOldLife, ubReason );
 		return( 0 );
 	}
