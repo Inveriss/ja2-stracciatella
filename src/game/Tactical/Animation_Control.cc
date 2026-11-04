@@ -373,13 +373,13 @@ const ANI_SPEED_DEF gubAnimWalkSpeeds[TOTALBODYTYPES] =
 	{  20, 1.6f },// CROW
 	{   0, 1.2f },// BLOOD CAT
 	{  20, 1.1f },// ROBOT1
-	{ -10, 4.0f },// HUMVEE
+	{ -10, 3.0f },// HUMVEE
 
-	{ -10, 1.3f },// TANK_NW
-	{ -10, 1.3f },// TANK_NE
+	{ -10, 1.0f },// TANK_NW
+	{ -10, 1.0f },// TANK_NE
 	{ -10, 4.0f },// ELDORADO
 	{ -10, 4.0f },// ICECREAMTRUCK
-	{ -10, 4.0f },// JEEP
+	{ -10, 2.0f },// JEEP
 	{ -10, 4.0f },// HELICOPTERBODY
 };
 
