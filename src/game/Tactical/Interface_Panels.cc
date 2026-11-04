@@ -4227,7 +4227,17 @@ static MOUSE_REGION gBigTeamPanelVehicleFace[BIG_TEAMPANEL_MAX_VEHICLES];
 // the seat belt in the second hand's window (the low panel: the first's) --
 // everyone aboard gets out
 static MOUSE_REGION gBigTeamPanelVehicleExit[BIG_TEAMPANEL_MAX_VEHICLES];
+// the player's tank: the weapon it fires in the first hand's window (the low
+// panel has no room beside the seat belt), a click changes it
+static MOUSE_REGION gBigTeamPanelVehicleWeapon[BIG_TEAMPANEL_MAX_VEHICLES];
 static bool         gfBigTeamPanelVehicleRegions = false;
+
+
+// This window shows the weapon: the player's tank with someone aboard
+static bool BigTeamVehicleShowsWeapon(SOLDIERTYPE const& v)
+{
+	return !g_ui.isLowTeamPanel() && IsPlayerTank(v) && GetNumberInVehicle(GetVehicle(v.bVehicleID)) != 0;
+}
 
 
 // The top of a vehicle window's seat belt window
@@ -4409,16 +4419,26 @@ static void LayoutBigTEAMPanelRegions()
 		{
 			MOUSE_REGION& r = gBigTeamPanelVehicleFace[i];
 			MOUSE_REGION& e = gBigTeamPanelVehicleExit[i];
+			MOUSE_REGION& w = gBigTeamPanelVehicleWeapon[i];
 			if (i < giBigTeamPanelNumVehicles)
 			{
 				INT32 const x = TEAM_PANEL_X + i * BIG_TEAMPANEL_SLOT_WIDTH;
 				PlaceRegion(r, x + BIG_TM_FACE_X, dy + BIG_TM_FACE_Y, BIG_TM_FACE_WIDTH, BIG_TM_FACE_HEIGHT);
 				PlaceRegion(e, x + BIG_TM_INV_X, BigTeamVehicleExitY(), BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
+				if (g_ui.isLowTeamPanel())
+				{
+					PlaceRegion(w, OFF_SCREEN, OFF_SCREEN, 0, 0);
+				}
+				else
+				{
+					PlaceRegion(w, x + BIG_TM_INV_X, dy + BIG_TM_INV_Y, BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT);
+				}
 			}
 			else
 			{
 				PlaceRegion(r, OFF_SCREEN, OFF_SCREEN, 0, 0);
 				PlaceRegion(e, OFF_SCREEN, OFF_SCREEN, 0, 0);
+				PlaceRegion(w, OFF_SCREEN, OFF_SCREEN, 0, 0);
 			}
 		}
 	}
@@ -4669,11 +4689,21 @@ static void BigTeamVehicleExitCallback(MOUSE_REGION* const r, UINT32)
 }
 
 
+// the tank's weapon: either button changes it, as Ctrl+Q
+static void BigTeamVehicleWeaponCallback(MOUSE_REGION* const r, UINT32)
+{
+	SOLDIERTYPE* const v = BigTeamPanelVehicleOf(r);
+	if (!v || fInMapMode || gpItemPointer || !BigTeamVehicleShowsWeapon(*v)) return;
+	SwapTankWeapons(*v);
+}
+
+
 static void CreateBigTEAMPanelRegions()
 {
 	// the vehicles' portraits and seat belts
 	MOUSE_CALLBACK const vehicle_face = MouseCallbackPrimarySecondary(BigTeamVehicleFaceCallbackPrimary, BigTeamVehicleFaceCallbackSecondary, BigTEAMPanelWheelCallback, true);
 	MOUSE_CALLBACK const vehicle_exit = MouseCallbackPrimarySecondary(BigTeamVehicleExitCallback, MSYS_NO_CALLBACK, BigTEAMPanelWheelCallback);
+	MOUSE_CALLBACK const vehicle_weapon = MouseCallbackPrimarySecondary(BigTeamVehicleWeaponCallback, BigTeamVehicleWeaponCallback, BigTEAMPanelWheelCallback);
 	for (INT32 i = 0; i != BIG_TEAMPANEL_MAX_VEHICLES; ++i)
 	{
 		MOUSE_REGION& r = gBigTeamPanelVehicleFace[i];
@@ -4682,6 +4712,9 @@ static void CreateBigTEAMPanelRegions()
 		MOUSE_REGION& e = gBigTeamPanelVehicleExit[i];
 		MSYS_DefineRegion(&e, 0, 0, 0, 0, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, vehicle_exit);
 		MSYS_SetRegionUserData(&e, 0, i);
+		MOUSE_REGION& w = gBigTeamPanelVehicleWeapon[i];
+		MSYS_DefineRegion(&w, 0, 0, 0, 0, MSYS_PRIORITY_NORMAL, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, vehicle_weapon);
+		MSYS_SetRegionUserData(&w, 0, i);
 	}
 	gfBigTeamPanelVehicleRegions = true;
 	UpdateBigTeamPanelVehicles();
@@ -4826,6 +4859,7 @@ void ShutdownTEAMPanel()
 	{
 		for (MOUSE_REGION& r : gBigTeamPanelVehicleFace) MSYS_RemoveRegion(&r);
 		for (MOUSE_REGION& r : gBigTeamPanelVehicleExit) MSYS_RemoveRegion(&r);
+		for (MOUSE_REGION& r : gBigTeamPanelVehicleWeapon) MSYS_RemoveRegion(&r);
 		gfBigTeamPanelVehicleRegions = false;
 	}
 
@@ -5030,6 +5064,8 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 				exit_help = TacticalStr[EXIT_VEHICLE_POPUPTEXT];
 			}
 			gBigTeamPanelVehicleExit[n].SetFastHelpText(exit_help);
+			gBigTeamPanelVehicleWeapon[n].SetFastHelpText(
+				BigTeamVehicleShowsWeapon(v) ? GetHelpTextForItem(v.inv[HANDPOS]) : ST::string());
 		}
 
 		bool const tank_roles = TeamPanelShowsTankRoles();
@@ -5175,6 +5211,12 @@ void RenderTEAMPanel(DirtyLevel dirty_level)
 			INT32        const vx = TEAM_PANEL_X + n * BIG_TEAMPANEL_SLOT_WIDTH;
 			DrawSoldierUIBarsTall(*v, vx + BIG_TM_LIFEBAR_X, vx + BIG_TM_BREATHBAR_X, vx + BIG_TM_MORALEBAR_X,
 						TEAM_PANEL_Y + BIG_TM_BARS_Y, BIG_TM_BAR_WIDTH, BIG_TM_BAR_HEIGHT, FRAME_BUFFER);
+			if (BigTeamVehicleShowsWeapon(*v))
+			{
+				static InvItemTextLayout const big_text = GetMapInvBigItemTextLayout();
+				INVRenderItem(guiSAVEBUFFER, v, v->inv[HANDPOS], vx + BIG_TM_INV_X, TEAM_PANEL_Y + BIG_TM_INV_Y,
+					BIG_TM_INV_WIDTH, BIG_TM_INV_HEIGHT, dirty_level, 0, SGP_TRANSPARENT, TRUE, &big_text);
+			}
 			if (IsDrivingVehicleBody(*v))
 			{
 				PrintAP(v, vx + BIG_TM_AP_X, TEAM_PANEL_Y + BIG_TM_AP_Y, BIG_TM_AP_WIDTH, BIG_TM_AP_HEIGHT, BIG_TM_FONT);
