@@ -3124,6 +3124,11 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, pVehiclePassengerStrings[5]);
 				return -3;
 			}
+			if (!out_of_fuel && !IsTankVehicle(v) && IsDrivingVehicleBody(*sel) && !CarCanMove(v))
+			{
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, pVehiclePassengerStrings[7]);
+				return -3;
+			}
 			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK,
 				out_of_fuel ? gzLateLocalizedString[STR_LATE_62] : TacticalStr[VEHICLE_CANT_MOVE_IN_TACTICAL]);
 			return -3;

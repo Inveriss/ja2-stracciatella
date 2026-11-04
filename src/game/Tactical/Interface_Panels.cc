@@ -6434,10 +6434,10 @@ bool MoveMercOnTeamPanel(SOLDIERTYPE const& s, bool const right)
 
 		if (v.ubVehicleType != HELICOPTER)
 		{
-			// who drives, by seat; the first aboard in the cars
+			// who drives, by seat
 			if (IsTankVehicle(v)) UpdateTankCrewFlags(v);
 			else UpdateCarDriverFlags(v);
-			CancelTankRouteWithoutCrew(v);
+			CancelRouteWithoutDriver(v);
 
 			CFOR_EACH_PASSENGER(v, i) CrouchShootingPassenger(**i);
 

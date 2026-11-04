@@ -4126,6 +4126,12 @@ static MoveError CanCharacterMoveInStrategic(SOLDIERTYPE& s)
 			gsCustomErrorString = pVehiclePassengerStrings[5];
 			return ME_CUSTOM;
 		}
+		// A car without its Driver?
+		if (!IsTankVehicle(v) && !CarCanTravel(v))
+		{
+			gsCustomErrorString = pVehiclePassengerStrings[7];
+			return ME_CUSTOM;
+		}
 	}
 	else // Non-vehicle
 	{

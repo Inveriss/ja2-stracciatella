@@ -9369,13 +9369,14 @@ static void WakeUpAnySleepingSelectedMercsOnFootOrDriving()
 	{
 		SOLDIERTYPE& s = *i->merc;
 
-		// the tank's Commander and Driver, even with only the tank selected
-		if (s.uiStatusFlags & SOLDIER_VEHICLE && IsTankVehicle(GetVehicle(s.bVehicleID)))
+		// a vehicle's Driver and the tank's Commander, even with only the vehicle
+		// selected
+		if (s.uiStatusFlags & SOLDIER_VEHICLE && !IsHelicopterSoldier(s))
 		{
 			VEHICLETYPE const& v = GetVehicle(s.bVehicleID);
-			for (TankRole const role : { TANK_COMMANDER, TANK_DRIVER })
+			SOLDIERTYPE* const seats[] = { v.pPassengers[0], IsTankVehicle(v) ? GetTankCrewMember(v, TANK_DRIVER) : NULL };
+			for (SOLDIERTYPE* const p : seats)
 			{
-				SOLDIERTYPE* const p = GetTankCrewMember(v, role);
 				if (p && p->fMercAsleep) SetMercAwake(p, TRUE, FALSE);
 			}
 			continue;

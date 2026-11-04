@@ -272,7 +272,7 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 			AddPlayerToGroup(*GetGroup(v.ubMovementGroup), s);
 		}
 
-		// Who drives: in the tank the seat decides, in the cars the first merc aboard
+		// Who drives: the seat decides, in the cars the first one
 		if (IsTankVehicle(v))
 		{
 			UpdateTankCrewFlags(v);
@@ -297,9 +297,8 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 			// Stop from any movement.....
 			EVENT_StopMerc(&s);
 
-			// a passenger who may shoot from inside crouches (also a driver the
-			// newcomer took the first seat from)
-			CFOR_EACH_PASSENGER(v, i) CrouchShootingPassenger(**i);
+			// a passenger who may shoot from inside crouches
+			CrouchShootingPassenger(s);
 
 			// can't call SetCurrentSquad OR SelectSoldier in mapscreen,
 			// that will initialize interface panels!!!
@@ -366,31 +365,7 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 
 	s.ubGroupID      = 0;
 	s.sSector        = v.sSector;
-	bool const was_driver = s.uiStatusFlags & SOLDIER_DRIVER;
 	s.uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
-
-	// The driver got out of a ground vehicle: the passenger in the next seat
-	// takes the wheel (else nobody would be the driver until the vehicle is
-	// emptied). In the tank the Driver's seat just stays empty.
-	if (was_driver && !IsHelicopter(v) && !IsTankVehicle(v))
-	{
-		for (INT32 k = 1; k != seats; ++k)
-		{
-			SOLDIERTYPE* const p = v.pPassengers[(seat + k) % seats];
-			if (!p) continue;
-			p->uiStatusFlags &= ~SOLDIER_PASSENGER;
-			p->uiStatusFlags |= SOLDIER_DRIVER;
-			// selected as a passenger (passenger shooting, stage 1): the driver
-			// is not selectable on his own, the vehicle is selected instead
-			if (p == GetSelectedMan() && guiCurrentScreen == GAME_SCREEN)
-			{
-				SelectSoldier(&GetSoldierStructureForVehicle(v), SELSOLDIER_FORCE_RESELECT);
-			}
-			fInterfacePanelDirty = DIRTYLEVEL2;
-			fTeamPanelDirty      = TRUE;
-			break;
-		}
-	}
 
 	if (IsHelicopter(v))
 	{
@@ -413,7 +388,7 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 	}
 	else
 	{
-		CancelTankRouteWithoutCrew(v);
+		CancelRouteWithoutDriver(v);
 
 		// check if anyone left in vehicle
 		CFOR_EACH_PASSENGER(v, i) return true;
@@ -1097,22 +1072,6 @@ static bool CanSoldierDriveVehicle(SOLDIERTYPE const& s, INT32 const vehicle_id,
 }
 
 
-static bool OnlyThisSoldierCanDriveVehicle(SOLDIERTYPE const& s, INT32 const vehicle_id)
-{
-	CFOR_EACH_IN_TEAM(i, OUR_TEAM)
-	{
-		SOLDIERTYPE const& other = *i;
-		// Skip checking this soldier, we want to know about everyone else
-		if (&other == &s) continue;
-		// Don't count mercs who are asleep here
-		if (!CanSoldierDriveVehicle(other, vehicle_id, false)) continue;
-		// This guy can drive it, too
-		return false;
-	}
-	return true;
-}
-
-
 INT16 VehicleTacticalFuelCost(SOLDIERTYPE const& vs, GridNo const grid_no)
 {
 	INT32 per_100_tiles = GCM->getVehicle(pVehicleList[vs.bVehicleID].ubVehicleType)->tactical_fuel_per_100_tiles;
@@ -1231,15 +1190,33 @@ SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const& v, TankRole const role)
 }
 
 
-static bool IsTankSeatAble(VEHICLETYPE const& v, TankRole const role, bool const ignore_asleep)
+static bool IsCrewSeatAble(VEHICLETYPE const& v, INT32 const seat, bool const ignore_asleep)
 {
-	SOLDIERTYPE const* const s = GetTankCrewMember(v, role);
+	SOLDIERTYPE const* const s = v.pPassengers[seat];
 	if (!s) return false;
 	if (s->bLife < OKLIFE) return false;
 	if (!ignore_asleep && (s->fMercAsleep || s->bCollapsed)) return false;
 	if (s->bBreathMax <= BREATHMAX_ABSOLUTE_MINIMUM) return false;
-	if (AM_AN_EPC(s) || AM_A_ROBOT(s)) return false;
-	return role != TANK_GUNNER || s->bMarksmanship > 0;
+	return !AM_AN_EPC(s) && !AM_A_ROBOT(s);
+}
+
+
+static bool IsTankSeatAble(VEHICLETYPE const& v, TankRole const role, bool const ignore_asleep)
+{
+	if (!IsCrewSeatAble(v, role, ignore_asleep)) return false;
+	return role != TANK_GUNNER || GetTankCrewMember(v, role)->bMarksmanship > 0;
+}
+
+
+bool CarCanMove(VEHICLETYPE const& v)
+{
+	return IsCrewSeatAble(v, 0, false);
+}
+
+
+bool CarCanTravel(VEHICLETYPE const& v)
+{
+	return IsCrewSeatAble(v, 0, true);
 }
 
 
@@ -1284,23 +1261,25 @@ void UpdateTankCrewFlags(VEHICLETYPE const& v)
 }
 
 
-void CancelTankRouteWithoutCrew(VEHICLETYPE& v)
+void CancelRouteWithoutDriver(VEHICLETYPE& v)
 {
-	if (!IsTankVehicle(v)) return;
-	if (GetTankCrewMember(v, TANK_COMMANDER) && GetTankCrewMember(v, TANK_DRIVER)) return;
+	bool const crewed = IsTankVehicle(v) ?
+		GetTankCrewMember(v, TANK_COMMANDER) && GetTankCrewMember(v, TANK_DRIVER) :
+		v.pPassengers[0] != NULL;
+	if (crewed) return;
 	if (GetLengthOfMercPath(&GetSoldierStructureForVehicle(v)) > 0) CancelPathForVehicle(v, FALSE);
 }
 
 
 void UpdateCarDriverFlags(VEHICLETYPE const& v)
 {
-	bool first = true;
-	CFOR_EACH_PASSENGER(v, i)
+	INT32 const seats = GetVehicleSeats(v);
+	for (INT32 seat = 0; seat != seats; ++seat)
 	{
-		SOLDIERTYPE& s = **i;
-		s.uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
-		s.uiStatusFlags |= first ? SOLDIER_DRIVER : SOLDIER_PASSENGER;
-		first = false;
+		SOLDIERTYPE* const s = v.pPassengers[seat];
+		if (!s) continue;
+		s->uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
+		s->uiStatusFlags |= seat == 0 ? SOLDIER_DRIVER : SOLDIER_PASSENGER;
 	}
 }
 
@@ -1372,17 +1351,7 @@ bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs)
 	if (v.fDestroyed || !OKUseVehicle(GCM->getVehicle(v.ubVehicleType)->profile)) return false;
 	if (vs.sBreathRed <= 0) return false; // (no fuel)
 
-	if (IsTankVehicle(v)) return TankCanMove(v);
-
-	// someone aboard who can drive
-	CFOR_EACH_PASSENGER(v, i)
-	{
-		SOLDIERTYPE const& s = **i;
-		if (s.bLife < OKLIFE || s.fMercAsleep || s.bCollapsed) continue;
-		if (AM_AN_EPC(&s) || AM_A_ROBOT(&s)) continue;
-		return true;
-	}
-	return false;
+	return IsTankVehicle(v) ? TankCanMove(v) : CarCanMove(v);
 }
 
 
@@ -1400,13 +1369,13 @@ bool SoldierMustDriveVehicle(SOLDIERTYPE const& s, bool const trying_to_travel)
 	// one aboard who can do so? If there are multiple possible drivers, than the
 	// assumption is that this guy isn't driving, so he can sleep.
 	if (!CanSoldierDriveVehicle(s, vehicle_id, true))   return false;
-	// the tank needs both its Commander and its Driver, whoever else is aboard
+	// the tank needs both its Commander and its Driver, a car the first seat's,
+	// whoever else is aboard
 	if (IsTankVehicle(v))
 	{
 		return &s == GetTankCrewMember(v, TANK_COMMANDER) || &s == GetTankCrewMember(v, TANK_DRIVER);
 	}
-	if (!OnlyThisSoldierCanDriveVehicle(s, vehicle_id)) return false;
-	return true;
+	return &s == v.pPassengers[0];
 }
 
 

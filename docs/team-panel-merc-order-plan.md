@@ -72,7 +72,7 @@ All taken by the user, 2026-11-04.
 | P5 | Which panels? | **Only the Bottom Bar**: the 1366x768 team panel, full and low. Not the map screen, and not the old panels. Not the SM panel either, which shows no slots |
 | P6 | When is the merc's place lost? | **When he changes squad.** Nothing extra to write. Boarding or leaving a vehicle is a change of squad in the game: a vehicle has a squad of its own |
 | P7 | Who moves in the helicopter, where nobody can be selected? | **A click on a passenger's portrait marks him** with the selected border, for the arrows only. The helicopter stays the selected soldier, so no order can go to someone in the air |
-| P8 | Hummer and other cars: does the driver change when slots change? | **Yes: the first merc aboard drives**, as the tank has a fixed seat. It is the one way to choose the driver, and it matters, as the driver can't shoot from inside. The helicopter isn't affected, as Skyrider flies it |
+| P8 | Hummer and other cars: does the driver change when slots change? | **Yes: the first seat is the Driver's**, as the tank has a fixed seat; empty, nobody drives (user, 2026-11-04). It is the one way to choose the driver, and it matters, as the driver can't shoot from inside. The helicopter isn't affected, as Skyrider flies it |
 | P9 | The tank selected: who moves? Its Driver and Gunner both select it and show as selected | **The last one clicked** (user, 2026-11-04): a click on the Gunner or his slot's key means the Gunner; a click on the Driver, his key or the tank's portrait means the Driver. A small state, not saved. Whether the chosen one needs a mark of his own is to be judged in the game |
 
 Also, by default and with no decision needed:
