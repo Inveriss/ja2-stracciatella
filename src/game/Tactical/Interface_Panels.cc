@@ -4500,6 +4500,19 @@ static void BigTEAMPanelWheelCallback(MOUSE_REGION*, UINT32 const reason)
 }
 
 
+// Scrolls that slot into sight. Returns whether the panel scrolled.
+static bool ScrollBigTeamPanelToSlot(INT32 const i)
+{
+	INT32 first = giBigTeamPanelFirstSlot;
+	if (i < first)                                  first = i;
+	else if (first + BigTeamPanelMercWindows() <= i) first = i - BigTeamPanelMercWindows() + 1;
+	if (first == giBigTeamPanelFirstSlot) return false;
+	giBigTeamPanelFirstSlot = first;
+	LayoutBigTEAMPanelRegions();
+	return true;
+}
+
+
 // Scrolls the selected merc into sight once, when the selection changes
 // (Prev/Next, keys, a click in the world) -- the wheel may then scroll away
 // from him. Returns whether the panel scrolled.
@@ -4513,13 +4526,7 @@ static bool FollowSelectedMercOnBigTEAMPanel()
 	for (INT32 i = 0; i != (INT32)gTeamPanel.size(); ++i)
 	{
 		if (gTeamPanel[i].merc != sel) continue;
-		INT32 first = giBigTeamPanelFirstSlot;
-		if (i < first)                                  first = i;
-		else if (first + BigTeamPanelMercWindows() <= i) first = i - BigTeamPanelMercWindows() + 1;
-		if (first == giBigTeamPanelFirstSlot) return false;
-		giBigTeamPanelFirstSlot = first;
-		LayoutBigTEAMPanelRegions();
-		return true;
+		return ScrollBigTeamPanelToSlot(i);
 	}
 	return false;
 }
@@ -4556,11 +4563,38 @@ static std::vector<SOLDIERTYPE*> HelicopterPassengersInSector(SOLDIERTYPE const&
 }
 
 
+static void RemovePlayerFromInterfaceTeamSlot(TeamPanelSlot&);
+
+
+// Those aboard a vehicle: a slot's number is a seat's, for the tank its role, and
+// a gap stays a gap
+static void ShowPassengersOnTeamPanel(VEHICLETYPE const& v, bool const only_in_sector)
+{
+	INT32 const size  = (INT32)gTeamPanel.size();
+	INT32 const seats = GetVehicleSeats(v);
+	for (INT32 seat = 0; seat != seats; ++seat)
+	{
+		SOLDIERTYPE* const s = v.pPassengers[seat];
+		if (!s || (only_in_sector && !s->bInSector)) continue;
+		if (seat >= size) // (more seats than slots: wherever there is room)
+		{
+			AddPlayerToInterfaceTeamSlot(s);
+			continue;
+		}
+		if (gTeamPanel[seat].merc == s) continue;
+		RemovePlayerFromTeamSlot(s);
+		if (gTeamPanel[seat].merc) RemovePlayerFromInterfaceTeamSlot(gTeamPanel[seat]);
+		gTeamPanel[seat].merc = s;
+		fInterfacePanelDirty  = DIRTYLEVEL2;
+	}
+}
+
+
 static void ShowHelicopterPassengersView(SOLDIERTYPE const& hs)
 {
 	RemoveAllPlayersFromSlot();
 	SetAllAutoFacesInactive();
-	for (SOLDIERTYPE* const s : HelicopterPassengersInSector(hs)) AddPlayerToInterfaceTeamSlot(s);
+	ShowPassengersOnTeamPanel(GetVehicle(hs.bVehicleID), true);
 	gfHelicopterPassengersView = true;
 	giBigTeamPanelFirstSlot    = 0;
 	LayoutBigTEAMPanelRegions();
@@ -6180,19 +6214,109 @@ void RenderTownIDString(void)
 }
 
 
-// The tank's crew: a slot's number is its seat's, its role. A gap stays a gap.
-static void ShowTankCrewOnTeamPanel(VEHICLETYPE const& v)
+// The current squad's members keep the squad's order among the slots they hold;
+// dead mercs and gaps stay where they are (docs/team-panel-merc-order-plan.md)
+static void SyncTeamPanelOrderWithSquad()
 {
-	INT32 const seats = std::min((INT32)GetVehicleSeats(v), (INT32)gTeamPanel.size());
-	for (INT32 seat = 0; seat != seats; ++seat)
+	if (gfHelicopterPassengersView) return;
+	INT32 const squad = CurrentSquad();
+	if (squad < 0 || squad >= NUMBER_OF_SQUADS) return;
+	if (DoesVehicleExistInSquad(squad)) return; // (a slot's number is a seat's)
+
+	auto const& members = Squad[squad];
+	std::vector<TeamPanelSlot*> slots;
+	for (TeamPanelSlot& tp : gTeamPanel)
 	{
-		SOLDIERTYPE* const s = v.pPassengers[seat];
-		if (!s || gTeamPanel[seat].merc == s) continue;
-		RemovePlayerFromTeamSlot(s);
-		if (gTeamPanel[seat].merc) RemovePlayerFromInterfaceTeamSlot(gTeamPanel[seat]);
-		gTeamPanel[seat].merc = s;
-		fInterfacePanelDirty  = DIRTYLEVEL2;
+		if (tp.merc && std::find(members.begin(), members.end(), tp.merc) != members.end()) slots.push_back(&tp);
 	}
+
+	auto slot = slots.begin();
+	FOR_EACH_IN_SQUAD(i, squad)
+	{
+		if (!PlayerExistsInSlot(*i)) continue;
+		if ((*slot)->merc != *i)
+		{
+			// (he is in a later slot of the list: they swap, and the list goes on)
+			auto const other = std::find_if(slot, slots.end(), [&](TeamPanelSlot* tp) { return tp->merc == *i; });
+			std::swap((*slot)->merc, (*other)->merc);
+			fInterfacePanelDirty = DIRTYLEVEL2;
+		}
+		++slot;
+	}
+}
+
+
+bool MoveMercOnTeamPanel(SOLDIERTYPE const& s, bool const right)
+{
+	if (!g_ui.isBigTeamPanel() || gfHelicopterPassengersView) return false;
+	if (gTacticalStatus.ubAttackBusyCount > 0) return false;
+
+	bool const aboard = IsAboard(s);
+	if (aboard && IsVehicleMoving(GetSoldierStructureForVehicle(GetVehicle(s.iVehicleId)))) return false;
+
+	INT32 const size = (INT32)gTeamPanel.size();
+	INT32 slot = -1;
+	INT32 last = -1;
+	for (INT32 i = 0; i != size; ++i)
+	{
+		if (!gTeamPanel[i].merc) continue;
+		last = i;
+		if (gTeamPanel[i].merc == &s) slot = i;
+	}
+	if (slot == -1) return false;
+
+	// the tank: always its roles, even empty ones; else up to the last one shown
+	INT32 const range = aboard && IsTankVehicle(GetVehicle(s.iVehicleId)) ?
+		std::min<INT32>(NUM_TANK_ROLES, size) : last + 1;
+	if (range < 2) return false;
+
+	// a swap with the neighbour; from an end to the other, the others shift by one
+	std::vector<SOLDIERTYPE*> order;
+	for (INT32 i = 0; i != range; ++i) order.push_back(gTeamPanel[i].merc);
+	INT32 new_slot;
+	if (right && slot == range - 1)
+	{
+		new_slot = 0;
+		std::rotate(order.begin(), order.end() - 1, order.end());
+	}
+	else if (!right && slot == 0)
+	{
+		new_slot = range - 1;
+		std::rotate(order.begin(), order.begin() + 1, order.end());
+	}
+	else
+	{
+		new_slot = slot + (right ? 1 : -1);
+		std::swap(order[slot], order[new_slot]);
+	}
+	for (INT32 i = 0; i != range; ++i) gTeamPanel[i].merc = order[i];
+
+	// and into the lists the game saves
+	if (aboard)
+	{
+		VEHICLETYPE& v = GetVehicle(s.iVehicleId);
+		INT32 const seats = std::min((INT32)GetVehicleSeats(v), size);
+		for (INT32 seat = 0; seat != seats; ++seat)
+		{
+			// (a dead merc keeps his slot until the panel is rebuilt, but no seat)
+			SOLDIERTYPE* const m = gTeamPanel[seat].merc;
+			v.pPassengers[seat] = m && IsAboard(*m) && m->iVehicleId == s.iVehicleId ? m : 0;
+		}
+		if (IsTankVehicle(v)) UpdateTankCrewFlags(v);
+	}
+	else
+	{
+		std::vector<SOLDIERTYPE*> living;
+		for (SOLDIERTYPE* const m : order)
+		{
+			if (m && m->bAssignment == s.bAssignment) living.push_back(m);
+		}
+		SetSquadOrderOfMembers(s.bAssignment, living);
+	}
+
+	ScrollBigTeamPanelToSlot(new_slot);
+	fInterfacePanelDirty = DIRTYLEVEL2;
+	return true;
 }
 
 
@@ -6212,21 +6336,14 @@ void CheckForAndAddMercToTeamPanel(SOLDIERTYPE* const s)
 
 			if (s->uiStatusFlags & SOLDIER_VEHICLE)
 			{
-				VEHICLETYPE const& v = GetVehicle(s->bVehicleID);
-				if (IsTankVehicle(v))
-				{
-					ShowTankCrewOnTeamPanel(v);
-				}
-				else
-				{
-					CFOR_EACH_PASSENGER(v, i) AddPlayerToInterfaceTeamSlot(*i);
-				}
+				ShowPassengersOnTeamPanel(GetVehicle(s->bVehicleID), false);
 			}
 			else if (s->ubStrategicInsertionCode != INSERTION_CODE_CHOPPER)
 			{
 				// ATE: If we have the insertion code of helicopter, don't add just yet!
 				// (will add in heli code)
 				AddPlayerToInterfaceTeamSlot(s);
+				SyncTeamPanelOrderWithSquad();
 			}
 		}
 	}

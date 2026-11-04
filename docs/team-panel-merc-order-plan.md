@@ -65,7 +65,7 @@ All taken by the user, 2026-11-04.
 
 | # | Question | Decision |
 |---|---|---|
-| P1 | Which merc do the arrows move? | **Only the one selected now.** He stays selected. With a vehicle selected, that is its driver, whose slot shows as selected |
+| P1 | Which merc do the arrows move? | **Only the one selected now.** He stays selected. With a vehicle selected, that is its driver, whose slot shows as selected; for the tank, see P9 |
 | P2 | The loop: what happens to the others? | **All the others shift by one**, as in the laptop's bookmarks. Between neighbours it stays a swap |
 | P3 | A dead merc's slot, an empty slot | **A normal slot**: the merc swaps with it |
 | P4 | Vehicles | **Yes**: the vehicles and the helicopter, above all the tank |
@@ -73,6 +73,7 @@ All taken by the user, 2026-11-04.
 | P6 | When is the merc's place lost? | **When he changes squad.** Nothing extra to write. Boarding or leaving a vehicle is a change of squad in the game: a vehicle has a squad of its own |
 | P7 | Who moves in the helicopter, where nobody can be selected? | **A click on a passenger's portrait marks him** with the selected border, for the arrows only. The helicopter stays the selected soldier, so no order can go to someone in the air |
 | P8 | Hummer and other cars: does the driver change when slots change? | **Yes: the first merc aboard drives**, as the tank has a fixed seat. It is the one way to choose the driver, and it matters, as the driver can't shoot from inside. The helicopter isn't affected, as Skyrider flies it |
+| P9 | The tank selected: who moves? Its Driver and Gunner both select it and show as selected | **The last one clicked** (user, 2026-11-04): a click on the Gunner or his slot's key means the Gunner; a click on the Driver, his key or the tank's portrait means the Driver. A small state, not saved. Whether the chosen one needs a mark of his own is to be judged in the game |
 
 Also, by default and with no decision needed:
 
@@ -105,9 +106,10 @@ bool MoveMercOnTeamPanel(SOLDIERTYPE const&, bool right);
 - **In a vehicle:** `pPassengers[slot]` = the slot's merc: **a slot number is a seat number,
   in every vehicle**, as the crew plan already has for the tank. Then the flags: the tank
   through `UpdateTankCrewFlags`, the cars by P8.
-- **Selection:** if the selected merc became the driver, the vehicle gets selected, as in
-  `RemoveSoldierFromVehicle`; if the merc shown as selected stopped being the driver, he gets
-  selected himself. So the same merc can be walked along with repeated clicks.
+- **Selection:** if the selected merc became the driver, or the tank's Gunner, the vehicle gets
+  selected, as in `RemoveSoldierFromVehicle`; if the merc shown as selected stopped being one
+  of them, he gets selected himself. So the same merc can be walked along with repeated clicks,
+  and P9's choice follows him.
 
 **What lasts.** The order of the living on foot and every seat aboard, gaps included, are
 saved. The place of a dead merc or of a gap on foot is not: it lasts until the panel is
@@ -167,7 +169,8 @@ turning at once, with the red X; experience to the new Gunner.
 
 - Save, load, and the order is there, gaps in vehicles too. Leave the sector and return.
   Change the current squad and back.
-- A merc changes squad and comes back: he is last, the others keep their order. A squad
+- A merc changes squad and comes back: he is last, the others keep their order. Getting out in
+  tactical joins the first squad in the sector that can take him (78663023d). A squad
   boards a Hummer and gets out. A merc's contract ends; a merc dies, in combat and out; a merc
   arrives by helicopter.
 - Moving with a dead merc beside him, and with a gap, on foot and aboard.

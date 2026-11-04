@@ -264,6 +264,17 @@ INT8 AddCharacterToUniqueSquad(SOLDIERTYPE* const s)
 }
 
 
+void SetSquadOrderOfMembers(INT8 const squad, std::vector<SOLDIERTYPE*> const& members)
+{
+	auto next = members.begin();
+	FOR_EACH_SLOT_IN_SQUAD(i, squad)
+	{
+		if (next == members.end()) break;
+		if (*i && std::find(members.begin(), members.end(), *i) != members.end()) *i = *next++;
+	}
+}
+
+
 INT8 AddCharacterToSquadInSector(SOLDIERTYPE* const s)
 {
 	RemoveCharacterFromSquads(s); // REDUNDANT AddCharacterToSquad()
