@@ -164,6 +164,18 @@ bool IsDrivingVehicleBody(SOLDIERTYPE const&);
 // The tank on the player's side, not the enemy's (tank cannon plan,
 // docs/tank-cannon-firing-plan.md)
 bool IsPlayerTank(SOLDIERTYPE const&);
+// The tank's crew (docs/tank-crew-roles-plan.md): a seat is a role, seat 0 the
+// Commander and so on, so nothing about it is saved but pPassengers
+enum TankRole { TANK_COMMANDER, TANK_DRIVER, TANK_GUNNER, TANK_LOADER, NUM_TANK_ROLES };
+bool IsTankVehicle(VEHICLETYPE const&);
+// Who sits in that role's seat, or NULL
+SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const&, TankRole);
+// Someone sits there and can do the job: awake, able, not an EPC or the robot
+bool IsTankRoleManned(VEHICLETYPE const&, TankRole);
+bool TankCanMove(VEHICLETYPE const&); // Commander and Driver
+bool TankCanFire(VEHICLETYPE const&); // all four
+// SOLDIER_DRIVER for the Driver's seat, SOLDIER_PASSENGER for the others
+void UpdateTankCrewFlags(VEHICLETYPE const&);
 // Gives a newly created player's tank its cannon (G3)
 void EquipPlayerTank(SOLDIERTYPE&);
 // The best marksman aboard, who aims the cannon (G1); NULL if nobody is able

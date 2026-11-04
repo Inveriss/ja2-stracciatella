@@ -83,7 +83,7 @@
         "profile": "PROF_TANK",
         "movementType": "CAR",
         "armourType": "SPECTRA_VEST",
-        "seats": 6,
+        "seats": 4,
         "repairPointsDivisor": 12,
         "slotLimitMultiplier": 4,
         "tacticalFuelPer100Tiles": 800,

@@ -213,6 +213,9 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 		if (*i == &s) return true; // guy found, no need to add
 	}
 
+	// no seat for him: no selection of the vehicle and no sound of getting in
+	if (!IsEnoughSpaceInVehicle(v)) return false;
+
 	if (vs)
 	{
 		// can't call SelectSoldier in mapscreen, that will initialize interface panels!!!
@@ -226,11 +229,19 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 
 	// A newcomer sits behind those aboard (the team panel shows them in seat
 	// order), not in a seat someone before them left: only when the last seat is
-	// taken do they all move up, closing those gaps
+	// taken do they all move up, closing those gaps.
+	// The tank's seats are its crew's roles: the first empty one, and nobody ever
+	// changes seats (crew plan, R8)
+	bool  const tank  = IsTankVehicle(v);
 	INT32 const seats = GetVehicleSeats(v);
 	INT32 first_seat = seats;
-	while (first_seat > 0 && !v.pPassengers[first_seat - 1]) --first_seat;
-	if (first_seat == seats)
+	if (tank)
+	{
+		first_seat = 0;
+		while (first_seat < seats && v.pPassengers[first_seat]) ++first_seat;
+	}
+	else while (first_seat > 0 && !v.pPassengers[first_seat - 1]) --first_seat;
+	if (!tank && first_seat == seats)
 	{
 		first_seat = 0;
 		for (INT32 i = 0; i < seats; ++i)
@@ -281,9 +292,16 @@ static bool AddSoldierToVehicle(SOLDIERTYPE& s, VEHICLETYPE& v)
 			AddPlayerToGroup(*GetGroup(v.ubMovementGroup), s);
 		}
 
-		// Are we the first?
-		s.uiStatusFlags |= GetNumberInVehicle(v) == 1 ?
-			SOLDIER_DRIVER : SOLDIER_PASSENGER;
+		// Are we the first? (in the tank, the seat decides)
+		if (tank)
+		{
+			UpdateTankCrewFlags(v);
+		}
+		else
+		{
+			s.uiStatusFlags |= GetNumberInVehicle(v) == 1 ?
+				SOLDIER_DRIVER : SOLDIER_PASSENGER;
+		}
 
 		RemoveSoldierFromGridNo(s);
 
@@ -368,8 +386,8 @@ static bool RemoveSoldierFromVehicle(SOLDIERTYPE& s)
 
 	// The driver got out of a ground vehicle: the passenger in the next seat
 	// takes the wheel (else nobody would be the driver until the vehicle is
-	// emptied)
-	if (was_driver && !IsHelicopter(v))
+	// emptied). In the tank the Driver's seat just stays empty.
+	if (was_driver && !IsHelicopter(v) && !IsTankVehicle(v))
 	{
 		for (INT32 k = 1; k != seats; ++k)
 		{
@@ -1200,6 +1218,58 @@ void EquipPlayerTank(SOLDIERTYPE& s)
 	UINT16 const magazine = s.inv[SECONDHANDPOS].usGunAmmoItem;
 	CreateItems(magazine, 100, SoldierSlotLimit(s, magazine, BIGPOCK2POS), &s.inv[BIGPOCK2POS]);
 #endif
+}
+
+
+bool IsTankVehicle(VEHICLETYPE const& v)
+{
+	return v.ubVehicleType == TANK_CAR;
+}
+
+
+SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const& v, TankRole const role)
+{
+	return v.pPassengers[role];
+}
+
+
+bool IsTankRoleManned(VEHICLETYPE const& v, TankRole const role)
+{
+	SOLDIERTYPE const* const s = GetTankCrewMember(v, role);
+	if (!s) return false;
+	if (s->bLife < OKLIFE || s->fMercAsleep || s->bCollapsed) return false;
+	if (s->bBreathMax <= BREATHMAX_ABSOLUTE_MINIMUM) return false;
+	if (AM_AN_EPC(s) || AM_A_ROBOT(s)) return false;
+	return role != TANK_GUNNER || s->bMarksmanship > 0;
+}
+
+
+bool TankCanMove(VEHICLETYPE const& v)
+{
+	return IsTankRoleManned(v, TANK_COMMANDER) && IsTankRoleManned(v, TANK_DRIVER);
+}
+
+
+bool TankCanFire(VEHICLETYPE const& v)
+{
+	for (INT32 role = 0; role != NUM_TANK_ROLES; ++role)
+	{
+		if (!IsTankRoleManned(v, static_cast<TankRole>(role))) return false;
+	}
+	return true;
+}
+
+
+void UpdateTankCrewFlags(VEHICLETYPE const& v)
+{
+	INT32 const seats = GetVehicleSeats(v);
+	for (INT32 seat = 0; seat != seats; ++seat)
+	{
+		SOLDIERTYPE* const s = v.pPassengers[seat];
+		if (!s) continue;
+		s->uiStatusFlags &= ~(SOLDIER_DRIVER | SOLDIER_PASSENGER);
+		s->uiStatusFlags |= seat == TANK_DRIVER ? SOLDIER_DRIVER : SOLDIER_PASSENGER;
+	}
 }
 
 

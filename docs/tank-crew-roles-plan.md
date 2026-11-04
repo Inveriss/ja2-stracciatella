@@ -1,6 +1,7 @@
 # Player's tank: a crew of four with fixed roles — plan
 
-Status: **plan, not implemented, all decisions taken by the user (2026-11-04)**
+Status: **stage 1 done and verified in the game, stages 2-5 not implemented; all decisions
+taken by the user (2026-11-04)**
 (written on Remote Control, branch `Tanks`). Changes
 decisions G1 and F6 (the gunner) of `docs/tank-cannon-firing-plan.md` and
 `docs/tank-firing-while-moving-plan.md`.

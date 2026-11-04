@@ -2958,6 +2958,8 @@ static bool CheckForAndHandleHandleVehicleInteractiveClick(SOLDIERTYPE& s, BOOLE
 
 	VEHICLETYPE& v = GetVehicle(tgt->bVehicleID);
 	if (GetNumberInVehicle(v) != 0 && fMovementMode) return false;
+	// a full vehicle (the cursor's red X): the click is done with, nobody walks up
+	if (!IsEnoughSpaceInVehicle(v)) return true;
 
 	// Find a gridno closest to sweetspot, and the AP costs: the walk there
 	// and, in combat, getting in (D15)

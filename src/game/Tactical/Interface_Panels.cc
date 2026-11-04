@@ -6097,6 +6097,22 @@ void RenderTownIDString(void)
 }
 
 
+// The tank's crew: a slot's number is its seat's, its role. A gap stays a gap.
+static void ShowTankCrewOnTeamPanel(VEHICLETYPE const& v)
+{
+	INT32 const seats = std::min((INT32)GetVehicleSeats(v), (INT32)gTeamPanel.size());
+	for (INT32 seat = 0; seat != seats; ++seat)
+	{
+		SOLDIERTYPE* const s = v.pPassengers[seat];
+		if (!s || gTeamPanel[seat].merc == s) continue;
+		RemovePlayerFromTeamSlot(s);
+		if (gTeamPanel[seat].merc) RemovePlayerFromInterfaceTeamSlot(gTeamPanel[seat]);
+		gTeamPanel[seat].merc = s;
+		fInterfacePanelDirty  = DIRTYLEVEL2;
+	}
+}
+
+
 void CheckForAndAddMercToTeamPanel(SOLDIERTYPE* const s)
 {
 	if (!s->bActive) return;
@@ -6114,7 +6130,14 @@ void CheckForAndAddMercToTeamPanel(SOLDIERTYPE* const s)
 			if (s->uiStatusFlags & SOLDIER_VEHICLE)
 			{
 				VEHICLETYPE const& v = GetVehicle(s->bVehicleID);
-				CFOR_EACH_PASSENGER(v, i) AddPlayerToInterfaceTeamSlot(*i);
+				if (IsTankVehicle(v))
+				{
+					ShowTankCrewOnTeamPanel(v);
+				}
+				else
+				{
+					CFOR_EACH_PASSENGER(v, i) AddPlayerToInterfaceTeamSlot(*i);
+				}
 			}
 			else if (s->ubStrategicInsertionCode != INSERTION_CODE_CHOPPER)
 			{
