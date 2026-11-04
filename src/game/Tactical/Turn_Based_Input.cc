@@ -3260,9 +3260,14 @@ static void ChangeCurrentSquad(INT32 iSquad)
 
 static void HandleSelectMercSlot(UINT8 const ubPanelSlot, bool const force_select)
 {
-	SOLDIERTYPE* const s = GetPlayerFromInterfaceTeamSlot(ubPanelSlot);
+	SOLDIERTYPE* s = GetPlayerFromInterfaceTeamSlot(ubPanelSlot);
 	if (s != NULL)
 	{
+		// the tank's Driver and Gunner select the tank, as a click on them does
+		if (IsTankCrewMember(*s) && !IsSelectablePassenger(*s))
+		{
+			s = &GetSoldierStructureForVehicle(GetVehicle(s->iVehicleId));
+		}
 		HandleLocateSelectMerc(s, force_select);
 		ErasePath();
 		gfPlotNewMovement = TRUE;

@@ -1653,7 +1653,16 @@ bool IsSelectablePassenger(SOLDIERTYPE const& s)
 	if (s.iVehicleId < 0 || s.iVehicleId >= static_cast<INT32>(pVehicleList.size())) return false;
 	VEHICLETYPE const& v = pVehicleList[s.iVehicleId];
 	if (!v.fValid || v.fDestroyed) return false;
+	// the tank's Gunner selects the tank, as its Driver does: the tank's weapons
+	// are his
+	if (IsTankVehicle(v) && GetTankCrewMember(v, TANK_GUNNER) == &s) return false;
 	return v.ubVehicleType != HELICOPTER;
+}
+
+
+bool SelectsTankAsGunner(SOLDIERTYPE const& s)
+{
+	return IsTankCrewMember(s) && GetTankCrewMember(pVehicleList[s.iVehicleId], TANK_GUNNER) == &s;
 }
 
 

@@ -170,6 +170,8 @@ enum TankRole { TANK_COMMANDER, TANK_DRIVER, TANK_GUNNER, TANK_LOADER, NUM_TANK_
 bool IsTankVehicle(VEHICLETYPE const&);
 // Aboard the tank
 bool IsTankCrewMember(SOLDIERTYPE const&);
+// The tank's Gunner: not selected himself, a click on him selects the tank
+bool SelectsTankAsGunner(SOLDIERTYPE const&);
 // Who sits in that role's seat, or NULL
 SOLDIERTYPE* GetTankCrewMember(VEHICLETYPE const&, TankRole);
 // Someone sits there and can do the job: awake, able, not an EPC or the robot

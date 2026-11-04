@@ -4856,7 +4856,8 @@ static bool IsShownSelected(SOLDIERTYPE const* const s)
 	if (!s) return false;
 	SOLDIERTYPE const* const sel = GetSelectedMan();
 	if (s == sel) return true;
-	return sel && sel->uiStatusFlags & SOLDIER_VEHICLE && s->uiStatusFlags & SOLDIER_DRIVER &&
+	return sel && sel->uiStatusFlags & SOLDIER_VEHICLE &&
+		(s->uiStatusFlags & SOLDIER_DRIVER || SelectsTankAsGunner(*s)) &&
 		s->iVehicleId == sel->bVehicleID;
 }
 
