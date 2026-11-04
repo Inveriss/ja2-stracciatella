@@ -316,17 +316,9 @@ static const UINT8 gubMaxActionPoints[] =
 	AP_MAXIMUM,         // HUMVEE (drives in tactical, as a merc)
 	AP_VEHICLE_MAXIMUM, // TANK1
 	AP_VEHICLE_MAXIMUM, // TANK2
-#if CARS_IN_A9_FOR_TESTING
-	AP_MAXIMUM,         // ELDORADO
-#else
-	AP_VEHICLE_MAXIMUM, // ELDORADO
-#endif
+	AP_MAXIMUM,         // ELDORADO (drives in tactical, as a merc)
 	AP_MAXIMUM,         // ICECREAMTRUCK (drives in tactical, as a merc)
-#if CARS_IN_A9_FOR_TESTING
-	AP_MAXIMUM,         // JEEP
-#else
-	AP_VEHICLE_MAXIMUM, // JEEP
-#endif
+	AP_MAXIMUM,         // JEEP (drives in tactical, as a merc)
 	AP_VEHICLE_MAXIMUM  // HELICOPTERBODY
 };
 

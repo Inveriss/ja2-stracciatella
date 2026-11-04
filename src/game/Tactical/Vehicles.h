@@ -14,10 +14,10 @@
 
 // TEMPORARY FOR TESTING: in a new game the tank's profile is in A9, Omerta, so
 // its placement in that sector's map file (a civilian, profile 232) gets added
-#define TANK_IN_A9_FOR_TESTING 1
+#define TANK_IN_A9_FOR_TESTING 0
 // TEMPORARY FOR TESTING: the same for the Eldorado and the Jeep (civilians, profiles
-// 161 and 231, in that map file), and they drive in tactical as the Hummer does
-#define CARS_IN_A9_FOR_TESTING 1
+// 161 and 231, in that map file)
+#define CARS_IN_A9_FOR_TESTING 0
 
 // type of vehicles
 enum{
@@ -160,9 +160,11 @@ bool CanVehicleDriveInTactical(SOLDIERTYPE const& vs);
 // is this vehicle driving on the tactical map now? (D13: nobody gets in or
 // out and no items are passed then)
 bool IsVehicleMoving(SOLDIERTYPE const& vs);
-// the vehicle types that drive in tactical (D1: Hummer, ice cream truck, tank)
+// the vehicle types that drive in tactical (D1: Hummer, ice cream truck, tank; also
+// the Eldorado and the Jeep)
 bool VehicleDrivesInTactical(VEHICLETYPE const&);
-// D1: the Hummer, the ice cream truck and the player's tank (not the enemy's)
+// D1: the Hummer, the ice cream truck, the Eldorado, the Jeep and the player's tank
+// (not the enemy's)
 bool IsDrivingVehicleBody(SOLDIERTYPE const&);
 // The tank on the player's side, not the enemy's (tank cannon plan,
 // docs/tank-cannon-firing-plan.md)

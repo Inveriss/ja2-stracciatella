@@ -1137,19 +1137,15 @@ INT16 GetAPsToEnterVehicle(SOLDIERTYPE& s, SOLDIERTYPE const& vs, GridNo* const 
 
 bool VehicleDrivesInTactical(VEHICLETYPE const& v)
 {
-#if CARS_IN_A9_FOR_TESTING
-	if (v.ubVehicleType == ELDORADO_CAR || v.ubVehicleType == JEEP_CAR) return true;
-#endif
-	return v.ubVehicleType == HUMMER || v.ubVehicleType == ICE_CREAM_TRUCK || v.ubVehicleType == TANK_CAR;
+	return v.ubVehicleType == HUMMER || v.ubVehicleType == ICE_CREAM_TRUCK || v.ubVehicleType == TANK_CAR ||
+		v.ubVehicleType == ELDORADO_CAR || v.ubVehicleType == JEEP_CAR;
 }
 
 
 bool IsDrivingVehicleBody(SOLDIERTYPE const& vs)
 {
-#if CARS_IN_A9_FOR_TESTING
-	if (vs.ubBodyType == ELDORADO || vs.ubBodyType == JEEP) return true;
-#endif
-	return vs.ubBodyType == HUMVEE || vs.ubBodyType == ICECREAMTRUCK || IsPlayerTank(vs);
+	return vs.ubBodyType == HUMVEE || vs.ubBodyType == ICECREAMTRUCK || vs.ubBodyType == ELDORADO ||
+		vs.ubBodyType == JEEP || IsPlayerTank(vs);
 }
 
 
