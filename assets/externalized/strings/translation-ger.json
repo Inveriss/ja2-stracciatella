@@ -1910,7 +1910,7 @@
         "%s can only shoot a gun from inside the vehicle.",
         "%s has nobody aboard able to aim.",
         "%s can't fire while driving.",
-        "%s needs an active commander and driver."
+        "An active Commander and Driver are required to drive the tank."
     ],
     "pTankCrewStrings": [
         "COMMANDER",

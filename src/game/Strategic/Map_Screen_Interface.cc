@@ -4123,7 +4123,7 @@ static MoveError CanCharacterMoveInStrategic(SOLDIERTYPE& s)
 		// The tank without its Commander and Driver?
 		if (IsTankVehicle(v) && !TankCanTravel(v))
 		{
-			gsCustomErrorString = st_format_printf(pVehiclePassengerStrings[5], pVehicleStrings[v.ubVehicleType]);
+			gsCustomErrorString = pVehiclePassengerStrings[5];
 			return ME_CUSTOM;
 		}
 	}

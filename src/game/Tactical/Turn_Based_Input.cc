@@ -3121,8 +3121,7 @@ INT8 HandleMoveModeInteractiveClick(UINT16 const usMapPos)
 			VEHICLETYPE const& v = GetVehicle(sel->bVehicleID);
 			if (!out_of_fuel && IsTankVehicle(v) && !TankCanMove(v))
 			{
-				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK,
-					st_format_printf(pVehiclePassengerStrings[5], pVehicleStrings[v.ubVehicleType]));
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, pVehiclePassengerStrings[5]);
 				return -3;
 			}
 			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK,
