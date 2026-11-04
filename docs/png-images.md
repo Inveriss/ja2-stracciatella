@@ -248,7 +248,9 @@ Characters:
 - the frames are ordered by direction: the number of directions of the
   animation (1, 2, 3, 4, 8 or 32, depending on the animation) ×
   `framesPerDirection` must equal the number of frames of the original,
-  otherwise the game logs a mismatch;
+  otherwise the game logs a mismatch; a vehicle's driving animation takes one
+  frame per direction, and 8 or 32 directions by its number of frames
+  (`docs/vehicle-8-directions-plan.md`);
 - the order and sizes of the frames must match the original, since the
   animation scripts (`binarydata/ja2bin.dat`) refer to frames by number, and
   the structure data (`anims/structdata/*.jsd`) relates to their sizes;

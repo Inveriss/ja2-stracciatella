@@ -530,7 +530,7 @@ struct AnimationSurfaceType
 	const char   Filename[50];
 	const CHAR8  bStructDataType;
 	const UINT8  ubFlags;
-	const UINT32 uiNumDirections;
+	UINT32       uiNumDirections; // a vehicle's: from the file, once loaded
 	UINT32       uiNumFramesPerDir;
 	HVOBJECT     hVideoObject;
 	INT16        bUsageCount; // soldiers holding the surface (was INT8: up to 127)

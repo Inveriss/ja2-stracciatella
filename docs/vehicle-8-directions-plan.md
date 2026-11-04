@@ -1,6 +1,6 @@
 # Vehicles with 8 directions — plan
 
-Status: **plan, not implemented, all decisions taken by the user (2026-11-04)** (written on
+Status: **stage 1 done and verified in the game, stages 2-3 not done; all decisions taken by the user (2026-11-04)** (written on
 Remote Control). Work goes on the branch **`Tanks`**, by the user's decision. Everything rests on reading the code and the file headers. The only thing seen in
 the game is the user's test: an APC under the Hummer's file stayed in one position.
 

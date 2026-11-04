@@ -745,6 +745,13 @@ AnimationColours GetAnimationSurfaceColours(UINT16 const usSurfaceIndex)
 }
 
 
+// 8 or 32 by the file; anything else keeps the table's value (and its warning)
+static UINT32 VehicleSurfaceDirections(UINT32 const frames, UINT32 const table_directions)
+{
+	return frames == 8 || frames == 32 ? frames : table_directions;
+}
+
+
 void GetAnimationSurfacePalette(UINT16 const usSurfaceIndex, SGPPaletteEntry pal[256])
 {
 	AnimationSurfaceType const& a = gAnimSurfaceDatabase[usSurfaceIndex];
@@ -813,6 +820,13 @@ void LoadAnimationSurface(UINT16 const usSoldierID, UINT16 const usSurfaceIndex,
 			// Valid auxiliary data, so get # of frames from data
 			AuxObjectData const* const pAuxData = (AuxObjectData const*)(UINT8 const*)hImage->pAppData;
 			a->uiNumFramesPerDir = pAuxData->ubNumberOfFrames;
+			if (a->ubFlags & ANIM_DATA_FLAG_NOFRAMES)
+			{
+				// a vehicle: one picture per direction, whatever the file's tool wrote
+				// (8 in many 8 direction files), and as many directions as the file has
+				a->uiNumFramesPerDir = 1;
+				a->uiNumDirections   = VehicleSurfaceDirections(hVObject->SubregionCount(), a->uiNumDirections);
+			}
 
 			// get structure data if any
 			const STRUCTURE_FILE_REF* const pStructureFileRef = InternalGetAnimationStructureRef(ID2SOLDIER(usSoldierID), usSurfaceIndex, usAnimState, TRUE);
@@ -1014,3 +1028,17 @@ void ZeroAnimSurfaceCounts( )
 		std::fill(std::begin(i), std::end(i), 0);
 	}
 }
+
+
+#ifdef WITH_UNITTESTS
+#include "gtest/gtest.h"
+
+TEST(AnimationData, VehicleSurfaceDirections)
+{
+	EXPECT_EQ(VehicleSurfaceDirections(8, 32), 8u);
+	EXPECT_EQ(VehicleSurfaceDirections(32, 8), 32u);
+	EXPECT_EQ(VehicleSurfaceDirections(88, 32), 32u);
+	EXPECT_EQ(VehicleSurfaceDirections(1, 8), 8u);
+}
+
+#endif
