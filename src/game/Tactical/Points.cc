@@ -1161,9 +1161,19 @@ UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_
 }
 
 
+// A punch: the weapon's fixed cost (brass knuckles, crowbar), a bare fist 4 AP
+UINT8 BaseAPsToPunch(OBJECTTYPE const& in_hand)
+{
+	ItemModel   const* const item   = GCM->getItem(in_hand.usItem);
+	WeaponModel const* const weapon = item ? item->asWeapon() : nullptr;
+	UINT8 const cost = weapon ? weapon->ubAPCostPerSingleShot : 0;
+	return cost != 0 ? cost : 4;
+}
+
+
 static UINT8 MinAPsToPunch(SOLDIERTYPE const& s, GridNo gridno, bool const add_turning_cost)
 {
-	UINT8 ap = 4;
+	UINT8 ap = BaseAPsToPunch(s.inv[HANDPOS]);
 
 	// We return 0 for invalid attacks; will be handled as impossible
 	if (gridno == NOWHERE)
@@ -1171,26 +1181,32 @@ static UINT8 MinAPsToPunch(SOLDIERTYPE const& s, GridNo gridno, bool const add_t
 		return 0;
 	}
 
-	if (SOLDIERTYPE const* const tgt = WhoIsThere2(gridno, s.bTargetLevel))
-	{	// On a guy, get his gridno
-		gridno = tgt->sGridNo;
+	SOLDIERTYPE const* const tgt = WhoIsThere2(gridno, s.bTargetLevel);
+	if (tgt) gridno = tgt->sGridNo; // On a guy, get his gridno
 
+	// Next to the target the merc hits from where he is, so his stance and
+	// facing are known: show the stance change and the turn the punch takes.
+	// (The original checked s.sGridNo == gridno, the target's own tile, so it
+	// never showed them.) After a walk the cursor adds the walk instead.
+	bool const in_place = SpacesAway(s.sGridNo, gridno) <= 1;
+
+	if (tgt)
+	{
 		// Check if target is prone, if so, calc cost
 		if (gAnimControl[tgt->usAnimState].ubEndHeight == ANIM_PRONE)
 		{
 			ap += GetAPsToChangeStance(&s, ANIM_CROUCH);
 		}
-		else if (s.sGridNo == gridno)
+		else if (in_place)
 		{
 			ap += GetAPsToChangeStance(&s, ANIM_STAND);
 		}
 	}
 
-	if (add_turning_cost && s.sGridNo == gridno)
+	if (add_turning_cost && in_place && GetDirectionFromGridNo(gridno, &s) != s.bDirection)
 	{
-		// Is it the same as he's facing?
-		UINT8 const direction = GetDirectionFromGridNo(gridno, &s);
-		if (direction != s.bDirection) ap += AP_LOOK_STANDING; // ATE: Use standing turn cost
+		// the turn as the punch takes it, by the stance he turns in
+		ap += GetAPsToLook(&s);
 	}
 
 	return ap;

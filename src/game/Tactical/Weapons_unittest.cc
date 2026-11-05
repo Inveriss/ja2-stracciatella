@@ -202,6 +202,17 @@ TEST(WeaponsTest, FixedAPCosts)
 		EXPECT_EQ(GetAPsToReadyWeapon(&s, s.usAnimState), 3);
 	}
 
+	// A punch: brass knuckles and the crowbar their own cost, a bare fist 4 AP
+	{
+		auto o = OBJECTTYPE{};
+		o.usItem = BRASS_KNUCKLES;
+		EXPECT_EQ(BaseAPsToPunch(o), 5);
+		o.usItem = CROWBAR;
+		EXPECT_EQ(BaseAPsToPunch(o), 8);
+		o.usItem = NOTHING;
+		EXPECT_EQ(BaseAPsToPunch(o), 4);
+	}
+
 	auto cannon = OBJECTTYPE{};
 	cannon.usItem = TANK_CANNON;
 	EXPECT_EQ(BaseAPsToShootOrStab(cannon), 13);

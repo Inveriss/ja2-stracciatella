@@ -322,6 +322,7 @@ INT8 GetAPsToRefuelVehicle( SOLDIERTYPE *pSoldier );
 
 INT16 MinAPsToThrow(SOLDIERTYPE const&, GridNo, bool add_turning_cost);
 bool ThrowNeedsTurn(SOLDIERTYPE const&, GridNo target);
+UINT8 BaseAPsToPunch(OBJECTTYPE const& in_hand);
 
 UINT16 GetAPsToDropBomb( SOLDIERTYPE *pSoldier );
 UINT16 GetTotalAPsToDropBomb( SOLDIERTYPE *pSoldier, INT16 sGridNo );

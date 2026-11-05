@@ -99,7 +99,7 @@ items:
           $ref: types/id.schema.yaml
         ubAPCostPerSingleShot:
           title: AP cost of a single shot or stab
-          description: A direct AP value, the same for everyone, -1 with a Spring and Bolt Upgrade. Not used by `PUNCHWEAPON` items, they have a flat punch cost.
+          description: A direct AP value, the same for everyone, -1 with a Spring and Bolt Upgrade. Also the cost of a hit with a `PUNCHWEAPON` (brass knuckles, crowbar); a bare fist costs 4 AP.
           $ref: types/uint8.schema.yaml
         ubAPCostPerThrow:
           title: AP cost of a throw

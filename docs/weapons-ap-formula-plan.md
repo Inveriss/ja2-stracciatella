@@ -64,9 +64,9 @@ enemy tanks, bloodcats and monsters all use these rules, with no other formula.
 
 ### Melee
 
-Blades and throwing knives use `ubAPCostPerSingleShot`. Brass knuckles and the crowbar are `IC_PUNCH`:
-`MinAPsToPunch` starts from a flat 4 AP and never read this field. They stay as they are; their
-field is unused and the schema description says so.
+Blades and throwing knives use `ubAPCostPerSingleShot`. So do brass knuckles (5 AP) and the crowbar
+(8 AP) since 2026-11-05 (D11 changed): `MinAPsToPunch` starts from their value instead of a flat
+4 AP. A bare fist still costs 4 AP.
 
 ### What stays on top of the cost
 
@@ -147,7 +147,7 @@ All decided by the user on 2026-11-05.
 | D8 | The tank's Minimi has the same values as the merc's |
 | D9 | The tank cannon starts at 13 AP |
 | D10 | The upper cap at the merc's maximum AP is removed; the lower limit of 1 AP stays |
-| D11 | Brass knuckles and the crowbar stay out; their field is unused and documented |
+| D11 | Brass knuckles and the crowbar stay out; their field is unused and documented (changed 2026-11-05: they use their own `ubAPCostPerSingleShot`) |
 | D12 | Item box thresholds: `BAD_AP_COST` 10, `EXCEPTIONAL_AP_COST` 6 |
 | D13 | The earlier rejection of AP units on `Burst_Modes` no longer applies |
 
