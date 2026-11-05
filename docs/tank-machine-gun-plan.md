@@ -40,19 +40,23 @@ Checked in the code; nothing here has been tried in the game.
 | Pickup guard | Primary click handlers return for `HANDPOS` only | The gun in `SECONDHANDPOS` could be picked up |
 | Wreck | `Rotting_Corpses.cc` keeps only `HANDPOS` | The other weapon would drop |
 | Burst button | `Interface_Panels.cc`: `burst && CanShootFromVehicle(s)` | The `B` key is blocked while the SM panel is open |
-| Ready cost | `GetAPChargeForShootOrStabWRTGunRaises`: a tank is never in a ready animation | `ubReadyTime` 3 is paid for every attack |
+| Ready cost | `GetAPChargeForShootOrStabWRTGunRaises`: a tank is never in a ready animation | `ubReadyTime` 3 is paid for every attack (solved: the player's tank never pays it) |
 
-### 1.3 AP by the existing formula
+### 1.3 AP
 
-25 AP. The MINIMI has `ubShotsPer4Turns` 13; the burst adds `AP_BURST` 5.
+**Changed by `docs/weapons-ap-formula-plan.md` (2026-11-05):** the tank's MINIMI has the same
+fixed costs as a merc's: 6 AP a shot, 10 AP a burst in every mode. The tank pays no ready time
+(its weapons are mounted) and never the 1 AP for a new target; turning the turret costs 1 AP.
 
-| Aim skill | Cannon | MG, one shot | MG, burst |
+| Turret | Cannon | MG, one shot | MG, burst |
 |---|---|---|---|
-| 0 | 25 | 15 | 20 |
-| 80 | 14 | 9 | 14 |
-| 100 | 13 | 8 | 13 |
+| No turn | 13 | 6 | 10 |
+| With a turn | 14 | 7 | 11 |
 
-Reloading costs `AP_RELOAD_GUN` 5, plus any aiming and turning. Without M6 add 3.
+Reloading costs `AP_RELOAD_GUN` 5, plus any aiming.
+
+Before that change the costs came from the formula with the tank's 25 AP and the gunner's aim
+skill (MG one shot 15 / 9 / 8 AP at skill 0 / 80 / 100, the burst 5 AP more).
 
 ### 1.4 Not known yet
 
@@ -158,5 +162,5 @@ shots; experience and kills to the gunner; save and load; a new game. Then the b
 | The look of the burst | 1.4; only the game can show it |
 | The bullet hits the tank | It starts inside the footprint. Enemy tanks fire this way, but test all directions, with passengers too |
 | Interface lock | A burst has more attack bookkeeping than one shell; stage 2 |
-| Too strong | 25 AP gives two or three bursts with skill 80. Ammunition and the gunner's skill are the brakes; tune in stage 4 |
+| Too strong | 25 AP gives two bursts (10 AP each, see 1.3). Ammunition and the gunner's skill are the brakes; tune in stage 4 |
 | The hull plan | `docs/tank-rotating-hull-plan.md`: `TANK_PLAYER` needs `TANK_BURST` as well; it is already on its list |

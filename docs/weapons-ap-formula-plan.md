@@ -1,9 +1,8 @@
 # Fixed weapon AP cost: plan
 
-Status: **plan only, not implemented.** All decisions are made. Branch `Weapons_AP_Formula`
-(from `ja2master` 50ae80da9). Written in Remote Control mode, without game tests. All numbers
-below come from the current formulas and `assets/externalized/weapons.json`; none were checked
-in the game.
+Status: **implemented and game-verified** (2026-11-05), branch `Weapons_AP_Formula` (from
+`ja2master` 50ae80da9). Stages 1-4 done, see section 8. The plan was written in Remote Control
+mode; sections 2-7 keep its reasoning, and the rules in section 3 are the ones in the game.
 
 ## 1. Goal
 
@@ -14,7 +13,7 @@ A weapon has one fixed AP cost per shot, for everyone, in every situation.
   the price of a shot.
 - Marksmanship no longer changes the AP cost. It still affects the chance to hit.
 
-## 2. Today
+## 2. Before this change
 
 `BaseAPsToShootOrStab` (`src/game/Tactical/Points.cc`):
 
@@ -228,16 +227,19 @@ Weapon data isn't stored in saves, so the format doesn't change and no new game 
 
 ## 8. Stages
 
-Each stage: build and tests, then game verification by the user, then commit.
+Each stage: build and tests, then game verification by the user, then commit. All done.
 
-1. **Fixed cost.** `ubAPCostPerSingleShot` in the data, loading and schema, `ubShotsPer4Turns` removed,
-   the new `BaseAPsToShootOrStab`, Spring and Bolt, D10. These can't be separated without
-   leaving the game broken, so they go together. Include unit tests if the functions can link
-   in the test target.
-2. **Burst.** Burst fields as direct AP, the new `CalcAPsToBurst` and its callers.
-3. **Item boxes.** New calls and the two thresholds.
-4. **Docs.** `docs/burst-modes.md` (AP section, burst fields), and the AP tables in
-   `docs/tank-cannon-firing-plan.md` and `docs/tank-machine-gun-plan.md`.
+1. **Fixed cost**, single shot and burst together (they couldn't be separated without breaking
+   the build): `ba1a5e15a`. Then, within stage 1:
+   - names and order of the fields (`ubAPCostPer...`): `25cf13f35`;
+   - 1 AP for a new target only with the weapon raised: `4cec6b304`;
+   - turning and raising the weapon both paid in every stance: `d2f1e234f`;
+   - the plan's prone turn (6 AP): `350030caf`.
+2. **Item boxes.** The two thresholds: `5a7b467f3`.
+3. **Battles** against soldiers, creatures, bloodcats and an enemy tank, and the player's tank:
+   game-verified; for the tank, no new target AP and the L key turning the turret: `a28fd4fe7`.
+4. **Docs.** `docs/burst-modes.md` and the AP sections of `docs/tank-cannon-firing-plan.md`
+   and `docs/tank-machine-gun-plan.md`.
 
 ### Game checks
 

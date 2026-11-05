@@ -1,7 +1,8 @@
 # Burst modes
 
 Guns that can fire bursts have three burst lengths instead of one: **Short**,
-**Long** and **Full**. AP costs are calculated by the original JA2 system.
+**Long** and **Full**. Each mode has its own fixed AP cost, see
+`docs/weapons-ap-formula-plan.md`.
 
 Code: `src/game/Tactical/Weapons.cc` (modes, burst length), `Points.cc` (AP
 costs), `Soldier_Ani.cc` (burst animation loop), `Soldier_Control.cc` (burst
@@ -60,34 +61,26 @@ weapon (e.g. from a mod) still has it and none of the new fields, a value above
 
 ## AP costs
 
-AP costs use the original JA2 system without changes: `ubShotsPer4Turns` in
-`weapons.json` keeps its original meaning and values, the original formula in
-`BaseAPsToShootOrStab()` (`Points.cc`) with its rounding is unchanged. The
-value is a parameter of that formula, not an AP cost.
+Since branch `Weapons_AP_Formula` every cost is a direct AP value in `weapons.json`, the same
+for every merc whatever his AP, wounds or marksmanship (full rules:
+`docs/weapons-ap-formula-plan.md`):
 
-### Burst costs
+| Shot  | JSON field              |
+|-------|-------------------------|
+| Single | `ubAPCostPerSingleShot` |
+| Short | `ubAPCostPerShortBurst` |
+| Long  | `ubAPCostPerLongBurst`  |
+| Full  | `ubAPCostPerFullBurst`  |
 
-A burst costs the single shot plus the original burst surcharge
-(`CalcAPsToBurst()`): about 5 AP for a merc with 25 AP per turn, at least 3.
-The Spring and Bolt Upgrade lowers it as before. **All three burst modes cost
-the same** for now, and the G11 no longer has its special 1 AP burst.
-
-Fields for a later stage, `null` in the vanilla data for every weapon that can
-burst:
-
-| Mode  | JSON field           |
-|-------|----------------------|
-| Short | `ubAPsPerShortBurst` |
-| Long  | `ubAPsPerLongBurst`  |
-| Full  | `ubAPsPerFullBurst`  |
-
-Despite the name these are **not AP costs**. Like `ubShotsPer4Turns`, a value
-is a parameter (shots per 4 turns) of the original AP formula: when a weapon has
-a number there, that burst mode costs what the original formula gives for it
-instead of `ubShotsPer4Turns` (the single shot's cost is replaced, not added
-to), so the cost still depends on the merc's AP and aim skill. The Spring and
-Bolt Upgrade works through the formula like for a single shot. `null` or a
-missing field means the original burst cost.
+- A burst field is the **full cost of the burst**, not a surcharge on top of the single shot.
+  `CalcAPsToBurst()` (`Points.cc`) returns the difference for its callers.
+- The three modes can differ. In the vanilla data they all start at the single shot + 4.
+- A weapon that can burst but has no value for a mode (`null` or missing, e.g. from a mod)
+  pays the single shot + 4 for it.
+- The Spring and Bolt Upgrade takes a fixed 1 AP off the single shot and off every burst
+  mode, whatever its status; a cost never falls below 1 AP.
+- Ready time, turning, the 1 AP for a new target and aiming clicks come on top, as for a
+  single shot. Bursts aren't aimed.
 
 ## Who uses which mode
 
