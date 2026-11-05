@@ -4071,7 +4071,7 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 	UINT8 const single_aps = BaseAPsToShootOrStab(obj);
 
 	// Short / Long / Full: the AP cost of the mode (the weapon's own
-	// ubAPsPer...Burst, see CalcAPsToBurst()) and its rounds. A mode the weapon doesn't have is left out.
+	// ubAPCostPer...Burst, see CalcAPsToBurst()) and its rounds. A mode the weapon doesn't have is left out.
 	static WeaponModes const modes[] = { WM_BURST_SHORT, WM_BURST_LONG, WM_BURST_FULL };
 	UINT8 const mode_shots[] = { w->ubShotsPerShortBurst, w->ubShotsPerLongBurst, w->ubShotsPerFullBurst };
 	bool        any_burst    = false;

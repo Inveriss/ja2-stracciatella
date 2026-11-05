@@ -40,8 +40,8 @@ The burst surcharge has the same flaw: `max(3, (5 * AP_MAX + 24) / 25)`.
 ## 3. New rules
 
 ```
-single shot = ubBaseAPCost        - Spring and Bolt
-burst       = ubAPsPer<Mode>Burst - Spring and Bolt
+single shot = ubAPCostPerSingleShot        - Spring and Bolt
+burst       = ubAPCostPer<Mode>Burst - Spring and Bolt
 ```
 
 Both are direct AP values. A burst field is the full cost of that burst, not a surcharge on
@@ -65,7 +65,7 @@ enemy tanks, bloodcats and monsters all use these rules, with no other formula.
 
 ### Melee
 
-Blades and throwing knives use `ubBaseAPCost`. Brass knuckles and the crowbar are `IC_PUNCH`:
+Blades and throwing knives use `ubAPCostPerSingleShot`. Brass knuckles and the crowbar are `IC_PUNCH`:
 `MinAPsToPunch` starts from a flat 4 AP and never read this field. They stay as they are; their
 field is unused and the schema description says so.
 
@@ -79,7 +79,7 @@ up for a thrown knife or LAW, reloading. Throws have their own formula and are o
 
 These are the current values converted with `round(80 / S4T)`, to be tuned freely later.
 
-| `ubBaseAPCost` | Burst fields | Weapons |
+| `ubAPCostPerSingleShot` | Burst fields | Weapons |
 |---:|---:|---|
 | 5 | 9 | MP5K, Commando, AKS-74U, P90, C7, FAMAS, AK-74, AKM, FN FAL |
 | 5 | - | Beretta 92F |
@@ -97,16 +97,16 @@ These are the current values converted with `round(80 / S4T)`, to be tuned freel
 
 Monster and bloodcat weapons, converted the same way, **to be tuned at a later project stage**:
 
-| `ubBaseAPCost` | Weapons |
+| `ubAPCostPerSingleShot` | Weapons |
 |---:|---|
 | 6 | Bloodcat claw, infant spit |
 | 8 | Creature claws (4), queen tentacles, queen spit, young and old male spit, bloodcat bite |
 
-- A burst field starts as `ubBaseAPCost + 4`, which matches today's surcharge for a 20 AP merc.
+- A burst field starts as `ubAPCostPerSingleShot + 4`, which matches today's surcharge for a 20 AP merc.
 - All three modes start equal. They can now differ, for example 8 / 10 / 13.
 - A weapon with no such burst mode leaves its field `null`.
 - A weapon that has a burst mode but no value (for example from a mod) falls back to
-  `ubBaseAPCost + 4`.
+  `ubAPCostPerSingleShot + 4`.
 - The tank's Minimi is the same weapon as the merc's: 6 AP, burst 10 AP.
 
 ## 5. Decisions
@@ -116,12 +116,12 @@ All decided by the user on 2026-11-05.
 | # | Decision |
 |---|---|
 | D1 | `AP_MAX`, aim skill and the formula are removed; the cost is a direct value in `weapons.json` |
-| D2 | The new field is `ubBaseAPCost`, also for blades and throwing knives |
+| D2 | The new field is `ubAPCostPerSingleShot`, also for blades and throwing knives |
 | D3 | `ubShotsPer4Turns` is removed completely |
 | D4 | No marksmanship add-on: a weapon has one fixed cost (the earlier band proposal is cancelled) |
 | D5 | Burst fields hold the full burst cost as direct AP values |
 | D6 | Spring and Bolt: fixed -1 AP to the single shot, -1 AP to the burst in every mode |
-| D7 | No exceptions: monsters, bloodcats and enemy tanks use `ubBaseAPCost` too, tuned later |
+| D7 | No exceptions: monsters, bloodcats and enemy tanks use `ubAPCostPerSingleShot` too, tuned later |
 | D8 | The tank's Minimi has the same values as the merc's |
 | D9 | The tank cannon starts at 13 AP |
 | D10 | The upper cap at the merc's maximum AP is removed; the lower limit of 1 AP stays |
@@ -137,9 +137,9 @@ available) can't fire it at all.
 
 ### `WeaponModels.cc`, `WeaponModels.h`, `weapons.schema.yaml`
 
-- New `ubBaseAPCost`: read, written, in the constructors and in the schema.
+- New `ubAPCostPerSingleShot`: read, written, in the constructors and in the schema.
 - `ubShotsPer4Turns`: removed from all of these.
-- `ubAPsPerShortBurst`, `ubAPsPerLongBurst`, `ubAPsPerFullBurst`: names kept, and they now mean
+- `ubAPCostPerShortBurst`, `ubAPCostPerLongBurst`, `ubAPCostPerFullBurst`: names kept, and they now mean
   AP. Remove the "not an AP cost" comments and schema descriptions.
 
 ### `weapons.json`
@@ -149,13 +149,13 @@ diff.
 
 ### `Points.cc` and `Points.h`
 
-- `BaseAPsToShootOrStab(OBJECTTYPE const&)`: `ubBaseAPCost` minus Spring and Bolt, at least 1.
+- `BaseAPsToShootOrStab(OBJECTTYPE const&)`: `ubAPCostPerSingleShot` minus Spring and Bolt, at least 1.
   Both of today's overloads go away, with the `bAPs` and `bAimSkill` parameters.
 - `CalcAimSkill`: removed, since only the AP code uses it.
 - `MinAPsToShootOrStab`: no `full_aps` and no aim skill. The upper clamp goes (D10), the lower
   limit of 1 AP stays. Dual pistols still pay the higher of the two costs.
 - `CalcAPsToBurst(OBJECTTYPE const&, WeaponModes)`: keeps its meaning for the callers, what a
-  burst costs on top of a single shot, that is `burst field - ubBaseAPCost`. Both sides drop by
+  burst costs on top of a single shot, that is `burst field - ubAPCostPerSingleShot`. Both sides drop by
   1 with Spring and Bolt, so the total drops once. A burst field below the base gives 0, so a
   burst then costs what a single shot does. The rate path and the overload taking a soldier go
   away.
@@ -209,7 +209,7 @@ Weapon data isn't stored in saves, so the format doesn't change and no new game 
 
 Each stage: build and tests, then game verification by the user, then commit.
 
-1. **Fixed cost.** `ubBaseAPCost` in the data, loading and schema, `ubShotsPer4Turns` removed,
+1. **Fixed cost.** `ubAPCostPerSingleShot` in the data, loading and schema, `ubShotsPer4Turns` removed,
    the new `BaseAPsToShootOrStab`, Spring and Bolt, D10. These can't be separated without
    leaving the game broken, so they go together. Include unit tests if the functions can link
    in the test target.

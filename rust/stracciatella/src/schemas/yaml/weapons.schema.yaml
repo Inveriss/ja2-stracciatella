@@ -64,10 +64,6 @@ items:
         ubReadyTime:
           title: Ready time
           $ref: types/uint8.schema.yaml
-        ubBaseAPCost:
-          title: AP cost of a single shot or stab
-          description: A direct AP value, the same for everyone, -1 with a Spring and Bolt Upgrade. Not used by `PUNCHWEAPON` items, they have a flat punch cost.
-          $ref: types/uint8.schema.yaml
         ubBulletSpeed:
           title: Bullet speed
           $ref: types/uint8.schema.yaml
@@ -101,6 +97,28 @@ items:
         standardReplacement:
           title: Standard replacement
           $ref: types/id.schema.yaml
+        ubAPCostPerSingleShot:
+          title: AP cost of a single shot or stab
+          description: A direct AP value, the same for everyone, -1 with a Spring and Bolt Upgrade. Not used by `PUNCHWEAPON` items, they have a flat punch cost.
+          $ref: types/uint8.schema.yaml
+        ubAPCostPerShortBurst:
+          title: AP cost of the short burst
+          description: The full cost of the burst as a direct AP value, not a surcharge on top of `ubAPCostPerSingleShot`, -1 with a Spring and Bolt Upgrade. null or missing = `ubAPCostPerSingleShot` + 4.
+          anyOf:
+            - $ref: types/uint8.schema.yaml
+            - type: 'null'
+        ubAPCostPerLongBurst:
+          title: AP cost of the long burst
+          description: See `ubAPCostPerShortBurst`.
+          anyOf:
+            - $ref: types/uint8.schema.yaml
+            - type: 'null'
+        ubAPCostPerFullBurst:
+          title: AP cost of the full burst
+          description: See `ubAPCostPerShortBurst`.
+          anyOf:
+            - $ref: types/uint8.schema.yaml
+            - type: 'null'
         ubShotsPerShortBurst:
           title: Shots per short burst
           description: Default 3 for weapons that can burst, 0 = no short burst.
@@ -113,24 +131,6 @@ items:
           title: Shots per full burst
           description: The factory magazine size (default `ubMagSize`), a larger magazine doesn't make the full burst longer. 0 = no full burst.
           $ref: types/uint8.schema.yaml
-        ubAPsPerShortBurst:
-          title: AP cost of the short burst
-          description: The full cost of the burst as a direct AP value, not a surcharge on top of `ubBaseAPCost`, -1 with a Spring and Bolt Upgrade. null or missing = `ubBaseAPCost` + 4.
-          anyOf:
-            - $ref: types/uint8.schema.yaml
-            - type: 'null'
-        ubAPsPerLongBurst:
-          title: AP cost of the long burst
-          description: See `ubAPsPerShortBurst`.
-          anyOf:
-            - $ref: types/uint8.schema.yaml
-            - type: 'null'
-        ubAPsPerFullBurst:
-          title: AP cost of the full burst
-          description: See `ubAPsPerShortBurst`.
-          anyOf:
-            - $ref: types/uint8.schema.yaml
-            - type: 'null'
         ubShotsPerBurst:
           title: Shots per burst (deprecated)
           description: Used only when the burst fields above are missing, any value above 0 gives their defaults.

@@ -875,13 +875,13 @@ UINT8 CalcAPsToBurst(OBJECTTYPE const& o, WeaponModes const mode)
 	int burst_cost;
 	switch (mode)
 	{
-		case WM_BURST_SHORT: burst_cost = w->ubAPsPerShortBurst; break;
-		case WM_BURST_LONG:  burst_cost = w->ubAPsPerLongBurst;  break;
-		case WM_BURST_FULL:  burst_cost = w->ubAPsPerFullBurst;  break;
+		case WM_BURST_SHORT: burst_cost = w->ubAPCostPerShortBurst; break;
+		case WM_BURST_LONG:  burst_cost = w->ubAPCostPerLongBurst;  break;
+		case WM_BURST_FULL:  burst_cost = w->ubAPCostPerFullBurst;  break;
 		default:             return 0;
 	}
 	// A weapon without its own value for this burst
-	if (burst_cost == 0) burst_cost = w->ubBaseAPCost + 4;
+	if (burst_cost == 0) burst_cost = w->ubAPCostPerSingleShot + 4;
 	burst_cost = std::min(burst_cost, 255);
 
 	UINT8 const single_aps = BaseAPsToShootOrStab(o);
@@ -1015,7 +1015,7 @@ UINT8 MinAPsToAttack(SOLDIERTYPE * const s, GridNo const grid_no, bool const add
 // The weapon's fixed cost of a single shot or stab, the same for everyone.
 UINT8 BaseAPsToShootOrStab(OBJECTTYPE const& o)
 {
-	return CostWithSpringAndBolt(o, GCM->getWeapon(o.usItem)->ubBaseAPCost);
+	return CostWithSpringAndBolt(o, GCM->getWeapon(o.usItem)->ubAPCostPerSingleShot);
 }
 
 
