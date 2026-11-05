@@ -842,13 +842,13 @@ static void CalcBestThrow(SOLDIERTYPE* pSoldier, ATTACKTYPE* pBestThrow)
 					continue;              // next gridno
 				}
 
-				// calculate the maximum possible aiming time
-				ubMaxPossibleAimTime = std::min(AP_MAX_AIM_ATTACK,pSoldier->bActionPoints - ubMinAPcost);
+				// calculate the maximum possible aiming time: only direct fire (LAW,
+				// tank cannon) aims; a throw or a mortar / grenade launcher shot
+				// has no aiming, for the player neither (docs/throws-ap-plan.md)
+				ubMaxPossibleAimTime = EXPLOSIVE_GUN(usInHand) ?
+					std::min(AP_MAX_AIM_ATTACK, pSoldier->bActionPoints - ubMinAPcost) : 0;
 
 				// calc next attack's minimum AP cost (excludes readying & turning)
-
-				// since grenades & shells are far too valuable to waste, ALWAYS
-				// aim for the longest time possible!
 
 				if ( EXPLOSIVE_GUN( usInHand ) )
 				{
@@ -857,8 +857,11 @@ static void CalcBestThrow(SOLDIERTYPE* pSoldier, ATTACKTYPE* pBestThrow)
 				}
 				else
 				{
-					// NB grenade launcher is NOT a direct fire weapon!
-					ubRawAPCost   = MinAPsToThrow(*pSoldier, sGridNo, DONTADDTURNCOST);
+					// NB grenade launcher is NOT a direct fire weapon! Its AP are
+					// still the weapon's fixed cost, a throw costs its item's
+					ubRawAPCost   = GCM->getItem(usInHand)->getItemClass() == IC_LAUNCHER ?
+						MinAPsToShootOrStab(*pSoldier, sGridNo, DONTADDTURNCOST) :
+						MinAPsToThrow(*pSoldier, sGridNo, DONTADDTURNCOST);
 					ubChanceToHit = (UINT8) CalcThrownChanceToHit( pSoldier, sGridNo, ubMaxPossibleAimTime, AIM_SHOT_TORSO );
 				}
 

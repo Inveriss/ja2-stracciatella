@@ -74,7 +74,6 @@ enum
 #define MIN_PERCENT_BETTER	5	// 5% improvement in cover is good
 
 
-#define TOSSES_PER_10TURNS      18      // max # of grenades tossable in 10 turns
 #define SHELLS_PER_10TURNS      13      // max # of shells   firable  in 10 turns
 
 #define SEE_THRU_COVER_THRESHOLD        5      // min chance to get through
