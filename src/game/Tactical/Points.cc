@@ -1073,6 +1073,7 @@ bool ChargesAPsForNewTarget(SOLDIERTYPE const& s, GridNo const target)
 		item != GLAUNCHER &&
 		item != UNDER_GLAUNCHER &&
 		!s.fRaisingWeaponForAttack &&
+		!s.fRaisedWithoutTarget && // raised with Q: the first target is free
 		!IsWeaponLoweredForAttack(s);
 }
 

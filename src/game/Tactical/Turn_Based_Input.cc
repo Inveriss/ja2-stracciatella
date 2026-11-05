@@ -1345,6 +1345,9 @@ static void ToggleRaisedWeapon(SOLDIERTYPE& s)
 		s.fDontChargeReadyAPs = FALSE; // the ready animation takes the AP
 	}
 	InternalSoldierReadyWeapon(&s, s.bDirection, lower);
+	// Raised in advance: the first shot costs what a shot from a lowered
+	// weapon costs without its ready time, so no AP for a new target
+	s.fRaisedWithoutTarget = !lower;
 }
 
 

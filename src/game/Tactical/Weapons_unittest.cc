@@ -244,6 +244,12 @@ TEST(WeaponsTest, NewTargetAPCharge)
 	s.fRaisingWeaponForAttack = true;
 	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
 
+	// Raised with the Q key: the first target is free
+	s.fRaisingWeaponForAttack = false;
+	s.fRaisedWithoutTarget = true;
+	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
+	s.fRaisedWithoutTarget = false;
+
 	// Nor do the grenade launchers, with the weapon raised
 	s.fRaisingWeaponForAttack = false;
 	s.inv[HANDPOS].usItem = GLAUNCHER;

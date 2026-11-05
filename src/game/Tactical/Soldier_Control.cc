@@ -1384,6 +1384,7 @@ void EVENT_InitNewSoldierAnim(SOLDIERTYPE* const pSoldier, UINT16 usNewState, UI
 			usNewState != READY_RIFLE_CROUCH && usNewState != ROBOT_SHOOT )
 		{
 			pSoldier->sLastTarget = NOWHERE;
+			pSoldier->fRaisedWithoutTarget = false;
 		}
 	}
 

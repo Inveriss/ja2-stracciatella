@@ -5986,6 +5986,7 @@ static SOLDIERTYPE* InternalReduceAttackBusyCount(SOLDIERTYPE* const pSoldier, c
 	{
 		pSoldier->sLastTarget = pSoldier->sTargetGridNo;
 		pSoldier->fRaisingWeaponForAttack = false;
+		pSoldier->fRaisedWithoutTarget    = false;
 	}
 
 	return( pTarget );
