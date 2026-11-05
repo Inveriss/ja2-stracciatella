@@ -89,6 +89,9 @@ of them: standing dropped the turn, crouched and prone dropped the raise). Weapo
 merc facing away: standing 3 + 6 + 1 = 10, crouched 3 + 6 + 2 = 11, prone 3 + 6 + 6 = 15 (a prone
 merc gets up to a crouch, turns and lies down again: 2 + 2 + 2, see `GetAPsToLook`).
 
+A tank never pays the 1 AP for a new target. Turning its turret costs `AP_LOOK_STANDING` (1 AP), and
+the player's tank can turn it with the L key (the Look button).
+
 The target is remembered by its tile, so a raised weapon also pays this 1 AP for an enemy who
 has moved. `SOLDIERTYPE::fRaisingWeaponForAttack`, not saved, carries the state to the moment
 the gun fires, when the weapon is already up.

@@ -3,6 +3,7 @@
 #include "gtest/gtest.h"
 
 #include "Animation_Control.h"
+#include "Animation_Data.h"
 #include "DefaultContentManager.h"
 #include "DefaultContentManagerUT.h"
 #include "GameInstance.h"
@@ -227,6 +228,11 @@ TEST(WeaponsTest, NewTargetAPCharge)
 	// The gun fires in an attack that began with the weapon lowered
 	s.sLastTarget = NOWHERE;
 	s.fRaisingWeaponForAttack = true;
+	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
+
+	// A tank never pays for a new target, only for turning its turret
+	s.fRaisingWeaponForAttack = false;
+	s.ubBodyType = TANK_NE;
 	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
 
 	delete cm;

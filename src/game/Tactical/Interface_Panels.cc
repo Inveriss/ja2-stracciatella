@@ -1602,7 +1602,18 @@ static void UpdateSMVehicleCargoPanel(SOLDIERTYPE& v)
 	if (giSMStealthButton) DisableButton(giSMStealthButton);
 
 	// ... except the weapon mode of the player's tank (the B key follows it)
-	if (IsPlayerTank(v)) UpdateSMBurstButton(v);
+	// and its Look button, which turns the turret (the L key follows it)
+	if (IsPlayerTank(v))
+	{
+		UpdateSMBurstButton(v);
+		if (iSMPanelButtons[LOOK_BUTTON])
+		{
+			EnableButton(iSMPanelButtons[LOOK_BUTTON],
+				&v == GetSelectedMan() && gTacticalStatus.ubCurrentTeam == OUR_TEAM &&
+				!gfSMDisableForItems && PlayerTankCanFire(v) && !IsVehicleMoving(v));
+			SetButtonState(LOOK_BUTTON, gCurrentUIMode == LOOKCURSOR_MODE);
+		}
+	}
 
 	// Previous / Next merc: back to the merc, or with an item on the cursor
 	// on to the merc before / after him (SMPanelPrevNextMerc())
