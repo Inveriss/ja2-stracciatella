@@ -921,7 +921,10 @@ ItemHandleResult HandleItem(SOLDIERTYPE* const s, INT16 usGridNo, const INT8 bLe
 			// Increment attack counter...
 			gTacticalStatus.ubAttackBusyCount++;
 
-			// ATE: Don't charge turning...
+			// The turn costs a standing turn, whatever the stance (T5 of
+			// docs/throws-ap-plan.md): taken here, so the animations don't
+			// charge it by their own stance
+			if (ThrowNeedsTurn(*s, sTargetGridNo)) DeductPoints(s, AP_LOOK_STANDING, 0);
 			s->fDontChargeTurningAPs = TRUE;
 
 			FireWeapon(s, sTargetGridNo);

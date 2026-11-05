@@ -1701,6 +1701,14 @@ INT8 GetAPsToRefuelVehicle( SOLDIERTYPE *pSoldier )
 #define AP_MAX_AIM_ATTACK       4       // maximum permitted extra aiming
 
 
+// A throw towards a target the merc doesn't face: he turns, standing
+bool ThrowNeedsTurn(SOLDIERTYPE const& s, GridNo const target)
+{
+	return target != NOWHERE && target != s.sGridNo &&
+		GetDirectionFromGridNo(target, &s) != s.bDirection;
+}
+
+
 INT16 MinAPsToThrow(SOLDIERTYPE const& s, GridNo gridno, bool const add_turning_cost)
 {
 	INT32 ap = AP_MIN_AIM_ATTACK;
@@ -1724,6 +1732,9 @@ INT16 MinAPsToThrow(SOLDIERTYPE const& s, GridNo gridno, bool const add_turning_
 	// (docs/throws-ap-plan.md, T4)
 
 	ap += GetAPsToChangeStance(&s, ANIM_STAND);
+
+	// The turn, as a standing merc (T5); HandleItem() takes it at the start
+	if (add_turning_cost && ThrowNeedsTurn(s, gridno)) ap += AP_LOOK_STANDING;
 
 	// The item's fixed cost, the same for everyone (docs/throws-ap-plan.md).
 	// It can be more than the merc's maximum APs: then he must save APs.
