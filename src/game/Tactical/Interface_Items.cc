@@ -378,7 +378,7 @@ static const SGPPoint g_map_weapons_big_bullet_sing  = { 386, 426 };
 constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 #define EXCEPTIONAL_RANGE				300
 #define EXCEPTIONAL_MAGAZINE				30
-#define EXCEPTIONAL_AP_COST				7
+#define EXCEPTIONAL_AP_COST				6
 #define EXCEPTIONAL_BURST_SIZE				5
 #define EXCEPTIONAL_RELIABILITY			2
 #define EXCEPTIONAL_REPAIR_EASE			2
@@ -387,7 +387,7 @@ constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 #define BAD_WEIGHT					45
 #define BAD_RANGE					150
 #define BAD_MAGAZINE					10
-#define BAD_AP_COST					11
+#define BAD_AP_COST					10
 #define BAD_RELIABILITY				-2
 #define BAD_REPAIR_EASE				-2
 
