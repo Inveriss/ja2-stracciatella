@@ -1645,13 +1645,20 @@ INT16 GetAPsToReadyWeapon(const SOLDIERTYPE* const pSoldier, const UINT16 usAnim
 	{
 		return( 0 );
 	}
-	else
+
+	// The underslung grenade launcher in use: its own ready time, not the gun's
+	if (pSoldier->bWeaponMode == WM_ATTACHED &&
+		FindAttachment(&pSoldier->inv[HANDPOS], UNDER_GLAUNCHER) != NO_SLOT)
 	{
-		// CHECK FOR RIFLE
-		if ( GCM->getItem(usItem)->getItemClass() == IC_GUN )
-		{
-			return( GCM->getWeapon( usItem )->ubReadyTime );
-		}
+		return GCM->getWeapon(UNDER_GLAUNCHER)->ubReadyTime;
+	}
+
+	// Guns and launchers (grenade launcher, mortar, LAW)
+	switch (GCM->getItem(usItem)->getItemClass())
+	{
+		case IC_GUN:
+		case IC_LAUNCHER:
+			return GCM->getWeapon(usItem)->ubReadyTime;
 	}
 
 	return( 0 );

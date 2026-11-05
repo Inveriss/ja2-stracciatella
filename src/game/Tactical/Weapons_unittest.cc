@@ -188,6 +188,20 @@ TEST(WeaponsTest, FixedAPCosts)
 	EXPECT_EQ(BaseAPsToShootOrStab(m24), 10);
 	EXPECT_EQ(CalcAPsToBurst(m24, WM_BURST_SHORT), 4);
 
+	// Ready time: a grenade launcher's own, and the underslung one's own, not
+	// the gun's
+	{
+		auto s = SOLDIERTYPE{};
+		s.inv[HANDPOS].usItem = GLAUNCHER;
+		EXPECT_EQ(GetAPsToReadyWeapon(&s, s.usAnimState), 3);
+
+		s.inv[HANDPOS].usItem = cm->getWeaponByName("AK74")->getItemIndex();
+		s.inv[HANDPOS].usAttachItem[0] = UNDER_GLAUNCHER;
+		EXPECT_EQ(GetAPsToReadyWeapon(&s, s.usAnimState), 2);
+		s.bWeaponMode = WM_ATTACHED;
+		EXPECT_EQ(GetAPsToReadyWeapon(&s, s.usAnimState), 3);
+	}
+
 	auto cannon = OBJECTTYPE{};
 	cannon.usItem = TANK_CANNON;
 	EXPECT_EQ(BaseAPsToShootOrStab(cannon), 13);
