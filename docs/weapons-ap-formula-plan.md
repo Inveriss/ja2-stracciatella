@@ -84,6 +84,10 @@ part of aiming at the target. FN Minimi (`ubReadyTime` 3, single shot 6):
 | Weapon raised, same target | `ubAPCostPerSingleShot` | 6 |
 | Weapon raised, another target | `ubAPCostPerSingleShot + AP_CHANGE_TARGET` | 7 |
 
+Turning and raising the weapon are both paid, in every stance (the original game paid only one
+of them: standing dropped the turn, crouched and prone dropped the raise). Weapon lowered and the
+merc facing away: standing 3 + 6 + 1 = 10, crouched or prone 3 + 6 + 2 = 11.
+
 The target is remembered by its tile, so a raised weapon also pays this 1 AP for an enemy who
 has moved. `SOLDIERTYPE::fRaisingWeaponForAttack`, not saved, carries the state to the moment
 the gun fires, when the weapon is already up.

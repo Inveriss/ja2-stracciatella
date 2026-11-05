@@ -1092,17 +1092,7 @@ UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_
 		ap_cost += GetAPsToChangeStance(&s, ANIM_STAND);
 	}
 
-	// ATE: Look at stance
-	if (gAnimControl[s.usAnimState].ubHeight == ANIM_STAND)
-	{
-		// Don't charge turning if gun-ready
-		if (adding_raise_gun_cost) adding_turning_cost = FALSE;
-	}
-	else
-	{
-		// Just charge turning costs
-		if (adding_turning_cost) adding_raise_gun_cost = FALSE;
-	}
+	// Turning and raising the weapon are both paid, in every stance
 
 	if (AM_A_ROBOT(&s)) adding_raise_gun_cost = FALSE;
 

@@ -380,22 +380,8 @@ ItemHandleResult HandleItem(SOLDIERTYPE* const s, INT16 usGridNo, const INT8 bLe
 		// Our guys NEED TRUE. We shoulkd at some time make sure the AI and
 		// our guys are deducting/checking in the same manner to avoid
 		// these differences.
+		// Turning and raising the weapon are both paid, in every stance
 		const INT16 sAPCost = CalcTotalAPsToAttack(s, sTargetGridNo, TRUE, s->bAimTime);
-
-		BOOLEAN fAddingTurningCost  = FALSE;
-		BOOLEAN fAddingRaiseGunCost = FALSE;
-		GetAPChargeForShootOrStabWRTGunRaises(s, sTargetGridNo, TRUE, &fAddingTurningCost, &fAddingRaiseGunCost);
-
-		// If we are standing and are asked to turn AND raise gun, ignore raise gun...
-		if (gAnimControl[s->usAnimState].ubHeight == ANIM_STAND)
-		{
-			if (fAddingRaiseGunCost) s->fDontChargeTurningAPs = TRUE;
-		}
-		else
-		{
-			// If raising gun, don't charge turning!
-			if (fAddingTurningCost) s->fDontChargeReadyAPs = TRUE;
-		}
 
 		// If this is a player guy, show message about no APS
 		if (!EnoughPoints(s, sAPCost, 0, fFromUI)) return ITEM_HANDLE_NOAPS;
@@ -915,23 +901,7 @@ ItemHandleResult HandleItem(SOLDIERTYPE* const s, INT16 usGridNo, const INT8 bLe
 
 			s->fDontChargeAPsForStanceChange = TRUE;
 		}
-		else if (item->isLauncher())
-		{
-			BOOLEAN fAddingTurningCost  = FALSE;
-			BOOLEAN fAddingRaiseGunCost = FALSE;
-			GetAPChargeForShootOrStabWRTGunRaises(s, sTargetGridNo, TRUE, &fAddingTurningCost, &fAddingRaiseGunCost);
-
-			// If we are standing and are asked to turn AND raise gun, ignore raise gun...
-			if (gAnimControl[s->usAnimState].ubHeight == ANIM_STAND)
-			{
-				if (fAddingRaiseGunCost) s->fDontChargeTurningAPs = TRUE;
-			}
-			else
-			{
-				// If raising gun, don't charge turning!
-				if (fAddingTurningCost) s->fDontChargeReadyAPs = TRUE;
-			}
-		}
+		// a launcher pays for turning and for raising it, in every stance
 
 		// If this is a player guy, show message about no APS
 		if (!EnoughPoints(s, sAPCost, 0, fFromUI)) return ITEM_HANDLE_NOAPS;
