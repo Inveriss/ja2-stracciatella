@@ -1,9 +1,8 @@
 # Fixed AP cost for throws: plan
 
-Status: **plan, not implemented, all decisions taken** (T1-T10, user, 2026-11-05).
-Branch `Weapons_AP_Formula`. A follow-up of `docs/weapons-ap-formula-plan.md`: the same goal
-for grenades and thrown items. All numbers come from the code and the data; none were checked
-in the game.
+Status: **implemented and game-verified** (2026-11-05), branch `Weapons_AP_Formula`. A
+follow-up of `docs/weapons-ap-formula-plan.md`: the same goal for grenades and thrown items.
+Decisions T1-T11, stages 1-4 done (section 6). Section 2 describes the code before the change.
 
 ## 1. Goal
 
@@ -13,7 +12,7 @@ A throw has one fixed AP cost for everyone, in every situation, like a weapon sh
 - Wounds, fatigue and weight lower the AP a merc has per turn, not the price of a throw.
 - Dexterity no longer changes the AP cost. It still affects where the throw lands.
 
-## 2. Today
+## 2. Before this change
 
 ### 2.1 The formula
 
@@ -75,11 +74,14 @@ teammate (a flat `AP_TOSS_ITEM` 8).
   reaches it with a grenade in hand that I could find.
 - `TOSSES_PER_10TURNS` is defined twice (`Points.cc`, `AIInternals.h`).
 
-## 3. Proposed rules
+## 3. Rules
 
 ```
-throw = ubAPCostPerThrow (+ standing up, + turning, see T4-T5)
+throw = ubAPCostPerThrow + standing up (0 / 2 / 4) + turning (1 AP if the merc must turn)
 ```
+
+A hand grenade (11 AP) towards a target behind the merc: standing 12,
+crouched 14, prone 16; facing the target 11, 13, 15. No AP for a new target.
 
 - One direct AP value per throwable item, the same for every merc.
 - No `AP_MAX` and no dexterity in the cost (T3). The upper cap at the merc's AP goes (as D10),
@@ -96,12 +98,13 @@ All decided by the user on 2026-11-05: T1 as below, the rest as recommended.
 | T2 | Starting value | **11 AP** for every throwable item: today's cost at 20 AP and dexterity 100, the same conversion the weapons used (their `round(80 / S4T)` is today's cost at 20 AP and skill 100). For comparison: AK-74 5, M24 10, LAW 16. Can be tuned per item later |
 | T3 | Dexterity | Out of the cost, as marksmanship for weapons (D4). It still drives the hit chance (`CalcThrownChanceToHit`) |
 | T4 | 1 AP for a new target | **Never** for a throw: like a lowered weapon, every throw is aimed from scratch, so the aim is part of it |
-| T5 | Turning | **Paid**, as for weapons since `d2f1e234f`: the merc throws standing, so a standing turn (1 AP) after standing up. `HandleItem` stops setting `fDontChargeTurningAPs` for throws |
+| T5 | Turning | **Paid**, as for weapons since `d2f1e234f`: the merc throws standing, so a standing turn (1 AP) in every stance. Implemented: `ThrowNeedsTurn` adds it on the cursor and `HandleItem` takes it when the throw starts; `fDontChargeTurningAPs` stays, so the animations don't charge the turn by the stance it starts in |
 | T6 | Cap at the merc's AP | Removed, as D10. A merc with too few AP saves AP or can't throw |
 | T7 | AI rating of mortar and grenade launcher | Rate them with `MinAPsToShootOrStab` (their fixed cost) instead of `MinAPsToThrow` |
 | T8 | `CalcTotalAPsToAttack` for grenades | Return the throw cost instead of the hard-coded 5, so a future caller can't get a wrong value |
 | T9 | Item boxes | Out of scope; showing the throw cost in a grenade's box is a later, separate change |
 | T10 | Unarmed item toss (`AP_TOSS_ITEM` 8), bomb placing (3) | Unchanged |
+| T11 | AI aiming for throws | Added in stage 3: the AI throws and fires the mortar or grenade launcher **without aiming**, as the player (it used the hit bonus of up to 4 aiming points without paying for them). LAW and tank cannon still aim |
 
 **Balance with T2 = 11:** a healthy merc with good dexterity (20 AP, dex 80) pays 11 instead of
 12, a wounded one with 10 AP pays 11 instead of 6, a merc with 25 AP and dex 50 pays 11
@@ -109,25 +112,27 @@ instead of 19. Each throw is still one of the most expensive attacks, as grenade
 
 ## 5. Code changes
 
-- `ExplosiveModel.cc/.h`, `explosives.schema.yaml`: `ubAPCostPerThrow` (read, write, schema).
+- `ItemModel.cc/.h`: `getAPCostPerThrow()`, `deserializeAPCostPerThrow()`, `DEFAULT_AP_COST_PER_THROW`.
+- `ExplosiveModel.cc/.h`, `explosives.schema.yaml`: `ubAPCostPerThrow` (read, schema).
 - `WeaponModels.cc`: the `THROWN` (`NoWeapon`) branch reads `ubAPCostPerThrow`;
   `weapons.schema.yaml` describes it.
 - `explosives.json`, `weapons.json`: an entry for each of the 9 grenades and the 2 rocks (T1, T2).
 - `Points.cc`: `MinAPsToThrow` = standing up + turning (T5) + `ubAPCostPerThrow`, at least 1;
   remove the formula, `TOSSES_PER_10TURNS` and the cap. Also `CalcTotalAPsToAttack` (T8).
-- `Handle_Items.cc`: no `fDontChargeTurningAPs` for throws (T5).
-- `Attacks.cc`: T7; remove the unused `TOSSES_PER_10TURNS` from `AIInternals.h`.
+- `Handle_Items.cc`: takes the 1 AP turn when a throw starts (T5).
+- `Attacks.cc`: T7, T11; remove the unused `TOSSES_PER_10TURNS` from `AIInternals.h`.
 - Unit test: the value from the data, the fallback, no cap.
 
 No save format change: item data isn't stored in saves.
 
 ## 6. Stages
 
-Each stage: build and tests, then game verification by the user, then commit.
+Each stage: build and tests, then game verification by the user, then commit. All done.
 
-1. **Fixed throw cost:** T1-T3, T6, data, loading, schema, `MinAPsToThrow`, T8, unit test.
-2. **New target and turning:** T4, T5.
-3. **AI:** T7, the duplicate constant; a look at the aiming time the AI plans for throws.
+1. **Fixed throw cost:** T1-T4, T6, T8, data, loading, schema, `MinAPsToThrow`, unit test
+   (T4 was moved here from stage 2 by the user): `16fe335a4`.
+2. **Turning (T5):** 1 AP, taken by `HandleItem` at the start of the throw: `874ac361f`.
+3. **AI:** T7, the duplicate constant, T11: `cb83b2838`.
 4. **Docs:** this plan's status, a line in `docs/weapons-ap-formula-plan.md`.
 
 ### Game checks
@@ -143,6 +148,6 @@ Each stage: build and tests, then game verification by the user, then commit.
 
 ## 7. Open points
 
-- How a crouched or prone merc gets up for the throw (`HandleSoldierThrowItem`): the turn is
-  expected after standing up, at the standing cost. To confirm in the game in stage 2.
-- The AI's planned aiming time for throws (2.4).
+None. Resolved: the turn is 1 AP in every stance (stage 2); the AI's aiming time for throws
+is 0 (T11). Later: per-item tuning of `ubAPCostPerThrow`, and the throw cost in a grenade's
+item box (T9).

@@ -258,7 +258,8 @@ Each stage: build and tests, then game verification by the user, then commit. Al
 
 - **Tune monsters, bloodcats and enemy tanks** (planned by the user).
 - **Tune weapon and burst values**, including different costs per burst mode.
-- **Throws.** `MinAPsToThrow` has the same flaw (`AP_MAX` in the numerator, dexterity).
+- **Throws.** Done: one fixed `ubAPCostPerThrow` per throwable item, see
+  `docs/throws-ap-plan.md`.
 - **The AI burst estimate.** `DecideAction.cc` sets `ubAimTime = BURSTING` (5) just before
   subtracting it from the cost, so it always subtracts 5, not the real aim time.
 - **`ubReadyTime` on launchers.** It is read only for `IC_GUN`, so a launcher's value is ignored.
