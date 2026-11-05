@@ -2,9 +2,11 @@
 
 #include "gtest/gtest.h"
 
+#include "Animation_Control.h"
 #include "DefaultContentManager.h"
 #include "DefaultContentManagerUT.h"
 #include "GameInstance.h"
+#include "Isometric_Utils.h"
 #include "Item_Types.h"
 #include "Points.h"
 #include "Soldier_Control.h"
@@ -193,6 +195,39 @@ TEST(WeaponsTest, FixedAPCosts)
 	minimi.usItem = MINIMI;
 	EXPECT_EQ(BaseAPsToShootOrStab(minimi), 6);
 	EXPECT_EQ(BaseAPsToShootOrStab(minimi) + CalcAPsToBurst(minimi, WM_BURST_SHORT), 10);
+
+	delete cm;
+}
+
+TEST(WeaponsTest, NewTargetAPCharge)
+{
+	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();
+	ASSERT_TRUE(cm->loadGameData());
+	GCM = cm;
+
+	GridNo const target = 100;
+	auto s = SOLDIERTYPE{};
+	s.inv[HANDPOS].usItem = MINIMI;
+	s.sLastTarget = NOWHERE;
+
+	// Weapon lowered: raising it is part of aiming at the target
+	s.usAnimState = STANDING;
+	EXPECT_TRUE(IsWeaponLoweredForAttack(s));
+	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
+
+	// Weapon raised, another target
+	s.usAnimState = AIM_RIFLE_STAND;
+	EXPECT_FALSE(IsWeaponLoweredForAttack(s));
+	EXPECT_TRUE(ChargesAPsForNewTarget(s, target));
+
+	// Weapon raised, the same target
+	s.sLastTarget = target;
+	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
+
+	// The gun fires in an attack that began with the weapon lowered
+	s.sLastTarget = NOWHERE;
+	s.fRaisingWeaponForAttack = true;
+	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
 
 	delete cm;
 }

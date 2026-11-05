@@ -293,6 +293,8 @@ INT8  MinPtsToMove(const SOLDIERTYPE* pSoldier);
 INT8 MinAPsToStartMovement(const SOLDIERTYPE* pSoldier, UINT16 usMovementMode);
 INT8 PtsToMoveDirection(const SOLDIERTYPE* pSoldier, UINT8 bDirection);
 UINT8 MinAPsToShootOrStab(SOLDIERTYPE&, GridNo, bool add_turning_cost);
+bool IsWeaponLoweredForAttack(SOLDIERTYPE const&);
+bool ChargesAPsForNewTarget(SOLDIERTYPE const&, GridNo target);
 BOOLEAN EnoughAmmo( SOLDIERTYPE *pSoldier, BOOLEAN fDisplay, INT8 bInvPos );
 void DeductAmmo( SOLDIERTYPE *pSoldier, INT8 bInvPos );
 

@@ -75,6 +75,19 @@ The weapon's cost is fixed. These are separate actions, so they are still paid w
 aiming clicks (0 to 4 AP, +10% each), ready time, turning, the 1 AP for a new target, standing
 up for a thrown knife or LAW, reloading. Throws have their own formula and are out of scope.
 
+The 1 AP for a new target is charged only with the weapon already raised. Raising the weapon is
+part of aiming at the target. FN Minimi (`ubReadyTime` 3, single shot 6):
+
+| Situation | Formula | AP |
+|---|---|---:|
+| Weapon lowered | `ubReadyTime + ubAPCostPerSingleShot` | 9 |
+| Weapon raised, same target | `ubAPCostPerSingleShot` | 6 |
+| Weapon raised, another target | `ubAPCostPerSingleShot + AP_CHANGE_TARGET` | 7 |
+
+The target is remembered by its tile, so a raised weapon also pays this 1 AP for an enemy who
+has moved. `SOLDIERTYPE::fRaisingWeaponForAttack`, not saved, carries the state to the moment
+the gun fires, when the weapon is already up.
+
 ## 4. Starting data
 
 These are the current values converted with `round(80 / S4T)`, to be tuned freely later.

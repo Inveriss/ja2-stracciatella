@@ -858,6 +858,7 @@ struct SOLDIERTYPE
 
 	UINT8 ubLeaveHistoryCode;
 	BOOLEAN fDontUnsetLastTargetFromTurn;
+	bool    fRaisingWeaponForAttack; // this attack began with the weapon lowered, not saved
 	INT8 bOverrideMoveSpeed;
 	BOOLEAN fUseMoverrideMoveSpeed;
 

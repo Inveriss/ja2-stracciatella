@@ -400,6 +400,8 @@ ItemHandleResult HandleItem(SOLDIERTYPE* const s, INT16 usGridNo, const INT8 bLe
 		// If this is a player guy, show message about no APS
 		if (!EnoughPoints(s, sAPCost, 0, fFromUI)) return ITEM_HANDLE_NOAPS;
 
+		s->fRaisingWeaponForAttack = IsWeaponLoweredForAttack(*s);
+
 		// Psychos might possibly switch to a full burst if they can
 		if (s->ubProfile != NO_PROFILE &&
 			gMercProfiles[s->ubProfile].bPersonalityTrait == PSYCHO &&
@@ -933,6 +935,8 @@ ItemHandleResult HandleItem(SOLDIERTYPE* const s, INT16 usGridNo, const INT8 bLe
 
 		// If this is a player guy, show message about no APS
 		if (!EnoughPoints(s, sAPCost, 0, fFromUI)) return ITEM_HANDLE_NOAPS;
+
+		s->fRaisingWeaponForAttack = IsWeaponLoweredForAttack(*s);
 
 		s->ubAttackingHand   = HANDPOS;
 		s->usAttackingWeapon = usHandItem;

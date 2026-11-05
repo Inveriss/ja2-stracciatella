@@ -170,7 +170,7 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 		// calc next attack's minimum shooting cost (excludes readying & turning)
 		UINT8 ubRawAPCost = MinAPsToShootOrStab(*pSoldier, pOpponent->sGridNo, DONTADDTURNCOST);
 
-		if (pOpponent->sGridNo != pSoldier->sLastTarget)
+		if (ChargesAPsForNewTarget(*pSoldier, pOpponent->sGridNo))
 		{
 			// raw AP cost calculation included cost of changing target!
 			ubRawAPCost -= AP_CHANGE_TARGET;
@@ -1011,7 +1011,7 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 		// calc next attack's minimum stabbing cost (excludes movement & turning)
 		UINT8 ubRawAPCost = MinAPsToAttack(pSoldier, pOpponent->sGridNo, DONTADDTURNCOST);
 
-		if (pOpponent->sGridNo != pSoldier->sLastTarget)
+		if (ChargesAPsForNewTarget(*pSoldier, pOpponent->sGridNo))
 		{
 			// raw AP cost calculation included cost of changing target!
 			ubRawAPCost -= AP_CHANGE_TARGET;
@@ -1178,7 +1178,7 @@ void CalcTentacleAttack(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab )
 		// calc next attack's minimum stabbing cost (excludes movement & turning)
 		UINT8 ubRawAPCost = MinAPsToAttack(pSoldier, pOpponent->sGridNo, DONTADDTURNCOST);
 
-		if (pOpponent->sGridNo != pSoldier->sLastTarget)
+		if (ChargesAPsForNewTarget(*pSoldier, pOpponent->sGridNo))
 		{
 			// raw AP cost calculation included cost of changing target!
 			ubRawAPCost -= AP_CHANGE_TARGET;

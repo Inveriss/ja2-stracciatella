@@ -1051,6 +1051,28 @@ void GetAPChargeForShootOrStabWRTGunRaises(SOLDIERTYPE const* const s, GridNo gr
 }
 
 
+bool IsWeaponLoweredForAttack(SOLDIERTYPE const& s)
+{
+	BOOLEAN adding_turning_cost;
+	BOOLEAN adding_raise_gun_cost;
+	GetAPChargeForShootOrStabWRTGunRaises(&s, NOWHERE, FALSE, &adding_turning_cost, &adding_raise_gun_cost);
+	return adding_raise_gun_cost && !AM_A_ROBOT(&s);
+}
+
+
+// Changing the target costs AP only with the weapon already raised: raising it
+// is part of aiming at the target. The attack is charged again when the gun
+// fires, with the weapon up by then, hence fRaisingWeaponForAttack.
+bool ChargesAPsForNewTarget(SOLDIERTYPE const& s, GridNo const target)
+{
+	UINT16 const item = s.bWeaponMode == WM_ATTACHED ? UNDER_GLAUNCHER : s.inv[HANDPOS].usItem;
+	return target != s.sLastTarget &&
+		item != ROCKET_LAUNCHER &&
+		!s.fRaisingWeaponForAttack &&
+		!IsWeaponLoweredForAttack(s);
+}
+
+
 UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_cost)
 {
 	OBJECTTYPE const& in_hand = s.inv[HANDPOS];
@@ -1110,7 +1132,7 @@ UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_
 	}
 
 	// if attacking a new target (or if the specific target is uncertain)
-	if (gridno != s.sLastTarget && item != ROCKET_LAUNCHER)
+	if (ChargesAPsForNewTarget(s, gridno))
 	{
 		ap_cost += AP_CHANGE_TARGET;
 	}
