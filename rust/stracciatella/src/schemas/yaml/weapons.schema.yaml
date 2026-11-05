@@ -101,6 +101,10 @@ items:
           title: AP cost of a single shot or stab
           description: A direct AP value, the same for everyone, -1 with a Spring and Bolt Upgrade. Not used by `PUNCHWEAPON` items, they have a flat punch cost.
           $ref: types/uint8.schema.yaml
+        ubAPCostPerThrow:
+          title: AP cost of a throw
+          description: A direct AP value for every thrower, only for `THROWN` items (rocks). Missing = 11 AP, with a warning.
+          $ref: types/uint8.schema.yaml
         ubAPCostPerShortBurst:
           title: AP cost of the short burst
           description: The full cost of the burst as a direct AP value, not a surcharge on top of `ubAPCostPerSingleShot`, -1 with a Spring and Bolt Upgrade. null or missing = `ubAPCostPerSingleShot` + 4.

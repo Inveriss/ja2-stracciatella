@@ -53,6 +53,7 @@ struct WeaponModel : ItemModel
 	const BinaryData& vanillaItemStrings);
 
 	virtual const WeaponModel* asWeapon() const   { return this; }
+	virtual uint8_t getAPCostPerThrow() const    { return ubAPCostPerThrow; }
 
 	bool shootsExplosiveCalibre() const;
 	bool matches(const CalibreModel *calibre) const;
@@ -94,6 +95,7 @@ struct WeaponModel : ItemModel
 	const ExplosiveCalibreModel *explosiveCalibre;  // type of ammunition needed
 	UINT8    ubReadyTime;      // APs to ready/unready weapon
 	UINT8    ubAPCostPerSingleShot; // AP cost of a single shot or stab, the same for everyone
+	UINT8    ubAPCostPerThrow; // AP cost of a throw (THROWN items, rocks), the same for everyone
 	UINT8    ubAPCostPerShortBurst; // AP cost of the whole burst, 0 = ubAPCostPerSingleShot + 4
 	UINT8    ubAPCostPerLongBurst;
 	UINT8    ubAPCostPerFullBurst;

@@ -31,6 +31,7 @@ WeaponModel::WeaponModel(uint32_t itemClass, uint8_t weaponType, uint8_t cursor,
 	calibre              = CalibreModel::getNoCalibreObject();
 	ubReadyTime          = 0;
 	ubAPCostPerSingleShot = 0;
+	ubAPCostPerThrow     = 0;
 	ubAPCostPerShortBurst = 0;
 	ubAPCostPerLongBurst  = 0;
 	ubAPCostPerFullBurst  = 0;
@@ -200,6 +201,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	else if (internalType == WEAPON_TYPE_THROWN)
 	{
 		wep = new NoWeapon(itemIndex, std::move(internalName), IC_THROWN, TOSSCURS);
+		wep->ubAPCostPerThrow = ItemModel::deserializeAPCostPerThrow(obj, wep->getInternalName());
 		internalType = WEAPON_TYPE_NOWEAPON;
 	}
 	else if (internalType == "PISTOL")
@@ -772,6 +774,7 @@ JsonValue NoWeapon::serialize() const
 	JsonObject obj;
 	WeaponModel::serializeTo(obj);
 	obj.set("usRange", usRange);
+	if (ubAPCostPerThrow) obj.set("ubAPCostPerThrow", ubAPCostPerThrow);
 	serializeAttachments(obj);
 	serializeFlags(obj);
 	return obj.toValue();

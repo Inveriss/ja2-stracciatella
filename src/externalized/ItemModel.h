@@ -47,6 +47,10 @@ struct ItemModel
 
 	virtual ~ItemModel() = default;
 
+	// AP cost of throwing the item (grenades, rocks), the same for everyone;
+	// 0 for an item that isn't thrown
+	virtual uint8_t getAPCostPerThrow() const { return 0; }
+
 	const virtual ST::string& getInternalName() const;
 	const virtual ST::string& getShortName() const;
 	const virtual ST::string& getName() const;
@@ -163,4 +167,11 @@ protected:
 
 	void serializeBigPerPocket(JsonObject &obj) const;
 	static std::optional<uint8_t> deserializeBigPerPocket(const JsonObject &obj);
+
+	// ubAPCostPerThrow of a throwable item; a missing value gives
+	// DEFAULT_AP_COST_PER_THROW, with a warning
+	static uint8_t deserializeAPCostPerThrow(const JsonObject &obj, const ST::string& internalName);
 };
+
+// the AP cost of a throw when the data has none, see docs/throws-ap-plan.md
+constexpr uint8_t DEFAULT_AP_COST_PER_THROW = 11;

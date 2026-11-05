@@ -64,6 +64,7 @@ struct ExplosiveModel : ItemModel
 	~ExplosiveModel();
 
 	virtual const ExplosiveModel* asExplosive() const { return this; }
+	virtual uint8_t getAPCostPerThrow() const { return apCostPerThrow; }
 
 	static ExplosiveModel* deserialize(const JsonValue &json,
 						const std::vector<const ExplosiveCalibreModel*> &explosiveCalibres,
@@ -95,4 +96,5 @@ struct ExplosiveModel : ItemModel
 		const ExplosiveLightEffect *lightEffect;
 		const ExplosionAnimationModel *animation;
 		const ExplosiveCalibreModel *calibre;
+		uint8_t apCostPerThrow = 0; // only for a TOSS item
 };

@@ -907,12 +907,11 @@ UINT8 CalcTotalAPsToAttack(SOLDIERTYPE * const s, GridNo const grid_no, bool con
 				s->bWeaponMode == WM_ATTACHED ? 0 : aim_time);
 
 		case IC_GRENADE:
+			// the throw's cost, as on the throw cursor
+			return MinAPsToThrow(*s, grid_no, add_turning_cost);
+
 		case IC_BOMB:
-#if 0 // XXX always was this way
-			ap_cost = MinAPsToAttack(s, grid_no, ubAddTurningCost);
-#else
 			ap_cost = 5;
-#endif
 			break;
 
 		case IC_PUNCH:
@@ -1698,7 +1697,6 @@ INT8 GetAPsToRefuelVehicle( SOLDIERTYPE *pSoldier )
 }
 
 
-#define TOSSES_PER_10TURNS      18      // max # of grenades tossable in 10 turns
 #define AP_MIN_AIM_ATTACK       0       // minimum permitted extra aiming
 #define AP_MAX_AIM_ATTACK       4       // maximum permitted extra aiming
 
@@ -1722,35 +1720,15 @@ INT16 MinAPsToThrow(SOLDIERTYPE const& s, GridNo gridno, bool const add_turning_
 		SLOGW("MinAPsToThrow - in-hand item '{}' has unexpected item class 0x{x}", item->getInternalName(), item->getItemClass());
 	}
 
-	if (gridno != NOWHERE)
-	{
-		SOLDIERTYPE const* const tgt = FindSoldier(gridno, FIND_SOLDIER_GRIDNO);
-		if (tgt) gridno = tgt->sGridNo; // On a guy, get his gridno
-	}
-
-	// if attacking a new target (or if the specific target is uncertain)
-	if (gridno != s.sLastTarget) ap += AP_CHANGE_TARGET;
+	// No AP for a new target: every throw is aimed from scratch
+	// (docs/throws-ap-plan.md, T4)
 
 	ap += GetAPsToChangeStance(&s, ANIM_STAND);
 
-	// Calculate default top & bottom of the magic "aiming" formula)
-
-	// Get this man's maximum possible action points (ignoring carryovers)
-	INT32 const full_ap = CalcActionPoints(&s);
-
-	// The 2 times is here only to around rounding off using integer math later
-	INT32 const top = 2 * full_ap;
-
-	// Tosses per turn is for max dexterity, drops down to 1/2 at dexterity = 0
-	INT32 const bottom = TOSSES_PER_10TURNS * (50 + s.bDexterity / 2) / 10;
-
-	// Add minimum aiming time to the overall minimum AP_cost
-	// This here ROUNDS UP fractions of 0.5 or higher using integer math
-	// This works because 'top' is 2x what it really should be throughout
-	ap += (100 * top / bottom + 1) / 2;
-
-	// The minimum AP cost of ANY throw can NEVER be more than merc has APs!
-	if (ap > full_ap) ap = full_ap;
+	// The item's fixed cost, the same for everyone (docs/throws-ap-plan.md).
+	// It can be more than the merc's maximum APs: then he must save APs.
+	UINT8 const cost = item ? item->getAPCostPerThrow() : 0;
+	ap += cost != 0 ? cost : DEFAULT_AP_COST_PER_THROW;
 
 	// This SHOULD be impossible, but nevertheless
 	if (ap < 1) ap = 1;

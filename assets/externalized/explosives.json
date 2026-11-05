@@ -5,6 +5,7 @@
         "itemClass": "GRENADE",
         "animation": "STUN_BLAST",
         "cursor": "TOSS",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp1items.sti",
@@ -47,6 +48,7 @@
         "animation": "TARGAS_EXP",
         "itemClass": "GRENADE",
         "cursor": "TOSS",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp1items.sti",
@@ -86,6 +88,7 @@
         "itemClass": "GRENADE",
         "animation": "MUSTARD_EXP",
         "cursor": "TOSS",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp1items.sti",
@@ -125,6 +128,7 @@
         "itemClass": "GRENADE",
         "animation": "BLAST_1",
         "cursor": "TOSS",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp1items.sti",
@@ -167,6 +171,7 @@
         "itemClass": "GRENADE",
         "animation": "BLAST_1",
         "cursor": "TOSS",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp1items.sti",
@@ -608,6 +613,7 @@
         "itemClass": "GRENADE",
         "animation": "BLAST_1",
         "cursor": "TOSS",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp2items.sti",
@@ -810,6 +816,7 @@
         "itemClass": "GRENADE",
         "animation": "SMOKE_EXP",
         "cursor": "TOSS",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp1items.sti",
@@ -929,6 +936,7 @@
         "itemClass": "GRENADE",
         "animation": "BLAST_1",
         "cursor": "TOSS",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp2items.sti",
@@ -1048,6 +1056,7 @@
         "itemClass": "GRENADE",
         "animation": "TARGAS_EXP",
         "cursor": "TOSS",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp1items.sti",

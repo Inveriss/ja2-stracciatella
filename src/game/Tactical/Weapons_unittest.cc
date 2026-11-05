@@ -237,3 +237,33 @@ TEST(WeaponsTest, NewTargetAPCharge)
 
 	delete cm;
 }
+
+
+TEST(WeaponsTest, FixedThrowCost)
+{
+	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();
+	ASSERT_TRUE(cm->loadGameData());
+	GCM = cm;
+
+	// every throwable item has its own entry
+	EXPECT_EQ(cm->getItem(HAND_GRENADE)->getAPCostPerThrow(), 11);
+	EXPECT_EQ(cm->getWeaponByName("ROCK")->getAPCostPerThrow(), 11);
+	EXPECT_EQ(cm->getItem(MORTAR_SHELL)->getAPCostPerThrow(), 0);
+
+	// the same cost whatever the thrower's dexterity and AP
+	auto s = SOLDIERTYPE{};
+	s.inv[HANDPOS].usItem = HAND_GRENADE;
+	s.usAnimState = STANDING;
+	s.sLastTarget = NOWHERE;
+	for (INT8 const dexterity : { INT8{0}, INT8{50}, INT8{100} })
+	{
+		s.bDexterity = dexterity;
+		EXPECT_EQ(MinAPsToThrow(s, NOWHERE, false), 11);
+	}
+
+	// no AP for a new target
+	s.sLastTarget = 100;
+	EXPECT_EQ(MinAPsToThrow(s, NOWHERE, false), 11);
+
+	delete cm;
+}

@@ -1998,6 +1998,7 @@
         "itemIndex": 39,
         "internalName": "ROCK",
         "internalType": "THROWN",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp1items.sti",
@@ -2107,6 +2108,7 @@
         "itemIndex": 42,
         "internalName": "ROCK2",
         "internalType": "THROWN",
+        "ubAPCostPerThrow": 11,
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp1items.sti",
