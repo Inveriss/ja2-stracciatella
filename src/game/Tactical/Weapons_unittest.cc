@@ -244,6 +244,18 @@ TEST(WeaponsTest, NewTargetAPCharge)
 	s.fRaisingWeaponForAttack = true;
 	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
 
+	// Nor do the grenade launchers, with the weapon raised
+	s.fRaisingWeaponForAttack = false;
+	s.inv[HANDPOS].usItem = GLAUNCHER;
+	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
+	s.inv[HANDPOS].usItem = MINIMI;
+	s.inv[HANDPOS].usAttachItem[0] = UNDER_GLAUNCHER;
+	s.bWeaponMode = WM_ATTACHED;
+	EXPECT_FALSE(ChargesAPsForNewTarget(s, target));
+	s.bWeaponMode = WM_NORMAL;
+	EXPECT_TRUE(ChargesAPsForNewTarget(s, target));
+	s.inv[HANDPOS].usAttachItem[0] = NOTHING;
+
 	// A tank never pays for a new target, only for turning its turret
 	s.fRaisingWeaponForAttack = false;
 	s.ubBodyType = TANK_NE;

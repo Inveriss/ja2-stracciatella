@@ -1062,13 +1062,16 @@ bool IsWeaponLoweredForAttack(SOLDIERTYPE const& s)
 // Changing the target costs AP only with the weapon already raised: raising it
 // is part of aiming at the target. The attack is charged again when the gun
 // fires, with the weapon up by then, hence fRaisingWeaponForAttack. A tank
-// never pays it, only its turret's turn.
+// never pays it, only its turret's turn; neither do the LAW and the grenade
+// launchers.
 bool ChargesAPsForNewTarget(SOLDIERTYPE const& s, GridNo const target)
 {
 	UINT16 const item = s.bWeaponMode == WM_ATTACHED ? UNDER_GLAUNCHER : s.inv[HANDPOS].usItem;
 	return target != s.sLastTarget &&
 		!TANK(&s) &&
 		item != ROCKET_LAUNCHER &&
+		item != GLAUNCHER &&
+		item != UNDER_GLAUNCHER &&
 		!s.fRaisingWeaponForAttack &&
 		!IsWeaponLoweredForAttack(s);
 }
