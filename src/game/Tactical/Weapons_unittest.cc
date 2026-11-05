@@ -6,7 +6,9 @@
 #include "DefaultContentManagerUT.h"
 #include "GameInstance.h"
 #include "Item_Types.h"
+#include "Points.h"
 #include "Soldier_Control.h"
+#include "WeaponModels.h"
 #include "Weapons.h"
 
 
@@ -149,6 +151,48 @@ TEST(WeaponsTest, ArmourVersusExplosivesPercent)
 	soldier.inv[1].bStatus[0] = 80;
 	soldier.inv[1].bAttachStatus[0] = 80;
 	EXPECT_EQ(ArmourVersusExplosivesPercent(&soldier), 85);
+
+	delete cm;
+}
+
+
+TEST(WeaponsTest, FixedAPCosts)
+{
+	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();
+	ASSERT_TRUE(cm->loadGameData());
+	GCM = cm;
+
+	auto rpk = OBJECTTYPE{};
+	rpk.usItem = cm->getWeaponByName("RPK74")->getItemIndex();
+	EXPECT_EQ(BaseAPsToShootOrStab(rpk), 6);
+	EXPECT_EQ(CalcAPsToBurst(rpk, WM_BURST_SHORT), 4);
+	EXPECT_EQ(CalcAPsToBurst(rpk, WM_BURST_LONG), 4);
+	EXPECT_EQ(CalcAPsToBurst(rpk, WM_BURST_FULL), 4);
+	EXPECT_EQ(CalcAPsToBurst(rpk, WM_NORMAL), 0);
+
+	// Spring and Bolt: a fixed -1 AP for any status, a burst drops only once
+	rpk.usAttachItem[0] = SPRING_AND_BOLT_UPGRADE;
+	for (int const status : { 1, 100 })
+	{
+		rpk.bAttachStatus[0] = static_cast<INT8>(status);
+		EXPECT_EQ(BaseAPsToShootOrStab(rpk), 5);
+		EXPECT_EQ(BaseAPsToShootOrStab(rpk) + CalcAPsToBurst(rpk, WM_BURST_SHORT), 9);
+	}
+
+	// A weapon without a burst value: its cost + 4
+	auto m24 = OBJECTTYPE{};
+	m24.usItem = cm->getWeaponByName("M24")->getItemIndex();
+	EXPECT_EQ(BaseAPsToShootOrStab(m24), 10);
+	EXPECT_EQ(CalcAPsToBurst(m24, WM_BURST_SHORT), 4);
+
+	auto cannon = OBJECTTYPE{};
+	cannon.usItem = TANK_CANNON;
+	EXPECT_EQ(BaseAPsToShootOrStab(cannon), 13);
+
+	auto minimi = OBJECTTYPE{};
+	minimi.usItem = MINIMI;
+	EXPECT_EQ(BaseAPsToShootOrStab(minimi), 6);
+	EXPECT_EQ(BaseAPsToShootOrStab(minimi) + CalcAPsToBurst(minimi, WM_BURST_SHORT), 10);
 
 	delete cm;
 }

@@ -80,7 +80,6 @@ enum WeaponModes : INT8; // Soldier_Control.h
 #define AP_MIN_AIM_ATTACK		0 // minimum permitted extra aiming
 #define AP_MAX_AIM_ATTACK		4 // maximum permitted extra aiming
 
-#define AP_BURST			5
 
 #define AP_DROP_BOMB			3
 
@@ -279,11 +278,7 @@ const int16_t doorAPs[] = {
 
 
 
-#define DEFAULT_APS			20
-#define DEFAULT_AIMSKILL		80
-
-UINT8 BaseAPsToShootOrStab(INT8 bAPs, INT8 bAimSkill, OBJECTTYPE const&);
-UINT8 BaseAPsToShootOrStab(INT8 bAPs, INT8 bAimSkill, OBJECTTYPE const&, UINT8 ubShotsPer4Turns);
+UINT8 BaseAPsToShootOrStab(OBJECTTYPE const&);
 
 INT16 TerrainActionPoints(const SOLDIERTYPE* s, INT16 sGridno, INT8 bDir, INT8 bLevel);
 INT16 ActionPointCost(const SOLDIERTYPE* s, INT16 sGridNo, INT8 bDir, UINT16 usMovementMode);
@@ -304,8 +299,7 @@ void DeductAmmo( SOLDIERTYPE *pSoldier, INT8 bInvPos );
 
 UINT16 GetAPsToPickupItem( SOLDIERTYPE *pSoldier, UINT16 usMapPos );
 UINT8 CalcTotalAPsToAttack(SOLDIERTYPE *, GridNo, bool add_turning_cost, INT8 bAimTime);
-UINT8 CalcAPsToBurst(INT8 bBaseActionPoints, INT8 bAimSkill, OBJECTTYPE const&, WeaponModes);
-UINT8 CalcAPsToBurst(SOLDIERTYPE const&, OBJECTTYPE const&, WeaponModes);
+UINT8 CalcAPsToBurst(OBJECTTYPE const&, WeaponModes);
 UINT16 GetAPsToChangeStance(const SOLDIERTYPE* pSoldier, INT8 bDesiredHeight);
 
 UINT16 GetAPsToLook(const SOLDIERTYPE* pSoldier);

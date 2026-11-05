@@ -30,7 +30,7 @@ WeaponModel::WeaponModel(uint32_t itemClass, uint8_t weaponType, uint8_t cursor,
 	ubWeaponClass        = NOGUNCLASS;
 	calibre              = CalibreModel::getNoCalibreObject();
 	ubReadyTime          = 0;
-	ubShotsPer4Turns     = 0;
+	ubBaseAPCost         = 0;
 	ubAPsPerShortBurst = 0;
 	ubAPsPerLongBurst  = 0;
 	ubAPsPerFullBurst  = 0;
@@ -111,7 +111,7 @@ void WeaponModel::serializeBurstModes(JsonObject &obj) const
 	if (ubAPsPerFullBurst)  obj.set("ubAPsPerFullBurst",  ubAPsPerFullBurst);
 }
 
-// Burst lengths and the optional firing rates for their AP costs, see
+// Burst lengths and their AP costs, see
 // docs/burst-modes.md. Needs ubMagSize to be set already.
 void WeaponModel::deserializeBurstModes(JsonObject const& obj)
 {
@@ -130,19 +130,18 @@ void WeaponModel::deserializeBurstModes(JsonObject const& obj)
 	ubShotsPerLongBurst  = readShots("ubShotsPerLongBurst",  6);
 	ubShotsPerFullBurst  = readShots("ubShotsPerFullBurst",  ubMagSize);
 
-	// Not an AP cost: shots per 4 turns of the burst mode, a parameter of the
-	// original AP formula like ubShotsPer4Turns, see CalcAPsToBurst().
-	// null or missing = 0 = the original burst cost.
-	auto const readRate = [&](char const* key) -> UINT8
+	// The AP cost of the whole burst, see CalcAPsToBurst().
+	// null or missing = 0 = ubBaseAPCost + 4.
+	auto const readCost = [&](char const* key) -> UINT8
 	{
 		if (!obj.has(key)) return 0;
 		JsonValue const value = obj.GetValue(key);
 		if (!value.isInt()) return 0; // null
 		return static_cast<UINT8>(std::clamp(value.toInt(), 0, 255));
 	};
-	ubAPsPerShortBurst = readRate("ubAPsPerShortBurst");
-	ubAPsPerLongBurst  = readRate("ubAPsPerLongBurst");
-	ubAPsPerFullBurst  = readRate("ubAPsPerFullBurst");
+	ubAPsPerShortBurst = readCost("ubAPsPerShortBurst");
+	ubAPsPerLongBurst  = readCost("ubAPsPerLongBurst");
+	ubAPsPerFullBurst  = readCost("ubAPsPerFullBurst");
 }
 
 ST::string readOptionalString(JsonObject &obj, const char* key, const ST::string &default_value) {
@@ -207,7 +206,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	{
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
 		uint8_t  Deadliness      = obj.GetInt("ubDeadliness");
@@ -223,7 +222,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					BulletSpeed,
 					Impact,
 					ReadyTime,
-					ShotsPer4Turns,
+					BaseAPCost,
 					Deadliness,
 					MagSize,
 					Range,
@@ -236,7 +235,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	{
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
@@ -259,7 +258,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					BulletSpeed,
 					Impact,
 					ReadyTime,
-					ShotsPer4Turns,
+					BaseAPCost,
 					ShotsPerShortBurst,
 					BurstPenalty,
 					Deadliness,
@@ -276,7 +275,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	{
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
@@ -299,7 +298,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 				BulletSpeed,
 				Impact,
 				ReadyTime,
-				ShotsPer4Turns,
+				BaseAPCost,
 				ShotsPerShortBurst,
 				BurstPenalty,
 				Deadliness,
@@ -316,7 +315,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	{
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		// uint8_t  ShotsPerBurst   = obj.GetInt("ubShotsPerBurst");
 		// uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
@@ -337,7 +336,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					BulletSpeed,
 					Impact,
 					ReadyTime,
-					ShotsPer4Turns,
+					BaseAPCost,
 					Deadliness,
 					MagSize,
 					Range,
@@ -350,7 +349,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	{
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		// uint8_t  ShotsPerBurst   = obj.GetInt("ubShotsPerBurst");
 		// uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
@@ -371,7 +370,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 				BulletSpeed,
 				Impact,
 				ReadyTime,
-				ShotsPer4Turns,
+				BaseAPCost,
 				Deadliness,
 				MagSize,
 				Range,
@@ -384,7 +383,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	{
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
@@ -407,7 +406,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					BulletSpeed,
 					Impact,
 					ReadyTime,
-					ShotsPer4Turns,
+					BaseAPCost,
 					ShotsPerShortBurst,
 					BurstPenalty,
 					Deadliness,
@@ -424,7 +423,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	{
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
@@ -447,7 +446,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					BulletSpeed,
 					Impact,
 					ReadyTime,
-					ShotsPer4Turns,
+					BaseAPCost,
 					ShotsPerShortBurst,
 					BurstPenalty,
 					Deadliness,
@@ -464,7 +463,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	{
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  ShotsPerShortBurst = 0; // see deserializeBurstModes()
 		uint8_t  BurstPenalty    = obj.GetInt("ubBurstPenalty");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
@@ -486,7 +485,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 				BulletSpeed,
 				Impact,
 				ReadyTime,
-				ShotsPer4Turns,
+				BaseAPCost,
 				ShotsPerShortBurst,
 				BurstPenalty,
 				Deadliness,
@@ -501,7 +500,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	}
 	else if (internalType == "BLADE")
 	{
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
 		uint8_t  Deadliness      = obj.GetInt("ubDeadliness");
 		uint16_t Range           = obj.GetInt("usRange");
@@ -509,7 +508,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		ST::string Sound       = obj.getOptionalString("sound");
 		wep = new Blade(itemIndex, std::move(internalName),
 				Impact,
-				ShotsPer4Turns,
+				BaseAPCost,
 				Deadliness,
 				Range,
 				AttackVolume,
@@ -517,7 +516,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	}
 	else if (internalType == "THROWINGBLADE")
 	{
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
 		uint8_t  Deadliness      = obj.GetInt("ubDeadliness");
 		uint16_t Range           = obj.GetInt("usRange");
@@ -525,7 +524,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		ST::string Sound         = obj.getOptionalString("sound");
 		wep = new ThrowingBlade(itemIndex, std::move(internalName),
 					Impact,
-					ShotsPer4Turns,
+					BaseAPCost,
 					Deadliness,
 					Range,
 					AttackVolume,
@@ -533,14 +532,14 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	}
 	else if (internalType == "PUNCHWEAPON")
 	{
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
 		uint8_t  Deadliness      = obj.GetInt("ubDeadliness");
 		uint8_t  AttackVolume    = obj.GetInt("ubAttackVolume");
 		ST::string Sound         = obj.getOptionalString("sound");
 		wep = new PunchWeapon(itemIndex, std::move(internalName),
 					Impact,
-					ShotsPer4Turns,
+					BaseAPCost,
 					Deadliness,
 					AttackVolume,
 					std::move(Sound));
@@ -553,7 +552,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 			{"MORTAR", "MORTAR_SHELL"}
 		});
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
 		uint8_t  Deadliness      = obj.GetInt("ubDeadliness");
 		uint16_t Range           = obj.GetInt("usRange");
@@ -564,7 +563,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					calibre,
 					BulletSpeed,
 					ReadyTime,
-					ShotsPer4Turns,
+					BaseAPCost,
 					Deadliness,
 					Range,
 					AttackVolume,
@@ -574,7 +573,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	else if (internalType == "LAW")
 	{
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
 		uint8_t  Deadliness      = obj.GetInt("ubDeadliness");
 		uint16_t Range           = obj.GetInt("usRange");
@@ -584,7 +583,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		wep = new LAW(itemIndex, std::move(internalName),
 				BulletSpeed,
 				ReadyTime,
-				ShotsPer4Turns,
+				BaseAPCost,
 				Deadliness,
 				Range,
 				AttackVolume,
@@ -597,7 +596,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 			{"TANK_CANNON", "TANK_SHELL"},
 		});
 		uint8_t  ReadyTime       = obj.GetInt("ubReadyTime");
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  BulletSpeed     = obj.GetInt("ubBulletSpeed");
 		uint8_t  Deadliness      = obj.GetInt("ubDeadliness");
 		uint16_t Range           = obj.GetInt("usRange");
@@ -608,7 +607,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 					calibre,
 					BulletSpeed,
 					ReadyTime,
-					ShotsPer4Turns,
+					BaseAPCost,
 					Deadliness,
 					Range,
 					AttackVolume,
@@ -618,7 +617,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	else if (internalType == "MONSTSPIT")
 	{
 		const CalibreModel *calibre = getCalibre(obj.GetString("calibre"), calibreMap);
-		uint8_t  ShotsPer4Turns  = obj.GetInt("ubShotsPer4Turns");
+		uint8_t  BaseAPCost      = obj.GetInt("ubBaseAPCost");
 		uint8_t  Impact          = obj.GetInt("ubImpact");
 		uint8_t  Deadliness      = obj.GetInt("ubDeadliness");
 		uint8_t  MagSize         = obj.GetInt("ubMagSize");
@@ -630,7 +629,7 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		wep = new MonsterSpit(itemIndex, std::move(internalName),
 					calibre,
 					Impact,
-					ShotsPer4Turns,
+					BaseAPCost,
 					Deadliness,
 					MagSize,
 					Range,
@@ -785,7 +784,7 @@ Pistol::Pistol(uint16_t itemIndex,
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t BaseAPCost,
 		uint8_t Deadliness,
 		uint8_t MagSize,
 		uint16_t Range,
@@ -798,7 +797,7 @@ Pistol::Pistol(uint16_t itemIndex,
 	ubWeaponClass        = HANDGUNCLASS;
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = Impact;
 	ubDeadliness         = Deadliness;
@@ -819,7 +818,7 @@ JsonValue Pistol::serialize() const
 	WeaponModel::serializeTo(obj);
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubImpact",             ubImpact);
 	obj.set("ubDeadliness",         ubDeadliness);
@@ -840,7 +839,7 @@ MPistol::MPistol(uint16_t itemIndex,
 			uint8_t BulletSpeed,
 			uint8_t Impact,
 			uint8_t ReadyTime,
-			uint8_t ShotsPer4Turns,
+			uint8_t BaseAPCost,
 			uint8_t ShotsPerShortBurst,
 			uint8_t BurstPenalty,
 			uint8_t Deadliness,
@@ -857,7 +856,7 @@ MPistol::MPistol(uint16_t itemIndex,
 	ubWeaponClass        = HANDGUNCLASS;
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
@@ -882,7 +881,7 @@ JsonValue MPistol::serialize() const
 	WeaponModel::serializeTo(obj);
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
@@ -906,7 +905,7 @@ SMG::SMG(uint16_t itemIndex, ST::string&& internalName,
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t BaseAPCost,
 		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
@@ -923,7 +922,7 @@ SMG::SMG(uint16_t itemIndex, ST::string&& internalName,
 	ubWeaponClass        = SMGCLASS;
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
@@ -948,7 +947,7 @@ JsonValue SMG::serialize() const
 	WeaponModel::serializeTo(obj);
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
@@ -972,7 +971,7 @@ SniperRifle::SniperRifle(uint16_t itemIndex, ST::string&& internalName,
 				uint8_t BulletSpeed,
 				uint8_t Impact,
 				uint8_t ReadyTime,
-				uint8_t ShotsPer4Turns,
+				uint8_t BaseAPCost,
 				uint8_t Deadliness,
 				uint8_t MagSize,
 				uint16_t Range,
@@ -985,7 +984,7 @@ SniperRifle::SniperRifle(uint16_t itemIndex, ST::string&& internalName,
 	ubWeaponClass        = RIFLECLASS;
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = Impact;
 	ubDeadliness         = Deadliness;
@@ -1006,7 +1005,7 @@ JsonValue SniperRifle::serialize() const
 	WeaponModel::serializeTo(obj);
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubImpact",             ubImpact);
 	obj.set("ubDeadliness",         ubDeadliness);
@@ -1026,7 +1025,7 @@ Rifle::Rifle(uint16_t itemIndex, ST::string&& internalName,
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t BaseAPCost,
 		uint8_t Deadliness,
 		uint8_t MagSize,
 		uint16_t Range,
@@ -1039,7 +1038,7 @@ Rifle::Rifle(uint16_t itemIndex, ST::string&& internalName,
 	ubWeaponClass        = RIFLECLASS;
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = Impact;
 	ubDeadliness         = Deadliness;
@@ -1060,7 +1059,7 @@ JsonValue Rifle::serialize() const
 	WeaponModel::serializeTo(obj);
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubImpact",             ubImpact);
 	obj.set("ubDeadliness",         ubDeadliness);
@@ -1080,7 +1079,7 @@ AssaultRifle::AssaultRifle(uint16_t itemIndex, ST::string&& internalName,
 				uint8_t BulletSpeed,
 				uint8_t Impact,
 				uint8_t ReadyTime,
-				uint8_t ShotsPer4Turns,
+				uint8_t BaseAPCost,
 				uint8_t ShotsPerShortBurst,
 				uint8_t BurstPenalty,
 				uint8_t Deadliness,
@@ -1097,7 +1096,7 @@ AssaultRifle::AssaultRifle(uint16_t itemIndex, ST::string&& internalName,
 	ubWeaponClass        = RIFLECLASS;
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
@@ -1122,7 +1121,7 @@ JsonValue AssaultRifle::serialize() const
 	WeaponModel::serializeTo(obj);
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
@@ -1146,7 +1145,7 @@ Shotgun::Shotgun(uint16_t itemIndex, ST::string&& internalName,
 			uint8_t BulletSpeed,
 			uint8_t Impact,
 			uint8_t ReadyTime,
-			uint8_t ShotsPer4Turns,
+			uint8_t BaseAPCost,
 			uint8_t ShotsPerShortBurst,
 			uint8_t BurstPenalty,
 			uint8_t Deadliness,
@@ -1163,7 +1162,7 @@ Shotgun::Shotgun(uint16_t itemIndex, ST::string&& internalName,
 	ubWeaponClass        = SHOTGUNCLASS;
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
@@ -1188,7 +1187,7 @@ JsonValue Shotgun::serialize() const
 	WeaponModel::serializeTo(obj);
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
@@ -1212,7 +1211,7 @@ LMG::LMG(uint16_t itemIndex, ST::string&& internalName,
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t BaseAPCost,
 		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
@@ -1229,7 +1228,7 @@ LMG::LMG(uint16_t itemIndex, ST::string&& internalName,
 	ubWeaponClass        = MGCLASS;
 	this->calibre        = calibre;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubShotsPerShortBurst = ShotsPerShortBurst;
 	ubBurstPenalty       = BurstPenalty;
 	ubBulletSpeed        = BulletSpeed;
@@ -1254,7 +1253,7 @@ JsonValue LMG::serialize() const
 	WeaponModel::serializeTo(obj);
 	obj.set("calibre",              calibre->internalName);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	serializeBurstModes(obj);
 	obj.set("ubBurstPenalty",       ubBurstPenalty);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
@@ -1275,7 +1274,7 @@ JsonValue LMG::serialize() const
 
 Blade::Blade(uint16_t itemIndex, ST::string&& internalName,
 		uint8_t Impact,
-		uint8_t ShotsPer4Turns,
+		uint8_t BaseAPCost,
 		uint8_t Deadliness,
 		uint16_t Range,
 		uint8_t AttackVolume,
@@ -1284,7 +1283,7 @@ Blade::Blade(uint16_t itemIndex, ST::string&& internalName,
 {
 	ubWeaponClass        = KNIFECLASS;
 	ubReadyTime          = AP_READY_KNIFE;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubImpact             = Impact;
 	ubDeadliness         = Deadliness;
 	usRange              = Range;
@@ -1297,7 +1296,7 @@ JsonValue Blade::serialize() const
 {
 	JsonObject obj;
 	WeaponModel::serializeTo(obj);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubImpact",             ubImpact);
 	obj.set("ubDeadliness",         ubDeadliness);
 	obj.set("usRange",              usRange);
@@ -1310,7 +1309,7 @@ JsonValue Blade::serialize() const
 
 ThrowingBlade::ThrowingBlade(uint16_t itemIndex, ST::string&& internalName,
 				uint8_t Impact,
-				uint8_t ShotsPer4Turns,
+				uint8_t BaseAPCost,
 				uint8_t Deadliness,
 				uint16_t Range,
 				uint8_t AttackVolume,
@@ -1319,7 +1318,7 @@ ThrowingBlade::ThrowingBlade(uint16_t itemIndex, ST::string&& internalName,
 {
 	ubWeaponClass        = KNIFECLASS;
 	ubReadyTime          = AP_READY_KNIFE;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubImpact             = Impact;
 	ubDeadliness         = Deadliness;
 	usRange              = Range;
@@ -1332,7 +1331,7 @@ JsonValue ThrowingBlade::serialize() const
 {
 	JsonObject obj;
 	WeaponModel::serializeTo(obj);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubImpact",             ubImpact);
 	obj.set("ubDeadliness",         ubDeadliness);
 	obj.set("usRange",              usRange);
@@ -1345,14 +1344,14 @@ JsonValue ThrowingBlade::serialize() const
 
 PunchWeapon::PunchWeapon(uint16_t itemIndex, ST::string&& internalName,
 				uint8_t Impact,
-				uint8_t ShotsPer4Turns,
+				uint8_t BaseAPCost,
 				uint8_t Deadliness,
 				uint8_t AttackVolume,
 				ST::string&& Sound)
 	:WeaponModel(IC_PUNCH, NOT_GUN, PUNCHCURS, itemIndex, std::move(internalName))
 {
 	ubWeaponClass        = KNIFECLASS;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubImpact             = Impact;
 	ubDeadliness         = Deadliness;
 	usRange              = 10;
@@ -1366,7 +1365,7 @@ JsonValue PunchWeapon::serialize() const
 {
 	JsonObject obj;
 	WeaponModel::serializeTo(obj);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubImpact",             ubImpact);
 	obj.set("ubDeadliness",         ubDeadliness);
 	obj.set("ubAttackVolume",       ubAttackVolume);
@@ -1380,7 +1379,7 @@ Launcher::Launcher(uint16_t itemIndex, ST::string&& internalName,
 			const ExplosiveCalibreModel* explosiveCalibre,
 			uint8_t BulletSpeed,
 			uint8_t ReadyTime,
-			uint8_t ShotsPer4Turns,
+			uint8_t BaseAPCost,
 			uint8_t Deadliness,
 			uint16_t Range,
 			uint8_t AttackVolume,
@@ -1390,7 +1389,7 @@ Launcher::Launcher(uint16_t itemIndex, ST::string&& internalName,
 {
 	ubWeaponClass        = RIFLECLASS;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = 1;
 	ubDeadliness         = Deadliness;
@@ -1407,7 +1406,7 @@ JsonValue Launcher::serialize() const
 	JsonObject obj;
 	WeaponModel::serializeTo(obj);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubDeadliness",         ubDeadliness);
 	obj.set("usRange",              usRange);
@@ -1422,7 +1421,7 @@ JsonValue Launcher::serialize() const
 LAW::LAW(uint16_t itemIndex, ST::string&& internalName,
 		uint8_t BulletSpeed,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t BaseAPCost,
 		uint8_t Deadliness,
 		uint16_t Range,
 		uint8_t AttackVolume,
@@ -1432,7 +1431,7 @@ LAW::LAW(uint16_t itemIndex, ST::string&& internalName,
 {
 	ubWeaponClass        = RIFLECLASS;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = 80;
 	ubDeadliness         = Deadliness;
@@ -1449,7 +1448,7 @@ JsonValue LAW::serialize() const
 	JsonObject obj;
 	WeaponModel::serializeTo(obj);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubDeadliness",         ubDeadliness);
 	obj.set("usRange",              usRange);
@@ -1465,7 +1464,7 @@ Cannon::Cannon(uint16_t itemIndex, ST::string&& internalName,
 		const ExplosiveCalibreModel* explosiveCalibre,
 		uint8_t BulletSpeed,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t BaseAPCost,
 		uint8_t Deadliness,
 		uint16_t Range,
 		uint8_t AttackVolume,
@@ -1475,7 +1474,7 @@ Cannon::Cannon(uint16_t itemIndex, ST::string&& internalName,
 {
 	ubWeaponClass        = RIFLECLASS;
 	ubReadyTime          = ReadyTime;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubBulletSpeed        = BulletSpeed;
 	ubImpact             = 80;
 	ubDeadliness         = Deadliness;
@@ -1493,7 +1492,7 @@ JsonValue Cannon::serialize() const
 	JsonObject obj;
 	WeaponModel::serializeTo(obj);
 	obj.set("ubReadyTime",          ubReadyTime);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubBulletSpeed",        ubBulletSpeed);
 	obj.set("ubDeadliness",         ubDeadliness);
 	obj.set("usRange",              usRange);
@@ -1508,7 +1507,7 @@ JsonValue Cannon::serialize() const
 MonsterSpit::MonsterSpit(uint16_t itemIndex, ST::string&& internalName,
 				const CalibreModel *calibre,
 				uint8_t Impact,
-				uint8_t ShotsPer4Turns,
+				uint8_t BaseAPCost,
 				uint8_t Deadliness,
 				uint8_t MagSize,
 				uint16_t Range,
@@ -1521,7 +1520,7 @@ MonsterSpit::MonsterSpit(uint16_t itemIndex, ST::string&& internalName,
 	ubWeaponClass        = MONSTERCLASS;
 	this->calibre        = calibre;
 	ubReadyTime          = AP_READY_KNIFE;
-	ubShotsPer4Turns     = ShotsPer4Turns;
+	ubBaseAPCost         = BaseAPCost;
 	ubBulletSpeed        = 250;
 	ubImpact             = Impact;
 	ubDeadliness         = Deadliness;
@@ -1539,7 +1538,7 @@ JsonValue MonsterSpit::serialize() const
 	JsonObject obj;
 	WeaponModel::serializeTo(obj);
 	obj.set("calibre",              calibre->internalName);
-	obj.set("ubShotsPer4Turns",     ubShotsPer4Turns);
+	obj.set("ubBaseAPCost",         ubBaseAPCost);
 	obj.set("ubImpact",             ubImpact);
 	obj.set("ubDeadliness",         ubDeadliness);
 	obj.set("ubMagSize",            ubMagSize);

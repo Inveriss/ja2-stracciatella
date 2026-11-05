@@ -856,51 +856,37 @@ static INT16 GetBreathPerAP(SOLDIERTYPE* pSoldier, UINT16 usAnimState)
 }
 
 
-static INT8 CalcAimSkill(SOLDIERTYPE const&, UINT16 weapon);
-
-
-// AP a burst costs on top of a single shot, see docs/burst-modes.md.
-// bBaseActionPoints is what you'd get from CalcActionPoints().
-UINT8 CalcAPsToBurst(INT8 const bBaseActionPoints, INT8 const bAimSkill, OBJECTTYPE const& o, WeaponModes const mode)
+// A weapon's AP cost with its Spring and Bolt Upgrade: a fixed 1 AP less, the
+// attachment's status doesn't matter. A cost never falls below 1 AP.
+static UINT8 CostWithSpringAndBolt(OBJECTTYPE const& o, UINT8 const cost)
 {
-	if (!GCM->getItem(o.usItem)->isWeapon()) return 0;
-
-	// A burst mode with its own shots per 4 turns costs what the original
-	// formula gives for them instead of the single shot's.
-	WeaponModel const* const w = GCM->getWeapon(o.usItem);
-	UINT8 burst_shots_per_4_turns;
-	switch (mode)
-	{
-		case WM_BURST_SHORT: burst_shots_per_4_turns = w->ubAPsPerShortBurst; break;
-		case WM_BURST_LONG:  burst_shots_per_4_turns = w->ubAPsPerLongBurst;  break;
-		case WM_BURST_FULL:  burst_shots_per_4_turns = w->ubAPsPerFullBurst;  break;
-		default:             return 0;
-	}
-	if (burst_shots_per_4_turns != 0)
-	{
-		UINT8 const single_aps = BaseAPsToShootOrStab(bBaseActionPoints, bAimSkill, o);
-		UINT8 const burst_aps  = BaseAPsToShootOrStab(bBaseActionPoints, bAimSkill, o, burst_shots_per_4_turns);
-		return burst_aps > single_aps ? burst_aps - single_aps : 0;
-	}
-
-	// Otherwise the original burst cost, the same for every burst mode (no
-	// special case for the G11 any more)
-	// NB round UP, so 21-25 APs pay full
-	INT8 const bAttachPos = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE );
-	if ( bAttachPos != -1 )
-	{
-		return (std::max(3, (AP_BURST * bBaseActionPoints + (AP_MAXIMUM - 1)) / AP_MAXIMUM) * 100) / (100 + o.bAttachStatus[bAttachPos] / 5);
-	}
-	else
-	{
-		return std::max(3, (AP_BURST * bBaseActionPoints + (AP_MAXIMUM - 1)) / AP_MAXIMUM);
-	}
+	int const reduction = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE) != NO_SLOT ? 1 : 0;
+	return static_cast<UINT8>(std::max(cost - reduction, 1));
 }
 
 
-UINT8 CalcAPsToBurst(SOLDIERTYPE const& s, OBJECTTYPE const& o, WeaponModes const mode)
+// AP a burst costs on top of a single shot: the weapon's burst cost minus its
+// single shot cost, both as they are with Spring and Bolt.
+UINT8 CalcAPsToBurst(OBJECTTYPE const& o, WeaponModes const mode)
 {
-	return CalcAPsToBurst(CalcActionPoints(&s), CalcAimSkill(s, o.usItem), o, mode);
+	if (!GCM->getItem(o.usItem)->isWeapon()) return 0;
+
+	WeaponModel const* const w = GCM->getWeapon(o.usItem);
+	int burst_cost;
+	switch (mode)
+	{
+		case WM_BURST_SHORT: burst_cost = w->ubAPsPerShortBurst; break;
+		case WM_BURST_LONG:  burst_cost = w->ubAPsPerLongBurst;  break;
+		case WM_BURST_FULL:  burst_cost = w->ubAPsPerFullBurst;  break;
+		default:             return 0;
+	}
+	// A weapon without its own value for this burst
+	if (burst_cost == 0) burst_cost = w->ubBaseAPCost + 4;
+	burst_cost = std::min(burst_cost, 255);
+
+	UINT8 const single_aps = BaseAPsToShootOrStab(o);
+	UINT8 const burst_aps  = CostWithSpringAndBolt(o, static_cast<UINT8>(burst_cost));
+	return burst_aps > single_aps ? burst_aps - single_aps : 0;
 }
 
 
@@ -915,7 +901,7 @@ UINT8 CalcTotalAPsToAttack(SOLDIERTYPE * const s, GridNo const grid_no, bool con
 		case IC_TENTACLES:
 		case IC_THROWING_KNIFE:
 			return MinAPsToAttack(s, grid_no, add_turning_cost) +
-				(s->bDoBurst ? CalcAPsToBurst(*s, in_hand, GetActiveBurstMode(*s)) :
+				(s->bDoBurst ? CalcAPsToBurst(in_hand, GetActiveBurstMode(*s)) :
 				// WM_ATTACHED is already handled by MinAPsToAttack and the
 				// aim time cannot be refined further.
 				s->bWeaponMode == WM_ATTACHED ? 0 : aim_time);
@@ -1026,58 +1012,10 @@ UINT8 MinAPsToAttack(SOLDIERTYPE * const s, GridNo const grid_no, bool const add
 }
 
 
-static INT8 CalcAimSkill(SOLDIERTYPE const& s, UINT16 const weapon)
+// The weapon's fixed cost of a single shot or stab, the same for everyone.
+UINT8 BaseAPsToShootOrStab(OBJECTTYPE const& o)
 {
-	switch (GCM->getItem(weapon)->getItemClass())
-	{
-		case IC_GUN:
-		case IC_LAUNCHER:
-		{
-			// Guns: Modify aiming cost by shooter's marksmanship
-			SOLDIERTYPE const* const aimer = IsPlayerTank(s) ? GetTankGunner(s) : &s;
-			return aimer ? EffectiveMarksmanship(aimer) : 0;
-		}
-
-		default:
-			// Knives: Modify aiming cost by avg of attacker's dexterity & agility
-			return (EffectiveDexterity(&s) + EffectiveAgility(&s)) / 2;
-	}
-}
-
-
-UINT8 BaseAPsToShootOrStab(INT8 const bAPs, INT8 const bAimSkill, OBJECTTYPE const& o)
-{
-	return BaseAPsToShootOrStab(bAPs, bAimSkill, o, GCM->getWeapon(o.usItem)->ubShotsPer4Turns);
-}
-
-
-// The original formula, only the shots per 4 turns are passed in (a burst mode
-// can have its own, see CalcAPsToBurst()).
-UINT8 BaseAPsToShootOrStab(INT8 const bAPs, INT8 const bAimSkill, OBJECTTYPE const& o, UINT8 const ubShotsPer4Turns)
-{
-	INT16 sTop, sBottom;
-
-	// Calculate default top & bottom of the magic "aiming" formula!
-
-	// get this man's maximum possible action points (ignoring carryovers)
-	// the 2 times is here only to allow rounding off using integer math later
-	sTop = 2 * bAPs;//CalcActionPoints( pSoldier );
-
-	// Shots per turn rating is for max. aimSkill(100), drops down to 1/2 at = 0
-	// DIVIDE BY 4 AT THE END HERE BECAUSE THE SHOTS PER TURN IS NOW QUADRUPLED!
-	// NB need to define shots per turn for ALL Weapons then.
-	sBottom = ( ( 50 + (bAimSkill / 2) ) * ubShotsPer4Turns ) / 4;
-
-	INT8 const bAttachPos = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE);
-	if ( bAttachPos != -1 )
-	{
-		sBottom = sBottom * (100 + o.bAttachStatus[bAttachPos] / 5) / 100;
-	}
-
-	// add minimum aiming time to the overall minimum AP_cost
-	//     This here ROUNDS UP fractions of 0.5 or higher using integer math
-	//     This works because 'top' is 2x what it really should be throughout
-	return( ( ( ( 100 * sTop ) / sBottom ) + 1) / 2);
+	return CostWithSpringAndBolt(o, GCM->getWeapon(o.usItem)->ubBaseAPCost);
 }
 
 
@@ -1177,10 +1115,6 @@ UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_
 		ap_cost += AP_CHANGE_TARGET;
 	}
 
-	INT8 const full_aps  = CalcActionPoints(&s);
-	// Aim skill is the same whether we are using 1 or 2 guns
-	INT8 const aim_skill = CalcAimSkill(s, item);
-
 	if (s.bWeaponMode == WM_ATTACHED)
 	{
 		// Create temporary grenade launcher and use that
@@ -1190,25 +1124,23 @@ UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_
 		OBJECTTYPE grenade_launcher;
 		CreateItem(UNDER_GLAUNCHER, status, &grenade_launcher);
 
-		ap_cost += BaseAPsToShootOrStab(full_aps, aim_skill, grenade_launcher);
+		ap_cost += BaseAPsToShootOrStab(grenade_launcher);
 	}
 	else if (IsValidSecondHandShot(&s))
 	{
 		// Charge the maximum of the two
-		UINT8 const ap_1st = BaseAPsToShootOrStab(full_aps, aim_skill, in_hand);
-		UINT8 const ap_2nd = BaseAPsToShootOrStab(full_aps, aim_skill, s.inv[SECONDHANDPOS]);
+		UINT8 const ap_1st = BaseAPsToShootOrStab(in_hand);
+		UINT8 const ap_2nd = BaseAPsToShootOrStab(s.inv[SECONDHANDPOS]);
 		ap_cost += std::max(ap_1st, ap_2nd);
 	}
 	else
 	{
-		ap_cost += BaseAPsToShootOrStab(full_aps, aim_skill, in_hand);
+		ap_cost += BaseAPsToShootOrStab(in_hand);
 	}
 
-	// The minimum AP cost of ANY shot can NEVER be more than merc's maximum APs
-	// nor it SHOULDN'T be 0, but nevertheless
-	ap_cost = std::clamp(ap_cost, 1, full_aps > 0 ? int(full_aps) : 1);
-
-	return ap_cost;
+	// The cost of a shot SHOULDN'T be 0, but nevertheless. It can be more than
+	// the merc's maximum APs: then he must save APs or can't use this weapon.
+	return std::max(ap_cost, 1);
 }
 
 
