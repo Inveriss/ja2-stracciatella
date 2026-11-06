@@ -1439,7 +1439,9 @@ BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo
 		}
 		else if (GCM->getItem(pAmmo->usItem)->asAmmo()->capacity > GCM->getWeapon(pGun->usItem)->ubMagSize)
 		{
-			usNewAmmoItem = pAmmo->usItem - 1;
+			// the magazine of the gun's size with the same ammo (it was the
+			// item index - 1 before, see docs/magazine-size-variants-plan.md)
+			usNewAmmoItem = FindMagazineVariant(*GCM->getItem(pAmmo->usItem)->asAmmo(), GCM->getWeapon(pGun->usItem)->ubMagSize);
 			if (bReloadType == RELOAD_TOPOFF)
 			{
 				ubBulletsToMove = std::min(int(pAmmo->ubShotsLeft[0]), GCM->getWeapon(pGun->usItem)->ubMagSize - pGun->ubGunShotsLeft);
@@ -1451,7 +1453,9 @@ BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo
 		}
 		else // mag is smaller than weapon mag
 		{
-			usNewAmmoItem = pAmmo->usItem + 1;
+			// the magazine of the gun's size with the same ammo (it was the
+			// item index + 1 before)
+			usNewAmmoItem = FindMagazineVariant(*GCM->getItem(pAmmo->usItem)->asAmmo(), GCM->getWeapon(pGun->usItem)->ubMagSize);
 			if (bReloadType == RELOAD_TOPOFF)
 			{
 				ubBulletsToMove = std::min(int(pAmmo->ubShotsLeft[0]), GCM->getWeapon(pGun->usItem)->ubMagSize - pGun->ubGunShotsLeft);
@@ -2850,6 +2854,29 @@ UINT16 FindReplacementMagazine(const CalibreModel * calibre, UINT8 const mag_siz
 		}
 	}
 	return default_mag;
+}
+
+
+UINT16 FindMagazineVariant(std::vector<const MagazineModel*> const& magazines, MagazineModel const& loaded, UINT16 const gun_mag_size)
+{
+	if (loaded.capacity == gun_mag_size) return loaded.getItemIndex();
+
+	const MagazineModel* best = nullptr;
+	for (const MagazineModel* mag : magazines)
+	{
+		if (mag->calibre->index == CalibreModel::NOAMMO)        continue;
+		if (mag->calibre->index  != loaded.calibre->index)      continue;
+		if (mag->ammoType->index != loaded.ammoType->index)     continue;
+		if (mag->capacity        != gun_mag_size)               continue;
+		if (!best || mag->getItemIndex() < best->getItemIndex()) best = mag;
+	}
+	return best ? best->getItemIndex() : loaded.getItemIndex();
+}
+
+
+UINT16 FindMagazineVariant(MagazineModel const& loaded, UINT16 const gun_mag_size)
+{
+	return FindMagazineVariant(GCM->getMagazines(), loaded, gun_mag_size);
 }
 
 
