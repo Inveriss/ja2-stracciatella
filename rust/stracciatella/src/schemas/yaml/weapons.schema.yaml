@@ -30,6 +30,18 @@ items:
           - LAW
           - CANNON
           - NOWEAPON
+        attachmentsAllow:
+          title: Attachment families this weapon takes
+          description: Regardless of the family rules (docs/weapon-attachments-plan.md)
+          type: array
+          items:
+            type: string
+        attachmentsDeny:
+          title: Attachment families this weapon refuses
+          description: Even when the family rule takes the weapon
+          type: array
+          items:
+            type: string
         sound:
           title: Shot sound
           description: Path to sound that is played when a single shot is fired.

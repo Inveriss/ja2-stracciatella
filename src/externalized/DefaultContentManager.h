@@ -24,6 +24,8 @@
 #include <string_view>
 #include <vector>
 
+struct WeaponAttachmentFamilyModel;
+
 class DefaultContentManager : public ContentManager
 {
 public:
@@ -232,6 +234,7 @@ protected:
 	std::vector<ST::string> m_landTypeStrings;
 
 	std::vector<const ItemModel*> m_items;
+	std::map<ST::string, const WeaponAttachmentFamilyModel*> m_attachmentFamilies;
 	std::vector<const MagazineModel*> m_magazines;
 
 	std::vector<const CalibreModel*> m_calibres;
@@ -332,6 +335,10 @@ protected:
 	bool loadExplosives(const BinaryData& vanillaItemStrings, const std::vector<const ExplosionAnimationModel*>& animations);
 	bool loadItems(const BinaryData& vanillaItemStrings);
 	bool loadMagazines(const BinaryData& vanillaItemStrings);
+	/* Loads weapon-attachment-families.json, links every attachment to its
+	 * family and checks the data (docs/weapon-attachments-plan.md, W7); throws
+	 * DataError on a mistake. Needs the items, weapons and calibres. */
+	bool loadWeaponAttachmentFamilies();
 	/* Puts a loaded item into m_items. Throws DataError when its index is outside
 	 * the block of its data file or already used (docs/item-limits-plan.md). */
 	void registerItem(const ItemModel* item, ItemDataFile file);

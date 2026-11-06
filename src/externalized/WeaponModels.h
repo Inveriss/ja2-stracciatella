@@ -7,6 +7,7 @@
 #include <string_theory/string>
 
 #include <map>
+#include <set>
 #include <stdint.h>
 
 enum SoundID;
@@ -86,6 +87,10 @@ struct WeaponModel : ItemModel
 	bool attachSpringAndBoltUpgrade;
 	bool attachGunBarrelExtender;
 	bool attachBurstExtenderAttachment;
+	// attachment families this weapon takes / refuses regardless of the family
+	// rules (docs/weapon-attachments-plan.md, W3)
+	std::set<ST::string> attachmentsAllow;
+	std::set<ST::string> attachmentsDeny;
 	int m_rateOfFire;
 
 	ST::string internalType;

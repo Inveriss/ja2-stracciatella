@@ -2372,6 +2372,8 @@
     {
         "itemIndex": 50,
         "internalName": "UNDER_GLAUNCHER",
+        "attachmentFamily": "UNDER_GLAUNCHER",
+        "attachmentLevel": 1,
         "internalType": "LAUNCHER",
         "inventoryGraphics": {
             "small": {

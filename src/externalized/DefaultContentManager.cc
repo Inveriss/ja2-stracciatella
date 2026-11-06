@@ -31,6 +31,7 @@
 #include "Soldier_Profile_Type.h"
 #include "Types.h"
 #include "VehicleModel.h"
+#include "WeaponAttachmentFamilyModel.h"
 #include "WeaponModels.h"
 #include "Weapons.h"
 #include "army/ArmyCompositionModel.h"
@@ -172,6 +173,7 @@ DefaultContentManager::~DefaultContentManager()
 	// is left to the compiler, no need to clear() them.
 
 	deleteElements(m_items);
+	for (auto const& family : m_attachmentFamilies) delete family.second;
 	deleteElements(m_calibres);
 	deleteElements(m_ammoTypes);
 	deleteElements(m_smokeEffects);
@@ -817,6 +819,81 @@ bool DefaultContentManager::loadItems(const BinaryData& vanillaItemStrings)
 	return true;
 }
 
+bool DefaultContentManager::loadWeaponAttachmentFamilies()
+{
+	auto json = readJsonDataFileWithSchema("weapon-attachment-families.json");
+	for (auto& element : json.toVec())
+	{
+		WeaponAttachmentFamilyModel* const family = WeaponAttachmentFamilyModel::deserialize(element, m_calibreMap);
+		if (!m_attachmentFamilies.emplace(family->name, family).second)
+		{
+			ST::string const err = ST::format("weapon-attachment-families.json: the family '{}' is defined twice", family->name);
+			delete family;
+			throw DataError(err);
+		}
+	}
+
+	auto const knownFamily = [this](ST::string const& name) { return m_attachmentFamilies.count(name) != 0; };
+	for (auto const& [name, family] : m_attachmentFamilies)
+	{
+		for (ST::string const& other : family->excludes)
+		{
+			if (!knownFamily(other))
+			{
+				throw DataError(ST::format("weapon-attachment-families.json: family '{}' excludes the unknown family '{}'", name, other));
+			}
+		}
+	}
+
+	for (const ItemModel* const item : m_items)
+	{
+		if (!item) continue;
+		ST::string const& familyName = item->getAttachmentFamilyName();
+		auto const idx = item->getItemIndex();
+
+		if (familyName.empty())
+		{
+			if (FIRST_NEW_WEAPON_ATTACHMENT <= idx && idx <= LAST_NEW_WEAPON_ATTACHMENT)
+			{
+				throw DataError(ST::format("items.json: the weapon attachment '{}' ({}) has no attachmentFamily", item->getInternalName(), idx));
+			}
+			continue;
+		}
+
+		auto const it = m_attachmentFamilies.find(familyName);
+		if (it == m_attachmentFamilies.end())
+		{
+			throw DataError(ST::format("'{}' ({}) has the unknown attachmentFamily '{}'", item->getInternalName(), idx, familyName));
+		}
+		if (item->getAttachmentLevel() < 1 || 3 < item->getAttachmentLevel())
+		{
+			throw DataError(ST::format("'{}' ({}) needs an attachmentLevel of 1-3", item->getInternalName(), idx));
+		}
+		// (bAttachment is not required: SPRING_AND_BOLT_UPGRADE, GUN_BARREL_EXTENDER
+		// and UNDER_GLAUNCHER of the original data don't have it; the 7000 block
+		// requires it through CheckItemIndexBlock())
+		// the items are const after loading; the family link is part of loading them
+		const_cast<ItemModel*>(item)->setAttachmentFamily(it->second);
+	}
+
+	for (const ItemModel* const item : m_items)
+	{
+		const WeaponModel* const weapon = item ? item->asWeapon() : nullptr;
+		if (!weapon) continue;
+		for (auto const* list : { &weapon->attachmentsAllow, &weapon->attachmentsDeny })
+		{
+			for (ST::string const& name : *list)
+			{
+				if (!knownFamily(name))
+				{
+					throw DataError(ST::format("weapons.json: '{}' names the unknown attachment family '{}' in attachmentsAllow/attachmentsDeny", weapon->getInternalName(), name));
+				}
+			}
+		}
+	}
+	return true;
+}
+
 void DefaultContentManager::registerItem(const ItemModel* const item, ItemDataFile const file)
 {
 	ST::string const err = CheckItemIndexBlock(*item, file);
@@ -1120,6 +1197,7 @@ bool DefaultContentManager::loadGameData(BinaryData const& binaryData)
 		&& loadExplosionAnimations()
 		&& loadExplosives(binaryData, m_explosionAnimations)
 		&& loadArmours(binaryData)
+		&& loadWeaponAttachmentFamilies()
 		&& loadArmyData()
 		&& loadMusic();
 

@@ -1,0 +1,44 @@
+$schema: http://json-schema.org/schema#
+type: array
+title: Weapon attachment families
+description: |
+  Families of weapon attachments and the rules which weapons take them
+  (docs/weapon-attachments-plan.md). Every weapon attachment names its family in
+  `attachmentFamily`; all its quality levels share the family's rules.
+items:
+  type: object
+  properties:
+    family:
+      title: Family name
+      $ref: types/id.schema.yaml
+    weaponTypes:
+      title: Weapon types
+      description: The weapon types (weapons.json `internalType`) that take the family. Empty means only weapons that allow it.
+      type: array
+      items:
+        type: string
+    calibres:
+      title: Calibres
+      description: Only weapons of these calibres (calibres.json names). Empty or missing means any calibre.
+      type: array
+      items:
+        type: string
+    excludes:
+      title: Excluded families
+      description: Families that can't be on the same weapon together with this one.
+      type: array
+      items:
+        type: string
+    skillCheck:
+      title: Skill check to attach it
+      type: string
+      enum:
+        - NONE
+        - SPECIAL_ITEM
+        - SPECIAL_ELECTRONIC_ITEM
+    skillCheckModifier:
+      title: Skill check modifier
+      $ref: types/int8.schema.yaml
+  required:
+    - family
+    - weaponTypes

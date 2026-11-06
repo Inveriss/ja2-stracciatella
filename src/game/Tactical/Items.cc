@@ -41,6 +41,7 @@
 #include "Vehicles.h"
 #include "ItemModel.h"
 #include "MagazineModel.h"
+#include "WeaponAttachmentFamilyModel.h"
 #include "WeaponModels.h"
 #include <array>
 #include <initializer_list>
@@ -712,6 +713,12 @@ bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b)
 // (i.e. to any item in the class)
 static BOOLEAN ValidAttachmentClass(UINT16 usAttachment, UINT16 usItem)
 {
+	// a weapon attachment family attaches to guns (docs/weapon-attachments-plan.md)
+	if (GCM->getItem(usAttachment)->getAttachmentFamily())
+	{
+		return GCM->getItem(usItem)->getItemClass() == IC_GUN;
+	}
+
 	for (auto const& ai : AttachmentInfo)
 	{
 		// see comment for AttachmentInfo array for why we skip IC_NONE
@@ -728,6 +735,15 @@ static BOOLEAN ValidAttachmentClass(UINT16 usAttachment, UINT16 usItem)
 
 static const AttachmentInfoStruct* GetAttachmentInfo(const UINT16 usItem)
 {
+	// the skill check of a weapon attachment comes from its family
+	// (docs/weapon-attachments-plan.md); the table only for the other attachments
+	if (auto const* const family = GCM->getItem(usItem)->getAttachmentFamily())
+	{
+		static AttachmentInfoStruct info;
+		info = AttachmentInfoStruct{ usItem, IC_GUN, family->skillCheck, family->skillCheckModifier };
+		return &info;
+	}
+
 	for (auto const& ai : AttachmentInfo)
 	{
 		if (ai.usItem == usItem) return &ai;

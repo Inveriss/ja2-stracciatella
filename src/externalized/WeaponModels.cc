@@ -7,6 +7,7 @@
 #include "MagazineModel.h"
 #include "Points.h"
 #include "Sound_Control.h"
+#include "WeaponAttachmentFamilyModel.h"
 #include "Weapons.h"
 #include <algorithm>
 #include <utility>
@@ -685,6 +686,17 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	wep->attachGunBarrelExtender      = obj.getOptionalBool("attachment_GunBarrelExtender");
 	wep->attachBurstExtenderAttachment = obj.getOptionalBool("attachment_BurstExtenderAttachment");
 
+	// docs/weapon-attachments-plan.md: per-weapon exceptions to the family
+	// rules, and the weapon's own family if it is an attachment (UNDER_GLAUNCHER)
+	auto const readFamilies = [&obj](char const* const field, std::set<ST::string>& names)
+	{
+		if (!obj.has(field)) return;
+		for (JsonValue const& v : obj[field].toVec()) names.insert(v.toString());
+	};
+	readFamilies("attachmentsAllow", wep->attachmentsAllow);
+	readFamilies("attachmentsDeny",  wep->attachmentsDeny);
+	wep->deserializeAttachmentFamily(obj);
+
 	wep->fFlags |= ItemModel::deserializeFlags(obj);
 
 	ST::string replacement = obj.getOptionalString("standardReplacement");
@@ -727,6 +739,15 @@ bool WeaponModel::isSameMagCapacity(const MagazineModel *mag) const
 /** Check if the given attachment can be attached to the item. */
 bool WeaponModel::canBeAttached(const GamePolicy* policy, const ItemModel* attachment) const
 {
+	// docs/weapon-attachments-plan.md: the family rule (weapon type, calibre)
+	// unless the weapon refuses the family, or the weapon's allow list; the
+	// legacy attachment_Xxx flags below still allow their attachment (W6)
+	if (auto const* const family = attachment->getAttachmentFamily())
+	{
+		if (attachmentsAllow.count(family->name) != 0) return true;
+		if (attachmentsDeny.count(family->name) == 0 && family->fitsWeapon(*this)) return true;
+	}
+
 	auto attachmentID = attachment->getItemIndex();
 	return (attachSilencer && (attachmentID == SILENCER))
 		|| (attachSniperScope && (attachmentID == SNIPERSCOPE))

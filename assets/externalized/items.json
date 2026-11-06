@@ -239,6 +239,8 @@
     {
         "itemIndex": 207,
         "internalName": "SILENCER",
+        "attachmentFamily": "SILENCER",
+        "attachmentLevel": 1,
         "usItemClass": 268435456,
         "ubClassIndex": 0,
         "ubCursor": 0,
@@ -271,6 +273,8 @@
     {
         "itemIndex": 208,
         "internalName": "SNIPERSCOPE",
+        "attachmentFamily": "SNIPERSCOPE",
+        "attachmentLevel": 1,
         "usItemClass": 268435456,
         "ubClassIndex": 0,
         "ubCursor": 0,
@@ -303,6 +307,8 @@
     {
         "itemIndex": 209,
         "internalName": "BIPOD",
+        "attachmentFamily": "BIPOD",
+        "attachmentLevel": 1,
         "usItemClass": 268435456,
         "ubClassIndex": 0,
         "ubCursor": 0,
@@ -1258,6 +1264,8 @@
     {
         "itemIndex": 241,
         "internalName": "LASERSCOPE",
+        "attachmentFamily": "LASERSCOPE",
+        "attachmentLevel": 1,
         "usItemClass": 268435456,
         "ubClassIndex": 0,
         "ubCursor": 0,
@@ -1354,6 +1362,8 @@
     {
         "itemIndex": 244,
         "internalName": "DUCKBILL",
+        "attachmentFamily": "DUCKBILL",
+        "attachmentLevel": 1,
         "usItemClass": 268435456,
         "ubClassIndex": 0,
         "ubCursor": 0,
@@ -3198,6 +3208,8 @@
     {
         "itemIndex": 307,
         "internalName": "SPRING_AND_BOLT_UPGRADE",
+        "attachmentFamily": "SPRING_AND_BOLT_UPGRADE",
+        "attachmentLevel": 1,
         "usItemClass": 268435456,
         "ubClassIndex": 0,
         "ubCursor": 0,
@@ -3293,6 +3305,8 @@
     {
         "itemIndex": 310,
         "internalName": "GUN_BARREL_EXTENDER",
+        "attachmentFamily": "GUN_BARREL_EXTENDER",
+        "attachmentLevel": 1,
         "usItemClass": 268435456,
         "ubClassIndex": 0,
         "ubCursor": 0,

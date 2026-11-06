@@ -281,5 +281,24 @@ const ItemModel* ItemModel::deserialize(const JsonValue &json, const BinaryData&
 	);
 	item->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
 	item->ubBigPerPocket   = ItemModel::deserializeBigPerPocket(obj);
+	item->deserializeAttachmentFamily(obj);
 	return item;
+}
+
+void ItemModel::deserializeAttachmentFamily(const JsonObject &obj)
+{
+	attachmentFamilyName = obj.getOptionalString("attachmentFamily");
+	attachmentLevel      = static_cast<uint8_t>(obj.getOptionalUInt("attachmentLevel", 0));
+	if (!obj.has("attachmentEffects")) return;
+
+	JsonObject const e = obj["attachmentEffects"].toObject();
+	AttachmentEffects& a = attachmentEffects;
+	a.rangeBonus          = static_cast<int16_t>(e.getOptionalInt("rangeBonus",          a.rangeBonus));
+	a.aimBonus            = static_cast<int16_t>(e.getOptionalInt("aimBonus",            a.aimBonus));
+	a.aimedShotBonus      = static_cast<int16_t>(e.getOptionalInt("aimedShotBonus",      a.aimedShotBonus));
+	a.proneBonus          = static_cast<int16_t>(e.getOptionalInt("proneBonus",          a.proneBonus));
+	a.attackVolumePercent = static_cast<int16_t>(e.getOptionalInt("attackVolumePercent", a.attackVolumePercent));
+	a.apPerShotChange     = static_cast<int16_t>(e.getOptionalInt("apPerShotChange",     a.apPerShotChange));
+	a.burstShotsBonus     = static_cast<int16_t>(e.getOptionalInt("burstShotsBonus",     a.burstShotsBonus));
+	a.scalesWithCondition = e.getOptionalBool("scalesWithCondition", a.scalesWithCondition);
 }

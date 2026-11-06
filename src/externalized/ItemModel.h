@@ -15,7 +15,22 @@ class JsonObject;
 struct ArmourModel;
 struct ExplosiveModel;
 struct MagazineModel;
+struct WeaponAttachmentFamilyModel;
 struct WeaponModel;
+
+// Numeric effects of a weapon attachment ("attachmentEffects" in the data,
+// docs/weapon-attachments-plan.md, W5); used from stage 3 on.
+struct AttachmentEffects
+{
+	int16_t rangeBonus          = 0;
+	int16_t aimBonus            = 0;
+	int16_t aimedShotBonus      = 0;
+	int16_t proneBonus          = 0;
+	int16_t attackVolumePercent = 100;
+	int16_t apPerShotChange     = 0;
+	int16_t burstShotsBonus     = 0;
+	bool    scalesWithCondition = true;
+};
 
 struct ItemModel
 {
@@ -119,6 +134,15 @@ struct ItemModel
 	/** Check if the given attachment can be attached to the item. */
 	virtual bool canBeAttached(const GamePolicy* policy, const ItemModel* attachment) const;
 
+	// Weapon attachment family of this item ("attachmentFamily", empty if none),
+	// its level 1-3 ("attachmentLevel", 0 if none) and effects
+	const ST::string&        getAttachmentFamilyName() const { return attachmentFamilyName; }
+	uint8_t                  getAttachmentLevel() const      { return attachmentLevel; }
+	const AttachmentEffects& getAttachmentEffects() const    { return attachmentEffects; }
+	// The family model, set by the content manager after loading (null if none)
+	const WeaponAttachmentFamilyModel* getAttachmentFamily() const { return attachmentFamily; }
+	void setAttachmentFamily(const WeaponAttachmentFamilyModel* family) { attachmentFamily = family; }
+
 	struct InitData
 	{
 		JsonObject const& json;
@@ -171,6 +195,14 @@ protected:
 	// ubAPCostPerThrow of a throwable item; a missing value gives
 	// DEFAULT_AP_COST_PER_THROW, with a warning
 	static uint8_t deserializeAPCostPerThrow(const JsonObject &obj, const ST::string& internalName);
+
+	// reads attachmentFamily, attachmentLevel and attachmentEffects
+	void deserializeAttachmentFamily(const JsonObject &obj);
+
+	ST::string        attachmentFamilyName;
+	uint8_t           attachmentLevel = 0;
+	AttachmentEffects attachmentEffects;
+	const WeaponAttachmentFamilyModel* attachmentFamily = nullptr;
 };
 
 // the AP cost of a throw when the data has none, see docs/throws-ap-plan.md
