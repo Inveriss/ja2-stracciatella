@@ -213,6 +213,12 @@ today), so vanilla maps and the existing placeholders keep working.
 - Error checks: an item placed in the wrong block or with a duplicate index gives a
   clear startup error.
 
+## Related plan on this branch
+
+- [magazine-size-variants-plan.md](magazine-size-variants-plan.md): magazines of
+  different sizes are interchangeable only when their item indices are consecutive
+  (`ReloadGun()` guesses `±1`); replaced by a lookup by calibre, size and ammo type.
+
 ## Open questions for later
 
 - Raising the key-ID limit above 256 (would need `ubKeyID` widening and the lock table).
