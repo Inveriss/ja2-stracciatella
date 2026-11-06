@@ -1,8 +1,39 @@
 # Item limits plan (branch `Item_Limits`)
 
-Status: **plan only, nothing implemented.** Written 2026-11-06 from an analysis of
-`ja2master` 029b77395. Every line reference below is from that commit and must be
-re-checked before implementation.
+Status: **implemented, stages 1-5 game-verified (2026-11-06).** Written 2026-11-06
+from an analysis of `ja2master` 029b77395; line references below are from that commit.
+
+## Implementation status
+
+| Stage | Commit | Notes |
+|-------|--------|-------|
+| 1 - constants and loader | a027d4b37 | `MAXITEMS` 9000, `ItemIndexBlocks`, `registerItem()`, placeholders `__ITEM_<n>`; save 112 |
+| (side fix) | c60d309d7, aaf04f75f | Manuel's face data; face eyes/mouth kept inside the face |
+| 2 - sparse shop save (D9) | da592b1b6 | dealers and Bobby Ray store only non-empty entries; save 113 |
+| 3 - Bobby Ray | 937e6ba73 | `BOBBY_R_USED_ORDER_FLAG` instead of +1000; texts from the data (D7); save 114 |
+| (side change) | 66e15c8ea | Bobby Ray sells no used items: the hidden used stock is gone; save 115 |
+| 4 - small fixes | 4992b39c9 | Alt+W weapon cycling, item description cycling, Quest Debug list skip placeholders |
+| 5 - test data | (not in the repo) | mods in the game's `mods` folder, see below |
+
+Stage 5 test data are three development mods with JSON patches (`<file>.patch.json`
+next to the data files, applied by the VFS) in `E:\Release1\mods\`:
+
+- `item-limits-test`: one item in every block, copied from an original item
+  (1000 / 2000 pistols, 3000 9mm magazine, 4000 grenade, 5000 vest, 6000 first aid kit,
+  7000 attachment, 8000 key), sold by Bobby Ray and Tony. The 7000 attachment cannot be
+  attached to guns yet (see [weapon-attachments-plan.md](weapon-attachments-plan.md)).
+- `item-limits-test-wrong-block`: an armour at 1500; the game must stop at start.
+- `item-limits-test-duplicate`: a second item at 201; the game must stop at start.
+
+### Adding real items
+
+- Add them to the data files in the repo (`assets/externalized/*.json`); the copy in the
+  game's `externalized` folder is overwritten by every build.
+- Use an index from the block of the file, a unique `internalName`, and give `name`,
+  `shortName` and `description` in the JSON (the original text files only cover 0-350).
+- Unused indices need no entries: the loader fills them with placeholders.
+- Indices of the test mod collide with real items at the same numbers: disable the mod or
+  start real items one higher (e.g. 1001, 3001).
 
 ## Goal
 
