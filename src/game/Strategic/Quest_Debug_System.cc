@@ -14,6 +14,7 @@
 #include "HImage.h"
 #include "Input.h"
 #include "Interface_Dialogue.h"
+#include "ItemIndexBlocks.h"
 #include "ItemModel.h"
 #include "Items.h"
 #include "Keys.h"
@@ -44,6 +45,7 @@
 #include "WordWrap.h"
 #include <string_theory/format>
 #include <string_theory/string>
+#include <vector>
 
 
 #define QUEST_DBS_FONT_TITLE			FONT14ARIAL
@@ -493,6 +495,30 @@ static void DisplaySelectedItem(void);
 static void DisplaySelectedNPC(void);
 
 
+// The rows of the item list box: row 0 is unused (the list starts at 1), then
+// every item the data defines, without the placeholders of unused indices
+// (docs/item-limits-plan.md); a row is not an item index any more.
+static std::vector<UINT16> const& QuestDebugItemRows()
+{
+	static std::vector<UINT16> rows;
+	if (rows.empty())
+	{
+		rows.push_back(NOTHING);
+		for (auto item : GCM->getItems())
+		{
+			if (!IsUnusedItemIndex(*item)) rows.push_back(item->getItemIndex());
+		}
+	}
+	return rows;
+}
+
+
+static UINT16 QuestDebugItem(INT32 const row)
+{
+	return QuestDebugItemRows().at(row);
+}
+
+
 void QuestDebugScreenInit()
 {
 	UINT16	usListBoxFontHeight = GetFontHeight( QUEST_DBS_FONT_LISTBOX_TEXT ) + 2;
@@ -553,7 +579,7 @@ void QuestDebugScreenInit()
 
 	gItemListBox.usItemDisplayedOnTopOfList			= 1;
 	gItemListBox.usStartIndex										= 1;
-	gItemListBox.usMaxArrayIndex								= MAXITEMS;
+	gItemListBox.usMaxArrayIndex								= static_cast<UINT16>(QuestDebugItemRows().size());
 	gItemListBox.usNumDisplayedItems						= QUEST_DBS_MAX_DISPLAYED_ENTRIES;
 	gItemListBox.usMaxNumDisplayedItems				= QUEST_DBS_MAX_DISPLAYED_ENTRIES;
 
@@ -827,7 +853,8 @@ static void EnterQuestDebugSystem(void)
 
 	if( giHaveSelectedItem != -1 )
 	{
-		ST::string zItemDesc = ST::format("{} - {}", giHaveSelectedItem, GCM->getItem(giHaveSelectedItem)->getShortName());
+		UINT16 const item = QuestDebugItem(giHaveSelectedItem);
+		ST::string zItemDesc = ST::format("{} - {}", item, GCM->getItem(item)->getShortName());
 		guiQuestDebugCurItemButton->SpecifyText(zItemDesc);
 
 		gItemListBox.sCurSelectedItem = (INT16)giHaveSelectedItem;
@@ -1701,7 +1728,8 @@ static void DisplaySelectedItem(void)
 		// display the names of the NPC's
 	for( i=gpActiveListBox->usItemDisplayedOnTopOfList; i< gpActiveListBox->usItemDisplayedOnTopOfList+gpActiveListBox->usNumDisplayedItems; i++)
 	{
-		auto ItemName = GCM->getItem(i)->getShortName();
+		if (i >= gpActiveListBox->usMaxArrayIndex) break;
+		auto ItemName = GCM->getItem(QuestDebugItem(i))->getShortName();
 		if (ItemName.empty()) ItemName = QuestDebugText[QUEST_DBS_NO_ITEM];
 
 		DrawTextToScreen(ItemName, usPosX, usPosY, 0, QUEST_DBS_FONT_DYNAMIC_TEXT, QUEST_DBS_COLOR_DYNAMIC_TEXT, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
@@ -1718,13 +1746,14 @@ static void DisplaySelectedItem(void)
 
 		SetFontShadow(NO_SHADOW);
 
-		ST::string ItemName = GCM->getItem(gpActiveListBox->sCurSelectedItem)->getShortName();
+		UINT16 const item = QuestDebugItem(gpActiveListBox->sCurSelectedItem);
+		ST::string ItemName = GCM->getItem(item)->getShortName();
 		if (ItemName.empty()) ItemName = QuestDebugText[QUEST_DBS_NO_ITEM];
 
 		DrawTextToScreen(ItemName, gpActiveListBox->usScrollPosX, usPosY, 0, QUEST_DBS_FONT_LISTBOX_TEXT, 2, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
 		SetFontShadow(DEFAULT_SHADOW);
 
-		zButtonName = ST::format("{} - {}", gpActiveListBox->sCurSelectedItem, ItemName);
+		zButtonName = ST::format("{} - {}", item, ItemName);
 		guiQuestDebugCurItemButton->SpecifyText(zButtonName);
 	}
 
@@ -2033,7 +2062,7 @@ static void BtnQuestDebugAddItemToLocationButtonCallback(GUI_BUTTON* btn, UINT32
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		ST::string zTemp = ST::format("{} where the {} will be added.", QuestDebugText[QUEST_DBS_ENTER_GRID_NUM], GCM->getItem(gItemListBox.sCurSelectedItem)->getShortName());
+		ST::string zTemp = ST::format("{} where the {} will be added.", QuestDebugText[QUEST_DBS_ENTER_GRID_NUM], GCM->getItem(QuestDebugItem(gItemListBox.sCurSelectedItem))->getShortName());
 		TextEntryBox( zTemp, AddItemToGridNo );
 	}
 }
@@ -2045,7 +2074,7 @@ static void BtnQuestDebugGiveItemToNPCButtonCallback(GUI_BUTTON* btn, UINT32 rea
 	{
 		OBJECTTYPE		Object;
 
-		CreateItem( gItemListBox.sCurSelectedItem, 100, &Object );
+		CreateItem(QuestDebugItem(gItemListBox.sCurSelectedItem), 100, &Object);
 
 		//if the selected merc is created
 		const ProfileID    pid = (gfUseLocalNPCs ? gubCurrentNpcInSector[gNpcListBox.sCurSelectedItem] : gNpcListBox.sCurSelectedItem);
@@ -2405,7 +2434,7 @@ static void AddItemToGridNo(INT32 iGridNo)
 	gsQdsEnteringGridNo = (INT16)iGridNo;
 
 
-	if( GCM->getItem(gItemListBox.sCurSelectedItem)->getItemClass() == IC_KEY )
+	if (GCM->getItem(QuestDebugItem(gItemListBox.sCurSelectedItem))->getItemClass() == IC_KEY)
 	{
 		gfAddKeyNextPass = TRUE;
 //		ST::string zTemp = "Please enter the Key ID";
@@ -2413,7 +2442,7 @@ static void AddItemToGridNo(INT32 iGridNo)
 	}
 	else
 	{
-		CreateItem( gItemListBox.sCurSelectedItem, (UINT8)( gfDropDamagedItems ? ( 20 + Random( 60 ) ) : 100 ), &Object );
+		CreateItem(QuestDebugItem(gItemListBox.sCurSelectedItem), (UINT8)( gfDropDamagedItems ? ( 20 + Random( 60 ) ) : 100 ), &Object);
 
 		//add the item to the world
 		AddItemToPool(iGridNo, &Object, INVISIBLE, 0, 0, 0);

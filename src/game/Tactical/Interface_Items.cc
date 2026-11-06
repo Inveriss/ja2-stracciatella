@@ -74,6 +74,7 @@
 #include "CalibreModel.h"
 #include "ContentManager.h"
 #include "GameInstance.h"
+#include "ItemIndexBlocks.h"
 #include "MagazineModel.h"
 #include "Soldier.h"
 #include "WeaponModels.h"
@@ -3187,19 +3188,25 @@ void CycleItemDescriptionItem( )
 		return;
 	}
 
-	if (_KeyDown(SDLK_END))
+	// cycle to the next (or previous) item the data defines, skipping the
+	// placeholders of unused indices (docs/item-limits-plan.md)
+	do
 	{
-		// cycle backwards
-		it = it == items.begin() ? items.end() - 1 : it - 1;
-	}
-	else
-	{
-		// cycle forwards
-		it = it++;
-		if (it == items.end()) {
-			it = items.begin();
+		if (_KeyDown(SDLK_END))
+		{
+			// cycle backwards
+			it = it == items.begin() ? items.end() - 1 : it - 1;
+		}
+		else
+		{
+			// cycle forwards
+			++it;
+			if (it == items.end()) {
+				it = items.begin();
+			}
 		}
 	}
+	while (IsUnusedItemIndex(**it));
 
 	const auto newItemIndex = (*it)->getItemIndex();
 
