@@ -1,4 +1,6 @@
 #include "ItemModel.h"
+#include "Logger.h"
+#include <algorithm>
 #include <functional>
 #include <utility>
 
@@ -187,6 +189,16 @@ std::optional<uint8_t> ItemModel::deserializeBigPerPocket(const JsonObject &obj)
 {
 	if (!obj.has("ubBigPerPocket")) return std::nullopt;
 	return static_cast<uint8_t>(obj.GetUInt("ubBigPerPocket"));
+}
+
+uint8_t ItemModel::deserializeAPCostPerThrow(const JsonObject &obj, const ST::string& internalName)
+{
+	if (!obj.has("ubAPCostPerThrow"))
+	{
+		SLOGW("Throwable item '{}' has no ubAPCostPerThrow, using {} AP", internalName, DEFAULT_AP_COST_PER_THROW);
+		return DEFAULT_AP_COST_PER_THROW;
+	}
+	return static_cast<uint8_t>(std::clamp(obj.GetInt("ubAPCostPerThrow"), 1, 255));
 }
 
 /** Check if the given attachment can be attached to the item. */

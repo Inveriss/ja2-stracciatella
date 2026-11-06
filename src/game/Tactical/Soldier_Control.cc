@@ -1384,6 +1384,7 @@ void EVENT_InitNewSoldierAnim(SOLDIERTYPE* const pSoldier, UINT16 usNewState, UI
 			usNewState != READY_RIFLE_CROUCH && usNewState != ROBOT_SHOOT )
 		{
 			pSoldier->sLastTarget = NOWHERE;
+			pSoldier->fRaisedWithoutTarget = false;
 		}
 	}
 
@@ -6675,6 +6676,18 @@ void EVENT_SoldierBeginGiveItem( SOLDIERTYPE *pSoldier )
 }
 
 
+// A melee attack from prone: the attack gets the merc up anyway, so the prone
+// turn mustn't lie him down again afterwards (he would get up twice), as for
+// firing ("fancy prone turning")
+static void NoProneTurnBackDown(SOLDIERTYPE* const s)
+{
+	if (s->fTurningFromPronePosition == TURNING_FROM_PRONE_ON)
+	{
+		s->fTurningFromPronePosition = TURNING_FROM_PRONE_OFF;
+	}
+}
+
+
 void EVENT_SoldierBeginBladeAttack( SOLDIERTYPE *pSoldier, INT16 sGridNo, UINT8 ubDirection )
 {
 	//UINT32 uiMercFlags;
@@ -6690,6 +6703,7 @@ void EVENT_SoldierBeginBladeAttack( SOLDIERTYPE *pSoldier, INT16 sGridNo, UINT8 
 
 	// CHANGE DIRECTION AND GOTO ANIMATION NOW
 	EVENT_SetSoldierDesiredDirection( pSoldier, ubDirection );
+	NoProneTurnBackDown(pSoldier);
 	EVENT_SetSoldierDirection( pSoldier, ubDirection );
 	// CHANGE TO ANIMATION
 
@@ -6851,6 +6865,7 @@ void EVENT_SoldierBeginPunchAttack( SOLDIERTYPE *pSoldier, INT16 sGridNo, UINT8 
 	{
 			// CHANGE DIRECTION AND GOTO ANIMATION NOW
 		EVENT_SetSoldierDesiredDirection( pSoldier, ubDirection );
+		NoProneTurnBackDown(pSoldier);
 		EVENT_SetSoldierDirection( pSoldier, ubDirection );
 	}
 

@@ -31,6 +31,10 @@ items:
           enum:
             - GRENADE
             - BOMB
+        ubAPCostPerThrow:
+          title: AP cost of a throw
+          description: A direct AP value for every thrower, for an item with the `TOSS` cursor. Missing = 11 AP, with a warning.
+          $ref: types/uint8.schema.yaml
         noise:
           title: Noise
           description: The noise radius of the explosion

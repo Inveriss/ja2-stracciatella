@@ -1323,6 +1323,34 @@ static void ToggleZBuffer(void);
 static void ToggleMapEdgepoints(void);
 
 
+// The Q key: the selected merc raises his weapon without firing (in combat
+// for its ready time, the AP a shot from a lowered weapon would pay for it), or
+// lowers a raised one for free. He keeps facing his direction.
+static void ToggleRaisedWeapon(SOLDIERTYPE& s)
+{
+	if (s.uiStatusFlags & (SOLDIER_VEHICLE | SOLDIER_PASSENGER | SOLDIER_DRIVER)) return;
+	if (!s.bInSector || s.bLife < OKLIFE || gpItemPointer) return;
+	if (gTacticalStatus.uiFlags & INCOMBAT && gTacticalStatus.ubCurrentTeam != OUR_TEAM) return;
+
+	UINT32 const flags = gAnimControl[s.usAnimState].uiFlags;
+	if (!(flags & ANIM_STATIONARY)) return;
+
+	BOOLEAN const lower = (flags & ANIM_FIREREADY) != 0;
+	if (PickSoldierReadyAnimation(&s, lower) == INVALID_ANIMATION) return;
+
+	if (!lower)
+	{
+		INT16 const cost = gTacticalStatus.uiFlags & INCOMBAT ? GetAPsToReadyWeapon(&s, s.usAnimState) : 0;
+		if (!EnoughPoints(&s, cost, 0, TRUE)) return;
+		s.fDontChargeReadyAPs = FALSE; // the ready animation takes the AP
+	}
+	InternalSoldierReadyWeapon(&s, s.bDirection, lower);
+	// Raised in advance: the first shot costs what a shot from a lowered
+	// weapon costs without its ready time, so no AP for a new target
+	s.fRaisedWithoutTarget = !lower;
+}
+
+
 static void HandleModNone(UINT32 const key, UIEventKind* const new_event)
 {
 	switch (key)
@@ -1536,6 +1564,10 @@ static void HandleModNone(UINT32 const key, UIEventKind* const new_event)
 			break;
 
 		case 'p': HandleStanceChangeFromUIKeys(ANIM_PRONE); break;
+
+		case 'q':
+			if (SOLDIERTYPE* const sel = GetSelectedMan()) ToggleRaisedWeapon(*sel);
+			break;
 
 		case 'r':
 		{

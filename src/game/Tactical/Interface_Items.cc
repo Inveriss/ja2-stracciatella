@@ -378,7 +378,7 @@ static const SGPPoint g_map_weapons_big_bullet_sing  = { 386, 426 };
 constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 #define EXCEPTIONAL_RANGE				300
 #define EXCEPTIONAL_MAGAZINE				30
-#define EXCEPTIONAL_AP_COST				7
+#define EXCEPTIONAL_AP_COST				6
 #define EXCEPTIONAL_BURST_SIZE				5
 #define EXCEPTIONAL_RELIABILITY			2
 #define EXCEPTIONAL_REPAIR_EASE			2
@@ -387,7 +387,7 @@ constexpr grams EXCEPTIONAL_WEIGHT = 2000;
 #define BAD_WEIGHT					45
 #define BAD_RANGE					150
 #define BAD_MAGAZINE					10
-#define BAD_AP_COST					11
+#define BAD_AP_COST					10
 #define BAD_RELIABILITY				-2
 #define BAD_REPAIR_EASE				-2
 
@@ -1777,7 +1777,7 @@ static void GenerateProsString(ST::string& zItemPros, const OBJECTTYPE& o, UINT3
 		}
 	}
 
-	if (BaseAPsToShootOrStab(DEFAULT_APS, DEFAULT_AIMSKILL, *gpItemDescObject) <= EXCEPTIONAL_AP_COST)
+	if (BaseAPsToShootOrStab(*gpItemDescObject) <= EXCEPTIONAL_AP_COST)
 	{
 		zTemp = g_langRes->Message[STR_QUICK_FIRING];
 		if ( ! AttemptToAddSubstring( zItemPros, zTemp, &uiStringLength, uiPixLimit ) )
@@ -1876,7 +1876,7 @@ static void GenerateConsString(ST::string& zItemCons, const OBJECTTYPE& o, UINT3
 		}
 	}
 
-	if (BaseAPsToShootOrStab(DEFAULT_APS, DEFAULT_AIMSKILL, *gpItemDescObject) >= BAD_AP_COST)
+	if (BaseAPsToShootOrStab(*gpItemDescObject) >= BAD_AP_COST)
 	{
 		zTemp = g_langRes->Message[STR_SLOW_FIRING];
 		if ( ! AttemptToAddSubstring( zItemCons, zTemp, &uiStringLength, uiPixLimit ) )
@@ -4068,11 +4068,10 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 
 	SetFontAttributes(FONT12ARIAL, MAP_BIG_WEAPON_LABEL_COLOUR);
 
-	UINT8 const single_aps = BaseAPsToShootOrStab(DEFAULT_APS, DEFAULT_AIMSKILL, obj);
+	UINT8 const single_aps = BaseAPsToShootOrStab(obj);
 
 	// Short / Long / Full: the AP cost of the mode (the weapon's own
-	// ubAPsPer...Burst through the usual formula, see CalcAPsToBurst()) and
-	// its rounds. A mode the weapon doesn't have is left out.
+	// ubAPCostPer...Burst, see CalcAPsToBurst()) and its rounds. A mode the weapon doesn't have is left out.
 	static WeaponModes const modes[] = { WM_BURST_SHORT, WM_BURST_LONG, WM_BURST_FULL };
 	UINT8 const mode_shots[] = { w->ubShotsPerShortBurst, w->ubShotsPerLongBurst, w->ubShotsPerFullBurst };
 	bool        any_burst    = false;
@@ -4081,7 +4080,7 @@ static void RenderMapBigWeaponBoxTexts(OBJECTTYPE const& obj, INT16 const dx, IN
 		if (mode_shots[m] == 0) continue;
 		any_burst = true;
 
-		label_and_value(BIGW_TXT_SHORT + m, ST::format("{}", single_aps + CalcAPsToBurst(DEFAULT_APS, DEFAULT_AIMSKILL, obj, modes[m])));
+		label_and_value(BIGW_TXT_SHORT + m, ST::format("{}", single_aps + CalcAPsToBurst(obj, modes[m])));
 
 		INV_DESC_STATS const r = TB(gMapBigWeaponBoxRounds[m]);
 		SetFontForeground(MAP_BIG_WEAPON_LABEL_COLOUR);
@@ -4678,7 +4677,7 @@ void RenderItemDescriptionBox(void)
 			MPrint(usX, usY, pStr);
 		}
 
-		UINT8 const ubAttackAPs = BaseAPsToShootOrStab(DEFAULT_APS, DEFAULT_AIMSKILL, obj);
+		UINT8 const ubAttackAPs = BaseAPsToShootOrStab(obj);
 
 		//APs
 		HighlightIf(ubAttackAPs <= EXCEPTIONAL_AP_COST, value_colour);
@@ -4689,7 +4688,7 @@ void RenderItemDescriptionBox(void)
 		if (w->ubShotsPerShortBurst > 0 && !big)
 		{
 			HighlightIf(GunShotsPerBurst(obj, WM_BURST_SHORT) >= EXCEPTIONAL_BURST_SIZE || obj.usItem == G11, value_colour);
-			pStr = ST::format("{2d}", ubAttackAPs + CalcAPsToBurst(DEFAULT_APS, DEFAULT_AIMSKILL, obj, WM_BURST_SHORT));
+			pStr = ST::format("{2d}", ubAttackAPs + CalcAPsToBurst(obj, WM_BURST_SHORT));
 			FindFontRightCoordinates(dx + ids[5].sX + ids[5].sValDx, dy + ids[5].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}

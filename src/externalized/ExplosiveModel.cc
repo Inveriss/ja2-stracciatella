@@ -248,6 +248,10 @@ ExplosiveModel* ExplosiveModel::deserialize(
 	);
 	explosive->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
 	explosive->ubBigPerPocket   = ItemModel::deserializeBigPerPocket(obj);
+	if (cursor == TOSSCURS)
+	{
+		explosive->apCostPerThrow = ItemModel::deserializeAPCostPerThrow(obj, explosive->getInternalName());
+	}
 	return explosive;
 }
 

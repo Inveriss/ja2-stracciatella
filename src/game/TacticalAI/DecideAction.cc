@@ -3254,7 +3254,7 @@ static INT8 DecideActionBlack(SOLDIERTYPE* pSoldier)
 				pSoldier->inv[BestAttack.bWeaponIn].ubGunShotsLeft > 1 &&
 				pSoldier->bTeam != OUR_TEAM)
 			{
-				UINT8 const ubBurstAPs = CalcAPsToBurst(*pSoldier, pSoldier->inv[BestAttack.bWeaponIn], GetActiveBurstMode(*pSoldier));
+				UINT8 const ubBurstAPs = CalcAPsToBurst(pSoldier->inv[BestAttack.bWeaponIn], GetActiveBurstMode(*pSoldier));
 				if (pSoldier->bActionPoints - (BestAttack.ubAPCost - BestAttack.ubAimTime) >= ubBurstAPs )
 				{
 					// Base chance of bursting is 25% if best shot was +0 aim, down to 8% at +4
@@ -3290,7 +3290,7 @@ static INT8 DecideActionBlack(SOLDIERTYPE* pSoldier)
 					if ( (INT32) PreRandom( 100 ) < iChance)
 					{
 						BestAttack.ubAimTime = BURSTING;
-						BestAttack.ubAPCost = BestAttack.ubAPCost - BestAttack.ubAimTime + CalcAPsToBurst(*pSoldier, pSoldier->inv[HANDPOS], GetActiveBurstMode(*pSoldier));
+						BestAttack.ubAPCost = BestAttack.ubAPCost - BestAttack.ubAimTime + CalcAPsToBurst(pSoldier->inv[HANDPOS], GetActiveBurstMode(*pSoldier));
 						// check for spread burst possibilities
 						if (pSoldier->bAttitude != ATTACKSLAYONLY)
 						{

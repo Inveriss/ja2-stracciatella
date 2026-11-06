@@ -53,6 +53,7 @@ struct WeaponModel : ItemModel
 	const BinaryData& vanillaItemStrings);
 
 	virtual const WeaponModel* asWeapon() const   { return this; }
+	virtual uint8_t getAPCostPerThrow() const    { return ubAPCostPerThrow; }
 
 	bool shootsExplosiveCalibre() const;
 	bool matches(const CalibreModel *calibre) const;
@@ -93,11 +94,11 @@ struct WeaponModel : ItemModel
 	const CalibreModel *calibre;  // type of ammunition needed
 	const ExplosiveCalibreModel *explosiveCalibre;  // type of ammunition needed
 	UINT8    ubReadyTime;      // APs to ready/unready weapon
-	UINT8    ubShotsPer4Turns; // maximum (mechanical) firing rate
-	UINT8    ubAPsPerShortBurst; // not an AP cost: shots per 4 turns of the burst mode for the
-	                             // original AP formula, 0 = original burst cost
-	UINT8    ubAPsPerLongBurst;
-	UINT8    ubAPsPerFullBurst;
+	UINT8    ubAPCostPerSingleShot; // AP cost of a single shot or stab, the same for everyone
+	UINT8    ubAPCostPerThrow; // AP cost of a throw (THROWN items, rocks), the same for everyone
+	UINT8    ubAPCostPerShortBurst; // AP cost of the whole burst, 0 = ubAPCostPerSingleShot + 4
+	UINT8    ubAPCostPerLongBurst;
+	UINT8    ubAPCostPerFullBurst;
 	UINT8    ubShotsPerShortBurst; // 0 = no such burst mode
 	UINT8    ubShotsPerLongBurst;
 	UINT8    ubShotsPerFullBurst;  // factory magazine, a larger magazine doesn't lengthen it
@@ -137,7 +138,7 @@ struct Pistol : WeaponModel
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint8_t MagSize,
 		uint16_t Range,
@@ -159,7 +160,7 @@ struct MPistol : WeaponModel
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
@@ -185,7 +186,7 @@ struct SMG : WeaponModel
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
@@ -210,7 +211,7 @@ struct SniperRifle : WeaponModel
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint8_t MagSize,
 		uint16_t Range,
@@ -231,7 +232,7 @@ struct Rifle : WeaponModel
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint8_t MagSize,
 		uint16_t Range,
@@ -252,7 +253,7 @@ struct AssaultRifle : WeaponModel
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
@@ -277,7 +278,7 @@ struct Shotgun : WeaponModel
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
@@ -302,7 +303,7 @@ struct LMG : WeaponModel
 		uint8_t BulletSpeed,
 		uint8_t Impact,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t ShotsPerShortBurst,
 		uint8_t BurstPenalty,
 		uint8_t Deadliness,
@@ -324,7 +325,7 @@ struct Blade : WeaponModel
 	Blade(uint16_t indexIndex,
 		ST::string&& internalName,
 		uint8_t Impact,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint16_t Range,
 		uint8_t AttackVolume,
@@ -339,7 +340,7 @@ struct ThrowingBlade : WeaponModel
 	ThrowingBlade(uint16_t indexIndex,
 		ST::string&& internalName,
 		uint8_t Impact,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint16_t Range,
 		uint8_t AttackVolume,
@@ -354,7 +355,7 @@ struct PunchWeapon : WeaponModel
 	PunchWeapon(uint16_t indexIndex,
 		ST::string&& internalName,
 		uint8_t Impact,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint8_t AttackVolume,
 		ST::string&& Sound);
@@ -370,7 +371,7 @@ struct Launcher : WeaponModel
 		const ExplosiveCalibreModel* explosiveCalibre,
 		uint8_t BulletSpeed,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint16_t Range,
 		uint8_t AttackVolume,
@@ -387,7 +388,7 @@ struct LAW : WeaponModel
 		ST::string&& internalName,
 		uint8_t BulletSpeed,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint16_t Range,
 		uint8_t AttackVolume,
@@ -405,7 +406,7 @@ struct Cannon : WeaponModel
 		const ExplosiveCalibreModel* explosiveCalibre,
 		uint8_t BulletSpeed,
 		uint8_t ReadyTime,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint16_t Range,
 		uint8_t AttackVolume,
@@ -422,7 +423,7 @@ struct MonsterSpit : WeaponModel
 		ST::string&& internalName,
 		const CalibreModel *calibre,
 		uint8_t Impact,
-		uint8_t ShotsPer4Turns,
+		uint8_t APCostPerSingleShot,
 		uint8_t Deadliness,
 		uint8_t MagSize,
 		uint16_t Range,

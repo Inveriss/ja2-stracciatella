@@ -856,51 +856,37 @@ static INT16 GetBreathPerAP(SOLDIERTYPE* pSoldier, UINT16 usAnimState)
 }
 
 
-static INT8 CalcAimSkill(SOLDIERTYPE const&, UINT16 weapon);
-
-
-// AP a burst costs on top of a single shot, see docs/burst-modes.md.
-// bBaseActionPoints is what you'd get from CalcActionPoints().
-UINT8 CalcAPsToBurst(INT8 const bBaseActionPoints, INT8 const bAimSkill, OBJECTTYPE const& o, WeaponModes const mode)
+// A weapon's AP cost with its Spring and Bolt Upgrade: a fixed 1 AP less, the
+// attachment's status doesn't matter. A cost never falls below 1 AP.
+static UINT8 CostWithSpringAndBolt(OBJECTTYPE const& o, UINT8 const cost)
 {
-	if (!GCM->getItem(o.usItem)->isWeapon()) return 0;
-
-	// A burst mode with its own shots per 4 turns costs what the original
-	// formula gives for them instead of the single shot's.
-	WeaponModel const* const w = GCM->getWeapon(o.usItem);
-	UINT8 burst_shots_per_4_turns;
-	switch (mode)
-	{
-		case WM_BURST_SHORT: burst_shots_per_4_turns = w->ubAPsPerShortBurst; break;
-		case WM_BURST_LONG:  burst_shots_per_4_turns = w->ubAPsPerLongBurst;  break;
-		case WM_BURST_FULL:  burst_shots_per_4_turns = w->ubAPsPerFullBurst;  break;
-		default:             return 0;
-	}
-	if (burst_shots_per_4_turns != 0)
-	{
-		UINT8 const single_aps = BaseAPsToShootOrStab(bBaseActionPoints, bAimSkill, o);
-		UINT8 const burst_aps  = BaseAPsToShootOrStab(bBaseActionPoints, bAimSkill, o, burst_shots_per_4_turns);
-		return burst_aps > single_aps ? burst_aps - single_aps : 0;
-	}
-
-	// Otherwise the original burst cost, the same for every burst mode (no
-	// special case for the G11 any more)
-	// NB round UP, so 21-25 APs pay full
-	INT8 const bAttachPos = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE );
-	if ( bAttachPos != -1 )
-	{
-		return (std::max(3, (AP_BURST * bBaseActionPoints + (AP_MAXIMUM - 1)) / AP_MAXIMUM) * 100) / (100 + o.bAttachStatus[bAttachPos] / 5);
-	}
-	else
-	{
-		return std::max(3, (AP_BURST * bBaseActionPoints + (AP_MAXIMUM - 1)) / AP_MAXIMUM);
-	}
+	int const reduction = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE) != NO_SLOT ? 1 : 0;
+	return static_cast<UINT8>(std::max(cost - reduction, 1));
 }
 
 
-UINT8 CalcAPsToBurst(SOLDIERTYPE const& s, OBJECTTYPE const& o, WeaponModes const mode)
+// AP a burst costs on top of a single shot: the weapon's burst cost minus its
+// single shot cost, both as they are with Spring and Bolt.
+UINT8 CalcAPsToBurst(OBJECTTYPE const& o, WeaponModes const mode)
 {
-	return CalcAPsToBurst(CalcActionPoints(&s), CalcAimSkill(s, o.usItem), o, mode);
+	if (!GCM->getItem(o.usItem)->isWeapon()) return 0;
+
+	WeaponModel const* const w = GCM->getWeapon(o.usItem);
+	int burst_cost;
+	switch (mode)
+	{
+		case WM_BURST_SHORT: burst_cost = w->ubAPCostPerShortBurst; break;
+		case WM_BURST_LONG:  burst_cost = w->ubAPCostPerLongBurst;  break;
+		case WM_BURST_FULL:  burst_cost = w->ubAPCostPerFullBurst;  break;
+		default:             return 0;
+	}
+	// A weapon without its own value for this burst
+	if (burst_cost == 0) burst_cost = w->ubAPCostPerSingleShot + 4;
+	burst_cost = std::min(burst_cost, 255);
+
+	UINT8 const single_aps = BaseAPsToShootOrStab(o);
+	UINT8 const burst_aps  = CostWithSpringAndBolt(o, static_cast<UINT8>(burst_cost));
+	return burst_aps > single_aps ? burst_aps - single_aps : 0;
 }
 
 
@@ -915,18 +901,17 @@ UINT8 CalcTotalAPsToAttack(SOLDIERTYPE * const s, GridNo const grid_no, bool con
 		case IC_TENTACLES:
 		case IC_THROWING_KNIFE:
 			return MinAPsToAttack(s, grid_no, add_turning_cost) +
-				(s->bDoBurst ? CalcAPsToBurst(*s, in_hand, GetActiveBurstMode(*s)) :
+				(s->bDoBurst ? CalcAPsToBurst(in_hand, GetActiveBurstMode(*s)) :
 				// WM_ATTACHED is already handled by MinAPsToAttack and the
 				// aim time cannot be refined further.
 				s->bWeaponMode == WM_ATTACHED ? 0 : aim_time);
 
 		case IC_GRENADE:
+			// the throw's cost, as on the throw cursor
+			return MinAPsToThrow(*s, grid_no, add_turning_cost);
+
 		case IC_BOMB:
-#if 0 // XXX always was this way
-			ap_cost = MinAPsToAttack(s, grid_no, ubAddTurningCost);
-#else
 			ap_cost = 5;
-#endif
 			break;
 
 		case IC_PUNCH:
@@ -1026,58 +1011,10 @@ UINT8 MinAPsToAttack(SOLDIERTYPE * const s, GridNo const grid_no, bool const add
 }
 
 
-static INT8 CalcAimSkill(SOLDIERTYPE const& s, UINT16 const weapon)
+// The weapon's fixed cost of a single shot or stab, the same for everyone.
+UINT8 BaseAPsToShootOrStab(OBJECTTYPE const& o)
 {
-	switch (GCM->getItem(weapon)->getItemClass())
-	{
-		case IC_GUN:
-		case IC_LAUNCHER:
-		{
-			// Guns: Modify aiming cost by shooter's marksmanship
-			SOLDIERTYPE const* const aimer = IsPlayerTank(s) ? GetTankGunner(s) : &s;
-			return aimer ? EffectiveMarksmanship(aimer) : 0;
-		}
-
-		default:
-			// Knives: Modify aiming cost by avg of attacker's dexterity & agility
-			return (EffectiveDexterity(&s) + EffectiveAgility(&s)) / 2;
-	}
-}
-
-
-UINT8 BaseAPsToShootOrStab(INT8 const bAPs, INT8 const bAimSkill, OBJECTTYPE const& o)
-{
-	return BaseAPsToShootOrStab(bAPs, bAimSkill, o, GCM->getWeapon(o.usItem)->ubShotsPer4Turns);
-}
-
-
-// The original formula, only the shots per 4 turns are passed in (a burst mode
-// can have its own, see CalcAPsToBurst()).
-UINT8 BaseAPsToShootOrStab(INT8 const bAPs, INT8 const bAimSkill, OBJECTTYPE const& o, UINT8 const ubShotsPer4Turns)
-{
-	INT16 sTop, sBottom;
-
-	// Calculate default top & bottom of the magic "aiming" formula!
-
-	// get this man's maximum possible action points (ignoring carryovers)
-	// the 2 times is here only to allow rounding off using integer math later
-	sTop = 2 * bAPs;//CalcActionPoints( pSoldier );
-
-	// Shots per turn rating is for max. aimSkill(100), drops down to 1/2 at = 0
-	// DIVIDE BY 4 AT THE END HERE BECAUSE THE SHOTS PER TURN IS NOW QUADRUPLED!
-	// NB need to define shots per turn for ALL Weapons then.
-	sBottom = ( ( 50 + (bAimSkill / 2) ) * ubShotsPer4Turns ) / 4;
-
-	INT8 const bAttachPos = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE);
-	if ( bAttachPos != -1 )
-	{
-		sBottom = sBottom * (100 + o.bAttachStatus[bAttachPos] / 5) / 100;
-	}
-
-	// add minimum aiming time to the overall minimum AP_cost
-	//     This here ROUNDS UP fractions of 0.5 or higher using integer math
-	//     This works because 'top' is 2x what it really should be throughout
-	return( ( ( ( 100 * sTop ) / sBottom ) + 1) / 2);
+	return CostWithSpringAndBolt(o, GCM->getWeapon(o.usItem)->ubAPCostPerSingleShot);
 }
 
 
@@ -1113,6 +1050,34 @@ void GetAPChargeForShootOrStabWRTGunRaises(SOLDIERTYPE const* const s, GridNo gr
 }
 
 
+bool IsWeaponLoweredForAttack(SOLDIERTYPE const& s)
+{
+	BOOLEAN adding_turning_cost;
+	BOOLEAN adding_raise_gun_cost;
+	GetAPChargeForShootOrStabWRTGunRaises(&s, NOWHERE, FALSE, &adding_turning_cost, &adding_raise_gun_cost);
+	return adding_raise_gun_cost && !AM_A_ROBOT(&s);
+}
+
+
+// Changing the target costs AP only with the weapon already raised: raising it
+// is part of aiming at the target. The attack is charged again when the gun
+// fires, with the weapon up by then, hence fRaisingWeaponForAttack. A tank
+// never pays it, only its turret's turn; neither do the LAW and the grenade
+// launchers.
+bool ChargesAPsForNewTarget(SOLDIERTYPE const& s, GridNo const target)
+{
+	UINT16 const item = s.bWeaponMode == WM_ATTACHED ? UNDER_GLAUNCHER : s.inv[HANDPOS].usItem;
+	return target != s.sLastTarget &&
+		!TANK(&s) &&
+		item != ROCKET_LAUNCHER &&
+		item != GLAUNCHER &&
+		item != UNDER_GLAUNCHER &&
+		!s.fRaisingWeaponForAttack &&
+		!s.fRaisedWithoutTarget && // raised with Q: the first target is free
+		!IsWeaponLoweredForAttack(s);
+}
+
+
 UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_cost)
 {
 	OBJECTTYPE const& in_hand = s.inv[HANDPOS];
@@ -1132,17 +1097,7 @@ UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_
 		ap_cost += GetAPsToChangeStance(&s, ANIM_STAND);
 	}
 
-	// ATE: Look at stance
-	if (gAnimControl[s.usAnimState].ubHeight == ANIM_STAND)
-	{
-		// Don't charge turning if gun-ready
-		if (adding_raise_gun_cost) adding_turning_cost = FALSE;
-	}
-	else
-	{
-		// Just charge turning costs
-		if (adding_turning_cost) adding_raise_gun_cost = FALSE;
-	}
+	// Turning and raising the weapon are both paid, in every stance
 
 	if (AM_A_ROBOT(&s)) adding_raise_gun_cost = FALSE;
 
@@ -1172,14 +1127,10 @@ UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_
 	}
 
 	// if attacking a new target (or if the specific target is uncertain)
-	if (gridno != s.sLastTarget && item != ROCKET_LAUNCHER)
+	if (ChargesAPsForNewTarget(s, gridno))
 	{
 		ap_cost += AP_CHANGE_TARGET;
 	}
-
-	INT8 const full_aps  = CalcActionPoints(&s);
-	// Aim skill is the same whether we are using 1 or 2 guns
-	INT8 const aim_skill = CalcAimSkill(s, item);
 
 	if (s.bWeaponMode == WM_ATTACHED)
 	{
@@ -1190,31 +1141,39 @@ UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_
 		OBJECTTYPE grenade_launcher;
 		CreateItem(UNDER_GLAUNCHER, status, &grenade_launcher);
 
-		ap_cost += BaseAPsToShootOrStab(full_aps, aim_skill, grenade_launcher);
+		ap_cost += BaseAPsToShootOrStab(grenade_launcher);
 	}
 	else if (IsValidSecondHandShot(&s))
 	{
 		// Charge the maximum of the two
-		UINT8 const ap_1st = BaseAPsToShootOrStab(full_aps, aim_skill, in_hand);
-		UINT8 const ap_2nd = BaseAPsToShootOrStab(full_aps, aim_skill, s.inv[SECONDHANDPOS]);
+		UINT8 const ap_1st = BaseAPsToShootOrStab(in_hand);
+		UINT8 const ap_2nd = BaseAPsToShootOrStab(s.inv[SECONDHANDPOS]);
 		ap_cost += std::max(ap_1st, ap_2nd);
 	}
 	else
 	{
-		ap_cost += BaseAPsToShootOrStab(full_aps, aim_skill, in_hand);
+		ap_cost += BaseAPsToShootOrStab(in_hand);
 	}
 
-	// The minimum AP cost of ANY shot can NEVER be more than merc's maximum APs
-	// nor it SHOULDN'T be 0, but nevertheless
-	ap_cost = std::clamp(ap_cost, 1, full_aps > 0 ? int(full_aps) : 1);
+	// The cost of a shot SHOULDN'T be 0, but nevertheless. It can be more than
+	// the merc's maximum APs: then he must save APs or can't use this weapon.
+	return std::max(ap_cost, 1);
+}
 
-	return ap_cost;
+
+// A punch: the weapon's fixed cost (brass knuckles, crowbar), a bare fist 4 AP
+UINT8 BaseAPsToPunch(OBJECTTYPE const& in_hand)
+{
+	ItemModel   const* const item   = GCM->getItem(in_hand.usItem);
+	WeaponModel const* const weapon = item ? item->asWeapon() : nullptr;
+	UINT8 const cost = weapon ? weapon->ubAPCostPerSingleShot : 0;
+	return cost != 0 ? cost : 4;
 }
 
 
 static UINT8 MinAPsToPunch(SOLDIERTYPE const& s, GridNo gridno, bool const add_turning_cost)
 {
-	UINT8 ap = 4;
+	UINT8 ap = BaseAPsToPunch(s.inv[HANDPOS]);
 
 	// We return 0 for invalid attacks; will be handled as impossible
 	if (gridno == NOWHERE)
@@ -1222,26 +1181,32 @@ static UINT8 MinAPsToPunch(SOLDIERTYPE const& s, GridNo gridno, bool const add_t
 		return 0;
 	}
 
-	if (SOLDIERTYPE const* const tgt = WhoIsThere2(gridno, s.bTargetLevel))
-	{	// On a guy, get his gridno
-		gridno = tgt->sGridNo;
+	SOLDIERTYPE const* const tgt = WhoIsThere2(gridno, s.bTargetLevel);
+	if (tgt) gridno = tgt->sGridNo; // On a guy, get his gridno
 
+	// Next to the target the merc hits from where he is, so his stance and
+	// facing are known: show the stance change and the turn the punch takes.
+	// (The original checked s.sGridNo == gridno, the target's own tile, so it
+	// never showed them.) After a walk the cursor adds the walk instead.
+	bool const in_place = SpacesAway(s.sGridNo, gridno) <= 1;
+
+	if (tgt)
+	{
 		// Check if target is prone, if so, calc cost
 		if (gAnimControl[tgt->usAnimState].ubEndHeight == ANIM_PRONE)
 		{
 			ap += GetAPsToChangeStance(&s, ANIM_CROUCH);
 		}
-		else if (s.sGridNo == gridno)
+		else if (in_place)
 		{
 			ap += GetAPsToChangeStance(&s, ANIM_STAND);
 		}
 	}
 
-	if (add_turning_cost && s.sGridNo == gridno)
+	if (add_turning_cost && in_place && GetDirectionFromGridNo(gridno, &s) != s.bDirection)
 	{
-		// Is it the same as he's facing?
-		UINT8 const direction = GetDirectionFromGridNo(gridno, &s);
-		if (direction != s.bDirection) ap += AP_LOOK_STANDING; // ATE: Use standing turn cost
+		// the turn as the punch takes it, by the stance he turns in
+		ap += GetAPsToLook(&s);
 	}
 
 	return ap;
@@ -1700,13 +1665,20 @@ INT16 GetAPsToReadyWeapon(const SOLDIERTYPE* const pSoldier, const UINT16 usAnim
 	{
 		return( 0 );
 	}
-	else
+
+	// The underslung grenade launcher in use: its own ready time, not the gun's
+	if (pSoldier->bWeaponMode == WM_ATTACHED &&
+		FindAttachment(&pSoldier->inv[HANDPOS], UNDER_GLAUNCHER) != NO_SLOT)
 	{
-		// CHECK FOR RIFLE
-		if ( GCM->getItem(usItem)->getItemClass() == IC_GUN )
-		{
-			return( GCM->getWeapon( usItem )->ubReadyTime );
-		}
+		return GCM->getWeapon(UNDER_GLAUNCHER)->ubReadyTime;
+	}
+
+	// Guns and launchers (grenade launcher, mortar, LAW)
+	switch (GCM->getItem(usItem)->getItemClass())
+	{
+		case IC_GUN:
+		case IC_LAUNCHER:
+			return GCM->getWeapon(usItem)->ubReadyTime;
 	}
 
 	return( 0 );
@@ -1752,9 +1724,16 @@ INT8 GetAPsToRefuelVehicle( SOLDIERTYPE *pSoldier )
 }
 
 
-#define TOSSES_PER_10TURNS      18      // max # of grenades tossable in 10 turns
 #define AP_MIN_AIM_ATTACK       0       // minimum permitted extra aiming
 #define AP_MAX_AIM_ATTACK       4       // maximum permitted extra aiming
+
+
+// A throw towards a target the merc doesn't face: he turns, standing
+bool ThrowNeedsTurn(SOLDIERTYPE const& s, GridNo const target)
+{
+	return target != NOWHERE && target != s.sGridNo &&
+		GetDirectionFromGridNo(target, &s) != s.bDirection;
+}
 
 
 INT16 MinAPsToThrow(SOLDIERTYPE const& s, GridNo gridno, bool const add_turning_cost)
@@ -1769,42 +1748,25 @@ INT16 MinAPsToThrow(SOLDIERTYPE const& s, GridNo gridno, bool const add_turning_
 	{
 		SLOGW("MinAPsToThrow - in-hand item is missing");
 	}
-	// match MinAPsToAttack; launchers (mortar, grenade launcher) too: the AI
-	// rates their indirect fire as a throw (CalcBestThrow)
+	// match MinAPsToAttack; launchers (mortar, grenade launcher) are accepted,
+	// although they pay their weapon cost (CalcBestThrow rates them so too)
 	else if (!(item->getItemClass() & (IC_GRENADE | IC_THROWN | IC_LAUNCHER)))
 	{
 		SLOGW("MinAPsToThrow - in-hand item '{}' has unexpected item class 0x{x}", item->getInternalName(), item->getItemClass());
 	}
 
-	if (gridno != NOWHERE)
-	{
-		SOLDIERTYPE const* const tgt = FindSoldier(gridno, FIND_SOLDIER_GRIDNO);
-		if (tgt) gridno = tgt->sGridNo; // On a guy, get his gridno
-	}
-
-	// if attacking a new target (or if the specific target is uncertain)
-	if (gridno != s.sLastTarget) ap += AP_CHANGE_TARGET;
+	// No AP for a new target: every throw is aimed from scratch
+	// (docs/throws-ap-plan.md, T4)
 
 	ap += GetAPsToChangeStance(&s, ANIM_STAND);
 
-	// Calculate default top & bottom of the magic "aiming" formula)
+	// The turn, as a standing merc (T5); HandleItem() takes it at the start
+	if (add_turning_cost && ThrowNeedsTurn(s, gridno)) ap += AP_LOOK_STANDING;
 
-	// Get this man's maximum possible action points (ignoring carryovers)
-	INT32 const full_ap = CalcActionPoints(&s);
-
-	// The 2 times is here only to around rounding off using integer math later
-	INT32 const top = 2 * full_ap;
-
-	// Tosses per turn is for max dexterity, drops down to 1/2 at dexterity = 0
-	INT32 const bottom = TOSSES_PER_10TURNS * (50 + s.bDexterity / 2) / 10;
-
-	// Add minimum aiming time to the overall minimum AP_cost
-	// This here ROUNDS UP fractions of 0.5 or higher using integer math
-	// This works because 'top' is 2x what it really should be throughout
-	ap += (100 * top / bottom + 1) / 2;
-
-	// The minimum AP cost of ANY throw can NEVER be more than merc has APs!
-	if (ap > full_ap) ap = full_ap;
+	// The item's fixed cost, the same for everyone (docs/throws-ap-plan.md).
+	// It can be more than the merc's maximum APs: then he must save APs.
+	UINT8 const cost = item ? item->getAPCostPerThrow() : 0;
+	ap += cost != 0 ? cost : DEFAULT_AP_COST_PER_THROW;
 
 	// This SHOULD be impossible, but nevertheless
 	if (ap < 1) ap = 1;

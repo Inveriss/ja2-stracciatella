@@ -64,9 +64,6 @@ items:
         ubReadyTime:
           title: Ready time
           $ref: types/uint8.schema.yaml
-        ubShotsPer4Turns:
-          title: Shots per 4 turns
-          $ref: types/uint8.schema.yaml
         ubBulletSpeed:
           title: Bullet speed
           $ref: types/uint8.schema.yaml
@@ -100,6 +97,32 @@ items:
         standardReplacement:
           title: Standard replacement
           $ref: types/id.schema.yaml
+        ubAPCostPerSingleShot:
+          title: AP cost of a single shot or stab
+          description: A direct AP value, the same for everyone, -1 with a Spring and Bolt Upgrade. Also the cost of a hit with a `PUNCHWEAPON` (brass knuckles, crowbar); a bare fist costs 4 AP.
+          $ref: types/uint8.schema.yaml
+        ubAPCostPerThrow:
+          title: AP cost of a throw
+          description: A direct AP value for every thrower, only for `THROWN` items (rocks). Missing = 11 AP, with a warning.
+          $ref: types/uint8.schema.yaml
+        ubAPCostPerShortBurst:
+          title: AP cost of the short burst
+          description: The full cost of the burst as a direct AP value, not a surcharge on top of `ubAPCostPerSingleShot`, -1 with a Spring and Bolt Upgrade. null or missing = `ubAPCostPerSingleShot` + 4.
+          anyOf:
+            - $ref: types/uint8.schema.yaml
+            - type: 'null'
+        ubAPCostPerLongBurst:
+          title: AP cost of the long burst
+          description: See `ubAPCostPerShortBurst`.
+          anyOf:
+            - $ref: types/uint8.schema.yaml
+            - type: 'null'
+        ubAPCostPerFullBurst:
+          title: AP cost of the full burst
+          description: See `ubAPCostPerShortBurst`.
+          anyOf:
+            - $ref: types/uint8.schema.yaml
+            - type: 'null'
         ubShotsPerShortBurst:
           title: Shots per short burst
           description: Default 3 for weapons that can burst, 0 = no short burst.
@@ -112,24 +135,6 @@ items:
           title: Shots per full burst
           description: The factory magazine size (default `ubMagSize`), a larger magazine doesn't make the full burst longer. 0 = no full burst.
           $ref: types/uint8.schema.yaml
-        ubAPsPerShortBurst:
-          title: Shots per 4 turns of the short burst
-          description: Not an AP cost. A parameter of the original AP formula, used instead of `ubShotsPer4Turns` for the short burst's cost. null or missing = the original burst cost.
-          anyOf:
-            - $ref: types/uint8.schema.yaml
-            - type: 'null'
-        ubAPsPerLongBurst:
-          title: Shots per 4 turns of the long burst
-          description: See `ubAPsPerShortBurst`.
-          anyOf:
-            - $ref: types/uint8.schema.yaml
-            - type: 'null'
-        ubAPsPerFullBurst:
-          title: Shots per 4 turns of the full burst
-          description: See `ubAPsPerShortBurst`.
-          anyOf:
-            - $ref: types/uint8.schema.yaml
-            - type: 'null'
         ubShotsPerBurst:
           title: Shots per burst (deprecated)
           description: Used only when the burst fields above are missing, any value above 0 gives their defaults.

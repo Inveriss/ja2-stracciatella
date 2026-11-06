@@ -620,6 +620,32 @@ static void DetermineCursorBodyLocation(SOLDIERTYPE* const s, BOOLEAN const disp
 }
 
 
+// Melee (knife, blade, punch) aims as a gun: 4 aiming levels, 1 AP each
+// (bShownAimTime REFINE_AIM_1..REFINE_AIM_5, in steps of 2)
+static UINT8 MeleeAimLevel(SOLDIERTYPE const& s)
+{
+	return static_cast<UINT8>(std::clamp(s.bShownAimTime / 2, 0, 4));
+}
+
+
+// Can he afford one more aiming level (or is he at the last one)?
+static bool CanAffordNextMeleeAim(SOLDIERTYPE* const s, GridNo const map_pos)
+{
+	INT8 const future_aim = s->bShownAimTime + 2;
+	if (future_aim > REFINE_AIM_5) return true;
+	return EnoughPoints(s, CalcTotalAPsToAttack(s, map_pos, TRUE, future_aim / 2), 0, FALSE);
+}
+
+
+// In real time the aim refines by itself, as a gun's
+static void RefineMeleeAimInRealTime(SOLDIERTYPE* const s)
+{
+	if (s->bShownAimTime >= REFINE_AIM_5) return;
+	s->bShownAimTime += 2;
+	PlayJA2Sample(TARG_REFINE_BEEP, MIDVOLUME, 1, MIDDLEPAN);
+}
+
+
 static UICursorID HandleKnifeCursor(SOLDIERTYPE* const s, GridNo const map_pos, BOOLEAN const activated, MouseMoveState const uiCursorFlags)
 {
 	HandleUIMovementCursor(s, uiCursorFlags, map_pos, MOVEUI_TARGET_MERCS);
@@ -649,41 +675,22 @@ static UICursorID HandleKnifeCursor(SOLDIERTYPE* const s, GridNo const map_pos, 
 			if (!EnoughPoints(s, gsCurrentActionPoints, 0, FALSE))
 			{
 				gfUIDisplayActionPointsInvalid = TRUE;
-				if (s->bShownAimTime == REFINE_KNIFE_1) return KNIFE_HIT_UICURSOR;
+				if (s->bShownAimTime == REFINE_AIM_1) return KNIFE_HIT_UICURSOR;
 			}
 
-			INT8  const future_aim = REFINE_KNIFE_2;
-			INT16 const ap_costs   = CalcTotalAPsToAttack(s, map_pos, TRUE, future_aim / 2);
-			if (!EnoughPoints(s, ap_costs, 0, FALSE)) enough_points = false;
+			enough_points = CanAffordNextMeleeAim(s, map_pos);
 		}
 
 		if (!(gTacticalStatus.uiFlags & INCOMBAT) && COUNTERDONE(NONGUNTARGETREFINE))
 		{
-			if (s->bShownAimTime == REFINE_KNIFE_1)
-			{
-				PlayJA2Sample(TARG_REFINE_BEEP, MIDVOLUME, 1, MIDDLEPAN);
-			}
-
-			s->bShownAimTime = REFINE_KNIFE_2;
+			RefineMeleeAimInRealTime(s);
 		}
 
-		switch (s->bShownAimTime)
-		{
-			case REFINE_KNIFE_1:
-				return gfDisplayFullCountRing ? KNIFE_YELLOW_AIM1_UICURSOR :
-					enough_points          ? KNIFE_HIT_AIM1_UICURSOR    :
-					KNIFE_NOGO_AIM1_UICURSOR;
-
-			case REFINE_KNIFE_2:
-				return gfDisplayFullCountRing ? KNIFE_YELLOW_AIM2_UICURSOR :
-					enough_points          ? KNIFE_HIT_AIM2_UICURSOR    :
-					KNIFE_NOGO_AIM2_UICURSOR;
-
-			default:
-				Assert(FALSE);
-				// no return value!
-				return NO_UICURSOR;
-		}
+		static UICursorID const yellow[] = { KNIFE_YELLOW_AIM1_UICURSOR, KNIFE_YELLOW_AIM2_UICURSOR, KNIFE_YELLOW_AIM3_UICURSOR, KNIFE_YELLOW_AIM4_UICURSOR, KNIFE_YELLOW_AIM5_UICURSOR };
+		static UICursorID const hit[]    = { KNIFE_HIT_AIM1_UICURSOR,    KNIFE_HIT_AIM2_UICURSOR,    KNIFE_HIT_AIM3_UICURSOR,    KNIFE_HIT_AIM4_UICURSOR,    KNIFE_HIT_AIM5_UICURSOR    };
+		static UICursorID const nogo[]   = { KNIFE_NOGO_AIM1_UICURSOR,   KNIFE_NOGO_AIM2_UICURSOR,   KNIFE_NOGO_AIM3_UICURSOR,   KNIFE_NOGO_AIM4_UICURSOR,   KNIFE_NOGO_AIM5_UICURSOR   };
+		UINT8 const level = MeleeAimLevel(*s);
+		return gfDisplayFullCountRing ? yellow[level] : enough_points ? hit[level] : nogo[level];
 	}
 	else
 	{
@@ -731,40 +738,21 @@ static UICursorID HandlePunchCursor(SOLDIERTYPE* const s, GridNo const map_pos, 
 		if (!EnoughPoints(s, gsCurrentActionPoints, 0, FALSE))
 		{
 			gfUIDisplayActionPointsInvalid = TRUE;
-			if (s->bShownAimTime == REFINE_PUNCH_1) return ACTION_PUNCH_RED;
+			if (s->bShownAimTime == REFINE_AIM_1) return ACTION_PUNCH_RED;
 		}
 
-		INT8  const future_aim = REFINE_PUNCH_2;
-		INT16 const ap_costs   = CalcTotalAPsToAttack(s, map_pos, TRUE, future_aim / 2);
-		if (!EnoughPoints(s, ap_costs, 0, FALSE)) enough_points = false;
+		enough_points = CanAffordNextMeleeAim(s, map_pos);
 
 		if (!(gTacticalStatus.uiFlags & INCOMBAT) && COUNTERDONE(NONGUNTARGETREFINE))
 		{
-			if (s->bShownAimTime == REFINE_PUNCH_1)
-			{
-				PlayJA2Sample(TARG_REFINE_BEEP, MIDVOLUME, 1, MIDDLEPAN);
-			}
-
-			s->bShownAimTime = REFINE_PUNCH_2;
+			RefineMeleeAimInRealTime(s);
 		}
 
-		switch (s->bShownAimTime)
-		{
-			case REFINE_PUNCH_1:
-				return gfDisplayFullCountRing ? ACTION_PUNCH_YELLOW_AIM1_UICURSOR :
-					enough_points          ? ACTION_PUNCH_RED_AIM1_UICURSOR    :
-					ACTION_PUNCH_NOGO_AIM1_UICURSOR;
-
-			case REFINE_PUNCH_2:
-				return gfDisplayFullCountRing ? ACTION_PUNCH_YELLOW_AIM2_UICURSOR :
-					enough_points          ? ACTION_PUNCH_RED_AIM2_UICURSOR    :
-					ACTION_PUNCH_NOGO_AIM2_UICURSOR;
-
-			default:
-				Assert(FALSE);
-				// no return value!
-				return NO_UICURSOR;
-		}
+		static UICursorID const yellow[] = { ACTION_PUNCH_YELLOW_AIM1_UICURSOR, ACTION_PUNCH_YELLOW_AIM2_UICURSOR, ACTION_PUNCH_YELLOW_AIM3_UICURSOR, ACTION_PUNCH_YELLOW_AIM4_UICURSOR, ACTION_PUNCH_YELLOW_AIM5_UICURSOR };
+		static UICursorID const hit[]    = { ACTION_PUNCH_RED_AIM1_UICURSOR,    ACTION_PUNCH_RED_AIM2_UICURSOR,    ACTION_PUNCH_RED_AIM3_UICURSOR,    ACTION_PUNCH_RED_AIM4_UICURSOR,    ACTION_PUNCH_RED_AIM5_UICURSOR    };
+		static UICursorID const nogo[]   = { ACTION_PUNCH_NOGO_AIM1_UICURSOR,   ACTION_PUNCH_NOGO_AIM2_UICURSOR,   ACTION_PUNCH_NOGO_AIM3_UICURSOR,   ACTION_PUNCH_NOGO_AIM4_UICURSOR,   ACTION_PUNCH_NOGO_AIM5_UICURSOR   };
+		UINT8 const level = MeleeAimLevel(*s);
+		return gfDisplayFullCountRing ? yellow[level] : enough_points ? hit[level] : nogo[level];
 	}
 	else
 	{
@@ -1022,7 +1010,7 @@ void HandleLeftClickCursor( SOLDIERTYPE *pSoldier )
 			break;
 
 		case PUNCHCURS:
-			pSoldier->bShownAimTime = REFINE_PUNCH_1;
+			pSoldier->bShownAimTime = REFINE_AIM_1;
 
 			// Reset counter
 			RESETCOUNTER( NONGUNTARGETREFINE );
@@ -1030,7 +1018,7 @@ void HandleLeftClickCursor( SOLDIERTYPE *pSoldier )
 
 
 		case KNIFECURS:
-			pSoldier->bShownAimTime = REFINE_KNIFE_1;
+			pSoldier->bShownAimTime = REFINE_AIM_1;
 
 			// Reset counter
 			RESETCOUNTER( NONGUNTARGETREFINE );
@@ -1045,10 +1033,59 @@ void HandleLeftClickCursor( SOLDIERTYPE *pSoldier )
 
 
 
-void HandleRightClickAdjustCursor( SOLDIERTYPE *pSoldier, INT16 usMapPos )
+// One more aiming level (right click) for a gun, a knife or a punch, up to
+// REFINE_AIM_5; when he can't afford it, show the full count, then go back
+static void StepAimRefine(SOLDIERTYPE* const pSoldier, INT16 const usMapPos)
 {
 	INT16 sAPCosts;
 	INT8  bFutureAim;
+
+	bFutureAim = (INT8)( pSoldier->bShownAimTime + 2 );
+
+	if ( bFutureAim <= REFINE_AIM_5 )
+	{
+		sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, (INT8)(bFutureAim / 2) );
+
+		// Determine if we can afford!
+		if ( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
+		{
+			pSoldier->bShownAimTime+= 2;
+			if ( pSoldier->bShownAimTime > REFINE_AIM_5 )
+			{
+				pSoldier->bShownAimTime = REFINE_AIM_5;
+			}
+		}
+		// Else - goto first level!
+		else
+		{
+			if ( !gfDisplayFullCountRing )
+			{
+				gfDisplayFullCountRing = TRUE;
+			}
+			else
+			{
+				pSoldier->bShownAimTime = REFINE_AIM_1;
+				gfDisplayFullCountRing = FALSE;
+			}
+		}
+	}
+	else
+	{
+		if ( !gfDisplayFullCountRing )
+		{
+			gfDisplayFullCountRing = TRUE;
+		}
+		else
+		{
+			pSoldier->bShownAimTime = REFINE_AIM_1;
+			gfDisplayFullCountRing = FALSE;
+		}
+	}
+}
+
+
+void HandleRightClickAdjustCursor( SOLDIERTYPE *pSoldier, INT16 usMapPos )
+{
 	INT16 sGridNo;
 	INT8  bTargetLevel;
 
@@ -1083,142 +1120,15 @@ void HandleRightClickAdjustCursor( SOLDIERTYPE *pSoldier, INT16 usMapPos )
 					}
 				}
 
-				bFutureAim = (INT8)( pSoldier->bShownAimTime + 2 );
-
-				if ( bFutureAim <= REFINE_AIM_5 )
-				{
-					sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, (INT8)(bFutureAim / 2) );
-
-					// Determine if we can afford!
-					if ( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
-					{
-						pSoldier->bShownAimTime+= 2;
-						if ( pSoldier->bShownAimTime > REFINE_AIM_5 )
-						{
-							pSoldier->bShownAimTime = REFINE_AIM_5;
-						}
-					}
-					// Else - goto first level!
-					else
-					{
-						if ( !gfDisplayFullCountRing )
-						{
-							gfDisplayFullCountRing = TRUE;
-						}
-						else
-						{
-							pSoldier->bShownAimTime = REFINE_AIM_1;
-							gfDisplayFullCountRing = FALSE;
-						}
-					}
-				}
-				else
-				{
-					if ( !gfDisplayFullCountRing )
-					{
-						gfDisplayFullCountRing = TRUE;
-					}
-					else
-					{
-						pSoldier->bShownAimTime = REFINE_AIM_1;
-						gfDisplayFullCountRing = FALSE;
-					}
-				}
+				StepAimRefine(pSoldier, usMapPos);
 			}
 			break;
 
 
 		case PUNCHCURS:
-
-			bFutureAim = (INT8)( pSoldier->bShownAimTime + REFINE_PUNCH_2 );
-
-			if ( bFutureAim <= REFINE_PUNCH_2 )
-			{
-				sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, (INT8)(bFutureAim / 2) );
-
-				// Determine if we can afford!
-				if ( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
-				{
-					pSoldier->bShownAimTime+= REFINE_PUNCH_2;
-
-					if ( pSoldier->bShownAimTime > REFINE_PUNCH_2 )
-					{
-						pSoldier->bShownAimTime = REFINE_PUNCH_2;
-					}
-				}
-				// Else - goto first level!
-				else
-				{
-					if ( !gfDisplayFullCountRing )
-					{
-						gfDisplayFullCountRing = TRUE;
-					}
-					else
-					{
-						pSoldier->bShownAimTime = REFINE_PUNCH_1;
-						gfDisplayFullCountRing = FALSE;
-					}
-				}
-			}
-			else
-			{
-				if ( !gfDisplayFullCountRing )
-				{
-					gfDisplayFullCountRing = TRUE;
-				}
-				else
-				{
-					pSoldier->bShownAimTime = REFINE_PUNCH_1;
-					gfDisplayFullCountRing = FALSE;
-				}
-			}
-			break;
-
-
 		case KNIFECURS:
-
-			bFutureAim = (INT8)( pSoldier->bShownAimTime + REFINE_KNIFE_2 );
-
-			if ( bFutureAim <= REFINE_KNIFE_2 )
-			{
-				sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, (INT8)(bFutureAim / 2) );
-
-				// Determine if we can afford!
-				if ( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
-				{
-					pSoldier->bShownAimTime+= REFINE_KNIFE_2;
-
-					if ( pSoldier->bShownAimTime > REFINE_KNIFE_2 )
-					{
-						pSoldier->bShownAimTime = REFINE_KNIFE_2;
-					}
-				}
-				// Else - goto first level!
-				else
-				{
-					if ( !gfDisplayFullCountRing )
-					{
-						gfDisplayFullCountRing = TRUE;
-					}
-					else
-					{
-						pSoldier->bShownAimTime = REFINE_KNIFE_1;
-						gfDisplayFullCountRing = FALSE;
-					}
-				}
-			}
-			else
-			{
-				if ( !gfDisplayFullCountRing )
-				{
-					gfDisplayFullCountRing = TRUE;
-				}
-				else
-				{
-					pSoldier->bShownAimTime = REFINE_KNIFE_1;
-					gfDisplayFullCountRing = FALSE;
-				}
-			}
+			// as a gun: one more aiming level, 1 AP each
+			StepAimRefine(pSoldier, usMapPos);
 			break;
 
 		case TOSSCURS: break;

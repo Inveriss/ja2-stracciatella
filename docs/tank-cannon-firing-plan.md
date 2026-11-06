@@ -38,18 +38,16 @@ Checked in the code; nothing here has been tried in the game.
 | No shells to get | `TANK_SHELL` is `bNotBuyable` and `bNotEditor` | The player can't obtain any |
 | Neutral | Our tank is `bNeutral` (since `4e15ce057`, as the Hummer); `OppList.cc` skips neutrals (`CONSIDERED_NEUTRAL`) in sight and noise | A firing tank could be ignored by enemies: to check, G5 |
 
-### 1.3 The AP cost by the existing formula
+### 1.3 The AP cost
 
-`BaseAPsToShootOrStab` with the tank's 25 AP and the cannon's `ubShotsPer4Turns` 8:
+**Changed by `docs/weapons-ap-formula-plan.md` (2026-11-05):** the cannon costs a fixed
+13 AP (`ubAPCostPerSingleShot`), whoever the gunner is. A tank never pays the 1 AP for a new
+target; turning the turret costs 1 AP (`AP_LOOK_STANDING`), also with the L key. So 13 AP
+without a turn, 14 with one, which still leaves the tank about 11 AP for driving.
 
-| Aim skill | AP per shot |
-|---|---|
-| 0 | 25 |
-| 80 | 14 |
-| 100 | 13 |
-
-Aiming and turning come on top. With a gunner of skill 80 that leaves about 11 AP for
-driving, so one shot a turn and a short move. That reads as right for a tank.
+Before that change the cost came from `BaseAPsToShootOrStab` with the tank's 25 AP, the
+cannon's `ubShotsPer4Turns` 8 and the gunner's aim skill: 25 AP at skill 0, 14 at 80, 13 at
+100.
 
 ## 2. Decisions
 
@@ -61,7 +59,7 @@ the full implementation (user, 2026-11-03).
 | G1 | Who aims? | The best marksman aboard (`F6`): his marksmanship, dexterity, experience; experience gain goes to him. Nobody able aboard: no shot. **Replaced by `docs/tank-crew-roles-plan.md`, stage 4: the merc in the Gunner's seat aims, and firing needs all four** | decided (F6) |
 | G2 | Ammunition | `TANK_SHELL` from the tank's cargo slots (`F7`), one for each shot, no loading step. Out of shells: refusal with the driver's out of ammo quote | decided (F7) |
 | G3 | The cannon | Created in `HANDPOS` when the tank is created for a non-enemy team, `OBJECT_UNDROPPABLE`. It shows in the lower Armament slot of both tank panels, can't be picked up, and right click opens its description; hidden on the team panel and the map's equipment row. No repairs, no wear, no jams; a damaged tank fires as usual | **decided** (user, 2026-11-03) |
-| G4 | Who pays AP? | The tank's own 25 AP, as for driving, with the existing formula and the gunner's aim skill | **decided** (user, 2026-11-03) |
+| G4 | Who pays AP? | The tank's own 25 AP, as for driving, with the existing formula and the gunner's aim skill (since 2026-11-05 a fixed 13 AP, see 1.3) | **decided** (user, 2026-11-03) |
 | G5 | Neutrality | With anyone aboard the tank is not neutral (`SetSoldierNonNeutral`); empty it is neutral again. Stage 1 confirms that enemies really ignore a neutral tank | **decided** (user, 2026-11-03) |
 | G6 | Where do shells come from? | For now only the test switch (below). Whether Bobby Ray's, a dealer or finds sell them is a later campaign decision. The tank itself has no campaign source yet either | **decided** (user, 2026-11-03) |
 | G7 | Passengers | `CanShootFromVehicle` stays closed: nobody shoots small arms from inside a tank. They are selected and crouched as in the Hummer (`IsSelectablePassenger`) | **decided** (user, 2026-11-03) |
@@ -113,7 +111,8 @@ stage 5.
 (`WeaponModels.cc`), so `weapons.json` needs no entry. Only the vehicle exit in
 `GetActionModeCursor` stands in the way.
 
-**4. The turning AP.** A tank stands in a non ready animation, so
+**4. The turning AP.** (Superseded 2026-11-05: turning the turret costs 1 AP, shown and
+taken, see 1.3.) A tank stands in a non ready animation, so
 `GetAPChargeForShootOrStabWRTGunRaises` charges the raise and `MinAPsToShootOrStab`
 drops the turn. The cannon's `ubReadyTime` is 0, so the shown cost has no turn or raise
 in it. The real turn may still take `AP_LOOK_STANDING` (1 AP) at its start
@@ -151,7 +150,8 @@ additions:
 - `CalcChanceToHitGun`: the early return for marksmanship 0 and the marksmanship read
   look at the gunner. The robot's controller next to it is the existing model. Dexterity
   and experience reads further down use the same gunner; go through all of them.
-- `CalcAimSkill` (`Points.cc`): the gunner's skill, for the AP.
+- `CalcAimSkill` (`Points.cc`): the gunner's skill, for the AP (removed 2026-11-05, the cost
+  is fixed now).
 - `UseGun`: experience (`StatChange` ignores vehicles) and kill credit to the gunner.
 - Quotes through `TalkerFor` (the driver speaks for the vehicle).
 
