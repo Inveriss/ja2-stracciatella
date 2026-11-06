@@ -1,8 +1,10 @@
 # Magazine size variants plan
 
-Status: **plan only, nothing implemented.** Written 2026-11-06 from an analysis of
-`ja2master` 029b77395 (branch `Item_Limits` at 56cbdedf1). Line numbers must be
-re-checked before implementation.
+Status: **implemented and game-verified (2026-11-06).** Stage 1 (lookup instead of
+`±1`): a2e8ab482; stage 2 (duplicate warning): c41c6aac1; stage 3 (game
+checks) done with the original 7.62 mm pairs and the 3000 test magazine of the
+`item-limits-test` mod. Written 2026-11-06 from an analysis of `ja2master` 029b77395
+(branch `Item_Limits` at 56cbdedf1); line numbers below are from that commit.
 
 Related: [item-limits-plan.md](item-limits-plan.md) (new ammo block 3000-3999). The
 adjacent-index rule is one more item limit, so this plan belongs to the same branch,
