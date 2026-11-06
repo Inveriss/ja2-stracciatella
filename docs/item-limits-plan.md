@@ -218,6 +218,9 @@ today), so vanilla maps and the existing placeholders keep working.
 - [magazine-size-variants-plan.md](magazine-size-variants-plan.md): magazines of
   different sizes are interchangeable only when their item indices are consecutive
   (`ReloadGun()` guesses `±1`); replaced by a lookup by calibre, size and ammo type.
+- [weapon-attachments-plan.md](weapon-attachments-plan.md): attachment compatibility by
+  family rules (weapon types, exceptions, one level per family) and effects from data, instead of a
+  hand-written flag per attachment on every weapon.
 
 ## Open questions for later
 
