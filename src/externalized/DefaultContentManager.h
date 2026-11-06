@@ -9,6 +9,7 @@
 #include "ContentManager.h"
 #include "ContentMusic.h"
 #include "IEDT.h"
+#include "ItemIndexBlocks.h"
 #include "ItemStrings.h"
 #include "Json.h"
 #include "StringEncodingTypes.h"
@@ -331,6 +332,12 @@ protected:
 	bool loadExplosives(const BinaryData& vanillaItemStrings, const std::vector<const ExplosionAnimationModel*>& animations);
 	bool loadItems(const BinaryData& vanillaItemStrings);
 	bool loadMagazines(const BinaryData& vanillaItemStrings);
+	/* Puts a loaded item into m_items. Throws DataError when its index is outside
+	 * the block of its data file or already used (docs/item-limits-plan.md). */
+	void registerItem(const ItemModel* item, ItemDataFile file);
+	/* Fills every index that no data file defines with a placeholder item, so
+	 * m_items has no null entries. */
+	void fillUnusedItemIndices();
 	bool loadExplosiveCalibres();
 	bool loadCalibres();
 	bool loadAmmoTypes();

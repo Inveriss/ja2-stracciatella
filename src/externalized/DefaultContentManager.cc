@@ -678,13 +678,7 @@ bool DefaultContentManager::loadWeapons(const BinaryData& vanillaItemStrings)
 		WeaponModel *w = WeaponModel::deserialize(element, m_calibreMap, m_explosiveCalibres, vanillaItemStrings);
 		SLOGD("Loaded weapon {} {}", w->getItemIndex(), w->getInternalName());
 
-		if (w->getItemIndex() >= m_items.size())
-		{
-			SLOGE("Weapon index must be in the interval 0 - {}", m_items.size() - 1);
-			return false;
-		}
-
-		m_items[w->getItemIndex()] = w;
+		registerItem(w, ItemDataFile::WEAPONS);
 		m_weaponMap.try_emplace(w->getInternalName(), w);
 	}
 
@@ -698,13 +692,7 @@ bool DefaultContentManager::loadArmours(const BinaryData& vanillaItemStrings)
 		ArmourModel *a = ArmourModel::deserialize(element, vanillaItemStrings);
 		SLOGD("Loaded armour {} {}", a->getItemIndex(), a->getInternalName());
 
-		if (a->getItemIndex() >= m_items.size())
-		{
-			SLOGE("Armour index must be in the interval 0 - {}", m_items.size() - 1);
-			return false;
-		}
-
-		m_items[a->getItemIndex()] = a;
+		registerItem(a, ItemDataFile::ARMOURS);
 		m_armourMap.try_emplace(a->getInternalName(), a);
 	}
 
@@ -800,7 +788,7 @@ bool DefaultContentManager::loadExplosives(const BinaryData& vanillaItemStrings,
 		ExplosiveModel *e = ExplosiveModel::deserialize(element, m_explosiveCalibres, m_smokeEffects, m_explosionAnimations, vanillaItemStrings);
 		SLOGD("Loaded explosive {} {}", e->getItemIndex(), e->getInternalName());
 
-		m_items[e->getItemIndex()] = e;
+		registerItem(e, ItemDataFile::EXPLOSIVES);
 		m_explosiveMap.insert(std::make_pair(e->getInternalName(), e));
 	}
 	return true;
@@ -812,24 +800,65 @@ bool DefaultContentManager::loadItems(const BinaryData& vanillaItemStrings)
 	for (auto& el : json.toVec())
 	{
 		auto* item = ItemModel::deserialize(el, vanillaItemStrings);
-		if (item->getItemIndex() <= MAX_WEAPONS || item->getItemIndex() > MAXITEMS)
-		{
-			ST::string err = ST::format("Item index must be in the interval {} - {}", MAX_WEAPONS+1, MAXITEMS);
-			throw DataError(err);
-		}
 		if (item->getItemClass() == IC_GRENADE || item->getItemClass() == IC_BOMB) {
 			SLOGW("Ignoring grenade or bomb '{}' in 'items.json', should be in 'explosives.json'", item->getInternalName());
+			delete item;
 			continue;
 		}
 		if (item->getItemClass() == IC_ARMOUR) {
 			SLOGW("Ignoring armour '{}' in 'items.json', should be in 'armours.json'", item->getInternalName());
+			delete item;
 			continue;
 		}
 
-		m_items[item->getItemIndex()] = item;
+		registerItem(item, ItemDataFile::ITEMS);
 	}
 
 	return true;
+}
+
+void DefaultContentManager::registerItem(const ItemModel* const item, ItemDataFile const file)
+{
+	ST::string const err = CheckItemIndexBlock(*item, file);
+	if (!err.empty())
+	{
+		delete item;
+		throw DataError(err);
+	}
+
+	auto const idx = item->getItemIndex();
+	const ItemModel*& slot = m_items.at(idx);
+	if (slot)
+	{
+		ST::string const dup = ST::format("{}: item '{}' has index {}, which item '{}' already uses",
+			ItemDataFileName(file), item->getInternalName(), idx, slot->getInternalName());
+		delete item;
+		throw DataError(dup);
+	}
+	slot = item;
+}
+
+void DefaultContentManager::fillUnusedItemIndices()
+{
+	for (size_t idx = 0; idx < m_items.size(); ++idx)
+	{
+		if (m_items[idx]) continue;
+
+		if (idx < VANILLA_MAXITEMS)
+		{
+			SLOGW("No item is defined for index {} of the original game, using a placeholder", idx);
+		}
+		// same graphics as the placeholders of the original data (NOTHING / UNUSED_*)
+		m_items[idx] = new ItemModel(
+			static_cast<uint16_t>(idx),
+			ST::format("__ITEM_{}", idx),
+			ST::string(), ST::string(), ST::string(),
+			IC_NONE, 0, INVALIDCURS,
+			InventoryGraphicsModel(GraphicModel("interface/mdguns.sti", 0), GraphicModel("bigitems/gun00.sti", 0)),
+			TilesetTileIndexModel(TileTypeDefines::GUNS, 1),
+			0, 0, 0, 0, 0, 0,
+			ITEM_NOT_BUYABLE | ITEM_NOT_EDITOR);
+	}
 }
 
 bool DefaultContentManager::loadMagazines(const BinaryData& vanillaItemStrings)
@@ -840,8 +869,8 @@ bool DefaultContentManager::loadMagazines(const BinaryData& vanillaItemStrings)
 		MagazineModel *mag = MagazineModel::deserialize(element, m_calibreMap, m_ammoTypeMap, vanillaItemStrings);
 		SLOGD("Loaded magazine {} {}", mag->getItemIndex(), mag->getInternalName());
 
+		registerItem(mag, ItemDataFile::MAGAZINES);
 		m_magazines.push_back(mag);
-		m_items[mag->getItemIndex()] = mag;
 		m_magazineMap.insert(std::make_pair(mag->getInternalName(), mag));
 	}
 
@@ -1088,6 +1117,8 @@ bool DefaultContentManager::loadGameData(BinaryData const& binaryData)
 		&& loadArmours(binaryData)
 		&& loadArmyData()
 		&& loadMusic();
+
+	fillUnusedItemIndices();
 
 	for (const ItemModel *item : m_items)
 	{

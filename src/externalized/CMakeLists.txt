@@ -23,6 +23,7 @@ set(LOCAL_JA2_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/ExplosiveModel.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/GraphicModel.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/InventoryGraphicsModel.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/ItemIndexBlocks.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/ItemModel.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/JsonUtility.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/ExplosiveCalibreModel.cc
@@ -41,6 +42,7 @@ if (WITH_UNITTESTS)
         ${LOCAL_JA2_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/DefaultContentManagerUT.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/DefaultContentManager_unittests.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/ItemIndexBlocks_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/JsonUtility_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/VanillaWeapons_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/TestUtils.cc

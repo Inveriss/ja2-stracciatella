@@ -35,6 +35,8 @@ extern const char g_version_number[16];
 // formerly unused byte; older saves get 0 there, so they still load.
 // 111: militia recruitment counter in SECTORINFO (ubMilitiaRecruitedForLoyalty).
 // From here on older saves are not supported any more: start a new game.
-constexpr UINT32 SAVE_GAME_VERSION = 111;
+// 112: MAXITEMS 351 -> 9000 (docs/item-limits-plan.md): the Bobby Ray tables in
+// the laptop info and the dealer inventories have an entry for every item index.
+constexpr UINT32 SAVE_GAME_VERSION = 112;
 
 #endif

@@ -99,6 +99,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <vector>
 
 // laptop programs
 enum
@@ -3456,6 +3457,13 @@ void ClearOutTempLaptopFiles(void)
 }
 
 
+// The laptop info block of a save: 1829 bytes of its own fields plus the two
+// Bobby Ray tables (new and used) of MAXITEMS records of 8 bytes each
+// (7445 bytes when MAXITEMS was 351).
+static constexpr size_t STORE_INVENTORY_SAVE_SIZE = 8;
+static constexpr size_t LAPTOP_INFO_SAVE_SIZE = 1829 + 2 * size_t{MAXITEMS} * STORE_INVENTORY_SAVE_SIZE;
+
+
 static void InjectStoreInvetory(DataWriter& d, STORE_INVENTORY const& i)
 {
 	size_t start = d.getConsumed();
@@ -3468,7 +3476,7 @@ static void InjectStoreInvetory(DataWriter& d, STORE_INVENTORY const& i)
 	// never had this field) reads back FALSE, same as if it had been written explicitly.
 	INJ_BOOL(d, i.fNotifyOnRestock)
 	INJ_SKIP(d, 1)
-	Assert(d.getConsumed() == start + 8);
+	Assert(d.getConsumed() == start + STORE_INVENTORY_SAVE_SIZE);
 }
 
 
@@ -3482,7 +3490,7 @@ static void ExtractStoreInvetory(DataReader& d, STORE_INVENTORY& i)
 	EXTR_BOOL(d, i.fPreviouslyEligible)
 	EXTR_BOOL(d, i.fNotifyOnRestock)
 	EXTR_SKIP(d, 1)
-	Assert(d.getConsumed() == start + 8);
+	Assert(d.getConsumed() == start + STORE_INVENTORY_SAVE_SIZE);
 }
 
 
@@ -3490,7 +3498,8 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 {
 	LaptopSaveInfoStruct const& l = LaptopSaveInfo;
 
-	BYTE  data[7445];
+	std::vector<BYTE> buffer(LAPTOP_INFO_SAVE_SIZE);
+	BYTE* const data = buffer.data();
 	DataWriter d{data};
 	INJ_BOOL( d, l.gfNewGameLaptop)
 	INJ_BOOLA(d, l.fVisitedBookmarkAlready, lengthof(l.fVisitedBookmarkAlready))
@@ -3550,9 +3559,9 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 	INJ_U32(  d, l.uiTotalMoneyPaidToSpeck)
 	INJ_U8(   d, l.ubLastMercAvailableId)
 	INJ_SKIP( d, 87)
-	Assert(d.getConsumed() == lengthof(data));
+	Assert(d.getConsumed() == buffer.size());
 
-	f->write(data, sizeof(data));
+	f->write(data, buffer.size());
 
 	if (l.usNumberOfBobbyRayOrderUsed != 0)
 	{ // There is anything in the Bobby Ray Orders on delivery
@@ -3575,8 +3584,9 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 
 	l.pLifeInsurancePayouts.clear();
 
-	BYTE data[7445];
-	f->read(data, sizeof(data));
+	std::vector<BYTE> buffer(LAPTOP_INFO_SAVE_SIZE);
+	BYTE* const data = buffer.data();
+	f->read(data, buffer.size());
 
 	DataReader d{data};
 	EXTR_BOOL( d, l.gfNewGameLaptop)
@@ -3637,7 +3647,7 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 	EXTR_U32(  d, l.uiTotalMoneyPaidToSpeck)
 	EXTR_U8(   d, l.ubLastMercAvailableId)
 	EXTR_SKIP( d, 87)
-	Assert(d.getConsumed() == lengthof(data));
+	Assert(d.getConsumed() == buffer.size());
 
 	// Handle old saves in M.E.R.C. module
 	SyncLastMercFromSaveGame();
