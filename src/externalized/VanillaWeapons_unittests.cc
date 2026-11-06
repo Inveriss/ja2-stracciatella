@@ -258,6 +258,33 @@ TEST(Items, magazineVariantIndicesDoNotMatter)
 	EXPECT_EQ(FindMagazineVariant(mags, *m20ap, 10), 3050); // no AP 10: the loaded one itself
 }
 
+TEST(Items, magazineDuplicates)
+{
+	std::unique_ptr<DefaultContentManager> cm(DefaultContentManagerUT::createDefaultCMForTesting());
+	ASSERT_TRUE(cm->loadGameData());
+
+	// the original data has none
+	EXPECT_TRUE(MagazineModel::describeDuplicates(cm->getMagazines()).empty());
+
+	auto const* const regular = cm->getMagazineByName("CLIP9_15");
+	auto const* const ap      = cm->getMagazineByName("CLIP9_15_AP");
+	auto mag = [&](uint16_t index, const char* name, uint16_t capacity, MagazineModel const* type)
+	{
+		return std::make_unique<MagazineModel>(index, ST::string(name), ST::string(), ST::string(), ST::string(),
+			IC_AMMO, type->calibre, capacity, type->ammoType, false);
+	};
+	auto const high = mag(3200, "MAG_HIGH", 20, regular);
+	auto const low  = mag(3100, "MAG_LOW",  20, regular);
+	auto const apm  = mag(3150, "MAG_AP",   20, ap);      // other ammo type: no duplicate
+	auto const big  = mag(3300, "MAG_BIG",  30, regular); // other capacity: no duplicate
+	std::vector<const MagazineModel*> const mags{ high.get(), apm.get(), low.get(), big.get() };
+
+	auto const messages = MagazineModel::describeDuplicates(mags);
+	ASSERT_EQ(messages.size(), 1u);
+	EXPECT_NE(messages[0].find("'MAG_HIGH' (3200)"), -1);
+	EXPECT_NE(messages[0].find("'MAG_LOW' (3100)"), -1);
+}
+
 TEST(Items, Invalid_ItemIndex_Exception)
 {
 	std::unique_ptr<DefaultContentManager> cm(DefaultContentManagerUT::createDefaultCMForTesting());

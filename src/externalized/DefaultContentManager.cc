@@ -874,6 +874,11 @@ bool DefaultContentManager::loadMagazines(const BinaryData& vanillaItemStrings)
 		m_magazineMap.insert(std::make_pair(mag->getInternalName(), mag));
 	}
 
+	for (ST::string const& warning : MagazineModel::describeDuplicates(m_magazines))
+	{
+		SLOGW("{}", warning);
+	}
+
 	return true;
 }
 
