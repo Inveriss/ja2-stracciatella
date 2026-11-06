@@ -120,6 +120,49 @@ TEST_F(AttachmentFamilies, excludesWorkBothWays)
 	EXPECT_FALSE(a->excludesFamily(*c));
 }
 
+// stage 2: one level per family, excluded pairs, in any of the 20 positions
+TEST_F(AttachmentFamilies, conflictingAttachments)
+{
+	UINT16 const silencer    = cm->getItemByName("SILENCER")->getItemIndex();
+	UINT16 const laserscope  = cm->getItemByName("LASERSCOPE")->getItemIndex();
+	UINT16 const sniperscope = cm->getItemByName("SNIPERSCOPE")->getItemIndex();
+	UINT16 const bipod       = cm->getItemByName("BIPOD")->getItemIndex();
+
+	OBJECTTYPE gun{};
+	gun.usItem = cm->getWeaponByName("GLOCK_17")->getItemIndex();
+	gun.usAttachItem[MAX_ATTACHMENTS - 1] = silencer; // the last of the 20 positions
+	gun.usAttachItem[7] = laserscope;
+
+	bool same = false;
+	EXPECT_EQ(FindConflictingAttachment(gun, silencer, &same), silencer); // the same item
+	EXPECT_TRUE(same);
+	EXPECT_EQ(FindConflictingAttachment(gun, sniperscope, &same), NOTHING); // other families
+	EXPECT_FALSE(same);
+
+	// a second level of the silencer family
+	auto* const bipodItem = const_cast<ItemModel*>(cm->getItem(bipod));
+	bipodItem->setAttachmentFamily(cm->getItem(silencer)->getAttachmentFamily());
+	EXPECT_EQ(FindConflictingAttachment(gun, bipod, &same), silencer);
+	EXPECT_TRUE(same);
+
+	// SNIPERSCOPE's family excludes LASERSCOPE's: refused in both orders
+	std::map<ST::string, const CalibreModel*> const none;
+	auto const optic = ParseFamily(R"({ "family": "OPTIC", "weaponTypes": [], "excludes": ["LASERSCOPE"] })", none);
+	auto* const sniperItem = const_cast<ItemModel*>(cm->getItem(sniperscope));
+	sniperItem->setAttachmentFamily(optic.get());
+	EXPECT_EQ(FindConflictingAttachment(gun, sniperscope, &same), laserscope);
+	EXPECT_FALSE(same);
+
+	OBJECTTYPE gun2{};
+	gun2.usItem = gun.usItem;
+	gun2.usAttachItem[0] = sniperscope;
+	EXPECT_EQ(FindConflictingAttachment(gun2, laserscope, &same), sniperscope);
+	EXPECT_FALSE(same);
+
+	// an item without a family never conflicts here
+	EXPECT_EQ(FindConflictingAttachment(gun, cm->getItemByName("FIRSTAIDKIT")->getItemIndex(), &same), NOTHING);
+}
+
 TEST_F(AttachmentFamilies, badFamilyDataIsRejected)
 {
 	std::map<ST::string, const CalibreModel*> const none;

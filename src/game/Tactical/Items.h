@@ -138,6 +138,10 @@ bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b);
 //be possible to have this attachment on this item, but may already have an attachment on
 //it which doesn't work simultaneously with the new attachment (like a silencer and duckbill).
 BOOLEAN ValidItemAttachment(const OBJECTTYPE* pObj, UINT16 usAttachment, BOOLEAN fAttemptingAttachment);
+// docs/weapon-attachments-plan.md (W4): the attachment already on the object
+// that keeps `attachment` off it -- one of the same family (*sameFamily) or of
+// a family that excludes it -- or NOTHING
+UINT16 FindConflictingAttachment(OBJECTTYPE const& o, UINT16 attachment, bool* sameFamily);
 
 //Determines if it is possible to equip this weapon with this ammo.
 bool ValidAmmoType( UINT16 usItem, UINT16 usAmmoType );

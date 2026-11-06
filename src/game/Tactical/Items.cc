@@ -50,7 +50,6 @@
 #include <stdexcept>
 
 
-
 constexpr UINT8 ANY_MAGSIZE = 255; // magic number for FindAmmo's mag_size parameter
 
 struct AttachmentInfoStruct
@@ -770,6 +769,28 @@ bool ValidAttachment(UINT16 const attachment, UINT16 const item)
 }
 
 
+UINT16 FindConflictingAttachment(OBJECTTYPE const& o, UINT16 const attachment, bool* const sameFamily)
+{
+	*sameFamily = false;
+	auto const* const family = GCM->getItem(attachment)->getAttachmentFamily();
+	if (!family) return NOTHING;
+
+	for (UINT16 const attached : o.usAttachItem)
+	{
+		if (attached == NOTHING) continue;
+		auto const* const other = GCM->getItem(attached)->getAttachmentFamily();
+		if (!other) continue;
+		if (other == family)
+		{
+			*sameFamily = true;
+			return attached;
+		}
+		if (family->excludesFamily(*other)) return attached;
+	}
+	return NOTHING;
+}
+
+
 BOOLEAN ValidItemAttachment(const OBJECTTYPE* const pObj, const UINT16 usAttachment, const BOOLEAN fAttemptingAttachment)
 {
 	BOOLEAN fSameItem = FALSE, fSimilarItems = FALSE;
@@ -829,6 +850,22 @@ BOOLEAN ValidItemAttachment(const OBJECTTYPE* const pObj, const UINT16 usAttachm
 				fSameItem = TRUE;
 			}
 			break;
+	}
+
+	// weapon attachment families: one level per family, no excluded pairs
+	bool sameFamily = false;
+	UINT16 const conflict = FindConflictingAttachment(*pObj, usAttachment, &sameFamily);
+	if (conflict != NOTHING)
+	{
+		if (sameFamily)
+		{
+			fSameItem = TRUE;
+		}
+		else
+		{
+			fSimilarItems = TRUE;
+			usSimilarItem = conflict;
+		}
 	}
 
 	if (fAttemptingAttachment)
