@@ -125,7 +125,6 @@ static ST::string BobbySignText(int const sign)
 
 #define BOBBY_R_NEW_PURCHASE_ARRIVAL_TIME	(1 * 60 * 24) // minutes in 1 day
 
-#define BOBBY_R_USED_PURCHASE_OFFSET		1000
 
 #define BOBBYR_UNDERCONSTRUCTION_ANI_DELAY	150
 #define BOBBYR_UNDERCONSTRUCTION_NUM_FRAMES	5
@@ -509,7 +508,7 @@ static void InitBobbyRayUsedInventory(void)
 
 
 static UINT8 HowManyBRItemsToOrder(UINT16 usItemIndex, UINT8 ubCurrentlyOnHand, UINT8 ubBobbyRayNewUsed);
-static void OrderBobbyRItem(UINT16 usItemIndex);
+static void OrderBobbyRItem(UINT16 usItemIndex, bool fUsed);
 static void SimulateBobbyRayCustomer(STORE_INVENTORY* pInventoryArray, BOOLEAN fUsed);
 
 
@@ -551,11 +550,11 @@ void DailyUpdateOfBobbyRaysNewInventory()
 					{
 						// eliminate the ordering delay and stock the items instantly!
 						// This is just a way to reward the player right away for making progress without the reordering lag...
-						AddFreshBobbyRayInventory( usItemIndex );
+						AddFreshBobbyRayInventory(usItemIndex, false);
 					}
 					else
 					{
-						OrderBobbyRItem(usItemIndex);
+						OrderBobbyRItem(usItemIndex, false);
 					}
 				}
 			}
@@ -601,11 +600,13 @@ void DailyUpdateOfBobbyRaysUsedInventory()
 					{
 						// eliminate the ordering delay and stock the items instantly!
 						// This is just a way to reward the player right away for making progress without the reordering lag...
-						AddFreshBobbyRayInventory( usItemIndex );
+						// (the original game stocked the new list here, where the item is
+						// usually not listed)
+						AddFreshBobbyRayInventory(usItemIndex, true);
 					}
 					else
 					{
-						OrderBobbyRItem((INT16) (usItemIndex + BOBBY_R_USED_PURCHASE_OFFSET));
+						OrderBobbyRItem(usItemIndex, true);
 					}
 				}
 			}
@@ -651,18 +652,18 @@ static UINT8 HowManyBRItemsToOrder(UINT16 usItemIndex, UINT8 ubCurrentlyOnHand, 
 }
 
 
-static void OrderBobbyRItem(UINT16 usItemIndex)
+static void OrderBobbyRItem(UINT16 const usItemIndex, bool const fUsedStock)
 {
 	UINT32 uiArrivalTime;
 
 	//add the new item to the queue.  The new item will arrive in 'uiArrivalTime' minutes.
 	uiArrivalTime = BOBBY_R_NEW_PURCHASE_ARRIVAL_TIME + Random( BOBBY_R_NEW_PURCHASE_ARRIVAL_TIME / 2 );
 	uiArrivalTime += GetWorldTotalMin();
-	AddStrategicEvent( EVENT_UPDATE_BOBBY_RAY_INVENTORY, uiArrivalTime, usItemIndex);
+	AddStrategicEvent(EVENT_UPDATE_BOBBY_RAY_INVENTORY, uiArrivalTime, BobbyRRestockParam(usItemIndex, fUsedStock));
 }
 
 
-void AddFreshBobbyRayInventory( UINT16 usItemIndex )
+void AddFreshBobbyRayInventory(UINT16 const usItemIndex, bool const fUsedStock)
 {
 	INT16 sInventorySlot;
 	STORE_INVENTORY *pInventoryArray;
@@ -670,9 +671,8 @@ void AddFreshBobbyRayInventory( UINT16 usItemIndex )
 	UINT8 ubItemQuality;
 
 
-	if( usItemIndex >= BOBBY_R_USED_PURCHASE_OFFSET )
+	if (fUsedStock)
 	{
-		usItemIndex -= BOBBY_R_USED_PURCHASE_OFFSET;
 		pInventoryArray = LaptopSaveInfo.BobbyRayUsedInventory;
 		fUsed = BOBBY_RAY_USED;
 		ubItemQuality = 20 + (UINT8) Random( 60 );

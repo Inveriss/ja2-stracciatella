@@ -3,6 +3,8 @@
 
 #include "Types.h"
 
+#include <string_theory/string>
+
 #define BOBBYRDESCFILE BINARYDATADIR "/braydesc.edt"
 
 #define BOBBYR_ITEM_DESC_NAME_SIZE  80
@@ -88,6 +90,10 @@ extern UINT16 gusCurWeaponIndex;
 extern UINT8  gubLastGunIndex;
 
 
+
+// Name and description of an item in Bobby Ray's catalogue
+ST::string GetBobbyRItemName(UINT16 usItemIndex);
+ST::string GetBobbyRItemDescription(UINT16 usItemIndex);
 
 void GameInitBobbyRGuns(void);
 void EnterBobbyRGuns(void);

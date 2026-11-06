@@ -3,6 +3,7 @@
 // Sparse save of the shop tables (dealers and Bobby Ray), docs/item-limits-plan.md D9.
 
 #include "Arms_Dealer_Init.h"
+#include "BobbyR.h"
 #include "BobbyRGuns.h"
 #include "DefaultContentManagerUT.h"
 #include "FileMan.h"
@@ -97,6 +98,19 @@ TEST_F(ShopSaveTest, dealerItemNotInDataIsRejected)
 	AutoSGPFile f(cm->tempFiles()->openForReading("dealers.sav"));
 	EXPECT_THROW(LoadArmsDealerInventoryFromSavedGameFile(f, SAVE_GAME_VERSION), std::runtime_error);
 	ClearDealers();
+}
+
+TEST(BobbyRRestock, usedFlagDoesNotCollideWithItemIndices)
+{
+	for (UINT16 const item : { UINT16{GLOCK_17}, UINT16{999}, FIRST_NEW_WEAPON, UINT16{1500}, LAST_NEW_KEY })
+	{
+		EXPECT_EQ(BobbyRRestockItem(BobbyRRestockParam(item, false)), item);
+		EXPECT_FALSE(BobbyRRestockIsUsed(BobbyRRestockParam(item, false)));
+		EXPECT_EQ(BobbyRRestockItem(BobbyRRestockParam(item, true)), item);
+		EXPECT_TRUE(BobbyRRestockIsUsed(BobbyRRestockParam(item, true)));
+	}
+	// a new weapon at 1000 was a used GLOCK_17 + 1000 before
+	EXPECT_FALSE(BobbyRRestockIsUsed(FIRST_NEW_WEAPON));
 }
 
 TEST_F(ShopSaveTest, bobbyRayRoundTrip)
