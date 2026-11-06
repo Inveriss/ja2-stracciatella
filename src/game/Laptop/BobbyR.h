@@ -27,7 +27,8 @@ void DrawBobbyRWoodBackground(void);
 void DeleteBobbyRWoodBackground(void);
 void InitBobbyRWoodBackground(void);
 void DailyUpdateOfBobbyRaysNewInventory(void);
-void DailyUpdateOfBobbyRaysUsedInventory(void);
+// Bobby Ray sells no used items: empties the used stock (an empty list)
+void ClearBobbyRayUsedInventory();
 // The parameter of an EVENT_UPDATE_BOBBY_RAY_INVENTORY event: the item index in
 // the low 16 bits, plus this flag for the used stock (formerly item + 1000,
 // which would collide with the item indices from 1000 on, docs/item-limits-plan.md).

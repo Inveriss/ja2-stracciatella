@@ -128,7 +128,8 @@ TEST_F(ShopSaveTest, bobbyRayRoundTrip)
 	l.BobbyRayInventory[1].usItemIndex = CLIP9_15;
 	l.BobbyRayInventory[1].fNotifyOnRestock = TRUE;
 	l.BobbyRayInventory[2].usItemIndex = BOBBYR_NO_ITEMS;
-	l.BobbyRayUsedInventory[0].usItemIndex   = BOBBYR_NO_ITEMS;
+	l.BobbyRayUsedInventory[0].usItemIndex = GLOCK_17; // not saved: no used stock
+	l.BobbyRayUsedInventory[0].ubQtyOnHand = 2;
 	l.iCurrentBalance = 4321;
 
 	{
@@ -142,8 +143,8 @@ TEST_F(ShopSaveTest, bobbyRayRoundTrip)
 
 	{
 		AutoSGPFile f(cm->tempFiles()->openForReading("laptop.sav"));
-		// fixed block + (count + 3 slots) + (count + 1 slot), 10 bytes a slot
-		EXPECT_EQ(f->size(), 1829u + 2 + 3 * 10 + 2 + 1 * 10);
+		// fixed block + count + 3 slots of 10 bytes; the used stock is not saved
+		EXPECT_EQ(f->size(), 1829u + 2 + 3 * 10);
 		LoadLaptopInfoFromSavedGame(f);
 	}
 
@@ -153,8 +154,11 @@ TEST_F(ShopSaveTest, bobbyRayRoundTrip)
 	EXPECT_TRUE(l.BobbyRayInventory[1].fNotifyOnRestock);
 	EXPECT_EQ(l.BobbyRayInventory[2].usItemIndex, BOBBYR_NO_ITEMS);
 	EXPECT_EQ(l.BobbyRayInventory[3].usItemIndex, 0);
+	// an empty used list after loading
 	EXPECT_EQ(l.BobbyRayUsedInventory[0].usItemIndex, BOBBYR_NO_ITEMS);
+	EXPECT_EQ(l.BobbyRayUsedInventory[0].ubQtyOnHand, 0);
 	EXPECT_EQ(l.BobbyRayUsedInventory[7].ubQtyOnHand, 0);
+	EXPECT_EQ(l.usInventoryListLength[BOBBY_RAY_USED], 0);
 	EXPECT_EQ(l.iCurrentBalance, 4321);
 }
 

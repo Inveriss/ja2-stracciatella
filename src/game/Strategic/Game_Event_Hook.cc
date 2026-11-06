@@ -109,7 +109,6 @@ BOOLEAN ExecuteStrategicEvent( STRATEGICEVENT *pEvent )
 		//Gets called once a day ( at BOBBYRAY_UPDATE_TIME).  To simulate the items being bought and sold at bobby rays
 		case EVENT_DAILY_UPDATE_BOBBY_RAY_INVENTORY:
 			DailyUpdateOfBobbyRaysNewInventory();
-			DailyUpdateOfBobbyRaysUsedInventory();
 			DailyUpdateOfArmsDealersInventory();
 			break;
 		//Add items to BobbyR's new/used inventory

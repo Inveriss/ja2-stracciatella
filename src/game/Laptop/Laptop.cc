@@ -3460,11 +3460,12 @@ void ClearOutTempLaptopFiles(void)
 }
 
 
-// The laptop info of a save: a fixed block of 1829 bytes, followed by the two
-// Bobby Ray tables (new and used), each stored sparsely: a UINT16 count, then
-// that many records of a UINT16 slot and the 8 bytes of the slot. Only slots
-// that are not empty are stored, so the size follows the stock and not
-// MAXITEMS (docs/item-limits-plan.md, D9).
+// The laptop info of a save: a fixed block of 1829 bytes, followed by Bobby
+// Ray's stock table, stored sparsely: a UINT16 count, then that many records
+// of a UINT16 slot and the 8 bytes of the slot. Only slots that are not empty
+// are stored, so the size follows the stock and not MAXITEMS
+// (docs/item-limits-plan.md, D9). The used stock is not stored: Bobby Ray
+// sells no used items.
 static constexpr size_t STORE_INVENTORY_SAVE_SIZE = 8;
 static constexpr size_t LAPTOP_INFO_SAVE_SIZE     = 1829;
 
@@ -3622,7 +3623,7 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 	f->write(data, buffer.size());
 
 	SaveStoreInventoryTable(f, l.BobbyRayInventory);
-	SaveStoreInventoryTable(f, l.BobbyRayUsedInventory);
+	// no used stock: Bobby Ray sells no used items (ClearBobbyRayUsedInventory())
 
 	if (l.usNumberOfBobbyRayOrderUsed != 0)
 	{ // There is anything in the Bobby Ray Orders on delivery
@@ -3702,8 +3703,8 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 	EXTR_SKIP( d, 87)
 	Assert(d.getConsumed() == buffer.size());
 
-	LoadStoreInventoryTable(f, l.BobbyRayInventory,     "Bobby Ray's new stock");
-	LoadStoreInventoryTable(f, l.BobbyRayUsedInventory, "Bobby Ray's used stock");
+	LoadStoreInventoryTable(f, l.BobbyRayInventory, "Bobby Ray's stock");
+	ClearBobbyRayUsedInventory();
 
 	// Handle old saves in M.E.R.C. module
 	SyncLastMercFromSaveGame();

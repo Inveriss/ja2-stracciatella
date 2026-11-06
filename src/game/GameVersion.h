@@ -41,6 +41,7 @@ extern const char g_version_number[16];
 // with its slot or item index), so a later change of MAXITEMS keeps saves.
 // 114: a Bobby Ray used-stock restock event marks the used stock with a flag
 // (BOBBY_R_USED_ORDER_FLAG) instead of adding 1000 to the item index.
-constexpr UINT32 SAVE_GAME_VERSION = 114;
+// 115: Bobby Ray sells no used items, his used stock table is not saved.
+constexpr UINT32 SAVE_GAME_VERSION = 115;
 
 #endif
