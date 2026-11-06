@@ -20,6 +20,18 @@ const char* ItemDataFileName(ItemDataFile const file)
 }
 
 
+ST::string UnusedItemIndexName(unsigned const index)
+{
+	return ST::format("__ITEM_{}", index);
+}
+
+
+bool IsUnusedItemIndex(const ItemModel& item)
+{
+	return item.getInternalName() == UnusedItemIndexName(item.getItemIndex());
+}
+
+
 namespace {
 
 struct ItemIndexBlock

@@ -851,7 +851,7 @@ void DefaultContentManager::fillUnusedItemIndices()
 		// same graphics as the placeholders of the original data (NOTHING / UNUSED_*)
 		m_items[idx] = new ItemModel(
 			static_cast<uint16_t>(idx),
-			ST::format("__ITEM_{}", idx),
+			UnusedItemIndexName(static_cast<unsigned>(idx)),
 			ST::string(), ST::string(), ST::string(),
 			IC_NONE, 0, INVALIDCURS,
 			InventoryGraphicsModel(GraphicModel("interface/mdguns.sti", 0), GraphicModel("bigitems/gun00.sti", 0)),

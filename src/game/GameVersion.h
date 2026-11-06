@@ -37,6 +37,8 @@ extern const char g_version_number[16];
 // From here on older saves are not supported any more: start a new game.
 // 112: MAXITEMS 351 -> 9000 (docs/item-limits-plan.md): the Bobby Ray tables in
 // the laptop info and the dealer inventories have an entry for every item index.
-constexpr UINT32 SAVE_GAME_VERSION = 112;
+// 113: those tables are stored sparsely (only entries that are not empty, each
+// with its slot or item index), so a later change of MAXITEMS keeps saves.
+constexpr UINT32 SAVE_GAME_VERSION = 113;
 
 #endif

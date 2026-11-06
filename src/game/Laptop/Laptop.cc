@@ -93,12 +93,15 @@
 #include "UILayout.h"
 
 #include "policy/GamePolicy.h"
+#include "ItemIndexBlocks.h"
+#include "ItemModel.h"
 
 #include <string_theory/format>
 #include <string_theory/string>
 
 #include <algorithm>
 #include <iterator>
+#include <stdexcept>
 #include <vector>
 
 // laptop programs
@@ -3457,11 +3460,13 @@ void ClearOutTempLaptopFiles(void)
 }
 
 
-// The laptop info block of a save: 1829 bytes of its own fields plus the two
-// Bobby Ray tables (new and used) of MAXITEMS records of 8 bytes each
-// (7445 bytes when MAXITEMS was 351).
+// The laptop info of a save: a fixed block of 1829 bytes, followed by the two
+// Bobby Ray tables (new and used), each stored sparsely: a UINT16 count, then
+// that many records of a UINT16 slot and the 8 bytes of the slot. Only slots
+// that are not empty are stored, so the size follows the stock and not
+// MAXITEMS (docs/item-limits-plan.md, D9).
 static constexpr size_t STORE_INVENTORY_SAVE_SIZE = 8;
-static constexpr size_t LAPTOP_INFO_SAVE_SIZE = 1829 + 2 * size_t{MAXITEMS} * STORE_INVENTORY_SAVE_SIZE;
+static constexpr size_t LAPTOP_INFO_SAVE_SIZE     = 1829;
 
 
 static void InjectStoreInvetory(DataWriter& d, STORE_INVENTORY const& i)
@@ -3494,6 +3499,67 @@ static void ExtractStoreInvetory(DataReader& d, STORE_INVENTORY& i)
 }
 
 
+static bool IsEmptyStoreInventory(STORE_INVENTORY const& i)
+{
+	return i.usItemIndex == 0 && i.ubQtyOnHand == 0 && i.ubQtyOnOrder == 0 &&
+		i.ubItemQuality == 0 && !i.fPreviouslyEligible && !i.fNotifyOnRestock;
+}
+
+
+static void SaveStoreInventoryTable(HWFILE const f, STORE_INVENTORY const (&table)[MAXITEMS])
+{
+	std::vector<UINT16> slots;
+	for (UINT16 slot = 0; slot != MAXITEMS; ++slot)
+	{
+		if (!IsEmptyStoreInventory(table[slot])) slots.push_back(slot);
+	}
+
+	std::vector<BYTE> buffer(2 + slots.size() * (2 + STORE_INVENTORY_SAVE_SIZE));
+	DataWriter d{buffer.data()};
+	INJ_U16(d, static_cast<UINT16>(slots.size()))
+	for (UINT16 const slot : slots)
+	{
+		INJ_U16(d, slot)
+		InjectStoreInvetory(d, table[slot]);
+	}
+	Assert(d.getConsumed() == buffer.size());
+	f->write(buffer.data(), buffer.size());
+}
+
+
+static void LoadStoreInventoryTable(HWFILE const f, STORE_INVENTORY (&table)[MAXITEMS], char const* const name)
+{
+	std::fill(std::begin(table), std::end(table), STORE_INVENTORY{});
+
+	BYTE countData[2];
+	f->read(countData, sizeof(countData));
+	DataReader c{countData};
+	UINT16 count;
+	EXTR_U16(c, count)
+
+	std::vector<BYTE> buffer(count * (2 + STORE_INVENTORY_SAVE_SIZE));
+	f->read(buffer.data(), buffer.size());
+	DataReader d{buffer.data()};
+	for (UINT16 n = 0; n != count; ++n)
+	{
+		UINT16 slot;
+		EXTR_U16(d, slot)
+		if (slot >= MAXITEMS)
+		{
+			throw std::runtime_error(ST::format("{}: slot {} is beyond the item limit {}", name, slot, MAXITEMS).to_std_string());
+		}
+		STORE_INVENTORY& i = table[slot];
+		ExtractStoreInvetory(d, i);
+		if (i.usItemIndex != BOBBYR_NO_ITEMS && i.usItemIndex != NOTHING &&
+			(i.usItemIndex >= MAXITEMS || IsUnusedItemIndex(*GCM->getItem(i.usItemIndex))))
+		{
+			throw std::runtime_error(ST::format("{}: item {} is not defined by the game data", name, i.usItemIndex).to_std_string());
+		}
+	}
+	Assert(d.getConsumed() == buffer.size());
+}
+
+
 void SaveLaptopInfoToSavedGame(HWFILE const f)
 {
 	LaptopSaveInfoStruct const& l = LaptopSaveInfo;
@@ -3516,14 +3582,6 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 	INJ_U32(  d, l.guiPlayersMercAccountNumber)
 	INJ_U8(   d, l.gubLastMercIndex)
 	INJ_SKIP( d, 1)
-	FOR_EACH(STORE_INVENTORY const, i, l.BobbyRayInventory)
-	{
-		InjectStoreInvetory(d, *i);
-	}
-	FOR_EACH(STORE_INVENTORY const, i, l.BobbyRayUsedInventory)
-	{
-		InjectStoreInvetory(d, *i);
-	}
 	INJ_SKIP( d, 6)
 	Assert(l.BobbyRayOrdersOnDeliveryArray.size() <= UINT8_MAX);
 	INJ_U8(   d, static_cast<UINT8>(l.BobbyRayOrdersOnDeliveryArray.size()))
@@ -3562,6 +3620,9 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 	Assert(d.getConsumed() == buffer.size());
 
 	f->write(data, buffer.size());
+
+	SaveStoreInventoryTable(f, l.BobbyRayInventory);
+	SaveStoreInventoryTable(f, l.BobbyRayUsedInventory);
 
 	if (l.usNumberOfBobbyRayOrderUsed != 0)
 	{ // There is anything in the Bobby Ray Orders on delivery
@@ -3604,14 +3665,6 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 	EXTR_U32(  d, l.guiPlayersMercAccountNumber)
 	EXTR_U8(   d, l.gubLastMercIndex)
 	EXTR_SKIP( d, 1)
-	FOR_EACH(STORE_INVENTORY, i, l.BobbyRayInventory)
-	{
-		ExtractStoreInvetory(d, *i);
-	}
-	FOR_EACH(STORE_INVENTORY, i, l.BobbyRayUsedInventory)
-	{
-		ExtractStoreInvetory(d, *i);
-	}
 	EXTR_SKIP( d, 6)
 	UINT8 BobbyRayOrdersOnDeliveryArraySize;
 	EXTR_U8(   d, BobbyRayOrdersOnDeliveryArraySize)
@@ -3648,6 +3701,9 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 	EXTR_U8(   d, l.ubLastMercAvailableId)
 	EXTR_SKIP( d, 87)
 	Assert(d.getConsumed() == buffer.size());
+
+	LoadStoreInventoryTable(f, l.BobbyRayInventory,     "Bobby Ray's new stock");
+	LoadStoreInventoryTable(f, l.BobbyRayUsedInventory, "Bobby Ray's used stock");
 
 	// Handle old saves in M.E.R.C. module
 	SyncLastMercFromSaveGame();
