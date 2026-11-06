@@ -16,11 +16,8 @@ enum RefineAim : INT8
 	REFINE_AIM_4 = 6,
 	REFINE_AIM_MID4 = 7,
 	REFINE_AIM_5 = 8,
-	REFINE_AIM_BURST = 10,
-	REFINE_PUNCH_1 = 0,
-	REFINE_PUNCH_2 = 6,
-	REFINE_KNIFE_1 = 0,
-	REFINE_KNIFE_2 = 6
+	REFINE_AIM_BURST = 10
+	// knives and punches use REFINE_AIM_1..REFINE_AIM_5, as guns
 };
 
 #define AIM_SHOT_RANDOM				0
