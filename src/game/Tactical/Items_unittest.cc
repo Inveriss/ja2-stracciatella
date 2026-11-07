@@ -508,24 +508,34 @@ TEST_F(DropProgressTest, dealerStockFollowsMinDropProgress)
 	SetMinDrop(LASERSCOPE, 30);
 	SetMinDrop(FIRSTAIDKIT, 10);
 
+	// Bobby Ray: up to the progress; Tony and Devin: up to progress + 10
 	SetGameProgress(28);
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_BOBBYR, LASERSCOPE));
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, LASERSCOPE));
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_DEVIN, LASERSCOPE));
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_BOBBYR, LASERSCOPE, DEALER_BUYING, FALSE), 0);
 	for (ArmsDealerID const d : { ARMS_DEALER_BOBBYR, ARMS_DEALER_TONY, ARMS_DEALER_DEVIN })
 	{
-		EXPECT_TRUE(DealerStockBlockedByProgress(d, LASERSCOPE)) << int(d);
 		EXPECT_FALSE(DealerStockBlockedByProgress(d, FIRSTAIDKIT)) << int(d);
 	}
-	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_BOBBYR, LASERSCOPE, DEALER_BUYING, FALSE), 0);
+	SetMinDrop(LASERSCOPE, 40);
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, LASERSCOPE));  // 40 > 28 + 10
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_DEVIN, LASERSCOPE));
+	SetGameProgress(30);
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, LASERSCOPE)); // 40 <= 30 + 10
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_DEVIN, LASERSCOPE));
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_BOBBYR, LASERSCOPE));
 	// other dealers are not limited
 	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_KEITH, LASERSCOPE));
 
 	// reached: allowed although its coolness is above the old window
-	SetGameProgress(30);
+	SetMinDrop(LASERSCOPE, 30);
 	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_BOBBYR, LASERSCOPE));
 	EXPECT_GT(GCM->getItem(LASERSCOPE)->getCoolness(), 1);
 	EXPECT_GT(ChanceOfItemTransaction(ARMS_DEALER_BOBBYR, LASERSCOPE, DEALER_BUYING, FALSE), 0);
 
 	// staple items are limited too
-	SetMinDrop(FIRSTAIDKIT, 40);
+	SetMinDrop(FIRSTAIDKIT, 50);
 	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, FIRSTAIDKIT));
 	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_TONY, FIRSTAIDKIT, DEALER_BUYING, FALSE), 0);
 

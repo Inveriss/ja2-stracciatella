@@ -78,6 +78,11 @@
   //  vanilla setting: false (there is no minDropProgress in vanilla)
   "dealer_stock_progress_limits": true,
 
+  //  Tony and Devin stock items whose "minDropProgress" is up to this many points above the
+  //  game progress (progress 50 + 10: up to 60). Bobby Ray: no lead (up to the progress).
+  //  vanilla setting: none (new)
+  "dealer_stock_progress_lead": 10,
+
   //  Will dropped items always be visible to the player, regardless of distance?
   //  vanilla setting: false
   "all_drops_visible": true,

@@ -78,8 +78,15 @@ static bool DealerStockLimitedByProgress(ArmsDealerID const bArmsDealer)
 
 bool DealerStockBlockedByProgress(ArmsDealerID const bArmsDealer, UINT16 const usItemIndex)
 {
-	return DealerStockLimitedByProgress(bArmsDealer) &&
-		GCM->getItem(usItemIndex)->getMinDropProgress() > GameProgressPercentage();
+	if (!DealerStockLimitedByProgress(bArmsDealer)) return false;
+
+	// Tony and Devin are ahead of the progress: 50% + 10 = items up to 60%
+	UINT32 limit = GameProgressPercentage();
+	if (bArmsDealer == ARMS_DEALER_TONY || bArmsDealer == ARMS_DEALER_DEVIN)
+	{
+		limit += gamepolicy(dealer_stock_progress_lead);
+	}
+	return GCM->getItem(usItemIndex)->getMinDropProgress() > limit;
 }
 
 

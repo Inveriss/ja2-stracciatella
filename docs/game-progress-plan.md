@@ -250,3 +250,10 @@ down, so an unlocked item never locks again.
 
 Switch: `game.json` `"dealer_stock_progress_limits": true` (false = original
 behaviour). Test: `DropProgressTest.dealerStockFollowsMinDropProgress`.
+
+**Lead for Tony and Devin (user request 2026-11-07):** Tony and Devin stock
+items whose `minDropProgress` is up to **progress + 10** (progress 50 → up to
+60). Bobby Ray stays at the progress itself. `game.json`
+`"dealer_stock_progress_lead": 10`. The coolness windows (their shifts Tony +1,
+Devin at least 3–4) still only set the frequency and still use `ubCoolness` with
+the old progress record.

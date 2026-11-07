@@ -50,6 +50,8 @@ public:
 	// Tony, Devin and Bobby Ray stock an item only once the game progress reaches its
 	// minDropProgress (docs/game-progress-plan.md, stage 3)
 	bool dealer_stock_progress_limits;
+	// Tony and Devin: minDropProgress may be this many points above the game progress
+	uint8_t dealer_stock_progress_lead;
 	bool f_all_dropped_visible;           /**< All dropped equipment is visible right away. */
 
 	bool multiple_interrupts;             // can interrupt more than once per turn
