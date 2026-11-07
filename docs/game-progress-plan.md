@@ -193,7 +193,7 @@ It loads the tactical map without mercs.
 | `src/game/Tactical/Campaign.cc` | `IsGameProgressQuest()` (0–22 without 8, 9), `GameProgressNoteQuestDone()` |
 | `src/game/Tactical/Items.cc` (4105, 4133) | `HighestPlayerProgressPercentage()` → `GameProgressPercentage()` |
 | `src/externalized/policy/GamePolicy.h`, `DefaultGamePolicy.cc`, `assets/externalized/game.json` | `game_progress_sector_percent`, `game_progress_quest_percent` (P5) |
-| `src/game/GameSettings.cc:223` | extra cheat debug line `Drop progress: N% (sectors, quests)` (P6, not translated) |
+| `src/game/GameSettings.cc:223` | line `Drop progress: N% (city sectors X, quests Y)` under V, always shown (changed from cheat-only on user request, 2026-11-07; not translated; city sectors = 40 town + SAM entries) |
 | `src/game/Tactical/Items_unittest.cc` (DropProgressTest) | `SetGameProgress(p)` sets real visit flags instead of `ubHighestProgress` (49 → 48: only even values) |
 | new unit test `gameProgressFromVisitsAndQuests` | A1/SF_ALREADY_VISITED not counted, N4 double, quests 8/9 excluded, set-back quest keeps progress, re-completion gives nothing, new visit still adds, 40 + 21 → cap 100 |
 

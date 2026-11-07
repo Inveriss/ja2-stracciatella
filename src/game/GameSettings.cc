@@ -218,10 +218,12 @@ void DisplayGameSettings( )
 	// JA2Gold: no timed turns
 	//ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("{}: {}", gzGIOScreenText[GIO_TIMED_TURN_TITLE_TEXT], gzGIOScreenText[GIO_NO_TIMED_TURNS_TEXT + gGameOptions.fTurnTimeLimit]));
 
+	// game progress for enemy drops, always shown (docs/game-progress-plan.md)
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("Drop progress: {}% (city sectors {}, quests {})", GameProgressPercentage(), GameProgressVisitedEntries(), GameProgressDoneQuests()));
+
 	if (CHEATER_CHEAT_LEVEL())
 	{
 		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(gzLateLocalizedString[STR_LATE_56], CurrentPlayerProgressPercentage(), HighestPlayerProgressPercentage()));
-		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("Drop progress: {}% (sectors {}, quests {})", GameProgressPercentage(), GameProgressVisitedEntries(), GameProgressDoneQuests()));
 	}
 }
 
