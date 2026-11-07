@@ -1,8 +1,44 @@
 # Weapon attachments plan (variant C: rules instead of lists)
 
-Status: **plan only, nothing implemented.** Written 2026-11-06 from an analysis of
-`ja2master` 029b77395 (branch `Item_Limits`). Line numbers must be re-checked before
-implementation.
+Status: **implemented, stages 1-5 game-verified (2026-11-07).** Written 2026-11-06 from
+an analysis of `ja2master` 029b77395 (branch `Item_Limits`); line numbers below are
+from that commit.
+
+## Implementation status
+
+| Stage | Commit | Notes |
+|-------|--------|-------|
+| 1 - data model and compatibility | 6229b2e9c | `weapon-attachment-families.json`, allow/deny, startup checks, skill check from the family |
+| 2 - one level per family, exclusions | 27cfcaf8d | `FindConflictingAttachment()`; the existing messages, no new strings |
+| 3 - effects from data | 5abacf245 | `AttachmentEffectValue()`: the data value, else the family default (original constants / game.json policies) |
+| 4 - interface | 5f4776e48 | effects line under the description (`pWeaponAttachmentStrings`), editor: one button per family |
+| 5 - test data | (not in the repo) | the `item-limits-test` mod, see below |
+
+Differences from the plan as written below:
+
+- W1/W7: `bAttachment` is not required for an attachment with a family, because
+  SPRING_AND_BOLT_UPGRADE, GUN_BARREL_EXTENDER and UNDER_GLAUNCHER of the original
+  data don't have it; it stays required in the 7000 block (item limits D5).
+- W5: the `attachmentEffects` values are optional; a value the data leaves out is the
+  family's default (the original constants and the game.json policies
+  `range_bonus_barrel_extender`, `range_penalty_silencer`, `aim_bonus_laserscope`,
+  `aim_bonus_sniperscope` keep working). Each effect keeps the original condition rule
+  (`scalesWithCondition` was dropped): a range bonus scales, a range penalty doesn't,
+  aim/scope/bipod use the 50% bonus/penalty rule, noise scales, AP and burst don't.
+- Stage 2: the refusals reuse STR_ATTACHMENT_ALREADY and STR_CANT_USE_TWO_ITEMS.
+- Stage 4 (user's decision): the effects are one generated line under the description
+  ("Level 2 | Range +0 | Noise 0% | AP -1"), not separate rows; the editor has one
+  button per family that steps none, level 1, 2, 3, none.
+- **Deferred:** the underbarrel grenade launcher stays item-specific (its weapon mode
+  uses the launcher's own weapon stats); Bobby Ray's attachment sub-pages, the sector
+  inventory filter and the dealers' item categories still sort the original attachments
+  by item index.
+
+Stage 5 test data: the development mod `item-limits-test` (JSON patches in the game's
+`mods` folder): family TEST_GRIP (SMG and assault rifles, excludes BIPOD) with levels
+7001-7003 (aim +5; aim +10, range +20; aim +15, range +40, AP -1, burst +1), AK74
+denies it, GLOCK_17 allows it; the 7000 silencer is SILENCER level 2 without the range
+penalty; the SILENCER family gets the rule PISTOL/M_PISTOL/SMG and excludes LASERSCOPE.
 
 Related: [item-limits-plan.md](item-limits-plan.md) (attachment block 7000-7999, D5:
 items there need `ITEM_ATTACHMENT`). This is one more item limit, so it belongs to the
