@@ -17,6 +17,7 @@
 #include "ContentManager.h"
 #include "DealerInventory.h"
 #include "GameInstance.h"
+#include "policy/GamePolicy.h"
 #include "MagazineModel.h"
 #include "WeaponModels.h"
 
@@ -64,6 +65,24 @@ INT8 GetDealersMaxItemAmount(ArmsDealerID const ubDealerID, UINT16 const usItemI
 }
 
 
+// docs/game-progress-plan.md, stage 3: these dealers stock an item only from its
+// minDropProgress on (new game progress), instead of the coolness cut-off
+static bool DealerStockLimitedByProgress(ArmsDealerID const bArmsDealer)
+{
+	if (!gamepolicy(dealer_stock_progress_limits)) return false;
+	return bArmsDealer == ARMS_DEALER_BOBBYR ||
+		bArmsDealer == ARMS_DEALER_TONY ||
+		bArmsDealer == ARMS_DEALER_DEVIN;
+}
+
+
+bool DealerStockBlockedByProgress(ArmsDealerID const bArmsDealer, UINT16 const usItemIndex)
+{
+	return DealerStockLimitedByProgress(bArmsDealer) &&
+		GCM->getItem(usItemIndex)->getMinDropProgress() > GameProgressPercentage();
+}
+
+
 static UINT8 GetCurrentSuitabilityForItem(ArmsDealerID const bArmsDealer, UINT16 const usItemIndex)
 {
 	UINT8 ubItemCoolness;
@@ -91,6 +110,12 @@ static UINT8 GetCurrentSuitabilityForItem(ArmsDealerID const bArmsDealer, UINT16
 	if (ubItemCoolness == 0)
 	{
 		// items without a coolness rating can't be sold to the player by shopkeepers
+		return(ITEM_SUITABILITY_NONE);
+	}
+
+	// not before the game progress reaches the item's minDropProgress (staple items too)
+	if (DealerStockBlockedByProgress(bArmsDealer, usItemIndex))
+	{
 		return(ITEM_SUITABILITY_NONE);
 	}
 
@@ -167,6 +192,8 @@ static UINT8 GetCurrentSuitabilityForItem(ArmsDealerID const bArmsDealer, UINT16
 	// if item is too cool for current level of progress
 	if (ubItemCoolness > ubMaxCoolness)
 	{
+		// minDropProgress has already allowed it: as often as an item inside the window
+		if (DealerStockLimitedByProgress(bArmsDealer)) return(ITEM_SUITABILITY_HIGH);
 		return(ITEM_SUITABILITY_NONE);
 	}
 

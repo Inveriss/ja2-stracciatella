@@ -1,7 +1,7 @@
 # Game progress for enemy drops (Game_Progress)
 
 Status: P1–P6 decided as recommended (2026-11-07); stages 1–2 implemented, build + 249 unit
-tests pass, game-verified 2026-11-07. Stage 3 optional, only on request.
+tests pass, game-verified 2026-11-07. Stage 3 (dealer stock) implemented, 250 unit tests pass, game-verified 2026-11-07.
 Branch: `Game_Progress` (from ja2master dbcb72f50).
 Related: [enemy-drop-progress-plan.md](enemy-drop-progress-plan.md) (`minDropProgress`, `enemy_drop_progress_limits`).
 
@@ -216,5 +216,37 @@ a watched militia battle (no change), and after finishing "Deliver Letter".
 2. **Drop integration:** (implemented) switch `Items.cc` to the new value, update
    DropProgressTest. Game test with the test mod (LASERSCOPE 80, SILENCER 50,
    GLOCK_17 30).
-3. **Optional (P3 = C / P6 = B):** dealers / enemy equipment / visible progress.
+3. **Dealer stock (user request 2026-11-07):** see section 7. Enemy equipment
+   still on the old progress.
 4. Plan status + docs.
+
+## 7. Stage 3 — dealer stock follows minDropProgress
+
+User request (2026-11-07): only *whether an item appears* at **Tony, Devin and
+Bobby Ray** (new and used) follows `minDropProgress`; everything else stays,
+including the coolness windows and their shifts (Tony +1, Devin at least 3–4).
+
+Decisions:
+- **S1 = replace the cut-off:** an item is stockable only when
+  `minDropProgress <= GameProgressPercentage()`. The old "coolness above the
+  window → never" cut-off is gone for these dealers: such an item (already
+  allowed by `minDropProgress`) gets suitability HIGH. Inside / below the window
+  the old HIGH / MEDIUM / LOW frequencies are unchanged (still from the old
+  progress record).
+- **S2 = staple items limited too:** common magazines, first aid / medical /
+  tool / locksmith kits, canteen, crowbar and jars appear only from their
+  `minDropProgress` on (with the placeholder data coolness × 10 they may be
+  missing early on).
+- Unchanged: coolness 0 → never sold; `ITEM_NOT_BUYABLE`, illegal guns; all other
+  dealers; sell-off chances; prices.
+
+How it works: `GetCurrentSuitabilityForItem()` ([ArmsDealerInvInit.cc](../src/game/Tactical/ArmsDealerInvInit.cc))
+returns NONE while `DealerStockBlockedByProgress()` is true, before the staple
+list. NONE gives a 0% restock chance, so the item is never marked
+`fPreviouslyEligible` and Bobby Ray's site doesn't list it. The first restock
+after it unlocks stocks it instantly (existing "first eligible day" rule) — Tony
+and Devin restock daily, Bobby Ray on his usual schedule. Progress never goes
+down, so an unlocked item never locks again.
+
+Switch: `game.json` `"dealer_stock_progress_limits": true` (false = original
+behaviour). Test: `DropProgressTest.dealerStockFollowsMinDropProgress`.

@@ -15,6 +15,10 @@
 #define ITEM_SUITABILITY_HIGH		3
 #define ITEM_SUITABILITY_ALWAYS	4
 
+// Tony, Devin, Bobby Ray: the item's minDropProgress is above the game progress
+// (docs/game-progress-plan.md, stage 3)
+bool DealerStockBlockedByProgress(ArmsDealerID bArmsDealer, UINT16 usItemIndex);
+
 #define DEALER_BUYING			0
 #define DEALER_SELLING			1
 

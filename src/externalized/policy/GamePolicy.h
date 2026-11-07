@@ -47,6 +47,9 @@ public:
 	// an enemy never leaves behind an item below its minDropProgress
 	// (docs/enemy-drop-progress-plan.md, D11)
 	bool enemy_drop_progress_limits;
+	// Tony, Devin and Bobby Ray stock an item only once the game progress reaches its
+	// minDropProgress (docs/game-progress-plan.md, stage 3)
+	bool dealer_stock_progress_limits;
 	bool f_all_dropped_visible;           /**< All dropped equipment is visible right away. */
 
 	bool multiple_interrupts;             // can interrupt more than once per turn

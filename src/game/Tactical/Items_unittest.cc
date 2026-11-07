@@ -17,6 +17,7 @@
 #include "Campaign.h"
 #include "Campaign_Types.h"
 #include "Quests.h"
+#include "ArmsDealerInvInit.h"
 #include "SamSiteModel.h"
 #include "strategic/TownModel.h"
 
@@ -496,6 +497,49 @@ TEST_F(DropProgressTest, gameProgressFromVisitsAndQuests)
 	EXPECT_EQ(GameProgressPercentage(), 100);
 
 	ClearGameProgress();
+}
+
+
+// docs/game-progress-plan.md, stage 3: dealer stock follows minDropProgress
+TEST_F(DropProgressTest, dealerStockFollowsMinDropProgress)
+{
+	UINT8 const savedHighest = gStrategicStatus.ubHighestProgress;
+	gStrategicStatus.ubHighestProgress = 0; // old coolness window: 0-1 (Bobby Ray)
+	SetMinDrop(LASERSCOPE, 30);
+	SetMinDrop(FIRSTAIDKIT, 10);
+
+	SetGameProgress(28);
+	for (ArmsDealerID const d : { ARMS_DEALER_BOBBYR, ARMS_DEALER_TONY, ARMS_DEALER_DEVIN })
+	{
+		EXPECT_TRUE(DealerStockBlockedByProgress(d, LASERSCOPE)) << int(d);
+		EXPECT_FALSE(DealerStockBlockedByProgress(d, FIRSTAIDKIT)) << int(d);
+	}
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_BOBBYR, LASERSCOPE, DEALER_BUYING, FALSE), 0);
+	// other dealers are not limited
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_KEITH, LASERSCOPE));
+
+	// reached: allowed although its coolness is above the old window
+	SetGameProgress(30);
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_BOBBYR, LASERSCOPE));
+	EXPECT_GT(GCM->getItem(LASERSCOPE)->getCoolness(), 1);
+	EXPECT_GT(ChanceOfItemTransaction(ARMS_DEALER_BOBBYR, LASERSCOPE, DEALER_BUYING, FALSE), 0);
+
+	// staple items are limited too
+	SetMinDrop(FIRSTAIDKIT, 40);
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, FIRSTAIDKIT));
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_TONY, FIRSTAIDKIT, DEALER_BUYING, FALSE), 0);
+
+	// switch off: the original coolness cut-off again
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->dealer_stock_progress_limits = false;
+	SetGameProgress(0);
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, FIRSTAIDKIT));
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_BOBBYR, LASERSCOPE, DEALER_BUYING, FALSE), 0);
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->dealer_stock_progress_limits = true;
+
+	SetMinDrop(LASERSCOPE, GCM->getItem(LASERSCOPE)->getCoolness() * 10);
+	SetMinDrop(FIRSTAIDKIT, GCM->getItem(FIRSTAIDKIT)->getCoolness() * 10);
+	ClearGameProgress();
+	gStrategicStatus.ubHighestProgress = savedHighest;
 }
 
 #endif

@@ -70,6 +70,14 @@
   //  vanilla setting: false (there is no minDropProgress in vanilla)
   "enemy_drop_progress_limits": true,
 
+  //  Will Tony, Devin and Bobby Ray (new and used) stock an item only once the game progress
+  //  (laptop V line "Drop progress") reaches the item's "minDropProgress"? This replaces the
+  //  "too cool for the progress" cut-off of these dealers; their coolness windows still set
+  //  how often an item turns up (above the window: as often as inside it). Staple items
+  //  (common magazines, kits, canteen, crowbar, jars) are limited too.
+  //  vanilla setting: false (there is no minDropProgress in vanilla)
+  "dealer_stock_progress_limits": true,
+
   //  Will dropped items always be visible to the player, regardless of distance?
   //  vanilla setting: false
   "all_drops_visible": true,
