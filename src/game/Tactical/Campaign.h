@@ -6,6 +6,8 @@
 
 #include <string_theory/string>
 
+#include <vector>
+
 
 enum StatKind
 {
@@ -81,6 +83,18 @@ void HandleUnhiredMercDeaths( INT32 iProfileID );
 
 UINT8 CurrentPlayerProgressPercentage(void);
 UINT8 HighestPlayerProgressPercentage(void);
+
+// Game progress for enemy drops (docs/game-progress-plan.md): first tactical visits of
+// town and SAM sectors + quests completed at least once; never goes down. 0-100.
+UINT8 GameProgressVisitedEntries(void);
+UINT8 GameProgressDoneQuests(void);
+bool  IsGameProgressQuest(UINT8 ubQuest);
+void  GameProgressNoteQuestDone(UINT8 ubQuest);
+UINT8 GameProgressPercentage(void);
+// the full 10% steps (10..100) reached since the last call; each step only once
+std::vector<UINT8> GameProgressNewMilestones(void);
+// "You have reached N% game progress." in the message history for each new step
+void HandleGameProgressMilestones(void);
 
 void HourlyProgressUpdate(void);
 

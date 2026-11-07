@@ -23,6 +23,9 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 
 	f_drop_everything = gp.getOptionalBool("drop_everything");
 	enemy_drop_progress_limits = gp.getOptionalBool("enemy_drop_progress_limits", true);
+	dealer_stock_progress_limits = gp.getOptionalBool("dealer_stock_progress_limits", true);
+	dealer_stock_progress_lead = gp.getOptionalUInt("dealer_stock_progress_lead", 10);
+	dealer_guaranteed_deliveries = gp.getOptionalBool("dealer_guaranteed_deliveries", false);
 	f_all_dropped_visible = gp.getOptionalBool("all_drops_visible");
 
 	multiple_interrupts = gp.getOptionalBool("multiple_interrupts");
@@ -90,6 +93,9 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	progress_event_madlab_min = progress.getOptionalInt("event_madlab_min", 35);
 	progress_event_mike_min = progress.getOptionalInt("event_mike_min", 50);
 	progress_event_iggy_min = progress.getOptionalInt("event_iggy_min", 70);
+
+	game_progress_sector_percent = progress.getOptionalUInt("game_progress_sector_percent", 2);
+	game_progress_quest_percent = progress.getOptionalUInt("game_progress_quest_percent", 2);
 
 	kills_per_point_easy = progress.getOptionalInt("kills_per_point_easy", 7);
 	kills_per_point_medium = progress.getOptionalInt("kills_per_point_medium", 10);

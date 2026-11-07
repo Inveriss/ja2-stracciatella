@@ -4,6 +4,8 @@
 #include "BobbyRMailOrder.h"
 #include "Boxing.h"
 #include "Campaign.h"
+#include "GameInstance.h"
+#include "policy/GamePolicy.h"
 #include "ContentManager.h"
 #include "FactParamsModel.h"
 #include "Game_Clock.h"
@@ -45,7 +47,9 @@ void SetFactTrue(Fact const usFact)
 	// and code is more readable that way
 
 	// must intercept when Jake is first trigered to start selling fuel
-	if (usFact == FACT_ESTONI_REFUELLING_POSSIBLE && !CheckFact(usFact, 0))
+	// (only with the guaranteed deliveries; without them gas cans are Jake's normal stock)
+	if (usFact == FACT_ESTONI_REFUELLING_POSSIBLE && !CheckFact(usFact, 0) &&
+		gamepolicy(dealer_guaranteed_deliveries))
 	{
 		// give him some gas...
 		GuaranteeAtLeastXItemsOfIndex( ARMS_DEALER_JAKE, GAS_CAN, ( UINT8 ) ( 4 + Random( 3 ) ) );
@@ -1128,6 +1132,9 @@ void EndQuest(UINT8 ubQuest, const SGPSector& sector)
 
 void InternalEndQuest(UINT8 ubQuest, const SGPSector& sector, BOOLEAN fUpdateHistory)
 {
+	GameProgressNoteQuestDone(ubQuest); // counts once (docs/game-progress-plan.md)
+	HandleGameProgressMilestones();
+
 	if ( gubQuest[ubQuest ] == QUESTINPROGRESS )
 	{
 		gubQuest[ubQuest] = QUESTDONE;

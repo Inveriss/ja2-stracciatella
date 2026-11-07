@@ -9,6 +9,8 @@
 #include "Soldier_Profile.h"
 #include "Handle_Items.h"
 #include "Quests.h"
+#include "GameInstance.h"
+#include "policy/GamePolicy.h"
 #include "Scheduling.h"
 #include "Items.h"
 #include "Observable.h"
@@ -479,8 +481,12 @@ static void AdjustCertainDealersInventory(void)
 {
 	auto const& dealers = GCM->getDealers();
 
+	// guaranteed deliveries can be switched off (game.json dealer_guaranteed_deliveries,
+	// docs/game-progress-plan.md): then every item comes only through the normal stock
+	bool const guaranteed = gamepolicy(dealer_guaranteed_deliveries);
+
 	//Adjust Tony's items (this restocks *instantly* 1/day, doesn't use the reorder system)
-	GuaranteeAtLeastOneItemOfType( ARMS_DEALER_TONY, ARMS_DEALER_BIG_GUNS );
+	if (guaranteed) GuaranteeAtLeastOneItemOfType( ARMS_DEALER_TONY, ARMS_DEALER_BIG_GUNS );
 	LimitArmsDealersInventory( ARMS_DEALER_TONY, ARMS_DEALER_BIG_GUNS, 2 );
 	LimitArmsDealersInventory( ARMS_DEALER_TONY, ARMS_DEALER_HANDGUNCLASS, 3 );
 	LimitArmsDealersInventory( ARMS_DEALER_TONY, ARMS_DEALER_AMMO, 8 );
@@ -488,16 +494,16 @@ static void AdjustCertainDealersInventory(void)
 	//Adjust all bartenders' alcohol levels to a minimum
 	for (auto dealer : dealers)
 	{
-		if (dealer->hasFlag(ArmsDealerFlag::SELLS_ALCOHOL))
+		if (guaranteed && dealer->hasFlag(ArmsDealerFlag::SELLS_ALCOHOL))
 		{
 			GuaranteeMinimumAlcohol((ArmsDealerID)dealer->dealerID);
 		}
 	}
 
 	//make sure Sam (hardware guy) has at least one empty jar
-	GuaranteeAtLeastXItemsOfIndex( ARMS_DEALER_SAM, JAR, 1 );
+	if (guaranteed) GuaranteeAtLeastXItemsOfIndex( ARMS_DEALER_SAM, JAR, 1 );
 
-	if ( CheckFact( FACT_ESTONI_REFUELLING_POSSIBLE, 0 ) )
+	if ( guaranteed && CheckFact( FACT_ESTONI_REFUELLING_POSSIBLE, 0 ) )
 	{
 		// gas is restocked regularly, unlike most items
 		for (auto dealer : dealers)
@@ -510,7 +516,7 @@ static void AdjustCertainDealersInventory(void)
 	}
 
 	//If the player hasn't bought a video camera from Franz yet, make sure Franz has one to sell
-	if( !( gArmsDealerStatus[ ARMS_DEALER_FRANZ ].ubSpecificDealerFlags & ARMS_DEALER_FLAG__FRANZ_HAS_SOLD_VIDEO_CAMERA_TO_PLAYER ) )
+	if( guaranteed && !( gArmsDealerStatus[ ARMS_DEALER_FRANZ ].ubSpecificDealerFlags & ARMS_DEALER_FLAG__FRANZ_HAS_SOLD_VIDEO_CAMERA_TO_PLAYER ) )
 	{
 		GuaranteeAtLeastXItemsOfIndex( ARMS_DEALER_FRANZ, VIDEO_CAMERA, 1 );
 	}

@@ -4102,7 +4102,7 @@ bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 const progress)
 bool EnemyDropBlockedByProgress(UINT16 const usItem)
 {
 	if (!gamepolicy(enemy_drop_progress_limits) || usItem == NOTHING) return false;
-	return GCM->getItem(usItem)->getMinDropProgress() > HighestPlayerProgressPercentage();
+	return GCM->getItem(usItem)->getMinDropProgress() > GameProgressPercentage();
 }
 
 
@@ -4130,7 +4130,7 @@ bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const& s, OBJECTTYPE& o)
 	if (!gamepolicy(enemy_drop_progress_limits)) return true;
 	if (s.bTeam != ENEMY_TEAM) return true;   // D5
 	if (o.fFlags & OBJECT_PICKED_UP) return true; // D9
-	return ApplyDropProgressLimit(o, HighestPlayerProgressPercentage()); // D2
+	return ApplyDropProgressLimit(o, GameProgressPercentage()); // D2, docs/game-progress-plan.md
 }
 
 

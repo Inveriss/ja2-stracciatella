@@ -14,6 +14,12 @@
 #include "ItemModel.h"
 #include "Soldier_Control.h"
 #include "Strategic_Status.h"
+#include "Campaign.h"
+#include "Campaign_Types.h"
+#include "Quests.h"
+#include "ArmsDealerInvInit.h"
+#include "SamSiteModel.h"
+#include "strategic/TownModel.h"
 
 #include "gtest/gtest.h"
 
@@ -248,6 +254,28 @@ namespace {
 
 struct DropProgressTest : public GunStackTest
 {
+	// docs/game-progress-plan.md: progress p (even) from first visits of the counted sectors
+	static void ClearGameProgress()
+	{
+		for (auto& si : SectorInfo) si.uiFlags &= ~SF_PROGRESS_VISITED;
+		for (auto& q : gubQuest) q = QUESTNOTSTARTED;
+		for (auto& b : gStrategicStatus.ubGameProgressQuestsDone) b = 0;
+		gStrategicStatus.ubGameProgressAnnounced = 0;
+	}
+
+	static void SetGameProgress(UINT8 const p)
+	{
+		ClearGameProgress();
+		for (auto const& town : GCM->getTowns())
+		{
+			for (UINT8 const id : town.second->sectorIDs)
+			{
+				if (GameProgressPercentage() >= p) break;
+				SectorInfo[id].uiFlags |= SF_PROGRESS_VISITED;
+			}
+		}
+		ASSERT_EQ(GameProgressPercentage(), p);
+	}
 	static void SetMinDrop(UINT16 const item, UINT8 const progress)
 	{
 		const_cast<ItemModel*>(GCM->getItem(item))->setMinDropProgress(progress);
@@ -319,8 +347,7 @@ TEST_F(DropProgressTest, blockedAttachmentIsRemoved)
 TEST_F(DropProgressTest, onlyTheEnemyTeamIsLimited)
 {
 	SetMinDrop(GLOCK_17, 50);
-	UINT8 const saved = gStrategicStatus.ubHighestProgress;
-	gStrategicStatus.ubHighestProgress = 20;
+	SetGameProgress(20);
 
 	auto s = SOLDIERTYPE{};
 	OBJECTTYPE o = Gun(90);
@@ -334,17 +361,16 @@ TEST_F(DropProgressTest, onlyTheEnemyTeamIsLimited)
 
 	// the record reaches the threshold
 	s.bTeam = ENEMY_TEAM;
-	gStrategicStatus.ubHighestProgress = 50;
+	SetGameProgress(50);
 	EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, o));
-	gStrategicStatus.ubHighestProgress = saved;
+	SetGameProgress(0);
 }
 
 
 TEST_F(DropProgressTest, pickedUpObjectsAndSwitchOffAreNotLimited)
 {
 	SetMinDrop(GLOCK_17, 50);
-	UINT8 const saved = gStrategicStatus.ubHighestProgress;
-	gStrategicStatus.ubHighestProgress = 0;
+	SetGameProgress(0);
 	auto s = SOLDIERTYPE{};
 	s.bTeam = ENEMY_TEAM;
 
@@ -357,7 +383,7 @@ TEST_F(DropProgressTest, pickedUpObjectsAndSwitchOffAreNotLimited)
 	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = false;
 	EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, p));
 	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = true;
-	gStrategicStatus.ubHighestProgress = saved;
+	SetGameProgress(0);
 }
 
 
@@ -365,27 +391,25 @@ TEST_F(DropProgressTest, blockedItemForTheWeaponDropRecord)
 {
 	SetMinDrop(GLOCK_17, 50);
 	SetMinDrop(G41, 0);
-	UINT8 const saved = gStrategicStatus.ubHighestProgress;
-	gStrategicStatus.ubHighestProgress = 49;
+	SetGameProgress(48);
 	EXPECT_TRUE(EnemyDropBlockedByProgress(GLOCK_17));
 	EXPECT_FALSE(EnemyDropBlockedByProgress(G41));
 	EXPECT_FALSE(EnemyDropBlockedByProgress(NOTHING));
-	gStrategicStatus.ubHighestProgress = 50;
+	SetGameProgress(50);
 	EXPECT_FALSE(EnemyDropBlockedByProgress(GLOCK_17));
 
-	gStrategicStatus.ubHighestProgress = 0;
+	SetGameProgress(0);
 	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = false;
 	EXPECT_FALSE(EnemyDropBlockedByProgress(GLOCK_17));
 	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = true;
-	gStrategicStatus.ubHighestProgress = saved;
+	SetGameProgress(0);
 }
 
 
 TEST_F(DropProgressTest, pickingUpMarksTheObject)
 {
 	SetMinDrop(GLOCK_17, 50);
-	UINT8 const saved = gStrategicStatus.ubHighestProgress;
-	gStrategicStatus.ubHighestProgress = 0;
+	SetGameProgress(0);
 	auto enemy = SOLDIERTYPE{};
 	enemy.bTeam = ENEMY_TEAM;
 	auto merc = SOLDIERTYPE{};
@@ -405,7 +429,202 @@ TEST_F(DropProgressTest, pickingUpMarksTheObject)
 	// an unknown owner is never limited
 	EXPECT_TRUE(ApplyEnemyDropProgressLimit(static_cast<SOLDIERTYPE const*>(nullptr), o));
 	EXPECT_FALSE(ApplyEnemyDropProgressLimit(&enemy, o));
-	gStrategicStatus.ubHighestProgress = saved;
+	SetGameProgress(0);
+}
+
+
+
+
+// docs/game-progress-plan.md
+TEST_F(DropProgressTest, gameProgressFromVisitsAndQuests)
+{
+	ClearGameProgress();
+	EXPECT_EQ(GameProgressPercentage(), 0);
+
+	// SF_ALREADY_VISITED alone does not count
+	UINT32 const a9Flags = SectorInfo[SGPSector(9, 1).AsByte()].uiFlags;
+	SectorInfo[SGPSector(9, 1).AsByte()].uiFlags |= SF_ALREADY_VISITED;
+	EXPECT_EQ(GameProgressPercentage(), 0);
+	SectorInfo[SGPSector(9, 1).AsByte()].uiFlags = a9Flags;
+
+	// a town sector (A9) and a wilderness sector (A1, not counted)
+	SectorInfo[SGPSector(9, 1).AsByte()].uiFlags |= SF_PROGRESS_VISITED;
+	SectorInfo[SGPSector(1, 1).AsByte()].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressVisitedEntries(), 1);
+	EXPECT_EQ(GameProgressPercentage(), 2);
+
+	// N4: Meduna town sector and SAM site, counts twice (P1)
+	SectorInfo[SGPSector(4, 14).AsByte()].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressVisitedEntries(), 3);
+	EXPECT_EQ(GameProgressPercentage(), 6);
+
+	// quests: done counts, in progress does not, 8 and 9 never (P2)
+	gubQuest[QUEST_DELIVER_LETTER] = QUESTDONE;
+	gubQuest[QUEST_FOOD_ROUTE]     = QUESTINPROGRESS;
+	gubQuest[QUEST_HELD_IN_ALMA]   = QUESTDONE;
+	gubQuest[QUEST_INTERROGATION]  = QUESTDONE;
+	EXPECT_EQ(GameProgressDoneQuests(), 1);
+	EXPECT_EQ(GameProgressPercentage(), 8);
+
+	// a done quest set back to "in progress": its progress stays
+	gubQuest[QUEST_DELIVER_LETTER] = QUESTINPROGRESS;
+	EXPECT_EQ(GameProgressPercentage(), 8);
+	// ... a new visit meanwhile still adds
+	SectorInfo[SGPSector(10, 1).AsByte()].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressPercentage(), 10);
+	// ... and completing the same quest again gives nothing more
+	gubQuest[QUEST_DELIVER_LETTER] = QUESTDONE;
+	EXPECT_EQ(GameProgressDoneQuests(), 1);
+	EXPECT_EQ(GameProgressPercentage(), 10);
+
+	// EndQuest path notes the quest even if it is never read as done
+	GameProgressNoteQuestDone(QUEST_FOOD_ROUTE);
+	GameProgressNoteQuestDone(QUEST_INTERROGATION); // not counted
+	EXPECT_EQ(GameProgressDoneQuests(), 2);
+	EXPECT_EQ(GameProgressPercentage(), 12);
+
+	// everything: 40 entries + 21 quests = 122%, capped at 100
+	int quests = 0;
+	for (UINT8 q = 0; q < MAX_QUESTS; ++q)
+	{
+		if (IsGameProgressQuest(q)) { gubQuest[q] = QUESTDONE; ++quests; }
+	}
+	EXPECT_EQ(quests, 21);
+	EXPECT_EQ(GameProgressDoneQuests(), 21);
+	for (auto const& town : GCM->getTowns())
+		for (UINT8 const id : town.second->sectorIDs) SectorInfo[id].uiFlags |= SF_PROGRESS_VISITED;
+	for (auto const* const sam : GCM->getSamSites()) SectorInfo[sam->sectorId].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressVisitedEntries(), 40);
+	EXPECT_EQ(GameProgressPercentage(), 100);
+
+	ClearGameProgress();
+}
+
+
+// docs/game-progress-plan.md, stage 3: dealer stock follows minDropProgress
+TEST_F(DropProgressTest, dealerStockFollowsMinDropProgress)
+{
+	UINT8 const savedHighest = gStrategicStatus.ubHighestProgress;
+	gStrategicStatus.ubHighestProgress = 0; // old coolness window: 0-1 (Bobby Ray)
+	SetMinDrop(LASERSCOPE, 30);
+	SetMinDrop(FIRSTAIDKIT, 10);
+
+	// Bobby Ray: up to the progress; Tony and Devin: up to progress + 10
+	SetGameProgress(28);
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_BOBBYR, LASERSCOPE));
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, LASERSCOPE));
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_DEVIN, LASERSCOPE));
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_BOBBYR, LASERSCOPE, DEALER_BUYING, FALSE), 0);
+	for (ArmsDealerID const d : { ARMS_DEALER_BOBBYR, ARMS_DEALER_TONY, ARMS_DEALER_DEVIN })
+	{
+		EXPECT_FALSE(DealerStockBlockedByProgress(d, FIRSTAIDKIT)) << int(d);
+	}
+	SetMinDrop(LASERSCOPE, 40);
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, LASERSCOPE));  // 40 > 28 + 10
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_DEVIN, LASERSCOPE));
+	SetGameProgress(30);
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, LASERSCOPE)); // 40 <= 30 + 10
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_DEVIN, LASERSCOPE));
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_BOBBYR, LASERSCOPE));
+	// every other dealer is limited too, without a lead
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_KEITH, LASERSCOPE));  // 40 > 30
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_FRANZ, LASERSCOPE));
+	SetMinDrop(FIRSTAIDKIT, 30);
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_KEITH, FIRSTAIDKIT)); // 30 <= 30
+	EXPECT_GT(ChanceOfItemTransaction(ARMS_DEALER_KEITH, FIRSTAIDKIT, DEALER_BUYING, FALSE), 0);
+	SetMinDrop(FIRSTAIDKIT, 32);
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_KEITH, FIRSTAIDKIT, DEALER_BUYING, FALSE), 0);
+
+	// reached: allowed although its coolness is above the old window
+	SetMinDrop(LASERSCOPE, 30);
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_BOBBYR, LASERSCOPE));
+	EXPECT_GT(GCM->getItem(LASERSCOPE)->getCoolness(), 1);
+	EXPECT_GT(ChanceOfItemTransaction(ARMS_DEALER_BOBBYR, LASERSCOPE, DEALER_BUYING, FALSE), 0);
+
+	// staple items are limited too
+	SetMinDrop(FIRSTAIDKIT, 50);
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, FIRSTAIDKIT));
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_TONY, FIRSTAIDKIT, DEALER_BUYING, FALSE), 0);
+
+	// switch off: the original coolness cut-off again
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->dealer_stock_progress_limits = false;
+	SetGameProgress(0);
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, FIRSTAIDKIT));
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_BOBBYR, LASERSCOPE, DEALER_BUYING, FALSE), 0);
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->dealer_stock_progress_limits = true;
+
+	SetMinDrop(LASERSCOPE, GCM->getItem(LASERSCOPE)->getCoolness() * 10);
+	SetMinDrop(FIRSTAIDKIT, GCM->getItem(FIRSTAIDKIT)->getCoolness() * 10);
+	ClearGameProgress();
+	gStrategicStatus.ubHighestProgress = savedHighest;
+}
+
+
+// docs/game-progress-plan.md: each full 10% step is announced once
+TEST_F(DropProgressTest, gameProgressMilestonesOnce)
+{
+	using Steps = std::vector<UINT8>;
+	SetGameProgress(8);
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{});
+
+	SetGameProgress(10); // clears the announced step too
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{ 10 });
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{});
+
+	// a jump over several steps: all of them, in order
+	SetGameProgress(32);
+	EXPECT_EQ(GameProgressNewMilestones(), (Steps{ 10, 20, 30 }));
+
+	// more progress below the next step: nothing; the next step: once
+	gubQuest[QUEST_DELIVER_LETTER] = QUESTDONE; // 34
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{});
+	gubQuest[QUEST_FOOD_ROUTE]       = QUESTDONE;
+	gubQuest[QUEST_KILL_TERRORISTS]  = QUESTDONE;
+	gubQuest[QUEST_KINGPIN_IDOL]     = QUESTDONE; // 40
+	EXPECT_EQ(GameProgressPercentage(), 40);
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{ 40 });
+	EXPECT_EQ(gStrategicStatus.ubGameProgressAnnounced, 40);
+
+	// everything: up to 100, never above
+	for (UINT8 q = 0; q < MAX_QUESTS; ++q)
+	{
+		if (IsGameProgressQuest(q)) gubQuest[q] = QUESTDONE;
+	}
+	for (auto const& town : GCM->getTowns())
+		for (UINT8 const id : town.second->sectorIDs) SectorInfo[id].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressNewMilestones(), (Steps{ 50, 60, 70, 80, 90, 100 }));
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{});
+
+	ClearGameProgress();
+}
+
+
+// docs/game-progress-plan.md: no guaranteed deliveries; Jake's gas cans are normal
+// stock, only after the Shank quest
+TEST_F(DropProgressTest, jakeGasCansAfterTheShankQuest)
+{
+	UINT8 const savedFact = gubFact[FACT_ESTONI_REFUELLING_POSSIBLE];
+	EXPECT_FALSE(GCM->getGamePolicy()->dealer_guaranteed_deliveries);
+	SetGameProgress(0);
+
+	gubFact[FACT_ESTONI_REFUELLING_POSSIBLE] = FALSE;
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_JAKE, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	gubFact[FACT_ESTONI_REFUELLING_POSSIBLE] = TRUE;
+	EXPECT_GT(ChanceOfItemTransaction(ARMS_DEALER_JAKE, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	// only the fuel dealer: coolness 0 still keeps it away from the others
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_KEITH, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	// with its own minDropProgress
+	SetMinDrop(GAS_CAN, 10);
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_JAKE, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	SetMinDrop(GAS_CAN, 0);
+
+	// guaranteed deliveries back on: the original rule (coolness 0 = no normal stock)
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->dealer_guaranteed_deliveries = true;
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_JAKE, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->dealer_guaranteed_deliveries = false;
+
+	gubFact[FACT_ESTONI_REFUELLING_POSSIBLE] = savedFact;
+	ClearGameProgress();
 }
 
 #endif

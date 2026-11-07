@@ -47,6 +47,14 @@ public:
 	// an enemy never leaves behind an item below its minDropProgress
 	// (docs/enemy-drop-progress-plan.md, D11)
 	bool enemy_drop_progress_limits;
+	// Tony, Devin and Bobby Ray stock an item only once the game progress reaches its
+	// minDropProgress (docs/game-progress-plan.md, stage 3)
+	bool dealer_stock_progress_limits;
+	// Tony and Devin: minDropProgress may be this many points above the game progress
+	uint8_t dealer_stock_progress_lead;
+	// guaranteed dealer deliveries (Tony's big gun, bar alcohol, Sam's jar, Franz's video
+	// camera, Jake's gas cans); false: off, Jake's gas cans are normal stock after the Shank quest
+	bool dealer_guaranteed_deliveries;
 	bool f_all_dropped_visible;           /**< All dropped equipment is visible right away. */
 
 	bool multiple_interrupts;             // can interrupt more than once per turn
@@ -115,6 +123,8 @@ public:
 	int8_t progress_event_madlab_min;     // Minimum first progress to trigger event Quest Madlab
 	int8_t progress_event_mike_min;       // Minimum first progress to trigger event Mike
 	int8_t progress_event_iggy_min;       // Minimum first progress to trigger event Iggy
+	uint8_t game_progress_sector_percent; // Drop progress per first tactical visit of a town/SAM sector
+	uint8_t game_progress_quest_percent;  // Drop progress per completed quest
 
 	int8_t unhired_merc_deaths_easy;       // Maximum unhired mercs KIA difficulty Easy
 	int8_t unhired_merc_deaths_medium;       // Maximum unhired mercs KIA difficulty Medium
