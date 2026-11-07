@@ -14,25 +14,36 @@ properties:
     maximum: 3
   attachmentEffects:
     title: Weapon attachment effects
-    description: Numeric effects of the attachment, summed over all attachments on a weapon
+    description: |
+      Numeric effects of the attachment, summed over all attachments on a weapon. A value
+      left out is the default of the attachment's family (the original game's value for the
+      original families), else none.
     type: object
     properties:
       rangeBonus:
+        title: Range (a bonus scales with the condition, a penalty doesn't)
         type: integer
       aimBonus:
+        title: To hit, like the laser scope (penalty below 50% condition)
         type: integer
       aimedShotBonus:
+        title: Percent of the sight range less per aim AP beyond the scope range, like the sniper scope
         type: integer
       proneBonus:
+        title: Percent of the prone aim bonus added, like the bipod (200)
         type: integer
       attackVolumePercent:
+        title: Percent of the gun's noise left at full condition, like the silencer (0)
         type: integer
+        minimum: 0
+        maximum: 100
       apPerShotChange:
+        title: AP per shot and burst, like the spring and bolt upgrade (-1)
         type: integer
       burstShotsBonus:
+        title: Shots per burst
         type: integer
-      scalesWithCondition:
-        type: boolean
+    additionalProperties: false
   bAttachment:
     title: Is an attachment?
     type: boolean

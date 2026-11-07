@@ -292,13 +292,16 @@ void ItemModel::deserializeAttachmentFamily(const JsonObject &obj)
 	if (!obj.has("attachmentEffects")) return;
 
 	JsonObject const e = obj["attachmentEffects"].toObject();
+	auto const read = [&e](char const* const name, std::optional<int16_t>& value)
+	{
+		if (e.has(name)) value = static_cast<int16_t>(e.GetInt(name));
+	};
 	AttachmentEffects& a = attachmentEffects;
-	a.rangeBonus          = static_cast<int16_t>(e.getOptionalInt("rangeBonus",          a.rangeBonus));
-	a.aimBonus            = static_cast<int16_t>(e.getOptionalInt("aimBonus",            a.aimBonus));
-	a.aimedShotBonus      = static_cast<int16_t>(e.getOptionalInt("aimedShotBonus",      a.aimedShotBonus));
-	a.proneBonus          = static_cast<int16_t>(e.getOptionalInt("proneBonus",          a.proneBonus));
-	a.attackVolumePercent = static_cast<int16_t>(e.getOptionalInt("attackVolumePercent", a.attackVolumePercent));
-	a.apPerShotChange     = static_cast<int16_t>(e.getOptionalInt("apPerShotChange",     a.apPerShotChange));
-	a.burstShotsBonus     = static_cast<int16_t>(e.getOptionalInt("burstShotsBonus",     a.burstShotsBonus));
-	a.scalesWithCondition = e.getOptionalBool("scalesWithCondition", a.scalesWithCondition);
+	read("rangeBonus",          a.rangeBonus);
+	read("aimBonus",            a.aimBonus);
+	read("aimedShotBonus",      a.aimedShotBonus);
+	read("proneBonus",          a.proneBonus);
+	read("attackVolumePercent", a.attackVolumePercent);
+	read("apPerShotChange",     a.apPerShotChange);
+	read("burstShotsBonus",     a.burstShotsBonus);
 }

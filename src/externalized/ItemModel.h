@@ -19,17 +19,18 @@ struct WeaponAttachmentFamilyModel;
 struct WeaponModel;
 
 // Numeric effects of a weapon attachment ("attachmentEffects" in the data,
-// docs/weapon-attachments-plan.md, W5); used from stage 3 on.
+// docs/weapon-attachments-plan.md, W5). A value the data leaves out is the
+// default of the attachment's family (the original game's value for the
+// original families, see AttachmentEffectValue() in Weapons.cc), else none.
 struct AttachmentEffects
 {
-	int16_t rangeBonus          = 0;
-	int16_t aimBonus            = 0;
-	int16_t aimedShotBonus      = 0;
-	int16_t proneBonus          = 0;
-	int16_t attackVolumePercent = 100;
-	int16_t apPerShotChange     = 0;
-	int16_t burstShotsBonus     = 0;
-	bool    scalesWithCondition = true;
+	std::optional<int16_t> rangeBonus;          // range units; a bonus scales with the condition, a penalty doesn't
+	std::optional<int16_t> aimBonus;            // to hit, like the laser scope (penalty below 50% condition)
+	std::optional<int16_t> aimedShotBonus;      // % sight range less per aim AP beyond the scope range, like the sniper scope
+	std::optional<int16_t> proneBonus;          // % of the prone aim bonus added, like the bipod (200)
+	std::optional<int16_t> attackVolumePercent; // % of the gun's noise left at full condition, like the silencer (0)
+	std::optional<int16_t> apPerShotChange;     // AP per shot and burst, like the spring and bolt (-1)
+	std::optional<int16_t> burstShotsBonus;     // shots per burst
 };
 
 struct ItemModel
@@ -139,6 +140,7 @@ struct ItemModel
 	const ST::string&        getAttachmentFamilyName() const { return attachmentFamilyName; }
 	uint8_t                  getAttachmentLevel() const      { return attachmentLevel; }
 	const AttachmentEffects& getAttachmentEffects() const    { return attachmentEffects; }
+	void setAttachmentEffects(AttachmentEffects const& effects) { attachmentEffects = effects; }
 	// The family model, set by the content manager after loading (null if none)
 	const WeaponAttachmentFamilyModel* getAttachmentFamily() const { return attachmentFamily; }
 	void setAttachmentFamily(const WeaponAttachmentFamilyModel* family) { attachmentFamily = family; }

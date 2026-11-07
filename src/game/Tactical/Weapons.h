@@ -6,6 +6,7 @@
 #include "Sound_Control.h"
 
 struct CalibreModel;
+struct ItemModel;
 enum WeaponModes : INT8; // Soldier_Control.h
 
 
@@ -179,6 +180,17 @@ void UseHandToHand(SOLDIERTYPE* pSoldier, INT16 sTargetGridNo, BOOLEAN fStealing
 void DishoutQueenSwipeDamage( SOLDIERTYPE *pQueenSoldier );
 
 INT32 HTHImpact(const SOLDIERTYPE* pSoldier, const SOLDIERTYPE* pTarget, INT32 iHitBy, BOOLEAN fBladeAttack);
+
+// Effects of weapon attachments (docs/weapon-attachments-plan.md, stage 3)
+enum class AttachmentEffect { Range, Aim, AimedShot, Prone, AttackVolumePercent, APPerShot, BurstShots };
+// An effect of an attachment: its own value from the data, else its family's
+// default (the original game's value for the original families), else none
+// (0; 100 for AttackVolumePercent). Items without a family have no effects.
+int  AttachmentEffectValue(ItemModel const&, AttachmentEffect);
+// The sum of an effect over the attachments of the object (no condition)
+int  AttachmentEffectSum(OBJECTTYPE const&, AttachmentEffect);
+// Position of an attachment of the given family on the object, or ITEM_NOT_FOUND
+INT8 FindAttachmentOfFamily(OBJECTTYPE const&, char const* family);
 
 UINT16 GunRange(OBJECTTYPE const&);
 UINT8  GunShotsPerBurst(OBJECTTYPE const&, WeaponModes);

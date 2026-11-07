@@ -3356,7 +3356,7 @@ INT8 FireBulletGivenTarget(SOLDIERTYPE* const pFirer, const FLOAT dEndX, const F
 				{
 					sHitBy = sHitBy / 2;
 				}
-				if (FindAttachment( &(pFirer->inv[pFirer->ubAttackingHand]), DUCKBILL ) != NO_SLOT)
+				if (FindAttachmentOfFamily(pFirer->inv[pFirer->ubAttackingHand], "DUCKBILL") != NO_SLOT)
 				{
 					ubSpreadIndex = 1;
 				}

@@ -15,6 +15,7 @@
 #include "Items.h"
 #include "Vehicles.h"
 #include "Weapons.h"
+#include <algorithm>
 #include "RT_Time_Defines.h"
 #include "AI.h"
 #include "Handle_UI.h"
@@ -856,12 +857,13 @@ static INT16 GetBreathPerAP(SOLDIERTYPE* pSoldier, UINT16 usAnimState)
 }
 
 
-// A weapon's AP cost with its Spring and Bolt Upgrade: a fixed 1 AP less, the
-// attachment's status doesn't matter. A cost never falls below 1 AP.
+// A weapon's AP cost with its attachments' apPerShotChange (the Spring and Bolt
+// Upgrade: a fixed 1 AP less), the attachments' status doesn't matter. A cost
+// never falls below 1 AP.
 static UINT8 CostWithSpringAndBolt(OBJECTTYPE const& o, UINT8 const cost)
 {
-	int const reduction = FindAttachment(&o, SPRING_AND_BOLT_UPGRADE) != NO_SLOT ? 1 : 0;
-	return static_cast<UINT8>(std::max(cost - reduction, 1));
+	int const change = AttachmentEffectSum(o, AttachmentEffect::APPerShot);
+	return static_cast<UINT8>(std::clamp(cost + change, 1, 255));
 }
 
 
