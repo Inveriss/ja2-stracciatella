@@ -1,7 +1,18 @@
 # Gun stacking plan
 
-Status: **plan only, nothing implemented.** Written 2026-11-07 from an analysis of branch
-`Item_Limits` at 53bc70897. Line numbers must be re-checked before implementation.
+Status: **COMPLETE - stages 1-5 implemented and game-verified (2026-11-07).** Written 2026-11-07 from an analysis of branch `Item_Limits` at 53bc70897.
+
+| Stage | Commit | State |
+|---|---|---|
+| 1 - data model and stack operations | db12c5e67 | game-verified |
+| 2 - stack sizes and weight | fd70a3c17 | game-verified |
+| 3 - every per-unit status read | f9503c106 | game-verified |
+| 4 - interface, unloading, attachments | deaf6019f | game-verified |
+| 5 - test data and game verification | this commit | game-verified with the test mod `gun-stacking-test` (outside the repository) |
+
+Stage 4 also made unloading a gun stack give one magazine per gun and removing an
+attachment give one attachment per gun; an under-barrel grenade launcher can't be removed
+from a stack (its grenade can't be split), so take one gun out first.
 
 Related: [item-limits-plan.md](item-limits-plan.md). This is one more item limit, so it
 belongs to the branch `Item_Limits`.
@@ -159,7 +170,10 @@ All decisions were taken by the user on 2026-11-07 (G1, G2, G4 as recommended).
 
 ### Stage 5 - test data and game verification
 
-- `stackSize` for a few guns in the test mod.
+- `stackSize` for a few guns in the test mod. The mod `gun-stacking-test` (a development
+  helper in the game's `mods` folder, not part of the repository) sets `stackSize`
+  GLOCK_17 3, BERETTA_92F 10, M24 1 (never stacks; other guns keep `gun_stack_size` 5)
+  and gives the Hummer `gunStackBigPocket` 2 and `gunStackSmallPocket` 3.
 - Checks: a merc still holds one gun per slot; unload two Glocks of different condition
   and put them on one sector slot and on one vehicle cargo slot (big; small for
   pistols, up to the vehicle's limits); split them back (each keeps its condition); loaded and attached guns that
