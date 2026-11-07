@@ -275,3 +275,32 @@ map message log). Not translated, like the V line.
   in `InternalEndQuest`, and in `HourlyProgressUpdate` as a safety net (e.g. a
   quest set to done from the quest debug screen).
 - Test: `DropProgressTest.gameProgressMilestonesOnce`.
+
+## 9. All dealers follow minDropProgress, no guaranteed deliveries
+
+User request (2026-11-07): the stock of **every** dealer depends on
+`minDropProgress`; guaranteed deliveries are switched off; everything else of the
+dealers stays as it was.
+
+- `DealerStockBlockedByProgress()` now covers all dealers (switch
+  `dealer_stock_progress_limits`). Lead: Tony and Devin +10
+  (`dealer_stock_progress_lead`), all others 0, like Bobby Ray. Staple items are
+  limited for every dealer. Other dealers keep their constant frequency (HIGH,
+  staples ALWAYS once allowed); coolness 0 still means no normal stock.
+- `game.json` `"dealer_guaranteed_deliveries": false` switches off, in
+  `AdjustCertainDealersInventory()` and `SetFactTrue()`: Tony's guaranteed big gun,
+  the bars' minimum alcohol, Sam's jar, Franz's video camera, Jake's gas cans.
+  Tony's maximum limits (2 big guns, 3 handguns, 8 ammo) are not guarantees and stay.
+  The Lua function `GuaranteeAtLeastXItemsOfIndex` for mods stays.
+- **Jake's gas cans:** `"GAS_CAN": 6` added to `dealer-inventory-jake.json`; for a
+  dealer with `SELLS_FUEL` they are normal stock (coolness 0 does not block them),
+  only once `FACT_ESTONI_REFUELLING_POSSIBLE` is set (Shank brought to Estoni) and
+  their `minDropProgress` is reached; suitability HIGH like his other items. Gas cans
+  are liquids, so always sold full. First stock comes with the next daily restock
+  after the quest (the "first eligible day" rule stocks it instantly), not at the
+  moment of the quest any more.
+- Consequences to tune later (user, 2026-11-07): Franz's **video camera** (Madlab's
+  robot quest) appears only from its `minDropProgress` (placeholder 60) and by chance;
+  bar alcohol, Sam's / Jake's jars from 10 (placeholder data).
+- Tests: `dealerStockFollowsMinDropProgress` (Keith/Franz limited, no lead),
+  `jakeGasCansAfterTheShankQuest`.

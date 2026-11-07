@@ -526,8 +526,14 @@ TEST_F(DropProgressTest, dealerStockFollowsMinDropProgress)
 	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, LASERSCOPE)); // 40 <= 30 + 10
 	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_DEVIN, LASERSCOPE));
 	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_BOBBYR, LASERSCOPE));
-	// other dealers are not limited
-	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_KEITH, LASERSCOPE));
+	// every other dealer is limited too, without a lead
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_KEITH, LASERSCOPE));  // 40 > 30
+	EXPECT_TRUE(DealerStockBlockedByProgress(ARMS_DEALER_FRANZ, LASERSCOPE));
+	SetMinDrop(FIRSTAIDKIT, 30);
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_KEITH, FIRSTAIDKIT)); // 30 <= 30
+	EXPECT_GT(ChanceOfItemTransaction(ARMS_DEALER_KEITH, FIRSTAIDKIT, DEALER_BUYING, FALSE), 0);
+	SetMinDrop(FIRSTAIDKIT, 32);
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_KEITH, FIRSTAIDKIT, DEALER_BUYING, FALSE), 0);
 
 	// reached: allowed although its coolness is above the old window
 	SetMinDrop(LASERSCOPE, 30);
@@ -589,6 +595,35 @@ TEST_F(DropProgressTest, gameProgressMilestonesOnce)
 	EXPECT_EQ(GameProgressNewMilestones(), (Steps{ 50, 60, 70, 80, 90, 100 }));
 	EXPECT_EQ(GameProgressNewMilestones(), Steps{});
 
+	ClearGameProgress();
+}
+
+
+// docs/game-progress-plan.md: no guaranteed deliveries; Jake's gas cans are normal
+// stock, only after the Shank quest
+TEST_F(DropProgressTest, jakeGasCansAfterTheShankQuest)
+{
+	UINT8 const savedFact = gubFact[FACT_ESTONI_REFUELLING_POSSIBLE];
+	EXPECT_FALSE(GCM->getGamePolicy()->dealer_guaranteed_deliveries);
+	SetGameProgress(0);
+
+	gubFact[FACT_ESTONI_REFUELLING_POSSIBLE] = FALSE;
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_JAKE, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	gubFact[FACT_ESTONI_REFUELLING_POSSIBLE] = TRUE;
+	EXPECT_GT(ChanceOfItemTransaction(ARMS_DEALER_JAKE, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	// only the fuel dealer: coolness 0 still keeps it away from the others
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_KEITH, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	// with its own minDropProgress
+	SetMinDrop(GAS_CAN, 10);
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_JAKE, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	SetMinDrop(GAS_CAN, 0);
+
+	// guaranteed deliveries back on: the original rule (coolness 0 = no normal stock)
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->dealer_guaranteed_deliveries = true;
+	EXPECT_EQ(ChanceOfItemTransaction(ARMS_DEALER_JAKE, GAS_CAN, DEALER_BUYING, FALSE), 0);
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->dealer_guaranteed_deliveries = false;
+
+	gubFact[FACT_ESTONI_REFUELLING_POSSIBLE] = savedFact;
 	ClearGameProgress();
 }
 

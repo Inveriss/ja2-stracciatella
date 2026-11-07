@@ -70,10 +70,11 @@
   //  vanilla setting: false (there is no minDropProgress in vanilla)
   "enemy_drop_progress_limits": true,
 
-  //  Will Tony, Devin and Bobby Ray (new and used) stock an item only once the game progress
-  //  (laptop V line "Drop progress") reaches the item's "minDropProgress"? This replaces the
-  //  "too cool for the progress" cut-off of these dealers; their coolness windows still set
-  //  how often an item turns up (above the window: as often as inside it). Staple items
+  //  Will every dealer (Bobby Ray new and used, Tony, Devin, Franz, Keith, Jake, Gabby,
+  //  Howard, Sam, the bars...) stock an item only once the game progress (V line
+  //  "Drop progress") reaches the item's "minDropProgress"? For Tony, Devin and Bobby Ray this
+  //  replaces the "too cool for the progress" cut-off; their coolness windows still set how
+  //  often an item turns up (above the window: as often as inside it). Staple items
   //  (common magazines, kits, canteen, crowbar, jars) are limited too.
   //  vanilla setting: false (there is no minDropProgress in vanilla)
   "dealer_stock_progress_limits": true,
@@ -82,6 +83,13 @@
   //  game progress (progress 50 + 10: up to 60). Bobby Ray: no lead (up to the progress).
   //  vanilla setting: none (new)
   "dealer_stock_progress_lead": 10,
+
+  //  Guaranteed dealer deliveries: Tony always has a big gun, bars keep a minimum of alcohol,
+  //  Sam keeps a jar, Franz keeps a video camera until sold, Jake gets 4-6 gas cans.
+  //  false: all off; Jake's gas cans ("GAS_CAN" in dealer-inventory-jake.json) are then normal
+  //  stock, only after the Shank quest (FACT_ESTONI_REFUELLING_POSSIBLE).
+  //  vanilla setting: true
+  "dealer_guaranteed_deliveries": false,
 
   //  Will dropped items always be visible to the player, regardless of distance?
   //  vanilla setting: false

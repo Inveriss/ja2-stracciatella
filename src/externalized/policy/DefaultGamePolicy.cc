@@ -25,6 +25,7 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	enemy_drop_progress_limits = gp.getOptionalBool("enemy_drop_progress_limits", true);
 	dealer_stock_progress_limits = gp.getOptionalBool("dealer_stock_progress_limits", true);
 	dealer_stock_progress_lead = gp.getOptionalUInt("dealer_stock_progress_lead", 10);
+	dealer_guaranteed_deliveries = gp.getOptionalBool("dealer_guaranteed_deliveries", false);
 	f_all_dropped_visible = gp.getOptionalBool("all_drops_visible");
 
 	multiple_interrupts = gp.getOptionalBool("multiple_interrupts");

@@ -18,6 +18,8 @@
 #include "DealerInventory.h"
 #include "GameInstance.h"
 #include "policy/GamePolicy.h"
+#include "DealerModel.h"
+#include "Quests.h"
 #include "MagazineModel.h"
 #include "WeaponModels.h"
 
@@ -65,14 +67,22 @@ INT8 GetDealersMaxItemAmount(ArmsDealerID const ubDealerID, UINT16 const usItemI
 }
 
 
-// docs/game-progress-plan.md, stage 3: these dealers stock an item only from its
-// minDropProgress on (new game progress), instead of the coolness cut-off
-static bool DealerStockLimitedByProgress(ArmsDealerID const bArmsDealer)
+// docs/game-progress-plan.md, stage 3: every dealer stocks an item only from its
+// minDropProgress on (new game progress); for Tony, Devin and Bobby Ray instead of the
+// coolness cut-off
+static bool DealerStockLimitedByProgress(ArmsDealerID /*bArmsDealer*/)
 {
-	if (!gamepolicy(dealer_stock_progress_limits)) return false;
-	return bArmsDealer == ARMS_DEALER_BOBBYR ||
-		bArmsDealer == ARMS_DEALER_TONY ||
-		bArmsDealer == ARMS_DEALER_DEVIN;
+	return gamepolicy(dealer_stock_progress_limits);
+}
+
+
+// Jake's gas cans without the guaranteed deliveries: normal stock, but only after the
+// Shank quest; their coolness 0 does not keep them off the shelf
+static bool IsFuelForFuelDealer(ArmsDealerID const bArmsDealer, UINT16 const usItemIndex)
+{
+	return !gamepolicy(dealer_guaranteed_deliveries) &&
+		usItemIndex == GAS_CAN && bArmsDealer != ARMS_DEALER_BOBBYR &&
+		GCM->getDealer(bArmsDealer)->hasFlag(ArmsDealerFlag::SELLS_FUEL);
 }
 
 
@@ -113,6 +123,13 @@ static UINT8 GetCurrentSuitabilityForItem(ArmsDealerID const bArmsDealer, UINT16
 
 
 	ubItemCoolness = GCM->getItem(usItemIndex)->getCoolness();
+
+	if (IsFuelForFuelDealer(bArmsDealer, usItemIndex))
+	{
+		if (!CheckFact(FACT_ESTONI_REFUELLING_POSSIBLE, 0)) return(ITEM_SUITABILITY_NONE);
+		if (DealerStockBlockedByProgress(bArmsDealer, usItemIndex)) return(ITEM_SUITABILITY_NONE);
+		return(ITEM_SUITABILITY_HIGH); // like his other items
+	}
 
 	if (ubItemCoolness == 0)
 	{

@@ -52,6 +52,9 @@ public:
 	bool dealer_stock_progress_limits;
 	// Tony and Devin: minDropProgress may be this many points above the game progress
 	uint8_t dealer_stock_progress_lead;
+	// guaranteed dealer deliveries (Tony's big gun, bar alcohol, Sam's jar, Franz's video
+	// camera, Jake's gas cans); false: off, Jake's gas cans are normal stock after the Shank quest
+	bool dealer_guaranteed_deliveries;
 	bool f_all_dropped_visible;           /**< All dropped equipment is visible right away. */
 
 	bool multiple_interrupts;             // can interrupt more than once per turn
