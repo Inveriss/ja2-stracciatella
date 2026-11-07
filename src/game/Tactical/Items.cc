@@ -3591,7 +3591,7 @@ static BOOLEAN DamageItem(OBJECTTYPE* pObject, INT32 iDamage, BOOLEAN fOnGround)
 		{
 			// if the status of the item is negative then it's trapped/jammed;
 			// leave it alone
-			if (pObject->usItem != NOTHING && pObject->bStatus[bLoop] > 0)
+			if (pObject->usItem != NOTHING && UnitStatus(*pObject, bLoop) > 0)
 			{
 				bDamage = CheckItemForDamage( pObject->usItem, iDamage );
 				switch( pObject->usItem )
@@ -3603,7 +3603,7 @@ static BOOLEAN DamageItem(OBJECTTYPE* pObject, INT32 iDamage, BOOLEAN fOnGround)
 						if ( PreRandom( bDamage ) > 5 )
 						{
 							// smash!
-							bDamage = pObject->bStatus[ bLoop ];
+							bDamage = UnitStatus(*pObject, bLoop);
 						}
 						break;
 					default:
@@ -3614,29 +3614,27 @@ static BOOLEAN DamageItem(OBJECTTYPE* pObject, INT32 iDamage, BOOLEAN fOnGround)
 					if ( PreRandom( 100 ) < (UINT32) bDamage )
 					{
 						// destroy clip completely
-						pObject->bStatus[ bLoop ] = 1;
+						SetUnitStatus(*pObject, bLoop, 1);
 					}
 				}
 				else
 				{
-					pObject->bStatus[bLoop] -= bDamage;
-					if (pObject->bStatus[bLoop] < 1)
-					{
-						pObject->bStatus[bLoop] = 1;
-					}
+					// (a gun stack keeps each unit's condition apart from
+					// bStatus[], see UnitStatus())
+					SetUnitStatus(*pObject, bLoop, static_cast<INT8>(std::max(1, UnitStatus(*pObject, bLoop) - bDamage)));
 				}
 				// I don't think we increase viewrange based on items any more
 				// FUN STUFF!  Check for explosives going off as a result!
 				if (GCM->getItem(pObject->usItem)->isExplosive())
 				{
-					if (CheckForChainReaction( pObject->usItem, pObject->bStatus[bLoop], bDamage, fOnGround ))
+					if (CheckForChainReaction( pObject->usItem, UnitStatus(*pObject, bLoop), bDamage, fOnGround ))
 					{
 						return( TRUE );
 					}
 				}
 
 				// remove item from index AFTER checking explosions because need item data for explosion!
-				if ( pObject->bStatus[bLoop] == 1 )
+				if ( UnitStatus(*pObject, bLoop) == 1 )
 				{
 					if ( pObject->ubNumberOfObjects > 1 )
 					{

@@ -1302,6 +1302,19 @@ void AddObjectToArmsDealerInventory(ArmsDealerID const ubArmsDealer, OBJECTTYPE*
 	UINT8 ubCnt;
 	SPECIAL_ITEM_INFO SpclItemInfo;
 
+	// docs/gun-stacking-plan.md: a gun stack goes in gun by gun, each with its
+	// own condition and the stack's shared ammo and attachments
+	if (GCM->getItem(pObject->usItem)->isGun() && pObject->ubNumberOfObjects > 1)
+	{
+		while (pObject->ubNumberOfObjects > 0)
+		{
+			OBJECTTYPE unit{};
+			GetObjFrom(pObject, 0, &unit);
+			AddObjectToArmsDealerInventory(ubArmsDealer, &unit);
+		}
+		*pObject = OBJECTTYPE{};
+		return;
+	}
 
 	SetSpecialItemInfoFromObject( &SpclItemInfo, pObject );
 

@@ -5018,7 +5018,7 @@ void RenderItemDescriptionBox(void)
 		else
 		{
 			// Status
-			pStr = ST::format("{2d}%", obj.bStatus[gubItemDescStatusIndex]);
+			pStr = ST::format("{2d}%", UnitStatus(obj, gubItemDescStatusIndex));
 			FindFontRightCoordinates(dx + ids[1].sX + ids[1].sValDx, dy + ids[1].sY, ITEM_STATS_WIDTH, misc_h, pStr, misc_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 		}

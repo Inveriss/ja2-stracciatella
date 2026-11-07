@@ -4,6 +4,7 @@
 #include "Faces.h"
 #include "GameInstance.h"
 #include "HImage.h"
+#include "Items.h"
 #include "JAScreens.h"
 #include "Line.h"
 #include "Local.h"
@@ -301,7 +302,8 @@ void DrawItemUIBarEx(OBJECTTYPE const& o, const UINT8 ubStatus, const INT16 x, c
 		}
 		else
 		{
-			value = o.bStatus[ubStatus];
+			// a gun stack keeps each unit's condition apart from bStatus[]
+			value = UnitStatus(o, ubStatus);
 		}
 	}
 
