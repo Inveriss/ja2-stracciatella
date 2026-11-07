@@ -87,6 +87,9 @@ struct OBJECTTYPE
 			UINT8  ubGunShotsLeft; // duh, amount of ammo left
 			UINT16 usGunAmmoItem; // the item # for the item table
 			INT8   bGunAmmoStatus; // only for "attached ammo" - grenades, mortar shells
+			// condition of units 1, 2, ... of a gun stack (unit 0 is bGunStatus);
+			// read and write through UnitStatus()/SetUnitStatus() (Items.h)
+			INT8   bGunUnitStatus[MAX_OBJECTS_PER_SLOT - 7];
 		};
 		struct
 		{

@@ -124,15 +124,23 @@ bool ItemHasAttachments(OBJECTTYPE const&);
 
 // Whether two OBJECTTYPEs of the same usItem may share one multi-unit
 // "stack" (ubNumberOfObjects > 1). Always true for non-guns. For guns, the
-// union's ammo/condition fields and usAttachItem[]/bAttachStatus[] are a
-// single shared value for the whole OBJECTTYPE, not one per unit, so two
-// guns may only merge when physically IDENTICAL in all of it: same ammo
-// type, same shots left, same jam status, same attachments, same
-// condition -- equality, not "must be empty" (CreateGun() loads every
-// normal gun with its default magazine already). See CanGunsStack()'s own
-// comment (Items.cc) and StackObjs()/RemoveObjFrom()/GetObjFrom() for how a
-// compliant gun stack is merged/split without touching bStatus[].
+// union's ammo fields and usAttachItem[]/bAttachStatus[] are a single shared
+// value for the whole OBJECTTYPE, not one per unit, so two guns may only
+// merge when equal in all of it: same ammo type, shots left, magazine item,
+// jam status and attachments. Only the condition is kept per unit
+// (docs/gun-stacking-plan.md, G2), see UnitStatus().
 bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b);
+
+// At most this many guns share one OBJECTTYPE: unit 0's condition is
+// bGunStatus, units 1.. use the bGunUnitStatus[] bytes after the gun fields
+// (docs/gun-stacking-plan.md, G1/G5).
+constexpr UINT8 MAX_GUNS_PER_STACK = MAX_OBJECTS_PER_SLOT - 6;
+
+// The status (condition) of unit i of a stack: bStatus[i] for most items,
+// bGunStatus / bGunUnitStatus[i - 1] for guns. Not for ammo (ubShotsLeft[]),
+// money or keys, which keep their own fields.
+INT8 UnitStatus(OBJECTTYPE const& o, UINT8 i);
+void SetUnitStatus(OBJECTTYPE& o, UINT8 i, INT8 status);
 
 //Determine if this item can receive this attachment.  This is different, in that it may
 //be possible to have this attachment on this item, but may already have an attachment on

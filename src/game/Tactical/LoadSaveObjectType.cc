@@ -52,7 +52,9 @@ void ExtractObject(DataReader& d, OBJECTTYPE* const o)
 			EXTR_SKIP(d, 1)
 			EXTR_U16(d, o->usGunAmmoItem)
 			EXTR_I8(d, o->bGunAmmoStatus)
-			EXTR_SKIP(d, 93) // 7 real bytes so far; 93 = 100 - 7
+			// 7 real bytes so far; 93 = 100 - 7: the condition of units 1..
+			// of a gun stack (save version 116, docs/gun-stacking-plan.md)
+			EXTR_I8A(d, o->bGunUnitStatus, lengthof(o->bGunUnitStatus))
 			break;
 
 		case IC_KEY:
@@ -283,7 +285,9 @@ void InjectObject(DataWriter& d, const OBJECTTYPE* o)
 			INJ_SKIP(d, 1)
 			INJ_U16(d, o->usGunAmmoItem)
 			INJ_I8(d, o->bGunAmmoStatus)
-			INJ_SKIP(d, 93) // 7 real bytes so far; 93 = 100 - 7
+			// 7 real bytes so far; 93 = 100 - 7: the condition of units 1..
+			// of a gun stack (save version 116, docs/gun-stacking-plan.md)
+			INJ_I8A(d, o->bGunUnitStatus, lengthof(o->bGunUnitStatus))
 			break;
 
 		case IC_KEY:

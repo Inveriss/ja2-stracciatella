@@ -43,8 +43,10 @@
 #include "MagazineModel.h"
 #include "WeaponAttachmentFamilyModel.h"
 #include "WeaponModels.h"
+#include <algorithm>
 #include <array>
 #include <initializer_list>
+#include <iterator>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -669,30 +671,16 @@ bool ItemHasAttachments(OBJECTTYPE const& o)
 bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b)
 {
 	// Only guns are restricted here -- every other item class stores its
-	// per-unit state in bStatus[]/ubShotsLeft[] (one real byte per unit),
-	// which StackObjs()/RemoveObjFrom()/GetObjFrom() already handle
-	// correctly regardless of how many units are involved.
+	// per-unit state in bStatus[]/ubShotsLeft[] (one real byte per unit).
 	//
-	// A gun is different: bGunStatus/ubGunAmmoType/ubGunShotsLeft/
-	// usGunAmmoItem/bGunAmmoStatus alias the very same bytes as
-	// bStatus[0..4], and usAttachItem[]/bAttachStatus[] are a single set
-	// for the whole OBJECTTYPE regardless of ubNumberOfObjects -- there is
-	// no per-unit storage for any of it. Two guns can only safely share one
-	// multi-unit OBJECTTYPE when that single shared block already
-	// correctly describes every unit at once -- i.e. when the two guns are
-	// physically IDENTICAL in everything the union/attachments can't
-	// represent per-unit: same ammo type, same shots left, same jam
-	// status, same attachments, same condition. This is equality, not
-	// "must be empty" -- CreateGun() loads every normal gun with its
-	// default magazine already, so requiring no ammo at all would make
-	// almost no freshly-spawned gun ever stackable. Anything not equal
-	// must stay as separate, single-unit OBJECTTYPEs (the callers of this
-	// function fall back to their existing swap/no-merge behavior, exactly
-	// as for any other item that doesn't match closely enough to combine).
+	// A gun keeps its ammo state (ubGunAmmoType/ubGunShotsLeft/usGunAmmoItem/
+	// bGunAmmoStatus) and usAttachItem[]/bAttachStatus[] once for the whole
+	// OBJECTTYPE, so two guns may only share one when all of that is equal.
+	// The condition is per unit (bGunStatus + bGunUnitStatus[], see
+	// UnitStatus()), so it may differ (docs/gun-stacking-plan.md, G2).
 	if (a.usItem != b.usItem) return false;
 	if (!GCM->getItem(a.usItem)->isGun()) return true;
 
-	if (a.bGunStatus     != b.bGunStatus)     return false;
 	if (a.ubGunAmmoType  != b.ubGunAmmoType)  return false;
 	if (a.ubGunShotsLeft != b.ubGunShotsLeft) return false;
 	if (a.usGunAmmoItem  != b.usGunAmmoItem)  return false;
@@ -705,6 +693,31 @@ bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b)
 	}
 
 	return true;
+}
+
+
+INT8 UnitStatus(OBJECTTYPE const& o, UINT8 const i)
+{
+	if (GCM->getItem(o.usItem)->isGun())
+	{
+		if (i == 0) return o.bGunStatus;
+		if (i >= MAX_GUNS_PER_STACK) return 0;
+		return o.bGunUnitStatus[i - 1];
+	}
+	if (i >= MAX_OBJECTS_PER_SLOT) return 0;
+	return o.bStatus[i];
+}
+
+
+void SetUnitStatus(OBJECTTYPE& o, UINT8 const i, INT8 const status)
+{
+	if (GCM->getItem(o.usItem)->isGun())
+	{
+		if (i == 0) o.bGunStatus = status;
+		else if (i < MAX_GUNS_PER_STACK) o.bGunUnitStatus[i - 1] = status;
+		return;
+	}
+	if (i < MAX_OBJECTS_PER_SLOT) o.bStatus[i] = status;
 }
 
 
@@ -1082,25 +1095,17 @@ void RemoveObjFrom( OBJECTTYPE * pObj, UINT8 ubRemoveIndex )
 		// delete!
 		DeleteObj( pObj );
 	}
-	else if (GCM->getItem(pObj->usItem)->isGun())
-	{
-		// See CanGunsStack() -- bStatus[0..4] here alias bGunStatus/
-		// ubGunAmmoType/ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a
-		// single shared value already guaranteed identical across every
-		// unit in this stack. The shift/clear below is meaningless (and
-		// actively corrupting) for a gun: it would overwrite bGunStatus
-		// with what's really ubGunAmmoType, etc. Only the count changes.
-		pObj->ubNumberOfObjects--;
-	}
 	else
 	{
-		// shift down all the values that should be down
+		// shift down all the values that should be down (a gun's unit
+		// condition lives in bGunStatus/bGunUnitStatus[], not in bStatus[],
+		// whose first bytes are its ammo state -- see UnitStatus())
 		for (ubLoop = ubRemoveIndex + 1; ubLoop < pObj->ubNumberOfObjects; ubLoop++)
 		{
-			pObj->bStatus[ubLoop - 1] = pObj->bStatus[ubLoop];
+			SetUnitStatus(*pObj, ubLoop - 1, UnitStatus(*pObj, ubLoop));
 		}
 		// and set the upper value to 0
-		pObj->bStatus[pObj->ubNumberOfObjects - 1] = 0;
+		SetUnitStatus(*pObj, pObj->ubNumberOfObjects - 1, 0);
 		// make the number of objects recorded match the array
 		pObj->ubNumberOfObjects--;
 	}
@@ -1142,13 +1147,14 @@ void GetObjFrom( OBJECTTYPE * pObj, UINT8 ubGetIndex, OBJECTTYPE * pDest )
 	}
 	else if (GCM->getItem(pObj->usItem)->isGun())
 	{
-		// See CanGunsStack() -- every unit in a gun "stack" already shares
-		// the exact same ammo/condition/attachment state, so pulling one
-		// out is a whole-struct copy (this also correctly carries over
-		// usAttachItem[]/bAttachStatus[], which live outside the union and
-		// the generic branch below never copies at all).
+		// See CanGunsStack() -- every unit in a gun stack shares the same
+		// ammo/attachment state, so pulling one out is a whole-struct copy
+		// (this also carries over usAttachItem[]/bAttachStatus[], which the
+		// generic branch below never copies) with that unit's own condition.
 		*pDest = *pObj;
 		pDest->ubNumberOfObjects = 1;
+		pDest->bGunStatus = UnitStatus(*pObj, ubGetIndex);
+		std::fill(std::begin(pDest->bGunUnitStatus), std::end(pDest->bGunUnitStatus), 0);
 		RemoveObjFrom( pObj, ubGetIndex );
 	}
 	else
@@ -1180,12 +1186,15 @@ void StackObjs(OBJECTTYPE* pSourceObj, OBJECTTYPE* pTargetObj, UINT8 ubNumberToC
 
 	if (GCM->getItem(pTargetObj->usItem)->isGun())
 	{
-		// See CanGunsStack() -- callers only ever merge guns this way once
-		// they've verified both sides are physically identical (no ammo,
-		// no attachments, equal condition), so pTargetObj's existing
-		// shared gun state already correctly describes the merged total --
-		// there's no per-unit bStatus[] data to copy, only the count
-		// changes.
+		// See CanGunsStack() -- callers only merge guns this way once both
+		// sides share the same ammo/attachment state, so pTargetObj's shared
+		// gun state already describes the merged total; only each unit's
+		// condition is copied. RemoveObjs() then shifts the source's own
+		// remaining units down.
+		for (ubLoop = 0; ubLoop < ubNumberToCopy; ubLoop++)
+		{
+			SetUnitStatus(*pTargetObj, pTargetObj->ubNumberOfObjects + ubLoop, UnitStatus(*pSourceObj, ubLoop));
+		}
 		pTargetObj->ubNumberOfObjects += ubNumberToCopy;
 		RemoveObjs( pSourceObj, ubNumberToCopy );
 		return;
@@ -1240,7 +1249,7 @@ void SortItemStackByStatus(OBJECTTYPE* const o)
 
 	auto quality = [&](UINT8 const idx) -> INT16
 	{
-		return is_ammo ? (INT16)(100 * o->ubShotsLeft[idx] / capacity) : (INT16)o->bStatus[idx];
+		return is_ammo ? (INT16)(100 * o->ubShotsLeft[idx] / capacity) : (INT16)UnitStatus(*o, idx);
 	};
 
 	// Simple insertion sort -- ubNumberOfObjects is at most
@@ -1257,7 +1266,9 @@ void SortItemStackByStatus(OBJECTTYPE* const o)
 			}
 			else
 			{
-				std::swap(o->bStatus[j - 1], o->bStatus[j]);
+				INT8 const tmp = UnitStatus(*o, j - 1);
+				SetUnitStatus(*o, j - 1, UnitStatus(*o, j));
+				SetUnitStatus(*o, j, tmp);
 			}
 			--j;
 		}
@@ -1356,9 +1367,9 @@ BOOLEAN PlaceObjectAtObjectIndex( OBJECTTYPE * pSourceObj, OBJECTTYPE * pTargetO
 	if (ubIndex < pTargetObj->ubNumberOfObjects)
 	{
 		// swap
-		bTemp = pSourceObj->bStatus[0];
-		pSourceObj->bStatus[0] = pTargetObj->bStatus[ubIndex];
-		pTargetObj->bStatus[ubIndex] = bTemp;
+		bTemp = UnitStatus(*pSourceObj, 0);
+		SetUnitStatus(*pSourceObj, 0, UnitStatus(*pTargetObj, ubIndex));
+		SetUnitStatus(*pTargetObj, ubIndex, bTemp);
 		return( TRUE );
 	}
 	else
@@ -2331,17 +2342,14 @@ static BOOLEAN PlaceObjectInSlot(SOLDIERTYPE* pSoldier, INT8 bPos, OBJECTTYPE* p
 		// but assuming it isn't
 		*pInSlot = *pObj;
 
-		// Guns skip this: bStatus[0..4] alias bGunStatus/ubGunAmmoType/
-		// ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a single value
-		// shared by the whole stack (see CanGunsStack()) -- there's
-		// nothing per-unit to zero, and doing so would corrupt that shared
-		// state instead of just leaving fewer units behind.
-		if (ubNumberToDrop != pObj->ubNumberOfObjects && !GCM->getItem(pObj->usItem)->isGun())
+		// (a gun's unit condition lives in bGunStatus/bGunUnitStatus[], not
+		// in bStatus[], whose first bytes are its ammo state -- UnitStatus())
+		if (ubNumberToDrop != pObj->ubNumberOfObjects)
 		{
 			// in the InSlot copy, zero out all the objects we didn't drop
 			for (ubLoop = ubNumberToDrop; ubLoop < pObj->ubNumberOfObjects; ubLoop++)
 			{
-				pInSlot->bStatus[ubLoop] = 0;
+				SetUnitStatus(*pInSlot, ubLoop, 0);
 			}
 		}
 		pInSlot->ubNumberOfObjects = ubNumberToDrop;
@@ -3102,6 +3110,17 @@ void CreateItems(UINT16 const usItem, INT8 const bStatus, UINT8 ubNumber, OBJECT
 	}
 
 	CreateItem(usItem, bStatus, pObj);
+	if (GCM->getItem(usItem)->isGun())
+	{
+		// a gun's unit condition lives after its ammo fields (UnitStatus())
+		if (ubNumber > MAX_GUNS_PER_STACK) ubNumber = MAX_GUNS_PER_STACK;
+		for (ubLoop = 1; ubLoop < ubNumber; ubLoop++)
+		{
+			SetUnitStatus(*pObj, ubLoop, pObj->bGunStatus);
+		}
+		pObj->ubNumberOfObjects = ubNumber;
+		return;
+	}
 	for (ubLoop = 1; ubLoop < ubNumber; ubLoop++)
 	{
 		// we reference status[0] here because the status value might actually be a
