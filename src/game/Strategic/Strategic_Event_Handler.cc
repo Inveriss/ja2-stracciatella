@@ -244,7 +244,8 @@ void BobbyRayPurchaseEventCallback(const UINT8 ubOrderID)
 		}
 		else
 		{
-			UINT8 perPocket = GCM->getItem(usItem)->getPerPocket();
+			// guns arrive in stacks of their stack size (docs/gun-stacking-plan.md)
+			UINT8 perPocket = SectorSlotLimit(usItem);
 			while (ubItemsDelivered)
 			{
 				// treat 0s as 1s :-)
@@ -973,7 +974,8 @@ static void DropOffItemsInDestination(UINT8 ubOrderNum, const ShippingDestinatio
 	{
 		ubItemsDelivered = gpNewBobbyrShipments[ ubOrderNum ].BobbyRayPurchase[i].ubNumberPurchased;
 		usItem = gpNewBobbyrShipments[ ubOrderNum ].BobbyRayPurchase[i].usItemIndex;
-		uint8_t perPocket = GCM->getItem(usItem)->getPerPocket();
+		// guns arrive in stacks of their stack size (docs/gun-stacking-plan.md)
+		uint8_t perPocket = SectorSlotLimit(usItem);
 
 		while ( ubItemsDelivered )
 		{

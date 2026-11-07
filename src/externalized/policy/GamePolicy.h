@@ -38,6 +38,10 @@ public:
 
 	uint16_t squad_size;
 
+	// guns of one kind in one sector inventory slot unless weapons.json gives
+	// the gun its own stackSize (docs/gun-stacking-plan.md, G3)
+	uint8_t gun_stack_size;
+
 	/* Battle */
 	bool f_drop_everything;               /**< Enemy drop all equipment. */
 	bool f_all_dropped_visible;           /**< All dropped equipment is visible right away. */

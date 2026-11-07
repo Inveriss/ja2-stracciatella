@@ -10,12 +10,14 @@ VehicleModel::VehicleModel(ST::string enterSound, ST::string movementSound,
                            ProfileID profile, VehicleMovementType movementType,
                            uint16_t armourType, uint8_t seats_, uint8_t repairPointsDivisor,
                            uint8_t slotLimitMultiplier, uint16_t tacticalFuelPer100Tiles,
-                           uint8_t travelTimePerSector, uint8_t fuelPerTravelMinute)
+                           uint8_t travelTimePerSector, uint8_t fuelPerTravelMinute,
+                           uint8_t gunStackBigPocket, uint8_t gunStackSmallPocket)
     : enter_sound(std::move(enterSound)), move_sound(std::move(movementSound)), profile(profile),
       movement_type(movementType), armour_type(armourType), seats(seats_),
       repair_points_divisor(repairPointsDivisor), slot_limit_multiplier(slotLimitMultiplier),
       tactical_fuel_per_100_tiles(tacticalFuelPer100Tiles), travel_time_per_sector(travelTimePerSector),
-      fuel_per_travel_minute(fuelPerTravelMinute) {}
+      fuel_per_travel_minute(fuelPerTravelMinute), gun_stack_big_pocket(gunStackBigPocket),
+      gun_stack_small_pocket(gunStackSmallPocket) {}
 
 static VehicleMovementType toMovementType(const ST::string& typeName)
 {
@@ -84,6 +86,18 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		throw DataError(ST::format("fuelPerTravelMinute must be 0-100, not {}", fuelPerTravelMinute));
 	}
 
+	// docs/gun-stacking-plan.md, G9 (0 = the gun's own stack size)
+	unsigned int const gunStackBigPocket = obj.getOptionalUInt("gunStackBigPocket", 0);
+	if (gunStackBigPocket > 94)
+	{
+		throw DataError(ST::format("gunStackBigPocket must be 0-94, not {}", gunStackBigPocket));
+	}
+	unsigned int const gunStackSmallPocket = obj.getOptionalUInt("gunStackSmallPocket", 1);
+	if (gunStackSmallPocket < 1 || gunStackSmallPocket > 94)
+	{
+		throw DataError(ST::format("gunStackSmallPocket must be 1-94, not {}", gunStackSmallPocket));
+	}
+
 	return new VehicleModel(
 		obj.GetString("enterSound"),
 		obj.GetString("moveSound"),
@@ -95,7 +109,9 @@ const VehicleModel* VehicleModel::deserialize(const JsonValue &json, const ItemS
 		slotLimitMultiplier,
 		tacticalFuelPer100Tiles,
 		travelTimePerSector,
-		fuelPerTravelMinute
+		fuelPerTravelMinute,
+		gunStackBigPocket,
+		gunStackSmallPocket
 		);
 }
 

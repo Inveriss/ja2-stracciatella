@@ -346,8 +346,42 @@ UINT8 ApplyBigPerPocketOverride( UINT16 usItem, INT8 bSlot, UINT8 ubSlotLimit )
 }
 
 
+UINT8 GunStackSize(UINT16 const usItem)
+{
+	ItemModel const* const item = GCM->getItem(usItem);
+	if (!item->isGun()) return 1;
+	auto const own = item->asWeapon()->stackSize;
+	UINT8 const n = own ? *own : gamepolicy(gun_stack_size);
+	return std::clamp<UINT8>(n, 1, MAX_GUNS_PER_STACK);
+}
+
+
+UINT8 SectorSlotLimit(UINT16 const usItem)
+{
+	if (GCM->getItem(usItem)->isGun()) return GunStackSize(usItem);
+	return std::min<UINT8>(ItemSlotLimit(usItem, BIGPOCK1POS), MAX_OBJECTS_PER_SLOT);
+}
+
+
 UINT8 SoldierSlotLimit(SOLDIERTYPE const& s, UINT16 const usItem, INT8 const bSlot)
 {
+	if (s.uiStatusFlags & SOLDIER_VEHICLE && bSlot >= BIGPOCK1POS &&
+			GCM->getItem(usItem)->isGun())
+	{
+		// docs/gun-stacking-plan.md, G9: the vehicle's own gun limits, never
+		// more than the gun's stack size; a small cargo pocket only takes a
+		// gun that fits a small pocket at all (ItemSlotLimit() 0 = it doesn't)
+		VehicleModel const* const vm = GCM->getVehicle(pVehicleList[s.bVehicleID].ubVehicleType);
+		UINT8 const stack = GunStackSize(usItem);
+		if (bSlot >= SMALLPOCK1POS)
+		{
+			if (ItemSlotLimit(usItem, bSlot) == 0) return 0;
+			return std::min(stack, vm->gun_stack_small_pocket);
+		}
+		UINT8 const big = vm->gun_stack_big_pocket ? vm->gun_stack_big_pocket : stack;
+		return std::min(stack, big);
+	}
+
 	int limit = std::min(int(ApplyBigPerPocketOverride(usItem, bSlot, ItemSlotLimit(usItem, bSlot))), int(MAX_OBJECTS_PER_SLOT));
 	if (s.uiStatusFlags & SOLDIER_VEHICLE && limit > 1 &&
 			!(GCM->getItem(usItem)->getItemClass() & (IC_WEAPON | IC_PUNCH)))
@@ -1047,7 +1081,8 @@ UINT32 CalculateCarriedWeight(SOLDIERTYPE const* const s)
 	for (auto const& invItem : s->inv)
 	{
 		grams weight = Weight(invItem);
-		if (GCM->getItem(invItem.usItem)->getPerPocket() > 1)
+		// a gun stack (vehicle cargo) weighs every gun (docs/gun-stacking-plan.md, G4)
+		if (GCM->getItem(invItem.usItem)->getPerPocket() > 1 || GCM->getItem(invItem.usItem)->isGun())
 		{
 			// Account for # of items
 			weight *= invItem.ubNumberOfObjects;
@@ -2618,6 +2653,22 @@ static BOOLEAN InternalAutoPlaceObject(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, 
 			break;
 		default:
 			break;
+	}
+
+	if (pSoldier->uiStatusFlags & SOLDIER_VEHICLE && pItem->isGun())
+	{
+		// docs/gun-stacking-plan.md, G9: in a vehicle's cargo, first top up
+		// the stacks of the same gun that it may join (CanGunsStack())
+		for (bSlot = BIGPOCK1POS; bSlot <= SMALLPOCK20POS; ++bSlot)
+		{
+			if (bSlot == bExcludeSlot) continue;
+			OBJECTTYPE const& in_slot = pSoldier->inv[bSlot];
+			if (in_slot.usItem != pObj->usItem || !CanGunsStack(in_slot, *pObj)) continue;
+			if (in_slot.ubNumberOfObjects >= SoldierSlotLimit(*pSoldier, pObj->usItem, bSlot)) continue;
+			PlaceObject(pSoldier, bSlot, pObj);
+			SetNewItem(pSoldier, bSlot, fNewItem);
+			if (pObj->ubNumberOfObjects == 0) return TRUE;
+		}
 	}
 
 	if (ubPerSlot == 0)

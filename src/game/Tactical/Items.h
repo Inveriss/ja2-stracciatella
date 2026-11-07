@@ -73,9 +73,21 @@ UINT8 ApplyBigPerPocketOverride( UINT16 usItem, INT8 bSlot, UINT8 ubSlotLimit );
 // How many of this item fit this soldier's own slot: ItemSlotLimit() with the
 // big pocket override, capped at MAX_OBJECTS_PER_SLOT; a vehicle's cargo
 // pockets take its vehicles.json slotLimitMultiplier times that -- not for
-// weapons or brass knuckles, nor for items that go one per slot. Money has
-// its own MoneySlotLimit().
+// weapons or brass knuckles, nor for items that go one per slot. Guns in a
+// vehicle's cargo pockets: its gunStackBigPocket / gunStackSmallPocket, never
+// more than GunStackSize() (docs/gun-stacking-plan.md, G9); a merc keeps one
+// gun per slot (G7). Money has its own MoneySlotLimit().
 UINT8 SoldierSlotLimit(SOLDIERTYPE const&, UINT16 usItem, INT8 bSlot);
+
+// docs/gun-stacking-plan.md: how many of this gun share one stack outside a
+// merc's own inventory -- weapons.json stackSize, else game.json
+// gun_stack_size, at most MAX_GUNS_PER_STACK (G3/G5). 1 for other items.
+UINT8 GunStackSize(UINT16 usItem);
+
+// How many of this item fit one sector inventory slot: GunStackSize() for
+// guns (G8), else the item's big pocket limit (ItemSlotLimit() with
+// BIGPOCK1POS); at most MAX_OBJECTS_PER_SLOT. 0 = one, it's a big item.
+UINT8 SectorSlotLimit(UINT16 usItem);
 
 // Function to put an item in a soldier profile
 // It's very primitive, just finds an empty place!

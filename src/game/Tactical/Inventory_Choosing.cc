@@ -535,7 +535,7 @@ static grams CarriedWeight(SOLDIERCREATE_STRUCT const* const pp)
 	{
 		if (o.usItem == NOTHING) continue;
 		grams weight = Weight(o);
-		if (GCM->getItem(o.usItem)->getPerPocket() > 1) weight *= o.ubNumberOfObjects;
+		if (GCM->getItem(o.usItem)->getPerPocket() > 1 || GCM->getItem(o.usItem)->isGun()) weight *= o.ubNumberOfObjects;
 		total += weight;
 	}
 	return total;

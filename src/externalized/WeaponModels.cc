@@ -695,6 +695,17 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 	};
 	readFamilies("attachmentsAllow", wep->attachmentsAllow);
 	readFamilies("attachmentsDeny",  wep->attachmentsDeny);
+
+	// docs/gun-stacking-plan.md, G3/G5: a gun stack holds at most 94 units
+	if (obj.has("stackSize"))
+	{
+		unsigned int const stackSize = obj.GetUInt("stackSize");
+		if (stackSize < 1 || stackSize > 94)
+		{
+			throw DataError(ST::format("stackSize of '{}' must be 1-94, not {}", wep->getInternalName(), stackSize));
+		}
+		wep->stackSize = static_cast<uint8_t>(stackSize);
+	}
 	wep->deserializeAttachmentFamily(obj);
 
 	wep->fFlags |= ItemModel::deserializeFlags(obj);

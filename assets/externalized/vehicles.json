@@ -18,6 +18,9 @@
  * - tacticalFuelPer100Tiles: Fuel (of 10000, a full tank) 100 tiles of driving on the tactical map cost on a road, twice that off the road (0-10000, default 200).
  * - travelTimePerSector: Minutes a CAR vehicle takes for a road sector on the strategic map (1-200, default 30); through a town always 5.
  * - fuelPerTravelMinute: Fuel (of 10000, a full tank) one minute of travel on the strategic map costs (0-100, default 6).
+ * - gunStackBigPocket: Guns of one kind in one big cargo pocket, never more than the gun's own stack size (weapons.json stackSize,
+ *   else game.json gun_stack_size); 0-94, default 0 = the gun's stack size.
+ * - gunStackSmallPocket: Guns of one kind in one small cargo pocket, only for guns that fit a small pocket at all (1-94, default 1).
  */
 [
     // Eldorado (unused)

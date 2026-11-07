@@ -42,6 +42,14 @@ items:
           type: array
           items:
             type: string
+        stackSize:
+          title: Stack size
+          description: |
+            Guns of this kind in one sector inventory slot (and a vehicle cargo slot, within the vehicle's limits), 1-94.
+            Default: game.json gun_stack_size (docs/gun-stacking-plan.md).
+          type: integer
+          minimum: 1
+          maximum: 94
         sound:
           title: Shot sound
           description: Path to sound that is played when a single shot is fired.
