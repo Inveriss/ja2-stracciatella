@@ -1823,6 +1823,16 @@
         "Stadt",
         "Einsetzen"
     ],
+    "pWeaponAttachmentStrings": [
+        "Level %d",
+        "Range",
+        "Aim",
+        "Scope",
+        "Prone",
+        "Noise",
+        "AP",
+        "Burst"
+    ],
     "pMilitiaWatchStrings": [
         "Kampf beobachten",
         "Möchten Sie den Kampf beobachten?",

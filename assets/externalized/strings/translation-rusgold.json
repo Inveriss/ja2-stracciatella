@@ -1823,6 +1823,16 @@
         "Город",
         "Разместить"
     ],
+    "pWeaponAttachmentStrings": [
+        "Level %d",
+        "Range",
+        "Aim",
+        "Scope",
+        "Prone",
+        "Noise",
+        "AP",
+        "Burst"
+    ],
     "pMilitiaWatchStrings": [
         "Наблюдать за боем",
         "Хотите наблюдать за боем?",

@@ -25,6 +25,10 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "WeaponModels.h"
+#include "WeaponAttachmentFamilyModel.h"
+#include "Weapons.h"
+#include <algorithm>
+#include <vector>
 
 #include <string_theory/format>
 #include <string_theory/string>
@@ -138,15 +142,16 @@ struct AttachmentInfo
 	bool                 attached;
 };
 
-static AttachmentInfo g_weapon_attachment[] =
+// The gun attachment buttons, built from the data (docs/weapon-attachments-plan.md,
+// W8): one button per attachment family the gun takes; a click steps through
+// none, level 1, level 2, level 3, none (the levels the family has)
+struct FamilyAttachmentButton
 {
-	AttachmentInfo(SILENCER,        "SILENCER"),
-	AttachmentInfo(SNIPERSCOPE,     "SNIPERSCOPE"),
-	AttachmentInfo(LASERSCOPE,      "LASERSCOPE"),
-	AttachmentInfo(BIPOD,           "BIPOD"),
-	AttachmentInfo(DUCKBILL,        "DUCKBILL"),
-	AttachmentInfo(UNDER_GLAUNCHER, "G-LAUNCHER")
+	ST::string          family;
+	std::vector<UINT16> levels; // attachment items by level
+	GUIButtonRef        button;
 };
+static std::vector<FamilyAttachmentButton> g_weapon_attachment_families;
 
 static AttachmentInfo g_ceramic_attachment(CERAMIC_PLATES, "CERAMIC PLATES");
 
@@ -640,6 +645,20 @@ static void ReEvaluateAttachmentStatii(void);
 static void ToggleWeaponAttachment(GUI_BUTTON* btn, UINT32 reason);
 
 
+// The attached level's short name (+ " L2"/" L3"), else the first level's
+static ST::string FamilyButtonLabel(FamilyAttachmentButton const& f)
+{
+	INT8 const slot = FindAttachmentOfFamily(*gpItem, f.family.c_str());
+	ItemModel const* const item = GCM->getItem(slot != ITEM_NOT_FOUND ? gpItem->usAttachItem[slot] : f.levels.front());
+	ST::string label = item->getShortName().empty() ? f.family : item->getShortName();
+	if (slot != ITEM_NOT_FOUND && item->getAttachmentLevel() > 1)
+	{
+		label += ST::format(" L{}", int(item->getAttachmentLevel()));
+	}
+	return label;
+}
+
+
 static void SetupGunGUI()
 {
 	ST::string str = ST::format("{}", gpItem->bGunStatus);
@@ -655,12 +674,37 @@ static void SetupGunGUI()
 	}
 
 	/* Attachments are a dynamic part of guns. None, some, or all attachments
-	 * could be available for a particular weapon. Show only the ones that we can
-	 * apply to this gun. */
-	INT16 y = EDITOR_TASKBAR_POS_Y + 23;
-	FOR_EACH(AttachmentInfo, i, g_weapon_attachment)
+	 * could be available for a particular weapon. Show only the families that
+	 * we can apply to this gun, one button each, in columns of 6. */
+	g_weapon_attachment_families.clear();
+	for (ItemModel const* const item : GCM->getItems())
 	{
-		if (MakeAttachmentButton(*i, 570, y, 60, ToggleWeaponAttachment)) y += 14;
+		auto const* const family = item->getAttachmentFamily();
+		if (!family || !ValidAttachment(item->getItemIndex(), gpItem->usItem)) continue;
+		auto it = std::find_if(g_weapon_attachment_families.begin(), g_weapon_attachment_families.end(),
+			[&](FamilyAttachmentButton const& f) { return f.family == family->name; });
+		if (it == g_weapon_attachment_families.end())
+		{
+			g_weapon_attachment_families.push_back(FamilyAttachmentButton{ family->name, {}, {} });
+			it = g_weapon_attachment_families.end() - 1;
+		}
+		it->levels.push_back(item->getItemIndex());
+	}
+
+	INT16 const top = EDITOR_TASKBAR_POS_Y + 23;
+	int n = 0;
+	for (FamilyAttachmentButton& f : g_weapon_attachment_families)
+	{
+		std::stable_sort(f.levels.begin(), f.levels.end(), [](UINT16 const a, UINT16 const b)
+		{
+			return GCM->getItem(a)->getAttachmentLevel() < GCM->getItem(b)->getAttachmentLevel();
+		});
+		INT16 const x = static_cast<INT16>(570 + (n / 6) * 62);
+		INT16 const y = static_cast<INT16>(top + (n % 6) * 14);
+		f.button = CreateTextButton(FamilyButtonLabel(f), SMALLCOMPFONT, FONT_YELLOW, FONT_BLACK, x, y, 60, 12, MSYS_PRIORITY_NORMAL, ToggleWeaponAttachment);
+		f.button->SetUserPtr(&f);
+		if (FindAttachmentOfFamily(*gpItem, f.family.c_str()) != ITEM_NOT_FOUND) f.button->uiFlags |= BUTTON_CLICKED_ON;
+		++n;
 	}
 
 	ReEvaluateAttachmentStatii();
@@ -669,11 +713,11 @@ static void SetupGunGUI()
 
 static void RemoveGunGUI(void)
 {
-	FOR_EACH(AttachmentInfo, i, g_weapon_attachment)
+	for (FamilyAttachmentButton& f : g_weapon_attachment_families)
 	{
-		GUIButtonRef& b = i->button;
-		if (b) RemoveButton(b);
+		if (f.button) RemoveButton(f.button);
 	}
+	g_weapon_attachment_families.clear();
 }
 
 
@@ -1179,11 +1223,43 @@ static void RemoveTriggersGUI(void)
 }
 
 
+// none -> level 1 -> level 2 -> level 3 -> none (the levels the family has)
+static void StepFamilyAttachment(FamilyAttachmentButton& f)
+{
+	OBJECTTYPE& o = *gpItem;
+	OBJECTTYPE  temp;
+
+	size_t next = 0;
+	INT8 const slot = FindAttachmentOfFamily(o, f.family.c_str());
+	if (slot != ITEM_NOT_FOUND)
+	{
+		auto const it = std::find(f.levels.begin(), f.levels.end(), o.usAttachItem[slot]);
+		next = static_cast<size_t>(it - f.levels.begin()) + 1;
+		RemoveAttachment(&o, slot, &temp);
+	}
+	if (next < f.levels.size())
+	{
+		CreateItem(f.levels[next], o.bStatus[0], &temp);
+		AttachObject(0, &o, &temp);
+	}
+
+	if (FindAttachmentOfFamily(o, f.family.c_str()) != ITEM_NOT_FOUND)
+	{
+		f.button->uiFlags |= BUTTON_CLICKED_ON;
+	}
+	else
+	{
+		f.button->uiFlags &= ~BUTTON_CLICKED_ON;
+	}
+	f.button->SpecifyText(FamilyButtonLabel(f));
+}
+
+
 static void ToggleWeaponAttachment(GUI_BUTTON* const btn, UINT32 const reason)
 {
 	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
 	{
-		ToggleAttachment(*btn->GetUserPtr<AttachmentInfo>());
+		StepFamilyAttachment(*btn->GetUserPtr<FamilyAttachmentButton>());
 		ReEvaluateAttachmentStatii();
 	}
 }
@@ -1368,13 +1444,12 @@ void UpdateActionItem( INT8 bActionItemIndex )
 
 static void ReEvaluateAttachmentStatii(void)
 {
-	FOR_EACH(AttachmentInfo, i, g_weapon_attachment)
+	for (FamilyAttachmentButton const& f : g_weapon_attachment_families)
 	{
-		AttachmentInfo const& a = *i;
-		if (!a.button) continue;
-		GUI_BUTTON& b = *a.button;
+		if (!f.button) continue;
+		GUI_BUTTON& b = *f.button;
 		if (b.Clicked()) continue;
-		EnableButton(&b, ValidItemAttachment(gpItem, a.attachment, TRUE));
+		EnableButton(&b, ValidItemAttachment(gpItem, f.levels.front(), TRUE));
 	}
 }
 

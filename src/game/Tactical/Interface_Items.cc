@@ -735,6 +735,9 @@ OBJECTTYPE *gpItemDescObject = NULL;
 static BOOLEAN gfItemDescObjectIsAttachment = FALSE;
 static ST::string gzItemName;
 static ST::string gzItemDesc;
+// the effects line of a weapon attachment under its description, e.g.
+// "Level 2 | Range +0 | Noise 0% | AP -1" (docs/weapon-attachments-plan.md)
+static ST::string gzItemAttachmentEffects;
 static ST::string gzItemPros;
 static ST::string gzItemCons;
 static INT16 gsInvDescX;
@@ -3612,6 +3615,32 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 }
 
 
+// "Level 2 | Range +0 | Noise 0% | AP -1": the attachment's level and every
+// effect that changes something or that its data gives (empty for an item
+// without a family)
+static ST::string AttachmentEffectsLine(ItemModel const& item)
+{
+	if (!item.getAttachmentFamily()) return {};
+
+	AttachmentEffects const& e = item.getAttachmentEffects();
+	ST::string line = st_format_printf(pWeaponAttachmentStrings[0], int(item.getAttachmentLevel()));
+	auto const add = [&](size_t const label, AttachmentEffect const effect, bool const given, int const neutral, char const* const unit, bool const sign)
+	{
+		int const value = AttachmentEffectValue(item, effect);
+		if (!given && value == neutral) return;
+		line += ST::format(" | {} {}{}{}", pWeaponAttachmentStrings[label], sign && value > 0 ? "+" : "", value, unit);
+	};
+	add(1, AttachmentEffect::Range,               e.rangeBonus.has_value(),          0, "",  true);
+	add(2, AttachmentEffect::Aim,                 e.aimBonus.has_value(),            0, "",  true);
+	add(3, AttachmentEffect::AimedShot,           e.aimedShotBonus.has_value(),      0, "%", true);
+	add(4, AttachmentEffect::Prone,               e.proneBonus.has_value(),          0, "%", true);
+	add(5, AttachmentEffect::AttackVolumePercent, e.attackVolumePercent.has_value(), 100, "%", false);
+	add(6, AttachmentEffect::APPerShot,           e.apPerShotChange.has_value(),     0, "",  true);
+	add(7, AttachmentEffect::BurstShots,          e.burstShotsBonus.has_value(),     0, "",  true);
+	return line;
+}
+
+
 static void ReloadItemDesc(void)
 {
 	auto itemId = gpItemDescObject->usItem;
@@ -3634,6 +3663,7 @@ static void ReloadItemDesc(void)
 	item = GCM->getItem(itemId);
 	gzItemName = item->getName();
 	gzItemDesc = item->getDescription();
+	gzItemAttachmentEffects = AttachmentEffectsLine(*item);
 }
 
 
@@ -4493,7 +4523,13 @@ void RenderItemDescriptionBox(void)
 			UINT32 const justify =
 				gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_ITEMS ||
 				(gMapItemDescLayout == MAP_ITEMDESC_LAYOUT_MONEY && gfMapItemDescArialBox) ? FULL_JUSTIFIED : LEFT_JUSTIFIED;
-			DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, gfMapItemDescArialBox ? FONT12ARIAL : ITEMDESC_FONT, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, justify);
+			SGPFont const font = gfMapItemDescArialBox ? FONT12ARIAL : ITEMDESC_FONT;
+			UINT16 const h = DisplayWrappedString(dx + box.x, dy + box.y, box.w, 2, font, FONT_FCOLOR_WHITE, gzItemDesc, FONT_MCOLOR_BLACK, justify);
+			// a weapon attachment's level and effects on the line(s) under its description
+			if (!gzItemAttachmentEffects.empty())
+			{
+				DisplayWrappedString(dx + box.x, dy + box.y + h, box.w, 2, font, FONT_FCOLOR_WHITE, gzItemAttachmentEffects, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
+			}
 		}
 	}
 

@@ -1823,6 +1823,16 @@
         "Città",
         "Schiera"
     ],
+    "pWeaponAttachmentStrings": [
+        "Level %d",
+        "Range",
+        "Aim",
+        "Scope",
+        "Prone",
+        "Noise",
+        "AP",
+        "Burst"
+    ],
     "pMilitiaWatchStrings": [
         "Osserva la battaglia",
         "Volete osservare la battaglia?",
