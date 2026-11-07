@@ -4107,6 +4107,25 @@ bool EnemyDropBlockedByProgress(UINT16 const usItem)
 }
 
 
+bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const* const s, OBJECTTYPE& o)
+{
+	return s == nullptr || ApplyEnemyDropProgressLimit(*s, o);
+}
+
+
+void MarkObjectPickedUpBy(SOLDIERTYPE const& s, OBJECTTYPE& o)
+{
+	if (s.bTeam == OUR_TEAM)
+	{
+		o.fFlags &= ~OBJECT_PICKED_UP;
+	}
+	else
+	{
+		o.fFlags |= OBJECT_PICKED_UP;
+	}
+}
+
+
 bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const& s, OBJECTTYPE& o)
 {
 	if (!gamepolicy(enemy_drop_progress_limits)) return true;

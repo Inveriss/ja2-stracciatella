@@ -100,6 +100,12 @@ bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 progress);
 // true when game.json enemy_drop_progress_limits is on and the item's
 // minDropProgress is above the highest game progress (an enemy can't drop it)
 bool EnemyDropBlockedByProgress(UINT16 usItem);
+// ApplyEnemyDropProgressLimit() for an item whose owner may be unknown (null:
+// no limit), e.g. the thrower of a knife
+bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const* s, OBJECTTYPE& o);
+// D9: soldier s picks o up from the world -- a non-player soldier marks it
+// OBJECT_PICKED_UP (it may be the player's own), a merc clears the mark
+void MarkObjectPickedUpBy(SOLDIERTYPE const& s, OBJECTTYPE& o);
 
 // Function to put an item in a soldier profile
 // It's very primitive, just finds an empty place!

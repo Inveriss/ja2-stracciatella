@@ -2007,13 +2007,17 @@ void StructureHit(BULLET* const pBullet, const UINT16 usStructureID, const INT32
 				// OK, have we hit ground?
 				if ( usStructureID == INVALID_STRUCTURE_ID )
 				{
-					// Add item
+					// Add item (an enemy's knife below its minDropProgress is lost,
+					// docs/enemy-drop-progress-plan.md D8)
 					CreateItem( THROWING_KNIFE, bWeaponStatus, &Object );
 
-					AddItemToPool(sGridNo, &Object, INVISIBLE, 0, 0, -1);
+					if (ApplyEnemyDropProgressLimit(attacker, Object))
+					{
+						AddItemToPool(sGridNo, &Object, INVISIBLE, 0, 0, -1);
 
-					// Make team look for items
-					NotifySoldiersToLookforItems( );
+						// Make team look for items
+						NotifySoldiersToLookforItems( );
+					}
 				}
 
 				if ( !fHitSameStructureAsBefore )
@@ -2543,11 +2547,15 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 				// since barrel extenders are not removable we cannot call RemoveAttachment here
 				// and must create the item by hand
 				CreateItem(pInHand->usAttachItem[bAttachPos], pInHand->bAttachStatus[bAttachPos], &Temp);
+				// it came from the gun, so it shares the gun's picked-up mark (D9)
+				Temp.fFlags |= pInHand->fFlags & OBJECT_PICKED_UP;
 				pInHand->usAttachItem[ bAttachPos ] = NOTHING;
 				pInHand->bAttachStatus[ bAttachPos ] = 0;
 
-				// drop it to ground (militia never leave anything behind: it's just lost)
-				if (pSoldier->bTeam != MILITIA_TEAM)
+				// drop it to ground (militia never leave anything behind: it's just lost;
+				// an enemy's extender below its minDropProgress is lost too,
+				// docs/enemy-drop-progress-plan.md D8)
+				if (pSoldier->bTeam != MILITIA_TEAM && ApplyEnemyDropProgressLimit(*pSoldier, Temp))
 				{
 					AddItemToPool(pSoldier->sGridNo, &Temp, VISIBLE, pSoldier->bLevel, 0, -1);
 				}

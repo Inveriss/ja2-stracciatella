@@ -1840,21 +1840,24 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 	{
 		// Place knife on guy....
 
-		// See if they have room ( and make sure it's not in hand pos?
-		bSlot = FindEmptySlotWithin(&tgt, BIGPOCK1POS, SMALLPOCK20POS );
-		if (bSlot == NO_SLOT)
+		// an enemy's knife below its minDropProgress is lost, neither on the
+		// ground nor in the target's pocket (docs/enemy-drop-progress-plan.md D8)
+		CreateItem(BLOODY_THROWING_KNIFE, (INT8) pBullet->ubItemStatus, &Object);
+		if (ApplyEnemyDropProgressLimit(pFirer, Object))
 		{
-			// Add item
-			CreateItem(BLOODY_THROWING_KNIFE, (INT8) pBullet->ubItemStatus, &Object);
+			// See if they have room ( and make sure it's not in hand pos?
+			bSlot = FindEmptySlotWithin(&tgt, BIGPOCK1POS, SMALLPOCK20POS );
+			if (bSlot == NO_SLOT)
+			{
+				AddItemToPool(tgt.sGridNo, &Object, INVISIBLE, tgt.bLevel, 0, 0);
 
-			AddItemToPool(tgt.sGridNo, &Object, INVISIBLE, tgt.bLevel, 0, 0);
-
-			// Make team look for items
-			NotifySoldiersToLookforItems( );
-		}
-		else
-		{
-			CreateItem(BLOODY_THROWING_KNIFE, (INT8) pBullet->ubItemStatus, &tgt.inv[bSlot]);
+				// Make team look for items
+				NotifySoldiersToLookforItems( );
+			}
+			else
+			{
+				tgt.inv[bSlot] = Object;
+			}
 		}
 
 		ubAmmoType = AMMO_KNIFE;
@@ -4126,13 +4129,11 @@ void MoveBullet(BULLET* const pBullet)
 													}
 												}
 
-												if ( sDesiredLevel == STRUCTURE_ON_GROUND )
+												// an enemy's knife below its minDropProgress
+												// is lost (docs/enemy-drop-progress-plan.md D8)
+												if (ApplyEnemyDropProgressLimit(pBullet->pFirer, Object))
 												{
-													AddItemToPool(iKnifeGridNo, &Object, INVISIBLE, 0, 0, 0);
-												}
-												else
-												{
-													AddItemToPool(iKnifeGridNo, &Object, INVISIBLE, 0, 1, 0);
+													AddItemToPool(iKnifeGridNo, &Object, INVISIBLE, 0, sDesiredLevel == STRUCTURE_ON_GROUND ? 0 : 1, 0);
 												}
 
 												// Make team look for items

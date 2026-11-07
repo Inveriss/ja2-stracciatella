@@ -365,4 +365,32 @@ TEST_F(DropProgressTest, blockedItemForTheWeaponDropRecord)
 	gStrategicStatus.ubHighestProgress = saved;
 }
 
+
+TEST_F(DropProgressTest, pickingUpMarksTheObject)
+{
+	SetMinDrop(GLOCK_17, 50);
+	UINT8 const saved = gStrategicStatus.ubHighestProgress;
+	gStrategicStatus.ubHighestProgress = 0;
+	auto enemy = SOLDIERTYPE{};
+	enemy.bTeam = ENEMY_TEAM;
+	auto merc = SOLDIERTYPE{};
+	merc.bTeam = OUR_TEAM;
+
+	// an enemy picks up the player's Glock: it may drop again
+	OBJECTTYPE o = Gun(90);
+	MarkObjectPickedUpBy(enemy, o);
+	EXPECT_TRUE(o.fFlags & OBJECT_PICKED_UP);
+	EXPECT_TRUE(ApplyEnemyDropProgressLimit(enemy, o));
+
+	// a merc takes it: the mark goes away
+	MarkObjectPickedUpBy(merc, o);
+	EXPECT_FALSE(o.fFlags & OBJECT_PICKED_UP);
+	EXPECT_FALSE(ApplyEnemyDropProgressLimit(enemy, o));
+
+	// an unknown owner is never limited
+	EXPECT_TRUE(ApplyEnemyDropProgressLimit(static_cast<SOLDIERTYPE const*>(nullptr), o));
+	EXPECT_FALSE(ApplyEnemyDropProgressLimit(&enemy, o));
+	gStrategicStatus.ubHighestProgress = saved;
+}
+
 #endif
