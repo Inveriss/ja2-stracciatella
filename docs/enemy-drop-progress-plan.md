@@ -1,6 +1,7 @@
 # Enemy drops limited by game progress - plan
 
-Status: **stage 1 game-verified and committed, stages 2-4 to do; D1-D12 decided.**
+Status: **stage 1 game-verified and committed (83abcf774), stage 2 game-verified and committed,
+stages 3-4 to do; D1-D12 decided.**
 Written 2026-11-07 from an analysis of branch `Item_Limits` at 63390995c. Line numbers
 must be re-checked before implementation.
 
@@ -10,6 +11,12 @@ the check is `ApplyDropProgressLimit(o, progress)`, the soldier part
 `ApplyEnemyDropProgressLimit(s, o)`. Bit 0x02 (`OBJECT_PICKED_UP`) was never set by any
 code, so map data can't carry it. A gun's loaded magazine is not limited (only the gun
 and its attachments, D4).
+
+Stage 2 notes: path A (`Rotting_Corpses.cc`), path B (`Tactical_Save.cc`) and path C
+(`Soldier_Control.cc`, the hand item stays in the hand) call `ApplyEnemyDropProgressLimit()`;
+D10 uses `EnemyDropBlockedByProgress(usItem)` in `Inventory_Choosing.cc`. The test mod
+`item-limits-test` already has the stage 4 thresholds: `LASERSCOPE` 80, `SILENCER` 50,
+`GLOCK_17` 30.
 
 Related: [item-limits-plan.md](item-limits-plan.md),
 [weapon-attachments-plan.md](weapon-attachments-plan.md).

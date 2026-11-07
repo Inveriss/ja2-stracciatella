@@ -346,4 +346,23 @@ TEST_F(DropProgressTest, pickedUpObjectsAndSwitchOffAreNotLimited)
 	gStrategicStatus.ubHighestProgress = saved;
 }
 
+
+TEST_F(DropProgressTest, blockedItemForTheWeaponDropRecord)
+{
+	SetMinDrop(GLOCK_17, 50);
+	UINT8 const saved = gStrategicStatus.ubHighestProgress;
+	gStrategicStatus.ubHighestProgress = 49;
+	EXPECT_TRUE(EnemyDropBlockedByProgress(GLOCK_17));
+	EXPECT_FALSE(EnemyDropBlockedByProgress(G41));
+	EXPECT_FALSE(EnemyDropBlockedByProgress(NOTHING));
+	gStrategicStatus.ubHighestProgress = 50;
+	EXPECT_FALSE(EnemyDropBlockedByProgress(GLOCK_17));
+
+	gStrategicStatus.ubHighestProgress = 0;
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = false;
+	EXPECT_FALSE(EnemyDropBlockedByProgress(GLOCK_17));
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = true;
+	gStrategicStatus.ubHighestProgress = saved;
+}
+
 #endif

@@ -52,6 +52,7 @@
 #include <stdexcept>
 
 
+
 constexpr UINT8 ANY_MAGSIZE = 255; // magic number for FindAmmo's mag_size parameter
 
 struct AttachmentInfoStruct
@@ -4096,6 +4097,13 @@ bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 const progress)
 		o.bAttachStatus[i] = 0;
 	}
 	return true;
+}
+
+
+bool EnemyDropBlockedByProgress(UINT16 const usItem)
+{
+	if (!gamepolicy(enemy_drop_progress_limits) || usItem == NOTHING) return false;
+	return GCM->getItem(usItem)->getMinDropProgress() > HighestPlayerProgressPercentage();
 }
 
 

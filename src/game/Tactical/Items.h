@@ -97,6 +97,9 @@ UINT8 SectorSlotLimit(UINT16 usItem);
 bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const& s, OBJECTTYPE& o);
 // the item part of the above with a given progress
 bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 progress);
+// true when game.json enemy_drop_progress_limits is on and the item's
+// minDropProgress is above the highest game progress (an enemy can't drop it)
+bool EnemyDropBlockedByProgress(UINT16 usItem);
 
 // Function to put an item in a soldier profile
 // It's very primitive, just finds an empty place!
