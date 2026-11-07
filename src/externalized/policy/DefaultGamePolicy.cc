@@ -22,6 +22,7 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	starting_cash_hard = gp.getOptionalInt("starting_cash_hard", 30000);
 
 	f_drop_everything = gp.getOptionalBool("drop_everything");
+	enemy_drop_progress_limits = gp.getOptionalBool("enemy_drop_progress_limits", true);
 	f_all_dropped_visible = gp.getOptionalBool("all_drops_visible");
 
 	multiple_interrupts = gp.getOptionalBool("multiple_interrupts");

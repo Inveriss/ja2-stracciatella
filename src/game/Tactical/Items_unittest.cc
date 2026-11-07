@@ -1,6 +1,7 @@
 #ifdef WITH_UNITTESTS
 
-// Gun stacks with a condition per unit, docs/gun-stacking-plan.md stage 1.
+// Gun stacks with a condition per unit, docs/gun-stacking-plan.md stage 1,
+// and enemy drops limited by progress, docs/enemy-drop-progress-plan.md.
 
 #include "DefaultContentManager.h"
 #include "DefaultContentManagerUT.h"
@@ -9,6 +10,10 @@
 #include "Items.h"
 #include "LoadSaveData.h"
 #include "LoadSaveObjectType.h"
+#include "GamePolicy.h"
+#include "ItemModel.h"
+#include "Soldier_Control.h"
+#include "Strategic_Status.h"
 
 #include "gtest/gtest.h"
 
@@ -234,6 +239,111 @@ TEST_F(GunStackTest, saveKeepsEveryUnitCondition)
 	EXPECT_EQ(UnitStatus(loaded, 1), 40);
 	EXPECT_EQ(UnitStatus(loaded, 2), 70);
 	ExpectSameAmmo(loaded, a);
+}
+
+
+// Enemy drops limited by game progress, docs/enemy-drop-progress-plan.md stage 1.
+
+namespace {
+
+struct DropProgressTest : public GunStackTest
+{
+	static void SetMinDrop(UINT16 const item, UINT8 const progress)
+	{
+		const_cast<ItemModel*>(GCM->getItem(item))->setMinDropProgress(progress);
+	}
+
+	static OBJECTTYPE ScopedGun()
+	{
+		OBJECTTYPE o = Gun(90);
+		o.usAttachItem[0]  = LASERSCOPE;
+		o.bAttachStatus[0] = 80;
+		return o;
+	}
+};
+
+}
+
+
+TEST_F(DropProgressTest, itemsWithoutThresholdAlwaysDrop)
+{
+	EXPECT_EQ(GCM->getItem(GLOCK_17)->getMinDropProgress(), 0);
+	OBJECTTYPE o = ScopedGun();
+	EXPECT_TRUE(ApplyDropProgressLimit(o, 0));
+	EXPECT_EQ(o.usAttachItem[0], LASERSCOPE);
+}
+
+
+TEST_F(DropProgressTest, itemBelowItsThresholdDoesNotDrop)
+{
+	SetMinDrop(GLOCK_17, 30);
+	OBJECTTYPE o = ScopedGun();
+	EXPECT_FALSE(ApplyDropProgressLimit(o, 29));
+	EXPECT_TRUE(ApplyDropProgressLimit(o, 30));
+	EXPECT_TRUE(ApplyDropProgressLimit(o, 100));
+	OBJECTTYPE nothing{};
+	EXPECT_TRUE(ApplyDropProgressLimit(nothing, 0));
+}
+
+
+TEST_F(DropProgressTest, blockedAttachmentIsRemoved)
+{
+	SetMinDrop(LASERSCOPE, 80);
+	OBJECTTYPE o = ScopedGun();
+	EXPECT_TRUE(ApplyDropProgressLimit(o, 80));
+	EXPECT_EQ(o.usAttachItem[0], LASERSCOPE);
+	EXPECT_EQ(o.bAttachStatus[0], 80);
+
+	EXPECT_TRUE(ApplyDropProgressLimit(o, 79));
+	EXPECT_EQ(o.usAttachItem[0], NOTHING);
+	EXPECT_EQ(o.bAttachStatus[0], 0);
+	EXPECT_EQ(o.usItem, GLOCK_17);
+	EXPECT_EQ(o.bGunStatus, 90);
+}
+
+
+TEST_F(DropProgressTest, onlyTheEnemyTeamIsLimited)
+{
+	SetMinDrop(GLOCK_17, 50);
+	UINT8 const saved = gStrategicStatus.ubHighestProgress;
+	gStrategicStatus.ubHighestProgress = 20;
+
+	auto s = SOLDIERTYPE{};
+	OBJECTTYPE o = Gun(90);
+	s.bTeam = ENEMY_TEAM;
+	EXPECT_FALSE(ApplyEnemyDropProgressLimit(s, o));
+	for (INT8 const team : { OUR_TEAM, MILITIA_TEAM, CIV_TEAM, CREATURE_TEAM })
+	{
+		s.bTeam = team;
+		EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, o));
+	}
+
+	// the record reaches the threshold
+	s.bTeam = ENEMY_TEAM;
+	gStrategicStatus.ubHighestProgress = 50;
+	EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, o));
+	gStrategicStatus.ubHighestProgress = saved;
+}
+
+
+TEST_F(DropProgressTest, pickedUpObjectsAndSwitchOffAreNotLimited)
+{
+	SetMinDrop(GLOCK_17, 50);
+	UINT8 const saved = gStrategicStatus.ubHighestProgress;
+	gStrategicStatus.ubHighestProgress = 0;
+	auto s = SOLDIERTYPE{};
+	s.bTeam = ENEMY_TEAM;
+
+	OBJECTTYPE o = Gun(90);
+	o.fFlags |= OBJECT_PICKED_UP;
+	EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, o));
+
+	OBJECTTYPE p = Gun(90);
+	ASSERT_TRUE(gamepolicy(enemy_drop_progress_limits));
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = false;
+	EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, p));
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = true;
+	gStrategicStatus.ubHighestProgress = saved;
 }
 
 #endif

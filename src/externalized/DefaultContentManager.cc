@@ -680,7 +680,7 @@ bool DefaultContentManager::loadWeapons(const BinaryData& vanillaItemStrings)
 		WeaponModel *w = WeaponModel::deserialize(element, m_calibreMap, m_explosiveCalibres, vanillaItemStrings);
 		SLOGD("Loaded weapon {} {}", w->getItemIndex(), w->getInternalName());
 
-		registerItem(w, ItemDataFile::WEAPONS);
+		registerItem(w, ItemDataFile::WEAPONS, element);
 		m_weaponMap.try_emplace(w->getInternalName(), w);
 	}
 
@@ -694,7 +694,7 @@ bool DefaultContentManager::loadArmours(const BinaryData& vanillaItemStrings)
 		ArmourModel *a = ArmourModel::deserialize(element, vanillaItemStrings);
 		SLOGD("Loaded armour {} {}", a->getItemIndex(), a->getInternalName());
 
-		registerItem(a, ItemDataFile::ARMOURS);
+		registerItem(a, ItemDataFile::ARMOURS, element);
 		m_armourMap.try_emplace(a->getInternalName(), a);
 	}
 
@@ -790,7 +790,7 @@ bool DefaultContentManager::loadExplosives(const BinaryData& vanillaItemStrings,
 		ExplosiveModel *e = ExplosiveModel::deserialize(element, m_explosiveCalibres, m_smokeEffects, m_explosionAnimations, vanillaItemStrings);
 		SLOGD("Loaded explosive {} {}", e->getItemIndex(), e->getInternalName());
 
-		registerItem(e, ItemDataFile::EXPLOSIVES);
+		registerItem(e, ItemDataFile::EXPLOSIVES, element);
 		m_explosiveMap.insert(std::make_pair(e->getInternalName(), e));
 	}
 	return true;
@@ -813,7 +813,7 @@ bool DefaultContentManager::loadItems(const BinaryData& vanillaItemStrings)
 			continue;
 		}
 
-		registerItem(item, ItemDataFile::ITEMS);
+		registerItem(item, ItemDataFile::ITEMS, el);
 	}
 
 	return true;
@@ -894,7 +894,7 @@ bool DefaultContentManager::loadWeaponAttachmentFamilies()
 	return true;
 }
 
-void DefaultContentManager::registerItem(const ItemModel* const item, ItemDataFile const file)
+void DefaultContentManager::registerItem(const ItemModel* const item, ItemDataFile const file, const JsonValue& json)
 {
 	ST::string const err = CheckItemIndexBlock(*item, file);
 	if (!err.empty())
@@ -902,6 +902,17 @@ void DefaultContentManager::registerItem(const ItemModel* const item, ItemDataFi
 		delete item;
 		throw DataError(err);
 	}
+
+	// docs/enemy-drop-progress-plan.md (D1): every item file may set it
+	unsigned int const minDropProgress = json.toObject().getOptionalUInt("minDropProgress", 0);
+	if (minDropProgress > 100)
+	{
+		ST::string const bad = ST::format("{}: minDropProgress of item '{}' must be 0-100, not {}",
+			ItemDataFileName(file), item->getInternalName(), minDropProgress);
+		delete item;
+		throw DataError(bad);
+	}
+	const_cast<ItemModel*>(item)->setMinDropProgress(static_cast<uint8_t>(minDropProgress));
 
 	auto const idx = item->getItemIndex();
 	const ItemModel*& slot = m_items.at(idx);
@@ -946,7 +957,7 @@ bool DefaultContentManager::loadMagazines(const BinaryData& vanillaItemStrings)
 		MagazineModel *mag = MagazineModel::deserialize(element, m_calibreMap, m_ammoTypeMap, vanillaItemStrings);
 		SLOGD("Loaded magazine {} {}", mag->getItemIndex(), mag->getInternalName());
 
-		registerItem(mag, ItemDataFile::MAGAZINES);
+		registerItem(mag, ItemDataFile::MAGAZINES, element);
 		m_magazines.push_back(mag);
 		m_magazineMap.insert(std::make_pair(mag->getInternalName(), mag));
 	}

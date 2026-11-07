@@ -341,7 +341,9 @@ protected:
 	bool loadWeaponAttachmentFamilies();
 	/* Puts a loaded item into m_items. Throws DataError when its index is outside
 	 * the block of its data file or already used (docs/item-limits-plan.md). */
-	void registerItem(const ItemModel* item, ItemDataFile file);
+	// json: the item's own data, for the fields every item file shares
+	// (minDropProgress)
+	void registerItem(const ItemModel* item, ItemDataFile file, const JsonValue& json);
 	/* Fills every index that no data file defines with a placeholder item, so
 	 * m_items has no null entries. */
 	void fillUnusedItemIndices();

@@ -145,6 +145,12 @@ struct ItemModel
 	const WeaponAttachmentFamilyModel* getAttachmentFamily() const { return attachmentFamily; }
 	void setAttachmentFamily(const WeaponAttachmentFamilyModel* family) { attachmentFamily = family; }
 
+	// The lowest highest-game-progress (0-100) at which an enemy may leave this
+	// item behind ("minDropProgress", 0 = always), docs/enemy-drop-progress-plan.md;
+	// set by the content manager when the item is registered
+	uint8_t getMinDropProgress() const { return minDropProgress; }
+	void setMinDropProgress(uint8_t const progress) { minDropProgress = progress; }
+
 	struct InitData
 	{
 		JsonObject const& json;
@@ -205,6 +211,7 @@ protected:
 	uint8_t           attachmentLevel = 0;
 	AttachmentEffects attachmentEffects;
 	const WeaponAttachmentFamilyModel* attachmentFamily = nullptr;
+	uint8_t           minDropProgress = 0;
 };
 
 // the AP cost of a throw when the data has none, see docs/throws-ap-plan.md

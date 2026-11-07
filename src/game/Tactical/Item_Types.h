@@ -66,7 +66,10 @@ enum DetonatorType
 #define PANIC_FREQUENCY_3		125
 
 #define OBJECT_UNDROPPABLE		0x01
-// 0x02 was the unused OBJECT_MODIFIED
+// a non-player soldier picked the object up from the world, so it may be the
+// player's own: never limited by minDropProgress (docs/enemy-drop-progress-plan.md,
+// D9); was the unused OBJECT_MODIFIED
+#define OBJECT_PICKED_UP		0x02
 #define OBJECT_AI_UNUSABLE		0x04
 #define OBJECT_ARMED_BOMB		0x08
 #define OBJECT_KNOWN_TO_BE_TRAPPED	0x10

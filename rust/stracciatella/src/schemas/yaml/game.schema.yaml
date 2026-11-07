@@ -88,6 +88,14 @@ properties:
       Will enemies drop ALL of their equipment when they die?
 
       Vanilla setting: `false`
+  enemy_drop_progress_limits:
+    type: boolean
+    title: Enemy drops limited by game progress
+    description: |
+      Will enemies never leave behind an item before the game's highest progress (0-100)
+      reaches the item's own minDropProgress? Items without it always drop.
+
+      Vanilla setting: `false`
   all_drops_visible:
     type: boolean
     title: All drops visible

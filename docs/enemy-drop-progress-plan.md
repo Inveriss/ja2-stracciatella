@@ -1,7 +1,15 @@
 # Enemy drops limited by game progress - plan
 
-Status: **plan only, nothing implemented; D1-D12 decided.** Written 2026-11-07 from an analysis of branch
-`Item_Limits` at 63390995c. Line numbers must be re-checked before implementation.
+Status: **stage 1 game-verified and committed, stages 2-4 to do; D1-D12 decided.**
+Written 2026-11-07 from an analysis of branch `Item_Limits` at 63390995c. Line numbers
+must be re-checked before implementation.
+
+Stage 1 notes: `minDropProgress` is read in `DefaultContentManager::registerItem()`, so
+every item file (items, weapons, magazines, armours, explosives) has it; the item part of
+the check is `ApplyDropProgressLimit(o, progress)`, the soldier part
+`ApplyEnemyDropProgressLimit(s, o)`. Bit 0x02 (`OBJECT_PICKED_UP`) was never set by any
+code, so map data can't carry it. A gun's loaded magazine is not limited (only the gun
+and its attachments, D4).
 
 Related: [item-limits-plan.md](item-limits-plan.md),
 [weapon-attachments-plan.md](weapon-attachments-plan.md).

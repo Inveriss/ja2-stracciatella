@@ -4081,6 +4081,33 @@ void TurnOffXRayEffects( SOLDIERTYPE * pSoldier )
 }
 
 
+bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 const progress)
+{
+	if (o.usItem == NOTHING) return true;
+	if (GCM->getItem(o.usItem)->getMinDropProgress() > progress) return false;
+
+	// D4: a blocked attachment is lost, the item itself still drops
+	for (UINT8 i = 0; i != MAX_ATTACHMENTS; ++i)
+	{
+		UINT16 const attachment = o.usAttachItem[i];
+		if (attachment == NOTHING) continue;
+		if (GCM->getItem(attachment)->getMinDropProgress() <= progress) continue;
+		o.usAttachItem[i]  = NOTHING;
+		o.bAttachStatus[i] = 0;
+	}
+	return true;
+}
+
+
+bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const& s, OBJECTTYPE& o)
+{
+	if (!gamepolicy(enemy_drop_progress_limits)) return true;
+	if (s.bTeam != ENEMY_TEAM) return true;   // D5
+	if (o.fFlags & OBJECT_PICKED_UP) return true; // D9
+	return ApplyDropProgressLimit(o, HighestPlayerProgressPercentage()); // D2
+}
+
+
 bool HasObjectImprint(OBJECTTYPE const& o)
 {
 	return (o.usItem == ROCKET_RIFLE || o.usItem == AUTO_ROCKET_RIFLE) &&

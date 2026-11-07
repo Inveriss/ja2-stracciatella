@@ -44,6 +44,9 @@ public:
 
 	/* Battle */
 	bool f_drop_everything;               /**< Enemy drop all equipment. */
+	// an enemy never leaves behind an item below its minDropProgress
+	// (docs/enemy-drop-progress-plan.md, D11)
+	bool enemy_drop_progress_limits;
 	bool f_all_dropped_visible;           /**< All dropped equipment is visible right away. */
 
 	bool multiple_interrupts;             // can interrupt more than once per turn

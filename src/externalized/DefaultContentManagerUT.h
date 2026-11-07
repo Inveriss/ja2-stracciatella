@@ -22,7 +22,7 @@ public:
 	void setImagePNGOverride(bool value);
 
 	/** Registers an item as a data file would (index block and duplicate checks). */
-	void registerItemForTesting(const ItemModel* item, ItemDataFile file) { registerItem(item, file); }
+	void registerItemForTesting(const ItemModel* item, ItemDataFile file) { registerItem(item, file, JsonObject().toValue()); }
 
 #ifdef WITH_UNITTESTS
 

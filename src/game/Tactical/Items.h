@@ -89,6 +89,15 @@ UINT8 GunStackSize(UINT16 usItem);
 // BIGPOCK1POS); at most MAX_OBJECTS_PER_SLOT. 0 = one, it's a big item.
 UINT8 SectorSlotLimit(UINT16 usItem);
 
+// docs/enemy-drop-progress-plan.md: may soldier s leave object o behind?
+// For ENEMY_TEAM with game.json enemy_drop_progress_limits on, an item whose
+// minDropProgress is above the highest game progress must not drop (false);
+// attachments above it are removed from o and lost (D4). True for every
+// other team and for an object the soldier picked up (OBJECT_PICKED_UP, D9).
+bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const& s, OBJECTTYPE& o);
+// the item part of the above with a given progress
+bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 progress);
+
 // Function to put an item in a soldier profile
 // It's very primitive, just finds an empty place!
 BOOLEAN PlaceObjectInSoldierProfile( UINT8 ubProfile, OBJECTTYPE *pObject );

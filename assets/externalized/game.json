@@ -65,6 +65,11 @@
   //  vanilla setting: false
   "drop_everything": true,
 
+  //  Will enemies never leave behind an item before the game's highest progress (0-100)
+  //  reaches the item's own "minDropProgress"? Items without it always drop.
+  //  vanilla setting: false (there is no minDropProgress in vanilla)
+  "enemy_drop_progress_limits": true,
+
   //  Will dropped items always be visible to the player, regardless of distance?
   //  vanilla setting: false
   "all_drops_visible": true,
