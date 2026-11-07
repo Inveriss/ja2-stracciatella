@@ -265,9 +265,21 @@ struct DropProgressTest : public GunStackTest
 }
 
 
+TEST_F(DropProgressTest, baseDataStartsFromCoolness)
+{
+	// placeholder values until they are tuned: ubCoolness x 10
+	for (UINT16 const item : { GLOCK_17, G41, LASERSCOPE, CLIP9_15, FIRSTAIDKIT })
+	{
+		ItemModel const* const m = GCM->getItem(item);
+		EXPECT_EQ(m->getMinDropProgress(), m->getCoolness() * 10) << m->getInternalName().c_str();
+	}
+}
+
+
 TEST_F(DropProgressTest, itemsWithoutThresholdAlwaysDrop)
 {
-	EXPECT_EQ(GCM->getItem(GLOCK_17)->getMinDropProgress(), 0);
+	SetMinDrop(GLOCK_17, 0);
+	SetMinDrop(LASERSCOPE, 0);
 	OBJECTTYPE o = ScopedGun();
 	EXPECT_TRUE(ApplyDropProgressLimit(o, 0));
 	EXPECT_EQ(o.usAttachItem[0], LASERSCOPE);
@@ -277,6 +289,7 @@ TEST_F(DropProgressTest, itemsWithoutThresholdAlwaysDrop)
 TEST_F(DropProgressTest, itemBelowItsThresholdDoesNotDrop)
 {
 	SetMinDrop(GLOCK_17, 30);
+	SetMinDrop(LASERSCOPE, 0);
 	OBJECTTYPE o = ScopedGun();
 	EXPECT_FALSE(ApplyDropProgressLimit(o, 29));
 	EXPECT_TRUE(ApplyDropProgressLimit(o, 30));
@@ -288,6 +301,7 @@ TEST_F(DropProgressTest, itemBelowItsThresholdDoesNotDrop)
 
 TEST_F(DropProgressTest, blockedAttachmentIsRemoved)
 {
+	SetMinDrop(GLOCK_17, 0);
 	SetMinDrop(LASERSCOPE, 80);
 	OBJECTTYPE o = ScopedGun();
 	EXPECT_TRUE(ApplyDropProgressLimit(o, 80));
@@ -350,6 +364,7 @@ TEST_F(DropProgressTest, pickedUpObjectsAndSwitchOffAreNotLimited)
 TEST_F(DropProgressTest, blockedItemForTheWeaponDropRecord)
 {
 	SetMinDrop(GLOCK_17, 50);
+	SetMinDrop(G41, 0);
 	UINT8 const saved = gStrategicStatus.ubHighestProgress;
 	gStrategicStatus.ubHighestProgress = 49;
 	EXPECT_TRUE(EnemyDropBlockedByProgress(GLOCK_17));

@@ -8,7 +8,11 @@ Written 2026-11-07 from an analysis of branch `Item_Limits` at 63390995c.
 | 1 - data, switch, check | 83abcf774 | game-verified |
 | 2 - deaths, auto-resolve, knocked-out items, D10 | b5328ccb4 | game-verified |
 | 3 - barrel extenders, thrown knives, pickups (D9) | ebcb32104 | game-verified |
-| 4 - test mod and status | this commit | test mod `item-limits-test` 1.5.0 (outside the repository) |
+| 4 - test mod and status | 3e3c16cc7 | test mod `item-limits-test` 1.5.0 (outside the repository) |
+
+Base data (2026-11-07): every item in items/weapons/magazines/armours/explosives.json has
+`"minDropProgress"` just above `"ubCoolness"`, set to `ubCoolness` x 10 as a placeholder
+(coolness 0 gives 0); the values are tuned at a later stage of the project.
 
 Stage 1 notes: `minDropProgress` is read in `DefaultContentManager::registerItem()`, so
 every item file (items, weapons, magazines, armours, explosives) has it; the item part of
