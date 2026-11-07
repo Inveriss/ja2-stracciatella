@@ -105,8 +105,10 @@ struct STRATEGIC_STATUS
 	// bit per quest that has already given game progress (docs/game-progress-plan.md):
 	// a quest counts once, even if it is set back and completed again
 	UINT8			ubGameProgressQuestsDone[4];
+	// highest full 10% step of the game progress already announced in the message history
+	UINT8			ubGameProgressAnnounced;
 
-	INT8 bPadding[66]; // XXX HACK000B
+	INT8 bPadding[65]; // XXX HACK000B
 };
 
 

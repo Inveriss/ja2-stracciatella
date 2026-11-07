@@ -6,6 +6,8 @@
 
 #include <string_theory/string>
 
+#include <vector>
+
 
 enum StatKind
 {
@@ -89,6 +91,10 @@ UINT8 GameProgressDoneQuests(void);
 bool  IsGameProgressQuest(UINT8 ubQuest);
 void  GameProgressNoteQuestDone(UINT8 ubQuest);
 UINT8 GameProgressPercentage(void);
+// the full 10% steps (10..100) reached since the last call; each step only once
+std::vector<UINT8> GameProgressNewMilestones(void);
+// "You have reached N% game progress." in the message history for each new step
+void HandleGameProgressMilestones(void);
 
 void HourlyProgressUpdate(void);
 

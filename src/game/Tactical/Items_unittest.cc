@@ -260,6 +260,7 @@ struct DropProgressTest : public GunStackTest
 		for (auto& si : SectorInfo) si.uiFlags &= ~SF_PROGRESS_VISITED;
 		for (auto& q : gubQuest) q = QUESTNOTSTARTED;
 		for (auto& b : gStrategicStatus.ubGameProgressQuestsDone) b = 0;
+		gStrategicStatus.ubGameProgressAnnounced = 0;
 	}
 
 	static void SetGameProgress(UINT8 const p)
@@ -550,6 +551,45 @@ TEST_F(DropProgressTest, dealerStockFollowsMinDropProgress)
 	SetMinDrop(FIRSTAIDKIT, GCM->getItem(FIRSTAIDKIT)->getCoolness() * 10);
 	ClearGameProgress();
 	gStrategicStatus.ubHighestProgress = savedHighest;
+}
+
+
+// docs/game-progress-plan.md: each full 10% step is announced once
+TEST_F(DropProgressTest, gameProgressMilestonesOnce)
+{
+	using Steps = std::vector<UINT8>;
+	SetGameProgress(8);
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{});
+
+	SetGameProgress(10); // clears the announced step too
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{ 10 });
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{});
+
+	// a jump over several steps: all of them, in order
+	SetGameProgress(32);
+	EXPECT_EQ(GameProgressNewMilestones(), (Steps{ 10, 20, 30 }));
+
+	// more progress below the next step: nothing; the next step: once
+	gubQuest[QUEST_DELIVER_LETTER] = QUESTDONE; // 34
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{});
+	gubQuest[QUEST_FOOD_ROUTE]       = QUESTDONE;
+	gubQuest[QUEST_KILL_TERRORISTS]  = QUESTDONE;
+	gubQuest[QUEST_KINGPIN_IDOL]     = QUESTDONE; // 40
+	EXPECT_EQ(GameProgressPercentage(), 40);
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{ 40 });
+	EXPECT_EQ(gStrategicStatus.ubGameProgressAnnounced, 40);
+
+	// everything: up to 100, never above
+	for (UINT8 q = 0; q < MAX_QUESTS; ++q)
+	{
+		if (IsGameProgressQuest(q)) gubQuest[q] = QUESTDONE;
+	}
+	for (auto const& town : GCM->getTowns())
+		for (UINT8 const id : town.second->sectorIDs) SectorInfo[id].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressNewMilestones(), (Steps{ 50, 60, 70, 80, 90, 100 }));
+	EXPECT_EQ(GameProgressNewMilestones(), Steps{});
+
+	ClearGameProgress();
 }
 
 #endif

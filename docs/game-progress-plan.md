@@ -257,3 +257,21 @@ items whose `minDropProgress` is up to **progress + 10** (progress 50 → up to
 `"dealer_stock_progress_lead": 10`. The coolness windows (their shifts Tony +1,
 Devin at least 3–4) still only set the frequency and still use `ubCoolness` with
 the old progress record.
+
+## 8. Progress messages in the message history
+
+User request (2026-11-07): each time the game progress reaches a full step of
+10, 20, …, 100% a message `You have reached N% game progress.` goes to the
+message history (`ScreenMsg`, `MSG_INTERFACE`: tactical scroll + the strategic
+map message log). Not translated, like the V line.
+
+- `GameProgressNewMilestones()` returns the full 10% steps reached since the
+  last call; `gStrategicStatus.ubGameProgressAnnounced` (from `bPadding`,
+  66 → 65, size stays 192, no save format change) remembers the highest step
+  announced, so each step is announced **once**, also after loading a save.
+  A jump over several steps announces all of them in order.
+- `HandleGameProgressMilestones()` is called where progress can grow: after
+  `SF_PROGRESS_VISITED` is set in `EnterSector`, after `GameProgressNoteQuestDone`
+  in `InternalEndQuest`, and in `HourlyProgressUpdate` as a safety net (e.g. a
+  quest set to done from the quest debug screen).
+- Test: `DropProgressTest.gameProgressMilestonesOnce`.

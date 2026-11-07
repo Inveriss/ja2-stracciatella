@@ -1342,6 +1342,33 @@ UINT8 GameProgressPercentage(void)
 }
 
 
+std::vector<UINT8> GameProgressNewMilestones(void)
+{
+	std::vector<UINT8> steps;
+	UINT8 const reached = GameProgressPercentage() / 10 * 10;
+	for (UINT32 step = gStrategicStatus.ubGameProgressAnnounced + 10; step <= reached; step += 10)
+	{
+		steps.push_back(static_cast<UINT8>(step));
+	}
+	if (reached > gStrategicStatus.ubGameProgressAnnounced)
+	{
+		gStrategicStatus.ubGameProgressAnnounced = reached;
+	}
+	return steps;
+}
+
+
+// called whenever the game progress may have grown: a sector entered in tactical,
+// a quest ended, and hourly as a safety net
+void HandleGameProgressMilestones(void)
+{
+	for (UINT8 const step : GameProgressNewMilestones())
+	{
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("You have reached {}% game progress.", step));
+	}
+}
+
+
 UINT8 HighestPlayerProgressPercentage(void)
 {
 	if( gfEditMode )
@@ -1355,6 +1382,9 @@ UINT8 HighestPlayerProgressPercentage(void)
 // as opposed to his immediate situation (which may be worse if he's suffered a setback).
 void HourlyProgressUpdate(void)
 {
+	// the new game progress (docs/game-progress-plan.md): announce any step not shown yet
+	HandleGameProgressMilestones();
+
 	UINT8 ubCurrentProgress;
 
 	ubCurrentProgress = CurrentPlayerProgressPercentage();
