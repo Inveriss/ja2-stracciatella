@@ -3058,14 +3058,19 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 			}
 			SetFontForeground(colour);
 
-			ST::string const ammo = ST::format("{}", o.ubGunShotsLeft);
-			const INT16 sNewX = sX + ammo_x;
-			const INT16 sNewY = sY + sHeight - ammo_from_bottom;
-			if (buffer == guiSAVEBUFFER)
+			// an unloaded gun stack shows only its count, no "0" rounds
+			// (docs/gun-stacking-plan.md, stage 4)
+			if (o.ubNumberOfObjects <= 1 || o.ubGunShotsLeft > 0)
 			{
-				RestoreExternBackgroundRect(sNewX, sNewY, std::max<INT16>(20, StringPixLength(ammo, text_font) + 2), text_h);
+				ST::string const ammo = ST::format("{}", o.ubGunShotsLeft);
+				const INT16 sNewX = sX + ammo_x;
+				const INT16 sNewY = sY + sHeight - ammo_from_bottom;
+				if (buffer == guiSAVEBUFFER)
+				{
+					RestoreExternBackgroundRect(sNewX, sNewY, std::max<INT16>(20, StringPixLength(ammo, text_font) + 2), text_h);
+				}
+				GPrintInvalidate(sNewX, sNewY, ammo);
 			}
-			GPrintInvalidate(sNewX, sNewY, ammo);
 
 			// Display 'JAMMED' if we are jammed
 			if (o.bGunAmmoStatus < 0)

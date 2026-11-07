@@ -187,6 +187,30 @@ TEST_F(GunStackTest, stackSizes)
 }
 
 
+TEST_F(GunStackTest, removingAnAttachmentGivesOnePerGun)
+{
+	OBJECTTYPE a = Gun(90);
+	OBJECTTYPE b = Gun(40);
+	for (OBJECTTYPE* o : { &a, &b })
+	{
+		o->usAttachItem[0]  = LASERSCOPE;
+		o->bAttachStatus[0] = 80;
+	}
+	StackObjs(&b, &a, 1);
+	ASSERT_EQ(a.ubNumberOfObjects, 2);
+
+	OBJECTTYPE scopes{};
+	ASSERT_TRUE(RemoveAttachment(&a, 0, &scopes));
+	EXPECT_EQ(scopes.usItem, LASERSCOPE);
+	EXPECT_EQ(scopes.ubNumberOfObjects, 2);
+	EXPECT_EQ(scopes.bStatus[0], 80);
+	EXPECT_EQ(scopes.bStatus[1], 80);
+	EXPECT_EQ(a.usAttachItem[0], NOTHING);
+	EXPECT_EQ(a.ubNumberOfObjects, 2);
+	EXPECT_EQ(UnitStatus(a, 1), 40);
+}
+
+
 TEST_F(GunStackTest, saveKeepsEveryUnitCondition)
 {
 	OBJECTTYPE a = Gun(90);

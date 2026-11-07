@@ -1679,9 +1679,16 @@ BOOLEAN EmptyWeaponMagazine( OBJECTTYPE * pWeapon, OBJECTTYPE *pAmmo )
 		// start by erasing ammo item, just in case...
 		DeleteObj( pAmmo );
 
-		pAmmo->ubShotsLeft[0] = pWeapon->ubGunShotsLeft;
+		// a gun stack shares one ammo state: every gun in it holds such a
+		// magazine, so unloading it gives one per gun
+		// (docs/gun-stacking-plan.md)
+		UINT8 const n_guns = std::max<UINT8>(1, pWeapon->ubNumberOfObjects);
+		for (UINT8 i = 0; i != n_guns; ++i)
+		{
+			pAmmo->ubShotsLeft[i] = pWeapon->ubGunShotsLeft;
+		}
 		pAmmo->usItem = pWeapon->usGunAmmoItem;
-		pAmmo->ubNumberOfObjects = 1;
+		pAmmo->ubNumberOfObjects = n_guns;
 
 		pWeapon->ubGunShotsLeft = 0;
 		pWeapon->ubGunAmmoType = 0;
@@ -3304,10 +3311,19 @@ BOOLEAN RemoveAttachment( OBJECTTYPE * pObj, INT8 bAttachPos, OBJECTTYPE * pNewO
 		return( FALSE );
 	}
 
+	// a gun stack shares one set of attachments: every gun in it carries this
+	// one, so removing it gives one per gun (docs/gun-stacking-plan.md); a
+	// grenade launcher with its grenade stays on the stack
+	UINT8 const n_units = GCM->getItem(pObj->usItem)->isGun() ? std::max<UINT8>(1, pObj->ubNumberOfObjects) : 1;
+	if (n_units > 1 && pObj->usAttachItem[bAttachPos] == UNDER_GLAUNCHER)
+	{
+		return( FALSE );
+	}
+
 	// if pNewObj is passed in NULL, then we just delete the attachment
 	if (pNewObj != NULL)
 	{
-		CreateItem( pObj->usAttachItem[bAttachPos], pObj->bAttachStatus[bAttachPos], pNewObj );
+		CreateItems( pObj->usAttachItem[bAttachPos], pObj->bAttachStatus[bAttachPos], n_units, pNewObj );
 	}
 
 	pObj->usAttachItem[bAttachPos] = NOTHING;
