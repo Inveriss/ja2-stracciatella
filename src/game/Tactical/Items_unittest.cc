@@ -174,10 +174,10 @@ TEST_F(GunStackTest, createItemsKeepsTheAmmo)
 
 TEST_F(GunStackTest, stackSizes)
 {
-	// game.json gun_stack_size (5) for guns without their own stackSize
-	EXPECT_EQ(GunStackSize(GLOCK_17), 5);
-	EXPECT_EQ(SectorSlotLimit(GLOCK_17), 5);
-	EXPECT_EQ(SectorSlotLimit(G41), 5);
+	// game.json gun_stack_size (94) for guns without their own stackSize
+	EXPECT_EQ(GunStackSize(GLOCK_17), 94);
+	EXPECT_EQ(SectorSlotLimit(GLOCK_17), 94);
+	EXPECT_EQ(SectorSlotLimit(G41), 94);
 	// a merc's own slots keep one gun (G7)
 	EXPECT_LE(ItemSlotLimit(GLOCK_17, BIGPOCK1POS), 1);
 	EXPECT_EQ(ItemSlotLimit(G41, BIGPOCK1POS), 0);

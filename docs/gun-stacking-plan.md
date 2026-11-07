@@ -118,7 +118,7 @@ All decisions were taken by the user on 2026-11-07 (G1, G2, G4 as recommended).
 |----|----------|
 | G1 | Per-unit condition in `bGunUnitStatus[]` after the gun fields, `UnitStatus()` / `SetUnitStatus()` for every item |
 | G2 | Stacking rule: equal in everything except the condition (see above) |
-| G3 | A gun's stack size: its own `"stackSize"` in weapons.json, else the game.json default `gun_stack_size` (5); both ways together. `ubPerPocket` keeps its "big item" meaning |
+| G3 | A gun's stack size: its own `"stackSize"` in weapons.json, else the game.json default `gun_stack_size` (5 at first, 94 since 2026-11-07); both ways together. `ubPerPocket` keeps its "big item" meaning |
 | G4 | Weight of a gun stack = one gun's weight (with its ammo and attachments) x the count |
 | G5 | At most 94 guns per stack (the union's free bytes) |
 | G6 | `SAVE_GAME_VERSION` bump: the bytes after the gun fields get a meaning (project rule: new game) |
@@ -172,7 +172,7 @@ All decisions were taken by the user on 2026-11-07 (G1, G2, G4 as recommended).
 
 - `stackSize` for a few guns in the test mod. The mod `gun-stacking-test` (a development
   helper in the game's `mods` folder, not part of the repository) sets `stackSize`
-  GLOCK_17 3, BERETTA_92F 10, M24 1 (never stacks; other guns keep `gun_stack_size` 5)
+  GLOCK_17 3, BERETTA_92F 10, M24 1 (never stacks; other guns keep `gun_stack_size`, 5 at the time of the test, 94 since)
   and gives the Hummer `gunStackBigPocket` 2 and `gunStackSmallPocket` 3.
 - Checks: a merc still holds one gun per slot; unload two Glocks of different condition
   and put them on one sector slot and on one vehicle cargo slot (big; small for
