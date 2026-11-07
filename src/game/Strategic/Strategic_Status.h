@@ -102,7 +102,11 @@ struct STRATEGIC_STATUS
 	UINT8			ubNumNewSectorsVisitedToday;
 	UINT8			ubNumberOfDaysOfInactivity;
 
-	INT8 bPadding[70]; // XXX HACK000B
+	// bit per quest that has already given game progress (docs/game-progress-plan.md):
+	// a quest counts once, even if it is set back and completed again
+	UINT8			ubGameProgressQuestsDone[4];
+
+	INT8 bPadding[66]; // XXX HACK000B
 };
 
 

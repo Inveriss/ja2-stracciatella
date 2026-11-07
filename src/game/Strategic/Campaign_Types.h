@@ -47,6 +47,7 @@ enum SectorFlags
 	// 0x00000200 was the never read SF_HAS_ENTERED_TACTICAL
 	SF_SKYRIDER_NOTICED_ENEMIES_HERE      = 0x00000400,
 	SF_HAVE_USED_GUIDE_QUOTE              = 0x00000800,
+	SF_PROGRESS_VISITED                   = 0x00001000, // entered in tactical (not meanwhile/watch); counted by GameProgressPercentage()
 
 
 	SF_SMOKE_EFFECTS_TEMP_FILE_EXISTS     = 0x00100000,	// Temp File starts with sm_

@@ -224,7 +224,15 @@
     //  vanilla settings: madlab: 35, mike: 50, iggy: 70
     "event_madlab_min": 35,
     "event_mike_min": 50,
-    "event_iggy_min": 70
+    "event_iggy_min": 70,
+
+    //  Game progress for enemy drops ("minDropProgress", "enemy_drop_progress_limits"):
+    //  percent per first tactical visit of a town sector or SAM site sector (N4 counts as both)
+    //  and per completed quest of the laptop History (without "Held in Alma"/"Interrogation").
+    //  Capped at 100, never goes down. Not used by the original progress above.
+    //  vanilla settings: none (new)
+    "game_progress_sector_percent": 2,
+    "game_progress_quest_percent": 2
   },
 
   //  Allowed unhired merc deaths at given difficulty level

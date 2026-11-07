@@ -1128,6 +1128,8 @@ void EndQuest(UINT8 ubQuest, const SGPSector& sector)
 
 void InternalEndQuest(UINT8 ubQuest, const SGPSector& sector, BOOLEAN fUpdateHistory)
 {
+	GameProgressNoteQuestDone(ubQuest); // counts once (docs/game-progress-plan.md)
+
 	if ( gubQuest[ubQuest ] == QUESTINPROGRESS )
 	{
 		gubQuest[ubQuest] = QUESTDONE;

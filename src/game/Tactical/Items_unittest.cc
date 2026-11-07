@@ -14,6 +14,11 @@
 #include "ItemModel.h"
 #include "Soldier_Control.h"
 #include "Strategic_Status.h"
+#include "Campaign.h"
+#include "Campaign_Types.h"
+#include "Quests.h"
+#include "SamSiteModel.h"
+#include "strategic/TownModel.h"
 
 #include "gtest/gtest.h"
 
@@ -248,6 +253,27 @@ namespace {
 
 struct DropProgressTest : public GunStackTest
 {
+	// docs/game-progress-plan.md: progress p (even) from first visits of the counted sectors
+	static void ClearGameProgress()
+	{
+		for (auto& si : SectorInfo) si.uiFlags &= ~SF_PROGRESS_VISITED;
+		for (auto& q : gubQuest) q = QUESTNOTSTARTED;
+		for (auto& b : gStrategicStatus.ubGameProgressQuestsDone) b = 0;
+	}
+
+	static void SetGameProgress(UINT8 const p)
+	{
+		ClearGameProgress();
+		for (auto const& town : GCM->getTowns())
+		{
+			for (UINT8 const id : town.second->sectorIDs)
+			{
+				if (GameProgressPercentage() >= p) break;
+				SectorInfo[id].uiFlags |= SF_PROGRESS_VISITED;
+			}
+		}
+		ASSERT_EQ(GameProgressPercentage(), p);
+	}
 	static void SetMinDrop(UINT16 const item, UINT8 const progress)
 	{
 		const_cast<ItemModel*>(GCM->getItem(item))->setMinDropProgress(progress);
@@ -319,8 +345,7 @@ TEST_F(DropProgressTest, blockedAttachmentIsRemoved)
 TEST_F(DropProgressTest, onlyTheEnemyTeamIsLimited)
 {
 	SetMinDrop(GLOCK_17, 50);
-	UINT8 const saved = gStrategicStatus.ubHighestProgress;
-	gStrategicStatus.ubHighestProgress = 20;
+	SetGameProgress(20);
 
 	auto s = SOLDIERTYPE{};
 	OBJECTTYPE o = Gun(90);
@@ -334,17 +359,16 @@ TEST_F(DropProgressTest, onlyTheEnemyTeamIsLimited)
 
 	// the record reaches the threshold
 	s.bTeam = ENEMY_TEAM;
-	gStrategicStatus.ubHighestProgress = 50;
+	SetGameProgress(50);
 	EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, o));
-	gStrategicStatus.ubHighestProgress = saved;
+	SetGameProgress(0);
 }
 
 
 TEST_F(DropProgressTest, pickedUpObjectsAndSwitchOffAreNotLimited)
 {
 	SetMinDrop(GLOCK_17, 50);
-	UINT8 const saved = gStrategicStatus.ubHighestProgress;
-	gStrategicStatus.ubHighestProgress = 0;
+	SetGameProgress(0);
 	auto s = SOLDIERTYPE{};
 	s.bTeam = ENEMY_TEAM;
 
@@ -357,7 +381,7 @@ TEST_F(DropProgressTest, pickedUpObjectsAndSwitchOffAreNotLimited)
 	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = false;
 	EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, p));
 	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = true;
-	gStrategicStatus.ubHighestProgress = saved;
+	SetGameProgress(0);
 }
 
 
@@ -365,27 +389,25 @@ TEST_F(DropProgressTest, blockedItemForTheWeaponDropRecord)
 {
 	SetMinDrop(GLOCK_17, 50);
 	SetMinDrop(G41, 0);
-	UINT8 const saved = gStrategicStatus.ubHighestProgress;
-	gStrategicStatus.ubHighestProgress = 49;
+	SetGameProgress(48);
 	EXPECT_TRUE(EnemyDropBlockedByProgress(GLOCK_17));
 	EXPECT_FALSE(EnemyDropBlockedByProgress(G41));
 	EXPECT_FALSE(EnemyDropBlockedByProgress(NOTHING));
-	gStrategicStatus.ubHighestProgress = 50;
+	SetGameProgress(50);
 	EXPECT_FALSE(EnemyDropBlockedByProgress(GLOCK_17));
 
-	gStrategicStatus.ubHighestProgress = 0;
+	SetGameProgress(0);
 	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = false;
 	EXPECT_FALSE(EnemyDropBlockedByProgress(GLOCK_17));
 	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = true;
-	gStrategicStatus.ubHighestProgress = saved;
+	SetGameProgress(0);
 }
 
 
 TEST_F(DropProgressTest, pickingUpMarksTheObject)
 {
 	SetMinDrop(GLOCK_17, 50);
-	UINT8 const saved = gStrategicStatus.ubHighestProgress;
-	gStrategicStatus.ubHighestProgress = 0;
+	SetGameProgress(0);
 	auto enemy = SOLDIERTYPE{};
 	enemy.bTeam = ENEMY_TEAM;
 	auto merc = SOLDIERTYPE{};
@@ -405,7 +427,75 @@ TEST_F(DropProgressTest, pickingUpMarksTheObject)
 	// an unknown owner is never limited
 	EXPECT_TRUE(ApplyEnemyDropProgressLimit(static_cast<SOLDIERTYPE const*>(nullptr), o));
 	EXPECT_FALSE(ApplyEnemyDropProgressLimit(&enemy, o));
-	gStrategicStatus.ubHighestProgress = saved;
+	SetGameProgress(0);
+}
+
+
+
+
+// docs/game-progress-plan.md
+TEST_F(DropProgressTest, gameProgressFromVisitsAndQuests)
+{
+	ClearGameProgress();
+	EXPECT_EQ(GameProgressPercentage(), 0);
+
+	// SF_ALREADY_VISITED alone does not count
+	UINT32 const a9Flags = SectorInfo[SGPSector(9, 1).AsByte()].uiFlags;
+	SectorInfo[SGPSector(9, 1).AsByte()].uiFlags |= SF_ALREADY_VISITED;
+	EXPECT_EQ(GameProgressPercentage(), 0);
+	SectorInfo[SGPSector(9, 1).AsByte()].uiFlags = a9Flags;
+
+	// a town sector (A9) and a wilderness sector (A1, not counted)
+	SectorInfo[SGPSector(9, 1).AsByte()].uiFlags |= SF_PROGRESS_VISITED;
+	SectorInfo[SGPSector(1, 1).AsByte()].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressVisitedEntries(), 1);
+	EXPECT_EQ(GameProgressPercentage(), 2);
+
+	// N4: Meduna town sector and SAM site, counts twice (P1)
+	SectorInfo[SGPSector(4, 14).AsByte()].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressVisitedEntries(), 3);
+	EXPECT_EQ(GameProgressPercentage(), 6);
+
+	// quests: done counts, in progress does not, 8 and 9 never (P2)
+	gubQuest[QUEST_DELIVER_LETTER] = QUESTDONE;
+	gubQuest[QUEST_FOOD_ROUTE]     = QUESTINPROGRESS;
+	gubQuest[QUEST_HELD_IN_ALMA]   = QUESTDONE;
+	gubQuest[QUEST_INTERROGATION]  = QUESTDONE;
+	EXPECT_EQ(GameProgressDoneQuests(), 1);
+	EXPECT_EQ(GameProgressPercentage(), 8);
+
+	// a done quest set back to "in progress": its progress stays
+	gubQuest[QUEST_DELIVER_LETTER] = QUESTINPROGRESS;
+	EXPECT_EQ(GameProgressPercentage(), 8);
+	// ... a new visit meanwhile still adds
+	SectorInfo[SGPSector(10, 1).AsByte()].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressPercentage(), 10);
+	// ... and completing the same quest again gives nothing more
+	gubQuest[QUEST_DELIVER_LETTER] = QUESTDONE;
+	EXPECT_EQ(GameProgressDoneQuests(), 1);
+	EXPECT_EQ(GameProgressPercentage(), 10);
+
+	// EndQuest path notes the quest even if it is never read as done
+	GameProgressNoteQuestDone(QUEST_FOOD_ROUTE);
+	GameProgressNoteQuestDone(QUEST_INTERROGATION); // not counted
+	EXPECT_EQ(GameProgressDoneQuests(), 2);
+	EXPECT_EQ(GameProgressPercentage(), 12);
+
+	// everything: 40 entries + 21 quests = 122%, capped at 100
+	int quests = 0;
+	for (UINT8 q = 0; q < MAX_QUESTS; ++q)
+	{
+		if (IsGameProgressQuest(q)) { gubQuest[q] = QUESTDONE; ++quests; }
+	}
+	EXPECT_EQ(quests, 21);
+	EXPECT_EQ(GameProgressDoneQuests(), 21);
+	for (auto const& town : GCM->getTowns())
+		for (UINT8 const id : town.second->sectorIDs) SectorInfo[id].uiFlags |= SF_PROGRESS_VISITED;
+	for (auto const* const sam : GCM->getSamSites()) SectorInfo[sam->sectorId].uiFlags |= SF_PROGRESS_VISITED;
+	EXPECT_EQ(GameProgressVisitedEntries(), 40);
+	EXPECT_EQ(GameProgressPercentage(), 100);
+
+	ClearGameProgress();
 }
 
 #endif

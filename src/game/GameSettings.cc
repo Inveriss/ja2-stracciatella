@@ -221,6 +221,7 @@ void DisplayGameSettings( )
 	if (CHEATER_CHEAT_LEVEL())
 	{
 		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, st_format_printf(gzLateLocalizedString[STR_LATE_56], CurrentPlayerProgressPercentage(), HighestPlayerProgressPercentage()));
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("Drop progress: {}% (sectors {}, quests {})", GameProgressPercentage(), GameProgressVisitedEntries(), GameProgressDoneQuests()));
 	}
 }
 

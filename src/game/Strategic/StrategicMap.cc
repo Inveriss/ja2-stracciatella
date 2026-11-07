@@ -817,6 +817,8 @@ static void EnterSector(const SGPSector& sector)
 	if (!AreInMeanwhile())
 	{
 		SetSectorFlag(sector, SF_ALREADY_VISITED);
+		// game progress counts only a real visit, not a watched militia battle (P4)
+		if (!gfWatchingMilitiaBattle) SetSectorFlag(sector, SF_PROGRESS_VISITED);
 	}
 
 	CreateLoadingScreenProgressBar();

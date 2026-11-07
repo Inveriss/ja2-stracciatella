@@ -36,6 +36,10 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "policy/GamePolicy.h"
+#include "strategic/TownModel.h"
+#include "SamSiteModel.h"
+
+#include <algorithm>
 
 // Convert hired mercs' stats subpoint changes into actual point changes where warranted
 static void ProcessUpdateStats(MERCPROFILESTRUCT&, SOLDIERTYPE*);
@@ -1272,6 +1276,69 @@ UINT8 CurrentPlayerProgressPercentage(void)
 	OnCalcPlayerProgress(&progress);
 
 	return progress;
+}
+
+
+// Town sectors (strategic-map-towns.json) and SAM sites (strategic-map-sam-sites.json) are
+// counted as separate lists: N4 is both a Meduna sector and a SAM site, so it counts twice (P1).
+UINT8 GameProgressVisitedEntries(void)
+{
+	UINT8 n = 0;
+	for (auto const& town : GCM->getTowns())
+	{
+		for (UINT8 const id : town.second->sectorIDs)
+		{
+			if (SectorInfo[id].uiFlags & SF_PROGRESS_VISITED) ++n;
+		}
+	}
+	for (auto const* const sam : GCM->getSamSites())
+	{
+		if (SectorInfo[sam->sectorId].uiFlags & SF_PROGRESS_VISITED) ++n;
+	}
+	return n;
+}
+
+
+// The quests of the laptop History (0-22), without the capture scenario (8, 9) (P2)
+bool IsGameProgressQuest(UINT8 const ubQuest)
+{
+	return ubQuest <= QUEST_FREE_SHANK &&
+		ubQuest != QUEST_HELD_IN_ALMA && ubQuest != QUEST_INTERROGATION;
+}
+
+
+// Remembers that the quest has given its progress; called when a quest ends.
+void GameProgressNoteQuestDone(UINT8 const ubQuest)
+{
+	if (!IsGameProgressQuest(ubQuest)) return;
+	gStrategicStatus.ubGameProgressQuestsDone[ubQuest / 8] |= 1 << (ubQuest % 8);
+}
+
+
+// Quests completed at least once. Done quests are noted here too, in case one was
+// set to done without EndQuest() (e.g. the quest debug screen).
+UINT8 GameProgressDoneQuests(void)
+{
+	UINT8 n = 0;
+	for (UINT8 q = 0; q < MAX_QUESTS; ++q)
+	{
+		if (!IsGameProgressQuest(q)) continue;
+		if (gubQuest[q] == QUESTDONE) GameProgressNoteQuestDone(q);
+		if (gStrategicStatus.ubGameProgressQuestsDone[q / 8] & (1 << (q % 8))) ++n;
+	}
+	return n;
+}
+
+
+UINT8 GameProgressPercentage(void)
+{
+	if (gfEditMode) return 0;
+
+	UINT32 const now =
+		GameProgressVisitedEntries() * gamepolicy(game_progress_sector_percent) +
+		GameProgressDoneQuests()     * gamepolicy(game_progress_quest_percent);
+	// both parts only grow: visit flags are never cleared, quest bits are never cleared
+	return static_cast<UINT8>(std::min<UINT32>(now, 100));
 }
 
 

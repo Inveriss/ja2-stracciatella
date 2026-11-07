@@ -91,6 +91,9 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	progress_event_mike_min = progress.getOptionalInt("event_mike_min", 50);
 	progress_event_iggy_min = progress.getOptionalInt("event_iggy_min", 70);
 
+	game_progress_sector_percent = progress.getOptionalUInt("game_progress_sector_percent", 2);
+	game_progress_quest_percent = progress.getOptionalUInt("game_progress_quest_percent", 2);
+
 	kills_per_point_easy = progress.getOptionalInt("kills_per_point_easy", 7);
 	kills_per_point_medium = progress.getOptionalInt("kills_per_point_medium", 10);
 	kills_per_point_hard = progress.getOptionalInt("kills_per_point_hard", 15);
