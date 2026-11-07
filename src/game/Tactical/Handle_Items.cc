@@ -1233,8 +1233,10 @@ void SoldierGetItemFromWorld(SOLDIERTYPE* const s, const INT32 iItemIndex, const
 				continue;
 			}
 
-			// Make copy of item
+			// Make copy of item (D9 of docs/enemy-drop-progress-plan.md: an
+			// enemy's pickup may be the player's own item)
 			OBJECTTYPE Object = o;
+			MarkObjectPickedUpBy(*s, Object);
 			if (!AutoPlaceObject(s, &Object, TRUE))
 			{
 				// check to see if the object has been swapped with one in inventory
@@ -1282,6 +1284,7 @@ void SoldierGetItemFromWorld(SOLDIERTYPE* const s, const INT32 iItemIndex, const
 			{
 				RemoveItemFromPool(wi);
 
+				MarkObjectPickedUpBy(*s, o); // D9 of docs/enemy-drop-progress-plan.md
 				if (!AutoPlaceObject(s, &o, TRUE))
 				{
 					gfDontChargeAPsToPickup = TRUE;

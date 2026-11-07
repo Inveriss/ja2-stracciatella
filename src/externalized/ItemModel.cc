@@ -281,5 +281,27 @@ const ItemModel* ItemModel::deserialize(const JsonValue &json, const BinaryData&
 	);
 	item->ubSmallPerPocket = ItemModel::deserializeSmallPerPocket(obj);
 	item->ubBigPerPocket   = ItemModel::deserializeBigPerPocket(obj);
+	item->deserializeAttachmentFamily(obj);
 	return item;
+}
+
+void ItemModel::deserializeAttachmentFamily(const JsonObject &obj)
+{
+	attachmentFamilyName = obj.getOptionalString("attachmentFamily");
+	attachmentLevel      = static_cast<uint8_t>(obj.getOptionalUInt("attachmentLevel", 0));
+	if (!obj.has("attachmentEffects")) return;
+
+	JsonObject const e = obj["attachmentEffects"].toObject();
+	auto const read = [&e](char const* const name, std::optional<int16_t>& value)
+	{
+		if (e.has(name)) value = static_cast<int16_t>(e.GetInt(name));
+	};
+	AttachmentEffects& a = attachmentEffects;
+	read("rangeBonus",          a.rangeBonus);
+	read("aimBonus",            a.aimBonus);
+	read("aimedShotBonus",      a.aimedShotBonus);
+	read("proneBonus",          a.proneBonus);
+	read("attackVolumePercent", a.attackVolumePercent);
+	read("apPerShotChange",     a.apPerShotChange);
+	read("burstShotsBonus",     a.burstShotsBonus);
 }

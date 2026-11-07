@@ -3,6 +3,10 @@
 #include "AmmoTypeModel.h"
 #include "CalibreModel.h"
 #include "ItemModel.h"
+#include <string_theory/format>
+#include <algorithm>
+#include <map>
+#include <tuple>
 #include <utility>
 
 MagazineModel::MagazineModel(uint16_t itemIndex_,
@@ -117,4 +121,30 @@ MagazineModel* MagazineModel::deserialize(
 const ST::string & MagazineModel::getStandardReplacement() const
 {
 	return standardReplacement;
+}
+
+std::vector<ST::string> MagazineModel::describeDuplicates(std::vector<const MagazineModel*> const& magazines)
+{
+	std::vector<const MagazineModel*> sorted(magazines);
+	std::sort(sorted.begin(), sorted.end(), [](const MagazineModel* a, const MagazineModel* b)
+	{
+		return a->getItemIndex() < b->getItemIndex();
+	});
+
+	std::map<std::tuple<uint16_t, uint16_t, uint16_t>, const MagazineModel*> first;
+	std::vector<ST::string> messages;
+	for (const MagazineModel* mag : sorted)
+	{
+		if (mag->calibre->index == CalibreModel::NOAMMO) continue;
+		auto const key = std::make_tuple(mag->calibre->index, mag->capacity, mag->ammoType->index);
+		auto const [it, inserted] = first.emplace(key, mag);
+		if (inserted) continue;
+		messages.push_back(ST::format(
+			"magazines.json: '{}' ({}) has the calibre, capacity and ammo type of '{}' ({}); "
+			"a gun loaded with another size of this ammo always remembers '{}'",
+			mag->getInternalName(), mag->getItemIndex(),
+			it->second->getInternalName(), it->second->getItemIndex(),
+			it->second->getInternalName()));
+	}
+	return messages;
 }

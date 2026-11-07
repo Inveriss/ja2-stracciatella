@@ -1823,6 +1823,16 @@
         "城市",
         "部署"
     ],
+    "pWeaponAttachmentStrings": [
+        "Level %d",
+        "Range",
+        "Aim",
+        "Scope",
+        "Prone",
+        "Noise",
+        "AP",
+        "Burst"
+    ],
     "pMilitiaWatchStrings": [
         "观战",
         "您要观战吗?",

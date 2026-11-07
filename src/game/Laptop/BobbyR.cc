@@ -125,7 +125,6 @@ static ST::string BobbySignText(int const sign)
 
 #define BOBBY_R_NEW_PURCHASE_ARRIVAL_TIME	(1 * 60 * 24) // minutes in 1 day
 
-#define BOBBY_R_USED_PURCHASE_OFFSET		1000
 
 #define BOBBYR_UNDERCONSTRUCTION_ANI_DELAY	150
 #define BOBBYR_UNDERCONSTRUCTION_NUM_FRAMES	5
@@ -418,7 +417,15 @@ static void HandleBobbyRUnderConstructionAni(BOOLEAN fReset)
 
 
 static void InitBobbyRayNewInventory(void);
-static void InitBobbyRayUsedInventory(void);
+
+
+void ClearBobbyRayUsedInventory()
+{
+	std::fill_n(LaptopSaveInfo.BobbyRayUsedInventory, static_cast<size_t>(MAXITEMS), STORE_INVENTORY{});
+	LaptopSaveInfo.usInventoryListLength[BOBBY_RAY_USED] = 0;
+	// an empty list: the end marker right at the start
+	LaptopSaveInfo.BobbyRayUsedInventory[0].usItemIndex = BOBBYR_NO_ITEMS;
+}
 
 
 void InitBobbyRayInventory()
@@ -429,11 +436,9 @@ void InitBobbyRayInventory()
 	//Initializes the starting values for Bobby Rays NEW Inventory
 	SetupStoreInventory( LaptopSaveInfo.BobbyRayInventory, FALSE );
 
-	//Initializes which USED items can be bought at Bobby Rays
-	InitBobbyRayUsedInventory();
-
-	//Initializes the starting values for Bobby Rays USED Inventory
-	SetupStoreInventory( LaptopSaveInfo.BobbyRayUsedInventory, TRUE);
+	// Bobby Ray sells no used items: the page is gone since the six-sign home
+	// page, so the used stock is neither built nor restocked nor saved
+	ClearBobbyRayUsedInventory();
 }
 
 
@@ -471,45 +476,8 @@ static void InitBobbyRayNewInventory(void)
 }
 
 
-static void InitBobbyRayUsedInventory(void)
-{
-	UINT16	usBobbyrIndex = 0;
-
-
-	std::fill_n(LaptopSaveInfo.BobbyRayUsedInventory, static_cast<size_t>(MAXITEMS), STORE_INVENTORY{});
-
-	// add all the NEW items he can ever sell into his possible inventory list, for now in order by item #
-	for (auto item : GCM->getItems())
-	{
-		const auto itemIndex = item->getItemIndex();
-
-		//if Bobby Ray sells this, it can be sold, and it's allowed into this game (some depend on e.g. gun-nut option)
-		if( (GCM->getBobbyRayUsedInventory()->getMaxItemAmount(item) != 0) && !(item->getFlags() & ITEM_NOT_BUYABLE) && ItemIsLegal(itemIndex) )
-		{
-			// in case his store inventory list is wrong, make sure this category of item can be sold used
-			if ( CanDealerItemBeSoldUsed(itemIndex) )
-			{
-				LaptopSaveInfo.BobbyRayUsedInventory[ usBobbyrIndex ].usItemIndex = itemIndex;
-				usBobbyrIndex++;
-			}
-		}
-	}
-
-	if ( usBobbyrIndex > 1 )
-	{
-		// sort this list by object category, and by ascending price within each category
-		qsort( LaptopSaveInfo.BobbyRayUsedInventory, usBobbyrIndex, sizeof( STORE_INVENTORY ), BobbyRayItemQsortCompare );
-	}
-
-	// remember how many entries in the list are valid
-	LaptopSaveInfo.usInventoryListLength[BOBBY_RAY_USED] = usBobbyrIndex;
-	// also mark the end of the list of valid item entries
-	LaptopSaveInfo.BobbyRayUsedInventory[ usBobbyrIndex ].usItemIndex = BOBBYR_NO_ITEMS;
-}
-
-
 static UINT8 HowManyBRItemsToOrder(UINT16 usItemIndex, UINT8 ubCurrentlyOnHand, UINT8 ubBobbyRayNewUsed);
-static void OrderBobbyRItem(UINT16 usItemIndex);
+static void OrderBobbyRItem(UINT16 usItemIndex, bool fUsed);
 static void SimulateBobbyRayCustomer(STORE_INVENTORY* pInventoryArray, BOOLEAN fUsed);
 
 
@@ -551,61 +519,11 @@ void DailyUpdateOfBobbyRaysNewInventory()
 					{
 						// eliminate the ordering delay and stock the items instantly!
 						// This is just a way to reward the player right away for making progress without the reordering lag...
-						AddFreshBobbyRayInventory( usItemIndex );
+						AddFreshBobbyRayInventory(usItemIndex, false);
 					}
 					else
 					{
-						OrderBobbyRItem(usItemIndex);
-					}
-				}
-			}
-		}
-	}
-}
-
-
-void DailyUpdateOfBobbyRaysUsedInventory()
-{
-	//simulate other buyers by reducing the current quantity on hand
-	SimulateBobbyRayCustomer(LaptopSaveInfo.BobbyRayUsedInventory, BOBBY_RAY_USED);
-
-	for(auto i = 0; i < LaptopSaveInfo.usInventoryListLength[BOBBY_RAY_USED]; i++)
-	{
-		//if the used item isn't already on order
-		if( LaptopSaveInfo.BobbyRayUsedInventory[ i ].ubQtyOnOrder == 0 )
-		{
-			//if we don't have ANY
-			if( LaptopSaveInfo.BobbyRayUsedInventory[ i ].ubQtyOnHand == 0 )
-			{
-				// the index is NOT the item #, get that from the table
-				auto usItemIndex = LaptopSaveInfo.BobbyRayUsedInventory[ i ].usItemIndex;
-				auto item = GCM->getItem(usItemIndex);
-
-				// make sure this item is still sellable in the latest version of the store inventory
-				if (GCM->getBobbyRayUsedInventory()->getMaxItemAmount(item) == 0 )
-				{
-					continue;
-				}
-
-				// remember value of the "previously eligible" flag
-				auto fPrevElig = LaptopSaveInfo.BobbyRayUsedInventory[ i ].fPreviouslyEligible;
-
-				//determine if any can/should be ordered, and how many
-				LaptopSaveInfo.BobbyRayUsedInventory[ i ].ubQtyOnOrder = HowManyBRItemsToOrder(usItemIndex, LaptopSaveInfo.BobbyRayUsedInventory[ i ].ubQtyOnHand, BOBBY_RAY_USED);
-
-				//if he found some to buy
-				if( LaptopSaveInfo.BobbyRayUsedInventory[ i ].ubQtyOnOrder > 0 )
-				{
-					// if this is the first day the player is eligible to have access to this thing
-					if ( !fPrevElig )
-					{
-						// eliminate the ordering delay and stock the items instantly!
-						// This is just a way to reward the player right away for making progress without the reordering lag...
-						AddFreshBobbyRayInventory( usItemIndex );
-					}
-					else
-					{
-						OrderBobbyRItem((INT16) (usItemIndex + BOBBY_R_USED_PURCHASE_OFFSET));
+						OrderBobbyRItem(usItemIndex, false);
 					}
 				}
 			}
@@ -651,18 +569,18 @@ static UINT8 HowManyBRItemsToOrder(UINT16 usItemIndex, UINT8 ubCurrentlyOnHand, 
 }
 
 
-static void OrderBobbyRItem(UINT16 usItemIndex)
+static void OrderBobbyRItem(UINT16 const usItemIndex, bool const fUsedStock)
 {
 	UINT32 uiArrivalTime;
 
 	//add the new item to the queue.  The new item will arrive in 'uiArrivalTime' minutes.
 	uiArrivalTime = BOBBY_R_NEW_PURCHASE_ARRIVAL_TIME + Random( BOBBY_R_NEW_PURCHASE_ARRIVAL_TIME / 2 );
 	uiArrivalTime += GetWorldTotalMin();
-	AddStrategicEvent( EVENT_UPDATE_BOBBY_RAY_INVENTORY, uiArrivalTime, usItemIndex);
+	AddStrategicEvent(EVENT_UPDATE_BOBBY_RAY_INVENTORY, uiArrivalTime, BobbyRRestockParam(usItemIndex, fUsedStock));
 }
 
 
-void AddFreshBobbyRayInventory( UINT16 usItemIndex )
+void AddFreshBobbyRayInventory(UINT16 const usItemIndex, bool const fUsedStock)
 {
 	INT16 sInventorySlot;
 	STORE_INVENTORY *pInventoryArray;
@@ -670,9 +588,8 @@ void AddFreshBobbyRayInventory( UINT16 usItemIndex )
 	UINT8 ubItemQuality;
 
 
-	if( usItemIndex >= BOBBY_R_USED_PURCHASE_OFFSET )
+	if (fUsedStock)
 	{
-		usItemIndex -= BOBBY_R_USED_PURCHASE_OFFSET;
 		pInventoryArray = LaptopSaveInfo.BobbyRayUsedInventory;
 		fUsed = BOBBY_RAY_USED;
 		ubItemQuality = 20 + (UINT8) Random( 60 );
@@ -766,5 +683,4 @@ void CancelAllPendingBRPurchaseOrders(void)
 
 	// do an extra daily update immediately to create new reorders ASAP
 	DailyUpdateOfBobbyRaysNewInventory();
-	DailyUpdateOfBobbyRaysUsedInventory();
 }

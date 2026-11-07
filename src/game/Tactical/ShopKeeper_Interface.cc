@@ -69,6 +69,7 @@
 #include <string_theory/string>
 
 #include <algorithm>
+#include <iterator>
 
 #define SKI_BUTTON_FONT				MILITARYFONT1//FONT14ARIAL
 #define SKI_BUTTON_COLOR				73
@@ -2443,6 +2444,21 @@ static UINT32 CalcShopKeeperItemPrice(BOOLEAN fDealerSelling, BOOLEAN fUnitPrice
 	UINT32 uiTotalPrice = 0;
 	UINT8  ubItemsToCount = 0;
 	UINT8  ubItemsNotCounted = 0;
+
+	// docs/gun-stacking-plan.md: the guns of a stack may differ in condition,
+	// so each one is priced on its own (the ammo and attachments are the same)
+	if (!fUnitPriceOnly && pItemObject->ubNumberOfObjects > 1 && GCM->getItem(usItemID)->isGun())
+	{
+		for (UINT8 i = 0; i != pItemObject->ubNumberOfObjects; ++i)
+		{
+			OBJECTTYPE unit = *pItemObject;
+			unit.ubNumberOfObjects = 1;
+			unit.bGunStatus = UnitStatus(*pItemObject, i);
+			std::fill(std::begin(unit.bGunUnitStatus), std::end(unit.bGunUnitStatus), 0);
+			uiTotalPrice += CalcShopKeeperItemPrice(fDealerSelling, TRUE, usItemID, dModifier, &unit);
+		}
+		return uiTotalPrice;
+	}
 
 	// add up value of the main item(s), exact procedure depends on its item class
 	switch ( GCM->getItem(usItemID)->getItemClass() )

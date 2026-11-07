@@ -93,12 +93,16 @@
 #include "UILayout.h"
 
 #include "policy/GamePolicy.h"
+#include "ItemIndexBlocks.h"
+#include "ItemModel.h"
 
 #include <string_theory/format>
 #include <string_theory/string>
 
 #include <algorithm>
 #include <iterator>
+#include <stdexcept>
+#include <vector>
 
 // laptop programs
 enum
@@ -3456,6 +3460,16 @@ void ClearOutTempLaptopFiles(void)
 }
 
 
+// The laptop info of a save: a fixed block of 1829 bytes, followed by Bobby
+// Ray's stock table, stored sparsely: a UINT16 count, then that many records
+// of a UINT16 slot and the 8 bytes of the slot. Only slots that are not empty
+// are stored, so the size follows the stock and not MAXITEMS
+// (docs/item-limits-plan.md, D9). The used stock is not stored: Bobby Ray
+// sells no used items.
+static constexpr size_t STORE_INVENTORY_SAVE_SIZE = 8;
+static constexpr size_t LAPTOP_INFO_SAVE_SIZE     = 1829;
+
+
 static void InjectStoreInvetory(DataWriter& d, STORE_INVENTORY const& i)
 {
 	size_t start = d.getConsumed();
@@ -3468,7 +3482,7 @@ static void InjectStoreInvetory(DataWriter& d, STORE_INVENTORY const& i)
 	// never had this field) reads back FALSE, same as if it had been written explicitly.
 	INJ_BOOL(d, i.fNotifyOnRestock)
 	INJ_SKIP(d, 1)
-	Assert(d.getConsumed() == start + 8);
+	Assert(d.getConsumed() == start + STORE_INVENTORY_SAVE_SIZE);
 }
 
 
@@ -3482,7 +3496,68 @@ static void ExtractStoreInvetory(DataReader& d, STORE_INVENTORY& i)
 	EXTR_BOOL(d, i.fPreviouslyEligible)
 	EXTR_BOOL(d, i.fNotifyOnRestock)
 	EXTR_SKIP(d, 1)
-	Assert(d.getConsumed() == start + 8);
+	Assert(d.getConsumed() == start + STORE_INVENTORY_SAVE_SIZE);
+}
+
+
+static bool IsEmptyStoreInventory(STORE_INVENTORY const& i)
+{
+	return i.usItemIndex == 0 && i.ubQtyOnHand == 0 && i.ubQtyOnOrder == 0 &&
+		i.ubItemQuality == 0 && !i.fPreviouslyEligible && !i.fNotifyOnRestock;
+}
+
+
+static void SaveStoreInventoryTable(HWFILE const f, STORE_INVENTORY const (&table)[MAXITEMS])
+{
+	std::vector<UINT16> slots;
+	for (UINT16 slot = 0; slot != MAXITEMS; ++slot)
+	{
+		if (!IsEmptyStoreInventory(table[slot])) slots.push_back(slot);
+	}
+
+	std::vector<BYTE> buffer(2 + slots.size() * (2 + STORE_INVENTORY_SAVE_SIZE));
+	DataWriter d{buffer.data()};
+	INJ_U16(d, static_cast<UINT16>(slots.size()))
+	for (UINT16 const slot : slots)
+	{
+		INJ_U16(d, slot)
+		InjectStoreInvetory(d, table[slot]);
+	}
+	Assert(d.getConsumed() == buffer.size());
+	f->write(buffer.data(), buffer.size());
+}
+
+
+static void LoadStoreInventoryTable(HWFILE const f, STORE_INVENTORY (&table)[MAXITEMS], char const* const name)
+{
+	std::fill(std::begin(table), std::end(table), STORE_INVENTORY{});
+
+	BYTE countData[2];
+	f->read(countData, sizeof(countData));
+	DataReader c{countData};
+	UINT16 count;
+	EXTR_U16(c, count)
+
+	std::vector<BYTE> buffer(count * (2 + STORE_INVENTORY_SAVE_SIZE));
+	f->read(buffer.data(), buffer.size());
+	DataReader d{buffer.data()};
+	for (UINT16 n = 0; n != count; ++n)
+	{
+		UINT16 slot;
+		EXTR_U16(d, slot)
+		if (slot >= MAXITEMS)
+		{
+			throw std::runtime_error(ST::format("{}: slot {} is beyond the item limit {}", name, slot, MAXITEMS).to_std_string());
+		}
+		STORE_INVENTORY& i = table[slot];
+		ExtractStoreInvetory(d, i);
+		if (i.usItemIndex != BOBBYR_NO_ITEMS && i.usItemIndex != NOTHING &&
+			(i.usItemIndex >= MAXITEMS || IsUnusedItemIndex(*GCM->getItem(i.usItemIndex))))
+		{
+			throw std::runtime_error(ST::format("{}: item {} is not defined by the game data", name, i.usItemIndex).to_std_string());
+		}
+	}
+	Assert(d.getConsumed() == buffer.size());
 }
 
 
@@ -3490,7 +3565,8 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 {
 	LaptopSaveInfoStruct const& l = LaptopSaveInfo;
 
-	BYTE  data[7445];
+	std::vector<BYTE> buffer(LAPTOP_INFO_SAVE_SIZE);
+	BYTE* const data = buffer.data();
 	DataWriter d{data};
 	INJ_BOOL( d, l.gfNewGameLaptop)
 	INJ_BOOLA(d, l.fVisitedBookmarkAlready, lengthof(l.fVisitedBookmarkAlready))
@@ -3507,14 +3583,6 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 	INJ_U32(  d, l.guiPlayersMercAccountNumber)
 	INJ_U8(   d, l.gubLastMercIndex)
 	INJ_SKIP( d, 1)
-	FOR_EACH(STORE_INVENTORY const, i, l.BobbyRayInventory)
-	{
-		InjectStoreInvetory(d, *i);
-	}
-	FOR_EACH(STORE_INVENTORY const, i, l.BobbyRayUsedInventory)
-	{
-		InjectStoreInvetory(d, *i);
-	}
 	INJ_SKIP( d, 6)
 	Assert(l.BobbyRayOrdersOnDeliveryArray.size() <= UINT8_MAX);
 	INJ_U8(   d, static_cast<UINT8>(l.BobbyRayOrdersOnDeliveryArray.size()))
@@ -3550,9 +3618,12 @@ void SaveLaptopInfoToSavedGame(HWFILE const f)
 	INJ_U32(  d, l.uiTotalMoneyPaidToSpeck)
 	INJ_U8(   d, l.ubLastMercAvailableId)
 	INJ_SKIP( d, 87)
-	Assert(d.getConsumed() == lengthof(data));
+	Assert(d.getConsumed() == buffer.size());
 
-	f->write(data, sizeof(data));
+	f->write(data, buffer.size());
+
+	SaveStoreInventoryTable(f, l.BobbyRayInventory);
+	// no used stock: Bobby Ray sells no used items (ClearBobbyRayUsedInventory())
 
 	if (l.usNumberOfBobbyRayOrderUsed != 0)
 	{ // There is anything in the Bobby Ray Orders on delivery
@@ -3575,8 +3646,9 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 
 	l.pLifeInsurancePayouts.clear();
 
-	BYTE data[7445];
-	f->read(data, sizeof(data));
+	std::vector<BYTE> buffer(LAPTOP_INFO_SAVE_SIZE);
+	BYTE* const data = buffer.data();
+	f->read(data, buffer.size());
 
 	DataReader d{data};
 	EXTR_BOOL( d, l.gfNewGameLaptop)
@@ -3594,14 +3666,6 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 	EXTR_U32(  d, l.guiPlayersMercAccountNumber)
 	EXTR_U8(   d, l.gubLastMercIndex)
 	EXTR_SKIP( d, 1)
-	FOR_EACH(STORE_INVENTORY, i, l.BobbyRayInventory)
-	{
-		ExtractStoreInvetory(d, *i);
-	}
-	FOR_EACH(STORE_INVENTORY, i, l.BobbyRayUsedInventory)
-	{
-		ExtractStoreInvetory(d, *i);
-	}
 	EXTR_SKIP( d, 6)
 	UINT8 BobbyRayOrdersOnDeliveryArraySize;
 	EXTR_U8(   d, BobbyRayOrdersOnDeliveryArraySize)
@@ -3637,7 +3701,10 @@ void LoadLaptopInfoFromSavedGame(HWFILE const f)
 	EXTR_U32(  d, l.uiTotalMoneyPaidToSpeck)
 	EXTR_U8(   d, l.ubLastMercAvailableId)
 	EXTR_SKIP( d, 87)
-	Assert(d.getConsumed() == lengthof(data));
+	Assert(d.getConsumed() == buffer.size());
+
+	LoadStoreInventoryTable(f, l.BobbyRayInventory, "Bobby Ray's stock");
+	ClearBobbyRayUsedInventory();
 
 	// Handle old saves in M.E.R.C. module
 	SyncLastMercFromSaveGame();

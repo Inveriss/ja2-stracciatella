@@ -14459,12 +14459,12 @@
     "bodyType": "REGMALE",
     "face": {
       "eyesXY": [
-        32,
-        26
+        14,
+        2
       ],
       "mouthXY": [
-        18,
-        58
+        13,
+        22
       ]
     },
     "skinColor": "TANSKIN",

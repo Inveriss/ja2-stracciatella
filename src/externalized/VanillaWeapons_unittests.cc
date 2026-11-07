@@ -12,7 +12,9 @@
 #include "MagazineModel.h"
 #include "Weapons.h"
 #include "WeaponModels.h"
+#include <memory>
 #include <utility>
+#include <vector>
 
 TEST(Items, weaponsLoading)
 {
@@ -203,6 +205,84 @@ TEST(Items, CompatibleFaceItem)
 	{
 		EXPECT_FALSE(CompatibleFaceItem(i, ITEMDEFINE::STEEL_HELMET));
 	}
+}
+
+// docs/magazine-size-variants-plan.md: a gun loaded with a magazine of another
+// size remembers the magazine of its own size with the same ammo
+TEST(Items, magazineVariantOriginalPairs)
+{
+	std::unique_ptr<DefaultContentManager> cm(DefaultContentManagerUT::createDefaultCMForTesting());
+	ASSERT_TRUE(cm->loadGameData());
+	auto const oldGCM = std::exchange(GCM, cm.get());
+
+	auto const* const ap5  = cm->getMagazineByName("CLIP762N_5_AP");
+	auto const* const ap20 = cm->getMagazineByName("CLIP762N_20_AP");
+	auto const* const hp5  = cm->getMagazineByName("CLIP762N_5_HP");
+	auto const* const hp20 = cm->getMagazineByName("CLIP762N_20_HP");
+	auto const* const r9   = cm->getMagazineByName("CLIP9_15");
+
+	EXPECT_EQ(FindMagazineVariant(*ap20, 5),  ap5->getItemIndex());  // 20 into a 5-round gun
+	EXPECT_EQ(FindMagazineVariant(*ap5, 20),  ap20->getItemIndex()); // 5 into a 20-round gun
+	EXPECT_EQ(FindMagazineVariant(*hp20, 5),  hp5->getItemIndex());  // HP stays HP
+	EXPECT_EQ(FindMagazineVariant(*hp5, 20),  hp20->getItemIndex());
+	EXPECT_EQ(FindMagazineVariant(*ap20, 20), ap20->getItemIndex()); // same size: itself
+	EXPECT_EQ(FindMagazineVariant(*r9, 99),   r9->getItemIndex());   // no variant: itself
+
+	GCM = oldGCM;
+}
+
+TEST(Items, magazineVariantIndicesDoNotMatter)
+{
+	std::unique_ptr<DefaultContentManager> cm(DefaultContentManagerUT::createDefaultCMForTesting());
+	ASSERT_TRUE(cm->loadGameData());
+	auto const* const regular = cm->getMagazineByName("CLIP9_15");
+	auto const* const ap      = cm->getMagazineByName("CLIP9_15_AP");
+
+	auto mag = [&](uint16_t index, uint16_t capacity, MagazineModel const* type)
+	{
+		return std::make_unique<MagazineModel>(index, ST::string("TEST_MAG"), ST::string(), ST::string(), ST::string(),
+			IC_AMMO, type->calibre, capacity, type->ammoType, false);
+	};
+	// three sizes far apart and out of order, plus a second 20 and a 20 of another ammo type
+	auto const m30    = mag(3900, 30, regular);
+	auto const m10    = mag(3500, 10, regular);
+	auto const m20    = mag(3100, 20, regular);
+	auto const m20b   = mag(3200, 20, regular);
+	auto const m20ap  = mag(3050, 20, ap);
+	std::vector<const MagazineModel*> const mags{ m30.get(), m20b.get(), m10.get(), m20ap.get(), m20.get() };
+
+	EXPECT_EQ(FindMagazineVariant(mags, *m30, 10), 3500);  // biggest into the smallest gun
+	EXPECT_EQ(FindMagazineVariant(mags, *m10, 30), 3900);  // and back
+	EXPECT_EQ(FindMagazineVariant(mags, *m10, 20), 3100);  // same ammo type, lowest index
+	EXPECT_EQ(FindMagazineVariant(mags, *m30, 20), 3100);
+	EXPECT_EQ(FindMagazineVariant(mags, *m20ap, 10), 3050); // no AP 10: the loaded one itself
+}
+
+TEST(Items, magazineDuplicates)
+{
+	std::unique_ptr<DefaultContentManager> cm(DefaultContentManagerUT::createDefaultCMForTesting());
+	ASSERT_TRUE(cm->loadGameData());
+
+	// the original data has none
+	EXPECT_TRUE(MagazineModel::describeDuplicates(cm->getMagazines()).empty());
+
+	auto const* const regular = cm->getMagazineByName("CLIP9_15");
+	auto const* const ap      = cm->getMagazineByName("CLIP9_15_AP");
+	auto mag = [&](uint16_t index, const char* name, uint16_t capacity, MagazineModel const* type)
+	{
+		return std::make_unique<MagazineModel>(index, ST::string(name), ST::string(), ST::string(), ST::string(),
+			IC_AMMO, type->calibre, capacity, type->ammoType, false);
+	};
+	auto const high = mag(3200, "MAG_HIGH", 20, regular);
+	auto const low  = mag(3100, "MAG_LOW",  20, regular);
+	auto const apm  = mag(3150, "MAG_AP",   20, ap);      // other ammo type: no duplicate
+	auto const big  = mag(3300, "MAG_BIG",  30, regular); // other capacity: no duplicate
+	std::vector<const MagazineModel*> const mags{ high.get(), apm.get(), low.get(), big.get() };
+
+	auto const messages = MagazineModel::describeDuplicates(mags);
+	ASSERT_EQ(messages.size(), 1u);
+	EXPECT_NE(messages[0].find("'MAG_HIGH' (3200)"), -1);
+	EXPECT_NE(messages[0].find("'MAG_LOW' (3100)"), -1);
 }
 
 TEST(Items, Invalid_ItemIndex_Exception)

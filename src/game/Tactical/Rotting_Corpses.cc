@@ -789,7 +789,10 @@ BOOLEAN TurnSoldierIntoCorpse(SOLDIERTYPE& s)
 					|| gamepolicy(f_drop_everything))
 				{
 					// and make sure that it really is a droppable item type
-					if ( !(GCM->getItem(pObj->usItem)->getFlags() & ITEM_DEFAULT_UNDROPPABLE) )
+					// and that the game's progress allows it (an enemy's item below its
+					// minDropProgress stays with the corpse, docs/enemy-drop-progress-plan.md)
+					if ( !(GCM->getItem(pObj->usItem)->getFlags() & ITEM_DEFAULT_UNDROPPABLE)
+						&& ApplyEnemyDropProgressLimit(s, *pObj) )
 					{
 						ReduceAmmoDroppedByNonPlayerSoldiers(s, *pObj);
 						Visibility vis = gamepolicy(f_all_dropped_visible) ? VISIBLE : bVisible;

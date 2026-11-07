@@ -487,7 +487,7 @@ static BOOLEAN DoesCharacterHaveAnyItemsToRepair(SOLDIERTYPE const* const pSoldi
 		for( ubObjectInPocketCounter = 0; ubObjectInPocketCounter < ubItemsInPocket; ubObjectInPocketCounter++ )
 		{
 			// if it's repairable and NEEDS repairing
-			if (IsItemRepairable(o.usItem, o.bStatus[ubObjectInPocketCounter]))
+			if (IsItemRepairable(o.usItem, UnitStatus(o, ubObjectInPocketCounter)))
 			{
 				return( TRUE );
 			}
@@ -1635,7 +1635,7 @@ static INT8 FindRepairableItemOnOtherSoldier(const SOLDIERTYPE* const pSoldier, 
 		OBJECTTYPE const& o = pSoldier->inv[bSlotToCheck];
 		for ( bLoop2 = 0; bLoop2 < pSoldier->inv[ bSlotToCheck ].ubNumberOfObjects; bLoop2++ )
 		{
-			if (IsItemRepairable(o.usItem, o.bStatus[bLoop2]))
+			if (IsItemRepairable(o.usItem, UnitStatus(o, bLoop2)))
 			{
 				return( bSlotToCheck );
 			}
@@ -1742,8 +1742,12 @@ static bool RepairObject(SOLDIERTYPE* const repairer, SOLDIERTYPE const* const o
 	for (UINT8 i = 0; i != n_items; ++i)
 	{
 		UINT16 const item   = pObj->usItem;
-		INT8&        status = pObj->bStatus[i];
-		if (!DoRepair(repairer, owner, item, status, repair_pts_left)) continue;
+		// a gun stack keeps each unit's condition apart from bStatus[]
+		// (UnitStatus(), docs/gun-stacking-plan.md)
+		INT8         status = UnitStatus(*pObj, i);
+		bool const   repaired = DoRepair(repairer, owner, item, status, repair_pts_left);
+		SetUnitStatus(*pObj, i, status);
+		if (!repaired) continue;
 		something_was_repaired = true;
 		if (*repair_pts_left == 0) break; // we're out of points!
 	}

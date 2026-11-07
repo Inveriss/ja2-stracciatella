@@ -7,6 +7,8 @@
 #include <string_theory/string>
 
 #include <map>
+#include <optional>
+#include <set>
 #include <stdint.h>
 
 enum SoundID;
@@ -86,6 +88,14 @@ struct WeaponModel : ItemModel
 	bool attachSpringAndBoltUpgrade;
 	bool attachGunBarrelExtender;
 	bool attachBurstExtenderAttachment;
+	// attachment families this weapon takes / refuses regardless of the family
+	// rules (docs/weapon-attachments-plan.md, W3)
+	std::set<ST::string> attachmentsAllow;
+	std::set<ST::string> attachmentsDeny;
+	// how many of this gun share one sector inventory slot (and a vehicle
+	// cargo slot, within the vehicle's own limits); unset = game.json
+	// gun_stack_size (docs/gun-stacking-plan.md, G3)
+	std::optional<uint8_t> stackSize;
 	int m_rateOfFire;
 
 	ST::string internalType;

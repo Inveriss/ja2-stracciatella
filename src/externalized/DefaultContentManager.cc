@@ -31,6 +31,7 @@
 #include "Soldier_Profile_Type.h"
 #include "Types.h"
 #include "VehicleModel.h"
+#include "WeaponAttachmentFamilyModel.h"
 #include "WeaponModels.h"
 #include "Weapons.h"
 #include "army/ArmyCompositionModel.h"
@@ -172,6 +173,7 @@ DefaultContentManager::~DefaultContentManager()
 	// is left to the compiler, no need to clear() them.
 
 	deleteElements(m_items);
+	for (auto const& family : m_attachmentFamilies) delete family.second;
 	deleteElements(m_calibres);
 	deleteElements(m_ammoTypes);
 	deleteElements(m_smokeEffects);
@@ -678,13 +680,7 @@ bool DefaultContentManager::loadWeapons(const BinaryData& vanillaItemStrings)
 		WeaponModel *w = WeaponModel::deserialize(element, m_calibreMap, m_explosiveCalibres, vanillaItemStrings);
 		SLOGD("Loaded weapon {} {}", w->getItemIndex(), w->getInternalName());
 
-		if (w->getItemIndex() >= m_items.size())
-		{
-			SLOGE("Weapon index must be in the interval 0 - {}", m_items.size() - 1);
-			return false;
-		}
-
-		m_items[w->getItemIndex()] = w;
+		registerItem(w, ItemDataFile::WEAPONS, element);
 		m_weaponMap.try_emplace(w->getInternalName(), w);
 	}
 
@@ -698,13 +694,7 @@ bool DefaultContentManager::loadArmours(const BinaryData& vanillaItemStrings)
 		ArmourModel *a = ArmourModel::deserialize(element, vanillaItemStrings);
 		SLOGD("Loaded armour {} {}", a->getItemIndex(), a->getInternalName());
 
-		if (a->getItemIndex() >= m_items.size())
-		{
-			SLOGE("Armour index must be in the interval 0 - {}", m_items.size() - 1);
-			return false;
-		}
-
-		m_items[a->getItemIndex()] = a;
+		registerItem(a, ItemDataFile::ARMOURS, element);
 		m_armourMap.try_emplace(a->getInternalName(), a);
 	}
 
@@ -800,7 +790,7 @@ bool DefaultContentManager::loadExplosives(const BinaryData& vanillaItemStrings,
 		ExplosiveModel *e = ExplosiveModel::deserialize(element, m_explosiveCalibres, m_smokeEffects, m_explosionAnimations, vanillaItemStrings);
 		SLOGD("Loaded explosive {} {}", e->getItemIndex(), e->getInternalName());
 
-		m_items[e->getItemIndex()] = e;
+		registerItem(e, ItemDataFile::EXPLOSIVES, element);
 		m_explosiveMap.insert(std::make_pair(e->getInternalName(), e));
 	}
 	return true;
@@ -812,24 +802,151 @@ bool DefaultContentManager::loadItems(const BinaryData& vanillaItemStrings)
 	for (auto& el : json.toVec())
 	{
 		auto* item = ItemModel::deserialize(el, vanillaItemStrings);
-		if (item->getItemIndex() <= MAX_WEAPONS || item->getItemIndex() > MAXITEMS)
-		{
-			ST::string err = ST::format("Item index must be in the interval {} - {}", MAX_WEAPONS+1, MAXITEMS);
-			throw DataError(err);
-		}
 		if (item->getItemClass() == IC_GRENADE || item->getItemClass() == IC_BOMB) {
 			SLOGW("Ignoring grenade or bomb '{}' in 'items.json', should be in 'explosives.json'", item->getInternalName());
+			delete item;
 			continue;
 		}
 		if (item->getItemClass() == IC_ARMOUR) {
 			SLOGW("Ignoring armour '{}' in 'items.json', should be in 'armours.json'", item->getInternalName());
+			delete item;
 			continue;
 		}
 
-		m_items[item->getItemIndex()] = item;
+		registerItem(item, ItemDataFile::ITEMS, el);
 	}
 
 	return true;
+}
+
+bool DefaultContentManager::loadWeaponAttachmentFamilies()
+{
+	auto json = readJsonDataFileWithSchema("weapon-attachment-families.json");
+	for (auto& element : json.toVec())
+	{
+		WeaponAttachmentFamilyModel* const family = WeaponAttachmentFamilyModel::deserialize(element, m_calibreMap);
+		if (!m_attachmentFamilies.emplace(family->name, family).second)
+		{
+			ST::string const err = ST::format("weapon-attachment-families.json: the family '{}' is defined twice", family->name);
+			delete family;
+			throw DataError(err);
+		}
+	}
+
+	auto const knownFamily = [this](ST::string const& name) { return m_attachmentFamilies.count(name) != 0; };
+	for (auto const& [name, family] : m_attachmentFamilies)
+	{
+		for (ST::string const& other : family->excludes)
+		{
+			if (!knownFamily(other))
+			{
+				throw DataError(ST::format("weapon-attachment-families.json: family '{}' excludes the unknown family '{}'", name, other));
+			}
+		}
+	}
+
+	for (const ItemModel* const item : m_items)
+	{
+		if (!item) continue;
+		ST::string const& familyName = item->getAttachmentFamilyName();
+		auto const idx = item->getItemIndex();
+
+		if (familyName.empty())
+		{
+			if (FIRST_NEW_WEAPON_ATTACHMENT <= idx && idx <= LAST_NEW_WEAPON_ATTACHMENT)
+			{
+				throw DataError(ST::format("items.json: the weapon attachment '{}' ({}) has no attachmentFamily", item->getInternalName(), idx));
+			}
+			continue;
+		}
+
+		auto const it = m_attachmentFamilies.find(familyName);
+		if (it == m_attachmentFamilies.end())
+		{
+			throw DataError(ST::format("'{}' ({}) has the unknown attachmentFamily '{}'", item->getInternalName(), idx, familyName));
+		}
+		if (item->getAttachmentLevel() < 1 || 3 < item->getAttachmentLevel())
+		{
+			throw DataError(ST::format("'{}' ({}) needs an attachmentLevel of 1-3", item->getInternalName(), idx));
+		}
+		// (bAttachment is not required: SPRING_AND_BOLT_UPGRADE, GUN_BARREL_EXTENDER
+		// and UNDER_GLAUNCHER of the original data don't have it; the 7000 block
+		// requires it through CheckItemIndexBlock())
+		// the items are const after loading; the family link is part of loading them
+		const_cast<ItemModel*>(item)->setAttachmentFamily(it->second);
+	}
+
+	for (const ItemModel* const item : m_items)
+	{
+		const WeaponModel* const weapon = item ? item->asWeapon() : nullptr;
+		if (!weapon) continue;
+		for (auto const* list : { &weapon->attachmentsAllow, &weapon->attachmentsDeny })
+		{
+			for (ST::string const& name : *list)
+			{
+				if (!knownFamily(name))
+				{
+					throw DataError(ST::format("weapons.json: '{}' names the unknown attachment family '{}' in attachmentsAllow/attachmentsDeny", weapon->getInternalName(), name));
+				}
+			}
+		}
+	}
+	return true;
+}
+
+void DefaultContentManager::registerItem(const ItemModel* const item, ItemDataFile const file, const JsonValue& json)
+{
+	ST::string const err = CheckItemIndexBlock(*item, file);
+	if (!err.empty())
+	{
+		delete item;
+		throw DataError(err);
+	}
+
+	// docs/enemy-drop-progress-plan.md (D1): every item file may set it
+	unsigned int const minDropProgress = json.toObject().getOptionalUInt("minDropProgress", 0);
+	if (minDropProgress > 100)
+	{
+		ST::string const bad = ST::format("{}: minDropProgress of item '{}' must be 0-100, not {}",
+			ItemDataFileName(file), item->getInternalName(), minDropProgress);
+		delete item;
+		throw DataError(bad);
+	}
+	const_cast<ItemModel*>(item)->setMinDropProgress(static_cast<uint8_t>(minDropProgress));
+
+	auto const idx = item->getItemIndex();
+	const ItemModel*& slot = m_items.at(idx);
+	if (slot)
+	{
+		ST::string const dup = ST::format("{}: item '{}' has index {}, which item '{}' already uses",
+			ItemDataFileName(file), item->getInternalName(), idx, slot->getInternalName());
+		delete item;
+		throw DataError(dup);
+	}
+	slot = item;
+}
+
+void DefaultContentManager::fillUnusedItemIndices()
+{
+	for (size_t idx = 0; idx < m_items.size(); ++idx)
+	{
+		if (m_items[idx]) continue;
+
+		if (idx < VANILLA_MAXITEMS)
+		{
+			SLOGW("No item is defined for index {} of the original game, using a placeholder", idx);
+		}
+		// same graphics as the placeholders of the original data (NOTHING / UNUSED_*)
+		m_items[idx] = new ItemModel(
+			static_cast<uint16_t>(idx),
+			UnusedItemIndexName(static_cast<unsigned>(idx)),
+			ST::string(), ST::string(), ST::string(),
+			IC_NONE, 0, INVALIDCURS,
+			InventoryGraphicsModel(GraphicModel("interface/mdguns.sti", 0), GraphicModel("bigitems/gun00.sti", 0)),
+			TilesetTileIndexModel(TileTypeDefines::GUNS, 1),
+			0, 0, 0, 0, 0, 0,
+			ITEM_NOT_BUYABLE | ITEM_NOT_EDITOR);
+	}
 }
 
 bool DefaultContentManager::loadMagazines(const BinaryData& vanillaItemStrings)
@@ -840,9 +957,14 @@ bool DefaultContentManager::loadMagazines(const BinaryData& vanillaItemStrings)
 		MagazineModel *mag = MagazineModel::deserialize(element, m_calibreMap, m_ammoTypeMap, vanillaItemStrings);
 		SLOGD("Loaded magazine {} {}", mag->getItemIndex(), mag->getInternalName());
 
+		registerItem(mag, ItemDataFile::MAGAZINES, element);
 		m_magazines.push_back(mag);
-		m_items[mag->getItemIndex()] = mag;
 		m_magazineMap.insert(std::make_pair(mag->getInternalName(), mag));
+	}
+
+	for (ST::string const& warning : MagazineModel::describeDuplicates(m_magazines))
+	{
+		SLOGW("{}", warning);
 	}
 
 	return true;
@@ -1086,8 +1208,11 @@ bool DefaultContentManager::loadGameData(BinaryData const& binaryData)
 		&& loadExplosionAnimations()
 		&& loadExplosives(binaryData, m_explosionAnimations)
 		&& loadArmours(binaryData)
+		&& loadWeaponAttachmentFamilies()
 		&& loadArmyData()
 		&& loadMusic();
+
+	fillUnusedItemIndices();
 
 	for (const ItemModel *item : m_items)
 	{

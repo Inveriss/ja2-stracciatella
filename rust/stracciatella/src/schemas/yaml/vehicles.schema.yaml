@@ -42,6 +42,18 @@ items:
       title: Seats
       description: Maximum number of soldiers allowed in the vehicle. Must not be greater than 10.
       $ref: types/uint8.schema.yaml
+    gunStackBigPocket:
+      title: Guns per big cargo pocket
+      description: Guns of one kind in one big cargo pocket, never more than the gun's own stack size; 0 (default) = the gun's stack size.
+      type: integer
+      minimum: 0
+      maximum: 94
+    gunStackSmallPocket:
+      title: Guns per small cargo pocket
+      description: Guns of one kind in one small cargo pocket, only for guns that fit a small pocket at all (default 1).
+      type: integer
+      minimum: 1
+      maximum: 94
   required:
   - profile
   - enterSound

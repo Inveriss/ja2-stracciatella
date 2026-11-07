@@ -66,7 +66,10 @@ enum DetonatorType
 #define PANIC_FREQUENCY_3		125
 
 #define OBJECT_UNDROPPABLE		0x01
-// 0x02 was the unused OBJECT_MODIFIED
+// a non-player soldier picked the object up from the world, so it may be the
+// player's own: never limited by minDropProgress (docs/enemy-drop-progress-plan.md,
+// D9); was the unused OBJECT_MODIFIED
+#define OBJECT_PICKED_UP		0x02
 #define OBJECT_AI_UNUSABLE		0x04
 #define OBJECT_ARMED_BOMB		0x08
 #define OBJECT_KNOWN_TO_BE_TRAPPED	0x10
@@ -87,6 +90,9 @@ struct OBJECTTYPE
 			UINT8  ubGunShotsLeft; // duh, amount of ammo left
 			UINT16 usGunAmmoItem; // the item # for the item table
 			INT8   bGunAmmoStatus; // only for "attached ammo" - grenades, mortar shells
+			// condition of units 1, 2, ... of a gun stack (unit 0 is bGunStatus);
+			// read and write through UnitStatus()/SetUnitStatus() (Items.h)
+			INT8   bGunUnitStatus[MAX_OBJECTS_PER_SLOT - 7];
 		};
 		struct
 		{
@@ -639,8 +645,30 @@ enum ITEMDEFINE
 	__ITEM_349, // UNUSED_47,
 	__ITEM_350, // UNUSED_48,
 
-	MAXITEMS
+	VANILLA_MAXITEMS // 351: the item indices of the original game end here
 };
+
+// Item index space, see docs/item-limits-plan.md. 0-350 are the original items
+// (any data file, as before); 351-999 is a reserve the loader rejects; from 1000
+// on every data file has its own block. An item index, once given, never
+// changes: saves and maps from the editor store it.
+constexpr UINT16 FIRST_NEW_ITEM              = 1000;
+constexpr UINT16 FIRST_NEW_WEAPON            = 1000; // weapons.json
+constexpr UINT16 LAST_NEW_WEAPON             = 2999;
+constexpr UINT16 FIRST_NEW_AMMO              = 3000; // magazines.json
+constexpr UINT16 LAST_NEW_AMMO               = 3999;
+constexpr UINT16 FIRST_NEW_EXPLOSIVE         = 4000; // explosives.json
+constexpr UINT16 LAST_NEW_EXPLOSIVE          = 4999;
+constexpr UINT16 FIRST_NEW_ARMOUR            = 5000; // armours.json
+constexpr UINT16 LAST_NEW_ARMOUR             = 5999;
+constexpr UINT16 FIRST_NEW_MISC              = 6000; // items.json
+constexpr UINT16 LAST_NEW_MISC               = 6999;
+constexpr UINT16 FIRST_NEW_WEAPON_ATTACHMENT = 7000; // items.json, ITEM_ATTACHMENT
+constexpr UINT16 LAST_NEW_WEAPON_ATTACHMENT  = 7999;
+constexpr UINT16 FIRST_NEW_KEY               = 8000; // items.json, IC_KEY
+constexpr UINT16 LAST_NEW_KEY                = 8999;
+constexpr UINT16 MAXITEMS                    = 9000;
+static_assert(LAST_NEW_KEY + 1 == MAXITEMS);
 
 grams Weight(OBJECTTYPE const& object);
 

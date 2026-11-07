@@ -12,7 +12,7 @@ class ItemSystem;
 class VehicleModel
 {
 public:
-	VehicleModel(ST::string enterSound, ST::string movementSound, ProfileID profileID, VehicleMovementType movementType, uint16_t armourType, uint8_t seats, uint8_t repairPointsDivisor, uint8_t slotLimitMultiplier, uint16_t tacticalFuelPer100Tiles, uint8_t travelTimePerSector, uint8_t fuelPerTravelMinute);
+	VehicleModel(ST::string enterSound, ST::string movementSound, ProfileID profileID, VehicleMovementType movementType, uint16_t armourType, uint8_t seats, uint8_t repairPointsDivisor, uint8_t slotLimitMultiplier, uint16_t tacticalFuelPer100Tiles, uint8_t travelTimePerSector, uint8_t fuelPerTravelMinute, uint8_t gunStackBigPocket, uint8_t gunStackSmallPocket);
 	static const VehicleModel* deserialize(const JsonValue& obj, const ItemSystem* itemSystem, const MercSystem* mercSystem);
 	static void validateData(const std::vector<const VehicleModel*>& vehicles);
 
@@ -33,4 +33,9 @@ public:
 	const uint8_t   travel_time_per_sector;
 	// fuel (of 10000, a full tank) one minute of strategic travel costs
 	const uint8_t   fuel_per_travel_minute;
+	// guns of one kind in one big / small cargo slot, never more than the
+	// gun's own stack size; big 0 = the gun's stack size
+	// (docs/gun-stacking-plan.md, G9)
+	const uint8_t   gun_stack_big_pocket;
+	const uint8_t   gun_stack_small_pocket;
 };

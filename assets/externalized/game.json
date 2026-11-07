@@ -65,6 +65,11 @@
   //  vanilla setting: false
   "drop_everything": true,
 
+  //  Will enemies never leave behind an item before the game's highest progress (0-100)
+  //  reaches the item's own "minDropProgress"? Items without it always drop.
+  //  vanilla setting: false (there is no minDropProgress in vanilla)
+  "enemy_drop_progress_limits": true,
+
   //  Will dropped items always be visible to the player, regardless of distance?
   //  vanilla setting: false
   "all_drops_visible": true,
@@ -83,6 +88,12 @@
   // least (640 + (n-6)*83) pixels wide); the 1366x768 team panel shows 7 and scrolls through the rest.
   // vanilla value: 6
   "squad_size": 100,
+
+  // Guns of one kind in one sector inventory slot (1-94), unless weapons.json gives the gun its own "stackSize".
+  // Guns that differ only in condition share a slot; a merc still carries one gun per pocket.
+  // Vehicle cargo: see gunStackBigPocket / gunStackSmallPocket in vehicles.json.
+  // vanilla value: 1 (guns didn't stack)
+  "gun_stack_size": 94,
 
   // Enable improvements over vanilla game's tactical AI
   "ai": {

@@ -18,9 +18,14 @@
 #include "GameInstance.h"
 #include "MagazineModel.h"
 #include "WeaponModels.h"
+#include "ItemIndexBlocks.h"
+#include "ItemModel.h"
 
 #include <algorithm>
 #include <iterator>
+#include <stdexcept>
+#include <string_theory/format>
+#include <vector>
 
 // To reduce memory fragmentation from frequent MemRealloc(), we allocate memory for more than one special slot each
 // time we run out of space.  Odds are that if we need one, we'll need another soon.
@@ -136,40 +141,63 @@ void ShutDownArmsDealers()
 }
 
 
+// The dealer inventories of a save (docs/item-limits-plan.md, D9): the status
+// of every dealer, then per dealer a UINT16 count and that many records of a
+// UINT16 item index, the 16 bytes of the entry and its special items. Only
+// entries that are not empty are stored, so the size follows the stock and
+// not MAXITEMS.
+static constexpr size_t DEALER_ITEM_SAVE_SIZE = 16;
+
+
+static bool IsEmptyDealerItem(DEALER_ITEM_HEADER const& i)
+{
+	return i.ubTotalItems == 0 && i.ubPerfectItems == 0 && i.ubStrayAmmo == 0 &&
+		i.SpecialItem.empty() && i.uiOrderArrivalTime == 0 && i.ubQtyOnOrder == 0 &&
+		!i.fPreviouslyEligible;
+}
+
+
 void SaveArmsDealerInventoryToSaveGameFile(HWFILE const f)
 {
 	f->write(gArmsDealerStatus, sizeof(gArmsDealerStatus));
 
-	for (DEALER_ITEM_HEADER const (*dealer)[MAXITEMS] = gArmsDealersInventory; dealer != endof(gArmsDealersInventory); ++dealer)
+	for (DEALER_ITEM_HEADER const (&dealer)[MAXITEMS] : gArmsDealersInventory)
 	{
-		FOR_EACH(DEALER_ITEM_HEADER const, item, *dealer)
+		std::vector<UINT16> items;
+		for (UINT16 item_idx = 0; item_idx != MAXITEMS; ++item_idx)
 		{
-			BYTE  data[16];
+			if (!IsEmptyDealerItem(dealer[item_idx])) items.push_back(item_idx);
+		}
+
+		BYTE countData[2];
+		DataWriter c{countData};
+		INJ_U16(c, static_cast<UINT16>(items.size()))
+		f->write(countData, sizeof(countData));
+
+		for (UINT16 const item_idx : items)
+		{
+			DEALER_ITEM_HEADER const& item = dealer[item_idx];
+
+			BYTE  data[2 + DEALER_ITEM_SAVE_SIZE];
 			DataWriter d{data};
-			INJ_U8(  d, item->ubTotalItems)
-			INJ_U8(  d, item->ubPerfectItems)
-			INJ_U8(  d, item->ubStrayAmmo)
-			Assert(item->SpecialItem.size() <= UINT8_MAX);
-			INJ_U8(  d, static_cast<UINT8>(item->SpecialItem.size()))
+			INJ_U16( d, item_idx)
+			INJ_U8(  d, item.ubTotalItems)
+			INJ_U8(  d, item.ubPerfectItems)
+			INJ_U8(  d, item.ubStrayAmmo)
+			Assert(item.SpecialItem.size() <= UINT8_MAX);
+			INJ_U8(  d, static_cast<UINT8>(item.SpecialItem.size()))
 			INJ_SKIP(d, 4)
-			INJ_U32( d, item->uiOrderArrivalTime)
-			INJ_U8(  d, item->ubQtyOnOrder)
-			INJ_BOOL(d, item->fPreviouslyEligible)
+			INJ_U32( d, item.uiOrderArrivalTime)
+			INJ_U8(  d, item.ubQtyOnOrder)
+			INJ_BOOL(d, item.fPreviouslyEligible)
 			INJ_SKIP(d, 2)
 			Assert(d.getConsumed() == lengthof(data));
-
 			f->write(data, sizeof(data));
-		}
-	}
 
-	// Save special items
-	for (auto dealer : GCM->getDealers())
-	{
-		for (UINT16 item_idx = 1; item_idx != MAXITEMS; ++item_idx)
-		{
-			DEALER_ITEM_HEADER const& di = gArmsDealersInventory[dealer->dealerID][item_idx];
-			if (di.SpecialItem.size() == 0) continue;
-			f->write(di.SpecialItem.data(), sizeof(DEALER_SPECIAL_ITEM) * di.SpecialItem.size());
+			if (!item.SpecialItem.empty())
+			{
+				f->write(item.SpecialItem.data(), sizeof(DEALER_SPECIAL_ITEM) * item.SpecialItem.size());
+			}
 		}
 	}
 }
@@ -178,54 +206,56 @@ void SaveArmsDealerInventoryToSaveGameFile(HWFILE const f)
 static void AllocMemsetSpecialItemArray(DEALER_ITEM_HEADER*, UINT8 ubElementsNeeded);
 
 
-void LoadArmsDealerInventoryFromSavedGameFile(HWFILE const f, UINT32 const savegame_version)
+void LoadArmsDealerInventoryFromSavedGameFile(HWFILE const f, UINT32 /*savegame_version*/)
 {
-	// Free all the dealers special inventory arrays
-	ShutDownArmsDealers();
-
-	// Elgin was added to the dealers list in Game Version #54, enlarging these 2 tables
-	// Manny was added to the dealers list in Game Version #55, enlarging these 2 tables
-	UINT32 const n_dealers_saved =
-		savegame_version < 54 ? NUM_ARMS_DEALERS - 2 : // without Elgin and Manny
-		savegame_version < 55 ? NUM_ARMS_DEALERS - 1 : // without Manny
-		NUM_ARMS_DEALERS;
-
-	f->read(gArmsDealerStatus, n_dealers_saved * sizeof(*gArmsDealerStatus));
-
-	for (DEALER_ITEM_HEADER (*dealer)[MAXITEMS] = gArmsDealersInventory; dealer != gArmsDealersInventory + n_dealers_saved; ++dealer)
+	// Older saves are not supported (SaveLoadScreen refuses another version)
+	for (DEALER_ITEM_HEADER (&dealer)[MAXITEMS] : gArmsDealersInventory)
 	{
-		FOR_EACH(DEALER_ITEM_HEADER, item, *dealer)
+		std::fill(std::begin(dealer), std::end(dealer), DEALER_ITEM_HEADER{});
+	}
+
+	f->read(gArmsDealerStatus, sizeof(gArmsDealerStatus));
+
+	for (DEALER_ITEM_HEADER (&dealer)[MAXITEMS] : gArmsDealersInventory)
+	{
+		BYTE countData[2];
+		f->read(countData, sizeof(countData));
+		DataReader c{countData};
+		UINT16 count;
+		EXTR_U16(c, count)
+
+		for (UINT16 n = 0; n != count; ++n)
 		{
-			BYTE data[16];
+			BYTE data[2 + DEALER_ITEM_SAVE_SIZE];
 			f->read(data, sizeof(data));
 
 			DataReader d{data};
-			EXTR_U8(  d, item->ubTotalItems)
-			EXTR_U8(  d, item->ubPerfectItems)
-			EXTR_U8(  d, item->ubStrayAmmo)
+			UINT16 item_idx;
+			EXTR_U16(d, item_idx)
+			if (item_idx >= MAXITEMS || IsUnusedItemIndex(*GCM->getItem(item_idx)))
+			{
+				throw std::runtime_error(ST::format("dealer {}: item {} is not defined by the game data",
+					&dealer - gArmsDealersInventory, item_idx).to_std_string());
+			}
+
+			DEALER_ITEM_HEADER& item = dealer[item_idx];
+			EXTR_U8(  d, item.ubTotalItems)
+			EXTR_U8(  d, item.ubPerfectItems)
+			EXTR_U8(  d, item.ubStrayAmmo)
 			UINT8 numSpecialItem = 0;
 			EXTR_U8(  d, numSpecialItem)
 			EXTR_SKIP(d, 4)
-			EXTR_U32( d, item->uiOrderArrivalTime)
-			EXTR_U8(  d, item->ubQtyOnOrder)
-			EXTR_BOOL(d, item->fPreviouslyEligible)
+			EXTR_U32( d, item.uiOrderArrivalTime)
+			EXTR_U8(  d, item.ubQtyOnOrder)
+			EXTR_BOOL(d, item.fPreviouslyEligible)
 			EXTR_SKIP(d, 2)
 			Assert(d.getConsumed() == lengthof(data));
-			AllocMemsetSpecialItemArray(item, numSpecialItem);
-		}
-	}
 
-	if (savegame_version < 54) InitializeOneArmsDealer(ARMS_DEALER_ELGIN);
-	if (savegame_version < 55) InitializeOneArmsDealer(ARMS_DEALER_MANNY);
-
-	// Load special items
-	for (auto dealer : GCM->getDealers())
-	{
-		for (UINT16 item_idx = 1; item_idx != MAXITEMS; ++item_idx)
-		{
-			DEALER_ITEM_HEADER& di = gArmsDealersInventory[dealer->dealerID][item_idx];
-			if (di.SpecialItem.size() == 0) continue;
-			f->read(di.SpecialItem.data(), sizeof(DEALER_SPECIAL_ITEM) * di.SpecialItem.size());
+			AllocMemsetSpecialItemArray(&item, numSpecialItem);
+			if (numSpecialItem != 0)
+			{
+				f->read(item.SpecialItem.data(), sizeof(DEALER_SPECIAL_ITEM) * item.SpecialItem.size());
+			}
 		}
 	}
 }
@@ -498,8 +528,8 @@ static void LimitArmsDealersInventory(ArmsDealerID const ubArmsDealer, UINT32 ui
 	UINT32 uiItemsToRemove=0;
 	SPECIAL_ITEM_INFO SpclItemInfo;
 
-	UINT16 usAvailableItem[ MAXITEMS ] = { NOTHING };
-	UINT8  ubNumberOfAvailableItem[ MAXITEMS ] = { 0 };
+	std::vector<UINT16> usAvailableItem(MAXITEMS, NOTHING);
+	std::vector<UINT8>  ubNumberOfAvailableItem(MAXITEMS, 0);
 	UINT32 uiTotalNumberOfItems = 0, uiRandomChoice;
 	UINT32 uiNumAvailableItems = 0, uiIndex;
 
@@ -630,8 +660,8 @@ static void LimitArmsDealersInventory(ArmsDealerID const ubArmsDealer, UINT32 ui
 static void GuaranteeAtLeastOneItemOfType(ArmsDealerID const ubArmsDealer, UINT32 uiDealerItemType)
 {
 	UINT8  ubChance;
-	UINT16 usAvailableItem[ MAXITEMS ] = { NOTHING };
-	UINT8  ubChanceForAvailableItem[ MAXITEMS ] = { 0 };
+	std::vector<UINT16> usAvailableItem(MAXITEMS, NOTHING);
+	std::vector<UINT8>  ubChanceForAvailableItem(MAXITEMS, 0);
 	UINT32 uiTotalChances = 0;
 	UINT32 uiNumAvailableItems = 0, uiIndex, uiRandomChoice;
 
@@ -1272,6 +1302,19 @@ void AddObjectToArmsDealerInventory(ArmsDealerID const ubArmsDealer, OBJECTTYPE*
 	UINT8 ubCnt;
 	SPECIAL_ITEM_INFO SpclItemInfo;
 
+	// docs/gun-stacking-plan.md: a gun stack goes in gun by gun, each with its
+	// own condition and the stack's shared ammo and attachments
+	if (GCM->getItem(pObject->usItem)->isGun() && pObject->ubNumberOfObjects > 1)
+	{
+		while (pObject->ubNumberOfObjects > 0)
+		{
+			OBJECTTYPE unit{};
+			GetObjFrom(pObject, 0, &unit);
+			AddObjectToArmsDealerInventory(ubArmsDealer, &unit);
+		}
+		*pObject = OBJECTTYPE{};
+		return;
+	}
 
 	SetSpecialItemInfoFromObject( &SpclItemInfo, pObject );
 

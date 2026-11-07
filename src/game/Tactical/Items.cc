@@ -41,13 +41,15 @@
 #include "Vehicles.h"
 #include "ItemModel.h"
 #include "MagazineModel.h"
+#include "WeaponAttachmentFamilyModel.h"
 #include "WeaponModels.h"
+#include <algorithm>
 #include <array>
 #include <initializer_list>
+#include <iterator>
 #include <map>
 #include <set>
 #include <stdexcept>
-
 
 
 constexpr UINT8 ANY_MAGSIZE = 255; // magic number for FindAmmo's mag_size parameter
@@ -344,8 +346,42 @@ UINT8 ApplyBigPerPocketOverride( UINT16 usItem, INT8 bSlot, UINT8 ubSlotLimit )
 }
 
 
+UINT8 GunStackSize(UINT16 const usItem)
+{
+	ItemModel const* const item = GCM->getItem(usItem);
+	if (!item->isGun()) return 1;
+	auto const own = item->asWeapon()->stackSize;
+	UINT8 const n = own ? *own : gamepolicy(gun_stack_size);
+	return std::clamp<UINT8>(n, 1, MAX_GUNS_PER_STACK);
+}
+
+
+UINT8 SectorSlotLimit(UINT16 const usItem)
+{
+	if (GCM->getItem(usItem)->isGun()) return GunStackSize(usItem);
+	return std::min<UINT8>(ItemSlotLimit(usItem, BIGPOCK1POS), MAX_OBJECTS_PER_SLOT);
+}
+
+
 UINT8 SoldierSlotLimit(SOLDIERTYPE const& s, UINT16 const usItem, INT8 const bSlot)
 {
+	if (s.uiStatusFlags & SOLDIER_VEHICLE && bSlot >= BIGPOCK1POS &&
+			GCM->getItem(usItem)->isGun())
+	{
+		// docs/gun-stacking-plan.md, G9: the vehicle's own gun limits, never
+		// more than the gun's stack size; a small cargo pocket only takes a
+		// gun that fits a small pocket at all (ItemSlotLimit() 0 = it doesn't)
+		VehicleModel const* const vm = GCM->getVehicle(pVehicleList[s.bVehicleID].ubVehicleType);
+		UINT8 const stack = GunStackSize(usItem);
+		if (bSlot >= SMALLPOCK1POS)
+		{
+			if (ItemSlotLimit(usItem, bSlot) == 0) return 0;
+			return std::min(stack, vm->gun_stack_small_pocket);
+		}
+		UINT8 const big = vm->gun_stack_big_pocket ? vm->gun_stack_big_pocket : stack;
+		return std::min(stack, big);
+	}
+
 	int limit = std::min(int(ApplyBigPerPocketOverride(usItem, bSlot, ItemSlotLimit(usItem, bSlot))), int(MAX_OBJECTS_PER_SLOT));
 	if (s.uiStatusFlags & SOLDIER_VEHICLE && limit > 1 &&
 			!(GCM->getItem(usItem)->getItemClass() & (IC_WEAPON | IC_PUNCH)))
@@ -669,30 +705,16 @@ bool ItemHasAttachments(OBJECTTYPE const& o)
 bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b)
 {
 	// Only guns are restricted here -- every other item class stores its
-	// per-unit state in bStatus[]/ubShotsLeft[] (one real byte per unit),
-	// which StackObjs()/RemoveObjFrom()/GetObjFrom() already handle
-	// correctly regardless of how many units are involved.
+	// per-unit state in bStatus[]/ubShotsLeft[] (one real byte per unit).
 	//
-	// A gun is different: bGunStatus/ubGunAmmoType/ubGunShotsLeft/
-	// usGunAmmoItem/bGunAmmoStatus alias the very same bytes as
-	// bStatus[0..4], and usAttachItem[]/bAttachStatus[] are a single set
-	// for the whole OBJECTTYPE regardless of ubNumberOfObjects -- there is
-	// no per-unit storage for any of it. Two guns can only safely share one
-	// multi-unit OBJECTTYPE when that single shared block already
-	// correctly describes every unit at once -- i.e. when the two guns are
-	// physically IDENTICAL in everything the union/attachments can't
-	// represent per-unit: same ammo type, same shots left, same jam
-	// status, same attachments, same condition. This is equality, not
-	// "must be empty" -- CreateGun() loads every normal gun with its
-	// default magazine already, so requiring no ammo at all would make
-	// almost no freshly-spawned gun ever stackable. Anything not equal
-	// must stay as separate, single-unit OBJECTTYPEs (the callers of this
-	// function fall back to their existing swap/no-merge behavior, exactly
-	// as for any other item that doesn't match closely enough to combine).
+	// A gun keeps its ammo state (ubGunAmmoType/ubGunShotsLeft/usGunAmmoItem/
+	// bGunAmmoStatus) and usAttachItem[]/bAttachStatus[] once for the whole
+	// OBJECTTYPE, so two guns may only share one when all of that is equal.
+	// The condition is per unit (bGunStatus + bGunUnitStatus[], see
+	// UnitStatus()), so it may differ (docs/gun-stacking-plan.md, G2).
 	if (a.usItem != b.usItem) return false;
 	if (!GCM->getItem(a.usItem)->isGun()) return true;
 
-	if (a.bGunStatus     != b.bGunStatus)     return false;
 	if (a.ubGunAmmoType  != b.ubGunAmmoType)  return false;
 	if (a.ubGunShotsLeft != b.ubGunShotsLeft) return false;
 	if (a.usGunAmmoItem  != b.usGunAmmoItem)  return false;
@@ -708,10 +730,41 @@ bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b)
 }
 
 
+INT8 UnitStatus(OBJECTTYPE const& o, UINT8 const i)
+{
+	if (GCM->getItem(o.usItem)->isGun())
+	{
+		if (i == 0) return o.bGunStatus;
+		if (i >= MAX_GUNS_PER_STACK) return 0;
+		return o.bGunUnitStatus[i - 1];
+	}
+	if (i >= MAX_OBJECTS_PER_SLOT) return 0;
+	return o.bStatus[i];
+}
+
+
+void SetUnitStatus(OBJECTTYPE& o, UINT8 const i, INT8 const status)
+{
+	if (GCM->getItem(o.usItem)->isGun())
+	{
+		if (i == 0) o.bGunStatus = status;
+		else if (i < MAX_GUNS_PER_STACK) o.bGunUnitStatus[i - 1] = status;
+		return;
+	}
+	if (i < MAX_OBJECTS_PER_SLOT) o.bStatus[i] = status;
+}
+
+
 // Determine if it is possible to add this attachment to the CLASS of this item
 // (i.e. to any item in the class)
 static BOOLEAN ValidAttachmentClass(UINT16 usAttachment, UINT16 usItem)
 {
+	// a weapon attachment family attaches to guns (docs/weapon-attachments-plan.md)
+	if (GCM->getItem(usAttachment)->getAttachmentFamily())
+	{
+		return GCM->getItem(usItem)->getItemClass() == IC_GUN;
+	}
+
 	for (auto const& ai : AttachmentInfo)
 	{
 		// see comment for AttachmentInfo array for why we skip IC_NONE
@@ -728,6 +781,15 @@ static BOOLEAN ValidAttachmentClass(UINT16 usAttachment, UINT16 usItem)
 
 static const AttachmentInfoStruct* GetAttachmentInfo(const UINT16 usItem)
 {
+	// the skill check of a weapon attachment comes from its family
+	// (docs/weapon-attachments-plan.md); the table only for the other attachments
+	if (auto const* const family = GCM->getItem(usItem)->getAttachmentFamily())
+	{
+		static AttachmentInfoStruct info;
+		info = AttachmentInfoStruct{ usItem, IC_GUN, family->skillCheck, family->skillCheckModifier };
+		return &info;
+	}
+
 	for (auto const& ai : AttachmentInfo)
 	{
 		if (ai.usItem == usItem) return &ai;
@@ -751,6 +813,28 @@ bool ValidAttachment(UINT16 const attachment, UINT16 const item)
 	}
 
 	return false;
+}
+
+
+UINT16 FindConflictingAttachment(OBJECTTYPE const& o, UINT16 const attachment, bool* const sameFamily)
+{
+	*sameFamily = false;
+	auto const* const family = GCM->getItem(attachment)->getAttachmentFamily();
+	if (!family) return NOTHING;
+
+	for (UINT16 const attached : o.usAttachItem)
+	{
+		if (attached == NOTHING) continue;
+		auto const* const other = GCM->getItem(attached)->getAttachmentFamily();
+		if (!other) continue;
+		if (other == family)
+		{
+			*sameFamily = true;
+			return attached;
+		}
+		if (family->excludesFamily(*other)) return attached;
+	}
+	return NOTHING;
 }
 
 
@@ -813,6 +897,22 @@ BOOLEAN ValidItemAttachment(const OBJECTTYPE* const pObj, const UINT16 usAttachm
 				fSameItem = TRUE;
 			}
 			break;
+	}
+
+	// weapon attachment families: one level per family, no excluded pairs
+	bool sameFamily = false;
+	UINT16 const conflict = FindConflictingAttachment(*pObj, usAttachment, &sameFamily);
+	if (conflict != NOTHING)
+	{
+		if (sameFamily)
+		{
+			fSameItem = TRUE;
+		}
+		else
+		{
+			fSimilarItems = TRUE;
+			usSimilarItem = conflict;
+		}
 	}
 
 	if (fAttemptingAttachment)
@@ -981,7 +1081,8 @@ UINT32 CalculateCarriedWeight(SOLDIERTYPE const* const s)
 	for (auto const& invItem : s->inv)
 	{
 		grams weight = Weight(invItem);
-		if (GCM->getItem(invItem.usItem)->getPerPocket() > 1)
+		// a gun stack (vehicle cargo) weighs every gun (docs/gun-stacking-plan.md, G4)
+		if (GCM->getItem(invItem.usItem)->getPerPocket() > 1 || GCM->getItem(invItem.usItem)->isGun())
 		{
 			// Account for # of items
 			weight *= invItem.ubNumberOfObjects;
@@ -1029,25 +1130,17 @@ void RemoveObjFrom( OBJECTTYPE * pObj, UINT8 ubRemoveIndex )
 		// delete!
 		DeleteObj( pObj );
 	}
-	else if (GCM->getItem(pObj->usItem)->isGun())
-	{
-		// See CanGunsStack() -- bStatus[0..4] here alias bGunStatus/
-		// ubGunAmmoType/ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a
-		// single shared value already guaranteed identical across every
-		// unit in this stack. The shift/clear below is meaningless (and
-		// actively corrupting) for a gun: it would overwrite bGunStatus
-		// with what's really ubGunAmmoType, etc. Only the count changes.
-		pObj->ubNumberOfObjects--;
-	}
 	else
 	{
-		// shift down all the values that should be down
+		// shift down all the values that should be down (a gun's unit
+		// condition lives in bGunStatus/bGunUnitStatus[], not in bStatus[],
+		// whose first bytes are its ammo state -- see UnitStatus())
 		for (ubLoop = ubRemoveIndex + 1; ubLoop < pObj->ubNumberOfObjects; ubLoop++)
 		{
-			pObj->bStatus[ubLoop - 1] = pObj->bStatus[ubLoop];
+			SetUnitStatus(*pObj, ubLoop - 1, UnitStatus(*pObj, ubLoop));
 		}
 		// and set the upper value to 0
-		pObj->bStatus[pObj->ubNumberOfObjects - 1] = 0;
+		SetUnitStatus(*pObj, pObj->ubNumberOfObjects - 1, 0);
 		// make the number of objects recorded match the array
 		pObj->ubNumberOfObjects--;
 	}
@@ -1089,13 +1182,14 @@ void GetObjFrom( OBJECTTYPE * pObj, UINT8 ubGetIndex, OBJECTTYPE * pDest )
 	}
 	else if (GCM->getItem(pObj->usItem)->isGun())
 	{
-		// See CanGunsStack() -- every unit in a gun "stack" already shares
-		// the exact same ammo/condition/attachment state, so pulling one
-		// out is a whole-struct copy (this also correctly carries over
-		// usAttachItem[]/bAttachStatus[], which live outside the union and
-		// the generic branch below never copies at all).
+		// See CanGunsStack() -- every unit in a gun stack shares the same
+		// ammo/attachment state, so pulling one out is a whole-struct copy
+		// (this also carries over usAttachItem[]/bAttachStatus[], which the
+		// generic branch below never copies) with that unit's own condition.
 		*pDest = *pObj;
 		pDest->ubNumberOfObjects = 1;
+		pDest->bGunStatus = UnitStatus(*pObj, ubGetIndex);
+		std::fill(std::begin(pDest->bGunUnitStatus), std::end(pDest->bGunUnitStatus), 0);
 		RemoveObjFrom( pObj, ubGetIndex );
 	}
 	else
@@ -1127,12 +1221,15 @@ void StackObjs(OBJECTTYPE* pSourceObj, OBJECTTYPE* pTargetObj, UINT8 ubNumberToC
 
 	if (GCM->getItem(pTargetObj->usItem)->isGun())
 	{
-		// See CanGunsStack() -- callers only ever merge guns this way once
-		// they've verified both sides are physically identical (no ammo,
-		// no attachments, equal condition), so pTargetObj's existing
-		// shared gun state already correctly describes the merged total --
-		// there's no per-unit bStatus[] data to copy, only the count
-		// changes.
+		// See CanGunsStack() -- callers only merge guns this way once both
+		// sides share the same ammo/attachment state, so pTargetObj's shared
+		// gun state already describes the merged total; only each unit's
+		// condition is copied. RemoveObjs() then shifts the source's own
+		// remaining units down.
+		for (ubLoop = 0; ubLoop < ubNumberToCopy; ubLoop++)
+		{
+			SetUnitStatus(*pTargetObj, pTargetObj->ubNumberOfObjects + ubLoop, UnitStatus(*pSourceObj, ubLoop));
+		}
 		pTargetObj->ubNumberOfObjects += ubNumberToCopy;
 		RemoveObjs( pSourceObj, ubNumberToCopy );
 		return;
@@ -1187,7 +1284,7 @@ void SortItemStackByStatus(OBJECTTYPE* const o)
 
 	auto quality = [&](UINT8 const idx) -> INT16
 	{
-		return is_ammo ? (INT16)(100 * o->ubShotsLeft[idx] / capacity) : (INT16)o->bStatus[idx];
+		return is_ammo ? (INT16)(100 * o->ubShotsLeft[idx] / capacity) : (INT16)UnitStatus(*o, idx);
 	};
 
 	// Simple insertion sort -- ubNumberOfObjects is at most
@@ -1204,7 +1301,9 @@ void SortItemStackByStatus(OBJECTTYPE* const o)
 			}
 			else
 			{
-				std::swap(o->bStatus[j - 1], o->bStatus[j]);
+				INT8 const tmp = UnitStatus(*o, j - 1);
+				SetUnitStatus(*o, j - 1, UnitStatus(*o, j));
+				SetUnitStatus(*o, j, tmp);
 			}
 			--j;
 		}
@@ -1303,9 +1402,9 @@ BOOLEAN PlaceObjectAtObjectIndex( OBJECTTYPE * pSourceObj, OBJECTTYPE * pTargetO
 	if (ubIndex < pTargetObj->ubNumberOfObjects)
 	{
 		// swap
-		bTemp = pSourceObj->bStatus[0];
-		pSourceObj->bStatus[0] = pTargetObj->bStatus[ubIndex];
-		pTargetObj->bStatus[ubIndex] = bTemp;
+		bTemp = UnitStatus(*pSourceObj, 0);
+		SetUnitStatus(*pSourceObj, 0, UnitStatus(*pTargetObj, ubIndex));
+		SetUnitStatus(*pTargetObj, ubIndex, bTemp);
 		return( TRUE );
 	}
 	else
@@ -1439,7 +1538,9 @@ BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo
 		}
 		else if (GCM->getItem(pAmmo->usItem)->asAmmo()->capacity > GCM->getWeapon(pGun->usItem)->ubMagSize)
 		{
-			usNewAmmoItem = pAmmo->usItem - 1;
+			// the magazine of the gun's size with the same ammo (it was the
+			// item index - 1 before, see docs/magazine-size-variants-plan.md)
+			usNewAmmoItem = FindMagazineVariant(*GCM->getItem(pAmmo->usItem)->asAmmo(), GCM->getWeapon(pGun->usItem)->ubMagSize);
 			if (bReloadType == RELOAD_TOPOFF)
 			{
 				ubBulletsToMove = std::min(int(pAmmo->ubShotsLeft[0]), GCM->getWeapon(pGun->usItem)->ubMagSize - pGun->ubGunShotsLeft);
@@ -1451,7 +1552,9 @@ BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo
 		}
 		else // mag is smaller than weapon mag
 		{
-			usNewAmmoItem = pAmmo->usItem + 1;
+			// the magazine of the gun's size with the same ammo (it was the
+			// item index + 1 before)
+			usNewAmmoItem = FindMagazineVariant(*GCM->getItem(pAmmo->usItem)->asAmmo(), GCM->getWeapon(pGun->usItem)->ubMagSize);
 			if (bReloadType == RELOAD_TOPOFF)
 			{
 				ubBulletsToMove = std::min(int(pAmmo->ubShotsLeft[0]), GCM->getWeapon(pGun->usItem)->ubMagSize - pGun->ubGunShotsLeft);
@@ -1576,9 +1679,16 @@ BOOLEAN EmptyWeaponMagazine( OBJECTTYPE * pWeapon, OBJECTTYPE *pAmmo )
 		// start by erasing ammo item, just in case...
 		DeleteObj( pAmmo );
 
-		pAmmo->ubShotsLeft[0] = pWeapon->ubGunShotsLeft;
+		// a gun stack shares one ammo state: every gun in it holds such a
+		// magazine, so unloading it gives one per gun
+		// (docs/gun-stacking-plan.md)
+		UINT8 const n_guns = std::max<UINT8>(1, pWeapon->ubNumberOfObjects);
+		for (UINT8 i = 0; i != n_guns; ++i)
+		{
+			pAmmo->ubShotsLeft[i] = pWeapon->ubGunShotsLeft;
+		}
 		pAmmo->usItem = pWeapon->usGunAmmoItem;
-		pAmmo->ubNumberOfObjects = 1;
+		pAmmo->ubNumberOfObjects = n_guns;
 
 		pWeapon->ubGunShotsLeft = 0;
 		pWeapon->ubGunAmmoType = 0;
@@ -2274,17 +2384,14 @@ static BOOLEAN PlaceObjectInSlot(SOLDIERTYPE* pSoldier, INT8 bPos, OBJECTTYPE* p
 		// but assuming it isn't
 		*pInSlot = *pObj;
 
-		// Guns skip this: bStatus[0..4] alias bGunStatus/ubGunAmmoType/
-		// ubGunShotsLeft/usGunAmmoItem/bGunAmmoStatus, a single value
-		// shared by the whole stack (see CanGunsStack()) -- there's
-		// nothing per-unit to zero, and doing so would corrupt that shared
-		// state instead of just leaving fewer units behind.
-		if (ubNumberToDrop != pObj->ubNumberOfObjects && !GCM->getItem(pObj->usItem)->isGun())
+		// (a gun's unit condition lives in bGunStatus/bGunUnitStatus[], not
+		// in bStatus[], whose first bytes are its ammo state -- UnitStatus())
+		if (ubNumberToDrop != pObj->ubNumberOfObjects)
 		{
 			// in the InSlot copy, zero out all the objects we didn't drop
 			for (ubLoop = ubNumberToDrop; ubLoop < pObj->ubNumberOfObjects; ubLoop++)
 			{
-				pInSlot->bStatus[ubLoop] = 0;
+				SetUnitStatus(*pInSlot, ubLoop, 0);
 			}
 		}
 		pInSlot->ubNumberOfObjects = ubNumberToDrop;
@@ -2553,6 +2660,22 @@ static BOOLEAN InternalAutoPlaceObject(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, 
 			break;
 		default:
 			break;
+	}
+
+	if (pSoldier->uiStatusFlags & SOLDIER_VEHICLE && pItem->isGun())
+	{
+		// docs/gun-stacking-plan.md, G9: in a vehicle's cargo, first top up
+		// the stacks of the same gun that it may join (CanGunsStack())
+		for (bSlot = BIGPOCK1POS; bSlot <= SMALLPOCK20POS; ++bSlot)
+		{
+			if (bSlot == bExcludeSlot) continue;
+			OBJECTTYPE const& in_slot = pSoldier->inv[bSlot];
+			if (in_slot.usItem != pObj->usItem || !CanGunsStack(in_slot, *pObj)) continue;
+			if (in_slot.ubNumberOfObjects >= SoldierSlotLimit(*pSoldier, pObj->usItem, bSlot)) continue;
+			PlaceObject(pSoldier, bSlot, pObj);
+			SetNewItem(pSoldier, bSlot, fNewItem);
+			if (pObj->ubNumberOfObjects == 0) return TRUE;
+		}
 	}
 
 	if (ubPerSlot == 0)
@@ -2853,6 +2976,29 @@ UINT16 FindReplacementMagazine(const CalibreModel * calibre, UINT8 const mag_siz
 }
 
 
+UINT16 FindMagazineVariant(std::vector<const MagazineModel*> const& magazines, MagazineModel const& loaded, UINT16 const gun_mag_size)
+{
+	if (loaded.capacity == gun_mag_size) return loaded.getItemIndex();
+
+	const MagazineModel* best = nullptr;
+	for (const MagazineModel* mag : magazines)
+	{
+		if (mag->calibre->index == CalibreModel::NOAMMO)        continue;
+		if (mag->calibre->index  != loaded.calibre->index)      continue;
+		if (mag->ammoType->index != loaded.ammoType->index)     continue;
+		if (mag->capacity        != gun_mag_size)               continue;
+		if (!best || mag->getItemIndex() < best->getItemIndex()) best = mag;
+	}
+	return best ? best->getItemIndex() : loaded.getItemIndex();
+}
+
+
+UINT16 FindMagazineVariant(MagazineModel const& loaded, UINT16 const gun_mag_size)
+{
+	return FindMagazineVariant(GCM->getMagazines(), loaded, gun_mag_size);
+}
+
+
 UINT16 FindReplacementMagazineIfNecessary(const WeaponModel *old_gun, UINT16 const old_ammo_id, const WeaponModel *new_gun)
 {
 	const MagazineModel * old_mag = GCM->getMagazineByItemIndex(old_ammo_id);
@@ -3022,6 +3168,17 @@ void CreateItems(UINT16 const usItem, INT8 const bStatus, UINT8 ubNumber, OBJECT
 	}
 
 	CreateItem(usItem, bStatus, pObj);
+	if (GCM->getItem(usItem)->isGun())
+	{
+		// a gun's unit condition lives after its ammo fields (UnitStatus())
+		if (ubNumber > MAX_GUNS_PER_STACK) ubNumber = MAX_GUNS_PER_STACK;
+		for (ubLoop = 1; ubLoop < ubNumber; ubLoop++)
+		{
+			SetUnitStatus(*pObj, ubLoop, pObj->bGunStatus);
+		}
+		pObj->ubNumberOfObjects = ubNumber;
+		return;
+	}
 	for (ubLoop = 1; ubLoop < ubNumber; ubLoop++)
 	{
 		// we reference status[0] here because the status value might actually be a
@@ -3154,10 +3311,19 @@ BOOLEAN RemoveAttachment( OBJECTTYPE * pObj, INT8 bAttachPos, OBJECTTYPE * pNewO
 		return( FALSE );
 	}
 
+	// a gun stack shares one set of attachments: every gun in it carries this
+	// one, so removing it gives one per gun (docs/gun-stacking-plan.md); a
+	// grenade launcher with its grenade stays on the stack
+	UINT8 const n_units = GCM->getItem(pObj->usItem)->isGun() ? std::max<UINT8>(1, pObj->ubNumberOfObjects) : 1;
+	if (n_units > 1 && pObj->usAttachItem[bAttachPos] == UNDER_GLAUNCHER)
+	{
+		return( FALSE );
+	}
+
 	// if pNewObj is passed in NULL, then we just delete the attachment
 	if (pNewObj != NULL)
 	{
-		CreateItem( pObj->usAttachItem[bAttachPos], pObj->bAttachStatus[bAttachPos], pNewObj );
+		CreateItems( pObj->usAttachItem[bAttachPos], pObj->bAttachStatus[bAttachPos], n_units, pNewObj );
 	}
 
 	pObj->usAttachItem[bAttachPos] = NOTHING;
@@ -3441,7 +3607,7 @@ static BOOLEAN DamageItem(OBJECTTYPE* pObject, INT32 iDamage, BOOLEAN fOnGround)
 		{
 			// if the status of the item is negative then it's trapped/jammed;
 			// leave it alone
-			if (pObject->usItem != NOTHING && pObject->bStatus[bLoop] > 0)
+			if (pObject->usItem != NOTHING && UnitStatus(*pObject, bLoop) > 0)
 			{
 				bDamage = CheckItemForDamage( pObject->usItem, iDamage );
 				switch( pObject->usItem )
@@ -3453,7 +3619,7 @@ static BOOLEAN DamageItem(OBJECTTYPE* pObject, INT32 iDamage, BOOLEAN fOnGround)
 						if ( PreRandom( bDamage ) > 5 )
 						{
 							// smash!
-							bDamage = pObject->bStatus[ bLoop ];
+							bDamage = UnitStatus(*pObject, bLoop);
 						}
 						break;
 					default:
@@ -3464,29 +3630,27 @@ static BOOLEAN DamageItem(OBJECTTYPE* pObject, INT32 iDamage, BOOLEAN fOnGround)
 					if ( PreRandom( 100 ) < (UINT32) bDamage )
 					{
 						// destroy clip completely
-						pObject->bStatus[ bLoop ] = 1;
+						SetUnitStatus(*pObject, bLoop, 1);
 					}
 				}
 				else
 				{
-					pObject->bStatus[bLoop] -= bDamage;
-					if (pObject->bStatus[bLoop] < 1)
-					{
-						pObject->bStatus[bLoop] = 1;
-					}
+					// (a gun stack keeps each unit's condition apart from
+					// bStatus[], see UnitStatus())
+					SetUnitStatus(*pObject, bLoop, static_cast<INT8>(std::max(1, UnitStatus(*pObject, bLoop) - bDamage)));
 				}
 				// I don't think we increase viewrange based on items any more
 				// FUN STUFF!  Check for explosives going off as a result!
 				if (GCM->getItem(pObject->usItem)->isExplosive())
 				{
-					if (CheckForChainReaction( pObject->usItem, pObject->bStatus[bLoop], bDamage, fOnGround ))
+					if (CheckForChainReaction( pObject->usItem, UnitStatus(*pObject, bLoop), bDamage, fOnGround ))
 					{
 						return( TRUE );
 					}
 				}
 
 				// remove item from index AFTER checking explosions because need item data for explosion!
-				if ( pObject->bStatus[bLoop] == 1 )
+				if ( UnitStatus(*pObject, bLoop) == 1 )
 				{
 					if ( pObject->ubNumberOfObjects > 1 )
 					{
@@ -3914,6 +4078,59 @@ void TurnOffXRayEffects( SOLDIERTYPE * pSoldier )
 		}
 	}
 	pSoldier->uiXRayActivatedTime = 0;
+}
+
+
+bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 const progress)
+{
+	if (o.usItem == NOTHING) return true;
+	if (GCM->getItem(o.usItem)->getMinDropProgress() > progress) return false;
+
+	// D4: a blocked attachment is lost, the item itself still drops
+	for (UINT8 i = 0; i != MAX_ATTACHMENTS; ++i)
+	{
+		UINT16 const attachment = o.usAttachItem[i];
+		if (attachment == NOTHING) continue;
+		if (GCM->getItem(attachment)->getMinDropProgress() <= progress) continue;
+		o.usAttachItem[i]  = NOTHING;
+		o.bAttachStatus[i] = 0;
+	}
+	return true;
+}
+
+
+bool EnemyDropBlockedByProgress(UINT16 const usItem)
+{
+	if (!gamepolicy(enemy_drop_progress_limits) || usItem == NOTHING) return false;
+	return GCM->getItem(usItem)->getMinDropProgress() > HighestPlayerProgressPercentage();
+}
+
+
+bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const* const s, OBJECTTYPE& o)
+{
+	return s == nullptr || ApplyEnemyDropProgressLimit(*s, o);
+}
+
+
+void MarkObjectPickedUpBy(SOLDIERTYPE const& s, OBJECTTYPE& o)
+{
+	if (s.bTeam == OUR_TEAM)
+	{
+		o.fFlags &= ~OBJECT_PICKED_UP;
+	}
+	else
+	{
+		o.fFlags |= OBJECT_PICKED_UP;
+	}
+}
+
+
+bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const& s, OBJECTTYPE& o)
+{
+	if (!gamepolicy(enemy_drop_progress_limits)) return true;
+	if (s.bTeam != ENEMY_TEAM) return true;   // D5
+	if (o.fFlags & OBJECT_PICKED_UP) return true; // D9
+	return ApplyDropProgressLimit(o, HighestPlayerProgressPercentage()); // D2
 }
 
 

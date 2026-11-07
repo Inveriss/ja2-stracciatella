@@ -1823,6 +1823,16 @@
         "Ville",
         "Déployer"
     ],
+    "pWeaponAttachmentStrings": [
+        "Level %d",
+        "Range",
+        "Aim",
+        "Scope",
+        "Prone",
+        "Noise",
+        "AP",
+        "Burst"
+    ],
     "pMilitiaWatchStrings": [
         "Regarder la bataille",
         "Voulez-vous regarder la bataille ?",

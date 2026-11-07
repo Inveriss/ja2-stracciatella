@@ -535,7 +535,7 @@ static grams CarriedWeight(SOLDIERCREATE_STRUCT const* const pp)
 	{
 		if (o.usItem == NOTHING) continue;
 		grams weight = Weight(o);
-		if (GCM->getItem(o.usItem)->getPerPocket() > 1) weight *= o.ubNumberOfObjects;
+		if (GCM->getItem(o.usItem)->getPerPocket() > 1 || GCM->getItem(o.usItem)->isGun()) weight *= o.ubNumberOfObjects;
 		total += weight;
 	}
 	return total;
@@ -1816,8 +1816,11 @@ static void RandomlyChooseWhichItemsAreDroppable(SOLDIERCREATE_STRUCT* pp, INT8 
 			// if it's a weapon (monster parts included - they won't drop due to checks elsewhere!)
 			if (usItem > NONE && itemModel->isWeapon())
 			{
-				// and we're allowed to change its flags
-				if(! (pp->Inv[ i ].fFlags & OBJECT_NO_OVERWRITE ))
+				// and we're allowed to change its flags, and the game's progress
+				// lets it drop at all: a weapon below its minDropProgress isn't
+				// remembered as dropped, so its first real drop later still
+				// counts (docs/enemy-drop-progress-plan.md, D10)
+				if(! (pp->Inv[ i ].fFlags & OBJECT_NO_OVERWRITE ) && !EnemyDropBlockedByProgress(usItem))
 				{
 					// and it's never been dropped before in this game
 					if (!WasWeaponAlreadyDropped(itemModel->asWeapon()))

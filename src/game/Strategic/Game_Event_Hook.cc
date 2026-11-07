@@ -109,12 +109,11 @@ BOOLEAN ExecuteStrategicEvent( STRATEGICEVENT *pEvent )
 		//Gets called once a day ( at BOBBYRAY_UPDATE_TIME).  To simulate the items being bought and sold at bobby rays
 		case EVENT_DAILY_UPDATE_BOBBY_RAY_INVENTORY:
 			DailyUpdateOfBobbyRaysNewInventory();
-			DailyUpdateOfBobbyRaysUsedInventory();
 			DailyUpdateOfArmsDealersInventory();
 			break;
 		//Add items to BobbyR's new/used inventory
 		case EVENT_UPDATE_BOBBY_RAY_INVENTORY:
-			AddFreshBobbyRayInventory( (UINT16) pEvent->uiParam );
+			AddFreshBobbyRayInventory(BobbyRRestockItem(pEvent->uiParam), BobbyRRestockIsUsed(pEvent->uiParam));
 			break;
 		//Called once a day to update the number of days that a hired merc from M.E.R.C. has been on contract.
 		// Also if the player hasn't paid for a while Specks will start sending e-mails to the player

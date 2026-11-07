@@ -9,7 +9,9 @@
 #include "GameInstance.h"
 #include "Isometric_Utils.h"
 #include "Item_Types.h"
+#include "ItemModel.h"
 #include "Points.h"
+#include "policy/GamePolicy.h"
 #include "Soldier_Control.h"
 #include "WeaponModels.h"
 #include "Weapons.h"
@@ -307,6 +309,101 @@ TEST(WeaponsTest, FixedThrowCost)
 	// no AP for a new target
 	s.sLastTarget = 100;
 	EXPECT_EQ(MinAPsToThrow(s, NOWHERE, false), 11);
+
+	delete cm;
+}
+
+
+// docs/weapon-attachments-plan.md, stage 3: the original attachments, which give
+// no effects in the data, behave exactly as the original formulas
+TEST(WeaponsTest, OriginalAttachmentEffects)
+{
+	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();
+	ASSERT_TRUE(cm->loadGameData());
+	GCM = cm;
+	GamePolicy const& p = *cm->getGamePolicy();
+	auto const statusMod = [](int x) { return x >= 85 ? 100 : x * 100 / 85; };
+	auto const scaled = [&](int bonus, int status)
+	{
+		int const s = statusMod(status);
+		return s > 50 ? bonus * (s - 50) / 50 : -bonus * (50 - s) / 50;
+	};
+
+	WeaponModel const* const glock = cm->getWeaponByName("GLOCK_17");
+	WeaponModel const* const ak    = cm->getWeaponByName("AK74");
+	for (int status = 1; status <= 100; ++status)
+	{
+		INT8 const st = static_cast<INT8>(status);
+
+		auto gun = OBJECTTYPE{};
+		gun.usItem = glock->getItemIndex();
+		gun.usAttachItem[5] = SILENCER;            gun.bAttachStatus[5] = st;
+		gun.usAttachItem[9] = GUN_BARREL_EXTENDER; gun.bAttachStatus[9] = st;
+		gun.usAttachItem[0] = LASERSCOPE;          gun.bAttachStatus[0] = st;
+		EXPECT_EQ(GunRange(gun), glock->usRange + p.range_bonus_barrel_extender * statusMod(status) / 100 - p.range_penalty_silencer) << status;
+		int const v = glock->ubAttackVolume;
+		EXPECT_EQ(GunAttackVolume(gun), 1 + ((100 - statusMod(status)) / (100 / (v - 1)))) << status;
+		EXPECT_TRUE(HasLaserScope(gun));
+		EXPECT_EQ(GunLaserScopeBonus(gun), scaled(p.aim_bonus_laserscope, status)) << status;
+
+		auto rifle = OBJECTTYPE{};
+		rifle.usItem = ak->getItemIndex();
+		rifle.usAttachItem[19] = BIPOD;       rifle.bAttachStatus[19] = st;
+		rifle.usAttachItem[3]  = SNIPERSCOPE; rifle.bAttachStatus[3]  = st;
+		EXPECT_TRUE(HasBipod(rifle));
+		EXPECT_TRUE(HasSniperScope(rifle));
+		EXPECT_EQ(GunBipodDisplayBonus(rifle), scaled(20, status)) << status;
+		EXPECT_EQ(GunSniperScopeDisplayBonus(rifle), scaled(20, status)) << status;
+		EXPECT_EQ(GunRange(rifle), ak->usRange);
+		EXPECT_EQ(GunAttackVolume(rifle), ak->ubAttackVolume);
+		EXPECT_FALSE(HasLaserScope(rifle));
+		EXPECT_EQ(GunShotsPerBurst(rifle, WM_BURST_SHORT), ak->ubShotsPerShortBurst);
+	}
+
+	delete cm;
+}
+
+
+// stage 3: effects given in the data replace the family default
+TEST(WeaponsTest, AttachmentEffectsFromData)
+{
+	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();
+	ASSERT_TRUE(cm->loadGameData());
+	GCM = cm;
+	WeaponModel const* const ak = cm->getWeaponByName("AK74");
+
+	// a "better silencer": half the noise, no range penalty, 1 shot more per burst, 2 AP less
+	AttachmentEffects e;
+	e.attackVolumePercent = 50;
+	e.rangeBonus          = 0;
+	e.burstShotsBonus     = 1;
+	e.apPerShotChange     = -2;
+	const_cast<ItemModel*>(cm->getItem(SILENCER))->setAttachmentEffects(e);
+
+	auto rifle = OBJECTTYPE{};
+	rifle.usItem = ak->getItemIndex();
+	EXPECT_EQ(BaseAPsToShootOrStab(rifle), ak->ubAPCostPerSingleShot);
+	rifle.usAttachItem[11] = SILENCER;
+	rifle.bAttachStatus[11] = 100;
+
+	EXPECT_EQ(GunRange(rifle), ak->usRange);
+	EXPECT_EQ(GunAttackVolume(rifle), ak->ubAttackVolume / 2);
+	EXPECT_EQ(GunShotsPerBurst(rifle, WM_BURST_SHORT), ak->ubShotsPerShortBurst + 1);
+	EXPECT_EQ(BaseAPsToShootOrStab(rifle), ak->ubAPCostPerSingleShot - 2);
+
+	// a worse condition lets more noise through
+	rifle.bAttachStatus[11] = 40;
+	EXPECT_GT(GunAttackVolume(rifle), ak->ubAttackVolume / 2);
+	EXPECT_LE(GunAttackVolume(rifle), ak->ubAttackVolume);
+
+	// the family default where the data gives nothing: the range penalty is back
+	e.rangeBonus.reset();
+	const_cast<ItemModel*>(cm->getItem(SILENCER))->setAttachmentEffects(e);
+	EXPECT_EQ(GunRange(rifle), ak->usRange - cm->getGamePolicy()->range_penalty_silencer);
+
+	// the original attachment found by its family
+	EXPECT_EQ(FindAttachmentOfFamily(rifle, "SILENCER"), 11);
+	EXPECT_EQ(FindAttachmentOfFamily(rifle, "BIPOD"), ITEM_NOT_FOUND);
 
 	delete cm;
 }

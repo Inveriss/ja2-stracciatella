@@ -2,6 +2,58 @@ type: object
 title: Base Item
 description: The basic properties for all items in the game
 properties:
+  minDropProgress:
+    title: Minimum progress for enemy drops
+    description: |
+      An enemy leaves this item behind (killed, disarmed, as an attachment of a dropped gun)
+      only when the game's highest progress is at least this value, 0-100; 0 or left out
+      means always (docs/enemy-drop-progress-plan.md). Off with game.json
+      enemy_drop_progress_limits false.
+    type: integer
+    minimum: 0
+    maximum: 100
+  attachmentFamily:
+    title: Weapon attachment family
+    description: The family in weapon-attachment-families.json (docs/weapon-attachments-plan.md)
+    type: string
+  attachmentLevel:
+    title: Weapon attachment level
+    description: Quality level 1-3 of the attachment within its family
+    type: integer
+    minimum: 1
+    maximum: 3
+  attachmentEffects:
+    title: Weapon attachment effects
+    description: |
+      Numeric effects of the attachment, summed over all attachments on a weapon. A value
+      left out is the default of the attachment's family (the original game's value for the
+      original families), else none.
+    type: object
+    properties:
+      rangeBonus:
+        title: Range (a bonus scales with the condition, a penalty doesn't)
+        type: integer
+      aimBonus:
+        title: To hit, like the laser scope (penalty below 50% condition)
+        type: integer
+      aimedShotBonus:
+        title: Percent of the sight range less per aim AP beyond the scope range, like the sniper scope
+        type: integer
+      proneBonus:
+        title: Percent of the prone aim bonus added, like the bipod (200)
+        type: integer
+      attackVolumePercent:
+        title: Percent of the gun's noise left at full condition, like the silencer (0)
+        type: integer
+        minimum: 0
+        maximum: 100
+      apPerShotChange:
+        title: AP per shot and burst, like the spring and bolt upgrade (-1)
+        type: integer
+      burstShotsBonus:
+        title: Shots per burst
+        type: integer
+    additionalProperties: false
   bAttachment:
     title: Is an attachment?
     type: boolean

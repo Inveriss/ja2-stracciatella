@@ -35,6 +35,15 @@ extern const char g_version_number[16];
 // formerly unused byte; older saves get 0 there, so they still load.
 // 111: militia recruitment counter in SECTORINFO (ubMilitiaRecruitedForLoyalty).
 // From here on older saves are not supported any more: start a new game.
-constexpr UINT32 SAVE_GAME_VERSION = 111;
+// 112: MAXITEMS 351 -> 9000 (docs/item-limits-plan.md): the Bobby Ray tables in
+// the laptop info and the dealer inventories have an entry for every item index.
+// 113: those tables are stored sparsely (only entries that are not empty, each
+// with its slot or item index), so a later change of MAXITEMS keeps saves.
+// 114: a Bobby Ray used-stock restock event marks the used stock with a flag
+// (BOBBY_R_USED_ORDER_FLAG) instead of adding 1000 to the item index.
+// 115: Bobby Ray sells no used items, his used stock table is not saved.
+// 116: a gun stack keeps every unit's condition in the bytes after the gun
+// fields (bGunUnitStatus[], docs/gun-stacking-plan.md).
+constexpr UINT32 SAVE_GAME_VERSION = 116;
 
 #endif

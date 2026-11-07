@@ -47,6 +47,8 @@
 #include "VObject.h"
 #include "VSurface.h"
 #include "WCheck.h"
+#include <algorithm>
+#include <set>
 #include <stdexcept>
 #include <string_theory/format>
 
@@ -247,10 +249,37 @@ void DeleteFace(FACETYPE* const pFace)
 }
 
 
-static void GetFaceRelativeCoordinates(FACETYPE const& f, UINT16* const pusEyesX, UINT16* const pusEyesY, UINT16* const pusMouthX, UINT16* const pusMouthY)
+// Moves a part (eyes or mouth) so that it lies inside the face; returns
+// whether it already did. A part is drawn at its position plus the offset its
+// frame has in the face image (BltVideoObject() adds it; usually 0,0).
+static bool ClampFacePart(UINT16& x, UINT16& y, ETRLEObject const& part, UINT16 const faceW, UINT16 const faceH)
+{
+	auto const clamp = [](UINT16& pos, INT32 const offset, INT32 const size, INT32 const faceSize)
+	{
+		INT32 const lo = std::max(0, -offset);
+		INT32 const hi = std::max(lo, faceSize - size - offset);
+		bool  const fits = lo <= pos && pos <= hi && size <= faceSize;
+		pos = static_cast<UINT16>(std::clamp<INT32>(pos, lo, hi));
+		return fits;
+	};
+	bool const fitsX = clamp(x, part.sOffsetX, part.usWidth,  faceW);
+	bool const fitsY = clamp(y, part.sOffsetY, part.usHeight, faceH);
+	return fitsX && fitsY;
+}
+
+
+// Eye and mouth positions of the face. Positions from the data that would put
+// the eyes or the mouth outside the face are moved inside it (drawing there
+// would write past the face's buffers and corrupt memory); returns false then.
+static bool GetFaceRelativeCoordinates(FACETYPE const& f, UINT16* const pusEyesX, UINT16* const pusEyesY, UINT16* const pusMouthX, UINT16* const pusMouthY)
 {
 	ProfileID         const  pid = f.ubCharacterNum;
 	MERCPROFILESTRUCT const& p   = GetProfile(pid);
+
+	*pusEyesX  = p.usEyesX;
+	*pusEyesY  = p.usEyesY;
+	*pusMouthX = p.usMouthX;
+	*pusMouthY = p.usMouthY;
 
 	// Take eyes x,y from profile unless we are an RPC and we are small faced
 	// Are we a recruited merc or small?
@@ -264,14 +293,27 @@ static void GetFaceRelativeCoordinates(FACETYPE const& f, UINT16* const pusEyesX
 			*pusEyesY = face->bEyesY;
 			*pusMouthX = face->bMouthX;
 			*pusMouthY = face->bMouthY;
-			return;
 		}
 	}
 
-	*pusEyesX  = p.usEyesX;
-	*pusEyesY  = p.usEyesY;
-	*pusMouthX = p.usMouthX;
-	*pusMouthY = p.usMouthY;
+	// a face without eye and mouth frames is never animated (InitFace())
+	if (!f.uiVideoObject || f.uiVideoObject->SubregionCount() < 8) return true;
+
+	ETRLEObject const& eyes  = f.uiVideoObject->SubregionProperties(1);
+	ETRLEObject const& mouth = f.uiVideoObject->SubregionProperties(5);
+	bool const eyesFit  = ClampFacePart(*pusEyesX,  *pusEyesY,  eyes,  f.usFaceWidth, f.usFaceHeight);
+	bool const mouthFit = ClampFacePart(*pusMouthX, *pusMouthY, mouth, f.usFaceWidth, f.usFaceHeight);
+	if (eyesFit && mouthFit) return true;
+
+	static std::set<ProfileID> warned;
+	if (warned.insert(pid).second)
+	{
+		SLOGW("Face of profile {} ({}x{}): the eyes ({},{} + frame offset {},{}, {}x{}) or the mouth ({},{} + frame offset {},{}, {}x{}) lie outside the face, the face is not animated. Check the eyesXY/mouthXY data of this profile (a saved game keeps the values it was started with) and the frame offsets in its face image.",
+			pid, f.usFaceWidth, f.usFaceHeight,
+			p.usEyesX, p.usEyesY, eyes.sOffsetX, eyes.sOffsetY, eyes.usWidth, eyes.usHeight,
+			p.usMouthX, p.usMouthY, mouth.sOffsetX, mouth.sOffsetY, mouth.usWidth, mouth.usHeight);
+	}
+	return false;
 }
 
 
@@ -284,8 +326,9 @@ void SetAutoFaceActive(SGPVSurface* const display, SGPVSurface* const restore, F
 	UINT16 usEyesY;
 	UINT16 usMouthX;
 	UINT16 usMouthY;
-	GetFaceRelativeCoordinates(f, &usEyesX, &usEyesY, &usMouthX, &usMouthY);
+	bool const partsFit = GetFaceRelativeCoordinates(f, &usEyesX, &usEyesY, &usMouthX, &usMouthY);
 	InternalSetAutoFaceActive(display, restore, f, usFaceX, usFaceY, usEyesX, usEyesY, usMouthX, usMouthY);
+	if (!partsFit) f.fInvalidAnim = TRUE;
 }
 
 

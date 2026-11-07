@@ -1285,16 +1285,40 @@ static UINT16 DisplayCaliber(UINT16 usPosY, UINT16 usIndex, UINT16 usFontHeight)
 }
 
 
+// Bobby Ray's catalogue texts come from braydesc.edt, which only has the items
+// of the original game; other items (and original slots braydesc leaves
+// empty) use the item's own name and description from the data
+// (docs/item-limits-plan.md, D7).
+ST::string GetBobbyRItemName(UINT16 const usItemIndex)
+{
+	if (usItemIndex < VANILLA_MAXITEMS)
+	{
+		ST::string const s = GCM->loadEncryptedString(BOBBYRDESCFILE, BOBBYR_ITEM_DESC_FILE_SIZE * usItemIndex, BOBBYR_ITEM_DESC_NAME_SIZE);
+		if (!s.empty()) return s;
+	}
+	return GCM->getItem(usItemIndex)->getName();
+}
+
+
+ST::string GetBobbyRItemDescription(UINT16 const usItemIndex)
+{
+	if (usItemIndex < VANILLA_MAXITEMS)
+	{
+		ST::string const s = GCM->loadEncryptedString(BOBBYRDESCFILE, BOBBYR_ITEM_DESC_FILE_SIZE * usItemIndex + BOBBYR_ITEM_DESC_NAME_SIZE, BOBBYR_ITEM_DESC_INFO_SIZE);
+		if (!s.empty()) return s;
+	}
+	return GCM->getItem(usItemIndex)->getDescription();
+}
+
+
 static void DisplayItemNameAndInfo(UINT16 usPosY, UINT16 usIndex, UINT16 usBobbyIndex, BOOLEAN fUsed)
 {
 	ST::string sTemp;
-	UINT32 uiStartLoc;
 	UINT8	ubPurchaseNumber;
 
 	{
 		//Display Items Name
-		uiStartLoc = BOBBYR_ITEM_DESC_FILE_SIZE * usIndex;
-		ST::string sText = GCM->loadEncryptedString(BOBBYRDESCFILE, uiStartLoc, BOBBYR_ITEM_DESC_NAME_SIZE);
+		ST::string sText = GetBobbyRItemName(usIndex);
 		sText = ReduceStringLength(sText, BOBBYR_GRID_PIC_WIDTH - 6, BOBBYR_ITEM_NAME_TEXT_FONT);
 		DrawTextToScreen(sText, BOBBYR_ITEM_NAME_X, usPosY + BOBBYR_ITEM_NAME_Y_OFFSET, 0, BOBBYR_ITEM_NAME_TEXT_FONT, BOBBYR_ITEM_NAME_TEXT_COLOR, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
 	}
@@ -1325,8 +1349,7 @@ static void DisplayItemNameAndInfo(UINT16 usPosY, UINT16 usIndex, UINT16 usBobby
 
 	{
 		//Display Items description
-		uiStartLoc += BOBBYR_ITEM_DESC_NAME_SIZE;
-		ST::string sText = GCM->loadEncryptedString(BOBBYRDESCFILE, uiStartLoc, BOBBYR_ITEM_DESC_INFO_SIZE);
+		ST::string const sText = GetBobbyRItemDescription(usIndex);
 		DisplayWrappedString(BOBBYR_ITEM_DESC_START_X, usPosY, BOBBYR_ITEM_DESC_START_WIDTH, 2, BOBBYR_ITEM_DESC_TEXT_FONT, BOBBYR_ITEM_DESC_TEXT_COLOR, sText, FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
 	}
 }

@@ -15,7 +15,23 @@ class JsonObject;
 struct ArmourModel;
 struct ExplosiveModel;
 struct MagazineModel;
+struct WeaponAttachmentFamilyModel;
 struct WeaponModel;
+
+// Numeric effects of a weapon attachment ("attachmentEffects" in the data,
+// docs/weapon-attachments-plan.md, W5). A value the data leaves out is the
+// default of the attachment's family (the original game's value for the
+// original families, see AttachmentEffectValue() in Weapons.cc), else none.
+struct AttachmentEffects
+{
+	std::optional<int16_t> rangeBonus;          // range units; a bonus scales with the condition, a penalty doesn't
+	std::optional<int16_t> aimBonus;            // to hit, like the laser scope (penalty below 50% condition)
+	std::optional<int16_t> aimedShotBonus;      // % sight range less per aim AP beyond the scope range, like the sniper scope
+	std::optional<int16_t> proneBonus;          // % of the prone aim bonus added, like the bipod (200)
+	std::optional<int16_t> attackVolumePercent; // % of the gun's noise left at full condition, like the silencer (0)
+	std::optional<int16_t> apPerShotChange;     // AP per shot and burst, like the spring and bolt (-1)
+	std::optional<int16_t> burstShotsBonus;     // shots per burst
+};
 
 struct ItemModel
 {
@@ -119,6 +135,22 @@ struct ItemModel
 	/** Check if the given attachment can be attached to the item. */
 	virtual bool canBeAttached(const GamePolicy* policy, const ItemModel* attachment) const;
 
+	// Weapon attachment family of this item ("attachmentFamily", empty if none),
+	// its level 1-3 ("attachmentLevel", 0 if none) and effects
+	const ST::string&        getAttachmentFamilyName() const { return attachmentFamilyName; }
+	uint8_t                  getAttachmentLevel() const      { return attachmentLevel; }
+	const AttachmentEffects& getAttachmentEffects() const    { return attachmentEffects; }
+	void setAttachmentEffects(AttachmentEffects const& effects) { attachmentEffects = effects; }
+	// The family model, set by the content manager after loading (null if none)
+	const WeaponAttachmentFamilyModel* getAttachmentFamily() const { return attachmentFamily; }
+	void setAttachmentFamily(const WeaponAttachmentFamilyModel* family) { attachmentFamily = family; }
+
+	// The lowest highest-game-progress (0-100) at which an enemy may leave this
+	// item behind ("minDropProgress", 0 = always), docs/enemy-drop-progress-plan.md;
+	// set by the content manager when the item is registered
+	uint8_t getMinDropProgress() const { return minDropProgress; }
+	void setMinDropProgress(uint8_t const progress) { minDropProgress = progress; }
+
 	struct InitData
 	{
 		JsonObject const& json;
@@ -171,6 +203,15 @@ protected:
 	// ubAPCostPerThrow of a throwable item; a missing value gives
 	// DEFAULT_AP_COST_PER_THROW, with a warning
 	static uint8_t deserializeAPCostPerThrow(const JsonObject &obj, const ST::string& internalName);
+
+	// reads attachmentFamily, attachmentLevel and attachmentEffects
+	void deserializeAttachmentFamily(const JsonObject &obj);
+
+	ST::string        attachmentFamilyName;
+	uint8_t           attachmentLevel = 0;
+	AttachmentEffects attachmentEffects;
+	const WeaponAttachmentFamilyModel* attachmentFamily = nullptr;
+	uint8_t           minDropProgress = 0;
 };
 
 // the AP cost of a throw when the data has none, see docs/throws-ap-plan.md

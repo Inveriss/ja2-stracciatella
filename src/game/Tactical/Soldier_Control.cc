@@ -5837,7 +5837,10 @@ UINT8 SoldierTakeDamage(SOLDIERTYPE* const pSoldier, INT16 sLifeDeduct, INT16 sB
 			// OK, drop item in main hand...
 			if ( pSoldier->inv[ HANDPOS ].usItem != NOTHING )
 			{
-				if ( !( pSoldier->inv[ HANDPOS ].fFlags & OBJECT_UNDROPPABLE ) )
+				// an enemy's item below its minDropProgress stays in the hand
+				// (docs/enemy-drop-progress-plan.md, D12)
+				if ( !( pSoldier->inv[ HANDPOS ].fFlags & OBJECT_UNDROPPABLE )
+					&& ApplyEnemyDropProgressLimit(*pSoldier, pSoldier->inv[HANDPOS]) )
 				{
 					// ATE: if our guy, make visible....
 					Visibility  const bVisible = pSoldier->bTeam == OUR_TEAM ?

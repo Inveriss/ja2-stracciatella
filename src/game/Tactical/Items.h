@@ -4,7 +4,10 @@
 #include "Item_Types.h"
 #include "JA2Types.h"
 
+#include <vector>
+
 struct CalibreModel;
+struct MagazineModel;
 struct WeaponModel;
 
 void DamageObj(OBJECTTYPE* pObj, INT8 bAmount);
@@ -70,9 +73,39 @@ UINT8 ApplyBigPerPocketOverride( UINT16 usItem, INT8 bSlot, UINT8 ubSlotLimit );
 // How many of this item fit this soldier's own slot: ItemSlotLimit() with the
 // big pocket override, capped at MAX_OBJECTS_PER_SLOT; a vehicle's cargo
 // pockets take its vehicles.json slotLimitMultiplier times that -- not for
-// weapons or brass knuckles, nor for items that go one per slot. Money has
-// its own MoneySlotLimit().
+// weapons or brass knuckles, nor for items that go one per slot. Guns in a
+// vehicle's cargo pockets: its gunStackBigPocket / gunStackSmallPocket, never
+// more than GunStackSize() (docs/gun-stacking-plan.md, G9); a merc keeps one
+// gun per slot (G7). Money has its own MoneySlotLimit().
 UINT8 SoldierSlotLimit(SOLDIERTYPE const&, UINT16 usItem, INT8 bSlot);
+
+// docs/gun-stacking-plan.md: how many of this gun share one stack outside a
+// merc's own inventory -- weapons.json stackSize, else game.json
+// gun_stack_size, at most MAX_GUNS_PER_STACK (G3/G5). 1 for other items.
+UINT8 GunStackSize(UINT16 usItem);
+
+// How many of this item fit one sector inventory slot: GunStackSize() for
+// guns (G8), else the item's big pocket limit (ItemSlotLimit() with
+// BIGPOCK1POS); at most MAX_OBJECTS_PER_SLOT. 0 = one, it's a big item.
+UINT8 SectorSlotLimit(UINT16 usItem);
+
+// docs/enemy-drop-progress-plan.md: may soldier s leave object o behind?
+// For ENEMY_TEAM with game.json enemy_drop_progress_limits on, an item whose
+// minDropProgress is above the highest game progress must not drop (false);
+// attachments above it are removed from o and lost (D4). True for every
+// other team and for an object the soldier picked up (OBJECT_PICKED_UP, D9).
+bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const& s, OBJECTTYPE& o);
+// the item part of the above with a given progress
+bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 progress);
+// true when game.json enemy_drop_progress_limits is on and the item's
+// minDropProgress is above the highest game progress (an enemy can't drop it)
+bool EnemyDropBlockedByProgress(UINT16 usItem);
+// ApplyEnemyDropProgressLimit() for an item whose owner may be unknown (null:
+// no limit), e.g. the thrower of a knife
+bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const* s, OBJECTTYPE& o);
+// D9: soldier s picks o up from the world -- a non-player soldier marks it
+// OBJECT_PICKED_UP (it may be the player's own), a merc clears the mark
+void MarkObjectPickedUpBy(SOLDIERTYPE const& s, OBJECTTYPE& o);
 
 // Function to put an item in a soldier profile
 // It's very primitive, just finds an empty place!
@@ -121,20 +154,32 @@ bool ItemHasAttachments(OBJECTTYPE const&);
 
 // Whether two OBJECTTYPEs of the same usItem may share one multi-unit
 // "stack" (ubNumberOfObjects > 1). Always true for non-guns. For guns, the
-// union's ammo/condition fields and usAttachItem[]/bAttachStatus[] are a
-// single shared value for the whole OBJECTTYPE, not one per unit, so two
-// guns may only merge when physically IDENTICAL in all of it: same ammo
-// type, same shots left, same jam status, same attachments, same
-// condition -- equality, not "must be empty" (CreateGun() loads every
-// normal gun with its default magazine already). See CanGunsStack()'s own
-// comment (Items.cc) and StackObjs()/RemoveObjFrom()/GetObjFrom() for how a
-// compliant gun stack is merged/split without touching bStatus[].
+// union's ammo fields and usAttachItem[]/bAttachStatus[] are a single shared
+// value for the whole OBJECTTYPE, not one per unit, so two guns may only
+// merge when equal in all of it: same ammo type, shots left, magazine item,
+// jam status and attachments. Only the condition is kept per unit
+// (docs/gun-stacking-plan.md, G2), see UnitStatus().
 bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b);
+
+// At most this many guns share one OBJECTTYPE: unit 0's condition is
+// bGunStatus, units 1.. use the bGunUnitStatus[] bytes after the gun fields
+// (docs/gun-stacking-plan.md, G1/G5).
+constexpr UINT8 MAX_GUNS_PER_STACK = MAX_OBJECTS_PER_SLOT - 6;
+
+// The status (condition) of unit i of a stack: bStatus[i] for most items,
+// bGunStatus / bGunUnitStatus[i - 1] for guns. Not for ammo (ubShotsLeft[]),
+// money or keys, which keep their own fields.
+INT8 UnitStatus(OBJECTTYPE const& o, UINT8 i);
+void SetUnitStatus(OBJECTTYPE& o, UINT8 i, INT8 status);
 
 //Determine if this item can receive this attachment.  This is different, in that it may
 //be possible to have this attachment on this item, but may already have an attachment on
 //it which doesn't work simultaneously with the new attachment (like a silencer and duckbill).
 BOOLEAN ValidItemAttachment(const OBJECTTYPE* pObj, UINT16 usAttachment, BOOLEAN fAttemptingAttachment);
+// docs/weapon-attachments-plan.md (W4): the attachment already on the object
+// that keeps `attachment` off it -- one of the same family (*sameFamily) or of
+// a family that excludes it -- or NOTHING
+UINT16 FindConflictingAttachment(OBJECTTYPE const& o, UINT16 attachment, bool* sameFamily);
 
 //Determines if it is possible to equip this weapon with this ammo.
 bool ValidAmmoType( UINT16 usItem, UINT16 usAmmoType );
@@ -172,6 +217,13 @@ BOOLEAN ApplyCamo(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, BOOLEAN* pfGoodAPs);
 
 BOOLEAN ItemIsLegal( UINT16 usItemIndex );
 UINT16 FindReplacementMagazine(const CalibreModel * calibre, UINT8 const mag_size, UINT8 const ammo_type);
+// The magazine item a gun with the given magazine size holds after it was
+// loaded with `loaded` (docs/magazine-size-variants-plan.md): the magazine of
+// the same calibre and ammo type with that capacity, the lowest index among
+// several; `loaded` itself when there is none. Item indices and their order
+// do not matter.
+UINT16 FindMagazineVariant(std::vector<const MagazineModel*> const& magazines, MagazineModel const& loaded, UINT16 gun_mag_size);
+UINT16 FindMagazineVariant(MagazineModel const& loaded, UINT16 gun_mag_size);
 UINT16 FindReplacementMagazineIfNecessary(const WeaponModel *old_gun, UINT16 const old_ammo_id, const WeaponModel *new_gun);
 
 BOOLEAN DamageItemOnGround(OBJECTTYPE* pObject, INT16 sGridNo, INT8 bLevel, INT32 iDamage, SOLDIERTYPE* owner);

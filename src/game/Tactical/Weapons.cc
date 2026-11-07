@@ -46,9 +46,12 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "WeaponModels.h"
+#include "WeaponAttachmentFamilyModel.h"
 #include "Logger.h"
 #include "GamePolicy.h"
+#include <algorithm>
 #include <initializer_list>
+#include <optional>
 
 // NB this is arbitrary, chances in DG ranged from 1 in 6 to 1 in 20
 #define BASIC_DEPRECIATE_CHANCE	15
@@ -106,23 +109,110 @@ BOOLEAN gfReportHitChances = FALSE;
 static const UINT8 BodyImpactReduction[4] = { 0, 15, 30, 23 };
 
 
+// The default of an effect for the attachments of a family that don't give it
+// in the data: the original game's value for the original families
+static int FamilyEffectDefault(ST::string const& family, AttachmentEffect const effect)
+{
+	switch (effect)
+	{
+		case AttachmentEffect::Range:
+			if (family == "GUN_BARREL_EXTENDER") return GUN_BARREL_RANGE_BONUS;
+			if (family == "SILENCER")            return -SILENCER_RANGE_PENALTY;
+			return 0;
+		case AttachmentEffect::Aim:                 return family == "LASERSCOPE" ? LASERSCOPE_BONUS : 0;
+		case AttachmentEffect::AimedShot:           return family == "SNIPERSCOPE" ? SNIPERSCOPE_AIM_BONUS : 0;
+		case AttachmentEffect::Prone:               return family == "BIPOD" ? 200 : 0;
+		case AttachmentEffect::AttackVolumePercent: return family == "SILENCER" ? 0 : 100;
+		case AttachmentEffect::APPerShot:           return family == "SPRING_AND_BOLT_UPGRADE" ? -1 : 0;
+		case AttachmentEffect::BurstShots:          return 0;
+	}
+	return 0;
+}
+
+
+int AttachmentEffectValue(ItemModel const& item, AttachmentEffect const effect)
+{
+	auto const* const family = item.getAttachmentFamily();
+	if (!family) return effect == AttachmentEffect::AttackVolumePercent ? 100 : 0;
+
+	AttachmentEffects const& e = item.getAttachmentEffects();
+	std::optional<int16_t> value;
+	switch (effect)
+	{
+		case AttachmentEffect::Range:               value = e.rangeBonus;          break;
+		case AttachmentEffect::Aim:                 value = e.aimBonus;            break;
+		case AttachmentEffect::AimedShot:           value = e.aimedShotBonus;      break;
+		case AttachmentEffect::Prone:               value = e.proneBonus;          break;
+		case AttachmentEffect::AttackVolumePercent: value = e.attackVolumePercent; break;
+		case AttachmentEffect::APPerShot:           value = e.apPerShotChange;     break;
+		case AttachmentEffect::BurstShots:          value = e.burstShotsBonus;     break;
+	}
+	return value ? *value : FamilyEffectDefault(family->name, effect);
+}
+
+
+// Calls f(item, status) for every attachment of the object that has a family
+template<typename F>
+static void ForEachFamilyAttachment(OBJECTTYPE const& o, F&& f)
+{
+	for (int i = 0; i != MAX_ATTACHMENTS; ++i)
+	{
+		if (o.usAttachItem[i] == NOTHING) continue;
+		ItemModel const* const item = GCM->getItem(o.usAttachItem[i], ItemSystem::nothrow);
+		if (!item || !item->getAttachmentFamily()) continue;
+		f(*item, o.bAttachStatus[i]);
+	}
+}
+
+
+int AttachmentEffectSum(OBJECTTYPE const& o, AttachmentEffect const effect)
+{
+	int sum = 0;
+	ForEachFamilyAttachment(o, [&](ItemModel const& item, INT8)
+	{
+		sum += AttachmentEffectValue(item, effect);
+	});
+	return sum;
+}
+
+
+INT8 FindAttachmentOfFamily(OBJECTTYPE const& o, char const* const family)
+{
+	for (INT8 i = 0; i != MAX_ATTACHMENTS; ++i)
+	{
+		if (o.usAttachItem[i] == NOTHING) continue;
+		ItemModel const* const item = GCM->getItem(o.usAttachItem[i], ItemSystem::nothrow);
+		if (item && item->getAttachmentFamily() && item->getAttachmentFamily()->name == family) return i;
+	}
+	return ITEM_NOT_FOUND;
+}
+
+
+// The original game's condition scaling of the laser scope, bipod and scope
+// display bonuses: a bonus above 50% condition, a penalty at or below it
+static int ConditionScaledBonus(int const bonus, INT8 const attach_status)
+{
+	int const status = WEAPON_STATUS_MOD(attach_status);
+	return status > 50
+		? bonus * (status - 50) / 50
+		: -bonus * (50 - status) / 50;
+}
+
+
 UINT16 GunRange(OBJECTTYPE const& o)
 {
 	// return a minimal value of 1 tile
 	if (!(GCM->getItem(o.usItem)->isWeapon())) return CELL_X_SIZE;
 
-	UINT16 range = GCM->getWeapon(o.usItem)->usRange;
-	INT8 attach_pos = FindAttachment(&o, GUN_BARREL_EXTENDER);
-	if (attach_pos != ITEM_NOT_FOUND)
+	int range = GCM->getWeapon(o.usItem)->usRange;
+	// a bonus (barrel extender) scales with the attachment's condition, a
+	// penalty (silencer) doesn't
+	ForEachFamilyAttachment(o, [&](ItemModel const& item, INT8 const status)
 	{
-		range += GUN_BARREL_RANGE_BONUS * WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]) / 100;
-	}
-	attach_pos = FindAttachment(&o, SILENCER);
-	if (attach_pos != ITEM_NOT_FOUND)
-	{
-		range -= SILENCER_RANGE_PENALTY;
-	}
-	return range;
+		int const bonus = AttachmentEffectValue(item, AttachmentEffect::Range);
+		range += bonus > 0 ? bonus * WEAPON_STATUS_MOD(status) / 100 : bonus;
+	});
+	return static_cast<UINT16>(std::max(range, 0));
 }
 
 
@@ -162,6 +252,12 @@ UINT8 GunShotsPerBurst(OBJECTTYPE const& o, WeaponModes const mode)
 		case WM_BURST_FULL:  shots = w->ubShotsPerFullBurst;  break;
 		default:             return 0;
 	}
+	// attachments lengthen (or shorten) an existing burst mode, never below 1 shot
+	if (shots > 0)
+	{
+		int const bonus = AttachmentEffectSum(o, AttachmentEffect::BurstShots);
+		shots = static_cast<UINT8>(std::clamp(int{shots} + bonus, 1, 255));
+	}
 	// a burst is at most as long as the spread locations of a soldier (SOLDIERTYPE::sSpreadLocations)
 	return std::min<UINT8>(shots, 100);
 }
@@ -182,18 +278,37 @@ UINT8 GunAttackVolume(OBJECTTYPE const& o)
 {
 	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
 
-	UINT8 volume = GCM->getWeapon(o.usItem)->ubAttackVolume;
+	int volume = GCM->getWeapon(o.usItem)->ubAttackVolume;
 
 	// A silencer only quiets the muzzle blast (this stat), not the sound of
 	// the bullet hitting its target (ubHitVolume, untouched by design).
-	INT8 const attach_pos = FindAttachment(&o, SILENCER);
-	if (attach_pos != ITEM_NOT_FOUND)
+	// An attachment with attackVolumePercent p leaves p% of the noise at full
+	// condition (at least 1) and the more of it the worse its condition; for
+	// the original silencer (p = 0) this is the original formula:
+	// 1 + (100 - status) / (100 / (volume - 1))
+	ForEachFamilyAttachment(o, [&](ItemModel const& item, INT8 const attach_status)
 	{
-		// reduce volume by a percentage equal to silencer's work %age (min 1)
-		// same formula previously inlined in UseGun()
-		volume = 1 + ((100 - WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos])) / (100 / (volume - 1)));
-	}
-	return volume;
+		int const percent = AttachmentEffectValue(item, AttachmentEffect::AttackVolumePercent);
+		if (percent >= 100) return;
+		int const quietest = std::max(1, volume * std::max(percent, 0) / 100);
+		if (volume <= quietest) return;
+		int const damage = 100 - WEAPON_STATUS_MOD(attach_status);
+		int const step   = 100 / (volume - quietest);
+		volume = quietest + (step != 0 ? damage / step : damage * (volume - quietest) / 100);
+	});
+	return static_cast<UINT8>(volume);
+}
+
+
+// Does an attachment quiet the gun (the silenced shot sounds)?
+static bool IsSilenced(OBJECTTYPE const& o)
+{
+	bool silenced = false;
+	ForEachFamilyAttachment(o, [&](ItemModel const& item, INT8)
+	{
+		if (AttachmentEffectValue(item, AttachmentEffect::AttackVolumePercent) < 100) silenced = true;
+	});
+	return silenced;
 }
 
 
@@ -201,7 +316,7 @@ bool HasLaserScope(OBJECTTYPE const& o)
 {
 	// rocket rifle has one built in
 	return o.usItem == ROCKET_RIFLE || o.usItem == AUTO_ROCKET_RIFLE
-		|| FindAttachment(&o, LASERSCOPE) != ITEM_NOT_FOUND;
+		|| AttachmentEffectSum(o, AttachmentEffect::Aim) != 0;
 }
 
 
@@ -210,25 +325,28 @@ INT8 GunLaserScopeBonus(OBJECTTYPE const& o)
 	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
 	if (!HasLaserScope(o)) return 0;
 
-	INT8 const attach_pos = FindAttachment(&o, LASERSCOPE);
+	// rocket rifle's laser is built in and uses the weapon's own condition
+	if (o.usItem == ROCKET_RIFLE || o.usItem == AUTO_ROCKET_RIFLE)
+	{
+		return static_cast<INT8>(ConditionScaledBonus(LASERSCOPE_BONUS, o.bGunStatus));
+	}
 
-	// rocket rifle's laser is built in and uses the weapon's own condition;
-	// an attached LASERSCOPE uses its own condition instead
-	INT8 const status = (o.usItem == ROCKET_RIFLE || o.usItem == AUTO_ROCKET_RIFLE)
-		? WEAPON_STATUS_MOD(o.bGunStatus)
-		: WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]);
-
-	// same formula previously inlined in CalcChanceToHitGun(): a laser scope
-	// in bad condition (<=50%) creates an aim PENALTY, not a bonus
-	return status > 50
-		? LASERSCOPE_BONUS * (status - 50) / 50
-		: -LASERSCOPE_BONUS * (50 - status) / 50;
+	// an attached laser scope uses its own condition: in bad condition
+	// (<=50%) it creates an aim PENALTY, not a bonus (the formula previously
+	// inlined in CalcChanceToHitGun())
+	int bonus = 0;
+	ForEachFamilyAttachment(o, [&](ItemModel const& item, INT8 const status)
+	{
+		int const aim = AttachmentEffectValue(item, AttachmentEffect::Aim);
+		if (aim != 0) bonus += ConditionScaledBonus(aim, status);
+	});
+	return static_cast<INT8>(std::clamp(bonus, -128, 127));
 }
 
 
 bool HasBipod(OBJECTTYPE const& o)
 {
-	return FindAttachment(&o, BIPOD) != ITEM_NOT_FOUND;
+	return AttachmentEffectSum(o, AttachmentEffect::Prone) != 0;
 }
 
 
@@ -236,23 +354,24 @@ INT8 GunBipodDisplayBonus(OBJECTTYPE const& o)
 {
 	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
 
-	INT8 const attach_pos = FindAttachment(&o, BIPOD);
-	if (attach_pos == ITEM_NOT_FOUND) return 0;
-
 	// Simplified stand-in for the real (range/stance-dependent) bipod bonus
-	// applied in CalcChanceToHitGun() — display purposes only. Same
-	// condition-scaling formula as GunLaserScopeBonus(): a badly damaged
-	// bipod (<=50% status) is a PENALTY, not a bonus.
-	INT8 const status = WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]);
-	return status > 50
-		? BIPOD_DISPLAY_BONUS * (status - 50) / 50
-		: -BIPOD_DISPLAY_BONUS * (50 - status) / 50;
+	// applied in CalcChanceToHitGun() — display purposes only, in proportion
+	// to the original bipod (proneBonus 200). Same condition-scaling formula
+	// as GunLaserScopeBonus(): a badly damaged bipod (<=50% status) is a
+	// PENALTY, not a bonus.
+	int bonus = 0;
+	ForEachFamilyAttachment(o, [&](ItemModel const& item, INT8 const status)
+	{
+		int const prone = AttachmentEffectValue(item, AttachmentEffect::Prone);
+		if (prone != 0) bonus += ConditionScaledBonus(BIPOD_DISPLAY_BONUS * prone / 200, status);
+	});
+	return static_cast<INT8>(std::clamp(bonus, -128, 127));
 }
 
 
 bool HasSniperScope(OBJECTTYPE const& o)
 {
-	return FindAttachment(&o, SNIPERSCOPE) != ITEM_NOT_FOUND;
+	return AttachmentEffectSum(o, AttachmentEffect::AimedShot) != 0;
 }
 
 
@@ -260,18 +379,23 @@ INT8 GunSniperScopeDisplayBonus(OBJECTTYPE const& o)
 {
 	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;
 
-	INT8 const attach_pos = FindAttachment(&o, SNIPERSCOPE);
-	if (attach_pos == ITEM_NOT_FOUND) return 0;
-
 	// Simplified stand-in for the real (range/aim-time-dependent) sniper
-	// scope bonus applied in CalcChanceToHitGun() — display purposes only.
-	// Same condition-scaling formula as GunLaserScopeBonus()/
+	// scope bonus applied in CalcChanceToHitGun() — display purposes only, in
+	// proportion to the original scope (SNIPERSCOPE_AIM_BONUS). Same
+	// condition-scaling formula as GunLaserScopeBonus()/
 	// GunBipodDisplayBonus(): a badly damaged scope (<=50% status) is a
 	// PENALTY, not a bonus.
-	INT8 const status = WEAPON_STATUS_MOD(o.bAttachStatus[attach_pos]);
-	return status > 50
-		? SNIPERSCOPE_DISPLAY_BONUS * (status - 50) / 50
-		: -SNIPERSCOPE_DISPLAY_BONUS * (50 - status) / 50;
+	int bonus = 0;
+	ForEachFamilyAttachment(o, [&](ItemModel const& item, INT8 const status)
+	{
+		int const aimed = AttachmentEffectValue(item, AttachmentEffect::AimedShot);
+		if (aimed == 0) return;
+		int const display = SNIPERSCOPE_AIM_BONUS != 0
+			? SNIPERSCOPE_DISPLAY_BONUS * aimed / SNIPERSCOPE_AIM_BONUS
+			: SNIPERSCOPE_DISPLAY_BONUS;
+		bonus += ConditionScaledBonus(display, status);
+	});
+	return static_cast<INT8>(std::clamp(bonus, -128, 127));
 }
 
 
@@ -804,7 +928,7 @@ static BOOLEAN WillExplosiveWeaponFail(const SOLDIERTYPE* pSoldier, const OBJECT
 static ST::string GetBurstSoundName(SOLDIERTYPE const& soldier)
 {
 	auto * const weapon = GCM->getWeapon(soldier.usAttackingWeapon);
-	bool isSilenced = FindAttachment(&soldier.inv[soldier.ubAttackingHand], SILENCER) != NO_SLOT;
+	bool isSilenced = IsSilenced(soldier.inv[soldier.ubAttackingHand]);
 	auto const& burstSound = isSilenced ? weapon->silencedBurstSound : weapon->burstSound;
 
 	if (!burstSound.empty())
@@ -888,7 +1012,7 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 		if ( GCM->getItem(usItemNum)->getItemClass() != IC_THROWING_KNIFE )
 		{
 			// Switch on silencer...
-			if( FindAttachment( &( pSoldier->inv[ pSoldier->ubAttackingHand ] ), SILENCER ) != NO_SLOT )
+			if (IsSilenced(pSoldier->inv[pSoldier->ubAttackingHand]))
 			{
 				if (!weapon->silencedSound.empty()) {
 					PlayLocationJA2Sample(pSoldier->sGridNo, weapon->silencedSound, HIGHVOLUME, 1);
@@ -1883,13 +2007,17 @@ void StructureHit(BULLET* const pBullet, const UINT16 usStructureID, const INT32
 				// OK, have we hit ground?
 				if ( usStructureID == INVALID_STRUCTURE_ID )
 				{
-					// Add item
+					// Add item (an enemy's knife below its minDropProgress is lost,
+					// docs/enemy-drop-progress-plan.md D8)
 					CreateItem( THROWING_KNIFE, bWeaponStatus, &Object );
 
-					AddItemToPool(sGridNo, &Object, INVISIBLE, 0, 0, -1);
+					if (ApplyEnemyDropProgressLimit(attacker, Object))
+					{
+						AddItemToPool(sGridNo, &Object, INVISIBLE, 0, 0, -1);
 
-					// Make team look for items
-					NotifySoldiersToLookforItems( );
+						// Make team look for items
+						NotifySoldiersToLookforItems( );
+					}
 				}
 
 				if ( !fHitSameStructureAsBefore )
@@ -2265,12 +2393,14 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 			{
 				iBonus = AIM_BONUS_PRONE;
 			}
-			bAttachPos = FindAttachment( pInHand, BIPOD );
-			if (bAttachPos != ITEM_NOT_FOUND)
+			// extra bonus to hit for a bipod: proneBonus % of the prone bonus
+			// itself (200 = up to double for the original bipod), by condition
+			INT32 const iProneBonus = iBonus;
+			ForEachFamilyAttachment(*pInHand, [&](ItemModel const& item, INT8 const status)
 			{
-				// extra bonus to hit for a bipod, up to double the prone bonus itself
-				iBonus += (iBonus * WEAPON_STATUS_MOD(pInHand->bAttachStatus[bAttachPos]) / 100) * 2;
-			}
+				int const prone = AttachmentEffectValue(item, AttachmentEffect::Prone);
+				if (prone != 0) iBonus += (iProneBonus * WEAPON_STATUS_MOD(status) / 100) * prone / 100;
+			});
 			iChance += iBonus;
 		}
 	}
@@ -2394,7 +2524,8 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 
 	if ( GCM->getItem(usInHand)->getItemClass() == IC_GUN )
 	{
-		bAttachPos = FindAttachment( pInHand, GUN_BARREL_EXTENDER );
+		// the wear and the fall-off of every level of the barrel extender family
+		bAttachPos = FindAttachmentOfFamily(*pInHand, "GUN_BARREL_EXTENDER");
 		if ( bAttachPos != ITEM_NOT_FOUND && fModify)
 		{
 			// reduce status and see if it falls off
@@ -2415,12 +2546,16 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 
 				// since barrel extenders are not removable we cannot call RemoveAttachment here
 				// and must create the item by hand
-				CreateItem( GUN_BARREL_EXTENDER, pInHand->bAttachStatus[ bAttachPos ], &Temp );
+				CreateItem(pInHand->usAttachItem[bAttachPos], pInHand->bAttachStatus[bAttachPos], &Temp);
+				// it came from the gun, so it shares the gun's picked-up mark (D9)
+				Temp.fFlags |= pInHand->fFlags & OBJECT_PICKED_UP;
 				pInHand->usAttachItem[ bAttachPos ] = NOTHING;
 				pInHand->bAttachStatus[ bAttachPos ] = 0;
 
-				// drop it to ground (militia never leave anything behind: it's just lost)
-				if (pSoldier->bTeam != MILITIA_TEAM)
+				// drop it to ground (militia never leave anything behind: it's just lost;
+				// an enemy's extender below its minDropProgress is lost too,
+				// docs/enemy-drop-progress-plan.md D8)
+				if (pSoldier->bTeam != MILITIA_TEAM && ApplyEnemyDropProgressLimit(*pSoldier, Temp))
 				{
 					AddItemToPool(pSoldier->sGridNo, &Temp, VISIBLE, pSoldier->bLevel, 0, -1);
 				}
@@ -2454,20 +2589,25 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 			iSightRange -= iRange / 10; //basically, +1% to hit per every 2 squares
 		}
 
-		bAttachPos = FindAttachment( pInHand, SNIPERSCOPE );
-
 		// does gun have scope, long range recommends its use, and shooter's aiming?
-		if (bAttachPos != NO_SLOT && (iRange > MIN_SCOPE_RANGE) && (ubAimTime > 0))
+		if ((iRange > MIN_SCOPE_RANGE) && (ubAimTime > 0))
 		{
-			// reduce effective sight range by 20% per extra aiming time AP of the distance
-			// beyond MIN_SCOPE_RANGE.  Max reduction is 80% of the range beyond.
-			iScopeBonus = ((SNIPERSCOPE_AIM_BONUS * ubAimTime) * (iRange - MIN_SCOPE_RANGE)) / 100;
+			ForEachFamilyAttachment(*pInHand, [&](ItemModel const& item, INT8 const status)
+			{
+				int const aimed = AttachmentEffectValue(item, AttachmentEffect::AimedShot);
+				if (aimed == 0) return;
 
-			// adjust for scope condition, only has full affect at 100%
-			iScopeBonus = (iScopeBonus * WEAPON_STATUS_MOD(pInHand->bAttachStatus[bAttachPos])) / 100;
+				// reduce effective sight range by aimedShotBonus % (20% for the
+				// original scope) per extra aiming time AP of the distance
+				// beyond MIN_SCOPE_RANGE.
+				iScopeBonus = ((aimed * ubAimTime) * (iRange - MIN_SCOPE_RANGE)) / 100;
 
-			// reduce effective range by the bonus obtained from the scope
-			iSightRange = std::max(iSightRange - iScopeBonus, 1);
+				// adjust for scope condition, only has full affect at 100%
+				iScopeBonus = (iScopeBonus * WEAPON_STATUS_MOD(status)) / 100;
+
+				// reduce effective range by the bonus obtained from the scope
+				iSightRange = std::max(iSightRange - iScopeBonus, 1);
+			});
 		}
 
 		if (HasLaserScope(*pInHand))

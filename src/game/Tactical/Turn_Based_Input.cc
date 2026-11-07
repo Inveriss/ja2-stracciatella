@@ -77,6 +77,7 @@
 #include "Logger.h"
 #include "ContentManager.h"
 #include "GameInstance.h"
+#include "ItemModel.h"
 #include "Soldier.h"
 #include "policy/GamePolicy.h"
 
@@ -2724,16 +2725,20 @@ static void CycleSelectedMercsItem(void)
 	SOLDIERTYPE* const tgt = gUIFullTarget;
 	if (tgt != NULL)
 	{
-		UINT16 usOldItem = tgt->inv[HANDPOS].usItem;
-
-		usOldItem++;
-
-		if ( usOldItem > MAX_WEAPONS )
+		// the next weapon the data defines (weapons are no longer limited to
+		// the indices up to MAX_WEAPONS, docs/item-limits-plan.md); after the
+		// last one, an empty hand
+		UINT16 usNewItem = NOTHING;
+		for (UINT32 idx = tgt->inv[HANDPOS].usItem + 1U; idx < MAXITEMS; ++idx)
 		{
-			usOldItem = 0;
+			if (GCM->getItem(static_cast<UINT16>(idx))->isWeapon())
+			{
+				usNewItem = static_cast<UINT16>(idx);
+				break;
+			}
 		}
 
-		CreateItem(usOldItem, 100, &tgt->inv[HANDPOS]);
+		CreateItem(usNewItem, 100, &tgt->inv[HANDPOS]);
 		DirtyMercPanelInterface(tgt, DIRTYLEVEL2);
 	}
 }

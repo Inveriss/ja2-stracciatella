@@ -5,6 +5,7 @@
 #include "Soldier_Init_List.h"
 #include "Types.h"
 #include "Item_Types.h"
+#include "Items.h"
 #include "Handle_Items.h"
 #include "StrategicMap.h"
 #include "Tactical_Save.h"
@@ -871,6 +872,9 @@ void AddDeadSoldierToUnLoadedSector(const SGPSector& sMap, SOLDIERTYPE* const s,
 
 				if (o.fFlags & OBJECT_UNDROPPABLE) continue;
 			}
+
+			// docs/enemy-drop-progress-plan.md (D7): the progress limit applies here too
+			if (!ApplyEnemyDropProgressLimit(*s, o)) continue;
 
 			ReduceAmmoDroppedByNonPlayerSoldiers(*s, o);
 			AddItemsToUnLoadedSector(sMap, grid_no, 1, &o, s->bLevel, flags_for_world_items, 0, VISIBLE);

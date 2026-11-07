@@ -1823,6 +1823,16 @@
         "Miasto",
         "Rozmieść"
     ],
+    "pWeaponAttachmentStrings": [
+        "Poziom %d",
+        "Zasięg",
+        "Celność",
+        "Luneta",
+        "Leżąc",
+        "Hałas",
+        "PA",
+        "Seria"
+    ],
     "pMilitiaWatchStrings": [
         "Obserwuj bitwę",
         "Czy chcesz obserwować bitwę?",

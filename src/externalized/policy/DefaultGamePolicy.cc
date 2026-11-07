@@ -1,4 +1,5 @@
 #include "DefaultGamePolicy.h"
+#include "Exceptions.h"
 #include "Types.h"
 
 #include <algorithm>
@@ -21,6 +22,7 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	starting_cash_hard = gp.getOptionalInt("starting_cash_hard", 30000);
 
 	f_drop_everything = gp.getOptionalBool("drop_everything");
+	enemy_drop_progress_limits = gp.getOptionalBool("enemy_drop_progress_limits", true);
 	f_all_dropped_visible = gp.getOptionalBool("all_drops_visible");
 
 	multiple_interrupts = gp.getOptionalBool("multiple_interrupts");
@@ -28,6 +30,15 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	enemy_weapon_minimal_status = gp.getOptionalInt("enemy_weapon_minimal_status", 0);
 
 	squad_size = gp.getOptionalUInt("squad_size", 6);
+
+	{
+		unsigned int const n = gp.getOptionalUInt("gun_stack_size", 5);
+		if (n < 1 || n > 94)
+		{
+			throw DataError(ST::format("gun_stack_size must be 1-94, not {}", n));
+		}
+		gun_stack_size = static_cast<uint8_t>(n);
+	}
 
 	auto ai = gp["ai"].toObject();
 	ai_better_aiming_choice = ai.getOptionalBool("better_aiming_choice");

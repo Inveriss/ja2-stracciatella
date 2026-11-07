@@ -1823,6 +1823,16 @@
         "Stad",
         "Inzetten"
     ],
+    "pWeaponAttachmentStrings": [
+        "Level %d",
+        "Range",
+        "Aim",
+        "Scope",
+        "Prone",
+        "Noise",
+        "AP",
+        "Burst"
+    ],
     "pMilitiaWatchStrings": [
         "Gevecht bekijken",
         "Wil je het gevecht bekijken?",

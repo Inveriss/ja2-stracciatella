@@ -88,6 +88,14 @@ properties:
       Will enemies drop ALL of their equipment when they die?
 
       Vanilla setting: `false`
+  enemy_drop_progress_limits:
+    type: boolean
+    title: Enemy drops limited by game progress
+    description: |
+      Will enemies never leave behind an item before the game's highest progress (0-100)
+      reaches the item's own minDropProgress? Items without it always drop.
+
+      Vanilla setting: `false`
   all_drops_visible:
     type: boolean
     title: All drops visible
@@ -120,6 +128,16 @@ properties:
       least (640 + (n-6)*83) pixels wide. For example, squad size of 8 requires the screen to be at least 806px wide.
       
       Vanilla setting: `6`
+  gun_stack_size:
+    type: integer
+    minimum: 1
+    maximum: 94
+    title: Gun stack size
+    description: |
+      Guns of one kind in one sector inventory slot, unless weapons.json gives the gun its own stackSize.
+      Guns that differ only in condition share a slot; a merc still carries one gun per pocket.
+
+      Vanilla setting: `1`
   ai:
     type: object
     title: AI Settings

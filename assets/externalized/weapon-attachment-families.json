@@ -1,0 +1,30 @@
+/**
+ * Weapon attachment families (docs/weapon-attachments-plan.md).
+ *
+ * Every weapon attachment names its family in "attachmentFamily" and its quality
+ * level 1-3 in "attachmentLevel". All levels of a family share these rules.
+ *
+ * Fields:
+ *  - family: the name the attachments, the weapons' attachmentsAllow /
+ *    attachmentsDeny lists and other families' excludes use
+ *  - weaponTypes: the weapon types (weapons.json internalType) that take the
+ *    family; empty: only weapons that allow it (or the legacy attachment_Xxx flags)
+ *  - calibres (optional): only weapons of these calibres (calibres.json names)
+ *  - excludes (optional): families that can't be on the same weapon with this one
+ *  - skillCheck (optional): NONE (default), SPECIAL_ITEM or SPECIAL_ELECTRONIC_ITEM,
+ *    the skill check to attach it, with skillCheckModifier (optional)
+ *
+ * The families of the original attachments have no weapon types: the original
+ * weapons keep taking them through their attachment_Xxx flags.
+ */
+[
+	{ "family": "SILENCER",                  "weaponTypes": [] },
+	{ "family": "SNIPERSCOPE",               "weaponTypes": [] },
+	{ "family": "LASERSCOPE",                "weaponTypes": [] },
+	{ "family": "BIPOD",                     "weaponTypes": [] },
+	{ "family": "DUCKBILL",                  "weaponTypes": [] },
+	{ "family": "UNDER_GLAUNCHER",           "weaponTypes": [] },
+	{ "family": "SPRING_AND_BOLT_UPGRADE",   "weaponTypes": [], "skillCheck": "SPECIAL_ITEM" },
+	{ "family": "GUN_BARREL_EXTENDER",       "weaponTypes": [], "skillCheck": "SPECIAL_ITEM" },
+	{ "family": "BURST_EXTENDER_ATTACHMENT", "weaponTypes": [], "skillCheck": "SPECIAL_ITEM" }
+]
