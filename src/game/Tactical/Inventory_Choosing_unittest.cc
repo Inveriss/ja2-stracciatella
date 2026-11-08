@@ -1,11 +1,12 @@
 #ifdef WITH_UNITTESTS
 
-// docs/enemy-equipment-progress-plan.md, stages 2-3: effective progress P, the tier rule, guns by tiers
+// docs/enemy-equipment-progress-plan.md, stages 2-4: effective progress P, the tier rule, guns and other equipment by tiers
 
 #include "DefaultContentManagerUT.h"
 #include "GameSettings.h"
 #include "Inventory_Choosing.h"
 #include "ItemModel.h"
+#include "Item_Types.h"
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "Soldier_Control.h"
@@ -173,6 +174,55 @@ TEST_F(EnemyEquipment, lowestGunTierHasNoFirstDropBonus)
 {
 	std::vector<UINT16> const lowest = LowestEnemyGunTier();
 	EXPECT_EQ(std::set<UINT16>(lowest.begin(), lowest.end()), Ids({ "SW38", "BARRACUDA", "DESERTEAGLE" }));
+}
+
+
+// --- stage 4: other equipment by tiers ---
+
+namespace {
+
+std::set<UINT16> DrawItems(std::vector<UINT16> const& candidates, int const progress)
+{
+	std::set<UINT16> items;
+	for (int i = 0; i < 300; ++i) items.insert(PickEnemyItemByProgress(candidates, progress));
+	return items;
+}
+
+std::vector<UINT16> Vec(std::initializer_list<char const*> names)
+{
+	std::vector<UINT16> v;
+	for (char const* n : names) v.push_back(Id(n));
+	return v;
+}
+
+}
+
+
+TEST_F(EnemyEquipment, vestsByTiers)
+{
+	auto const vests = Vec({ "FLAK_JACKET", "KEVLAR_VEST", "KEVLAR2_VEST", "SPECTRA_VEST", "TSHIRT", "LEATHER_JACKET" });
+	EXPECT_EQ(DrawItems(vests, 0),   Ids({ "FLAK_JACKET" }));  // lowest tier 20; t-shirts never
+	EXPECT_EQ(DrawItems(vests, 45),  Ids({ "KEVLAR_VEST" }));  // tier 40
+	EXPECT_EQ(DrawItems(vests, 100), Ids({ "SPECTRA_VEST" })); // tier 80
+}
+
+
+TEST_F(EnemyEquipment, repeatedCandidatesOfOneTier)
+{
+	// the misc list: CANTEEN x4, ALCOHOL x2 ... all tier 10 except the boosters, knuckles, watch
+	auto const misc = Vec({ "CANTEEN", "CANTEEN", "CANTEEN", "CANTEEN", "ALCOHOL", "ALCOHOL",
+		"ADRENALINE_BOOSTER", "ADRENALINE_BOOSTER", "BRASS_KNUCKLES", "CHEWING_GUM", "CIGARS", "GOLDWATCH" });
+	EXPECT_EQ(DrawItems(misc, 15), Ids({ "CANTEEN", "ALCOHOL", "CHEWING_GUM", "CIGARS" }));
+	EXPECT_EQ(DrawItems(misc, 25), Ids({ "BRASS_KNUCKLES", "GOLDWATCH" }));
+	EXPECT_EQ(DrawItems(misc, 90), Ids({ "ADRENALINE_BOOSTER" }));
+}
+
+
+TEST_F(EnemyEquipment, candidatesWithoutMinEnemyProgressNeverPicked)
+{
+	EXPECT_EQ(PickEnemyItemByProgress(Vec({ "TOOLKIT", "TSHIRT", "DETONATOR" }), 50), NOTHING);
+	EXPECT_EQ(PickEnemyItemByProgress({}, 50), NOTHING);
+	EXPECT_EQ(DrawItems(Vec({ "TOOLKIT", "LOCKSMITHKIT", "CAMOUFLAGEKIT" }), 0), Ids({ "LOCKSMITHKIT" }));
 }
 
 #endif

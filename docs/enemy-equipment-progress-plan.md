@@ -6,7 +6,11 @@ Stage 2 implemented (game.json enemy_equipment, P per soldier, sentinel level, O
 rule helper, 9 unit tests), game-verified, committed 384ec629f.
 Stage 3 implemented (guns by tiers, trade-off = 10 points, condition from P, first drop
 per gun, lowest gun tier marked at start; no save change needed, the dropped set was
-already per gun; 3 unit tests; build + 269 tests pass), not yet game-verified.
+already per gun; 3 unit tests), game-verified, committed 8bac37ce4.
+Stage 4 implemented (helmet/vest/leggings, plates, knives, attachments, kits, misc,
+bombs by tiers; trade-offs = 10 points per class; TSHIRT, TSHIRT_DEIDRANNA and
+LEATHER_JACKET lose minEnemyProgress, enemies never got them; 3 unit tests; build +
+272 tests pass), not yet game-verified.
 Branch: `Weapons` (from ja2master dfa36b2ce).
 Related: [game-progress-plan.md](game-progress-plan.md) (`GameProgressPercentage`),
 [enemy-drop-progress-plan.md](enemy-drop-progress-plan.md) (`minDropProgress`).
