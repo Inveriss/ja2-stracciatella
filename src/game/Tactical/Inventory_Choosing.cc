@@ -21,6 +21,7 @@
 #include "Logger.h"
 
 #include <algorithm>
+#include <map>
 
 #define ENEMYAMMODROPRATE       50 // % of time enemies drop ammunition
 #define ENEMYGRENADEDROPRATE    25 // % of time enemies drop grenades
@@ -105,7 +106,7 @@ static void MarkAllWeaponsOfSameGunClassAsDropped(UINT16 usWeapon)
 static void ChooseArmourForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bHelmetClass, INT8 bVestClass, INT8 bLeggingsClass, int iProgress, INT8 bProgressClass);
 static void ChooseBombsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bBombClass, int iProgress, INT8 bProgressClass);
 static void ChooseFaceGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp);
-static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bGrenades, INT8 bGrenadeClass, BOOLEAN fGrenadeLauncher);
+static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bGrenades, INT8 bGrenadeClass, BOOLEAN fGrenadeLauncher, int iProgress, INT8 bProgressClass);
 static void ChooseKitsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKitClass, int iProgress, INT8 bProgressClass);
 static void ChooseLocationSpecificGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp);
 static void ChooseMiscGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bMiscClass, int iProgress, INT8 bProgressClass);
@@ -527,7 +528,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 	//Now actually choose the equipment!
 	ChooseWeaponForSoldierCreateStruct( pp, bWeaponClass, bAmmoClips, bAttachClass, fAttachment, iProgress, bProgressClass );
-	ChooseGrenadesForSoldierCreateStruct( pp, bGrenades, bGrenadeClass, fGrenadeLauncher );
+	ChooseGrenadesForSoldierCreateStruct( pp, bGrenades, bGrenadeClass, fGrenadeLauncher, iProgress, bProgressClass );
 	ChooseArmourForSoldierCreateStruct( pp, bHelmetClass, bVestClass, bLeggingClass, iProgress, bProgressClass );
 	ChooseSpecialWeaponsForSoldierCreateStruct( pp, bKnifeClass, fGrenadeLauncher, fLAW, fMortar, iProgress, bProgressClass );
 	ChooseFaceGearForSoldierCreateStruct( pp );
@@ -906,7 +907,7 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 }
 
 
-static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bGrenades, INT8 bGrenadeClass, BOOLEAN fGrenadeLauncher)
+static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bGrenades, INT8 bGrenadeClass, BOOLEAN fGrenadeLauncher, int const iProgress, INT8 const bProgressClass)
 {
 	OBJECTTYPE Object;
 	INT16 sNumPoints;
@@ -928,6 +929,33 @@ static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 
 	//no points, no grenades!
 	if( !sNumPoints )
 		return;
+
+	if (iProgress >= 0)
+	{
+		// stage 5: bGrenades grenades (the count of the old rules), each one by
+		// minEnemyProgress tiers among hand grenades, grenade launcher grenades
+		// or mortar shells
+		bool const fMortar = bGrenadeClass == MORTAR_GRENADE_CLASS;
+		std::vector<UINT16> const candidates = EnemyGrenadeCandidates(fMortar ? MORTAR : fGrenadeLauncher ? GLAUNCHER : NOTHING);
+		int const progress = fMortar ? iProgress : CategoryProgress(iProgress, bGrenadeClass, bProgressClass);
+		UINT8 const ubBase = fMortar ? 80 : (UINT8) std::min(45 + bGrenadeClass * 5, 90);
+		UINT8 const ubVariation = 101 - ubBase;
+
+		std::map<UINT16, UINT8> counts;
+		for (INT8 i = 0; i < bGrenades; ++i)
+		{
+			UINT16 const usPick = PickEnemyItemByProgress(candidates, progress);
+			if (usPick == NOTHING) break;
+			++counts[usPick];
+		}
+		for (auto const& [usType, ubCount] : counts)
+		{
+			CreateItems(usType, (INT8)(ubBase + Random(ubVariation)), ubCount, &Object);
+			Object.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &Object);
+		}
+		return;
+	}
 
 	// special mortar shell handling
 	if (bGrenadeClass == MORTAR_GRENADE_CLASS)
@@ -2464,4 +2492,23 @@ UINT16 PickEnemyItemByProgress(std::vector<UINT16> const& candidates, int const 
 		if (item->hasMinEnemyProgress() && item->getMinEnemyProgress() == tier) pool.push_back(c);
 	}
 	return pool[Random(static_cast<UINT32>(pool.size()))];
+}
+
+
+std::vector<UINT16> EnemyGrenadeCandidates(UINT16 const usLauncher)
+{
+	std::vector<UINT16> candidates;
+	for (auto pItem : GCM->getItems())
+	{
+		UINT16 const idx = pItem->getItemIndex();
+		if (usLauncher != NOTHING)
+		{
+			if (ValidLaunchable(idx, usLauncher)) candidates.push_back(idx);
+		}
+		else if (pItem->getItemClass() == IC_GRENADE && GetLauncherFromLaunchable(idx) == NOTHING)
+		{
+			candidates.push_back(idx);
+		}
+	}
+	return candidates;
 }

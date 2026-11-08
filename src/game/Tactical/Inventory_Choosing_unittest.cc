@@ -1,6 +1,6 @@
 #ifdef WITH_UNITTESTS
 
-// docs/enemy-equipment-progress-plan.md, stages 2-4: effective progress P, the tier rule, guns and other equipment by tiers
+// docs/enemy-equipment-progress-plan.md, stages 2-5: effective progress P, the tier rule, guns, other equipment and grenades by tiers
 
 #include "DefaultContentManagerUT.h"
 #include "GameSettings.h"
@@ -223,6 +223,52 @@ TEST_F(EnemyEquipment, candidatesWithoutMinEnemyProgressNeverPicked)
 	EXPECT_EQ(PickEnemyItemByProgress(Vec({ "TOOLKIT", "TSHIRT", "DETONATOR" }), 50), NOTHING);
 	EXPECT_EQ(PickEnemyItemByProgress({}, 50), NOTHING);
 	EXPECT_EQ(DrawItems(Vec({ "TOOLKIT", "LOCKSMITHKIT", "CAMOUFLAGEKIT" }), 0), Ids({ "LOCKSMITHKIT" }));
+}
+
+
+// --- stage 5: grenades by tiers ---
+
+namespace {
+
+// the candidates that can be picked at all (with minEnemyProgress)
+std::set<UINT16> Pickable(std::vector<UINT16> const& candidates)
+{
+	std::set<UINT16> ids;
+	for (UINT16 const c : candidates)
+	{
+		if (GCM->getItem(c)->hasMinEnemyProgress()) ids.insert(c);
+	}
+	return ids;
+}
+
+}
+
+
+TEST_F(EnemyEquipment, grenadeCandidatesByLauncher)
+{
+	auto const hand = EnemyGrenadeCandidates(NOTHING);
+	EXPECT_EQ(Pickable(hand), Ids({ "STUN_GRENADE", "TEARGAS_GRENADE",
+		"MUSTARD_GRENADE", "MINI_GRENADE", "HAND_GRENADE", "BREAK_LIGHT", "SMOKE_GRENADE" }));
+
+	auto const gl = EnemyGrenadeCandidates(Id("GLAUNCHER"));
+	EXPECT_EQ(Pickable(gl), Ids({ "GL_HE_GRENADE", "GL_TEARGAS_GRENADE",
+		"GL_STUN_GRENADE", "GL_SMOKE_GRENADE" }));
+
+	auto const mortar = EnemyGrenadeCandidates(Id("MORTAR"));
+	EXPECT_EQ(Pickable(mortar), Ids({ "MORTAR_SHELL" }));
+}
+
+
+TEST_F(EnemyEquipment, grenadesByTiers)
+{
+	auto const hand = EnemyGrenadeCandidates(NOTHING);
+	EXPECT_EQ(DrawItems(hand, 0),   Ids({ "BREAK_LIGHT" }));                   // lowest tier 30
+	EXPECT_EQ(DrawItems(hand, 65),  Ids({ "STUN_GRENADE", "MINI_GRENADE" }));  // tier 60
+	EXPECT_EQ(DrawItems(hand, 100), Ids({ "MUSTARD_GRENADE" }));               // tier 80
+
+	auto const gl = EnemyGrenadeCandidates(Id("GLAUNCHER"));
+	EXPECT_EQ(DrawItems(gl, 0),   Ids({ "GL_STUN_GRENADE" }));                 // lowest tier 50
+	EXPECT_EQ(DrawItems(gl, 100), Ids({ "GL_HE_GRENADE" }));                   // tier 80
 }
 
 #endif

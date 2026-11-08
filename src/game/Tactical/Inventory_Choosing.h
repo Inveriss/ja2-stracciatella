@@ -95,6 +95,10 @@ UINT16 SelectEnemyGunByProgress(int progress);
 // that have minEnemyProgress (a repeated candidate keeps its weight); NOTHING if none
 UINT16 PickEnemyItemByProgress(std::vector<UINT16> const& candidates, int progress);
 
+// Stage 5: the grenades an enemy may get: what the launcher (GLAUNCHER, MORTAR) fires,
+// or with NOTHING the hand grenades (IC_GRENADE that no launcher fires)
+std::vector<UINT16> EnemyGrenadeCandidates(UINT16 usLauncher);
+
 // Stage 3 (O3): the guns of the lowest gun tier, marked as already dropped at the start
 // of a game so that the crappiest guns get no first-drop bonus
 std::vector<UINT16> LowestEnemyGunTier();

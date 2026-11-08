@@ -10,7 +10,10 @@ already per gun; 3 unit tests), game-verified, committed 8bac37ce4.
 Stage 4 implemented (helmet/vest/leggings, plates, knives, attachments, kits, misc,
 bombs by tiers; trade-offs = 10 points per class; TSHIRT, TSHIRT_DEIDRANNA and
 LEATHER_JACKET lose minEnemyProgress, enemies never got them; 3 unit tests; build +
-272 tests pass), not yet game-verified.
+272 tests pass), game-verified, committed ae6da0c01.
+Stage 5 implemented (grenades: bGrenades grenades, each by tiers among hand grenades,
+grenade launcher grenades or mortar shells; quality as before; 2 unit tests; build +
+274 tests pass), not yet game-verified.
 Branch: `Weapons` (from ja2master dfa36b2ce).
 Related: [game-progress-plan.md](game-progress-plan.md) (`GameProgressPercentage`),
 [enemy-drop-progress-plan.md](enemy-drop-progress-plan.md) (`minDropProgress`).
