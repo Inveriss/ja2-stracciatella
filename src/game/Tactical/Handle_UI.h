@@ -318,4 +318,7 @@ void SetInterfaceHeightLevel(void);
 
 void ClimbUpOrDown();
 
+// the soldier class the I_NEW_BADMERC cheat creates (ALT+A / ALT+B / ALT+Q)
+extern UINT8 gNewBadMercClass;
+
 #endif

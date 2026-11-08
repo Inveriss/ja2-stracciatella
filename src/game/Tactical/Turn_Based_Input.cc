@@ -2034,7 +2034,10 @@ static void HandleModAltCheats(UINT32 const key, UIEventKind * const new_event)
 			gfNextShotKills = !gfNextShotKills;
 			break;
 
-		case 'b': *new_event = I_NEW_BADMERC;   break;
+		// testing docs/enemy-equipment-progress-plan.md: one soldier type per key
+		case 'a': gNewBadMercClass = SOLDIER_CLASS_ADMINISTRATOR; *new_event = I_NEW_BADMERC; break;
+		case 'b': gNewBadMercClass = SOLDIER_CLASS_ARMY;          *new_event = I_NEW_BADMERC; break;
+		case 'q': gNewBadMercClass = SOLDIER_CLASS_ELITE;         *new_event = I_NEW_BADMERC; break;
 		case 'c': CreateNextCivType();          break;
 
 		case 'd':
