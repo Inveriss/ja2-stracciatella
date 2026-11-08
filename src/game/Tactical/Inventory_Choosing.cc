@@ -18,6 +18,9 @@
 #include "MagazineModel.h"
 #include "WeaponModels.h"
 #include "policy/GamePolicy.h"
+#include "Logger.h"
+
+#include <algorithm>
 
 #define ENEMYAMMODROPRATE       50 // % of time enemies drop ammunition
 #define ENEMYGRENADEDROPRATE    25 // % of time enemies drop grenades
@@ -99,6 +102,7 @@ static void ChooseSpecialWeaponsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp,
 static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment);
 static void EquipTank(SOLDIERCREATE_STRUCT* pp);
 static void RandomlyChooseWhichItemsAreDroppable(SOLDIERCREATE_STRUCT* pp, INT8 bSoldierClass);
+static UINT8 RollEnemyEquipmentProgress(INT8 bSoldierClass, INT8 bEquipmentLevel);
 static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* pp);
 
 
@@ -159,12 +163,22 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 
 	Assert( ( ( bSoldierClass >= SOLDIER_CLASS_NONE ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) ) || ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA ) );
-	Assert( ( bEquipmentRating >= 0 ) && ( bEquipmentRating <= 4 ) );
+	bool const fByProgress = EnemyEquipmentByProgress() && bSoldierClass != SOLDIER_CLASS_NONE;
+	Assert( ( ( bEquipmentRating >= 0 ) && ( bEquipmentRating <= 4 ) ) || ( fByProgress && bEquipmentRating == NO_EQUIPMENT_LEVEL ) );
 
 
 	// equipment level is modified by 1/10 of the difficulty percentage, -5, so it's between -5 to +5
 	// (on normal, this is actually -4 to +4, easy is -5 to +3, and hard is -3 to +5)
 	bEquipmentModifier = bEquipmentRating + ( ( CalcDifficultyModifier( bSoldierClass ) / 10 ) - 5 );
+
+	// docs/enemy-equipment-progress-plan.md: the class comes from the soldier's P (E6, E13)
+	// instead of type + level + difficulty modifier; the rules below stay the same
+	INT8 const bProgressClass = fByProgress ? EnemyEquipmentClass(RollEnemyEquipmentProgress(bSoldierClass, bEquipmentRating)) : 0;
+	auto const rating = [&](int const base)
+	{
+		if (fByProgress) return static_cast<int>(bProgressClass);
+		return std::clamp(base + bEquipmentModifier, MIN_EQUIPMENT_CLASS, MAX_EQUIPMENT_CLASS);
+	};
 
 	switch( bSoldierClass )
 	{
@@ -177,8 +191,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 		case SOLDIER_CLASS_ADMINISTRATOR:
 		case SOLDIER_CLASS_GREEN_MILITIA:
-			bRating = BAD_ADMINISTRATOR_EQUIPMENT_RATING + bEquipmentModifier;
-			bRating = (INT8) std::clamp(bRating, MIN_EQUIPMENT_CLASS, MAX_EQUIPMENT_CLASS);
+			bRating = rating(BAD_ADMINISTRATOR_EQUIPMENT_RATING);
 
 			bWeaponClass = bRating;
 
@@ -224,8 +237,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 		case SOLDIER_CLASS_ARMY:
 		case SOLDIER_CLASS_REG_MILITIA:
 			//army guys tend to have a broad range of equipment
-			bRating = BAD_ARMY_EQUIPMENT_RATING + bEquipmentModifier;
-			bRating = (INT8) std::clamp(bRating, MIN_EQUIPMENT_CLASS, MAX_EQUIPMENT_CLASS);
+			bRating = rating(BAD_ARMY_EQUIPMENT_RATING);
 
 			bWeaponClass = bRating;
 			bVestClass = bRating;
@@ -333,8 +345,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 		case SOLDIER_CLASS_ELITE:
 		case SOLDIER_CLASS_ELITE_MILITIA:
-			bRating = BAD_ELITE_EQUIPMENT_RATING + bEquipmentModifier;
-			bRating = (INT8) std::clamp(bRating, MIN_EQUIPMENT_CLASS, MAX_EQUIPMENT_CLASS);
+			bRating = rating(BAD_ELITE_EQUIPMENT_RATING);
 
 			bWeaponClass = bRating;
 			bHelmetClass = bRating;
@@ -2160,4 +2171,82 @@ static void EquipTank(SOLDIERCREATE_STRUCT* pp)
 void ResetMortarsOnTeamCount( void )
 {
 	guiMortarsRolledByTeam = 0;
+}
+
+
+// --- Enemy equipment by game progress (docs/enemy-equipment-progress-plan.md) ---
+
+bool EnemyEquipmentByProgress()
+{
+	return gamepolicy(enemy_equipment_by_progress);
+}
+
+
+GamePolicy::OffsetRange EnemyEquipmentOffsetRange(INT8 const bSoldierClass, INT8 const bEquipmentLevel)
+{
+	if (0 <= bEquipmentLevel && bEquipmentLevel <= 4)
+	{
+		return gamepolicy(enemy_equipment_level_offsets)[bEquipmentLevel];
+	}
+	int type;
+	switch (bSoldierClass)
+	{
+		case SOLDIER_CLASS_ELITE:
+		case SOLDIER_CLASS_ELITE_MILITIA: type = 2; break;
+		case SOLDIER_CLASS_ARMY:
+		case SOLDIER_CLASS_REG_MILITIA:   type = 1; break;
+		default:                          type = 0; break; // admin, green militia
+	}
+	return gamepolicy(enemy_equipment_type_offsets)[type];
+}
+
+
+INT8 EnemyEquipmentDifficultyOffset(INT8 const bSoldierClass, UINT8 const ubDifficultyLevel)
+{
+	if (!SOLDIER_CLASS_ENEMY(bSoldierClass)) return 0; // militia: none (E10)
+	switch (ubDifficultyLevel)
+	{
+		case DIF_LEVEL_EASY: return gamepolicy(enemy_equipment_difficulty_offsets)[0];
+		case DIF_LEVEL_HARD: return gamepolicy(enemy_equipment_difficulty_offsets)[2];
+		default:             return gamepolicy(enemy_equipment_difficulty_offsets)[1];
+	}
+}
+
+
+UINT8 EnemyEquipmentProgress(UINT8 const ubGameProgress, INT8 const iOffset, INT8 const iDifficultyOffset)
+{
+	return static_cast<UINT8>(std::clamp(ubGameProgress + iOffset + iDifficultyOffset, 0, 100));
+}
+
+
+INT8 EnemyEquipmentClass(UINT8 const ubProgress)
+{
+	return static_cast<INT8>(std::min<int>(ubProgress, 100) / 10 + 1);
+}
+
+
+int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int const progress)
+{
+	int best = -1;
+	int lowest = -1;
+	for (UINT8 const t : tiers)
+	{
+		if (lowest < 0 || t < lowest) lowest = t;
+		if (t <= progress && t > best) best = t;
+	}
+	return best >= 0 ? best : lowest;
+}
+
+
+// One roll per soldier (E6): his P for every category
+static UINT8 RollEnemyEquipmentProgress(INT8 const bSoldierClass, INT8 const bEquipmentLevel)
+{
+	GamePolicy::OffsetRange const range = EnemyEquipmentOffsetRange(bSoldierClass, bEquipmentLevel);
+	INT8 const offset = static_cast<INT8>(range.min + static_cast<int>(Random(range.max - range.min + 1)));
+	INT8 const difficulty = EnemyEquipmentDifficultyOffset(bSoldierClass, gGameOptions.ubDifficultyLevel);
+	UINT8 const progress = GameProgressPercentage();
+	UINT8 const p = EnemyEquipmentProgress(progress, offset, difficulty);
+	SLOGD("Enemy equipment: class {}, level {}, progress {}, offset {}, difficulty {} -> P {} (class {})",
+		bSoldierClass, bEquipmentLevel, progress, offset, difficulty, p, EnemyEquipmentClass(p));
+	return p;
 }

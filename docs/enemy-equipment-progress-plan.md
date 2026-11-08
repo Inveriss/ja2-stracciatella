@@ -1,7 +1,9 @@
 # Enemy equipment by game progress (Weapons)
 
 Status: E1–E14 and O1–O3 decided (2026-11-08). Stage 1 implemented (field, validation,
-base data for 86 items, load warning, 5 unit tests; build + 257 tests pass), not yet game-verified.
+base data for 86 items, load warning, 5 unit tests), game-verified, committed e4d2461ff.
+Stage 2 implemented (game.json enemy_equipment, P per soldier, sentinel level, O1, tier
+rule helper, 9 unit tests; build + 266 tests pass), not yet game-verified.
 Branch: `Weapons` (from ja2master dfa36b2ce).
 Related: [game-progress-plan.md](game-progress-plan.md) (`GameProgressPercentage`),
 [enemy-drop-progress-plan.md](enemy-drop-progress-plan.md) (`minDropProgress`).

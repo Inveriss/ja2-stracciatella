@@ -3,6 +3,9 @@
 
 #include "Types.h"
 #include "Soldier_Create.h"
+#include "GamePolicy.h"
+
+#include <vector>
 
 #define MORTAR_GRENADE_CLASS	100
 
@@ -58,5 +61,30 @@ void ResetMortarsOnTeamCount( void );
 // the hand and its ammunition (more LAWs, mortar shells) in his empty big
 // pockets, as much as his strength carries (100%).  Everything at 100%.
 void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 usWeapon);
+
+
+// --- Enemy equipment by game progress (docs/enemy-equipment-progress-plan.md) ---
+
+// bRelativeEquipmentLevel of a strategically created soldier (no editor level, E8)
+#define NO_EQUIPMENT_LEVEL (-1)
+
+// game.json enemy_equipment.by_progress
+bool EnemyEquipmentByProgress();
+
+// The random offset range of a soldier: by editor equipment level 0-4 (E7), else by
+// soldier type (E8; militia: green = admin, regular = army, elite = elite, E10)
+GamePolicy::OffsetRange EnemyEquipmentOffsetRange(INT8 bSoldierClass, INT8 bEquipmentLevel);
+
+// The difficulty offset (E9): enemies only, 0 for militia
+INT8 EnemyEquipmentDifficultyOffset(INT8 bSoldierClass, UINT8 ubDifficultyLevel);
+
+// P = progress + offset + difficulty offset, clamped to 0..100 (E6)
+UINT8 EnemyEquipmentProgress(UINT8 ubGameProgress, INT8 iOffset, INT8 iDifficultyOffset);
+
+// The class 1..11 that counts and chances keep using (E13)
+INT8 EnemyEquipmentClass(UINT8 ubProgress);
+
+// Tier rule (E12): the highest tier <= progress, else the lowest tier; -1 when there is none
+int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int progress);
 
 #endif

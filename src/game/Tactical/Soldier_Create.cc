@@ -1895,7 +1895,9 @@ SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass const sc)
 	BASIC_SOLDIERCREATE_STRUCT bp;
 	bp = BASIC_SOLDIERCREATE_STRUCT{};
 	RandomizeRelativeLevel(&bp.bRelativeAttributeLevel, sc);
-	RandomizeRelativeLevel(&bp.bRelativeEquipmentLevel, sc);
+	// docs/enemy-equipment-progress-plan.md (E8): no editor level, the type offset applies
+	if (EnemyEquipmentByProgress()) bp.bRelativeEquipmentLevel = NO_EQUIPMENT_LEVEL;
+	else RandomizeRelativeLevel(&bp.bRelativeEquipmentLevel, sc);
 	bp.bTeam          = ENEMY_TEAM;
 	bp.bOrders        = SEEKENEMY;
 	bp.bAttitude      = Random(MAXATTITUDES);
@@ -1938,7 +1940,9 @@ SOLDIERTYPE* TacticalCreateMilitia( UINT8 ubMilitiaClass )
 	bp = BASIC_SOLDIERCREATE_STRUCT{};
 	pp = SOLDIERCREATE_STRUCT{};
 	RandomizeRelativeLevel( &( bp.bRelativeAttributeLevel ), ubMilitiaClass );
-	RandomizeRelativeLevel( &( bp.bRelativeEquipmentLevel ), ubMilitiaClass );
+	// docs/enemy-equipment-progress-plan.md (E8, E10): no editor level, the type offset applies
+	if (EnemyEquipmentByProgress()) bp.bRelativeEquipmentLevel = NO_EQUIPMENT_LEVEL;
+	else RandomizeRelativeLevel( &( bp.bRelativeEquipmentLevel ), ubMilitiaClass );
 	bp.bTeam = MILITIA_TEAM;
 	bp.ubSoldierClass = ubMilitiaClass;
 	bp.bOrders = STATIONARY;

@@ -96,6 +96,41 @@ properties:
       reaches the item's own minDropProgress? Items without it always drop.
 
       Vanilla setting: `false`
+  enemy_equipment:
+    type: object
+    title: Enemy equipment by game progress
+    description: |
+      Enemy and militia equipment follows the game progress plus random offsets and the items'
+      minEnemyProgress (docs/enemy-equipment-progress-plan.md). Offsets are [min, max].
+
+      Vanilla setting: none (new)
+    properties:
+      by_progress:
+        type: boolean
+        title: Use the game progress (false = original classes and gun table)
+      level_offsets:
+        type: object
+        title: Offsets by editor equipment level
+        properties:
+          bad: { type: array, items: { type: integer, minimum: -100, maximum: 100 }, minItems: 2, maxItems: 2 }
+          poor: { type: array, items: { type: integer, minimum: -100, maximum: 100 }, minItems: 2, maxItems: 2 }
+          average: { type: array, items: { type: integer, minimum: -100, maximum: 100 }, minItems: 2, maxItems: 2 }
+          good: { type: array, items: { type: integer, minimum: -100, maximum: 100 }, minItems: 2, maxItems: 2 }
+          great: { type: array, items: { type: integer, minimum: -100, maximum: 100 }, minItems: 2, maxItems: 2 }
+      type_offsets:
+        type: object
+        title: Offsets by soldier type (strategically created soldiers)
+        properties:
+          admin: { type: array, items: { type: integer, minimum: -100, maximum: 100 }, minItems: 2, maxItems: 2 }
+          army: { type: array, items: { type: integer, minimum: -100, maximum: 100 }, minItems: 2, maxItems: 2 }
+          elite: { type: array, items: { type: integer, minimum: -100, maximum: 100 }, minItems: 2, maxItems: 2 }
+      difficulty_offsets:
+        type: object
+        title: Offsets by difficulty (enemies only)
+        properties:
+          easy: { type: integer, minimum: -100, maximum: 100 }
+          experienced: { type: integer, minimum: -100, maximum: 100 }
+          expert: { type: integer, minimum: -100, maximum: 100 }
   all_drops_visible:
     type: boolean
     title: All drops visible

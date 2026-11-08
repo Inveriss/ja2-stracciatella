@@ -1050,7 +1050,8 @@ static void MakeMilitiaPlacement(SOLDIERINITNODE* const curr, UINT8 const ubSold
 		curr->pDetailedPlacement = NULL;
 		curr->pBasicPlacement->fDetailedPlacement = FALSE;
 		RandomizeRelativeLevel( &( curr->pBasicPlacement->bRelativeAttributeLevel ), curr->pBasicPlacement->ubSoldierClass );
-		RandomizeRelativeLevel( &( curr->pBasicPlacement->bRelativeEquipmentLevel ), curr->pBasicPlacement->ubSoldierClass );
+		// docs/enemy-equipment-progress-plan.md (O1): the editor level stays
+		if (!EnemyEquipmentByProgress()) RandomizeRelativeLevel( &( curr->pBasicPlacement->bRelativeEquipmentLevel ), curr->pBasicPlacement->ubSoldierClass );
 	}
 }
 
@@ -1866,6 +1867,7 @@ void StripEnemyDetailedPlacementsIfSectorWasPlayerLiberated()
 		bp.fPriorityExistance = FALSE;
 		bp.bBodyType          = BODY_RANDOM;
 		RandomizeRelativeLevel(&bp.bRelativeAttributeLevel, bp.ubSoldierClass);
-		RandomizeRelativeLevel(&bp.bRelativeEquipmentLevel, bp.ubSoldierClass);
+		// docs/enemy-equipment-progress-plan.md (O1): the editor level stays
+		if (!EnemyEquipmentByProgress()) RandomizeRelativeLevel(&bp.bRelativeEquipmentLevel, bp.ubSoldierClass);
 	}
 }
