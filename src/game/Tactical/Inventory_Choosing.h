@@ -87,4 +87,12 @@ INT8 EnemyEquipmentClass(UINT8 ubProgress);
 // Tier rule (E12): the highest tier <= progress, else the lowest tier; -1 when there is none
 int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int progress);
 
+// Stage 3: a random gun of the tier chosen for this progress, among the guns with
+// minEnemyProgress; NOTHING when no gun has one
+UINT16 SelectEnemyGunByProgress(int progress);
+
+// Stage 3 (O3): the guns of the lowest gun tier, marked as already dropped at the start
+// of a game so that the crappiest guns get no first-drop bonus
+std::vector<UINT16> LowestEnemyGunTier();
+
 #endif

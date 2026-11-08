@@ -47,7 +47,15 @@ void InitArmyGunTypes(void)
 	ClearAllWeaponsAlreadyDropped();
 
 	// avoid auto-drops for the gun class with the crappiest guns in it
-	MarkAllWeaponsOfSameGunClassAsDropped( SW38 );
+	if (EnemyEquipmentByProgress())
+	{
+		// docs/enemy-equipment-progress-plan.md (O3): the guns of the lowest tier
+		for (UINT16 const gun : LowestEnemyGunTier()) SetWeaponAlreadyDropped(GCM->getWeapon(gun));
+	}
+	else
+	{
+		MarkAllWeaponsOfSameGunClassAsDropped( SW38 );
+	}
 }
 
 
@@ -79,6 +87,9 @@ static void MarkAllWeaponsOfSameGunClassAsDropped(UINT16 usWeapon)
 	// mark that item itself as dropped, whether or not it's part of a gun class
 	SetWeaponAlreadyDropped(itemModel->asWeapon());
 
+	// docs/enemy-equipment-progress-plan.md (O3): no gun classes, only this gun
+	if (EnemyEquipmentByProgress()) return;
+
 	auto const bGunClass{ GetWeaponClass(usWeapon) };
 
 	// if the gun belongs to a gun class (mortars, GLs, LAWs, etc. do not and are handled independently)
@@ -99,7 +110,7 @@ static void ChooseKitsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKit
 static void ChooseLocationSpecificGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp);
 static void ChooseMiscGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bMiscClass);
 static void ChooseSpecialWeaponsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKnifeClass, BOOLEAN fGrenadeLauncher, BOOLEAN fLAW, BOOLEAN fMortar);
-static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment);
+static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment, int iProgress, INT8 bProgressClass);
 static void EquipTank(SOLDIERCREATE_STRUCT* pp);
 static void RandomlyChooseWhichItemsAreDroppable(SOLDIERCREATE_STRUCT* pp, INT8 bSoldierClass);
 static UINT8 RollEnemyEquipmentProgress(INT8 bSoldierClass, INT8 bEquipmentLevel);
@@ -173,7 +184,8 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 	// docs/enemy-equipment-progress-plan.md: the class comes from the soldier's P (E6, E13)
 	// instead of type + level + difficulty modifier; the rules below stay the same
-	INT8 const bProgressClass = fByProgress ? EnemyEquipmentClass(RollEnemyEquipmentProgress(bSoldierClass, bEquipmentRating)) : 0;
+	int const iProgress = fByProgress ? RollEnemyEquipmentProgress(bSoldierClass, bEquipmentRating) : -1;
+	INT8 const bProgressClass = fByProgress ? EnemyEquipmentClass(static_cast<UINT8>(iProgress)) : 0;
 	auto const rating = [&](int const base)
 	{
 		if (fByProgress) return static_cast<int>(bProgressClass);
@@ -513,7 +525,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 
 	//Now actually choose the equipment!
-	ChooseWeaponForSoldierCreateStruct( pp, bWeaponClass, bAmmoClips, bAttachClass, fAttachment );
+	ChooseWeaponForSoldierCreateStruct( pp, bWeaponClass, bAmmoClips, bAttachClass, fAttachment, iProgress, bProgressClass );
 	ChooseGrenadesForSoldierCreateStruct( pp, bGrenades, bGrenadeClass, fGrenadeLauncher );
 	ChooseArmourForSoldierCreateStruct( pp, bHelmetClass, bVestClass, bLeggingClass );
 	ChooseSpecialWeaponsForSoldierCreateStruct( pp, bKnifeClass, fGrenadeLauncher, fLAW, fMortar );
@@ -699,7 +711,8 @@ void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 const usWeapon)
 //When using the class values, they should all range from 0-11, 0 meaning that there will be no
 //selection for that particular type of item, and 1-11 means to choose an item if possible.  1 is
 //the worst class of item, while 11 is the best.
-static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment)
+// iProgress: the soldier's P, -1 = the original classes (docs/enemy-equipment-progress-plan.md)
+static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment, int const iProgress, INT8 const bProgressClass)
 {
 	OBJECTTYPE Object;
 	UINT16 usRandom;
@@ -755,8 +768,18 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 	}
 
 
-	// the weapon class here ranges from 1 to 11, so subtract 1 to get a gun level
-	usGunIndex = SelectStandardArmyGun( (UINT8) (bWeaponClass - 1));
+	if (iProgress >= 0)
+	{
+		// stage 3: the gun from the catalogue by minEnemyProgress tiers (E12); the old
+		// better-gun/worse-gun trade-off of one class moves P by 10 points
+		int const iGunProgress = std::clamp(iProgress + (bWeaponClass - bProgressClass) * 10, 0, 100);
+		usGunIndex = SelectEnemyGunByProgress(iGunProgress);
+	}
+	if (usGunIndex == NOTHING)
+	{
+		// the weapon class here ranges from 1 to 11, so subtract 1 to get a gun level
+		usGunIndex = SelectStandardArmyGun( (UINT8) (bWeaponClass - 1));
+	}
 
 
 	if( bAmmoClips )
@@ -824,14 +847,14 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 			case SOLDIER_CLASS_REG_MILITIA:
 				//Admins/Troops: 60-75% + 1% every 4% progress
 				bStatus = 60 + Random(16);
-				bStatus += HighestPlayerProgressPercentage() / 4;
+				bStatus += (iProgress >= 0 ? iProgress : HighestPlayerProgressPercentage()) / 4;
 				bStatus = std::min(100, bStatus);
 				break;
 			case SOLDIER_CLASS_ELITE:
 			case SOLDIER_CLASS_ELITE_MILITIA:
 				//85-90% +  1% every 10% progress
 				bStatus = 85 + Random(6);
-				bStatus += HighestPlayerProgressPercentage() / 10;
+				bStatus += (iProgress >= 0 ? iProgress : HighestPlayerProgressPercentage()) / 10;
 				bStatus = std::min(100, bStatus);
 				break;
 			default:
@@ -2249,4 +2272,46 @@ static UINT8 RollEnemyEquipmentProgress(INT8 const bSoldierClass, INT8 const bEq
 	SLOGD("Enemy equipment: class {}, level {}, progress {}, offset {}, difficulty {} -> P {} (class {})",
 		bSoldierClass, bEquipmentLevel, progress, offset, difficulty, p, EnemyEquipmentClass(p));
 	return p;
+}
+
+
+UINT16 SelectEnemyGunByProgress(int const progress)
+{
+	std::vector<UINT8> tiers;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() == IC_GUN && item->hasMinEnemyProgress()) tiers.push_back(item->getMinEnemyProgress());
+	}
+	int const tier = ChooseEnemyEquipmentTier(tiers, progress);
+	if (tier < 0) return NOTHING;
+
+	std::vector<UINT16> guns;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() == IC_GUN && item->hasMinEnemyProgress() && item->getMinEnemyProgress() == tier)
+		{
+			guns.push_back(item->getItemIndex());
+		}
+	}
+	return guns[Random(static_cast<UINT32>(guns.size()))];
+}
+
+
+std::vector<UINT16> LowestEnemyGunTier()
+{
+	int lowest = -1;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() != IC_GUN || !item->hasMinEnemyProgress()) continue;
+		if (lowest < 0 || item->getMinEnemyProgress() < lowest) lowest = item->getMinEnemyProgress();
+	}
+	std::vector<UINT16> guns;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() == IC_GUN && item->hasMinEnemyProgress() && item->getMinEnemyProgress() == lowest)
+		{
+			guns.push_back(item->getItemIndex());
+		}
+	}
+	return guns;
 }
