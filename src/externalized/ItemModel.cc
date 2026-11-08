@@ -305,3 +305,58 @@ void ItemModel::deserializeAttachmentFamily(const JsonObject &obj)
 	read("apPerShotChange",     a.apPerShotChange);
 	read("burstShotsBonus",     a.burstShotsBonus);
 }
+
+
+ST::string ApplyMinEnemyProgress(ItemModel& item, JsonObject const& json)
+{
+	if (!json.has("minEnemyProgress"))
+	{
+		item.setMinEnemyProgress(ItemModel::NO_MIN_ENEMY_PROGRESS);
+		return {};
+	}
+	int const v = json.getOptionalInt("minEnemyProgress");
+	if (v < 0 || 100 < v || v % 5 != 0)
+	{
+		return ST::format("minEnemyProgress of item '{}' must be 0-100 in steps of 5, not {}",
+			item.getInternalName(), v);
+	}
+	item.setMinEnemyProgress(static_cast<uint8_t>(v));
+	return {};
+}
+
+
+std::vector<ST::string> MissingLowEnemyTiers(std::vector<const ItemModel*> const& items)
+{
+	struct Category { char const* name; uint32_t classes; };
+	static Category const categories[] =
+	{
+		{ "guns",     IC_GUN },
+		{ "armour",   IC_ARMOUR },
+		{ "knives",   IC_BLADE | IC_THROWING_KNIFE },
+		{ "grenades", IC_GRENADE },
+		{ "bombs",    IC_BOMB },
+		{ "kits",     IC_KIT | IC_MEDKIT },
+	};
+
+	std::vector<ST::string> warnings;
+	for (Category const& c : categories)
+	{
+		int lowest = -1;
+		for (const ItemModel* const item : items)
+		{
+			if (!item || !(item->getItemClass() & c.classes) || !item->hasMinEnemyProgress()) continue;
+			int const v = item->getMinEnemyProgress();
+			if (lowest < 0 || v < lowest) lowest = v;
+		}
+		if (lowest < 0)
+		{
+			warnings.push_back(ST::format("Enemy equipment: no {} have minEnemyProgress, enemies get none", c.name));
+		}
+		else if (lowest > ENEMY_LOW_TIER_LIMIT)
+		{
+			warnings.push_back(ST::format("Enemy equipment: the lowest minEnemyProgress of the {} is {} (above {}), weaker soldiers get that tier",
+				c.name, lowest, ENEMY_LOW_TIER_LIMIT));
+		}
+	}
+	return warnings;
+}

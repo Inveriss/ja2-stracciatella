@@ -914,6 +914,15 @@ void DefaultContentManager::registerItem(const ItemModel* const item, ItemDataFi
 	}
 	const_cast<ItemModel*>(item)->setMinDropProgress(static_cast<uint8_t>(minDropProgress));
 
+	// docs/enemy-equipment-progress-plan.md (E1, E3, E4): left out = never for enemies
+	ST::string const enemyErr = ApplyMinEnemyProgress(*const_cast<ItemModel*>(item), json.toObject());
+	if (!enemyErr.empty())
+	{
+		ST::string const bad = ST::format("{}: {}", ItemDataFileName(file), enemyErr);
+		delete item;
+		throw DataError(bad);
+	}
+
 	auto const idx = item->getItemIndex();
 	const ItemModel*& slot = m_items.at(idx);
 	if (slot)
@@ -1213,6 +1222,12 @@ bool DefaultContentManager::loadGameData(BinaryData const& binaryData)
 		&& loadMusic();
 
 	fillUnusedItemIndices();
+
+	// docs/enemy-equipment-progress-plan.md, stage 1
+	for (ST::string const& warning : MissingLowEnemyTiers(m_items))
+	{
+		SLOGW("{}", warning);
+	}
 
 	for (const ItemModel *item : m_items)
 	{

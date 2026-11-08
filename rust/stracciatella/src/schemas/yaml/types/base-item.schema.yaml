@@ -12,6 +12,16 @@ properties:
     type: integer
     minimum: 0
     maximum: 100
+  minEnemyProgress:
+    title: Minimum progress for enemy equipment
+    description: |
+      The random equipment choice gives this item to enemies and militia only from this
+      game progress on, 0-100 in steps of 5. Left out means never
+      (docs/enemy-equipment-progress-plan.md). Independent of minDropProgress.
+    type: integer
+    minimum: 0
+    maximum: 100
+    multipleOf: 5
   attachmentFamily:
     title: Weapon attachment family
     description: The family in weapon-attachment-families.json (docs/weapon-attachments-plan.md)

@@ -9,6 +9,7 @@
 
 #include <string_theory/string>
 #include <optional>
+#include <vector>
 
 class JsonObject;
 class JsonObject;
@@ -151,6 +152,14 @@ struct ItemModel
 	uint8_t getMinDropProgress() const { return minDropProgress; }
 	void setMinDropProgress(uint8_t const progress) { minDropProgress = progress; }
 
+	// The lowest game progress (0-100, multiple of 5) at which the random equipment
+	// choice may give this item to enemies and militia ("minEnemyProgress"); items
+	// without it never get chosen (docs/enemy-equipment-progress-plan.md, E1-E4)
+	static constexpr uint8_t NO_MIN_ENEMY_PROGRESS = 255;
+	bool    hasMinEnemyProgress() const { return minEnemyProgress != NO_MIN_ENEMY_PROGRESS; }
+	uint8_t getMinEnemyProgress() const { return minEnemyProgress; }
+	void setMinEnemyProgress(uint8_t const progress) { minEnemyProgress = progress; }
+
 	struct InitData
 	{
 		JsonObject const& json;
@@ -212,7 +221,22 @@ protected:
 	AttachmentEffects attachmentEffects;
 	const WeaponAttachmentFamilyModel* attachmentFamily = nullptr;
 	uint8_t           minDropProgress = 0;
+	uint8_t           minEnemyProgress = NO_MIN_ENEMY_PROGRESS;
 };
+
+// Reads "minEnemyProgress" of an item file entry into the item: 0-100 in steps
+// of 5, left out = never for enemies. Returns an error text, empty when fine.
+// docs/enemy-equipment-progress-plan.md (E1, E3, E4)
+ST::string ApplyMinEnemyProgress(ItemModel& item, JsonObject const& json);
+
+// Lowest tier an enemy category should have: a soldier's progress can be as low as
+// 0, so each category needs an item at or below this (stage 1 load warning)
+constexpr uint8_t ENEMY_LOW_TIER_LIMIT = 20;
+
+// One warning per enemy equipment category (guns, armour, knives, grenades, bombs,
+// kits) whose lowest minEnemyProgress is above ENEMY_LOW_TIER_LIMIT or that has no
+// item with minEnemyProgress at all. Null entries are skipped.
+std::vector<ST::string> MissingLowEnemyTiers(std::vector<const ItemModel*> const& items);
 
 // the AP cost of a throw when the data has none, see docs/throws-ap-plan.md
 constexpr uint8_t DEFAULT_AP_COST_PER_THROW = 11;
