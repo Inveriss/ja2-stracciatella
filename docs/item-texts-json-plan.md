@@ -1,7 +1,13 @@
 # Item names and descriptions in JSON (strings/item-texts-<language>.json)
 
-Status: plan only (2026-11-09, written in Remote Control mode), T1-T8 decided by the user
-(2026-11-09), export language English, not implemented.
+Status: IMPLEMENTED (2026-11-09) on `Weapons`, game-verified, commit 88a9d309a: T1-T8 as decided,
+`strings/item-texts-eng.json` exported from the English game data (328 items, 304 with Bobby
+Ray texts), 292 unit tests pass. Differences from the text below:
+- items whose `internalName` is shared (the placeholders `NOTHING` x3, `unused` x5,
+  `CLIP_NOTHING` x15) cannot be keyed: the export skips them and they keep the EDT texts;
+- the file is written by its own writer (fixed key order, 4-space indentation, a 3-line `//`
+  header), not by the generic JSON serializer;
+- the export prints its report and quits right after writing (section 6).
 Branch: `Weapons` (last commit 3105624d1); the work may also get its own branch from
 `ja2master` (workflow rule) - to be decided at the desk.
 Related: the earlier migrations of the same kind: `mercs-profile-names-<language>.json`
