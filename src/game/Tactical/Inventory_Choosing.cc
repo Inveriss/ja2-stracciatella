@@ -11,6 +11,7 @@
 #include "Auto_Resolve.h"
 #include "Map_Screen_Interface_Map.h"
 #include "Debug.h"
+#include "Soldier_Create.h"
 
 #include "AmmoTypeModel.h"
 #include "ContentManager.h"
@@ -174,9 +175,12 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 		return;
 	}
 
-	// Enemy Elite Heavy (docs/enemy-elite-heavy-plan.md): until his fixed kit (stage 2)
-	// he gets the random equipment of an elite
-	if ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY ) bSoldierClass = SOLDIER_CLASS_ELITE;
+	if ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY )
+	{
+		// enemy Elite Heavy (docs/enemy-elite-heavy-plan.md): fixed kit, LAWs or the mortar
+		EquipEliteHeavyEnemy( pp, NextEnemyEliteHeavyGetsMortar() );
+		return;
+	}
 
 
 	Assert( ( ( bSoldierClass >= SOLDIER_CLASS_NONE ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) ) || ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA ) );
@@ -645,6 +649,67 @@ static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
 	}
 
 	RandomlyChooseWhichItemsAreDroppable(pp, SOLDIER_CLASS_ELITE_HEAVY_MILITIA);
+}
+
+
+// n pieces of usItem into the free pockets from bFirst to bLast, as many per pocket as fit;
+// returns how many did not fit
+static int PutIntoPockets(SOLDIERCREATE_STRUCT* const pp, UINT16 const usItem, int n, INT8 const bFirst, INT8 const bLast)
+{
+	for (INT8 slot = bFirst; slot <= bLast && n > 0; ++slot)
+	{
+		OBJECTTYPE& o = pp->Inv[slot];
+		if (o.usItem != NOTHING) continue;
+		int per = 1; // guns and LAWs: one per pocket
+		if (!GCM->getItem(usItem)->isWeapon())
+		{
+			per = std::min(int(ApplyBigPerPocketOverride(usItem, slot, ItemSlotLimit(usItem, slot))), int(MAX_OBJECTS_PER_SLOT));
+			per = std::max(per, 1);
+		}
+		int const k = std::min(per, n);
+		CreateItems(usItem, 100, (UINT8)k, &o);
+		o.fFlags |= OBJECT_UNDROPPABLE;
+		n -= k;
+	}
+	return n;
+}
+
+
+// Enemy Elite Heavy (docs/enemy-elite-heavy-plan.md, section 6): plain Spectra helmet, vest with
+// ceramic plates and leggings, gas mask, UV goggles; 3 LAWs or a mortar with 3 shells; a loaded
+// FN Minimi with 2 magazines, used only once the heavy weapon is spent. Everything at 100%.
+void EquipEliteHeavyEnemy(SOLDIERCREATE_STRUCT* const pp, bool const fMortar)
+{
+	CreateItem(SPECTRA_HELMET, 100, &pp->Inv[HELMETPOS]);
+	pp->Inv[HELMETPOS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(SPECTRA_VEST, 100, &pp->Inv[VESTPOS]);
+	pp->Inv[VESTPOS].fFlags |= OBJECT_UNDROPPABLE;
+	{
+		OBJECTTYPE Plates;
+		CreateItem(CERAMIC_PLATES, 100, &Plates);
+		Plates.fFlags |= OBJECT_UNDROPPABLE;
+		AttachObject(NULL, &pp->Inv[VESTPOS], &Plates);
+	}
+	CreateItem(SPECTRA_LEGGINGS, 100, &pp->Inv[LEGPOS]);
+	pp->Inv[LEGPOS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(GASMASK, 100, &pp->Inv[HEAD1POS]);
+	pp->Inv[HEAD1POS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(UVGOGGLES, 100, &pp->Inv[HEAD2POS]);
+	pp->Inv[HEAD2POS].fFlags |= OBJECT_UNDROPPABLE;
+
+	// the heavy weapon in the hand, its ammunition first in the big pockets (the AI
+	// takes the next LAW from there before it ever finds the Minimi)
+	CreateItem(fMortar ? MORTAR : ROCKET_LAUNCHER, 100, &pp->Inv[HANDPOS]);
+	pp->Inv[HANDPOS].fFlags |= OBJECT_UNDROPPABLE;
+	if (fMortar) PutIntoPockets(pp, MORTAR_SHELL,    3, BIGPOCK1POS, BIGPOCK10POS);
+	else         PutIntoPockets(pp, ROCKET_LAUNCHER, 2, BIGPOCK1POS, BIGPOCK10POS);
+
+	// the backup weapon (loaded) and two magazines
+	PutIntoPockets(pp, MINIMI, 1, BIGPOCK1POS, BIGPOCK10POS);
+	UINT16 const usMag = DefaultMagazine(MINIMI);
+	if (usMag != NOTHING) PutIntoPockets(pp, usMag, 2, SMALLPOCK1POS, NUM_INV_SLOTS - 1);
+
+	RandomlyChooseWhichItemsAreDroppable(pp, SOLDIER_CLASS_ELITE_HEAVY);
 }
 
 

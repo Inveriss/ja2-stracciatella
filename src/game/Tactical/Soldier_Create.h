@@ -143,6 +143,10 @@ bool EnemyEliteHeavyCountActive();
 bool TakeEnemyEliteHeavySlot();
 // An existing soldier joins the count (autoresolve reuses the tactical soldiers)
 void CountExistingEnemyElite(bool heavy);
+// The kit of the Elite Heavy being created (H3, N4): the k-th of the count gets LAWs when k
+// is odd and the mortar when k is even; always LAWs underground. Without a count (cheat
+// ALT+P) the kits alternate by themselves.
+bool NextEnemyEliteHeavyGetsMortar();
 SOLDIERTYPE* TacticalCreateMilitia( UINT8 ubMilitiaClass );
 SOLDIERTYPE* TacticalCreateCreature( INT8 bCreatureBodyType );
 

@@ -47,12 +47,16 @@ static UINT32 guiRedSeekCounter = 0, guiRedHelpCounter = 0; guiRedHideCounter = 
 #define CENTER_OF_RING 11237
 static const SGPSector meduna(3, MAP_ROW_P);
 
-// ELITE_HEAVY militia that can still fire their heavy weapon (a LAW, or a mortar/M79 with
-// shells/grenades) don't go looking for other weapons or items on the ground; once the
-// heavy weapon can't be fired any more, the usual item pickup logic applies again.
-static bool HeavyMilitiaCanFireHeavyWeapon(SOLDIERTYPE const* const s)
+// ELITE_HEAVY militia and enemy Elite Heavy (docs/enemy-elite-heavy-plan.md, N7) that can
+// still fire their heavy weapon (a LAW, or a mortar/M79 with shells/grenades) don't go
+// looking for other weapons or items on the ground, and the enemy doesn't shoot his Minimi
+// (H5); once the heavy weapon can't be fired any more, the usual logic applies again.
+static bool EliteHeavyCanFireHeavyWeapon(SOLDIERTYPE const* const s)
 {
-	if (s->bTeam != MILITIA_TEAM || s->ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY_MILITIA) return false;
+	bool const heavy =
+		(s->bTeam == MILITIA_TEAM && s->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA) ||
+		(s->bTeam == ENEMY_TEAM   && s->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY);
+	if (!heavy) return false;
 
 	for (OBJECTTYPE const& o : s->inv)
 	{
@@ -2351,7 +2355,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	////////////////////////////////////////////////////////////////////////////
 
 	if ( ubCanMove && !pSoldier->bNeutral && (gfTurnBasedAI || pSoldier->bTeam == ENEMY_TEAM ) &&
-		!HeavyMilitiaCanFireHeavyWeapon(pSoldier) )
+		!EliteHeavyCanFireHeavyWeapon(pSoldier) )
 	{
 		pSoldier->bAction = SearchForItems(*pSoldier, SEARCH_GENERAL_ITEMS, pSoldier->inv[HANDPOS].usItem);
 
@@ -2764,7 +2768,7 @@ static INT8 DecideActionBlack(SOLDIERTYPE* pSoldier)
 
 	// if we don't have a gun, look around for a weapon!
 	if (FindAIUsableObjClass( pSoldier, IC_GUN ) == ITEM_NOT_FOUND && ubCanMove && !pSoldier->bNeutral &&
-		!HeavyMilitiaCanFireHeavyWeapon(pSoldier))
+		!EliteHeavyCanFireHeavyWeapon(pSoldier))
 	{
 		// look around for a gun...
 		pSoldier->bAction = SearchForItems(*pSoldier, SEARCH_WEAPONS, pSoldier->inv[HANDPOS].usItem);
@@ -2791,7 +2795,8 @@ static INT8 DecideActionBlack(SOLDIERTYPE* pSoldier)
 		// FIRE A GUN AT AN OPPONENT
 		//////////////////////////////////////////////////////////////////////////
 
-		bWeaponIn = FindAIUsableObjClass( pSoldier, IC_GUN );
+		// H5: an Elite Heavy uses no gun (his Minimi) while his heavy weapon can still fire
+		bWeaponIn = EliteHeavyCanFireHeavyWeapon(pSoldier) ? NO_SLOT : FindAIUsableObjClass( pSoldier, IC_GUN );
 
 		if (bWeaponIn != NO_SLOT)
 		{

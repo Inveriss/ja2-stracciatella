@@ -62,6 +62,10 @@ void ResetMortarsOnTeamCount( void );
 // pockets, as much as his strength carries (100%).  Everything at 100%.
 void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 usWeapon);
 
+// The fixed kit of the enemy Elite Heavy (docs/enemy-elite-heavy-plan.md, section 6):
+// fMortar = the mortar with 3 shells, else 3 LAWs
+void EquipEliteHeavyEnemy(SOLDIERCREATE_STRUCT* pp, bool fMortar);
+
 
 // --- Enemy equipment by game progress (docs/enemy-equipment-progress-plan.md) ---
 

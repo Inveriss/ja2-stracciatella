@@ -104,7 +104,7 @@ struct SOLDIERCELL
 	SOLDIERCELL* pAttacker[3];
 	UINT32 uiFlashTime;
 	INT8 bWeaponSlot;
-	UINT16 usHeavyPayload; // the explosive of the heavy weapon shot just fired (ELITE_HEAVY militia), else NOTHING
+	UINT16 usHeavyPayload; // the explosive of the heavy weapon shot just fired (ELITE_HEAVY militia and enemies), else NOTHING
 };
 
 struct AUTORESOLVE_STRUCT
@@ -3414,7 +3414,9 @@ static BOOLEAN FireAShot(SOLDIERCELL* pAttacker)
 	pSoldier = pAttacker->pSoldier;
 	pAttacker->usHeavyPayload = NOTHING;
 
-	if (IsHeavyMilitiaCell(pAttacker) && FireHeavyWeaponShot(pAttacker)) return TRUE;
+	// heavy weapon first; the enemy Elite Heavy too, his Minimi only once it is spent
+	// (docs/enemy-elite-heavy-plan.md, N10)
+	if ((IsHeavyMilitiaCell(pAttacker) || IsHeavyEnemyCell(pAttacker)) && FireHeavyWeaponShot(pAttacker)) return TRUE;
 
 	if( pAttacker->uiFlags & CELL_MALECREATURE )
 	{

@@ -1983,6 +1983,17 @@ void CountExistingEnemyElite(bool const heavy)
 }
 
 
+bool NextEnemyEliteHeavyGetsMortar()
+{
+	// no mortar underground (N4); autoresolve is never underground
+	if (!IsAutoResolveActive() && gWorldSector.z > 0) return false;
+
+	static UINT8 cheat_heavies = 0;
+	UINT8 const k = gEliteHeavyCount.active ? gEliteHeavyCount.heavies : ++cheat_heavies;
+	return k % 2 == 0;
+}
+
+
 //USED BY STRATEGIC AI and AUTORESOLVE
 SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass sc)
 {

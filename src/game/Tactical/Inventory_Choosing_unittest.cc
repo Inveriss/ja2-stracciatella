@@ -11,6 +11,8 @@
 #include "GameInstance.h"
 #include "Soldier_Control.h"
 #include "Soldier_Create.h"
+#include "StrategicMap.h"
+#include "Items.h"
 
 #include "gtest/gtest.h"
 
@@ -394,6 +396,98 @@ TEST_F(EnemyEquipment, eliteHeavyRunningCountByDifficulty)
 		EXPECT_EQ(Batch(4), 0);
 		EXPECT_EQ(Batch(5), 2); // 9 elites: 2
 	}
+}
+
+
+// --- docs/enemy-elite-heavy-plan.md, section 6: the fixed kit ---
+
+namespace {
+
+int CountOf(SOLDIERCREATE_STRUCT const& pp, UINT16 const item)
+{
+	int n = 0;
+	for (OBJECTTYPE const& o : pp.Inv)
+	{
+		if (o.usItem == item) n += o.ubNumberOfObjects;
+	}
+	return n;
+}
+
+void ExpectCommonKit(SOLDIERCREATE_STRUCT const& pp)
+{
+	EXPECT_EQ(pp.Inv[HELMETPOS].usItem, SPECTRA_HELMET);
+	EXPECT_EQ(pp.Inv[VESTPOS].usItem,   SPECTRA_VEST);
+	EXPECT_EQ(pp.Inv[LEGPOS].usItem,    SPECTRA_LEGGINGS);
+	EXPECT_EQ(pp.Inv[HEAD1POS].usItem,  GASMASK);
+	EXPECT_EQ(pp.Inv[HEAD2POS].usItem,  UVGOGGLES);
+	EXPECT_TRUE(FindAttachment(&pp.Inv[VESTPOS], CERAMIC_PLATES) != ITEM_NOT_FOUND);
+	for (int i = 0; i < NUM_INV_SLOTS; ++i)
+	{
+		// O2; a magazine's status is its rounds, not a condition
+		if (pp.Inv[i].usItem == NOTHING || GCM->getItem(pp.Inv[i].usItem)->getItemClass() == IC_AMMO) continue;
+		EXPECT_EQ(pp.Inv[i].bStatus[0], 100) << i;
+	}
+
+	// the Minimi, loaded, with two magazines; after the heavy weapon's pockets
+	EXPECT_EQ(CountOf(pp, MINIMI), 1);
+	EXPECT_EQ(CountOf(pp, DefaultMagazine(MINIMI)), 2);
+	for (int i = BIGPOCK1POS; i <= BIGPOCK10POS; ++i)
+	{
+		if (pp.Inv[i].usItem == MINIMI) EXPECT_GT(pp.Inv[i].ubGunShotsLeft, 0);
+	}
+}
+
+}
+
+
+TEST_F(EnemyEquipment, eliteHeavyLawKit)
+{
+	SOLDIERCREATE_STRUCT pp{};
+	EquipEliteHeavyEnemy(&pp, false);
+	ExpectCommonKit(pp);
+	EXPECT_EQ(pp.Inv[HANDPOS].usItem, ROCKET_LAUNCHER);
+	EXPECT_EQ(CountOf(pp, ROCKET_LAUNCHER), 3);
+	EXPECT_EQ(CountOf(pp, MORTAR), 0);
+	// the next LAWs come before the Minimi, so the AI takes them first
+	EXPECT_EQ(pp.Inv[BIGPOCK1POS].usItem, ROCKET_LAUNCHER);
+	EXPECT_EQ(pp.Inv[BIGPOCK2POS].usItem, ROCKET_LAUNCHER);
+	EXPECT_EQ(pp.Inv[BIGPOCK3POS].usItem, MINIMI);
+}
+
+
+TEST_F(EnemyEquipment, eliteHeavyMortarKit)
+{
+	SOLDIERCREATE_STRUCT pp{};
+	EquipEliteHeavyEnemy(&pp, true);
+	ExpectCommonKit(pp);
+	EXPECT_EQ(pp.Inv[HANDPOS].usItem, MORTAR);
+	EXPECT_EQ(CountOf(pp, MORTAR_SHELL), 3);
+	EXPECT_EQ(CountOf(pp, ROCKET_LAUNCHER), 0);
+}
+
+
+TEST_F(EnemyEquipment, eliteHeavyKitsAlternate)
+{
+	Difficulty const d(DIF_LEVEL_MEDIUM);
+	SGPSector const old = gWorldSector;
+
+	gWorldSector.z = 0;
+	BeginEnemyEliteHeavyCount(0, 0);
+	std::vector<bool> mortars;
+	for (int i = 0; i < 20; ++i)
+	{
+		if (TakeEnemyEliteHeavySlot()) mortars.push_back(NextEnemyEliteHeavyGetsMortar());
+	}
+	EXPECT_EQ(mortars, (std::vector<bool>{ false, true, false, true })); // LAW, mortar, LAW, mortar
+
+	// underground: LAWs only (N4)
+	gWorldSector.z = 1;
+	BeginEnemyEliteHeavyCount(0, 0);
+	for (int i = 0; i < 20; ++i)
+	{
+		if (TakeEnemyEliteHeavySlot()) EXPECT_FALSE(NextEnemyEliteHeavyGetsMortar());
+	}
+	gWorldSector = old;
 }
 
 #endif

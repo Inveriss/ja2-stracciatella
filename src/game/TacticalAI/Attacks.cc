@@ -414,7 +414,9 @@ static void CalcBestThrow(SOLDIERTYPE* pSoldier, ATTACKTYPE* pBestThrow)
 
 	// ELITE_HEAVY militia fight with their heavy weapon like others with a gun: they don't save
 	// their shells, LAWs and grenades for groups of targets (the rules for that are skipped below)
-	bool const fHeavyMilitia{ pSoldier->bTeam == MILITIA_TEAM && pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA };
+	// ...and so does the enemy Elite Heavy (docs/enemy-elite-heavy-plan.md, N7)
+	bool const fHeavyMilitia{ (pSoldier->bTeam == MILITIA_TEAM && pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA) ||
+		(pSoldier->bTeam == ENEMY_TEAM && pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY) };
 
 	// game.json's militia_ai.explosives_spare_friends false: the militia throw
 	// and fire explosives with no regard to their friends near the target (the
