@@ -1,7 +1,9 @@
 # Enemy equipment: nothing below the lowest tier (variant A, Weapons)
 
-Status: plan only (2026-11-09, written in Remote Control mode), variant A chosen, B1-B6
-decided as recommended (2026-11-09), not implemented.
+Status: IMPLEMENTED (2026-11-09), game-verified, commit b699ab123 on `Weapons`: variant A,
+B1-B6 as decided; 279 unit tests pass (new `EnemyEquipmentTier.belowTheLowestTierGivesNone`,
+updated vests/kits/grenades/warning tests; the mortar case of B2 tested too). E12 in
+[enemy-equipment-progress-plan.md](enemy-equipment-progress-plan.md) amended.
 Branch: `Weapons` (last commit 9c99cd64e).
 Related: [enemy-equipment-progress-plan.md](enemy-equipment-progress-plan.md) (E12, stages 3-5).
 

@@ -79,7 +79,7 @@ chance, special weapons, AP ammo chance (`100 - class * 9`), gun condition.
 | E9 | Difficulty offset: Easy −10, Experienced 0, Expert +10 — **enemies only**. |
 | E10 | Militia: green = Admin, regular = Army, elite = Elite (E8); militia on enemy map placements use E7; no difficulty offset. Elite Heavy keeps its fixed kit. |
 | E11 | Location (distance from the palace, Orta/Tixa/Alma) no longer affects equipment. |
-| E12 | Tier rule: a tier is a `minEnemyProgress` value present among the eligible items of a category. Take the **highest tier ≤ P**; if P is below the lowest tier, take the **lowest tier**. Pick uniformly among the items of exactly that tier. |
+| E12 | Tier rule: a tier is a `minEnemyProgress` value present among the eligible items of a category. Take the **highest tier ≤ P**; if P is below the lowest tier, take the **lowest tier**. Pick uniformly among the items of exactly that tier. **Amended 2026-11-09** ([enemy-equipment-below-lowest-tier-plan.md](enemy-equipment-below-lowest-tier-plan.md), variant A, b699ab123): below the lowest tier only guns and launcher ammunition (grenade launcher grenades, mortar shells) take the lowest tier; all other equipment gives none. |
 | E13 | Counts and chances keep the old rules, fed with `class = P / 10 + 1` (P clamped to 0..100, so 1..11). |
 | E14 | `army-gun-choice-*.json` stay; a `game.json` switch selects the old table system (extended table) or the new one. Grenades become data-driven in their own stage. |
 
