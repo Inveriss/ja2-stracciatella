@@ -1926,18 +1926,22 @@ struct EliteHeavyCount
 	bool  active  = false;
 	UINT8 elites  = 0; // elites and Elite Heavy so far
 	UINT8 heavies = 0; // of them Elite Heavy
+	UINT8 target  = 0; // Elite Heavy for all elites of the batch (those there + the new ones)
 };
 EliteHeavyCount gEliteHeavyCount;
 }
 
 
-void BeginEnemyEliteHeavyCount(UINT8 const elites, UINT8 const heavies)
+void BeginEnemyEliteHeavyCount(UINT8 const elites, UINT8 const heavies, UINT8 const newElites)
 {
-	gEliteHeavyCount = { true, elites, heavies };
+	// the whole batch is known at the start: when the count jumps by more than one at a
+	// threshold (Expert: 5 elites = 2), the first new elites take the missing places
+	UINT8 const total = static_cast<UINT8>(std::min(255, int(elites) + int(newElites)));
+	gEliteHeavyCount = { true, elites, heavies, EnemyEliteHeaviesForGame(total) };
 }
 
 
-void BeginEnemyEliteHeavyCountInSector()
+void BeginEnemyEliteHeavyCountInSector(UINT8 const newElites)
 {
 	UINT8 elites  = 0;
 	UINT8 heavies = 0;
@@ -1947,7 +1951,7 @@ void BeginEnemyEliteHeavyCountInSector()
 		++elites;
 		if (s->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY) ++heavies;
 	}
-	BeginEnemyEliteHeavyCount(elites, heavies);
+	BeginEnemyEliteHeavyCount(elites, heavies, newElites);
 }
 
 
@@ -1968,7 +1972,9 @@ bool TakeEnemyEliteHeavySlot()
 	EliteHeavyCount& c = gEliteHeavyCount;
 	if (!c.active || c.elites == 255) return false;
 	++c.elites;
-	if (c.heavies >= EnemyEliteHeaviesForGame(c.elites)) return false;
+	// the batch's own target, or more when more elites come than announced
+	UINT8 const target = std::max(c.target, EnemyEliteHeaviesForGame(c.elites));
+	if (c.heavies >= target) return false;
 	++c.heavies;
 	return true;
 }

@@ -131,17 +131,20 @@ SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass);
 UINT8 EnemyEliteHeavies(UINT8 elites, UINT8 perHeavy, INT8 modifier);
 // The same with game.json enemy_elite_heavy and the game's difficulty; 0 when off
 UINT8 EnemyEliteHeaviesForGame(UINT8 elites);
-// A running count while one batch of enemies is created (sector defenders, arriving
-// groups, autoresolve): it starts with the elites/Elite Heavy already there, every new
-// elite asks TakeEnemyEliteHeavySlot() whether he becomes an Elite Heavy.
-void BeginEnemyEliteHeavyCount(UINT8 elites, UINT8 heavies);
+// A count while one batch of enemies is created (sector defenders, arriving groups,
+// autoresolve): it starts with the elites/Elite Heavy already there and knows the batch's
+// new elites, so the Elite Heavy of the whole sector are reached even where the count jumps
+// by two (Expert, 5 elites); every new elite asks TakeEnemyEliteHeavySlot() whether he
+// becomes an Elite Heavy (the first ones do, until the target is reached).
+void BeginEnemyEliteHeavyCount(UINT8 elites, UINT8 heavies, UINT8 newElites = 0);
 // ...starting with the living elites and Elite Heavy of the enemy team in the sector
-void BeginEnemyEliteHeavyCountInSector();
+void BeginEnemyEliteHeavyCountInSector(UINT8 newElites);
 void EndEnemyEliteHeavyCount();
 bool EnemyEliteHeavyCountActive();
 // One more elite; true: he becomes an Elite Heavy (only while a count is active)
 bool TakeEnemyEliteHeavySlot();
-// An existing soldier joins the count (autoresolve reuses the tactical soldiers)
+// An existing soldier joins the count (autoresolve reuses the tactical soldiers), or an
+// elite that may not become an Elite Heavy (an editor placement) but counts as an elite
 void CountExistingEnemyElite(bool heavy);
 // The kit of the Elite Heavy being created (H3, N4): the k-th of the count gets LAWs when k
 // is odd and the mortar when k is even; always LAWs underground. Without a count (cheat

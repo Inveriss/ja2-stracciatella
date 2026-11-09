@@ -416,12 +416,18 @@ static void SortSoldierInitList(void)
 }
 
 
-// docs/enemy-elite-heavy-plan.md, section 4: an enemy elite placement may become an Elite
-// Heavy while a count runs; not one with a profile, an editor-forced look or editor items
-static bool EliteHeavyPlacementAllowed(SOLDIERINITNODE const* const init)
+// docs/enemy-elite-heavy-plan.md, section 4: an enemy elite placement while a count runs
+static bool IsCountedEnemyElitePlacement(SOLDIERINITNODE const* const init)
 {
 	BASIC_SOLDIERCREATE_STRUCT const* const bp = init->pBasicPlacement;
-	if (gfEditMode || bp->bTeam != ENEMY_TEAM || bp->ubSoldierClass != SOLDIER_CLASS_ELITE) return false;
+	return EnemyEliteHeavyCountActive() && !gfEditMode &&
+		bp->bTeam == ENEMY_TEAM && bp->ubSoldierClass == SOLDIER_CLASS_ELITE;
+}
+
+// ...which may become an Elite Heavy: not one with a profile, an editor-forced look or
+// editor items (those still count as elites)
+static bool EliteHeavyPlacementAllowed(SOLDIERINITNODE const* const init)
+{
 	SOLDIERCREATE_STRUCT const* const dp = init->pDetailedPlacement;
 	if (!dp) return true;
 	if (dp->ubProfile != NO_PROFILE || dp->fVisible) return false;
@@ -440,7 +446,9 @@ bool AddPlacementToWorld(SOLDIERINITNODE* const init)
 	// the basic placement as this soldier uses it (the class may change to Elite Heavy;
 	// the map's own placement stays an elite)
 	BASIC_SOLDIERCREATE_STRUCT bp = *init->pBasicPlacement;
-	if (EnemyEliteHeavyCountActive() && EliteHeavyPlacementAllowed(init) && TakeEnemyEliteHeavySlot())
+	bool const countedElite = IsCountedEnemyElitePlacement(init);
+	bool const mayBeHeavy   = countedElite && EliteHeavyPlacementAllowed(init);
+	if (mayBeHeavy && TakeEnemyEliteHeavySlot())
 	{
 		bp.ubSoldierClass = SOLDIER_CLASS_ELITE_HEAVY;
 	}
@@ -587,6 +595,8 @@ bool AddPlacementToWorld(SOLDIERINITNODE* const init)
 
 	if (SOLDIERTYPE* const s = TacticalCreateSoldier(dp))
 	{
+		// an elite of an editor placement doesn't become an Elite Heavy, but he counts
+		if (countedElite && !mayBeHeavy) CountExistingEnemyElite(false);
 		init->pSoldier    = s;
 		init->ubSoldierID = s->ubID;
 		AddSoldierToSectorNoCalculateDirection(s);
@@ -654,9 +664,9 @@ void AddSoldierInitListEnemyDefenceSoldiers(UINT8 const ubTotalAdmin, UINT8 cons
 	struct Count
 	{
 		bool const own = !EnemyEliteHeavyCountActive();
-		Count()  { if (own) BeginEnemyEliteHeavyCountInSector(); }
+		explicit Count(UINT8 const newElites) { if (own) BeginEnemyEliteHeavyCountInSector(newElites); }
 		~Count() { if (own) EndEnemyEliteHeavyCount(); }
-	} const count;
+	} const count(ubTotalElite);
 	AddEnemyDefenceSoldiers(ubTotalAdmin, ubTotalTroops, ubTotalElite);
 }
 

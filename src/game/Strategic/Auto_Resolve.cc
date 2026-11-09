@@ -2109,7 +2109,7 @@ static void CreateAutoResolveInterface(void)
 	{
 		SOLDIERCELL* cell = gpEnemies;
 		// docs/enemy-elite-heavy-plan.md (N10): the elites of the battle, some of them Elite Heavy
-		BeginEnemyEliteHeavyCount(0, 0);
+		BeginEnemyEliteHeavyCount(0, 0, ar->ubElites);
 		cell = MakeEnemyTroops(cell, ar->ubElites, ar, SOLDIER_CLASS_ELITE,         ELITE_FACE, gpStrategicString[STR_AR_ELITE_NAME]);
 		EndEnemyEliteHeavyCount();
 		cell = MakeEnemyTroops(cell, ar->ubTroops, ar, SOLDIER_CLASS_ARMY,          TROOP_FACE, gpStrategicString[STR_AR_TROOP_NAME]);

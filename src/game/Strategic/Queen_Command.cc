@@ -1068,9 +1068,9 @@ static void AddEnemiesToBattle(GROUP const& g, UINT8 const strategic_insertion_c
 	// already in the sector, so only the missing Elite Heavy are added
 	struct Count
 	{
-		Count()  { BeginEnemyEliteHeavyCountInSector(); }
+		explicit Count(UINT8 const newElites) { BeginEnemyEliteHeavyCountInSector(newElites); }
 		~Count() { EndEnemyEliteHeavyCount(); }
-	} const count;
+	} const count(n_elites);
 
 	while (n_total != 0)
 	{

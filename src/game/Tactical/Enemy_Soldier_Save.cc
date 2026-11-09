@@ -271,7 +271,7 @@ void NewWayOfLoadingEnemySoldiersFromTempFile()
 		ubStrategicElites = ubStrategicElites > ubNumElites ? ubStrategicElites - ubNumElites : 0;
 		ubStrategicAdmins = ubStrategicAdmins > ubNumAdmins ? ubStrategicAdmins - ubNumAdmins : 0;
 		// the Elite Heavy count starts with the saved elites (docs/enemy-elite-heavy-plan.md, N8)
-		BeginEnemyEliteHeavyCount(ubNumElites, ubNumHeavies);
+		BeginEnemyEliteHeavyCount(ubNumElites, ubNumHeavies, ubStrategicElites);
 		AddSoldierInitListEnemyDefenceSoldiers(ubStrategicAdmins, ubStrategicTroops, ubStrategicElites);
 		EndEnemyEliteHeavyCount();
 	}

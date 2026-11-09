@@ -399,6 +399,49 @@ TEST_F(EnemyEquipment, eliteHeavyRunningCountByDifficulty)
 }
 
 
+TEST_F(EnemyEquipment, eliteHeavyBatchKnownInAdvance)
+{
+	{
+		// Expert, exactly 5 elites: 2 Elite Heavy (the count jumps by two), the first two
+		Difficulty const d(DIF_LEVEL_HARD);
+		BeginEnemyEliteHeavyCount(0, 0, 5);
+		EXPECT_TRUE(TakeEnemyEliteHeavySlot());
+		EXPECT_TRUE(TakeEnemyEliteHeavySlot());
+		EXPECT_EQ(Batch(3), 0);
+	}
+	{
+		// Experienced, 8 elites: exactly 1 (already the first)
+		Difficulty const d(DIF_LEVEL_MEDIUM);
+		BeginEnemyEliteHeavyCount(0, 0, 8);
+		EXPECT_TRUE(TakeEnemyEliteHeavySlot());
+		EXPECT_EQ(Batch(7), 0);
+	}
+	{
+		// 9 there with 1 Elite Heavy, 1 arrives: 10 = 2 for the sector, the arriving one
+		Difficulty const d(DIF_LEVEL_MEDIUM);
+		BeginEnemyEliteHeavyCount(9, 1, 1);
+		EXPECT_EQ(Batch(1), 1);
+	}
+	{
+		// more come than announced: the running formula still applies
+		Difficulty const d(DIF_LEVEL_MEDIUM);
+		BeginEnemyEliteHeavyCount(0, 0, 4);
+		EXPECT_EQ(Batch(4), 0);
+		EXPECT_EQ(Batch(1), 1); // 5th
+	}
+}
+
+
+TEST_F(EnemyEquipment, eliteHeavyBlockedElitesStillCount)
+{
+	// 8 elites, 4 of them on editor placements (counted, never converted): still 1
+	Difficulty const d(DIF_LEVEL_MEDIUM);
+	BeginEnemyEliteHeavyCount(0, 0);
+	for (int i = 0; i < 4; ++i) CountExistingEnemyElite(false);
+	EXPECT_EQ(Batch(4), 1);
+}
+
+
 // --- docs/enemy-elite-heavy-plan.md, section 6: the fixed kit ---
 
 namespace {
