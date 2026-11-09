@@ -1,7 +1,11 @@
 #include "ItemModel.h"
+#include "Exceptions.h"
 #include "Logger.h"
 #include <algorithm>
 #include <functional>
+#include <cstdio>
+#include <iterator>
+#include <set>
 #include <utility>
 
 
@@ -81,6 +85,13 @@ const ST::string& ItemModel::getInternalName() const   { return internalName;   
 const ST::string& ItemModel::getShortName() const      { return shortName; }
 const ST::string& ItemModel::getName() const           { return name; }
 const ST::string& ItemModel::getDescription() const     { return description; }
+
+void ItemModel::setTexts(ST::string const* const s, ST::string const* const n, ST::string const* const d)
+{
+	if (s) shortName   = *s;
+	if (n) name        = *n;
+	if (d) description = *d;
+}
 
 uint16_t        ItemModel::getItemIndex() const        { return itemIndex;             }
 uint32_t        ItemModel::getItemClass() const        { return usItemClass;           }
@@ -391,4 +402,129 @@ ST::string ApplyMinDropProgress(ItemModel& item, JsonObject const& json)
 	}
 	item.setMinDropProgress(static_cast<uint8_t>(progress));
 	return {};
+}
+
+
+// --- docs/item-texts-json-plan.md ---
+
+namespace {
+
+struct TextField
+{
+	char const* key;
+	unsigned    size;
+};
+
+TextField const textFields[] =
+{
+	{ "shortName",           ITEM_TEXT_SHORT_NAME_SIZE },
+	{ "name",                ITEM_TEXT_NAME_SIZE },
+	{ "description",         ITEM_TEXT_DESCRIPTION_SIZE },
+	{ "bobbyRayName",        ITEM_TEXT_BR_NAME_SIZE },
+	{ "bobbyRayDescription", ITEM_TEXT_BR_DESCRIPTION_SIZE },
+};
+
+std::string JsonString(ST::string const& s)
+{
+	std::string out = "\"";
+	for (char const c : std::string(s.c_str()))
+	{
+		switch (c)
+		{
+			case '"':  out += "\\\""; break;
+			case '\\': out += "\\\\"; break;
+			case '\n': out += "\\n";  break;
+			case '\r': out += "\\r";  break;
+			case '\t': out += "\\t";  break;
+			default:
+				if (static_cast<unsigned char>(c) < 0x20)
+				{
+					char buf[8];
+					std::snprintf(buf, sizeof(buf), "\\u%04x", static_cast<unsigned>(static_cast<unsigned char>(c)));
+					out += buf;
+				}
+				else
+				{
+					out += c; // UTF-8 bytes as they are
+				}
+		}
+	}
+	return out + "\"";
+}
+
+}
+
+
+std::vector<ST::string> ApplyItemTexts(JsonValue const& list, ST::string const& fileName,
+	std::function<ItemModel*(ST::string const&)> const& find)
+{
+	std::vector<ST::string> warnings;
+	std::set<ST::string> seen;
+	for (JsonValue const& element : list.toVec())
+	{
+		JsonObject const entry = element.toObject();
+		ST::string const internalName = entry.GetString("internalName");
+		if (!seen.insert(internalName).second)
+		{
+			throw DataError(ST::format("{}: item '{}' is listed twice", fileName, internalName));
+		}
+		ItemModel* const item = find(internalName);
+		if (!item)
+		{
+			throw DataError(ST::format("{}: there is no item '{}'", fileName, internalName));
+		}
+
+		ST::string texts[std::size(textFields)];
+		bool       has[std::size(textFields)] = {};
+		for (size_t i = 0; i != std::size(textFields); ++i)
+		{
+			TextField const& f = textFields[i];
+			if (!entry.has(f.key)) continue;
+			has[i]   = true;
+			texts[i] = entry.GetString(f.key);
+			size_t const length = texts[i].to_utf32().size();
+			if (length > f.size)
+			{
+				warnings.push_back(ST::format("{}: {} {} has {} characters (the old limit is {}, the text may be cut)",
+					fileName, internalName, f.key, length, f.size));
+			}
+		}
+		item->setTexts(has[0] ? &texts[0] : nullptr, has[1] ? &texts[1] : nullptr, has[2] ? &texts[2] : nullptr);
+		if (has[3] || has[4])
+		{
+			item->setBobbyRayTexts(has[3] ? texts[3] : item->getBobbyRayName(),
+				has[4] ? texts[4] : item->getBobbyRayDescription());
+		}
+	}
+	return warnings;
+}
+
+
+std::string ItemTextsFileText(std::vector<ItemTextsEntry> const& entries)
+{
+	std::string out =
+		"// Item names and descriptions of this language (docs/item-texts-json-plan.md), exported\n"
+		"// from itemdesc.edt and braydesc.edt (JA2_EXPORT_ITEM_TEXTS). A field left out falls back to\n"
+		"// the item file, then to the EDT files.\n"
+		"[";
+	bool first = true;
+	for (ItemTextsEntry const& e : entries)
+	{
+		ST::string const* const values[] = { &e.shortName, &e.name, &e.description, &e.bobbyRayName, &e.bobbyRayDescription };
+		bool any = false;
+		for (ST::string const* v : values) any = any || !v->empty();
+		if (!any) continue; // T8
+
+		out += first ? "\n" : ",\n";
+		first = false;
+		out += "    {\n        \"internalName\": " + JsonString(e.internalName);
+		for (size_t i = 0; i != std::size(textFields); ++i)
+		{
+			if (values[i]->empty()) continue;
+			out += ",\n        \"" + std::string(textFields[i].key) + "\": " + JsonString(*values[i]);
+		}
+		out += "\n    }";
+	}
+	out += "\n]\n";
+	return out;
 }
