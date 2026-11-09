@@ -13,7 +13,9 @@ LEATHER_JACKET lose minEnemyProgress, enemies never got them; 3 unit tests; buil
 272 tests pass), game-verified, committed ae6da0c01.
 Stage 5 implemented (grenades: bGrenades grenades, each by tiers among hand grenades,
 grenade launcher grenades or mortar shells; quality as before; 2 unit tests; build +
-274 tests pass), not yet game-verified.
+274 tests pass), game-verified, committed 8093a5137.
+Stage 6: test mod `enemy-equipment-test` + testing section 7, game-verified (2026-11-09).
+All stages COMPLETE; base data values are placeholders, tuned later.
 Branch: `Weapons` (from ja2master dfa36b2ce).
 Related: [game-progress-plan.md](game-progress-plan.md) (`GameProgressPercentage`),
 [enemy-drop-progress-plan.md](enemy-drop-progress-plan.md) (`minDropProgress`).
@@ -140,3 +142,38 @@ Values are tuned later.
    GL grenades and mortar shells by the same rule.
 6. **Test mod + status** — a mod with distinct tiers, debug log line per soldier
    (`P`, offset, chosen tiers), game verification, plan status.
+
+## 7. Testing (stage 6)
+
+Implemented beyond the stages above:
+
+- per soldier a debug log line `Enemy equipment: class …, level …, progress …, offset …,
+  difficulty … -> P … (class …)` (`RollEnemyEquipmentProgress`);
+- cheats (CTRL+GABBY): ALT+A / ALT+B / ALT+Q create an admin / army soldier / elite at the
+  cursor (strategic soldiers, type offsets E8); hovering over an enemy or militia lists its
+  type, the game progress and every item with condition, count and attachments (6bd1b76b8).
+
+The mod `enemy-equipment-test` (a development helper in the game's `mods` folder, not part of
+the repository; end users should not enable it) gives every tier one recognisable item, so the
+hover list shows the soldier's P (rounded down to the tier):
+
+| Category | Tiers |
+|---|---|
+| guns | SW38 0, GLOCK_17 10, BERETTA_92F 20, MP5K 30, MAC10 40, AKM 50, M24 60, FAMAS 70, FNFAL 80, AUG 90, MINIMI 100; all other guns never |
+| vests | FLAK_JACKET 0, KEVLAR_VEST 30, KEVLAR2_VEST 60, SPECTRA_VEST 90 |
+| helmets | STEEL_HELMET 0, KEVLAR_HELMET 40, SPECTRA_HELMET 80 |
+| leggings | KEVLAR_LEGGINGS 0, SPECTRA_LEGGINGS 70 |
+| hand grenades | BREAK_LIGHT 0, SMOKE_GRENADE 20, TEARGAS_GRENADE 40, STUN_GRENADE 60, HAND_GRENADE 80, MUSTARD_GRENADE 100; MINI_GRENADE never |
+
+Other categories keep the base data. Checks with the mod:
+
+1. Game progress 0, Experienced: ALT+A (admin, P 0) always SW38; ALT+B (army, P 0-10) SW38
+   or GLOCK_17; ALT+Q (elite, P 0-20) SW38, GLOCK_17 or BERETTA_92F. A gun one step higher
+   or lower than this is the old better-gun/worse-vest trade-off (10 points).
+2. Expert: every enemy one gun step higher; Easy one step lower. Militia: no change.
+3. Higher game progress (V line): the guns move up by one step per 10%.
+4. Editor-placed enemies follow their editor level (Bad -20..-10 … Great +10..+20), not their
+   type.
+5. No enemy carries a gun, vest, helmet, leggings or hand grenade outside the table above.
+6. `enemy_equipment.by_progress: false` in game.json: the original classes and gun table.
+
