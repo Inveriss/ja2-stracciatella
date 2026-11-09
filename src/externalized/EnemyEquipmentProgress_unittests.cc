@@ -78,7 +78,16 @@ TEST(EnemyEquipmentProgressField, warnsAboutMissingLowTiers)
 	auto const warnings = MissingLowEnemyTiers(items);
 	ASSERT_EQ(warnings.size(), 2u);
 	EXPECT_NE(warnings[0].find("armour"), -1);
+	EXPECT_NE(warnings[0].find("soldiers below it get none"), -1); // B5: not a gun
 	EXPECT_NE(warnings[1].find("no kits"), -1);
+
+	// guns above the limit: weaker soldiers still get the lowest tier
+	auto const highGun = MakeItem(IC_GUN, 30);
+	std::vector<const ItemModel*> const guns{ highGun.get(), vest.get(), knife.get(), nade.get(), bomb.get() };
+	auto const gunWarnings = MissingLowEnemyTiers(guns);
+	ASSERT_GE(gunWarnings.size(), 2u);
+	EXPECT_NE(gunWarnings[0].find("guns"), -1);
+	EXPECT_NE(gunWarnings[0].find("weaker soldiers get that tier"), -1);
 }
 
 

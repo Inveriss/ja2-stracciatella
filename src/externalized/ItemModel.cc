@@ -354,8 +354,12 @@ std::vector<ST::string> MissingLowEnemyTiers(std::vector<const ItemModel*> const
 		}
 		else if (lowest > ENEMY_LOW_TIER_LIMIT)
 		{
-			warnings.push_back(ST::format("Enemy equipment: the lowest minEnemyProgress of the {} is {} (above {}), weaker soldiers get that tier",
-				c.name, lowest, ENEMY_LOW_TIER_LIMIT));
+			// below the lowest tier guns take that tier, other equipment is none
+			// (docs/enemy-equipment-below-lowest-tier-plan.md, B5)
+			bool const guns = c.classes == IC_GUN;
+			warnings.push_back(ST::format("Enemy equipment: the lowest minEnemyProgress of the {} is {} (above {}), {}",
+				c.name, lowest, ENEMY_LOW_TIER_LIMIT,
+				guns ? "weaker soldiers get that tier" : "soldiers below it get none"));
 		}
 	}
 	return warnings;

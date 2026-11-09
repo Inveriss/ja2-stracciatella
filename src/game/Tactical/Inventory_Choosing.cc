@@ -944,7 +944,9 @@ static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 
 		std::map<UINT16, UINT8> counts;
 		for (INT8 i = 0; i < bGrenades; ++i)
 		{
-			UINT16 const usPick = PickEnemyItemByProgress(candidates, progress);
+			// B2: a grenade launcher or a mortar always gets something to fire;
+			// hand grenades below their lowest tier: none
+			UINT16 const usPick = PickEnemyItemByProgress(candidates, progress, fMortar || fGrenadeLauncher);
 			if (usPick == NOTHING) break;
 			++counts[usPick];
 		}
@@ -2397,7 +2399,7 @@ INT8 EnemyEquipmentClass(UINT8 const ubProgress)
 }
 
 
-int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int const progress)
+int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int const progress, bool const lowestWhenBelow)
 {
 	int best = -1;
 	int lowest = -1;
@@ -2406,7 +2408,10 @@ int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int const progress
 		if (lowest < 0 || t < lowest) lowest = t;
 		if (t <= progress && t > best) best = t;
 	}
-	return best >= 0 ? best : lowest;
+	if (best >= 0) return best;
+	// below the lowest tier (docs/enemy-equipment-below-lowest-tier-plan.md, variant A):
+	// guns and launcher ammunition take the lowest tier, everything else is none
+	return lowestWhenBelow ? lowest : -1;
 }
 
 
@@ -2431,7 +2436,8 @@ UINT16 SelectEnemyGunByProgress(int const progress)
 	{
 		if (item->getItemClass() == IC_GUN && item->hasMinEnemyProgress()) tiers.push_back(item->getMinEnemyProgress());
 	}
-	int const tier = ChooseEnemyEquipmentTier(tiers, progress);
+	// B1: every soldier keeps a gun
+	int const tier = ChooseEnemyEquipmentTier(tiers, progress, true);
 	if (tier < 0) return NOTHING;
 
 	std::vector<UINT16> guns;
@@ -2474,7 +2480,7 @@ static int CategoryProgress(int const iProgress, INT8 const bCategoryClass, INT8
 }
 
 
-UINT16 PickEnemyItemByProgress(std::vector<UINT16> const& candidates, int const progress)
+UINT16 PickEnemyItemByProgress(std::vector<UINT16> const& candidates, int const progress, bool const lowestWhenBelow)
 {
 	std::vector<UINT8> tiers;
 	for (UINT16 const c : candidates)
@@ -2482,7 +2488,7 @@ UINT16 PickEnemyItemByProgress(std::vector<UINT16> const& candidates, int const 
 		ItemModel const* const item = GCM->getItem(c);
 		if (item->hasMinEnemyProgress()) tiers.push_back(item->getMinEnemyProgress());
 	}
-	int const tier = ChooseEnemyEquipmentTier(tiers, progress);
+	int const tier = ChooseEnemyEquipmentTier(tiers, progress, lowestWhenBelow);
 	if (tier < 0) return NOTHING;
 
 	std::vector<UINT16> pool;

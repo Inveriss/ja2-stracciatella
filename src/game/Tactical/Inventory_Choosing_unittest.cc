@@ -102,24 +102,39 @@ TEST(EnemyEquipmentTier, highestTierAtOrBelowProgress)
 {
 	// E12
 	std::vector<UINT8> const tiers{ 20, 10, 40, 40, 70 };
-	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 10), 10);
-	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 35), 20);
-	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 40), 40);
-	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 100), 70); // too high: the first lower tier
+	for (bool const lowestWhenBelow : { true, false })
+	{
+		EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 10, lowestWhenBelow), 10);
+		EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 35, lowestWhenBelow), 20);
+		EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 40, lowestWhenBelow), 40);
+		EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 100, lowestWhenBelow), 70); // too high: the first lower tier
+	}
 }
 
 
 TEST(EnemyEquipmentTier, belowTheLowestTierTakesTheLowest)
 {
+	// guns and launcher ammunition (docs/enemy-equipment-below-lowest-tier-plan.md, B1/B2)
 	std::vector<UINT8> const tiers{ 30, 50 };
-	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 0), 30);
-	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 25), 30);
+	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 0, true), 30);
+	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 25, true), 30);
+}
+
+
+TEST(EnemyEquipmentTier, belowTheLowestTierGivesNone)
+{
+	// all other equipment (variant A)
+	std::vector<UINT8> const tiers{ 30, 50 };
+	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 0, false), -1);
+	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 25, false), -1);
+	EXPECT_EQ(ChooseEnemyEquipmentTier(tiers, 30, false), 30);
 }
 
 
 TEST(EnemyEquipmentTier, noTiers)
 {
-	EXPECT_EQ(ChooseEnemyEquipmentTier({}, 50), -1);
+	EXPECT_EQ(ChooseEnemyEquipmentTier({}, 50, true), -1);
+	EXPECT_EQ(ChooseEnemyEquipmentTier({}, 50, false), -1);
 }
 
 
@@ -181,10 +196,10 @@ TEST_F(EnemyEquipment, lowestGunTierHasNoFirstDropBonus)
 
 namespace {
 
-std::set<UINT16> DrawItems(std::vector<UINT16> const& candidates, int const progress)
+std::set<UINT16> DrawItems(std::vector<UINT16> const& candidates, int const progress, bool const lowestWhenBelow = false)
 {
 	std::set<UINT16> items;
-	for (int i = 0; i < 300; ++i) items.insert(PickEnemyItemByProgress(candidates, progress));
+	for (int i = 0; i < 300; ++i) items.insert(PickEnemyItemByProgress(candidates, progress, lowestWhenBelow));
 	return items;
 }
 
@@ -201,7 +216,8 @@ std::vector<UINT16> Vec(std::initializer_list<char const*> names)
 TEST_F(EnemyEquipment, vestsByTiers)
 {
 	auto const vests = Vec({ "FLAK_JACKET", "KEVLAR_VEST", "KEVLAR2_VEST", "SPECTRA_VEST", "TSHIRT", "LEATHER_JACKET" });
-	EXPECT_EQ(DrawItems(vests, 0),   Ids({ "FLAK_JACKET" }));  // lowest tier 20; t-shirts never
+	EXPECT_EQ(DrawItems(vests, 0),   std::set<UINT16>{ NOTHING }); // below the lowest tier 20: none
+	EXPECT_EQ(DrawItems(vests, 20),  Ids({ "FLAK_JACKET" }));  // lowest tier 20; t-shirts never
 	EXPECT_EQ(DrawItems(vests, 45),  Ids({ "KEVLAR_VEST" }));  // tier 40
 	EXPECT_EQ(DrawItems(vests, 100), Ids({ "SPECTRA_VEST" })); // tier 80
 }
@@ -222,7 +238,8 @@ TEST_F(EnemyEquipment, candidatesWithoutMinEnemyProgressNeverPicked)
 {
 	EXPECT_EQ(PickEnemyItemByProgress(Vec({ "TOOLKIT", "TSHIRT", "DETONATOR" }), 50), NOTHING);
 	EXPECT_EQ(PickEnemyItemByProgress({}, 50), NOTHING);
-	EXPECT_EQ(DrawItems(Vec({ "TOOLKIT", "LOCKSMITHKIT", "CAMOUFLAGEKIT" }), 0), Ids({ "LOCKSMITHKIT" }));
+	EXPECT_EQ(DrawItems(Vec({ "TOOLKIT", "LOCKSMITHKIT", "CAMOUFLAGEKIT" }), 0), std::set<UINT16>{ NOTHING }); // lowest tier 30
+	EXPECT_EQ(DrawItems(Vec({ "TOOLKIT", "LOCKSMITHKIT", "CAMOUFLAGEKIT" }), 30), Ids({ "LOCKSMITHKIT" }));
 }
 
 
@@ -262,13 +279,18 @@ TEST_F(EnemyEquipment, grenadeCandidatesByLauncher)
 TEST_F(EnemyEquipment, grenadesByTiers)
 {
 	auto const hand = EnemyGrenadeCandidates(NOTHING);
-	EXPECT_EQ(DrawItems(hand, 0),   Ids({ "BREAK_LIGHT" }));                   // lowest tier 30
+	EXPECT_EQ(DrawItems(hand, 0),   std::set<UINT16>{ NOTHING });              // below the lowest tier 30: none
+	EXPECT_EQ(DrawItems(hand, 30),  Ids({ "BREAK_LIGHT" }));                   // lowest tier 30
 	EXPECT_EQ(DrawItems(hand, 65),  Ids({ "STUN_GRENADE", "MINI_GRENADE" }));  // tier 60
 	EXPECT_EQ(DrawItems(hand, 100), Ids({ "MUSTARD_GRENADE" }));               // tier 80
 
+	// a grenade launcher always gets something to fire (B2)
 	auto const gl = EnemyGrenadeCandidates(Id("GLAUNCHER"));
-	EXPECT_EQ(DrawItems(gl, 0),   Ids({ "GL_STUN_GRENADE" }));                 // lowest tier 50
-	EXPECT_EQ(DrawItems(gl, 100), Ids({ "GL_HE_GRENADE" }));                   // tier 80
+	EXPECT_EQ(DrawItems(gl, 0, true),   Ids({ "GL_STUN_GRENADE" }));           // lowest tier 50
+	EXPECT_EQ(DrawItems(gl, 100, true), Ids({ "GL_HE_GRENADE" }));             // tier 80
+
+	auto const mortar = EnemyGrenadeCandidates(Id("MORTAR"));
+	EXPECT_EQ(DrawItems(mortar, 0, true), Ids({ "MORTAR_SHELL" }));            // tier 90
 }
 
 #endif

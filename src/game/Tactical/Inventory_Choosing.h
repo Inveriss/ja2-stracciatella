@@ -84,16 +84,19 @@ UINT8 EnemyEquipmentProgress(UINT8 ubGameProgress, INT8 iOffset, INT8 iDifficult
 // The class 1..11 that counts and chances keep using (E13)
 INT8 EnemyEquipmentClass(UINT8 ubProgress);
 
-// Tier rule (E12): the highest tier <= progress, else the lowest tier; -1 when there is none
-int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int progress);
+// Tier rule (E12): the highest tier <= progress; below every tier the lowest tier with
+// lowestWhenBelow (guns, launcher ammunition), else -1 (docs/enemy-equipment-below-lowest-tier-plan.md);
+// -1 when there is no tier at all
+int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int progress, bool lowestWhenBelow);
 
 // Stage 3: a random gun of the tier chosen for this progress, among the guns with
 // minEnemyProgress; NOTHING when no gun has one
 UINT16 SelectEnemyGunByProgress(int progress);
 
 // Stage 4: a random item of the tier chosen for this progress among the candidates
-// that have minEnemyProgress (a repeated candidate keeps its weight); NOTHING if none
-UINT16 PickEnemyItemByProgress(std::vector<UINT16> const& candidates, int progress);
+// that have minEnemyProgress (a repeated candidate keeps its weight); NOTHING if none, and
+// NOTHING below the lowest tier unless lowestWhenBelow
+UINT16 PickEnemyItemByProgress(std::vector<UINT16> const& candidates, int progress, bool lowestWhenBelow = false);
 
 // Stage 5: the grenades an enemy may get: what the launcher (GLAUNCHER, MORTAR) fires,
 // or with NOTHING the hand grenades (IC_GRENADE that no launcher fires)
