@@ -126,6 +126,24 @@ public:
 	uint8_t game_progress_sector_percent; // Drop progress per first tactical visit of a town/SAM sector
 	uint8_t game_progress_quest_percent;  // Drop progress per completed quest
 
+	// Enemy and militia equipment by game progress (docs/enemy-equipment-progress-plan.md):
+	// false = the old classes and army-gun-choice-extended.json
+	bool enemy_equipment_by_progress;
+	struct OffsetRange { int8_t min; int8_t max; };
+	// by editor equipment level: bad, poor, average, good, great (E7)
+	OffsetRange enemy_equipment_level_offsets[5];
+	// by soldier type for strategically created soldiers: admin, army, elite (E8)
+	OffsetRange enemy_equipment_type_offsets[3];
+	// by difficulty, enemies only: easy, experienced, expert (E9)
+	int8_t enemy_equipment_difficulty_offsets[3];
+
+	// Enemy Elite Heavy (docs/enemy-elite-heavy-plan.md): one in every elites_per_heavy
+	// elites of a sector, plus the difficulty modifier (easy, experienced, expert) once
+	// the sector has at least elites_per_heavy elites
+	bool enemy_elite_heavy_enabled;
+	uint8_t enemy_elite_heavy_elites_per_heavy;
+	int8_t enemy_elite_heavy_difficulty_modifiers[3];
+
 	int8_t unhired_merc_deaths_easy;       // Maximum unhired mercs KIA difficulty Easy
 	int8_t unhired_merc_deaths_medium;       // Maximum unhired mercs KIA difficulty Medium
 	int8_t unhired_merc_deaths_hard;       // Maximum unhired mercs KIA difficulty Hard

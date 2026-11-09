@@ -66,6 +66,7 @@
 
 #include "Logger.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -903,16 +904,23 @@ void DefaultContentManager::registerItem(const ItemModel* const item, ItemDataFi
 		throw DataError(err);
 	}
 
-	// docs/enemy-drop-progress-plan.md (D1): every item file may set it
-	unsigned int const minDropProgress = json.toObject().getOptionalUInt("minDropProgress", 0);
-	if (minDropProgress > 100)
+	// docs/enemy-drop-progress-plan.md (D1, D13): every item file may set it
+	ST::string const dropErr = ApplyMinDropProgress(*const_cast<ItemModel*>(item), json.toObject());
+	if (!dropErr.empty())
 	{
-		ST::string const bad = ST::format("{}: minDropProgress of item '{}' must be 0-100, not {}",
-			ItemDataFileName(file), item->getInternalName(), minDropProgress);
+		ST::string const bad = ST::format("{}: {}", ItemDataFileName(file), dropErr);
 		delete item;
 		throw DataError(bad);
 	}
-	const_cast<ItemModel*>(item)->setMinDropProgress(static_cast<uint8_t>(minDropProgress));
+
+	// docs/enemy-equipment-progress-plan.md (E1, E3, E4): left out = never for enemies
+	ST::string const enemyErr = ApplyMinEnemyProgress(*const_cast<ItemModel*>(item), json.toObject());
+	if (!enemyErr.empty())
+	{
+		ST::string const bad = ST::format("{}: {}", ItemDataFileName(file), enemyErr);
+		delete item;
+		throw DataError(bad);
+	}
 
 	auto const idx = item->getItemIndex();
 	const ItemModel*& slot = m_items.at(idx);
@@ -1214,10 +1222,20 @@ bool DefaultContentManager::loadGameData(BinaryData const& binaryData)
 
 	fillUnusedItemIndices();
 
+	// docs/enemy-equipment-progress-plan.md, stage 1
+	for (ST::string const& warning : MissingLowEnemyTiers(m_items))
+	{
+		SLOGW("{}", warning);
+	}
+
 	for (const ItemModel *item : m_items)
 	{
 		m_itemMap.insert(std::make_pair(item->getInternalName(), item));
 	}
+
+	// docs/item-texts-json-plan.md: the export takes the pure EDT texts, then the language file applies
+	exportItemTextsIfRequested(binaryData);
+	loadItemTexts();
 
 	auto replacement_json = readJsonDataFileWithSchema("tactical-map-item-replacements.json");
 
@@ -1660,6 +1678,84 @@ bool DefaultContentManager::loadMercsData(const BinaryData& binaryProfiles)
 	dumpMercProfilesIfRequested();
 
 	return true;
+}
+
+void DefaultContentManager::loadItemTexts()
+{
+	ST::string const fileName = ST::string("strings/item-texts") + L10n::GetSuffix(m_gameVersion, true) + ".json";
+	if (!doesGameResExists(fileName)) return;
+
+	auto const json = readJsonDataFileWithSchema(fileName);
+	auto const warnings = ApplyItemTexts(json, fileName, [this](ST::string const& internalName) -> ItemModel*
+	{
+		auto const it = m_itemMap.find(internalName);
+		// the content manager owns its items: the language file may change their texts
+		return it == m_itemMap.end() ? nullptr : const_cast<ItemModel*>(it->second);
+	});
+	for (ST::string const& warning : warnings) SLOGW("{}", warning);
+	SLOGI("item texts: {} items from {}", json.toVec().size(), fileName);
+}
+
+void DefaultContentManager::exportItemTextsIfRequested(BinaryData const& binaryData) const
+{
+	const char* const fileName = std::getenv("JA2_EXPORT_ITEM_TEXTS");
+	if (fileName == nullptr || *fileName == '\0') return;
+
+	IEDT::uptr bobbyRay;
+	if (doesGameResExists(BINARYDATADIR "/braydesc.edt")) bobbyRay = openEDT(BINARYDATADIR "/braydesc.edt", { 80, 320 });
+
+	// an internalName shared by several items (the "unused" slots of weapons.json) can't key an
+	// entry: those items keep the EDT texts
+	std::map<ST::string, int> nameCount;
+	for (const ItemModel* item : m_items)
+	{
+		if (item) ++nameCount[item->getInternalName()];
+	}
+
+	std::vector<ItemTextsEntry> entries;
+	size_t withBobbyRay = 0;
+	size_t shared = 0;
+	for (const ItemModel* item : m_items)
+	{
+		if (!item) continue;
+		if (nameCount[item->getInternalName()] > 1) { ++shared; continue; }
+		uint16_t const index = item->getItemIndex();
+		ItemTextsEntry e;
+		e.internalName = item->getInternalName();
+		e.shortName    = binaryData.getItemShortName(index);
+		e.name         = binaryData.getItemName(index);
+		e.description  = binaryData.getItemDescription(index);
+		if (bobbyRay && index < VANILLA_MAXITEMS)
+		{
+			try
+			{
+				e.bobbyRayName        = bobbyRay->at(index, 0);
+				e.bobbyRayDescription = bobbyRay->at(index, 1);
+			}
+			catch (const std::exception&) {} // braydesc.edt ends earlier
+		}
+		if (!e.bobbyRayName.empty() || !e.bobbyRayDescription.empty()) ++withBobbyRay;
+		entries.push_back(std::move(e));
+	}
+
+	std::string const text = ItemTextsFileText(entries);
+	{
+		std::ofstream out(std::filesystem::path(fileName), std::ios::out | std::ios::trunc | std::ios::binary);
+		out << text;
+		if (!out) throw std::runtime_error(ST::format("JA2_EXPORT_ITEM_TEXTS: cannot write {}", fileName).c_str());
+	}
+	size_t written = 0;
+	for (ItemTextsEntry const& e : entries)
+	{
+		if (!(e.shortName.empty() && e.name.empty() && e.description.empty() && e.bobbyRayName.empty() && e.bobbyRayDescription.empty())) ++written;
+	}
+	ST::string const report = ST::format("JA2_EXPORT_ITEM_TEXTS: wrote {} ({} items, {} with Bobby Ray texts, {} without any text skipped, {} with a shared internalName skipped)",
+		fileName, written, withBobbyRay, entries.size() - written, shared);
+	SLOGI("{}", report);
+	// a developer export: done, no game (the plan, section 6)
+	std::fprintf(stdout, "%s\n", report.c_str());
+	std::fflush(stdout);
+	std::exit(0);
 }
 
 void DefaultContentManager::dumpMercProfilesIfRequested() const

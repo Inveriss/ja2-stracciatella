@@ -11,6 +11,7 @@
 #include "Auto_Resolve.h"
 #include "Map_Screen_Interface_Map.h"
 #include "Debug.h"
+#include "Soldier_Create.h"
 
 #include "AmmoTypeModel.h"
 #include "ContentManager.h"
@@ -18,6 +19,10 @@
 #include "MagazineModel.h"
 #include "WeaponModels.h"
 #include "policy/GamePolicy.h"
+#include "Logger.h"
+
+#include <algorithm>
+#include <map>
 
 #define ENEMYAMMODROPRATE       50 // % of time enemies drop ammunition
 #define ENEMYGRENADEDROPRATE    25 // % of time enemies drop grenades
@@ -44,7 +49,15 @@ void InitArmyGunTypes(void)
 	ClearAllWeaponsAlreadyDropped();
 
 	// avoid auto-drops for the gun class with the crappiest guns in it
-	MarkAllWeaponsOfSameGunClassAsDropped( SW38 );
+	if (EnemyEquipmentByProgress())
+	{
+		// docs/enemy-equipment-progress-plan.md (O3): the guns of the lowest tier
+		for (UINT16 const gun : LowestEnemyGunTier()) SetWeaponAlreadyDropped(GCM->getWeapon(gun));
+	}
+	else
+	{
+		MarkAllWeaponsOfSameGunClassAsDropped( SW38 );
+	}
 }
 
 
@@ -76,6 +89,9 @@ static void MarkAllWeaponsOfSameGunClassAsDropped(UINT16 usWeapon)
 	// mark that item itself as dropped, whether or not it's part of a gun class
 	SetWeaponAlreadyDropped(itemModel->asWeapon());
 
+	// docs/enemy-equipment-progress-plan.md (O3): no gun classes, only this gun
+	if (EnemyEquipmentByProgress()) return;
+
 	auto const bGunClass{ GetWeaponClass(usWeapon) };
 
 	// if the gun belongs to a gun class (mortars, GLs, LAWs, etc. do not and are handled independently)
@@ -88,17 +104,19 @@ static void MarkAllWeaponsOfSameGunClassAsDropped(UINT16 usWeapon)
 }
 
 
-static void ChooseArmourForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bHelmetClass, INT8 bVestClass, INT8 bLeggingsClass);
-static void ChooseBombsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bBombClass);
+static void ChooseArmourForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bHelmetClass, INT8 bVestClass, INT8 bLeggingsClass, int iProgress, INT8 bProgressClass);
+static void ChooseBombsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bBombClass, int iProgress, INT8 bProgressClass);
 static void ChooseFaceGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp);
-static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bGrenades, INT8 bGrenadeClass, BOOLEAN fGrenadeLauncher);
-static void ChooseKitsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKitClass);
+static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bGrenades, INT8 bGrenadeClass, BOOLEAN fGrenadeLauncher, int iProgress, INT8 bProgressClass);
+static void ChooseKitsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKitClass, int iProgress, INT8 bProgressClass);
 static void ChooseLocationSpecificGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp);
-static void ChooseMiscGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bMiscClass);
-static void ChooseSpecialWeaponsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKnifeClass, BOOLEAN fGrenadeLauncher, BOOLEAN fLAW, BOOLEAN fMortar);
-static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment);
+static void ChooseMiscGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bMiscClass, int iProgress, INT8 bProgressClass);
+static void ChooseSpecialWeaponsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKnifeClass, BOOLEAN fGrenadeLauncher, BOOLEAN fLAW, BOOLEAN fMortar, int iProgress, INT8 bProgressClass);
+static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment, int iProgress, INT8 bProgressClass);
 static void EquipTank(SOLDIERCREATE_STRUCT* pp);
 static void RandomlyChooseWhichItemsAreDroppable(SOLDIERCREATE_STRUCT* pp, INT8 bSoldierClass);
+static UINT8 RollEnemyEquipmentProgress(INT8 bSoldierClass, INT8 bEquipmentLevel);
+static int CategoryProgress(int iProgress, INT8 bCategoryClass, INT8 bProgressClass);
 static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* pp);
 
 
@@ -157,14 +175,32 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 		return;
 	}
 
+	if ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY )
+	{
+		// enemy Elite Heavy (docs/enemy-elite-heavy-plan.md): fixed kit, LAWs or the mortar
+		EquipEliteHeavyEnemy( pp, NextEnemyEliteHeavyGetsMortar() );
+		return;
+	}
+
 
 	Assert( ( ( bSoldierClass >= SOLDIER_CLASS_NONE ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) ) || ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA ) );
-	Assert( ( bEquipmentRating >= 0 ) && ( bEquipmentRating <= 4 ) );
+	bool const fByProgress = EnemyEquipmentByProgress() && bSoldierClass != SOLDIER_CLASS_NONE;
+	Assert( ( ( bEquipmentRating >= 0 ) && ( bEquipmentRating <= 4 ) ) || ( fByProgress && bEquipmentRating == NO_EQUIPMENT_LEVEL ) );
 
 
 	// equipment level is modified by 1/10 of the difficulty percentage, -5, so it's between -5 to +5
 	// (on normal, this is actually -4 to +4, easy is -5 to +3, and hard is -3 to +5)
 	bEquipmentModifier = bEquipmentRating + ( ( CalcDifficultyModifier( bSoldierClass ) / 10 ) - 5 );
+
+	// docs/enemy-equipment-progress-plan.md: the class comes from the soldier's P (E6, E13)
+	// instead of type + level + difficulty modifier; the rules below stay the same
+	int const iProgress = fByProgress ? RollEnemyEquipmentProgress(bSoldierClass, bEquipmentRating) : -1;
+	INT8 const bProgressClass = fByProgress ? EnemyEquipmentClass(static_cast<UINT8>(iProgress)) : 0;
+	auto const rating = [&](int const base)
+	{
+		if (fByProgress) return static_cast<int>(bProgressClass);
+		return std::clamp(base + bEquipmentModifier, MIN_EQUIPMENT_CLASS, MAX_EQUIPMENT_CLASS);
+	};
 
 	switch( bSoldierClass )
 	{
@@ -177,8 +213,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 		case SOLDIER_CLASS_ADMINISTRATOR:
 		case SOLDIER_CLASS_GREEN_MILITIA:
-			bRating = BAD_ADMINISTRATOR_EQUIPMENT_RATING + bEquipmentModifier;
-			bRating = (INT8) std::clamp(bRating, MIN_EQUIPMENT_CLASS, MAX_EQUIPMENT_CLASS);
+			bRating = rating(BAD_ADMINISTRATOR_EQUIPMENT_RATING);
 
 			bWeaponClass = bRating;
 
@@ -224,8 +259,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 		case SOLDIER_CLASS_ARMY:
 		case SOLDIER_CLASS_REG_MILITIA:
 			//army guys tend to have a broad range of equipment
-			bRating = BAD_ARMY_EQUIPMENT_RATING + bEquipmentModifier;
-			bRating = (INT8) std::clamp(bRating, MIN_EQUIPMENT_CLASS, MAX_EQUIPMENT_CLASS);
+			bRating = rating(BAD_ARMY_EQUIPMENT_RATING);
 
 			bWeaponClass = bRating;
 			bVestClass = bRating;
@@ -333,8 +367,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 		case SOLDIER_CLASS_ELITE:
 		case SOLDIER_CLASS_ELITE_MILITIA:
-			bRating = BAD_ELITE_EQUIPMENT_RATING + bEquipmentModifier;
-			bRating = (INT8) std::clamp(bRating, MIN_EQUIPMENT_CLASS, MAX_EQUIPMENT_CLASS);
+			bRating = rating(BAD_ELITE_EQUIPMENT_RATING);
 
 			bWeaponClass = bRating;
 			bHelmetClass = bRating;
@@ -502,14 +535,14 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 
 	//Now actually choose the equipment!
-	ChooseWeaponForSoldierCreateStruct( pp, bWeaponClass, bAmmoClips, bAttachClass, fAttachment );
-	ChooseGrenadesForSoldierCreateStruct( pp, bGrenades, bGrenadeClass, fGrenadeLauncher );
-	ChooseArmourForSoldierCreateStruct( pp, bHelmetClass, bVestClass, bLeggingClass );
-	ChooseSpecialWeaponsForSoldierCreateStruct( pp, bKnifeClass, fGrenadeLauncher, fLAW, fMortar );
+	ChooseWeaponForSoldierCreateStruct( pp, bWeaponClass, bAmmoClips, bAttachClass, fAttachment, iProgress, bProgressClass );
+	ChooseGrenadesForSoldierCreateStruct( pp, bGrenades, bGrenadeClass, fGrenadeLauncher, iProgress, bProgressClass );
+	ChooseArmourForSoldierCreateStruct( pp, bHelmetClass, bVestClass, bLeggingClass, iProgress, bProgressClass );
+	ChooseSpecialWeaponsForSoldierCreateStruct( pp, bKnifeClass, fGrenadeLauncher, fLAW, fMortar, iProgress, bProgressClass );
 	ChooseFaceGearForSoldierCreateStruct( pp );
-	ChooseKitsForSoldierCreateStruct( pp, bKitClass );
-	ChooseMiscGearForSoldierCreateStruct( pp, bMiscClass );
-	ChooseBombsForSoldierCreateStruct( pp, bBombClass );
+	ChooseKitsForSoldierCreateStruct( pp, bKitClass, iProgress, bProgressClass );
+	ChooseMiscGearForSoldierCreateStruct( pp, bMiscClass, iProgress, bProgressClass );
+	ChooseBombsForSoldierCreateStruct( pp, bBombClass, iProgress, bProgressClass );
 	ChooseLocationSpecificGearForSoldierCreateStruct( pp );
 	RandomlyChooseWhichItemsAreDroppable( pp, bSoldierClass );
 }
@@ -619,6 +652,67 @@ static void EquipEliteHeavyMilitia(SOLDIERCREATE_STRUCT* const pp)
 }
 
 
+// n pieces of usItem into the free pockets from bFirst to bLast, as many per pocket as fit;
+// returns how many did not fit
+static int PutIntoPockets(SOLDIERCREATE_STRUCT* const pp, UINT16 const usItem, int n, INT8 const bFirst, INT8 const bLast)
+{
+	for (INT8 slot = bFirst; slot <= bLast && n > 0; ++slot)
+	{
+		OBJECTTYPE& o = pp->Inv[slot];
+		if (o.usItem != NOTHING) continue;
+		int per = 1; // guns and LAWs: one per pocket
+		if (!GCM->getItem(usItem)->isWeapon())
+		{
+			per = std::min(int(ApplyBigPerPocketOverride(usItem, slot, ItemSlotLimit(usItem, slot))), int(MAX_OBJECTS_PER_SLOT));
+			per = std::max(per, 1);
+		}
+		int const k = std::min(per, n);
+		CreateItems(usItem, 100, (UINT8)k, &o);
+		o.fFlags |= OBJECT_UNDROPPABLE;
+		n -= k;
+	}
+	return n;
+}
+
+
+// Enemy Elite Heavy (docs/enemy-elite-heavy-plan.md, section 6): plain Spectra helmet, vest with
+// ceramic plates and leggings, gas mask, UV goggles; 3 LAWs or a mortar with 3 shells; a loaded
+// FN Minimi with 2 magazines, used only once the heavy weapon is spent. Everything at 100%.
+void EquipEliteHeavyEnemy(SOLDIERCREATE_STRUCT* const pp, bool const fMortar)
+{
+	CreateItem(SPECTRA_HELMET, 100, &pp->Inv[HELMETPOS]);
+	pp->Inv[HELMETPOS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(SPECTRA_VEST, 100, &pp->Inv[VESTPOS]);
+	pp->Inv[VESTPOS].fFlags |= OBJECT_UNDROPPABLE;
+	{
+		OBJECTTYPE Plates;
+		CreateItem(CERAMIC_PLATES, 100, &Plates);
+		Plates.fFlags |= OBJECT_UNDROPPABLE;
+		AttachObject(NULL, &pp->Inv[VESTPOS], &Plates);
+	}
+	CreateItem(SPECTRA_LEGGINGS, 100, &pp->Inv[LEGPOS]);
+	pp->Inv[LEGPOS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(GASMASK, 100, &pp->Inv[HEAD1POS]);
+	pp->Inv[HEAD1POS].fFlags |= OBJECT_UNDROPPABLE;
+	CreateItem(UVGOGGLES, 100, &pp->Inv[HEAD2POS]);
+	pp->Inv[HEAD2POS].fFlags |= OBJECT_UNDROPPABLE;
+
+	// the heavy weapon in the hand, its ammunition first in the big pockets (the AI
+	// takes the next LAW from there before it ever finds the Minimi)
+	CreateItem(fMortar ? MORTAR : ROCKET_LAUNCHER, 100, &pp->Inv[HANDPOS]);
+	pp->Inv[HANDPOS].fFlags |= OBJECT_UNDROPPABLE;
+	if (fMortar) PutIntoPockets(pp, MORTAR_SHELL,    3, BIGPOCK1POS, BIGPOCK10POS);
+	else         PutIntoPockets(pp, ROCKET_LAUNCHER, 2, BIGPOCK1POS, BIGPOCK10POS);
+
+	// the backup weapon (loaded) and two magazines
+	PutIntoPockets(pp, MINIMI, 1, BIGPOCK1POS, BIGPOCK10POS);
+	UINT16 const usMag = DefaultMagazine(MINIMI);
+	if (usMag != NOTHING) PutIntoPockets(pp, usMag, 2, SMALLPOCK1POS, NUM_INV_SLOTS - 1);
+
+	RandomlyChooseWhichItemsAreDroppable(pp, SOLDIER_CLASS_ELITE_HEAVY);
+}
+
+
 void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 const usWeapon)
 {
 	for (OBJECTTYPE& o : s.inv)
@@ -688,7 +782,8 @@ void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 const usWeapon)
 //When using the class values, they should all range from 0-11, 0 meaning that there will be no
 //selection for that particular type of item, and 1-11 means to choose an item if possible.  1 is
 //the worst class of item, while 11 is the best.
-static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment)
+// iProgress: the soldier's P, -1 = the original classes (docs/enemy-equipment-progress-plan.md)
+static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment, int const iProgress, INT8 const bProgressClass)
 {
 	OBJECTTYPE Object;
 	UINT16 usRandom;
@@ -744,8 +839,18 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 	}
 
 
-	// the weapon class here ranges from 1 to 11, so subtract 1 to get a gun level
-	usGunIndex = SelectStandardArmyGun( (UINT8) (bWeaponClass - 1));
+	if (iProgress >= 0)
+	{
+		// stage 3: the gun from the catalogue by minEnemyProgress tiers (E12); the old
+		// better-gun/worse-gun trade-off of one class moves P by 10 points
+		int const iGunProgress = std::clamp(iProgress + (bWeaponClass - bProgressClass) * 10, 0, 100);
+		usGunIndex = SelectEnemyGunByProgress(iGunProgress);
+	}
+	if (usGunIndex == NOTHING)
+	{
+		// the weapon class here ranges from 1 to 11, so subtract 1 to get a gun level
+		usGunIndex = SelectStandardArmyGun( (UINT8) (bWeaponClass - 1));
+	}
 
 
 	if( bAmmoClips )
@@ -769,7 +874,17 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 	}
 
 	//Choose attachment
-	if( bAttachClass && fAttachment )
+	if (bAttachClass && fAttachment && iProgress >= 0)
+	{
+		// stage 4: valid attachments of this gun by minEnemyProgress tiers
+		std::vector<UINT16> candidates;
+		for (auto pItem : GCM->getItems())
+		{
+			if (pItem->getItemClass() == IC_MISC && ValidAttachment(pItem->getItemIndex(), usGunIndex)) candidates.push_back(pItem->getItemIndex());
+		}
+		usAttachIndex = PickEnemyItemByProgress(candidates, CategoryProgress(iProgress, bAttachClass, bProgressClass));
+	}
+	else if( bAttachClass && fAttachment )
 	{
 		usNumMatches = 0;
 		while( bAttachClass && !usNumMatches )
@@ -813,14 +928,14 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 			case SOLDIER_CLASS_REG_MILITIA:
 				//Admins/Troops: 60-75% + 1% every 4% progress
 				bStatus = 60 + Random(16);
-				bStatus += HighestPlayerProgressPercentage() / 4;
+				bStatus += (iProgress >= 0 ? iProgress : HighestPlayerProgressPercentage()) / 4;
 				bStatus = std::min(100, bStatus);
 				break;
 			case SOLDIER_CLASS_ELITE:
 			case SOLDIER_CLASS_ELITE_MILITIA:
 				//85-90% +  1% every 10% progress
 				bStatus = 85 + Random(6);
-				bStatus += HighestPlayerProgressPercentage() / 10;
+				bStatus += (iProgress >= 0 ? iProgress : HighestPlayerProgressPercentage()) / 10;
 				bStatus = std::min(100, bStatus);
 				break;
 			default:
@@ -861,7 +976,7 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 }
 
 
-static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bGrenades, INT8 bGrenadeClass, BOOLEAN fGrenadeLauncher)
+static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bGrenades, INT8 bGrenadeClass, BOOLEAN fGrenadeLauncher, int const iProgress, INT8 const bProgressClass)
 {
 	OBJECTTYPE Object;
 	INT16 sNumPoints;
@@ -883,6 +998,35 @@ static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 
 	//no points, no grenades!
 	if( !sNumPoints )
 		return;
+
+	if (iProgress >= 0)
+	{
+		// stage 5: bGrenades grenades (the count of the old rules), each one by
+		// minEnemyProgress tiers among hand grenades, grenade launcher grenades
+		// or mortar shells
+		bool const fMortar = bGrenadeClass == MORTAR_GRENADE_CLASS;
+		std::vector<UINT16> const candidates = EnemyGrenadeCandidates(fMortar ? MORTAR : fGrenadeLauncher ? GLAUNCHER : NOTHING);
+		int const progress = fMortar ? iProgress : CategoryProgress(iProgress, bGrenadeClass, bProgressClass);
+		UINT8 const ubBase = fMortar ? 80 : (UINT8) std::min(45 + bGrenadeClass * 5, 90);
+		UINT8 const ubVariation = 101 - ubBase;
+
+		std::map<UINT16, UINT8> counts;
+		for (INT8 i = 0; i < bGrenades; ++i)
+		{
+			// B2: a grenade launcher or a mortar always gets something to fire;
+			// hand grenades below their lowest tier: none
+			UINT16 const usPick = PickEnemyItemByProgress(candidates, progress, fMortar || fGrenadeLauncher);
+			if (usPick == NOTHING) break;
+			++counts[usPick];
+		}
+		for (auto const& [usType, ubCount] : counts)
+		{
+			CreateItems(usType, (INT8)(ubBase + Random(ubVariation)), ubCount, &Object);
+			Object.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &Object);
+		}
+		return;
+	}
 
 	// special mortar shell handling
 	if (bGrenadeClass == MORTAR_GRENADE_CLASS)
@@ -1120,12 +1264,51 @@ static void ChooseGrenadesForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 
 }
 
 
-static void ChooseArmourForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bHelmetClass, INT8 bVestClass, INT8 bLeggingsClass)
+// stage 4: one armour slot by minEnemyProgress tiers
+static void ChooseArmourPieceByProgress(SOLDIERCREATE_STRUCT* const pp, UINT8 const armourClass, int const slot, int const progress)
+{
+	std::vector<UINT16> candidates;
+	for (auto pItem : GCM->getItems())
+	{
+		if (pItem->isArmour() && pItem->asArmour()->getArmourClass() == armourClass) candidates.push_back(pItem->getItemIndex());
+	}
+	UINT16 const usItem = PickEnemyItemByProgress(candidates, progress);
+	if (usItem == NOTHING || pp->Inv[slot].fFlags & OBJECT_NO_OVERWRITE) return;
+
+	CreateItem(usItem, (INT8)(70 + Random(31)), &(pp->Inv[slot]));
+	pp->Inv[slot].fFlags |= OBJECT_UNDROPPABLE;
+
+	if (armourClass == ARMOURCLASS_VEST && (usItem == KEVLAR_VEST || usItem == SPECTRA_VEST))
+	{
+		// ceramic plates, more likely the further the soldier's P is above the vest's tier
+		// (the old 15% per class); only once the plates' own tier is reached
+		ItemModel const* const plates = GCM->getItem(CERAMIC_PLATES);
+		int const chance = 15 * (progress - GCM->getItem(usItem)->getMinEnemyProgress()) / 10;
+		if (plates->hasMinEnemyProgress() && plates->getMinEnemyProgress() <= progress && (int)Random(100) < chance)
+		{
+			OBJECTTYPE Object;
+			CreateItem(CERAMIC_PLATES, (INT8)(70 + Random(31)), &Object);
+			Object.fFlags |= OBJECT_UNDROPPABLE;
+			AttachObject(NULL, &(pp->Inv[slot]), &Object);
+		}
+	}
+}
+
+
+static void ChooseArmourForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bHelmetClass, INT8 bVestClass, INT8 bLeggingsClass, int const iProgress, INT8 const bProgressClass)
 {
 	UINT16 usRandom;
 	UINT16 usNumMatches;
 	INT8 bOrigVestClass = bVestClass;
 	OBJECTTYPE Object;
+
+	if (iProgress >= 0)
+	{
+		if (bHelmetClass   > 0) ChooseArmourPieceByProgress(pp, ARMOURCLASS_HELMET,   HELMETPOS, CategoryProgress(iProgress, bHelmetClass,   bProgressClass));
+		if (bVestClass     > 0) ChooseArmourPieceByProgress(pp, ARMOURCLASS_VEST,     VESTPOS,   CategoryProgress(iProgress, bVestClass,     bProgressClass));
+		if (bLeggingsClass > 0) ChooseArmourPieceByProgress(pp, ARMOURCLASS_LEGGINGS, LEGPOS,    CategoryProgress(iProgress, bLeggingsClass, bProgressClass));
+		return;
+	}
 
 	//Choose helmet
 	if( bHelmetClass )
@@ -1283,12 +1466,25 @@ static void ChooseArmourForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bH
 }
 
 
-static void ChooseSpecialWeaponsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKnifeClass, BOOLEAN fGrenadeLauncher, BOOLEAN fLAW, BOOLEAN fMortar)
+static void ChooseSpecialWeaponsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKnifeClass, BOOLEAN fGrenadeLauncher, BOOLEAN fLAW, BOOLEAN fMortar, int const iProgress, INT8 const bProgressClass)
 {
 	UINT16 usRandom;
 	UINT16 usNumMatches = 0;
 	UINT16 usKnifeIndex = 0;
 	OBJECTTYPE Object;
+
+	if (iProgress >= 0 && bKnifeClass > 0)
+	{
+		// stage 4: knives by minEnemyProgress tiers
+		std::vector<UINT16> candidates;
+		for (auto pItem : GCM->getItems())
+		{
+			auto const itemClass = pItem->getItemClass();
+			if (itemClass == IC_BLADE || itemClass == IC_THROWING_KNIFE) candidates.push_back(pItem->getItemIndex());
+		}
+		usKnifeIndex = PickEnemyItemByProgress(candidates, CategoryProgress(iProgress, bKnifeClass, bProgressClass));
+		bKnifeClass = 0; // skip the old choice below
+	}
 
 	//Choose knife
 	while( bKnifeClass && !usNumMatches )
@@ -1442,7 +1638,7 @@ static void ChooseFaceGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp)
 }
 
 
-static void ChooseKitsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKitClass)
+static void ChooseKitsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKitClass, int const iProgress, INT8 const bProgressClass)
 {
 	UINT16 usRandom;
 	UINT16 usNumMatches = 0;
@@ -1451,7 +1647,30 @@ static void ChooseKitsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKit
 
 
 	// we want these mostly to be first aid and medical kits, and for those kit class doesn't matter, they're always useful
-	if ( Chance( 50 ) )
+	if (iProgress >= 0)
+	{
+		// stage 4: first aid and medical kits as before (when they have minEnemyProgress),
+		// other kits by minEnemyProgress tiers
+		if (Chance(50))
+		{
+			usKitItem = FIRSTAIDKIT;
+		}
+		else if (Chance(25))
+		{
+			usKitItem = MEDICKIT;
+		}
+		else
+		{
+			std::vector<UINT16> candidates;
+			for (auto pItem : GCM->getItems())
+			{
+				if (pItem->getItemClass() == IC_KIT) candidates.push_back(pItem->getItemIndex());
+			}
+			usKitItem = PickEnemyItemByProgress(candidates, CategoryProgress(iProgress, bKitClass, bProgressClass));
+		}
+		if (usKitItem != NOTHING && !GCM->getItem(usKitItem)->hasMinEnemyProgress()) usKitItem = NOTHING;
+	}
+	else if ( Chance( 50 ) )
 	{
 		usKitItem = FIRSTAIDKIT;
 	}
@@ -1504,7 +1723,7 @@ static void ChooseKitsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bKit
 }
 
 
-static void ChooseMiscGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bMiscClass)
+static void ChooseMiscGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bMiscClass, int const iProgress, INT8 const bProgressClass)
 {
 	// not all of these are IC_MISC, some are IC_PUNCH (not covered anywhere else)
 	static const INT32 iMiscItemsList[] =
@@ -1524,6 +1743,24 @@ static void ChooseMiscGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 
 		GOLDWATCH,
 		NOTHING
 	};
+
+	if (iProgress >= 0)
+	{
+		// stage 4: the same list (repeats keep their weight) by minEnemyProgress tiers
+		if (bMiscClass <= 0) return;
+		std::vector<UINT16> candidates;
+		for (const INT32* i = iMiscItemsList; *i != NOTHING; ++i)
+		{
+			if (*i != REGEN_BOOSTER || gGameOptions.fSciFi) candidates.push_back(static_cast<UINT16>(*i));
+		}
+		UINT16 const usItem = PickEnemyItemByProgress(candidates, CategoryProgress(iProgress, bMiscClass, bProgressClass));
+		if (usItem == NOTHING) return;
+		OBJECTTYPE Object;
+		CreateItem(usItem, 80 + Random(21), &Object);
+		Object.fFlags |= OBJECT_UNDROPPABLE;
+		PlaceObjectInSoldierCreateStruct(pp, &Object);
+		return;
+	}
 
 	// count how many are eligible
 	UINT16 usNumMatches = 0;
@@ -1566,11 +1803,28 @@ static void ChooseMiscGearForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 
 }
 
 
-static void ChooseBombsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bBombClass)
+static void ChooseBombsForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bBombClass, int const iProgress, INT8 const bProgressClass)
 {
 	UINT16 usRandom;
 	UINT16 usNumMatches = 0;
 	OBJECTTYPE Object;
+
+	if (iProgress >= 0)
+	{
+		// stage 4: bombs by minEnemyProgress tiers
+		if (bBombClass <= 0) return;
+		std::vector<UINT16> candidates;
+		for (auto pItem : GCM->getItems())
+		{
+			if (pItem->getItemClass() == IC_BOMB) candidates.push_back(pItem->getItemIndex());
+		}
+		UINT16 const usItem = PickEnemyItemByProgress(candidates, CategoryProgress(iProgress, bBombClass, bProgressClass));
+		if (usItem == NOTHING) return;
+		CreateItem(usItem, (INT8)(80 + Random(21)), &Object);
+		Object.fFlags |= OBJECT_UNDROPPABLE;
+		PlaceObjectInSoldierCreateStruct(pp, &Object);
+		return;
+	}
 
 	// count how many are eligible
 	for (auto pItem : GCM->getItems()) {
@@ -2160,4 +2414,176 @@ static void EquipTank(SOLDIERCREATE_STRUCT* pp)
 void ResetMortarsOnTeamCount( void )
 {
 	guiMortarsRolledByTeam = 0;
+}
+
+
+// --- Enemy equipment by game progress (docs/enemy-equipment-progress-plan.md) ---
+
+bool EnemyEquipmentByProgress()
+{
+	return gamepolicy(enemy_equipment_by_progress);
+}
+
+
+GamePolicy::OffsetRange EnemyEquipmentOffsetRange(INT8 const bSoldierClass, INT8 const bEquipmentLevel)
+{
+	if (0 <= bEquipmentLevel && bEquipmentLevel <= 4)
+	{
+		return gamepolicy(enemy_equipment_level_offsets)[bEquipmentLevel];
+	}
+	int type;
+	switch (bSoldierClass)
+	{
+		case SOLDIER_CLASS_ELITE:
+		case SOLDIER_CLASS_ELITE_MILITIA: type = 2; break;
+		case SOLDIER_CLASS_ARMY:
+		case SOLDIER_CLASS_REG_MILITIA:   type = 1; break;
+		default:                          type = 0; break; // admin, green militia
+	}
+	return gamepolicy(enemy_equipment_type_offsets)[type];
+}
+
+
+INT8 EnemyEquipmentDifficultyOffset(INT8 const bSoldierClass, UINT8 const ubDifficultyLevel)
+{
+	if (!SOLDIER_CLASS_ENEMY(bSoldierClass)) return 0; // militia: none (E10)
+	switch (ubDifficultyLevel)
+	{
+		case DIF_LEVEL_EASY: return gamepolicy(enemy_equipment_difficulty_offsets)[0];
+		case DIF_LEVEL_HARD: return gamepolicy(enemy_equipment_difficulty_offsets)[2];
+		default:             return gamepolicy(enemy_equipment_difficulty_offsets)[1];
+	}
+}
+
+
+UINT8 EnemyEquipmentProgress(UINT8 const ubGameProgress, INT8 const iOffset, INT8 const iDifficultyOffset)
+{
+	return static_cast<UINT8>(std::clamp(ubGameProgress + iOffset + iDifficultyOffset, 0, 100));
+}
+
+
+INT8 EnemyEquipmentClass(UINT8 const ubProgress)
+{
+	return static_cast<INT8>(std::min<int>(ubProgress, 100) / 10 + 1);
+}
+
+
+int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int const progress, bool const lowestWhenBelow)
+{
+	int best = -1;
+	int lowest = -1;
+	for (UINT8 const t : tiers)
+	{
+		if (lowest < 0 || t < lowest) lowest = t;
+		if (t <= progress && t > best) best = t;
+	}
+	if (best >= 0) return best;
+	// below the lowest tier (docs/enemy-equipment-below-lowest-tier-plan.md, variant A):
+	// guns and launcher ammunition take the lowest tier, everything else is none
+	return lowestWhenBelow ? lowest : -1;
+}
+
+
+// One roll per soldier (E6): his P for every category
+static UINT8 RollEnemyEquipmentProgress(INT8 const bSoldierClass, INT8 const bEquipmentLevel)
+{
+	GamePolicy::OffsetRange const range = EnemyEquipmentOffsetRange(bSoldierClass, bEquipmentLevel);
+	INT8 const offset = static_cast<INT8>(range.min + static_cast<int>(Random(range.max - range.min + 1)));
+	INT8 const difficulty = EnemyEquipmentDifficultyOffset(bSoldierClass, gGameOptions.ubDifficultyLevel);
+	UINT8 const progress = GameProgressPercentage();
+	UINT8 const p = EnemyEquipmentProgress(progress, offset, difficulty);
+	SLOGD("Enemy equipment: class {}, level {}, progress {}, offset {}, difficulty {} -> P {} (class {})",
+		bSoldierClass, bEquipmentLevel, progress, offset, difficulty, p, EnemyEquipmentClass(p));
+	return p;
+}
+
+
+UINT16 SelectEnemyGunByProgress(int const progress)
+{
+	std::vector<UINT8> tiers;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() == IC_GUN && item->hasMinEnemyProgress()) tiers.push_back(item->getMinEnemyProgress());
+	}
+	// B1: every soldier keeps a gun
+	int const tier = ChooseEnemyEquipmentTier(tiers, progress, true);
+	if (tier < 0) return NOTHING;
+
+	std::vector<UINT16> guns;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() == IC_GUN && item->hasMinEnemyProgress() && item->getMinEnemyProgress() == tier)
+		{
+			guns.push_back(item->getItemIndex());
+		}
+	}
+	return guns[Random(static_cast<UINT32>(guns.size()))];
+}
+
+
+std::vector<UINT16> LowestEnemyGunTier()
+{
+	int lowest = -1;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() != IC_GUN || !item->hasMinEnemyProgress()) continue;
+		if (lowest < 0 || item->getMinEnemyProgress() < lowest) lowest = item->getMinEnemyProgress();
+	}
+	std::vector<UINT16> guns;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() == IC_GUN && item->hasMinEnemyProgress() && item->getMinEnemyProgress() == lowest)
+		{
+			guns.push_back(item->getItemIndex());
+		}
+	}
+	return guns;
+}
+
+
+// A category's own class moved by the old trade-offs (better gun / worse vest ...):
+// one class is 10 points of P
+static int CategoryProgress(int const iProgress, INT8 const bCategoryClass, INT8 const bProgressClass)
+{
+	return std::clamp(iProgress + (bCategoryClass - bProgressClass) * 10, 0, 100);
+}
+
+
+UINT16 PickEnemyItemByProgress(std::vector<UINT16> const& candidates, int const progress, bool const lowestWhenBelow)
+{
+	std::vector<UINT8> tiers;
+	for (UINT16 const c : candidates)
+	{
+		ItemModel const* const item = GCM->getItem(c);
+		if (item->hasMinEnemyProgress()) tiers.push_back(item->getMinEnemyProgress());
+	}
+	int const tier = ChooseEnemyEquipmentTier(tiers, progress, lowestWhenBelow);
+	if (tier < 0) return NOTHING;
+
+	std::vector<UINT16> pool;
+	for (UINT16 const c : candidates)
+	{
+		ItemModel const* const item = GCM->getItem(c);
+		if (item->hasMinEnemyProgress() && item->getMinEnemyProgress() == tier) pool.push_back(c);
+	}
+	return pool[Random(static_cast<UINT32>(pool.size()))];
+}
+
+
+std::vector<UINT16> EnemyGrenadeCandidates(UINT16 const usLauncher)
+{
+	std::vector<UINT16> candidates;
+	for (auto pItem : GCM->getItems())
+	{
+		UINT16 const idx = pItem->getItemIndex();
+		if (usLauncher != NOTHING)
+		{
+			if (ValidLaunchable(idx, usLauncher)) candidates.push_back(idx);
+		}
+		else if (pItem->getItemClass() == IC_GRENADE && GetLauncherFromLaunchable(idx) == NOTHING)
+		{
+			candidates.push_back(idx);
+		}
+	}
+	return candidates;
 }

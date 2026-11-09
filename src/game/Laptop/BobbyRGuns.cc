@@ -1285,12 +1285,15 @@ static UINT16 DisplayCaliber(UINT16 usPosY, UINT16 usIndex, UINT16 usFontHeight)
 }
 
 
-// Bobby Ray's catalogue texts come from braydesc.edt, which only has the items
+// Bobby Ray's catalogue texts come from strings/item-texts-<language>.json
+// (docs/item-texts-json-plan.md), else from braydesc.edt, which only has the items
 // of the original game; other items (and original slots braydesc leaves
 // empty) use the item's own name and description from the data
 // (docs/item-limits-plan.md, D7).
 ST::string GetBobbyRItemName(UINT16 const usItemIndex)
 {
+	ST::string const& fromJson = GCM->getItem(usItemIndex)->getBobbyRayName();
+	if (!fromJson.empty()) return fromJson;
 	if (usItemIndex < VANILLA_MAXITEMS)
 	{
 		ST::string const s = GCM->loadEncryptedString(BOBBYRDESCFILE, BOBBYR_ITEM_DESC_FILE_SIZE * usItemIndex, BOBBYR_ITEM_DESC_NAME_SIZE);
@@ -1302,6 +1305,8 @@ ST::string GetBobbyRItemName(UINT16 const usItemIndex)
 
 ST::string GetBobbyRItemDescription(UINT16 const usItemIndex)
 {
+	ST::string const& fromJson = GCM->getItem(usItemIndex)->getBobbyRayDescription();
+	if (!fromJson.empty()) return fromJson;
 	if (usItemIndex < VANILLA_MAXITEMS)
 	{
 		ST::string const s = GCM->loadEncryptedString(BOBBYRDESCFILE, BOBBYR_ITEM_DESC_FILE_SIZE * usItemIndex + BOBBYR_ITEM_DESC_NAME_SIZE, BOBBYR_ITEM_DESC_INFO_SIZE);

@@ -82,6 +82,10 @@ impl SchemaManager {
         if path.starts_with("translation_tables/") {
             return self.schemas.get("translation-table");
         }
+        // docs/item-texts-json-plan.md: before the generic strings/ rule
+        if path.starts_with("strings/item-texts-") {
+            return self.schemas.get("item-texts");
+        }
         if path.starts_with("strings/") {
             return self.schemas.get("strings");
         }

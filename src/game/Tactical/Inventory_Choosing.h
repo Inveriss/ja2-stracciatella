@@ -3,6 +3,9 @@
 
 #include "Types.h"
 #include "Soldier_Create.h"
+#include "GamePolicy.h"
+
+#include <vector>
 
 #define MORTAR_GRENADE_CLASS	100
 
@@ -58,5 +61,53 @@ void ResetMortarsOnTeamCount( void );
 // the hand and its ammunition (more LAWs, mortar shells) in his empty big
 // pockets, as much as his strength carries (100%).  Everything at 100%.
 void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 usWeapon);
+
+// The fixed kit of the enemy Elite Heavy (docs/enemy-elite-heavy-plan.md, section 6):
+// fMortar = the mortar with 3 shells, else 3 LAWs
+void EquipEliteHeavyEnemy(SOLDIERCREATE_STRUCT* pp, bool fMortar);
+
+
+// --- Enemy equipment by game progress (docs/enemy-equipment-progress-plan.md) ---
+
+// bRelativeEquipmentLevel of a strategically created soldier (no editor level, E8)
+#define NO_EQUIPMENT_LEVEL (-1)
+
+// game.json enemy_equipment.by_progress
+bool EnemyEquipmentByProgress();
+
+// The random offset range of a soldier: by editor equipment level 0-4 (E7), else by
+// soldier type (E8; militia: green = admin, regular = army, elite = elite, E10)
+GamePolicy::OffsetRange EnemyEquipmentOffsetRange(INT8 bSoldierClass, INT8 bEquipmentLevel);
+
+// The difficulty offset (E9): enemies only, 0 for militia
+INT8 EnemyEquipmentDifficultyOffset(INT8 bSoldierClass, UINT8 ubDifficultyLevel);
+
+// P = progress + offset + difficulty offset, clamped to 0..100 (E6)
+UINT8 EnemyEquipmentProgress(UINT8 ubGameProgress, INT8 iOffset, INT8 iDifficultyOffset);
+
+// The class 1..11 that counts and chances keep using (E13)
+INT8 EnemyEquipmentClass(UINT8 ubProgress);
+
+// Tier rule (E12): the highest tier <= progress; below every tier the lowest tier with
+// lowestWhenBelow (guns, launcher ammunition), else -1 (docs/enemy-equipment-below-lowest-tier-plan.md);
+// -1 when there is no tier at all
+int ChooseEnemyEquipmentTier(std::vector<UINT8> const& tiers, int progress, bool lowestWhenBelow);
+
+// Stage 3: a random gun of the tier chosen for this progress, among the guns with
+// minEnemyProgress; NOTHING when no gun has one
+UINT16 SelectEnemyGunByProgress(int progress);
+
+// Stage 4: a random item of the tier chosen for this progress among the candidates
+// that have minEnemyProgress (a repeated candidate keeps its weight); NOTHING if none, and
+// NOTHING below the lowest tier unless lowestWhenBelow
+UINT16 PickEnemyItemByProgress(std::vector<UINT16> const& candidates, int progress, bool lowestWhenBelow = false);
+
+// Stage 5: the grenades an enemy may get: what the launcher (GLAUNCHER, MORTAR) fires,
+// or with NOTHING the hand grenades (IC_GRENADE that no launcher fires)
+std::vector<UINT16> EnemyGrenadeCandidates(UINT16 usLauncher);
+
+// Stage 3 (O3): the guns of the lowest gun tier, marked as already dropped at the start
+// of a game so that the crappiest guns get no first-drop bonus
+std::vector<UINT16> LowestEnemyGunTier();
 
 #endif

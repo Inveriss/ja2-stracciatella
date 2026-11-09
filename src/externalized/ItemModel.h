@@ -8,7 +8,10 @@
 #include "TilesetTileIndexModel.h"
 
 #include <string_theory/string>
+#include <functional>
 #include <optional>
+#include <string>
+#include <vector>
 
 class JsonObject;
 class JsonObject;
@@ -71,6 +74,14 @@ struct ItemModel
 	const virtual ST::string& getShortName() const;
 	const virtual ST::string& getName() const;
 	const virtual ST::string& getDescription() const;
+
+	// docs/item-texts-json-plan.md: texts of strings/item-texts-<language>.json, which win over
+	// the item file and itemdesc.edt; a field left out keeps the text it has
+	void setTexts(ST::string const* shortName, ST::string const* name, ST::string const* description);
+	// Bobby Ray's catalogue texts of the language file; empty = braydesc.edt / the item's own texts
+	const ST::string& getBobbyRayName() const        { return bobbyRayName; }
+	const ST::string& getBobbyRayDescription() const { return bobbyRayDescription; }
+	void setBobbyRayTexts(ST::string const& n, ST::string const& d) { bobbyRayName = n; bobbyRayDescription = d; }
 
 	virtual uint16_t        getItemIndex() const;
 	virtual uint32_t        getItemClass() const;
@@ -150,6 +161,18 @@ struct ItemModel
 	// set by the content manager when the item is registered
 	uint8_t getMinDropProgress() const { return minDropProgress; }
 	void setMinDropProgress(uint8_t const progress) { minDropProgress = progress; }
+	// "minDropProgress": "blocked": a defeated enemy never leaves this item behind;
+	// mercs, militia and dealers treat it like 0 (docs/enemy-drop-progress-plan.md, D13)
+	bool isEnemyDropBlocked() const { return enemyDropBlocked; }
+	void setEnemyDropBlocked(bool const blocked) { enemyDropBlocked = blocked; }
+
+	// The lowest game progress (0-100, multiple of 5) at which the random equipment
+	// choice may give this item to enemies and militia ("minEnemyProgress"); items
+	// without it never get chosen (docs/enemy-equipment-progress-plan.md, E1-E4)
+	static constexpr uint8_t NO_MIN_ENEMY_PROGRESS = 255;
+	bool    hasMinEnemyProgress() const { return minEnemyProgress != NO_MIN_ENEMY_PROGRESS; }
+	uint8_t getMinEnemyProgress() const { return minEnemyProgress; }
+	void setMinEnemyProgress(uint8_t const progress) { minEnemyProgress = progress; }
 
 	struct InitData
 	{
@@ -170,6 +193,8 @@ protected:
 	ST::string shortName;
 	ST::string name;
 	ST::string description;
+	ST::string bobbyRayName;
+	ST::string bobbyRayDescription;
 	uint32_t   usItemClass;
 	uint8_t    ubClassIndex;
 	ItemCursor ubCursor;
@@ -212,7 +237,52 @@ protected:
 	AttachmentEffects attachmentEffects;
 	const WeaponAttachmentFamilyModel* attachmentFamily = nullptr;
 	uint8_t           minDropProgress = 0;
+	uint8_t           minEnemyProgress = NO_MIN_ENEMY_PROGRESS;
+	bool              enemyDropBlocked = false;
 };
+
+// Reads "minEnemyProgress" of an item file entry into the item: 0-100 in steps
+// of 5, left out = never for enemies. Returns an error text, empty when fine.
+// docs/enemy-equipment-progress-plan.md (E1, E3, E4)
+ST::string ApplyMinEnemyProgress(ItemModel& item, JsonObject const& json);
+
+// Reads "minDropProgress" of an item file entry into the item: 0-100 (left out = 0),
+// or the word "blocked" (minDropProgress 0 and enemy drop blocked). Returns an error
+// text, empty when fine. docs/enemy-drop-progress-plan.md (D1, D13)
+ST::string ApplyMinDropProgress(ItemModel& item, JsonObject const& json);
+
+// Lowest tier an enemy category should have: a soldier's progress can be as low as
+// 0, so each category needs an item at or below this (stage 1 load warning)
+constexpr uint8_t ENEMY_LOW_TIER_LIMIT = 20;
+
+// One warning per enemy equipment category (guns, armour, knives, grenades, bombs,
+// kits) whose lowest minEnemyProgress is above ENEMY_LOW_TIER_LIMIT or that has no
+// item with minEnemyProgress at all. Null entries are skipped.
+std::vector<ST::string> MissingLowEnemyTiers(std::vector<const ItemModel*> const& items);
+
+// --- docs/item-texts-json-plan.md ---
+
+// The old EDT sizes; a longer text gets a load warning (T6)
+constexpr unsigned ITEM_TEXT_SHORT_NAME_SIZE = 80;
+constexpr unsigned ITEM_TEXT_NAME_SIZE       = 80;
+constexpr unsigned ITEM_TEXT_DESCRIPTION_SIZE = 240;
+constexpr unsigned ITEM_TEXT_BR_NAME_SIZE    = 80;
+constexpr unsigned ITEM_TEXT_BR_DESCRIPTION_SIZE = 320;
+
+// Applies strings/item-texts-<language>.json (a list of entries keyed by internalName) to the
+// items: find returns the item of an internalName or null. Throws DataError on an unknown
+// internalName or a duplicate entry; returns one warning per text longer than its old size.
+std::vector<ST::string> ApplyItemTexts(JsonValue const& list, ST::string const& fileName,
+	std::function<ItemModel*(ST::string const&)> const& find);
+
+// One item for the export (JA2_EXPORT_ITEM_TEXTS); empty texts are left out
+struct ItemTextsEntry
+{
+	ST::string internalName;
+	ST::string shortName, name, description, bobbyRayName, bobbyRayDescription;
+};
+// The file text of the export: a header comment and the entries without any text skipped (T8)
+std::string ItemTextsFileText(std::vector<ItemTextsEntry> const& entries);
 
 // the AP cost of a throw when the data has none, see docs/throws-ap-plan.md
 constexpr uint8_t DEFAULT_AP_COST_PER_THROW = 11;

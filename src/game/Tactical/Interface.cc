@@ -47,6 +47,8 @@
 #include "Line.h"
 #include "Vehicles.h"
 #include "GameSettings.h"
+#include "Cheats.h"
+#include "Campaign.h"
 #include "Squads.h"
 #include "Items.h"
 #include "GameScreen.h"
@@ -987,6 +989,54 @@ static void PrintAboveGuy(INT16 const x, INT16 const y, const ST::string& text)
 static void DrawBarsInUIBox(const SOLDIERTYPE* pSoldier, INT16 sXPos, INT16 sYPos, INT16 sWidth, INT16 sHeight);
 
 
+// Cheat (CTRL+GABBY): the soldier type, the game progress and the full equipment of a
+// hovered enemy or militia, one item per line, for testing
+// docs/enemy-equipment-progress-plan.md
+static void PrintEquipmentBelowGuy(SOLDIERTYPE const& s, INT16 const x, INT16 y)
+{
+	ST::string type;
+	switch (s.ubSoldierClass)
+	{
+		case SOLDIER_CLASS_ADMINISTRATOR:       type = "Admin";               break;
+		case SOLDIER_CLASS_ARMY:                type = "Army";                break;
+		case SOLDIER_CLASS_ELITE:               type = "Elite";               break;
+		case SOLDIER_CLASS_GREEN_MILITIA:       type = "Green militia";       break;
+		case SOLDIER_CLASS_REG_MILITIA:         type = "Regular militia";     break;
+		case SOLDIER_CLASS_ELITE_MILITIA:       type = "Elite militia";       break;
+		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA: type = "Elite heavy militia"; break;
+		case SOLDIER_CLASS_ELITE_HEAVY:         type = "Elite heavy";         break;
+		default:                                type = "Civilian";            break;
+	}
+	SetFontForeground(FONT_YELLOW);
+	PrintAboveGuy(x, y, ST::format("{}, game progress {}%", type, GameProgressPercentage()));
+
+	SetFontForeground(FONT_MCOLOR_WHITE);
+	for (OBJECTTYPE const& o : s.inv)
+	{
+		if (o.usItem == NOTHING) continue;
+		ItemModel const* const item = GCM->getItem(o.usItem);
+		ST::string line = item->getShortName();
+		if (item->isAmmo())
+		{
+			line += ST::format(" ({} rds)", o.bStatus[0]);
+		}
+		else
+		{
+			line += ST::format(" {}%", o.bStatus[0]);
+		}
+		if (o.ubNumberOfObjects > 1) line += ST::format(" x{}", o.ubNumberOfObjects);
+		y += 10;
+		PrintAboveGuy(x, y, line);
+		for (UINT16 const a : o.usAttachItem)
+		{
+			if (a == NOTHING) continue;
+			y += 10;
+			PrintAboveGuy(x, y, ST::format("+ {}", GCM->getItem(a)->getShortName()));
+		}
+	}
+}
+
+
 void DrawSelectedUIAboveGuy(SOLDIERTYPE& s)
 {
 	if (s.bVisible == -1 && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS)) return;
@@ -1167,6 +1217,12 @@ void DrawSelectedUIAboveGuy(SOLDIERTYPE& s)
 
 	SetFontForeground(FONT_MCOLOR_DKRED);
 	PrintAboveGuy(sXPos, sYPos, GetSoldierHealthString(&s));
+
+	if (CHEATER_CHEAT_LEVEL() && s.bTeam != OUR_TEAM && s.ubProfile == NO_PROFILE &&
+		!(s.uiStatusFlags & SOLDIER_VEHICLE))
+	{
+		PrintEquipmentBelowGuy(s, sXPos, sYPos + 10);
+	}
 }
 
 

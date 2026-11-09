@@ -1002,6 +1002,9 @@ static ScreenID UIHandleNewMerc(UI_EVENT* pUIEvent)
 }
 
 
+UINT8 gNewBadMercClass = SOLDIER_CLASS_ARMY;
+
+
 static ScreenID UIHandleNewBadMerc(UI_EVENT*)
 {
 	// Get map postion and place the enemy there
@@ -1011,10 +1014,8 @@ static ScreenID UIHandleNewBadMerc(UI_EVENT*)
 	// Are we an OK dest?
 	if (!IsLocationSittable(map_pos, 0)) return GAME_SCREEN;
 
-	UINT32       const roll = Random(10);
-	SoldierClass const sc   = roll < 4 ? SOLDIER_CLASS_ADMINISTRATOR :
-					roll < 8 ? SOLDIER_CLASS_ARMY :
-					SOLDIER_CLASS_ELITE;
+	// ALT+A admin, ALT+B army, ALT+Q elite, ALT+P Elite Heavy (cheat keys)
+	SoldierClass const sc = static_cast<SoldierClass>(gNewBadMercClass);
 	SOLDIERTYPE* const s = TacticalCreateEnemySoldier(sc);
 	if (!s) return GAME_SCREEN;
 
@@ -1032,6 +1033,7 @@ static ScreenID UIHandleNewBadMerc(UI_EVENT*)
 				++sector.ubNumTroops;
 				++sector.ubTroopsInBattle;
 				break;
+			case SOLDIER_CLASS_ELITE_HEAVY:
 			case SOLDIER_CLASS_ELITE:
 				++sector.ubNumElites;
 				++sector.ubElitesInBattle;
@@ -1052,6 +1054,7 @@ static ScreenID UIHandleNewBadMerc(UI_EVENT*)
 					++sector->ubNumTroops;
 					++sector->ubTroopsInBattle;
 					break;
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:
 					++sector->ubNumElites;
 					++sector->ubElitesInBattle;

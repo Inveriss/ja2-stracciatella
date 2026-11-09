@@ -2000,6 +2000,7 @@ try
 						}
 						break;
 
+					case SOLDIER_CLASS_ELITE_HEAVY:
 					case SOLDIER_CLASS_ELITE:
 						++pSummary->ubNumElites;
 						if (basic.fPriorityExistance) ++pSummary->ubEliteExistance;

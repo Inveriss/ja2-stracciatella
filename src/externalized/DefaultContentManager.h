@@ -369,6 +369,10 @@ protected:
 	 * resolved profiles (prof.dat merged with the JSON files) there as complete
 	 * mercs-profile-info.json / mercs-relations.json replacements. */
 	void dumpMercProfilesIfRequested() const;
+	// docs/item-texts-json-plan.md: strings/item-texts-<language>.json over the item files and
+	// itemdesc.edt; and the export of the EDT texts ($JA2_EXPORT_ITEM_TEXTS = the output file)
+	void loadItemTexts();
+	void exportItemTextsIfRequested(BinaryData const& binaryData) const;
 	void loadVehicles();
 	void loadTranslationTable();
 	void loadAllScriptRecords();

@@ -38,6 +38,7 @@
 #include "RT_Time_Defines.h"
 #include "SkillCheck.h"
 #include "Soldier_Macros.h"
+#include "Soldier_Create.h"
 #include "Strategic.h"
 #include "StrategicMap.h"
 #include "Strategic_AI.h"
@@ -103,7 +104,7 @@ struct SOLDIERCELL
 	SOLDIERCELL* pAttacker[3];
 	UINT32 uiFlashTime;
 	INT8 bWeaponSlot;
-	UINT16 usHeavyPayload; // the explosive of the heavy weapon shot just fired (ELITE_HEAVY militia), else NOTHING
+	UINT16 usHeavyPayload; // the explosive of the heavy weapon shot just fired (ELITE_HEAVY militia and enemies), else NOTHING
 };
 
 struct AUTORESOLVE_STRUCT
@@ -397,6 +398,7 @@ static INT32 ARRank(SOLDIERCELL const& c)
 	if (c.uiFlags & CELL_MERC) return 0;
 	switch (c.pSoldier->ubSoldierClass)
 	{
+		case SOLDIER_CLASS_ELITE_HEAVY:
 		case SOLDIER_CLASS_ELITE:
 		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
 		case SOLDIER_CLASS_ELITE_MILITIA: return 0;
@@ -1126,11 +1128,19 @@ static bool IsHeavyMilitiaCell(SOLDIERCELL const* const c)
 }
 
 
-// ELITE_HEAVY militia have no portrait of their own yet: "Heavy" written on
-// the bottom of the elite militia portrait (x, y, w, h: the portrait's place)
+// The enemy Elite Heavy (docs/enemy-elite-heavy-plan.md)
+static bool IsHeavyEnemyCell(SOLDIERCELL const* const c)
+{
+	return !(c->uiFlags & (CELL_MERC | CELL_MILITIA)) && c->pSoldier &&
+		c->pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY;
+}
+
+
+// ELITE_HEAVY militia and enemies have no portrait of their own yet: "Heavy" written
+// on the bottom of the elite portrait (x, y, w, h: the portrait's place)
 static void DrawHeavyMilitiaLabel(SOLDIERCELL const* const c, INT16 const x, INT16 const y, INT16 const w, INT16 const h, SGPFont const font)
 {
-	if (!IsHeavyMilitiaCell(c) || c->pSoldier->bLife == 0) return;
+	if (!(IsHeavyMilitiaCell(c) || IsHeavyEnemyCell(c)) || c->pSoldier->bLife == 0) return;
 	ST::string const& label = pMilitiaHeavyStrings[3];
 	SetFontAttributes(font, FONT_YELLOW, FONT_NEARBLACK);
 	INT16 sX;
@@ -2098,7 +2108,10 @@ static void CreateAutoResolveInterface(void)
 	if (gubEnemyEncounterCode != CREATURE_ATTACK_CODE)
 	{
 		SOLDIERCELL* cell = gpEnemies;
+		// docs/enemy-elite-heavy-plan.md (N10): the elites of the battle, some of them Elite Heavy
+		BeginEnemyEliteHeavyCount(0, 0, ar->ubElites);
 		cell = MakeEnemyTroops(cell, ar->ubElites, ar, SOLDIER_CLASS_ELITE,         ELITE_FACE, gpStrategicString[STR_AR_ELITE_NAME]);
+		EndEnemyEliteHeavyCount();
 		cell = MakeEnemyTroops(cell, ar->ubTroops, ar, SOLDIER_CLASS_ARMY,          TROOP_FACE, gpStrategicString[STR_AR_TROOP_NAME]);
 		cell = MakeEnemyTroops(cell, ar->ubAdmins, ar, SOLDIER_CLASS_ADMINISTRATOR, ADMIN_FACE, gpStrategicString[STR_AR_ADMINISTRATOR_NAME]);
 		AssociateEnemiesWithStrategicGroups();
@@ -3401,7 +3414,9 @@ static BOOLEAN FireAShot(SOLDIERCELL* pAttacker)
 	pSoldier = pAttacker->pSoldier;
 	pAttacker->usHeavyPayload = NOTHING;
 
-	if (IsHeavyMilitiaCell(pAttacker) && FireHeavyWeaponShot(pAttacker)) return TRUE;
+	// heavy weapon first; the enemy Elite Heavy too, his Minimi only once it is spent
+	// (docs/enemy-elite-heavy-plan.md, N10)
+	if ((IsHeavyMilitiaCell(pAttacker) || IsHeavyEnemyCell(pAttacker)) && FireHeavyWeaponShot(pAttacker)) return TRUE;
 
 	if( pAttacker->uiFlags & CELL_MALECREATURE )
 	{

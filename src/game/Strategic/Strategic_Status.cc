@@ -422,6 +422,7 @@ static INT8 SoldierClassToRankIndex(UINT8 ubSoldierClass)
 	switch ( ubSoldierClass )
 	{
 		case SOLDIER_CLASS_ADMINISTRATOR:	bRankIndex = 0;	break;
+		case SOLDIER_CLASS_ELITE_HEAVY:
 		case SOLDIER_CLASS_ELITE:					bRankIndex = 2;	break;
 		case SOLDIER_CLASS_ARMY:					bRankIndex = 1;	break;
 

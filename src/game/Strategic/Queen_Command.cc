@@ -9,6 +9,7 @@
 #include "Strategic.h"
 #include "StrategicMap.h"
 #include "Soldier_Init_List.h"
+#include "Soldier_Create.h"
 #include "Debug.h"
 #include "Random.h"
 #include "Strategic_Movement.h"
@@ -394,6 +395,7 @@ void PrepareEnemyForSectorBattle()
 			{
 				case SOLDIER_CLASS_ADMINISTRATOR: ++total_admins; break;
 				case SOLDIER_CLASS_ARMY:          ++total_troops; break;
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:         ++total_elites; break;
 			}
 		}
@@ -545,6 +547,7 @@ void PrepareEnemyForSectorBattle()
 					--n_troops;
 					break;
 
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:
 					if (n_elites == 0) continue;
 					--n_elites;
@@ -646,6 +649,7 @@ void ProcessQueenCmdImplicationsOfDeath(const SOLDIERTYPE* const pSoldier)
 		}
 		switch( pSoldier->ubSoldierClass )
 		{
+			case SOLDIER_CLASS_ELITE_HEAVY:
 			case SOLDIER_CLASS_ELITE:
 				if( !pGroup->pEnemyGroup->ubNumElites )
 				{
@@ -786,6 +790,7 @@ void ProcessQueenCmdImplicationsOfDeath(const SOLDIERTYPE* const pSoldier)
 						pSector->ubTroopsInBattle--;
 					}
 					break;
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:
 					if( guiCurrentScreen == GAME_SCREEN )
 					{
@@ -881,6 +886,7 @@ void ProcessQueenCmdImplicationsOfDeath(const SOLDIERTYPE* const pSoldier)
 						pSector->ubTroopsInBattle--;
 					}
 					break;
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:
 					if ((ubTotalEnemies <= MAX_STRATEGIC_TEAM_SIZE && pSector->ubNumElites != pSector->ubElitesInBattle) ||
 						!pSector->ubNumElites || !pSector->ubElitesInBattle ||
@@ -1057,6 +1063,15 @@ static void AddEnemiesToBattle(GROUP const& g, UINT8 const strategic_insertion_c
 	UINT8            curr_slot = 0;
 	MAPEDGEPOINTINFO edgepoint_info;
 	ChooseMapEdgepoints(&edgepoint_info, strategic_insertion_code, n_total);
+
+	// docs/enemy-elite-heavy-plan.md (N8): the arriving elites join the count of the elites
+	// already in the sector, so only the missing Elite Heavy are added
+	struct Count
+	{
+		explicit Count(UINT8 const newElites) { BeginEnemyEliteHeavyCountInSector(newElites); }
+		~Count() { EndEnemyEliteHeavyCount(); }
+	} const count(n_elites);
+
 	while (n_total != 0)
 	{
 		UINT32       const roll = Random(n_total--);

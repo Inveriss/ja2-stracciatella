@@ -2,8 +2,66 @@
 #include "Exceptions.h"
 #include "Types.h"
 
+#include <string_theory/format>
+
 #include <algorithm>
 #include <iterator>
+
+namespace {
+
+// docs/enemy-equipment-progress-plan.md, E7-E9: defaults are the decided values
+GamePolicy::OffsetRange ReadOffsetRange(JsonObject const& obj, char const* name, int8_t min, int8_t max)
+{
+	if (obj.has(name))
+	{
+		auto const v = obj[name].toVec();
+		if (v.size() != 2) throw DataError(ST::format("game.json: enemy_equipment {} needs [min, max]", name));
+		min = static_cast<int8_t>(v[0].toInt());
+		max = static_cast<int8_t>(v[1].toInt());
+		if (min > max) throw DataError(ST::format("game.json: enemy_equipment {}: min {} is above max {}", name, min, max));
+	}
+	return { min, max };
+}
+
+void ReadEnemyEquipment(GamePolicy& p, JsonObject const& gp)
+{
+	JsonObject const ee = gp.has("enemy_equipment") ? gp["enemy_equipment"].toObject() : JsonObject();
+	p.enemy_equipment_by_progress = ee.getOptionalBool("by_progress", true);
+
+	JsonObject const lvl = ee.has("level_offsets") ? ee["level_offsets"].toObject() : JsonObject();
+	p.enemy_equipment_level_offsets[0] = ReadOffsetRange(lvl, "bad",     -20, -10);
+	p.enemy_equipment_level_offsets[1] = ReadOffsetRange(lvl, "poor",    -10,   0);
+	p.enemy_equipment_level_offsets[2] = ReadOffsetRange(lvl, "average", -10,  10);
+	p.enemy_equipment_level_offsets[3] = ReadOffsetRange(lvl, "good",      0,  10);
+	p.enemy_equipment_level_offsets[4] = ReadOffsetRange(lvl, "great",    10,  20);
+
+	JsonObject const typ = ee.has("type_offsets") ? ee["type_offsets"].toObject() : JsonObject();
+	p.enemy_equipment_type_offsets[0] = ReadOffsetRange(typ, "admin", -20, -10);
+	p.enemy_equipment_type_offsets[1] = ReadOffsetRange(typ, "army",  -10,  10);
+	p.enemy_equipment_type_offsets[2] = ReadOffsetRange(typ, "elite",   0,  20);
+
+	JsonObject const dif = ee.has("difficulty_offsets") ? ee["difficulty_offsets"].toObject() : JsonObject();
+	p.enemy_equipment_difficulty_offsets[0] = static_cast<int8_t>(dif.getOptionalInt("easy", -10));
+	p.enemy_equipment_difficulty_offsets[1] = static_cast<int8_t>(dif.getOptionalInt("experienced", 0));
+	p.enemy_equipment_difficulty_offsets[2] = static_cast<int8_t>(dif.getOptionalInt("expert", 10));
+}
+
+// docs/enemy-elite-heavy-plan.md, section 3; left out = off
+void ReadEnemyEliteHeavy(GamePolicy& p, JsonObject const& gp)
+{
+	JsonObject const eh = gp.has("enemy_elite_heavy") ? gp["enemy_elite_heavy"].toObject() : JsonObject();
+	p.enemy_elite_heavy_enabled = eh.getOptionalBool("enabled", false);
+	int const per = eh.getOptionalInt("elites_per_heavy", 5);
+	if (per < 1 || per > 100) throw DataError(ST::format("game.json: enemy_elite_heavy elites_per_heavy must be 1-100, not {}", per));
+	p.enemy_elite_heavy_elites_per_heavy = static_cast<uint8_t>(per);
+
+	JsonObject const mod = eh.has("difficulty_modifiers") ? eh["difficulty_modifiers"].toObject() : JsonObject();
+	p.enemy_elite_heavy_difficulty_modifiers[0] = static_cast<int8_t>(mod.getOptionalInt("easy", -1));
+	p.enemy_elite_heavy_difficulty_modifiers[1] = static_cast<int8_t>(mod.getOptionalInt("experienced", 0));
+	p.enemy_elite_heavy_difficulty_modifiers[2] = static_cast<int8_t>(mod.getOptionalInt("expert", 1));
+}
+
+}
 
 DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 {
@@ -96,6 +154,9 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 
 	game_progress_sector_percent = progress.getOptionalUInt("game_progress_sector_percent", 2);
 	game_progress_quest_percent = progress.getOptionalUInt("game_progress_quest_percent", 2);
+
+	ReadEnemyEquipment(*this, gp);
+	ReadEnemyEliteHeavy(*this, gp);
 
 	kills_per_point_easy = progress.getOptionalInt("kills_per_point_easy", 7);
 	kills_per_point_medium = progress.getOptionalInt("kills_per_point_medium", 10);

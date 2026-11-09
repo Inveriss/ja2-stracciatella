@@ -1,0 +1,31 @@
+$schema: http://json-schema.org/draft-04/schema#
+type: array
+title: Item names and descriptions in one language
+description: >
+  The texts of the items for one game language (strings/item-texts-<language>.json,
+  docs/item-texts-json-plan.md). A field left out falls back to the item file, then to
+  itemdesc.edt / braydesc.edt of the game data. Texts longer than the old EDT sizes
+  (80 / 80 / 240, Bobby Ray 80 / 320) get a load warning.
+items:
+  type: object
+  properties:
+    internalName:
+      $ref: types/id.schema.yaml
+    shortName:
+      type: string
+      description: Short name (inventory, item boxes)
+    name:
+      type: string
+      description: Full name
+    description:
+      type: string
+      description: Description of the item description box
+    bobbyRayName:
+      type: string
+      description: Name in Bobby Ray's catalogue
+    bobbyRayDescription:
+      type: string
+      description: Description in Bobby Ray's catalogue
+  required:
+    - internalName
+  additionalProperties: false

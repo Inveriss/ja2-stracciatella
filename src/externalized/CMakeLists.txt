@@ -43,7 +43,9 @@ if (WITH_UNITTESTS)
         ${LOCAL_JA2_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/DefaultContentManagerUT.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/DefaultContentManager_unittests.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/EnemyEquipmentProgress_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/ItemIndexBlocks_unittests.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/ItemTexts_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/JsonUtility_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/VanillaWeapons_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/WeaponAttachmentFamily_unittests.cc

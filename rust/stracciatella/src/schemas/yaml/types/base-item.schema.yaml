@@ -2,16 +2,30 @@ type: object
 title: Base Item
 description: The basic properties for all items in the game
 properties:
+  minEnemyProgress:
+    title: Minimum progress for enemy equipment
+    description: |
+      The random equipment choice gives this item to enemies and militia only from this
+      game progress on, 0-100 in steps of 5. Left out means never
+      (docs/enemy-equipment-progress-plan.md). Independent of minDropProgress.
+    type: integer
+    minimum: 0
+    maximum: 100
+    multipleOf: 5
   minDropProgress:
     title: Minimum progress for enemy drops
     description: |
       An enemy leaves this item behind (killed, disarmed, as an attachment of a dropped gun)
       only when the game's highest progress is at least this value, 0-100; 0 or left out
       means always (docs/enemy-drop-progress-plan.md). Off with game.json
-      enemy_drop_progress_limits false.
-    type: integer
-    minimum: 0
-    maximum: 100
+      enemy_drop_progress_limits false. "blocked": a defeated enemy never leaves it
+      behind (also with the limits off); mercs, militia and dealers treat it like 0.
+    anyOf:
+      - type: integer
+        minimum: 0
+        maximum: 100
+      - type: string
+        enum: [blocked]
   attachmentFamily:
     title: Weapon attachment family
     description: The family in weapon-attachment-families.json (docs/weapon-attachments-plan.md)

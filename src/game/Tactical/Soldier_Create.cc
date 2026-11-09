@@ -785,6 +785,12 @@ static void GeneratePaletteForSoldier(SOLDIERTYPE* pSoldier, UINT8 ubSoldierClas
 			pSoldier->PantsPal = "BEIGEPANTS"; // as every militia rank: only the shirt differs
 			pSoldier->ubSoldierClass = ubSoldierClass;
 			return;
+		case SOLDIER_CLASS_ELITE_HEAVY:
+			// docs/enemy-elite-heavy-plan.md (H7): close to the black elite, yet clearly different
+			pSoldier->VestPal  = "greyVEST";
+			pSoldier->PantsPal = "BLACKPANTS";
+			pSoldier->ubSoldierClass = ubSoldierClass;
+			return;
 		case SOLDIER_CLASS_MINER:
 			pSoldier->VestPal  = "greyVEST";
 			pSoldier->PantsPal = "BEIGEPANTS";
@@ -924,6 +930,7 @@ static void TacticalCopySoldierFromCreateStruct(SOLDIERTYPE& s, SOLDIERCREATE_ST
 		case SOLDIER_CLASS_ELITE:
 		case SOLDIER_CLASS_ELITE_MILITIA:
 		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
+		case SOLDIER_CLASS_ELITE_HEAVY:
 			chance         = 40;
 			expert_progess = 40;
 			expert_chance  = 30;
@@ -949,8 +956,8 @@ maybe_nightops:
 			break;
 	}
 
-	// ELITE_HEAVY militia: always Heavy Weapons and Night Ops, once each
-	if (s.ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	// ELITE_HEAVY militia and the enemy Elite Heavy: always Heavy Weapons and Night Ops, once each
+	if (s.ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA || s.ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY)
 	{
 		s.ubSkillTrait1 = HEAVY_WEAPS;
 		s.ubSkillTrait2 = NIGHTOPS;
@@ -1326,8 +1333,9 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 		pp->bBodyType = bp->bBodyType;
 	}
 
-	// ELITE_HEAVY militia are always big males
-	if (bp->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA && bp->bTeam == MILITIA_TEAM)
+	// ELITE_HEAVY militia and the enemy Elite Heavy are always big males
+	if ((bp->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA && bp->bTeam == MILITIA_TEAM) ||
+		(bp->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY && bp->bTeam == ENEMY_TEAM))
 	{
 		pp->bBodyType = BIGMALE;
 	}
@@ -1412,6 +1420,7 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 			pp->bExpLevel = (INT8) 6 + bExpLevelModifier;
 			break;
 		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
+		case SOLDIER_CLASS_ELITE_HEAVY:
 			pp->bExpLevel = (INT8) 8 + bExpLevelModifier;
 			break;
 		case SOLDIER_CLASS_MINER:
@@ -1487,15 +1496,16 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 	pp->bWisdom = (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 	pp->bMorale = (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 
-	if (ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	if (ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA || ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY)
 	{
 		// carries the heavy weapons: always full strength, and a fixed agility
 		pp->bStrength = 100;
 		pp->bAgility  = 94;
 	}
 
-	// skipping the ELITE_HEAVY militia too: their base level 8 (+ the usual modifiers) must not be cut down
-	if (ubSoldierClass != SOLDIER_CLASS_ELITE && ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	// skipping the ELITE_HEAVY militia and enemies too: their base level 8 (+ the usual modifiers) must not be cut down
+	if (ubSoldierClass != SOLDIER_CLASS_ELITE && ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY_MILITIA &&
+		ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY)
 	{
 		// CJC: now calculate the REAL experience level if in the really upper end
 		// we're skipping elites, since they have externalised level bounds
@@ -1700,6 +1710,7 @@ void UpdateSoldierWithStaticDetailedInformation( SOLDIERTYPE *s, SOLDIERCREATE_S
 		//If the soldier is an administrator, then
 		case SOLDIER_CLASS_ADMINISTRATOR:
 		case SOLDIER_CLASS_ARMY:
+		case SOLDIER_CLASS_ELITE_HEAVY:
 		case SOLDIER_CLASS_ELITE:
 			GeneratePaletteForSoldier( s, spp->ubSoldierClass );
 			break;
@@ -1861,7 +1872,10 @@ try
 	{
 		if (s->bInSector && s->bLife != 0 && s->sGridNo != NOWHERE)
 		{
-			if (s->ubSoldierClass == ubSoldierClass)
+			// an elite slot of the strategic count may be filled by an Elite Heavy
+			// (docs/enemy-elite-heavy-plan.md: he is counted as an elite)
+			if (s->ubSoldierClass == ubSoldierClass ||
+				(ubSoldierClass == SOLDIER_CLASS_ELITE && s->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY))
 			{
 				//reserve this soldier
 				s->sGridNo = NOWHERE;
@@ -1881,21 +1895,135 @@ try
 catch (...) { return 0; }
 
 
+// --- Enemy Elite Heavy count (docs/enemy-elite-heavy-plan.md, section 3) ---
+
+UINT8 EnemyEliteHeavies(UINT8 const elites, UINT8 const perHeavy, INT8 const modifier)
+{
+	if (perHeavy == 0 || elites < perHeavy) return 0;
+	int const n = elites / perHeavy + modifier;
+	return static_cast<UINT8>(std::clamp(n, 0, int(elites)));
+}
+
+
+UINT8 EnemyEliteHeaviesForGame(UINT8 const elites)
+{
+	if (!gamepolicy(enemy_elite_heavy_enabled)) return 0;
+	int idx;
+	switch (gGameOptions.ubDifficultyLevel)
+	{
+		case DIF_LEVEL_EASY: idx = 0; break;
+		case DIF_LEVEL_HARD: idx = 2; break;
+		default:             idx = 1; break;
+	}
+	return EnemyEliteHeavies(elites, gamepolicy(enemy_elite_heavy_elites_per_heavy),
+		gamepolicy(enemy_elite_heavy_difficulty_modifiers)[idx]);
+}
+
+
+namespace {
+struct EliteHeavyCount
+{
+	bool  active  = false;
+	UINT8 elites  = 0; // elites and Elite Heavy so far
+	UINT8 heavies = 0; // of them Elite Heavy
+	UINT8 target  = 0; // Elite Heavy for all elites of the batch (those there + the new ones)
+};
+EliteHeavyCount gEliteHeavyCount;
+}
+
+
+void BeginEnemyEliteHeavyCount(UINT8 const elites, UINT8 const heavies, UINT8 const newElites)
+{
+	// the whole batch is known at the start: when the count jumps by more than one at a
+	// threshold (Expert: 5 elites = 2), the first new elites take the missing places
+	UINT8 const total = static_cast<UINT8>(std::min(255, int(elites) + int(newElites)));
+	gEliteHeavyCount = { true, elites, heavies, EnemyEliteHeaviesForGame(total) };
+}
+
+
+void BeginEnemyEliteHeavyCountInSector(UINT8 const newElites)
+{
+	UINT8 elites  = 0;
+	UINT8 heavies = 0;
+	CFOR_EACH_IN_TEAM(s, ENEMY_TEAM)
+	{
+		if (!s->bInSector || s->bLife == 0 || !IsEnemyElite(s->ubSoldierClass)) continue;
+		++elites;
+		if (s->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY) ++heavies;
+	}
+	BeginEnemyEliteHeavyCount(elites, heavies, newElites);
+}
+
+
+void EndEnemyEliteHeavyCount()
+{
+	gEliteHeavyCount = {};
+}
+
+
+bool EnemyEliteHeavyCountActive()
+{
+	return gEliteHeavyCount.active;
+}
+
+
+bool TakeEnemyEliteHeavySlot()
+{
+	EliteHeavyCount& c = gEliteHeavyCount;
+	if (!c.active || c.elites == 255) return false;
+	++c.elites;
+	// the batch's own target, or more when more elites come than announced
+	UINT8 const target = std::max(c.target, EnemyEliteHeaviesForGame(c.elites));
+	if (c.heavies >= target) return false;
+	++c.heavies;
+	return true;
+}
+
+
+void CountExistingEnemyElite(bool const heavy)
+{
+	EliteHeavyCount& c = gEliteHeavyCount;
+	if (!c.active || c.elites == 255) return;
+	++c.elites;
+	if (heavy) ++c.heavies;
+}
+
+
+bool NextEnemyEliteHeavyGetsMortar()
+{
+	// no mortar underground (N4); autoresolve is never underground
+	if (!IsAutoResolveActive() && gWorldSector.z > 0) return false;
+
+	static UINT8 cheat_heavies = 0;
+	UINT8 const k = gEliteHeavyCount.active ? gEliteHeavyCount.heavies : ++cheat_heavies;
+	return k % 2 == 0;
+}
+
+
 //USED BY STRATEGIC AI and AUTORESOLVE
-SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass const sc)
+SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass sc)
 {
 	if (guiCurrentScreen == AUTORESOLVE_SCREEN && !gfPersistantPBI)
 	{
 		SOLDIERTYPE* const s = ReserveTacticalSoldierForAutoresolve(sc);
-		if (s) return s;
+		if (s)
+		{
+			if (sc == SOLDIER_CLASS_ELITE) CountExistingEnemyElite(s->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY);
+			return s;
+		}
 		// The sector counts more of them than tactical has (some never got a
 		// place there: no room, still on their way): a new one for autoresolve
 	}
 
+	// docs/enemy-elite-heavy-plan.md: while a count runs, an elite may become an Elite Heavy
+	if (sc == SOLDIER_CLASS_ELITE && TakeEnemyEliteHeavySlot()) sc = SOLDIER_CLASS_ELITE_HEAVY;
+
 	BASIC_SOLDIERCREATE_STRUCT bp;
 	bp = BASIC_SOLDIERCREATE_STRUCT{};
 	RandomizeRelativeLevel(&bp.bRelativeAttributeLevel, sc);
-	RandomizeRelativeLevel(&bp.bRelativeEquipmentLevel, sc);
+	// docs/enemy-equipment-progress-plan.md (E8): no editor level, the type offset applies
+	if (EnemyEquipmentByProgress()) bp.bRelativeEquipmentLevel = NO_EQUIPMENT_LEVEL;
+	else RandomizeRelativeLevel(&bp.bRelativeEquipmentLevel, sc);
 	bp.bTeam          = ENEMY_TEAM;
 	bp.bOrders        = SEEKENEMY;
 	bp.bAttitude      = Random(MAXATTITUDES);
@@ -1938,7 +2066,9 @@ SOLDIERTYPE* TacticalCreateMilitia( UINT8 ubMilitiaClass )
 	bp = BASIC_SOLDIERCREATE_STRUCT{};
 	pp = SOLDIERCREATE_STRUCT{};
 	RandomizeRelativeLevel( &( bp.bRelativeAttributeLevel ), ubMilitiaClass );
-	RandomizeRelativeLevel( &( bp.bRelativeEquipmentLevel ), ubMilitiaClass );
+	// docs/enemy-equipment-progress-plan.md (E8, E10): no editor level, the type offset applies
+	if (EnemyEquipmentByProgress()) bp.bRelativeEquipmentLevel = NO_EQUIPMENT_LEVEL;
+	else RandomizeRelativeLevel( &( bp.bRelativeEquipmentLevel ), ubMilitiaClass );
 	bp.bTeam = MILITIA_TEAM;
 	bp.ubSoldierClass = ubMilitiaClass;
 	bp.bOrders = STATIONARY;

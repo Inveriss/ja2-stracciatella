@@ -158,6 +158,7 @@ All decisions were taken by the user on 2026-11-07, D1-D12 as recommended.
 | D10 | "A never-dropped weapon type always drops" | a weapon blocked by progress is **not** recorded as dropped, so its first real drop later still counts as the first |
 | D11 | Switch | game.json `"enemy_drop_progress_limits": true` (false = old behaviour) |
 | D12 | Blocked hand item knocked out by a hit/explosion (path C) | **stays in the hand** (the enemy keeps it, it is not dropped). Alternative: it is destroyed |
+| D13 | Item an enemy never leaves behind (2026-11-09, Weapons) | `"minDropProgress": "blocked"`: a defeated enemy never drops it (killed, disarmed, knocked out, as an attachment of a dropped gun), also with `enemy_drop_progress_limits` off; not recorded as dropped (D10); an object the enemy picked up still drops (D9). Mercs, militia and dealers treat it like 0 (dealer shelves are controlled by the dealer lists). Any other word is a data error |
 
 ## 5. Code changes
 
