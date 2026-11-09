@@ -2034,11 +2034,12 @@ static void HandleModAltCheats(UINT32 const key, UIEventKind * const new_event)
 			gfNextShotKills = !gfNextShotKills;
 			break;
 
-		// testing docs/enemy-equipment-progress-plan.md: one soldier type per key
+		// Spawn one enemy of a chosen type at the cursor (a permanent cheat, not testing code):
+		// ALT+A admin, ALT+B army, ALT+Q elite, ALT+P Elite Heavy; the soldier also joins
+		// the sector's strategic counts (UIHandleNewBadMerc)
 		case 'a': gNewBadMercClass = SOLDIER_CLASS_ADMINISTRATOR; *new_event = I_NEW_BADMERC; break;
 		case 'b': gNewBadMercClass = SOLDIER_CLASS_ARMY;          *new_event = I_NEW_BADMERC; break;
 		case 'q': gNewBadMercClass = SOLDIER_CLASS_ELITE;         *new_event = I_NEW_BADMERC; break;
-		// docs/enemy-elite-heavy-plan.md: an enemy Elite Heavy
 		case 'p': gNewBadMercClass = SOLDIER_CLASS_ELITE_HEAVY;   *new_event = I_NEW_BADMERC; break;
 		case 'c': CreateNextCivType();          break;
 
