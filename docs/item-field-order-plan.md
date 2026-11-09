@@ -1,7 +1,10 @@
 # Item field order: minEnemyProgress before minDropProgress (Weapons)
 
-Status: plan only (2026-11-09, written in Remote Control mode), F1-F3 decided as recommended
-(2026-11-09), not implemented.
+Status: IMPLEMENTED (2026-11-09), game-verified, commit 8db792378 on `Weapons`: 83 swaps
+(weapons 38, armours 10, explosives 19, items 16), values unchanged, schema order (F2) changed
+too, all 278 unit tests pass. F1-F3 decided as recommended (2026-11-09). Rule F3 stays in force
+for new items. Note: `git diff --stat` counts each swap as 1 + / 1 - (83 / 83), not 2 / 2 as
+section 4 expected.
 Branch: `Weapons` (last commit 4fd20e8ea).
 Related: [enemy-equipment-progress-plan.md](enemy-equipment-progress-plan.md) (stage 1 added
 `minEnemyProgress`), [enemy-drop-progress-plan.md](enemy-drop-progress-plan.md) (`minDropProgress`).
