@@ -1895,16 +1895,111 @@ try
 catch (...) { return 0; }
 
 
+// --- Enemy Elite Heavy count (docs/enemy-elite-heavy-plan.md, section 3) ---
+
+UINT8 EnemyEliteHeavies(UINT8 const elites, UINT8 const perHeavy, INT8 const modifier)
+{
+	if (perHeavy == 0 || elites < perHeavy) return 0;
+	int const n = elites / perHeavy + modifier;
+	return static_cast<UINT8>(std::clamp(n, 0, int(elites)));
+}
+
+
+UINT8 EnemyEliteHeaviesForGame(UINT8 const elites)
+{
+	if (!gamepolicy(enemy_elite_heavy_enabled)) return 0;
+	int idx;
+	switch (gGameOptions.ubDifficultyLevel)
+	{
+		case DIF_LEVEL_EASY: idx = 0; break;
+		case DIF_LEVEL_HARD: idx = 2; break;
+		default:             idx = 1; break;
+	}
+	return EnemyEliteHeavies(elites, gamepolicy(enemy_elite_heavy_elites_per_heavy),
+		gamepolicy(enemy_elite_heavy_difficulty_modifiers)[idx]);
+}
+
+
+namespace {
+struct EliteHeavyCount
+{
+	bool  active  = false;
+	UINT8 elites  = 0; // elites and Elite Heavy so far
+	UINT8 heavies = 0; // of them Elite Heavy
+};
+EliteHeavyCount gEliteHeavyCount;
+}
+
+
+void BeginEnemyEliteHeavyCount(UINT8 const elites, UINT8 const heavies)
+{
+	gEliteHeavyCount = { true, elites, heavies };
+}
+
+
+void BeginEnemyEliteHeavyCountInSector()
+{
+	UINT8 elites  = 0;
+	UINT8 heavies = 0;
+	CFOR_EACH_IN_TEAM(s, ENEMY_TEAM)
+	{
+		if (!s->bInSector || s->bLife == 0 || !IsEnemyElite(s->ubSoldierClass)) continue;
+		++elites;
+		if (s->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY) ++heavies;
+	}
+	BeginEnemyEliteHeavyCount(elites, heavies);
+}
+
+
+void EndEnemyEliteHeavyCount()
+{
+	gEliteHeavyCount = {};
+}
+
+
+bool EnemyEliteHeavyCountActive()
+{
+	return gEliteHeavyCount.active;
+}
+
+
+bool TakeEnemyEliteHeavySlot()
+{
+	EliteHeavyCount& c = gEliteHeavyCount;
+	if (!c.active || c.elites == 255) return false;
+	++c.elites;
+	if (c.heavies >= EnemyEliteHeaviesForGame(c.elites)) return false;
+	++c.heavies;
+	return true;
+}
+
+
+void CountExistingEnemyElite(bool const heavy)
+{
+	EliteHeavyCount& c = gEliteHeavyCount;
+	if (!c.active || c.elites == 255) return;
+	++c.elites;
+	if (heavy) ++c.heavies;
+}
+
+
 //USED BY STRATEGIC AI and AUTORESOLVE
-SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass const sc)
+SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass sc)
 {
 	if (guiCurrentScreen == AUTORESOLVE_SCREEN && !gfPersistantPBI)
 	{
 		SOLDIERTYPE* const s = ReserveTacticalSoldierForAutoresolve(sc);
-		if (s) return s;
+		if (s)
+		{
+			if (sc == SOLDIER_CLASS_ELITE) CountExistingEnemyElite(s->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY);
+			return s;
+		}
 		// The sector counts more of them than tactical has (some never got a
 		// place there: no room, still on their way): a new one for autoresolve
 	}
+
+	// docs/enemy-elite-heavy-plan.md: while a count runs, an elite may become an Elite Heavy
+	if (sc == SOLDIER_CLASS_ELITE && TakeEnemyEliteHeavySlot()) sc = SOLDIER_CLASS_ELITE_HEAVY;
 
 	BASIC_SOLDIERCREATE_STRUCT bp;
 	bp = BASIC_SOLDIERCREATE_STRUCT{};

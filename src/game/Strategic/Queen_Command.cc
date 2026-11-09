@@ -9,6 +9,7 @@
 #include "Strategic.h"
 #include "StrategicMap.h"
 #include "Soldier_Init_List.h"
+#include "Soldier_Create.h"
 #include "Debug.h"
 #include "Random.h"
 #include "Strategic_Movement.h"
@@ -1062,6 +1063,15 @@ static void AddEnemiesToBattle(GROUP const& g, UINT8 const strategic_insertion_c
 	UINT8            curr_slot = 0;
 	MAPEDGEPOINTINFO edgepoint_info;
 	ChooseMapEdgepoints(&edgepoint_info, strategic_insertion_code, n_total);
+
+	// docs/enemy-elite-heavy-plan.md (N8): the arriving elites join the count of the elites
+	// already in the sector, so only the missing Elite Heavy are added
+	struct Count
+	{
+		Count()  { BeginEnemyEliteHeavyCountInSector(); }
+		~Count() { EndEnemyEliteHeavyCount(); }
+	} const count;
+
 	while (n_total != 0)
 	{
 		UINT32       const roll = Random(n_total--);

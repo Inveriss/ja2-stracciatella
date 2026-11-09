@@ -10,6 +10,7 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "Soldier_Control.h"
+#include "Soldier_Create.h"
 
 #include "gtest/gtest.h"
 
@@ -291,6 +292,108 @@ TEST_F(EnemyEquipment, grenadesByTiers)
 
 	auto const mortar = EnemyGrenadeCandidates(Id("MORTAR"));
 	EXPECT_EQ(DrawItems(mortar, 0, true), Ids({ "MORTAR_SHELL" }));            // tier 90
+}
+
+
+// --- docs/enemy-elite-heavy-plan.md, section 3: Elite Heavy count ---
+
+TEST(EnemyEliteHeavy, formulaTable)
+{
+	struct { UINT8 elites; UINT8 novice, experienced, expert; } const rows[] =
+	{
+		{  0, 0, 0, 0 }, {  4, 0, 0, 0 },
+		{  5, 0, 1, 2 }, {  9, 0, 1, 2 },
+		{ 10, 1, 2, 3 }, { 14, 1, 2, 3 },
+		{ 15, 2, 3, 4 }, { 19, 2, 3, 4 },
+		{ 20, 3, 4, 5 },
+	};
+	for (auto const& r : rows)
+	{
+		EXPECT_EQ(EnemyEliteHeavies(r.elites, 5, -1), r.novice)      << int(r.elites);
+		EXPECT_EQ(EnemyEliteHeavies(r.elites, 5,  0), r.experienced) << int(r.elites);
+		EXPECT_EQ(EnemyEliteHeavies(r.elites, 5,  1), r.expert)      << int(r.elites);
+	}
+}
+
+
+TEST(EnemyEliteHeavy, neverBelowZeroNorAboveTheElites)
+{
+	EXPECT_EQ(EnemyEliteHeavies(5, 5, -3), 0);
+	EXPECT_EQ(EnemyEliteHeavies(5, 5, 10), 5);
+	EXPECT_EQ(EnemyEliteHeavies(1, 1, 3), 1);
+	EXPECT_EQ(EnemyEliteHeavies(3, 0, 1), 0); // no divisor: none
+}
+
+
+namespace {
+
+// a batch of new elites under a running count: how many became Elite Heavy
+int Batch(int const elites)
+{
+	int heavies = 0;
+	for (int i = 0; i < elites; ++i) heavies += TakeEnemyEliteHeavySlot() ? 1 : 0;
+	return heavies;
+}
+
+struct Difficulty
+{
+	UINT8 const old = gGameOptions.ubDifficultyLevel;
+	explicit Difficulty(UINT8 const d) { gGameOptions.ubDifficultyLevel = d; }
+	~Difficulty() { gGameOptions.ubDifficultyLevel = old; EndEnemyEliteHeavyCount(); }
+};
+
+}
+
+
+TEST_F(EnemyEquipment, eliteHeavyOnInGameJson)
+{
+	EXPECT_TRUE(gamepolicy(enemy_elite_heavy_enabled));
+	EXPECT_EQ(gamepolicy(enemy_elite_heavy_elites_per_heavy), 5);
+	EXPECT_EQ(gamepolicy(enemy_elite_heavy_difficulty_modifiers)[0], -1);
+	EXPECT_EQ(gamepolicy(enemy_elite_heavy_difficulty_modifiers)[1],  0);
+	EXPECT_EQ(gamepolicy(enemy_elite_heavy_difficulty_modifiers)[2],  1);
+}
+
+
+TEST_F(EnemyEquipment, eliteHeavyRunningCount)
+{
+	Difficulty const d(DIF_LEVEL_MEDIUM);
+
+	// no count running: nobody is converted
+	EndEnemyEliteHeavyCount();
+	EXPECT_FALSE(TakeEnemyEliteHeavySlot());
+
+	// defenders: 12 elites -> 2 Elite Heavy; 3 more arrive (15) -> 1 more (N8)
+	BeginEnemyEliteHeavyCount(0, 0);
+	EXPECT_EQ(Batch(12), 2);
+	EndEnemyEliteHeavyCount();
+	BeginEnemyEliteHeavyCount(12, 2);
+	EXPECT_EQ(Batch(3), 1);
+	EndEnemyEliteHeavyCount();
+
+	// existing soldiers count too (autoresolve reuses the tactical ones)
+	BeginEnemyEliteHeavyCount(0, 0);
+	for (int i = 0; i < 5; ++i) CountExistingEnemyElite(i == 0);
+	EXPECT_EQ(Batch(4), 0); // 9 elites: 1 Elite Heavy, already there
+	EXPECT_EQ(Batch(1), 1); // 10 elites: 2
+	EndEnemyEliteHeavyCount();
+}
+
+
+TEST_F(EnemyEquipment, eliteHeavyRunningCountByDifficulty)
+{
+	{
+		Difficulty const d(DIF_LEVEL_EASY);
+		BeginEnemyEliteHeavyCount(0, 0);
+		EXPECT_EQ(Batch(9), 0);
+		EXPECT_EQ(Batch(1), 1); // 10 elites
+	}
+	{
+		Difficulty const d(DIF_LEVEL_HARD);
+		BeginEnemyEliteHeavyCount(0, 0);
+		EXPECT_EQ(Batch(4), 0);
+		EXPECT_EQ(Batch(5), 2); // 9 elites: 2
+	}
 }
 
 #endif

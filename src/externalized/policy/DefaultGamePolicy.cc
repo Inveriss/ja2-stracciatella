@@ -46,6 +46,21 @@ void ReadEnemyEquipment(GamePolicy& p, JsonObject const& gp)
 	p.enemy_equipment_difficulty_offsets[2] = static_cast<int8_t>(dif.getOptionalInt("expert", 10));
 }
 
+// docs/enemy-elite-heavy-plan.md, section 3; left out = off
+void ReadEnemyEliteHeavy(GamePolicy& p, JsonObject const& gp)
+{
+	JsonObject const eh = gp.has("enemy_elite_heavy") ? gp["enemy_elite_heavy"].toObject() : JsonObject();
+	p.enemy_elite_heavy_enabled = eh.getOptionalBool("enabled", false);
+	int const per = eh.getOptionalInt("elites_per_heavy", 5);
+	if (per < 1 || per > 100) throw DataError(ST::format("game.json: enemy_elite_heavy elites_per_heavy must be 1-100, not {}", per));
+	p.enemy_elite_heavy_elites_per_heavy = static_cast<uint8_t>(per);
+
+	JsonObject const mod = eh.has("difficulty_modifiers") ? eh["difficulty_modifiers"].toObject() : JsonObject();
+	p.enemy_elite_heavy_difficulty_modifiers[0] = static_cast<int8_t>(mod.getOptionalInt("easy", -1));
+	p.enemy_elite_heavy_difficulty_modifiers[1] = static_cast<int8_t>(mod.getOptionalInt("experienced", 0));
+	p.enemy_elite_heavy_difficulty_modifiers[2] = static_cast<int8_t>(mod.getOptionalInt("expert", 1));
+}
+
 }
 
 DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
@@ -141,6 +156,7 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	game_progress_quest_percent = progress.getOptionalUInt("game_progress_quest_percent", 2);
 
 	ReadEnemyEquipment(*this, gp);
+	ReadEnemyEliteHeavy(*this, gp);
 
 	kills_per_point_easy = progress.getOptionalInt("kills_per_point_easy", 7);
 	kills_per_point_medium = progress.getOptionalInt("kills_per_point_medium", 10);

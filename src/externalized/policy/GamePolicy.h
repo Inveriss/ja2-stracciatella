@@ -137,6 +137,13 @@ public:
 	// by difficulty, enemies only: easy, experienced, expert (E9)
 	int8_t enemy_equipment_difficulty_offsets[3];
 
+	// Enemy Elite Heavy (docs/enemy-elite-heavy-plan.md): one in every elites_per_heavy
+	// elites of a sector, plus the difficulty modifier (easy, experienced, expert) once
+	// the sector has at least elites_per_heavy elites
+	bool enemy_elite_heavy_enabled;
+	uint8_t enemy_elite_heavy_elites_per_heavy;
+	int8_t enemy_elite_heavy_difficulty_modifiers[3];
+
 	int8_t unhired_merc_deaths_easy;       // Maximum unhired mercs KIA difficulty Easy
 	int8_t unhired_merc_deaths_medium;       // Maximum unhired mercs KIA difficulty Medium
 	int8_t unhired_merc_deaths_hard;       // Maximum unhired mercs KIA difficulty Hard

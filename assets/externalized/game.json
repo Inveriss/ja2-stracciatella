@@ -85,6 +85,18 @@
     "difficulty_offsets": { "easy": -10, "experienced": 0, "expert": 10 }
   },
 
+  //  Elite Heavy enemies (docs/enemy-elite-heavy-plan.md): one elite in every
+  //  "elites_per_heavy" elites of a sector becomes an Elite Heavy (big male, grey vest, black
+  //  trousers, heavy weapons); "difficulty_modifiers" (Novice, Experienced, Expert) is added
+  //  to that count once the sector has at least "elites_per_heavy" elites; never below 0,
+  //  never more than the elites. Reinforcements only add the missing difference.
+  //  vanilla setting: none (new, off when left out)
+  "enemy_elite_heavy": {
+    "enabled": true,
+    "elites_per_heavy": 5,
+    "difficulty_modifiers": { "easy": -1, "experienced": 0, "expert": 1 }
+  },
+
   //  Will every dealer (Bobby Ray new and used, Tony, Devin, Franz, Keith, Jake, Gabby,
   //  Howard, Sam, the bars...) stock an item only once the game progress (V line
   //  "Drop progress") reaches the item's "minDropProgress"? For Tony, Devin and Bobby Ray this

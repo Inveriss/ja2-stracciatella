@@ -81,6 +81,7 @@ void NewWayOfLoadingEnemySoldiersFromTempFile()
 	}
 
 	// reset
+	UINT8 ubNumHeavies = 0; // of the elites: Elite Heavy (docs/enemy-elite-heavy-plan.md)
 	ubNumElites    = 0;
 	ubNumTroops    = 0;
 	ubNumAdmins    = 0;
@@ -235,6 +236,8 @@ void NewWayOfLoadingEnemySoldiersFromTempFile()
 			switch (bp->ubSoldierClass)
 			{
 				case SOLDIER_CLASS_ELITE_HEAVY:
+					++ubNumHeavies;
+					[[fallthrough]];
 				case SOLDIER_CLASS_ELITE:
 					++ubNumElites;
 					break;
@@ -267,7 +270,10 @@ void NewWayOfLoadingEnemySoldiersFromTempFile()
 		ubStrategicTroops = ubStrategicTroops > ubNumTroops ? ubStrategicTroops - ubNumTroops : 0;
 		ubStrategicElites = ubStrategicElites > ubNumElites ? ubStrategicElites - ubNumElites : 0;
 		ubStrategicAdmins = ubStrategicAdmins > ubNumAdmins ? ubStrategicAdmins - ubNumAdmins : 0;
+		// the Elite Heavy count starts with the saved elites (docs/enemy-elite-heavy-plan.md, N8)
+		BeginEnemyEliteHeavyCount(ubNumElites, ubNumHeavies);
 		AddSoldierInitListEnemyDefenceSoldiers(ubStrategicAdmins, ubStrategicTroops, ubStrategicElites);
+		EndEnemyEliteHeavyCount();
 	}
 }
 

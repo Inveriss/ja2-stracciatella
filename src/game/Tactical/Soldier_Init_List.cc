@@ -416,9 +416,34 @@ static void SortSoldierInitList(void)
 }
 
 
+// docs/enemy-elite-heavy-plan.md, section 4: an enemy elite placement may become an Elite
+// Heavy while a count runs; not one with a profile, an editor-forced look or editor items
+static bool EliteHeavyPlacementAllowed(SOLDIERINITNODE const* const init)
+{
+	BASIC_SOLDIERCREATE_STRUCT const* const bp = init->pBasicPlacement;
+	if (gfEditMode || bp->bTeam != ENEMY_TEAM || bp->ubSoldierClass != SOLDIER_CLASS_ELITE) return false;
+	SOLDIERCREATE_STRUCT const* const dp = init->pDetailedPlacement;
+	if (!dp) return true;
+	if (dp->ubProfile != NO_PROFILE || dp->fVisible) return false;
+	for (OBJECTTYPE const& o : dp->Inv)
+	{
+		if (o.fFlags & OBJECT_NO_OVERWRITE) return false;
+	}
+	return true;
+}
+
+
 bool AddPlacementToWorld(SOLDIERINITNODE* const init)
 {
 	SOLDIERCREATE_STRUCT dp{};
+
+	// the basic placement as this soldier uses it (the class may change to Elite Heavy;
+	// the map's own placement stays an elite)
+	BASIC_SOLDIERCREATE_STRUCT bp = *init->pBasicPlacement;
+	if (EnemyEliteHeavyCountActive() && EliteHeavyPlacementAllowed(init) && TakeEnemyEliteHeavySlot())
+	{
+		bp.ubSoldierClass = SOLDIER_CLASS_ELITE_HEAVY;
+	}
 
 	// First check if this guy has a profile and if so check his location such that it matches
 	if (SOLDIERCREATE_STRUCT* const init_dp = init->pDetailedPlacement)
@@ -448,11 +473,11 @@ bool AddPlacementToWorld(SOLDIERINITNODE* const init)
 				if (hamous.ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED) return true;
 			}
 		}
-		CreateDetailedPlacementGivenStaticDetailedPlacementAndBasicPlacementInfo(&dp, init_dp, init->pBasicPlacement);
+		CreateDetailedPlacementGivenStaticDetailedPlacementAndBasicPlacementInfo(&dp, init_dp, &bp);
 	}
 	else
 	{
-		CreateDetailedPlacementGivenBasicPlacementInfo(&dp, init->pBasicPlacement);
+		CreateDetailedPlacementGivenBasicPlacementInfo(&dp, &bp);
 	}
 
 	if (!gfEditMode)
@@ -620,7 +645,22 @@ void AddSoldierInitListTeamToWorld(INT8 const team)
 }
 
 
-void AddSoldierInitListEnemyDefenceSoldiers( UINT8 ubTotalAdmin, UINT8 ubTotalTroops, UINT8 ubTotalElite )
+static void AddEnemyDefenceSoldiers(UINT8 ubTotalAdmin, UINT8 ubTotalTroops, UINT8 ubTotalElite);
+
+void AddSoldierInitListEnemyDefenceSoldiers(UINT8 const ubTotalAdmin, UINT8 const ubTotalTroops, UINT8 const ubTotalElite)
+{
+	// docs/enemy-elite-heavy-plan.md: some of the elites become Elite Heavy; the count starts
+	// with the elites already in the sector, unless the caller started it (temp file)
+	struct Count
+	{
+		bool const own = !EnemyEliteHeavyCountActive();
+		Count()  { if (own) BeginEnemyEliteHeavyCountInSector(); }
+		~Count() { if (own) EndEnemyEliteHeavyCount(); }
+	} const count;
+	AddEnemyDefenceSoldiers(ubTotalAdmin, ubTotalTroops, ubTotalElite);
+}
+
+static void AddEnemyDefenceSoldiers( UINT8 ubTotalAdmin, UINT8 ubTotalTroops, UINT8 ubTotalElite )
 {
 	SOLDIERINITNODE *mark;
 	INT32 iRandom;

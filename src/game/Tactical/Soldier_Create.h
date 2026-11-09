@@ -124,6 +124,25 @@ SOLDIERTYPE* TacticalCreateSoldierFromExisting(const SOLDIERTYPE*);
 
 //Randomly generated enemies used by strategic AI.
 SOLDIERTYPE* TacticalCreateEnemySoldier(SoldierClass);
+
+// --- Enemy Elite Heavy count (docs/enemy-elite-heavy-plan.md, section 3) ---
+// The Elite Heavy soldiers a sector with this many elites has: 0 below perHeavy elites,
+// else elites / perHeavy + modifier, kept within 0..elites
+UINT8 EnemyEliteHeavies(UINT8 elites, UINT8 perHeavy, INT8 modifier);
+// The same with game.json enemy_elite_heavy and the game's difficulty; 0 when off
+UINT8 EnemyEliteHeaviesForGame(UINT8 elites);
+// A running count while one batch of enemies is created (sector defenders, arriving
+// groups, autoresolve): it starts with the elites/Elite Heavy already there, every new
+// elite asks TakeEnemyEliteHeavySlot() whether he becomes an Elite Heavy.
+void BeginEnemyEliteHeavyCount(UINT8 elites, UINT8 heavies);
+// ...starting with the living elites and Elite Heavy of the enemy team in the sector
+void BeginEnemyEliteHeavyCountInSector();
+void EndEnemyEliteHeavyCount();
+bool EnemyEliteHeavyCountActive();
+// One more elite; true: he becomes an Elite Heavy (only while a count is active)
+bool TakeEnemyEliteHeavySlot();
+// An existing soldier joins the count (autoresolve reuses the tactical soldiers)
+void CountExistingEnemyElite(bool heavy);
 SOLDIERTYPE* TacticalCreateMilitia( UINT8 ubMilitiaClass );
 SOLDIERTYPE* TacticalCreateCreature( INT8 bCreatureBodyType );
 

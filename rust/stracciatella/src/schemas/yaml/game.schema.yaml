@@ -131,6 +131,33 @@ properties:
           easy: { type: integer, minimum: -100, maximum: 100 }
           experienced: { type: integer, minimum: -100, maximum: 100 }
           expert: { type: integer, minimum: -100, maximum: 100 }
+  enemy_elite_heavy:
+    type: object
+    title: Enemy Elite Heavy soldiers
+    description: |
+      One elite in every elites_per_heavy elites of a sector becomes an Elite Heavy; the
+      difficulty modifier is added once the sector has at least elites_per_heavy elites
+      (docs/enemy-elite-heavy-plan.md).
+
+      Vanilla setting: none (new, off when left out)
+    properties:
+      enabled:
+        type: boolean
+        title: Create Elite Heavy enemies
+      elites_per_heavy:
+        type: integer
+        title: Elites per Elite Heavy
+        minimum: 1
+        maximum: 100
+      difficulty_modifiers:
+        type: object
+        title: Added to the count by difficulty
+        properties:
+          easy: { type: integer, minimum: -10, maximum: 10 }
+          experienced: { type: integer, minimum: -10, maximum: 10 }
+          expert: { type: integer, minimum: -10, maximum: 10 }
+        additionalProperties: false
+    additionalProperties: false
   all_drops_visible:
     type: boolean
     title: All drops visible
