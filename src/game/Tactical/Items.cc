@@ -4084,14 +4084,16 @@ void TurnOffXRayEffects( SOLDIERTYPE * pSoldier )
 bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 const progress)
 {
 	if (o.usItem == NOTHING) return true;
-	if (GCM->getItem(o.usItem)->getMinDropProgress() > progress) return false;
+	ItemModel const* const item = GCM->getItem(o.usItem);
+	if (item->isEnemyDropBlocked() || item->getMinDropProgress() > progress) return false;
 
 	// D4: a blocked attachment is lost, the item itself still drops
 	for (UINT8 i = 0; i != MAX_ATTACHMENTS; ++i)
 	{
 		UINT16 const attachment = o.usAttachItem[i];
 		if (attachment == NOTHING) continue;
-		if (GCM->getItem(attachment)->getMinDropProgress() <= progress) continue;
+		ItemModel const* const a = GCM->getItem(attachment);
+		if (!a->isEnemyDropBlocked() && a->getMinDropProgress() <= progress) continue;
 		o.usAttachItem[i]  = NOTHING;
 		o.bAttachStatus[i] = 0;
 	}
@@ -4101,8 +4103,11 @@ bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 const progress)
 
 bool EnemyDropBlockedByProgress(UINT16 const usItem)
 {
-	if (!gamepolicy(enemy_drop_progress_limits) || usItem == NOTHING) return false;
-	return GCM->getItem(usItem)->getMinDropProgress() > GameProgressPercentage();
+	if (usItem == NOTHING) return false;
+	ItemModel const* const item = GCM->getItem(usItem);
+	if (item->isEnemyDropBlocked()) return true; // D13: also with the progress limits off
+	if (!gamepolicy(enemy_drop_progress_limits)) return false;
+	return item->getMinDropProgress() > GameProgressPercentage();
 }
 
 
@@ -4127,10 +4132,11 @@ void MarkObjectPickedUpBy(SOLDIERTYPE const& s, OBJECTTYPE& o)
 
 bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const& s, OBJECTTYPE& o)
 {
-	if (!gamepolicy(enemy_drop_progress_limits)) return true;
 	if (s.bTeam != ENEMY_TEAM) return true;   // D5
 	if (o.fFlags & OBJECT_PICKED_UP) return true; // D9
-	return ApplyDropProgressLimit(o, GameProgressPercentage()); // D2, docs/game-progress-plan.md
+	// D13: "blocked" items stay also with the progress limits off (progress 100: no number blocks)
+	UINT8 const progress = gamepolicy(enemy_drop_progress_limits) ? GameProgressPercentage() : 100;
+	return ApplyDropProgressLimit(o, progress); // D2, docs/game-progress-plan.md
 }
 
 

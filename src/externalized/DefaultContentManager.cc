@@ -903,16 +903,14 @@ void DefaultContentManager::registerItem(const ItemModel* const item, ItemDataFi
 		throw DataError(err);
 	}
 
-	// docs/enemy-drop-progress-plan.md (D1): every item file may set it
-	unsigned int const minDropProgress = json.toObject().getOptionalUInt("minDropProgress", 0);
-	if (minDropProgress > 100)
+	// docs/enemy-drop-progress-plan.md (D1, D13): every item file may set it
+	ST::string const dropErr = ApplyMinDropProgress(*const_cast<ItemModel*>(item), json.toObject());
+	if (!dropErr.empty())
 	{
-		ST::string const bad = ST::format("{}: minDropProgress of item '{}' must be 0-100, not {}",
-			ItemDataFileName(file), item->getInternalName(), minDropProgress);
+		ST::string const bad = ST::format("{}: {}", ItemDataFileName(file), dropErr);
 		delete item;
 		throw DataError(bad);
 	}
-	const_cast<ItemModel*>(item)->setMinDropProgress(static_cast<uint8_t>(minDropProgress));
 
 	// docs/enemy-equipment-progress-plan.md (E1, E3, E4): left out = never for enemies
 	ST::string const enemyErr = ApplyMinEnemyProgress(*const_cast<ItemModel*>(item), json.toObject());

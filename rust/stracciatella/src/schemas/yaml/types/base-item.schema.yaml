@@ -8,10 +8,14 @@ properties:
       An enemy leaves this item behind (killed, disarmed, as an attachment of a dropped gun)
       only when the game's highest progress is at least this value, 0-100; 0 or left out
       means always (docs/enemy-drop-progress-plan.md). Off with game.json
-      enemy_drop_progress_limits false.
-    type: integer
-    minimum: 0
-    maximum: 100
+      enemy_drop_progress_limits false. "blocked": a defeated enemy never leaves it
+      behind (also with the limits off); mercs, militia and dealers treat it like 0.
+    anyOf:
+      - type: integer
+        minimum: 0
+        maximum: 100
+      - type: string
+        enum: [blocked]
   minEnemyProgress:
     title: Minimum progress for enemy equipment
     description: |

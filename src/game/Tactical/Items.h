@@ -92,13 +92,14 @@ UINT8 SectorSlotLimit(UINT16 usItem);
 // docs/enemy-drop-progress-plan.md: may soldier s leave object o behind?
 // For ENEMY_TEAM with game.json enemy_drop_progress_limits on, an item whose
 // minDropProgress is above the highest game progress must not drop (false);
-// attachments above it are removed from o and lost (D4). True for every
+// attachments above it are removed from o and lost (D4). A "blocked" item
+// (D13) never drops from ENEMY_TEAM, also with the limits off. True for every
 // other team and for an object the soldier picked up (OBJECT_PICKED_UP, D9).
 bool ApplyEnemyDropProgressLimit(SOLDIERTYPE const& s, OBJECTTYPE& o);
 // the item part of the above with a given progress
 bool ApplyDropProgressLimit(OBJECTTYPE& o, UINT8 progress);
-// true when game.json enemy_drop_progress_limits is on and the item's
-// minDropProgress is above the highest game progress (an enemy can't drop it)
+// true when the item is "blocked" (D13), or game.json enemy_drop_progress_limits
+// is on and the item's minDropProgress is above the game progress (an enemy can't drop it)
 bool EnemyDropBlockedByProgress(UINT16 usItem);
 // ApplyEnemyDropProgressLimit() for an item whose owner may be unknown (null:
 // no limit), e.g. the thrower of a knife

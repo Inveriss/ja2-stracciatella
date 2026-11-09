@@ -406,6 +406,55 @@ TEST_F(DropProgressTest, blockedItemForTheWeaponDropRecord)
 }
 
 
+TEST_F(DropProgressTest, blockedItemNeverDropsFromEnemies)
+{
+	// D13: "minDropProgress": "blocked"
+	const_cast<ItemModel*>(GCM->getItem(GLOCK_17))->setEnemyDropBlocked(true);
+	SetMinDrop(GLOCK_17, 0);
+	SetGameProgress(70); // any progress: the word, not a number, blocks it
+
+	auto s = SOLDIERTYPE{};
+	OBJECTTYPE o = Gun(90);
+	s.bTeam = ENEMY_TEAM;
+	EXPECT_FALSE(ApplyEnemyDropProgressLimit(s, o));
+	EXPECT_TRUE(EnemyDropBlockedByProgress(GLOCK_17));
+	for (INT8 const team : { OUR_TEAM, MILITIA_TEAM, CIV_TEAM, CREATURE_TEAM })
+	{
+		s.bTeam = team;
+		EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, o));
+	}
+
+	// also with the progress limits off
+	s.bTeam = ENEMY_TEAM;
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = false;
+	EXPECT_FALSE(ApplyEnemyDropProgressLimit(s, o));
+	EXPECT_TRUE(EnemyDropBlockedByProgress(GLOCK_17));
+	const_cast<GamePolicy*>(GCM->getGamePolicy())->enemy_drop_progress_limits = true;
+
+	// picked up by the enemy (maybe the player's own): still drops (D9)
+	OBJECTTYPE p = Gun(90);
+	p.fFlags |= OBJECT_PICKED_UP;
+	EXPECT_TRUE(ApplyEnemyDropProgressLimit(s, p));
+
+	// dealers treat it like 0
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_TONY, GLOCK_17));
+	EXPECT_FALSE(DealerStockBlockedByProgress(ARMS_DEALER_BOBBYR, GLOCK_17));
+	SetGameProgress(0);
+}
+
+
+TEST_F(DropProgressTest, blockedAttachmentIsAlwaysRemoved)
+{
+	SetMinDrop(GLOCK_17, 0);
+	SetMinDrop(LASERSCOPE, 0);
+	const_cast<ItemModel*>(GCM->getItem(LASERSCOPE))->setEnemyDropBlocked(true);
+	OBJECTTYPE o = ScopedGun();
+	EXPECT_TRUE(ApplyDropProgressLimit(o, 100));
+	EXPECT_EQ(o.usAttachItem[0], NOTHING);
+	EXPECT_EQ(o.usItem, GLOCK_17);
+}
+
+
 TEST_F(DropProgressTest, pickingUpMarksTheObject)
 {
 	SetMinDrop(GLOCK_17, 50);

@@ -151,6 +151,10 @@ struct ItemModel
 	// set by the content manager when the item is registered
 	uint8_t getMinDropProgress() const { return minDropProgress; }
 	void setMinDropProgress(uint8_t const progress) { minDropProgress = progress; }
+	// "minDropProgress": "blocked": a defeated enemy never leaves this item behind;
+	// mercs, militia and dealers treat it like 0 (docs/enemy-drop-progress-plan.md, D13)
+	bool isEnemyDropBlocked() const { return enemyDropBlocked; }
+	void setEnemyDropBlocked(bool const blocked) { enemyDropBlocked = blocked; }
 
 	// The lowest game progress (0-100, multiple of 5) at which the random equipment
 	// choice may give this item to enemies and militia ("minEnemyProgress"); items
@@ -222,12 +226,18 @@ protected:
 	const WeaponAttachmentFamilyModel* attachmentFamily = nullptr;
 	uint8_t           minDropProgress = 0;
 	uint8_t           minEnemyProgress = NO_MIN_ENEMY_PROGRESS;
+	bool              enemyDropBlocked = false;
 };
 
 // Reads "minEnemyProgress" of an item file entry into the item: 0-100 in steps
 // of 5, left out = never for enemies. Returns an error text, empty when fine.
 // docs/enemy-equipment-progress-plan.md (E1, E3, E4)
 ST::string ApplyMinEnemyProgress(ItemModel& item, JsonObject const& json);
+
+// Reads "minDropProgress" of an item file entry into the item: 0-100 (left out = 0),
+// or the word "blocked" (minDropProgress 0 and enemy drop blocked). Returns an error
+// text, empty when fine. docs/enemy-drop-progress-plan.md (D1, D13)
+ST::string ApplyMinDropProgress(ItemModel& item, JsonObject const& json);
 
 // Lowest tier an enemy category should have: a soldier's progress can be as low as
 // 0, so each category needs an item at or below this (stage 1 load warning)

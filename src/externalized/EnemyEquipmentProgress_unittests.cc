@@ -109,4 +109,48 @@ TEST_F(EnemyEquipmentProgress, baseDataForTodaysEnemyItems)
 	}
 }
 
+
+// docs/enemy-drop-progress-plan.md (D13): "minDropProgress": "blocked"
+
+namespace {
+
+ST::string ApplyDrop(ItemModel& item, char const* json)
+{
+	return ApplyMinDropProgress(item, JsonValue::deserialize(json).toObject());
+}
+
+}
+
+
+TEST(MinDropProgressField, numbersAndBlocked)
+{
+	auto item = MakeItem(IC_GUN, -1);
+	EXPECT_TRUE(ApplyDrop(*item, "{}").empty());
+	EXPECT_EQ(item->getMinDropProgress(), 0);
+	EXPECT_FALSE(item->isEnemyDropBlocked());
+
+	EXPECT_TRUE(ApplyDrop(*item, "{\"minDropProgress\": 1}").empty());
+	EXPECT_EQ(item->getMinDropProgress(), 1);
+	EXPECT_FALSE(item->isEnemyDropBlocked());
+
+	EXPECT_TRUE(ApplyDrop(*item, "{\"minDropProgress\": \"blocked\"}").empty());
+	EXPECT_EQ(item->getMinDropProgress(), 0);
+	EXPECT_TRUE(item->isEnemyDropBlocked());
+
+	EXPECT_TRUE(ApplyDrop(*item, "{\"minDropProgress\": 100}").empty());
+	EXPECT_EQ(item->getMinDropProgress(), 100);
+	EXPECT_FALSE(item->isEnemyDropBlocked());
+}
+
+
+TEST(MinDropProgressField, rejectsOtherValues)
+{
+	auto item = MakeItem(IC_GUN, -1);
+	for (char const* const json : { "{\"minDropProgress\": 101}", "{\"minDropProgress\": -1}",
+		"{\"minDropProgress\": \"never\"}", "{\"minDropProgress\": false}" })
+	{
+		EXPECT_FALSE(ApplyDrop(*item, json).empty()) << json;
+	}
+}
+
 #endif

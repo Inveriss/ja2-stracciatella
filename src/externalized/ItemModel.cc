@@ -360,3 +360,31 @@ std::vector<ST::string> MissingLowEnemyTiers(std::vector<const ItemModel*> const
 	}
 	return warnings;
 }
+
+
+ST::string ApplyMinDropProgress(ItemModel& item, JsonObject const& json)
+{
+	item.setMinDropProgress(0);
+	item.setEnemyDropBlocked(false);
+	if (!json.has("minDropProgress")) return {};
+
+	JsonValue const v = json["minDropProgress"];
+	if (v.isString())
+	{
+		if (v.toString() != "blocked")
+		{
+			return ST::format("minDropProgress of item '{}' must be 0-100 or \"blocked\", not \"{}\"",
+				item.getInternalName(), v.toString());
+		}
+		item.setEnemyDropBlocked(true);
+		return {};
+	}
+	int const progress = v.isInt() ? v.toInt() : -1;
+	if (progress < 0 || 100 < progress)
+	{
+		return ST::format("minDropProgress of item '{}' must be 0-100 or \"blocked\", not {}",
+			item.getInternalName(), v.serialize());
+	}
+	item.setMinDropProgress(static_cast<uint8_t>(progress));
+	return {};
+}

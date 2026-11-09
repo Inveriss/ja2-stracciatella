@@ -8,9 +8,13 @@ items:
       description: |
         An enemy leaves this magazine behind only when the game's highest progress is at
         least this value, 0-100; 0 or left out means always (docs/enemy-drop-progress-plan.md).
-      type: integer
-      minimum: 0
-      maximum: 100
+        "blocked": a defeated enemy never leaves it behind; dealers treat it like 0.
+      anyOf:
+        - type: integer
+          minimum: 0
+          maximum: 100
+        - type: string
+          enum: [blocked]
     itemIndex:
       title: Internal numeric id
       $ref: types/uint16.schema.yaml
