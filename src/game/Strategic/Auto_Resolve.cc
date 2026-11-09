@@ -397,6 +397,7 @@ static INT32 ARRank(SOLDIERCELL const& c)
 	if (c.uiFlags & CELL_MERC) return 0;
 	switch (c.pSoldier->ubSoldierClass)
 	{
+		case SOLDIER_CLASS_ELITE_HEAVY:
 		case SOLDIER_CLASS_ELITE:
 		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
 		case SOLDIER_CLASS_ELITE_MILITIA: return 0;

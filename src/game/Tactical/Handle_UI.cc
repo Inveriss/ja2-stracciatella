@@ -1014,7 +1014,7 @@ static ScreenID UIHandleNewBadMerc(UI_EVENT*)
 	// Are we an OK dest?
 	if (!IsLocationSittable(map_pos, 0)) return GAME_SCREEN;
 
-	// ALT+A admin, ALT+B army, ALT+Q elite (cheat keys)
+	// ALT+A admin, ALT+B army, ALT+Q elite, ALT+P Elite Heavy (cheat keys)
 	SoldierClass const sc = static_cast<SoldierClass>(gNewBadMercClass);
 	SOLDIERTYPE* const s = TacticalCreateEnemySoldier(sc);
 	if (!s) return GAME_SCREEN;
@@ -1033,6 +1033,7 @@ static ScreenID UIHandleNewBadMerc(UI_EVENT*)
 				++sector.ubNumTroops;
 				++sector.ubTroopsInBattle;
 				break;
+			case SOLDIER_CLASS_ELITE_HEAVY:
 			case SOLDIER_CLASS_ELITE:
 				++sector.ubNumElites;
 				++sector.ubElitesInBattle;
@@ -1053,6 +1054,7 @@ static ScreenID UIHandleNewBadMerc(UI_EVENT*)
 					++sector->ubNumTroops;
 					++sector->ubTroopsInBattle;
 					break;
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:
 					++sector->ubNumElites;
 					++sector->ubElitesInBattle;

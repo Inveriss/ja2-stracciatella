@@ -174,6 +174,10 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 		return;
 	}
 
+	// Enemy Elite Heavy (docs/enemy-elite-heavy-plan.md): until his fixed kit (stage 2)
+	// he gets the random equipment of an elite
+	if ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY ) bSoldierClass = SOLDIER_CLASS_ELITE;
+
 
 	Assert( ( ( bSoldierClass >= SOLDIER_CLASS_NONE ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) ) || ( bSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA ) );
 	bool const fByProgress = EnemyEquipmentByProgress() && bSoldierClass != SOLDIER_CLASS_NONE;

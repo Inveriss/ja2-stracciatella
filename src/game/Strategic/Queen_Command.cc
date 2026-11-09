@@ -394,6 +394,7 @@ void PrepareEnemyForSectorBattle()
 			{
 				case SOLDIER_CLASS_ADMINISTRATOR: ++total_admins; break;
 				case SOLDIER_CLASS_ARMY:          ++total_troops; break;
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:         ++total_elites; break;
 			}
 		}
@@ -545,6 +546,7 @@ void PrepareEnemyForSectorBattle()
 					--n_troops;
 					break;
 
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:
 					if (n_elites == 0) continue;
 					--n_elites;
@@ -646,6 +648,7 @@ void ProcessQueenCmdImplicationsOfDeath(const SOLDIERTYPE* const pSoldier)
 		}
 		switch( pSoldier->ubSoldierClass )
 		{
+			case SOLDIER_CLASS_ELITE_HEAVY:
 			case SOLDIER_CLASS_ELITE:
 				if( !pGroup->pEnemyGroup->ubNumElites )
 				{
@@ -786,6 +789,7 @@ void ProcessQueenCmdImplicationsOfDeath(const SOLDIERTYPE* const pSoldier)
 						pSector->ubTroopsInBattle--;
 					}
 					break;
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:
 					if( guiCurrentScreen == GAME_SCREEN )
 					{
@@ -881,6 +885,7 @@ void ProcessQueenCmdImplicationsOfDeath(const SOLDIERTYPE* const pSoldier)
 						pSector->ubTroopsInBattle--;
 					}
 					break;
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:
 					if ((ubTotalEnemies <= MAX_STRATEGIC_TEAM_SIZE && pSector->ubNumElites != pSector->ubElitesInBattle) ||
 						!pSector->ubNumElites || !pSector->ubElitesInBattle ||

@@ -234,6 +234,7 @@ void NewWayOfLoadingEnemySoldiersFromTempFile()
 			// population.
 			switch (bp->ubSoldierClass)
 			{
+				case SOLDIER_CLASS_ELITE_HEAVY:
 				case SOLDIER_CLASS_ELITE:
 					++ubNumElites;
 					break;
@@ -682,6 +683,7 @@ static void CountNumberOfElitesRegularsAdminsAndCreaturesFromEnemySoldiersTempFi
 		// Increment the current type of soldier
 		switch (tempDetailedPlacement.ubSoldierClass)
 		{
+			case SOLDIER_CLASS_ELITE_HEAVY:
 			case SOLDIER_CLASS_ELITE:
 				++*n_elites;
 				break;

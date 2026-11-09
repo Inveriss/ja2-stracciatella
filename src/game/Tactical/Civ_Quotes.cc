@@ -417,7 +417,7 @@ static UINT8 DetermineCivQuoteEntry(SOLDIERTYPE* pCiv, UINT8* pubCivHintToUse, B
 			return( CIV_QUOTE_ENEMY_HURT );
 		}
 		// elite?
-		else if ( pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE )
+		else if ( IsEnemyElite( pCiv->ubSoldierClass ) )
 		{
 			return( CIV_QUOTE_ENEMY_ELITE );
 		}

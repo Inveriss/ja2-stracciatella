@@ -1004,6 +1004,7 @@ static void PrintEquipmentBelowGuy(SOLDIERTYPE const& s, INT16 const x, INT16 y)
 		case SOLDIER_CLASS_REG_MILITIA:         type = "Regular militia";     break;
 		case SOLDIER_CLASS_ELITE_MILITIA:       type = "Elite militia";       break;
 		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA: type = "Elite heavy militia"; break;
+		case SOLDIER_CLASS_ELITE_HEAVY:         type = "Elite heavy";         break;
 		default:                                type = "Civilian";            break;
 	}
 	SetFontForeground(FONT_YELLOW);

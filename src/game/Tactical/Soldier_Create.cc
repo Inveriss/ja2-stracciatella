@@ -785,6 +785,12 @@ static void GeneratePaletteForSoldier(SOLDIERTYPE* pSoldier, UINT8 ubSoldierClas
 			pSoldier->PantsPal = "BEIGEPANTS"; // as every militia rank: only the shirt differs
 			pSoldier->ubSoldierClass = ubSoldierClass;
 			return;
+		case SOLDIER_CLASS_ELITE_HEAVY:
+			// docs/enemy-elite-heavy-plan.md (H7): close to the black elite, yet clearly different
+			pSoldier->VestPal  = "greyVEST";
+			pSoldier->PantsPal = "BLACKPANTS";
+			pSoldier->ubSoldierClass = ubSoldierClass;
+			return;
 		case SOLDIER_CLASS_MINER:
 			pSoldier->VestPal  = "greyVEST";
 			pSoldier->PantsPal = "BEIGEPANTS";
@@ -924,6 +930,7 @@ static void TacticalCopySoldierFromCreateStruct(SOLDIERTYPE& s, SOLDIERCREATE_ST
 		case SOLDIER_CLASS_ELITE:
 		case SOLDIER_CLASS_ELITE_MILITIA:
 		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
+		case SOLDIER_CLASS_ELITE_HEAVY:
 			chance         = 40;
 			expert_progess = 40;
 			expert_chance  = 30;
@@ -949,8 +956,8 @@ maybe_nightops:
 			break;
 	}
 
-	// ELITE_HEAVY militia: always Heavy Weapons and Night Ops, once each
-	if (s.ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	// ELITE_HEAVY militia and the enemy Elite Heavy: always Heavy Weapons and Night Ops, once each
+	if (s.ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA || s.ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY)
 	{
 		s.ubSkillTrait1 = HEAVY_WEAPS;
 		s.ubSkillTrait2 = NIGHTOPS;
@@ -1326,8 +1333,9 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 		pp->bBodyType = bp->bBodyType;
 	}
 
-	// ELITE_HEAVY militia are always big males
-	if (bp->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA && bp->bTeam == MILITIA_TEAM)
+	// ELITE_HEAVY militia and the enemy Elite Heavy are always big males
+	if ((bp->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA && bp->bTeam == MILITIA_TEAM) ||
+		(bp->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY && bp->bTeam == ENEMY_TEAM))
 	{
 		pp->bBodyType = BIGMALE;
 	}
@@ -1412,6 +1420,7 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 			pp->bExpLevel = (INT8) 6 + bExpLevelModifier;
 			break;
 		case SOLDIER_CLASS_ELITE_HEAVY_MILITIA:
+		case SOLDIER_CLASS_ELITE_HEAVY:
 			pp->bExpLevel = (INT8) 8 + bExpLevelModifier;
 			break;
 		case SOLDIER_CLASS_MINER:
@@ -1487,15 +1496,16 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 	pp->bWisdom = (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 	pp->bMorale = (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 
-	if (ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	if (ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY_MILITIA || ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY)
 	{
 		// carries the heavy weapons: always full strength, and a fixed agility
 		pp->bStrength = 100;
 		pp->bAgility  = 94;
 	}
 
-	// skipping the ELITE_HEAVY militia too: their base level 8 (+ the usual modifiers) must not be cut down
-	if (ubSoldierClass != SOLDIER_CLASS_ELITE && ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY_MILITIA)
+	// skipping the ELITE_HEAVY militia and enemies too: their base level 8 (+ the usual modifiers) must not be cut down
+	if (ubSoldierClass != SOLDIER_CLASS_ELITE && ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY_MILITIA &&
+		ubSoldierClass != SOLDIER_CLASS_ELITE_HEAVY)
 	{
 		// CJC: now calculate the REAL experience level if in the really upper end
 		// we're skipping elites, since they have externalised level bounds
@@ -1700,6 +1710,7 @@ void UpdateSoldierWithStaticDetailedInformation( SOLDIERTYPE *s, SOLDIERCREATE_S
 		//If the soldier is an administrator, then
 		case SOLDIER_CLASS_ADMINISTRATOR:
 		case SOLDIER_CLASS_ARMY:
+		case SOLDIER_CLASS_ELITE_HEAVY:
 		case SOLDIER_CLASS_ELITE:
 			GeneratePaletteForSoldier( s, spp->ubSoldierClass );
 			break;
@@ -1861,7 +1872,10 @@ try
 	{
 		if (s->bInSector && s->bLife != 0 && s->sGridNo != NOWHERE)
 		{
-			if (s->ubSoldierClass == ubSoldierClass)
+			// an elite slot of the strategic count may be filled by an Elite Heavy
+			// (docs/enemy-elite-heavy-plan.md: he is counted as an elite)
+			if (s->ubSoldierClass == ubSoldierClass ||
+				(ubSoldierClass == SOLDIER_CLASS_ELITE && s->ubSoldierClass == SOLDIER_CLASS_ELITE_HEAVY))
 			{
 				//reserve this soldier
 				s->sGridNo = NOWHERE;

@@ -2038,6 +2038,8 @@ static void HandleModAltCheats(UINT32 const key, UIEventKind * const new_event)
 		case 'a': gNewBadMercClass = SOLDIER_CLASS_ADMINISTRATOR; *new_event = I_NEW_BADMERC; break;
 		case 'b': gNewBadMercClass = SOLDIER_CLASS_ARMY;          *new_event = I_NEW_BADMERC; break;
 		case 'q': gNewBadMercClass = SOLDIER_CLASS_ELITE;         *new_event = I_NEW_BADMERC; break;
+		// docs/enemy-elite-heavy-plan.md: an enemy Elite Heavy
+		case 'p': gNewBadMercClass = SOLDIER_CLASS_ELITE_HEAVY;   *new_event = I_NEW_BADMERC; break;
 		case 'c': CreateNextCivType();          break;
 
 		case 'd':

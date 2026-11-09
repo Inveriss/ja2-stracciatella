@@ -2086,6 +2086,7 @@ UINT8 SoldierDifficultyLevel( const SOLDIERTYPE * pSoldier )
 			bDifficulty = bDifficultyBase;
 			break;
 
+		case SOLDIER_CLASS_ELITE_HEAVY:
 		case SOLDIER_CLASS_ELITE:
 			bDifficulty = bDifficultyBase + 1;
 			break;
