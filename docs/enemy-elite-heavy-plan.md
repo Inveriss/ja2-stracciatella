@@ -1,7 +1,15 @@
 # Enemy Elite Heavy soldiers (Weapons)
 
-Status: plan only (2026-11-09, written in Remote Control mode), H1-H8, N1-N10 and O1-O2 decided
-by the user (2026-11-09), not implemented.
+Status: IMPLEMENTED (2026-11-09), every step game-verified, on `Weapons`:
+- 8c500005c: class `SOLDIER_CLASS_ELITE_HEAVY`, counted as an elite (`IsEnemyElite`), look,
+  stats, traits, labels, cheat **ALT+P** (ALT+H of section 4 was taken: hit chances);
+- c1c77e58d (stage 1): `game.json` `enemy_elite_heavy`, `EnemyEliteHeavies()`, running count in
+  the defenders, the temp-file reload, arriving groups and autoresolve, "Heavy" autoresolve label;
+- 206981103 (stage 2): `EquipEliteHeavyEnemy` (fixed kit, LAW/mortar alternation, LAWs underground),
+  the AI rules (N7, H5) and the autoresolve heavy shot.
+287 unit tests pass. H1-H8, N1-N10 and O1-O2 decided by the user (2026-11-09).
+Not done (by decision): the Minimi exception for targets the heavy weapon cannot reach (N6);
+regular elites keep their random special weapons (H6).
 Branch: `Weapons` (last commit 4463fec38).
 Related: Elite Heavy militia (docs of the Militia branch, `EquipEliteHeavyMilitia` in
 `Inventory_Choosing.cc:583`), [enemy-equipment-progress-plan.md](enemy-equipment-progress-plan.md),
