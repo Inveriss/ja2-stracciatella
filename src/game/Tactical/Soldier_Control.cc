@@ -2136,6 +2136,14 @@ static void SetSoldierGridNo(SOLDIERTYPE& s, GridNo new_grid_no, BOOLEAN const f
 static UINT16 SelectFireAnimation(SOLDIERTYPE* pSoldier, UINT8 ubHeight);
 
 
+// Raising, aiming and lowering with two guns: a dual shot or a dual burst
+// (docs/dual-burst-plan.md)
+static bool UsesDualAimAnimations(SOLDIERTYPE const* const s)
+{
+	return IsValidSecondHandShot(s) || IsValidDualBurst(*s);
+}
+
+
 void EVENT_FireSoldierWeapon( SOLDIERTYPE *pSoldier, INT16 sTargetGridNo )
 {
 	BOOLEAN fDoFireRightAway = FALSE;
@@ -2316,6 +2324,17 @@ static UINT16 SelectFireAnimation(SOLDIERTYPE* pSoldier, UINT8 ubHeight)
 	if ( pSoldier->ubBodyType == TANK_NW || pSoldier->ubBodyType == TANK_NE )
 	{
 		return( TANK_BURST );
+	}
+
+	// Two one-handed guns bursting at once (docs/dual-burst-plan.md)
+	if ( IsValidDualBurst( *pSoldier ) )
+	{
+		switch ( ubHeight )
+		{
+			case ANIM_STAND:  return DUAL_BURST_STAND;
+			case ANIM_PRONE:  return DUAL_BURST_PRONE;
+			case ANIM_CROUCH: return DUAL_BURST_CROUCH;
+		}
 	}
 
 	// Determine which animation to do...depending on stance and gun in hand...
@@ -2558,7 +2577,7 @@ UINT16 PickSoldierReadyAnimation(SOLDIERTYPE* pSoldier, BOOLEAN fEndReady)
 				case ANIM_STAND:
 
 					// CHECK 2ND HAND!
-					if ( IsValidSecondHandShot( pSoldier ) )
+					if ( UsesDualAimAnimations( pSoldier ) )
 					{
 						return( END_DUAL_STAND );
 					}
@@ -2569,7 +2588,7 @@ UINT16 PickSoldierReadyAnimation(SOLDIERTYPE* pSoldier, BOOLEAN fEndReady)
 
 				case ANIM_PRONE:
 
-					if ( IsValidSecondHandShot( pSoldier ) )
+					if ( UsesDualAimAnimations( pSoldier ) )
 					{
 						return( END_DUAL_PRONE );
 					}
@@ -2581,7 +2600,7 @@ UINT16 PickSoldierReadyAnimation(SOLDIERTYPE* pSoldier, BOOLEAN fEndReady)
 				case ANIM_CROUCH:
 
 					// CHECK 2ND HAND!
-					if ( IsValidSecondHandShot( pSoldier ) )
+					if ( UsesDualAimAnimations( pSoldier ) )
 					{
 						return( END_DUAL_CROUCH );
 					}
@@ -2604,7 +2623,7 @@ UINT16 PickSoldierReadyAnimation(SOLDIERTYPE* pSoldier, BOOLEAN fEndReady)
 				case ANIM_STAND:
 
 					// CHECK 2ND HAND!
-					if ( IsValidSecondHandShot( pSoldier ) )
+					if ( UsesDualAimAnimations( pSoldier ) )
 					{
 						return( READY_DUAL_STAND );
 					}
@@ -2618,7 +2637,7 @@ UINT16 PickSoldierReadyAnimation(SOLDIERTYPE* pSoldier, BOOLEAN fEndReady)
 					//ChangeSoldierStance( pSoldier, ANIM_CROUCH );
 					//pSoldier->ubDesiredHeight = ANIM_PRONE;
 					//ChangeSoldierState( pSoldier, PRONE_UP );
-					if ( IsValidSecondHandShot( pSoldier ) )
+					if ( UsesDualAimAnimations( pSoldier ) )
 					{
 						return( READY_DUAL_PRONE );
 					}
@@ -2630,7 +2649,7 @@ UINT16 PickSoldierReadyAnimation(SOLDIERTYPE* pSoldier, BOOLEAN fEndReady)
 				case ANIM_CROUCH:
 
 					// CHECK 2ND HAND!
-					if ( IsValidSecondHandShot( pSoldier ) )
+					if ( UsesDualAimAnimations( pSoldier ) )
 					{
 						return( READY_DUAL_CROUCH );
 					}

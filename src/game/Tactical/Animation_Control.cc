@@ -345,7 +345,10 @@ const ANIMCONTROLTYPE gAnimControl[NUMANIMATIONSTATES] =
 	{"CRIPPLE CLOSE DOOR",             0.0f, ANIM_STATIONARY | ANIM_TURNING | ANIM_FASTTURN | ANIM_NORESTART | ANIM_MIN_EFFORT,                                                                                         100, ANIM_STAND,  ANIM_STAND}, //CRIPPLE CLOSE DOOR
 	{"END OPEN DOOR",                  0.0f, ANIM_STATIONARY | ANIM_TURNING | ANIM_FASTTURN | ANIM_NORESTART | ANIM_MIN_EFFORT,                                                                                         100, ANIM_STAND,  ANIM_STAND}, //CRIPPLE END OPEN DOOR
 	{"END OPEN LOCKED DOOR",           0.0f, ANIM_STATIONARY | ANIM_TURNING | ANIM_FASTTURN | ANIM_NORESTART | ANIM_NONINTERRUPT | ANIM_MIN_EFFORT,                                                                     100, ANIM_STAND,  ANIM_STAND}, //CRIPPLE END OPEN LOCKED DOOR
-	{"CROUCH PICK LOCK",               0.0f, ANIM_STATIONARY | ANIM_TURNING | ANIM_FASTTURN | ANIM_NORESTART | ANIM_LOWER_WEAPON | ANIM_LIGHT_EFFORT,                                                                    70, ANIM_CROUCH, ANIM_CROUCH} //CROUCH PICK LOCK
+	{"CROUCH PICK LOCK",               0.0f, ANIM_STATIONARY | ANIM_TURNING | ANIM_FASTTURN | ANIM_NORESTART | ANIM_LOWER_WEAPON | ANIM_LIGHT_EFFORT,                                                                    70, ANIM_CROUCH, ANIM_CROUCH}, //CROUCH PICK LOCK
+	{"DUAL BURST STAND",               0.0f, ANIM_STATIONARY | ANIM_TURNING | ANIM_LIGHT_EFFORT | ANIM_FIRE,                                                                                                            100, ANIM_STAND,  ANIM_STAND}, //DUAL_BURST_STAND
+	{"DUAL BURST CROUCH",              0.0f, ANIM_STATIONARY | ANIM_TURNING | ANIM_LIGHT_EFFORT | ANIM_FIRE,                                                                                                            100, ANIM_CROUCH, ANIM_CROUCH}, //DUAL_BURST_CROUCH
+	{"DUAL BURST PRONE",               0.0f, ANIM_STATIONARY | ANIM_TURNING | ANIM_LIGHT_EFFORT | ANIM_FIRE,                                                                                                            100, ANIM_PRONE,  ANIM_PRONE} //DUAL_BURST_PRONE
 };
 
 
@@ -2403,6 +2406,87 @@ void InitAnimationSurfacesPerBodytype( )
 	gubAnimSurfaceIndex[HELICOPTERBODY][WALKING] = HELICOPTER_BASIC;
 	gubAnimSurfaceCorpseID[HELICOPTERBODY][STANDING] = HELI_DEAD;
 	gubAnimSurfaceCorpseID[HELICOPTERBODY][WALKING] = HELI_DEAD;
+
+	// The dual burst uses the graphics of the dual shot, for every body type
+	// that has them (docs/dual-burst-plan.md, D11)
+	static UINT16 const dual_burst[][2] =
+	{
+		{ DUAL_BURST_STAND,  SHOOT_DUAL_STAND  },
+		{ DUAL_BURST_CROUCH, SHOOT_DUAL_CROUCH },
+		{ DUAL_BURST_PRONE,  SHOOT_DUAL_PRONE  }
+	};
+	for (int body = 0; body < TOTALBODYTYPES; ++body)
+	{
+		for (auto const& d : dual_burst)
+		{
+			UINT16 const to = d[0], from = d[1];
+			gubAnimSurfaceIndex[body][to]               = gubAnimSurfaceIndex[body][from];
+			gubAnimSurfaceItemSubIndex[body][to]        = gubAnimSurfaceItemSubIndex[body][from];
+			gubAnimSurfaceMidWaterSubIndex[body][to][0] = gubAnimSurfaceMidWaterSubIndex[body][from][0];
+			gubAnimSurfaceMidWaterSubIndex[body][to][1] = gubAnimSurfaceMidWaterSubIndex[body][from][1];
+			gubAnimSurfaceCorpseID[body][to]            = gubAnimSurfaceCorpseID[body][from];
+		}
+	}
+}
+
+
+bool IsDualBurstAnimation(UINT16 const anim_state)
+{
+	return anim_state == DUAL_BURST_STAND || anim_state == DUAL_BURST_CROUCH ||
+		anim_state == DUAL_BURST_PRONE;
+}
+
+
+// The scripts of the dual burst states (docs/dual-burst-plan.md, stage 2): a
+// block per hand with that hand's firing frames of the dual shot graphics,
+// the hand-choice code after each block, which jumps to the next hand's block
+// or to the end. Built here: ja2bin.dat has no free states of its own for them.
+static void BuildDualBurstScripts()
+{
+	struct DualBurstScript
+	{
+		UINT16 state;
+		UINT16 first_frames[2];  // right hand's shot
+		UINT16 second_frames[2]; // left hand's shot
+		UINT16 aim_goto;         // script code going to AIM_DUAL_*
+	};
+	// AIM_DUAL_STAND is state 99 (code 600 + 99), AIM_DUAL_CROUCH 196 and
+	// AIM_DUAL_PRONE 281 (code 700 + state), as in the dual shot's own scripts
+	static DualBurstScript const scripts[] =
+	{
+		{ DUAL_BURST_STAND,  { 17, 18 }, { 21, 22 }, 600 + AIM_DUAL_STAND  },
+		{ DUAL_BURST_CROUCH, { 17, 18 }, { 21, 22 }, 700 + AIM_DUAL_CROUCH },
+		{ DUAL_BURST_PRONE,  {  6,  7 }, { 10, 11 }, 700 + AIM_DUAL_PRONE  }
+	};
+	static_assert(AIM_DUAL_STAND < 100 && AIM_DUAL_CROUCH >= 100 && AIM_DUAL_PRONE < 300);
+	static_assert(NUMANIMATIONSTATES <= MAX_ANIMATIONS);
+
+	for (DualBurstScript const& s : scripts)
+	{
+		UINT16* const out = gusAnimInst[s.state];
+		std::fill(out, out + MAX_FRAMES_PER_ANIM, 0);
+		size_t i = 0;
+		out[i++] = 757; // attacker busy
+		out[i++] = ANI_CODE_DUAL_BURST_NEXT_HAND;
+		for (int hand = 0; hand < 2; ++hand)
+		{
+			Assert(i == static_cast<size_t>(DUAL_BURST_FIRST_HAND_BLOCK + hand * DUAL_BURST_BLOCK_SIZE));
+			UINT16 const* const frames = hand == 0 ? s.first_frames : s.second_frames;
+			out[i++] = hand == 0 ? 459 : 458; // attack with the first / second hand
+			out[i++] = 441;                   // muzzle flash
+			out[i++] = 448;                   // burst check: length, ammo, jam
+			out[i++] = 430;                   // fire
+			out[i++] = frames[0];
+			out[i++] = frames[1];
+			out[i++] = 477;                   // shot end
+			out[i++] = ANI_CODE_DUAL_BURST_NEXT_HAND;
+		}
+		out[i++] = 449;        // burst end
+		out[i++] = 753;        // attacker free
+		out[i++] = 473;        // jammed / out of ammo: lower the guns
+		out[i++] = s.aim_goto; // back to aiming with two guns
+		out[i++] = 999;
+	}
 }
 
 
@@ -2410,6 +2494,7 @@ void LoadAnimationStateInstructions()
 {
 	AutoSGPFile hFile(GCM->openGameResForReading(ANIMFILENAME));
 	hFile->read(gusAnimInst, sizeof(gusAnimInst));
+	BuildDualBurstScripts();
 }
 
 
@@ -2881,6 +2966,34 @@ UINT16 GetSoldierAnimationSurface(SOLDIERTYPE const* const pSoldier)
 TEST(AnimationControl, asserts)
 {
 	EXPECT_EQ(lengthof(gAnimControl), NUMANIMATIONSTATES);
+}
+
+TEST(AnimationControl, dualBurstScripts)
+{
+	BuildDualBurstScripts();
+	for (UINT16 const state : { DUAL_BURST_STAND, DUAL_BURST_CROUCH, DUAL_BURST_PRONE })
+	{
+		UINT16 const* const s = gusAnimInst[state];
+		EXPECT_EQ(s[1], ANI_CODE_DUAL_BURST_NEXT_HAND);
+		UINT16 const first  = DUAL_BURST_FIRST_HAND_BLOCK;
+		UINT16 const second = first + DUAL_BURST_BLOCK_SIZE;
+		UINT16 const end    = second + DUAL_BURST_BLOCK_SIZE;
+		EXPECT_EQ(s[first], 459);
+		EXPECT_EQ(s[first + 3], 430);
+		EXPECT_EQ(s[second - 1], ANI_CODE_DUAL_BURST_NEXT_HAND);
+		EXPECT_EQ(s[second], 458);
+		EXPECT_EQ(s[second + 3], 430);
+		EXPECT_EQ(s[end - 1], ANI_CODE_DUAL_BURST_NEXT_HAND);
+		EXPECT_EQ(s[end], 449);
+		EXPECT_EQ(s[end + 4], 999);
+		EXPECT_TRUE(IsDualBurstAnimation(state));
+	}
+	EXPECT_EQ(gusAnimInst[DUAL_BURST_STAND][DUAL_BURST_FIRST_HAND_BLOCK + 4], 17);
+	EXPECT_EQ(gusAnimInst[DUAL_BURST_PRONE][DUAL_BURST_FIRST_HAND_BLOCK + DUAL_BURST_BLOCK_SIZE + 4], 10);
+	EXPECT_EQ(gusAnimInst[DUAL_BURST_STAND][DUAL_BURST_FIRST_HAND_BLOCK + 2 * DUAL_BURST_BLOCK_SIZE + 3], 699);
+	EXPECT_EQ(gusAnimInst[DUAL_BURST_CROUCH][DUAL_BURST_FIRST_HAND_BLOCK + 2 * DUAL_BURST_BLOCK_SIZE + 3], 896);
+	EXPECT_EQ(gusAnimInst[DUAL_BURST_PRONE][DUAL_BURST_FIRST_HAND_BLOCK + 2 * DUAL_BURST_BLOCK_SIZE + 3], 981);
+	EXPECT_FALSE(IsDualBurstAnimation(SHOOT_DUAL_STAND));
 }
 
 #endif

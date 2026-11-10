@@ -513,6 +513,12 @@ enum AnimationStates
 	CRIPPLE_END_OPEN_LOCKED_DOOR,
 	LOCKPICK_CROUCHED,
 
+	// burst with two one-handed guns at once (docs/dual-burst-plan.md); their
+	// scripts are built in code (BuildDualBurstScripts()), not in ja2bin.dat
+	DUAL_BURST_STAND,
+	DUAL_BURST_CROUCH,
+	DUAL_BURST_PRONE,
+
 	NUMANIMATIONSTATES
 };
 
@@ -536,6 +542,14 @@ extern UINT16 gubAnimSurfaceCorpseID[][NUMANIMATIONSTATES];
 
 void LoadAnimationStateInstructions(void);
 void InitAnimationSurfacesPerBodytype(void);
+bool IsDualBurstAnimation(UINT16 anim_state);
+
+// Animation code of the dual burst scripts: chooses the hand of the next shot
+// (jumps to its block) or ends the burst (docs/dual-burst-plan.md)
+#define ANI_CODE_DUAL_BURST_NEXT_HAND 488
+// Index of the first hand's and the second hand's block in those scripts
+#define DUAL_BURST_FIRST_HAND_BLOCK   2
+#define DUAL_BURST_BLOCK_SIZE         8
 bool IsAnimationValidForBodyType(SOLDIERTYPE const&, UINT16 new_state);
 UINT16 SubstituteBodyTypeAnimation(const SOLDIERTYPE* s, UINT16 anim_state);
 char const* GetBodyTypePaletteSubstitution(SOLDIERTYPE const*, UINT8 ubBodyType);

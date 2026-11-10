@@ -1669,7 +1669,7 @@ INT16 GetAPsToReadyWeapon(const SOLDIERTYPE* const pSoldier, const UINT16 usAnim
 	//{
 		//return( AP_READY_DUAL );
 	//}
-	if ( IsValidSecondHandShot( pSoldier ) )
+	if ( IsValidSecondHandShot( pSoldier ) || IsValidDualBurst( *pSoldier ) )
 	{
 		return( AP_READY_DUAL );
 	}

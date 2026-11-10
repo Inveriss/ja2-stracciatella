@@ -103,6 +103,50 @@ static UINT8 CurrentBurstLength(SOLDIERTYPE* const pSoldier)
 }
 
 
+// Dual burst (docs/dual-burst-plan.md): the script index of the block of the
+// hand that fires next, or of the burst end. The hands take turns (D2); a hand
+// without rounds gives its turn to the other one (D4).
+static UINT16 NextDualBurstBlock(SOLDIERTYPE* const pSoldier)
+{
+	UINT16 const first_block  = DUAL_BURST_FIRST_HAND_BLOCK;
+	UINT16 const second_block = DUAL_BURST_FIRST_HAND_BLOCK + DUAL_BURST_BLOCK_SIZE;
+	UINT16 const end_block    = DUAL_BURST_FIRST_HAND_BLOCK + 2 * DUAL_BURST_BLOCK_SIZE;
+
+	if (pSoldier->bDoBurst > CurrentBurstLength(pSoldier)) return end_block;
+
+	// after the first hand's block the second hand, otherwise the first
+	UINT16 const code = pSoldier->usAniCode;
+	bool const first_next = !(code >= first_block && code < second_block);
+	UINT8 const hands[2] =
+	{
+		static_cast<UINT8>(first_next ? HANDPOS : SECONDHANDPOS),
+		static_cast<UINT8>(first_next ? SECONDHANDPOS : HANDPOS)
+	};
+	for (UINT8 const hand : hands)
+	{
+		if (EnoughAmmo(pSoldier, FALSE, hand))
+		{
+			return hand == HANDPOS ? first_block : second_block;
+		}
+	}
+	return end_block;
+}
+
+
+// The aiming state a burst goes back to when it stops early
+static UINT16 BurstAimState(SOLDIERTYPE const* const pSoldier)
+{
+	bool const dual = IsDualBurstAnimation(pSoldier->usAnimState);
+	switch (gAnimControl[pSoldier->usAnimState].ubEndHeight)
+	{
+		case ANIM_STAND:  return dual ? AIM_DUAL_STAND  : AIM_RIFLE_STAND;
+		case ANIM_PRONE:  return dual ? AIM_DUAL_PRONE  : AIM_RIFLE_PRONE;
+		case ANIM_CROUCH: return dual ? AIM_DUAL_CROUCH : AIM_RIFLE_CROUCH;
+		default:          return INVALID_ANIMATION;
+	}
+}
+
+
 BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 {
 	UINT16 sNewAniFrame, anAniFrame;
@@ -738,13 +782,9 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 						}
 						else
 						{
-							switch ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight )
-							{
-								case ANIM_STAND:  state = AIM_RIFLE_STAND;  break;
-								case ANIM_PRONE:  state = AIM_RIFLE_PRONE;  break;
-								case ANIM_CROUCH: state = AIM_RIFLE_CROUCH; break;
-								default:          return TRUE;
-							}
+							// (a dual burst back to aiming with two guns)
+							state = BurstAimState( pSoldier );
+							if ( state == INVALID_ANIMATION ) return TRUE;
 						}
 						ChangeSoldierState(pSoldier, state, 0, FALSE);
 						return( TRUE );
@@ -788,7 +828,9 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 					// pass, unlike rewinding directly from case 448 (see the comment
 					// there). See ENABLE_EXTENDED_BURST_FIRE (Soldier_Control.h) to
 					// deactivate.
+					// (not a dual burst: its hand-choice code loops it)
 					if ( ENABLE_EXTENDED_BURST_FIRE &&
+					     !IsDualBurstAnimation( pSoldier->usAnimState ) &&
 					     pSoldier->usBurstFireAniCodeAnchor != 0xFFFF &&
 					     pSoldier->bDoBurst <= CurrentBurstLength( pSoldier ) &&
 					     EnoughAmmo( pSoldier, FALSE, pSoldier->ubAttackingHand ) )
@@ -1247,6 +1289,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 					// flash (441), so case 448 checks the burst length, ammo and jam as
 					// for every other shot of the table.
 					if ( ENABLE_EXTENDED_BURST_FIRE &&
+					     !IsDualBurstAnimation( pSoldier->usAnimState ) &&
 					     pSoldier->bDoBurst > 0 &&
 					     pSoldier->usBurstFireAniCodeAnchor != 0xFFFF &&
 					     pSoldier->usBurstFireAniCodeAnchor >= 3 &&
@@ -1414,6 +1457,13 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 
 					// CODE: DROP ITEM
 					SoldierHandleDropItem( pSoldier );
+					break;
+
+				case ANI_CODE_DUAL_BURST_NEXT_HAND:
+
+					// CODE: DUAL BURST - THE HAND OF THE NEXT SHOT
+					// (docs/dual-burst-plan.md): jump to that hand's block or to the end
+					pSoldier->usAniCode = static_cast<UINT16>(NextDualBurstBlock(pSoldier) - 1);
 					break;
 
 				case 489:
@@ -3348,9 +3398,12 @@ static BOOLEAN HandleUnjamAnimation(SOLDIERTYPE* pSoldier)
 		case SHOOT_RIFLE_PRONE:       state = PRONE_SHOOT_UNJAM;         break;
 		case CROUCHED_BURST:
 		case SHOOT_RIFLE_CROUCH:      state = CROUCH_SHOOT_UNJAM;        break;
-		case SHOOT_DUAL_STAND:        state = STANDING_SHOOT_DWEL_UNJAM; break;
-		case SHOOT_DUAL_PRONE:        state = PRONE_SHOOT_DWEL_UNJAM;    break;
-		case SHOOT_DUAL_CROUCH:       state = CROUCH_SHOOT_DWEL_UNJAM;   break;
+		case SHOOT_DUAL_STAND:
+		case DUAL_BURST_STAND:        state = STANDING_SHOOT_DWEL_UNJAM; break;
+		case SHOOT_DUAL_PRONE:
+		case DUAL_BURST_PRONE:        state = PRONE_SHOOT_DWEL_UNJAM;    break;
+		case SHOOT_DUAL_CROUCH:
+		case DUAL_BURST_CROUCH:       state = CROUCH_SHOOT_DWEL_UNJAM;   break;
 		case FIRE_LOW_STAND:
 		case FIRE_BURST_LOW_STAND:    state = STANDING_SHOOT_LOW_UNJAM;  break;
 
