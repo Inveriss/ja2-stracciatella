@@ -1,7 +1,18 @@
 # Dual burst: burst fire with two guns at once
 
-Status: PLAN, decisions D1–D12 decided 2026-11-10: all as recommended (A).
-Nothing implemented.
+Status: decisions D1–D12 decided 2026-11-10: all as recommended (A), D12
+amended (cursor only). Implemented on the Weapons branch:
+
+| Stage | Commit | Status |
+|---|---|---|
+| 1 - rules and costs | a06971f19 | game-verified |
+| 2 - animations | 8227c026e | game-verified |
+| 3 - firing logic | ecb20d3d2 | game-verified |
+| 4 - cursor label | f7d6d724c | game-verified |
+| 5 - AI | 4dda4aa15 | game-verified |
+| 6 - test mod and game tests | this commit | test mod `dual-burst-test` (outside the repository) |
+
+Dual burst COMPLETE (2026-11-10).
 
 ## 1. Current state (code facts)
 
@@ -173,3 +184,29 @@ Nothing implemented.
   different modes, and one gun almost empty.
 - Check standing, crouching, prone, in water, a jam on one gun, Full mode,
   and a big male and a female body.
+
+The test mod `mods/dual-burst-test` (in the game folder, not in the
+repository) patches `mercs-profile-info.json`. AIM merc Grunty (a big male)
+starts with:
+
+| Slot | Item | Use |
+|---|---|---|
+| HAND | Glock 18, 100% | dual burst: Short 3+3, Long 6+6, Full 15+30 |
+| SECONDHAND | MP5K, 100% | (each gun its own length, D3) |
+| BIGPOCK1 | 5 x CLIP9_15 | reloading both guns |
+| BIGPOCK2 | 4 x CLIP9_30 | |
+| BIGPOCK3 | Glock 18, 20% | jams often: a gun dropping out (D4) |
+| BIGPOCK4 | Glock 17 | no burst mode: no dual burst (D1) |
+
+Game tests:
+
+1. Short, Long and Full: alternating shots, cursor "x2 (n)", cost = the
+   higher burst cost, one sound per shot.
+2. Full: the Glock 18 stops after 15 shots, the MP5K goes on to 30.
+3. A partly empty gun: its burst is cut to its rounds.
+4. The worn Glock 18 in the second hand: it jams, a dry fire, the other gun
+   goes on, and the enemy turn starts normally afterwards.
+5. The Glock 17 in the second hand: a normal burst of the right-hand gun.
+6. Standing, crouching, prone, in water; a female or regular male merc with
+   the same guns.
+7. AI: an enemy placed in the editor with two burst guns in hand.
