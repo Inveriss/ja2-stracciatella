@@ -157,7 +157,20 @@ UICursorID GetProperItemCursor(SOLDIERTYPE* const s, GridNo const map_pos, BOOLE
 						case WM_BURST_FULL:  str = BURST_MODE_FULL_STR;  break;
 						default:             str = BURST_MODE_LONG_STR;  break;
 					}
-					SetBurstModeText(TacticalStr[str]);
+					if (IsValidDualBurst(*s))
+					{
+						// a dual burst: both guns and their shots together
+						// (docs/dual-burst-plan.md, D12), e.g. "Long x2 (12)"
+						DualBurstLength const len = CalcDualBurstLength(*s);
+						int const shots =
+							std::min(len.first,  s->inv[HANDPOS].ubGunShotsLeft) +
+							std::min(len.second, s->inv[SECONDHANDPOS].ubGunShotsLeft);
+						SetBurstModeText(ST::format("{} x2 ({})", TacticalStr[str], shots));
+					}
+					else
+					{
+						SetBurstModeText(TacticalStr[str]);
+					}
 					break;
 				}
 

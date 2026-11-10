@@ -93,7 +93,9 @@ Nothing implemented.
 - **D11 – Graphics.** (A, recommended) the existing frames (section 2.3).
   (B) new frames as a later stage.
 - **D12 – Labels.** (A, recommended) the burst cursor and the weapon box show
-  the total shots and "x2" for a dual burst.
+  the total shots and "x2" for a dual burst. Amended 2026-11-10: only the
+  burst cursor ("Long x2 (12)"). The weapon description boxes describe one
+  item and stay unchanged.
 
 ## 4. Implementation (by stages, after D1–D12)
 
