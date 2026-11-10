@@ -543,6 +543,8 @@ extern UINT16 gubAnimSurfaceCorpseID[][NUMANIMATIONSTATES];
 void LoadAnimationStateInstructions(void);
 void InitAnimationSurfacesPerBodytype(void);
 bool IsDualBurstAnimation(UINT16 anim_state);
+bool AddLastBurstShotEnd(UINT16* script);
+bool EvenLastBurstShot(UINT16* script);
 
 // Animation code of the dual burst scripts: chooses the hand of the next shot
 // (jumps to its block) or ends the burst (docs/dual-burst-plan.md)

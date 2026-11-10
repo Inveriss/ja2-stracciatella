@@ -2490,10 +2490,78 @@ static void BuildDualBurstScripts()
 }
 
 
+// STANDING_BURST's last shot has no shot end (477) after its frames, unlike
+// the other bursts' ("... 430 19 20 21 20 18 449"): a burst longer than the
+// table's 6 shots then goes on from case 449 (after the gun has been lowered)
+// back to the shot (430), without muzzle flash (441) and burst check (448),
+// and shows 5 frames per shot instead of 2 -- about twice as slow. With the
+// shot end added the extra shots loop from case 477 like CROUCHED_BURST's.
+// Adds 477 after the two frames of the script's last shot (441 448 430 a b);
+// false if the script has another shape or no room.
+bool AddLastBurstShotEnd(UINT16* const script)
+{
+	int last_shot = -1;
+	int end       = -1;
+	for (int i = 0; i < MAX_FRAMES_PER_ANIM; ++i)
+	{
+		if (script[i] == 999) { end = i; break; }
+		if (script[i] == 430) last_shot = i;
+	}
+	if (last_shot < 2 || end < 0 || end + 1 >= MAX_FRAMES_PER_ANIM) return false;
+	if (script[last_shot - 2] != 441 || script[last_shot - 1] != 448) return false;
+	int const at = last_shot + 3; // after the shot's two frames
+	if (at > end || script[at] == 477) return false;
+	std::copy_backward(script + at, script + end + 1, script + end + 2);
+	script[at] = 477;
+	return true;
+}
+
+
+// FIRE_BURST_LOW_STAND's last shot has 3 frames before its shot end
+// ("430 5 6 7 477 8 4 3 2 1"), the others 2 ("430 5 4 477"): the shots
+// beyond the table's 6 loop the last one and are half as slow again. Its
+// last shot gets the other shots' frames, the rest of its frames go after the
+// shot end, before the lowering ("430 5 4 477 6 7 8 4 3 2 1"). False if the
+// script has another shape or no room.
+bool EvenLastBurstShot(UINT16* const script)
+{
+	int prev_shot = -1;
+	int last_shot = -1;
+	int end       = -1;
+	for (int i = 0; i < MAX_FRAMES_PER_ANIM; ++i)
+	{
+		if (script[i] == 999) { end = i; break; }
+		if (script[i] == 430) { prev_shot = last_shot; last_shot = i; }
+	}
+	if (prev_shot < 0 || end < 0 || end + 1 >= MAX_FRAMES_PER_ANIM) return false;
+	// the shot before: 430 a b 477
+	if (script[prev_shot + 3] != 477) return false;
+	UINT16 const a = script[prev_shot + 1];
+	UINT16 const b = script[prev_shot + 2];
+	// the last shot: 430 a x y .. 477, longer than 2 frames
+	int shot_end = last_shot + 1;
+	while (shot_end < end && script[shot_end] != 477) ++shot_end;
+	if (shot_end >= end || shot_end - last_shot - 1 <= 2 || script[last_shot + 1] != a) return false;
+	// 430 a x y 477 rest -> 430 a b 477 x y rest
+	std::vector<UINT16> out(script, script + last_shot + 2);              // .. 430 a
+	out.push_back(b);
+	out.push_back(477);
+	out.insert(out.end(), script + last_shot + 2, script + shot_end);   // x y
+	out.insert(out.end(), script + shot_end + 1, script + end + 1);     // rest, 999
+	std::copy(out.begin(), out.end(), script);
+	return true;
+}
+
+
 void LoadAnimationStateInstructions()
 {
 	AutoSGPFile hFile(GCM->openGameResForReading(ANIMFILENAME));
 	hFile->read(gusAnimInst, sizeof(gusAnimInst));
+	if (ENABLE_EXTENDED_BURST_FIRE)
+	{
+		AddLastBurstShotEnd(gusAnimInst[STANDING_BURST]);
+		EvenLastBurstShot(gusAnimInst[FIRE_BURST_LOW_STAND]);
+	}
 	BuildDualBurstScripts();
 }
 
@@ -2966,6 +3034,38 @@ UINT16 GetSoldierAnimationSurface(SOLDIERTYPE const* const pSoldier)
 TEST(AnimationControl, asserts)
 {
 	EXPECT_EQ(lengthof(gAnimControl), NUMANIMATIONSTATES);
+}
+
+TEST(AnimationControl, standingBurstLastShotEnd)
+{
+	// STANDING_BURST of ja2bin.dat: no 477 after its last shot
+	UINT16 s[MAX_FRAMES_PER_ANIM] = { 757,
+		441, 448, 430, 19, 20, 477,
+		441, 448, 430, 19, 20, 21, 20, 18, 449, 753, 473, 612, 999 };
+	EXPECT_TRUE(AddLastBurstShotEnd(s));
+	UINT16 const want[] = { 757,
+		441, 448, 430, 19, 20, 477,
+		441, 448, 430, 19, 20, 477, 21, 20, 18, 449, 753, 473, 612, 999 };
+	for (size_t i = 0; i != lengthof(want); ++i) EXPECT_EQ(s[i], want[i]) << i;
+	// already there (CROUCHED_BURST's shape): unchanged
+	EXPECT_FALSE(AddLastBurstShotEnd(s));
+	EXPECT_EQ(s[13], 21);
+}
+
+TEST(AnimationControl, lowStandBurstEvenLastShot)
+{
+	// FIRE_BURST_LOW_STAND of ja2bin.dat (2 of its 6 shots)
+	UINT16 s[MAX_FRAMES_PER_ANIM] = { 757, 1, 2, 3, 4,
+		441, 448, 430, 5, 4, 477,
+		441, 448, 430, 5, 6, 7, 477, 8, 4, 3, 2, 1, 449, 753, 473, 612, 999 };
+	EXPECT_TRUE(EvenLastBurstShot(s));
+	UINT16 const want[] = { 757, 1, 2, 3, 4,
+		441, 448, 430, 5, 4, 477,
+		441, 448, 430, 5, 4, 477, 6, 7, 8, 4, 3, 2, 1, 449, 753, 473, 612, 999 };
+	for (size_t i = 0; i != lengthof(want); ++i) EXPECT_EQ(s[i], want[i]) << i;
+	// even already: unchanged
+	EXPECT_FALSE(EvenLastBurstShot(s));
+	EXPECT_EQ(s[17], 6);
 }
 
 TEST(AnimationControl, dualBurstScripts)
