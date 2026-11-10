@@ -364,6 +364,7 @@ struct L10n_t
 	STRARRAY(pTeamPanelOrderStrings);
 	ST::string pMapScreenJustStartedHelpText;
 	ST::string pLandMarkInSectorString;
+	ST::string pActivateCheatsQuestion;
 	STRARRAY(gzMercSkillText);
 	STRARRAY(gzNonPersistantPBIText);
 	STRARRAY(gzMiscString);

@@ -99,6 +99,17 @@ static void QueryTBMiddleButton(UIEventKind*);
 static void GroupAutoReload();
 static void SwitchHeadGear(bool dayGear);
 
+
+// CTRL+G's question answered: Yes activates the cheats (the level the cheat
+// code used to reach; CTRL+B then adds the debug level as before)
+static void ActivateCheatsCallback(MessageBoxReturnValue const ret)
+{
+	if (ret != MSG_BOX_RETURN_YES) return;
+	gubCheatLevel = static_cast<UINT8>(getCheatCode().size());
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[MSG_CHEAT_LEVEL_TWO]);
+	AddHistoryToPlayersLog(HISTORY_CHEAT_ENABLED, 0, GetWorldTotalMin(), SGPSector(-1, -1));
+}
+
 void HandleTBReload( void );
 void HandleTBSwapHands( void );
 void HandleTBClimbWindow( void );
@@ -2404,13 +2415,11 @@ void GetKeyboardInput(UIEventKind* const puiNewEvent)
 			{
 				if (gubCheatLevel < cheatCode.size())
 				{
-					if (key == static_cast<UINT32>(cheatCode[gubCheatLevel]))
+					// CTRL+G asks whether to activate the cheats (instead of typing
+					// the cheat code)
+					if (key == 'g')
 					{
-						if (++gubCheatLevel == cheatCode.size())
-						{
-							ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[MSG_CHEAT_LEVEL_TWO]);
-							AddHistoryToPlayersLog(HISTORY_CHEAT_ENABLED, 0, GetWorldTotalMin(), SGPSector(-1, -1));
-						}
+						DoMessageBox(MSG_BOX_BASIC_STYLE, pActivateCheatsQuestion, GAME_SCREEN, MSG_BOX_FLAG_YESNO, ActivateCheatsCallback);
 						continue;
 					}
 				}

@@ -188,6 +188,7 @@ L10n_t::L10n_t(SGPFile * const translationFile)
 	GetArray(pTeamPanelOrderStrings);
 	GetString(pMapScreenJustStartedHelpText);
 	GetString(pLandMarkInSectorString);
+	GetString(pActivateCheatsQuestion);
 	GetArray(gzMercSkillText);
 	GetArray(gzNonPersistantPBIText);
 	GetArray(gzMiscString);

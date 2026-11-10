@@ -1463,6 +1463,7 @@
         "Trav."
     ],
     "pLandMarkInSectorString": "La squadra %d ha notato qualcuno nel settore %s",
+    "pActivateCheatsQuestion": "Do you want to activate cheats?",
     "pLaptopIcons": [
         "E-mail",
         "Rete",

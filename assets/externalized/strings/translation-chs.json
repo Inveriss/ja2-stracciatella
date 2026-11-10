@@ -1463,6 +1463,7 @@
         "伪装"
     ],
     "pLandMarkInSectorString": "%d小队在%s地区发现有人",
+    "pActivateCheatsQuestion": "Do you want to activate cheats?",
     "pLaptopIcons": [
         "邮箱",
         "网页",

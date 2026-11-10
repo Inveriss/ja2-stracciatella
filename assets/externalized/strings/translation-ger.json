@@ -1463,6 +1463,7 @@
         "Tarnung"
     ],
     "pLandMarkInSectorString": "Trupp %d hat in Sektor %s jemanden bemerkt",
+    "pActivateCheatsQuestion": "Do you want to activate cheats?",
     "pLaptopIcons": [
         "E-mail",
         "Web",

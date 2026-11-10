@@ -1463,6 +1463,7 @@
         "Kamuf."
     ],
     "pLandMarkInSectorString": "Oddział %d zauważył kogoś w sektorze %s",
+    "pActivateCheatsQuestion": "Do you want to activate cheats?",
     "pLaptopIcons": [
         "E-mail",
         "Sieć",

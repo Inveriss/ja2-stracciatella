@@ -1463,6 +1463,7 @@
         "Cam."
     ],
     "pLandMarkInSectorString": "L'escouade %d a remarqué quelque chose dans le secteur %s",
+    "pActivateCheatsQuestion": "Do you want to activate cheats?",
     "pLaptopIcons": [
         "E-mail",
         "Internet",

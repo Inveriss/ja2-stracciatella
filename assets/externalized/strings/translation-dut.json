@@ -1463,6 +1463,7 @@
         "Camo"
     ],
     "pLandMarkInSectorString": "Team %d is heeft iemand ontdekt in sector %s",
+    "pActivateCheatsQuestion": "Do you want to activate cheats?",
     "pLaptopIcons": [
         "E-mail",
         "Web",

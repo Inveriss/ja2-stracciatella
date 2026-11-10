@@ -148,6 +148,7 @@ extern FLOAT GetWeightBasedOnMetricOption( UINT32 uiObjectWeight );
 #define pTeamPanelOrderStrings                              (g_langRes->pTeamPanelOrderStrings)
 #define pMapScreenJustStartedHelpText                       (g_langRes->pMapScreenJustStartedHelpText)
 #define pLandMarkInSectorString                             (g_langRes->pLandMarkInSectorString)
+#define pActivateCheatsQuestion                             (g_langRes->pActivateCheatsQuestion)
 #define gzMercSkillText                                     (g_langRes->gzMercSkillText)
 #define gzNonPersistantPBIText                              (g_langRes->gzNonPersistantPBIText)
 #define gzMiscString                                        (g_langRes->gzMiscString)

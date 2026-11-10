@@ -1463,6 +1463,7 @@
         "Camo"
     ],
     "pLandMarkInSectorString": "Squad %d has noticed someone in sector %s",
+    "pActivateCheatsQuestion": "Do you want to activate cheats?",
     "pLaptopIcons": [
         "E-mail",
         "Web",
