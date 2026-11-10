@@ -8817,7 +8817,15 @@ bool IsValidSecondHandShot(SOLDIERTYPE const* const s)
 // guns usable, loaded and able to fire the active burst mode.
 bool IsValidDualBurst(SOLDIERTYPE const& s)
 {
-	if (!s.bDoBurst || IsPlayerTank(s)) return false;
+	return s.bDoBurst && CanDualBurst(s);
+}
+
+
+// The same, whether or not the soldier is in burst mode now (the AI deciding
+// to burst, D9)
+bool CanDualBurst(SOLDIERTYPE const& s)
+{
+	if (IsPlayerTank(s)) return false;
 	WeaponModes const mode = GetActiveBurstMode(s);
 	for (OBJECTTYPE const* const o : { &s.inv[HANDPOS], &s.inv[SECONDHANDPOS] })
 	{

@@ -1120,6 +1120,7 @@ void PickDropItemAnimation( SOLDIERTYPE *pSoldier );
 bool IsValidSecondHandShot(SOLDIERTYPE const*);
 bool IsValidSecondHandShotForReloadingPurposes(SOLDIERTYPE const*);
 bool IsValidDualBurst(SOLDIERTYPE const&);
+bool CanDualBurst(SOLDIERTYPE const&);
 int  DualBurstBulletsLeft(SOLDIERTYPE const&);
 void DropDualBurstHand(SOLDIERTYPE&, UINT8 inv_pos);
 

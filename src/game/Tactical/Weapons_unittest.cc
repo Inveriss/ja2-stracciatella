@@ -247,9 +247,10 @@ TEST(WeaponsTest, DualBurstRulesAndCosts)
 	s.inv[SECONDHANDPOS] = gun("MP5K", 30);
 	s.bWeaponMode        = WM_BURST_SHORT;
 
-	// Not in burst mode: no dual burst
+	// Not in burst mode: no dual burst, though the guns could (AI, D9)
 	s.bDoBurst = 0;
 	EXPECT_FALSE(IsValidDualBurst(s));
+	EXPECT_TRUE(CanDualBurst(s));
 
 	// Two one-handed burst guns in burst mode
 	s.bDoBurst = 1;
