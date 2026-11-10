@@ -278,6 +278,17 @@ TEST(WeaponsTest, DualBurstRulesAndCosts)
 	EXPECT_EQ(CalcAPsToDualBurst(s, WM_BURST_SHORT), 10 - 6);
 	std::swap(s.inv[HANDPOS], s.inv[SECONDHANDPOS]);
 
+	// First Aim of two guns: the higher one (Glock 18 0, MP5K 1, MAC-10 2),
+	// in a dual burst and in a dual shot
+	EXPECT_EQ(GetAPsToReadyWeapon(&s, s.usAnimState), 1);
+	s.inv[SECONDHANDPOS] = gun("MAC10", 30);
+	EXPECT_EQ(GetAPsToReadyWeapon(&s, s.usAnimState), 2);
+	s.bDoBurst = 0;
+	EXPECT_TRUE(IsValidSecondHandShot(&s));
+	EXPECT_EQ(GetAPsToReadyWeapon(&s, s.usAnimState), 2);
+	s.bDoBurst = 1;
+	s.inv[SECONDHANDPOS] = gun("MP5K", 30);
+
 	// A gun without that burst mode, a two-handed gun, an empty or broken gun
 	s.inv[SECONDHANDPOS] = gun("GLOCK_17", 15);
 	EXPECT_FALSE(IsValidDualBurst(s));

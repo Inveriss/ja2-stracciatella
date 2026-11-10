@@ -1669,9 +1669,17 @@ INT16 GetAPsToReadyWeapon(const SOLDIERTYPE* const pSoldier, const UINT16 usAnim
 	//{
 		//return( AP_READY_DUAL );
 	//}
+	// Two guns at once (a dual shot or a dual burst): the higher First Aim
+	// (ubReadyTime) of the two, as the attack costs the higher of their costs.
+	// It replaces the fixed AP_READY_DUAL.
 	if ( IsValidSecondHandShot( pSoldier ) || IsValidDualBurst( *pSoldier ) )
 	{
-		return( AP_READY_DUAL );
+		auto const ready_time = [](OBJECTTYPE const& o) -> INT16
+		{
+			ItemModel const* const item = GCM->getItem(o.usItem);
+			return item->isWeapon() ? GCM->getWeapon(o.usItem)->ubReadyTime : 0;
+		};
+		return std::max(ready_time(pSoldier->inv[HANDPOS]), ready_time(pSoldier->inv[SECONDHANDPOS]));
 	}
 
 

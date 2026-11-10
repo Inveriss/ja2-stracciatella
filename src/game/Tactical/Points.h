@@ -74,7 +74,8 @@ enum WeaponModes : INT8; // Soldier_Control.h
 #define AP_READY_SAW			0
 // JA2Gold: reduced dual AP cost from 3 to 1
 //#define AP_READY_DUAL		3
-#define AP_READY_DUAL			1
+// two guns ready with the higher First Aim of the two (GetAPsToReadyWeapon())
+//#define AP_READY_DUAL			1
 
 
 #define AP_MIN_AIM_ATTACK		0 // minimum permitted extra aiming
