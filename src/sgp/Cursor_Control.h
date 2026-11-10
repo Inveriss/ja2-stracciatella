@@ -72,6 +72,7 @@ extern UINT16 gsCurMouseWidth;
 // the cursor image (the burst mode label). Text drawn relative to the cursor
 // adds it to its y. 0 for extern cursors.
 extern UINT16 gsCurMouseTopMargin;
+extern UINT16 gsCurMouseLeftMargin;
 
 SGPPoint GetCursorPos();
 // Where the cursor is drawn on the screen: differs from GetCursorPos() (a
