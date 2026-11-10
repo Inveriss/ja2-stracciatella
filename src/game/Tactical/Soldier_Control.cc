@@ -2172,7 +2172,19 @@ void EVENT_FireSoldierWeapon( SOLDIERTYPE *pSoldier, INT16 sTargetGridNo )
 	auto item = GCM->getItem(pSoldier->inv[HANDPOS].usItem);
 	if (item->isGun())
 	{
-		if (pSoldier->bDoBurst)
+		if (IsValidDualBurst(*pSoldier))
+		{
+			// Dual burst (docs/dual-burst-plan.md, D3): each gun its own length,
+			// as many bullets as both magazines allow
+			DualBurstLength const len = CalcDualBurstLength(*pSoldier);
+			pSoldier->ubDualBurstLength[0] = std::min(len.first,  pSoldier->inv[HANDPOS].ubGunShotsLeft);
+			pSoldier->ubDualBurstLength[1] = std::min(len.second, pSoldier->inv[SECONDHANDPOS].ubGunShotsLeft);
+			pSoldier->ubDualBurstShots[0]  = 0;
+			pSoldier->ubDualBurstShots[1]  = 0;
+			pSoldier->ubBurstLength = static_cast<UINT8>(pSoldier->ubDualBurstLength[0] + pSoldier->ubDualBurstLength[1]);
+			pSoldier->bBulletsLeft  = static_cast<INT8>(std::min(DualBurstBulletsLeft(*pSoldier), 127));
+		}
+		else if (pSoldier->bDoBurst)
 		{
 			// Set the TOTAL number of bullets to be fired
 			// Can't shoot more bullets than we have in our magazine!
@@ -2188,7 +2200,8 @@ void EVENT_FireSoldierWeapon( SOLDIERTYPE *pSoldier, INT16 sTargetGridNo )
 		{
 			pSoldier->bBulletsLeft = 1;
 		}
-		if (pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunAmmoType == AMMO_BUCKSHOT)
+		if (pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunAmmoType == AMMO_BUCKSHOT &&
+			!IsValidDualBurst(*pSoldier)) // (counted per gun above)
 		{
 			pSoldier->bBulletsLeft *= NUM_BUCKSHOT_PELLETS;
 		}
@@ -8817,6 +8830,35 @@ bool IsValidDualBurst(SOLDIERTYPE const& s)
 		}
 	}
 	return true;
+}
+
+
+// The bullets of a dual burst still to come: each hand's shots not fired yet,
+// buckshot as its pellets
+int DualBurstBulletsLeft(SOLDIERTYPE const& s)
+{
+	int bullets = 0;
+	for (int h = 0; h < 2; ++h)
+	{
+		int const shots = std::max(s.ubDualBurstLength[h] - s.ubDualBurstShots[h], 0);
+		OBJECTTYPE const& gun = s.inv[h == 0 ? HANDPOS : SECONDHANDPOS];
+		bullets += gun.ubGunAmmoType == AMMO_BUCKSHOT ? shots * NUM_BUCKSHOT_PELLETS : shots;
+	}
+	return bullets;
+}
+
+
+// A hand of a dual burst stops (its gun jammed): its shots not fired are
+// taken out of the burst and of the bullets the attack waits for
+void DropDualBurstHand(SOLDIERTYPE& s, UINT8 const inv_pos)
+{
+	int const h = inv_pos == HANDPOS ? 0 : 1;
+	int const before = DualBurstBulletsLeft(s);
+	UINT8 const cut = static_cast<UINT8>(s.ubDualBurstLength[h] - std::min(s.ubDualBurstLength[h], s.ubDualBurstShots[h]));
+	s.ubDualBurstLength[h] -= cut;
+	s.ubBurstLength = static_cast<UINT8>(s.ubBurstLength - std::min(s.ubBurstLength, cut));
+	int const dropped = before - DualBurstBulletsLeft(s);
+	s.bBulletsLeft = static_cast<INT8>(std::max(s.bBulletsLeft - dropped, 0));
 }
 
 

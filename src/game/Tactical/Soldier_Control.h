@@ -670,6 +670,11 @@ struct SOLDIERTYPE
 	// Shots of the current burst, taken when it starts (CalcBurstLength()), so
 	// a Full burst doesn't shrink while the magazine empties. Not saved.
 	UINT8 ubBurstLength;
+	// Dual burst (docs/dual-burst-plan.md): shots of each hand's burst
+	// ([0] HANDPOS, [1] SECONDHANDPOS) and shots it fired so far. A hand that
+	// jams gets its length cut to its shots. Set when the burst starts, not saved.
+	UINT8 ubDualBurstLength[2];
+	UINT8 ubDualBurstShots[2];
 	INT16 usUIMovementMode;
 	BOOLEAN fUIMovementFast;
 
@@ -1115,6 +1120,8 @@ void PickDropItemAnimation( SOLDIERTYPE *pSoldier );
 bool IsValidSecondHandShot(SOLDIERTYPE const*);
 bool IsValidSecondHandShotForReloadingPurposes(SOLDIERTYPE const*);
 bool IsValidDualBurst(SOLDIERTYPE const&);
+int  DualBurstBulletsLeft(SOLDIERTYPE const&);
+void DropDualBurstHand(SOLDIERTYPE&, UINT8 inv_pos);
 
 void CrowsFlyAway( UINT8 ubTeam );
 

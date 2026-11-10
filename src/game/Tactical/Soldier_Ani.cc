@@ -105,7 +105,8 @@ static UINT8 CurrentBurstLength(SOLDIERTYPE* const pSoldier)
 
 // Dual burst (docs/dual-burst-plan.md): the script index of the block of the
 // hand that fires next, or of the burst end. The hands take turns (D2); a hand
-// without rounds gives its turn to the other one (D4).
+// that has fired its own length, jammed or has no rounds gives its turn to the
+// other one (D3, D4).
 static UINT16 NextDualBurstBlock(SOLDIERTYPE* const pSoldier)
 {
 	UINT16 const first_block  = DUAL_BURST_FIRST_HAND_BLOCK;
@@ -124,7 +125,9 @@ static UINT16 NextDualBurstBlock(SOLDIERTYPE* const pSoldier)
 	};
 	for (UINT8 const hand : hands)
 	{
-		if (EnoughAmmo(pSoldier, FALSE, hand))
+		int const h = hand == HANDPOS ? 0 : 1;
+		if (pSoldier->ubDualBurstShots[h] < pSoldier->ubDualBurstLength[h] &&
+			EnoughAmmo(pSoldier, FALSE, hand))
 		{
 			return hand == HANDPOS ? first_block : second_block;
 		}
@@ -701,6 +704,46 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 				case 448:
 
 					// CODE: HANDLE BURST
+					// Dual burst (docs/dual-burst-plan.md, D4): length, rounds and jam
+					// per gun -- a gun that can't fire gives its turns to the other one
+					if ( IsDualBurstAnimation( pSoldier->usAnimState ) &&
+					     pSoldier->bDoBurst <= CurrentBurstLength( pSoldier ) )
+					{
+						UINT8 const hand = pSoldier->ubAttackingHand;
+						int   const h    = hand == HANDPOS ? 0 : 1;
+						bool drop = pSoldier->ubDualBurstShots[h] >= pSoldier->ubDualBurstLength[h] ||
+							!EnoughAmmo( pSoldier, FALSE, hand );
+						if ( !drop && pSoldier->ubDualBurstShots[h] == 0 )
+						{
+							// this gun's first shot: it may jam
+							auto const jam = CheckForGunJam( pSoldier );
+							if ( jam == FireWeaponResult::JAMMED )
+							{
+								drop = true;
+								if ( pSoldier->bTeam == OUR_TEAM )
+								{
+									PlayLocationJA2Sample( pSoldier->sGridNo, S_DRYFIRE1, MIDVOLUME, 1 );
+								}
+							}
+							else if ( jam == FireWeaponResult::UNJAMMED && HandleUnjamAnimation( pSoldier ) )
+							{
+								return( TRUE );
+							}
+						}
+						if ( drop )
+						{
+							DropDualBurstHand( *pSoldier, hand );
+							if ( pSoldier->bBulletsLeft == 0 )
+							{
+								// nothing more to fire, no bullet in flight
+								SLOGD("Freeing up attacker - dual burst has no gun left");
+								FreeUpAttacker( pSoldier );
+							}
+							pSoldier->usAniCode = static_cast<UINT16>( NextDualBurstBlock( pSoldier ) - 1 );
+						}
+						break;
+					}
+
 					// FIRST CHECK IF WE'VE REACHED MAX FOR GUN
 					fStop = FALSE;
 

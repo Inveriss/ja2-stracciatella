@@ -734,7 +734,8 @@ FireWeaponResult FireWeapon(SOLDIERTYPE * const pSoldier, GridNo const sTargetGr
 		case IC_GUN:
 
 			// ATE: PAtch up - bookkeeping for spreading done out of whak
-			if ( pSoldier->fDoSpread && !pSoldier->bDoBurst )
+			// (nor a dual burst: it fires at one target, docs/dual-burst-plan.md D8)
+			if ( pSoldier->fDoSpread && ( !pSoldier->bDoBurst || IsDualBurstAnimation( pSoldier->usAnimState ) ) )
 			{
 				pSoldier->fDoSpread = FALSE;
 			}
@@ -987,7 +988,41 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 
 	usItemNum = pSoldier->usAttackingWeapon;
 
-	if ( pSoldier->bDoBurst )
+	// a dual burst (docs/dual-burst-plan.md): the shot of one of its guns
+	bool const fDualBurst = pSoldier->bDoBurst && IsDualBurstAnimation(pSoldier->usAnimState);
+
+	// the gun's own single shot sound (or silenced sound)
+	auto const PlayShotSound = [&]()
+	{
+		auto weapon = GCM->getWeapon( usItemNum );
+		// ( For throwing knife.. it's earlier in the animation
+		if ( GCM->getItem(usItemNum)->getItemClass() == IC_THROWING_KNIFE ) return;
+		// Switch on silencer...
+		if (IsSilenced(pSoldier->inv[pSoldier->ubAttackingHand]))
+		{
+			if (!weapon->silencedSound.empty()) {
+				PlayLocationJA2Sample(pSoldier->sGridNo, weapon->silencedSound, HIGHVOLUME, 1);
+			}
+		}
+		else
+		{
+			if (!weapon->sound.empty()) {
+				PlayLocationJA2Sample(pSoldier->sGridNo, weapon->sound, HIGHVOLUME, 1);
+			}
+		}
+	};
+
+	if ( fDualBurst )
+	{
+		// ONly deduct points once (the cost of both guns' burst); every shot
+		// plays its own gun's sound (D5, D7)
+		if ( pSoldier->bDoBurst == 1 )
+		{
+			DeductPoints( pSoldier, sAPCost, 0 );
+		}
+		PlayShotSound();
+	}
+	else if ( pSoldier->bDoBurst )
 	{
 		// ONly deduct points once
 		if ( pSoldier->bDoBurst == 1 )
@@ -1017,26 +1052,8 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 			DeductPoints( pSoldier, sAPCost, 0 );
 		}
 
-		auto weapon = GCM->getWeapon( usItemNum );
 		//PLAY SOUND
-		// ( For throwing knife.. it's earlier in the animation
-		if ( GCM->getItem(usItemNum)->getItemClass() != IC_THROWING_KNIFE )
-		{
-			// Switch on silencer...
-			if (IsSilenced(pSoldier->inv[pSoldier->ubAttackingHand]))
-			{
-				if (!weapon->silencedSound.empty()) {
-					PlayLocationJA2Sample(pSoldier->sGridNo, weapon->silencedSound, HIGHVOLUME, 1);
-				}
-
-			}
-			else
-			{
-				if (!weapon->sound.empty()) {
-					PlayLocationJA2Sample(pSoldier->sGridNo, weapon->sound, HIGHVOLUME, 1);
-				}
-			}
-		}
+		PlayShotSound();
 	}
 
 
@@ -1109,9 +1126,10 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 				// add base pts for taking a shot, whether it hits or misses
 				usExpGain += 3;
 
-				if ( IsValidSecondHandShot( pSoldier ) && pSoldier->inv[ HANDPOS ].bGunStatus >= USABLE && pSoldier->inv[HANDPOS].bGunAmmoStatus > 0 )
+				if ( fDualBurst || ( IsValidSecondHandShot( pSoldier ) && pSoldier->inv[ HANDPOS ].bGunStatus >= USABLE && pSoldier->inv[HANDPOS].bGunAmmoStatus > 0 ) )
 				{
 					// reduce exp gain for two pistol shooting since both shots give xp
+					// (a dual burst too, D10)
 					usExpGain = (usExpGain * 2) / 3;
 				}
 
@@ -1247,6 +1265,11 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 	{
 		// done, if bursting, increment
 		pSoldier->bDoBurst++;
+		// (and the shots of this gun of a dual burst)
+		if ( fDualBurst )
+		{
+			pSoldier->ubDualBurstShots[ pSoldier->ubAttackingHand == HANDPOS ? 0 : 1 ]++;
+		}
 	}
 
 	// CJC: since jamming is no longer affected by reliability, increase chance of status going down for really unreliabile guns
@@ -2433,9 +2456,10 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 		else */
 		if ( !HAS_SKILL_TRAIT( pSoldier, AMBIDEXT ) )
 		{
-			if ( IsValidSecondHandShot( pSoldier ) )
+			if ( IsValidSecondHandShot( pSoldier ) || IsValidDualBurst( *pSoldier ) ||
+				( pSoldier->bDoBurst && IsDualBurstAnimation( pSoldier->usAnimState ) ) )
 			{
-				// penalty to aim when firing two pistols
+				// penalty to aim when firing two pistols (a dual burst too, D6)
 				iChance -= AIM_PENALTY_DUAL_PISTOLS;
 			}
 			/*
@@ -2451,7 +2475,11 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTime
 	// If in burst mode, deduct points for change to hit for each shot after the first
 	if ( pSoldier->bDoBurst )
 	{
-		iPenalty = GCM->getWeapon(usInHand)->ubBurstPenalty * (pSoldier->bDoBurst - 1);
+		// a dual burst: each gun its own recoil, by its own shots (D6)
+		int const iShotsBefore = IsDualBurstAnimation( pSoldier->usAnimState ) ?
+			pSoldier->ubDualBurstShots[ pSoldier->ubAttackingHand == HANDPOS ? 0 : 1 ] :
+			pSoldier->bDoBurst - 1;
+		iPenalty = GCM->getWeapon(usInHand)->ubBurstPenalty * iShotsBefore;
 
 		// halve the penalty for people with the autofire trait
 		UINT AutoWeaponsSkill = NUM_SKILL_TRAITS(aimer, AUTO_WEAPS);

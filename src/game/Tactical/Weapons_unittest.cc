@@ -291,6 +291,22 @@ TEST(WeaponsTest, DualBurstRulesAndCosts)
 	s.inv[SECONDHANDPOS] = gun("MP5K", 30);
 	EXPECT_TRUE(IsValidDualBurst(s));
 
+	// Bullets of the burst; a jammed gun's shots are taken out (D4)
+	s.ubDualBurstLength[0] = 3;
+	s.ubDualBurstLength[1] = 3;
+	s.ubDualBurstShots[0]  = 1;
+	s.ubDualBurstShots[1]  = 0;
+	s.ubBurstLength        = 6;
+	EXPECT_EQ(DualBurstBulletsLeft(s), 5);
+	s.bBulletsLeft = 6; // one bullet still in flight
+	DropDualBurstHand(s, SECONDHANDPOS);
+	EXPECT_EQ(s.ubDualBurstLength[1], 0);
+	EXPECT_EQ(s.ubBurstLength, 3);
+	EXPECT_EQ(s.bBulletsLeft, 3);
+	EXPECT_EQ(DualBurstBulletsLeft(s), 2);
+	s.inv[HANDPOS].ubGunAmmoType = AMMO_BUCKSHOT;
+	EXPECT_EQ(DualBurstBulletsLeft(s), 2 * NUM_BUCKSHOT_PELLETS);
+
 	delete cm;
 }
 
