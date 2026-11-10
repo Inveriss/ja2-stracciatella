@@ -8781,14 +8781,34 @@ bool IsValidSecondHandShot(SOLDIERTYPE const* const s)
 }
 
 
+// A burst with two one-handed guns at once (docs/dual-burst-plan.md, D1): both
+// guns usable, loaded and able to fire the active burst mode.
+bool IsValidDualBurst(SOLDIERTYPE const& s)
+{
+	if (!s.bDoBurst || IsPlayerTank(s)) return false;
+	WeaponModes const mode = GetActiveBurstMode(s);
+	for (OBJECTTYPE const* const o : { &s.inv[HANDPOS], &s.inv[SECONDHANDPOS] })
+	{
+		ItemModel const* const item = GCM->getItem(o->usItem);
+		if (item->getItemClass() != IC_GUN || item->isTwoHanded() ||
+			o->bGunStatus < USABLE || o->ubGunShotsLeft == 0 ||
+			GunShotsPerBurst(*o, mode) == 0)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+
 bool IsValidSecondHandShotForReloadingPurposes(SOLDIERTYPE const* const s)
 {
 	// Should be maintained as same as function above with line about ammo taken
-	// out! (the player's tank: its other weapon is no second hand's)
+	// out! (the player's tank: its other weapon is no second hand's). Also in
+	// burst mode: a dual burst fires both guns (docs/dual-burst-plan.md).
 	if (IsPlayerTank(*s)) return false;
 	OBJECTTYPE const& o = s->inv[SECONDHANDPOS];
 	return GCM->getItem(o.usItem)->getItemClass() == IC_GUN &&
-		!s->bDoBurst &&
 		GCM->getItem(s->inv[HANDPOS].usItem)->getItemClass() == IC_GUN &&
 		o.bGunStatus >= USABLE;
 }

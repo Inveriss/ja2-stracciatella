@@ -274,6 +274,17 @@ UINT8 CalcBurstLength(SOLDIERTYPE const& s, OBJECTTYPE const& o)
 }
 
 
+// Shots of a dual burst per hand (docs/dual-burst-plan.md, D3): each gun its
+// own length for the active mode.
+DualBurstLength CalcDualBurstLength(SOLDIERTYPE const& s)
+{
+	return DualBurstLength{
+		CalcBurstLength(s, s.inv[HANDPOS]),
+		CalcBurstLength(s, s.inv[SECONDHANDPOS])
+	};
+}
+
+
 UINT8 GunAttackVolume(OBJECTTYPE const& o)
 {
 	if (!(GCM->getItem(o.usItem)->isWeapon())) return 0;

@@ -1114,6 +1114,7 @@ void PickDropItemAnimation( SOLDIERTYPE *pSoldier );
 
 bool IsValidSecondHandShot(SOLDIERTYPE const*);
 bool IsValidSecondHandShotForReloadingPurposes(SOLDIERTYPE const*);
+bool IsValidDualBurst(SOLDIERTYPE const&);
 
 void CrowsFlyAway( UINT8 ubTeam );
 

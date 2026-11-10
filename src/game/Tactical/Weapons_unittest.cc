@@ -227,6 +227,74 @@ TEST(WeaponsTest, FixedAPCosts)
 	delete cm;
 }
 
+TEST(WeaponsTest, DualBurstRulesAndCosts)
+{
+	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();
+	ASSERT_TRUE(cm->loadGameData());
+	GCM = cm;
+
+	auto gun = [&](char const* const name, UINT8 const rounds)
+	{
+		auto o = OBJECTTYPE{};
+		o.usItem          = cm->getWeaponByName(name)->getItemIndex();
+		o.bGunStatus      = 100;
+		o.ubGunShotsLeft  = rounds;
+		return o;
+	};
+
+	auto s = SOLDIERTYPE{};
+	s.inv[HANDPOS]       = gun("GLOCK_18", 15);
+	s.inv[SECONDHANDPOS] = gun("MP5K", 30);
+	s.bWeaponMode        = WM_BURST_SHORT;
+
+	// Not in burst mode: no dual burst
+	s.bDoBurst = 0;
+	EXPECT_FALSE(IsValidDualBurst(s));
+
+	// Two one-handed burst guns in burst mode
+	s.bDoBurst = 1;
+	EXPECT_TRUE(IsValidDualBurst(s));
+	EXPECT_FALSE(IsValidSecondHandShot(&s));
+	EXPECT_TRUE(IsValidSecondHandShotForReloadingPurposes(&s));
+
+	// Each gun its own length (D3)
+	s.bWeaponMode = WM_BURST_LONG;
+	EXPECT_EQ(CalcDualBurstLength(s).first,  6);
+	EXPECT_EQ(CalcDualBurstLength(s).second, 6);
+	s.bWeaponMode = WM_BURST_FULL;
+	EXPECT_EQ(CalcDualBurstLength(s).first,  15);
+	EXPECT_EQ(CalcDualBurstLength(s).second, 30);
+	s.inv[SECONDHANDPOS].ubGunShotsLeft = 7;
+	EXPECT_EQ(CalcDualBurstLength(s).second, 7);
+	s.inv[SECONDHANDPOS].ubGunShotsLeft = 30;
+
+	// AP (D5): the higher of the two burst costs, Glock 18 10, MP5K 9
+	s.bWeaponMode = WM_BURST_SHORT;
+	EXPECT_EQ(BaseAPsToShootOrStab(s.inv[HANDPOS]) + CalcAPsToBurst(s.inv[HANDPOS], WM_BURST_SHORT), 10);
+	EXPECT_EQ(BaseAPsToShootOrStab(s.inv[SECONDHANDPOS]) + CalcAPsToBurst(s.inv[SECONDHANDPOS], WM_BURST_SHORT), 9);
+	EXPECT_EQ(CalcAPsToDualBurst(s, WM_BURST_SHORT), 10 - 6);
+	std::swap(s.inv[HANDPOS], s.inv[SECONDHANDPOS]);
+	EXPECT_EQ(CalcAPsToDualBurst(s, WM_BURST_SHORT), 10 - 6);
+	std::swap(s.inv[HANDPOS], s.inv[SECONDHANDPOS]);
+
+	// A gun without that burst mode, a two-handed gun, an empty or broken gun
+	s.inv[SECONDHANDPOS] = gun("GLOCK_17", 15);
+	EXPECT_FALSE(IsValidDualBurst(s));
+	EXPECT_TRUE(IsValidSecondHandShotForReloadingPurposes(&s));
+	s.inv[SECONDHANDPOS] = gun("AK74", 30);
+	EXPECT_FALSE(IsValidDualBurst(s));
+	s.inv[SECONDHANDPOS] = gun("MP5K", 0);
+	EXPECT_FALSE(IsValidDualBurst(s));
+	s.inv[SECONDHANDPOS] = gun("MP5K", 30);
+	s.inv[SECONDHANDPOS].bGunStatus = 0;
+	EXPECT_FALSE(IsValidDualBurst(s));
+	s.inv[SECONDHANDPOS] = gun("MP5K", 30);
+	EXPECT_TRUE(IsValidDualBurst(s));
+
+	delete cm;
+}
+
+
 TEST(WeaponsTest, NewTargetAPCharge)
 {
 	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();

@@ -892,6 +892,20 @@ UINT8 CalcAPsToBurst(OBJECTTYPE const& o, WeaponModes const mode)
 }
 
 
+// AP a dual burst costs on top of the dual shot (the higher of the two shot
+// costs): the higher of the two guns' burst costs (docs/dual-burst-plan.md, D5).
+UINT8 CalcAPsToDualBurst(SOLDIERTYPE const& s, WeaponModes const mode)
+{
+	OBJECTTYPE const& first  = s.inv[HANDPOS];
+	OBJECTTYPE const& second = s.inv[SECONDHANDPOS];
+	int const shot_1st  = BaseAPsToShootOrStab(first);
+	int const shot_2nd  = BaseAPsToShootOrStab(second);
+	int const burst_1st = shot_1st + CalcAPsToBurst(first,  mode);
+	int const burst_2nd = shot_2nd + CalcAPsToBurst(second, mode);
+	return static_cast<UINT8>(std::max(burst_1st, burst_2nd) - std::max(shot_1st, shot_2nd));
+}
+
+
 UINT8 CalcTotalAPsToAttack(SOLDIERTYPE * const s, GridNo const grid_no, bool const add_turning_cost, INT8 const aim_time)
 {
 	UINT16            ap_cost = 0;
@@ -903,7 +917,8 @@ UINT8 CalcTotalAPsToAttack(SOLDIERTYPE * const s, GridNo const grid_no, bool con
 		case IC_TENTACLES:
 		case IC_THROWING_KNIFE:
 			return MinAPsToAttack(s, grid_no, add_turning_cost) +
-				(s->bDoBurst ? CalcAPsToBurst(in_hand, GetActiveBurstMode(*s)) :
+				(IsValidDualBurst(*s) ? CalcAPsToDualBurst(*s, GetActiveBurstMode(*s)) :
+				s->bDoBurst ? CalcAPsToBurst(in_hand, GetActiveBurstMode(*s)) :
 				// WM_ATTACHED is already handled by MinAPsToAttack and the
 				// aim time cannot be refined further.
 				s->bWeaponMode == WM_ATTACHED ? 0 : aim_time);
@@ -1145,7 +1160,7 @@ UINT8 MinAPsToShootOrStab(SOLDIERTYPE& s, GridNo gridno, bool const add_turning_
 
 		ap_cost += BaseAPsToShootOrStab(grenade_launcher);
 	}
-	else if (IsValidSecondHandShot(&s))
+	else if (IsValidSecondHandShot(&s) || IsValidDualBurst(s))
 	{
 		// Charge the maximum of the two
 		UINT8 const ap_1st = BaseAPsToShootOrStab(in_hand);

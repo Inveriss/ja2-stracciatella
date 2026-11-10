@@ -160,6 +160,8 @@ void SetWeaponMode(SOLDIERTYPE*, WeaponModes);
 bool IsBurstMode(WeaponModes);
 WeaponModes GetActiveBurstMode(SOLDIERTYPE const&);
 UINT8 CalcBurstLength(SOLDIERTYPE const&, OBJECTTYPE const&);
+struct DualBurstLength { UINT8 first; UINT8 second; }; // HANDPOS, SECONDHANDPOS
+DualBurstLength CalcDualBurstLength(SOLDIERTYPE const&);
 bool HasLauncher(SOLDIERTYPE const*);
 extern INT32 CalcBodyImpactReduction( UINT8 ubAmmoType, UINT8 ubHitLocation );
 INT32 TotalArmourProtection(SOLDIERTYPE&, UINT8 ubHitLocation, INT32 iImpact, UINT8 ubAmmoType);
