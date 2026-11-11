@@ -3153,7 +3153,7 @@ INT32 BulletImpact( SOLDIERTYPE *pFirer, SOLDIERTYPE * pTarget, UINT8 ubHitLocat
 
 		if ( TANK( pTarget ) )
 		{
-			// HEAT round on tank, divide by 3 for damage
+			// HEAT round on tank, divide by 2 for damage
 			iOrigImpact /= 2;
 		}
 	}
