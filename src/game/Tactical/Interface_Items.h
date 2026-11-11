@@ -179,8 +179,8 @@ void DrawItemFreeCursor(void);
 void DrawItemTileCursor(void);
 BOOLEAN HandleItemPointerClick( UINT16 usMapPos );
 UINT8 GetAttachmentHintColor(const OBJECTTYPE* pObj);
-std::pair<const SGPVObject*, UINT8> GetSmallInventoryGraphicForItem(const ItemModel *item);
-std::pair<SGPVObject*, UINT8> GetBigInventoryGraphicForItem(const ItemModel *item);
+std::pair<const SGPVObject*, UINT16> GetSmallInventoryGraphicForItem(const ItemModel *item);
+std::pair<SGPVObject*, UINT16> GetBigInventoryGraphicForItem(const ItemModel *item);
 // Dedicated, pre-cached (LoadInterfaceItemsGraphics()) BIGITEMS lookup for
 // the sector-inventory panel's "big images" toggle -- deliberately separate
 // from GetBigInventoryGraphicForItem() above, which stays on-demand/uncached
@@ -189,7 +189,7 @@ std::pair<SGPVObject*, UINT8> GetBigInventoryGraphicForItem(const ItemModel *ite
 // visible, every-frame-redrawn slots would reload from disk and leak a new
 // SGPVObject every frame -- see GetSmallInventoryGraphicForItem() above for
 // the same reasoning/pattern this mirrors instead.
-std::pair<const SGPVObject*, UINT8> GetSectorInventoryBigGraphicForItem(const ItemModel *item);
+std::pair<const SGPVObject*, UINT16> GetSectorInventoryBigGraphicForItem(const ItemModel *item);
 UINT16            GetTileGraphicForItem(const ItemModel *item);
 
 ST::string GetHelpTextForItem(const OBJECTTYPE& obj);

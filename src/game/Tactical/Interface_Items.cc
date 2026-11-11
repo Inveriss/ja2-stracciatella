@@ -6895,14 +6895,14 @@ void DeleteKeyRingPopup(void)
 	FreeMouseCursor();
 }
 
-std::pair<const SGPVObject*, UINT8> GetFallbackSmallInventoryGraphicForItem(const ItemModel *item) {
+std::pair<const SGPVObject*, UINT16> GetFallbackSmallInventoryGraphicForItem(const ItemModel *item) {
 	if (item->getPerPocket() != 0) {
 		return std::make_pair(guiSmallInventoryGraphicMissingSmallPocket, 0);
 	}
 	return std::make_pair(guiSmallInventoryGraphicMissingBigPocket, 0);
 }
 
-std::pair<const SGPVObject*, UINT8> GetSmallInventoryGraphicForItem(const ItemModel *item)
+std::pair<const SGPVObject*, UINT16> GetSmallInventoryGraphicForItem(const ItemModel *item)
 {
 	auto path = item->getInventoryGraphicSmall().getPath().to_lower();
 	auto subImageIndex = item->getInventoryGraphicSmall().getSubImageIndex();
@@ -6928,11 +6928,11 @@ UINT16 GetTileGraphicForItem(const ItemModel * item)
 	return GetTileIndexFromTypeSubIndex(item->getTileGraphic().tileType, item->getTileGraphic().subIndex);
 }
 
-std::pair<SGPVObject*, UINT8> GetFallbackBigInventoryGraphic() {
+std::pair<SGPVObject*, UINT16> GetFallbackBigInventoryGraphic() {
 	return std::make_pair(AddVideoObjectFromFile(guiBigInventoryGraphicMissingPath), 0);
 }
 
-std::pair<SGPVObject*, UINT8> GetBigInventoryGraphicForItem(const ItemModel * item)
+std::pair<SGPVObject*, UINT16> GetBigInventoryGraphicForItem(const ItemModel * item)
 {
 	auto path = item->getInventoryGraphicBig().getPath();
 	auto subImageIndex = item->getInventoryGraphicBig().getSubImageIndex();
@@ -6965,7 +6965,7 @@ std::pair<SGPVObject*, UINT8> GetBigInventoryGraphicForItem(const ItemModel * it
 // instead of its small one. See this function's own comment in
 // Interface_Items.h for why it doesn't just reuse GetBigInventoryGraphicForItem()
 // above.
-std::pair<const SGPVObject*, UINT8> GetSectorInventoryBigGraphicForItem(const ItemModel *item)
+std::pair<const SGPVObject*, UINT16> GetSectorInventoryBigGraphicForItem(const ItemModel *item)
 {
 	auto path = item->getInventoryGraphicBig().getPath().to_lower();
 	auto subImageIndex = item->getInventoryGraphicBig().getSubImageIndex();
