@@ -514,12 +514,12 @@ UINT16 const gNumTilesPerType[NUMBEROFTILETYPES] =
 	FIRSTREVEALEDHIGHROOFS11- FIRSTREVEALEDHIGHROOFS1 + 1,
 	SECONDREVEALEDHIGHROOFS11- SECONDREVEALEDHIGHROOFS1 + 1,
 
-	GUN60 - GUN1 + 1,
-	P1ITEM149 - P1ITEM1 + 1,
-	P2ITEM45 - P2ITEM1 + 1,
+	GUN_TILES,
+	P1ITEM_TILES,
+	P2ITEM_TILES,
 
 	WINDOWSHATTER20 - WINDOWSHATTER1 + 1,
-	P3ITEM16 - P3ITEM1 + 1,
+	P3ITEM_TILES,
 	BODYEXPLOSION15 - BODYEXPLOSION1 + 1,
 
 	EXITTEXTURE35 - EXITTEXTURE1 + 1,
@@ -756,3 +756,31 @@ void SetSpecificDatabaseValues(UINT16 const type, UINT16 const database_elem, TI
 		te.uiFlags |= ROOF_TILE;
 	}
 }
+
+
+#ifdef WITH_UNITTESTS
+#include "gtest/gtest.h"
+
+// Ground pictures of items (docs/item-graphic-frame-limits-plan.md, D1/D2)
+TEST(TileDat, itemTileCounts)
+{
+	EXPECT_EQ(gNumTilesPerType[GUNS],    2000);
+	EXPECT_EQ(gNumTilesPerType[P1ITEMS], 2000);
+	EXPECT_EQ(gNumTilesPerType[P2ITEMS], 1000);
+	EXPECT_EQ(gNumTilesPerType[P3ITEMS], 1000);
+	EXPECT_EQ(GUN_LAST    - GUN1    + 1, GUN_TILES);
+	EXPECT_EQ(P3ITEM_LAST - P3ITEM1 + 1, P3ITEM_TILES);
+
+	// every tile type's tiles in the enum, one after the other: the start of a
+	// type is the sum of the counts before it (as CreateTileDatabase builds it)
+	UINT32 start = 0;
+	for (UINT32 type = 0; type < GUNS; ++type) start += gNumTilesPerType[type];
+	EXPECT_EQ(start, static_cast<UINT32>(GUN1));
+	for (UINT32 type = GUNS; type < BODYEXPLOSION; ++type) start += gNumTilesPerType[type];
+	EXPECT_EQ(start, static_cast<UINT32>(BODYEXPLOSION1));
+	UINT32 total = 0;
+	for (UINT32 type = 0; type < NUMBEROFTILETYPES; ++type) total += gNumTilesPerType[type];
+	EXPECT_EQ(total, static_cast<UINT32>(NUMBEROFTILES));
+	EXPECT_LT(NUMBEROFTILES, 32767);
+}
+#endif
