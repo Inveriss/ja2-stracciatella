@@ -96,6 +96,9 @@ WORLDITEM const* GetHighlightedStackSplitSourceItem(void);
 // save/load -- see gfSectorInventoryBigImages's own comment
 // (Map_Screen_Interface_Map_Inventory.cc) for the full story.
 void InitSectorInventoryBigImagesForNewGame(void);
+// The sector inventory shows the big item pictures (its BIG mode, or "Show
+// Large Icons" on the 1366x768 strategic screen)
+bool IsSectorInventoryBigImages();
 // Called by ToggleMapBigImages() (MapScreen.cc) around the change of the
 // 1366x768 interface's one "Show Large Icons" option, which this window
 // follows there: take the slots down before, build them again after.

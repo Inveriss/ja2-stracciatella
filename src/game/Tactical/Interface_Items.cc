@@ -8225,10 +8225,24 @@ void UpdateItemHatches(void)
 }
 
 
+// The item on the cursor keeps the big picture while the inventories show the
+// big pictures: "Show Large Icons" / the sector inventory's BIG mode on the
+// map, the big SM panel in tactical mode
+static bool ItemCursorUsesBigPicture()
+{
+	if (fInMapMode)
+	{
+		return IsMapInvBigImages() || (fShowMapInventoryPool && IsSectorInventoryBigImages());
+	}
+	return g_ui.isBigSMPanel();
+}
+
+
 void SetMouseCursorFromItem(UINT16 const item_idx)
 {
 	const ItemModel * item = GCM->getItem(item_idx);
-	auto graphic = GetSmallInventoryGraphicForItem(item);
+	auto graphic = ItemCursorUsesBigPicture() ?
+		GetSectorInventoryBigGraphicForItem(item) : GetSmallInventoryGraphicForItem(item);
 	auto vo = graphic.first;
 	SetExternMouseCursor(*vo, graphic.second);
 	SetCurrentCursorFromDatabase(EXTERN_CURSOR);

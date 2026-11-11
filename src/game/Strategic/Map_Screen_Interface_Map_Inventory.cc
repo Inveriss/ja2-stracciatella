@@ -99,6 +99,11 @@ static bool SectorInventoryBigImages(void)
 	return g_ui.isExtraWideStrategicScreen() ? IsMapInvBigImages() != FALSE : gfSectorInventoryBigImages != FALSE;
 }
 
+bool IsSectorInventoryBigImages()
+{
+	return SectorInventoryBigImages();
+}
+
 // See gfSectorInventoryBigImages's own comment above for the full story.
 static ST::string const gSectorInventoryBigImagesStateKey{ "SectorInventory::bigImages" };
 
