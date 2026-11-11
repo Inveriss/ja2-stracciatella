@@ -2433,6 +2433,7 @@ static INT32 CTGTHandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pS
 			iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_HP( iImpactReduction );
 			break;
 		case AMMO_AP:
+		case AMMO_HEAT: // like the real shot (HandleBulletStructureInteraction)
 			iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_AP( iImpactReduction );
 			break;
 		case AMMO_SUPER_AP:
