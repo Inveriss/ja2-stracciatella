@@ -12,6 +12,8 @@
 #include "Object_Cache.h"
 #include "Soldier_Macros.h"
 #include "TileDef.h"
+#include "TileDat.h"
+#include "Tile_Surface.h"
 #include "Timer_Control.h"
 #include "VObject.h"
 #include "SysUtil.h"
@@ -88,6 +90,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iterator>
+#include <set>
 #include <vector>
 
 #define ITEMDESC_FONT					BLOCKFONT2
@@ -6923,9 +6926,40 @@ std::pair<const SGPVObject*, UINT16> GetSmallInventoryGraphicForItem(const ItemM
 	return std::make_pair(i->second, subImageIndex);
 }
 
+// The ground picture of an item, 1-based like all tile subindices: one beyond
+// the frames its tile type has loaded (frames - 0 means unknown, no check)
+// becomes the type's first picture, not a tile of the next type
+// (docs/item-graphic-frame-limits-plan.md, D4).
+UINT16 ItemGroundSubIndex(UINT16 const sub_index, UINT32 const loaded_frames)
+{
+	if (loaded_frames == 0) return sub_index;
+	return sub_index >= 1 && sub_index <= loaded_frames ? sub_index : 1;
+}
+
 UINT16 GetTileGraphicForItem(const ItemModel * item)
 {
-	return GetTileIndexFromTypeSubIndex(item->getTileGraphic().tileType, item->getTileGraphic().subIndex);
+	auto const& tile = item->getTileGraphic();
+	UINT32 const type = tile.tileType;
+
+	// frames of the type's file the tile database took (at most its count)
+	UINT32 loaded = 0;
+	if (type < NUMBEROFTILETYPES && gTileSurfaceArray[type] && gTileSurfaceArray[type]->vo)
+	{
+		loaded = std::min<UINT32>(gTileSurfaceArray[type]->vo->SubregionCount(), gNumTilesPerType[type]);
+	}
+
+	UINT16 const sub_index = ItemGroundSubIndex(tile.subIndex, loaded);
+	if (sub_index != tile.subIndex)
+	{
+		// once per item
+		static std::set<UINT16> warned;
+		if (warned.insert(item->getItemIndex()).second)
+		{
+			SLOGW("Item `{}`: ground picture subIndex {} is beyond the {} pictures of tile type {}, using picture 1",
+				item->getInternalName(), tile.subIndex, loaded, type);
+		}
+	}
+	return GetTileIndexFromTypeSubIndex(type, sub_index);
 }
 
 std::pair<SGPVObject*, UINT16> GetFallbackBigInventoryGraphic() {
@@ -8276,3 +8310,20 @@ void DeleteInterfaceItemsGraphics()
 	}
 	allSectorInventoryBigGraphics.clear();
 }
+
+
+#ifdef WITH_UNITTESTS
+#include "gtest/gtest.h"
+
+// docs/item-graphic-frame-limits-plan.md, D4
+TEST(InterfaceItems, itemGroundSubIndex)
+{
+	// a file with 102 pictures
+	EXPECT_EQ(ItemGroundSubIndex(1,   102), 1);
+	EXPECT_EQ(ItemGroundSubIndex(102, 102), 102);
+	EXPECT_EQ(ItemGroundSubIndex(103, 102), 1);
+	EXPECT_EQ(ItemGroundSubIndex(0,   102), 1);
+	// the type's file not loaded: no check
+	EXPECT_EQ(ItemGroundSubIndex(150, 0), 150);
+}
+#endif

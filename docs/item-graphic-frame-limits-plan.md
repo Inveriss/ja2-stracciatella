@@ -1,7 +1,20 @@
 # Item graphic frame limits
 
-Status: PLAN, decisions D1–D4 decided 2026-11-11: all as recommended (A).
-Nothing implemented.
+Status: decisions D1–D4 decided 2026-11-11: all as recommended (A).
+Implemented on the Weapons branch:
+
+| Stage | Commit | Status |
+|---|---|---|
+| 1 - ground tile counts | 0f472f403 | game-verified |
+| 2 - inventory picture index | 31fac9f0e | game-verified |
+| 3 - range check and game tests | this commit | game-verified |
+
+Item graphic frame limits COMPLETE (2026-11-11).
+
+Note for data: `tileGraphic.subIndex` counts pictures from 1,
+`inventoryGraphics.*.subImageIndex` from 0. The same picture number in
+`smguns.sti` and `mdguns.sti` is therefore subIndex = subImageIndex + 1
+(original guns: Glock 17 subImageIndex 1, subIndex 2).
 
 Raise the number of frames the game can use from the item graphic files, so
 new items can get their own pictures:
@@ -112,6 +125,10 @@ to PNG does not change them.
 
 - After the tile database is built, check every item's `tileGraphic` against
   the frames of its file; log a warning and use frame 1 for one beyond it.
+  Done in `GetTileGraphicForItem` (`Interface_Items.cc`), which every ground
+  picture goes through: `ItemGroundSubIndex` keeps a subIndex from 1 to the
+  frames the tile database took from the type's file (at most the type's
+  count), else 1; the warning is logged once per item.
 - Game tests: a new game. A weapon with ground picture `GUNS` 61+ and
   inventory picture 101 in the user's 102 frame files, dropped on the ground,
   shown in the inventory, in the sector inventory, and in the editor. Other

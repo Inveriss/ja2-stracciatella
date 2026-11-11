@@ -191,6 +191,7 @@ std::pair<SGPVObject*, UINT16> GetBigInventoryGraphicForItem(const ItemModel *it
 // the same reasoning/pattern this mirrors instead.
 std::pair<const SGPVObject*, UINT16> GetSectorInventoryBigGraphicForItem(const ItemModel *item);
 UINT16            GetTileGraphicForItem(const ItemModel *item);
+UINT16            ItemGroundSubIndex(UINT16 sub_index, UINT32 loaded_frames);
 
 ST::string GetHelpTextForItem(const OBJECTTYPE& obj);
 
