@@ -693,11 +693,21 @@ TEST_F(GunStackTest, rifleSortCategories)
 	UINT16 const order[] = { BRASS_KNUCKLES, COMBAT_KNIFE, THROWING_KNIFE,
 		GLOCK_17, GLOCK_18, mp5k, m870, aug, sks, m24, MINIMI, GLAUNCHER,
 		SILENCER, CLIP9_15, KEVLAR_VEST, GASMASK, STUN_GRENADE, TNT,
-		FIRSTAIDKIT, TOOLKIT, DETONATOR, KEY_1, MONEY, ROCK };
+		FIRSTAIDKIT, TOOLKIT, REMOTETRIGGER, KEY_1, MONEY, ROCK };
 	for (size_t i = 0; i + 1 < std::size(order); ++i)
 	{
 		EXPECT_TRUE(before(order[i], order[i + 1])) << order[i] << " before " << order[i + 1];
 	}
+
+	// detonators and the bomb trigger: with the bombs (after grenades, before
+	// medkits); the statue remote control stays a misc item
+	for (UINT16 const d : { DETONATOR, REMDETONATOR, REMOTEBOMBTRIGGER })
+	{
+		EXPECT_TRUE(before(STUN_GRENADE, d)) << d;
+		EXPECT_TRUE(before(d, FIRSTAIDKIT)) << d;
+	}
+	EXPECT_TRUE(before(TOOLKIT, REMOTETRIGGER));
+	EXPECT_TRUE(before(REMOTETRIGGER, KEY_1));
 
 	EXPECT_TRUE(before(GLOCK_17, aug));
 	EXPECT_TRUE(before(aug, sks));          // assault rifles first

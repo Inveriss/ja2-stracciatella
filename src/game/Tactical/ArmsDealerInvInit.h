@@ -34,6 +34,9 @@ UINT8 HowManyItemsToReorder(UINT8 ubWanted, UINT8 ubStillHave);
 int BobbyRayItemQsortCompare(const void *pArg1, const void *pArg2);
 int ArmsDealerItemQsortCompare(const void *pArg1, const void *pArg2);
 int CompareItemsForSorting( UINT16 usItem1Index, UINT16 usItem2Index, UINT8 ubItem1Quality, UINT8 ubItem2Quality );
+// Detonator, remote detonator, remote bomb trigger: sorted with the bombs and
+// shown under the sector inventory's explosives filter
+bool IsDetonatorItem(UINT16 usItemIndex);
 BOOLEAN CanDealerItemBeSoldUsed( UINT16 usItemIndex );
 
 #endif

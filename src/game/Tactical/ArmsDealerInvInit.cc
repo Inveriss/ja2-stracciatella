@@ -31,6 +31,7 @@
 // - Weapon attachments: items with an attachment family that are no weapons
 //   themselves (scopes, silencer, bipod, duckbill, barrel extender, ...);
 //   the under-barrel grenade launcher stays with the launchers.
+// - Detonators and the remote bomb trigger are listed with the bombs.
 enum ItemSortCategory : UINT8
 {
 	ISC_PUNCH,
@@ -91,8 +92,18 @@ static BOOLEAN const DealerItemSortAllowUsed[NUM_ITEM_SORT_CATEGORIES] =
 };
 
 
+// Detonators and the remote bomb trigger: listed with the bombs, though they
+// are misc items (and sold used like them)
+bool IsDetonatorItem(UINT16 const usItemIndex)
+{
+	return usItemIndex == DETONATOR || usItemIndex == REMDETONATOR || usItemIndex == REMOTEBOMBTRIGGER;
+}
+
+
 static UINT8 GetDealerItemCategoryNumber(UINT16 const usItemIndex)
 {
+	if (IsDetonatorItem(usItemIndex)) return ISC_BOMB;
+
 	ItemModel const* const item = GCM->getItem(usItemIndex);
 	UINT32 const item_class = item->getItemClass();
 
@@ -604,5 +615,7 @@ BOOLEAN CanDealerItemBeSoldUsed( UINT16 usItemIndex )
 	// certain items, although they're damagable, shouldn't be sold in a used condition
 	// heavy guns (rocket rifles, LAW, tank cannon) were rifles here: sold used
 	if (GCM->getItem(usItemIndex)->isGun() && IsHeavyWeapon(usItemIndex)) return TRUE;
+	// detonators were misc items here: sold used as before
+	if (IsDetonatorItem(usItemIndex)) return DealerItemSortAllowUsed[ISC_MISC];
 	return( DealerItemSortAllowUsed[ GetDealerItemCategoryNumber( usItemIndex ) ] );
 }

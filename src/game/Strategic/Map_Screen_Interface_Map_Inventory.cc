@@ -3641,6 +3641,9 @@ static UINT8 GetSectorInventoryFilterCategory(UINT16 usItem)
 	if (item->isArmour() || item->isFace())  return SECTOR_INV_FILTER_ARMOUR;
 	if (item->isWeapon())                   return SECTOR_INV_FILTER_WEAPONS;
 	if (item->isExplosive())                return SECTOR_INV_FILTER_EXPLOSIVES;
+	// detonators and the bomb trigger: with the explosives, per user request
+	// (also sorted with the bombs, ArmsDealerInvInit.cc)
+	if (IsDetonatorItem(usItem))            return SECTOR_INV_FILTER_EXPLOSIVES;
 	if (item->getFlags() & ITEM_ATTACHMENT) return SECTOR_INV_FILTER_ATTACHMENTS;
 	// GUN_BARREL_EXTENDER/SPRING_AND_BOLT_UPGRADE are crafted, permanently
 	// installed gun upgrades (bInseparable/bNotBuyable in their own JSON)
