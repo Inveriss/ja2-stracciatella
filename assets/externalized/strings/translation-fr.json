@@ -1464,6 +1464,7 @@
     ],
     "pLandMarkInSectorString": "L'escouade %d a remarqué quelque chose dans le secteur %s",
     "pActivateCheatsQuestion": "Do you want to activate cheats?",
+    "pHeavyWeaponType": "Heavy Weapon",
     "pLaptopIcons": [
         "E-mail",
         "Internet",

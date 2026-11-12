@@ -18,6 +18,7 @@
 #include "Campaign_Types.h"
 #include "Quests.h"
 #include "ArmsDealerInvInit.h"
+#include "Weapons.h"
 #include "SamSiteModel.h"
 #include "strategic/TownModel.h"
 
@@ -693,6 +694,15 @@ TEST_F(GunStackTest, rifleSortCategories)
 	EXPECT_TRUE(before(MINIMI, TANK_CANNON));
 	EXPECT_TRUE(before(ROCKET_RIFLE, CLIP9_15));    // launchers before ammo
 	EXPECT_TRUE(before(GLAUNCHER, CLIP9_15));
+
+	// heavy weapons: "Heavy Weapon" in the description box
+	EXPECT_TRUE(IsHeavyWeapon(GLAUNCHER));
+	EXPECT_TRUE(IsHeavyWeapon(ROCKET_RIFLE));
+	EXPECT_TRUE(IsHeavyWeapon(AUTO_ROCKET_RIFLE));
+	EXPECT_TRUE(IsHeavyWeapon(TANK_CANNON));
+	EXPECT_FALSE(IsHeavyWeapon(aug));
+	EXPECT_FALSE(IsHeavyWeapon(MINIMI));
+	EXPECT_FALSE(IsHeavyWeapon(CLIP9_15));
 
 	// rocket rifles are still sold used, like the other rifles
 	EXPECT_EQ(CanDealerItemBeSoldUsed(ROCKET_RIFLE), CanDealerItemBeSoldUsed(aug));

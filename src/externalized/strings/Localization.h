@@ -365,6 +365,7 @@ struct L10n_t
 	ST::string pMapScreenJustStartedHelpText;
 	ST::string pLandMarkInSectorString;
 	ST::string pActivateCheatsQuestion;
+	ST::string pHeavyWeaponType; // weapon type line of launchers, rocket rifles, LAW...
 	STRARRAY(gzMercSkillText);
 	STRARRAY(gzNonPersistantPBIText);
 	STRARRAY(gzMiscString);

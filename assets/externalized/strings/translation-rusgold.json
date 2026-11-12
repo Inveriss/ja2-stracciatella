@@ -1464,6 +1464,7 @@
     ],
     "pLandMarkInSectorString": "Отряд %d заметил кого-то в секторе %s",
     "pActivateCheatsQuestion": "Do you want to activate cheats?",
+    "pHeavyWeaponType": "Heavy Weapon",
     "pLaptopIcons": [
         "Почта",
         "Сеть",

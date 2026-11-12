@@ -1464,6 +1464,7 @@
     ],
     "pLandMarkInSectorString": "Trupp %d hat in Sektor %s jemanden bemerkt",
     "pActivateCheatsQuestion": "Do you want to activate cheats?",
+    "pHeavyWeaponType": "Heavy Weapon",
     "pLaptopIcons": [
         "E-mail",
         "Web",

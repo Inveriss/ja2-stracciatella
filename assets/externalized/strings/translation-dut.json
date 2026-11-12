@@ -1464,6 +1464,7 @@
     ],
     "pLandMarkInSectorString": "Team %d is heeft iemand ontdekt in sector %s",
     "pActivateCheatsQuestion": "Do you want to activate cheats?",
+    "pHeavyWeaponType": "Heavy Weapon",
     "pLaptopIcons": [
         "E-mail",
         "Web",

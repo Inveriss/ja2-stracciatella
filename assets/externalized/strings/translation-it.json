@@ -1464,6 +1464,7 @@
     ],
     "pLandMarkInSectorString": "La squadra %d ha notato qualcuno nel settore %s",
     "pActivateCheatsQuestion": "Do you want to activate cheats?",
+    "pHeavyWeaponType": "Heavy Weapon",
     "pLaptopIcons": [
         "E-mail",
         "Rete",

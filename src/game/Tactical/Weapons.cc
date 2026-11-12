@@ -46,6 +46,7 @@
 #include "ContentManager.h"
 #include "GameInstance.h"
 #include "WeaponModels.h"
+#include "CalibreModel.h"
 #include "WeaponAttachmentFamilyModel.h"
 #include "Logger.h"
 #include "GamePolicy.h"
@@ -2923,6 +2924,16 @@ UINT32 AICalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTi
 	pSoldier->usAnimState = usTrueState;
 	return( uiChance );
 }
+
+bool IsHeavyWeapon(UINT16 const usItem)
+{
+	ItemModel const* const item = GCM->getItem(usItem);
+	if (item->isLauncher()) return true;
+	if (!item->isGun()) return false;
+	WeaponModel const* const gun = item->asWeapon();
+	return gun->calibre->internalName == "AMMOROCKET" || gun->ubWeaponType == NOT_GUN;
+}
+
 
 INT32 CalcBodyImpactReduction( UINT8 ubAmmoType, UINT8 ubHitLocation )
 {

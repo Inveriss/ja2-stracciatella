@@ -164,6 +164,11 @@ struct DualBurstLength { UINT8 first; UINT8 second; }; // HANDPOS, SECONDHANDPOS
 DualBurstLength CalcDualBurstLength(SOLDIERTYPE const&);
 bool HasLauncher(SOLDIERTYPE const*);
 extern INT32 CalcBodyImpactReduction( UINT8 ubAmmoType, UINT8 ubHitLocation );
+
+// Heavy weapons: launchers (IC_LAUNCHER), guns firing rockets (calibre
+// AMMOROCKET: rocket rifles) and guns that are no real guns (LAW, tank
+// cannon). Sorted together, and named "Heavy Weapon" in the description box.
+bool IsHeavyWeapon(UINT16 usItem);
 INT32 TotalArmourProtection(SOLDIERTYPE&, UINT8 ubHitLocation, INT32 iImpact, UINT8 ubAmmoType);
 INT8 ArmourPercent(const SOLDIERTYPE* pSoldier);
 

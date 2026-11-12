@@ -4541,7 +4541,9 @@ void RenderItemDescriptionBox(void)
 		}
 	}
 
-	if (ITEM_PROS_AND_CONS(obj.usItem))
+	// the weapon type line: guns and launchers (heavy weapons); pros and cons:
+	// guns only
+	if (ITEM_PROS_AND_CONS(obj.usItem) || GCM->getItem(obj.usItem)->isLauncher())
 	{
 		{
 			const WeaponModel * w = GCM->getWeapon(obj.usItem);
@@ -4550,7 +4552,7 @@ void RenderItemDescriptionBox(void)
 				ST::string name = *w->calibre->getName();
 				pStr += ST::format("{} ", name);
 			}
-			pStr += ST::format("{}", WeaponType[w->ubWeaponType]);
+			pStr += IsHeavyWeapon(obj.usItem) ? pHeavyWeaponType : WeaponType[w->ubWeaponType];
 			ST::string imprint = GetObjectImprint(obj);
 			if (!imprint.empty())
 			{
@@ -4572,6 +4574,7 @@ void RenderItemDescriptionBox(void)
 			SetFont(ITEMDESC_FONT);
 		}
 
+		if (ITEM_PROS_AND_CONS(obj.usItem))
 		{
 			if (IsMapBigWeaponBox())
 			{

@@ -87,9 +87,8 @@ static ITEM_SORT_ENTRY const DealerItemSortInfo[] =
 
 static UINT8 GetGunSortGroup(ItemModel const* const item)
 {
-	WeaponModel const* const gun = item->asWeapon();
-	if (gun->calibre->internalName == "AMMOROCKET") return GSG_LAUNCHER;
-	switch (gun->ubWeaponType)
+	if (IsHeavyWeapon(item->getItemIndex())) return GSG_LAUNCHER;
+	switch (item->asWeapon()->ubWeaponType)
 	{
 		case GUN_PISTOL:
 		case GUN_M_PISTOL:  return GSG_HANDGUN;
