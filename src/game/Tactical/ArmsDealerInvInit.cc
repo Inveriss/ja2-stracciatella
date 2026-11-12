@@ -555,39 +555,44 @@ int CompareItemsForSorting(UINT16 const item_index1, UINT16 const item_index2, U
 	const ItemModel * item1 = GCM->getItem(item_index1);
 	const ItemModel * item2 = GCM->getItem(item_index2);
 
-	// the same category
+	// the same category: weakest first
 	if (item1->getItemClass() == IC_AMMO && item2->getItemClass() == IC_AMMO)
 	{
-		// AMMO is sorted by caliber first
-		uint16_t calibre1 = item1->asAmmo()->calibre->index;
-		uint16_t calibre2 = item2->asAmmo()->calibre->index;
-		if (calibre1 > calibre2) return -1;
-		if (calibre1 < calibre2) return  1;
+		// ammo is grouped by calibre first, lower calibre index first
+		uint16_t const calibre1 = item1->asAmmo()->calibre->index;
+		uint16_t const calibre2 = item2->asAmmo()->calibre->index;
+		if (calibre1 < calibre2) return -1;
+		if (calibre1 > calibre2) return  1;
 
-		// the same caliber - compare size of magazine
+		// the same calibre - smaller magazine first
 		UINT8 const mag_size1 = item1->asAmmo()->capacity;
 		UINT8 const mag_size2 = item2->asAmmo()->capacity;
-		if (mag_size1 > mag_size2) return -1;
-		if (mag_size1 < mag_size2) return  1;
-	}
-	else
-	{
-		// items other than ammo are compared on coolness first
-		// higher coolness first
-		UINT8 const coolness1 = item1->getCoolness();
-		UINT8 const coolness2 = item2->getCoolness();
-		if (coolness1 > coolness2) return -1;
-		if (coolness1 < coolness2) return  1;
+		if (mag_size1 < mag_size2) return -1;
+		if (mag_size1 > mag_size2) return  1;
 	}
 
-	// the same coolness/caliber - compare base prices then
-	// higher price first
+	// lower minDropProgress first
+	UINT8 const progress1 = item1->getMinDropProgress();
+	UINT8 const progress2 = item2->getMinDropProgress();
+	if (progress1 < progress2) return -1;
+	if (progress1 > progress2) return  1;
+
+	// lower base price first
 	UINT16 const price1 = item1->getPrice();
 	UINT16 const price2 = item2->getPrice();
-	if (price1 > price2) return -1;
-	if (price1 < price2) return  1;
+	if (price1 < price2) return -1;
+	if (price1 > price2) return  1;
 
-	// the same price - compare item #s, then
+	// weapons (guns, launchers, knives, punch weapons...): lower deadliness first
+	WeaponModel const* const weapon1 = item1->asWeapon();
+	WeaponModel const* const weapon2 = item2->asWeapon();
+	if (weapon1 && weapon2)
+	{
+		UINT8 const deadliness1 = weapon1->ubDeadliness;
+		UINT8 const deadliness2 = weapon2->ubDeadliness;
+		if (deadliness1 < deadliness2) return -1;
+		if (deadliness1 > deadliness2) return  1;
+	}
 
 	// lower index first
 	if (item_index1 < item_index2) return -1;

@@ -12,6 +12,8 @@
 #include "LoadSaveObjectType.h"
 #include "GamePolicy.h"
 #include "ItemModel.h"
+#include "MagazineModel.h"
+#include "CalibreModel.h"
 #include "Soldier_Control.h"
 #include "Strategic_Status.h"
 #include "Campaign.h"
@@ -728,8 +730,56 @@ TEST_F(GunStackTest, rifleSortCategories)
 	EXPECT_FALSE(IsHeavyWeapon(MINIMI));
 	EXPECT_FALSE(IsHeavyWeapon(CLIP9_15));
 
+	// guns of one category: ordered by the in-category keys, weakest first
+	// (checked in DropProgressTest.sortInsideCategory)
+
 	// rocket rifles are still sold used, like the other rifles
 	EXPECT_EQ(CanDealerItemBeSoldUsed(ROCKET_RIFLE), CanDealerItemBeSoldUsed(aug));
+}
+
+// Inside a category, weakest first: minDropProgress, price, deadliness
+// (weapons), item index; ammo grouped by calibre and magazine size first;
+// the same item in better condition first
+TEST_F(DropProgressTest, sortInsideCategory)
+{
+	auto cmp = [](UINT16 a, UINT16 b) { return CompareItemsForSorting(a, b, 100, 100); };
+	UINT16 const beretta = 3;
+	UINT8 const savedGlock  = GCM->getItem(GLOCK_17)->getMinDropProgress();
+	UINT8 const savedEagle  = GCM->getItem(DESERTEAGLE)->getMinDropProgress();
+	UINT8 const savedBer    = GCM->getItem(beretta)->getMinDropProgress();
+
+	// 1. minDropProgress
+	SetMinDrop(GLOCK_17, 50);
+	SetMinDrop(DESERTEAGLE, 10);
+	EXPECT_GT(cmp(GLOCK_17, DESERTEAGLE), 0);
+	EXPECT_LT(cmp(DESERTEAGLE, GLOCK_17), 0);
+
+	// 2. the same minDropProgress: price
+	SetMinDrop(GLOCK_17, 10);
+	UINT16 const pGlock = GCM->getItem(GLOCK_17)->getPrice();
+	UINT16 const pEagle = GCM->getItem(DESERTEAGLE)->getPrice();
+	ASSERT_NE(pGlock, pEagle);
+	EXPECT_EQ(cmp(GLOCK_17, DESERTEAGLE) < 0, pGlock < pEagle);
+
+	// 3./4. deadliness, then index: never equal for two different items
+	SetMinDrop(beretta, 10);
+	EXPECT_NE(cmp(GLOCK_17, beretta), 0);
+	EXPECT_EQ(cmp(GLOCK_17, beretta), -cmp(beretta, GLOCK_17));
+
+	// the same item: better condition first
+	EXPECT_LT(CompareItemsForSorting(GLOCK_17, GLOCK_17, 95, 60), 0);
+
+	// ammo: lower calibre index first, whatever the progress
+	auto const* const c9  = GCM->getItem(CLIP9_15)->asAmmo();
+	auto const* const c45 = GCM->getItem(CLIP45_7)->asAmmo();
+	UINT8 const savedClip = c9->getMinDropProgress();
+	SetMinDrop(CLIP9_15, 90);
+	EXPECT_EQ(cmp(CLIP9_15, CLIP45_7) < 0, c9->calibre->index < c45->calibre->index);
+	SetMinDrop(CLIP9_15, savedClip);
+
+	SetMinDrop(GLOCK_17, savedGlock);
+	SetMinDrop(DESERTEAGLE, savedEagle);
+	SetMinDrop(beretta, savedBer);
 }
 
 #endif
