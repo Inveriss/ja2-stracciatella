@@ -685,6 +685,20 @@ TEST_F(GunStackTest, rifleSortCategories)
 	UINT16 const sks = 17, m24 = 19, aug = 20;
 	auto before = [](UINT16 a, UINT16 b) { return CompareItemsForSorting(a, b, 100, 100) < 0; };
 
+	UINT16 const mp5k = 9, m870 = 31;
+
+	// the whole order: melee, knives, guns by type, launchers, attachments,
+	// ammo, armour, face, grenades, bombs, medkits, kits, misc, keys, money,
+	// thrown
+	UINT16 const order[] = { BRASS_KNUCKLES, COMBAT_KNIFE, THROWING_KNIFE,
+		GLOCK_17, GLOCK_18, mp5k, m870, aug, sks, m24, MINIMI, GLAUNCHER,
+		SILENCER, CLIP9_15, KEVLAR_VEST, GASMASK, STUN_GRENADE, TNT,
+		FIRSTAIDKIT, TOOLKIT, DETONATOR, KEY_1, MONEY, ROCK };
+	for (size_t i = 0; i + 1 < std::size(order); ++i)
+	{
+		EXPECT_TRUE(before(order[i], order[i + 1])) << order[i] << " before " << order[i + 1];
+	}
+
 	EXPECT_TRUE(before(GLOCK_17, aug));
 	EXPECT_TRUE(before(aug, sks));          // assault rifles first
 	EXPECT_TRUE(before(sks, m24));          // then rifles, then sniper rifles

@@ -23,82 +23,113 @@
 #include "MagazineModel.h"
 #include "WeaponModels.h"
 
-// Sort groups of IC_GUN items: by the exact gun type (internalType in
-// weapons.json), so assault, plain and sniper rifles are listed apart.
-// Guns firing rockets (calibre AMMOROCKET: rocket rifles) and guns that are
-// no real guns (LAW, tank cannon, monster spit) are listed with the
-// launchers.
-enum GunSortGroup : UINT8
+// Item sort categories, in the order they are listed: the same order at
+// Bobby Ray's, at the dealers and in the sector inventory.
+// - Guns are split by their exact type (internalType in weapons.json).
+// - Heavy weapons (IsHeavyWeapon: launchers, rocket rifles, LAW, tank
+//   cannon) are listed together.
+// - Weapon attachments: items with an attachment family that are no weapons
+//   themselves (scopes, silencer, bipod, duckbill, barrel extender, ...);
+//   the under-barrel grenade launcher stays with the launchers.
+enum ItemSortCategory : UINT8
 {
-	GSG_NONE,
-	GSG_HANDGUN,
-	GSG_SHOTGUN,
-	GSG_SMG,
-	GSG_ASSAULT_RIFLE,
-	GSG_RIFLE,
-	GSG_SNIPER_RIFLE,
-	GSG_MG,
-	GSG_LAUNCHER
+	ISC_PUNCH,
+	ISC_BLADE,
+	ISC_THROWING_KNIFE,
+	ISC_PISTOL,
+	ISC_MACHINE_PISTOL,
+	ISC_SMG,
+	ISC_SHOTGUN,
+	ISC_ASSAULT_RIFLE,
+	ISC_RIFLE,
+	ISC_SNIPER_RIFLE,
+	ISC_MG,
+	ISC_LAUNCHER,
+	ISC_WEAPON_ATTACHMENT,
+	ISC_AMMO,
+	ISC_ARMOUR,
+	ISC_FACE,
+	ISC_GRENADE,
+	ISC_BOMB,
+	ISC_MEDKIT,
+	ISC_KIT,
+	ISC_MISC,
+	ISC_KEY,
+	ISC_MONEY,
+	ISC_THROWN,
+	NUM_ITEM_SORT_CATEGORIES
 };
 
-struct ITEM_SORT_ENTRY
+// Which categories of items are sold used (by category, as the original
+// table did by item class)
+static BOOLEAN const DealerItemSortAllowUsed[NUM_ITEM_SORT_CATEGORIES] =
 {
-	UINT32  uiItemClass;
-	UINT8   ubGunGroup;  // IC_GUN only
-	UINT8   ubSortRank;  // entries with the same rank are sorted together
-	BOOLEAN fAllowUsed;
+	FALSE, // punch
+	FALSE, // blade
+	FALSE, // throwing knife
+	TRUE,  // pistol
+	TRUE,  // machine pistol
+	TRUE,  // SMG
+	TRUE,  // shotgun
+	TRUE,  // assault rifle
+	TRUE,  // rifle
+	TRUE,  // sniper rifle
+	FALSE, // machine gun
+	FALSE, // launcher (heavy guns: see CanDealerItemBeSoldUsed)
+	TRUE,  // weapon attachment (misc items)
+	FALSE, // ammo
+	TRUE,  // armour
+	TRUE,  // face
+	FALSE, // grenade
+	FALSE, // bomb
+	FALSE, // medkit
+	FALSE, // kit
+	TRUE,  // misc
+	FALSE, // key
+	FALSE, // money
+	FALSE  // thrown
 };
 
 
-// This table controls the order items appear in inventory at BR's, dealers
-// and in the sector inventory, and which kinds of items are sold used
-static ITEM_SORT_ENTRY const DealerItemSortInfo[] =
+static UINT8 GetDealerItemCategoryNumber(UINT16 const usItemIndex)
 {
-	//  item class       gun group          rank  sold used?
-	{ IC_GUN,            GSG_HANDGUN,        0,   TRUE  },
-	{ IC_GUN,            GSG_SHOTGUN,        1,   TRUE  },
-	{ IC_GUN,            GSG_SMG,            2,   TRUE  },
-	{ IC_GUN,            GSG_ASSAULT_RIFLE,  3,   TRUE  },
-	{ IC_GUN,            GSG_RIFLE,          4,   TRUE  },
-	{ IC_GUN,            GSG_SNIPER_RIFLE,   5,   TRUE  },
-	{ IC_GUN,            GSG_MG,             6,   FALSE },
-	{ IC_LAUNCHER,       GSG_NONE,           7,   FALSE },
-	// rocket rifles, LAW, tank cannon: listed with the launchers, sold used
-	// as before (they were rifles here)
-	{ IC_GUN,            GSG_LAUNCHER,       7,   TRUE  },
-	{ IC_AMMO,           GSG_NONE,           8,   FALSE },
-	{ IC_GRENADE,        GSG_NONE,           9,   FALSE },
-	{ IC_BOMB,           GSG_NONE,          10,   FALSE },
-	{ IC_BLADE,          GSG_NONE,          11,   FALSE },
-	{ IC_THROWING_KNIFE, GSG_NONE,          12,   FALSE },
-	{ IC_PUNCH,          GSG_NONE,          13,   FALSE },
-	{ IC_ARMOUR,         GSG_NONE,          14,   TRUE  },
-	{ IC_FACE,           GSG_NONE,          15,   TRUE  },
-	{ IC_MEDKIT,         GSG_NONE,          16,   FALSE },
-	{ IC_KIT,            GSG_NONE,          17,   FALSE },
-	{ IC_MISC,           GSG_NONE,          18,   TRUE  },
-	{ IC_THROWN,         GSG_NONE,          19,   FALSE },
-	{ IC_KEY,            GSG_NONE,          20,   FALSE },
-	{ IC_MONEY,          GSG_NONE,          21,   FALSE },
+	ItemModel const* const item = GCM->getItem(usItemIndex);
+	UINT32 const item_class = item->getItemClass();
 
-	{ IC_NONE,           GSG_NONE,           0,   FALSE }  // marks end of list
-};
-
-
-static UINT8 GetGunSortGroup(ItemModel const* const item)
-{
-	if (IsHeavyWeapon(item->getItemIndex())) return GSG_LAUNCHER;
-	switch (item->asWeapon()->ubWeaponType)
+	if (item_class == IC_GUN || item_class == IC_LAUNCHER)
 	{
-		case GUN_PISTOL:
-		case GUN_M_PISTOL:  return GSG_HANDGUN;
-		case GUN_SHOTGUN:   return GSG_SHOTGUN;
-		case GUN_SMG:       return GSG_SMG;
-		case GUN_AS_RIFLE:  return GSG_ASSAULT_RIFLE;
-		case GUN_RIFLE:     return GSG_RIFLE;
-		case GUN_SN_RIFLE:  return GSG_SNIPER_RIFLE;
-		case GUN_LMG:       return GSG_MG;
-		default:            return GSG_LAUNCHER; // NOT_GUN: LAW, tank cannon, monster spit
+		if (IsHeavyWeapon(usItemIndex)) return ISC_LAUNCHER;
+		switch (item->asWeapon()->ubWeaponType)
+		{
+			case GUN_PISTOL:    return ISC_PISTOL;
+			case GUN_M_PISTOL:  return ISC_MACHINE_PISTOL;
+			case GUN_SMG:       return ISC_SMG;
+			case GUN_SHOTGUN:   return ISC_SHOTGUN;
+			case GUN_AS_RIFLE:  return ISC_ASSAULT_RIFLE;
+			case GUN_RIFLE:     return ISC_RIFLE;
+			case GUN_SN_RIFLE:  return ISC_SNIPER_RIFLE;
+			case GUN_LMG:       return ISC_MG;
+			default:            return ISC_LAUNCHER;
+		}
+	}
+	if (!item->isWeapon() && item->getAttachmentFamily()) return ISC_WEAPON_ATTACHMENT;
+
+	switch (item_class)
+	{
+		case IC_PUNCH:          return ISC_PUNCH;
+		case IC_BLADE:          return ISC_BLADE;
+		case IC_THROWING_KNIFE: return ISC_THROWING_KNIFE;
+		case IC_AMMO:           return ISC_AMMO;
+		case IC_ARMOUR:         return ISC_ARMOUR;
+		case IC_FACE:           return ISC_FACE;
+		case IC_GRENADE:        return ISC_GRENADE;
+		case IC_BOMB:           return ISC_BOMB;
+		case IC_MEDKIT:         return ISC_MEDKIT;
+		case IC_KIT:            return ISC_KIT;
+		case IC_KEY:            return ISC_KEY;
+		case IC_MONEY:          return ISC_MONEY;
+		case IC_THROWN:         return ISC_THROWN;
+		default:                return ISC_MISC; // IC_MISC and anything else
 	}
 }
 
@@ -502,14 +533,11 @@ int ArmsDealerItemQsortCompare(const void *pArg1, const void *pArg2)
 }
 
 
-static UINT8 GetDealerItemCategoryNumber(UINT16 usItemIndex);
-
-
 int CompareItemsForSorting(UINT16 const item_index1, UINT16 const item_index2, UINT8 const item_quality1, UINT8 const item_quality2)
 {
-	// lower category rank first
-	UINT8 const category1 = DealerItemSortInfo[GetDealerItemCategoryNumber(item_index1)].ubSortRank;
-	UINT8 const category2 = DealerItemSortInfo[GetDealerItemCategoryNumber(item_index2)].ubSortRank;
+	// lower category first
+	UINT8 const category1 = GetDealerItemCategoryNumber(item_index1);
+	UINT8 const category2 = GetDealerItemCategoryNumber(item_index2);
 	if (category1 < category2) return -1;
 	if (category1 > category2) return  1;
 
@@ -565,30 +593,6 @@ int CompareItemsForSorting(UINT16 const item_index1, UINT16 const item_index2, U
 }
 
 
-static UINT8 GetDealerItemCategoryNumber(UINT16 const usItemIndex)
-{
-	auto * const itemModel{ GCM->getItem(usItemIndex) };
-	auto const item_class{ itemModel->getItemClass() };
-
-	// only guns are split into groups
-	UINT8 const gun_group = item_class == IC_GUN ? GetGunSortGroup(itemModel) : GSG_NONE;
-
-	// search table until end-of-list marker is encountered
-	for (UINT8 category = 0;; ++category)
-	{
-		ITEM_SORT_ENTRY const& ise = DealerItemSortInfo[category];
-		if (ise.uiItemClass == IC_NONE) break;
-
-		if (ise.uiItemClass != item_class) continue;
-		if (ise.uiItemClass == IC_GUN && ise.ubGunGroup != gun_group) continue;
-
-		return category;
-	}
-
-	// should never be trying to locate an item that's not covered in the table!
-	Assert(FALSE);
-	return 0;
-}
 
 
 
@@ -598,5 +602,7 @@ BOOLEAN CanDealerItemBeSoldUsed( UINT16 usItemIndex )
 		return(FALSE);
 
 	// certain items, although they're damagable, shouldn't be sold in a used condition
-	return( DealerItemSortInfo[ GetDealerItemCategoryNumber( usItemIndex ) ].fAllowUsed );
+	// heavy guns (rocket rifles, LAW, tank cannon) were rifles here: sold used
+	if (GCM->getItem(usItemIndex)->isGun() && IsHeavyWeapon(usItemIndex)) return TRUE;
+	return( DealerItemSortAllowUsed[ GetDealerItemCategoryNumber( usItemIndex ) ] );
 }
