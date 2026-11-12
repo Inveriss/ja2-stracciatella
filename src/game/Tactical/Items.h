@@ -55,6 +55,9 @@ void CreateItems(UINT16 usItem, INT8 bStatus, UINT8 ubNumber, OBJECTTYPE*);
 void CreateMoney(UINT32 uiMoney, OBJECTTYPE*);
 UINT16 DefaultMagazine(UINT16 gun);
 UINT16 RandomMagazine( UINT16 usItem, UINT8 ubPercentStandard );
+// Enemy / militia magazine for a gun by the chance table of game.json
+// "enemy_ammo" and the progress 0-100 (docs/enemy-ammo-chances-plan.md)
+UINT16 EnemyMagazineForGun(UINT16 gun, UINT8 progress);
 extern BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo );
 
 UINT8 ItemSlotLimit( UINT16 usItem, INT8 bSlot );

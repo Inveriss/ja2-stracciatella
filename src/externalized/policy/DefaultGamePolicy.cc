@@ -61,6 +61,47 @@ void ReadEnemyEliteHeavy(GamePolicy& p, JsonObject const& gp)
 	p.enemy_elite_heavy_difficulty_modifiers[2] = static_cast<int8_t>(mod.getOptionalInt("expert", 1));
 }
 
+// docs/enemy-ammo-chances-plan.md, section 3; defaults = the decided table
+void ReadEnemyAmmo(GamePolicy& p, JsonObject const& gp)
+{
+	static uint8_t const defaults[10][4] = {
+		{ 80, 20,  0,  0 }, { 40, 60,  0,  0 }, { 20, 80,  0,  0 }, { 10, 40, 50,  0 },
+		{  0, 30, 70,  0 }, {  0, 20, 80,  0 }, {  0, 10, 80, 10 }, {  0,  0, 70, 30 },
+		{  0,  0, 50, 50 }, {  0,  0, 30, 70 }
+	};
+	std::copy(&defaults[0][0], &defaults[0][0] + 40, &p.enemy_ammo_type_chances[0][0]);
+
+	JsonObject const ea = gp.has("enemy_ammo") ? gp["enemy_ammo"].toObject() : JsonObject();
+	if (ea.has("type_chances"))
+	{
+		auto const rows = ea["type_chances"].toVec();
+		if (rows.size() != 10) throw DataError(ST::format("game.json: enemy_ammo type_chances needs 10 rows, not {}", rows.size()));
+		for (size_t r = 0; r < 10; ++r)
+		{
+			auto const row = rows[r].toVec();
+			if (row.size() != 4) throw DataError(ST::format("game.json: enemy_ammo type_chances row {} needs 4 values (REGULAR, HP, AP, SUPER_AP)", r + 1));
+			int sum = 0;
+			for (size_t c = 0; c < 4; ++c)
+			{
+				int const v = row[c].toInt();
+				if (v < 0 || v > 100) throw DataError(ST::format("game.json: enemy_ammo type_chances row {}: {} is not 0-100", r + 1, v));
+				p.enemy_ammo_type_chances[r][c] = static_cast<uint8_t>(v);
+				sum += v;
+			}
+			if (sum != 100) throw DataError(ST::format("game.json: enemy_ammo type_chances row {} adds up to {}, not 100", r + 1, sum));
+		}
+	}
+
+	auto const share = [&](char const* name, int def)
+	{
+		int const v = ea.getOptionalInt(name, def);
+		if (v < 0 || v > 100) throw DataError(ST::format("game.json: enemy_ammo {} must be 0-100, not {}", name, v));
+		return static_cast<uint8_t>(v);
+	};
+	p.enemy_ammo_buckshot_chance = share("buckshot_chance", 50);
+	p.enemy_ammo_he_chance       = share("he_chance", 70);
+}
+
 }
 
 DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
@@ -157,6 +198,7 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 
 	ReadEnemyEquipment(*this, gp);
 	ReadEnemyEliteHeavy(*this, gp);
+	ReadEnemyAmmo(*this, gp);
 
 	kills_per_point_easy = progress.getOptionalInt("kills_per_point_easy", 7);
 	kills_per_point_medium = progress.getOptionalInt("kills_per_point_medium", 10);

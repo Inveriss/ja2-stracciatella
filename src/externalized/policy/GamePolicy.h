@@ -144,6 +144,12 @@ public:
 	uint8_t enemy_elite_heavy_elites_per_heavy;
 	int8_t enemy_elite_heavy_difficulty_modifiers[3];
 
+	// Enemy ammo by chance table (docs/enemy-ammo-chances-plan.md): row by progress
+	// (0-9, 10-19, ..., 90-100), columns REGULAR, HP, AP, SUPER_AP in percent
+	uint8_t enemy_ammo_type_chances[10][4];
+	uint8_t enemy_ammo_buckshot_chance; // shotguns: buckshot / flechette, rest the others
+	uint8_t enemy_ammo_he_chance;       // rockets: HE, rest HEAT
+
 	int8_t unhired_merc_deaths_easy;       // Maximum unhired mercs KIA difficulty Easy
 	int8_t unhired_merc_deaths_medium;       // Maximum unhired mercs KIA difficulty Medium
 	int8_t unhired_merc_deaths_hard;       // Maximum unhired mercs KIA difficulty Hard

@@ -11,8 +11,12 @@
 #include "LoadSaveData.h"
 #include "LoadSaveObjectType.h"
 #include "GamePolicy.h"
+#include "DefaultGamePolicy.h"
+#include "Exceptions.h"
+#include "json/Json.h"
 #include "ItemModel.h"
 #include "MagazineModel.h"
+#include "WeaponModels.h"
 #include "CalibreModel.h"
 #include "Soldier_Control.h"
 #include "Strategic_Status.h"
@@ -26,6 +30,7 @@
 
 #include "gtest/gtest.h"
 
+#include <map>
 #include <memory>
 
 namespace {
@@ -780,6 +785,94 @@ TEST_F(DropProgressTest, sortInsideCategory)
 	SetMinDrop(GLOCK_17, savedGlock);
 	SetMinDrop(DESERTEAGLE, savedEagle);
 	SetMinDrop(beretta, savedBer);
+}
+
+// docs/enemy-ammo-chances-plan.md, stage 1: the chance table and the magazine choice
+namespace {
+
+std::map<UINT16, int> RollEnemyMagazines(UINT16 const gun, UINT8 const progress, int const n)
+{
+	std::map<UINT16, int> count;
+	for (int i = 0; i < n; ++i) ++count[EnemyMagazineForGun(gun, progress)];
+	return count;
+}
+
+}
+
+TEST_F(GunStackTest, enemyAmmoTableDefaults)
+{
+	uint8_t const row3[4] = { 10, 40, 50, 0 };
+	for (int c = 0; c < 4; ++c) EXPECT_EQ(gamepolicy(enemy_ammo_type_chances)[3][c], row3[c]);
+	for (int r = 0; r < 10; ++r)
+	{
+		int sum = 0;
+		for (int c = 0; c < 4; ++c) sum += gamepolicy(enemy_ammo_type_chances)[r][c];
+		EXPECT_EQ(sum, 100) << r;
+	}
+	EXPECT_EQ(gamepolicy(enemy_ammo_buckshot_chance), 50);
+	EXPECT_EQ(gamepolicy(enemy_ammo_he_chance), 70);
+}
+
+TEST_F(GunStackTest, enemyAmmoTableChecks)
+{
+	// the sections the policy needs, plus the enemy_ammo section under test
+	auto load = [](std::string const& enemyAmmo)
+	{
+		std::string const json = "{\"ai\": {}, \"imp\": {}, \"progress\": {}, \"campaign\": {}" +
+			(enemyAmmo.empty() ? std::string() : ", \"enemy_ammo\": " + enemyAmmo) + "}";
+		DefaultGamePolicy p(JsonValue::deserialize(json.c_str()));
+	};
+	EXPECT_NO_THROW(load(""));
+	EXPECT_THROW(load("{\"type_chances\": [[100,0,0,0]]}"), DataError);
+	EXPECT_THROW(load("{\"type_chances\": [[90,0,0,0],[100,0,0,0],[100,0,0,0],[100,0,0,0],[100,0,0,0],"
+		"[100,0,0,0],[100,0,0,0],[100,0,0,0],[100,0,0,0],[100,0,0,0]]}"), DataError);
+	EXPECT_THROW(load("{\"he_chance\": 101}"), DataError);
+}
+
+TEST_F(GunStackTest, enemyAmmoByProgress)
+{
+	int const n = 2000;
+	UINT16 const CLIP9_15_AP = 73, CLIP9_15_HP = 75;
+	UINT16 const CLIPROCKET_AP = 111, CLIPROCKET_HE = 112, CLIPROCKET_HEAT = 113;
+
+	// 9 mm: REGULAR / HP early, AP late (no SUPER_AP: its chance goes to AP)
+	auto early = RollEnemyMagazines(GLOCK_17, 0, n);
+	EXPECT_EQ(early.count(CLIP9_15_AP), 0u);
+	EXPECT_NEAR(early[CLIP9_15] / double(n), 0.8, 0.05);
+	EXPECT_NEAR(early[CLIP9_15_HP] / double(n), 0.2, 0.05);
+	auto late = RollEnemyMagazines(GLOCK_17, 95, n);
+	EXPECT_EQ(late[CLIP9_15_AP], n);
+	EXPECT_EQ(RollEnemyMagazines(GLOCK_17, 100, n)[CLIP9_15_AP], n); // 100 is the last row
+
+	// row 3 (30-39): 10 / 40 / 50
+	auto mid = RollEnemyMagazines(GLOCK_17, 35, n);
+	EXPECT_NEAR(mid[CLIP9_15] / double(n), 0.1, 0.04);
+	EXPECT_NEAR(mid[CLIP9_15_HP] / double(n), 0.4, 0.05);
+	EXPECT_NEAR(mid[CLIP9_15_AP] / double(n), 0.5, 0.05);
+
+	// 12 gauge: slug / buckshot 50/50 at any progress
+	UINT16 const m870 = 31;
+	auto shot = RollEnemyMagazines(m870, 90, n);
+	EXPECT_NEAR(shot[CLIP12G_7] / double(n), 0.5, 0.05);
+	EXPECT_NEAR(shot[CLIP12G_7_BUCKSHOT] / double(n), 0.5, 0.05);
+
+	// rockets: HE 70, HEAT 30, never the AP rockets
+	auto rockets = RollEnemyMagazines(ROCKET_RIFLE, 50, n);
+	EXPECT_EQ(rockets.count(CLIPROCKET_AP), 0u);
+	EXPECT_NEAR(rockets[CLIPROCKET_HE] / double(n), 0.7, 0.05);
+	EXPECT_NEAR(rockets[CLIPROCKET_HEAT] / double(n), 0.3, 0.05);
+
+	// a gun with one fitting magazine always gets it; no gun, no magazine
+	EXPECT_EQ(EnemyMagazineForGun(CLIP9_15, 50), NOTHING);
+	for (auto const* item : GCM->getItems())
+	{
+		if (!item->isGun()) continue;
+		WeaponModel const* const w = item->asWeapon();
+		std::vector<UINT16> fit;
+		for (auto const* m : GCM->getMagazines()) if (w->matches(m)) fit.push_back(m->getItemIndex());
+		if (fit.size() != 1) continue;
+		EXPECT_EQ(EnemyMagazineForGun(w->getItemIndex(), 70), fit[0]) << w->getInternalName().c_str();
+	}
 }
 
 #endif

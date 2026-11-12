@@ -158,6 +158,38 @@ properties:
           expert: { type: integer, minimum: -10, maximum: 10 }
         additionalProperties: false
     additionalProperties: false
+  enemy_ammo:
+    type: object
+    title: Enemy and militia ammo by chance
+    description: |
+      The ammo type of an enemy's or militia's gun by a chance table
+      (docs/enemy-ammo-chances-plan.md): the row by the soldier's equipment progress
+      (0-9, 10-19, ..., 90-100), the columns REGULAR, HP, AP, SUPER_AP in percent, each
+      row adding up to 100. Shotguns: buckshot_chance buckshot; rockets: he_chance HE.
+
+      Vanilla setting: none (new)
+    properties:
+      type_chances:
+        type: array
+        title: Chances by progress row (REGULAR, HP, AP, SUPER_AP)
+        items:
+          type: array
+          items: { type: integer, minimum: 0, maximum: 100 }
+          minItems: 4
+          maxItems: 4
+        minItems: 10
+        maxItems: 10
+      buckshot_chance:
+        type: integer
+        title: Shotguns, percent buckshot / flechette
+        minimum: 0
+        maximum: 100
+      he_chance:
+        type: integer
+        title: Rockets, percent HE (the rest HEAT)
+        minimum: 0
+        maximum: 100
+    additionalProperties: false
   all_drops_visible:
     type: boolean
     title: All drops visible

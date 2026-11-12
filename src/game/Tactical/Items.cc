@@ -3010,6 +3010,99 @@ UINT16 FindReplacementMagazineIfNecessary(const WeaponModel *old_gun, UINT16 con
 }
 
 
+// docs/enemy-ammo-chances-plan.md, section 4
+static UINT16 RandomOf(std::vector<MagazineModel const*> const& mags)
+{
+	return mags[Random(static_cast<UINT32>(mags.size()))]->getItemIndex();
+}
+
+
+UINT16 EnemyMagazineForGun(UINT16 const gun, UINT8 const progress)
+{
+	ItemModel const* const item = GCM->getItem(gun);
+	if (!item->isGun()) return NOTHING;
+	WeaponModel const* const weapon = item->asWeapon();
+
+	// 1. the magazines that fit the gun
+	std::vector<MagazineModel const*> fitting;
+	for (MagazineModel const* const mag : GCM->getMagazines())
+	{
+		if (weapon->matches(mag)) fitting.push_back(mag);
+	}
+	if (fitting.empty())     return NOTHING;
+	if (fitting.size() == 1) return fitting[0]->getItemIndex();
+
+	auto const typeOf = [](MagazineModel const* const m) { return m->ammoType->index; };
+	auto const ofTypes = [&](std::initializer_list<UINT8> const types)
+	{
+		std::vector<MagazineModel const*> out;
+		for (MagazineModel const* const m : fitting)
+		{
+			if (std::find(types.begin(), types.end(), typeOf(m)) != types.end()) out.push_back(m);
+		}
+		return out;
+	};
+
+	// 2. shotguns: buckshot (flechette counts as buckshot), the rest the others
+	std::vector<MagazineModel const*> const buckshot = ofTypes({ AMMO_BUCKSHOT, AMMO_FLECHETTE });
+	if (!buckshot.empty())
+	{
+		std::vector<MagazineModel const*> others;
+		for (MagazineModel const* const m : fitting)
+		{
+			if (std::find(buckshot.begin(), buckshot.end(), m) == buckshot.end()) others.push_back(m);
+		}
+		if (others.empty() || Random(100) < gamepolicy(enemy_ammo_buckshot_chance)) return RandomOf(buckshot);
+		return RandomOf(others);
+	}
+
+	// 3. rockets: HE, the rest HEAT (other types of the calibre never)
+	std::vector<MagazineModel const*> const he   = ofTypes({ AMMO_HE });
+	std::vector<MagazineModel const*> const heat = ofTypes({ AMMO_HEAT });
+	if (!he.empty() || !heat.empty())
+	{
+		if (heat.empty()) return RandomOf(he);
+		if (he.empty())   return RandomOf(heat);
+		return Random(100) < gamepolicy(enemy_ammo_he_chance) ? RandomOf(he) : RandomOf(heat);
+	}
+
+	// 4. the chance table: REGULAR, HP, AP, SUPER_AP by the progress row
+	static UINT8 const standard[4] = { AMMO_REGULAR, AMMO_HP, AMMO_AP, AMMO_SUPER_AP };
+	std::vector<MagazineModel const*> byType[4];
+	bool any = false;
+	for (int t = 0; t < 4; ++t)
+	{
+		byType[t] = ofTypes({ standard[t] });
+		any = any || !byType[t].empty();
+	}
+	// 5. other types only (sleep darts, monster...): the first fitting magazine
+	if (!any) return fitting[0]->getItemIndex();
+
+	UINT8 const row = std::min(progress / 10, 9);
+	int chance[4] = {};
+	for (int t = 0; t < 4; ++t)
+	{
+		int const c = gamepolicy(enemy_ammo_type_chances)[row][t];
+		if (c == 0) continue;
+		// a missing type passes its chance to the nearest weaker type, else the nearest stronger
+		int to = -1;
+		for (int w = t; w >= 0 && to < 0; --w) if (!byType[w].empty()) to = w;
+		for (int s = t + 1; s < 4 && to < 0; ++s) if (!byType[s].empty()) to = s;
+		chance[to] += c;
+	}
+
+	int roll = static_cast<int>(Random(100));
+	for (int t = 0; t < 4; ++t)
+	{
+		if (roll < chance[t]) return RandomOf(byType[t]);
+		roll -= chance[t];
+	}
+	// a row of all zeros can't happen (each row adds up to 100); the weakest type then
+	for (int t = 0; t < 4; ++t) if (!byType[t].empty()) return RandomOf(byType[t]);
+	return fitting[0]->getItemIndex();
+}
+
+
 UINT16 RandomMagazine( UINT16 usItem, UINT8 ubPercentStandard )
 {
 	std::vector<const MagazineModel*> possibleMags;

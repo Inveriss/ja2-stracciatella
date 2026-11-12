@@ -5,7 +5,7 @@ see below); plan accepted 2026-11-12. Not implemented yet.
 
 | Stage | Commit | State |
 |---|---|---|
-| 1 - chance table in game.json, new magazine choice | - | - |
+| 1 - chance table in game.json, new magazine choice | this commit | unit tests (no game effect yet) |
 | 2 - enemies and militia use it, old system removed | - | - |
 
 Replace the current choice of the ammo type for an enemy's gun by a plain chance table:
