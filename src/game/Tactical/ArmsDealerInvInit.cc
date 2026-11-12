@@ -23,42 +23,85 @@
 #include "MagazineModel.h"
 #include "WeaponModels.h"
 
+// Sort groups of IC_GUN items: by the exact gun type (internalType in
+// weapons.json), so assault, plain and sniper rifles are listed apart.
+// Guns firing rockets (calibre AMMOROCKET: rocket rifles) and guns that are
+// no real guns (LAW, tank cannon, monster spit) are listed with the
+// launchers.
+enum GunSortGroup : UINT8
+{
+	GSG_NONE,
+	GSG_HANDGUN,
+	GSG_SHOTGUN,
+	GSG_SMG,
+	GSG_ASSAULT_RIFLE,
+	GSG_RIFLE,
+	GSG_SNIPER_RIFLE,
+	GSG_MG,
+	GSG_LAUNCHER
+};
+
 struct ITEM_SORT_ENTRY
 {
 	UINT32  uiItemClass;
-	UINT8   ubWeaponClass;
+	UINT8   ubGunGroup;  // IC_GUN only
+	UINT8   ubSortRank;  // entries with the same rank are sorted together
 	BOOLEAN fAllowUsed;
 };
 
 
-// This table controls the order items appear in inventory at BR's and dealers,
-// and which kinds of items are sold used
+// This table controls the order items appear in inventory at BR's, dealers
+// and in the sector inventory, and which kinds of items are sold used
 static ITEM_SORT_ENTRY const DealerItemSortInfo[] =
 {
-	//  item class       weapon class  sold used?
-	{ IC_GUN,            HANDGUNCLASS, TRUE  },
-	{ IC_GUN,            SHOTGUNCLASS, TRUE  },
-	{ IC_GUN,            SMGCLASS,     TRUE  },
-	{ IC_GUN,            RIFLECLASS,   TRUE  },
-	{ IC_GUN,            MGCLASS,      FALSE },
-	{ IC_LAUNCHER,       NOGUNCLASS,   FALSE },
-	{ IC_AMMO,           NOGUNCLASS,   FALSE },
-	{ IC_GRENADE,        NOGUNCLASS,   FALSE },
-	{ IC_BOMB,           NOGUNCLASS,   FALSE },
-	{ IC_BLADE,          NOGUNCLASS,   FALSE },
-	{ IC_THROWING_KNIFE, NOGUNCLASS,   FALSE },
-	{ IC_PUNCH,          NOGUNCLASS,   FALSE },
-	{ IC_ARMOUR,         NOGUNCLASS,   TRUE  },
-	{ IC_FACE,           NOGUNCLASS,   TRUE  },
-	{ IC_MEDKIT,         NOGUNCLASS,   FALSE },
-	{ IC_KIT,            NOGUNCLASS,   FALSE },
-	{ IC_MISC,           NOGUNCLASS,   TRUE  },
-	{ IC_THROWN,         NOGUNCLASS,   FALSE },
-	{ IC_KEY,            NOGUNCLASS,   FALSE },
-	{ IC_MONEY,          NOGUNCLASS,   FALSE },
+	//  item class       gun group          rank  sold used?
+	{ IC_GUN,            GSG_HANDGUN,        0,   TRUE  },
+	{ IC_GUN,            GSG_SHOTGUN,        1,   TRUE  },
+	{ IC_GUN,            GSG_SMG,            2,   TRUE  },
+	{ IC_GUN,            GSG_ASSAULT_RIFLE,  3,   TRUE  },
+	{ IC_GUN,            GSG_RIFLE,          4,   TRUE  },
+	{ IC_GUN,            GSG_SNIPER_RIFLE,   5,   TRUE  },
+	{ IC_GUN,            GSG_MG,             6,   FALSE },
+	{ IC_LAUNCHER,       GSG_NONE,           7,   FALSE },
+	// rocket rifles, LAW, tank cannon: listed with the launchers, sold used
+	// as before (they were rifles here)
+	{ IC_GUN,            GSG_LAUNCHER,       7,   TRUE  },
+	{ IC_AMMO,           GSG_NONE,           8,   FALSE },
+	{ IC_GRENADE,        GSG_NONE,           9,   FALSE },
+	{ IC_BOMB,           GSG_NONE,          10,   FALSE },
+	{ IC_BLADE,          GSG_NONE,          11,   FALSE },
+	{ IC_THROWING_KNIFE, GSG_NONE,          12,   FALSE },
+	{ IC_PUNCH,          GSG_NONE,          13,   FALSE },
+	{ IC_ARMOUR,         GSG_NONE,          14,   TRUE  },
+	{ IC_FACE,           GSG_NONE,          15,   TRUE  },
+	{ IC_MEDKIT,         GSG_NONE,          16,   FALSE },
+	{ IC_KIT,            GSG_NONE,          17,   FALSE },
+	{ IC_MISC,           GSG_NONE,          18,   TRUE  },
+	{ IC_THROWN,         GSG_NONE,          19,   FALSE },
+	{ IC_KEY,            GSG_NONE,          20,   FALSE },
+	{ IC_MONEY,          GSG_NONE,          21,   FALSE },
 
-	{ IC_NONE,           NOGUNCLASS,   FALSE }  // marks end of list
+	{ IC_NONE,           GSG_NONE,           0,   FALSE }  // marks end of list
 };
+
+
+static UINT8 GetGunSortGroup(ItemModel const* const item)
+{
+	WeaponModel const* const gun = item->asWeapon();
+	if (gun->calibre->internalName == "AMMOROCKET") return GSG_LAUNCHER;
+	switch (gun->ubWeaponType)
+	{
+		case GUN_PISTOL:
+		case GUN_M_PISTOL:  return GSG_HANDGUN;
+		case GUN_SHOTGUN:   return GSG_SHOTGUN;
+		case GUN_SMG:       return GSG_SMG;
+		case GUN_AS_RIFLE:  return GSG_ASSAULT_RIFLE;
+		case GUN_RIFLE:     return GSG_RIFLE;
+		case GUN_SN_RIFLE:  return GSG_SNIPER_RIFLE;
+		case GUN_LMG:       return GSG_MG;
+		default:            return GSG_LAUNCHER; // NOT_GUN: LAW, tank cannon, monster spit
+	}
+}
 
 
 INT8 GetDealersMaxItemAmount(ArmsDealerID const ubDealerID, UINT16 const usItemIndex)
@@ -465,9 +508,9 @@ static UINT8 GetDealerItemCategoryNumber(UINT16 usItemIndex);
 
 int CompareItemsForSorting(UINT16 const item_index1, UINT16 const item_index2, UINT8 const item_quality1, UINT8 const item_quality2)
 {
-	// lower category first
-	UINT8 const category1 = GetDealerItemCategoryNumber(item_index1);
-	UINT8 const category2 = GetDealerItemCategoryNumber(item_index2);
+	// lower category rank first
+	UINT8 const category1 = DealerItemSortInfo[GetDealerItemCategoryNumber(item_index1)].ubSortRank;
+	UINT8 const category2 = DealerItemSortInfo[GetDealerItemCategoryNumber(item_index2)].ubSortRank;
 	if (category1 < category2) return -1;
 	if (category1 > category2) return  1;
 
@@ -528,9 +571,8 @@ static UINT8 GetDealerItemCategoryNumber(UINT16 const usItemIndex)
 	auto * const itemModel{ GCM->getItem(usItemIndex) };
 	auto const item_class{ itemModel->getItemClass() };
 
-	// If it's not a weapon, set no weapon class, as this won't be needed
-	UINT8 const weapon_class = itemModel->isWeapon() ?
-		itemModel->asWeapon()->ubWeaponClass : NOGUNCLASS;
+	// only guns are split into groups
+	UINT8 const gun_group = item_class == IC_GUN ? GetGunSortGroup(itemModel) : GSG_NONE;
 
 	// search table until end-of-list marker is encountered
 	for (UINT8 category = 0;; ++category)
@@ -539,7 +581,7 @@ static UINT8 GetDealerItemCategoryNumber(UINT16 const usItemIndex)
 		if (ise.uiItemClass == IC_NONE) break;
 
 		if (ise.uiItemClass != item_class) continue;
-		if (ise.uiItemClass == IC_GUN && ise.ubWeaponClass != weapon_class) continue;
+		if (ise.uiItemClass == IC_GUN && ise.ubGunGroup != gun_group) continue;
 
 		return category;
 	}

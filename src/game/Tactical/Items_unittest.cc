@@ -676,4 +676,26 @@ TEST_F(DropProgressTest, jakeGasCansAfterTheShankQuest)
 	ClearGameProgress();
 }
 
+
+// Sort categories: assault rifles, rifles and sniper rifles apart (by the gun
+// type), rocket rifles, LAW and the tank cannon with the launchers
+TEST_F(GunStackTest, rifleSortCategories)
+{
+	UINT16 const sks = 17, m24 = 19, aug = 20;
+	auto before = [](UINT16 a, UINT16 b) { return CompareItemsForSorting(a, b, 100, 100) < 0; };
+
+	EXPECT_TRUE(before(GLOCK_17, aug));
+	EXPECT_TRUE(before(aug, sks));          // assault rifles first
+	EXPECT_TRUE(before(sks, m24));          // then rifles, then sniper rifles
+	EXPECT_TRUE(before(m24, MINIMI));       // then machine guns
+	EXPECT_TRUE(before(MINIMI, ROCKET_RIFLE));
+	EXPECT_TRUE(before(MINIMI, AUTO_ROCKET_RIFLE));
+	EXPECT_TRUE(before(MINIMI, TANK_CANNON));
+	EXPECT_TRUE(before(ROCKET_RIFLE, CLIP9_15));    // launchers before ammo
+	EXPECT_TRUE(before(GLAUNCHER, CLIP9_15));
+
+	// rocket rifles are still sold used, like the other rifles
+	EXPECT_EQ(CanDealerItemBeSoldUsed(ROCKET_RIFLE), CanDealerItemBeSoldUsed(aug));
+}
+
 #endif
