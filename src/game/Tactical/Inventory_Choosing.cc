@@ -783,6 +783,17 @@ void GiveEnemyOnlyHeavyWeapon(SOLDIERTYPE& s, UINT16 const usWeapon)
 //selection for that particular type of item, and 1-11 means to choose an item if possible.  1 is
 //the worst class of item, while 11 is the best.
 // iProgress: the soldier's P, -1 = the original classes (docs/enemy-equipment-progress-plan.md)
+// docs/enemy-ammo-chances-plan.md (A5): a gun loaded with this magazine type instead of
+// its default one; the rounds in it stay (the magazine sizes are the same)
+static void LoadGunWithMagazine(OBJECTTYPE& gun, UINT16 const usMagazine)
+{
+	if (usMagazine == NOTHING || !GCM->getItem(gun.usItem)->isGun()) return;
+	if (gun.usGunAmmoItem == NOTHING) return; // rocket launcher, tank cannon: no magazine
+	gun.usGunAmmoItem = usMagazine;
+	gun.ubGunAmmoType = GCM->getItem(usMagazine)->asAmmo()->ammoType->index;
+}
+
+
 static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment, int const iProgress, INT8 const bProgressClass)
 {
 	OBJECTTYPE Object;
@@ -791,8 +802,10 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 	UINT16 usGunIndex = 0;
 	UINT16 usAmmoIndex = 0;
 	UINT16 usAttachIndex = 0;
-	UINT8 ubChanceStandardAmmo;
 	int bStatus;
+	// docs/enemy-ammo-chances-plan.md (A1): the ammo row by the soldier's equipment
+	// progress, the game progress when it is not rolled
+	UINT8 const ubAmmoProgress = static_cast<UINT8>(iProgress >= 0 ? iProgress : GameProgressPercentage());
 
 	// Choose weapon:
 	// WEAPONS are very important, and are therefore handled differently using special pre-generated tables.
@@ -808,8 +821,8 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 			if( GCM->getItem(pp->Inv[ i ].usItem)->getItemClass() == IC_GUN )
 			{
 				usGunIndex = pp->Inv[ i ].usItem;
-				ubChanceStandardAmmo = 100 - (bWeaponClass * -9);		// weapon class is negative!
-				usAmmoIndex = RandomMagazine( usGunIndex, ubChanceStandardAmmo );
+				usAmmoIndex = EnemyMagazineForGun(usGunIndex, ubAmmoProgress);
+				LoadGunWithMagazine(pp->Inv[i], usAmmoIndex); // A5: loaded like the spare ones
 
 				if ( usGunIndex == ROCKET_RIFLE )
 				{
@@ -857,20 +870,8 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 	{
 		//We have a gun, so choose ammo clips
 
-		// check default ammo first...
-		usAmmoIndex = DefaultMagazine( usGunIndex );
-		switch( GCM->getItem(usAmmoIndex)->asAmmo()->ammoType->index )
-		{
-			case AMMO_AP:
-			case AMMO_SUPER_AP:
-				// assault rifle, rocket rifle (etc) - high chance of having AP ammo
-				ubChanceStandardAmmo = 80;
-				break;
-			default:
-				ubChanceStandardAmmo = 100 - (bWeaponClass * 9);
-				break;
-		}
-		usAmmoIndex = RandomMagazine( usGunIndex, ubChanceStandardAmmo );
+		// docs/enemy-ammo-chances-plan.md: one roll by the chance table
+		usAmmoIndex = EnemyMagazineForGun(usGunIndex, ubAmmoProgress);
 	}
 
 	//Choose attachment
@@ -948,6 +949,8 @@ static void ChooseWeaponForSoldierCreateStruct(SOLDIERCREATE_STRUCT* pp, INT8 bW
 
 		CreateItem( usGunIndex, bStatus, &(pp->Inv[ HANDPOS ]) );
 		pp->Inv[ HANDPOS ].fFlags |= OBJECT_UNDROPPABLE;
+		// A5, A6: loaded with the same magazine type as the spare ones
+		LoadGunWithMagazine(pp->Inv[HANDPOS], usAmmoIndex);
 
 		// Rocket Rifles must come pre-imprinted, in case carrier gets killed without getting a shot off
 		if ( usGunIndex == ROCKET_RIFLE )

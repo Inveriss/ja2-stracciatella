@@ -3103,57 +3103,6 @@ UINT16 EnemyMagazineForGun(UINT16 const gun, UINT8 const progress)
 }
 
 
-UINT16 RandomMagazine( UINT16 usItem, UINT8 ubPercentStandard )
-{
-	std::vector<const MagazineModel*> possibleMags;
-	UINT8 ubMagChosen;
-
-	if (!(GCM->getItem(usItem)->isGun()))
-	{
-		return( 0 );
-	}
-
-	const WeaponModel *pWeapon = GCM->getWeapon(usItem);
-
-	// find & store all possible mag types that fit this gun
-	const std::vector<const MagazineModel*>& magazines = GCM->getMagazines();
-	for (const MagazineModel* mag : magazines)
-	{
-		if (pWeapon->matches(mag))
-		{
-			possibleMags.push_back(mag);
-		}
-	}
-
-	// no matches?
-	if (possibleMags.size() == 0)
-	{
-		return( 0 );
-	}
-	else if (possibleMags.size() == 1)
-	{
-		// only one match?
-		// use that, no choice
-		return possibleMags[0]->getItemIndex();
-	}
-	else	// multiple choices
-	{
-		// Pick one at random, using supplied probability to pick the default
-		if (Random(100) < ubPercentStandard)
-		{
-			ubMagChosen = 0;
-		}
-		else
-		{
-			// pick a non-standard type instead
-			ubMagChosen = ( UINT8 ) (1 + Random(( UINT32 ) ( possibleMags.size() - 1 )));
-		}
-
-		return possibleMags[ubMagChosen]->getItemIndex();
-	}
-}
-
-
 static void CreateGun(UINT16 usItem, INT8 bStatus, OBJECTTYPE* pObj)
 {
 	UINT16 usAmmo;

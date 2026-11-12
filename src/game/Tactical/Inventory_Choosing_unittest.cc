@@ -13,6 +13,9 @@
 #include "Soldier_Create.h"
 #include "StrategicMap.h"
 #include "Items.h"
+#include "MagazineModel.h"
+#include "AmmoTypeModel.h"
+#include "WeaponModels.h"
 
 #include "gtest/gtest.h"
 
@@ -531,6 +534,33 @@ TEST_F(EnemyEquipment, eliteHeavyKitsAlternate)
 		if (TakeEnemyEliteHeavySlot()) EXPECT_FALSE(NextEnemyEliteHeavyGetsMortar());
 	}
 	gWorldSector = old;
+}
+
+// docs/enemy-ammo-chances-plan.md, stage 2 (A5, A6): the loaded and the spare magazines
+// of a generated soldier are of one type
+TEST_F(EnemyEquipment, loadedAndSpareMagazinesOfOneType)
+{
+	int checked = 0;
+	for (INT8 const cls : { SOLDIER_CLASS_ADMINISTRATOR, SOLDIER_CLASS_ARMY, SOLDIER_CLASS_ELITE })
+	{
+		for (int i = 0; i < 100; ++i)
+		{
+			SOLDIERCREATE_STRUCT pp{};
+			GenerateRandomEquipment(&pp, cls, NO_EQUIPMENT_LEVEL);
+			OBJECTTYPE const& gun = pp.Inv[HANDPOS];
+			if (gun.usItem == NOTHING || !GCM->getItem(gun.usItem)->isGun() || gun.usGunAmmoItem == NOTHING) continue;
+			auto const* const w = GCM->getItem(gun.usItem)->asWeapon();
+			for (OBJECTTYPE const& o : pp.Inv)
+			{
+				if (o.usItem == NOTHING || !GCM->getItem(o.usItem)->isAmmo()) continue;
+				if (!w->matches(GCM->getItem(o.usItem)->asAmmo())) continue;
+				EXPECT_EQ(o.usItem, gun.usGunAmmoItem) << GCM->getItem(gun.usItem)->getInternalName().c_str();
+				EXPECT_EQ(gun.ubGunAmmoType, GCM->getItem(o.usItem)->asAmmo()->ammoType->index);
+				++checked;
+			}
+		}
+	}
+	EXPECT_GT(checked, 0);
 }
 
 #endif

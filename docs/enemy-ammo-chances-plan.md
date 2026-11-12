@@ -1,12 +1,14 @@
 # Enemy ammo by chance table - plan
 
 Status: decisions A1-A9 decided 2026-11-12 (all as recommended; A2 as an interim rule,
-see below); plan accepted 2026-11-12. Not implemented yet.
+see below); plan accepted 2026-11-12. Implemented on the Weapons branch.
 
 | Stage | Commit | State |
 |---|---|---|
-| 1 - chance table in game.json, new magazine choice | this commit | unit tests (no game effect yet) |
-| 2 - enemies and militia use it, old system removed | - | - |
+| 1 - chance table in game.json, new magazine choice | c5012c0db | unit tests (no game effect yet) |
+| 2 - enemies and militia use it, old system removed | this commit | game-verified |
+
+Enemy ammo by chance table COMPLETE (2026-11-12).
 
 Replace the current choice of the ammo type for an enemy's gun by a plain chance table:
 the row is chosen by the soldier's progress, the columns are the four standard ammo
