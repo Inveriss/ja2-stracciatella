@@ -176,6 +176,26 @@ TEST_F(GunStackTest, differentAmmoOrAttachmentsDontStack)
 }
 
 
+TEST_F(GunStackTest, emptyGunsStackWhateverTheyLastHeld)
+{
+	// an unloaded gun keeps its last magazine in usGunAmmoItem
+	OBJECTTYPE a = Gun(90);
+	OBJECTTYPE b = Gun(70);
+	b.usGunAmmoItem  = a.usGunAmmoItem + 1;
+	b.ubGunAmmoType  = a.ubGunAmmoType + 1;
+	b.bGunAmmoStatus = a.bGunAmmoStatus - 10;
+	EXPECT_FALSE(CanGunsStack(a, b)); // loaded: different ammo
+
+	a.ubGunShotsLeft = 0;
+	b.ubGunShotsLeft = 0;
+	EXPECT_TRUE(CanGunsStack(a, b));
+
+	b.usAttachItem[0]  = LASERSCOPE; // attachments still count
+	b.bAttachStatus[0] = 100;
+	EXPECT_FALSE(CanGunsStack(a, b));
+}
+
+
 TEST_F(GunStackTest, createItemsKeepsTheAmmo)
 {
 	OBJECTTYPE const reference = Gun(80);

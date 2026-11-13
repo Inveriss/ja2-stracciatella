@@ -715,10 +715,17 @@ bool CanGunsStack(OBJECTTYPE const& a, OBJECTTYPE const& b)
 	if (a.usItem != b.usItem) return false;
 	if (!GCM->getItem(a.usItem)->isGun()) return true;
 
-	if (a.ubGunAmmoType  != b.ubGunAmmoType)  return false;
 	if (a.ubGunShotsLeft != b.ubGunShotsLeft) return false;
-	if (a.usGunAmmoItem  != b.usGunAmmoItem)  return false;
-	if (a.bGunAmmoStatus != b.bGunAmmoStatus) return false;
+	// Two empty guns stack whatever they last held: an unloaded gun keeps the
+	// item of its last magazine in usGunAmmoItem (to reload it the same way),
+	// and enemies load their guns with different ammo types
+	// (docs/enemy-ammo-chances-plan.md). The stack keeps one of them.
+	if (a.ubGunShotsLeft != 0)
+	{
+		if (a.ubGunAmmoType  != b.ubGunAmmoType)  return false;
+		if (a.usGunAmmoItem  != b.usGunAmmoItem)  return false;
+		if (a.bGunAmmoStatus != b.bGunAmmoStatus) return false;
+	}
 
 	for (INT8 i = 0; i < MAX_ATTACHMENTS; ++i)
 	{
