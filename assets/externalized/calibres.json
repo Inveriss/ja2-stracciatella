@@ -159,5 +159,13 @@
         "silencedSound": "sounds/weapons/silencer 03.wav",
         "showInHelpText": true,
         "monsterWeapon": false
+    },
+    {
+        "index": 18,
+        "internalName": "AMMO50AE",
+        "sound": "sounds/weapons/357 single shot.wav",
+        "silencedSound": "sounds/weapons/silencer 03.wav",
+        "showInHelpText": true,
+        "monsterWeapon": false
     }
 ]
