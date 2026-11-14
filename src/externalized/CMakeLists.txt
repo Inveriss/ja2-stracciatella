@@ -42,6 +42,7 @@ if (WITH_UNITTESTS)
     set(LOCAL_JA2_SOURCES
         ${LOCAL_JA2_SOURCES}
         ${CMAKE_CURRENT_SOURCE_DIR}/DefaultContentManagerUT.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/Calibres_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/DefaultContentManager_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/EnemyEquipmentProgress_unittests.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/ItemIndexBlocks_unittests.cc

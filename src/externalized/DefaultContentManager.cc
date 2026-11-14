@@ -985,13 +985,9 @@ bool DefaultContentManager::loadCalibres()
 		CalibreModel *calibre = CalibreModel::deserialize(element);
 		SLOGD("Loaded calibre {} {}", calibre->index, calibre->internalName);
 
-		if(m_calibres.size() <= calibre->index)
-		{
-			m_calibres.resize(calibre->index + 1);
-		}
-
-		m_calibres[calibre->index] = calibre;
+		AddCalibreToTable(m_calibres, calibre);
 	}
+	CheckCalibreTable(m_calibres);
 	for (const CalibreModel* calibre : m_calibres)
 	{
 		m_calibreMap.emplace(calibre->internalName, calibre);
@@ -1267,6 +1263,12 @@ bool DefaultContentManager::loadGameData(BinaryData const& binaryData)
 
 	loadStringRes("strings/ammo-calibre", m_calibreNames);
 	loadStringRes("strings/ammo-calibre-bobbyray", m_calibreNamesBobbyRay);
+	{
+		ST::string const suffix = ST::string(L10n::GetSuffix(m_gameVersion, true)) + ".json";
+		CheckCalibreNames(m_calibres,
+			m_calibreNames.size(), "strings/ammo-calibre" + suffix,
+			m_calibreNamesBobbyRay.size(), "strings/ammo-calibre-bobbyray" + suffix);
+	}
 
 	loadStringRes("strings/new-strings", m_newStrings);
 	loadStringRes("strings/strategic-map-land-types", m_landTypeStrings);

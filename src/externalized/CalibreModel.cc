@@ -1,5 +1,6 @@
 #include "CalibreModel.h"
 #include "ContentManager.h"
+#include "Exceptions.h"
 #include "GameInstance.h"
 #include "Json.h"
 #include <string_theory/format>
@@ -60,4 +61,57 @@ const CalibreModel* getCalibre(const ST::string& calibreName,
 	}
 
 	throw std::runtime_error(ST::format("calibre '{}' is not found", calibreName).to_std_string());
+}
+
+
+void AddCalibreToTable(std::vector<const CalibreModel*>& table, const CalibreModel* const calibre)
+{
+	if (table.size() <= calibre->index) table.resize(calibre->index + 1);
+
+	const CalibreModel* const taken = table[calibre->index];
+	if (taken != nullptr)
+	{
+		throw DataError(ST::format("calibres.json: index {} is used by '{}' and '{}'",
+			calibre->index, taken->internalName, calibre->internalName));
+	}
+	table[calibre->index] = calibre;
+}
+
+
+void CheckCalibreTable(const std::vector<const CalibreModel*>& table)
+{
+	if (table.size() > 256)
+	{
+		throw DataError(ST::format("calibres.json: index {} is above 255", table.size() - 1));
+	}
+
+	std::set<ST::string> names;
+	for (size_t i = 0; i != table.size(); ++i)
+	{
+		if (table[i] == nullptr)
+		{
+			throw DataError(ST::format("calibres.json: no calibre with index {} (the indices must go on without a gap)", i));
+		}
+		if (!names.insert(table[i]->internalName).second)
+		{
+			throw DataError(ST::format("calibres.json: internalName '{}' is used twice", table[i]->internalName));
+		}
+	}
+}
+
+
+void CheckCalibreNames(const std::vector<const CalibreModel*>& table,
+	size_t const numNames, const ST::string& namesFile,
+	size_t const numBobbyRayNames, const ST::string& bobbyRayNamesFile)
+{
+	if (numNames < table.size())
+	{
+		throw DataError(ST::format("{}: {} names for {} calibres; the name of calibre {} '{}' is missing (a name goes at the position of the calibre's index)",
+			namesFile, numNames, table.size(), numNames, table[numNames]->internalName));
+	}
+	if (numBobbyRayNames < table.size())
+	{
+		throw DataError(ST::format("{}: {} names for {} calibres; the name of calibre {} '{}' is missing (a name goes at the position of the calibre's index)",
+			bobbyRayNamesFile, numBobbyRayNames, table.size(), numBobbyRayNames, table[numBobbyRayNames]->internalName));
+	}
 }
