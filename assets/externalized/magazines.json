@@ -16,11 +16,11 @@
         },
         "ubWeight": 2,
         "ubPerPocket": 100,
-        "ubBigPerPocket": 8,
-        "ubSmallPerPocket": 4,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
         "usPrice": 15,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
+        "minDropProgress": 5,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -43,10 +43,10 @@
                 "path": "bigitems/p1item35.sti"
             }
         },
-        "ubWeight": 3,
+        "ubWeight": 4,
         "ubPerPocket": 100,
-        "ubBigPerPocket": 8,
-        "ubSmallPerPocket": 4,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
         "usPrice": 30,
         "minDropProgress": 40,
         "ubCoolness": 4,
@@ -74,11 +74,11 @@
         },
         "ubWeight": 2,
         "ubPerPocket": 100,
-        "ubBigPerPocket": 8,
-        "ubSmallPerPocket": 4,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
         "usPrice": 45,
-        "minDropProgress": 40,
-        "ubCoolness": 4,
+        "minDropProgress": 5,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -101,10 +101,10 @@
                 "path": "bigitems/p1item36.sti"
             }
         },
-        "ubWeight": 3,
+        "ubWeight": 4,
         "ubPerPocket": 100,
-        "ubBigPerPocket": 8,
-        "ubSmallPerPocket": 4,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
         "usPrice": 90,
         "minDropProgress": 60,
         "ubCoolness": 6,
@@ -132,11 +132,11 @@
         },
         "ubWeight": 2,
         "ubPerPocket": 100,
-        "ubBigPerPocket": 8,
-        "ubSmallPerPocket": 4,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
         "usPrice": 30,
-        "minDropProgress": 30,
-        "ubCoolness": 3,
+        "minDropProgress": 5,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -159,10 +159,10 @@
                 "path": "bigitems/p1item37.sti"
             }
         },
-        "ubWeight": 3,
+        "ubWeight": 4,
         "ubPerPocket": 100,
-        "ubBigPerPocket": 8,
-        "ubSmallPerPocket": 4,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
         "usPrice": 60,
         "minDropProgress": 50,
         "ubCoolness": 5,
@@ -193,7 +193,7 @@
         "ubBigPerPocket": 8,
         "ubSmallPerPocket": 4,
         "usPrice": 5,
-        "minDropProgress": 10,
+        "minDropProgress": 0,
         "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
@@ -221,9 +221,9 @@
         "ubPerPocket": 100,
         "ubBigPerPocket": 8,
         "ubSmallPerPocket": 4,
-        "usPrice": 15,
-        "minDropProgress": 30,
-        "ubCoolness": 3,
+        "usPrice": 13,
+        "minDropProgress": 0,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -250,9 +250,9 @@
         "ubPerPocket": 100,
         "ubBigPerPocket": 8,
         "ubSmallPerPocket": 4,
-        "usPrice": 10,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
+        "usPrice": 9,
+        "minDropProgress": 0,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -277,11 +277,11 @@
         },
         "ubWeight": 2,
         "ubPerPocket": 100,
-        "ubBigPerPocket": 8,
-        "ubSmallPerPocket": 4,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
         "usPrice": 10,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
+        "minDropProgress": 10,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -335,11 +335,11 @@
         },
         "ubWeight": 2,
         "ubPerPocket": 100,
-        "ubBigPerPocket": 8,
-        "ubSmallPerPocket": 4,
-        "usPrice": 45,
-        "minDropProgress": 40,
-        "ubCoolness": 4,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 30,
+        "minDropProgress": 10,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -393,11 +393,11 @@
         },
         "ubWeight": 2,
         "ubPerPocket": 100,
-        "ubBigPerPocket": 8,
-        "ubSmallPerPocket": 4,
-        "usPrice": 30,
-        "minDropProgress": 30,
-        "ubCoolness": 3,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 20,
+        "minDropProgress": 10,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -454,7 +454,7 @@
         "ubBigPerPocket": 8,
         "ubSmallPerPocket": 4,
         "usPrice": 10,
-        "minDropProgress": 10,
+        "minDropProgress": 15,
         "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
@@ -478,12 +478,12 @@
                 "path": "bigitems/p1item17.sti"
             }
         },
-        "ubWeight": 3,
+        "ubWeight": 2,
         "ubPerPocket": 100,
         "ubBigPerPocket": 8,
         "ubSmallPerPocket": 4,
         "usPrice": 15,
-        "minDropProgress": 10,
+        "minDropProgress": 15,
         "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
@@ -512,8 +512,8 @@
         "ubBigPerPocket": 8,
         "ubSmallPerPocket": 4,
         "usPrice": 30,
-        "minDropProgress": 30,
-        "ubCoolness": 3,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -536,13 +536,13 @@
                 "path": "bigitems/p1item18.sti"
             }
         },
-        "ubWeight": 3,
+        "ubWeight": 2,
         "ubPerPocket": 100,
         "ubBigPerPocket": 8,
         "ubSmallPerPocket": 4,
         "usPrice": 45,
-        "minDropProgress": 30,
-        "ubCoolness": 3,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -570,8 +570,8 @@
         "ubBigPerPocket": 8,
         "ubSmallPerPocket": 4,
         "usPrice": 20,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -594,13 +594,13 @@
                 "path": "bigitems/p1item19.sti"
             }
         },
-        "ubWeight": 3,
+        "ubWeight": 2,
         "ubPerPocket": 100,
         "ubBigPerPocket": 8,
         "ubSmallPerPocket": 4,
         "usPrice": 30,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
         "bMetal": true,
         "bSinks": true,
         "tileGraphic": {
@@ -1693,5 +1693,661 @@
             "type": "GUNS",
             "subIndex": 1
         }
+    },
+	
+	
+	
+	
+	
+	// NEW AMMUNITIONS INDEX ALLOCATION
+	
+    // 351–1000: Reserved index range, currently locked.
+	
+    // 3001-3999: New index range reserved only for new ammunitions.
+	
+
+	
+	
+	
+	{
+        "itemIndex": 3001,
+        "internalName": "CLIP38_6_SUPER_AP",
+        "calibre": "AMMO38",
+        "capacity": 6,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 301
+            },
+            "big": {
+                "path": "bigitems/p1item3001.sti"
+            }
+        },
+        "ubWeight": 1,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 17,
+        "minDropProgress": 0,
+        "ubCoolness": 1,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 302
+        }
+    },
+	{
+        "itemIndex": 3002,
+        "internalName": "CLIP9_15_SUPER_AP",
+        "calibre": "AMMO9",
+        "capacity": 15,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 302
+            },
+            "big": {
+                "path": "bigitems/p1item3002.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 60,
+        "minDropProgress": 5,
+        "ubCoolness": 1,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 303
+        }
+    },
+    {
+        "itemIndex": 3003,
+        "internalName": "CLIP9_30_SUPER_AP",
+        "calibre": "AMMO9",
+        "capacity": 30,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 303
+            },
+            "big": {
+                "path": "bigitems/p1item3003.sti"
+            }
+        },
+        "ubWeight": 4,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 120,
+        "minDropProgress": 5,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 304
+        }
+    },
+		{
+        "itemIndex": 3004,
+        "internalName": "CLIP57_20_HP",
+        "calibre": "AMMO57",
+        "capacity": 20,
+        "ammoType": "AMMO_HP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 304
+            },
+            "big": {
+                "path": "bigitems/p1item3004.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 240,
+        "minDropProgress": 10,
+        "ubCoolness": 1,
+		"bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 305
+        }
+    },
+	{
+        "itemIndex": 3005,
+        "internalName": "CLIP57_20_AP",
+        "calibre": "AMMO57",
+        "capacity": 20,
+        "ammoType": "AMMO_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 305
+            },
+            "big": {
+                "path": "bigitems/p1item3005.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 300,
+        "minDropProgress": 10,
+        "ubCoolness": 1,
+		"bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 306
+        }
+    },
+	{
+        "itemIndex": 3006,
+        "internalName": "CLIP57_20_SUPER_AP",
+        "calibre": "AMMO57",
+        "capacity": 20,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 306
+            },
+            "big": {
+                "path": "bigitems/p1item3006.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 360,
+        "minDropProgress": 10,
+        "ubCoolness": 1,
+		"bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 307
+        }
+    },
+	{
+        "itemIndex": 3007,
+        "internalName": "CLIP57_50_SUPER_AP",
+        "calibre": "AMMO57",
+        "capacity": 50,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 307
+            },
+            "big": {
+                "path": "bigitems/p1item3007.sti"
+            }
+        },
+        "ubWeight": 10,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 750,
+        "minDropProgress": 5,
+        "ubCoolness": 5,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 308
+        }
+    },
+	{
+        "itemIndex": 3008,
+        "internalName": "CLIP357_6_SUPER_AP",
+        "calibre": "AMMO357",
+        "capacity": 6,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 308
+            },
+            "big": {
+                "path": "bigitems/p1item3008.sti"
+            }
+        },
+        "ubWeight": 1,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 40,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 309
+        }
+    },
+    {
+        "itemIndex": 3009,
+        "internalName": "CLIP357_9_SUPER_AP",
+        "calibre": "AMMO357",
+        "capacity": 9,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 309
+            },
+            "big": {
+                "path": "bigitems/p1item3009.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 60,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 310
+        }
+    },
+	{
+        "itemIndex": 3010,
+        "internalName": "CLIP44_6",
+        "calibre": "AMMO44",
+        "capacity": 6,
+        "ammoType": "AMMO_REGULAR",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 310
+            },
+            "big": {
+                "path": "bigitems/p1item3010.sti"
+            }
+        },
+        "ubWeight": 1,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 11,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 311
+        }
+    },
+	{
+        "itemIndex": 3011,
+        "internalName": "CLIP44_6_HP",
+        "calibre": "AMMO44",
+        "capacity": 6,
+        "ammoType": "AMMO_HP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 311
+            },
+            "big": {
+                "path": "bigitems/p1item3011.sti"
+            }
+        },
+        "ubWeight": 1,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 21,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 312
+        }
+    },
+	{
+        "itemIndex": 3012,
+        "internalName": "CLIP44_6_AP",
+        "calibre": "AMMO44",
+        "capacity": 6,
+        "ammoType": "AMMO_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 312
+            },
+            "big": {
+                "path": "bigitems/p1item3012.sti"
+            }
+        },
+        "ubWeight": 1,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 31,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 313
+        }
+    },
+	{
+        "itemIndex": 3013,
+        "internalName": "CLIP44_6_SUPER_AP",
+        "calibre": "AMMO44",
+        "capacity": 6,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 313
+            },
+            "big": {
+                "path": "bigitems/p1item3013.sti"
+            }
+        },
+        "ubWeight": 1,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 41,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 314
+        }
+    },
+	{
+        "itemIndex": 3014,
+        "internalName": "CLIP44_8",
+        "calibre": "AMMO44",
+        "capacity": 8,
+        "ammoType": "AMMO_REGULAR",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 314
+            },
+            "big": {
+                "path": "bigitems/p1item3014.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 14,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 315
+        }
+    },
+	{
+        "itemIndex": 3015,
+        "internalName": "CLIP44_8_HP",
+        "calibre": "AMMO44",
+        "capacity": 8,
+        "ammoType": "AMMO_HP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 315
+            },
+            "big": {
+                "path": "bigitems/p1item3015.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 28,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 316
+        }
+    },
+	{
+        "itemIndex": 3016,
+        "internalName": "CLIP44_8_AP",
+        "calibre": "AMMO44",
+        "capacity": 8,
+        "ammoType": "AMMO_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 316
+            },
+            "big": {
+                "path": "bigitems/p1item3016.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 42,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 317
+        }
+    },
+	{
+        "itemIndex": 3017,
+        "internalName": "CLIP44_8_SUPER_AP",
+        "calibre": "AMMO44",
+        "capacity": 8,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 317
+            },
+            "big": {
+                "path": "bigitems/p1item3017.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 56,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 318
+        }
+    },
+	{
+        "itemIndex": 3018,
+        "internalName": "CLIP50AE_7_HP",
+        "calibre": "AMMO50AE",
+        "capacity": 7,
+        "ammoType": "AMMO_HP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 318
+            },
+            "big": {
+                "path": "bigitems/p1item3018.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 36,
+        "minDropProgress": 25,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 319
+        }
+    },
+	{
+        "itemIndex": 3019,
+        "internalName": "CLIP50AE_7_AP",
+        "calibre": "AMMO50AE",
+        "capacity": 7,
+        "ammoType": "AMMO_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 319
+            },
+            "big": {
+                "path": "bigitems/p1item3019.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 53,
+        "minDropProgress": 25,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 320
+        }
+    },
+	{
+        "itemIndex": 3020,
+        "internalName": "CLIP50AE_7_SUPER_AP",
+        "calibre": "AMMO50AE",
+        "capacity": 7,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 320
+            },
+            "big": {
+                "path": "bigitems/p1item3020.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 70,
+        "minDropProgress": 25,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 321
+        }
+    },
+	{
+        "itemIndex": 3021,
+        "internalName": "CLIP45_7_SUPER_AP",
+        "calibre": "AMMO45",
+        "capacity": 7,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 321
+            },
+            "big": {
+                "path": "bigitems/p1item3021.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 40,
+        "minDropProgress": 10,
+        "ubCoolness": 1,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 322
+        }
+    },
+    {
+        "itemIndex": 3022,
+        "internalName": "CLIP45_30_SUPER_AP",
+        "calibre": "AMMO45",
+        "capacity": 30,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 322
+            },
+            "big": {
+                "path": "bigitems/p1item3022.sti"
+            }
+        },
+        "ubWeight": 10,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 8,
+        "ubSmallPerPocket": 4,
+        "usPrice": 135,
+        "minDropProgress": 50,
+        "ubCoolness": 5,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 323
+        }
     }
+	
+	
+	
 ]

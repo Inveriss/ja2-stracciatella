@@ -53,9 +53,9 @@
     {
         "internalName": "BARRACUDA",
         "shortName": "Barracuda",
-        "name": "Barracuda",
+        "name": "FN Barracuda",
         "description": "The preferred weapon of Dirty Harry's little brother, this Belgian revolver has found its way into many American police holsters.",
-        "bobbyRayName": ".357 Barracuda",
+        "bobbyRayName": "FN Barracuda",
         "bobbyRayDescription": "The Belgian .357 magnum Barracuda revolver is a powerful choice for both offense and defense. Numerous test trials have shown that both men and women find it easier to handle than most handguns."
     },
     {
@@ -800,10 +800,10 @@
     },
     {
         "internalName": "CLIP57_50_AP",
-        "shortName": "5.7mm mag",
-        "name": "5.7mm Magazine",
+        "shortName": "5.7mm mag AP",
+        "name": "5.7mm Magazine AP",
         "description": "This magazine contains 50 rounds of 5.7mm ammunition. This polymer pistol round performs remarkably well against both armored and unarmored opponents.",
-        "bobbyRayName": "5.7mm Magazine",
+        "bobbyRayName": "5.7mm Magazine AP",
         "bobbyRayDescription": "Do you loathe it when your opponents wear body armor? Say hasta la vista to every form of body armor that might stand between your target and Judgement Day with our 50-round magazine of 5.7mm pistol ammo."
     },
     {
@@ -2480,5 +2480,321 @@
         "internalName": "UNUSED_48",
         "shortName": "'small name'",
         "description": "NO DESCRIPTION NECESSARY!"
+    },
+	
+	
+		// NEW ADDITIONAL WEAPONS INDEX: from 1001 to 2999
+	
+	
+		// PISTOLS
+	
+	 //1001
+	{
+        "internalName": "USP9",
+        "shortName": "USP",
+        "name": "HK USP",
+        "description": "The HK USP (Universal Self-loading Pistol) appeared in 1993. It is a serious combat/self defense weapon.",
+        "bobbyRayName": "HK USP",
+        "bobbyRayDescription": "The HK USP (Universal Self-loading Pistol) appeared in 1993, designed to be a police and military sidearm. All USP pistols are built on the same modified Browning linkless locked breech action, with patented recoil reduction system."
+    },
+	 //1002
+	{
+        "internalName": "FIVE_SEVEN",
+        "shortName": "Five-seveN",
+        "name": "FN Five-seveN",
+        "description": "The Five-seveN pistol was designed as a complimentary sidearm for the P90 submachine-gun. The Five-seveN is a delayed blowback operated, semi-automatic firearm.",
+        "bobbyRayName": "FN Five-seveN",
+        "bobbyRayDescription": "The Five-seveN pistol was designed as a complimentary sidearm for the P90 submachine-gun. The Five-seveN is a delayed blowback operated, semi-automatic firearm. It features a polymer frame with an underbarrel accessory rail."
+    },
+	// 1003
+	{
+        "internalName": "COLT_PYTHON4",
+        "shortName": "Python 4\"",
+        "name": "Colt Python 4\"",
+        "description": "A very sturdy revolver, the Python has a reputation for accuracy.",
+        "bobbyRayName": "Colt Python 4\"",
+        "bobbyRayDescription": "The first 'modern' revolver after W.W.II, it was made in several different versions."
+    },
+	// 1004
+	{
+        "internalName": "COLT_PYTHON6",
+        "shortName": "Python 6\"",
+        "name": "Colt Python 6\"",
+        "description": "A very sturdy revolver, the Python has a reputation for accuracy. Thanks to its longer barrel, it has greater range and accuracy.",
+        "bobbyRayName": "Colt Python 6\"",
+        "bobbyRayDescription": "The first 'modern' revolver after W.W.II, it was made in several different versions. Thanks to its longer barrel, it has greater range and accuracy."
+    },
+	// 1005
+	{
+        "internalName": "HARTFORD6",
+        "shortName": "Hartford 6",
+        "name": "Modified EMF Hartford 6 Shooter",
+        "description": "This is a .357 caliber, six shooter modified for Tex Colburn. It has a ten inch barrel and a sculptured ivory handle with TEX engraved in 14kt gold flake.",
+        "bobbyRayName": "Modified EMF Hartford 6 Shooter",
+        "bobbyRayDescription": "This is a .357 caliber, six shooter modified for Tex Colburn. It has a ten inch barrel and a sculptured ivory handle with TEX engraved in 14kt gold flake."
+    },
+    // 1006
+    {
+        "internalName": "COLT_ANACONDA4",
+        "shortName": "Anaconda 4\"",
+        "name": "Colt Anaconda 4\"",
+        "description": "A sturdy large-frame revolver for the .44 Magnum round with 4 inch barrel.",
+        "bobbyRayName": "Colt Anaconda 4\"",
+        "bobbyRayDescription": "I hate to say it, but Harry Callahan would've looked cooler carrying an Anaconda 4 inch barrel instead of a Model 29."
+    },
+	// 1007
+    {
+        "internalName": "COLT_ANACONDA8",
+        "shortName": "Anaconda 8\"",
+        "name": "Colt Anaconda 8\"",
+        "description": "A sturdy large-frame revolver for the .44 Magnum round with 8 inch barrel.",
+        "bobbyRayName": "Colt Anaconda 4\"",
+        "bobbyRayDescription": "I hate to say it, but Harry Callahan would've looked cooler carrying an Anaconda 8 inch barrel instead of a Model 29."
+    },
+	// 1008
+    {
+        "internalName": "DESERTEAGLE_44",
+        "shortName": "Desert Eagle .44",
+        "name": "Desert Eagle .44",
+        "description": "A variant of the .357 Magnum Desert Eagle that packs the extra punch of a .44 caliber round.",
+        "bobbyRayName": "Desert Eagle .44",
+        "bobbyRayDescription": "A variant of the .357 Magnum Desert Eagle that packs the extra punch of a .44 caliber round. Often used as protection from large animals and tourists."
+    },
+	// 1009
+    {
+        "internalName": "DESERTEAGLE_50AE",
+        "shortName": "Desert Eagle .50AE",
+        "name": "Desert Eagle .50 AE",
+        "description": "In 1991, the Desert Eagle earned overnight notoriety when this .50 AE variant was revealed.",
+        "bobbyRayName": "Desert Eagle .50 AE",
+        "bobbyRayDescription": "In 1991, the Desert Eagle earned overnight notoriety when this .50 AE variant was revealed. Massive firepower in a massive pistol."
+    },
+
+
+
+
+
+
+
+
+
+
+	// NEW ADDITIONAL AMMUNTION INDEX: from 3001 to 3999
+	
+	
+	// MAGAZINES
+
+
+
+
+	
+	// 3001
+	{
+        "internalName": "CLIP38_6_SUPER_AP",
+        "shortName": ".38 S-load Super AP",
+        "name": ".38 Speed Loader, Super AP",
+        "description": "This speed loader contains 6 rounds of .38 caliber super armor piercing ammunition. While its armor piercing abilities are due to its steel construction, it tends to create smaller wounds than lead ammo.",
+        "bobbyRayName": ".38 Speed Loader, Super AP",
+        "bobbyRayDescription": "Turn your classic .38 into a force to be reckoned with. Our own custom loaded .38 Full Metal Jacket round guarantees to stop any armored attacker dead in his tracks."
+    },
+	// 3002
+	{
+        "internalName": "CLIP9_15_SUPER_AP",
+        "shortName": "9mm mag Super AP",
+        "name": "9mm Pistol Magazine, Super AP",
+        "description": "This magazine contains 15 super hardened steel rounds of 9mm ammunition. Even though this round easily cuts through light body armor, it doesn't cause as much damage as jacketed and regular hollow point versions.",
+        "bobbyRayName": "9mm Pistol Magazine, SUPER AP",
+        "bobbyRayDescription": "They've got Kevlar? Have no fear with this magazine; it's brimming with 15 rounds of super hardened steel. This low power pistol round is your best bet against Kevlar."
+    },
+	// 3003
+	{
+        "internalName": "CLIP9_30_SUPER_AP",
+        "shortName": "9mm SMG mag Super AP",
+        "name": "9mm SMG Magazine, Super AP",
+        "description": "These 30 super hardened steel rounds are the best sub-machine gun armor-defeating ammunition.",
+        "bobbyRayName": "9mm SMG Magazine, Super AP",
+        "bobbyRayDescription": "We searched far and wide for this round; the Super Armor Piercing ability of the 30-round magazine makes it the bane of all unwelcome law enforcement personnel."
+    },
+	// 3004
+	{
+        "internalName": "CLIP57_20_HP",
+        "shortName": "5.7mm Mag 20 HP",
+        "name": "5.7x28mm Mag, 20 HP",
+        "description": "These 20 rounds of 5.7mm hollow point ammunition have enhanced injury-inflicting capabilities over the basic 5.7 and have retained most of their armor-piercing capabilities.",
+        "bobbyRayName": "5.7x28mm Mag, 20 AP",
+        "bobbyRayDescription": "These 20 rounds of 5.7mm hollow point ammunition have enhanced injury-inflicting capabilities over the basic 5.7 and have retained most of their armor-piercing capabilities."
+    },
+    // 3005
+	{
+        "internalName": "CLIP57_20_AP",
+        "shortName": "5.7mm Mag 20 AP",
+        "name": "5.7x28mm Mag, 20 AP",
+        "description": "This magazine contains 20 rounds of 5.7mm ammunition. This polymer pistol round performs remarkably well against both armored and unarmored opponents.",
+        "bobbyRayName": "5.7x28mm Mag, 20 AP",
+        "bobbyRayDescription": "5.7mm somersaults through flesh and bone, leaving major wound cavities."
+    },
+	// 3006
+	{
+        "internalName": "CLIP57_20_SUPER_AP",
+        "shortName": "5.7mm Mag 20 Super AP",
+        "name": "5.7x28mm Mag, 20 Super AP",
+        "description": "This magazine contains 20 rounds of 5.7mm ammunition Super AP. This polymer pistol round performs remarkably well against both armored and unarmored opponents.",
+        "bobbyRayName": "5.7x28mm Mag, 20 AP",
+        "bobbyRayDescription": "5.7mm Super AP somersaults through flesh and bone, leaving major wound cavities."
+    },
+	// 3007
+	{
+        "internalName": "CLIP57_50_SUPER_AP",
+        "shortName": "5.7mm mag Super AP",
+        "name": "5.7mm Magazine, Super AP",
+        "description": "This magazine contains 50 rounds of 5.7mm ammunition Super AP. This polymer pistol round performs remarkably well against both armored and unarmored opponents.",
+        "bobbyRayName": "5.7mm Magazine, Super AP",
+        "bobbyRayDescription": "Do you loathe it when your opponents wear body armor? Say hasta la vista to every form of body armor that might stand between your target and Judgement Day with our 50-round magazine Super AP of 5.7mm pistol ammo."
+    },
+	// 3008
+	    {
+        "internalName": "CLIP357_6_SUPER_AP",
+        "shortName": ".357 S-load Super AP",
+        "name": ".357 Speed Loader, Super AP",
+        "description": "Although these 6 rounds of .357 Magnum super hardened steel ammo can punch through armor as though it were tissue paper, they don't tend to fragment on impact, resulting in inferior wounding capabilities.",
+        "bobbyRayName": ".357 speed loader, Super AP",
+        "bobbyRayDescription": "They said the White Hippos were a hoax but Bobby Ray's has the real thing that are just itchin' to be fired off by you. This 6-round speed loader is packed with the lastest in Super Armor Piercing technology."
+    },
+	// 3009
+    {
+        "internalName": "CLIP357_9_SUPER_AP",
+        "shortName": ".357 mag Super AP",
+        "name": ".357 Magazine, Super AP",
+        "description": "While these 9 rounds of steel .357 super armor piercing ammunition can penetrate walls and body armor, they only create small wound channels with minimal blood loss.",
+        "bobbyRayName": ".357 magazine, Super AP",
+        "bobbyRayDescription": "Satisfy your insatiable desire to punch holes through a bullet proof vest with these 9 rounds of White Hippo Super Armor Piercing ammo. It's exactly what the doctor ordered."
+    },
+	// 3010
+    {
+        "internalName": "CLIP44_6",
+        "shortName": ".44 S-Load",
+        "name": ".44 Speed Loader",
+        "description": "6 rounds of .44 mag for rapid reloading of your Dirty Harry revolver.",
+        "bobbyRayName": ".44 Speed Loader",
+        "bobbyRayDescription": "Why get pinned behind cover, thumbing shells into your gun? Get back in the fight quickly with this speed loader."
+    },
+	// 3011
+    {
+        "internalName": "CLIP44_6_HP",
+        "shortName": ".44 S-Load HP",
+        "name": ".44 Speed Loader HP",
+        "description": "These .44 rounds have had their points drilled out to maximize their effectiveness against targets without armor.",
+        "bobbyRayName": ".44 Speed Loader HP",
+        "bobbyRayDescription": "For every aspiring Dirty Harry, or if you just got a thing for making a big mess, these hollow point .44 rounds will really make your day."
+    },
+	// 3012
+    {
+        "internalName": "CLIP44_6_AP",
+        "shortName": ".44 S-Load AP",
+        "name": ".44 Speed Loader AP",
+        "description": "Made primarily of brass, these rounds are designed to defeat most kinds of body armor and feature a teflon coating to minimize barrel wear.",
+        "bobbyRayName": ".44 Speed Loader AP",
+        "bobbyRayDescription": "The infamous 'Cop Killer' round is now commercially available thanks to a convenient legislation loophole. Although not quite as effective as the NBC would have you believe, these can still pack a fair punch against targets wearing body armor."
+    },
+	// 3013
+    {
+        "internalName": "CLIP44_6_SUPER_AP",
+        "shortName": ".44 S-Load Super AP",
+        "name": ".44 Speed Loader Super AP",
+        "description": "Made primarily of brass, these super rounds are designed to defeat most kinds of body armor and feature a teflon coating to minimize barrel wear.",
+        "bobbyRayName": ".44 Speed Loader Super AP",
+        "bobbyRayDescription": "The infamous 'Cop Killer' super round is now commercially available thanks to a convenient legislation loophole. Although not quite as effective as the NBC would have you believe, these can still pack a fair punch against targets wearing body armor."
+    },
+	// 3014
+    {
+        "internalName": "CLIP44_8",
+        "shortName": ".44 Mag",
+        "name": ".44 Magazine",
+        "description": "8 magnum rounds for your .44 Magnum semi-automatic.",
+        "bobbyRayName": ".44 Magazine",
+        "bobbyRayDescription": "Unparalleled muzzle velocity and knockdown power in this clip of Magnum rounds."
+    },
+	// 3015
+    {
+        "internalName": "CLIP44_8_HP",
+        "shortName": ".44 Mag HP",
+        "name": ".44 Magazine, HP",
+        "description": "These .44 rounds have had their points drilled out to maximize their effectiveness against targets without armor.",
+        "bobbyRayName": ".44 Magazine, HP",
+        "bobbyRayDescription": "For every aspiring Dirty Harry, or if you just got a thing for making a big mess, these hollow point .44 rounds will really make your day."
+    },
+	// 3016
+    {
+        "internalName": "CLIP44_8_AP",
+        "shortName": ".44 Mag AP",
+        "name": ".44 Magazine, AP",
+        "description": "Made primarily of brass, these rounds are designed to defeat most kinds of body armor and feature a teflon coating to minimize barrel wear.",
+        "bobbyRayName": ".44 Magazine, AP",
+        "bobbyRayDescription": "The infamous 'Cop Killer' round is now commercially available thanks to a convenient legislation loophole. Although not quite as effective as the NBC would have you believe, these can still pack a fair punch against targets wearing body armor."
+    },
+	// 3017
+    {
+        "internalName": "CLIP44_8_SUPER_AP",
+        "shortName": ".44 Mag Super AP",
+        "name": ".44 Magazine, Super AP",
+        "description": "Made primarily of super brass, these rounds are designed to defeat most kinds of body armor and feature a teflon coating to minimize barrel wear.",
+        "bobbyRayName": ".44 Magazine, Super AP",
+        "bobbyRayDescription": "The infamous 'Cop Killer' super round is now commercially available thanks to a convenient legislation loophole. Although not quite as effective as the NBC would have you believe, these can still pack a fair punch against targets wearing body armor."
+    },
+	// 3018
+    {
+        "internalName": "CLIP50AE_7_HP",
+        "shortName": ".50 AE Mag HP",
+        "name": ".50 Action Express Mag HP",
+        "description": "The already strong .50 AE is even more effective against unarmored targets with these hollow point bullets.",
+        "bobbyRayName": ".50 Action Express Mag HP",
+        "bobbyRayDescription": "Hollow point bullets for your .50 AE handcannon. Probably better used for target-practice; if you shoot any living thing with these, there will not be much left of it."
+    },
+	// 3019
+    {
+        "internalName": "CLIP50AE_7_AP",
+        "shortName": ".50 AE Mag AP",
+        "name": ".50 Action Express Mag AP",
+        "description": "If you're going to use a overpriced, impractical, and unreliable handgun instead of a perfectly good rifle, you'll need ammunition for it.",
+        "bobbyRayName": ".50 Action Express Mag AP",
+        "bobbyRayDescription": "Magazine size, accuracy, and controlability are a fair trade off for stopping power and coolness, right? Because if you're going to use a overpriced, impractical, and unreliable handgun instead of a perfectly good rifle, you'll need ammunition for it."
+    },
+	// 3020
+    {
+        "internalName": "CLIP50AE_7_SUPER_AP",
+        "shortName": ".50 AE Mag Super AP",
+        "name": ".50 Action Express Mag Super AP",
+        "description": "If you're going to use a overpriced, impractical, and unreliable handgun instead of a perfectly good rifle, you'll need super ammunition for it.",
+        "bobbyRayName": ".50 Action Express Mag Super AP",
+        "bobbyRayDescription": "Magazine size, accuracy, and controlability are a fair trade off for stopping power and coolness, right? Because if you're going to use a overpriced, impractical, and unreliable handgun instead of a perfectly good rifle, you'll need super ammunition for it."
+    },
+	// 3021
+	{
+        "internalName": "CLIP45_7_SUPER_AP",
+        "shortName": ".45 mag Super AP",
+        "name": ".45 Pistol Magazine, Super AP",
+        "description": "These 7 rounds hold .45 automatic super armor piercing ammunition. Although this high velocity steel ammo may defeat most light body armor, it causes less tissue damage than lead-based rounds.",
+        "bobbyRayName": ".45 Pistol Magazine, Super AP",
+        "bobbyRayDescription": "These hardened steel Super Armor Piercing rounds tear through Kevlar like it was butter. This 7-round magazine is known for leaving wide wound cavities."
+    },
+	// 3022
+    {
+        "internalName": "CLIP45_30_SUPER_AP",
+        "shortName": ".45 SMG mag Super AP",
+        "name": ".45 SMG Magazine, Super AP",
+        "description": "This 30-round magazine holds .45 caliber super armor piercing ammunition. While this ammunition offers better penetration than either ball or hollow point ammo, it tends to do less damage.",
+        "bobbyRayName": ".45 SMG Magazine, Super AP",
+        "bobbyRayDescription": "Some of the best pistol ammunition money can buy is our 30 rounds of hand-loaded Super Armor Piercing ammunition. It will quickly send a Kevlar vest to the scrap heap."
     }
+
+
+
+
+
+
+
+	
+	
+
+
 ]

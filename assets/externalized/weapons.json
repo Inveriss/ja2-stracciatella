@@ -42,23 +42,23 @@
         },
         "ubWeight": 6,
         "ubPerPocket": 1,
-        "usPrice": 350,
-        "minEnemyProgress": 20,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
-        "bReliability": 2,
-        "bRepairEase": 2,
+        "usPrice": 800,
+        "minEnemyProgress": 5,
+        "minDropProgress": 5,
+        "ubCoolness": 1,
+        "bReliability": 4,
+        "bRepairEase": 3,
         "rateOfFire": 40,
         "calibre": "AMMO9",
-        "ubReadyTime": 0,
-        "ubAPCostPerSingleShot": 6,
-        "ubBulletSpeed": 24,
-        "ubImpact": 21,
-        "ubDeadliness": 8,
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 25,
+        "ubDeadliness": 16,
         "ubMagSize": 15,
-        "usRange": 120,
-        "ubAttackVolume": 60,
-        "ubHitVolume": 5,
+        "usRange": 100,
+        "ubAttackVolume": 50,
+        "ubHitVolume": 3,
         "attachment_Silencer": true,
         "attachment_LaserScope": true,
         "attachment_SpringAndBoltUpgrade": true,
@@ -143,26 +143,26 @@
                 "path": "bigitems/gun03.sti"
             }
         },
-        "ubWeight": 11,
+        "ubWeight": 10,
         "ubPerPocket": 1,
-        "usPrice": 450,
-        "minEnemyProgress": 20,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
-        "bReliability": -1,
+        "usPrice": 760,
+        "minEnemyProgress": 5,
+        "minDropProgress": 5,
+        "ubCoolness": 1,
+        "bReliability": 2,
         "bRepairEase": -1,
         "rateOfFire": 45,
         "standardReplacement": "GLOCK_17",
         "calibre": "AMMO9",
-        "ubReadyTime": 0,
-        "ubAPCostPerSingleShot": 5,
-        "ubBulletSpeed": 23,
-        "ubImpact": 22,
-        "ubDeadliness": 9,
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 25,
+        "ubDeadliness": 15,
         "ubMagSize": 15,
-        "usRange": 120,
-        "ubAttackVolume": 60,
-        "ubHitVolume": 5,
+        "usRange": 100,
+        "ubAttackVolume": 50,
+        "ubHitVolume": 3,
         "attachment_Silencer": true,
         "attachment_LaserScope": true,
         "attachment_SpringAndBoltUpgrade": true,
@@ -246,25 +246,25 @@
                 "path": "bigitems/gun05.sti"
             }
         },
-        "ubWeight": 11,
+        "ubWeight": 7,
         "ubPerPocket": 1,
-        "usPrice": 250,
-        "minEnemyProgress": 10,
-        "minDropProgress": 10,
+        "usPrice": 630,
+        "minEnemyProgress": 0,
+        "minDropProgress": 0,
         "ubCoolness": 1,
-        "bReliability": 4,
+        "bReliability": 2,
         "bRepairEase": 4,
         "rateOfFire": 25,
         "calibre": "AMMO38",
-        "ubReadyTime": 0,
-        "ubAPCostPerSingleShot": 7,
-        "ubBulletSpeed": 23,
-        "ubImpact": 22,
-        "ubDeadliness": 6,
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 24,
+        "ubDeadliness": 14,
         "ubMagSize": 6,
-        "usRange": 130,
-        "ubAttackVolume": 63,
-        "ubHitVolume": 5,
+        "usRange": 80,
+        "ubAttackVolume": 45,
+        "ubHitVolume": 3,
         "attachment_Silencer": true,
         "attachment_LaserScope": true,
         "attachment_SpringAndBoltUpgrade": true,
@@ -295,24 +295,24 @@
         },
         "ubWeight": 10,
         "ubPerPocket": 1,
-        "usPrice": 300,
-        "minEnemyProgress": 10,
-        "minDropProgress": 10,
+        "usPrice": 660,
+        "minEnemyProgress": 15,
+        "minDropProgress": 15,
         "ubCoolness": 1,
-        "bReliability": 3,
+        "bReliability": 2,
         "bRepairEase": 3,
         "rateOfFire": 23,
         "standardReplacement": "DESERTEAGLE",
         "calibre": "AMMO357",
-        "ubReadyTime": 0,
-        "ubAPCostPerSingleShot": 7,
-        "ubBulletSpeed": 23,
-        "ubImpact": 24,
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 27,
         "ubDeadliness": 7,
         "ubMagSize": 6,
-        "usRange": 135,
-        "ubAttackVolume": 66,
-        "ubHitVolume": 6,
+        "usRange": 110,
+        "ubAttackVolume": 60,
+        "ubHitVolume": 5,
         "attachment_Silencer": true,
         "attachment_LaserScope": true,
         "attachment_SpringAndBoltUpgrade": true,
@@ -344,23 +344,23 @@
         },
         "ubWeight": 17,
         "ubPerPocket": 1,
-        "usPrice": 300,
-        "minEnemyProgress": 10,
-        "minDropProgress": 10,
+        "usPrice": 680,
+        "minEnemyProgress": 15,
+        "minDropProgress": 15,
         "ubCoolness": 1,
-        "bReliability": -1,
+        "bReliability": 0,
         "bRepairEase": -1,
         "rateOfFire": 27,
         "calibre": "AMMO357",
-        "ubReadyTime": 0,
-        "ubAPCostPerSingleShot": 7,
-        "ubBulletSpeed": 24,
-        "ubImpact": 24,
-        "ubDeadliness": 7,
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 27,
+        "ubDeadliness": 16,
         "ubMagSize": 9,
-        "usRange": 135,
-        "ubAttackVolume": 66,
-        "ubHitVolume": 6,
+        "usRange": 120,
+        "ubAttackVolume": 60,
+        "ubHitVolume": 5,
         "attachment_Silencer": true,
         "attachment_LaserScope": true,
         "attachment_SpringAndBoltUpgrade": true,
@@ -391,22 +391,22 @@
         },
         "ubWeight": 11,
         "ubPerPocket": 1,
-        "usPrice": 400,
-        "minEnemyProgress": 20,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
-        "bReliability": 0,
-        "bRepairEase": 0,
+        "usPrice": 700,
+        "minEnemyProgress": 10,
+        "minDropProgress": 10,
+        "ubCoolness": 1,
+        "bReliability": 1,
+        "bRepairEase": 1,
         "rateOfFire": 35,
         "standardReplacement": "GLOCK_17",
         "calibre": "AMMO45",
-        "ubReadyTime": 0,
-        "ubAPCostPerSingleShot": 6,
-        "ubBulletSpeed": 24,
-        "ubImpact": 23,
-        "ubDeadliness": 9,
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 26,
+        "ubDeadliness": 16,
         "ubMagSize": 7,
-        "usRange": 125,
+        "usRange": 100,
         "ubAttackVolume": 69,
         "ubHitVolume": 6,
         "attachment_Silencer": true,
@@ -3325,5 +3325,420 @@
         "shortName": "M14 copy",
         "name": "M14 test copy",
         "description": "This weapon exists only to test item indices > 70 and is normally never generated. It is safe to replace this weapon."
+    },
+	
+	
+	
+	
+	
+    // NEW WEAPONS INDEX ALLOCATION
+	
+    // 351–1000: Reserved index range, currently locked.
+	
+    // 1001-2999: New index range reserved only for new weapons.
+	
+	// The division into Pistols, Machine Pistols, SMGs, Assault Rifles, Sniper Rifles, LMGs, Shotguns, Heavy Weapons, Melee Weapons and Others
+	// is purely for organizational purposes, to keep weapon index numbering clear.
+	// In practice, any weapon can be assigned to any index between 1001 and 2999.
+	
+	
+	
+	// PISTOLS: 1001 -1199
+	
+	{
+        "itemIndex": 1001,
+        "internalName": "USP9",
+        "internalType": "PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 101
+            },
+            "big": {
+                "path": "bigitems/gun1001.sti"
+            }
+        },
+        "ubWeight": 7,
+        "ubPerPocket": 1,
+        "usPrice": 540,
+        "minEnemyProgress": 5,
+        "minDropProgress": 5,
+        "ubCoolness": 1,
+        "bReliability": 3,
+        "bRepairEase": 2,
+        "rateOfFire": 25,
+        "calibre": "AMMO9",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 25,
+        "ubDeadliness": 15,
+        "ubMagSize": 15,
+        "usRange": 100,
+        "ubAttackVolume": 48,
+        "ubHitVolume": 3,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 102
+        }
+    },
+	{
+        "itemIndex": 1002,
+        "internalName": "FIVE_SEVEN",
+        "internalType": "PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 102
+            },
+            "big": {
+                "path": "bigitems/gun1002.sti"
+            }
+        },
+        "ubWeight": 6,
+        "ubPerPocket": 1,
+        "usPrice": 1040,
+        "minEnemyProgress": 10,
+        "minDropProgress": 10,
+        "ubCoolness": 1,
+        "bReliability": 1,
+        "bRepairEase": 1,
+        "rateOfFire": 25,
+        "calibre": "AMMO57",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 26,
+        "ubDeadliness": 22,
+        "ubMagSize": 20,
+        "usRange": 110,
+        "ubAttackVolume": 45,
+        "ubHitVolume": 3,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 103
+        }
+    },
+	{
+        "itemIndex": 1003,
+        "internalName": "COLT_PYTHON4",
+        "internalType": "PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 103
+            },
+            "big": {
+                "path": "bigitems/gun1003.sti"
+            }
+        },
+        "ubWeight": 11,
+        "ubPerPocket": 1,
+        "usPrice": 700,
+        "minEnemyProgress": 15,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
+        "bReliability": 3,
+        "bRepairEase": 2,
+        "rateOfFire": 25,
+        "calibre": "AMMO357",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 27,
+        "ubDeadliness": 22,
+        "ubMagSize": 6,
+        "usRange": 110,
+        "ubAttackVolume": 60,
+        "ubHitVolume": 5,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 104
+        }
+    },
+	{
+        "itemIndex": 1004,
+        "internalName": "COLT_PYTHON6",
+        "internalType": "PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 104
+            },
+            "big": {
+                "path": "bigitems/gun1004.sti"
+            }
+        },
+        "ubWeight": 11,
+        "ubPerPocket": 1,
+        "usPrice": 700,
+        "minEnemyProgress": 20,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bReliability": 2,
+        "bRepairEase": 2,
+        "rateOfFire": 25,
+        "calibre": "AMMO357",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 27,
+        "ubDeadliness": 22,
+        "ubMagSize": 6,
+        "usRange": 120,
+        "ubAttackVolume": 60,
+        "ubHitVolume": 5,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 105
+        }
+    },
+		{
+        "itemIndex": 1005,
+        "internalName": "HARTFORD6",
+        "internalType": "PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 105
+            },
+            "big": {
+                "path": "bigitems/gun1005.sti"
+            }
+        },
+        "ubWeight": 16,
+        "ubPerPocket": 1,
+        "usPrice": 790,
+        "minEnemyProgress": 20,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bReliability": 1,
+        "bRepairEase": 1,
+        "rateOfFire": 25,
+        "calibre": "AMMO357",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 27,
+        "ubDeadliness": 17,
+        "ubMagSize": 6,
+        "usRange": 120,
+        "ubAttackVolume": 60,
+        "ubHitVolume": 3,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 106
+        }
+    },
+	{
+        "itemIndex": 1006,
+        "internalName": "COLT_ANACONDA4",
+        "internalType": "PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 106
+            },
+            "big": {
+                "path": "bigitems/gun1006.sti"
+            }
+        },
+        "ubWeight": 10,
+        "ubPerPocket": 1,
+        "usPrice": 700,
+        "minEnemyProgress": 15,
+        "minDropProgress": 15,
+        "ubCoolness": 2,
+        "bReliability": 3,
+        "bRepairEase": 2,
+        "rateOfFire": 25,
+        "calibre": "AMMO44",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 40,
+        "ubImpact": 28,
+        "ubDeadliness": 17,
+        "ubMagSize": 6,
+        "usRange": 120,
+        "ubAttackVolume": 60,
+        "ubHitVolume": 5,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 107
+        }
+    },
+	{
+        "itemIndex": 1007,
+        "internalName": "COLT_ANACONDA8",
+        "internalType": "PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 107
+            },
+            "big": {
+                "path": "bigitems/gun1007.sti"
+            }
+        },
+        "ubWeight": 15,
+        "ubPerPocket": 1,
+        "usPrice": 770,
+        "minEnemyProgress": 20,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bReliability": 3,
+        "bRepairEase": 2,
+        "rateOfFire": 25,
+        "calibre": "AMMO44",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 30,
+        "ubImpact": 28,
+        "ubDeadliness": 20,
+        "ubMagSize": 6,
+        "usRange": 140,
+        "ubAttackVolume": 60,
+        "ubHitVolume": 5,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 108
+        }
+    },
+	{
+        "itemIndex": 1008,
+        "internalName": "DESERTEAGLE_44",
+        "internalType": "PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 108
+            },
+            "big": {
+                "path": "bigitems/gun1008.sti"
+            }
+        },
+        "ubWeight": 17,
+        "ubPerPocket": 1,
+        "usPrice": 710,
+        "minEnemyProgress": 20,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bReliability": 0,
+        "bRepairEase": -1,
+        "rateOfFire": 27,
+        "calibre": "AMMO44",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 30,
+        "ubImpact": 28,
+        "ubDeadliness": 17,
+        "ubMagSize": 8,
+        "usRange": 130,
+        "ubAttackVolume": 54,
+        "ubHitVolume": 5,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 109
+        }
+    },
+	{
+        "itemIndex": 1009,
+        "internalName": "DESERTEAGLE_50AE",
+        "internalType": "PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 109
+            },
+            "big": {
+                "path": "bigitems/gun1009.sti"
+            }
+        },
+        "ubWeight": 17,
+        "ubPerPocket": 1,
+        "usPrice": 1020,
+        "minEnemyProgress": 25,
+        "minDropProgress": 25,
+        "ubCoolness": 2,
+        "bReliability": 0,
+        "bRepairEase": -2,
+        "rateOfFire": 27,
+        "calibre": "AMMO50AE",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubBulletSpeed": 30,
+        "ubImpact": 29,
+        "ubDeadliness": 19,
+        "ubMagSize": 7,
+        "usRange": 140,
+        "ubAttackVolume": 75,
+        "ubHitVolume": 10,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 110
+        }
     }
+	
+	
+	
+	
+	
+	
+	
+	
+	
 ]
