@@ -59,10 +59,6 @@
         "usRange": 100,
         "ubAttackVolume": 50,
         "ubHitVolume": 3,
-        "attachment_Silencer": true,
-        "attachment_LaserScope": true,
-        "attachment_SpringAndBoltUpgrade": true,
-        "attachment_GunBarrelExtender": true,
         "bDamageable": true,
         "bRepairable": true,
         "bWaterDamages": true,
@@ -87,37 +83,33 @@
                 "path": "bigitems/gun02.sti"
             }
         },
-        "ubWeight": 6,
+        "ubWeight": 7,
         "ubPerPocket": 1,
-        "usPrice": 480,
-        "minEnemyProgress": 20,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
+        "usPrice": 1180,
+        "minEnemyProgress": 15,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
         "bReliability": 1,
         "bRepairEase": 1,
         "rateOfFire": 1300,
         "standardReplacement": "BERETTA_93R",
         "calibre": "AMMO9",
-        "ubReadyTime": 0,
-        "ubAPCostPerSingleShot": 6,
-        "ubAPCostPerShortBurst": 10,
-        "ubAPCostPerLongBurst": 10,
-        "ubAPCostPerFullBurst": 10,
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubAPCostPerShortBurst": 4,
+        "ubAPCostPerLongBurst": 6,
+        "ubAPCostPerFullBurst": 20,
         "ubShotsPerShortBurst": 3,
         "ubShotsPerLongBurst": 6,
         "ubShotsPerFullBurst": 15,
-        "ubBurstPenalty": 15,
-        "ubBulletSpeed": 24,
-        "ubImpact": 21,
-        "ubDeadliness": 9,
+        "ubBurstPenalty": 50,
+        "ubBulletSpeed": 40,
+        "ubImpact": 25,
+        "ubDeadliness": 16,
         "ubMagSize": 15,
-        "usRange": 120,
-        "ubAttackVolume": 60,
-        "ubHitVolume": 5,
-        "attachment_Silencer": true,
-        "attachment_LaserScope": true,
-        "attachment_SpringAndBoltUpgrade": true,
-        "attachment_GunBarrelExtender": true,
+        "usRange": 100,
+        "ubAttackVolume": 50,
+        "ubHitVolume": 3,
         "bDamageable": true,
         "bRepairable": true,
         "bWaterDamages": true,
@@ -163,10 +155,6 @@
         "usRange": 100,
         "ubAttackVolume": 50,
         "ubHitVolume": 3,
-        "attachment_Silencer": true,
-        "attachment_LaserScope": true,
-        "attachment_SpringAndBoltUpgrade": true,
-        "attachment_GunBarrelExtender": true,
         "bDamageable": true,
         "bRepairable": true,
         "bWaterDamages": true,
@@ -192,36 +180,32 @@
                 "path": "bigitems/gun04.sti"
             }
         },
-        "ubWeight": 11,
+        "ubWeight": 12,
         "ubPerPocket": 1,
-        "usPrice": 470,
-        "minEnemyProgress": 20,
-        "minDropProgress": 20,
-        "ubCoolness": 2,
-        "bReliability": -2,
+        "usPrice": 1480,
+        "minEnemyProgress": 15,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
+        "bReliability": 0,
         "bRepairEase": -2,
         "rateOfFire": 1100,
         "calibre": "AMMO9",
         "ubReadyTime": 0,
-        "ubAPCostPerSingleShot": 6,
-        "ubAPCostPerShortBurst": 10,
-        "ubAPCostPerLongBurst": 10,
-        "ubAPCostPerFullBurst": 10,
+        "ubAPCostPerSingleShot": 2,
+        "ubAPCostPerShortBurst": 4,
+        "ubAPCostPerLongBurst": 6,
+        "ubAPCostPerFullBurst": 20,
         "ubShotsPerShortBurst": 3,
         "ubShotsPerLongBurst": 6,
         "ubShotsPerFullBurst": 15,
-        "ubBurstPenalty": 15,
-        "ubBulletSpeed": 23,
-        "ubImpact": 22,
-        "ubDeadliness": 9,
+        "ubBurstPenalty": 50,
+        "ubBulletSpeed": 40,
+        "ubImpact": 25,
+        "ubDeadliness": 18,
         "ubMagSize": 15,
-        "usRange": 120,
-        "ubAttackVolume": 60,
-        "ubHitVolume": 5,
-        "attachment_Silencer": true,
-        "attachment_LaserScope": true,
-        "attachment_SpringAndBoltUpgrade": true,
-        "attachment_GunBarrelExtender": true,
+        "usRange": 110,
+        "ubAttackVolume": 50,
+        "ubHitVolume": 3,
         "bDamageable": true,
         "bRepairable": true,
         "bWaterDamages": true,
@@ -257,7 +241,7 @@
         "rateOfFire": 25,
         "calibre": "AMMO38",
         "ubReadyTime": 1,
-        "ubAPCostPerSingleShot": 2,
+        "ubAPCostPerSingleShot": 1,
         "ubBulletSpeed": 40,
         "ubImpact": 24,
         "ubDeadliness": 14,
@@ -265,10 +249,6 @@
         "usRange": 80,
         "ubAttackVolume": 45,
         "ubHitVolume": 3,
-        "attachment_Silencer": true,
-        "attachment_LaserScope": true,
-        "attachment_SpringAndBoltUpgrade": true,
-        "attachment_GunBarrelExtender": true,
         "bDamageable": true,
         "bRepairable": true,
         "bWaterDamages": true,
@@ -313,10 +293,6 @@
         "usRange": 110,
         "ubAttackVolume": 60,
         "ubHitVolume": 5,
-        "attachment_Silencer": true,
-        "attachment_LaserScope": true,
-        "attachment_SpringAndBoltUpgrade": true,
-        "attachment_GunBarrelExtender": true,
         "bDamageable": true,
         "bRepairable": true,
         "bWaterDamages": true,
@@ -361,10 +337,6 @@
         "usRange": 120,
         "ubAttackVolume": 60,
         "ubHitVolume": 5,
-        "attachment_Silencer": true,
-        "attachment_LaserScope": true,
-        "attachment_SpringAndBoltUpgrade": true,
-        "attachment_GunBarrelExtender": true,
         "bDamageable": true,
         "bRepairable": true,
         "bWaterDamages": true,
@@ -409,10 +381,6 @@
         "usRange": 100,
         "ubAttackVolume": 69,
         "ubHitVolume": 6,
-        "attachment_Silencer": true,
-        "attachment_LaserScope": true,
-        "attachment_SpringAndBoltUpgrade": true,
-        "attachment_GunBarrelExtender": true,
         "bDamageable": true,
         "bRepairable": true,
         "bWaterDamages": true,
@@ -3331,11 +3299,16 @@
 	
 	
 	
+	
+	
+	
+	
+	
     // NEW WEAPONS INDEX ALLOCATION
 	
     // 351–1000: Reserved index range, currently locked.
 	
-    // 1001-2999: New index range reserved only for new weapons.
+    // 1001-3000: New index range reserved only for new weapons.
 	
 	// The division into Pistols, Machine Pistols, SMGs, Assault Rifles, Sniper Rifles, LMGs, Shotguns, Heavy Weapons, Melee Weapons and Others
 	// is purely for organizational purposes, to keep weapon index numbering clear.
@@ -3343,7 +3316,10 @@
 	
 	
 	
-	// PISTOLS: 1001 -1199
+	
+	
+	// PISTOLS: 1001 - 1100
+	
 	
 	{
         "itemIndex": 1001,
@@ -3731,7 +3707,128 @@
             "type": "GUNS",
             "subIndex": 110
         }
+    },
+	
+	
+	
+	
+	
+	// MACHINE PISTOLS: 1101 - 1200
+	
+	
+	{
+        "itemIndex": 1101,
+        "internalName": "TEC9",
+        "internalType": "M_PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 201
+            },
+            "big": {
+                "path": "bigitems/gun1101.sti"
+            }
+        },
+        "ubWeight": 7,
+        "ubPerPocket": 1,
+        "usPrice": 980,
+        "minEnemyProgress": 15,
+        "minDropProgress": 15,
+        "ubCoolness": 1,
+        "bReliability": 1,
+        "bRepairEase": 1,
+        "rateOfFire": 1300,
+        "standardReplacement": "BERETTA_93R",
+        "calibre": "AMMO9",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubAPCostPerShortBurst": 4,
+        "ubAPCostPerLongBurst": 6,
+        "ubAPCostPerFullBurst": 20,
+        "ubShotsPerShortBurst": 3,
+        "ubShotsPerLongBurst": 6,
+        "ubShotsPerFullBurst": 15,
+        "ubBurstPenalty": 50,
+        "ubBulletSpeed": 40,
+        "ubImpact": 25,
+        "ubDeadliness": 17,
+        "ubMagSize": 30,
+        "usRange": 110,
+        "ubAttackVolume": 50,
+        "ubHitVolume": 3,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "bBigGunList": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 202
+        }
+    },
+	{
+        "itemIndex": 1102,
+        "internalName": "CALICO_M950",
+        "internalType": "M_PISTOL",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdguns.sti",
+                "subImageIndex": 202
+            },
+            "big": {
+                "path": "bigitems/gun1102.sti"
+            }
+        },
+        "ubWeight": 10,
+        "ubPerPocket": 0,
+        "usPrice": 1260,
+        "minEnemyProgress": 20,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bReliability": 0,
+        "bRepairEase": -1,
+        "rateOfFire": 1300,
+        "standardReplacement": "BERETTA_93R",
+        "calibre": "AMMO9",
+        "ubReadyTime": 1,
+        "ubAPCostPerSingleShot": 2,
+        "ubAPCostPerShortBurst": 4,
+        "ubAPCostPerLongBurst": 6,
+        "ubAPCostPerFullBurst": 20,
+        "ubShotsPerShortBurst": 3,
+        "ubShotsPerLongBurst": 6,
+        "ubShotsPerFullBurst": 50,
+        "ubBurstPenalty": 50,
+        "ubBulletSpeed": 40,
+        "ubImpact": 26,
+        "ubDeadliness": 18,
+        "ubMagSize": 50,
+        "usRange": 130,
+        "ubAttackVolume": 50,
+        "ubHitVolume": 3,
+        "bDamageable": true,
+        "bRepairable": true,
+        "bWaterDamages": true,
+        "bMetal": true,
+        "bSinks": true,
+        "bShowStatus": true,
+        "bBigGunList": true,
+        "tileGraphic": {
+            "type": "GUNS",
+            "subIndex": 203
+        }
     }
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	

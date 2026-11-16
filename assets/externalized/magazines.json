@@ -1699,11 +1699,16 @@
 	
 	
 	
-	// NEW AMMUNITIONS INDEX ALLOCATION
 	
-    // 351–1000: Reserved index range, currently locked.
 	
-    // 3001-3999: New index range reserved only for new ammunitions.
+	
+	
+	
+	// NEW AMMUNITION INDEX ALLOCATION
+
+	// 351–1000: Reserved index range, currently locked.
+
+	// 3001–4000: New index range reserved exclusively for additional ammunition.
 	
 
 	
@@ -2345,6 +2350,93 @@
         "tileGraphic": {
             "type": "P1ITEMS",
             "subIndex": 323
+        }
+    },
+	{
+        "itemIndex": 3023,
+        "internalName": "CLIP9_50_HP",
+        "calibre": "AMMO9",
+        "capacity": 50,
+        "ammoType": "AMMO_HP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 323
+            },
+            "big": {
+                "path": "bigitems/p1item3023.sti"
+            }
+        },
+        "ubWeight": 7,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 100,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 324
+        }
+    },
+	{
+        "itemIndex": 3024,
+        "internalName": "CLIP9_50_AP",
+        "calibre": "AMMO9",
+        "capacity": 50,
+        "ammoType": "AMMO_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 324
+            },
+            "big": {
+                "path": "bigitems/p1item3024.sti"
+            }
+        },
+        "ubWeight": 7,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 150,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 325
+        }
+    },
+	{
+        "itemIndex": 3025,
+        "internalName": "CLIP9_50_SUPER_AP",
+        "calibre": "AMMO9",
+        "capacity": 50,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 325
+            },
+            "big": {
+                "path": "bigitems/p1item3025.sti"
+            }
+        },
+        "ubWeight": 7,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 200,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 326
         }
     }
 	

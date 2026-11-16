@@ -1,12 +1,27 @@
 {
-        "GLOCK_17": 10,
-        "GLOCK_18": 3,
-        "BERETTA_92F": 10,
-        "BERETTA_93R": 2,
-        "SW38": 15,
-        "BARRACUDA": 8,
-        "DESERTEAGLE": 6,
-        "M1911": 5,
+        
+		"SW38": 15,
+		"GLOCK_17": 10,
+		"USP9": 3,
+		"BERETTA_92F": 10,
+		"M1911": 5,
+		"FIVE_SEVEN": 3,
+		"BARRACUDA": 8,
+		"COLT_PYTHON4": 3,
+		"COLT_PYTHON6": 3,
+		"HARTFORD6": 3,
+		"COLT_ANACONDA4": 3,
+		"COLT_ANACONDA8": 3,
+		"DESERTEAGLE": 6,
+		"DESERTEAGLE_44": 3,
+		"DESERTEAGLE_50AE": 3,
+		
+		
+		"GLOCK_18": 3,
+        "BERETTA_93R": 3,
+		"TEC9": 3,
+		"CALICO_M950": 3,
+        
         "MP5K": 2,
         "MAC10": 1,
         "THOMPSON": 1,
@@ -55,6 +70,10 @@
 		"CLIP9_30_HP": 10,
         "CLIP9_30_AP": 8,
         "CLIP9_30_SUPER_AP": 6,
+		
+		"CLIP9_50_HP": 3,
+		"CLIP9_50_AP": 3,
+		"CLIP9_50_SUPER_AP": 3,
 		
 		"CLIP45_7": 40,
 		"CLIP45_7_HP": 16,

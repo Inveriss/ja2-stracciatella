@@ -529,49 +529,49 @@
     {
         "internalName": "CLIP9_15",
         "shortName": "9mm mag",
-        "name": "9mm Pistol Magazine",
+        "name": "9x19mm Pistol Magazine",
         "description": "This magazine holds 15 rounds of 9mm ball ammunition. Although small, this ammo travels at rather high velocities, making it the preferred sidearm round to many military and law enforcement personnel.",
-        "bobbyRayName": "9mm Pistol Magazine",
+        "bobbyRayName": "9x19mm Pistol Magazine",
         "bobbyRayDescription": "These 15 rounds of fine quality 115 grain Fiocchi round tip ammunition are ideal for anyone looking for an economical means of personal defense."
     },
     {
         "internalName": "CLIP9_30",
         "shortName": "9mm SMG mag",
-        "name": "9mm SMG Magazine",
+        "name": "9x19mm SMG Magazine",
         "description": "This sub-machine gun magazine contains 30 rounds of 9mm ammunition. As a jacketed round, it has a lesser tendency for barrel leading than its non-jacketed counterpart.",
-        "bobbyRayName": "9mm SMG Magazine",
+        "bobbyRayName": "9x19mm SMG Magazine",
         "bobbyRayDescription": "This SMG magazine contains 30 rounds of Fiocchi round tip ammunition. This round is a popular purchase among seasoned mercenaries and up-and-coming soldiers of fortune."
     },
     {
         "internalName": "CLIP9_15_AP",
         "shortName": "9mm mag AP",
-        "name": "9mm Pistol Magazine, AP",
+        "name": "9x19mm Pistol Magazine, AP",
         "description": "This magazine contains 15 hardened steel rounds of 9mm ammunition. Even though this round easily cuts through light body armor, it doesn't cause as much damage as jacketed and regular hollow point versions.",
-        "bobbyRayName": "9mm Pistol Magazine, AP",
+        "bobbyRayName": "9x19mm Pistol Magazine, AP",
         "bobbyRayDescription": "They've got Kevlar? Have no fear with this magazine; it's brimming with 15 rounds of hardened steel. This low power pistol round is your best bet against Kevlar."
     },
     {
         "internalName": "CLIP9_30_AP",
         "shortName": "9mm SMG mag AP",
-        "name": "9mm SMG Magazine, AP",
+        "name": "9x19mm SMG Magazine, AP",
         "description": "These 30 hardened steel rounds are the best sub-machine gun armor-defeating ammunition.",
-        "bobbyRayName": "9mm SMG Magazine, AP",
+        "bobbyRayName": "9x19mm SMG Magazine, AP",
         "bobbyRayDescription": "We searched far and wide for this round; the Armor Piercing ability of the 30-round magazine makes it the bane of all unwelcome law enforcement personnel."
     },
     {
         "internalName": "CLIP9_15_HP",
         "shortName": "9mm mag HP",
-        "name": "9mm Pistol Magazine, HP",
+        "name": "9x19mm Pistol Magazine, HP",
         "description": "This magazine contains 15 rounds of 9mm federal-135-grain hollow point ammo. While its armor piercing capabilities are questionable, its tendency to expand in tissue more than makes up for its weaknesses.",
-        "bobbyRayName": "9mm Pistol Magazine, HP",
+        "bobbyRayName": "9x19mm Pistol Magazine, HP",
         "bobbyRayDescription": "This 15-round magazine of COR-BON 9mm Jacketed Hollow Point ammunition is truly the top of the line. It's a definite deterrent against any unarmored assailant."
     },
     {
         "internalName": "CLIP9_30_HP",
         "shortName": "9mm SMG mag HP",
-        "name": "9mm SMG Magazine, HP",
+        "name": "9x19mm SMG Magazine, HP",
         "description": "This magazine holds 30 rounds of federal jacketed hollow point ammunition. It combines the wound characteristics of hollow point with the penetration abilities of standard ball ammunition.",
-        "bobbyRayName": "9mm SMG Magazine, HP",
+        "bobbyRayName": "9x19mm SMG Magazine, HP",
         "bobbyRayDescription": "This 30-round mag of 115 grain Jacketed Hollow Point ammunition is a special buy straight from COR-BON. We guarantee it will make your MP-5 the envy of any SWAT team."
     },
     {
@@ -2483,12 +2483,30 @@
     },
 	
 	
-		// NEW ADDITIONAL WEAPONS INDEX: from 1001 to 2999
 	
 	
-		// PISTOLS
 	
-	 //1001
+	
+	
+	
+	
+	
+	// NEW WEAPON DESCRIPTION INDEX ALLOCATION
+
+	// 351–1000: Reserved index range, currently locked.
+
+	// 1001–2999: New index range reserved exclusively for descriptions of new weapons.
+
+	// The weapon description index must match the corresponding weapon index in the weapons.json file exactly.
+	
+	
+	
+	
+	
+	// PISTOLS: 1001 - 1100
+	
+	
+	//1001
 	{
         "internalName": "USP9",
         "shortName": "USP",
@@ -2569,6 +2587,24 @@
         "bobbyRayName": "Desert Eagle .50 AE",
         "bobbyRayDescription": "In 1991, the Desert Eagle earned overnight notoriety when this .50 AE variant was revealed. Massive firepower in a massive pistol."
     },
+	// 1010
+    {
+        "internalName": "TEC9",
+        "shortName": "TEC-9",
+        "name": "Intratec TEC-9",
+        "description": "Not only popular with the criminals, the TEC-9 is an affordable semi-automatic pistol with a rather large magazine capacity.",
+        "bobbyRayName": "Intratec TEC-9",
+        "bobbyRayDescription": "Not only popular with the criminals, the TEC-9 is an affordable semi-automatic pistol with a rather large magazine capacity."
+    },
+	// 1011
+    {
+        "internalName": "CALICO_M950",
+        "shortName": "M-950",
+        "name": "Calico M-950",
+        "description": "An American made pistol version of the M960. Using the same 50-round clip, it could probably only be classified a pistol in the U.S.A.",
+        "bobbyRayName": "Calico M-950",
+        "bobbyRayDescription": "An American made pistol version of the M960. Using only semi-automatic and limited burst fire & the same 50-round clip, it could probably only be classified a pistol in the U.S.A."
+    },
 
 
 
@@ -2579,15 +2615,18 @@
 
 
 
-	// NEW ADDITIONAL AMMUNTION INDEX: from 3001 to 3999
+
+
+	// NEW AMMUNITION DESCRIPTION INDEX ALLOCATION
+
+	// 3001–3999: New index range reserved exclusively for descriptions of additional ammunition.
+
+	// The ammunition description index must match the corresponding ammunition index in the magazines.json file exactly.
 	
-	
-	// MAGAZINES
 
 
 
 
-	
 	// 3001
 	{
         "internalName": "CLIP38_6_SUPER_AP",
@@ -2601,18 +2640,18 @@
 	{
         "internalName": "CLIP9_15_SUPER_AP",
         "shortName": "9mm mag Super AP",
-        "name": "9mm Pistol Magazine, Super AP",
+        "name": "9x19mm Pistol Magazine, Super AP",
         "description": "This magazine contains 15 super hardened steel rounds of 9mm ammunition. Even though this round easily cuts through light body armor, it doesn't cause as much damage as jacketed and regular hollow point versions.",
-        "bobbyRayName": "9mm Pistol Magazine, SUPER AP",
+        "bobbyRayName": "9x19mm Pistol Magazine, SUPER AP",
         "bobbyRayDescription": "They've got Kevlar? Have no fear with this magazine; it's brimming with 15 rounds of super hardened steel. This low power pistol round is your best bet against Kevlar."
     },
 	// 3003
 	{
         "internalName": "CLIP9_30_SUPER_AP",
         "shortName": "9mm SMG mag Super AP",
-        "name": "9mm SMG Magazine, Super AP",
+        "name": "9x19mm SMG Magazine, Super AP",
         "description": "These 30 super hardened steel rounds are the best sub-machine gun armor-defeating ammunition.",
-        "bobbyRayName": "9mm SMG Magazine, Super AP",
+        "bobbyRayName": "9x19mm SMG Magazine, Super AP",
         "bobbyRayDescription": "We searched far and wide for this round; the Super Armor Piercing ability of the 30-round magazine makes it the bane of all unwelcome law enforcement personnel."
     },
 	// 3004
@@ -2785,7 +2824,35 @@
         "description": "This 30-round magazine holds .45 caliber super armor piercing ammunition. While this ammunition offers better penetration than either ball or hollow point ammo, it tends to do less damage.",
         "bobbyRayName": ".45 SMG Magazine, Super AP",
         "bobbyRayDescription": "Some of the best pistol ammunition money can buy is our 30 rounds of hand-loaded Super Armor Piercing ammunition. It will quickly send a Kevlar vest to the scrap heap."
+    },
+	// 3023
+    {
+        "internalName": "CLIP9_50_HP",
+        "shortName": "9mm 50 Mag HP",
+        "name": "9x19mm 50 Mag, HP",
+        "description": "A 50-round magazine of 9mm HP ammo for the Calico model.",
+        "bobbyRayName": "9x19mm 50 Mag, HP",
+        "bobbyRayDescription": "A 50-round magazine of 9mm HP ammo for the Calico model."
+    },
+	// 3024
+    {
+        "internalName": "CLIP9_50_AP",
+        "shortName": "9mm 50 Mag AP",
+        "name": "9x19mm 50 Mag, AP",
+        "description": "A 50-round magazine of 9mm AP ammo for the Calico model.",
+        "bobbyRayName": "9x19mm 50 Mag, AP",
+        "bobbyRayDescription": "A 50-round magazine of 9mm AP ammo for the Calico model."
+    },
+	// 3025
+    {
+        "internalName": "CLIP9_50_SUPER_AP",
+        "shortName": "9mm 50 Mag Super AP",
+        "name": "9x19mm 50 Mag, Super AP",
+        "description": "A 50-round magazine of 9mm Super AP ammo for the Calico model.",
+        "bobbyRayName": "9x19mm 50 Mag, AP",
+        "bobbyRayDescription": "A 50-round magazine of 9mm Super AP ammo for the Calico model."
     }
+
 
 
 
