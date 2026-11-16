@@ -96,7 +96,7 @@ TEST_F(EnemyEquipmentProgress, baseDataForTodaysEnemyItems)
 	// copied from minDropProgress (rounded to 5); ROCKET_RIFLE has no drop limit, so its table row
 	struct { char const* name; int progress; } const expected[] =
 	{
-		{ "GLOCK_17", 20 }, { "SW38", 10 }, { "FNFAL", 80 }, { "ROCKET_RIFLE", 100 },
+		{ "GLOCK_17", 5 }, { "SW38", 0 }, { "FNFAL", 80 }, { "ROCKET_RIFLE", 100 },
 		{ "COMBAT_KNIFE", 20 }, { "BRASS_KNUCKLES", 20 },
 		{ "FLAK_JACKET", 20 }, { "SPECTRA_HELMET", 70 },
 		{ "HAND_GRENADE", 70 }, { "BREAK_LIGHT", 30 }, { "MORTAR_SHELL", 90 }, { "TNT", 60 },

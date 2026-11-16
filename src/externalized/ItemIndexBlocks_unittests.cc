@@ -108,9 +108,11 @@ TEST_F(ItemIndexLoading, everyIndexHasAnItem)
 
 TEST_F(ItemIndexLoading, unusedIndicesArePlaceholders)
 {
+	// an index above the original items is either an item of the data or a placeholder
 	for (uint16_t i = VANILLA_MAXITEMS; i < MAXITEMS; ++i)
 	{
 		ItemModel const* const item = GCM->getItem(i);
+		if (!item->getInternalName().starts_with("__ITEM_")) continue;
 		EXPECT_EQ(item->getInternalName(), ST::format("__ITEM_{}", i));
 		EXPECT_EQ(item->getItemClass(), uint32_t{IC_NONE});
 		EXPECT_EQ(item->getFlags(), uint16_t{ITEM_NOT_BUYABLE | ITEM_NOT_EDITOR});

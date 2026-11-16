@@ -2,6 +2,7 @@
 
 // docs/enemy-equipment-progress-plan.md, stages 2-5: effective progress P, the tier rule, guns, other equipment and grenades by tiers
 
+#include <algorithm>
 #include "DefaultContentManagerUT.h"
 #include "GameSettings.h"
 #include "Inventory_Choosing.h"
@@ -170,11 +171,44 @@ std::set<UINT16> Draw(int const progress)
 }
 
 
+// The guns of one minEnemyProgress tier, and the tier a progress takes (the highest one
+// at most the progress, the lowest one below it), from the data: weapons keep being
+// added and tuned, so the test doesn't name them.
+std::set<UINT16> GunsOfTier(int const tier)
+{
+	std::set<UINT16> guns;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() == IC_GUN && item->hasMinEnemyProgress() && item->getMinEnemyProgress() == tier)
+		{
+			guns.insert(item->getItemIndex());
+		}
+	}
+	return guns;
+}
+
+int TierFor(int const progress)
+{
+	int best = -1, lowest = -1;
+	for (const ItemModel* const item : GCM->getItems())
+	{
+		if (item->getItemClass() != IC_GUN || !item->hasMinEnemyProgress()) continue;
+		int const t = item->getMinEnemyProgress();
+		if (lowest < 0 || t < lowest) lowest = t;
+		if (t <= progress && t > best) best = t;
+	}
+	return best >= 0 ? best : lowest;
+}
+
+
 TEST_F(EnemyEquipment, gunsOfTheChosenTierOnly)
 {
-	EXPECT_EQ(Draw(0),   Ids({ "SW38", "BARRACUDA", "DESERTEAGLE" }));      // below the lowest: lowest tier 10
-	EXPECT_EQ(Draw(35),  Ids({ "MP5K", "THOMPSON", "MP53", "TYPE85", "M870" })); // tier 30
-	EXPECT_EQ(Draw(100), Ids({ "MINIMI", "RPK74", "HK21E", "ROCKET_RIFLE" })); // tier 100
+	for (int const p : { 0, 35, 100 })
+	{
+		ASSERT_FALSE(GunsOfTier(TierFor(p)).empty()) << p;
+		EXPECT_EQ(Draw(p), GunsOfTier(TierFor(p))) << p;
+	}
+	EXPECT_EQ(Draw(100), GunsOfTier(100)); // the machine guns and the rocket rifle
 }
 
 
@@ -194,7 +228,8 @@ TEST_F(EnemyEquipment, gunsWithoutMinEnemyProgressNeverChosen)
 TEST_F(EnemyEquipment, lowestGunTierHasNoFirstDropBonus)
 {
 	std::vector<UINT16> const lowest = LowestEnemyGunTier();
-	EXPECT_EQ(std::set<UINT16>(lowest.begin(), lowest.end()), Ids({ "SW38", "BARRACUDA", "DESERTEAGLE" }));
+	EXPECT_EQ(std::set<UINT16>(lowest.begin(), lowest.end()), GunsOfTier(TierFor(-1)));
+	EXPECT_TRUE(lowest.end() != std::find(lowest.begin(), lowest.end(), Id("SW38")));
 }
 
 

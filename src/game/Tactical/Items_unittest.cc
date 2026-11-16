@@ -323,8 +323,9 @@ struct DropProgressTest : public GunStackTest
 
 TEST_F(DropProgressTest, baseDataStartsFromCoolness)
 {
-	// placeholder values until they are tuned: ubCoolness x 10
-	for (UINT16 const item : { GLOCK_17, G41, LASERSCOPE, CLIP9_15, FIRSTAIDKIT })
+	// placeholder values until they are tuned: ubCoolness x 10 (the pistols and their
+	// ammo are tuned already)
+	for (UINT16 const item : { G41, LASERSCOPE, FIRSTAIDKIT })
 	{
 		ItemModel const* const m = GCM->getItem(item);
 		EXPECT_EQ(m->getMinDropProgress(), m->getCoolness() * 10) << m->getInternalName().c_str();
@@ -855,14 +856,23 @@ TEST_F(GunStackTest, enemyAmmoByProgress)
 	UINT16 const CLIP9_15_AP = 73, CLIP9_15_HP = 75;
 	UINT16 const CLIPROCKET_AP = 111, CLIPROCKET_HE = 112, CLIPROCKET_HEAT = 113;
 
-	// 9 mm: REGULAR / HP early, AP late (no SUPER_AP: its chance goes to AP)
+	UINT16 const CLIP9_15_SUPER_AP = GCM->getItemByName("CLIP9_15_SUPER_AP")->getItemIndex();
+
+	// 9 mm: REGULAR / HP early, AP and SUPER_AP late
 	auto early = RollEnemyMagazines(GLOCK_17, 0, n);
 	EXPECT_EQ(early.count(CLIP9_15_AP), 0u);
 	EXPECT_NEAR(early[CLIP9_15] / double(n), 0.8, 0.05);
 	EXPECT_NEAR(early[CLIP9_15_HP] / double(n), 0.2, 0.05);
 	auto late = RollEnemyMagazines(GLOCK_17, 95, n);
-	EXPECT_EQ(late[CLIP9_15_AP], n);
-	EXPECT_EQ(RollEnemyMagazines(GLOCK_17, 100, n)[CLIP9_15_AP], n); // 100 is the last row
+	EXPECT_NEAR(late[CLIP9_15_AP] / double(n), 0.3, 0.05);
+	EXPECT_NEAR(late[CLIP9_15_SUPER_AP] / double(n), 0.7, 0.05);
+	auto last = RollEnemyMagazines(GLOCK_17, 100, n); // 100 is the last row
+	EXPECT_EQ(last[CLIP9_15_AP] + last[CLIP9_15_SUPER_AP], n);
+
+	// .38 has its own SUPER_AP speed loader (row 8: 0 / 0 / 50 / 50)
+	UINT16 const CLIP38_6_SUPER_AP = GCM->getItemByName("CLIP38_6_SUPER_AP")->getItemIndex();
+	auto revolver = RollEnemyMagazines(SW38, 85, n);
+	EXPECT_NEAR(revolver[CLIP38_6_SUPER_AP] / double(n), 0.5, 0.05);
 
 	// row 3 (30-39): 10 / 40 / 50
 	auto mid = RollEnemyMagazines(GLOCK_17, 35, n);

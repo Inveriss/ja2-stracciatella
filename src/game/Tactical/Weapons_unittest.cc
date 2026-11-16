@@ -269,16 +269,17 @@ TEST(WeaponsTest, DualBurstRulesAndCosts)
 	EXPECT_EQ(CalcDualBurstLength(s).second, 7);
 	s.inv[SECONDHANDPOS].ubGunShotsLeft = 30;
 
-	// AP (D5): the higher of the two burst costs, Glock 18 10, MP5K 9
+	// AP (D5): the higher of the two burst costs (Glock 18 4, MP5K 9) on top of the
+	// higher shot cost (Glock 18 2, MP5K 5)
 	s.bWeaponMode = WM_BURST_SHORT;
-	EXPECT_EQ(BaseAPsToShootOrStab(s.inv[HANDPOS]) + CalcAPsToBurst(s.inv[HANDPOS], WM_BURST_SHORT), 10);
+	EXPECT_EQ(BaseAPsToShootOrStab(s.inv[HANDPOS]) + CalcAPsToBurst(s.inv[HANDPOS], WM_BURST_SHORT), 4);
 	EXPECT_EQ(BaseAPsToShootOrStab(s.inv[SECONDHANDPOS]) + CalcAPsToBurst(s.inv[SECONDHANDPOS], WM_BURST_SHORT), 9);
-	EXPECT_EQ(CalcAPsToDualBurst(s, WM_BURST_SHORT), 10 - 6);
+	EXPECT_EQ(CalcAPsToDualBurst(s, WM_BURST_SHORT), 9 - 5);
 	std::swap(s.inv[HANDPOS], s.inv[SECONDHANDPOS]);
-	EXPECT_EQ(CalcAPsToDualBurst(s, WM_BURST_SHORT), 10 - 6);
+	EXPECT_EQ(CalcAPsToDualBurst(s, WM_BURST_SHORT), 9 - 5);
 	std::swap(s.inv[HANDPOS], s.inv[SECONDHANDPOS]);
 
-	// First Aim of two guns: the higher one (Glock 18 0, MP5K 1, MAC-10 2),
+	// First Aim of two guns: the higher one (Glock 18 1, MP5K 1, MAC-10 2),
 	// in a dual burst and in a dual shot
 	EXPECT_EQ(GetAPsToReadyWeapon(&s, s.usAnimState), 1);
 	s.inv[SECONDHANDPOS] = gun("MAC10", 30);
