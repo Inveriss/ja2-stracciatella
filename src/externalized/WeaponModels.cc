@@ -71,11 +71,6 @@ void WeaponModel::serializeTo(JsonObject &obj) const
 
 	serializeSmallPerPocket(obj);
 	serializeBigPerPocket(obj);
-
-	if(isInBigGunList())
-	{
-		obj.set("standardReplacement", standardReplacement);
-	}
 }
 
 JsonValue WeaponModel::serialize() const {
@@ -710,12 +705,6 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 
 	wep->fFlags |= ItemModel::deserializeFlags(obj);
 
-	ST::string replacement = obj.getOptionalString("standardReplacement");
-	if (!replacement.empty())
-	{
-		wep->standardReplacement = replacement;
-	}
-
 	return wep;
 }
 
@@ -769,12 +758,6 @@ bool WeaponModel::canBeAttached(const GamePolicy* policy, const ItemModel* attac
 		|| (attachSpringAndBoltUpgrade && (attachmentID == SPRING_AND_BOLT_UPGRADE))
 		|| (attachGunBarrelExtender && (attachmentID == GUN_BARREL_EXTENDER))
 		|| (attachBurstExtenderAttachment && (attachmentID == BURST_EXTENDER_ATTACHMENT));
-}
-
-/** Get standard replacement gun name. */
-const ST::string & WeaponModel::getStandardReplacement() const
-{
-	return standardReplacement;
 }
 
 int WeaponModel::getRateOfFire() const

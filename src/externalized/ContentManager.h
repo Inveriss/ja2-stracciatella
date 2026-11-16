@@ -164,7 +164,6 @@ public:
 	virtual const ArmourModel* getArmourByName(const ST::string &name) = 0;
 	virtual INT32 getMaxArmourPerClass(uint16_t armourClass) const = 0;
 
-	virtual const std::vector<std::vector<const WeaponModel*> > & getNormalGunChoice() const = 0;
 	virtual const std::vector<std::vector<const WeaponModel*> > & getExtendedGunChoice() const = 0;
 	virtual const std::vector<GARRISON_GROUP>& getGarrisonGroups() const = 0;
 	virtual const std::vector<PATROL_GROUP>& getPatrolGroups() const = 0;

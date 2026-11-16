@@ -99,7 +99,6 @@ editor:
 			//also set the sector
 			SetWorldSectorInvalid();
 			gfIntendOnEnteringEditor = TRUE;
-			gGameOptions.fGunNut     = TRUE;
 			return GAME_SCREEN;
 
 		default: return INIT_SCREEN;

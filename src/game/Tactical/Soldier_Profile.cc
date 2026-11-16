@@ -146,32 +146,6 @@ void LoadMercProfiles()
 			MercProfileInfo const* const info = GCM->getMercProfileInfo(i);
 			p.ubFaceIndex = info->profileID == i ? info->faceIndex : i;
 
-			if (!gGameOptions.fGunNut)
-			{
-				// CJC: replace guns in profile if they aren't available
-				FOR_EACH(UINT16, k, p.inv)
-				{
-					const ItemModel *item = GCM->getItem(*k);
-					if (!item->isGun() || !item->isInBigGunList()) continue;
-
-					const WeaponModel *oldWeapon = item->asWeapon();
-					const WeaponModel *newWeapon = GCM->getWeaponByName(oldWeapon->getStandardReplacement());
-
-					*k = newWeapon->getItemIndex();
-
-					// Search through inventory and replace ammo accordingly
-					FOR_EACH(UINT16, l, p.inv)
-					{
-						UINT16 const ammo = *l;
-						if (!(GCM->getItem(ammo)->isAmmo())) continue;
-						UINT16 const new_ammo = FindReplacementMagazineIfNecessary(oldWeapon, ammo, newWeapon);
-						if (new_ammo == NOTHING) continue;
-						// Found a new magazine, replace
-						*l = new_ammo;
-					}
-				}
-			}
-
 			// Calculate inital attractiveness for the merc's initial gun and armour.
 			// Calculate the optional gear cost.
 			p.bMainGunAttractiveness = -1;

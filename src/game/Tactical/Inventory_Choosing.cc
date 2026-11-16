@@ -2286,91 +2286,13 @@ void AssignCreatureInventory( SOLDIERTYPE *pSoldier )
 	}
 }
 
-void ReplaceExtendedGuns( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass )
-{
-	UINT32 uiLoop, uiLoop2, uiAttachDestIndex;
-	INT8   bWeaponClass;
-	OBJECTTYPE OldObj;
-	UINT16 usItem, usNewGun, usAmmo, usNewAmmo;
-
-	for ( uiLoop = 0; uiLoop < NUM_INV_SLOTS; uiLoop++ )
-	{
-		usItem = pp->Inv[ uiLoop ].usItem;
-		const ItemModel *item = GCM->getItem(usItem);
-		const WeaponModel *weapon = item->asWeapon();
-
-		if (weapon && weapon->isInBigGunList())
-		{
-			if ( bSoldierClass == SOLDIER_CLASS_NONE )
-			{
-				usNewGun = GCM->getWeaponByName(weapon->getStandardReplacement())->getItemIndex();
-			}
-			else
-			{
-				bWeaponClass = GetWeaponClass( usItem );
-				AssertMsg(bWeaponClass != -1, ST::format("Gun {} does not have a match in the extended gun array", usItem));
-				usNewGun = SelectStandardArmyGun( bWeaponClass );
-			}
-
-			if ( usNewGun != NOTHING )
-			{
-				// have to replace!  but first (ugh) must store backup (b/c of attachments)
-				OldObj = pp->Inv[uiLoop];
-				CreateItem( usNewGun, OldObj.bGunStatus, &(pp->Inv[ uiLoop ]) );
-				pp->Inv[ uiLoop ].fFlags = OldObj.fFlags;
-
-				// copy any valid attachments; for others, just drop them...
-				if (ItemHasAttachments(OldObj))
-				{
-					// we're going to copy into the first attachment position first :-)
-					uiAttachDestIndex = 0;
-					// loop!
-					for ( uiLoop2 = 0; uiLoop2 < MAX_ATTACHMENTS; uiLoop2++ )
-					{
-						if ( ( OldObj.usAttachItem[ uiLoop2 ] != NOTHING ) && ValidAttachment( OldObj.usAttachItem[ uiLoop2 ], usNewGun ) )
-						{
-							pp->Inv[ uiLoop ].usAttachItem[ uiAttachDestIndex ] = OldObj.usAttachItem[ uiLoop2 ];
-							pp->Inv[ uiLoop ].bAttachStatus[ uiAttachDestIndex ] = OldObj.bAttachStatus[ uiLoop2 ];
-							uiAttachDestIndex++;
-						}
-					}
-				}
-
-				// must search through inventory and replace ammo accordingly
-				for ( uiLoop2 = 0; uiLoop2 < NUM_INV_SLOTS; uiLoop2++ )
-				{
-					usAmmo = pp->Inv[ uiLoop2 ].usItem;
-					if ( (GCM->getItem(usAmmo)->isAmmo()) )
-					{
-						usNewAmmo = FindReplacementMagazineIfNecessary(item->asWeapon(), usAmmo, GCM->getWeapon(usNewGun) );
-						if (usNewAmmo != NOTHING )
-						{
-							// found a new magazine, replace...
-							CreateItems( usNewAmmo, 100, pp->Inv[ uiLoop2 ].ubNumberOfObjects, &( pp->Inv[ uiLoop2 ] ) );
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-
 static UINT16 SelectStandardArmyGun(UINT8 uiGunLevel)
 {
 	UINT32 uiChoice;
 	UINT16 usGunIndex;
 
-	const std::vector<std::vector<const WeaponModel*> > * gunChoice = NULL;
-
-	if (gGameOptions.fGunNut)
-	{
-		gunChoice = &GCM->getExtendedGunChoice();
-	}
-	else
-	{
-		gunChoice = &GCM->getNormalGunChoice();
-	}
+	// every gun takes part in the game (docs/gun-nut-only-plan.md)
+	const std::vector<std::vector<const WeaponModel*> > * const gunChoice = &GCM->getExtendedGunChoice();
 
 	// choose one the of the possible gun choices
 	uiChoice = Random(static_cast<UINT32>(gunChoice->at(uiGunLevel).size()));

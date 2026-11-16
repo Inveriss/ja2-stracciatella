@@ -333,39 +333,6 @@ void LoadWorldItemsFromMap(HWFILE const f)
 				SLOGW("Skipping non-Editor item #{}({}) at gridNo {}", item->getItemIndex(), item->getInternalName(), wi.sGridNo);
 				continue;
 			}
-
-			if (!gGameOptions.fGunNut)
-			{
-				// do replacements?
-				const WeaponModel *weapon = item->asWeapon();
-				const MagazineModel *mag = item->asAmmo();
-				if (weapon && weapon->isInBigGunList())
-				{
-					const WeaponModel *replacement = GCM->getWeaponByName(item->asWeapon()->getStandardReplacement());
-
-						// everything else can be the same? no.
-						INT8 const ammo     = o.ubGunShotsLeft;
-						INT8       new_ammo = replacement->ubMagSize * ammo / weapon->ubMagSize;
-						if (new_ammo == 0 && ammo > 0) new_ammo = 1;
-						o.usItem         = replacement->getItemIndex();
-						o.ubGunShotsLeft = new_ammo;
-				}
-				else if (mag && mag->isInBigGunList())
-				{
-					const MagazineModel *replacement = GCM->getMagazineByName(mag->getStandardReplacement());
-
-						// Go through status values and scale up/down
-						UINT8 const mag_size     = mag->capacity;
-						UINT8 const new_mag_size = replacement->capacity;
-						for (UINT8 i = 0; i != o.ubNumberOfObjects; ++i)
-						{
-							o.bStatus[i] = o.bStatus[i] * new_mag_size / (mag_size? mag_size: 1);
-						}
-
-						// then replace item #
-						o.usItem = replacement->getItemIndex();
-				}
-			}
 		}
 
 		if (o.usItem == ACTION_ITEM)

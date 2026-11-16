@@ -46,11 +46,6 @@ JsonValue MagazineModel::serialize() const
 	obj.set("usPrice",              getPrice());
 	obj.set("ubCoolness",           getCoolness());
 
-	if(isInBigGunList())
-	{
-		obj.set("standardReplacement", standardReplacement);
-	}
-
 	serializeFlags(obj);
 	serializeSmallPerPocket(obj);
 	serializeBigPerPocket(obj);
@@ -108,20 +103,9 @@ MagazineModel* MagazineModel::deserialize(
 	mag->usPrice          = obj.GetInt("usPrice");
 	mag->ubCoolness       = obj.GetInt("ubCoolness");
 
-	ST::string replacement = obj.getOptionalString("standardReplacement");
-	if (!replacement.empty())
-	{
-		mag->standardReplacement = replacement;
-	}
-
 	return mag;
 }
 
-
-const ST::string & MagazineModel::getStandardReplacement() const
-{
-	return standardReplacement;
-}
 
 std::vector<ST::string> MagazineModel::describeDuplicates(std::vector<const MagazineModel*> const& magazines)
 {

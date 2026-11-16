@@ -189,7 +189,6 @@ void InitGameOptions()
 	gGameOptions = GAME_OPTIONS{};
 
 	//Init the game options
-	gGameOptions.fGunNut           = TRUE; // the gun options are hidden in Initial Options, Tons of Guns is always on
 	gGameOptions.fSciFi            = TRUE;
 	gGameOptions.ubDifficultyLevel = DIF_LEVEL_EASY;
 	//gGameOptions.fTurnTimeLimit  = FALSE;
@@ -207,9 +206,6 @@ void DisplayGameSettings( )
 
 	//Iron man option
 	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("{}: {}", gzGIOScreenText[GIO_GAME_SAVE_STYLE_TEXT], gzGIOScreenText[GIO_SAVE_ANYWHERE_TEXT + gGameOptions.ubGameSaveMode]));
-
-	// Gun option
-	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("{}: {}", gzGIOScreenText[GIO_GUN_OPTIONS_TEXT], gzGIOScreenText[gGameOptions.fGunNut ? GIO_GUN_NUT_TEXT : GIO_REDUCED_GUNS_TEXT]));
 
 	//Sci fi option
 	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, ST::format("{}: {}", gzGIOScreenText[GIO_GAME_STYLE_TEXT], gzGIOScreenText[GIO_REALISTIC_TEXT + gGameOptions.fSciFi]));

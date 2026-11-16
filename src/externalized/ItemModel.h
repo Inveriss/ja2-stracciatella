@@ -136,7 +136,6 @@ struct ItemModel
 	virtual bool isWeapon() const;
 
 	virtual bool isTwoHanded() const;
-	virtual bool isInBigGunList() const;
 
 	virtual const WeaponModel* asWeapon() const   { return NULL; }
 	virtual const MagazineModel* asAmmo() const   { return NULL; }

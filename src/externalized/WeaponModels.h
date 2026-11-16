@@ -67,7 +67,6 @@ struct WeaponModel : ItemModel
 	virtual bool canBeAttached(const GamePolicy* policy, const ItemModel* attachment) const;
 
 	/** Get standard replacement gun name. */
-	virtual const ST::string & getStandardReplacement() const;
 
 	int getRateOfFire() const;
 
@@ -78,7 +77,6 @@ struct WeaponModel : ItemModel
 	ST::string burstSound;
 	ST::string silencedSound;
 	ST::string silencedBurstSound;
-	ST::string standardReplacement;
 	bool attachSilencer;
 	bool attachSniperScope;
 	bool attachLaserScope;

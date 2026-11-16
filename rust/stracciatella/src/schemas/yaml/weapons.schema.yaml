@@ -114,9 +114,6 @@ items:
         attachment_GunBarrelExtender:
           title: Attachment gun barrel extender?
           type: boolean
-        standardReplacement:
-          title: Standard replacement
-          $ref: types/id.schema.yaml
         ubAPCostPerSingleShot:
           title: AP cost of a single shot or stab
           description: A direct AP value, the same for everyone, -1 with a Spring and Bolt Upgrade. Also the cost of a hit with a `PUNCHWEAPON` (brass knuckles, crowbar); a bare fist costs 4 AP.

@@ -231,8 +231,7 @@ static_assert(sizeof(OBJECTTYPE) == 172 && (offsetof(OBJECTTYPE, usAttachItem) -
 #define ITEM_NOT_BUYABLE		0x0100
 // item is an attachment for something
 #define ITEM_ATTACHMENT		0x0200
-// item only belongs in the "big gun list"
-#define ITEM_BIGGUNLIST		0x0400
+// 0x0400 was ITEM_BIGGUNLIST (docs/gun-nut-only-plan.md)
 // item should not be placed via the editor
 #define ITEM_NOT_EDITOR		0x0800
 // item defaults to undroppable

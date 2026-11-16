@@ -71,9 +71,6 @@ properties:
   bAttachment:
     title: Is an attachment?
     type: boolean
-  bBigGunList:
-    title: Big gun list?
-    type: boolean
   bDamageable:
     title: Is damageable?
     type: boolean

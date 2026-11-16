@@ -193,12 +193,6 @@ static UINT8 GetCurrentSuitabilityForItem(ArmsDealerID const bArmsDealer, UINT16
 	// item suitability varies with the player's maximum progress through the game.  The farther he gets, the better items
 	// we make available.  Weak items become more and more infrequent later in the game, although they never quite vanish.
 
-	// items illegal in this game are unsuitable [this checks guns vs. current GunSet!]
-	if (!ItemIsLegal( usItemIndex ))
-	{
-		return(ITEM_SUITABILITY_NONE);
-	}
-
 	// items normally not sold at shops are unsuitable
 	if ( GCM->getItem(usItemIndex)->getFlags() & ITEM_NOT_BUYABLE )
 	{

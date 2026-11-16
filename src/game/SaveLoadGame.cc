@@ -191,7 +191,7 @@ ST::string GetErrorSaveName() {
 static void ExtractGameOptions(DataReader& d, GAME_OPTIONS& g)
 {
 	size_t start = d.getConsumed();
-	EXTR_BOOL( d, g.fGunNut)
+	EXTR_SKIP( d, 1) // the former gun option (Gun Nut), always on: docs/gun-nut-only-plan.md
 	EXTR_BOOL( d, g.fSciFi)
 	EXTR_U8(   d, g.ubDifficultyLevel)
 	EXTR_BOOL( d, g.fTurnTimeLimit)
@@ -204,7 +204,7 @@ static void ExtractGameOptions(DataReader& d, GAME_OPTIONS& g)
 static void InjectGameOptions(DataWriter& d, GAME_OPTIONS const& g)
 {
 	size_t start = d.getConsumed();
-	INJ_BOOL( d, g.fGunNut)
+	INJ_U8(   d, 1) // the former gun option (Gun Nut), always on: docs/gun-nut-only-plan.md
 	INJ_BOOL( d, g.fSciFi)
 	INJ_U8(   d, g.ubDifficultyLevel)
 	INJ_BOOL( d, g.fTurnTimeLimit)
@@ -2555,7 +2555,7 @@ static void CalcJA2EncryptionSet(SAVED_GAME_HEADER const& h)
 
 	// now pick a different set of #s depending on what game options we've chosen
 	GAME_OPTIONS const& o = h.sInitialGameOptions;
-	if (o.fGunNut) set += BASE_NUMBER_OF_ROTATION_ARRAYS * 6;
+	set += BASE_NUMBER_OF_ROTATION_ARRAYS * 6; // the former gun option, always on
 	if (o.fSciFi)  set += BASE_NUMBER_OF_ROTATION_ARRAYS * 3;
 	switch (o.ubDifficultyLevel)
 	{

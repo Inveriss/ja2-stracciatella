@@ -243,27 +243,6 @@ static ComboMergeInfoStruct const AttachmentComboMerge[] =
 };
 
 
-BOOLEAN ItemIsLegal( UINT16 usItemIndex )
-{
-	//if the user has selected the reduced gun list
-	if( !gGameOptions.fGunNut )
-	{
-		const ItemModel *item = GCM->getItem(usItemIndex);
-
-		if(item->isGun() && item->asWeapon()->isInBigGunList())
-		{
-			return false;
-		}
-
-		if(item->isAmmo() && item->asAmmo()->isInBigGunList())
-		{
-			return false;
-		}
-	}
-
-	return(TRUE);
-}
-
 BOOLEAN WeaponInHand(const SOLDIERTYPE* const pSoldier)
 {
 	if ( GCM->getItem(pSoldier->inv[HANDPOS].usItem)->getItemClass() & (IC_WEAPON | IC_THROWN) )
@@ -3005,15 +2984,6 @@ UINT16 FindMagazineVariant(std::vector<const MagazineModel*> const& magazines, M
 UINT16 FindMagazineVariant(MagazineModel const& loaded, UINT16 const gun_mag_size)
 {
 	return FindMagazineVariant(GCM->getMagazines(), loaded, gun_mag_size);
-}
-
-
-UINT16 FindReplacementMagazineIfNecessary(const WeaponModel *old_gun, UINT16 const old_ammo_id, const WeaponModel *new_gun)
-{
-	const MagazineModel * old_mag = GCM->getMagazineByItemIndex(old_ammo_id);
-	if (old_mag->calibre->index != old_gun->calibre->index) return NOTHING;
-	if (old_mag->capacity != old_gun->ubMagSize) return NOTHING;
-	return FindReplacementMagazine(new_gun->calibre, new_gun->ubMagSize, old_mag->ammoType->index);
 }
 
 

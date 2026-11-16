@@ -454,8 +454,8 @@ static void InitBobbyRayNewInventory(void)
 	{
 		const auto itemIndex = item->getItemIndex();
 
-		//if Bobby Ray sells this, it can be sold, and it's allowed into this game (some depend on e.g. gun-nut option)
-		if( (GCM->getBobbyRayNewInventory()->getMaxItemAmount(item) != 0) && !(item->getFlags() & ITEM_NOT_BUYABLE) && ItemIsLegal(itemIndex) )
+		//if Bobby Ray sells this and it can be sold (every gun takes part: docs/gun-nut-only-plan.md)
+		if( (GCM->getBobbyRayNewInventory()->getMaxItemAmount(item) != 0) && !(item->getFlags() & ITEM_NOT_BUYABLE) )
 		{
 			LaptopSaveInfo.BobbyRayInventory[ usBobbyrIndex ].usItemIndex = itemIndex;
 			usBobbyrIndex++;

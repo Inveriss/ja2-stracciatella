@@ -901,10 +901,9 @@ static BOOLEAN DisplaySaveGameEntry(const std::vector<SaveGameInfo>::iterator& e
 					i++;
 				}
 			}
-			ST::string options = ST::format("{}\n{}\n{}\n{}\n{}",
+			ST::string options = ST::format("{}\n{}\n{}\n{}",
 				difficulty,
 				gzGIOScreenText[gameModeText],
-				header.sInitialGameOptions.fGunNut      ? zSaveLoadText[SLG_ADDITIONAL_GUNS] : zSaveLoadText[SLG_NORMAL_GUNS],
 				header.sInitialGameOptions.fSciFi       ? zSaveLoadText[SLG_SCIFI]           : zSaveLoadText[SLG_REALISTIC],
 				modsText
 			);

@@ -60,9 +60,6 @@
 #define GIO_GAME_SETTINGS_Y		(STD_SCREEN_Y + 300)
 #define GIO_GAME_SETTINGS_WIDTH	GIO_DIF_SETTINGS_WIDTH
 
-#define GIO_GUN_SETTINGS_X		GIO_GAME_SETTINGS_X
-#define GIO_GUN_SETTINGS_Y		GIO_DIF_SETTINGS_Y//150//280
-#define GIO_GUN_SETTINGS_WIDTH		GIO_DIF_SETTINGS_WIDTH
 
 #if 0
 #define GIO_TIMED_TURN_SETTING_X	GIO_DIF_SETTINGS_X
@@ -81,15 +78,6 @@ enum
 	GIO_SCI_FI,
 
 	NUM_GAME_STYLES,
-};
-
-// Gun options
-enum
-{
-	GIO_REDUCED_GUNS,
-	GIO_GUN_NUT,
-
-	NUM_GUN_OPTIONS,
 };
 
 #if 0 // JA2Gold: no more timed turns setting
@@ -159,12 +147,6 @@ static void BtnDifficultyTogglesCallback(GUI_BUTTON *btn, UINT32 reason);
 //checkbox to toggle Game style
 static GUIButtonRef guiGameStyleToggles[NUM_GAME_STYLES];
 static void BtnGameStyleTogglesCallback(GUI_BUTTON *btn,UINT32 reason);
-
-#if 0 // the gun options are hidden, Tons of Guns is always on
-//checkbox to toggle Gun options
-static GUIButtonRef guiGunOptionToggles[NUM_GUN_OPTIONS];
-static void BtnGunOptionsTogglesCallback(GUI_BUTTON *btn, UINT32 reason);
-#endif
 
 #if 0// JA2Gold: no more timed turns setting
 //checkbox to toggle Timed turn option on or off
@@ -303,20 +285,11 @@ static void EnterGIOScreen()
 		MakeCheckBoxes(guiGameSaveToggles, lengthof(guiGameSaveToggles), x, y, BtnGameSaveTogglesCallback, def);
 	}
 
-#if 0 // the gun options are hidden, Tons of Guns is always on
-	{ // Check box to toggle Gun options
-		INT16  const x   = GIO_GUN_SETTINGS_X + GIO_OFFSET_TO_TOGGLE_BOX;
-		INT16  const y   = GIO_GUN_SETTINGS_Y - GIO_OFFSET_TO_TOGGLE_BOX_Y;
-		size_t const def = gGameOptions.fGunNut ? GIO_GUN_NUT : GIO_REDUCED_GUNS;
-		MakeCheckBoxes(guiGunOptionToggles, lengthof(guiGunOptionToggles), x, y, BtnGunOptionsTogglesCallback, def);
-	}
-#endif
-
 #if 0 // JA2 Gold: no more timed turns
 	{ // Check box to toggle the timed turn option
 		INT16  const x   = GIO_TIMED_TURN_SETTING_X + GIO_OFFSET_TO_TOGGLE_BOX;
 		INT16  const y   = GIO_TIMED_TURN_SETTING_Y - GIO_OFFSET_TO_TOGGLE_BOX_Y;
-		size_t const def = gGameOptions.fGunNut ? GIO_TIMED_TURNS : GIO_NO_TIMED_TURNS;
+		size_t const def = gGameOptions.fTurnTimeLimit ? GIO_TIMED_TURNS : GIO_NO_TIMED_TURNS;
 		MakeCheckBoxes(guiTimedTurnToggles, lengthof(guiTimedTurnToggles), x, y, BtnTimedTurnsTogglesCallback, def);
 	}
 #endif
@@ -354,11 +327,6 @@ static void ExitGIOScreen()
 
 	// Check box to toggle game settings (realistic, sci fi)
 	FOR_EACH(GUIButtonRef, i, guiGameStyleToggles) RemoveButton(*i);
-
-#if 0 // the gun options are hidden, Tons of Guns is always on
-	// Check box to toggle gun options
-	FOR_EACH(GUIButtonRef, i, guiGunOptionToggles) RemoveButton(*i);
-#endif
 
 #if 0 // JA2Gold: no more timed turns setting
 	// Remove the timed turns toggle.
@@ -473,17 +441,6 @@ static void RenderGIOScreen(void)
 
 
 
-#if 0 // the gun options are hidden, Tons of Guns is always on
-	//Display the Gun Settings Title Text
-	DisplayWrappedString(GIO_GUN_SETTINGS_X, GIO_GUN_SETTINGS_Y - GIO_GAP_BN_SETTINGS, GIO_GUN_SETTINGS_WIDTH, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[GIO_GUN_OPTIONS_TEXT], FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
-
-	usPosY = GIO_GUN_SETTINGS_Y+2;
-	DisplayWrappedString(GIO_GUN_SETTINGS_X + GIO_OFFSET_TO_TEXT, usPosY, GIO_GUN_SETTINGS_WIDTH, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[GIO_REDUCED_GUNS_TEXT], FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
-
-	usPosY += GIO_GAP_BN_SETTINGS;
-	DisplayWrappedString(GIO_GUN_SETTINGS_X + GIO_OFFSET_TO_TEXT, usPosY, GIO_GUN_SETTINGS_WIDTH, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[GIO_GUN_NUT_TEXT], FONT_MCOLOR_BLACK, LEFT_JUSTIFIED);
-#endif
-
 
 #if 0 // JA2Gold: no more timed turns setting
 	//Display the Timed turns Settings Title Text
@@ -577,16 +534,6 @@ static void BtnGameSaveTogglesCallback(GUI_BUTTON *btn, UINT32 reason)
 }
 
 
-#if 0 // the gun options are hidden, Tons of Guns is always on
-static void BtnGunOptionsTogglesCallback(GUI_BUTTON *btn, UINT32 reason)
-{
-	if (reason & MSYS_CALLBACK_REASON_POINTER_UP)
-	{
-		SelectCheckbox(guiGunOptionToggles, *btn);
-	}
-}
-#endif
-
 
 #if 0 // JA2Gold: no more timed turns setting
 static void BtnTimedTurnsTogglesCallback(GUI_BUTTON *btn, UINT32 reason)
@@ -646,19 +593,6 @@ static UINT8 GetCurrentGameStyleButtonSetting(void)
 }
 
 
-#if 0 // the gun options are hidden, Tons of Guns is always on
-static UINT8 GetCurrentGunButtonSetting(void)
-{
-	UINT8	cnt;
-
-	for (cnt = 0; cnt < NUM_GUN_OPTIONS; cnt++)
-	{
-		if (guiGunOptionToggles[cnt]->Clicked()) return cnt;
-	}
-	return 0;
-}
-#endif
-
 
 #if 0// JA2 Gold: no timed turns
 static UINT8 GetCurrentTimedTurnsButtonSetting(void)
@@ -707,16 +641,6 @@ static void RestoreGIOButtonBackGrounds(void)
 		usPosY += GIO_GAP_BN_SETTINGS;
 	}
 
-#if 0 // the gun options are hidden, Tons of Guns is always on
-	// Check box to toggle Gun options
-	usPosY = GIO_GUN_SETTINGS_Y - GIO_OFFSET_TO_TOGGLE_BOX_Y;
-	for (cnt = 0; cnt < NUM_GUN_OPTIONS; cnt++)
-	{
-		RestoreExternBackgroundRect(GIO_GUN_SETTINGS_X + GIO_OFFSET_TO_TOGGLE_BOX, usPosY, 34, 29);
-		usPosY += GIO_GAP_BN_SETTINGS;
-	}
-#endif
-
 #if 0 // JA2Gold: no more timed turns setting
 	// Check box to toggle timed turns options
 	usPosY = GIO_TIMED_TURN_SETTING_Y - GIO_OFFSET_TO_TOGGLE_BOX_Y;
@@ -740,7 +664,6 @@ static void RestoreGIOButtonBackGrounds(void)
 static void DoneFadeOutForExitGameInitOptionScreen(void)
 {
 	// loop through and get the status of all the buttons
-	gGameOptions.fGunNut = TRUE; // the gun options are hidden, Tons of Guns is always on
 	gGameOptions.fSciFi = GetCurrentGameStyleButtonSetting();
 	gGameOptions.ubDifficultyLevel = GetCurrentDifficultyButtonSetting() + 1;
 #if 0 // JA2Gold: no more timed turns setting

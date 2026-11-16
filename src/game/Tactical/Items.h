@@ -218,7 +218,6 @@ INT8 FindObjWithin( SOLDIERTYPE * pSoldier, UINT16 usItem, INT8 bLower, INT8 bUp
 
 BOOLEAN ApplyCamo(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, BOOLEAN* pfGoodAPs);
 
-BOOLEAN ItemIsLegal( UINT16 usItemIndex );
 UINT16 FindReplacementMagazine(const CalibreModel * calibre, UINT8 const mag_size, UINT8 const ammo_type);
 // The magazine item a gun with the given magazine size holds after it was
 // loaded with `loaded` (docs/magazine-size-variants-plan.md): the magazine of
@@ -227,7 +226,6 @@ UINT16 FindReplacementMagazine(const CalibreModel * calibre, UINT8 const mag_siz
 // do not matter.
 UINT16 FindMagazineVariant(std::vector<const MagazineModel*> const& magazines, MagazineModel const& loaded, UINT16 gun_mag_size);
 UINT16 FindMagazineVariant(MagazineModel const& loaded, UINT16 gun_mag_size);
-UINT16 FindReplacementMagazineIfNecessary(const WeaponModel *old_gun, UINT16 const old_ammo_id, const WeaponModel *new_gun);
 
 BOOLEAN DamageItemOnGround(OBJECTTYPE* pObject, INT16 sGridNo, INT8 bLevel, INT32 iDamage, SOLDIERTYPE* owner);
 

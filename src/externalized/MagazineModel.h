@@ -39,7 +39,6 @@ struct MagazineModel : ItemModel
 
 
 	/** Get standard replacement ammo name. */
-	virtual const ST::string & getStandardReplacement() const;
 
 	/** One message for every magazine that has the calibre, capacity and ammo type
 	 * of a magazine with a lower index: a gun loaded with another size of that ammo
@@ -48,7 +47,6 @@ struct MagazineModel : ItemModel
 	 * skipped. */
 	static std::vector<ST::string> describeDuplicates(std::vector<const MagazineModel*> const& magazines);
 
-	ST::string standardReplacement;
 	const CalibreModel *calibre;
 	const uint16_t capacity;
 	const AmmoTypeModel *ammoType;

@@ -97,7 +97,8 @@ enum GameSaveMode
 
 struct GAME_OPTIONS
 {
-	BOOLEAN fGunNut;
+	// no gun option: every gun takes part in the game (docs/gun-nut-only-plan.md); the
+	// save keeps its byte (SaveLoadGame.cc)
 	BOOLEAN	fSciFi;
 	UINT8		ubDifficultyLevel;
 	BOOLEAN	fTurnTimeLimit;

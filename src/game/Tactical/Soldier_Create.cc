@@ -1673,10 +1673,6 @@ void CreateDetailedPlacementGivenStaticDetailedPlacementAndBasicPlacementInfo(
 			//return;
 		}
 	}
-	if ( !gGameOptions.fGunNut )
-	{
-		ReplaceExtendedGuns( pp, bp->ubSoldierClass );
-	}
 	if( bp->ubSoldierClass != SOLDIER_CLASS_NONE && bp->ubSoldierClass != SOLDIER_CLASS_CREATURE && bp->ubSoldierClass != SOLDIER_CLASS_MINER )
 	{
 		GenerateRandomEquipment( pp, bp->ubSoldierClass, bp->bRelativeEquipmentLevel);

@@ -131,7 +131,6 @@ bool ItemModel::isThrown() const         { return usItemClass == IC_THROWN; }
 bool ItemModel::isWeapon() const         { return usItemClass & (IC_GUN | IC_BLADE | IC_THROWING_KNIFE | IC_LAUNCHER | IC_TENTACLES); }
 
 bool ItemModel::isTwoHanded() const      { return fFlags & ITEM_TWO_HANDED;             }
-bool ItemModel::isInBigGunList() const   { return fFlags & ITEM_BIGGUNLIST;             }
 
 void ItemModel::serializeFlags(JsonObject &obj) const
 {
@@ -145,7 +144,6 @@ void ItemModel::serializeFlags(JsonObject &obj) const
 	if(getFlags() & ITEM_TWO_HANDED)          { obj.set("bTwoHanded", true);      }
 	if(getFlags() & ITEM_NOT_BUYABLE)         { obj.set("bNotBuyable", true);     }
 	if(getFlags() & ITEM_ATTACHMENT)          { obj.set("bAttachment", true);     }
-	if(getFlags() & ITEM_BIGGUNLIST)          { obj.set("bBigGunList", true);     }
 	if(getFlags() & ITEM_NOT_EDITOR)          { obj.set("bNotEditor", true);      }
 	if(getFlags() & ITEM_DEFAULT_UNDROPPABLE) { obj.set("bDefaultUndroppable", true); }
 	if(getFlags() & ITEM_UNAERODYNAMIC)       { obj.set("bUnaerodynamic", true);  }
@@ -166,7 +164,6 @@ uint16_t ItemModel::deserializeFlags(const JsonObject &obj)
 	if(obj.getOptionalBool("bTwoHanded"))         { flags |= ITEM_TWO_HANDED;             }
 	if(obj.getOptionalBool("bNotBuyable"))        { flags |= ITEM_NOT_BUYABLE;            }
 	if(obj.getOptionalBool("bAttachment"))        { flags |= ITEM_ATTACHMENT;             }
-	if(obj.getOptionalBool("bBigGunList"))        { flags |= ITEM_BIGGUNLIST;             }
 	if(obj.getOptionalBool("bNotEditor"))         { flags |= ITEM_NOT_EDITOR;             }
 	if(obj.getOptionalBool("bDefaultUndroppable")){ flags |= ITEM_DEFAULT_UNDROPPABLE;    }
 	if(obj.getOptionalBool("bUnaerodynamic"))     { flags |= ITEM_UNAERODYNAMIC;          }

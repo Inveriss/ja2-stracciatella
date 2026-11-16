@@ -138,7 +138,6 @@ public:
 	virtual std::vector<ST::string> getAllBigInventoryGraphicPaths() const override;
 	virtual const std::map<uint16_t, uint16_t>& getMapItemReplacements() const override;
 
-	virtual const std::vector<std::vector<const WeaponModel*> > & getNormalGunChoice() const override;
 	virtual const std::vector<std::vector<const WeaponModel*> > & getExtendedGunChoice() const override;
 	virtual const std::vector<GARRISON_GROUP>& getGarrisonGroups() const override;
 	virtual const std::vector<PATROL_GROUP>& getPatrolGroups() const override;
@@ -263,7 +262,6 @@ protected:
 	std::vector<const ExplosionAnimationModel*> m_explosionAnimations;
 	std::vector<const ExplosiveCalibreModel*> m_explosiveCalibres;
 
-	std::vector<std::vector<const WeaponModel*> > mNormalGunChoice;
 	std::vector<std::vector<const WeaponModel*> > mExtendedGunChoice;
 	std::vector<GARRISON_GROUP> m_garrisonGroups;
 	std::vector<PATROL_GROUP> m_patrolGroups;

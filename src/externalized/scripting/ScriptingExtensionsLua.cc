@@ -186,7 +186,6 @@ static void RegisterUserTypes()
 		);
 
 	lua.new_usertype<GAME_OPTIONS>("GAME_OPTIONS",
-		"fGunNut", &GAME_OPTIONS::fGunNut,
 		"fSciFi", &GAME_OPTIONS::fSciFi,
 		"ubDifficultyLevel", &GAME_OPTIONS::ubDifficultyLevel,
 		"fTurnTimeLimit", &GAME_OPTIONS::fTurnTimeLimit,

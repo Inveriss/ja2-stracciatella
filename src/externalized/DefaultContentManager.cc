@@ -98,7 +98,6 @@ const MercProfileInfo EMPTY_MERC_PROFILE_INFO;
 
 DefaultContentManager::DefaultContentManager(RustPointer<EngineOptions> engineOptions)
 	:m_schemaManager(SchemaManager_create()),
-	mNormalGunChoice(ARMY_GUN_LEVELS),
 	mExtendedGunChoice(ARMY_GUN_LEVELS),
 	m_vfs(Vfs_create())
 {
@@ -1079,11 +1078,6 @@ void DefaultContentManager::readWeaponTable(
 	}
 }
 
-const std::vector<std::vector<const WeaponModel*> > & DefaultContentManager::getNormalGunChoice() const
-{
-	return mNormalGunChoice;
-}
-
 const std::vector<std::vector<const WeaponModel*> > & DefaultContentManager::getExtendedGunChoice() const
 {
 	return mExtendedGunChoice;
@@ -1106,7 +1100,6 @@ const std::vector<ARMY_COMPOSITION>& DefaultContentManager::getArmyCompositions(
 
 bool DefaultContentManager::loadArmyData()
 {
-	readWeaponTable("army-gun-choice-normal.json", mNormalGunChoice);
 	readWeaponTable("army-gun-choice-extended.json", mExtendedGunChoice);
 
 	auto jsonAC = readJsonDataFileWithSchema("army-compositions.json");

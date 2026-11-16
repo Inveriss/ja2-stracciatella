@@ -109,7 +109,6 @@ TEST(SaveLoadGameTest, structParsers)
 		// BOOLEAN  fAlternateSector;
 		// BOOLEAN  fWorldLoaded;
 		// UINT8    ubLoadScreenID;
-		EXPECT_EQ(header.sInitialGameOptions.fGunNut,                 1);
 		EXPECT_EQ(header.sInitialGameOptions.fSciFi,                  1);
 		EXPECT_EQ(header.sInitialGameOptions.ubDifficultyLevel,       DIF_LEVEL_EASY);
 		EXPECT_EQ(header.sInitialGameOptions.fTurnTimeLimit,          0);
@@ -136,7 +135,6 @@ TEST(SaveLoadGameTest, structParsers)
 		// BOOLEAN  fAlternateSector;
 		// BOOLEAN  fWorldLoaded;
 		// UINT8    ubLoadScreenID;
-		EXPECT_EQ(header.sInitialGameOptions.fGunNut,                 1);
 		EXPECT_EQ(header.sInitialGameOptions.fSciFi,                  1);
 		EXPECT_EQ(header.sInitialGameOptions.ubDifficultyLevel,       DIF_LEVEL_EASY);
 		EXPECT_EQ(header.sInitialGameOptions.fTurnTimeLimit,          0);
@@ -195,7 +193,6 @@ TEST(SaveLoadGameTest, parseHeaderLinux)
 		EXPECT_EQ(header.sSector.z,                   0);
 		EXPECT_EQ(header.ubNumOfMercsOnPlayersTeam,   1);
 		EXPECT_EQ(header.iCurrentBalance,             42000);
-		EXPECT_EQ(header.sInitialGameOptions.fGunNut,                 1);
 		EXPECT_EQ(header.sInitialGameOptions.fSciFi,                  1);
 		EXPECT_EQ(header.sInitialGameOptions.ubDifficultyLevel,       DIF_LEVEL_EASY);
 		EXPECT_EQ(header.sInitialGameOptions.fTurnTimeLimit,          0);
@@ -224,7 +221,6 @@ TEST(SaveLoadGameTest, parseHeaderWin)
 		EXPECT_EQ(header.sSector.z,                   0);
 		EXPECT_EQ(header.ubNumOfMercsOnPlayersTeam,   6);
 		EXPECT_EQ(header.iCurrentBalance,             13030);
-		EXPECT_EQ(header.sInitialGameOptions.fGunNut,                 1);
 		EXPECT_EQ(header.sInitialGameOptions.fSciFi,                  1);
 		EXPECT_EQ(header.sInitialGameOptions.ubDifficultyLevel,       DIF_LEVEL_EASY);
 		EXPECT_EQ(header.sInitialGameOptions.fTurnTimeLimit,          0);
@@ -248,7 +244,6 @@ TEST(SaveLoadGameTest, parseHeaderWin)
 		EXPECT_EQ(header.sSector.z,                   0);
 		EXPECT_EQ(header.ubNumOfMercsOnPlayersTeam,   1);
 		EXPECT_EQ(header.iCurrentBalance,             32000);
-		EXPECT_EQ(header.sInitialGameOptions.fGunNut,                 0);
 		EXPECT_EQ(header.sInitialGameOptions.fSciFi,                  1);
 		EXPECT_EQ(header.sInitialGameOptions.ubDifficultyLevel,       DIF_LEVEL_MEDIUM);
 		EXPECT_EQ(header.sInitialGameOptions.fTurnTimeLimit,          0);
@@ -277,7 +272,6 @@ TEST(SaveLoadGameTest, parseHeaderMac)
 		EXPECT_EQ(header.sSector.z,                   0);
 		EXPECT_EQ(header.ubNumOfMercsOnPlayersTeam,   1);
 		EXPECT_EQ(header.iCurrentBalance,             42000);
-		EXPECT_EQ(header.sInitialGameOptions.fGunNut,                 0);
 		EXPECT_EQ(header.sInitialGameOptions.fSciFi,                  1);
 		EXPECT_EQ(header.sInitialGameOptions.ubDifficultyLevel,       DIF_LEVEL_EASY);
 		EXPECT_EQ(header.sInitialGameOptions.fTurnTimeLimit,          0);

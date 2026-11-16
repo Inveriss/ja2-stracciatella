@@ -8088,15 +8088,6 @@ ST::string GetHelpTextForItem(const OBJECTTYPE& obj)
 	else
 	{
 		dst = ST::format("{}", GCM->getItem(usItem)->getName());
-		if (!gGameOptions.fGunNut && GCM->getItem(usItem)->getItemClass() == IC_GUN)
-		{
-			const CalibreModel * calibre = GCM->getWeapon(usItem)->calibre;
-			if (calibre->showInHelpText)
-			{
-				ST::string name = *calibre->getName();
-				dst += ST::format(" ({})", name);
-			}
-		}
 
 		ST::string imprint = GetObjectImprint(obj);
 		if (!imprint.empty())

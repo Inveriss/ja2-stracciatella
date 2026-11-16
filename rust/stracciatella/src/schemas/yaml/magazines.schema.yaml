@@ -39,9 +39,6 @@ items:
     ammoType:
       title: Ammo Type
       $ref: types/id.schema.yaml
-    standardReplacement:
-      title: Standard Replacement
-      $ref: types/id.schema.yaml
     dontUseAsDefaultMagazine:
       title: Dont use as default magazine?
       type: boolean
@@ -106,9 +103,6 @@ items:
       type: boolean
     bAttachment:
       title: Is attachment?
-      type: boolean
-    bBigGunList:
-      title: Is in big gun list?
       type: boolean
     bNotEditor:
       title: Dont show in editor?

@@ -146,7 +146,6 @@ static BOOLEAN fBeenWarned              = FALSE;
 static BOOLEAN fEditModeFirstTime       = TRUE;
 static BOOLEAN fFirstTimeInEditModeInit = TRUE;
 static BOOLEAN fSelectionWindow         = FALSE;
-static BOOLEAN gfRealGunNut             = TRUE;
 
 static BOOLEAN fNewMap = FALSE;
 
@@ -204,9 +203,6 @@ static void EditModeInit(void)
 	UINT32 x;
 
 	SLOGI("Entering editor mode...");
-
-	gfRealGunNut = gGameOptions.fGunNut;
-	gGameOptions.fGunNut = TRUE;
 
 
 	if( !gfProfileDataLoaded )
@@ -460,8 +456,6 @@ static BOOLEAN EditModeShutdown(void)
 			LightSetBaseLevel( (UINT8)gusGameLightLevel );
 		UpdateMercsInSector();
 	}
-
-	gGameOptions.fGunNut = gfRealGunNut;
 
 	DeleteBuildingLayout();
 

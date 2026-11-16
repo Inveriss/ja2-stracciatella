@@ -52,7 +52,6 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 void AssignCreatureInventory( SOLDIERTYPE *pSoldier );
 
-void ReplaceExtendedGuns( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass );
 
 void ResetMortarsOnTeamCount( void );
 
