@@ -630,10 +630,8 @@
         "usPrice": 150,
         "minDropProgress": 50,
         "ubCoolness": 5,
-        "standardReplacement": "CLIP556_30_AP",
         "bMetal": true,
         "bSinks": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "P1ITEMS",
             "subIndex": 10
@@ -661,10 +659,8 @@
         "usPrice": 100,
         "minDropProgress": 40,
         "ubCoolness": 4,
-        "standardReplacement": "CLIP556_30_HP",
         "bMetal": true,
         "bSinks": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "P1ITEMS",
             "subIndex": 11
@@ -750,10 +746,8 @@
         "usPrice": 60,
         "minDropProgress": 60,
         "ubCoolness": 6,
-        "standardReplacement": "CLIP762N_5_AP",
         "bMetal": true,
         "bSinks": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "P1ITEMS",
             "subIndex": 23
@@ -781,10 +775,8 @@
         "usPrice": 180,
         "minDropProgress": 40,
         "ubCoolness": 4,
-        "standardReplacement": "CLIP762N_20_AP",
         "bMetal": true,
         "bSinks": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "P1ITEMS",
             "subIndex": 30
@@ -812,10 +804,8 @@
         "usPrice": 40,
         "minDropProgress": 50,
         "ubCoolness": 5,
-        "standardReplacement": "CLIP762N_5_HP",
         "bMetal": true,
         "bSinks": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "P1ITEMS",
             "subIndex": 24
@@ -843,10 +833,8 @@
         "usPrice": 120,
         "minDropProgress": 30,
         "ubCoolness": 3,
-        "standardReplacement": "CLIP762N_20_HP",
         "bMetal": true,
         "bSinks": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "P1ITEMS",
             "subIndex": 31

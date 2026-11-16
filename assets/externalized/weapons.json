@@ -92,7 +92,6 @@
         "bReliability": 1,
         "bRepairEase": 1,
         "rateOfFire": 1300,
-        "standardReplacement": "BERETTA_93R",
         "calibre": "AMMO9",
         "ubReadyTime": 1,
         "ubAPCostPerSingleShot": 2,
@@ -116,7 +115,6 @@
         "bMetal": true,
         "bSinks": true,
         "bShowStatus": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 3
@@ -144,7 +142,6 @@
         "bReliability": 2,
         "bRepairEase": -1,
         "rateOfFire": 45,
-        "standardReplacement": "GLOCK_17",
         "calibre": "AMMO9",
         "ubReadyTime": 1,
         "ubAPCostPerSingleShot": 2,
@@ -161,7 +158,6 @@
         "bMetal": true,
         "bSinks": true,
         "bShowStatus": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 4
@@ -282,7 +278,6 @@
         "bReliability": 2,
         "bRepairEase": 3,
         "rateOfFire": 23,
-        "standardReplacement": "DESERTEAGLE",
         "calibre": "AMMO357",
         "ubReadyTime": 1,
         "ubAPCostPerSingleShot": 2,
@@ -299,7 +294,6 @@
         "bMetal": true,
         "bSinks": true,
         "bShowStatus": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 7
@@ -370,7 +364,6 @@
         "bReliability": 1,
         "bRepairEase": 1,
         "rateOfFire": 35,
-        "standardReplacement": "GLOCK_17",
         "calibre": "AMMO45",
         "ubReadyTime": 1,
         "ubAPCostPerSingleShot": 2,
@@ -387,7 +380,6 @@
         "bMetal": true,
         "bSinks": true,
         "bShowStatus": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 9
@@ -523,7 +515,6 @@
         "bReliability": 3,
         "bRepairEase": -3,
         "rateOfFire": 700,
-        "standardReplacement": "MP5K",
         "calibre": "AMMO45",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 8,
@@ -552,7 +543,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 12
@@ -636,7 +626,6 @@
         "bReliability": -1,
         "bRepairEase": -1,
         "rateOfFire": 700,
-        "standardReplacement": "MP5K",
         "calibre": "AMMO556",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 7,
@@ -664,7 +653,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 14
@@ -692,7 +680,6 @@
         "bReliability": -2,
         "bRepairEase": -1,
         "rateOfFire": 800,
-        "standardReplacement": "MAC10",
         "calibre": "AMMO545",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 5,
@@ -722,7 +709,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 15
@@ -804,7 +790,6 @@
         "bReliability": -4,
         "bRepairEase": 2,
         "rateOfFire": 780,
-        "standardReplacement": "BERETTA_93R",
         "calibre": "AMMO762W",
         "ubReadyTime": 1,
         "ubAPCostPerSingleShot": 8,
@@ -833,7 +818,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 17
@@ -861,7 +845,6 @@
         "bReliability": -4,
         "bRepairEase": -2,
         "rateOfFire": 40,
-        "standardReplacement": "MINI14",
         "calibre": "AMMO762W",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 6,
@@ -884,7 +867,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 18
@@ -912,7 +894,6 @@
         "bReliability": 2,
         "bRepairEase": 2,
         "rateOfFire": 20,
-        "standardReplacement": "M24",
         "calibre": "AMMO762W",
         "ubReadyTime": 5,
         "ubAPCostPerSingleShot": 7,
@@ -935,7 +916,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 19
@@ -1012,7 +992,6 @@
         "bReliability": 1,
         "bRepairEase": -2,
         "rateOfFire": 650,
-        "standardReplacement": "C7",
         "calibre": "AMMO556",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 6,
@@ -1043,7 +1022,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 21
@@ -1235,7 +1213,6 @@
         "bReliability": -2,
         "bRepairEase": -2,
         "rateOfFire": 900,
-        "standardReplacement": "M14",
         "calibre": "AMMO556",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 5,
@@ -1266,7 +1243,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 25
@@ -1294,7 +1270,6 @@
         "bReliability": -1,
         "bRepairEase": -2,
         "rateOfFire": 650,
-        "standardReplacement": "G41",
         "calibre": "AMMO545",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 5,
@@ -1325,7 +1300,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 26
@@ -1353,7 +1327,6 @@
         "bReliability": 2,
         "bRepairEase": 2,
         "rateOfFire": 600,
-        "standardReplacement": "G41",
         "calibre": "AMMO762W",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 5,
@@ -1384,7 +1357,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 27
@@ -1526,7 +1498,6 @@
         "bReliability": 1,
         "bRepairEase": -1,
         "rateOfFire": 500,
-        "standardReplacement": "G41",
         "calibre": "AMMO762N",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 6,
@@ -1557,7 +1528,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 30
@@ -1694,7 +1664,6 @@
         "bReliability": -2,
         "bRepairEase": -2,
         "rateOfFire": 30,
-        "standardReplacement": "M870",
         "calibre": "AMMO12G",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 8,
@@ -1721,7 +1690,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 33
@@ -1863,7 +1831,6 @@
         "bReliability": -1,
         "bRepairEase": -2,
         "rateOfFire": 800,
-        "standardReplacement": "MINIMI",
         "calibre": "AMMO545",
         "ubReadyTime": 2,
         "ubAPCostPerSingleShot": 6,
@@ -1894,7 +1861,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 36
@@ -1922,7 +1888,6 @@
         "bReliability": 2,
         "bRepairEase": 1,
         "rateOfFire": 800,
-        "standardReplacement": "MINIMI",
         "calibre": "AMMO762N",
         "ubReadyTime": 3,
         "ubAPCostPerSingleShot": 6,
@@ -1953,7 +1918,6 @@
         "bSinks": true,
         "bShowStatus": true,
         "bTwoHanded": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 37
@@ -3738,7 +3702,6 @@
         "bReliability": 1,
         "bRepairEase": 1,
         "rateOfFire": 1300,
-        "standardReplacement": "BERETTA_93R",
         "calibre": "AMMO9",
         "ubReadyTime": 1,
         "ubAPCostPerSingleShot": 2,
@@ -3762,7 +3725,6 @@
         "bMetal": true,
         "bSinks": true,
         "bShowStatus": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 202
@@ -3790,7 +3752,6 @@
         "bReliability": 0,
         "bRepairEase": -1,
         "rateOfFire": 1300,
-        "standardReplacement": "BERETTA_93R",
         "calibre": "AMMO9",
         "ubReadyTime": 1,
         "ubAPCostPerSingleShot": 2,
@@ -3814,7 +3775,6 @@
         "bMetal": true,
         "bSinks": true,
         "bShowStatus": true,
-        "bBigGunList": true,
         "tileGraphic": {
             "type": "GUNS",
             "subIndex": 203

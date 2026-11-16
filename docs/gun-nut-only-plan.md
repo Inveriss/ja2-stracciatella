@@ -1,12 +1,12 @@
 # Gun Nut only - plan
 
 Status: plan written 2026-11-16, decisions G1-G5 decided 2026-11-16 (all A, as
-recommended). Implemented on the Weapons branch.
+recommended). Implemented on the Weapons branch. Gun Nut only COMPLETE (2026-11-16).
 
 | Stage | Commit | State |
 |---|---|---|
-| 1 - code | this commit | game-verified |
-| 2 - data | | |
+| 1 - code | 104911ea7 | game-verified |
+| 2 - data | this commit | game-verified |
 
 Remove the "Normal" (reduced) gun mode for good: every weapon of `weapons.json` always
 takes part in the game, and the data no longer needs `standardReplacement` or
