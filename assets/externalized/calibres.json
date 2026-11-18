@@ -167,5 +167,25 @@
         "silencedSound": "sounds/weapons/silencer 03.wav",
         "showInHelpText": true,
         "monsterWeapon": false
+    },
+    {
+        "index": 19,
+        "internalName": "AMMO46",
+        "sound": "sounds/weapons/45 caliber single shot.wav",
+        "burstSound": "sounds/weapons/45 caliber burst %d.wav",
+        "silencedSound": "sounds/weapons/silencer 03.wav",
+        "silencedBurstSound": "sounds/weapons/silencer burst %d.wav",
+        "showInHelpText": true,
+        "monsterWeapon": false
+    },
+    {
+        "index": 20,
+        "internalName": "AMMO762_25",
+        "sound": "sounds/weapons/45 caliber single shot.wav",
+        "burstSound": "sounds/weapons/45 caliber burst %d.wav",
+        "silencedSound": "sounds/weapons/silencer 03.wav",
+        "silencedBurstSound": "sounds/weapons/silencer burst %d.wav",
+        "showInHelpText": true,
+        "monsterWeapon": false
     }
 ]
