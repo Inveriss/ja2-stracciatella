@@ -2426,7 +2426,183 @@
             "type": "P1ITEMS",
             "subIndex": 326
         }
+    },
+	{
+        "itemIndex": 3026,
+        "internalName": "CLIP46_20_HP",
+        "calibre": "AMMO46",
+        "capacity": 20,
+        "ammoType": "AMMO_HP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 326
+            },
+            "big": {
+                "path": "bigitems/p1item3026.sti"
+            }
+        },
+        "ubWeight": 1,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 300,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 327
+        }
+    },
+	{
+        "itemIndex": 3027,
+        "internalName": "CLIP46_20_AP",
+        "calibre": "AMMO46",
+        "capacity": 20,
+        "ammoType": "AMMO_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 327
+            },
+            "big": {
+                "path": "bigitems/p1item3027.sti"
+            }
+        },
+        "ubWeight": 1,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 450,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 328
+        }
+    },
+	{
+        "itemIndex": 3028,
+        "internalName": "CLIP46_20_SUPER_AP",
+        "calibre": "AMMO46",
+        "capacity": 20,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 328
+            },
+            "big": {
+                "path": "bigitems/p1item3028.sti"
+            }
+        },
+        "ubWeight": 1,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 600,
+        "minDropProgress": 20,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 329
+        }
+    },
+	{
+        "itemIndex": 3029,
+        "internalName": "CLIP762_25_30_HP",
+        "calibre": "AMMO762_25",
+        "capacity": 30,
+        "ammoType": "AMMO_HP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 329
+            },
+            "big": {
+                "path": "bigitems/p1item3029.sti"
+            }
+        },
+        "ubWeight": 3,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 30,
+        "minDropProgress": 25,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 330
+        }
+    },
+	{
+        "itemIndex": 3030,
+        "internalName": "CLIP762_25_30_AP",
+        "calibre": "AMMO762_25",
+        "capacity": 30,
+        "ammoType": "AMMO_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 330
+            },
+            "big": {
+                "path": "bigitems/p1item3030.sti"
+            }
+        },
+        "ubWeight": 3,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 60,
+        "minDropProgress": 25,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 331
+        }
+    },
+	{
+        "itemIndex": 3031,
+        "internalName": "CLIP762_25_30_SUPER_AP",
+        "calibre": "AMMO762_25",
+        "capacity": 30,
+        "ammoType": "AMMO_SUPER_AP",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 331
+            },
+            "big": {
+                "path": "bigitems/p1item3031.sti"
+            }
+        },
+        "ubWeight": 3,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 90,
+        "minDropProgress": 25,
+        "ubCoolness": 2,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 332
+        }
     }
+	
+	
 	
 	
 	

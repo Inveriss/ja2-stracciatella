@@ -76,18 +76,18 @@
     },
     {
         "internalName": "MP5K",
-        "shortName": "MP5K",
-        "name": "H&K MP5K",
+        "shortName": "MP5KA4",
+        "name": "H&K MP5KA4",
         "description": "This German sub-machine gun is the must-have weapon for Die Hard terrorists and two-bit South American drug lords.",
-        "bobbyRayName": "H&K MP5K",
-        "bobbyRayDescription": "Heckler and Koch's MP5K is one of the most compact and deadly German sub-machine guns around. Anti-terrorist groups and drug cartels love this weapon because it's so small and easy to use. This tiny weapon is easily hidden under clothing."
+        "bobbyRayName": "H&K MP5KA4",
+        "bobbyRayDescription": "Heckler and Koch's MP5KA4 is one of the most compact and deadly German sub-machine guns around. Anti-terrorist groups and drug cartels love this weapon because it's so small and easy to use. This tiny weapon is easily hidden under clothing."
     },
     {
         "internalName": "MAC10",
         "shortName": "MAC-10",
-        "name": "MAC-10",
+        "name": "Ingram M10",
         "description": "The American Uzi. Born in the days of disco, this weapon has been very popular in the land of pink flamingos and snow.",
-        "bobbyRayName": ".45 MAC-10",
+        "bobbyRayName": "Ingram M10",
         "bobbyRayDescription": "The U.S. Military Armament Corp. Model-10: a real man's sub-machine gun. Its steadiness allows for single-handed firing and its threaded barrel can fit a 'sound suppressor,' which is similar to a silencer but won't reduce bullet velocity."
     },
     {
@@ -2587,7 +2587,15 @@
         "bobbyRayName": "Desert Eagle .50 AE",
         "bobbyRayDescription": "In 1991, the Desert Eagle earned overnight notoriety when this .50 AE variant was revealed. Massive firepower in a massive pistol."
     },
-	// 1010
+	
+	
+	
+	
+	
+	// MACHINE PISTOLS: 1101 - 1200
+	
+	
+	// 1101
     {
         "internalName": "TEC9",
         "shortName": "TEC-9",
@@ -2596,7 +2604,7 @@
         "bobbyRayName": "Intratec TEC-9",
         "bobbyRayDescription": "Not only popular with the criminals, the TEC-9 is an affordable semi-automatic pistol with a rather large magazine capacity."
     },
-	// 1011
+	// 1102
     {
         "internalName": "CALICO_M950",
         "shortName": "M-950",
@@ -2605,6 +2613,93 @@
         "bobbyRayName": "Calico M-950",
         "bobbyRayDescription": "An American made pistol version of the M960. Using only semi-automatic and limited burst fire & the same 50-round clip, it could probably only be classified a pistol in the U.S.A."
     },
+	
+	
+	
+	
+	
+	// SUBMACHINE GUNS (SMG): 1201 - 1300
+
+
+	// 1201
+    {
+        "internalName": "MICRO_UZI",
+        "shortName": "Micro-Uzi",
+        "name": "Micro-Uzi",
+        "description": "The name says it all, it's an Uzi. First there was the Mini-Uzi, now the Micro-Uzi. One can only wonder when the Pocket-Uzi will roll-off the Israeli assembly line.",
+        "bobbyRayName": "Micro-Uzi",
+        "bobbyRayDescription": "The name says it all, it's an Uzi. First there was the Mini-Uzi, now the Micro-Uzi. One can only wonder when the Pocket-Uzi will roll-off the Israeli assembly line."
+    },
+	// 1202
+    {
+        "internalName": "MP7A1",
+        "shortName": "MP7A1",
+        "name": "HK MP7A1",
+        "description": "The MP7 is a compact submachine gun with folding forward grip and telescoped buttstock, and is designed to fire special, high velocity 4.6mm ammunition.",
+        "bobbyRayName": "HK MP7A1",
+        "bobbyRayDescription": "The MP7 is a compact submachine gun with folding forward grip and telescoped buttstock, and is designed to fire special, high velocity 4.6mm ammunition."
+    },
+	// 1203
+    {
+        "internalName": "KRISS_SUPERV",
+        "shortName": "Super V",
+        "name": "KRISS Super V",
+        "description": "The KRISS Super V is a new generation PDW with a very high rate of fire. Due to a new recoil system it is very easy to control during burst fire.",
+        "bobbyRayName": "KRISS Super V",
+        "bobbyRayDescription": "The KRISS Super V is a new generation PDW with a very high rate of fire and due to a new recoil system very easy to control during burst fire. The KRISS makes good use of the old .45 ACP caliber."
+    },
+	// 1204
+    {
+        "internalName": "UZI",
+        "shortName": "Uzi",
+        "name": "Uzi",
+        "description": "The most well-known submachine gun in the world, likely thanks to Hollywood.",
+        "bobbyRayName": "Uzi",
+        "bobbyRayDescription": "Since its introduction in 1948, the Uzi has supplanted the Thompson as the household word in SMGs."
+    },
+	// 1205
+    {
+        "internalName": "UMP45",
+        "shortName": "UMP45",
+        "name": "HK UMP45",
+        "description": "The UMP (Universal Machinen-Pistole, Universal Submachine Gun) was developed by the Heckler & Koch company of Germany in the mid- to late-1990s.",
+        "bobbyRayName": "HK UMP45",
+        "bobbyRayDescription": "The UMP (Universal Machinen-Pistole, Universal Submachine Gun) was developed by the Heckler & Koch company of Germany in the mid- to late-1990s."
+    },
+	// 1206
+    {
+        "internalName": "MP5A3",
+        "shortName": "MP5A3",
+        "name": "HK MP5A3",
+        "description": "Yet another version of the H&K MP5, chambered in 9mm.",
+        "bobbyRayName": "HK MP5A3",
+        "bobbyRayDescription": "The more popular one of the new caliber MP5's, this is the 9mm version."
+    },
+	// 1207
+    {
+        "internalName": "SCORPION_EVO3",
+        "shortName": "EVO3",
+        "name": "Skorpion EVO3",
+        "description": "A rather newly designed Czech 9x19mm submachinegun with a fairly high rate of fire. The EVO III is fitted with extra picatinny rails and a sidefolding stock.",
+        "bobbyRayName": "Skorpion EVO3",
+        "bobbyRayDescription": "A rather newly designed Czech 9x19mm submachinegun with a fairly high rate of fire. The EVO III is fitted with extra picatinny rails and a sidefolding stock."
+    },
+	// 1208
+    {
+        "internalName": "CALICO_M960A",
+        "shortName": "M-960A",
+        "name": "Calico M-960A",
+        "description": "Known as the Mini Submachine Gun, this American model uses a helical-feed 50-round magazine of 9mm bullets and has been making things right since 1990.",
+        "bobbyRayName": "Calico M-960A",
+        "bobbyRayDescription": "Known as the Mini Submachine Gun, this American model uses a helical-feed 50-round magazine of 9mm bullets and has been making things right since 1990."
+    },
+
+
+	
+
+
+
+
 
 
 
@@ -2851,7 +2946,62 @@
         "description": "A 50-round magazine of 9mm Super AP ammo for the Calico model.",
         "bobbyRayName": "9x19mm 50 Mag, AP",
         "bobbyRayDescription": "A 50-round magazine of 9mm Super AP ammo for the Calico model."
+    },
+	// 3026
+    {
+        "internalName": "CLIP46_20_HP",
+        "shortName": "4.6mm 20 Mag HP",
+        "name": "4.6x30mm 20 Mag HP",
+        "description": "20 rounds of HP ammo for the H&K MP7A1.",
+        "bobbyRayName": "4.6x30mm 20 Mag HP",
+        "bobbyRayDescription": "A magazine with HP ammo for the H&K MP7A1."
+    },
+	// 3027
+    {
+        "internalName": "CLIP46_20_AP",
+        "shortName": "4.6mm 20 Mag AP",
+        "name": "4.6x30mm 20 Mag AP",
+        "description": "20 rounds of AP ammo for the H&K MP7A1.",
+        "bobbyRayName": "4.6x30mm 20 Mag AP",
+        "bobbyRayDescription": "20 rounds of armor-piercing 4.6mm ammo, usable for the HK MP7A1."
+    },
+	// 3028
+    {
+        "internalName": "CLIP46_20_SUPER_AP",
+        "shortName": "4.6mm 20 Mag Super AP",
+        "name": "4.6x30mm 20 Mag Super AP",
+        "description": "20 rounds of Super AP ammo for the H&K MP7A1.",
+        "bobbyRayName": "4.6x30mm 20 Mag Super AP",
+        "bobbyRayDescription": "20 rounds of super armor-piercing 4.6mm ammo, usable for the HK MP7A1."
+    },
+	// 3029
+    {
+        "internalName": "CLIP762_25_30_HP",
+        "shortName": "7.62 SMG Mag HP",
+        "name": "7.62x25mm SMG Mag HP",
+        "description": "Great for use on unarmored foes and common household pests.",
+        "bobbyRayName": "7.62x25mm SMG Mag HP",
+        "bobbyRayDescription": "Great for use on unarmored foes and common household pests."
+    },
+	// 3030
+    {
+        "internalName": "CLIP762_25_30_AP",
+        "shortName": "7.62 SMG Mag AP",
+        "name": "7.62x25mm SMG Mag AP",
+        "description": "Penetrating power isn't as important when you can shoot your target multiple times. 30 rounds of 7.62x25mm will make sure they stay down.",
+        "bobbyRayName": "7.62x25mm SMG Mag AP",
+        "bobbyRayDescription": "Penetrating power isn't as important when you can shoot your target multiple times. 30 rounds of 7.62x25mm will make sure they stay down."
+    },
+	// 3031
+    {
+        "internalName": "CLIP762_25_30_SUPER_AP",
+        "shortName": "7.62 SMG Mag Super AP",
+        "name": "7.62x25mm SMG Mag Super AP",
+        "description": "Penetrating power isn't as important when you can shoot your target multiple times. 30 rounds of super 7.62x25mm will make sure they stay down.",
+        "bobbyRayName": "7.62x25mm SMG Mag Super AP",
+        "bobbyRayDescription": "Penetrating power isn't as important when you can shoot your target multiple times. 30 rounds of super7.62x25mm will make sure they stay down."
     }
+
 
 
 

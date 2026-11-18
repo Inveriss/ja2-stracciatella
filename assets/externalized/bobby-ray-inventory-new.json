@@ -21,14 +21,27 @@
         "BERETTA_93R": 3,
 		"TEC9": 3,
 		"CALICO_M950": 3,
-        
-        "MP5K": 2,
-        "MAC10": 1,
-        "THOMPSON": 1,
+		
+		
+        "MP5K": 3,
+        "MAC10": 3,
+        "THOMPSON": 3,
+		"P90": 3,
+		"TYPE85": 3,
+		"MICRO_UZI": 3,
+		"MP7A1": 3,
+		"KRISS_SUPERV": 3,
+		"UZI": 3,
+		"UMP45": 3,
+		"MP5A3": 3,
+		"SCORPION_EVO3": 3,
+		"CALICO_M960A": 3,
+		
+		
         "COMMANDO": 1,
         "MP53": 1,
         "AKSU74": 1,
-        "TYPE85": 3,
+       
         "SKS": 1,
         "DRAGUNOV": 1,
         "M24": 1,
