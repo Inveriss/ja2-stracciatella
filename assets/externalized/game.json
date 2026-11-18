@@ -97,6 +97,24 @@
     "difficulty_modifiers": { "easy": -1, "experienced": 0, "expert": 1 }
   },
 
+  //  AP to reload a weapon by its type (docs/weapon-reload-ap-plan.md): the keys are the
+  //  weapons.json internalType values, HEAVY_WEAPON for the heavy weapons and launchers
+  //  (grenade launchers, mortar, rocket rifles, LAW, tank cannon). A weapon with its own
+  //  "ubAPCostPerReload" in weapons.json uses that instead. A magazine of another size than
+  //  the weapon's costs double. Every type of a weapon that reloads must be here.
+  //  vanilla setting: none (new; vanilla is 5 for every weapon)
+  "weapon_reload_ap": {
+    "PISTOL": 2,
+    "M_PISTOL": 3,
+    "SMG": 5,
+    "SHOTGUN": 10,
+    "ASRIFLE": 8,
+    "RIFLE": 10,
+    "SN_RIFLE": 12,
+    "LMG": 15,
+    "HEAVY_WEAPON": 15
+  },
+
   //  Enemy and militia ammo by chance (docs/enemy-ammo-chances-plan.md): the row by the
   //  soldier's equipment progress P (0-9, 10-19, ..., 80-89, 90-100; the game progress when P
   //  is not rolled), the columns REGULAR, HP, AP, SUPER_AP in percent, each row 100. A type

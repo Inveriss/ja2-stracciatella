@@ -10,6 +10,7 @@
 #include <optional>
 #include <set>
 #include <stdint.h>
+#include <vector>
 
 enum SoundID;
 class ExplosiveCalibreModel;
@@ -66,12 +67,21 @@ struct WeaponModel : ItemModel
 	/** Check if the given attachment can be attached to the item. */
 	virtual bool canBeAttached(const GamePolicy* policy, const ItemModel* attachment) const;
 
-	/** Get standard replacement gun name. */
-
 	int getRateOfFire() const;
 
 	/** Has the weapon at least one burst mode? */
 	bool canBurst() const;
+
+	/** A launcher, a rocket gun or a weapon without a gun type (LAW, tank cannon) */
+	bool isHeavyWeapon() const;
+
+	/** Does the weapon take a magazine or a launcher round (not blades, thrown
+	 * items or creature attacks)? */
+	bool reloads() const;
+
+	/** The key of game.json weapon_reload_ap for this weapon: HEAVY_WEAPON or its
+	 * internalType (docs/weapon-reload-ap-plan.md, R3) */
+	ST::string reloadType() const;
 
 	ST::string sound;
 	ST::string burstSound;
@@ -94,6 +104,9 @@ struct WeaponModel : ItemModel
 	// cargo slot, within the vehicle's own limits); unset = game.json
 	// gun_stack_size (docs/gun-stacking-plan.md, G3)
 	std::optional<uint8_t> stackSize;
+	// AP to reload this weapon; unset = game.json weapon_reload_ap by reloadType()
+	// (docs/weapon-reload-ap-plan.md, R1)
+	std::optional<uint8_t> apCostPerReload;
 	int m_rateOfFire;
 
 	ST::string internalType;
@@ -442,3 +455,9 @@ struct MonsterSpit : WeaponModel
 
 	JsonValue serialize() const override;
 };
+
+/** Every weapon that reloads has a reload cost: its own ubAPCostPerReload or an entry of
+ * game.json weapon_reload_ap for its reloadType(); throws DataError naming the first one
+ * without (docs/weapon-reload-ap-plan.md, R4). */
+void CheckWeaponReloadAPs(std::vector<const ItemModel*> const& items, std::map<ST::string, uint8_t> const& table);
+

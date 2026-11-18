@@ -2927,11 +2927,21 @@ UINT32 AICalcChanceToHitGun(SOLDIERTYPE *pSoldier, UINT16 sGridNo, UINT8 ubAimTi
 
 bool IsHeavyWeapon(UINT16 const usItem)
 {
-	ItemModel const* const item = GCM->getItem(usItem);
-	if (item->isLauncher()) return true;
-	if (!item->isGun()) return false;
-	WeaponModel const* const gun = item->asWeapon();
-	return gun->calibre->internalName == "AMMOROCKET" || gun->ubWeaponType == NOT_GUN;
+	WeaponModel const* const w = GCM->getItem(usItem)->asWeapon();
+	return w != nullptr && w->isHeavyWeapon();
+}
+
+
+// docs/weapon-reload-ap-plan.md: the weapon's own cost, else game.json weapon_reload_ap
+// by its type (HEAVY_WEAPON for heavy weapons and launchers)
+UINT8 WeaponReloadAPs(UINT16 const usItem)
+{
+	WeaponModel const* const w = GCM->getItem(usItem)->asWeapon();
+	if (w == nullptr) return 0;
+	if (w->apCostPerReload) return *w->apCostPerReload;
+	auto const& table = gamepolicy(weapon_reload_ap);
+	auto const it = table.find(w->reloadType());
+	return it != table.end() ? it->second : 0; // the load check makes sure it is there
 }
 
 

@@ -1211,6 +1211,9 @@ bool DefaultContentManager::loadGameData(BinaryData const& binaryData)
 
 	fillUnusedItemIndices();
 
+	// docs/weapon-reload-ap-plan.md, R4
+	CheckWeaponReloadAPs(m_items, m_gamePolicy->weapon_reload_ap);
+
 	// docs/enemy-equipment-progress-plan.md, stage 1
 	for (ST::string const& warning : MissingLowEnemyTiers(m_items))
 	{

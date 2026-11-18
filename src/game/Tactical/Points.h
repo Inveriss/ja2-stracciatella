@@ -84,7 +84,7 @@ enum WeaponModes : INT8; // Soldier_Control.h
 
 #define AP_DROP_BOMB			3
 
-#define AP_RELOAD_GUN			5 // loading new clip/magazine
+#define AP_ATTACH_ITEM			5 // putting on / taking off an attachment (a reload: WeaponReloadAPs)
 
 #define AP_START_FIRST_AID		5 // get the stuff out of medic kit
 #define AP_PER_HP_FIRST_AID		1 // for each point healed

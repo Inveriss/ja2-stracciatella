@@ -1459,23 +1459,15 @@ UINT16 GetAPsToGiveItem(SOLDIERTYPE* const s, UINT16 const usMapPos)
 }
 
 
+// docs/weapon-reload-ap-plan.md: the weapon's reload cost, doubled for a magazine of
+// another size (R5); a launcher's round has no size
 INT8 GetAPsToReloadGunWithAmmo( OBJECTTYPE * pGun, OBJECTTYPE * pAmmo )
 {
-	if (GCM->getItem(pGun->usItem)->getItemClass() == IC_LAUNCHER)
-	{
-		// always standard AP cost
-		return( AP_RELOAD_GUN );
-	}
-	if ( GCM->getWeapon(pGun->usItem)->isSameMagCapacity(GCM->getItem(pAmmo->usItem)->asAmmo()))
-	{
-		// normal situation
-		return( AP_RELOAD_GUN );
-	}
-	else
-	{
-		// trying to reload with wrong size of magazine
-		return( AP_RELOAD_GUN + AP_RELOAD_GUN );
-	}
+	int const aps = WeaponReloadAPs(pGun->usItem);
+	if (GCM->getItem(pGun->usItem)->getItemClass() == IC_LAUNCHER) return static_cast<INT8>(std::min(aps, 127));
+	MagazineModel const* const mag = GCM->getItem(pAmmo->usItem)->asAmmo();
+	bool const sameSize = mag == nullptr || GCM->getWeapon(pGun->usItem)->isSameMagCapacity(mag);
+	return static_cast<INT8>(std::min(sameSize ? aps : 2 * aps, 127));
 }
 
 INT8 GetAPsToAutoReload( SOLDIERTYPE * pSoldier )

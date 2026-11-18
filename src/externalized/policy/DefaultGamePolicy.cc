@@ -102,6 +102,26 @@ void ReadEnemyAmmo(GamePolicy& p, JsonObject const& gp)
 	p.enemy_ammo_he_chance       = share("he_chance", 70);
 }
 
+// docs/weapon-reload-ap-plan.md, section 2; defaults = the decided table. The section
+// replaces the defaults as a whole when it is there.
+void ReadWeaponReloadAP(GamePolicy& p, JsonObject const& gp)
+{
+	p.weapon_reload_ap = {
+		{ "PISTOL", 2 }, { "M_PISTOL", 3 }, { "SMG", 5 }, { "SHOTGUN", 10 }, { "ASRIFLE", 8 },
+		{ "RIFLE", 10 }, { "SN_RIFLE", 12 }, { "LMG", 15 }, { "HEAVY_WEAPON", 15 }
+	};
+	if (!gp.has("weapon_reload_ap")) return;
+
+	p.weapon_reload_ap.clear();
+	JsonObject const table = gp["weapon_reload_ap"].toObject();
+	for (ST::string const& type : table.keys())
+	{
+		int const v = table.GetInt(type.c_str());
+		if (v < 0 || v > 255) throw DataError(ST::format("game.json: weapon_reload_ap {} must be 0-255, not {}", type, v));
+		p.weapon_reload_ap[type] = static_cast<uint8_t>(v);
+	}
+}
+
 }
 
 DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
@@ -199,6 +219,7 @@ DefaultGamePolicy::DefaultGamePolicy(const JsonValue& json)
 	ReadEnemyEquipment(*this, gp);
 	ReadEnemyEliteHeavy(*this, gp);
 	ReadEnemyAmmo(*this, gp);
+	ReadWeaponReloadAP(*this, gp);
 
 	kills_per_point_easy = progress.getOptionalInt("kills_per_point_easy", 7);
 	kills_per_point_medium = progress.getOptionalInt("kills_per_point_medium", 10);

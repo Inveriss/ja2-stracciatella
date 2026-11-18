@@ -701,6 +701,17 @@ WeaponModel* WeaponModel::deserialize(const JsonValue &json,
 		}
 		wep->stackSize = static_cast<uint8_t>(stackSize);
 	}
+
+	// docs/weapon-reload-ap-plan.md, R1
+	if (obj.has("ubAPCostPerReload"))
+	{
+		unsigned int const reload = obj.GetUInt("ubAPCostPerReload");
+		if (reload > 255)
+		{
+			throw DataError(ST::format("ubAPCostPerReload of '{}' must be 0-255, not {}", wep->getInternalName(), reload));
+		}
+		wep->apCostPerReload = static_cast<uint8_t>(reload);
+	}
 	wep->deserializeAttachmentFamily(obj);
 
 	wep->fFlags |= ItemModel::deserializeFlags(obj);
@@ -1568,4 +1579,41 @@ JsonValue MonsterSpit::serialize() const
 	serializeAttachments(obj);
 	serializeFlags(obj);
 	return obj.toValue();
+}
+
+
+bool WeaponModel::isHeavyWeapon() const
+{
+	if (isLauncher()) return true;
+	if (!isGun()) return false;
+	return calibre->internalName == "AMMOROCKET" || ubWeaponType == NOT_GUN;
+}
+
+
+bool WeaponModel::reloads() const
+{
+	if (isLauncher()) return true;
+	return isGun() && calibre->index != CalibreModel::NOAMMO && !calibre->monsterWeapon;
+}
+
+
+ST::string WeaponModel::reloadType() const
+{
+	return isHeavyWeapon() ? ST::string("HEAVY_WEAPON") : internalType;
+}
+
+
+void CheckWeaponReloadAPs(std::vector<const ItemModel*> const& items, std::map<ST::string, uint8_t> const& table)
+{
+	for (ItemModel const* const item : items)
+	{
+		if (item == nullptr) continue;
+		WeaponModel const* const w = item->asWeapon();
+		if (w == nullptr || !w->reloads() || w->apCostPerReload) continue;
+		if (table.count(w->reloadType()) == 0)
+		{
+			throw DataError(ST::format("weapon '{}': game.json weapon_reload_ap has no {} and the weapon no ubAPCostPerReload",
+				w->getInternalName(), w->reloadType()));
+		}
+	}
 }

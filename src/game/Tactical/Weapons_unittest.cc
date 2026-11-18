@@ -15,6 +15,7 @@
 #include "Soldier_Control.h"
 #include "WeaponModels.h"
 #include "Weapons.h"
+#include "Exceptions.h"
 
 
 TEST(WeaponsTest, EffectiveArmour)
@@ -501,6 +502,67 @@ TEST(WeaponsTest, AttachmentEffectsFromData)
 	// the original attachment found by its family
 	EXPECT_EQ(FindAttachmentOfFamily(rifle, "SILENCER"), 11);
 	EXPECT_EQ(FindAttachmentOfFamily(rifle, "BIPOD"), ITEM_NOT_FOUND);
+
+	delete cm;
+}
+
+TEST(WeaponsTest, ReloadAPByWeaponType)
+{
+	// docs/weapon-reload-ap-plan.md: game.json weapon_reload_ap by type, HEAVY_WEAPON for
+	// heavy weapons and launchers, a weapon's own ubAPCostPerReload wins
+	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();
+	ASSERT_TRUE(cm->loadGameData());
+	GCM = cm;
+
+	std::vector<const ItemModel*> items;
+	for (const ItemModel* const item : cm->getItems()) items.push_back(item);
+
+	auto reload = [&](char const* const name) { return WeaponReloadAPs(cm->getWeaponByName(name)->getItemIndex()); };
+	EXPECT_EQ(reload("GLOCK_17"), 2);  // PISTOL
+	EXPECT_EQ(reload("DART_GUN"), 2);  // PISTOL too
+	EXPECT_EQ(reload("GLOCK_18"), 3);  // M_PISTOL
+	EXPECT_EQ(reload("MP5K"), 5);      // SMG
+	EXPECT_EQ(reload("M870"), 10);     // SHOTGUN
+	EXPECT_EQ(reload("AK74"), 8);      // ASRIFLE
+	EXPECT_EQ(reload("DRAGUNOV"), 12); // SN_RIFLE
+	EXPECT_EQ(reload("MINIMI"), 15);   // LMG
+	for (char const* const heavy : { "ROCKET_RIFLE", "AUTO_ROCKET_RIFLE", "GLAUNCHER", "MORTAR", "UNDER_GLAUNCHER" })
+	{
+		EXPECT_EQ(cm->getWeaponByName(heavy)->reloadType(), "HEAVY_WEAPON") << heavy;
+		EXPECT_EQ(reload(heavy), 15) << heavy;
+	}
+	for (const ItemModel* const item : items)
+	{
+		WeaponModel const* const w = item->asWeapon();
+		if (w == nullptr || !w->reloads() || w->isHeavyWeapon() || w->internalType != "RIFLE") continue;
+		EXPECT_EQ(WeaponReloadAPs(w->getItemIndex()), 10) << w->getInternalName().c_str();
+	}
+
+	// the reload: the weapon's cost, double with a magazine of another size
+	auto obj = [&](UINT16 const item) { auto o = OBJECTTYPE{}; o.usItem = item; return o; };
+	OBJECTTYPE glock  = obj(cm->getWeaponByName("GLOCK_17")->getItemIndex());
+	OBJECTTYPE clip15 = obj(cm->getItemByName("CLIP9_15")->getItemIndex());
+	OBJECTTYPE clip30 = obj(cm->getItemByName("CLIP9_30")->getItemIndex());
+	EXPECT_EQ(GetAPsToReloadGunWithAmmo(&glock, &clip15), 2);
+	EXPECT_EQ(GetAPsToReloadGunWithAmmo(&glock, &clip30), 4);
+
+	// a weapon's own value
+	WeaponModel* const ak = const_cast<WeaponModel*>(cm->getWeaponByName("AK74"));
+	ak->apCostPerReload = 4;
+	EXPECT_EQ(reload("AK74"), 4);
+
+	// the load check (R4): a type without an entry stops the load, unless the weapon has
+	// its own value
+	std::map<ST::string, uint8_t> table = cm->getGamePolicy()->weapon_reload_ap;
+	EXPECT_NO_THROW(CheckWeaponReloadAPs(items, table));
+	table.erase("ASRIFLE");
+	EXPECT_THROW(CheckWeaponReloadAPs(items, table), DataError);
+	for (const ItemModel* const item : items)
+	{
+		WeaponModel const* const w = item->asWeapon();
+		if (w && w->internalType == "ASRIFLE") const_cast<WeaponModel*>(w)->apCostPerReload = 8;
+	}
+	EXPECT_NO_THROW(CheckWeaponReloadAPs(items, table));
 
 	delete cm;
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <map>
+#include <string_theory/string>
 
 enum UIMode
 {
@@ -149,6 +151,11 @@ public:
 	uint8_t enemy_ammo_type_chances[10][4];
 	uint8_t enemy_ammo_buckshot_chance; // shotguns: buckshot / flechette, rest the others
 	uint8_t enemy_ammo_he_chance;       // rockets: HE, rest HEAT
+
+	// AP to reload a weapon by its type (weapons.json internalType, HEAVY_WEAPON for the
+	// heavy weapons and launchers); a weapon's own ubAPCostPerReload wins
+	// (docs/weapon-reload-ap-plan.md)
+	std::map<ST::string, uint8_t> weapon_reload_ap;
 
 	int8_t unhired_merc_deaths_easy;       // Maximum unhired mercs KIA difficulty Easy
 	int8_t unhired_merc_deaths_medium;       // Maximum unhired mercs KIA difficulty Medium

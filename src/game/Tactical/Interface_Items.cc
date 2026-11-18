@@ -3900,7 +3900,7 @@ static void ItemDescAttachmentsCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRe
 	if ( gpItemPointer != NULL )
 	{
 		// nb pointer could be NULL because of inventory manipulation in mapscreen from sector inv
-		if ( !gpItemPointerSoldier || EnoughPoints( gpItemPointerSoldier, AP_RELOAD_GUN, 0, TRUE ) )
+		if ( !gpItemPointerSoldier || EnoughPoints( gpItemPointerSoldier, AP_ATTACH_ITEM, 0, TRUE ) )
 		{
 			if ( (GCM->getItem(gpItemPointer->usItem)->getFlags() & ITEM_INSEPARABLE) && ValidAttachment( gpItemPointer->usItem, gpItemDescObject->usItem ) )
 			{
@@ -3915,7 +3915,7 @@ static void ItemDescAttachmentsCallbackPrimary(MOUSE_REGION* pRegion, UINT32 iRe
 	else
 	{
 		// ATE: Make sure we have enough AP's to drop it if we pick it up!
-		if ( EnoughPoints( gpItemDescSoldier, ( AP_RELOAD_GUN + AP_PICKUP_ITEM ), 0, TRUE ) )
+		if ( EnoughPoints( gpItemDescSoldier, ( AP_ATTACH_ITEM + AP_PICKUP_ITEM ), 0, TRUE ) )
 		{
 			// Get attachment if there is one
 			// The follwing function will handle if no attachment is here
@@ -4834,18 +4834,18 @@ void RenderItemDescriptionBox(void)
 			FindFontRightCoordinates(dx + ids[14].sX + ids[14].sValDx, dy + ids[14].sY, ITEM_STATS_WIDTH, stats_h, pStr, stats_font, &usX, &usY);
 			MPrint(usX, usY, pStr);
 
-			// Reload cost, in APs: base cost, doubled when the currently loaded
-			// ammo's capacity doesn't match the weapon's magazine size — mirrors
-			// GetAPsToReloadGunWithAmmo() in Points.cc.
+			// Reload cost, in APs: the weapon's cost (docs/weapon-reload-ap-plan.md),
+			// doubled when the currently loaded ammo's capacity doesn't match the
+			// weapon's magazine size — mirrors GetAPsToReloadGunWithAmmo() in Points.cc.
 			if (showReload)
 			{
-				INT8 reloadAP = AP_RELOAD_GUN;
+				int reloadAP = WeaponReloadAPs(obj.usItem);
 				if (item->getItemClass() != IC_LAUNCHER && obj.usGunAmmoItem != NOTHING)
 				{
 					const ItemModel* const ammoItem = GCM->getItem(obj.usGunAmmoItem);
 					if (ammoItem->isAmmo() && !w->isSameMagCapacity(ammoItem->asAmmo()))
 					{
-						reloadAP = AP_RELOAD_GUN + AP_RELOAD_GUN;
+						reloadAP = 2 * reloadAP;
 					}
 				}
 				pStr = ST::format("{2d}", reloadAP);
@@ -5150,7 +5150,7 @@ void DeleteItemDescriptionBox( )
 
 			if (!fAllFound)
 			{
-				DeductPoints( gpAttachSoldier, AP_RELOAD_GUN, 0 );
+				DeductPoints( gpAttachSoldier, AP_ATTACH_ITEM, 0 );
 			}
 		}
 	}

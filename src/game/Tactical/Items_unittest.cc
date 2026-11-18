@@ -850,6 +850,26 @@ TEST_F(GunStackTest, enemyAmmoTableChecks)
 	EXPECT_THROW(load("{\"he_chance\": 101}"), DataError);
 }
 
+TEST_F(GunStackTest, weaponReloadTable)
+{
+	// docs/weapon-reload-ap-plan.md: defaults, a table of game.json replaces them, 0-255
+	auto load = [](std::string const& reload)
+	{
+		std::string const json = "{\"ai\": {}, \"imp\": {}, \"progress\": {}, \"campaign\": {}" +
+			(reload.empty() ? std::string() : ", \"weapon_reload_ap\": " + reload) + "}";
+		return DefaultGamePolicy(JsonValue::deserialize(json.c_str())).weapon_reload_ap;
+	};
+	auto const defaults = load("");
+	EXPECT_EQ(defaults.size(), 9u);
+	EXPECT_EQ(defaults.at("PISTOL"), 2);
+	EXPECT_EQ(defaults.at("SN_RIFLE"), 12);
+	EXPECT_EQ(defaults.at("HEAVY_WEAPON"), 15);
+	auto const own = load("{\"PISTOL\": 4}");
+	EXPECT_EQ(own.size(), 1u);
+	EXPECT_EQ(own.at("PISTOL"), 4);
+	EXPECT_THROW(load("{\"PISTOL\": 300}"), DataError);
+}
+
 TEST_F(GunStackTest, enemyAmmoByProgress)
 {
 	int const n = 2000;

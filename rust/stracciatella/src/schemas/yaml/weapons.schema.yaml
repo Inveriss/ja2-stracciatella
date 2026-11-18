@@ -42,6 +42,13 @@ items:
           type: array
           items:
             type: string
+        ubAPCostPerReload:
+          title: AP cost to reload
+          description: |
+            AP to reload this weapon with a magazine of its own size (double with another
+            size). Default: game.json weapon_reload_ap by the weapon type
+            (docs/weapon-reload-ap-plan.md).
+          $ref: types/uint8.schema.yaml
         stackSize:
           title: Stack size
           description: |

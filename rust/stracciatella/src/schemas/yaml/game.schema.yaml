@@ -158,6 +158,15 @@ properties:
           expert: { type: integer, minimum: -10, maximum: 10 }
         additionalProperties: false
     additionalProperties: false
+  weapon_reload_ap:
+    type: object
+    title: AP to reload a weapon by its type
+    description: |
+      Keys are weapons.json internalType values (PISTOL, M_PISTOL, SMG, SHOTGUN, ASRIFLE,
+      RIFLE, SN_RIFLE, LMG) and HEAVY_WEAPON for the heavy weapons and launchers; a weapon's
+      own ubAPCostPerReload wins. A magazine of another size costs double
+      (docs/weapon-reload-ap-plan.md).
+    additionalProperties: { type: integer, minimum: 0, maximum: 255 }
   enemy_ammo:
     type: object
     title: Enemy and militia ammo by chance

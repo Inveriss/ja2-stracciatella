@@ -169,6 +169,10 @@ extern INT32 CalcBodyImpactReduction( UINT8 ubAmmoType, UINT8 ubHitLocation );
 // AMMOROCKET: rocket rifles) and guns that are no real guns (LAW, tank
 // cannon). Sorted together, and named "Heavy Weapon" in the description box.
 bool IsHeavyWeapon(UINT16 usItem);
+
+// AP to reload the weapon with a magazine of its own size: its ubAPCostPerReload, else
+// game.json weapon_reload_ap by its type (docs/weapon-reload-ap-plan.md)
+UINT8 WeaponReloadAPs(UINT16 usItem);
 INT32 TotalArmourProtection(SOLDIERTYPE&, UINT8 ubHitLocation, INT32 iImpact, UINT8 ubAmmoType);
 INT8 ArmourPercent(const SOLDIERTYPE* pSoldier);
 
