@@ -1586,7 +1586,10 @@ bool WeaponModel::isHeavyWeapon() const
 {
 	if (isLauncher()) return true;
 	if (!isGun()) return false;
-	return calibre->internalName == "AMMOROCKET" || ubWeaponType == NOT_GUN;
+	// rocket guns, the flamethrower (and any other gun of the flame calibre) and guns
+	// without a gun type (LAW, tank cannon)
+	return calibre->internalName == "AMMOROCKET" || calibre->internalName == "AMMOFLAME" ||
+		ubWeaponType == NOT_GUN;
 }
 
 

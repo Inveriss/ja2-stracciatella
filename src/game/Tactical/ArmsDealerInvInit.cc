@@ -26,8 +26,8 @@
 // Item sort categories, in the order they are listed: the same order at
 // Bobby Ray's, at the dealers and in the sector inventory.
 // - Guns are split by their exact type (internalType in weapons.json).
-// - Heavy weapons (IsHeavyWeapon: launchers, rocket rifles, LAW, tank
-//   cannon) are listed together.
+// - Heavy weapons (IsHeavyWeapon: launchers, rocket rifles, flamethrower, LAW,
+//   tank cannon) are listed together.
 // - Weapon attachments: items with an attachment family that are no weapons
 //   themselves (scopes, silencer, bipod, duckbill, barrel extender, ...);
 //   the under-barrel grenade launcher stays with the launchers.

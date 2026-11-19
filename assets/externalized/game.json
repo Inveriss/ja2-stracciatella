@@ -99,7 +99,7 @@
 
   //  AP to reload a weapon by its type (docs/weapon-reload-ap-plan.md): the keys are the
   //  weapons.json internalType values, HEAVY_WEAPON for the heavy weapons and launchers
-  //  (grenade launchers, mortar, rocket rifles, LAW, tank cannon). A weapon with its own
+  //  (grenade launchers, mortar, rocket rifles, flamethrower, LAW, tank cannon). A weapon with its own
   //  "ubAPCostPerReload" in weapons.json uses that instead. A magazine of another size than
   //  the weapon's costs double. Every type of a weapon that reloads must be here.
   //  vanilla setting: none (new; vanilla is 5 for every weapon)

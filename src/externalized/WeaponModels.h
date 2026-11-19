@@ -72,7 +72,7 @@ struct WeaponModel : ItemModel
 	/** Has the weapon at least one burst mode? */
 	bool canBurst() const;
 
-	/** A launcher, a rocket gun or a weapon without a gun type (LAW, tank cannon) */
+	/** A launcher, a rocket gun, a flame gun or a weapon without a gun type (LAW, tank cannon) */
 	bool isHeavyWeapon() const;
 
 	/** Does the weapon take a magazine or a launcher round (not blades, thrown

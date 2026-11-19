@@ -526,7 +526,7 @@ TEST(WeaponsTest, ReloadAPByWeaponType)
 	EXPECT_EQ(reload("AK74"), 8);      // ASRIFLE
 	EXPECT_EQ(reload("DRAGUNOV"), 12); // SN_RIFLE
 	EXPECT_EQ(reload("MINIMI"), 15);   // LMG
-	for (char const* const heavy : { "ROCKET_RIFLE", "AUTO_ROCKET_RIFLE", "GLAUNCHER", "MORTAR", "UNDER_GLAUNCHER" })
+	for (char const* const heavy : { "ROCKET_RIFLE", "AUTO_ROCKET_RIFLE", "GLAUNCHER", "MORTAR", "UNDER_GLAUNCHER", "FLAMETHROWER" })
 	{
 		EXPECT_EQ(cm->getWeaponByName(heavy)->reloadType(), "HEAVY_WEAPON") << heavy;
 		EXPECT_EQ(reload(heavy), 15) << heavy;

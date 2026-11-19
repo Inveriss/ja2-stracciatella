@@ -166,8 +166,9 @@ bool HasLauncher(SOLDIERTYPE const*);
 extern INT32 CalcBodyImpactReduction( UINT8 ubAmmoType, UINT8 ubHitLocation );
 
 // Heavy weapons: launchers (IC_LAUNCHER), guns firing rockets (calibre
-// AMMOROCKET: rocket rifles) and guns that are no real guns (LAW, tank
-// cannon). Sorted together, and named "Heavy Weapon" in the description box.
+// AMMOROCKET: rocket rifles) or flames (calibre AMMOFLAME: flamethrower) and
+// guns that are no real guns (LAW, tank cannon). Sorted together, named
+// "Heavy Weapon" in the description box, reloaded for HEAVY_WEAPON AP.
 bool IsHeavyWeapon(UINT16 usItem);
 
 // AP to reload the weapon with a magazine of its own size: its ubAPCostPerReload, else
