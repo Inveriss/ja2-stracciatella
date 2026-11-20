@@ -900,10 +900,10 @@ TEST_F(GunStackTest, enemyAmmoByProgress)
 	EXPECT_NEAR(mid[CLIP9_15_HP] / double(n), 0.4, 0.05);
 	EXPECT_NEAR(mid[CLIP9_15_AP] / double(n), 0.5, 0.05);
 
-	// 12 gauge: slug / buckshot 50/50 at any progress
+	// 12 gauge: flechette / buckshot 50/50 at any progress (both count as buckshot)
 	UINT16 const m870 = 31;
 	auto shot = RollEnemyMagazines(m870, 90, n);
-	EXPECT_NEAR(shot[CLIP12G_7] / double(n), 0.5, 0.05);
+	EXPECT_NEAR(shot[CLIP12G_7_FLECHETTE] / double(n), 0.5, 0.05);
 	EXPECT_NEAR(shot[CLIP12G_7_BUCKSHOT] / double(n), 0.5, 0.05);
 
 	// rockets: HE 70, HEAT 30, never the AP rockets

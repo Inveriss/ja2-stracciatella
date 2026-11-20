@@ -1045,10 +1045,10 @@
     },
     {
         "itemIndex": 107,
-        "internalName": "CLIP12G_7",
+        "internalName": "CLIP12G_7_FLECHETTE",
         "calibre": "AMMO12G",
         "capacity": 7,
-        "ammoType": "AMMO_REGULAR",
+        "ammoType": "AMMO_FLECHETTE",
         "inventoryGraphics": {
             "small": {
                 "path": "interface/mdp2items.sti",
@@ -2599,6 +2599,238 @@
         "tileGraphic": {
             "type": "P1ITEMS",
             "subIndex": 332
+        }
+    },
+	{
+        "itemIndex": 3032,
+        "internalName": "CLIP12G_3_BUCKSHOT",
+        "calibre": "AMMO12G",
+        "capacity": 3,
+        "ammoType": "AMMO_BUCKSHOT",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 332
+            },
+            "big": {
+                "path": "bigitems/p1item3032.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 15,
+        "minDropProgress": 30,
+        "ubCoolness": 3,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 333
+        }
+    },
+	{
+        "itemIndex": 3033,
+        "internalName": "CLIP12G_3_FLECHETTE",
+        "calibre": "AMMO12G",
+        "capacity": 3,
+        "ammoType": "AMMO_FLECHETTE",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 333
+            },
+            "big": {
+                "path": "bigitems/p1item3033.sti"
+            }
+        },
+        "ubWeight": 2,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 45,
+        "minDropProgress": 30,
+        "ubCoolness": 3,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 334
+        }
+    },
+	{
+        "itemIndex": 3034,
+        "internalName": "CLIP12G_12_BUCKSHOT",
+        "calibre": "AMMO12G",
+        "capacity": 12,
+        "ammoType": "AMMO_BUCKSHOT",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 334
+            },
+            "big": {
+                "path": "bigitems/p1item3034.sti"
+            }
+        },
+        "ubWeight": 10,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 60,
+        "minDropProgress": 30,
+        "ubCoolness": 3,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 335
+        }
+    },
+	{
+        "itemIndex": 3035,
+        "internalName": "CLIP12G_12_FLECHETTE",
+        "calibre": "AMMO12G",
+        "capacity": 12,
+        "ammoType": "AMMO_FLECHETTE",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 335
+            },
+            "big": {
+                "path": "bigitems/p1item3035.sti"
+            }
+        },
+        "ubWeight": 10,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 180,
+        "minDropProgress": 30,
+        "ubCoolness": 3,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 336
+        }
+    },
+	{
+        "itemIndex": 3036,
+        "internalName": "CLIP12G_20_BUCKSHOT",
+        "calibre": "AMMO12G",
+        "capacity": 20,
+        "ammoType": "AMMO_BUCKSHOT",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 336
+            },
+            "big": {
+                "path": "bigitems/p1item3036.sti"
+            }
+        },
+        "ubWeight": 16,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 100,
+        "minDropProgress": 30,
+        "ubCoolness": 3,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 337
+        }
+    },
+	{
+        "itemIndex": 3037,
+        "internalName": "CLIP12G_20_FLECHETTE",
+        "calibre": "AMMO12G",
+        "capacity": 20,
+        "ammoType": "AMMO_FLECHETTE",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 337
+            },
+            "big": {
+                "path": "bigitems/p1item3037.sti"
+            }
+        },
+        "ubWeight": 16,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 300,
+        "minDropProgress": 30,
+        "ubCoolness": 3,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 338
+        }
+    },
+	{
+        "itemIndex": 3038,
+        "internalName": "CLIP12G_30_BUCKSHOT",
+        "calibre": "AMMO12G",
+        "capacity": 30,
+        "ammoType": "AMMO_BUCKSHOT",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 338
+            },
+            "big": {
+                "path": "bigitems/p1item3038.sti"
+            }
+        },
+        "ubWeight": 24,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 150,
+        "minDropProgress": 30,
+        "ubCoolness": 3,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 339
+        }
+    },
+	{
+        "itemIndex": 3039,
+        "internalName": "CLIP12G_30_FLECHETTE",
+        "calibre": "AMMO12G",
+        "capacity": 30,
+        "ammoType": "AMMO_FLECHETTE",
+        "inventoryGraphics": {
+            "small": {
+                "path": "interface/mdp1items.sti",
+                "subImageIndex": 339
+            },
+            "big": {
+                "path": "bigitems/p1item3039.sti"
+            }
+        },
+        "ubWeight": 24,
+        "ubPerPocket": 100,
+        "ubBigPerPocket": 4,
+        "ubSmallPerPocket": 2,
+        "usPrice": 450,
+        "minDropProgress": 30,
+        "ubCoolness": 3,
+        "bMetal": true,
+        "bSinks": true,
+        "tileGraphic": {
+            "type": "P1ITEMS",
+            "subIndex": 340
         }
     }
 	

@@ -815,19 +815,19 @@
         "bobbyRayDescription": "Get the job done right the first time. You're kill-rate will be the best around if you use this 50-round magazine of 5.7mm Hollow Point ammunition. Your victim's chance at survival: roughly zero per cent, give or take a few points."
     },
     {
-        "internalName": "CLIP12G_7",
-        "shortName": "12 Gauge",
-        "name": "12 Gauge Magazine",
+        "internalName": "CLIP12G_7_FLECHETTE",
+        "shortName": "12g Shells 7 FL",
+        "name": "12 Gauge Shells, 7 Flechette",
         "description": "This magazine contains 7 rounds of 12 gauge PolyCore slugs. Each round tears through body armor as though it were tissue paper.",
-        "bobbyRayName": "12 Gauge Magazine",
+        "bobbyRayName": "12 Gauge Shells, 7 Flechette",
         "bobbyRayDescription": "This is definitely the ammunition for real men only. This magazine contains 7 rounds of 12 gauge PolyCore slugs. Each round tears through body armor as though it were tissue paper."
     },
     {
         "internalName": "CLIP12G_7_BUCKSHOT",
-        "shortName": "12 Gauge BS",
-        "name": "12 Gauge Magazine, Buckshot",
+        "shortName": "12g Shells 7 BS",
+        "name": "12 Gauge Shells, 7 Buckshot",
         "description": "This 12 gauge magazine holds 7 rounds of \"00\" SSG ammunition. Favored by law enforcement personnel, it is very effective in urban firefights against unarmored opponents.",
-        "bobbyRayName": "12 Gauge Mag, Buckshot",
+        "bobbyRayName": "12 Gauge Shells, 7 Buckshot",
         "bobbyRayDescription": "The ideal short-range man-stopper round. This 12 gauge magazine holds 7 rounds of '00' SSG ammunition. Law enforcement personnel worldwide favor this round for its effectiveness in urban firefights against unarmored opponents."
     },
     {
@@ -2693,15 +2693,91 @@
         "bobbyRayName": "Calico M-960A",
         "bobbyRayDescription": "Known as the Mini Submachine Gun, this American model uses a helical-feed 50-round magazine of 9mm bullets and has been making things right since 1990."
     },
-
-
 	
+	
+	
+	
+	
+	// SHOTGUNS: 1401 - 1600
+	
+	
+	// 1401
+    {
+        "internalName": "MINI_SHOTGUN",
+        "shortName": "Mini Shotgun",
+        "name": "Super-Shorty Mini-Shotgun",
+        "description": "Major firepower in a mean little package, the Serbu Firearms Mini-Shotgun is perfect for home defense or the ultimate hold-out weapon.",
+        "bobbyRayName": "Super-Shorty Mini-Shotgun",
+        "bobbyRayDescription": "Are you looking for a cut-down scattergun? With Serbu's Super-Shorty you can forgo time-consuming hacksaw work."
+    },
+	// 1402
+    {
+        "internalName": "STREET_SWEEPER",
+        "shortName": "Street Sweeper",
+        "name": "Street Sweeper",
+        "description": "Control riots with this 12 round semi-auto shotgun like never before.",
+        "bobbyRayName": "Street Sweeper",
+        "bobbyRayDescription": "This is the US-made version of the South African Striker shotgun. The key advantage of this shotgun is its large magazine capacity, but it is slow to reload."
+    },
+	// 1403
+    {
+        "internalName": "BENELLI_M4S90",
+        "shortName": "M4 Super 90",
+        "name": "Benelli M4 Super 90",
+        "description": "The M4 is a high quality, very versatile shotgun and is both very popular as a police weapon and self-defense civilian weapon.",
+        "bobbyRayName": "Benelli M4 Super 90",
+        "bobbyRayDescription": "The M4 uses an inertia recoil semi-automatic system which allows the shooter to lock semi-automatic action, switch to the manually operated pump-action mode and back to semi-automatic in a matter of seconds."
+    },
 
+	// 1404
+    {
+        "internalName": "SPAS12",
+        "shortName": "SPAS-12",
+        "name": "SPAS-12",
+        "description": "Designed as a police weapon from the ground up, the SPAS-12 was introduced in 1979.",
+        "bobbyRayName": "SPAS-12",
+        "bobbyRayDescription": "A semi-automatic shotgun, designed for police use and Hollywood action movies. For lighter loads and special ammunition, switch to pump-action."
+    },
 
+	// 1405
+    {
+        "internalName": "AA12",
+        "shortName": "AA-12 CQB",
+        "name": "Auto Assault-12 CQB",
+        "description": "The full automatic Auto Assault 12 Close Quarter shotgun is a devestating weapon system that can empty its 20 shell drum magazine with an insane rate of 360 rounds per minute.",
+        "bobbyRayName": "Auto Assault-12 CQB",
+        "bobbyRayDescription": "The full automatic Auto Assault 12 Close Quarter shotgun is a devestating weapon system that can empty its 20 shell drum magazine with an insane rate of 360 rounds per minute."
+    },
 
+	// 1406
+    {
+        "internalName": "FOSTECH",
+        "shortName": "Fostech",
+        "name": "Fostech Origin 12",
+        "description": "Annihilate your opponents with the cutting edge in weapons technology newest full automatic shotgun.",
+        "bobbyRayName": "Fostech Origin 12",
+        "bobbyRayDescription": "Annihilate your opponents with the cutting edge in weapons technology newest full automatic shotgun."
+    },
 
+	// 1407
+    {
+        "internalName": "USAS12",
+        "shortName": "USAS-12",
+        "name": "USAS-12",
+        "description": "Capable of fully automatic fire, the USAS-12 is designed to provide sustained firepower in close combat scenarios.",
+        "bobbyRayName": "USAS-12",
+        "bobbyRayDescription": "Capable of fully automatic fire, the USAS-12 is designed to provide sustained firepower in close combat scenarios."
+    },
 
-
+	// 1408
+    {
+        "internalName": "SAIGA12",
+        "shortName": "Saiga 12K",
+        "name": "Saiga 12K",
+        "description": "Walls of buckshot for as fast as you can pull the trigger. Ideal for home defense and tense family gatherings.",
+        "bobbyRayName": "Saiga 12K",
+        "bobbyRayDescription": "Modeled after the AK-47, the Saiga is a well-designed and affordable semi-automatic shotgun with a host of personal defense and tactical applications."
+    },
 
 
 
@@ -3000,15 +3076,81 @@
         "description": "Penetrating power isn't as important when you can shoot your target multiple times. 30 rounds of super 7.62x25mm will make sure they stay down.",
         "bobbyRayName": "7.62x25mm SMG Mag Super AP",
         "bobbyRayDescription": "Penetrating power isn't as important when you can shoot your target multiple times. 30 rounds of super7.62x25mm will make sure they stay down."
+    },
+	// 3032
+    {
+        "internalName": "CLIP12G_3_BUCKSHOT",
+        "shortName": "12g Shells 3 BS",
+        "name": "12 Gauge Shells, 3 Buckshot",
+        "description": "A must for the post-apocalyptic nomad or zombie fighter in all of us.",
+        "bobbyRayName": "12 Gauge Shells, 3 Buckshot",
+        "bobbyRayDescription": "A hail of 12 gauge buckshot can dismember a target at close to medium range. What other reason do you need?"
+    },
+	// 3033
+    {
+        "internalName": "CLIP12G_3_FLECHETTE",
+        "shortName": "12g Shells 3 FL",
+        "name": "12 Gauge Shells, 3 Flechette",
+        "description": "There's no better way to tear the opposition to shreds than to tear through their armor with tiny pieces of flying metal.",
+        "bobbyRayName": "12 Gauge Shells, 3 Flechette",
+        "bobbyRayDescription": "There's no better way to tear the opposition to shreds than to tear through their armor with tiny pieces of flying metal."
+    },
+	// 3034
+    {
+        "internalName": "CLIP12G_12_BUCKSHOT",
+        "shortName": "12g Shells 12 BS",
+        "name": "12 Gauge Shells, 12 Buckshot",
+        "description": "12 rounds of buck for your mag-fed scattergun.",
+        "bobbyRayName": "12 Gauge Shells, 12 Buckshot",
+        "bobbyRayDescription": "Create your own white-hot hailstorm with 12 rounds of buckshot."
+    },
+	// 3035
+    {
+        "internalName": "CLIP12G_12_FLECHETTE",
+        "shortName": "12g Shells 12 FL",
+        "name": "12 Gauge Shells, 12 Flechette",
+        "description": "There's no better way to tear the opposition to shreds than to tear through their armor with tiny pieces of flying metal.",
+        "bobbyRayName": "12 Gauge Shells, 12 Flechette",
+        "bobbyRayDescription": "There's no better way to tear the opposition to shreds than to tear through their armor with tiny pieces of flying metal."
+    },
+	// 3036
+    {
+        "internalName": "CLIP12G_20_BUCKSHOT",
+        "shortName": "12g Drum 20 BS",
+        "name": "12 Gauge Drum 20, Buckshot",
+        "description": "Ideal when you're on point or defending your habitation from marauding interlopers.",
+        "bobbyRayName": "12 Gauge Drum 20, Buckshot",
+        "bobbyRayDescription": "Unleash pure hell from your barreled friend, with this drum of buckshot."
+    },
+	// 3037
+    {
+        "internalName": "CLIP12G_20_FLECHETTE",
+        "shortName": "12g Drum 20 FL",
+        "name": "12 Gauge Drum, 20 Flechette",
+        "description": "There's no better way to tear the opposition to shreds than to tear through their armor with tiny pieces of flying metal.",
+        "bobbyRayName": "12 Gauge Drum, 20 Flechette",
+        "bobbyRayDescription": "There's no better way to tear the opposition to shreds than to tear through their armor with tiny pieces of flying metal."
+    },
+	// 3038
+    {
+        "internalName": "CLIP12G_30_BUCKSHOT",
+        "shortName": "12g Drum 30 BS",
+        "name": "12 Gauge Drum 30, Buckshot",
+        "description": "Unleash pure hell from your barreled friend, with this drum of buckshot. Ideal when you're on point or defending your habitation from marauding interlopers.",
+        "bobbyRayName": "12 Gauge Drum 30, Buckshot",
+        "bobbyRayDescription": "Unleash pure hell from your barreled friend, with this drum of buckshot. Ideal when you're on point or defending your habitation from marauding interlopers."
+    },
+	// 3039
+    {
+        "internalName": "CLIP12G_30_FLECHETTE",
+        "shortName": "12g Drum 30 FL",
+        "name": "12 Gauge Drum, 30 Flechette",
+        "description": "Unleash pure hell from your barreled friend, with this drum of flechette. Ideal when you're on point or defending your habitation from marauding interlopers.",
+        "bobbyRayName": "12 Gauge Drum, 30 Flechette",
+        "bobbyRayDescription": "Unleash pure hell from your barreled friend, with this drum of flechette. Ideal when you're on point or defending your habitation from marauding interlopers."
     }
 
-
-
-
-
-
-
-
+	
 
 	
 	

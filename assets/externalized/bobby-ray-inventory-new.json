@@ -22,7 +22,7 @@
 		"TEC9": 3,
 		"CALICO_M950": 3,
 		
-		
+			
         "MP5K": 3,
         "MAC10": 3,
         "THOMPSON": 3,
@@ -36,6 +36,21 @@
 		"MP5A3": 3,
 		"SCORPION_EVO3": 3,
 		"CALICO_M960A": 3,
+		
+		
+		"M870": 3,
+        "SPAS15": 3,
+		"CAWS": 3,
+		"MINI_SHOTGUN": 3,
+		"STREET_SWEEPER": 3,
+		"BENELLI_M4S90": 3,
+		"SPAS12": 3,
+		"AA12": 3,
+		"FOSTECH": 3,
+		"USAS12": 3,
+		"SAIGA12": 3,
+		
+		
 		
 		
         "COMMANDO": 1,
@@ -55,8 +70,7 @@
         "M14": 1,
         "FNFAL": 1,
         "G3A3": 1,
-        "M870": 5,
-        "SPAS15": 1,
+
         "MINIMI": 1,
         "RPK74": 1,
         "HK21E": 1,
@@ -130,6 +144,20 @@
 		"CLIP57_50_AP": 10,
 		"CLIP57_50_SUPER_AP": 5,
 		
+		"CLIP12G_7_FLECHETTE": 20,
+        "CLIP12G_7_BUCKSHOT": 40,
+		"CLIPCAWS_10_SAP": 10,
+		"CLIPCAWS_10_FLECH": 10,
+		"CLIP12G_3_BUCKSHOT": 10,
+		"CLIP12G_3_FLECHETTE": 10,
+		"CLIP12G_12_BUCKSHOT": 10,
+		"CLIP12G_12_FLECHETTE": 10,
+		"CLIP12G_20_BUCKSHOT": 10,
+		"CLIP12G_20_FLECHETTE": 10,
+		"CLIP12G_30_BUCKSHOT": 10,
+		"CLIP12G_30_FLECHETTE": 10,
+		
+		
         "CLIP545_30_AP": 25,
         "CLIP545_30_HP": 5,
         "CLIP556_30_AP": 15,
@@ -142,8 +170,7 @@
         "CLIP762N_20_AP": 10,
         "CLIP762N_5_HP": 5,
         "CLIP762N_20_HP": 5,
-        "CLIP12G_7": 20,
-        "CLIP12G_7_BUCKSHOT": 40,
+
         "STUN_GRENADE": 5,
         "TEARGAS_GRENADE": 5,
         "MUSTARD_GRENADE": 3,

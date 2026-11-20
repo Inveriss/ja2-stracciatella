@@ -553,7 +553,7 @@
       },
       {
         "slot": "BIGPOCK1",
-        "item": "CLIP12G_7",
+        "item": "CLIP12G_7_FLECHETTE",
         "quantity": 4
       },
       {
@@ -2474,7 +2474,7 @@
       },
       {
         "slot": "BIGPOCK1",
-        "item": "CLIP12G_7",
+        "item": "CLIP12G_7_FLECHETTE",
         "quantity": 3
       },
       {
@@ -3218,7 +3218,7 @@
       },
       {
         "slot": "BIGPOCK1",
-        "item": "CLIP12G_7",
+        "item": "CLIP12G_7_FLECHETTE",
         "quantity": 2
       },
       {
@@ -3499,7 +3499,7 @@
       },
       {
         "slot": "BIGPOCK2",
-        "item": "CLIP12G_7",
+        "item": "CLIP12G_7_FLECHETTE",
         "quantity": 2
       },
       {

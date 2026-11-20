@@ -50,10 +50,10 @@ TEST(Items, bug120_12gAmmo)
 	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();
 	ASSERT_TRUE(cm->loadGameData());
 
-	// test SAP clip parameters
-	const MagazineModel* clip = cm->getMagazineByName("CLIP12G_7");
+	// test flechette clip parameters
+	const MagazineModel* clip = cm->getMagazineByName("CLIP12G_7_FLECHETTE");
 	EXPECT_EQ(clip->calibre->internalName,           ST::string("AMMO12G"));
-	EXPECT_EQ(clip->ammoType->internalName,          ST::string("AMMO_REGULAR"));
+	EXPECT_EQ(clip->ammoType->internalName,          ST::string("AMMO_FLECHETTE"));
 
 	// test FLECH clip parameters
 	const MagazineModel* clipBuckshot = cm->getMagazineByName("CLIP12G_7_BUCKSHOT");
@@ -97,14 +97,14 @@ TEST(Items, bug120_spas15DefaultMag)
 	ASSERT_TRUE(spas15 != NULL);
 
 	const MagazineModel* clipBuckshot = cm->getMagazineByName("CLIP12G_7_BUCKSHOT");
-	const MagazineModel* clip = cm->getMagazineByName("CLIP12G_7");
+	const MagazineModel* clip = cm->getMagazineByName("CLIP12G_7_FLECHETTE");
 	ASSERT_TRUE(clipBuckshot != NULL);
 	ASSERT_TRUE(clip != NULL);
 
 	EXPECT_EQ(DefaultMagazine(spas15->getItemIndex()), clipBuckshot->getItemIndex());
 
-	EXPECT_EQ(FindReplacementMagazine(clip->calibre, 7, AMMO_BUCKSHOT), clipBuckshot->getItemIndex());
-	EXPECT_EQ(FindReplacementMagazine(clip->calibre, 7, AMMO_REGULAR),  clip->getItemIndex());
+	EXPECT_EQ(FindReplacementMagazine(clip->calibre, 7, AMMO_BUCKSHOT),  clipBuckshot->getItemIndex());
+	EXPECT_EQ(FindReplacementMagazine(clip->calibre, 7, AMMO_FLECHETTE), clip->getItemIndex());
 
 	delete cm;
 }

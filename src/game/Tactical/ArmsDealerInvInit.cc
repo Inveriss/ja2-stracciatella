@@ -231,7 +231,7 @@ static UINT8 GetCurrentSuitabilityForItem(ArmsDealerID const bArmsDealer, UINT16
 		case CLIP357_9:
 		case CLIP45_7:
 		case CLIP45_30:
-		case CLIP12G_7:
+		case CLIP12G_7_FLECHETTE:
 		case CLIP12G_7_BUCKSHOT:
 		case CLIP545_30_HP:
 		case CLIP556_30_HP:
