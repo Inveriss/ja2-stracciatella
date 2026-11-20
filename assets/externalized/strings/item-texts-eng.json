@@ -818,9 +818,9 @@
         "internalName": "CLIP12G_7_FLECHETTE",
         "shortName": "12g Shells 7 FL",
         "name": "12 Gauge Shells, 7 Flechette",
-        "description": "This magazine contains 7 rounds of 12 gauge PolyCore slugs. Each round tears through body armor as though it were tissue paper.",
+        "description": "7 rounds of 12 gauge flechette. Each shell throws a cloud of steel darts that tear through body armor as though it were tissue paper.",
         "bobbyRayName": "12 Gauge Shells, 7 Flechette",
-        "bobbyRayDescription": "This is definitely the ammunition for real men only. This magazine contains 7 rounds of 12 gauge PolyCore slugs. Each round tears through body armor as though it were tissue paper."
+        "bobbyRayDescription": "This is definitely the ammunition for real men only. 7 rounds of 12 gauge flechette: each shell throws a cloud of steel darts that tear through body armor as though it were tissue paper."
     },
     {
         "internalName": "CLIP12G_7_BUCKSHOT",
