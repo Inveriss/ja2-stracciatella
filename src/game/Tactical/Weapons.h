@@ -84,6 +84,12 @@ enum
 	AMMO_FLAME,
 };
 
+// Shotgun shells that fire NUM_BUCKSHOT_PELLETS pellets: buckshot and flechette.
+inline bool IsPelletAmmo(UINT8 const ammo_type)
+{
+	return ammo_type == AMMO_BUCKSHOT || ammo_type == AMMO_FLECHETTE;
+}
+
 #define AMMO_DAMAGE_ADJUSTMENT_BUCKSHOT( x )	(x / 4)
 #define NUM_BUCKSHOT_PELLETS			9
 

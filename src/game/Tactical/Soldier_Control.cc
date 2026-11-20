@@ -2200,7 +2200,7 @@ void EVENT_FireSoldierWeapon( SOLDIERTYPE *pSoldier, INT16 sTargetGridNo )
 		{
 			pSoldier->bBulletsLeft = 1;
 		}
-		if (pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunAmmoType == AMMO_BUCKSHOT &&
+		if (IsPelletAmmo(pSoldier->inv[pSoldier->ubAttackingHand].ubGunAmmoType) &&
 			!IsValidDualBurst(*pSoldier)) // (counted per gun above)
 		{
 			pSoldier->bBulletsLeft *= NUM_BUCKSHOT_PELLETS;
@@ -8850,7 +8850,7 @@ int DualBurstBulletsLeft(SOLDIERTYPE const& s)
 	{
 		int const shots = std::max(s.ubDualBurstLength[h] - s.ubDualBurstShots[h], 0);
 		OBJECTTYPE const& gun = s.inv[h == 0 ? HANDPOS : SECONDHANDPOS];
-		bullets += gun.ubGunAmmoType == AMMO_BUCKSHOT ? shots * NUM_BUCKSHOT_PELLETS : shots;
+		bullets += IsPelletAmmo(gun.ubGunAmmoType) ? shots * NUM_BUCKSHOT_PELLETS : shots;
 	}
 	return bullets;
 }

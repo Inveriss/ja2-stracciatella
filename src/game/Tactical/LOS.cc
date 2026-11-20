@@ -2136,7 +2136,8 @@ static BOOLEAN BulletHitMerc(BULLET* pBullet, STRUCTURE* pStructure, BOOLEAN fIn
 
 	// now check to see if the bullet goes THROUGH this person! (not vehicles)
 	if (!(tgt.uiStatusFlags & SOLDIER_VEHICLE) &&
-		(ubAmmoType == AMMO_REGULAR || ubAmmoType == AMMO_AP || ubAmmoType == AMMO_SUPER_AP) &&
+		(ubAmmoType == AMMO_REGULAR || ubAmmoType == AMMO_AP || ubAmmoType == AMMO_SUPER_AP ||
+		 ubAmmoType == AMMO_FLECHETTE) &&
 		!EXPLOSIVE_GUN(pBullet->usWeapon))
 	{
 		// if we do more damage than expected, then the bullet will be more likely
@@ -2364,6 +2365,7 @@ static INT32 HandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pStruc
 				iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_AP( iImpactReduction );
 				break;
 			case AMMO_SUPER_AP:
+			case AMMO_FLECHETTE:
 				iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_SAP( iImpactReduction );
 				break;
 			default:
@@ -2437,6 +2439,7 @@ static INT32 CTGTHandleBulletStructureInteraction(BULLET* pBullet, STRUCTURE* pS
 			iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_AP( iImpactReduction );
 			break;
 		case AMMO_SUPER_AP:
+		case AMMO_FLECHETTE:
 			iImpactReduction = AMMO_STRUCTURE_ADJUSTMENT_SAP( iImpactReduction );
 			break;
 		default:
@@ -3508,7 +3511,7 @@ static INT8 ChanceToGetThrough(SOLDIERTYPE* const pFirer, const GridNo end_pos, 
 	{
 		// if shotgun, shotgun would have to be in main hand
 		buck_shot = pFirer->inv[HANDPOS].usItem        == weapon &&
-				pFirer->inv[HANDPOS].ubGunAmmoType == AMMO_BUCKSHOT;
+				IsPelletAmmo(pFirer->inv[HANDPOS].ubGunAmmoType);
 	}
 	else
 	{

@@ -95,7 +95,7 @@ struct InvItemTextLayout
 	INT16   ammoFromBottom;  // ammo count: text top, px above the slot's bottom
 	INT16   countFromRight;  // stack count: px between the text and the slot's right edge
 	INT16   countFromBottom; // stack count: text top, px above the slot's bottom
-	UINT8   colAP, colHP, colBuckshot, colHE, colHEAP, colAmmoDefault; // ammo type colours (font palette indices)
+	UINT8   colAP, colHP, colHE, colHEAP, colAmmoDefault; // ammo type colours (font palette indices): AP, SAP and flechette colAP; HP and buckshot colHP
 	UINT8   colCount;        // stack count colour
 	UINT8   colJammed;       // "JAMMED" colour
 };

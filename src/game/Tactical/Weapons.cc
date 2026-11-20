@@ -1149,6 +1149,7 @@ static void UseGun(SOLDIERTYPE * const pSoldier, GridNo const sTargetGridNo)
 			switch ( pSoldier->inv[ pSoldier->ubAttackingHand ].ubGunAmmoType )
 			{
 				case AMMO_BUCKSHOT:
+				case AMMO_FLECHETTE: // pellets like buckshot, armour like super AP
 					fBuckshot = TRUE;
 					break;
 				case AMMO_SLEEP_DART:
@@ -2960,6 +2961,7 @@ INT32 CalcBodyImpactReduction( UINT8 ubAmmoType, UINT8 ubHitLocation )
 			iReduction = AMMO_ARMOUR_ADJUSTMENT_AP( iReduction );
 			break;
 		case AMMO_SUPER_AP:
+		case AMMO_FLECHETTE:
 			iReduction = AMMO_ARMOUR_ADJUSTMENT_SAP( iReduction );
 			break;
 		default:
@@ -3004,6 +3006,7 @@ static INT32 ArmourProtection(SOLDIERTYPE const& pTarget, UINT16 const usItemInd
 			iProtection = AMMO_ARMOUR_ADJUSTMENT_AP( iProtection );
 			break;
 		case AMMO_SUPER_AP:
+		case AMMO_FLECHETTE:
 			iProtection = AMMO_ARMOUR_ADJUSTMENT_SAP( iProtection );
 			break;
 		default:
@@ -3203,7 +3206,7 @@ INT32 BulletImpact( SOLDIERTYPE *pFirer, SOLDIERTYPE * pTarget, UINT8 ubHitLocat
 			iImpact = (iOrigImpact + 5) / 10;
 		}
 
-		if ( (ubAmmoType == AMMO_BUCKSHOT) && (pTarget->bNumPelletsHitBy > 0) )
+		if (IsPelletAmmo(ubAmmoType) && pTarget->bNumPelletsHitBy > 0)
 		{
 			iImpact += (pTarget->bNumPelletsHitBy - 1)  / 2;
 		}

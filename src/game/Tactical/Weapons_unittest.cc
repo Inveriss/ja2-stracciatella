@@ -320,10 +320,28 @@ TEST(WeaponsTest, DualBurstRulesAndCosts)
 	EXPECT_EQ(DualBurstBulletsLeft(s), 2);
 	s.inv[HANDPOS].ubGunAmmoType = AMMO_BUCKSHOT;
 	EXPECT_EQ(DualBurstBulletsLeft(s), 2 * NUM_BUCKSHOT_PELLETS);
+	s.inv[HANDPOS].ubGunAmmoType = AMMO_FLECHETTE;
+	EXPECT_EQ(DualBurstBulletsLeft(s), 2 * NUM_BUCKSHOT_PELLETS);
 
 	delete cm;
 }
 
+
+// 12 gauge flechette: pellets like buckshot, through armour, bodies and
+// structures like super AP
+TEST(WeaponsTest, FlechetteAmmo)
+{
+	EXPECT_TRUE(IsPelletAmmo(AMMO_BUCKSHOT));
+	EXPECT_TRUE(IsPelletAmmo(AMMO_FLECHETTE));
+	EXPECT_FALSE(IsPelletAmmo(AMMO_REGULAR));
+	EXPECT_FALSE(IsPelletAmmo(AMMO_SUPER_AP));
+
+	for (UINT8 const loc : { AIM_SHOT_HEAD, AIM_SHOT_TORSO, AIM_SHOT_LEGS })
+	{
+		EXPECT_EQ(CalcBodyImpactReduction(AMMO_FLECHETTE, loc), CalcBodyImpactReduction(AMMO_SUPER_AP, loc));
+		EXPECT_LT(CalcBodyImpactReduction(AMMO_FLECHETTE, loc), CalcBodyImpactReduction(AMMO_BUCKSHOT, loc));
+	}
+}
 
 TEST(WeaponsTest, NewTargetAPCharge)
 {

@@ -1381,6 +1381,7 @@ static INT32 EstimateShotDamage(SOLDIERTYPE* pSoldier, SOLDIERTYPE* pOpponent, U
 			iTotalProt = AMMO_ARMOUR_ADJUSTMENT_AP( iTotalProt );
 			break;
 		case AMMO_SUPER_AP:
+		case AMMO_FLECHETTE:
 			iTotalProt = AMMO_ARMOUR_ADJUSTMENT_SAP( iTotalProt );
 			break;
 		default:

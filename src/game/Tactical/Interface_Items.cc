@@ -98,7 +98,6 @@
 
 #define ITEMDESC_FONTAPFORE				218
 #define ITEMDESC_FONTHPFORE				24
-#define ITEMDESC_FONTBSFORE				125
 #define ITEMDESC_FONTHEFORE				75
 #define ITEMDESC_FONTHEAPFORE				76
 
@@ -1661,7 +1660,6 @@ static_assert(std::size(gSMInvDataTacBig) == NUM_INV_SLOTS, "one gSMInvDataTacBi
 #define MAP_BIG_STACK_TEXT_FROM_BOTTOM  12
 #define MAP_BIG_COUNT_COL_AP            218
 #define MAP_BIG_COUNT_COL_HP            203
-#define MAP_BIG_COUNT_COL_BUCKSHOT      125
 #define MAP_BIG_COUNT_COL_HE            75
 #define MAP_BIG_COUNT_COL_HEAP          76
 #define MAP_BIG_COUNT_COL_AMMO          FONT_WHITE
@@ -2987,7 +2985,7 @@ InvItemTextLayout GetMapInvBigItemTextLayout()
 		has_glyphs ? MAP_BIG_COUNT_FONT : ITEM_FONT,
 		MAP_BIG_AMMO_TEXT_X, MAP_BIG_AMMO_TEXT_FROM_BOTTOM,
 		MAP_BIG_STACK_TEXT_FROM_RIGHT, MAP_BIG_STACK_TEXT_FROM_BOTTOM,
-		MAP_BIG_COUNT_COL_AP, MAP_BIG_COUNT_COL_HP, MAP_BIG_COUNT_COL_BUCKSHOT,
+		MAP_BIG_COUNT_COL_AP, MAP_BIG_COUNT_COL_HP,
 		MAP_BIG_COUNT_COL_HE, MAP_BIG_COUNT_COL_HEAP, MAP_BIG_COUNT_COL_AMMO,
 		MAP_BIG_COUNT_COL_STACK, MAP_BIG_COUNT_COL_JAMMED };
 }
@@ -3052,9 +3050,10 @@ void INVRenderItem(SGPVSurface* const buffer, SOLDIERTYPE const* const s, OBJECT
 			switch (o.ubGunAmmoType)
 			{
 				case AMMO_AP:
-				case AMMO_SUPER_AP: colour = layout ? layout->colAP          : ITEMDESC_FONTAPFORE;   break;
-				case AMMO_HP:       colour = layout ? layout->colHP          : ITEMDESC_FONTHPFORE;   break;
-				case AMMO_BUCKSHOT: colour = layout ? layout->colBuckshot    : ITEMDESC_FONTBSFORE;   break;
+				case AMMO_SUPER_AP:
+				case AMMO_FLECHETTE: colour = layout ? layout->colAP         : ITEMDESC_FONTAPFORE;   break;
+				case AMMO_HP:
+				case AMMO_BUCKSHOT: colour = layout ? layout->colHP          : ITEMDESC_FONTHPFORE;   break;
 				case AMMO_HE:       colour = layout ? layout->colHE          : ITEMDESC_FONTHEFORE;   break;
 				case AMMO_HEAT:     colour = layout ? layout->colHEAP        : ITEMDESC_FONTHEAPFORE; break;
 				default:            colour = layout ? layout->colAmmoDefault : FONT_MCOLOR_DKGRAY;    break;
@@ -3442,8 +3441,10 @@ void InternalInitItemDescriptionBox(OBJECTTYPE* const o, const INT16 sX, const I
 		switch (o->ubGunAmmoType)
 		{
 			case AMMO_AP:
-			case AMMO_SUPER_AP: img = 5; break;
-			case AMMO_HP:       img = 9; break;
+			case AMMO_SUPER_AP:
+			case AMMO_FLECHETTE: img = 5; break;
+			case AMMO_HP:
+			case AMMO_BUCKSHOT:  img = 9; break;
 			default:            img = 1; break;
 		}
 		// Ammo-type icons (indices 1-12) live in a separate .sti from the
@@ -3756,8 +3757,10 @@ static void RefreshItemDescAmmoIcon(void)
 	switch (gpItemDescObject->ubGunAmmoType)
 	{
 		case AMMO_AP:
-		case AMMO_SUPER_AP: img = 5; break;
-		case AMMO_HP:       img = 9; break;
+		case AMMO_SUPER_AP:
+		case AMMO_FLECHETTE: img = 5; break;
+		case AMMO_HP:
+		case AMMO_BUCKSHOT:  img = 9; break;
 		default:            img = 1; break;
 	}
 
