@@ -102,8 +102,8 @@
         "CLIP12G_7_FLECHETTE": 9,
         "CLIP12G_7_BUCKSHOT": 9,
 
-        "CLIPCAWS_10_SAP": 5,
-        "CLIPCAWS_10_FLECH": 3,
+        "CLIPCAWS_10_FLECHETTE": 5,
+        "CLIPCAWS_10_BUCKSHOT": 3,
 
         "CLIPROCKET_AP": 3,
         "CLIPROCKET_HE": 1,

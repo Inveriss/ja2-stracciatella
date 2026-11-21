@@ -831,15 +831,15 @@
         "bobbyRayDescription": "The ideal short-range man-stopper round. This 12 gauge magazine holds 7 rounds of '00' SSG ammunition. Law enforcement personnel worldwide favor this round for its effectiveness in urban firefights against unarmored opponents."
     },
     {
-        "internalName": "CLIPCAWS_10_SAP",
+        "internalName": "CLIPCAWS_10_FLECHETTE",
         "shortName": "CAWS mag",
         "name": "CAWS Magazine",
-        "description": "This 10-round CAWS magazine is quite simply brimming with destruction. Each round contains a single tungsten steel composite slug capable of tearing through most forms of body armor and car engine blocks.",
+        "description": "This 10-round CAWS magazine is quite simply brimming with destruction. Each round contains a nine tungsten steel composite slugs capable of tearing through most forms of body armor and car engine blocks.",
         "bobbyRayName": "CAWS Magazine",
-        "bobbyRayDescription": "This 10 round CAWS magazine is quite simply brimming with destruction. Each round contains a single tungsten steel composite slug capable of tearing through most forms of body armor and most car engine blocks. No serious mercenary should leave home-base without it."
+        "bobbyRayDescription": "This 10 round CAWS magazine is quite simply brimming with destruction. Each round contains a nine single tungsten steel composite slugs capable of tearing through most forms of body armor and most car engine blocks. No serious mercenary should leave home-base without it."
     },
     {
-        "internalName": "CLIPCAWS_10_FLECH",
+        "internalName": "CLIPCAWS_10_BUCKSHOT",
         "shortName": "CAWS Buckshot",
         "name": "CAWS Magazine, Buckshot",
         "description": "The 10 rounds of \"00\" sized tungsten buckshot ammunition in this mag can penetrate like armor piercing ammo and produce large wound channels like hollow point without with the limitations of either ammo.",

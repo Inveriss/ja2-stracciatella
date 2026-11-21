@@ -32,15 +32,15 @@ TEST(Items, bug120_cawsAmmo)
 	DefaultContentManager * cm = DefaultContentManagerUT::createDefaultCMForTesting();
 	ASSERT_TRUE(cm->loadGameData());
 
-	// test SAP clip parameters
-	const MagazineModel* sapClip = cm->getMagazineByName("CLIPCAWS_10_SAP");
-	EXPECT_EQ(sapClip->calibre->internalName, ST::string("AMMOCAWS"));
-	EXPECT_EQ(sapClip->ammoType->internalName, ST::string("AMMO_SUPER_AP"));
-
-	// test FLECH clip parameters
-	const MagazineModel* flechClip = cm->getMagazineByName("CLIPCAWS_10_FLECH");
+	// test flechette clip parameters
+	const MagazineModel* flechClip = cm->getMagazineByName("CLIPCAWS_10_FLECHETTE");
 	EXPECT_EQ(flechClip->calibre->internalName, ST::string("AMMOCAWS"));
-	EXPECT_EQ(flechClip->ammoType->internalName, ST::string("AMMO_BUCKSHOT"));
+	EXPECT_EQ(flechClip->ammoType->internalName, ST::string("AMMO_FLECHETTE"));
+
+	// test buckshot clip parameters
+	const MagazineModel* buckshotClip = cm->getMagazineByName("CLIPCAWS_10_BUCKSHOT");
+	EXPECT_EQ(buckshotClip->calibre->internalName, ST::string("AMMOCAWS"));
+	EXPECT_EQ(buckshotClip->ammoType->internalName, ST::string("AMMO_BUCKSHOT"));
 
 	delete cm;
 }
@@ -73,15 +73,15 @@ TEST(Items, bug120_cawsDefaultMag)
 	const WeaponModel *caws = cm->getWeaponByName("CAWS");
 	ASSERT_TRUE(caws != NULL);
 
-	const MagazineModel* flechClip = cm->getMagazineByName("CLIPCAWS_10_FLECH");
-	const MagazineModel* sapClip = cm->getMagazineByName("CLIPCAWS_10_SAP");
+	const MagazineModel* buckshotClip = cm->getMagazineByName("CLIPCAWS_10_BUCKSHOT");
+	const MagazineModel* flechClip = cm->getMagazineByName("CLIPCAWS_10_FLECHETTE");
+	ASSERT_TRUE(buckshotClip != NULL);
 	ASSERT_TRUE(flechClip != NULL);
-	ASSERT_TRUE(sapClip != NULL);
 
-	EXPECT_EQ(DefaultMagazine(caws->getItemIndex()), flechClip->getItemIndex());
+	EXPECT_EQ(DefaultMagazine(caws->getItemIndex()), buckshotClip->getItemIndex());
 
-	EXPECT_EQ(FindReplacementMagazine(sapClip->calibre, 10, AMMO_BUCKSHOT), flechClip->getItemIndex());
-	EXPECT_EQ(FindReplacementMagazine(sapClip->calibre, 10, AMMO_SUPER_AP), sapClip->getItemIndex());
+	EXPECT_EQ(FindReplacementMagazine(flechClip->calibre, 10, AMMO_BUCKSHOT),  buckshotClip->getItemIndex());
+	EXPECT_EQ(FindReplacementMagazine(flechClip->calibre, 10, AMMO_FLECHETTE), flechClip->getItemIndex());
 
 	delete cm;
 }

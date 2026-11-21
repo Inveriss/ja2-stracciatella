@@ -6304,7 +6304,7 @@
       },
       {
         "slot": "SMALLPOCK1",
-        "item": "CLIPCAWS_10_FLECH"
+        "item": "CLIPCAWS_10_BUCKSHOT"
       }
     ],
     "money": 20,
@@ -9938,7 +9938,7 @@
       },
       {
         "slot": "BIGPOCK2",
-        "item": "CLIPCAWS_10_FLECH"
+        "item": "CLIPCAWS_10_BUCKSHOT"
       }
     ],
     "dialogue": [
