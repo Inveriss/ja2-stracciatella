@@ -832,11 +832,11 @@
     },
     {
         "internalName": "CLIPCAWS_10_FLECHETTE",
-        "shortName": "CAWS mag",
-        "name": "CAWS Magazine",
-        "description": "This 10-round CAWS magazine is quite simply brimming with destruction. Each round contains a nine tungsten steel composite slugs capable of tearing through most forms of body armor and car engine blocks.",
-        "bobbyRayName": "CAWS Magazine",
-        "bobbyRayDescription": "This 10 round CAWS magazine is quite simply brimming with destruction. Each round contains a nine single tungsten steel composite slugs capable of tearing through most forms of body armor and most car engine blocks. No serious mercenary should leave home-base without it."
+        "shortName": "CAWS Flechette",
+        "name": "CAWS Magazine, Flechette",
+        "description": "This 10-round CAWS magazine is quite simply brimming with destruction. Each round contains nine tungsten steel composite flechettes capable of tearing through most forms of body armor and car engine blocks.",
+        "bobbyRayName": "CAWS Magazine, Flechette",
+        "bobbyRayDescription": "This 10 round CAWS magazine is quite simply brimming with destruction. Each round contains nine tungsten steel composite flechettes capable of tearing through most forms of body armor and most car engine blocks. No serious mercenary should leave home-base without it."
     },
     {
         "internalName": "CLIPCAWS_10_BUCKSHOT",
